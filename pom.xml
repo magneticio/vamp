@@ -18,6 +18,10 @@
         <module>rest_api_spec</module>
         <module>operations</module>
         <module>tools</module>
+        <!-- should be external projects -->
+        <module>vamp_common</module>
+        <module>marathon</module>
+        <module>vamp_router</module>
     </modules>
 
     <properties>
