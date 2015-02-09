@@ -14,9 +14,15 @@
     <url>http://maven.apache.org</url>
 
     <properties>
+        <snakeyaml.version>1.14</snakeyaml.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>${snakeyaml.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

@@ -29,6 +29,7 @@
         <scala-library.version>2.11.4</scala-library.version>
         <java.version>1.8</java.version>
         <junit.version>4.11</junit.version>
+        <scalatest.version>2.2.4</scalatest.version>
         <maven-scala-plugin.version>2.15.2</maven-scala-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -43,6 +44,12 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.11</artifactId>
+            <version>${scalatest.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
