@@ -1,97 +1,62 @@
 {
-  "id": "/product/service/my-app",
-  "cmd": "env && sleep 300",
-  "args": ["/bin/sh", "-c", "env && sleep 300"],
+  "id": "/2/mysql/mysql",
+  "cmd": null,
+  "args": [ ],
+  "user": null,
+  "env": {
+    "MYSQL_PASS": "secret"
+  },
+  "instances": 1,
+  "cpus": 1,
+  "mem": 1024,
+  "disk": 0,
+  "executor": "",
+  "constraints": [ ],
+  "uris": [ ],
+  "storeUrls": [ ],
+  "ports": [
+    32767
+  ],
+  "requirePorts": false,
+  "backoffFactor": 1.15,
   "container": {
     "type": "DOCKER",
+    "volumes": [ ],
     "docker": {
-      "image": "group/image",
+      "image": "tutum/mysql:5.5",
       "network": "BRIDGE",
       "portMappings": [
         {
-          "containerPort": 8080,
+          "containerPort": 3306,
           "hostPort": 0,
-          "servicePort": 9000,
+          "servicePort": 32767,
           "protocol": "tcp"
-        },
-        {
-          "containerPort": 161,
-          "hostPort": 0,
-          "protocol": "udp"
         }
-      ],
-      "privileged": false,
-      "parameters": {
-        "a-docker-option": "xxx",
-        "b-docker-option": "yyy"
-      }
-    },
-    "volumes": [
-      {
-        "containerPath": "/etc/a",
-        "hostPath": "/var/data/a",
-        "mode": "RO"
-      },
-      {
-        "containerPath": "/etc/b",
-        "hostPath": "/var/data/b",
-        "mode": "RW"
-      }
-    ]
-  },
-  "cpus": 1.5,
-  "mem": 256.0,
-  "deployments": [
-    {
-      "id": "5cd987cd-85ae-4e70-8df7-f1438367d9cb"
+      ]
     }
-  ],
-  "env": {
-    "LD_LIBRARY_PATH": "/usr/local/lib/myLib"
   },
-  "executor": "",
-  "constraints": [
-    ["attribute", "OPERATOR", "value"]
-  ],
-  "healthChecks": [
-    {
-      "protocol": "HTTP",
-      "path": "/health",
-      "gracePeriodSeconds": 3,
-      "intervalSeconds": 10,
-      "portIndex": 0,
-      "timeoutSeconds": 10,
-      "maxConsecutiveFailures": 3
-    },
-    {
-      "protocol": "TCP",
-      "gracePeriodSeconds": 3,
-      "intervalSeconds": 5,
-      "portIndex": 1,
-      "timeoutSeconds": 5,
-      "maxConsecutiveFailures": 3
-    },
-    {
-      "protocol": "COMMAND",
-      "command": { "value": "curl -f -X GET http://$HOST:$PORT0/health" },
-      "maxConsecutiveFailures": 3
-    }
-  ],
-  "instances": 3,
-  "ports": [
-    8080,
-    9000
-  ],
-  "backoffSeconds": 1,
-  "backoffFactor": 1.15,
-  "tasksRunning": 3,
-  "tasksStaged": 0,
-  "uris": [
-    "https://raw.github.com/mesosphere/marathon/master/README.md"
-  ],
-  "dependencies": ["/product/db/mongo", "/product/db", "../../db"],
+  "healthChecks": [ ],
+  "dependencies": [ ],
   "upgradeStrategy": {
-    "minimumHealthCapacity": 0.5
+    "minimumHealthCapacity": 1
   },
-  "version": "2014-03-01T23:29:30.158Z"
+  "version": "2015-02-10T17:30:42.165Z",
+  "deployments": [ ],
+  "tasks": [
+    {
+      "appId": "/2/mysql/mysql",
+      "id": "2_mysql_mysql.8a3a4b96-b14a-11e4-a2da-42010a144faf",
+      "host": "10.127.220.28",
+      "ports": [
+        31000
+      ],
+      "startedAt": "2015-02-10T17:57:46.186Z",
+      "stagedAt": "2015-02-10T17:30:43.274Z",
+      "version": "2015-02-10T17:30:42.165Z"
+    }
+  ],
+  "lastTaskFailure": null,
+  "tasksStaged": 0,
+  "tasksRunning": 1,
+  "backoffSeconds": 1
 }
