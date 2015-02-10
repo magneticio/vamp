@@ -10,25 +10,33 @@ case class Breed(override val name: String, deployable: Deployable, traits: List
 
 case class Deployable(override val name: String) extends Artifact
 
-case class Trait(override val name: String, alias: String, value: String, `type`: Type.Value, direction: Direction.Value) extends Artifact {
+case class Trait(override val name: String, alias: String, value: String, `type`: Trait.Type.Value, direction: Trait.Direction.Value) extends Artifact {
 
-  object Port extends Enumeration {
-    val HTTP, TCP = Value
-  }
 
-  def portType: Option[Port.Value] = `type` match {
-    case Type.Port => if (value.toLowerCase.endsWith("/http")) Some(Port.HTTP) else Some(Port.TCP)
+
+  def portType: Option[Trait.Port.Value] = `type` match {
+    case Trait.Type.Port => if (value.toLowerCase.endsWith("/http")) Some(Trait.Port.HTTP) else Some(Trait.Port.TCP)
     case _ => None
   }
 }
 
-object Type extends Enumeration {
-  val Port, EnvironmentVariable, Volume = Value
+object Trait {
+  object Port extends Enumeration {
+    val HTTP, TCP = Value
+  }
+
+  object Type extends Enumeration {
+    val Port, EnvironmentVariable, Volume = Value
+  }
+
+  object Direction extends Enumeration {
+    val IN, OUT = Value
+  }
 }
 
-object Direction extends Enumeration {
-  val IN, OUT = Value
-}
+
+
+
 
 // Blueprint
 
