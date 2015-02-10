@@ -14,9 +14,25 @@
     <url>http://maven.apache.org</url>
 
     <properties>
+        <dispatch.version>0.11.2</dispatch.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>io.magnetic</groupId>
+            <artifactId>vamp_common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.databinder.dispatch</groupId>
+            <artifactId>dispatch-core_2.11</artifactId>
+            <version>${dispatch.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.databinder.dispatch</groupId>
+            <artifactId>dispatch-json4s-native_2.11</artifactId>
+            <version>${dispatch.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

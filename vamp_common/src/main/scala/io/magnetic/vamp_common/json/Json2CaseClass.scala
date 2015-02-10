@@ -3,9 +3,9 @@ package io.magnetic.vamp_common.json
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
-import java.util
 
 import com.typesafe.scalalogging.Logger
+import io.magnetic.vamp_common.text.Text
 import org.apache.commons.cli._
 import org.slf4j.LoggerFactory
 import org.yaml.snakeyaml.Yaml
@@ -67,12 +67,12 @@ object Json2CaseClass {
 
   def buildCaseClass(`package`: String, rootClassName: String, source: String, exclude: Set[String] = Set()): String = {
     val stack = new Queue[CaseClass]
-    addCaseClass(stack, "", rootClassName, new Yaml().load(source).asInstanceOf[java.util.Map[String, AnyRef]].asScala, exclude)
+    addCaseClass(stack, "", Text.toUpperCamelCase(rootClassName), new Yaml().load(source).asInstanceOf[java.util.Map[String, AnyRef]].asScala, exclude)
     s"package ${`package`}$newLine${stack.map(_.toString).toList.mkString(newLine)}"
   }
 
   private def addCaseClass(stack: Queue[CaseClass], path: String, className: String, template: scala.collection.mutable.Map[String, AnyRef], exclude: Set[String]): Unit = {
-    stack += new CaseClass(className.capitalize, template.map {
+    stack += new CaseClass(className, template.map {
       case (name, value) => value match {
         case v: java.lang.String => new CaseClassField(name, "String")
         case v: java.lang.Boolean => new CaseClassField(name, "Boolean")
@@ -85,8 +85,9 @@ object Json2CaseClass {
           if (exclude.contains(fieldPath))
             new CaseClassField(name, "Map[String, AnyRef]")
           else {
-            addCaseClass(stack, fieldPath, name.capitalize, v.asInstanceOf[java.util.Map[String, AnyRef]].asScala, exclude)
-            new CaseClassField(name, name.capitalize)
+            val className = Text.toUpperCamelCase(name.capitalize)
+            addCaseClass(stack, fieldPath, className, v.asInstanceOf[java.util.Map[String, AnyRef]].asScala, exclude)
+            new CaseClassField(name, className)
           }
 
         case _ => new CaseClassField(name, "AnyRef")
@@ -112,7 +113,7 @@ private case class CaseClass(name: String, fields: List[CaseClassField]) {
 
 private case class CaseClassField(name: String, `class`: String) {
   override def toString: String = {
-    val fieldName = handleReserved(handleInvalidCharacters(name))
+    val fieldName = handleReserved(Text.toLowerCamelCase(handleInvalidCharacters(name)))
     s"$fieldName: ${`class`}"
   }
 
