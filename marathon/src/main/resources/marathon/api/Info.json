@@ -36,7 +36,6 @@
     },
     "zk_hosts": "localhost:2181",
     "zk_path": "/marathon",
-    "zk_state": "/marathon",
     "zk_timeout": 10
   }
 }

@@ -3,15 +3,16 @@ package io.magnetic.vamp_common.json
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
-import java.util
 
 import com.typesafe.scalalogging.Logger
+import io.magnetic.vamp_common.text.Text
 import org.apache.commons.cli._
+import org.json4s.JsonAST.JArray
+import org.json4s._
+import org.json4s.native.JsonMethods
 import org.slf4j.LoggerFactory
-import org.yaml.snakeyaml.Yaml
 
-import scala.collection.JavaConverters._
-import scala.collection.mutable.Queue
+import scala.collection.mutable
 import scala.io.Source
 
 object Json2CaseClass {
@@ -26,9 +27,14 @@ object Json2CaseClass {
     options.addOption("s", "source", true, "source directory")
     options.addOption("d", "destination", true, "destination directory")
     options.addOption("p", "package", true, "package name")
-    val option = new Option("e", "exclude", true, "exclusion filter")
-    option.setArgs(Option.UNLIMITED_VALUES)
-    options.addOption(option)
+
+    val excludeOption = new Option("e", "exclude", true, "exclusion filter")
+    excludeOption.setArgs(Option.UNLIMITED_VALUES)
+    options.addOption(excludeOption)
+
+    val optionalOption = new Option("o", "optional", true, "optional fields")
+    optionalOption.setArgs(Option.UNLIMITED_VALUES)
+    options.addOption(optionalOption)
 
     val parser: CommandLineParser = new GnuParser
     val line: CommandLine = parser.parse(options, arguments)
@@ -40,15 +46,16 @@ object Json2CaseClass {
       val destinationDirectory = line.getOptionValue("destination")
       val packageName = if (line.hasOption("package")) line.getOptionValue("package") else ""
       val exclude = if (line.hasOption("exclude")) line.getOptionValues("exclude").toSet else Set[String]()
+      val optional = if (line.hasOption("optional")) line.getOptionValues("optional").toSet else Set[String]()
 
-      generate(packageName, sourceDirectory, destinationDirectory, exclude)
+      generate(packageName, sourceDirectory, destinationDirectory, exclude, optional)
     }
     else printHelp(options)
   }
 
   private def printHelp(options: Options) = new HelpFormatter().printHelp("Json2CaseClass", options)
 
-  def generate(`package`: String, sourceDirectory: String, destinationDirectory: String, exclude: Set[String] = Set()) = {
+  def generate(`package`: String, sourceDirectory: String, destinationDirectory: String, exclude: Set[String] = Set(), optional: Set[String] = Set()) = {
     for (file <- new java.io.File(sourceDirectory).listFiles if file.getName endsWith ".json") {
 
       val fileName = file.getName
@@ -57,63 +64,74 @@ object Json2CaseClass {
       val rootClassName = fileName.substring(0, fileName.length - ".json".length).capitalize
       val source = Source.fromFile(file).mkString
       val excludeFilter = exclude.filter(_.startsWith(s"$fileName/")).map(_.substring(s"$fileName/".length)).toSet
+      val optionalFilter = optional.filter(_.startsWith(s"$fileName/")).map(_.substring(s"$fileName/".length)).toSet
 
-      val result = buildCaseClass(`package`, rootClassName, source, excludeFilter)
+      val result = buildCaseClass(`package`, rootClassName, source, excludeFilter, optionalFilter)
       val outputFileName = s"$destinationDirectory${File.separator}$rootClassName.scala"
       logger.info(s"Writing to file: $outputFileName")
       Files.write(Paths.get(outputFileName), result.getBytes(StandardCharsets.UTF_8))
     }
   }
 
-  def buildCaseClass(`package`: String, rootClassName: String, source: String, exclude: Set[String] = Set()): String = {
-    val stack = new Queue[CaseClass]
-    addCaseClass(stack, "", rootClassName, new Yaml().load(source).asInstanceOf[java.util.Map[String, AnyRef]].asScala, exclude)
+  def buildCaseClass(`package`: String, rootClassName: String, source: String, exclude: Set[String] = Set(), optional: Set[String] = Set()): String = {
+    val stack = new mutable.Queue[CaseClass]
+    addCaseClass(stack, "", Text.toUpperCamelCase(rootClassName), JsonMethods.parse(source).asInstanceOf[JObject], exclude, optional)
     s"package ${`package`}$newLine${stack.map(_.toString).toList.mkString(newLine)}"
   }
 
-  private def addCaseClass(stack: Queue[CaseClass], path: String, className: String, template: scala.collection.mutable.Map[String, AnyRef], exclude: Set[String]): Unit = {
-    stack += new CaseClass(className.capitalize, template.map {
-      case (name, value) => value match {
-        case v: java.lang.String => new CaseClassField(name, "String")
-        case v: java.lang.Boolean => new CaseClassField(name, "Boolean")
-        case v: java.lang.Integer => new CaseClassField(name, "Int")
-        case v: java.lang.Double => new CaseClassField(name, "Double")
-        case v: java.util.List[_] => new CaseClassField(name, fieldListType(v.asScala.toList))
-        case v: java.util.Map[_, _] =>
-          val fieldPath = if (path.isEmpty) name else s"$path/$name"
+  private def addCaseClass(stack: mutable.Queue[CaseClass], path: String, className: String, template: JObject, exclude: Set[String], optional: Set[String]): Unit = {
 
-          if (exclude.contains(fieldPath))
-            new CaseClassField(name, "Map[String, AnyRef]")
-          else {
-            addCaseClass(stack, fieldPath, name.capitalize, v.asInstanceOf[java.util.Map[String, AnyRef]].asScala, exclude)
-            new CaseClassField(name, name.capitalize)
-          }
-
-        case _ => new CaseClassField(name, "AnyRef")
-      }
+    stack += new CaseClass(className, template.obj.map {
+      case JField(name, value) =>
+        val field = fieldPath(path, name)
+        value match {
+          case JNull => new CaseClassField(name, "AnyRef", optional = optional.contains(field))
+          case JNothing => new CaseClassField(name, "AnyRef", optional = optional.contains(field))
+          case v: JArray => processJArray(v, path, name, exclude, optional, stack)
+          case v: JObject => processJObject(v, path, name, exclude, optional, stack)
+          case v: JValue => new CaseClassField(name, jValue2ClassName(v), optional = optional.contains(field))
+          case _ => new CaseClassField(name, "AnyRef", optional = optional.contains(field))
+        }
     }.toList)
   }
 
-  private def fieldListType(list: List[Any]): String = {
-    val elementType = if (list.map(_.getClass).toSet.size == 1) list.head match {
-      case v: java.lang.Boolean => "Boolean"
-      case v: java.lang.Integer => "Int"
-      case v: java.lang.Double => "Double"
-      case _ => "AnyRef"
-    } else "Any"
-
-    s"List[$elementType]"
+  private def processJArray(jArray: JArray, path: String, name: String, exclude: Set[String], optional: Set[String], stack: mutable.Queue[CaseClass]): CaseClassField = {
+    val field = fieldPath(path, name)
+    if (jArray.arr.map(_.getClass).toSet.size == 1) {
+      jArray.arr.head match {
+        case v: JObject => processJObject(v, path, name, exclude, optional, stack)
+        case v => new CaseClassField(name, s"List[${jValue2ClassName(v)}]", optional = optional.contains(field))
+      }
+    } else new CaseClassField(name, s"List[Any]", optional = optional.contains(field))
   }
+
+  private def processJObject(jObject: JObject, path: String, name: String, exclude: Set[String], optional: Set[String], stack: mutable.Queue[CaseClass]): CaseClassField = {
+    val field = fieldPath(path, name)
+    if (exclude.contains(field))
+      new CaseClassField(name, "Map[String, AnyRef]", optional = optional.contains(field))
+    else {
+      val className = Text.toUpperCamelCase(name.capitalize)
+      addCaseClass(stack, field, className, jObject, exclude, optional)
+      new CaseClassField(name, className, optional = optional.contains(field))
+    }
+  }
+
+  private def jValue2ClassName(jValue: JValue): String = jValue.values.getClass.getSimpleName match {
+    case "BigInt" => "Int"
+    case s => s
+  }
+
+  private def fieldPath(path: String, name: String) = if (path.isEmpty) name else s"$path/$name"
 }
 
 private case class CaseClass(name: String, fields: List[CaseClassField]) {
   override def toString: String = s"case class $name(${fields.map(_.toString).toList.mkString(", ")})"
 }
 
-private case class CaseClassField(name: String, `class`: String) {
+private case class CaseClassField(name: String, `class`: String, optional: Boolean) {
   override def toString: String = {
-    val fieldName = handleReserved(handleInvalidCharacters(name))
-    s"$fieldName: ${`class`}"
+    val fieldName = handleReserved(Text.toLowerCamelCase(handleInvalidCharacters(name)))
+    if (optional) s"$fieldName: Option[${`class`}]" else s"$fieldName: ${`class`}"
   }
 
   private def handleInvalidCharacters(s: String): String = {
