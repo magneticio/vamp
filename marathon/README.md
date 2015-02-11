@@ -7,4 +7,5 @@
     -d src/main/scala/io/magnetic/marathon/client/api
     -p io.magnetic.marathon.client.api
     -e App.json/container/docker/parameters App.json/env
+    -o App.json/tasks
 
