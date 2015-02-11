@@ -6,7 +6,9 @@ trait Artifact {
 
 // Breed
 
-case class Breed(override val name: String, deployable: Deployable, traits: List[Trait], dependencies: Map[String, Breed]) extends Artifact
+case class Breed(override val name: String, deployable: Deployable, traits: List[Trait], dependencies: List[BreedDependency]) extends Artifact
+
+case class BreedDependency(override val name: String) extends Artifact
 
 case class Deployable(override val name: String) extends Artifact
 
