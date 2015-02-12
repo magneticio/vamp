@@ -6,16 +6,22 @@ trait Artifact {
 
 // Breed
 
-case class Breed(override val name: String, deployable: Deployable, traits: List[Trait], dependencies: List[BreedDependency]) extends Artifact
+case class Breed(override val name: String, deployable: Deployable, traits: List[Trait], dependencies: Map[String, Dependency]) extends Artifact {
+  def ports: List[Trait] = traits.filter(_.`type` == Trait.Type.Port)
+  def environmentVariables: List[Trait] = traits.filter(_.`type` == Trait.Type.EnvironmentVariable)
+}
 
-case class BreedDependency(override val name: String) extends Artifact
+case class Dependency(override val name: String) extends Artifact
 
 case class Deployable(override val name: String) extends Artifact
 
-case class Trait(override val name: String, alias: String, value: String, `type`: Trait.Type.Value, direction: Trait.Direction.Value) extends Artifact {
+case class Trait(override val name: String, alias: Option[String], value: Option[String], `type`: Trait.Type.Value, direction: Trait.Direction.Value) extends Artifact {
 
   def portType: Option[Trait.Port.Value] = `type` match {
-    case Trait.Type.Port => if (value.toLowerCase.endsWith("/http")) Some(Trait.Port.HTTP) else Some(Trait.Port.TCP)
+    case Trait.Type.Port => value match {
+      case None => Some(Trait.Port.Tcp)
+      case Some(v) => if (v.toLowerCase.endsWith("/http")) Some(Trait.Port.Http) else Some(Trait.Port.Tcp)
+    }
     case _ => None
   }
 }
@@ -23,7 +29,7 @@ case class Trait(override val name: String, alias: String, value: String, `type`
 object Trait {
 
   object Port extends Enumeration {
-    val HTTP, TCP = Value
+    val Http, Tcp = Value
   }
 
   object Type extends Enumeration {
@@ -31,9 +37,8 @@ object Trait {
   }
 
   object Direction extends Enumeration {
-    val IN, OUT = Value
+    val In, Out = Value
   }
-
 }
 
 // Blueprint
