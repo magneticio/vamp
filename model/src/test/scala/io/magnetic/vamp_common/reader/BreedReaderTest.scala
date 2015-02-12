@@ -45,16 +45,16 @@ class BreedReaderTest extends FlatSpec with Matchers {
     )
   }
 
-//  it should "read the YAML source with value expansion" in {
-//    BreedReader.read(res("input4.yml")) should have(
-//      'name("monarch"),
-//      'deployable(Deployable("magneticio/monarch:latest")),
-//      'traits(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out), Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
-//      'ports(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out))),
-//      'environmentVariables(List(Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
-//      'dependencies(Map("db" -> Dependency("mysql")))
-//    )
-//  }
+  it should "read the YAML source with value expansion" in {
+    BreedReader.read(res("input4.yml")) should have(
+      'name("monarch"),
+      'deployable(Deployable("magneticio/monarch:latest")),
+      'traits(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out), Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
+      'ports(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out))),
+      'environmentVariables(List(Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
+      'dependencies(Map("db" -> Dependency("mysql")))
+    )
+  }
 
   def res(path: String): String = Source.fromURL(getClass.getResource(path)) mkString
 }
