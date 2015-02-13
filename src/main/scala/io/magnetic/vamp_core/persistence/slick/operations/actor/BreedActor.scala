@@ -5,7 +5,6 @@ import akka.actor.Actor.Receive
 import io.magnetic.vamp_core.persistence.common.operations.message.{Messages, Response}
 import Messages._
 import io.magnetic.vamp_core.model.Breed
-import io.magnetic.persistence.slick.model._
 import io.magnetic.vamp_core.persistence.common.operations.message.Messages.{OperationSuccess, NotFound}
 import io.magnetic.vamp_core.persistence.common.operations.message.Response
 import io.magnetic.vamp_core.persistence.slick.model.{Schema, DependencyType, Implicits}
@@ -37,7 +36,7 @@ class BreedActor(schema: Schema) extends DbActor(schema){
         deleteBreed(breed.name)
         breedsQuery += BreedModel.fromVamp(breed)
         traitsQuery ++= breed.traits.map((tr) => TraitModel.fromVamp(tr, breed.name))
-        dependenciesQuery ++= breed.dependencies.map((dep) => DependencyModel.fromVamp(dep, breed.name))
+        dependenciesQuery ++= breed.dependencies.map((tuple) => DependencyModel.fromVamp(tuple._2, tuple._1, breed.name))
         sender ! breed
 
       case GetBreed(name: String)    =>
