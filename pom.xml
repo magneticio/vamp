@@ -30,6 +30,7 @@
         <logback.version>1.1.2</logback.version>
         <scala.version>2.11</scala.version>
         <scala-library.version>2.11.4</scala-library.version>
+        <akka-streams.version>1.0-M2</akka-streams.version>
         <java.version>1.8</java.version>
         <junit.version>4.11</junit.version>
         <scalatest.version>2.2.4</scalatest.version>
@@ -42,6 +43,11 @@
             <groupId>com.typesafe.scala-logging</groupId>
             <artifactId>scala-logging_2.11</artifactId>
             <version>${scala-logging.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-stream-experimental_2.11</artifactId>
+            <version>${akka-streams.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
