@@ -1,6 +1,6 @@
 package io.magnetic.vamp_core.persistence.slick.model
 
-import io.magnetic.vamp_core.model.{Deployable, Breed, BreedDependency, Trait}
+import io.magnetic.vamp_core.model._
 
 import scala.slick.direct.AnnotationMapper.column
 import scala.slick.driver.JdbcProfile
@@ -21,24 +21,24 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
 
 
   case class TraitModel(name: String, alias: String, value: String, `type`:  Trait.Type.Value, direction: Trait.Direction.Value, breedName: String) {
-    def toVamp = Trait(name, alias, value, `type`, direction)
+    def toVamp = Trait(name, Option(alias), Option(value), `type`, direction)
   }
 
   object TraitModel extends ((String, String, String, Trait.Type.Value, Trait.Direction.Value, String) => TraitModel) {
-    def fromVamp(tr: Trait, breedName: String) = TraitModel(tr.name, tr.alias, tr.value, tr.`type`, tr.direction, breedName)
+    def fromVamp(tr: Trait, breedName: String) = TraitModel(tr.name, tr.alias.get, tr.value.get, tr.`type`, tr.direction, breedName)
   }
 
-  case class DependencyModel(name: String, onType: DependencyType.Value, onId: String) {
+  case class DependencyModel(name: String, alias: String, onType: DependencyType.Value, onId: String) {
     def toVamp = onType match {
-      case DependencyType.Breed => BreedDependency(name)
+      case DependencyType.Breed => alias -> Dependency(name)
       case _ => throw new RuntimeException(s"Handler for this dependencyType: $onType is not implemented")
     }
 
 
   }
 
-  object DependencyModel extends ((String, DependencyType.Value, String) => DependencyModel) {
-    def fromVamp(dependency: BreedDependency, breedName: String) = DependencyModel(dependency.name, DependencyType.Breed, breedName)
+  object DependencyModel extends ((String, String, DependencyType.Value, String) => DependencyModel) {
+    def fromVamp(dependency: Dependency, alias: String, breedName: String) = DependencyModel(dependency.name, alias, DependencyType.Breed, breedName)
   }
 
   case class BreedModel(name: String, deployableName: String) {
@@ -59,7 +59,7 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
     }
 
     def toVamp(traitList: Seq[TraitModel], depList: Seq[DependencyModel]) = {
-      Breed(name, Deployable(deployableName), traitList.map(_.toVamp).toList, depList.map(_.toVamp).toList)
+      Breed(name, Deployable(deployableName), traitList.map(_.toVamp).toList, depList.map(_.toVamp).toMap)
     }
 
   }
@@ -70,12 +70,13 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
   
   class Dependencies(tag: Tag) extends Table[DependencyModel](tag, "dependencies") {
     def name = column[String]("name")
+    def alias = column[String]("alias")
     def onType = column[DependencyType.Value]("on_type")
     def onId   = column[String]("on_id")
     
-    def * = (name, onType, onId) <> (DependencyModel.tupled, DependencyModel.unapply)
+    def * = (name, alias, onType, onId) <> (DependencyModel.tupled, DependencyModel.unapply)
     
-    def idx = index("idx_dependencies", (name, onType, onId), unique = true)
+    def idx = index("idx_dependencies", (name, alias, onType, onId), unique = true)
     
   }
   
