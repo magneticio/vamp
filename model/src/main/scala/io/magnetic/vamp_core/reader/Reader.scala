@@ -30,11 +30,12 @@ object YamlInput {
 }
 
 trait YamlReader[T] {
-  type Path = List[String]
-  type YamlSource = mutable.LinkedHashMap[String, Any]
+  type YamlPath = List[String]
+  type YamlList = List[YamlObject]
+  type YamlObject = mutable.LinkedHashMap[String, Any]
 
-  implicit def string2Path(path: String): Path = path.split('/').toList
-  
+  implicit def string2Path(path: String): YamlPath = path.split('/').toList
+
   def read(input: YamlInput): T = input match {
     case ReaderInput(reader) => read(reader)
     case StreamInput(stream) => read(Source.fromInputStream(stream).bufferedReader())
@@ -43,9 +44,7 @@ trait YamlReader[T] {
   }
 
   private def read(reader: Reader, close: Boolean = false): T = try {
-    implicit val input = convert(new Yaml().load(reader)).asInstanceOf[YamlSource]
-    expand
-    parse
+    read(convert(new Yaml().load(reader)).asInstanceOf[YamlObject])
   } finally {
     if (close)
       reader.close()
@@ -53,28 +52,30 @@ trait YamlReader[T] {
 
   private def convert(any: Any): Any = any match {
     case source: java.util.Map[_, _] =>
-      val map = new YamlSource()
+      val map = new YamlObject()
       source.entrySet().asScala.filter(entry => entry.getValue != null).foreach(entry => map += entry.getKey.toString -> convert(entry.getValue))
       map
     case source: java.util.List[_] => source.asScala.map(convert).toList
     case source => source
   }
 
-  protected def expand(implicit input: YamlSource) = {}
+  protected def read(implicit source: YamlObject): T = { expand; parse }
 
-  protected def parse(implicit input: YamlSource): T
+  protected def expand(implicit source: YamlObject) = {}
 
-  protected def get[V <: Any : ClassTag](path: Path)(implicit input: YamlSource): Option[V] = <<?[V](path)
+  protected def parse(implicit source: YamlObject): T
 
-  protected def getOrError[V <: Any : ClassTag](path: Path)(implicit input: YamlSource): V = <<![V](path)
+  protected def get[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): Option[V] = <<?[V](path)
 
-  protected def <<![V <: Any : ClassTag](path: Path)(implicit input: YamlSource): V = <<?[V](path) match {
+  protected def getOrError[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<![V](path)
+
+  protected def <<![V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<?[V](path) match {
     case None => throw new IllegalArgumentException(s"Can't find entry for $path")
     case Some(v) => v
   } // TODO: Use Vamp error handling approach.
 
-  protected def <<?[V <: Any : ClassTag](path: Path)(implicit input: YamlSource): Option[V] = path match {
-    case last :: Nil => input.get(last) match {
+  protected def <<?[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): Option[V] = path match {
+    case last :: Nil => source.get(last) match {
       case None => None
       case Some(value: V) => Some(value.asInstanceOf[V])
       // if V == String
@@ -86,9 +87,9 @@ trait YamlReader[T] {
       case Some(failure) => throw new IllegalArgumentException(s"Can't match type of $last, expected ${classTag[V].runtimeClass} not ${failure.getClass}")
     }
 
-    case head :: tail => input.get(head).flatMap {
+    case head :: tail => source.get(head).flatMap {
       case map: collection.Map[_, _] =>
-        implicit val input = map.asInstanceOf[YamlSource]
+        implicit val source = map.asInstanceOf[YamlObject]
         <<?[V](tail)
       case failure => throw new IllegalArgumentException(s"Can't find a map entry for $head, found ${failure.getClass}")
     }
@@ -96,18 +97,27 @@ trait YamlReader[T] {
     case Nil => None
   } // TODO: Use Vamp error handling approach.
 
+  protected def put(path: YamlPath, value: Any)(implicit source: YamlObject): Option[Any] = >>(path, value)
 
-  protected def put(path: Path, value: Any)(implicit input: YamlSource): Option[Any] = >>(path, value)
-
-  protected def >>(path: Path, value: Any)(implicit input: YamlSource): Option[Any] = path match {
+  protected def >>(path: YamlPath, value: Any)(implicit source: YamlObject): Option[Any] = path match {
     case Nil => None
-    case last :: Nil => input.put(last, value)
-    case head :: tail => input.get(head).flatMap {
+    case last :: Nil => source.put(last, value)
+    case head :: tail => source.get(head).flatMap {
       case map: collection.Map[_, _] =>
-        implicit val input = map.asInstanceOf[YamlSource]
+        implicit val source = map.asInstanceOf[YamlObject]
         >>(tail, value)
       case failure => throw new IllegalArgumentException(s"Can't find a map entry for $head, found ${failure.getClass}")
     }
   } // TODO: Use Vamp error handling approach.
+
+  protected def name(implicit source: YamlObject): String = <<![String]("name")
+
+  protected def expand2list(path: YamlPath)(implicit source: YamlObject) = {
+    <<?[Any](path) match {
+      case None =>
+      case Some(value: List[_]) =>
+      case Some(value) => >>(path, List(value))
+    }
+  }
 }
 
