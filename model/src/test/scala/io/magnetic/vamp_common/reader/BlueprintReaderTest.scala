@@ -71,4 +71,31 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'parameters(Map())
     )
   }
+
+  it should "read the anonymous scale" in {
+    BlueprintReader.read(res("blueprint8.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Some(AnonymousScale(0.2, 120, 2)), None)), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "read the reference scale" in {
+    BlueprintReader.read(res("blueprint9.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Some(ScaleReference("large")), None)), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "read the reference scale with explicit name parameter" in {
+    BlueprintReader.read(res("blueprint10.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Some(ScaleReference("large")), None)), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
 }

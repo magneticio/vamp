@@ -15,10 +15,7 @@ object BlueprintReader extends YamlReader[Blueprint] {
       case Some(map) => map.map({
         case (name: String, cluster: collection.Map[_, _]) =>
           implicit val source = cluster.asInstanceOf[YamlObject]
-
-          val sla = <<?[Any]("sla").flatMap {
-            s => Some(SlaReader.readReference(s))
-          }
+          val sla = SlaReader.readOptionalReference("sla")
 
           <<?[List[YamlObject]]("services") match {
             case None => Cluster(name, List(), sla)
@@ -27,26 +24,16 @@ object BlueprintReader extends YamlReader[Blueprint] {
       }).toList
     }
 
-    Blueprint(name, clusters, map("endpoints"), map("parameters"))
+    Blueprint(name, clusters, stringMap("endpoints"), stringMap("parameters"))
   }
 
   override protected def validate(blueprint: Blueprint): Blueprint = blueprint // validate endpoints, parameters (cluster references)
 
   private def service(implicit source: YamlObject): Service = {
-    val breed = BreedReader.readReference(<<![YamlObject]("breed"))
-    val scale = None
+
     val routing = None
 
-    Service(breed, scale, routing)
-  }
-
-  private def map(path: YamlPath)(implicit source: YamlObject): Map[String, String] = <<?[YamlObject](path) match {
-    case None => Map()
-    case Some(map) => map.map {
-      case (name: String, _) =>
-        implicit val source = map.asInstanceOf[YamlObject]
-        (name, <<![String](name))
-    } toMap
+    Service(BreedReader.readReference(<<![YamlObject]("breed")), ScaleReader.readOptionalReference("scale"), routing)
   }
 }
 
@@ -57,10 +44,10 @@ object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
     source
   }
 
-  override protected def createReference(implicit source: YamlObject): Sla = SlaReference(reference.get, escalations)
+  override protected def createReference(implicit source: YamlObject): Sla = SlaReference(reference, escalations)
 
   override protected def createAnonymous(implicit source: YamlObject): Sla = AnonymousSla(`type`, escalations, parameters)
-  
+
   protected def escalations(implicit source: YamlObject): List[Escalation] = <<?[YamlList]("escalations") match {
     case None => List[Escalation]()
     case Some(list: YamlList) => list.map {
@@ -73,7 +60,14 @@ object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
 
 object EscalationReader extends YamlReader[Escalation] with WeakReferenceYamlReader[Escalation] {
 
-  override protected def createReference(implicit source: YamlObject): Escalation = EscalationReference(reference.get)
+  override protected def createReference(implicit source: YamlObject): Escalation = EscalationReference(reference)
 
   override protected def createAnonymous(implicit source: YamlObject): Escalation = AnonymousEscalation(`type`, parameters)
+}
+
+object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale] {
+
+  override protected def createReference(implicit source: YamlObject): Scale = ScaleReference(reference)
+
+  override protected def createAnonymous(implicit source: YamlObject): Scale = AnonymousScale(<<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
 }

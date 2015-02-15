@@ -2,12 +2,13 @@ package io.magnetic.vamp_core.reader
 
 import java.io.{File, InputStream, Reader, StringReader}
 
+import _root_.io.magnetic.vamp_core.reader.BlueprintReader._
 import org.yaml.snakeyaml.Yaml
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.io.Source
-import scala.language.implicitConversions
+import scala.language.{implicitConversions, postfixOps}
 import scala.reflect._
 
 sealed trait YamlInput
@@ -83,6 +84,8 @@ trait YamlReader[T] {
     case last :: Nil => source.get(last) match {
       case None => None
       case Some(value: V) => Some(value.asInstanceOf[V])
+      // if V == Double, conversion from Int to Double if Double is expected and Int provided.
+      case Some(value: Int) if classTag[V].runtimeClass == classOf[Double] => Some(value.toDouble.asInstanceOf[V])
       // if V == String
       case Some(value) if classTag[V].runtimeClass == classOf[String] => Some(value.toString.asInstanceOf[V])
       // if V == Map
@@ -125,6 +128,15 @@ trait YamlReader[T] {
 
   protected def name(implicit source: YamlObject): String = <<![String]("name")
 
+  protected def stringMap(path: YamlPath)(implicit source: YamlObject): Map[String, String] = <<?[YamlObject](path) match {
+    case None => Map()
+    case Some(map) => map.map {
+      case (name: String, _) =>
+        implicit val source = map.asInstanceOf[YamlObject]
+        (name, <<![String](name))
+    } toMap
+  }
+
   protected def expandToList(path: YamlPath)(implicit source: YamlObject) = {
     <<?[Any](path) match {
       case None =>
@@ -145,21 +157,22 @@ trait WeakReferenceYamlReader[T] extends ReferenceYamlReader[T] {
     case map: collection.Map[_, _] => read(map.asInstanceOf[YamlObject])
   }
 
+  def readOptionalReference(path: YamlPath)(implicit source: YamlObject): Option[T] = <<?[Any](path).flatMap {
+    reference => Some(readReference(reference))
+  }
+
   override protected def validate(implicit source: YamlObject): YamlObject = {
     // TODO: Use Vamp error handling approach.
-    if (reference.isDefined && source.size > 1)
+    if (!isAnonymous && source.size > 1)
       throw new IllegalArgumentException(s"Either it should be a reference by name '$reference' or an anonymous definition, but not both.")
     source
   }
 
-  override protected def parse(implicit source: YamlObject): T = {
-    reference match {
-      case Some(reference) => createReference
-      case None => createAnonymous
-    }
-  }
+  override protected def parse(implicit source: YamlObject): T = if (isAnonymous) createAnonymous else createReference
 
-  protected def reference(implicit source: YamlObject): Option[String] = <<?[String]("name")
+  protected def isAnonymous(implicit source: YamlObject): Boolean = <<?[String]("name").isEmpty
+
+  protected def reference(implicit source: YamlObject): String = <<![String]("name")
 
   protected def `type`(implicit source: YamlObject): String = <<![String]("type")
 

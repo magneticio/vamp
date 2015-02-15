@@ -4,7 +4,6 @@ clusters:
   notorious:
     services:
       -
-        breed:
+        breed: 
           name: nocturnal-viper
-        scale:
-          name: large
+        scale: large

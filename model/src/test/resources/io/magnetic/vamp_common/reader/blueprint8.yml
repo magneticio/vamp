@@ -4,7 +4,9 @@ clusters:
   notorious:
     services:
       -
-        breed:
+        breed: 
           name: nocturnal-viper
         scale:
-          name: large
+           cpu: 0.2
+           memory: 120
+           instances: 2
