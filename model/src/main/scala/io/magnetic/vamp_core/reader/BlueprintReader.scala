@@ -29,12 +29,8 @@ object BlueprintReader extends YamlReader[Blueprint] {
 
   override protected def validate(blueprint: Blueprint): Blueprint = blueprint // validate endpoints, parameters (cluster references)
 
-  private def service(implicit source: YamlObject): Service = {
-
-    val routing = None
-
-    Service(BreedReader.readReference(<<![YamlObject]("breed")), ScaleReader.readOptionalReference("scale"), routing)
-  }
+  private def service(implicit source: YamlObject): Service =
+    Service(BreedReader.readReference(<<![YamlObject]("breed")), ScaleReader.readOptionalReference("scale"), RoutingReader.readOptionalReference("routing"))
 }
 
 object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
@@ -70,4 +66,25 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
   override protected def createReference(implicit source: YamlObject): Scale = ScaleReference(reference)
 
   override protected def createAnonymous(implicit source: YamlObject): Scale = AnonymousScale(<<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
+}
+
+object RoutingReader extends YamlReader[Routing] with WeakReferenceYamlReader[Routing] {
+
+  override protected def createReference(implicit source: YamlObject): Routing = RoutingReference(reference)
+
+  override protected def createAnonymous(implicit source: YamlObject): Routing = AnonymousRouting(<<?[Int]("weight"), filters)
+
+  protected def filters(implicit source: YamlObject): List[Filter] = <<?[YamlList]("filters") match {
+    case None => List[Filter]()
+    case Some(list: YamlList) => list.map {
+      FilterReader.readReference
+    }
+  }
+}
+
+object FilterReader extends YamlReader[Filter] with WeakReferenceYamlReader[Filter] {
+
+  override protected def createReference(implicit source: YamlObject): Filter = FilterReference(reference)
+
+  override protected def createAnonymous(implicit source: YamlObject): Filter = AnonymousFilter(<<![String]("condition"))
 }

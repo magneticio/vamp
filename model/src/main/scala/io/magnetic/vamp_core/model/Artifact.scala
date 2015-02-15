@@ -79,7 +79,12 @@ case class ScaleReference(override val name: String) extends Reference with Scal
 case class AnonymousScale(cpu: Double, memory: Double, instances: Int) extends Scale
 
 
-case class Routing(weight: Option[Int], filters: List[Filter])
+trait Routing
+
+case class RoutingReference(override val name: String) extends Reference with Routing
+
+case class AnonymousRouting(weight: Option[Int], filters: List[Filter]) extends Routing
+
 
 trait Filter
 

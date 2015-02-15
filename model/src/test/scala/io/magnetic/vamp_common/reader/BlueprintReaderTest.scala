@@ -98,4 +98,49 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'parameters(Map())
     )
   }
+
+  it should "read the reference routing" in {
+    BlueprintReader.read(res("blueprint11.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(RoutingReference("conservative")))), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "read the routing with weight" in {
+    BlueprintReader.read(res("blueprint12.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(AnonymousRouting(Some(50), List())))), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "read the routing with filter reference" in {
+    BlueprintReader.read(res("blueprint13.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "read the routing with filter references" in {
+    BlueprintReader.read(res("blueprint14.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(AnonymousRouting(None, List(FilterReference("android"), FilterReference("ios")))))), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "read the routing with anonymous filter" in {
+    BlueprintReader.read(res("blueprint15.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(AnonymousRouting(Some(10), List(AnonymousFilter("user.agent != ios")))))), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
 }
