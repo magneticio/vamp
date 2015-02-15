@@ -16,8 +16,8 @@ traits:
 dependencies:
 
   db: 
-    name: mysql
-    deployable: magneticio/mysql:latest
+    name: mysql-wrapper
+    deployable: magneticio/mysql-wrapper:latest
 
     traits:
 
@@ -25,3 +25,6 @@ dependencies:
         name: port
         value: 3006/tcp
         direction: OUT
+    
+    dependencies:
+      mysql: mysql

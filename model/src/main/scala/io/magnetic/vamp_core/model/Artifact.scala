@@ -55,14 +55,12 @@ case class Blueprint(override val name: String, clusters: List[Cluster], endpoin
 
 case class Cluster(override val name: String, services: List[Service], sla: Option[Sla]) extends Artifact
 
-case class Service(breed: Breed, scale: Option[Scale], routing: Option[Routing], dependencies: Map[String, String])
-
-case class Routing(weight: Option[Int], filters: List[Filter])
+case class Service(breed: Breed, scale: Option[Scale], routing: Option[Routing])
 
 
 trait Sla
 
-case class SlaReference(override val name: String) extends Reference with Sla
+case class SlaReference(override val name: String, escalations: List[Escalation]) extends Reference with Sla
 
 case class AnonymousSla(override val `type`: String, escalations: List[Escalation], parameters: Map[String, Any]) extends Sla with Type
 
@@ -80,6 +78,8 @@ case class ScaleReference(override val name: String) extends Reference with Scal
 
 case class AnonymousScale(cpu: Double, memory: Double, instances: Int) extends Scale
 
+
+case class Routing(weight: Option[Int], filters: List[Filter])
 
 trait Filter
 

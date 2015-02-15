@@ -97,14 +97,14 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
   
-  it should "read the YAML source with embedded dependencies (additional dependency traits)" in {
+  it should "read the YAML source with embedded dependencies with dependencies" in {
     BreedReader.read(res("breed9.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
       'traits(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out), Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
       'ports(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out))),
       'environmentVariables(List(Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
-      'dependencies(Map("db" -> DefaultBreed("mysql", Deployable("magneticio/mysql:latest"), List(Trait("port", None, Some("3006/tcp"), Trait.Type.Port, Trait.Direction.Out)), Map())))
+      'dependencies(Map("db" -> DefaultBreed("mysql-wrapper", Deployable("magneticio/mysql-wrapper:latest"), List(Trait("port", None, Some("3006/tcp"), Trait.Type.Port, Trait.Direction.Out)), Map("mysql" -> BreedReference("mysql")))))
     )
   }
 }

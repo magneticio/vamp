@@ -1,0 +1,18 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious:
+    services:
+      -
+        breed:
+          name: nocturnal-viper
+          
+    sla: 
+      name: strong-mountain
+      escalations:
+        - red-flag
+        -
+          name: hideous-screaming
+        -
+          type: cloud-beam
+          sound: furious

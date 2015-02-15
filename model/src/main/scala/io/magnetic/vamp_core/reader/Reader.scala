@@ -7,6 +7,7 @@ import org.yaml.snakeyaml.Yaml
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.io.Source
+import scala.language.implicitConversions
 import scala.reflect._
 
 sealed trait YamlInput
@@ -59,11 +60,15 @@ trait YamlReader[T] {
     case source => source
   }
 
-  protected def read(implicit source: YamlObject): T = { expand; parse }
+  def read(implicit source: YamlObject): T = validate(parse(validate(expand(source))))
 
-  protected def expand(implicit source: YamlObject) = {}
+  protected def expand(implicit source: YamlObject): YamlObject = source
+
+  protected def validate(implicit source: YamlObject): YamlObject = source
 
   protected def parse(implicit source: YamlObject): T
+
+  protected def validate(any: T): T = any
 
   protected def get[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): Option[V] = <<?[V](path)
 
@@ -99,25 +104,69 @@ trait YamlReader[T] {
 
   protected def put(path: YamlPath, value: Any)(implicit source: YamlObject): Option[Any] = >>(path, value)
 
-  protected def >>(path: YamlPath, value: Any)(implicit source: YamlObject): Option[Any] = path match {
-    case Nil => None
-    case last :: Nil => source.put(last, value)
-    case head :: tail => source.get(head).flatMap {
-      case map: collection.Map[_, _] =>
-        implicit val source = map.asInstanceOf[YamlObject]
-        >>(tail, value)
-      case failure => throw new IllegalArgumentException(s"Can't find a map entry for $head, found ${failure.getClass}")
+  protected def >>(path: YamlPath, value: Any)(implicit source: YamlObject): Option[Any] = {
+
+    def insert(key: String, path: List[String], value: Any) = {
+      val next = new YamlObject()
+      source.put(key, next)
+      >>(path, value)(next)
     }
-  } // TODO: Use Vamp error handling approach.
+
+    path match {
+      case Nil => None
+      case last :: Nil => source.put(last, value)
+      case head :: tail => source.get(head) match {
+        case None => insert(head, tail, value)
+        case Some(map: collection.Map[_, _]) => >>(tail, value)(map.asInstanceOf[YamlObject])
+        case Some(_) => insert(head, tail, value)
+      }
+    }
+  }
 
   protected def name(implicit source: YamlObject): String = <<![String]("name")
 
-  protected def expand2list(path: YamlPath)(implicit source: YamlObject) = {
+  protected def expandToList(path: YamlPath)(implicit source: YamlObject) = {
     <<?[Any](path) match {
       case None =>
       case Some(value: List[_]) =>
       case Some(value) => >>(path, List(value))
     }
   }
+}
+
+trait ReferenceYamlReader[T] extends YamlReader[T] {
+  def readReference(any: Any): T
+}
+
+trait WeakReferenceYamlReader[T] extends ReferenceYamlReader[T] {
+
+  override def readReference(any: Any): T = any match {
+    case reference: String => createReference(new YamlObject() += ("name" -> reference))
+    case map: collection.Map[_, _] => read(map.asInstanceOf[YamlObject])
+  }
+
+  override protected def validate(implicit source: YamlObject): YamlObject = {
+    // TODO: Use Vamp error handling approach.
+    if (reference.isDefined && source.size > 1)
+      throw new IllegalArgumentException(s"Either it should be a reference by name '$reference' or an anonymous definition, but not both.")
+    source
+  }
+
+  override protected def parse(implicit source: YamlObject): T = {
+    reference match {
+      case Some(reference) => createReference
+      case None => createAnonymous
+    }
+  }
+
+  protected def reference(implicit source: YamlObject): Option[String] = <<?[String]("name")
+
+  protected def `type`(implicit source: YamlObject): String = <<![String]("type")
+
+  protected def parameters(implicit source: YamlObject): Map[String, Any] = source.filterKeys(_ != "type").toMap
+
+  protected def createReference(implicit source: YamlObject): T
+
+  protected def createAnonymous(implicit source: YamlObject): T
 }
 

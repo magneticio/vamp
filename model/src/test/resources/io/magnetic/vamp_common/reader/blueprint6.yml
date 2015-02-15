@@ -4,5 +4,9 @@ clusters:
   notorious:
     services:
       -
-        breed: 
+        breed:
           name: nocturnal-viper
+          
+    sla: 
+      type: vital-cloud
+      reborn: red-swallow

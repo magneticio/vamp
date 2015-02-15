@@ -1,0 +1,46 @@
+name: nomadic-frostbite
+
+endpoints:
+  supersonic.port: $PORT
+
+clusters:
+
+  supersonic:
+    services:
+      -
+        breed: solid-barbershop
+        scale:
+          cpu: 0.2
+          memory: 120
+          instances: 2
+          
+        routing:
+          weight: 95%
+          filters:
+            - condition: ua = android
+      -
+        breed: remote-venus
+        scale: worthy
+        
+    sla:
+       type: vital-cloud
+       reborn: red-swallow
+       escalations:
+         - red-flag
+         - 
+           name: hideous-screaming
+         - 
+           type: cloud-beam
+           sound: furious
+         
+  notorious: 
+    breed: 
+      name: nocturnal-viper
+      deployable: anaconda
+      
+    sla: strong-mountain
+  
+  omega: scary-lion
+          
+parameters:
+  notorious.aspect: thorium

@@ -4,5 +4,8 @@ clusters:
   notorious:
     services:
       -
-        breed: 
+        breed:
           name: nocturnal-viper
+          
+    sla: strong-mountain
+    

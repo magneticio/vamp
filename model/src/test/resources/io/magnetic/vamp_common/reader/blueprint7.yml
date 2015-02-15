@@ -1,8 +1,5 @@
 name: nomadic-frostbite
 
-endpoints:
-  notorious.port: $PORT
-
 clusters:
   notorious:
     services:
@@ -10,5 +7,9 @@ clusters:
         breed:
           name: nocturnal-viper
           
-parameters:
-  notorious.aspect: thorium
+    sla: 
+      type: vital-cloud
+      reborn: red-swallow
+
+      escalations:
+        - red-flag
