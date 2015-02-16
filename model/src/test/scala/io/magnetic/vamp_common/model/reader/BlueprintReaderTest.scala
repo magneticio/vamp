@@ -23,7 +23,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint2.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), None))),
-      'endpoints(Map("notorious.port" -> "$PORT")),
+      'endpoints(Map("supersonic.port" -> "$PORT")),
       'parameters(Map("notorious.aspect" -> "thorium"))
     )
   }
@@ -155,6 +155,42 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
       'endpoints(Map()),
       'parameters(Map())
+    )
+  }
+
+  it should "expand the breed" in {
+    BlueprintReader.read(res("blueprint18.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "expand the services" in {
+    BlueprintReader.read(res("blueprint19.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "expand the cluster" in {
+    BlueprintReader.read(res("blueprint20.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "expand the more complex blueprint" in {
+    BlueprintReader.read(res("blueprint21.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious",List(),Some(SlaReference("strong-mountain",List()))), Cluster("omega",List(Service(BreedReference("scary-lion"),None,None)),None), Cluster("supersonic",List(Service(BreedReference("solid-barbershop"),Some(AnonymousScale(0.2,120.0,2)),Some(AnonymousRouting(Some(95),List(AnonymousFilter("ua = android"))))), Service(BreedReference("remote-venus"),Some(ScaleReference("worthy")),None)),Some(AnonymousSla("vital-cloud",List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), AnonymousEscalation("cloud-beam",Map("sound" -> "furious"))),Map("reborn" -> "red-swallow")))))),
+      'endpoints(Map("supersonic.port" -> "$PORT")),
+      'parameters(Map("notorious.aspect" -> "thorium"))
     )
   }
 }

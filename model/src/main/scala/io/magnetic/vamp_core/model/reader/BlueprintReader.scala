@@ -10,15 +10,24 @@ object BlueprintReader extends YamlReader[Blueprint] {
     <<?[YamlObject]("clusters") match {
       case None =>
       case Some(map) => map.map {
+        case (name: String, breed: String) => >>("clusters" :: name :: "services", List(new YamlObject() += ("breed" -> breed)))
         case (name: String, cluster: collection.Map[_, _]) =>
           implicit val source = cluster.asInstanceOf[YamlObject]
-          <<?[List[YamlObject]]("services").map {
-            _.foreach { service =>
-              implicit val source = service
-              <<?[Any]("routing" :: "filters").map {
-                _ => expandToList("routing" :: "filters")
-              }
-            }
+          <<?[Any]("services") match {
+            case None =>
+            case Some(breed: String) => >>("services", List(new YamlObject() += ("breed" -> breed)))
+            case Some(list) =>
+              >>("services", list.asInstanceOf[List[_]].map {
+                case breed: String => new YamlObject() += ("breed" -> breed)
+                case map: collection.Map[_, _] =>
+                  implicit val source = map.asInstanceOf[YamlObject]
+                  <<?[Any]("routing") match {
+                    case None =>
+                    case Some(s: String) =>
+                    case Some(_) => expandToList("routing" :: "filters")
+                  }
+                  source
+              })
           }
       }
     }
@@ -48,7 +57,7 @@ object BlueprintReader extends YamlReader[Blueprint] {
   override protected def validate(blueprint: Blueprint): Blueprint = blueprint // validate endpoints, parameters (cluster references)
 
   private def service(implicit source: YamlObject): Service =
-    Service(BreedReader.readReference(<<![YamlObject]("breed")), ScaleReader.readOptionalReference("scale"), RoutingReader.readOptionalReference("routing"))
+    Service(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReference("scale"), RoutingReader.readOptionalReference("routing"))
 }
 
 object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {

@@ -1,7 +1,7 @@
 name: nomadic-frostbite
 
 endpoints:
-  notorious.port: $PORT
+  supersonic.port: $PORT
 
 clusters:
   notorious:
