@@ -31,8 +31,8 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
         }
       }
     }
-    
-    source
+
+    super.expand
   }
 
   override protected def parse(implicit source: YamlObject): Breed = {

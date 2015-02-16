@@ -15,8 +15,10 @@ class NotificationErrorException(message: String) extends RuntimeException(messa
 
 object Notification {
 
+  protected case class Message(parts: Seq[String], args: Seq[String])
+
   private val logger = Logger(LoggerFactory.getLogger(Notification.getClass))
-  private val messages = new mutable.LinkedHashMap[String, Map[String, String]]()
+  private val messages = new mutable.LinkedHashMap[String, mutable.Map[String, Any]]()
 
   def info(notification: Notification) = logger.info(resolveMessage(notification))
 
@@ -28,9 +30,16 @@ object Notification {
 
   protected def resolveMessage(implicit notification: Notification): String = {
     try {
-      resolveMessageSource.get(notification.getClass.getSimpleName) match {
+      val name = notification.getClass.getSimpleName
+      val messageSource = resolveMessageSource
+
+      messageSource.get(name) match {
         case None => defaultMapping
-        case Some(value) => resolveValue(value)
+        case Some(value: Message) => resolveValue(value)
+        case Some(value: Any) =>
+          val message = parseMessage(value.toString)
+          messageSource.put(name, message)
+          resolveValue(message)
       }
     } catch {
       case e: NoSuchMethodException =>
@@ -42,16 +51,16 @@ object Notification {
         defaultMapping
     }
   }
-  
+
   protected def defaultMapping(implicit notification: Notification) = s"Message not mapped: ${notification.getClass.getSimpleName}"
 
-  protected def resolveMessageSource(implicit notification: Notification): Map[String, String] = {
+  protected def resolveMessageSource(implicit notification: Notification): mutable.Map[String, Any] = {
     val packageName = notification.getClass.getPackage.toString
     messages.get(packageName) match {
       case None =>
         val reader = Source.fromURL(notification.getClass.getResource("messages.yml")).bufferedReader()
         try {
-          val input = new Yaml().load(reader).asInstanceOf[java.util.Map[String, String]].asScala.toMap
+          val input = new Yaml().load(reader).asInstanceOf[java.util.Map[String, Any]].asScala
           messages.put(packageName, input)
           input
         } finally {
@@ -61,13 +70,16 @@ object Notification {
     }
   }
 
-  protected def resolveValue(message: String)(implicit notification: Notification): String = {
+  protected def parseMessage(message: String)(implicit notification: Notification): Message = {
     val pattern = "\\{[^}]+\\}" r
     val parts = pattern split message
     val args = (pattern findAllIn message).map(s => s.substring(1, s.length - 1)).toList
+    Message(parts, args)
+  }
 
-    val pi = parts.iterator
-    val ai = args.iterator
+  protected def resolveValue(message: Message)(implicit notification: Notification): String = {
+    val pi = message.parts.iterator
+    val ai = message.args.iterator
     val sb = new StringBuilder()
     while (ai.hasNext) {
       sb append pi.next

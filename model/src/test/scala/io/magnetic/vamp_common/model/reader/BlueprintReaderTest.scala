@@ -148,4 +148,13 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "fail on both reference and inline routing declarations" in {
     the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint16.yml")) should have message "Either it should be a reference 'routing -> !ios' or an anonymous inline definition, but not both."
   }
+
+  it should "expand the filter list" in {
+    BlueprintReader.read(res("blueprint17.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
 }

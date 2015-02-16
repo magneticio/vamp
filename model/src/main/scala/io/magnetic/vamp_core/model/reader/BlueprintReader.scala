@@ -6,7 +6,25 @@ import scala.language.postfixOps
 
 object BlueprintReader extends YamlReader[Blueprint] {
 
-  override def expand(implicit source: YamlObject) = source
+  override protected def expand(implicit source: YamlObject) = {
+    <<?[YamlObject]("clusters") match {
+      case None =>
+      case Some(map) => map.map {
+        case (name: String, cluster: collection.Map[_, _]) =>
+          implicit val source = cluster.asInstanceOf[YamlObject]
+          <<?[List[YamlObject]]("services").map {
+            _.foreach { service =>
+              implicit val source = service
+              <<?[Any]("routing" :: "filters").map {
+                _ => expandToList("routing" :: "filters")
+              }
+            }
+          }
+      }
+    }
+
+    super.expand
+  }
 
   override def parse(implicit source: YamlObject): Blueprint = {
 
