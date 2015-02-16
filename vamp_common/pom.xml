@@ -2,7 +2,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>io.magnetic</groupId>
+        <groupId>io.magnetic.vamp-core</groupId>
         <artifactId>vamp-core</artifactId>
         <version>0.4.0</version>
     </parent>
@@ -17,6 +17,7 @@
         <dispatch.version>0.11.2</dispatch.version>
         <json4s.version>3.2.11</json4s.version>
         <commons-cli.version>1.2</commons-cli.version>
+        <snakeyaml.version>1.14</snakeyaml.version>
     </properties>
 
     <dependencies>
@@ -44,6 +45,11 @@
             <groupId>org.json4s</groupId>
             <artifactId>json4s-native_2.11</artifactId>
             <version>${json4s.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>${snakeyaml.version}</version>
         </dependency>
     </dependencies>
 

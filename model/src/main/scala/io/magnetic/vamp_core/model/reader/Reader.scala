@@ -1,8 +1,9 @@
-package io.magnetic.vamp_core.reader
+package io.magnetic.vamp_core.model.reader
 
 import java.io.{File, InputStream, Reader, StringReader}
 
-import _root_.io.magnetic.vamp_core.reader.BlueprintReader._
+import _root_.io.magnetic.vamp_common.notification.{Notification, NotificationErrorException}
+import _root_.io.magnetic.vamp_core.model.notification._
 import org.yaml.snakeyaml.Yaml
 
 import scala.collection.JavaConverters._
@@ -47,7 +48,11 @@ trait YamlReader[T] {
 
   private def read(reader: Reader, close: Boolean = false): T = try {
     read(convert(new Yaml().load(reader)).asInstanceOf[YamlObject])
-  } finally {
+  } catch {
+    case e: NotificationErrorException => throw e
+    case e: Exception => Notification.error(YamlParsingError(e))
+  }
+  finally {
     if (close)
       reader.close()
   }
@@ -76,9 +81,9 @@ trait YamlReader[T] {
   protected def getOrError[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<![V](path)
 
   protected def <<![V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<?[V](path) match {
-    case None => throw new IllegalArgumentException(s"Can't find entry for $path")
+    case None => Notification.error(MissingPathValueError(path mkString "/"))
     case Some(v) => v
-  } // TODO: Use Vamp error handling approach.
+  }
 
   protected def <<?[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): Option[V] = path match {
     case last :: Nil => source.get(last) match {
@@ -92,14 +97,14 @@ trait YamlReader[T] {
       case Some(value: collection.Map[_, _]) if classTag[V].runtimeClass == classOf[Map[_, _]] => Some(value.asInstanceOf[V])
       // if V == List
       case Some(value: List[_]) if classTag[V].runtimeClass == classOf[List[_]] => Some(value.asInstanceOf[V])
-      case Some(failure) => throw new IllegalArgumentException(s"Can't match type of $last, expected ${classTag[V].runtimeClass} not ${failure.getClass}")
+      case Some(failure) => Notification.error(UnexpectedTypeError(last, classTag[V].runtimeClass, failure.getClass))
     }
 
     case head :: tail => source.get(head).flatMap {
       case map: collection.Map[_, _] =>
         implicit val source = map.asInstanceOf[YamlObject]
         <<?[V](tail)
-      case failure => throw new IllegalArgumentException(s"Can't find a map entry for $head, found ${failure.getClass}")
+      case failure => Notification.error(UnexpectedInnerElementError(head, failure.getClass))
     }
 
     case Nil => None
@@ -162,9 +167,8 @@ trait WeakReferenceYamlReader[T] extends ReferenceYamlReader[T] {
   }
 
   override protected def validate(implicit source: YamlObject): YamlObject = {
-    // TODO: Use Vamp error handling approach.
     if (!isAnonymous && source.size > 1)
-      throw new IllegalArgumentException(s"Either it should be a reference by name '$reference' or an anonymous definition, but not both.")
+      Notification.error(EitherReferenceOrAnonymous(asReferenceOf, reference))
     source
   }
 
@@ -181,5 +185,7 @@ trait WeakReferenceYamlReader[T] extends ReferenceYamlReader[T] {
   protected def createReference(implicit source: YamlObject): T
 
   protected def createAnonymous(implicit source: YamlObject): T
+
+  protected def asReferenceOf: String = getClass.getSimpleName.substring(0, getClass.getSimpleName.indexOf("Reader")).toLowerCase
 }
 

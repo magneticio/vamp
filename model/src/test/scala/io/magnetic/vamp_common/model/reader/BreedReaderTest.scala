@@ -1,7 +1,8 @@
-package io.magnetic.vamp_common.reader
+package io.magnetic.vamp_common.model.reader
 
+import io.magnetic.vamp_common.notification.NotificationErrorException
+import io.magnetic.vamp_core.model.reader.BreedReader
 import io.magnetic.vamp_core.model.{BreedReference, DefaultBreed, Deployable, Trait}
-import io.magnetic.vamp_core.reader.BreedReader
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
@@ -82,7 +83,7 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
       'traits(List()),
       'ports(List()),
       'environmentVariables(List()),
-      'dependencies(Map("db" -> DefaultBreed("mysql",Deployable("magneticio/mysql:latest"),List(),Map())))
+      'dependencies(Map("db" -> DefaultBreed("mysql", Deployable("magneticio/mysql:latest"), List(), Map())))
     )
   }
 
@@ -93,10 +94,10 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
       'traits(List()),
       'ports(List()),
       'environmentVariables(List()),
-      'dependencies(Map("db" -> DefaultBreed("mysql",Deployable("magneticio/mysql:latest"),List(),Map())))
+      'dependencies(Map("db" -> DefaultBreed("mysql", Deployable("magneticio/mysql:latest"), List(), Map())))
     )
   }
-  
+
   it should "read the YAML source with embedded dependencies with dependencies" in {
     BreedReader.read(res("breed9.yml")) should have(
       'name("monarch"),
@@ -106,5 +107,9 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
       'environmentVariables(List(Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
       'dependencies(Map("db" -> DefaultBreed("mysql-wrapper", Deployable("magneticio/mysql-wrapper:latest"), List(Trait("port", None, Some("3006/tcp"), Trait.Type.Port, Trait.Direction.Out)), Map("mysql" -> BreedReference("mysql")))))
     )
+  }
+
+  it should "fail on no deployable" in {
+    the[NotificationErrorException] thrownBy BreedReader.read(res("breed10.yml")) should have message "Can't find any value for path: /deployable"
   }
 }

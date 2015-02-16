@@ -1,7 +1,8 @@
-package io.magnetic.vamp_common.reader
+package io.magnetic.vamp_common.model.reader
 
+import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.model._
-import io.magnetic.vamp_core.reader.BlueprintReader
+import io.magnetic.vamp_core.model.reader.BlueprintReader
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
@@ -142,5 +143,9 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'endpoints(Map()),
       'parameters(Map())
     )
+  }
+
+  it should "fail on both reference and inline routing declarations" in {
+    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint16.yml")) should have message "Either it should be a reference 'routing -> !ios' or an anonymous inline definition, but not both."
   }
 }

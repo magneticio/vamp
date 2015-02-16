@@ -17,7 +17,7 @@ import scala.io.Source
 
 object Json2CaseClass {
 
-  private val logger = Logger(LoggerFactory.getLogger("Json2CaseClass"))
+  private val logger = Logger(LoggerFactory.getLogger(Json2CaseClass.getClass))
 
   private val newLine = "\n\n"
 

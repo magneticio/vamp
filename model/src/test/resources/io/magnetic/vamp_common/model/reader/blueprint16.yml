@@ -1,0 +1,14 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious:
+    services:
+      -
+        breed: 
+          name: nocturnal-viper
+          
+        routing:
+          name: "!ios"
+          weight: 10
+          filters:
+            - condition: user.agent != ios

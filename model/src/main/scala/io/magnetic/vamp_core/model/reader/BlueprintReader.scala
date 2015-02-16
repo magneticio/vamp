@@ -1,4 +1,4 @@
-package io.magnetic.vamp_core.reader
+package io.magnetic.vamp_core.model.reader
 
 import io.magnetic.vamp_core.model._
 
