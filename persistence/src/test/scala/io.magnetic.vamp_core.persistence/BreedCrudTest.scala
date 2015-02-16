@@ -45,9 +45,8 @@ class BreedCrudTest extends FlatSpec with Matchers{
       Await.result(dispatch ? BreedOps(request = SaveBreed(breed2)), awaitDuration) shouldBe breed2
     }
   
-    // Might fail due to different soring, gotta convert that to seq
     it should "Return a list of previously saved breeds, that is two" in {
-      Await.result(dispatch ? BreedOps(request = ListBreeds()), awaitDuration) shouldBe List(breed, breed2)
+      Await.result(dispatch ? BreedOps(request = ListBreeds()), awaitDuration).asInstanceOf[List[Breed]] should contain theSameElementsAs  List(breed, breed2)
     }
 
     it should "Return a breed by name" in {
@@ -67,7 +66,7 @@ class BreedCrudTest extends FlatSpec with Matchers{
     }
 
     it should "Return only one breed in the list" in {
-      Await.result(dispatch ? BreedOps(request = ListBreeds()), awaitDuration) shouldBe List(breed)
+      Await.result(dispatch ? BreedOps(request = ListBreeds()), awaitDuration).asInstanceOf[List[Breed]] should contain theSameElementsAs  List(breed)
     }
 
 
