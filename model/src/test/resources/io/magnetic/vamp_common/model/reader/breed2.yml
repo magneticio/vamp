@@ -1,14 +1,12 @@
 name: monarch
 deployable: magneticio/monarch:latest
 
-traits:
-
-  ports:
-    - 
-      name: port
-      value: 8080/http
-      direction: OUT
-
-  environment_variables:
+ports:
+  -
+    name: port
+    value: 8080/http
+    direction: OUT
+    
+environment_variables:
 
 dependencies:

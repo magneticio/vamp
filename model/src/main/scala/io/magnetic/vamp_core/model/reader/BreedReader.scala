@@ -17,8 +17,8 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
   }
 
   override protected def expand(implicit source: YamlObject) = {
-    expandToList("traits" :: "ports")
-    expandToList("traits" :: "environment_variables")
+    expandToList("ports")
+    expandToList("environment_variables")
 
     <<?[YamlObject]("dependencies") match {
       case None =>
@@ -40,7 +40,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
 
     val deployable = new Deployable(<<![String]("deployable"))
 
-    val ports = <<?[YamlList]("traits" :: "ports") match {
+    val ports = <<?[YamlList]("ports") match {
       case None => List[Port]()
       case Some(list: YamlList) => list.map {
         port => 
@@ -49,7 +49,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
       }
     }
 
-    val environmentVariables = <<?[YamlList]("traits" :: "environment_variables") match {
+    val environmentVariables = <<?[YamlList]("environment_variables") match {
       case None => List[EnvironmentVariable]()
       case Some(list: YamlList) => list.map {
         environmentVariable =>
@@ -71,44 +71,6 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
 
   override protected def validate(any: Breed): Breed = any match {
     case breed: BreedReference => breed
-    case breed: DefaultBreed =>
-      //breed.in.
-
-
-
-      breed
+    case breed: DefaultBreed => breed
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
