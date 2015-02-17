@@ -1,0 +1,27 @@
+name: monarch
+deployable: magneticio/monarch:latest
+
+traits:
+
+  ports:
+    name: port
+    value: 8080/http
+    direction: OUT
+    
+  environment_variables:
+    name: db.host
+    direction: IN
+    alias: DB_HOST
+      
+dependencies:
+
+  db: 
+    name: mysql
+    deployable: magneticio/mysql-wrapper:latest
+
+    traits:
+
+      ports:
+        name: port
+        value: 3006/tcp
+        direction: OUT

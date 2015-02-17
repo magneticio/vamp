@@ -1,8 +1,8 @@
 package io.magnetic.vamp_common.model.reader
 
 import io.magnetic.vamp_common.notification.NotificationErrorException
+import io.magnetic.vamp_core.model._
 import io.magnetic.vamp_core.model.reader.BreedReader
-import io.magnetic.vamp_core.model.{BreedReference, DefaultBreed, Deployable, Trait}
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
@@ -25,8 +25,8 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
     BreedReader.read(res("breed2.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out))),
-      'ports(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out))),
+      'traits(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out))),
+      'ports(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out))),
       'environmentVariables(List()),
       'dependencies(Map())
     )
@@ -36,9 +36,9 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
     BreedReader.read(res("breed3.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out), Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In), Trait("db.port", Some("DB_PORT"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
-      'ports(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out))),
-      'environmentVariables(List(Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In), Trait("db.port", Some("DB_PORT"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
+      'traits(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.port", Some("DB_PORT"), None, Trait.Direction.In))),
+      'ports(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out))),
+      'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.port", Some("DB_PORT"), None, Trait.Direction.In))),
       'dependencies(Map("db" -> BreedReference("mysql")))
     )
   }
@@ -47,9 +47,9 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
     BreedReader.read(res("breed4.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out), Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
-      'ports(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out))),
-      'environmentVariables(List(Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
+      'traits(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In))),
+      'ports(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out))),
+      'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In))),
       'dependencies(Map("db" -> BreedReference("mysql")))
     )
   }
@@ -83,7 +83,7 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
       'traits(List()),
       'ports(List()),
       'environmentVariables(List()),
-      'dependencies(Map("db" -> DefaultBreed("mysql", Deployable("magneticio/mysql:latest"), List(), Map())))
+      'dependencies(Map("db" -> DefaultBreed("mysql", Deployable("magneticio/mysql:latest"), List(), List(), Map())))
     )
   }
 
@@ -94,7 +94,7 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
       'traits(List()),
       'ports(List()),
       'environmentVariables(List()),
-      'dependencies(Map("db" -> DefaultBreed("mysql", Deployable("magneticio/mysql:latest"), List(), Map())))
+      'dependencies(Map("db" -> DefaultBreed("mysql", Deployable("magneticio/mysql:latest"), List(), List(), Map())))
     )
   }
 
@@ -102,10 +102,10 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
     BreedReader.read(res("breed9.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out), Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
-      'ports(List(Trait("port", None, Some("8080/http"), Trait.Type.Port, Trait.Direction.Out))),
-      'environmentVariables(List(Trait("db.host", Some("DB_HOST"), None, Trait.Type.EnvironmentVariable, Trait.Direction.In))),
-      'dependencies(Map("db" -> DefaultBreed("mysql-wrapper", Deployable("magneticio/mysql-wrapper:latest"), List(Trait("port", None, Some("3006/tcp"), Trait.Type.Port, Trait.Direction.Out)), Map("mysql" -> BreedReference("mysql")))))
+      'traits(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In))),
+      'ports(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out))),
+      'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In))),
+      'dependencies(Map("db" -> DefaultBreed("mysql-wrapper", Deployable("magneticio/mysql-wrapper:latest"), List(Port("port", None, Some(Port.Value(Port.Type.Tcp, 3006)), Trait.Direction.Out)), List(), Map("mysql" -> BreedReference("mysql")))))
     )
   }
 

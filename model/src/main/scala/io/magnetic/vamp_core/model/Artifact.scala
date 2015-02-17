@@ -1,5 +1,7 @@
 package io.magnetic.vamp_core.model
 
+import scala.language.implicitConversions
+
 trait Artifact {
   def name: String
 }
@@ -14,40 +16,61 @@ trait Type {
 
 trait Breed
 
-case class DefaultBreed(override val name: String, deployable: Deployable, traits: List[Trait], dependencies: Map[String, Breed]) extends Artifact with Breed {
-  def ports: List[Trait] = traits.filter(_.`type` == Trait.Type.Port)
-  def environmentVariables: List[Trait] = traits.filter(_.`type` == Trait.Type.EnvironmentVariable)
+case class DefaultBreed(override val name: String, deployable: Deployable, ports: List[Trait], environmentVariables: List[Trait], dependencies: Map[String, Breed]) extends Artifact with Breed {
+  lazy val traits = ports ++ environmentVariables
+  
+  def inTraits: List[Trait] = traits.filter(_.direction == Trait.Direction.In)
+
+  def outTraits: List[Trait] = traits.filter(_.direction == Trait.Direction.Out)
 }
 
 case class BreedReference(override val name: String) extends Reference with Breed
 
 case class Deployable(override val name: String) extends Artifact
 
-case class Trait(override val name: String, alias: Option[String], value: Option[String], `type`: Trait.Type.Value, direction: Trait.Direction.Value) extends Artifact {
-
-  def portType: Option[Trait.Port.Value] = `type` match {
-    case Trait.Type.Port => value match {
-      case None => Some(Trait.Port.Tcp)
-      case Some(v) => if (v.toLowerCase.endsWith("/http")) Some(Trait.Port.Http) else Some(Trait.Port.Tcp)
-    }
-    case _ => None
-  }
-}
-
 object Trait {
-
-  object Port extends Enumeration {
-    val Http, Tcp = Value
-  }
-
-  object Type extends Enumeration {
-    val Port, EnvironmentVariable, Volume = Value
-  }
 
   object Direction extends Enumeration {
     val In, Out = Value
   }
+
 }
+
+trait Trait extends Artifact {
+
+  def alias: Option[String]
+
+  def direction: Trait.Direction.Value
+}
+
+object Port {
+
+  object Type extends Enumeration {
+    val Http, Tcp = Value
+  }
+
+  case class Value(`type`: Port.Type.Value, number: Int)
+
+  implicit def stringToValue(value: Option[String]): Option[Value] = value flatMap {
+    port =>
+      val http = s"/${Port.Type.Http.toString.toLowerCase}"
+      val tcp = s"/${Port.Type.Tcp.toString.toLowerCase}"
+      
+      val `type` = if (port.toLowerCase.endsWith(http)) Port.Type.Http else Port.Type.Tcp
+      val number = if (port.toLowerCase.endsWith(http))
+        port.substring(0, port.length - http.length).toInt
+      else if (port.toLowerCase.endsWith(tcp))
+        port.substring(0, port.length - tcp.length).toInt
+      else
+        port.toInt
+
+      Some(Value(`type`, number))
+  }
+}
+
+case class Port(override val name: String, override val alias: Option[String], value: Option[Port.Value], override val direction: Trait.Direction.Value) extends Trait
+
+case class EnvironmentVariable(override val name: String, override val alias: Option[String], value: Option[String], override val direction: Trait.Direction.Value) extends Trait
 
 // Blueprint
 

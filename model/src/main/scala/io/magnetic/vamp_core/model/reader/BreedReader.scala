@@ -1,13 +1,14 @@
 package io.magnetic.vamp_core.model.reader
 
 import io.magnetic.vamp_core.model._
+
 import scala.language.postfixOps
 
 object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
 
   override def readReference(any: Any): Breed = any match {
     case reference: String => BreedReference(reference)
-    case map: collection.Map[_, _] => 
+    case map: collection.Map[_, _] =>
       implicit val source = map.asInstanceOf[YamlObject]
       <<?[Any]("deployable") match {
         case None => BreedReference(name)
@@ -40,13 +41,21 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
     val deployable = new Deployable(<<![String]("deployable"))
 
     val ports = <<?[YamlList]("traits" :: "ports") match {
-      case None => List[Trait]()
-      case Some(list: YamlList) => list.map { port => `trait`(port, Trait.Type.Port)}
+      case None => List[Port]()
+      case Some(list: YamlList) => list.map {
+        port => 
+          implicit val source = port
+          Port(name, <<?[String]("alias"), <<?[String]("value"), Trait.Direction.withName(<<![String]("direction").toLowerCase.capitalize))
+      }
     }
 
     val environmentVariables = <<?[YamlList]("traits" :: "environment_variables") match {
-      case None => List[Trait]()
-      case Some(list: YamlList) => list.map { ev => `trait`(ev, Trait.Type.EnvironmentVariable)}
+      case None => List[EnvironmentVariable]()
+      case Some(list: YamlList) => list.map {
+        environmentVariable =>
+          implicit val source = environmentVariable
+          EnvironmentVariable(name, <<?[String]("alias"), <<?[String]("value"), Trait.Direction.withName(<<![String]("direction").toLowerCase.capitalize))
+      }
     }
 
     val dependencies = <<?[YamlObject]("dependencies") match {
@@ -57,9 +66,49 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
       } toMap
     }
 
-    DefaultBreed(name, deployable, ports ++ environmentVariables, dependencies)
+    DefaultBreed(name, deployable, ports, environmentVariables, dependencies)
   }
 
-  private def `trait`(implicit source: YamlObject, `type`: Trait.Type.Value): Trait =
-    Trait(name, <<?[String]("alias"), <<?[String]("value"), `type`, Trait.Direction.withName(<<![String]("direction").toLowerCase.capitalize))
+  override protected def validate(any: Breed): Breed = any match {
+    case breed: BreedReference => breed
+    case breed: DefaultBreed =>
+      //breed.in.
+
+
+
+      breed
+  }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
