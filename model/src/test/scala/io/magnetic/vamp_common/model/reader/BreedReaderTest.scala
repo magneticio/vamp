@@ -36,9 +36,9 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
     BreedReader.read(res("breed3.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.port", Some("DB_PORT"), None, Trait.Direction.In))),
+      'traits(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.ports.port", Some("DB_PORT"), None, Trait.Direction.In))),
       'ports(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out))),
-      'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.port", Some("DB_PORT"), None, Trait.Direction.In))),
+      'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.ports.port", Some("DB_PORT"), None, Trait.Direction.In))),
       'dependencies(Map("db" -> BreedReference("mysql")))
     )
   }
@@ -102,9 +102,9 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
     BreedReader.read(res("breed9.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In))),
+      'traits(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.ports.port", Some("DB_PORT"), None, Trait.Direction.In))),
       'ports(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out))),
-      'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In))),
+      'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.ports.port", Some("DB_PORT"), None, Trait.Direction.In))),
       'dependencies(Map("db" -> DefaultBreed("mysql-wrapper", Deployable("magneticio/mysql-wrapper:latest"), List(Port("port", None, Some(Port.Value(Port.Type.Tcp, 3006)), Trait.Direction.Out)), List(), Map("mysql" -> BreedReference("mysql")))))
     )
   }
@@ -127,5 +127,17 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
 
   it should "fail on non unique environment variable name" in {
     the[NotificationErrorException] thrownBy BreedReader.read(res("breed14.yml")) should have message "Non unique environment variable name 'port' for breed 'monarch -> magneticio/monarch:latest'."
+  }
+
+  it should "fail on unresolved dependency reference" in {
+    the[NotificationErrorException] thrownBy BreedReader.read(res("breed15.yml")) should have message "Dependency reference cannot be resolved for port/environment variable name 'es.ports.port' and breed 'monarch -> magneticio/monarch:latest'."
+  }
+
+  it should "fail on missing dependency environment variable" in {
+    the[NotificationErrorException] thrownBy BreedReader.read(res("breed16.yml")) should have message "Dependency reference cannot be resolved for port/environment variable name 'db.ports.web' and breed 'monarch -> magneticio/monarch:latest'."
+  }
+
+  it should "fail on missing dependency port" in {
+    the[NotificationErrorException] thrownBy BreedReader.read(res("breed17.yml")) should have message "Dependency reference cannot be resolved for port/environment variable name 'db.ports.web' and breed 'monarch -> magneticio/monarch:latest'."
   }
 }

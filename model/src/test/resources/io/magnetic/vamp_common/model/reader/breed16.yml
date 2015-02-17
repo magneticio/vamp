@@ -1,0 +1,12 @@
+name: monarch
+deployable: magneticio/monarch:latest
+
+environment_variables:
+  name: db.ports.web
+  direction: IN
+    
+dependencies:
+  db: 
+    name: mysql
+    deployable: vamp/mysql
+

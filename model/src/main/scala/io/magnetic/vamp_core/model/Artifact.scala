@@ -34,26 +34,33 @@ case class Deployable(override val name: String) extends Artifact
 
 object Trait {
 
+  val host = "host"
+  
   object Direction extends Enumeration {
     val In, Out = Value
   }
 
-  case class Name(scope: Option[String], value: String) {
+  case class Name(scope: Option[String], group: Option[String], value: String) {
     override def toString: String = scope match {
       case None => value
-      case Some(dep) => s"$dep.$value"
+      case Some(s) => group match {
+        case None => s"$s.$value"
+        case Some(g) => s"$s.$g.$value"
+      }
     }
   }
 
   implicit def stringToName(string: String): Name = string.indexOf('.') match {
-    case -1 => Name(None, string)
-    case 0 => Name(None, string.substring(1))
-    case index => Name(Some(string.substring(0, index)), string.substring(index + 1))
+    case -1 => Name(None, None, string)
+    case scopeIndex => string.substring(scopeIndex + 1).indexOf('.') match {
+      case -1 => Name(Some(string.substring(0, scopeIndex)), None, string.substring(scopeIndex + 1))
+      case groupIndex => Name(Some(string.substring(0, scopeIndex)), Some(string.substring(scopeIndex + 1, scopeIndex + groupIndex + 1)), string.substring(scopeIndex + groupIndex + 2))
+    }
   }
 }
 
 trait Trait {
-
+  
   def name: Trait.Name
 
   def alias: Option[String]

@@ -7,9 +7,14 @@ ports:
   direction: OUT
 
 environment_variables:
-  name: db.host
-  direction: IN
-  alias: DB_HOST
+  - 
+    name: db.host
+    direction: IN
+    alias: DB_HOST
+  -
+    name: db.ports.port
+    direction: IN
+    alias: DB_PORT
       
 dependencies:
 

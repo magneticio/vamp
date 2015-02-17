@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.model.reader
 
 import _root_.io.magnetic.vamp_common.notification.Notification
 import _root_.io.magnetic.vamp_core.model._
-import io.magnetic.vamp_core.model.notification.{NonUniqueEnvironmentVariableNameError, MissingEnvironmentVariableValueError, MissingPortValueError, NonUniquePortNameError}
+import io.magnetic.vamp_core.model.notification._
 
 import scala.language.postfixOps
 
@@ -75,6 +75,15 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
     case breed: BreedReference => breed
     case breed: DefaultBreed =>
 
+      breed.traits.map(_.name).find({
+        case Trait.Name(None, Some(group), value) => true
+        case Trait.Name(Some(scope), None, value) => value != Trait.host
+        case Trait.Name(Some(scope), Some(group), value) => group != "ports" && group != "environment_variables"
+        case _ => false
+      }).flatMap {
+        name => Notification.error(MalformedTraitNameError(breed, name))
+      }
+
       breed.ports.filter(_.direction == Trait.Direction.Out).find(_.value.isEmpty).flatMap {
         port => Notification.error(MissingPortValueError(breed, port))
       }
@@ -89,6 +98,23 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
 
       breed.environmentVariables.groupBy(_.name.toString).collect {
         case (name, environmentVariables) if environmentVariables.size > 1 => Notification.error(NonUniqueEnvironmentVariableNameError(breed, environmentVariables.head))
+      }
+
+      breed.traits.map(_.name).find({
+        case Trait.Name(Some(scope), group, value) => breed.dependencies.get(scope) match {
+          case None => true
+          case Some(dependency: BreedReference) => false
+          case Some(dependency: DefaultBreed) => group match {
+            case None => false
+            case Some("ports") => dependency.ports.forall(_.name.toString != value)
+            case Some("environment_variables") => dependency.environmentVariables.forall(_.name.toString != value)
+            case _ => true
+          }
+          case _ => false
+        }
+        case _ => false
+      }).flatMap {
+        name => Notification.error(UnresolvedDependencyForTraitError(breed, name))
       }
 
       breed
