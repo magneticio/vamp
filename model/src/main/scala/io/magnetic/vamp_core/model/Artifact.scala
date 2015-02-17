@@ -4,6 +4,8 @@ import scala.language.implicitConversions
 
 trait Artifact {
   def name: String
+
+  override def toString: String = name
 }
 
 trait Reference extends Artifact
@@ -16,12 +18,14 @@ trait Type {
 
 trait Breed
 
-case class DefaultBreed(override val name: String, deployable: Deployable, ports: List[Trait], environmentVariables: List[Trait], dependencies: Map[String, Breed]) extends Artifact with Breed {
+case class DefaultBreed(override val name: String, deployable: Deployable, ports: List[Port], environmentVariables: List[EnvironmentVariable], dependencies: Map[String, Breed]) extends Artifact with Breed {
   lazy val traits = ports ++ environmentVariables
-  
+
   def inTraits: List[Trait] = traits.filter(_.direction == Trait.Direction.In)
 
   def outTraits: List[Trait] = traits.filter(_.direction == Trait.Direction.Out)
+
+  override def toString: String = s"$name -> $deployable"
 }
 
 case class BreedReference(override val name: String) extends Reference with Breed
@@ -34,13 +38,29 @@ object Trait {
     val In, Out = Value
   }
 
+  case class Name(scope: Option[String], value: String) {
+    override def toString: String = scope match {
+      case None => value
+      case Some(dep) => s"$dep.$value"
+    }
+  }
+
+  implicit def stringToName(string: String): Name = string.indexOf('.') match {
+    case -1 => Name(None, string)
+    case 0 => Name(None, string.substring(1))
+    case index => Name(Some(string.substring(0, index)), string.substring(index + 1))
+  }
 }
 
-trait Trait extends Artifact {
+trait Trait {
+
+  def name: Trait.Name
 
   def alias: Option[String]
 
   def direction: Trait.Direction.Value
+
+  override def toString: String = name.toString
 }
 
 object Port {
@@ -55,7 +75,7 @@ object Port {
     port =>
       val http = s"/${Port.Type.Http.toString.toLowerCase}"
       val tcp = s"/${Port.Type.Tcp.toString.toLowerCase}"
-      
+
       val `type` = if (port.toLowerCase.endsWith(http)) Port.Type.Http else Port.Type.Tcp
       val number = if (port.toLowerCase.endsWith(http))
         port.substring(0, port.length - http.length).toInt
@@ -68,9 +88,9 @@ object Port {
   }
 }
 
-case class Port(override val name: String, override val alias: Option[String], value: Option[Port.Value], override val direction: Trait.Direction.Value) extends Trait
+case class Port(override val name: Trait.Name, override val alias: Option[String], value: Option[Port.Value], override val direction: Trait.Direction.Value) extends Trait
 
-case class EnvironmentVariable(override val name: String, override val alias: Option[String], value: Option[String], override val direction: Trait.Direction.Value) extends Trait
+case class EnvironmentVariable(override val name: Trait.Name, override val alias: Option[String], value: Option[String], override val direction: Trait.Direction.Value) extends Trait
 
 // Blueprint
 

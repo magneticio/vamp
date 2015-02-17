@@ -2,7 +2,6 @@ package io.magnetic.vamp_core.model.notification
 
 import io.magnetic.vamp_common.notification.Notification
 
-
 case class YamlParsingError(exception: Exception) extends Notification
 
 case class MissingPathValueError(path: String) extends Notification

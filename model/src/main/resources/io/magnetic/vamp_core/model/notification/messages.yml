@@ -1,5 +1,14 @@
-YamlParsingError           : "Generic error during YAML parsing: {exception}"
-MissingPathValueError      : "Can't find any value for path: /{path}"
-UnexpectedTypeError        : "Can't match type of path '{path}', expected {expected} but not {actual}."
-UnexpectedInnerElementError: "Can't find a nested element of '{path}', found {found}"
-EitherReferenceOrAnonymous : "Either it should be a reference '{name} -> {reference}' or an anonymous inline definition, but not both."
+# Yaml Reader
+
+YamlParsingError                     : "Generic error during YAML parsing: {exception}"
+MissingPathValueError                : "Can't find any value for path: /{path}"
+UnexpectedTypeError                  : "Can't match type of path '{path}', expected {expected} but not {actual}."
+UnexpectedInnerElementError          : "Can't find a nested element of '{path}', found {found}"
+EitherReferenceOrAnonymous           : "Either it should be a reference '{name} -> {reference}' or an anonymous inline definition, but not both."
+
+# Breed Reader
+
+MissingPortValueError                : "Missing port value for '{port}' and breed '{breed}'."
+MissingEnvironmentVariableValueError : "Missing environment variable value for '{environmentVariable}' and breed '{breed}'."
+NonUniquePortNameError               : "Non unique port name '{port}' for breed '{breed}'."
+NonUniqueEnvironmentVariableNameError: "Non unique environment variable name '{environmentVariable}' for breed '{breed}'."

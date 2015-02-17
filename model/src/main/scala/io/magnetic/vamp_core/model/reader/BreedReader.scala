@@ -1,6 +1,8 @@
 package io.magnetic.vamp_core.model.reader
 
-import io.magnetic.vamp_core.model._
+import _root_.io.magnetic.vamp_common.notification.Notification
+import _root_.io.magnetic.vamp_core.model._
+import io.magnetic.vamp_core.model.notification.{NonUniqueEnvironmentVariableNameError, MissingEnvironmentVariableValueError, MissingPortValueError, NonUniquePortNameError}
 
 import scala.language.postfixOps
 
@@ -43,7 +45,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
     val ports = <<?[YamlList]("ports") match {
       case None => List[Port]()
       case Some(list: YamlList) => list.map {
-        port => 
+        port =>
           implicit val source = port
           Port(name, <<?[String]("alias"), <<?[String]("value"), Trait.Direction.withName(<<![String]("direction").toLowerCase.capitalize))
       }
@@ -71,6 +73,24 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
 
   override protected def validate(any: Breed): Breed = any match {
     case breed: BreedReference => breed
-    case breed: DefaultBreed => breed
+    case breed: DefaultBreed =>
+
+      breed.ports.filter(_.direction == Trait.Direction.Out).find(_.value.isEmpty).flatMap {
+        port => Notification.error(MissingPortValueError(breed, port))
+      }
+
+      breed.environmentVariables.filter(_.direction == Trait.Direction.Out).find(_.value.isEmpty).flatMap {
+        environmentVariables => Notification.error(MissingEnvironmentVariableValueError(breed, environmentVariables))
+      }
+
+      breed.ports.groupBy(_.name.toString).collect {
+        case (name, ports) if ports.size > 1 => Notification.error(NonUniquePortNameError(breed, ports.head))
+      }
+
+      breed.environmentVariables.groupBy(_.name.toString).collect {
+        case (name, environmentVariables) if environmentVariables.size > 1 => Notification.error(NonUniqueEnvironmentVariableNameError(breed, environmentVariables.head))
+      }
+
+      breed
   }
 }

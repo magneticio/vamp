@@ -1,6 +1,7 @@
 name: monarch
 deployable: magneticio/monarch:latest
 
-ports:
+environment_variables:
   name: port
   direction: OUT
+

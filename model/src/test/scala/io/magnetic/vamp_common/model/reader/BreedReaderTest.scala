@@ -112,4 +112,20 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "fail on no deployable" in {
     the[NotificationErrorException] thrownBy BreedReader.read(res("breed10.yml")) should have message "Can't find any value for path: /deployable"
   }
+
+  it should "fail on missing port values" in {
+    the[NotificationErrorException] thrownBy BreedReader.read(res("breed11.yml")) should have message "Missing port value for 'port' and breed 'monarch -> magneticio/monarch:latest'."
+  }
+
+  it should "fail on missing environment variable values" in {
+    the[NotificationErrorException] thrownBy BreedReader.read(res("breed12.yml")) should have message "Missing environment variable value for 'port' and breed 'monarch -> magneticio/monarch:latest'."
+  }
+
+  it should "fail on non unique port name" in {
+    the[NotificationErrorException] thrownBy BreedReader.read(res("breed13.yml")) should have message "Non unique port name 'port' for breed 'monarch -> magneticio/monarch:latest'."
+  }
+
+  it should "fail on non unique environment variable name" in {
+    the[NotificationErrorException] thrownBy BreedReader.read(res("breed14.yml")) should have message "Non unique environment variable name 'port' for breed 'monarch -> magneticio/monarch:latest'."
+  }
 }
