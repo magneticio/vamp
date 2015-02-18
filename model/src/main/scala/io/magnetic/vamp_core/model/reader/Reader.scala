@@ -133,15 +133,6 @@ trait YamlReader[T] {
 
   protected def name(implicit source: YamlObject): String = <<![String]("name")
 
-  protected def stringMap(path: YamlPath)(implicit source: YamlObject): Map[String, String] = <<?[YamlObject](path) match {
-    case None => Map()
-    case Some(map) => map.map {
-      case (name: String, _) =>
-        implicit val source = map.asInstanceOf[YamlObject]
-        (name, <<![String](name))
-    } toMap
-  }
-
   protected def expandToList(path: YamlPath)(implicit source: YamlObject) = {
     <<?[Any](path) match {
       case None =>

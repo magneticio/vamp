@@ -51,13 +51,22 @@ object BlueprintReader extends YamlReader[Blueprint] {
       }).toList
     }
 
-    Blueprint(name, clusters, stringMap("endpoints"), stringMap("parameters"))
+    Blueprint(name, clusters, traitNameMapping("endpoints"), traitNameMapping("parameters"))
   }
 
   override protected def validate(blueprint: Blueprint): Blueprint = blueprint // validate endpoints, parameters (cluster references)
 
   private def service(implicit source: YamlObject): Service =
     Service(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReference("scale"), RoutingReader.readOptionalReference("routing"))
+
+  protected def traitNameMapping(path: YamlPath)(implicit source: YamlObject): Map[Trait.Name, String] = <<?[YamlObject](path) match {
+    case None => Map()
+    case Some(map) => map.map {
+      case (name: String, _) =>
+        implicit val source = map.asInstanceOf[YamlObject]
+        (Trait.asName(name), <<![String](name))
+    } toMap
+  }
 }
 
 object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
