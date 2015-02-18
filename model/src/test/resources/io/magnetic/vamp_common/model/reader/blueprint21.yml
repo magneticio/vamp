@@ -1,7 +1,7 @@
 name: nomadic-frostbite
 
 endpoints:
-  supersonic.port: $PORT
+  supersonic.ports.port: $PORT
 
 clusters:
 
@@ -39,6 +39,12 @@ clusters:
       deployable: anaconda
       
     sla: strong-mountain
+  
+  needless: 
+    name: hideous-canal
+    deployable: old/crystal
+                  
+    sla: fish-steamy
   
   omega: scary-lion
           

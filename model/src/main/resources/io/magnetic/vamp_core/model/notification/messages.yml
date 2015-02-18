@@ -14,3 +14,8 @@ MissingEnvironmentVariableValueError : "Missing environment variable value for '
 NonUniquePortNameError               : "Non unique port name '{port.name}' for breed '{breed.name} -> {breed.deployable.name}'."
 NonUniqueEnvironmentVariableNameError: "Non unique environment variable name '{environmentVariable.name}' for breed '{breed.name} -> {breed.deployable.name}'."
 UnresolvedDependencyForTraitError    : "Dependency reference cannot be resolved for port/environment variable name '{name}' and breed '{breed.name} -> {breed.deployable.name}'."
+
+# Blueprint Reader
+
+UnresolvedEndpointPortError          : "Endpoint port '{name} -> {value}' cannot be resolved. Check if cluster '{name.scope.get}' exists and if it has any breed with port name '{name.value}'."
+UnresolvedParameterError             : "Parameter '{name} -> {value}' cannot be resolved. Check if cluster '{name.scope}' exists and if it has any breed with IN '{name.value}' port or environment variable."

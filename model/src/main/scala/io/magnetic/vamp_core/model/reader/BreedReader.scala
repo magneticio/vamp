@@ -78,7 +78,6 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
       breed.traits.map(_.name).find({
         case Trait.Name(None, Some(group), value) => true
         case Trait.Name(Some(scope), None, value) => value != Trait.host
-        case Trait.Name(Some(scope), Some(group), value) => group != "ports" && group != "environment_variables"
         case _ => false
       }).flatMap {
         name => Notification.error(MalformedTraitNameError(breed, name))
@@ -106,8 +105,8 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
           case Some(dependency: BreedReference) => false
           case Some(dependency: DefaultBreed) => group match {
             case None => false
-            case Some("ports") => dependency.ports.forall(_.name.toString != value)
-            case Some("environment_variables") => dependency.environmentVariables.forall(_.name.toString != value)
+            case Some(g) if g == Trait.Name.Group.Ports => dependency.ports.forall(_.name.toString != value)
+            case Some(g) if g == Trait.Name.Group.EnvironmentVariables => dependency.environmentVariables.forall(_.name.toString != value)
             case _ => true
           }
           case _ => false

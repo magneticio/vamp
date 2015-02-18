@@ -23,7 +23,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint2.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), None))),
-      'endpoints(Map(Trait.Name.asName("supersonic.port") -> "$PORT")),
+      'endpoints(Map(Trait.Name.asName("notorious.ports.port") -> "$PORT")),
       'parameters(Map(Trait.Name.asName("notorious.aspect") -> "thorium"))
     )
   }
@@ -188,9 +188,30 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "expand the more complex blueprint" in {
     BlueprintReader.read(res("blueprint21.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious",List(),Some(SlaReference("strong-mountain",List()))), Cluster("omega",List(Service(BreedReference("scary-lion"),None,None)),None), Cluster("supersonic",List(Service(BreedReference("solid-barbershop"),Some(AnonymousScale(0.2,120.0,2)),Some(AnonymousRouting(Some(95),List(AnonymousFilter("ua = android"))))), Service(BreedReference("remote-venus"),Some(ScaleReference("worthy")),None)),Some(AnonymousSla("vital-cloud",List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), AnonymousEscalation("cloud-beam",Map("sound" -> "furious"))),Map("reborn" -> "red-swallow")))))),
-      'endpoints(Map(Trait.Name.asName("supersonic.port") -> "$PORT")),
+      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), List(), List(), Map()), None, None)), Some(SlaReference("strong-mountain", List()))), Cluster("omega", List(Service(BreedReference("scary-lion"), None, None)), None), Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Some(AnonymousScale(0.2, 120.0, 2)), Some(AnonymousRouting(Some(95), List(AnonymousFilter("ua = android"))))), Service(BreedReference("remote-venus"), Some(ScaleReference("worthy")), None)), Some(AnonymousSla("vital-cloud", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), AnonymousEscalation("cloud-beam", Map("sound" -> "furious"))), Map("reborn" -> "red-swallow")))), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), List(), List(), Map()), None, None)), Some(SlaReference("fish-steamy", List()))))),
+      'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
       'parameters(Map(Trait.Name.asName("notorious.aspect") -> "thorium"))
     )
+  }
+
+  it should "validate endpoints for inline breeds - valid case" in {
+    BlueprintReader.read(res("blueprint22.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(Port("port", None, Some(Port.Value(Port.Type.Http, 80)), Trait.Direction.Out)), List(), Map()), None, None)), None))),
+      'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
+      'parameters(Map())
+    )
+  }
+
+  it should "validate endpoints for inline breeds - no cluster" in {
+    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint23.yml")) should have message "Endpoint port 'omega.ports.port -> $PORT' cannot be resolved. Check if cluster 'omega' exists and if it has any breed with port name 'port'."
+  }
+
+  it should "validate endpoints for inline breeds - not a port" in {
+    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint24.yml")) should have message "Endpoint port 'supersonic.environment_variables.port -> $PORT' cannot be resolved. Check if cluster 'supersonic' exists and if it has any breed with port name 'port'."
+  }
+
+  it should "validate endpoints for inline breeds - no port" in {
+    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint25.yml")) should have message "Endpoint port 'supersonic.ports.http -> $PORT' cannot be resolved. Check if cluster 'supersonic' exists and if it has any breed with port name 'http'."
   }
 }

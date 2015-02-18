@@ -1,6 +1,8 @@
 package io.magnetic.vamp_core.model.reader
 
+import io.magnetic.vamp_common.notification.Notification
 import io.magnetic.vamp_core.model._
+import io.magnetic.vamp_core.model.notification.UnresolvedEndpointPortError
 
 import scala.language.postfixOps
 
@@ -14,7 +16,13 @@ object BlueprintReader extends YamlReader[Blueprint] {
         case (name: String, cluster: collection.Map[_, _]) =>
           implicit val source = cluster.asInstanceOf[YamlObject]
           <<?[Any]("services") match {
-            case None =>
+            case None => <<?[Any]("breed") match {
+              case None => <<?[Any]("name") match {
+                case None =>
+                case Some(_) => >>("services", List(new YamlObject() += ("breed" -> source)))
+              }
+              case Some(breed) => >>("services", List(new YamlObject() += ("breed" -> breed)))
+            }
             case Some(breed: String) => >>("services", List(new YamlObject() += ("breed" -> breed)))
             case Some(list) =>
               >>("services", list.asInstanceOf[List[_]].map {
@@ -54,7 +62,30 @@ object BlueprintReader extends YamlReader[Blueprint] {
     Blueprint(name, clusters, traitNameMapping("endpoints"), traitNameMapping("parameters"))
   }
 
-  override protected def validate(blueprint: Blueprint): Blueprint = blueprint // validate endpoints, parameters (cluster references)
+  override protected def validate(blueprint: Blueprint): Blueprint = {
+    // TODO validate parameters (cluster references)
+
+    blueprint.endpoints.find({
+      case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), port), _) =>
+        blueprint.clusters.find(_.name == scope) match {
+          case None => true
+          case Some(cluster) => cluster.services.exists(_.breed match {
+            case _: DefaultBreed => true
+            case _ => false
+          }) && cluster.services.find({
+            service => service.breed match {
+              case breed: DefaultBreed => breed.ports.exists(_.name.toString == port)
+              case _ => false
+            }
+          }).isEmpty
+        }
+      case _ => true
+    }).flatMap {
+      case (name, value) => Notification.error(UnresolvedEndpointPortError(name, value))
+    }
+
+    blueprint
+  }
 
   private def service(implicit source: YamlObject): Service =
     Service(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReference("scale"), RoutingReader.readOptionalReference("routing"))

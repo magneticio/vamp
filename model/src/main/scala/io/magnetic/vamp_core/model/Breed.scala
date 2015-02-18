@@ -25,25 +25,42 @@ object Trait {
   }
 
   object Name {
+
+    object Group extends Enumeration {
+      val Ports, EnvironmentVariables = Value
+    }
+
     val delimiter = "."
-    
+
     implicit def asName(string: String): Name = string.indexOf(delimiter) match {
       case -1 => Name(None, None, string)
       case scopeIndex => string.substring(scopeIndex + 1).indexOf(delimiter) match {
         case -1 => Name(Some(string.substring(0, scopeIndex)), None, string.substring(scopeIndex + 1))
-        case groupIndex => Name(Some(string.substring(0, scopeIndex)), Some(string.substring(scopeIndex + 1, scopeIndex + groupIndex + 1)), string.substring(scopeIndex + groupIndex + 2))
+        case groupIndex => 
+          val scope = Some(string.substring(0, scopeIndex))
+          val group = string.substring(scopeIndex + 1, scopeIndex + groupIndex + 1) match {
+            case g if g == "ports" => Some(Name.Group.Ports)
+            case g if g == "environment_variables" => Some(Name.Group.EnvironmentVariables)
+            case _ => None
+          }
+          val value = string.substring(scopeIndex + groupIndex + 2)
+          
+          Name(scope, group, value)
       }
     }
   }
-  case class Name(scope: Option[String], group: Option[String], value: String) {
+
+  case class Name(scope: Option[String], group: Option[Name.Group.Value], value: String) {
     override def toString: String = scope match {
       case None => value
       case Some(s) => group match {
         case None => s"$s${Name.delimiter}$value"
-        case Some(g) => s"$s${Name.delimiter}$g${Name.delimiter}$value"
+        case Some(Name.Group.EnvironmentVariables) => s"$s${Name.delimiter}environment_variables${Name.delimiter}$value"
+        case Some(g) => s"$s${Name.delimiter}${g.toString.toLowerCase}${Name.delimiter}$value"
       }
     }
   }
+
 }
 
 trait Trait {
