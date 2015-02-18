@@ -1,0 +1,11 @@
+package io.magnetic
+
+case class Var2(var2Var1: Int)
+
+case class Var4Var1(var4Var1Var1: Int)
+
+case class Var4(var4Var1: Var4Var1)
+
+case class Var5(var5Var1: Map[String, AnyRef])
+
+case class Input2(var1: String, var2: Var2, var3: Map[String, AnyRef], var4: Var4, var5: Var5)
