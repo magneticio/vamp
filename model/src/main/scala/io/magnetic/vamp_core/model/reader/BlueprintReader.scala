@@ -64,7 +64,7 @@ object BlueprintReader extends YamlReader[Blueprint] {
     case Some(map) => map.map {
       case (name: String, _) =>
         implicit val source = map.asInstanceOf[YamlObject]
-        (Trait.asName(name), <<![String](name))
+        (Trait.Name.asName(name), <<![String](name))
     } toMap
   }
 }

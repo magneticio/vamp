@@ -9,8 +9,8 @@ EitherReferenceOrAnonymous           : "Either it should be a reference '{name} 
 # Breed Reader
 
 MalformedTraitNameError              : "Malformed port/environment variable name '{name}' for breed '{breed}'. Name should be in the format [scope.[ports|environment_variables].]local"
-MissingPortValueError                : "Missing port value for '{port}' and breed '{breed}'."
-MissingEnvironmentVariableValueError : "Missing environment variable value for '{environmentVariable}' and breed '{breed}'."
-NonUniquePortNameError               : "Non unique port name '{port}' for breed '{breed}'."
-NonUniqueEnvironmentVariableNameError: "Non unique environment variable name '{environmentVariable}' for breed '{breed}'."
-UnresolvedDependencyForTraitError    : "Dependency reference cannot be resolved for port/environment variable name '{name}' and breed '{breed}'."
+MissingPortValueError                : "Missing port value for '{port.name}' and breed '{breed.name} -> {breed.deployable.name}'."
+MissingEnvironmentVariableValueError : "Missing environment variable value for '{environmentVariable.name}' and breed '{breed.name} -> {breed.deployable.name}'."
+NonUniquePortNameError               : "Non unique port name '{port.name}' for breed '{breed.name} -> {breed.deployable.name}'."
+NonUniqueEnvironmentVariableNameError: "Non unique environment variable name '{environmentVariable.name}' for breed '{breed.name} -> {breed.deployable.name}'."
+UnresolvedDependencyForTraitError    : "Dependency reference cannot be resolved for port/environment variable name '{name}' and breed '{breed.name} -> {breed.deployable.name}'."

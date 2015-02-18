@@ -23,8 +23,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint2.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), None))),
-      'endpoints(Map(Trait.asName("supersonic.port") -> "$PORT")),
-      'parameters(Map(Trait.asName("notorious.aspect") -> "thorium"))
+      'endpoints(Map(Trait.Name.asName("supersonic.port") -> "$PORT")),
+      'parameters(Map(Trait.Name.asName("notorious.aspect") -> "thorium"))
     )
   }
 
@@ -189,8 +189,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint21.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious",List(),Some(SlaReference("strong-mountain",List()))), Cluster("omega",List(Service(BreedReference("scary-lion"),None,None)),None), Cluster("supersonic",List(Service(BreedReference("solid-barbershop"),Some(AnonymousScale(0.2,120.0,2)),Some(AnonymousRouting(Some(95),List(AnonymousFilter("ua = android"))))), Service(BreedReference("remote-venus"),Some(ScaleReference("worthy")),None)),Some(AnonymousSla("vital-cloud",List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), AnonymousEscalation("cloud-beam",Map("sound" -> "furious"))),Map("reborn" -> "red-swallow")))))),
-      'endpoints(Map(Trait.asName("supersonic.port") -> "$PORT")),
-      'parameters(Map(Trait.asName("notorious.aspect") -> "thorium"))
+      'endpoints(Map(Trait.Name.asName("supersonic.port") -> "$PORT")),
+      'parameters(Map(Trait.Name.asName("notorious.aspect") -> "thorium"))
     )
   }
 }

@@ -10,8 +10,6 @@ case class DefaultBreed(override val name: String, deployable: Deployable, ports
   def inTraits: List[Trait] = traits.filter(_.direction == Trait.Direction.In)
 
   def outTraits: List[Trait] = traits.filter(_.direction == Trait.Direction.Out)
-
-  override def toString: String = s"$name -> $deployable"
 }
 
 case class BreedReference(override val name: String) extends Reference with Breed
@@ -26,21 +24,24 @@ object Trait {
     val In, Out = Value
   }
 
+  object Name {
+    val delimiter = "."
+    
+    implicit def asName(string: String): Name = string.indexOf(delimiter) match {
+      case -1 => Name(None, None, string)
+      case scopeIndex => string.substring(scopeIndex + 1).indexOf(delimiter) match {
+        case -1 => Name(Some(string.substring(0, scopeIndex)), None, string.substring(scopeIndex + 1))
+        case groupIndex => Name(Some(string.substring(0, scopeIndex)), Some(string.substring(scopeIndex + 1, scopeIndex + groupIndex + 1)), string.substring(scopeIndex + groupIndex + 2))
+      }
+    }
+  }
   case class Name(scope: Option[String], group: Option[String], value: String) {
     override def toString: String = scope match {
       case None => value
       case Some(s) => group match {
-        case None => s"$s.$value"
-        case Some(g) => s"$s.$g.$value"
+        case None => s"$s${Name.delimiter}$value"
+        case Some(g) => s"$s${Name.delimiter}$g${Name.delimiter}$value"
       }
-    }
-  }
-
-  implicit def asName(string: String): Name = string.indexOf('.') match {
-    case -1 => Name(None, None, string)
-    case scopeIndex => string.substring(scopeIndex + 1).indexOf('.') match {
-      case -1 => Name(Some(string.substring(0, scopeIndex)), None, string.substring(scopeIndex + 1))
-      case groupIndex => Name(Some(string.substring(0, scopeIndex)), Some(string.substring(scopeIndex + 1, scopeIndex + groupIndex + 1)), string.substring(scopeIndex + groupIndex + 2))
     }
   }
 }
@@ -52,8 +53,6 @@ trait Trait {
   def alias: Option[String]
 
   def direction: Trait.Direction.Value
-
-  override def toString: String = name.toString
 }
 
 object Port {

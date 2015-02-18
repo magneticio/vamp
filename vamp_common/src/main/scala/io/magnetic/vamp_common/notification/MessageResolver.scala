@@ -37,11 +37,11 @@ trait DefaultPackageMessageResolverProvider extends MessageResolverProvider {
           case None =>
             logger.warn(s"No mapping for ${notification.getClass}")
             defaultMapping(error = false)
-          case Some(value: Message) => resolveValue(value)
+          case Some(value: Message) => resolveMessageValue(value)
           case Some(value: Any) =>
             val message = parseMessage(value.toString)
             messageSource.put(name, message)
-            resolveValue(message)
+            resolveMessageValue(message)
         }
       } catch {
         case e: NoSuchMethodException =>
@@ -79,13 +79,13 @@ trait DefaultPackageMessageResolverProvider extends MessageResolverProvider {
       Message(parts, args)
     }
 
-    protected def resolveValue(message: Message)(implicit notification: Notification): String = {
+    protected def resolveMessageValue(message: Message)(implicit notification: Notification): String = {
       val pi = message.parts.iterator
       val ai = message.args.iterator
       val sb = new StringBuilder()
       while (ai.hasNext) {
         sb append pi.next
-        sb append notification.getClass.getDeclaredMethod(ai.next()).invoke(notification).toString
+        sb append ai.next().split('.').foldLeft(notification.asInstanceOf[AnyRef])((arg1, arg2) => arg1.getClass.getDeclaredMethod(arg2).invoke(arg1)).toString
       }
       if (pi.hasNext) sb append pi.next
       sb.toString()
