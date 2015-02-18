@@ -11,4 +11,4 @@ clusters:
           name: nocturnal-viper
           
 parameters:
-  notorious.aspect: thorium
+  notorious.ports.aspect: thorium

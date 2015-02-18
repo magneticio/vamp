@@ -1,0 +1,14 @@
+name: nomadic-frostbite
+
+parameters:
+  supersonic.ports.http: $PORT
+
+clusters:
+  supersonic:
+    breed:
+      name: solid-barbershop
+      deployable: vamp/solid-barbershop
+
+      ports:
+        name: port
+        direction: IN

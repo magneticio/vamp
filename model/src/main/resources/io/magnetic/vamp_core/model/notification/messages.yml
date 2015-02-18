@@ -18,4 +18,4 @@ UnresolvedDependencyForTraitError    : "Dependency reference cannot be resolved 
 # Blueprint Reader
 
 UnresolvedEndpointPortError          : "Endpoint port '{name} -> {value}' cannot be resolved. Check if cluster '{name.scope.get}' exists and if it has any breed with port name '{name.value}'."
-UnresolvedParameterError             : "Parameter '{name} -> {value}' cannot be resolved. Check if cluster '{name.scope}' exists and if it has any breed with IN '{name.value}' port or environment variable."
+UnresolvedParameterError             : "Parameter '{name} -> {value}' cannot be resolved. Check if cluster '{name.scope.get}' exists and if it has any breed with a port or environment variable '{name.value}' and IN direction."

@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.model.reader
 
 import io.magnetic.vamp_common.notification.Notification
 import io.magnetic.vamp_core.model._
-import io.magnetic.vamp_core.model.notification.UnresolvedEndpointPortError
+import io.magnetic.vamp_core.model.notification.{UnresolvedParameterError, UnresolvedEndpointPortError}
 
 import scala.language.postfixOps
 
@@ -63,7 +63,7 @@ object BlueprintReader extends YamlReader[Blueprint] {
   }
 
   override protected def validate(blueprint: Blueprint): Blueprint = {
-    // TODO validate parameters (cluster references)
+    // TODO validate breed dependencies
 
     blueprint.endpoints.find({
       case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), port), _) =>
@@ -82,6 +82,25 @@ object BlueprintReader extends YamlReader[Blueprint] {
       case _ => true
     }).flatMap {
       case (name, value) => Notification.error(UnresolvedEndpointPortError(name, value))
+    }
+
+    blueprint.parameters.find({
+      case (Trait.Name(Some(scope), Some(group), port), _) =>
+        blueprint.clusters.find(_.name == scope) match {
+          case None => true
+          case Some(cluster) => cluster.services.exists(_.breed match {
+            case _: DefaultBreed => true
+            case _ => false
+          }) && cluster.services.find({
+            service => service.breed match {
+              case breed: DefaultBreed => breed.inTraits.exists(_.name.toString == port)
+              case _ => false
+            }
+          }).isEmpty
+        }
+      case _ => true
+    }).flatMap {
+      case (name, value) => Notification.error(UnresolvedParameterError(name, value))
     }
 
     blueprint
