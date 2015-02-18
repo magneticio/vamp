@@ -1,3 +1,5 @@
 target
 .idea
 .idea_modules
+vamp_common.iml
+.DS_Store
