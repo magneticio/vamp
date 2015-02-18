@@ -1,14 +1,11 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>io.magnetic.vamp-core</groupId>
-        <artifactId>vamp-core</artifactId>
-        <version>0.4.0</version>
-    </parent>
 
+    <groupId>io.magnetic.vamp-common</groupId>
     <name>vamp_common</name>
     <artifactId>vamp_common</artifactId>
+    <version>0.4.0</version>
 
     <packaging>jar</packaging>
     <url>http://maven.apache.org</url>
@@ -18,6 +15,11 @@
         <json4s.version>3.2.11</json4s.version>
         <commons-cli.version>1.2</commons-cli.version>
         <snakeyaml.version>1.14</snakeyaml.version>
+        <junit.version>4.11</junit.version>
+        <scalatest.version>2.2.4</scalatest.version>
+        <scala-library.version>2.11.4</scala-library.version>
+        <scala-logging.version>3.1.0</scala-logging.version>
+        <scala.version>2.11</scala.version>
     </properties>
 
     <dependencies>
@@ -51,6 +53,27 @@
             <artifactId>snakeyaml</artifactId>
             <version>${snakeyaml.version}</version>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.11</artifactId>
+            <version>${scalatest.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala-library.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.scala-logging</groupId>
+            <artifactId>scala-logging_2.11</artifactId>
+            <version>${scala-logging.version}</version>
+        </dependency>
     </dependencies>
-
 </project>

@@ -5,12 +5,12 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
 import com.typesafe.scalalogging.Logger
-import io.magnetic.vamp_common.text.Text
 import org.apache.commons.cli._
 import org.json4s.JsonAST.JArray
 import org.json4s._
 import org.json4s.native.JsonMethods
 import org.slf4j.LoggerFactory
+import io.magnetic.vamp_common.text.Text
 
 import scala.collection.mutable
 import scala.io.Source
