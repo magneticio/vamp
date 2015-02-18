@@ -1,7 +1,7 @@
 package io.magnetic.vamp_core.model.notification
 
 import io.magnetic.vamp_common.notification.Notification
-import io.magnetic.vamp_core.model.{Trait, Breed, EnvironmentVariable, Port}
+import io.magnetic.vamp_core.model.{Breed, Trait}
 
 case class UnresolvedEndpointPortError(name: Trait.Name, value: String) extends Notification
 

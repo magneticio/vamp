@@ -19,11 +19,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.magnetic.vamp-core</groupId>
-            <artifactId>vamp_common</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
             <version>${snakeyaml.version}</version>

@@ -1,5 +1,0 @@
-package io.magnetic
-
-case class PortMappings(containerPort: Int, hostPort: Int, servicePort: Int, protocol: String)
-
-case class Input3(portMappings: PortMappings)

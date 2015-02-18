@@ -20,11 +20,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.magnetic.vamp-core</groupId>
-            <artifactId>vamp_common</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>net.databinder.dispatch</groupId>
             <artifactId>dispatch-core_2.11</artifactId>
             <version>${dispatch.version}</version>
