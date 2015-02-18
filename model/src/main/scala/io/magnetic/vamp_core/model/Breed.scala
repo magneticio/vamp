@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.model
 
 import scala.language.implicitConversions
 
-trait Breed
+trait Breed extends Artifact
 
 case class DefaultBreed(override val name: String, deployable: Deployable, ports: List[Port], environmentVariables: List[EnvironmentVariable], dependencies: Map[String, Breed]) extends Artifact with Breed {
   lazy val traits = ports ++ environmentVariables

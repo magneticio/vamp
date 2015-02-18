@@ -239,4 +239,12 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "validate parameters for inline breeds - no IN trait" in {
     the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint30.yml")) should have message "Parameter 'supersonic.ports.port -> $PORT' cannot be resolved. Check if cluster 'supersonic' exists and if it has any breed with a port or environment variable 'port' and IN direction."
   }
+
+  it should "validate breed uniqueness across clusters" in {
+    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint31.yml")) should have message "Multiple references for breed: 'solid-barbershop'."
+  }
+
+  it should "validate breed uniqueness across services" in {
+    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint32.yml")) should have message "Multiple references for breed: 'solid-barbershop'."
+  }
 }
