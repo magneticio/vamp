@@ -8,3 +8,5 @@ case class UnresolvedEndpointPortError(name: Trait.Name, value: String) extends 
 case class UnresolvedParameterError(name: Trait.Name, value: String) extends Notification
 
 case class NonUniqueBlueprintBreedReferenceError(name: String) extends Notification
+
+case class UnresolvedBreedDependencyError(breed: Breed, dependency: (String, Breed)) extends Notification

@@ -247,4 +247,26 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "validate breed uniqueness across services" in {
     the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint32.yml")) should have message "Multiple references for breed: 'solid-barbershop'."
   }
+
+  it should "validate breed cross dependencies - no inline" in {
+    BlueprintReader.read(res("blueprint33.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), None, None)), None), Cluster("notorious", List(Service(BreedReference("elastic-search"), None, None)), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "validate breed cross dependencies - inline and valid" in {
+    BlueprintReader.read(res("blueprint34.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("elastic-search"), None, None)), None), Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("solid/barbershop"), List(), List(), Map("es" -> BreedReference("elastic-search"))), None, None)), None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "validate breed cross dependencies - missing reference for an inline breed" in {
+    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint35.yml")) should have message "Unresolved breed dependency for breed 'solid-barbershop' and dependency 'es -> elastic-search'."
+  }
 }

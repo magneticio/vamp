@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.model.reader
 
 import io.magnetic.vamp_common.notification.Notification
 import io.magnetic.vamp_core.model._
-import io.magnetic.vamp_core.model.notification.{NonUniqueBlueprintBreedReferenceError, UnresolvedParameterError, UnresolvedEndpointPortError}
+import io.magnetic.vamp_core.model.notification.{NonUniqueBlueprintBreedReferenceError, UnresolvedBreedDependencyError, UnresolvedEndpointPortError, UnresolvedParameterError}
 
 import scala.language.postfixOps
 
@@ -101,8 +101,19 @@ object BlueprintReader extends YamlReader[Blueprint] {
       case (name, value) => Notification.error(UnresolvedParameterError(name, value))
     }
 
-    blueprint.clusters.flatMap(_.services.map(_.breed)).groupBy(_.name.toString).collect {
-      case (name, breeds) if breeds.size > 1 => Notification.error(NonUniqueBlueprintBreedReferenceError(name))
+    val breeds = blueprint.clusters.flatMap(_.services.map(_.breed))
+
+    breeds.groupBy(_.name.toString).collect {
+      case (name, list) if list.size > 1 => Notification.error(NonUniqueBlueprintBreedReferenceError(name))
+    }
+
+    breeds.flatMap({
+      case breed: DefaultBreed => breed.dependencies.map((breed, _))
+      case _ => List()
+    }).find({
+      case (breed, dependency) => breeds.find(_.name == dependency._2.name).isEmpty
+    }).flatMap {
+      case (breed, dependency) => Notification.error(UnresolvedBreedDependencyError(breed, dependency))
     }
 
     blueprint
