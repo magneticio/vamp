@@ -7,7 +7,7 @@ import scala.language.postfixOps
 
 trait Notification
 
-class NotificationErrorException(message: String) extends RuntimeException(message)
+case class NotificationErrorException(notification: Notification, message: String) extends RuntimeException(message)
 
 object Notification extends DefaultPackageMessageResolverProvider {
 
@@ -18,7 +18,7 @@ object Notification extends DefaultPackageMessageResolverProvider {
   def error(notification: Notification) = {
     val message = messageResolver.resolve(notification)
     logger.error(message)
-    throw new NotificationErrorException(message)
+    throw new NotificationErrorException(notification, message)
   }
 }
 
