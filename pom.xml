@@ -3,9 +3,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.magnetic.vamp-common</groupId>
-    <name>vamp_common</name>
-    <artifactId>vamp_common</artifactId>
-    <version>0.4.0</version>
+    <name>vamp-common</name>
+    <artifactId>vamp-common</artifactId>
+    <version>0.5.0</version>
 
     <packaging>jar</packaging>
     <url>http://maven.apache.org</url>
