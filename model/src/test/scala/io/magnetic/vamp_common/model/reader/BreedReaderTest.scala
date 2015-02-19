@@ -24,8 +24,8 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed2.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out))),
-      'ports(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out))),
+      'traits(List(HttpPort("port", None, Some(8080), Trait.Direction.Out))),
+      'ports(List(HttpPort("port", None, Some(8080), Trait.Direction.Out))),
       'environmentVariables(List()),
       'dependencies(Map())
     )
@@ -35,8 +35,8 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed3.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.ports.port", Some("DB_PORT"), None, Trait.Direction.In))),
-      'ports(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out))),
+      'traits(List(HttpPort("port", None, Some(8080), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.ports.port", Some("DB_PORT"), None, Trait.Direction.In))),
+      'ports(List(HttpPort("port", None, Some(8080), Trait.Direction.Out))),
       'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.ports.port", Some("DB_PORT"), None, Trait.Direction.In))),
       'dependencies(Map("db" -> BreedReference("mysql")))
     )
@@ -46,8 +46,8 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed4.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In))),
-      'ports(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out))),
+      'traits(List(HttpPort("port", None, Some(8080), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In))),
+      'ports(List(HttpPort("port", None, Some(8080), Trait.Direction.Out))),
       'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In))),
       'dependencies(Map("db" -> BreedReference("mysql")))
     )
@@ -101,10 +101,10 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed9.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.ports.port", Some("DB_PORT"), None, Trait.Direction.In))),
-      'ports(List(Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out))),
+      'traits(List(HttpPort("port", None, Some(8080), Trait.Direction.Out), EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.ports.port", Some("DB_PORT"), None, Trait.Direction.In))),
+      'ports(List(HttpPort("port", None, Some(8080), Trait.Direction.Out))),
       'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None, Trait.Direction.In), EnvironmentVariable("db.ports.port", Some("DB_PORT"), None, Trait.Direction.In))),
-      'dependencies(Map("db" -> DefaultBreed("mysql-wrapper", Deployable("magneticio/mysql-wrapper:latest"), List(Port("port", None, Some(Port.Value(Port.Type.Tcp, 3006)), Trait.Direction.Out)), List(), Map("mysql" -> BreedReference("mysql")))))
+      'dependencies(Map("db" -> DefaultBreed("mysql-wrapper", Deployable("magneticio/mysql-wrapper:latest"), List(TcpPort("port", None, Some(3006), Trait.Direction.Out)), List(), Map("mysql" -> BreedReference("mysql")))))
     )
   }
 
@@ -120,8 +120,8 @@ class BreedReaderTest extends ReaderTest {
     expectedError[MissingPortValueError]({
       BreedReader.read(res("breed11.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(Port("port", None, None, Trait.Direction.Out)), List(), Map())),
-      'port(Port("port", None, None, Trait.Direction.Out))
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(TcpPort("port", None, None, Trait.Direction.Out)), List(), Map())),
+      'port(TcpPort("port", None, None, Trait.Direction.Out))
     )
   }
 
@@ -138,8 +138,8 @@ class BreedReaderTest extends ReaderTest {
     expectedError[NonUniquePortNameError]({
       BreedReader.read(res("breed13.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(Port("port", None, Some(Port.Value(Port.Type.Http, 80)), Trait.Direction.Out), Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out)), List(), Map())),
-      'port(Port("port", None, Some(Port.Value(Port.Type.Http, 80)), Trait.Direction.Out))
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out), HttpPort("port", None, Some(8080), Trait.Direction.Out)), List(), Map())),
+      'port(HttpPort("port", None, Some(80), Trait.Direction.Out))
     )
   }
 
@@ -174,7 +174,7 @@ class BreedReaderTest extends ReaderTest {
     expectedError[UnresolvedDependencyForTraitError]({
       BreedReader.read(res("breed17.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(Port("db.ports.web", None, None, Trait.Direction.In)), List(), Map("db" -> DefaultBreed("mysql", Deployable("vamp/mysql"), List(), List(), Map())))),
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(TcpPort("db.ports.web", None, None, Trait.Direction.In)), List(), Map("db" -> DefaultBreed("mysql", Deployable("vamp/mysql"), List(), List(), Map())))),
       'name(Trait.Name.asName("db.ports.web"))
     )
   }

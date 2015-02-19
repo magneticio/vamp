@@ -47,7 +47,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
       case Some(list: YamlList) => list.map {
         port =>
           implicit val source = port
-          Port(name, <<?[String]("alias"), <<?[String]("value"), Trait.Direction.withName(<<![String]("direction").toLowerCase.capitalize))
+          Port.toPort(name, <<?[String]("alias"), <<?[String]("value"), Trait.Direction.withName(<<![String]("direction").toLowerCase.capitalize))
       }
     }
 

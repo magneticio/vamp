@@ -7,9 +7,9 @@ trait Breed extends Artifact
 case class DefaultBreed(override val name: String, deployable: Deployable, ports: List[Port], environmentVariables: List[EnvironmentVariable], dependencies: Map[String, Breed]) extends Artifact with Breed {
   lazy val traits = ports ++ environmentVariables
 
-  def inTraits: List[Trait] = traits.filter(_.direction == Trait.Direction.In)
+  def inTraits: List[Trait[_]] = traits.filter(_.direction == Trait.Direction.In)
 
-  def outTraits: List[Trait] = traits.filter(_.direction == Trait.Direction.Out)
+  def outTraits: List[Trait[_]] = traits.filter(_.direction == Trait.Direction.Out)
 }
 
 case class BreedReference(override val name: String) extends Reference with Breed
@@ -36,7 +36,7 @@ object Trait {
       case -1 => Name(None, None, string)
       case scopeIndex => string.substring(scopeIndex + 1).indexOf(delimiter) match {
         case -1 => Name(Some(string.substring(0, scopeIndex)), None, string.substring(scopeIndex + 1))
-        case groupIndex => 
+        case groupIndex =>
           val scope = Some(string.substring(0, scopeIndex))
           val group = string.substring(scopeIndex + 1, scopeIndex + groupIndex + 1) match {
             case g if g == "ports" => Some(Name.Group.Ports)
@@ -44,7 +44,7 @@ object Trait {
             case _ => None
           }
           val value = string.substring(scopeIndex + groupIndex + 2)
-          
+
           Name(scope, group, value)
       }
     }
@@ -63,40 +63,43 @@ object Trait {
 
 }
 
-trait Trait {
+trait Trait[A] {
 
   def name: Trait.Name
 
   def alias: Option[String]
 
   def direction: Trait.Direction.Value
+
+  def value: Option[A]
 }
 
 object Port {
+  def toPort(name: Trait.Name, alias: Option[String], value: Option[String], direction: Trait.Direction.Value): Port = value match {
+    case None => TcpPort(name, alias, None, direction)
+    case Some(portValue) =>
+      val tcp = "tcp"
+      val http = "http"
 
-  object Type extends Enumeration {
-    val Http, Tcp = Value
-  }
-
-  case class Value(`type`: Port.Type.Value, number: Int)
-
-  implicit def stringToValue(value: Option[String]): Option[Value] = value flatMap {
-    port =>
-      val http = s"/${Port.Type.Http.toString.toLowerCase}"
-      val tcp = s"/${Port.Type.Tcp.toString.toLowerCase}"
-
-      val `type` = if (port.toLowerCase.endsWith(http)) Port.Type.Http else Port.Type.Tcp
-      val number = if (port.toLowerCase.endsWith(http))
-        port.substring(0, port.length - http.length).toInt
-      else if (port.toLowerCase.endsWith(tcp))
-        port.substring(0, port.length - tcp.length).toInt
+      val number = if (portValue.toLowerCase.endsWith(http))
+        portValue.substring(0, portValue.length - http.length - 1).toInt
+      else if (portValue.toLowerCase.endsWith(tcp))
+        portValue.substring(0, portValue.length - tcp.length - 1).toInt
       else
-        port.toInt
+        portValue.toInt
 
-      Some(Value(`type`, number))
+      if (portValue.toLowerCase.endsWith(http))
+        HttpPort(name, alias, Some(number), direction)
+      else
+        TcpPort(name, alias, Some(number), direction)
   }
 }
 
-case class Port(override val name: Trait.Name, override val alias: Option[String], value: Option[Port.Value], override val direction: Trait.Direction.Value) extends Trait
+trait Port extends Trait[Int]
 
-case class EnvironmentVariable(override val name: Trait.Name, override val alias: Option[String], value: Option[String], override val direction: Trait.Direction.Value) extends Trait
+case class TcpPort(override val name: Trait.Name, override val alias: Option[String], override val value: Option[Int], override val direction: Trait.Direction.Value) extends Port
+
+case class HttpPort(override val name: Trait.Name, override val alias: Option[String], override val value: Option[Int], override val direction: Trait.Direction.Value) extends Port
+
+
+case class EnvironmentVariable(override val name: Trait.Name, override val alias: Option[String], override val value: Option[String], override val direction: Trait.Direction.Value) extends Trait[String]

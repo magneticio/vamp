@@ -202,7 +202,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "validate endpoints for inline breeds - valid case" in {
     BlueprintReader.read(res("blueprint22.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(Port("port", None, Some(Port.Value(Port.Type.Http, 80)), Trait.Direction.Out)), List(), Map()), None, None)), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), None, None)), None))),
       'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
       'parameters(Map())
     )
@@ -238,7 +238,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "validate parameters for inline breeds - valid case" in {
     BlueprintReader.read(res("blueprint26.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(Port("port", None, None, Trait.Direction.In)), List(), Map()), None, None)), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(TcpPort("port", None, None, Trait.Direction.In)), List(), Map()), None, None)), None))),
       'endpoints(Map()),
       'parameters(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT"))
     )
