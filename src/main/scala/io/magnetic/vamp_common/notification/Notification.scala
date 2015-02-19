@@ -11,6 +11,6 @@ trait Notification {
 
 case class NotificationErrorException(notification: Notification, message: String) extends RuntimeException(message)
 
-
+@deprecated
 object Notification extends DefaultPackageMessageResolverProvider with NotificationProvider with LoggingNotificationProvider
 
