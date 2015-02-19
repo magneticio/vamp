@@ -5,20 +5,12 @@ import org.slf4j.LoggerFactory
 
 import scala.language.postfixOps
 
-trait Notification
+trait Notification {
+  
+}
 
 case class NotificationErrorException(notification: Notification, message: String) extends RuntimeException(message)
 
-object Notification extends DefaultPackageMessageResolverProvider {
 
-  private val logger = Logger(LoggerFactory.getLogger(Notification.getClass))
-
-  def info(notification: Notification) = logger.info(messageResolver.resolve(notification))
-
-  def error(notification: Notification) = {
-    val message = messageResolver.resolve(notification)
-    logger.error(message)
-    throw new NotificationErrorException(notification, message)
-  }
-}
+object Notification extends DefaultPackageMessageResolverProvider with NotificationProvider with LoggingNotificationProvider
 
