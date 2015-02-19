@@ -1,14 +1,13 @@
 package io.magnetic.vamp_common.model.reader
 
-import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.model._
+import io.magnetic.vamp_core.model.notification._
 import io.magnetic.vamp_core.model.reader.BreedReader
 import org.junit.runner.RunWith
-import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
+class BreedReaderTest extends ReaderTest {
 
   "BreedReader" should "read the simplest YAML (name/deployable only)" in {
     BreedReader.read(res("breed1.yml")) should have(
@@ -110,34 +109,73 @@ class BreedReaderTest extends FlatSpec with Matchers with ReaderTest {
   }
 
   it should "fail on no deployable" in {
-    the[NotificationErrorException] thrownBy BreedReader.read(res("breed10.yml")) should have message "Can't find any value for path: /deployable"
+    expectedError[MissingPathValueError]({
+      BreedReader.read(res("breed10.yml"))
+    }) should have(
+      'path("deployable")
+    )
   }
 
   it should "fail on missing port values" in {
-    the[NotificationErrorException] thrownBy BreedReader.read(res("breed11.yml")) should have message "Missing port value for 'port' and breed 'monarch -> magneticio/monarch:latest'."
+    expectedError[MissingPortValueError]({
+      BreedReader.read(res("breed11.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(Port("port", None, None, Trait.Direction.Out)), List(), Map())),
+      'port(Port("port", None, None, Trait.Direction.Out))
+    )
   }
 
   it should "fail on missing environment variable values" in {
-    the[NotificationErrorException] thrownBy BreedReader.read(res("breed12.yml")) should have message "Missing environment variable value for 'port' and breed 'monarch -> magneticio/monarch:latest'."
+    expectedError[MissingEnvironmentVariableValueError]({
+      BreedReader.read(res("breed12.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(), List(EnvironmentVariable("port", None, None, Trait.Direction.Out)), Map())),
+      'environmentVariable(EnvironmentVariable("port", None, None, Trait.Direction.Out))
+    )
   }
 
   it should "fail on non unique port name" in {
-    the[NotificationErrorException] thrownBy BreedReader.read(res("breed13.yml")) should have message "Non unique port name 'port' for breed 'monarch -> magneticio/monarch:latest'."
+    expectedError[NonUniquePortNameError]({
+      BreedReader.read(res("breed13.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(Port("port", None, Some(Port.Value(Port.Type.Http, 80)), Trait.Direction.Out), Port("port", None, Some(Port.Value(Port.Type.Http, 8080)), Trait.Direction.Out)), List(), Map())),
+      'port(Port("port", None, Some(Port.Value(Port.Type.Http, 80)), Trait.Direction.Out))
+    )
   }
 
   it should "fail on non unique environment variable name" in {
-    the[NotificationErrorException] thrownBy BreedReader.read(res("breed14.yml")) should have message "Non unique environment variable name 'port' for breed 'monarch -> magneticio/monarch:latest'."
+    expectedError[NonUniqueEnvironmentVariableNameError]({
+      BreedReader.read(res("breed14.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(), List(EnvironmentVariable("port", None, Some("80/http"), Trait.Direction.Out), EnvironmentVariable("port", None, Some("8080/http"), Trait.Direction.Out)), Map())),
+      'environmentVariable(EnvironmentVariable("port", None, Some("80/http"), Trait.Direction.Out))
+    )
   }
 
   it should "fail on unresolved dependency reference" in {
-    the[NotificationErrorException] thrownBy BreedReader.read(res("breed15.yml")) should have message "Dependency reference cannot be resolved for port/environment variable name 'es.ports.port' and breed 'monarch -> magneticio/monarch:latest'."
+    expectedError[UnresolvedDependencyForTraitError]({
+      BreedReader.read(res("breed15.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(), List(EnvironmentVariable("es.ports.port", None, None, Trait.Direction.In)), Map("db" -> BreedReference("mysql")))),
+      'name(Trait.Name.asName("es.ports.port"))
+    )
   }
 
   it should "fail on missing dependency environment variable" in {
-    the[NotificationErrorException] thrownBy BreedReader.read(res("breed16.yml")) should have message "Dependency reference cannot be resolved for port/environment variable name 'db.ports.web' and breed 'monarch -> magneticio/monarch:latest'."
+    expectedError[UnresolvedDependencyForTraitError]({
+      BreedReader.read(res("breed16.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(), List(EnvironmentVariable("db.ports.web", None, None, Trait.Direction.In)), Map("db" -> DefaultBreed("mysql", Deployable("vamp/mysql"), List(), List(), Map())))),
+      'name(Trait.Name.asName("db.ports.web"))
+    )
   }
 
   it should "fail on missing dependency port" in {
-    the[NotificationErrorException] thrownBy BreedReader.read(res("breed17.yml")) should have message "Dependency reference cannot be resolved for port/environment variable name 'db.ports.web' and breed 'monarch -> magneticio/monarch:latest'."
+    expectedError[UnresolvedDependencyForTraitError]({
+      BreedReader.read(res("breed17.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(Port("db.ports.web", None, None, Trait.Direction.In)), List(), Map("db" -> DefaultBreed("mysql", Deployable("vamp/mysql"), List(), List(), Map())))),
+      'name(Trait.Name.asName("db.ports.web"))
+    )
   }
 }

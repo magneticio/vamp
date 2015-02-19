@@ -1,19 +1,27 @@
 package io.magnetic.vamp_common.model.reader
 
-import io.magnetic.vamp_common.notification.NotificationErrorException
-import io.magnetic.vamp_core.model.reader.YamlReader
+import _root_.io.magnetic.vamp_common.notification.NotificationErrorException
+import _root_.io.magnetic.vamp_core.model.reader.YamlReader
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, Matchers}
 
 import scala.io.Source
+import scala.reflect._
 
-trait ReaderTest {
-  def res(path: String): String = Source.fromURL(getClass.getResource(path)).mkString
+trait ReaderTest extends FlatSpec with Matchers {
+  protected def res(path: String): String = Source.fromURL(getClass.getResource(path)).mkString
+
+  protected def expectedError[A <: Any : ClassTag](f: => Any): A = {
+    the[NotificationErrorException] thrownBy f match {
+      case NotificationErrorException(error: A, _) => error
+      case unexpected => throw new RuntimeException(s"Expected ${classTag[A].runtimeClass}, actual ${unexpected.notification.getClass}", unexpected)
+    }
+  }
 }
 
 @RunWith(classOf[JUnitRunner])
-class YamlReaderTest extends FlatSpec with Matchers with ReaderTest {
+class YamlReaderTest extends ReaderTest {
 
   "YamlReader" should "fail on invalid YAML" in {
     (the[NotificationErrorException] thrownBy {

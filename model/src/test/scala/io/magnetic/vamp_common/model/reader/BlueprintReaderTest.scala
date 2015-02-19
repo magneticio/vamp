@@ -1,7 +1,7 @@
 package io.magnetic.vamp_common.model.reader
 
-import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.model._
+import io.magnetic.vamp_core.model.notification._
 import io.magnetic.vamp_core.model.reader.BlueprintReader
 import org.junit.runner.RunWith
 import org.scalatest._
@@ -146,7 +146,12 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   }
 
   it should "fail on both reference and inline routing declarations" in {
-    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint16.yml")) should have message "Either it should be a reference 'routing -> !ios' or an anonymous inline definition, but not both."
+    expectedError[EitherReferenceOrAnonymous]({
+      BlueprintReader.read(res("blueprint16.yml"))
+    }) should have(
+      'name("routing"),
+      'reference("!ios")
+    )
   }
 
   it should "expand the filter list" in {
@@ -204,15 +209,30 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   }
 
   it should "validate endpoints for inline breeds - no cluster" in {
-    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint23.yml")) should have message "Endpoint port 'omega.ports.port -> $PORT' cannot be resolved. Check if cluster 'omega' exists and if it has any breed with port name 'port'."
+    expectedError[UnresolvedEndpointPortError]({
+      BlueprintReader.read(res("blueprint23.yml"))
+    }) should have(
+      'name(Trait.Name.asName("omega.ports.port")),
+      'value("$PORT")
+    )
   }
 
   it should "validate endpoints for inline breeds - not a port" in {
-    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint24.yml")) should have message "Endpoint port 'supersonic.environment_variables.port -> $PORT' cannot be resolved. Check if cluster 'supersonic' exists and if it has any breed with port name 'port'."
+    expectedError[UnresolvedEndpointPortError]({
+      BlueprintReader.read(res("blueprint24.yml"))
+    }) should have(
+      'name(Trait.Name.asName("supersonic.environment_variables.port")),
+      'value("$PORT")
+    )
   }
 
   it should "validate endpoints for inline breeds - no port" in {
-    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint25.yml")) should have message "Endpoint port 'supersonic.ports.http -> $PORT' cannot be resolved. Check if cluster 'supersonic' exists and if it has any breed with port name 'http'."
+    expectedError[UnresolvedEndpointPortError]({
+      BlueprintReader.read(res("blueprint25.yml"))
+    }) should have(
+      'name(Trait.Name.asName("supersonic.ports.http")),
+      'value("$PORT")
+    )
   }
 
   it should "validate parameters for inline breeds - valid case" in {
@@ -225,27 +245,55 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   }
 
   it should "validate parameters for inline breeds - no cluster" in {
-    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint27.yml")) should have message "Parameter 'omega.ports.port -> $PORT' cannot be resolved. Check if cluster 'omega' exists and if it has any breed with a port or environment variable 'port' and IN direction."
+    expectedError[UnresolvedParameterError]({
+      BlueprintReader.read(res("blueprint27.yml"))
+    }) should have(
+      'name(Trait.Name.asName("omega.ports.port")),
+      'value("$PORT")
+    )
   }
 
   it should "validate parameters for inline breeds - not a trait" in {
-    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint28.yml")) should have message "Parameter 'supersonic.port -> $PORT' cannot be resolved. Check if cluster 'supersonic' exists and if it has any breed with a port or environment variable 'port' and IN direction."
+    expectedError[UnresolvedParameterError]({
+      BlueprintReader.read(res("blueprint28.yml"))
+    }) should have(
+      'name(Trait.Name.asName("supersonic.port")),
+      'value("$PORT")
+    )
   }
 
   it should "validate parameters for inline breeds - no trait" in {
-    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint29.yml")) should have message "Parameter 'supersonic.ports.http -> $PORT' cannot be resolved. Check if cluster 'supersonic' exists and if it has any breed with a port or environment variable 'http' and IN direction."
+    expectedError[UnresolvedParameterError]({
+      BlueprintReader.read(res("blueprint29.yml"))
+    }) should have(
+      'name(Trait.Name.asName("supersonic.ports.http")),
+      'value("$PORT")
+    )
   }
 
   it should "validate parameters for inline breeds - no IN trait" in {
-    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint30.yml")) should have message "Parameter 'supersonic.ports.port -> $PORT' cannot be resolved. Check if cluster 'supersonic' exists and if it has any breed with a port or environment variable 'port' and IN direction."
+    expectedError[UnresolvedParameterError]({
+      BlueprintReader.read(res("blueprint30.yml"))
+    }) should have(
+      'name(Trait.Name.asName("supersonic.ports.port")),
+      'value("$PORT")
+    )
   }
 
   it should "validate breed uniqueness across clusters" in {
-    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint31.yml")) should have message "Multiple references for breed: 'solid-barbershop'."
+    expectedError[NonUniqueBlueprintBreedReferenceError]({
+      BlueprintReader.read(res("blueprint31.yml"))
+    }) should have(
+      'name("solid-barbershop")
+    )
   }
 
   it should "validate breed uniqueness across services" in {
-    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint32.yml")) should have message "Multiple references for breed: 'solid-barbershop'."
+    expectedError[NonUniqueBlueprintBreedReferenceError]({
+      BlueprintReader.read(res("blueprint32.yml"))
+    }) should have(
+      'name("solid-barbershop")
+    )
   }
 
   it should "validate breed cross dependencies - no inline" in {
@@ -267,6 +315,11 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   }
 
   it should "validate breed cross dependencies - missing reference for an inline breed" in {
-    the[NotificationErrorException] thrownBy BlueprintReader.read(res("blueprint35.yml")) should have message "Unresolved breed dependency for breed 'solid-barbershop' and dependency 'es -> elastic-search'."
+    expectedError[UnresolvedBreedDependencyError]({
+      BlueprintReader.read(res("blueprint35.yml"))
+    }) should have(
+      'breed(DefaultBreed("solid-barbershop", Deployable("solid/barbershop"), List(), List(), Map("es" -> BreedReference("elastic-search")))),
+      'dependency("es" -> BreedReference("elastic-search"))
+    )
   }
 }
