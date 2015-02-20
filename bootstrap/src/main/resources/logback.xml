@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <logger name="akka" level="INFO" />
+    <logger name="spray" level="INFO" />
+    <logger name="io.magnetic.vamp_core" level="DEBUG"/>
+</configuration>

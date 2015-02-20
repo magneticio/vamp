@@ -23,13 +23,13 @@ case class StreamInput(stream: InputStream) extends YamlInput
 case class FileInput(file: File) extends YamlInput
 
 object YamlInput {
-  implicit def string2StringInput(string: String): YamlInput = StringInput(string)
+  implicit def string2YamlInput(string: String): YamlInput = StringInput(string)
 
-  implicit def reader2StringInput(reader: Reader): YamlInput = ReaderInput(reader)
+  implicit def reader2YamlInput(reader: Reader): YamlInput = ReaderInput(reader)
 
-  implicit def stream2StringInput(stream: InputStream): YamlInput = StreamInput(stream)
+  implicit def stream2YamlInput(stream: InputStream): YamlInput = StreamInput(stream)
 
-  implicit def file2StringInput(file: File): YamlInput = FileInput(file)
+  implicit def file2YamlInput(file: File): YamlInput = FileInput(file)
 }
 
 trait YamlReader[T] {

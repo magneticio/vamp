@@ -7,20 +7,26 @@
         <version>0.5.0</version>
     </parent>
 
-    <name>rest_api</name>
-    <artifactId>rest_api</artifactId>
+    <name>bootstrap</name>
+    <artifactId>bootstrap</artifactId>
 
     <packaging>jar</packaging>
     <url>http://maven.apache.org</url>
 
     <properties>
+        <config.version>1.2.1</config.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>io.magnetic.vamp-core</groupId>
-            <artifactId>model</artifactId>
+            <artifactId>rest_api</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe</groupId>
+            <artifactId>config</artifactId>
+            <version>${config.version}</version>
         </dependency>
     </dependencies>
 

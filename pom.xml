@@ -18,19 +18,23 @@
         <module>rest_api_spec</module>
         <module>operations</module>
         <module>tools</module>
+        <module>bootstrap</module>
         <!-- should be external projects -->
         <module>marathon</module>
         <module>vamp_router</module>
     </modules>
 
     <properties>
+        <spray.version>1.3.2</spray.version>
+        <spray-json.version>1.3.1</spray-json.version>
+        <json4s.version>3.2.11</json4s.version>
+        <akka.version>2.3.9</akka.version>
         <vamp-common.version>0.5.0</vamp-common.version>
         <scala-logging.version>3.1.0</scala-logging.version>
         <slf4j.version>1.7.10</slf4j.version>
         <logback.version>1.1.2</logback.version>
         <scala.version>2.11</scala.version>
         <scala-library.version>2.11.4</scala-library.version>
-        <akka-streams.version>1.0-M2</akka-streams.version>
         <java.version>1.8</java.version>
         <junit.version>4.11</junit.version>
         <scalatest.version>2.2.4</scalatest.version>
@@ -40,6 +44,47 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.spray</groupId>
+            <artifactId>spray-can_${scala.version}</artifactId>
+            <version>${spray.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.spray</groupId>
+            <artifactId>spray-routing_${scala.version}</artifactId>
+            <version>${spray.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.spray</groupId>
+            <artifactId>spray-httpx_${scala.version}</artifactId>
+            <version>${spray.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.spray</groupId>
+            <artifactId>spray-json_${scala.version}</artifactId>
+            <version>${spray-json.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-native_${scala.version}</artifactId>
+            <version>${json4s.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.spray</groupId>
+            <artifactId>spray-testkit_${scala.version}</artifactId>
+            <version>${spray.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-actor_${scala.version}</artifactId>
+            <version>${akka.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-slf4j_${scala.version}</artifactId>
+            <version>${akka.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.magnetic.vamp-common</groupId>
             <artifactId>vamp-common</artifactId>
             <version>${vamp-common.version}</version>
@@ -48,11 +93,6 @@
             <groupId>com.typesafe.scala-logging</groupId>
             <artifactId>scala-logging_2.11</artifactId>
             <version>${scala-logging.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-stream-experimental_2.11</artifactId>
-            <version>${akka-streams.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
