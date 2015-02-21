@@ -1,0 +1,5 @@
+package io.magnetic.vamp_core.model.notification
+
+import io.magnetic.vamp_common.notification.{DefaultPackageMessageResolverProvider, LoggingNotificationProvider}
+
+trait ModelNotificationProvider extends LoggingNotificationProvider with DefaultPackageMessageResolverProvider

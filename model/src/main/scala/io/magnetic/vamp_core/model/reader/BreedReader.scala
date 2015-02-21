@@ -1,6 +1,5 @@
 package io.magnetic.vamp_core.model.reader
 
-import _root_.io.magnetic.vamp_common.notification.Notification
 import _root_.io.magnetic.vamp_core.model._
 import io.magnetic.vamp_core.model.notification._
 
@@ -80,23 +79,23 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
         case Trait.Name(Some(scope), None, value) => value != Trait.host
         case _ => false
       }).flatMap {
-        name => Notification.error(MalformedTraitNameError(breed, name))
+        name => error(MalformedTraitNameError(breed, name))
       }
 
       breed.ports.filter(_.direction == Trait.Direction.Out).find(_.value.isEmpty).flatMap {
-        port => Notification.error(MissingPortValueError(breed, port))
+        port => error(MissingPortValueError(breed, port))
       }
 
       breed.environmentVariables.filter(_.direction == Trait.Direction.Out).find(_.value.isEmpty).flatMap {
-        environmentVariables => Notification.error(MissingEnvironmentVariableValueError(breed, environmentVariables))
+        environmentVariables => error(MissingEnvironmentVariableValueError(breed, environmentVariables))
       }
 
       breed.ports.groupBy(_.name.toString).collect {
-        case (name, ports) if ports.size > 1 => Notification.error(NonUniquePortNameError(breed, ports.head))
+        case (name, ports) if ports.size > 1 => error(NonUniquePortNameError(breed, ports.head))
       }
 
       breed.environmentVariables.groupBy(_.name.toString).collect {
-        case (name, environmentVariables) if environmentVariables.size > 1 => Notification.error(NonUniqueEnvironmentVariableNameError(breed, environmentVariables.head))
+        case (name, environmentVariables) if environmentVariables.size > 1 => error(NonUniqueEnvironmentVariableNameError(breed, environmentVariables.head))
       }
 
       breed.traits.map(_.name).find({
@@ -113,7 +112,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
         }
         case _ => false
       }).flatMap {
-        name => Notification.error(UnresolvedDependencyForTraitError(breed, name))
+        name => error(UnresolvedDependencyForTraitError(breed, name))
       }
 
       breed

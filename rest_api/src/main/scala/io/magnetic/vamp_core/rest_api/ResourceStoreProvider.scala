@@ -1,6 +1,7 @@
 package io.magnetic.vamp_core.rest_api
 
 import io.magnetic.vamp_core.model.Artifact
+import io.magnetic.vamp_core.rest_api.notification.{InconsistentResourceName, RestApiNotificationProvider}
 import io.magnetic.vamp_core.rest_api.util.ExecutionContextProvider
 
 import scala.collection.mutable
@@ -25,9 +26,9 @@ trait ResourceStoreProvider {
 
 }
 
-trait InMemoryResourceStoreProvider extends ResourceStoreProvider {
+trait InMemoryResourceStoreProvider extends ResourceStoreProvider with RestApiNotificationProvider {
   this: ExecutionContextProvider =>
-  
+
   val resourceStore: ResourceStore = new InMemoryResourceStore()
 
   private class InMemoryResourceStore extends ResourceStore {
@@ -48,9 +49,9 @@ trait InMemoryResourceStoreProvider extends ResourceStoreProvider {
     }
 
     def update(name: String, resource: Artifact): Future[Option[Artifact]] = Future {
-      if(name != resource.name)
-        throw new RuntimeException() // TODO
-      
+      if (name != resource.name)
+        error(InconsistentResourceName(name, resource.name))
+
       store.put(resource.name, resource)
     }
 

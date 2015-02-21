@@ -1,6 +1,7 @@
 package io.magnetic.vamp_core.rest_api
 
 import io.magnetic.vamp_core.model.Artifact
+import io.magnetic.vamp_core.rest_api.notification.{RestApiNotificationProvider, UnexpectedEndOfRequest}
 import io.magnetic.vamp_core.rest_api.util.ExecutionContextProvider
 import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
@@ -17,7 +18,7 @@ trait ApiRoute extends HttpServiceBase {
   def route: Route
 }
 
-trait CrudRoute extends ApiRoute with ResourceStoreProvider with ExecutionContextProvider {
+trait CrudRoute extends ApiRoute with ResourceStoreProvider with ExecutionContextProvider with RestApiNotificationProvider {
 
   def path: String
 
@@ -31,7 +32,7 @@ trait CrudRoute extends ApiRoute with ResourceStoreProvider with ExecutionContex
   private implicit val _unmarshaller = Unmarshaller[Artifact](`*`) {
     case HttpEntity.NonEmpty(contentType, data) =>
       marshaller(new String(data.toByteArray, contentType.charset.nioCharset))
-    case HttpEntity.Empty => throw new RuntimeException() // TODO
+    case HttpEntity.Empty => error(UnexpectedEndOfRequest())
   }
 
   final def route: Route = pathPrefix(path) {

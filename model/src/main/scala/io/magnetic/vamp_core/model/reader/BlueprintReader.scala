@@ -1,6 +1,5 @@
 package io.magnetic.vamp_core.model.reader
 
-import io.magnetic.vamp_common.notification.Notification
 import io.magnetic.vamp_core.model._
 import io.magnetic.vamp_core.model.notification.{NonUniqueBlueprintBreedReferenceError, UnresolvedBreedDependencyError, UnresolvedEndpointPortError, UnresolvedParameterError}
 
@@ -79,7 +78,7 @@ object BlueprintReader extends YamlReader[Blueprint] {
         }
       case _ => true
     }).flatMap {
-      case (name, value) => Notification.error(UnresolvedEndpointPortError(name, value))
+      case (name, value) => error(UnresolvedEndpointPortError(name, value))
     }
 
     blueprint.parameters.find({
@@ -98,13 +97,13 @@ object BlueprintReader extends YamlReader[Blueprint] {
         }
       case _ => true
     }).flatMap {
-      case (name, value) => Notification.error(UnresolvedParameterError(name, value))
+      case (name, value) => error(UnresolvedParameterError(name, value))
     }
 
     val breeds = blueprint.clusters.flatMap(_.services.map(_.breed))
 
     breeds.groupBy(_.name.toString).collect {
-      case (name, list) if list.size > 1 => Notification.error(NonUniqueBlueprintBreedReferenceError(name))
+      case (name, list) if list.size > 1 => error(NonUniqueBlueprintBreedReferenceError(name))
     }
 
     breeds.flatMap({
@@ -113,7 +112,7 @@ object BlueprintReader extends YamlReader[Blueprint] {
     }).find({
       case (breed, dependency) => breeds.find(_.name == dependency._2.name).isEmpty
     }).flatMap {
-      case (breed, dependency) => Notification.error(UnresolvedBreedDependencyError(breed, dependency))
+      case (breed, dependency) => error(UnresolvedBreedDependencyError(breed, dependency))
     }
 
     blueprint

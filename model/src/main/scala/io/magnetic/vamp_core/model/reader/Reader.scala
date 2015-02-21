@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.model.reader
 
 import java.io.{File, InputStream, Reader, StringReader}
 
-import _root_.io.magnetic.vamp_common.notification.{Notification, NotificationErrorException}
+import _root_.io.magnetic.vamp_common.notification.NotificationErrorException
 import _root_.io.magnetic.vamp_core.model.notification._
 import org.yaml.snakeyaml.Yaml
 
@@ -32,7 +32,7 @@ object YamlInput {
   implicit def file2YamlInput(file: File): YamlInput = FileInput(file)
 }
 
-trait YamlReader[T] {
+trait YamlReader[T] extends ModelNotificationProvider {
   type YamlPath = List[String]
   type YamlList = List[YamlObject]
   type YamlObject = mutable.LinkedHashMap[String, Any]
@@ -50,7 +50,7 @@ trait YamlReader[T] {
     read(convert(new Yaml().load(reader)).asInstanceOf[YamlObject])
   } catch {
     case e: NotificationErrorException => throw e
-    case e: Exception => Notification.error(YamlParsingError(e))
+    case e: Exception => error(YamlParsingError(e))
   }
   finally {
     if (close)
@@ -81,7 +81,7 @@ trait YamlReader[T] {
   protected def getOrError[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<![V](path)
 
   protected def <<![V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<?[V](path) match {
-    case None => Notification.error(MissingPathValueError(path mkString "/"))
+    case None => error(MissingPathValueError(path mkString "/"))
     case Some(v) => v
   }
 
@@ -97,14 +97,14 @@ trait YamlReader[T] {
       case Some(value: collection.Map[_, _]) if classTag[V].runtimeClass == classOf[Map[_, _]] => Some(value.asInstanceOf[V])
       // if V == List
       case Some(value: List[_]) if classTag[V].runtimeClass == classOf[List[_]] => Some(value.asInstanceOf[V])
-      case Some(failure) => Notification.error(UnexpectedTypeError(last, classTag[V].runtimeClass, failure.getClass))
+      case Some(failure) => error(UnexpectedTypeError(last, classTag[V].runtimeClass, failure.getClass))
     }
 
     case head :: tail => source.get(head).flatMap {
       case map: collection.Map[_, _] =>
         implicit val source = map.asInstanceOf[YamlObject]
         <<?[V](tail)
-      case failure => Notification.error(UnexpectedInnerElementError(head, failure.getClass))
+      case failure => error(UnexpectedInnerElementError(head, failure.getClass))
     }
 
     case Nil => None
@@ -159,7 +159,7 @@ trait WeakReferenceYamlReader[T] extends ReferenceYamlReader[T] {
 
   override protected def validate(implicit source: YamlObject): YamlObject = {
     if (!isAnonymous && source.size > 1)
-      Notification.error(EitherReferenceOrAnonymous(asReferenceOf, reference))
+      error(EitherReferenceOrAnonymous(asReferenceOf, reference))
     source
   }
 
