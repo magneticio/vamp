@@ -18,13 +18,13 @@ class RestApiRoute(val ec: ExecutionContext) extends ApiRoute {
     noCachingAllowed {
       respondWithJson {
         pathPrefix("api" / "v1") {
-          <>("breeds", BreedReader) ~ <>("blueprints", BlueprintReader)
+          routes("breeds", BreedReader) ~ routes("blueprints", BlueprintReader)
         }
       }
     }
   }
 
-  private def <>(p: String, m: YamlReader[_]) = {
+  private def routes(p: String, m: YamlReader[_]) = {
     new CrudRoute with InMemoryResourceStoreProvider {
       override def path: String = p
 
