@@ -6,52 +6,55 @@ import io.magnetic.vamp_core.rest_api.util.ExecutionContextProvider
 import scala.collection.mutable
 import scala.concurrent.Future
 
-trait ResourceStoreProvider[A <: Artifact] {
+trait ResourceStoreProvider {
 
   val resourceStore: ResourceStore
 
   trait ResourceStore {
 
-    def all: Future[List[A]]
+    def all: Future[List[Artifact]]
 
-    def find(name: String): Future[Option[A]]
+    def find(name: String): Future[Option[Artifact]]
 
-    def create(resource: A): Future[Option[A]]
+    def create(resource: Artifact): Future[Option[Artifact]]
 
-    def update(resource: A): Future[Option[A]]
+    def update(name: String, resource: Artifact): Future[Option[Artifact]]
 
-    def delete(name: String): Future[Option[A]]
+    def delete(name: String): Future[Option[Artifact]]
   }
 
 }
 
-trait InMemoryResourceStoreProvider[A <: Artifact] extends ResourceStoreProvider[A] {
+trait InMemoryResourceStoreProvider extends ResourceStoreProvider {
   this: ExecutionContextProvider =>
   
   val resourceStore: ResourceStore = new InMemoryResourceStore()
 
   private class InMemoryResourceStore extends ResourceStore {
 
-    val store: mutable.Map[String, A] = new mutable.HashMap()
+    val store: mutable.Map[String, Artifact] = new mutable.HashMap()
 
-    def all: Future[List[A]] = Future {
+    def all: Future[List[Artifact]] = Future {
       store.values.toList
     }
 
-    def find(name: String): Future[Option[A]] = Future {
+    def find(name: String): Future[Option[Artifact]] = Future {
       store.get(name)
     }
 
-    def create(resource: A): Future[Option[A]] = Future {
+    def create(resource: Artifact): Future[Option[Artifact]] = Future {
       store.put(resource.name, resource)
       Some(resource)
     }
 
-    def update(resource: A): Future[Option[A]] = Future {
+    def update(name: String, resource: Artifact): Future[Option[Artifact]] = Future {
+      if(name != resource.name)
+        throw new RuntimeException() // TODO
+      
       store.put(resource.name, resource)
     }
 
-    def delete(name: String): Future[Option[A]] = Future {
+    def delete(name: String): Future[Option[Artifact]] = Future {
       store.remove(name)
     }
   }

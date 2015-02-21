@@ -1,9 +1,6 @@
 package io.magnetic.vamp_core.rest_api
 
-import java.io.{ByteArrayInputStream, InputStreamReader}
-
 import io.magnetic.vamp_core.model.Artifact
-import io.magnetic.vamp_core.model.reader.YamlReader
 import io.magnetic.vamp_core.rest_api.util.ExecutionContextProvider
 import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
@@ -20,27 +17,21 @@ trait ApiRoute extends HttpServiceBase {
   def route: Route
 }
 
-trait CrudRoute[A <: Artifact] extends ApiRoute with ResourceStoreProvider[A] with ExecutionContextProvider {
+trait CrudRoute extends ApiRoute with ResourceStoreProvider with ExecutionContextProvider {
 
   def path: String
 
-  def yamlReader: YamlReader[A]
+  def marshaller: String => Artifact
 
-  implicit val marshaller = Marshaller.of[AnyRef](`application/json`) { (value, contentType, ctx) =>
+  private implicit val _marshaller = Marshaller.of[AnyRef](`application/json`) { (value, contentType, ctx) =>
     implicit val formats = Serialization.formats(NoTypeHints)
     ctx.marshalTo(HttpEntity(contentType, write(value)))
   }
 
-  implicit val unmarshaller = Unmarshaller[A](`*`) {
+  private implicit val _unmarshaller = Unmarshaller[Artifact](`*`) {
     case HttpEntity.NonEmpty(contentType, data) =>
-      val reader = new InputStreamReader(new ByteArrayInputStream(data.toByteArray), contentType.charset.nioCharset)
-      try {
-        yamlReader.read(reader)
-      }
-      finally {
-        reader.close()
-      }
-    case HttpEntity.Empty => throw new RuntimeException()
+      marshaller(new String(data.toByteArray, contentType.charset.nioCharset))
+    case HttpEntity.Empty => throw new RuntimeException() // TODO
   }
 
   final def route: Route = pathPrefix(path) {
@@ -50,7 +41,7 @@ trait CrudRoute[A <: Artifact] extends ApiRoute with ResourceStoreProvider[A] wi
           complete(OK, _)
         }
       } ~ post {
-        entity(as[A]) { request =>
+        entity(as[Artifact]) { request =>
           onSuccess(resourceStore.create(request)) {
             case Some(resource) => complete(Created, resource)
             case None => complete(BadRequest)
@@ -64,8 +55,8 @@ trait CrudRoute[A <: Artifact] extends ApiRoute with ResourceStoreProvider[A] wi
             complete(OK, _)
           }
         } ~ put {
-          entity(as[A]) { request =>
-            onSuccess(resourceStore.update(request)) {
+          entity(as[Artifact]) { request =>
+            onSuccess(resourceStore.update(name, request)) {
               case Some(resource) => complete(OK, resource)
               case None => complete(NotFound)
             }
@@ -80,4 +71,5 @@ trait CrudRoute[A <: Artifact] extends ApiRoute with ResourceStoreProvider[A] wi
     }
   }
 }
+
 
