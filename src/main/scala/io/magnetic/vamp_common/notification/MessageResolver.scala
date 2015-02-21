@@ -15,7 +15,6 @@ trait MessageResolverProvider {
   trait MessageResolver {
     def resolve(implicit notification: Notification): String
   }
-
 }
 
 trait DefaultPackageMessageResolverProvider extends MessageResolverProvider {
@@ -25,7 +24,7 @@ trait DefaultPackageMessageResolverProvider extends MessageResolverProvider {
 
     protected case class Message(parts: Seq[String], args: Seq[String])
 
-    private val logger = Logger(LoggerFactory.getLogger(Notification.getClass))
+    private val logger = Logger(LoggerFactory.getLogger(classOf[Notification]))
     private val messages = new mutable.LinkedHashMap[String, mutable.Map[String, Any]]()
 
     def resolve(implicit notification: Notification): String = {
