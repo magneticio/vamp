@@ -133,7 +133,7 @@ object BlueprintReader extends YamlReader[Blueprint] {
 
 object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
 
-  override protected def validate(implicit source: YamlObject): YamlObject = {
+  override protected def validateEitherReferenceOrAnonymous(implicit source: YamlObject): YamlObject = {
     if (source.filterKeys(k => k != "name" && k != "escalations").nonEmpty) super.validate
     source
   }

@@ -4,28 +4,58 @@ import akka.actor._
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
+import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.rest_api.RestApiRoute
-import io.magnetic.vamp_core.rest_api.util.ActorRefFactoryProviderForActors
 import spray.can.Http
-import spray.routing.HttpService
+import spray.http.StatusCodes._
+import spray.http.{HttpRequest, HttpResponse, Timedout}
+import spray.routing._
+import spray.util.LoggingContext
 
 import scala.concurrent.duration._
-import scala.language.postfixOps
+import scala.language.{implicitConversions, postfixOps}
 
 object Bootstrap extends App {
 
   val system = ActorSystem("vamp-core")
   val config = system.settings.config
 
-  val server = system.actorOf(Props[ServerActor], "server-actor")
-  val interface = config.getString("server.interface")
-  val port = config.getInt("server.port")
+  runServer
 
-  implicit val timeout = Timeout(config.getInt("server.response.timeout").seconds)
-  
-  IO(Http)(system) ? Http.Bind(server, interface, port)
+  private def runServer = {
+
+    val server = system.actorOf(Props[ServerActor], "server-actor")
+    val interface = config.getString("server.interface")
+    val port = config.getInt("server.port")
+
+    implicit val timeout = Timeout(config.getInt("server.response.timeout").seconds)
+
+    IO(Http)(system) ? Http.Bind(server, interface, port)
+  }
 }
 
-class ServerActor extends HttpService with Actor with ActorLogging with ActorRefFactoryProviderForActors {
-  def receive = runRoute(new RestApiRoute(actorRefFactory.dispatcher).route)
+class ServerActor extends HttpServiceActor with ActorLogging {
+
+  def exceptionHandler = ExceptionHandler {
+    case e: Exception => requestUri { uri =>
+      log.error("Request to {} could not be handled normally", uri)
+      complete(InternalServerError)
+    }
+  }
+
+  def rejectionHandler = RejectionHandler {
+    case MalformedRequestContentRejection(msg, Some(e: NotificationErrorException)) :: _ => complete(BadRequest, "The request content was malformed:\n" + msg)
+    case MalformedRequestContentRejection(msg, _) :: _ => complete(InternalServerError)
+  }
+
+  def routingSettings = RoutingSettings.default
+
+  def loggingContext = LoggingContext.fromActorRefFactory
+
+  def handleTimeouts: Receive = {
+    case Timedout(x: HttpRequest) =>
+      sender() ! HttpResponse(InternalServerError)
+  }
+
+  def receive = handleTimeouts orElse runRoute(new RestApiRoute(actorRefFactory.dispatcher).route)(exceptionHandler, rejectionHandler, context, routingSettings, loggingContext)
 }

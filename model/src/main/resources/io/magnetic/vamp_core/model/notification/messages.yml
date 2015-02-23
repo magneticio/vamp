@@ -1,6 +1,6 @@
 # Yaml Reader
 
-YamlParsingError                     : "Generic error during YAML parsing: {exception}"
+YamlParsingError                     : "Error: {message}"
 MissingPathValueError                : "Can't find any value for path: /{path}"
 UnexpectedTypeError                  : "Can't match type of path '{path}', expected {expected} but not {actual}."
 UnexpectedInnerElementError          : "Can't find a nested element of '{path}', found {found}"

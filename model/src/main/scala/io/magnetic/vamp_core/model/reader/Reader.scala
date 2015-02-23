@@ -3,8 +3,11 @@ package io.magnetic.vamp_core.model.reader
 import java.io.{File, InputStream, Reader, StringReader}
 
 import _root_.io.magnetic.vamp_common.notification.NotificationErrorException
+import _root_.io.magnetic.vamp_core.model.InlineArtifact
+import _root_.io.magnetic.vamp_core.model.artifact.Inline
 import _root_.io.magnetic.vamp_core.model.notification._
 import org.yaml.snakeyaml.Yaml
+import org.yaml.snakeyaml.error.YAMLException
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -50,7 +53,7 @@ trait YamlReader[T] extends ModelNotificationProvider {
     read(convert(new Yaml().load(reader)).asInstanceOf[YamlObject])
   } catch {
     case e: NotificationErrorException => throw e
-    case e: Exception => error(YamlParsingError(e))
+    case e: YAMLException => error(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
   }
   finally {
     if (close)
@@ -85,6 +88,14 @@ trait YamlReader[T] extends ModelNotificationProvider {
     case Some(v) => v
   }
 
+  protected def getAndRemoveOrError[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<!-[V](path)
+
+  protected def <<!-[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = {
+    val value = <<![V](path)
+    >>(path)
+    value
+  }
+
   protected def <<?[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): Option[V] = path match {
     case last :: Nil => source.get(last) match {
       case None => None
@@ -108,13 +119,19 @@ trait YamlReader[T] extends ModelNotificationProvider {
     }
 
     case Nil => None
-  } // TODO: Use Vamp error handling approach.
+  }
+
+  protected def remove(path: YamlPath)(implicit source: YamlObject): Option[Any] = >>(path)
 
   protected def put(path: YamlPath, value: Any)(implicit source: YamlObject): Option[Any] = >>(path, value)
 
-  protected def >>(path: YamlPath, value: Any)(implicit source: YamlObject): Option[Any] = {
+  protected def >>(path: YamlPath)(implicit source: YamlObject): Option[Any] = >>(path, None)
 
-    def insert(key: String, path: List[String], value: Any) = {
+  protected def >>(path: YamlPath, value: Any)(implicit source: YamlObject): Option[Any] = >>(path, Some(value))
+
+  protected def >>(path: YamlPath, value: Option[Any])(implicit source: YamlObject): Option[Any] = {
+
+    def insert(key: String, path: List[String], value: Option[Any]) = {
       val next = new YamlObject()
       source.put(key, next)
       >>(path, value)(next)
@@ -122,7 +139,10 @@ trait YamlReader[T] extends ModelNotificationProvider {
 
     path match {
       case Nil => None
-      case last :: Nil => source.put(last, value)
+      case last :: Nil => value match {
+        case None => source.remove(last)
+        case Some(v) => source.put(last, v)
+      }
       case head :: tail => source.get(head) match {
         case None => insert(head, tail, value)
         case Some(map: collection.Map[_, _]) => >>(tail, value)(map.asInstanceOf[YamlObject])
@@ -150,14 +170,14 @@ trait WeakReferenceYamlReader[T] extends ReferenceYamlReader[T] {
 
   override def readReference(any: Any): T = any match {
     case reference: String => createReference(new YamlObject() += ("name" -> reference))
-    case map: collection.Map[_, _] => read(map.asInstanceOf[YamlObject])
+    case map: collection.Map[_, _] => read(validateEitherReferenceOrAnonymous(map.asInstanceOf[YamlObject]))
   }
 
   def readOptionalReference(path: YamlPath)(implicit source: YamlObject): Option[T] = <<?[Any](path).flatMap {
     reference => Some(readReference(reference))
   }
 
-  override protected def validate(implicit source: YamlObject): YamlObject = {
+  protected def validateEitherReferenceOrAnonymous(implicit source: YamlObject): YamlObject = {
     if (!isAnonymous && source.size > 1)
       error(EitherReferenceOrAnonymous(asReferenceOf, reference))
     source
@@ -180,3 +200,8 @@ trait WeakReferenceYamlReader[T] extends ReferenceYamlReader[T] {
   protected def asReferenceOf: String = getClass.getSimpleName.substring(0, getClass.getSimpleName.indexOf("Reader")).toLowerCase
 }
 
+class NamedWeakReferenceYamlReader(reader: WeakReferenceYamlReader[_]) extends YamlReader[InlineArtifact] {
+  override protected def parse(implicit source: YamlObject): InlineArtifact = {
+    InlineArtifact(<<!-[String]("name"), reader.read(source).asInstanceOf[Inline])
+  }
+}

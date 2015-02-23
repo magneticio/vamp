@@ -12,3 +12,10 @@ trait Type {
   def `type`: String
 }
 
+trait Anonymous
+
+package object artifact {
+  type Inline = Anonymous
+}
+
+case class InlineArtifact(override val name: String, inline: artifact.Inline) extends Artifact

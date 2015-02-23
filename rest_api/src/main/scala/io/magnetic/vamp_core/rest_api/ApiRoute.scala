@@ -14,11 +14,11 @@ import spray.httpx.marshalling.Marshaller
 import spray.httpx.unmarshalling.Unmarshaller
 import spray.routing.{HttpServiceBase, Route}
 
-trait ApiRoute extends HttpServiceBase {
+trait ApiRoute extends HttpServiceBase with ExecutionContextProvider {
   def route: Route
 }
 
-trait CrudRoute extends ApiRoute with ResourceStoreProvider with ExecutionContextProvider with RestApiNotificationProvider {
+trait CrudRoute extends ApiRoute with ResourceStoreProvider with RestApiNotificationProvider {
 
   def path: String
 
@@ -30,8 +30,7 @@ trait CrudRoute extends ApiRoute with ResourceStoreProvider with ExecutionContex
   }
 
   private implicit val _unmarshaller = Unmarshaller[Artifact](`*`) {
-    case HttpEntity.NonEmpty(contentType, data) =>
-      marshaller(new String(data.toByteArray, contentType.charset.nioCharset))
+    case HttpEntity.NonEmpty(contentType, data) => marshaller(new String(data.toByteArray, contentType.charset.nioCharset))
     case HttpEntity.Empty => error(UnexpectedEndOfRequest())
   }
 
