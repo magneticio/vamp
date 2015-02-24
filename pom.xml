@@ -20,6 +20,7 @@
         <module>bootstrap</module>
         <!-- should be external projects -->
         <module>marathon</module>
+        <module>swagger</module>
         <module>vamp_router</module>
     </modules>
 

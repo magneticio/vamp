@@ -4,6 +4,7 @@ import akka.actor._
 import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
 import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.rest_api.RestApiRoute
 import spray.can.Http
@@ -18,7 +19,7 @@ import scala.language.{implicitConversions, postfixOps}
 object Bootstrap extends App {
 
   val system = ActorSystem("vamp-core")
-  val config = system.settings.config
+  val config = ConfigFactory.load()
 
   runServer
 

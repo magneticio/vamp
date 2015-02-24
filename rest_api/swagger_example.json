@@ -11,8 +11,8 @@
       "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
     }
   },
-  "host": "localhost:8080",
-  "basePath": "/api/v1",
+  "host": "petstore.swagger.io",
+  "basePath": "/v2",
   "tags": [
     {
       "name": "pet",
@@ -84,89 +84,6 @@
           "405": {"description": "Validation exception"},
           "404": {"description": "Pet not found"},
           "400": {"description": "Invalid ID supplied"}
-        },
-        "security": [
-          {
-            "petstore_auth": [
-              "write:pets",
-              "read:pets"
-            ]
-          }
-        ]
-      }
-    },
-    "/pet/findByStatus": {
-      "get": {
-        "tags": ["pet"],
-        "summary": "Finds Pets by status",
-        "description": "Multiple status values can be provided with comma seperated strings",
-        "operationId": "findPetsByStatus",
-        "produces": [
-          "application/json",
-          "application/xml"
-        ],
-        "parameters": [
-          {
-            "name": "status",
-            "in": "query",
-            "description": "Status values that need to be considered for filter",
-            "required": false,
-            "type": "array",
-            "items": {"type": "string"},
-            "collectionFormat": "multi",
-            "default": "available"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "schema": {
-              "type": "array",
-              "items": {"$ref": "#/definitions/Pet"}
-            }
-          },
-          "400": {"description": "Invalid status value"}
-        },
-        "security": [
-          {
-            "petstore_auth": [
-              "write:pets",
-              "read:pets"
-            ]
-          }
-        ]
-      }
-    },
-    "/pet/findByTags": {
-      "get": {
-        "tags": ["pet"],
-        "summary": "Finds Pets by tags",
-        "description": "Muliple tags can be provided with comma seperated strings. Use tag1, tag2, tag3 for testing.",
-        "operationId": "findPetsByTags",
-        "produces": [
-          "application/json",
-          "application/xml"
-        ],
-        "parameters": [
-          {
-            "name": "tags",
-            "in": "query",
-            "description": "Tags to filter by",
-            "required": false,
-            "type": "array",
-            "items": {"type": "string"},
-            "collectionFormat": "multi"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "schema": {
-              "type": "array",
-              "items": {"$ref": "#/definitions/Pet"}
-            }
-          },
-          "400": {"description": "Invalid tag value"}
         },
         "security": [
           {
@@ -295,114 +212,11 @@
           }
         ]
       }
-    },
-    "/pet/{petId}/uploadImage": {
-      "post": {
-        "tags": ["pet"],
-        "summary": "uploads an image",
-        "description": "",
-        "operationId": "uploadFile",
-        "consumes": ["multipart/form-data"],
-        "produces": ["application/json"],
-        "parameters": [
-          {
-            "name": "petId",
-            "in": "path",
-            "description": "ID of pet to update",
-            "required": true,
-            "type": "integer",
-            "format": "int64"
-          },
-          {
-            "name": "additionalMetadata",
-            "in": "formData",
-            "description": "Additional data to pass to server",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "file",
-            "in": "formData",
-            "description": "file to upload",
-            "required": false,
-            "type": "file"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "schema": {"$ref": "#/definitions/ApiResponse"}
-          }
-        },
-        "security": [
-          {
-            "petstore_auth": [
-              "write:pets",
-              "read:pets"
-            ]
-          }
-        ]
-      }
     }
   },
   "securityDefinitions": {
-    "api_key": {
-      "type": "apiKey",
-      "name": "api_key",
-      "in": "header"
-    },
-    "petstore_auth": {
-      "type": "oauth2",
-      "authorizationUrl": "http://petstore.swagger.io/api/oauth/dialog",
-      "flow": "implicit",
-      "scopes": {
-        "write:pets": "modify pets in your account",
-        "read:pets": "read your pets"
-      }
-    }
   },
   "definitions": {
-    "User": {
-      "properties": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "username": {"type": "string"},
-        "firstName": {"type": "string"},
-        "lastName": {"type": "string"},
-        "email": {"type": "string"},
-        "password": {"type": "string"},
-        "phone": {"type": "string"},
-        "userStatus": {
-          "type": "integer",
-          "format": "int32",
-          "description": "User Status"
-        }
-      },
-      "xml": {"name": "User"}
-    },
-    "ApiResponse": {
-      "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "type": {"type": "string"},
-        "message": {"type": "string"}
-      },
-      "xml": {"name": "##default"}
-    },
-    "Category": {
-      "properties": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "name": {"type": "string"}
-      },
-      "xml": {"name": "Category"}
-    },
     "Pet": {
       "required": [
         "name",
@@ -443,49 +257,7 @@
             "sold"
           ]
         }
-      },
-      "xml": {"name": "Pet"}
-    },
-    "Tag": {
-      "properties": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "name": {"type": "string"}
-      },
-      "xml": {"name": "Tag"}
-    },
-    "Order": {
-      "properties": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "petId": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "quantity": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "shipDate": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "Order Status",
-          "enum": [
-            "placed",
-            "approved",
-            "delivered"
-          ]
-        },
-        "complete": {"type": "boolean"}
-      },
-      "xml": {"name": "Order"}
+      }
     }
   }
 }

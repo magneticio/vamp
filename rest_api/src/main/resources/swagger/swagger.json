@@ -1,0 +1,25 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "The Vamp API <a href=\"http://swagger.io\">http://vamp.io</a>",
+    "version": "1.0.0",
+    "title": "Vamp API",
+    "termsOfService": "http://vamp.io/terms",
+    "contact": {"email": "api@vamp.io"},
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "host": "",
+  "basePath": "",
+  "tags": [
+  ],
+  "schemes": ["http"],
+  "paths": {
+  },
+  "securityDefinitions": {
+  },
+  "definitions": {
+  }
+}

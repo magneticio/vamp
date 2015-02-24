@@ -1,0 +1,12 @@
+{
+  "type": "integer",
+  "format": "int64",
+  "description": "pet status in the store",
+  "$ref": "#/definitions/Category",
+  "example": "doggie",
+  "enum": [
+    "available",
+    "pending",
+    "sold"
+  ]
+}
