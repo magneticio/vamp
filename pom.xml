@@ -15,7 +15,6 @@
         <module>container_driver</module>
         <module>router_driver</module>
         <module>rest_api</module>
-        <module>rest_api_spec</module>
         <module>operations</module>
         <module>tools</module>
         <module>bootstrap</module>

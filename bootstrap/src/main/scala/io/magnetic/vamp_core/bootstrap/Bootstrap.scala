@@ -57,5 +57,5 @@ class ServerActor extends HttpServiceActor with ActorLogging {
       sender() ! HttpResponse(InternalServerError)
   }
 
-  def receive = handleTimeouts orElse runRoute(new RestApiRoute(actorRefFactory.dispatcher).route)(exceptionHandler, rejectionHandler, context, routingSettings, loggingContext)
+  def receive = handleTimeouts orElse runRoute(new RestApiRoute(actorRefFactory).route)(exceptionHandler, rejectionHandler, context, routingSettings, loggingContext)
 }
