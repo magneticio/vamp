@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.rest_api
 
 import akka.actor.ActorRefFactory
 import com.typesafe.config.ConfigFactory
-import io.magnetic.vamp_core.model.Artifact
+import io.magnetic.vamp_core.model.artifact.Artifact
 import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.rest_api.swagger.Swagger
 import io.magnetic.vamp_core.rest_api.util.ActorRefFactoryExecutionContextProvider

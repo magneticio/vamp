@@ -1,5 +1,4 @@
-package io.magnetic.vamp_core.model
-
+package io.magnetic.vamp_core.model.artifact
 
 case class Blueprint(override val name: String, clusters: List[Cluster], endpoints: Map[Trait.Name, String], parameters: Map[Trait.Name, String]) extends Artifact
 

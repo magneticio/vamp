@@ -1,4 +1,4 @@
-package io.magnetic.vamp_core.model
+package io.magnetic.vamp_core.model.artifact
 
 import scala.language.implicitConversions
 

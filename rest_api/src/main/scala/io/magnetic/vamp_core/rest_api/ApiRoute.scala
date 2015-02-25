@@ -1,6 +1,6 @@
 package io.magnetic.vamp_core.rest_api
 
-import io.magnetic.vamp_core.model.Artifact
+import io.magnetic.vamp_core.model.artifact.Artifact
 import io.magnetic.vamp_core.rest_api.notification.{RestApiNotificationProvider, UnexpectedEndOfRequest}
 import io.magnetic.vamp_core.rest_api.util.ExecutionContextProvider
 import org.json4s.NoTypeHints

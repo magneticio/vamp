@@ -1,6 +1,7 @@
 package io.magnetic.vamp_core.model.reader
 
 import io.magnetic.vamp_core.model._
+import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.notification.{NonUniqueBlueprintBreedReferenceError, UnresolvedBreedDependencyError, UnresolvedEndpointPortError, UnresolvedParameterError}
 
 import scala.language.postfixOps

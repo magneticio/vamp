@@ -1,6 +1,7 @@
 package io.magnetic.vamp_core.model.reader
 
 import _root_.io.magnetic.vamp_core.model._
+import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.notification._
 
 import scala.language.postfixOps

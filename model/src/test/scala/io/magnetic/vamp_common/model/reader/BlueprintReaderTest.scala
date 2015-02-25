@@ -1,6 +1,7 @@
 package io.magnetic.vamp_common.model.reader
 
 import io.magnetic.vamp_core.model._
+import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.notification._
 import io.magnetic.vamp_core.model.reader.BlueprintReader
 import org.junit.runner.RunWith
