@@ -6,10 +6,9 @@ import io.magnetic.vamp_core.rest_api.util.ExecutionContextProvider
 import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization._
-import spray.http.ContentTypeRange._
-import spray.http.HttpEntity
-import spray.http.MediaTypes.`application/json`
+import spray.http.MediaTypes._
 import spray.http.StatusCodes._
+import spray.http._
 import spray.httpx.marshalling.Marshaller
 import spray.httpx.unmarshalling.Unmarshaller
 import spray.routing.{HttpServiceBase, Route}
@@ -20,16 +19,18 @@ trait ApiRoute extends HttpServiceBase with ExecutionContextProvider {
 
 trait CrudRoute extends ApiRoute with ResourceStoreProvider with RestApiNotificationProvider {
 
+  val `application/x-yaml` = MediaTypes.register(MediaType.custom("application/x-yaml"))
+  
   def path: String
 
   def marshaller: String => Artifact
-
+  
   private implicit val _marshaller = Marshaller.of[AnyRef](`application/json`) { (value, contentType, ctx) =>
     implicit val formats = Serialization.formats(NoTypeHints)
     ctx.marshalTo(HttpEntity(contentType, write(value)))
   }
 
-  private implicit val _unmarshaller = Unmarshaller[Artifact](`*`) {
+  private implicit val _unmarshaller = Unmarshaller[Artifact](`application/json`, `application/x-yaml`) {
     case HttpEntity.NonEmpty(contentType, data) => marshaller(new String(data.toByteArray, contentType.charset.nioCharset))
     case HttpEntity.Empty => error(UnexpectedEndOfRequest())
   }
