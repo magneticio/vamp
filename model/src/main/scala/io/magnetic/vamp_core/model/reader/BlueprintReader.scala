@@ -30,6 +30,7 @@ trait AbstractBlueprintReader[T <: AbstractBlueprint] extends YamlReader[T] {
               }
               case Some(breed) => >>("services", List(new YamlObject() += ("breed" -> breed)))
             }
+            
             case Some(breed: String) => >>("services", List(new YamlObject() += ("breed" -> breed)))
             
             case Some(map: collection.Map[_,_]) =>
@@ -40,6 +41,7 @@ trait AbstractBlueprintReader[T <: AbstractBlueprint] extends YamlReader[T] {
               }
               case Some(breed) => >>("services", List(new YamlObject() += ("breed" -> breed)))
             }
+              
             case Some(list) =>
               >>("services", list.asInstanceOf[List[_]].map {
                 case breed: String => new YamlObject() += ("breed" -> breed)
