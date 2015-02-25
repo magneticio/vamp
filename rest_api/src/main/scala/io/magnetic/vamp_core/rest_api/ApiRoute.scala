@@ -53,7 +53,8 @@ trait CrudRoute extends ApiRoute with ResourceStoreProvider with RestApiNotifica
       pathEndOrSingleSlash {
         get {
           onSuccess(resourceStore.find(name)) {
-            complete(OK, _)
+            case Some(resource) => complete(OK, resource)
+            case None => complete(NotFound)
           }
         } ~ put {
           entity(as[Artifact]) { request =>

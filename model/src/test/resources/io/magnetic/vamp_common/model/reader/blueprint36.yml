@@ -1,0 +1,8 @@
+name: nomadic-frostbite
+
+clusters:
+  supersonic:
+    services:
+      breed:
+        name: solid-barbershop
+        deployable: donut
