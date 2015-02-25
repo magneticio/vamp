@@ -46,7 +46,10 @@ class ServerActor extends HttpServiceActor with ActorLogging {
 
   def rejectionHandler = RejectionHandler {
     case MalformedRequestContentRejection(msg, Some(e: NotificationErrorException)) :: _ => complete(BadRequest, "The request content was malformed:\n" + msg)
-    case MalformedRequestContentRejection(msg, _) :: _ => complete(InternalServerError)
+    case MalformedRequestContentRejection(msg, Some(ex)) :: _ => 
+      log.error(ex, ex.getMessage)
+      complete(InternalServerError)
+    case MalformedRequestContentRejection(msg, None) :: _ => complete(InternalServerError)
   }
 
   def routingSettings = RoutingSettings.default

@@ -37,7 +37,8 @@ class RestApiRoute(val actorRefFactory: ActorRefFactory) extends ApiRoute with A
       crudRoute("scales", new NamedWeakReferenceYamlReader(ScaleReader)) :+
       crudRoute("escalations", new NamedWeakReferenceYamlReader(EscalationReader)) :+
       crudRoute("routings", new NamedWeakReferenceYamlReader(RoutingReader)) :+
-      crudRoute("filters", new NamedWeakReferenceYamlReader(FilterReader))
+      crudRoute("filters", new NamedWeakReferenceYamlReader(FilterReader)) :+
+      crudRoute("deployments", DeploymentReader)
 
     crudRoutes.map {
       _.route

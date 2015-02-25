@@ -1,12 +1,19 @@
 package io.magnetic.vamp_core.model.reader
 
-import io.magnetic.vamp_core.model._
 import io.magnetic.vamp_core.model.artifact._
+import io.magnetic.vamp_core.model.deployment.{DeploymentService, DeploymentCluster, Deployment}
 import io.magnetic.vamp_core.model.notification.{NonUniqueBlueprintBreedReferenceError, UnresolvedBreedDependencyError, UnresolvedEndpointPortError, UnresolvedParameterError}
 
+import scala.collection.mutable
 import scala.language.postfixOps
 
-object BlueprintReader extends YamlReader[Blueprint] {
+trait AbstractBlueprintReader[T <: AbstractBlueprint] extends YamlReader[T] {
+
+  protected def parse(name: String, clusters: List[AbstractCluster], endpoints: Map[Trait.Name, String], parameters: Map[Trait.Name, String])(implicit source: YamlObject): T
+
+  protected def parseCluster(name: String, services: List[AbstractService], sla: Option[Sla])(implicit source: YamlObject): AbstractCluster
+
+  protected def parseService(breed: Breed, scale: Option[Scale], routing: Option[Routing])(implicit source: YamlObject): AbstractService
 
   override protected def expand(implicit source: YamlObject) = {
     <<?[YamlObject]("clusters") match {
@@ -24,6 +31,25 @@ object BlueprintReader extends YamlReader[Blueprint] {
               case Some(breed) => >>("services", List(new YamlObject() += ("breed" -> breed)))
             }
             case Some(breed: String) => >>("services", List(new YamlObject() += ("breed" -> breed)))
+            
+            case Some(map: collection.Map[_,_]) =>
+              <<?[Any]("services" :: "breed") match {
+              case None => <<?[Any]("services" :: "breed" :: "name") match {
+                case None =>
+                case Some(breed) => >>("services", List(new YamlObject() += ("breed" -> breed)))
+              }
+              case Some(breed) => >>("services", List(new YamlObject() += ("breed" -> breed)))
+            }
+              
+              
+              
+              
+
+            
+            
+            
+            
+            
             case Some(list) =>
               >>("services", list.asInstanceOf[List[_]].map {
                 case breed: String => new YamlObject() += ("breed" -> breed)
@@ -43,7 +69,7 @@ object BlueprintReader extends YamlReader[Blueprint] {
     super.expand
   }
 
-  override def parse(implicit source: YamlObject): Blueprint = {
+  override def parse(implicit source: YamlObject): T = {
 
     val clusters = <<?[YamlObject]("clusters") match {
       case None => List[Cluster]()
@@ -53,16 +79,16 @@ object BlueprintReader extends YamlReader[Blueprint] {
           val sla = SlaReader.readOptionalReference("sla")
 
           <<?[List[YamlObject]]("services") match {
-            case None => Cluster(name, List(), sla)
-            case Some(list) => Cluster(name, list.map(service(_)), sla)
+            case None => parseCluster(name, List(), sla)
+            case Some(list) => parseCluster(name, list.map(parseService(_)), sla)
           }
       }).toList
     }
 
-    Blueprint(name, clusters, traitNameMapping("endpoints"), traitNameMapping("parameters"))
+    parse(name, clusters, traitNameMapping("endpoints"), traitNameMapping("parameters"))
   }
 
-  override protected def validate(blueprint: Blueprint): Blueprint = {
+  override protected def validate(blueprint: T): T = {
     blueprint.endpoints.find({
       case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), port), _) =>
         blueprint.clusters.find(_.name == scope) match {
@@ -119,8 +145,8 @@ object BlueprintReader extends YamlReader[Blueprint] {
     blueprint
   }
 
-  private def service(implicit source: YamlObject): Service =
-    Service(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReference("scale"), RoutingReader.readOptionalReference("routing"))
+  private def parseService(implicit source: YamlObject): AbstractService =
+    parseService(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReference("scale"), RoutingReader.readOptionalReference("routing"))
 
   protected def traitNameMapping(path: YamlPath)(implicit source: YamlObject): Map[Trait.Name, String] = <<?[YamlObject](path) match {
     case None => Map()
@@ -186,4 +212,28 @@ object FilterReader extends YamlReader[Filter] with WeakReferenceYamlReader[Filt
   override protected def createReference(implicit source: YamlObject): Filter = FilterReference(reference)
 
   override protected def createAnonymous(implicit source: YamlObject): Filter = AnonymousFilter(<<![String]("condition"))
+}
+
+object BlueprintReader extends AbstractBlueprintReader[Blueprint] {
+
+  override protected def parse(name: String, clusters: List[AbstractCluster], endpoints: Map[Trait.Name, String], parameters: Map[Trait.Name, String])(implicit source: YamlObject): Blueprint =
+    Blueprint(name, clusters.asInstanceOf[List[Cluster]], endpoints, parameters)
+
+  override protected def parseCluster(name: String, services: List[AbstractService], sla: Option[Sla])(implicit source: BlueprintReader.YamlObject): Cluster =
+    Cluster(name, services.asInstanceOf[List[Service]], sla)
+
+  override protected def parseService(breed: Breed, scale: Option[Scale], routing: Option[Routing])(implicit source: YamlObject): Service =
+    Service(breed, scale, routing)
+}
+
+object DeploymentReader extends AbstractBlueprintReader[Deployment] {
+
+  override protected def parse(name: String, clusters: List[AbstractCluster], endpoints: Map[Trait.Name, String], parameters: Map[Trait.Name, String])(implicit source: YamlObject): Deployment =
+    Deployment(name, clusters.asInstanceOf[List[DeploymentCluster]], endpoints, parameters)
+
+  override protected def parseCluster(name: String, services: List[AbstractService], sla: Option[Sla])(implicit source: BlueprintReader.YamlObject): DeploymentCluster =
+    DeploymentCluster(name, services.asInstanceOf[List[DeploymentService]], sla)
+
+  override protected def parseService(breed: Breed, scale: Option[Scale], routing: Option[Routing])(implicit source: YamlObject): DeploymentService =
+    DeploymentService(breed, scale, routing)
 }

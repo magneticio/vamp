@@ -1,0 +1,6 @@
+name: nomadic-frostbite
+
+clusters:
+  supersonic:
+    services:
+      breed: solid-barbershop

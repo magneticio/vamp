@@ -323,4 +323,22 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'dependency("es" -> BreedReference("elastic-search"))
     )
   }
+
+  it should "expand the service with breed only object" in {
+    BlueprintReader.read(res("blueprint36.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic",List(Service(DefaultBreed("solid-barbershop",Deployable("donut"),List(),List(),Map()),None,None)),None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "expand the service with breed reference only object" in {
+    BlueprintReader.read(res("blueprint37.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic",List(Service(BreedReference("solid-barbershop"),None,None)),None))),
+      'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
 }
