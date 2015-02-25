@@ -4,7 +4,7 @@ import scala.language.implicitConversions
 
 trait Breed extends Artifact
 
-case class DefaultBreed(override val name: String, deployable: Deployable, ports: List[Port], environmentVariables: List[EnvironmentVariable], dependencies: Map[String, Breed]) extends Artifact with Breed {
+case class DefaultBreed(name: String, deployable: Deployable, ports: List[Port], environmentVariables: List[EnvironmentVariable], dependencies: Map[String, Breed]) extends Breed {
   lazy val traits = ports ++ environmentVariables
 
   def inTraits: List[Trait[_]] = traits.filter(_.direction == Trait.Direction.In)
@@ -12,9 +12,9 @@ case class DefaultBreed(override val name: String, deployable: Deployable, ports
   def outTraits: List[Trait[_]] = traits.filter(_.direction == Trait.Direction.Out)
 }
 
-case class BreedReference(override val name: String) extends Reference with Breed
+case class BreedReference(name: String) extends Reference with Breed
 
-case class Deployable(override val name: String) extends Artifact
+case class Deployable(name: String) extends Artifact
 
 object Trait {
 
@@ -97,9 +97,9 @@ object Port {
 
 trait Port extends Trait[Int]
 
-case class TcpPort(override val name: Trait.Name, override val alias: Option[String], override val value: Option[Int], override val direction: Trait.Direction.Value) extends Port
+case class TcpPort(name: Trait.Name, alias: Option[String], value: Option[Int], direction: Trait.Direction.Value) extends Port
 
-case class HttpPort(override val name: Trait.Name, override val alias: Option[String], override val value: Option[Int], override val direction: Trait.Direction.Value) extends Port
+case class HttpPort(name: Trait.Name, alias: Option[String], value: Option[Int], direction: Trait.Direction.Value) extends Port
 
 
-case class EnvironmentVariable(override val name: Trait.Name, override val alias: Option[String], override val value: Option[String], override val direction: Trait.Direction.Value) extends Trait[String]
+case class EnvironmentVariable(name: Trait.Name, alias: Option[String], value: Option[String], direction: Trait.Direction.Value) extends Trait[String]

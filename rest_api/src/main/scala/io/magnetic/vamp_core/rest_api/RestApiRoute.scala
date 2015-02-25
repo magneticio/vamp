@@ -6,6 +6,9 @@ import io.magnetic.vamp_core.model.artifact.Artifact
 import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.rest_api.swagger.Swagger
 import io.magnetic.vamp_core.rest_api.util.ActorRefFactoryExecutionContextProvider
+import org.json4s._
+import org.json4s.native.Serialization
+import org.json4s.native.Serialization.read
 import spray.http.CacheDirectives.`no-store`
 import spray.http.HttpHeaders.{RawHeader, `Cache-Control`}
 import spray.http.MediaTypes._
@@ -50,11 +53,6 @@ class RestApiRoute(val actorRefFactory: ActorRefFactory) extends ApiRoute with A
 
 class DefaultCrudRoute(override val path: String, override val marshaller: (String) => Artifact, override val executionContext: ExecutionContext)
   extends CrudRoute with InMemoryResourceStoreProvider
-
-
-import org.json4s._
-import org.json4s.native.Serialization
-import org.json4s.native.Serialization.read
 
 class SwaggerRoute(val actorRefFactory: ActorRefFactory) extends ApiRoute with Json4sSupport with ActorRefFactoryExecutionContextProvider {
 

@@ -1,10 +1,10 @@
 package io.magnetic.vamp_core.model.deployment
 
-import io.magnetic.vamp_core.model.artifact.{Routing, Scale, Breed, Sla}
+import io.magnetic.vamp_core.model.artifact._
 
 
-case class Deployment(id: String, clusters: List[Cluster])
+case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints: Map[Trait.Name, String], parameters: Map[Trait.Name, String]) extends AbstractBlueprint
 
-case class Cluster(name: String, services: List[Service], sla: Option[Sla])
+case class DeploymentCluster(name: String, services: List[DeploymentService], sla: Option[Sla]) extends AbstractCluster
 
-case class Service(breed: Breed, scale: Option[Scale], routing: Option[Routing])
+case class DeploymentService(breed: Breed, scale: Option[Scale], routing: Option[Routing]) extends AbstractService

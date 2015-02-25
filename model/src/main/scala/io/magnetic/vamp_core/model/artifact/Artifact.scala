@@ -18,4 +18,4 @@ package object artifact {
   type Inline = Anonymous
 }
 
-case class InlineArtifact(override val name: String, inline: artifact.Inline) extends Artifact
+case class InlineArtifact(name: String, inline: artifact.Inline) extends Artifact
