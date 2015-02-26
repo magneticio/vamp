@@ -1,8 +1,9 @@
 package io.magnetic.vamp_core.rest_api
 
+import io.magnetic.vamp_common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact.Artifact
+import io.magnetic.vamp_core.operation.ArtifactServiceProvider
 import io.magnetic.vamp_core.rest_api.notification.{RestApiNotificationProvider, UnexpectedEndOfRequest}
-import io.magnetic.vamp_core.rest_api.util.ExecutionContextProvider
 import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization._
@@ -17,14 +18,14 @@ trait ApiRoute extends HttpServiceBase with ExecutionContextProvider {
   def route: Route
 }
 
-trait CrudRoute extends ApiRoute with ResourceStoreProvider with RestApiNotificationProvider {
+trait CrudRoute extends ApiRoute with ArtifactServiceProvider with RestApiNotificationProvider {
 
   val `application/x-yaml` = MediaTypes.register(MediaType.custom("application/x-yaml"))
-  
+
   def path: String
 
   def marshaller: String => Artifact
-  
+
   private implicit val _marshaller = Marshaller.of[AnyRef](`application/json`) { (value, contentType, ctx) =>
     implicit val formats = Serialization.formats(NoTypeHints)
     ctx.marshalTo(HttpEntity(contentType, write(value)))
@@ -38,12 +39,12 @@ trait CrudRoute extends ApiRoute with ResourceStoreProvider with RestApiNotifica
   final def route: Route = pathPrefix(path) {
     pathEndOrSingleSlash {
       get {
-        onSuccess(resourceStore.all) {
+        onSuccess(artifactService.all) {
           complete(OK, _)
         }
       } ~ post {
         entity(as[Artifact]) { request =>
-          onSuccess(resourceStore.create(request)) {
+          onSuccess(artifactService.create(request)) {
             case Some(resource) => complete(Created, resource)
             case None => complete(BadRequest)
           }
@@ -52,18 +53,18 @@ trait CrudRoute extends ApiRoute with ResourceStoreProvider with RestApiNotifica
     } ~ path(Segment) { name: String =>
       pathEndOrSingleSlash {
         get {
-          onSuccess(resourceStore.find(name)) {
+          onSuccess(artifactService.read(name)) {
             case Some(resource) => complete(OK, resource)
             case None => complete(NotFound)
           }
         } ~ put {
           entity(as[Artifact]) { request =>
-            onSuccess(resourceStore.update(name, request)) {
+            onSuccess(artifactService.update(name, request)) {
               case Some(resource) => complete(OK, resource)
               case None => complete(NotFound)
             }
           } ~ delete {
-            onSuccess(resourceStore.delete(name)) {
+            onSuccess(artifactService.delete(name)) {
               case Some(resource) => complete(NoContent, resource)
               case None => complete(NotFound)
             }

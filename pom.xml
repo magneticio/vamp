@@ -15,7 +15,7 @@
         <module>container_driver</module>
         <module>router_driver</module>
         <module>rest_api</module>
-        <module>operations</module>
+        <module>operation</module>
         <module>tools</module>
         <module>bootstrap</module>
         <!-- should be external projects -->

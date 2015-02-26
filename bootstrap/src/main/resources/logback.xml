@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%cyan(%d{HH:mm:ss.SSS}) %highlight(| %-5level | %-40.40logger{40} | %-40.40X{akkaSource} | %msg%n)</pattern>
+        </encoder>
+    </appender>
+
     <logger name="io.magnetic.vamp_core" level="DEBUG"/>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
 </configuration>

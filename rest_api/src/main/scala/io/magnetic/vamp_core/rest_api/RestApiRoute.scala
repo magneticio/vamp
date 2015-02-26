@@ -1,23 +1,17 @@
 package io.magnetic.vamp_core.rest_api
 
 import akka.actor.ActorRefFactory
-import com.typesafe.config.ConfigFactory
+import io.magnetic.vamp_common.akka.ActorRefFactoryExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact.Artifact
 import io.magnetic.vamp_core.model.reader._
-import io.magnetic.vamp_core.rest_api.swagger.Swagger
-import io.magnetic.vamp_core.rest_api.util.ActorRefFactoryExecutionContextProvider
-import org.json4s._
-import org.json4s.native.Serialization
-import org.json4s.native.Serialization.read
+import io.magnetic.vamp_core.operation.DeploymentServiceProvider
+import io.magnetic.vamp_core.persistance.InMemoryArtifactStoreProvider
 import spray.http.CacheDirectives.`no-store`
 import spray.http.HttpHeaders.{RawHeader, `Cache-Control`}
 import spray.http.MediaTypes._
-import spray.http.StatusCodes._
-import spray.httpx.Json4sSupport
 import spray.routing.Route
 
 import scala.concurrent.ExecutionContext
-import scala.io.Source
 
 class RestApiRoute(val actorRefFactory: ActorRefFactory) extends ApiRoute with ActorRefFactoryExecutionContextProvider {
 
@@ -38,46 +32,31 @@ class RestApiRoute(val actorRefFactory: ActorRefFactory) extends ApiRoute with A
       crudRoute("escalations", new NamedWeakReferenceYamlReader(EscalationReader)) :+
       crudRoute("routings", new NamedWeakReferenceYamlReader(RoutingReader)) :+
       crudRoute("filters", new NamedWeakReferenceYamlReader(FilterReader)) :+
-      crudRoute("deployments", DeploymentReader)
+      crudRoute("deployments", DeploymentReader, classOf[DeploymentCrudRoute])
 
     crudRoutes.map {
       _.route
     }.fold(documentation)((r1, r2) => r1 ~ r2)
   }
 
-  private def crudRoute(path: String, marshaller: YamlReader[_]): CrudRoute = new DefaultCrudRoute(path, {
-    input => marshaller.read(input).asInstanceOf[Artifact]
-  }, executionContext)
+  private def crudRoute(path: String, marshaller: YamlReader[_], apiRoute: Class[_ <: ApiRoute] = classOf[CrudRoute]): CrudRoute = apiRoute match {
+    case ar if ar == classOf[DeploymentCrudRoute] =>
+      new DeploymentCrudRoute(path, {
+        input => marshaller.read(input).asInstanceOf[Artifact]
+      }, executionContext)
+
+    case t =>
+      new DefaultCrudRoute(path, {
+        input => marshaller.read(input).asInstanceOf[Artifact]
+      }, executionContext)
+  }
 
   private def documentation: Route = new SwaggerRoute(actorRefFactory).route
 }
 
 class DefaultCrudRoute(override val path: String, override val marshaller: (String) => Artifact, override val executionContext: ExecutionContext)
-  extends CrudRoute with InMemoryResourceStoreProvider
+  extends CrudRoute with InMemoryArtifactStoreProvider
 
-class SwaggerRoute(val actorRefFactory: ActorRefFactory) extends ApiRoute with Json4sSupport with ActorRefFactoryExecutionContextProvider {
+class DeploymentCrudRoute(override val path: String, override val marshaller: (String) => Artifact, override val executionContext: ExecutionContext)
+  extends CrudRoute with DeploymentServiceProvider
 
-  implicit def json4sFormats: Formats = DefaultFormats
-
-  implicit val context = actorRefFactory
-  implicit val formats = Serialization.formats(NoTypeHints)
-
-  lazy val swagger: Swagger = {
-    val config = ConfigFactory.load()
-    val port = config.getInt("server.port")
-    val host = config.getString("server.host")
-
-    val result = read[Swagger](Source.fromURL(getClass.getResource("/swagger/swagger.json")).bufferedReader())
-    result.copy(host = s"$host:$port", basePath = "/api/v1")
-  }
-
-  def route: Route = {
-    path("swagger.json") {
-      complete(OK, swagger)
-    } ~ path("docs") {
-      complete(OK, swagger)
-    } ~ path("spec") {
-      complete(OK, swagger)
-    }
-  }
-}

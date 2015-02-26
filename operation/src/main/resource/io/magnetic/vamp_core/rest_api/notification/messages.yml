@@ -1,0 +1,3 @@
+# Yaml Reader
+
+InconsistentResourceName : "Inconsistent resource name: parameter is '{expected}' but in the request body found '{body}'."
