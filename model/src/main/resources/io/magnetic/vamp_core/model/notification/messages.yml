@@ -2,7 +2,7 @@
 
 YamlParsingError                     : "Error: {message}"
 MissingPathValueError                : "Can't find any value for path: /{path}"
-UnexpectedTypeError                  : "Can't match type of path '{path}', expected {expected} but not {actual}."
+UnexpectedTypeError                  : "Unexpected value type of '{path}'."
 UnexpectedInnerElementError          : "Can't find a nested element of '{path}', found {found}"
 EitherReferenceOrAnonymous           : "Either it should be a reference '{name} -> {reference}' or an anonymous inline definition, but not both."
 

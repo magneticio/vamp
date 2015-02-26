@@ -22,14 +22,14 @@ trait InMemoryArtifactStoreProvider extends ArtifactStoreProvider with Operation
     def all: Future[List[Artifact]] = Future {
       store.values.toList
     }
-
-    def read(name: String): Future[Option[Artifact]] = Future {
-      store.get(name)
-    }
-
+    
     def create(artifact: Artifact): Future[Option[Artifact]] = Future {
       store.put(artifact.name, artifact)
       Some(artifact)
+    }
+
+    def read(name: String): Future[Option[Artifact]] = Future {
+      store.get(name)
     }
 
     def update(name: String, artifact: Artifact): Future[Option[Artifact]] = Future {

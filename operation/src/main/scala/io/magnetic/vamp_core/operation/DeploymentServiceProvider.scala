@@ -24,14 +24,13 @@ trait DeploymentServiceProvider extends ArtifactServiceProvider with ExecutionCo
       artifactService.all
     }
 
-    def read(name: String): Future[Option[Artifact]] = {
-      logger.warn("Read deployment - persistence only.")
-      artifactService.read(name)
-    }
-
     def create(artifact: Artifact): Future[Option[Artifact]] = {
       logger.warn("create deployment - persistence only.")
       artifactService.create(artifact)
+    }
+    
+    def read(name: String): Future[Option[Artifact]] = {
+      artifactService.read(name)
     }
 
     def update(name: String, artifact: Artifact): Future[Option[Artifact]] = {

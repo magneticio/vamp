@@ -12,9 +12,9 @@ trait ArtifactServiceProvider {
 
     def all: Future[List[Artifact]]
 
-    def read(name: String): Future[Option[Artifact]]
-
     def create(artifact: Artifact): Future[Option[Artifact]]
+
+    def read(name: String): Future[Option[Artifact]]
 
     def update(name: String, artifact: Artifact): Future[Option[Artifact]]
 

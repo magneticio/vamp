@@ -32,7 +32,7 @@ class RestApiRoute(val actorRefFactory: ActorRefFactory) extends ApiRoute with A
       crudRoute("escalations", new NamedWeakReferenceYamlReader(EscalationReader)) :+
       crudRoute("routings", new NamedWeakReferenceYamlReader(RoutingReader)) :+
       crudRoute("filters", new NamedWeakReferenceYamlReader(FilterReader)) :+
-      crudRoute("deployments", DeploymentReader, classOf[DeploymentCrudRoute])
+      crudRoute("deployments", BlueprintReader, classOf[DeploymentCrudRoute])
 
     crudRoutes.map {
       _.route
@@ -42,7 +42,7 @@ class RestApiRoute(val actorRefFactory: ActorRefFactory) extends ApiRoute with A
   private def crudRoute(path: String, marshaller: YamlReader[_], apiRoute: Class[_ <: ApiRoute] = classOf[CrudRoute]): CrudRoute = apiRoute match {
     case ar if ar == classOf[DeploymentCrudRoute] =>
       new DeploymentCrudRoute(path, {
-        input => marshaller.read(input).asInstanceOf[Artifact]
+        input => marshaller.asInstanceOf[ReferenceYamlReader[_]].readReferenceFromSource(input).asInstanceOf[Artifact]
       }, executionContext)
 
     case t =>

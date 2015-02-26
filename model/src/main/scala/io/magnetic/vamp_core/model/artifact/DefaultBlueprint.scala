@@ -1,12 +1,11 @@
 package io.magnetic.vamp_core.model.artifact
 
-abstract class AbstractBlueprint extends Artifact {
-  def clusters: List[AbstractCluster]
-  def endpoints: Map[Trait.Name, String]
-  def parameters: Map[Trait.Name, String]
-}
+abstract class Blueprint extends Artifact
 
-case class Blueprint(name: String, clusters: List[Cluster], endpoints: Map[Trait.Name, String], parameters: Map[Trait.Name, String]) extends AbstractBlueprint
+case class DefaultBlueprint(name: String, clusters: List[Cluster], endpoints: Map[Trait.Name, String], parameters: Map[Trait.Name, String]) extends Blueprint
+
+case class BlueprintReference(name: String) extends Blueprint with Reference
+
 
 abstract class AbstractCluster extends Artifact {
   def services: List[AbstractService]
@@ -14,6 +13,7 @@ abstract class AbstractCluster extends Artifact {
 }
 
 case class Cluster(name: String, services: List[Service], sla: Option[Sla]) extends AbstractCluster
+
 
 abstract class AbstractService {
   def breed: Breed

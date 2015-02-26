@@ -15,24 +15,24 @@ import scala.io.Source
 import scala.language.{implicitConversions, postfixOps}
 import scala.reflect._
 
-sealed trait YamlInput
+sealed trait YamlSource
 
-case class StringInput(string: String) extends YamlInput
+case class StringSource(string: String) extends YamlSource
 
-case class ReaderInput(reader: Reader) extends YamlInput
+case class ReaderSource(reader: Reader) extends YamlSource
 
-case class StreamInput(stream: InputStream) extends YamlInput
+case class StreamSource(stream: InputStream) extends YamlSource
 
-case class FileInput(file: File) extends YamlInput
+case class FileSource(file: File) extends YamlSource
 
-object YamlInput {
-  implicit def string2YamlInput(string: String): YamlInput = StringInput(string)
+object YamlSource {
+  implicit def string2YamlInput(string: String): YamlSource = StringSource(string)
 
-  implicit def reader2YamlInput(reader: Reader): YamlInput = ReaderInput(reader)
+  implicit def reader2YamlInput(reader: Reader): YamlSource = ReaderSource(reader)
 
-  implicit def stream2YamlInput(stream: InputStream): YamlInput = StreamInput(stream)
+  implicit def stream2YamlInput(stream: InputStream): YamlSource = StreamSource(stream)
 
-  implicit def file2YamlInput(file: File): YamlInput = FileInput(file)
+  implicit def file2YamlInput(file: File): YamlSource = FileSource(file)
 }
 
 trait YamlReader[T] extends ModelNotificationProvider {
@@ -42,15 +42,20 @@ trait YamlReader[T] extends ModelNotificationProvider {
 
   implicit def string2Path(path: String): YamlPath = path.split('/').toList
 
-  def read(input: YamlInput): T = input match {
-    case ReaderInput(reader) => read(reader)
-    case StreamInput(stream) => read(Source.fromInputStream(stream).bufferedReader())
-    case StringInput(string) => read(new StringReader(string), close = true)
-    case FileInput(file) => read(Source.fromFile(file).bufferedReader(), close = true)
+  def read(input: YamlSource): T = input match {
+    case ReaderSource(reader) => read(reader)
+    case StreamSource(stream) => read(Source.fromInputStream(stream).bufferedReader())
+    case StringSource(string) => read(new StringReader(string), close = true)
+    case FileSource(file) => read(Source.fromFile(file).bufferedReader(), close = true)
   }
 
-  private def read(reader: Reader, close: Boolean = false): T = try {
-    read(convert(new Yaml().load(reader)).asInstanceOf[YamlObject])
+  private def read(reader: Reader, close: Boolean = false): T = load(reader, close) match {
+    case source: collection.Map[_, _] => read(source.asInstanceOf[YamlObject])
+    case source => error(UnexpectedTypeError("/", classOf[YamlObject], source.getClass))
+  }
+
+  protected def load(reader: Reader, close: Boolean = false): Any = try {
+    convert(new Yaml().load(reader))
   } catch {
     case e: NotificationErrorException => throw e
     case e: YAMLException => error(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
@@ -164,12 +169,14 @@ trait YamlReader[T] extends ModelNotificationProvider {
 
 trait ReferenceYamlReader[T] extends YamlReader[T] {
   def readReference(any: Any): T
+
+  def readReferenceFromSource(any: Any): T = readReference(load(new StringReader(any.toString), close = true))
 }
 
 trait WeakReferenceYamlReader[T] extends ReferenceYamlReader[T] {
 
   override def readReference(any: Any): T = any match {
-    case reference: String => createReference(new YamlObject() += ("name" -> reference))
+    case string: String => createReference(new YamlObject() += ("name" -> string))
     case map: collection.Map[_, _] => read(validateEitherReferenceOrAnonymous(map.asInstanceOf[YamlObject]))
   }
 
