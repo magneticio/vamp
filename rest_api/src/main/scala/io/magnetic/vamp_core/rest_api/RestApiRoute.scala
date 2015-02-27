@@ -4,7 +4,7 @@ import akka.actor.ActorRefFactory
 import io.magnetic.vamp_common.akka.ActorRefFactoryExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact.Artifact
 import io.magnetic.vamp_core.model.reader._
-import io.magnetic.vamp_core.operation.DeploymentServiceProvider
+import io.magnetic.vamp_core.operation.deployment.DeploymentServiceProvider
 import io.magnetic.vamp_core.persistance.InMemoryArtifactStoreProvider
 import spray.http.CacheDirectives.`no-store`
 import spray.http.HttpHeaders.{RawHeader, `Cache-Control`}

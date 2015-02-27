@@ -1,8 +1,9 @@
-package io.magnetic.vamp_core.operation
+package io.magnetic.vamp_core.operation.deployment
 
 import com.typesafe.scalalogging.Logger
 import io.magnetic.vamp_common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact.Artifact
+import io.magnetic.vamp_core.operation.ArtifactServiceProvider
 import io.magnetic.vamp_core.operation.notification.OperationNotificationProvider
 import io.magnetic.vamp_core.persistance.InMemoryArtifactStoreProvider
 import org.slf4j.LoggerFactory
@@ -21,26 +22,26 @@ trait DeploymentServiceProvider extends ArtifactServiceProvider with ExecutionCo
 
     def all: Future[List[Artifact]] = {
       logger.warn("All deployments - persistence only.")
-      artifactService.all
+      storeService.all
     }
 
     def create(artifact: Artifact): Future[Option[Artifact]] = {
       logger.warn("create deployment - persistence only.")
-      artifactService.create(artifact)
+      storeService.create(artifact)
     }
     
     def read(name: String): Future[Option[Artifact]] = {
-      artifactService.read(name)
+      storeService.read(name)
     }
 
     def update(name: String, artifact: Artifact): Future[Option[Artifact]] = {
       logger.warn("Update deployment - persistence only.")
-      artifactService.update(name, artifact)
+      storeService.update(artifact.name, artifact)
     }
 
     def delete(name: String): Future[Option[Artifact]] = {
       logger.warn("Delete deployment - persistence only.")
-      artifactService.delete(name)
+      storeService.delete(name)
     }
   }
 

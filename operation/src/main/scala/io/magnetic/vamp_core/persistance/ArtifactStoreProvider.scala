@@ -8,7 +8,9 @@ import io.magnetic.vamp_core.operation.notification.{InconsistentResourceName, O
 import scala.collection.mutable
 import scala.concurrent.Future
 
-trait ArtifactStoreProvider extends ArtifactServiceProvider
+trait ArtifactStoreProvider extends ArtifactServiceProvider {
+  val storeService = artifactService
+}
 
 trait InMemoryArtifactStoreProvider extends ArtifactStoreProvider with OperationNotificationProvider {
   this: ExecutionContextProvider =>
@@ -22,7 +24,7 @@ trait InMemoryArtifactStoreProvider extends ArtifactStoreProvider with Operation
     def all: Future[List[Artifact]] = Future {
       store.values.toList
     }
-    
+
     def create(artifact: Artifact): Future[Option[Artifact]] = Future {
       store.put(artifact.name, artifact)
       Some(artifact)
