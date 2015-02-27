@@ -1,5 +1,6 @@
 package io.magnetic.vamp_core.operation.deployment
 
+import akka.actor.{ActorContext, Actor}
 import com.typesafe.scalalogging.Logger
 import io.magnetic.vamp_common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact.Artifact
@@ -11,12 +12,12 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.{ExecutionContext, Future}
 
 trait DeploymentServiceProvider extends ArtifactServiceProvider with ExecutionContextProvider with OperationNotificationProvider {
-  this: ExecutionContextProvider =>
+  this: Actor with ExecutionContextProvider =>
 
-  val artifactService: ArtifactService = new DeploymentService(executionContext)
+  val artifactService: ArtifactService = new DeploymentService(this.context)
 
-  private class DeploymentService(ec: ExecutionContext) extends ArtifactService with ExecutionContextProvider with InMemoryArtifactStoreProvider {
-    implicit def executionContext: ExecutionContext = ec
+  private class DeploymentService(actorContext: ActorContext) extends ArtifactService with ExecutionContextProvider with InMemoryArtifactStoreProvider {
+    implicit def executionContext: ExecutionContext = actorContext.dispatcher
 
     private val logger = Logger(LoggerFactory.getLogger(classOf[DeploymentService]))
 

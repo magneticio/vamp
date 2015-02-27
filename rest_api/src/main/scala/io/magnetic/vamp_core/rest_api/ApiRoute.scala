@@ -24,7 +24,7 @@ trait CrudRoute extends ApiRoute with ArtifactServiceProvider with RestApiNotifi
 
   def path: String
 
-  def marshaller: String => Artifact
+  def unmarshaller: String => Artifact
 
   private implicit val _marshaller = Marshaller.of[AnyRef](`application/json`) { (value, contentType, ctx) =>
     implicit val formats = Serialization.formats(NoTypeHints)
@@ -32,7 +32,7 @@ trait CrudRoute extends ApiRoute with ArtifactServiceProvider with RestApiNotifi
   }
 
   private implicit val _unmarshaller = Unmarshaller[Artifact](`application/json`, `application/x-yaml`) {
-    case HttpEntity.NonEmpty(contentType, data) => marshaller(new String(data.toByteArray, contentType.charset.nioCharset))
+    case HttpEntity.NonEmpty(contentType, data) => unmarshaller(new String(data.toByteArray, contentType.charset.nioCharset))
     case HttpEntity.Empty => error(UnexpectedEndOfRequest())
   }
 

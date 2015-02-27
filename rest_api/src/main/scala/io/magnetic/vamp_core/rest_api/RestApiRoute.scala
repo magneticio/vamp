@@ -39,24 +39,24 @@ class RestApiRoute(val actorRefFactory: ActorRefFactory) extends ApiRoute with A
     }.fold(documentation)((r1, r2) => r1 ~ r2)
   }
 
-  private def crudRoute(path: String, marshaller: YamlReader[_], apiRoute: Class[_ <: ApiRoute] = classOf[CrudRoute]): CrudRoute = apiRoute match {
+  private def crudRoute(path: String, unmarshaller: YamlReader[_], apiRoute: Class[_ <: ApiRoute] = classOf[CrudRoute]): CrudRoute = apiRoute match {
     case ar if ar == classOf[DeploymentCrudRoute] =>
       new DeploymentCrudRoute(path, {
-        input => marshaller.asInstanceOf[ReferenceYamlReader[_]].readReferenceFromSource(input).asInstanceOf[Artifact]
+        input => unmarshaller.asInstanceOf[ReferenceYamlReader[_]].readReferenceFromSource(input).asInstanceOf[Artifact]
       }, executionContext)
 
     case t =>
       new DefaultCrudRoute(path, {
-        input => marshaller.read(input).asInstanceOf[Artifact]
+        input => unmarshaller.read(input).asInstanceOf[Artifact]
       }, executionContext)
   }
 
   private def documentation: Route = new SwaggerRoute(actorRefFactory).route
 }
 
-class DefaultCrudRoute(override val path: String, override val marshaller: (String) => Artifact, override val executionContext: ExecutionContext)
+class DefaultCrudRoute(override val path: String, override val unmarshaller: (String) => Artifact, override val executionContext: ExecutionContext)
   extends CrudRoute with InMemoryArtifactStoreProvider
 
-class DeploymentCrudRoute(override val path: String, override val marshaller: (String) => Artifact, override val executionContext: ExecutionContext)
+class DeploymentCrudRoute(override val path: String, override val unmarshaller: (String) => Artifact, override val executionContext: ExecutionContext)
   extends CrudRoute with DeploymentServiceProvider
 
