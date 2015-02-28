@@ -15,10 +15,9 @@ import org.json4s.native.Serialization
 import org.json4s.native.Serialization._
 import spray.http.CacheDirectives.`no-store`
 import spray.http.HttpEntity
-import spray.http.HttpHeaders.{`Content-Type`, RawHeader, `Cache-Control`}
+import spray.http.HttpHeaders.{RawHeader, `Cache-Control`}
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
-import spray.http.parser.HttpParser
 import spray.httpx.marshalling.Marshaller
 import spray.routing.HttpServiceBase
 
@@ -67,9 +66,10 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
         } ~ path(Segment / Segment) { (artifact: String, name: String) =>
           pathEndOrSingleSlash {
             get {
-              onSuccess(readArtifact(artifact, name)) {
-                case Some(resource) => complete(OK, resource)
-                case None => complete(NotFound)
+              rejectEmptyResponse {
+                onSuccess(readArtifact(artifact, name)) {
+                  complete(OK, _)
+                }
               }
             } ~ put {
               entity(as[String]) { request =>
@@ -79,7 +79,7 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
               }
             } ~ delete {
               onSuccess(deleteArtifact(artifact, name)) {
-                case response => complete(NoContent, response)
+                _ => complete(NoContent)
               }
             }
           }
@@ -87,6 +87,7 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
       }
     }
   }
+
 }
 
 trait RestApiController extends RestApiNotificationProvider with ActorSupport {

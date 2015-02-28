@@ -13,6 +13,7 @@ class BlueprintMergerActor extends Actor with OperationActor with ActorLogging w
   def reply(request: Any) = request match {
     case BlueprintMergeRequest(blueprint, Some(deployment)) => merge(blueprint, deployment)
     case BlueprintMergeRequest(blueprint, None) => merge(blueprint, Deployment(blueprint.name: String, List(), Map(), Map()))
+    case _ => error(errorRequest(request))
   }
 
   def merge(blueprint: Blueprint, deployment: Deployment): Deployment = {
