@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.concurrent.Future
 
 
-trait InMemoryArtifactStoreProvider extends ArtifactStoreProvider with OperationNotificationProvider {
+trait InMemoryStoreProvider extends StoreProvider with OperationNotificationProvider {
   this: ExecutionContextProvider =>
 
   val store: ArtifactStore = new InMemoryArtifactStore()

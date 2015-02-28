@@ -5,7 +5,7 @@ import io.magnetic.vamp_common.akka.ActorRefFactoryExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact.Artifact
 import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.operation.deployment.DeploymentServiceProvider
-import io.magnetic.vamp_core.persistence.store.InMemoryArtifactStoreProvider
+import io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
 import spray.http.CacheDirectives.`no-store`
 import spray.http.HttpHeaders.{RawHeader, `Cache-Control`}
 import spray.http.MediaTypes._

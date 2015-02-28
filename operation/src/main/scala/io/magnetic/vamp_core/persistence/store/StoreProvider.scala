@@ -4,7 +4,7 @@ import io.magnetic.vamp_core.model.artifact.Artifact
 
 import scala.concurrent.Future
 
-trait ArtifactStoreProvider {
+trait StoreProvider {
 
   val store: ArtifactStore
 

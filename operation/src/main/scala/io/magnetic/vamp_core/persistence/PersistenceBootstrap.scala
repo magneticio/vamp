@@ -6,6 +6,6 @@ import io.magnetic.vamp_common.akka.{Bootstrap, ActorSupport}
 object PersistenceBootstrap extends Bootstrap {
 
   def run(implicit actorSystem: ActorSystem) = {
-    ActorSupport.actorOf(ArtifactPersistenceActor)
+    ActorSupport.actorOf(PersistenceActor)
   }
 }

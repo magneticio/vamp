@@ -4,11 +4,11 @@ import akka.actor.{Actor, ActorLogging, Props}
 import io.magnetic.vamp_common.akka.{ActorDescription, ActorExecutionContextProvider, ReplyActor, RequestError}
 import io.magnetic.vamp_core.model.artifact.Artifact
 import io.magnetic.vamp_core.persistence.notification.{PersistenceNotificationProvider, UnsupportedPersistenceRequest}
-import io.magnetic.vamp_core.persistence.store.InMemoryArtifactStoreProvider
+import io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
 
 
-object ArtifactPersistenceActor extends ActorDescription {
-  def props: Props = Props(new ArtifactPersistenceActor)
+object PersistenceActor extends ActorDescription {
+  def props: Props = Props(new PersistenceActor)
 }
 
 object ArtifactPersistenceMessages {
@@ -27,7 +27,7 @@ object ArtifactPersistenceMessages {
 
 }
 
-class ArtifactPersistenceActor extends Actor with ActorLogging with ReplyActor with InMemoryArtifactStoreProvider with ActorExecutionContextProvider with PersistenceNotificationProvider {
+class PersistenceActor extends Actor with ActorLogging with ReplyActor with InMemoryStoreProvider with ActorExecutionContextProvider with PersistenceNotificationProvider {
 
   import io.magnetic.vamp_core.persistence.ArtifactPersistenceMessages._
 
