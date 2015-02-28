@@ -1,24 +1,22 @@
 package io.magnetic.vamp_core.persistence.store
 
-import io.magnetic.vamp_core.model.artifact.Artifact
-
 import scala.concurrent.Future
 
 trait StoreProvider {
 
-  val store: ArtifactStore
+  val store: Store
 
-  trait ArtifactStore {
+  trait Store {
 
-    def all(`type`: Class[Artifact]): Future[List[Artifact]]
+    def all(`type`: Class[_]): Future[List[_]]
 
-    def create(artifact: Artifact): Future[Artifact]
+    def create(any: AnyRef): Future[AnyRef]
 
-    def read(name: String, `type`: Class[Artifact]): Future[Option[Artifact]]
+    def read(name: String, `type`: Class[_]): Future[Option[AnyRef]]
 
-    def update(artifact: Artifact): Future[Artifact]
+    def update(any: AnyRef): Future[AnyRef]
 
-    def delete(name: String, `type`: Class[Artifact]): Future[Artifact]
+    def delete(name: String, `type`: Class[_]): Future[AnyRef]
   }
 
 }
