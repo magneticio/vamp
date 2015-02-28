@@ -8,7 +8,7 @@ import io.magnetic.vamp_core.operation.{OperationActor, OperationRequest}
 
 case class BlueprintMergeRequest(blueprint: Blueprint, deployment: Option[Deployment]) extends OperationRequest
 
-class BlueprintMerger extends Actor with OperationActor with ActorLogging with OperationNotificationProvider {
+class BlueprintMergerActor extends Actor with OperationActor with ActorLogging with OperationNotificationProvider {
 
   def reply: Receive = {
     case BlueprintMergeRequest(blueprint, Some(deployment)) => merge(blueprint, deployment)

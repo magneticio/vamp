@@ -1,23 +1,15 @@
 package io.magnetic.vamp_core.operation
 
 import akka.actor.Actor
-import akka.actor.Status.Failure
+import io.magnetic.vamp_common.akka.{ReplyActor, RequestError}
 import io.magnetic.vamp_core.operation.notification.{OperationNotificationProvider, UnsupportedOperationRequest}
 
 trait OperationRequest
 
-trait OperationActor {
+trait OperationActor extends ReplyActor {
   this: Actor with OperationNotificationProvider =>
 
-  final override def receive: Receive = {
-    case request: OperationRequest => reply(request) match {
-      case response if response.getClass != classOf[Unit] => sender ! response
-      case _ => unsupported(request)
-    }
-    case request => sender ! unsupported(request)
-  }
+  override protected def requestType: Class[_] = classOf[OperationRequest]
 
-  protected def reply: Receive
-
-  protected def unsupported(request: Any) = Failure(exception(UnsupportedOperationRequest(request)))
+  override protected def errorRequest(request: Any): RequestError = UnsupportedOperationRequest(request)
 }

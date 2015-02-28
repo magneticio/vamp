@@ -76,3 +76,5 @@ trait CrudRoute extends ApiRoute with ArtifactServiceProvider with RestApiNotifi
 }
 
 
+//if (name != artifact.name)
+//error(InconsistentResourceName(name, artifact.name))

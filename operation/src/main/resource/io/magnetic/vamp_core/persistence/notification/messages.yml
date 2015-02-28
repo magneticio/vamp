@@ -1,0 +1,4 @@
+# Yaml Reader
+
+UnsupportedPersistenceRequest: "Unsupported request."
+ArtifactNotFound             : "Artifact cannot be found: '{name}'."
