@@ -5,7 +5,7 @@ import io.magnetic.vamp_core.model.notification.{NonUniqueBlueprintBreedReferenc
 
 import scala.language.postfixOps
 
-object BlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] {
+trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] {
 
   override def readReference(any: Any): Blueprint = any match {
     case string: String => BlueprintReference(string)
@@ -85,60 +85,74 @@ object BlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Bl
   override protected def validate(bp: Blueprint): Blueprint = bp match {
     case blueprint: BlueprintReference => blueprint
     case blueprint: DefaultBlueprint =>
-      blueprint.endpoints.find({
-        case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), port), _) =>
-          blueprint.clusters.find(_.name == scope) match {
-            case None => true
-            case Some(cluster) => cluster.services.exists(_.breed match {
-              case _: DefaultBreed => true
-              case _ => false
-            }) && cluster.services.find({
-              service => service.breed match {
-                case breed: DefaultBreed => breed.ports.exists(_.name.toString == port)
-                case _ => false
-              }
-            }).isEmpty
-          }
-        case _ => true
-      }).flatMap {
-        case (name, value) => error(UnresolvedEndpointPortError(name, value))
-      }
 
-      blueprint.parameters.find({
-        case (Trait.Name(Some(scope), Some(group), port), _) =>
-          blueprint.clusters.find(_.name == scope) match {
-            case None => true
-            case Some(cluster) => cluster.services.exists(_.breed match {
-              case _: DefaultBreed => true
-              case _ => false
-            }) && cluster.services.find({
-              service => service.breed match {
-                case breed: DefaultBreed => breed.inTraits.exists(_.name.toString == port)
-                case _ => false
-              }
-            }).isEmpty
-          }
-        case _ => true
-      }).flatMap {
-        case (name, value) => error(UnresolvedParameterError(name, value))
-      }
+      validateEndpoints(blueprint)
+      validateParameters(blueprint)
 
       val breeds = blueprint.clusters.flatMap(_.services.map(_.breed))
-
-      breeds.groupBy(_.name.toString).collect {
-        case (name, list) if list.size > 1 => error(NonUniqueBlueprintBreedReferenceError(name))
-      }
-
-      breeds.flatMap({
-        case breed: DefaultBreed => breed.dependencies.map((breed, _))
-        case _ => List()
-      }).find({
-        case (breed, dependency) => breeds.find(_.name == dependency._2.name).isEmpty
-      }).flatMap {
-        case (breed, dependency) => error(UnresolvedBreedDependencyError(breed, dependency))
-      }
+      validateBreeds(breeds)
+      validateDependencies(breeds)
 
       blueprint
+  }
+
+  protected def validateEndpoints(blueprint: DefaultBlueprint): Unit = {
+    blueprint.endpoints.find({
+      case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), port), _) =>
+        blueprint.clusters.find(_.name == scope) match {
+          case None => true
+          case Some(cluster) => cluster.services.exists(_.breed match {
+            case _: DefaultBreed => true
+            case _ => false
+          }) && cluster.services.find({
+            service => service.breed match {
+              case breed: DefaultBreed => breed.ports.exists(_.name.toString == port)
+              case _ => false
+            }
+          }).isEmpty
+        }
+      case _ => true
+    }).flatMap {
+      case (name, value) => error(UnresolvedEndpointPortError(name, value))
+    }
+  }
+
+  protected def validateParameters(blueprint: DefaultBlueprint): Unit = {
+    blueprint.parameters.find({
+      case (Trait.Name(Some(scope), Some(group), port), _) =>
+        blueprint.clusters.find(_.name == scope) match {
+          case None => true
+          case Some(cluster) => cluster.services.exists(_.breed match {
+            case _: DefaultBreed => true
+            case _ => false
+          }) && cluster.services.find({
+            service => service.breed match {
+              case breed: DefaultBreed => breed.inTraits.exists(_.name.toString == port)
+              case _ => false
+            }
+          }).isEmpty
+        }
+      case _ => true
+    }).flatMap {
+      case (name, value) => error(UnresolvedParameterError(name, value))
+    }
+  }
+
+  protected def validateBreeds(breeds: List[Breed]): Unit = {
+    breeds.groupBy(_.name.toString).collect {
+      case (name, list) if list.size > 1 => error(NonUniqueBlueprintBreedReferenceError(name))
+    }
+  }
+
+  protected def validateDependencies(breeds: List[Breed]): Unit = {
+    breeds.flatMap({
+      case breed: DefaultBreed => breed.dependencies.map((breed, _))
+      case _ => List()
+    }).find({
+      case (breed, dependency) => breeds.find(_.name == dependency._2.name).isEmpty
+    }).flatMap {
+      case (breed, dependency) => error(UnresolvedBreedDependencyError(breed, dependency))
+    }
   }
 
   private def parseService(implicit source: YamlObject): Service =
@@ -152,6 +166,12 @@ object BlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Bl
         (Trait.Name.asName(name), <<![String](name))
     } toMap
   }
+}
+
+object BlueprintReader extends AbstractBlueprintReader
+
+object DeploymentBlueprintReader extends AbstractBlueprintReader {
+  override protected def validateDependencies(breeds: List[Breed]): Unit = {}
 }
 
 object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
