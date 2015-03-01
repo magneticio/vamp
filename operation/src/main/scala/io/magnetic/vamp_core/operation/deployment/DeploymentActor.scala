@@ -33,7 +33,7 @@ object DeploymentActor extends ActorDescription {
 
 }
 
-class DeploymentActor extends Actor with ActorLogging with ActorSupport with ReplyActor with InMemoryStoreProvider with ActorExecutionContextProvider with PersistenceNotificationProvider {
+class DeploymentActor extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupport with InMemoryStoreProvider with ActorExecutionContextProvider with PersistenceNotificationProvider {
 
   import io.magnetic.vamp_core.operation.deployment.DeploymentActor._
 
@@ -64,12 +64,12 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     }
   }
 
-  private def merge(deployment: Deployment, blueprint: DefaultBlueprint): Deployment = {
+  private def merge(deployment: Deployment, blueprint: DefaultBlueprint): Any = {
     val clusters = mergeClusters(deployment.clusters, blueprint.clusters)
     val endpoints = blueprint.endpoints ++ deployment.endpoints
     val parameters = blueprint.parameters ++ deployment.parameters
 
-    Deployment(deployment.name, clusters, endpoints, parameters)
+    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Update(Deployment(deployment.name, clusters, endpoints, parameters), create = true), PersistenceActor.timeout.duration)
   }
 
   private def mergeClusters(deploymentClusters: List[DeploymentCluster], blueprintClusters: List[Cluster]): List[DeploymentCluster] = {
@@ -77,7 +77,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     deploymentClusters
   }
 
-  private def slice(deployment: Deployment, blueprint: Option[Blueprint]): Deployment = {
+  private def slice(deployment: Deployment, blueprint: Option[Blueprint]): Any = {
     deployment
   }
 }

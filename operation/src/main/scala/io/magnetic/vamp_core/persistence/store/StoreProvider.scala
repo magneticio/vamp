@@ -14,7 +14,7 @@ trait StoreProvider {
 
     def read(name: String, `type`: Class[_]): Future[Option[AnyRef]]
 
-    def update(any: AnyRef): Future[AnyRef]
+    def update(any: AnyRef, create: Boolean = false): Future[AnyRef]
 
     def delete(name: String, `type`: Class[_]): Future[AnyRef]
   }

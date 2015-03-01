@@ -6,6 +6,7 @@ import akka.util.Timeout
 import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider}
 import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.model.artifact.{Artifact, _}
+import io.magnetic.vamp_core.model.deployment.Deployment
 import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.operation.deployment.DeploymentActor
 import io.magnetic.vamp_core.persistence.PersistenceActor
@@ -157,7 +158,7 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport {
     def delete(name: String, artifact: Option[T])(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)
   }
 
-  private class DeploymentDemux() extends PersistenceDemux[Blueprint](classOf[Blueprint], DeploymentBlueprintReader) {
+  private class DeploymentDemux() extends PersistenceDemux[Blueprint](classOf[Deployment], DeploymentBlueprintReader) {
     override def create(blueprint: Blueprint)(implicit timeout: Timeout) = {
       actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, ignoreIfExists = true)
       actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint.asInstanceOf[DefaultBlueprint])

@@ -59,20 +59,20 @@ trait InMemoryStoreProvider extends StoreProvider with OperationNotificationProv
       }
     }
 
-    def update(any: AnyRef): Future[AnyRef] = Future {
+    def update(any: AnyRef, create: Boolean = false): Future[AnyRef] = Future {
       val name = getName(any)
       val artifact = getArtifact(any)
       
       getBranch(any) match {
         case Some(branch) => store.get(branch) match {
-          case None => error(ArtifactNotFound(name, any.getClass))
+          case None => if(create) this.create(any) else error(ArtifactNotFound(name, any.getClass))
           case Some(map) =>
             if (map.get(name).isEmpty)
-              error(ArtifactNotFound(name, any.getClass))
+              if(create) this.create(any) else error(ArtifactNotFound(name, any.getClass))
             else
               map.put(name, artifact)
         }
-        case None => error(UnsupportedPersistenceRequest(any.getClass))
+        case None => if(create) this.create(any) else error(UnsupportedPersistenceRequest(any.getClass))
       }
       artifact
     }
@@ -99,6 +99,7 @@ trait InMemoryStoreProvider extends StoreProvider with OperationNotificationProv
   }
 
   private def getBranch(`type`: Class[_]): Option[String] = `type` match {
+    case t if classOf[Deployment].isAssignableFrom(t) => Some("deployments")
     case t if classOf[Breed].isAssignableFrom(t) => Some("breeds")
     case t if classOf[Blueprint].isAssignableFrom(t) => Some("blueprints")
     case t if classOf[Sla].isAssignableFrom(t) => Some("slas")
@@ -106,7 +107,6 @@ trait InMemoryStoreProvider extends StoreProvider with OperationNotificationProv
     case t if classOf[Escalation].isAssignableFrom(t) => Some("escalations")
     case t if classOf[Routing].isAssignableFrom(t) => Some("routings")
     case t if classOf[Filter].isAssignableFrom(t) => Some("filters")
-    case t if classOf[Deployment].isAssignableFrom(t) => Some("deployments")
     case request => None
   }
 
