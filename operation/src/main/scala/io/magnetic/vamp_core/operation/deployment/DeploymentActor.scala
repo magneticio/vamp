@@ -7,8 +7,8 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.magnetic.vamp_common.akka._
-import io.magnetic.vamp_core.model.artifact.Blueprint
-import io.magnetic.vamp_core.model.deployment.Deployment
+import io.magnetic.vamp_core.model.artifact.{Blueprint, Cluster, DefaultBlueprint}
+import io.magnetic.vamp_core.model.deployment.{Deployment, DeploymentCluster}
 import io.magnetic.vamp_core.operation.notification.UnsupportedDeploymentRequest
 import io.magnetic.vamp_core.persistence.PersistenceActor
 import io.magnetic.vamp_core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
@@ -25,11 +25,11 @@ object DeploymentActor extends ActorDescription {
 
   trait DeploymentMessages
 
-  case class Create(blueprint: Blueprint) extends DeploymentMessages
+  case class Create(blueprint: DefaultBlueprint) extends DeploymentMessages
 
-  case class Update(name: String, blueprint: Blueprint) extends DeploymentMessages
+  case class Update(name: String, blueprint: DefaultBlueprint) extends DeploymentMessages
 
-  case class Delete(name: String, blueprint: Option[Blueprint]) extends DeploymentMessages
+  case class Delete(name: String, blueprint: Option[DefaultBlueprint]) extends DeploymentMessages
 
 }
 
@@ -64,8 +64,17 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     }
   }
 
-  private def merge(deployment: Deployment, blueprint: Blueprint): Deployment = {
-    deployment
+  private def merge(deployment: Deployment, blueprint: DefaultBlueprint): Deployment = {
+    val clusters = mergeClusters(deployment.clusters, blueprint.clusters)
+    val endpoints = blueprint.endpoints ++ deployment.endpoints
+    val parameters = blueprint.parameters ++ deployment.parameters
+
+    Deployment(deployment.name, clusters, endpoints, parameters)
+  }
+
+  private def mergeClusters(deploymentClusters: List[DeploymentCluster], blueprintClusters: List[Cluster]): List[DeploymentCluster] = {
+
+    deploymentClusters
   }
 
   private def slice(deployment: Deployment, blueprint: Option[Blueprint]): Deployment = {

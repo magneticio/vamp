@@ -10,6 +10,7 @@ import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.operation.deployment.DeploymentActor
 import io.magnetic.vamp_core.persistence.PersistenceActor
 import io.magnetic.vamp_core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
+import io.magnetic.vamp_core.rest_api.serializer.TraitNameSerializer
 import io.magnetic.vamp_core.rest_api.swagger.SwaggerResponse
 import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
@@ -33,7 +34,8 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
   protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
 
   private implicit val marshaller = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
-    implicit val formats = Serialization.formats(NoTypeHints)
+    implicit val formats = Serialization.formats(NoTypeHints) + new TraitNameSerializer()
+
     val response = value match {
       case notification: NotificationErrorException => throw notification
       case exception: Exception => throw new RuntimeException(exception)
@@ -125,33 +127,47 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport {
 
   trait Demux[T <: Artifact] {
     def unmarshall(content: String): T
+
     def all(implicit timeout: Timeout): Future[Any]
+
     def create(artifact: T)(implicit timeout: Timeout): Future[Any]
+
     def read(name: String)(implicit timeout: Timeout): Future[Any]
+
     def update(name: String, artifact: T)(implicit timeout: Timeout): Future[Any]
+
     def delete(name: String, artifact: Option[T])(implicit timeout: Timeout): Future[Any]
   }
 
   private class PersistenceDemux[T <: Artifact](`type`: Class[_ <: AnyRef], unmarshaller: YamlReader[T]) extends Demux[T] {
     def unmarshall(content: String) = unmarshaller.read(content)
+
     def all(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.All(`type`)
+
     def create(artifact: T)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Create(artifact)
+
     def read(name: String)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Read(name, `type`)
+
     def update(name: String, artifact: T)(implicit timeout: Timeout) = {
       if (name != artifact.name)
         error(InconsistentArtifactName(name, artifact))
       actorFor(PersistenceActor) ? PersistenceActor.Update(artifact)
     }
+
     def delete(name: String, artifact: Option[T])(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)
   }
 
   private class DeploymentDemux() extends PersistenceDemux[Blueprint](classOf[Blueprint], BlueprintReader) {
     override def create(blueprint: Blueprint)(implicit timeout: Timeout) = {
       actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, ignoreIfExists = true)
-      actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint)
+      actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint.asInstanceOf[DefaultBlueprint])
     }
-    override def update(name: String, blueprint: Blueprint)(implicit timeout: Timeout) = actorFor(DeploymentActor) ? DeploymentActor.Update(name, blueprint)
-    override def delete(name: String, blueprint: Option[Blueprint])(implicit timeout: Timeout) = actorFor(DeploymentActor) ? DeploymentActor.Delete(name, blueprint)
+
+    override def update(name: String, blueprint: Blueprint)(implicit timeout: Timeout) =
+      actorFor(DeploymentActor) ? DeploymentActor.Update(name, blueprint.asInstanceOf[DefaultBlueprint])
+
+    override def delete(name: String, blueprint: Option[Blueprint])(implicit timeout: Timeout) =
+      actorFor(DeploymentActor) ? DeploymentActor.Delete(name, if (blueprint.isEmpty) None else Some(blueprint.asInstanceOf[DefaultBlueprint]))
   }
 
   private val mapping: Map[String, Demux[_ <: Artifact]] = Map() +
