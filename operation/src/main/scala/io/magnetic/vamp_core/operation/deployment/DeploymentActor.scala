@@ -7,8 +7,8 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.magnetic.vamp_common.akka._
-import io.magnetic.vamp_core.model.artifact.{Blueprint, Cluster, DefaultBlueprint}
-import io.magnetic.vamp_core.model.deployment.{Deployment, DeploymentCluster}
+import io.magnetic.vamp_core.model.artifact._
+import io.magnetic.vamp_core.model.deployment.{Deployment, DeploymentCluster, DeploymentService}
 import io.magnetic.vamp_core.operation.notification.UnsupportedDeploymentRequest
 import io.magnetic.vamp_core.persistence.PersistenceActor
 import io.magnetic.vamp_core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
@@ -58,23 +58,38 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
 
   private def deploymentFor(name: String): Deployment = {
     implicit val timeout = PersistenceActor.timeout
-    actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment]) match {
-      case deployment: Deployment => deployment
+    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])) match {
+      case Some(deployment: Deployment) => deployment
       case _ => error(ArtifactNotFound(name, classOf[Deployment]))
     }
   }
 
   private def merge(deployment: Deployment, blueprint: DefaultBlueprint): Any = {
-    val clusters = mergeClusters(deployment.clusters, blueprint.clusters)
+    val clusters = mergeClusters(deployment, blueprint)
     val endpoints = blueprint.endpoints ++ deployment.endpoints
     val parameters = blueprint.parameters ++ deployment.parameters
 
-    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Update(Deployment(deployment.name, clusters, endpoints, parameters), create = true), PersistenceActor.timeout.duration)
+    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Update(Deployment(deployment.name, clusters, endpoints, parameters), create = true))(PersistenceActor.timeout)
   }
 
-  private def mergeClusters(deploymentClusters: List[DeploymentCluster], blueprintClusters: List[Cluster]): List[DeploymentCluster] = {
+  private def mergeClusters(deployment: Deployment, blueprint: DefaultBlueprint): List[DeploymentCluster] = {
+    val deploymentClusters = deployment.clusters.filter(cluster => blueprint.clusters.find(_.name == cluster.name).isEmpty)
 
-    deploymentClusters
+    val blueprintClusters = blueprint.clusters.map { cluster =>
+      deployment.clusters.find(_.name == cluster.name) match {
+        case None => DeploymentCluster(cluster.name, mergeServices(None, cluster), cluster.sla)
+        case Some(deploymentCluster) => deploymentCluster.copy(services = mergeServices(Some(deploymentCluster), cluster))
+      }
+    }
+
+    deploymentClusters ++ blueprintClusters
+  }
+
+  private def mergeServices(deploymentCluster: Option[DeploymentCluster], cluster: Cluster): List[DeploymentService] = deploymentCluster match {
+    case None => cluster.services.map { service => DeploymentService(service.breed, service.scale, service.routing)}
+    case Some(deployment) => deployment.services ++ cluster.services.filter(service => deployment.services.find(_.breed.name == service.breed).isEmpty).map { service =>
+      DeploymentService(service.breed, service.scale, service.routing)
+    }
   }
 
   private def slice(deployment: Deployment, blueprint: Option[Blueprint]): Any = {

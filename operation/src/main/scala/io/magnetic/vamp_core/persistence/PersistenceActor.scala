@@ -58,6 +58,6 @@ class PersistenceActor extends Actor with ActorLogging with ReplyActor with Futu
       case _ => error(errorRequest(request))
     }
 
-    offLoad(future, timeout.duration)
+    offLoad(future)
   }
 }
