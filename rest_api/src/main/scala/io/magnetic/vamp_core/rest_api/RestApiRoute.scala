@@ -7,6 +7,7 @@ import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider}
 import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.model.artifact.{Artifact, _}
 import io.magnetic.vamp_core.model.reader._
+import io.magnetic.vamp_core.operation.deployment.DeploymentActor
 import io.magnetic.vamp_core.persistence.PersistenceActor
 import io.magnetic.vamp_core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
 import io.magnetic.vamp_core.rest_api.swagger.SwaggerResponse
@@ -78,8 +79,9 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
                 }
               }
             } ~ delete {
-              onSuccess(deleteArtifact(artifact, name)) {
+              entity(as[String]) { request => onSuccess(deleteArtifact(artifact, name, request)) {
                 _ => complete(NoContent)
+              }
               }
             }
           }
@@ -87,65 +89,75 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
       }
     }
   }
-
 }
 
 trait RestApiController extends RestApiNotificationProvider with ActorSupport {
   this: Actor with ExecutionContextProvider =>
 
-  private case class Mapping(`type`: Class[_], unmarshaller: YamlReader[_ <: Artifact]) {
-    def all(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.All(`type`)
-
-    def create(artifact: Artifact)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Create(artifact)
-
-    def read(name: String)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Read(name, `type`)
-
-    def update(artifact: Artifact)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Update(artifact)
-
-    def delete(name: String)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)
-  }
-
-  private val mapping: Map[String, Mapping] = Map() +
-    ("breeds" -> Mapping(classOf[Breed], BreedReader)) +
-    ("blueprints" -> Mapping(classOf[Blueprint], BlueprintReader)) +
-    ("slas" -> Mapping(classOf[Sla], new NamedWeakReferenceYamlReader(SlaReader))) +
-    ("scales" -> Mapping(classOf[Scale], new NamedWeakReferenceYamlReader(ScaleReader))) +
-    ("escalations" -> Mapping(classOf[Escalation], new NamedWeakReferenceYamlReader(EscalationReader))) +
-    ("routings" -> Mapping(classOf[Routing], new NamedWeakReferenceYamlReader(RoutingReader))) +
-    ("filters" -> Mapping(classOf[Filter], new NamedWeakReferenceYamlReader(FilterReader))) +
-    ("deployments" -> Mapping(classOf[Blueprint], BlueprintReader))
-
   def allArtifacts(artifact: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(mapping: Mapping) => mapping.all
+    case Some(demux) => demux.all
     case None => error(UnexpectedArtifact(artifact))
   }
 
   def createArtifact(artifact: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(mapping: Mapping) => mapping.create(unmarshaller(artifact, content))
+    case Some(demux) => demux.asInstanceOf[Demux[Artifact]].create(demux.unmarshall(content))
     case None => error(UnexpectedArtifact(artifact))
   }
 
   def readArtifact(artifact: String, name: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(mapping: Mapping) => mapping.read(name)
+    case Some(demux) => demux.read(name)
     case None => error(UnexpectedArtifact(artifact))
   }
 
   def updateArtifact(artifact: String, name: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(mapping: Mapping) =>
-      val any = unmarshaller(artifact, content)
-      if (name != any.asInstanceOf[Artifact].name)
-        error(InconsistentArtifactName(name, content))
-      mapping.update(any)
+    case Some(demux) => demux.asInstanceOf[Demux[Artifact]].update(name, demux.unmarshall(content))
     case None => error(UnexpectedArtifact(artifact))
   }
 
-  def deleteArtifact(artifact: String, name: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(mapping: Mapping) => mapping.delete(name)
+  def deleteArtifact(artifact: String, name: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
+    case Some(demux) =>
+      if (content.isEmpty)
+        demux.delete(name, None)
+      else
+        demux.asInstanceOf[Demux[Artifact]].delete(name, Some(demux.unmarshall(content)))
     case None => error(UnexpectedArtifact(artifact))
   }
 
-  def unmarshaller(artifact: String, content: String): Artifact = mapping.get(artifact) match {
-    case Some(Mapping(_, reader)) => reader.read(content)
-    case None => error(UnexpectedArtifact(artifact))
+  trait Demux[T <: Artifact] {
+    def unmarshall(content: String): T
+    def all(implicit timeout: Timeout): Future[Any]
+    def create(artifact: T)(implicit timeout: Timeout): Future[Any]
+    def read(name: String)(implicit timeout: Timeout): Future[Any]
+    def update(name: String, artifact: T)(implicit timeout: Timeout): Future[Any]
+    def delete(name: String, artifact: Option[T])(implicit timeout: Timeout): Future[Any]
   }
+
+  private class PersistenceDemux[T <: Artifact](`type`: Class[_ <: AnyRef], unmarshaller: YamlReader[T]) extends Demux[T] {
+    def unmarshall(content: String) = unmarshaller.read(content)
+    def all(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.All(`type`)
+    def create(artifact: T)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Create(artifact)
+    def read(name: String)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Read(name, `type`)
+    def update(name: String, artifact: T)(implicit timeout: Timeout) = {
+      if (name != artifact.name)
+        error(InconsistentArtifactName(name, artifact))
+      actorFor(PersistenceActor) ? PersistenceActor.Update(artifact)
+    }
+    def delete(name: String, artifact: Option[T])(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)
+  }
+
+  private class DeploymentDemux() extends PersistenceDemux[Blueprint](classOf[Blueprint], BlueprintReader) {
+    override def create(blueprint: Blueprint)(implicit timeout: Timeout) = actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint)
+    override def update(name: String, blueprint: Blueprint)(implicit timeout: Timeout) = actorFor(DeploymentActor) ? DeploymentActor.Update(name, blueprint)
+    override def delete(name: String, blueprint: Option[Blueprint])(implicit timeout: Timeout) = actorFor(DeploymentActor) ? DeploymentActor.Delete(name, blueprint)
+  }
+
+  private val mapping: Map[String, Demux[_ <: Artifact]] = Map() +
+    ("breeds" -> new PersistenceDemux[Breed](classOf[Breed], BreedReader)) +
+    ("blueprints" -> new PersistenceDemux[Blueprint](classOf[Blueprint], BlueprintReader)) +
+    ("slas" -> new PersistenceDemux[InlineArtifact](classOf[Sla], new NamedWeakReferenceYamlReader(SlaReader))) +
+    ("scales" -> new PersistenceDemux[InlineArtifact](classOf[Scale], new NamedWeakReferenceYamlReader(ScaleReader))) +
+    ("escalations" -> new PersistenceDemux[InlineArtifact](classOf[Escalation], new NamedWeakReferenceYamlReader(EscalationReader))) +
+    ("routings" -> new PersistenceDemux[InlineArtifact](classOf[Routing], new NamedWeakReferenceYamlReader(RoutingReader))) +
+    ("filters" -> new PersistenceDemux[InlineArtifact](classOf[Filter], new NamedWeakReferenceYamlReader(FilterReader))) +
+    ("deployments" -> new DeploymentDemux)
 }

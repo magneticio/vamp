@@ -4,6 +4,6 @@ import io.magnetic.vamp_common.akka.RequestError
 import io.magnetic.vamp_common.notification.Notification
 
 
-case class UnsupportedOperationRequest(request: Any) extends Notification with RequestError
+case class UnsupportedDeploymentRequest(request: Any) extends Notification with RequestError
 
 

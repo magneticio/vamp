@@ -1,4 +1,4 @@
 # Yaml Reader
 
-UnsupportedOperationRequest: "Unsupported operation request."
+UnsupportedDeploymentRequest: "Unsupported deployment request."
 
