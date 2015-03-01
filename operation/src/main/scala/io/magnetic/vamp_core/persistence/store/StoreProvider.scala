@@ -10,7 +10,7 @@ trait StoreProvider {
 
     def all(`type`: Class[_]): Future[List[_]]
 
-    def create(any: AnyRef): Future[AnyRef]
+    def create(any: AnyRef, ignoreIfExists: Boolean = false): Future[AnyRef]
 
     def read(name: String, `type`: Class[_]): Future[Option[AnyRef]]
 

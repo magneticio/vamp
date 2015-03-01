@@ -146,7 +146,10 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport {
   }
 
   private class DeploymentDemux() extends PersistenceDemux[Blueprint](classOf[Blueprint], BlueprintReader) {
-    override def create(blueprint: Blueprint)(implicit timeout: Timeout) = actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint)
+    override def create(blueprint: Blueprint)(implicit timeout: Timeout) = {
+      actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, ignoreIfExists = true)
+      actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint)
+    }
     override def update(name: String, blueprint: Blueprint)(implicit timeout: Timeout) = actorFor(DeploymentActor) ? DeploymentActor.Update(name, blueprint)
     override def delete(name: String, blueprint: Option[Blueprint])(implicit timeout: Timeout) = actorFor(DeploymentActor) ? DeploymentActor.Delete(name, blueprint)
   }

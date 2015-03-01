@@ -29,7 +29,7 @@ trait InMemoryStoreProvider extends StoreProvider with OperationNotificationProv
       }
     }
 
-    def create(any: AnyRef): Future[AnyRef] = Future {
+    def create(any: AnyRef, ignoreIfExists: Boolean = false): Future[AnyRef] = Future {
       val name = getName(any)
       val artifact = getArtifact(any)
       
@@ -41,7 +41,7 @@ trait InMemoryStoreProvider extends StoreProvider with OperationNotificationProv
             store.put(branch, map)
           case Some(map) => map.get(name) match {
             case None => map.put(name, artifact)
-            case Some(_) => error(ArtifactAlreadyExists(name, artifact.getClass))
+            case Some(_) => if(!ignoreIfExists) error(ArtifactAlreadyExists(name, artifact.getClass))
           }
         }
         case None => error(UnsupportedPersistenceRequest(any.getClass))
