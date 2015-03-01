@@ -12,16 +12,13 @@ trait ReplyActor {
   this: Actor with NotificationProvider =>
 
   final override def receive: Receive = {
-    case request if request.getClass == requestType => reply(request) match {
-      case response if response.getClass != classOf[Unit] => sender ! response
-      case _ => unsupported(request)
-    }
+    case request if requestType.isAssignableFrom(request.getClass) => sender ! reply(request)
     case request => sender ! unsupported(request)
   }
 
   protected def requestType: Class[_]
 
-  protected def reply: Receive
+  protected def reply(request: Any): Any
 
   protected def errorRequest(request: Any): RequestError
 
