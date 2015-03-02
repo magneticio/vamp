@@ -1,13 +1,14 @@
 package io.magnetic.vamp_common.akka
 
+import akka.util.Timeout
+
 import scala.concurrent._
-import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 
 trait FutureSupport {
 
-  def offLoad(future: Future[Any], atMost: Duration): Any = {
-    Await.ready(future, atMost)
+  def offLoad(future: Future[Any])(implicit timeout: Timeout): Any = {
+    Await.ready(future, timeout.duration)
     future.value.get match {
       case Success(result) => result
       case Failure(result) => result
