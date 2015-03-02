@@ -69,7 +69,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     val endpoints = blueprint.endpoints ++ deployment.endpoints
     val parameters = blueprint.parameters ++ deployment.parameters
 
-    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Update(Deployment(deployment.name, clusters, endpoints, parameters), create = true))(PersistenceActor.timeout)
+    commit(Deployment(deployment.name, clusters, endpoints, parameters))
   }
 
   private def mergeClusters(deployment: Deployment, blueprint: DefaultBlueprint): List[DeploymentCluster] = {
@@ -93,7 +93,22 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   }
 
   private def slice(deployment: Deployment, blueprint: Option[Blueprint]): Any = {
-    deployment
+    val sliced = deployment // TODO
+    commit(sliced)
   }
+
+  private def commit(deployment: Deployment): Any = {
+    validate(deployment)
+    persist(deployment) match {
+      case d: Deployment => d // TODO actorFor(DeploymentPipeline) ! DeploymentPipeline.Synchronize(d)
+      case any => any
+    }
+  }
+
+  private def validate(deployment: Deployment) = {
+    // TODO consistency
+  }
+
+  private def persist(deployment: Deployment): Any = offLoad(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, create = true))(PersistenceActor.timeout)
 }
 
