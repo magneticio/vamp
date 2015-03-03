@@ -2,20 +2,21 @@ package io.magnetic.vamp_core.operation.deployment
 
 import java.util.UUID
 
+import _root_.io.magnetic.vamp_common.akka._
+import _root_.io.magnetic.vamp_core.model.artifact._
+import _root_.io.magnetic.vamp_core.model.deployment.{Deployment, DeploymentCluster, DeploymentService}
+import _root_.io.magnetic.vamp_core.operation.notification.{NonUniqueBreedReferenceError, UnsupportedDeploymentRequest}
+import _root_.io.magnetic.vamp_core.persistence.PersistenceActor
+import _root_.io.magnetic.vamp_core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
+import _root_.io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.magnetic.vamp_common.akka._
-import io.magnetic.vamp_core.model.artifact._
-import io.magnetic.vamp_core.model.deployment.{Deployment, DeploymentCluster, DeploymentService}
-import io.magnetic.vamp_core.operation.notification.UnsupportedDeploymentRequest
-import io.magnetic.vamp_core.persistence.PersistenceActor
-import io.magnetic.vamp_core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
-import io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
 
 import scala.concurrent.duration._
 import scala.language.existentials
+import scala.reflect._
 
 object DeploymentActor extends ActorDescription {
 
@@ -35,7 +36,7 @@ object DeploymentActor extends ActorDescription {
 
 class DeploymentActor extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupport with InMemoryStoreProvider with ActorExecutionContextProvider with PersistenceNotificationProvider {
 
-  import io.magnetic.vamp_core.operation.deployment.DeploymentActor._
+  import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentActor._
 
   private def uuid = UUID.randomUUID.toString
 
@@ -48,19 +49,19 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   def reply(request: Any) = try {
     request match {
       case Create(blueprint) => merge(Deployment(uuid, List(), Map(), Map()), blueprint)
-      case Update(name, blueprint) => merge(deploymentFor(name), blueprint)
-      case Delete(name, blueprint) => slice(deploymentFor(name), blueprint)
+      case Update(name, blueprint) => merge(artifactFor[Deployment](name), blueprint)
+      case Delete(name, blueprint) => slice(artifactFor[Deployment](name), blueprint)
       case _ => exception(errorRequest(request))
     }
   } catch {
     case e: Exception => e
   }
 
-  private def deploymentFor(name: String): Deployment = {
+  private def artifactFor[T <: Any : ClassTag](name: String): T = {
     implicit val timeout = PersistenceActor.timeout
-    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])) match {
-      case Some(deployment: Deployment) => deployment
-      case _ => error(ArtifactNotFound(name, classOf[Deployment]))
+    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(name, classTag[T].runtimeClass)) match {
+      case Some(artifact: T) => artifact
+      case _ => error(ArtifactNotFound(name, classTag[T].runtimeClass))
     }
   }
 
@@ -85,16 +86,42 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     deploymentClusters ++ blueprintClusters
   }
 
-  private def mergeServices(deploymentCluster: Option[DeploymentCluster], cluster: Cluster): List[DeploymentService] = deploymentCluster match {
-    case None => cluster.services.map { service => DeploymentService(service.breed, service.scale, service.routing)}
-    case Some(deployment) => deployment.services ++ cluster.services.filter(service => deployment.services.find(_.breed.name == service.breed).isEmpty).map { service =>
-      DeploymentService(service.breed, service.scale, service.routing)
+  private def mergeServices(deploymentCluster: Option[DeploymentCluster], cluster: Cluster): List[DeploymentService] = {
+
+    def asDeploymentService(service: Service) = {
+      val breed = service.breed match {
+        case b: DefaultBreed => b
+        case b: Breed => artifactFor[Breed](b.name).asInstanceOf[DefaultBreed]
+      }
+      DeploymentService(breed, service.scale, service.routing)
+    }
+
+    deploymentCluster match {
+      case None => cluster.services.map {
+        asDeploymentService
+      }
+      case Some(deployment) => deployment.services ++ cluster.services.filter(service => deployment.services.find(_.breed.name == service.breed).isEmpty).map {
+        asDeploymentService
+      }
     }
   }
 
-  private def slice(deployment: Deployment, blueprint: Option[Blueprint]): Any = {
-    val sliced = deployment // TODO
-    commit(sliced)
+  private def slice(deployment: Deployment, blueprint: Option[DefaultBlueprint]): Any = blueprint match {
+    case None =>
+      // TODO set state => for removal
+      // actorFor(DeploymentPipeline) ! DeploymentPipeline.Synchronize(d)
+      // delete afterwards
+
+    case Some(bp) =>
+      // TODO set deployment/cluster/service state => for removal
+//      deployment.copy(clusters = deployment.clusters.map(cluster =>
+//        bp.clusters.find(_.name == cluster.name) match {
+//          case None => cluster
+//          case Some(bpc) => cluster.copy(services = cluster.services.filter(service => !bpc.services.exists(service.breed.name == _.breed.name)))
+//        }
+//      ).filter(_.services.nonEmpty))
+      val sliced = deployment
+      commit(sliced)
   }
 
   private def commit(deployment: Deployment): Any = {
@@ -106,7 +133,11 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   }
 
   private def validate(deployment: Deployment) = {
-    // TODO consistency
+    deployment.clusters.flatMap(_.services).map(_.breed).groupBy(_.name.toString).collect {
+      case (name, list) if list.size > 1 => error(NonUniqueBreedReferenceError(list.head))
+    }
+
+    // dependencies
   }
 
   private def persist(deployment: Deployment): Any = offLoad(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, create = true))(PersistenceActor.timeout)

@@ -1,4 +1,5 @@
 # Yaml Reader
 
 UnsupportedDeploymentRequest: "Unsupported deployment request."
+NonUniqueBreedReferenceError: "Multiple references for breed: '{breed.name}'."
 
