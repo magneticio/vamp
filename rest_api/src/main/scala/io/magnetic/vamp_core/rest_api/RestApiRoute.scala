@@ -62,7 +62,7 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
             } ~ post {
               entity(as[String]) { request =>
                 onSuccess(createArtifact(artifact, request)) {
-                  complete(OK, _)
+                  complete(Created, _)
                 }
               }
             }
