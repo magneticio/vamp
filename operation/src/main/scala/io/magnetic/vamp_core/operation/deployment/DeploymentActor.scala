@@ -5,7 +5,7 @@ import java.util.UUID
 import _root_.io.magnetic.vamp_common.akka._
 import _root_.io.magnetic.vamp_core.model.artifact._
 import _root_.io.magnetic.vamp_core.model.deployment.{Deployment, DeploymentCluster, DeploymentService}
-import _root_.io.magnetic.vamp_core.operation.notification.{NonUniqueBreedReferenceError, UnsupportedDeploymentRequest}
+import _root_.io.magnetic.vamp_core.operation.notification.{NonUniqueBreedReferenceError, UnresolvedDependencyError, UnsupportedDeploymentRequest}
 import _root_.io.magnetic.vamp_core.persistence.PersistenceActor
 import _root_.io.magnetic.vamp_core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
 import _root_.io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
@@ -100,7 +100,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
       case None => cluster.services.map {
         asDeploymentService
       }
-      case Some(deployment) => deployment.services ++ cluster.services.filter(service => deployment.services.find(_.breed.name == service.breed).isEmpty).map {
+      case Some(deployment) => deployment.services ++ cluster.services.filter(service => deployment.services.find(_.breed.name == service.breed.name).isEmpty).map {
         asDeploymentService
       }
     }
@@ -108,18 +108,18 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
 
   private def slice(deployment: Deployment, blueprint: Option[DefaultBlueprint]): Any = blueprint match {
     case None =>
-      // TODO set state => for removal
-      // actorFor(DeploymentPipeline) ! DeploymentPipeline.Synchronize(d)
-      // delete afterwards
+    // TODO set state => for removal
+    // actorFor(DeploymentPipeline) ! DeploymentPipeline.Synchronize(d)
+    // delete afterwards
 
     case Some(bp) =>
       // TODO set deployment/cluster/service state => for removal
-//      deployment.copy(clusters = deployment.clusters.map(cluster =>
-//        bp.clusters.find(_.name == cluster.name) match {
-//          case None => cluster
-//          case Some(bpc) => cluster.copy(services = cluster.services.filter(service => !bpc.services.exists(service.breed.name == _.breed.name)))
-//        }
-//      ).filter(_.services.nonEmpty))
+      //      deployment.copy(clusters = deployment.clusters.map(cluster =>
+      //        bp.clusters.find(_.name == cluster.name) match {
+      //          case None => cluster
+      //          case Some(bpc) => cluster.copy(services = cluster.services.filter(service => !bpc.services.exists(service.breed.name == _.breed.name)))
+      //        }
+      //      ).filter(_.services.nonEmpty))
       val sliced = deployment
       commit(sliced)
   }
@@ -133,11 +133,19 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   }
 
   private def validate(deployment: Deployment) = {
-    deployment.clusters.flatMap(_.services).map(_.breed).groupBy(_.name.toString).collect {
+    val breeds = deployment.clusters.flatMap(_.services).map(_.breed)
+
+    breeds.groupBy(_.name.toString).collect {
       case (name, list) if list.size > 1 => error(NonUniqueBreedReferenceError(list.head))
     }
 
-    // dependencies
+    val breedNames = breeds.map(_.name.toString).toSet
+    breeds.foreach {
+      breed => breed.dependencies.values.find(dependency => !breedNames.contains(dependency.name)).flatMap {
+        dependency => error(UnresolvedDependencyError(breed, dependency))
+      }
+
+    }
   }
 
   private def persist(deployment: Deployment): Any = offLoad(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, create = true))(PersistenceActor.timeout)

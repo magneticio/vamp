@@ -10,4 +10,6 @@ case class UnsupportedDeploymentRequest(request: Any) extends Notification with 
 
 case class NonUniqueBreedReferenceError(breed: Breed) extends Notification
 
+case class UnresolvedDependencyError(breed: Breed, dependency: Breed) extends Notification
+
 
