@@ -78,13 +78,13 @@ object Port {
   def toPort(name: Trait.Name, alias: Option[String], value: Option[String], direction: Trait.Direction.Value): Port = value match {
     case None => TcpPort(name, alias, None, direction)
     case Some(portValue) =>
-      val tcp = "tcp"
-      val http = "http"
+      val tcp = "/tcp"
+      val http = "/http"
 
       val number = if (portValue.toLowerCase.endsWith(http))
-        portValue.substring(0, portValue.length - http.length - 1).toInt
+        portValue.substring(0, portValue.length - http.length).toInt
       else if (portValue.toLowerCase.endsWith(tcp))
-        portValue.substring(0, portValue.length - tcp.length - 1).toInt
+        portValue.substring(0, portValue.length - tcp.length ).toInt
       else
         portValue.toInt
 
@@ -95,11 +95,23 @@ object Port {
   }
 }
 
-trait Port extends Trait[Int]
+trait Port extends Trait[Int] {
+  def valueAsString: String
+}
 
-case class TcpPort(name: Trait.Name, alias: Option[String], value: Option[Int], direction: Trait.Direction.Value) extends Port
+case class TcpPort(name: Trait.Name, alias: Option[String], value: Option[Int], direction: Trait.Direction.Value) extends Port {
+  def valueAsString: String = value match {
+    case None => ""
+    case Some(number) => s"$number/tcp"
+  }
+}
 
-case class HttpPort(name: Trait.Name, alias: Option[String], value: Option[Int], direction: Trait.Direction.Value) extends Port
+case class HttpPort(name: Trait.Name, alias: Option[String], value: Option[Int], direction: Trait.Direction.Value) extends Port {
+  def valueAsString: String = value match {
+    case None => ""
+    case Some(number) => s"$number/http"
+  }
+}
 
 
 case class EnvironmentVariable(name: Trait.Name, alias: Option[String], value: Option[String], direction: Trait.Direction.Value) extends Trait[String]

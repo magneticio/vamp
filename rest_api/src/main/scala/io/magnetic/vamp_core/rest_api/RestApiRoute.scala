@@ -11,10 +11,8 @@ import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.operation.deployment.DeploymentActor
 import io.magnetic.vamp_core.persistence.PersistenceActor
 import io.magnetic.vamp_core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
-import io.magnetic.vamp_core.rest_api.serializer.TraitNameSerializer
+import io.magnetic.vamp_core.rest_api.serializer.BreedSerializer
 import io.magnetic.vamp_core.rest_api.swagger.SwaggerResponse
-import org.json4s.NoTypeHints
-import org.json4s.native.Serialization
 import org.json4s.native.Serialization._
 import spray.http.CacheDirectives.`no-store`
 import spray.http.HttpEntity
@@ -35,7 +33,7 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
   protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
 
   private implicit val marshaller = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
-    implicit val formats = Serialization.formats(NoTypeHints) + new TraitNameSerializer()
+    implicit val formats = BreedSerializer.formats
 
     val response = value match {
       case notification: NotificationErrorException => throw notification
