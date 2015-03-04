@@ -4,9 +4,10 @@ import java.util.UUID
 
 import _root_.io.magnetic.vamp_common.akka._
 import _root_.io.magnetic.vamp_core.model.artifact._
-import _root_.io.magnetic.vamp_core.operation.notification.{NonUniqueBreedReferenceError, UnresolvedDependencyError, UnsupportedDeploymentRequest}
+import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentActor.{Create, Delete, DeploymentMessages, Update}
+import _root_.io.magnetic.vamp_core.operation.notification.{NonUniqueBreedReferenceError, OperationNotificationProvider, UnresolvedDependencyError, UnsupportedDeploymentRequest}
 import _root_.io.magnetic.vamp_core.persistence.PersistenceActor
-import _root_.io.magnetic.vamp_core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
+import _root_.io.magnetic.vamp_core.persistence.notification.ArtifactNotFound
 import _root_.io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
@@ -33,9 +34,7 @@ object DeploymentActor extends ActorDescription {
 
 }
 
-class DeploymentActor extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupport with InMemoryStoreProvider with ActorExecutionContextProvider with PersistenceNotificationProvider {
-
-  import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentActor._
+class DeploymentActor extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupport with InMemoryStoreProvider with ActorExecutionContextProvider with OperationNotificationProvider {
 
   private def uuid = UUID.randomUUID.toString
 
@@ -126,7 +125,9 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   private def commit(deployment: Deployment): Any = {
     validate(deployment)
     persist(deployment) match {
-      case d: Deployment => d // TODO actorFor(DeploymentPipeline) ! DeploymentPipeline.Synchronize(d)
+      case persisted: Deployment =>
+        actorFor(DeploymentSynchronizationActor) ! DeploymentSynchronizationActor.Synchronize(persisted)
+        persisted
       case any => any
     }
   }
