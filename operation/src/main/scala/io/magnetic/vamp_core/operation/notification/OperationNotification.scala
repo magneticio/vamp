@@ -14,4 +14,4 @@ case class UnresolvedDependencyError(breed: Breed, dependency: Breed) extends No
 
 case class DeploymentSynchronizationFailure(deployment: Deployment, exception: Throwable) extends Notification
 
-
+case class ContainerServiceRetrievalError(any: Any) extends Notification

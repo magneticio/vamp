@@ -16,7 +16,7 @@ object PersistenceActor extends ActorDescription {
 
   lazy val timeout = Timeout(ConfigFactory.load().getInt("persistence.response.timeout").seconds)
 
-  def props: Props = Props(new PersistenceActor)
+  def props(args: Any*): Props = Props[PersistenceActor]
 
   trait PersistenceMessages
 

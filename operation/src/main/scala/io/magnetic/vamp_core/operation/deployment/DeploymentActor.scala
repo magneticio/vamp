@@ -20,7 +20,7 @@ import scala.reflect._
 
 object DeploymentActor extends ActorDescription {
 
-  def props: Props = Props(new DeploymentActor)
+  def props(args: Any*): Props = Props[DeploymentActor]
 
   trait DeploymentMessages
 
@@ -35,7 +35,6 @@ object DeploymentActor extends ActorDescription {
 class DeploymentActor extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupport with InMemoryStoreProvider with ActorExecutionContextProvider with OperationNotificationProvider {
 
   private def uuid = UUID.randomUUID.toString
-
 
   override protected def requestType: Class[_] = classOf[DeploymentMessages]
 

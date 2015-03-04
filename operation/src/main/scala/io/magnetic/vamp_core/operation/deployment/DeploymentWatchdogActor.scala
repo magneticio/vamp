@@ -15,7 +15,7 @@ import scala.language.postfixOps
 
 object DeploymentWatchdogActor extends ActorDescription {
 
-  def props: Props = Props(new DeploymentWatchdogActor)
+  def props(args: Any*): Props = Props[DeploymentWatchdogActor]
 
   case class Period(period: Int)
 
