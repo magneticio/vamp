@@ -2,7 +2,6 @@ package io.magnetic.vamp_core.persistence.store
 
 import io.magnetic.vamp_common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact._
-import io.magnetic.vamp_core.model.deployment.Deployment
 import io.magnetic.vamp_core.operation.notification.OperationNotificationProvider
 import io.magnetic.vamp_core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, UnsupportedPersistenceRequest}
 

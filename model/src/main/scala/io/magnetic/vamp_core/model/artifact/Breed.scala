@@ -75,6 +75,7 @@ trait Trait[A] {
 }
 
 object Port {
+  
   def toPort(name: Trait.Name, alias: Option[String], value: Option[String], direction: Trait.Direction.Value): Port = value match {
     case None => TcpPort(name, alias, None, direction)
     case Some(portValue) =>
@@ -84,7 +85,7 @@ object Port {
       val number = if (portValue.toLowerCase.endsWith(http))
         portValue.substring(0, portValue.length - http.length).toInt
       else if (portValue.toLowerCase.endsWith(tcp))
-        portValue.substring(0, portValue.length - tcp.length ).toInt
+        portValue.substring(0, portValue.length - tcp.length).toInt
       else
         portValue.toInt
 

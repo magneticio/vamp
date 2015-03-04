@@ -5,13 +5,12 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider}
 import io.magnetic.vamp_common.notification.NotificationErrorException
-import io.magnetic.vamp_core.model.artifact.{Artifact, _}
-import io.magnetic.vamp_core.model.deployment.Deployment
+import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.operation.deployment.DeploymentActor
 import io.magnetic.vamp_core.persistence.PersistenceActor
 import io.magnetic.vamp_core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
-import io.magnetic.vamp_core.rest_api.serializer.BreedSerializer
+import io.magnetic.vamp_core.rest_api.serializer.{ArtifactSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
 import io.magnetic.vamp_core.rest_api.swagger.SwaggerResponse
 import org.json4s.native.Serialization._
 import spray.http.CacheDirectives.`no-store`
@@ -33,7 +32,7 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
   protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
 
   private implicit val marshaller = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
-    implicit val formats = BreedSerializer.formats
+    implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, DeploymentSerializationFormat)
 
     val response = value match {
       case notification: NotificationErrorException => throw notification
