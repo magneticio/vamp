@@ -1,0 +1,5 @@
+package io.magnetic.vamp_core.container_driver.notification
+
+import io.magnetic.vamp_common.notification.{DefaultPackageMessageResolverProvider, LoggingNotificationProvider}
+
+trait ContainerDriverNotificationProvider extends LoggingNotificationProvider with DefaultPackageMessageResolverProvider
