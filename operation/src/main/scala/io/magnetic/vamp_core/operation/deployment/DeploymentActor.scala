@@ -12,15 +12,11 @@ import _root_.io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
 
-import scala.concurrent.duration._
 import scala.language.existentials
 import scala.reflect._
 
 object DeploymentActor extends ActorDescription {
-
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("deployment.update.timeout").seconds)
 
   def props: Props = Props(new DeploymentActor)
 
@@ -38,7 +34,6 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
 
   private def uuid = UUID.randomUUID.toString
 
-  lazy implicit val timeout = DeploymentActor.timeout
 
   override protected def requestType: Class[_] = classOf[DeploymentMessages]
 
@@ -148,6 +143,9 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     }
   }
 
-  private def persist(deployment: Deployment): Any = offLoad(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, create = true))(PersistenceActor.timeout)
+  private def persist(deployment: Deployment): Any = {
+    implicit val timeout: Timeout = PersistenceActor.timeout
+    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, create = true))
+  }
 }
 
