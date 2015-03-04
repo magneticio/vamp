@@ -6,6 +6,7 @@ import _root_.io.magnetic.vamp_common.akka._
 import _root_.io.magnetic.vamp_core.model.artifact.Deployment.ReadyForDeployment
 import _root_.io.magnetic.vamp_core.model.artifact._
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentActor.{Create, Delete, DeploymentMessages, Update}
+import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import _root_.io.magnetic.vamp_core.operation.notification.{NonUniqueBreedReferenceError, OperationNotificationProvider, UnresolvedDependencyError, UnsupportedDeploymentRequest}
 import _root_.io.magnetic.vamp_core.persistence.PersistenceActor
 import _root_.io.magnetic.vamp_core.persistence.notification.ArtifactNotFound
@@ -122,7 +123,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     validate(deployment)
     persist(deployment) match {
       case persisted: Deployment =>
-        actorFor(DeploymentSynchronizationActor) ! DeploymentSynchronizationActor.Synchronize(persisted)
+        actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
         persisted
       case any => any
     }

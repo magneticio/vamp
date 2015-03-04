@@ -2,13 +2,12 @@ package io.magnetic.vamp_core.operation.deployment
 
 import _root_.io.magnetic.vamp_common.akka._
 import _root_.io.magnetic.vamp_core.model.artifact._
-import _root_.io.magnetic.vamp_core.operation.notification.OperationNotificationProvider
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.stream.ActorFlowMaterializer
 import akka.stream.scaladsl.{FlowGraph, ForeachSink, Source}
-import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.Synchronize
+import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
+import io.magnetic.vamp_core.operation.notification.{DeploymentSynchronizationFailure, OperationNotificationProvider}
 
-import scala.concurrent.forkjoin.ThreadLocalRandom
 import scala.util.{Failure, Success}
 
 object DeploymentSynchronizationActor extends ActorDescription {
@@ -17,47 +16,37 @@ object DeploymentSynchronizationActor extends ActorDescription {
 
   case class Synchronize(deployment: Deployment)
 
+  case class SynchronizeAll(deployments: List[Deployment])
+
 }
 
 class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorSupport with ActorExecutionContextProvider with OperationNotificationProvider {
 
   def receive: Receive = {
-    case Synchronize(deployment) => //synchronize(deployment)
+    case Synchronize(deployment) => synchronize(deployment :: Nil)
+    case SynchronizeAll(deployments) => synchronize(deployments)
   }
 
-  private def synchronize(deployment: Deployment) = {
+  private def synchronize(deployments: List[Deployment]): Unit = deployments.foreach(synchronize)
+
+  private def synchronize(deployment: Deployment): Unit = {
 
     implicit val materializer = ActorFlowMaterializer()
 
-    val primeSource: Source[Int] = Source(() => Iterator.continually(ThreadLocalRandom.current().nextInt(1000000))).
-      filter(rnd => isPrime(rnd)).
-      filter(prime => isPrime(prime + 2)).
-      take(5)
-
-    val console = ForeachSink[Int] { prime =>
-      println(prime)
+    val sink = ForeachSink[DeploymentService] { service =>
+      println(service.breed.name)
     }
 
     val materialized = FlowGraph { implicit builder =>
       import akka.stream.scaladsl.FlowGraphImplicits._
-      primeSource.map({ prime =>
-        Thread.sleep(100)
-        prime
-      }) ~> console
-      
+      Source(() => deployment.clusters.iterator).mapConcat({ cluster =>
+        cluster.services
+      }) ~> sink
     }.run()
 
-    materialized.get(console).onComplete {
-      case Success(_) =>
-        println("Done")
-      case Failure(e) =>
-        println(s"Failure: ${e.getMessage}")
+    materialized.get(sink).onComplete {
+      case Success(_) => log.debug(s"Synchronization is done for deployment: ${deployment.name}")
+      case Failure(e) => exception(DeploymentSynchronizationFailure(deployment, e))
     }
-  }
-
-  def isPrime(n: Int): Boolean = {
-    if (n <= 1) false
-    else if (n == 2) true
-    else !(2 to (n - 1)).exists(x => n % x == 0)
   }
 }
