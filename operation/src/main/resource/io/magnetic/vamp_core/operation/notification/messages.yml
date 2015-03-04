@@ -1,5 +1,6 @@
 # Yaml Reader
 
+InternalServerError         : "Internal server error."
 UnsupportedDeploymentRequest: "Unsupported deployment request."
 NonUniqueBreedReferenceError: "Multiple references for breed: '{breed.name}'."
 UnresolvedDependencyError   : "Unresolved dependency '{dependency.name}' for breed '{breed.name}'."

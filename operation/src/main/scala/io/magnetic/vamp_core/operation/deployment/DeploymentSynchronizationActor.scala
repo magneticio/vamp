@@ -6,7 +6,7 @@ import _root_.io.magnetic.vamp_core.operation.notification.OperationNotification
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.stream.ActorFlowMaterializer
 import akka.stream.scaladsl.{Broadcast, FlowGraph, ForeachSink, Source}
-import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.{SynchronizeAll, Synchronize}
+import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.Synchronize
 
 import scala.concurrent.forkjoin.ThreadLocalRandom
 import scala.util.{Failure, Success}
@@ -15,25 +15,18 @@ object DeploymentSynchronizationActor extends ActorDescription {
 
   def props: Props = Props(new DeploymentSynchronizationActor)
 
-  trait DeploymentSynchronizationMessages
-
-  case class SynchronizeAll() extends DeploymentSynchronizationMessages
-  
-  case class Synchronize(deployment: Deployment) extends DeploymentSynchronizationMessages
+  case class Synchronize(deployment: Deployment)
 
 }
 
 class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorSupport with ActorExecutionContextProvider with OperationNotificationProvider {
 
   def receive: Receive = {
-    case SynchronizeAll => println("Synchronize All")
-    case Synchronize(deployment) =>
-      //context.system.scheduler.schedule()
-      println("Synchronize")
-      run()
+    case Synchronize(deployment) => println(deployment.name)//synchronize(deployment)
   }
 
-  def run() = {
+  private def synchronize(deployment: Deployment) = {
+
     //    implicit val system = ActorSystem("Sys")
     //    import system.dispatcher
     implicit val materializer = ActorFlowMaterializer()
