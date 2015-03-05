@@ -63,11 +63,11 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
   }
 
   case class BreedModel(name: String, deployableName: String) {
-    def portsQ = portsQuery.filter(p=> p.breedName === name).sortBy(_.id)
+    private def portsQ = portsQuery.filter(p=> p.breedName === name).sortBy(_.id)
 
-    def environmentVarsQ = environmentVariableQuery.filter(e=> e.breedName === name).sortBy(_.id)
+    private def environmentVarsQ = environmentVariableQuery.filter(e=> e.breedName === name).sortBy(_.id)
 
-    def dependencyQ = dependenciesQuery.filter(d=> d.breedName === name && d.onType === DependencyType.Breed).sortBy(_.id)
+    private def dependencyQ = dependenciesQuery.filter(d=> d.breedName === name && d.onType === DependencyType.Breed).sortBy(_.id)
 
     def toVamp : Breed = {
       DefaultBreed(name, Deployable(deployableName), portsQ.list.map((p) => p.toVamp), environmentVarsQ.list.map((e) => e.toVamp), dependencyQ.list.map((d) => d.toVamp).toMap)
