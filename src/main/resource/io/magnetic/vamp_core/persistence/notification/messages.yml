@@ -1,0 +1,7 @@
+# Yaml Reader
+
+UnsupportedPersistenceRequest: "Unsupported request."
+ArtifactNotFound             : "Artifact cannot be found: '{name}'."
+PersistenceOperationFailure  : "Persistence operation failure."
+ArtifactAlreadyExists        : "Artifact already exists: '{name}'."
+
