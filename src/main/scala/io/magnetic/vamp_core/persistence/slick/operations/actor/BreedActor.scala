@@ -33,9 +33,6 @@ class BreedActor(schema: Schema) extends DbActor(schema) {
     case ListBreeds(pageNumber: Int, perPage: Int) =>
       sender ! getBreeds(pageNumber, perPage)
 
-    // TODO add operations for blueprint
-
-
   }
 
   private def deleteBreed(name: String): Int = {
@@ -58,21 +55,18 @@ class BreedActor(schema: Schema) extends DbActor(schema) {
     breed
   }
 
-  private def getBreed(breedName: String): Option[Breed] = {
+  private def getBreed(breedName: String): Option[Breed] =
     breedsQuery.filter((b) => b.name === breedName).firstOption match {
       case Some(breed) => Some(breed.toVamp)
       case None => None
     }
-  }
 
-  private def getBreeds(pageNumber: Int, perPage: Int): List[Breed] = {
-    val breedQuery = for {
-      b <- breedsQuery.page(pageNumber, perPage)
-    } yield b
-    breedQuery.list.map((breed) => {
+
+  private def getBreeds(pageNumber: Int, perPage: Int): List[Breed] =
+    breedsQuery.page(pageNumber, perPage).list.map((breed) => {
       breed.toVamp
     })
-  }
+
 }
 
 object BreedActor {
