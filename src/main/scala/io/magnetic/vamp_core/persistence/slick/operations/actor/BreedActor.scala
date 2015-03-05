@@ -36,34 +36,34 @@ class BreedActor(schema: Schema) extends DbActor(schema) {
   }
 
   private def deleteBreed(name: String): Int = {
-    val query = schema.breedsQuery.filter((b) => b.name === name)
+    val query = BreedModel.breedsQuery.filter((b) => b.name === name)
     query.firstOption match {
       case None => 0
       case _ =>
-        portsQuery.filter((p) => p.breedName === name).delete
-        environmentVariableQuery.filter((e) => e.breedName === name).delete
-        dependenciesQuery.filter((d) => d.breedName === name && d.onType === DependencyType.Breed).delete
+        PortModel.portsQuery.filter((p) => p.breedName === name).delete
+        EnvironmentVariableModel.environmentVariableQuery.filter((e) => e.breedName === name).delete
+        DependencyModel.dependenciesQuery.filter((d) => d.breedName === name && d.onType === DependencyType.Breed).delete
         query.delete
     }
   }
 
   private def insertBreed(breed: DefaultBreed): DefaultBreed = {
-    breedsQuery += BreedModel.fromVamp(breed)
-    portsQuery ++= breed.ports.map(tr => PortModel.fromVamp(tr, breed.name))
-    dependenciesQuery ++= breed.dependencies.map((tuple) => DependencyModel.fromVamp(tuple._2, tuple._1, breed.name))
-    environmentVariableQuery ++= breed.environmentVariables.map(env => EnvironmentVariableModel.fromVamp(env, breed.name))
+    BreedModel.breedsQuery += BreedModel.fromVamp(breed)
+    PortModel.portsQuery ++= breed.ports.map(tr => PortModel.fromVamp(tr, breed.name))
+    DependencyModel.dependenciesQuery ++= breed.dependencies.map((tuple) => DependencyModel.fromVamp(tuple._2, tuple._1, breed.name))
+    EnvironmentVariableModel.environmentVariableQuery ++= breed.environmentVariables.map(env => EnvironmentVariableModel.fromVamp(env, breed.name))
     breed
   }
 
   private def getBreed(breedName: String): Option[Breed] =
-    breedsQuery.filter((b) => b.name === breedName).firstOption match {
+    BreedModel.breedsQuery.filter((b) => b.name === breedName).firstOption match {
       case Some(breed) => Some(breed.toVamp)
       case None => None
     }
 
 
   private def getBreeds(pageNumber: Int, perPage: Int): List[Breed] =
-    breedsQuery.page(pageNumber, perPage).list.map((breed) => {
+    BreedModel.breedsQuery.page(pageNumber, perPage).list.map((breed) => {
       breed.toVamp
     })
 
