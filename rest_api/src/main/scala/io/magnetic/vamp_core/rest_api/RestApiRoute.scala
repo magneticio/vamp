@@ -137,7 +137,7 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport {
     def delete(name: String, artifact: Option[T])(implicit timeout: Timeout): Future[Any]
   }
 
-  private class PersistenceDemux[T <: Artifact](`type`: Class[_ <: AnyRef], unmarshaller: YamlReader[T]) extends Demux[T] {
+  private class PersistenceDemux[T <: Artifact](`type`: Class[_ <: Artifact], unmarshaller: YamlReader[T]) extends Demux[T] {
     def unmarshall(content: String) = unmarshaller.read(content)
 
     def all(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.All(`type`)
@@ -171,10 +171,10 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport {
   private val mapping: Map[String, Demux[_ <: Artifact]] = Map() +
     ("breeds" -> new PersistenceDemux[Breed](classOf[Breed], BreedReader)) +
     ("blueprints" -> new PersistenceDemux[Blueprint](classOf[Blueprint], BlueprintReader)) +
-    ("slas" -> new PersistenceDemux[InlineArtifact](classOf[Sla], new NamedWeakReferenceYamlReader(SlaReader))) +
-    ("scales" -> new PersistenceDemux[InlineArtifact](classOf[Scale], new NamedWeakReferenceYamlReader(ScaleReader))) +
-    ("escalations" -> new PersistenceDemux[InlineArtifact](classOf[Escalation], new NamedWeakReferenceYamlReader(EscalationReader))) +
-    ("routings" -> new PersistenceDemux[InlineArtifact](classOf[Routing], new NamedWeakReferenceYamlReader(RoutingReader))) +
-    ("filters" -> new PersistenceDemux[InlineArtifact](classOf[Filter], new NamedWeakReferenceYamlReader(FilterReader))) +
+    ("slas" -> new PersistenceDemux[Sla](classOf[Sla], SlaReader)) +
+    ("scales" -> new PersistenceDemux[Scale](classOf[Scale], ScaleReader)) +
+    ("escalations" -> new PersistenceDemux[Escalation](classOf[Escalation], EscalationReader)) +
+    ("routings" -> new PersistenceDemux[Routing](classOf[Routing], RoutingReader)) +
+    ("filters" -> new PersistenceDemux[Filter](classOf[Filter], FilterReader)) +
     ("deployments" -> new DeploymentDemux)
 }

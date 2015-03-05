@@ -12,10 +12,3 @@ trait Type {
   def `type`: String
 }
 
-trait Anonymous
-
-package object artifact {
-  type Inline = Anonymous
-}
-
-case class InlineArtifact(name: String, inline: artifact.Inline) extends Artifact

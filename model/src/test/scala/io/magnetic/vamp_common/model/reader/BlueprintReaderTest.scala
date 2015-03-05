@@ -49,7 +49,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the reference sla with escalations" in {
     BlueprintReader.read(res("blueprint5.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(SlaReference("strong-mountain", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), AnonymousEscalation("cloud-beam", Map("sound" -> "furious")))))))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(SlaReference("strong-mountain", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), DefaultEscalation("", "cloud-beam", Map("sound" -> "furious")))))))),
       'endpoints(Map()),
       'parameters(Map())
     )
@@ -58,7 +58,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the anonymous sla" in {
     BlueprintReader.read(res("blueprint6.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(AnonymousSla("vital-cloud", List(), Map("reborn" -> "red-swallow")))))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(DefaultSla("", "vital-cloud", List(), Map("reborn" -> "red-swallow")))))),
       'endpoints(Map()),
       'parameters(Map())
     )
@@ -67,7 +67,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the anonymous sla with escalations" in {
     BlueprintReader.read(res("blueprint7.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(AnonymousSla("vital-cloud", List(EscalationReference("red-flag")), Map("reborn" -> "red-swallow")))))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(DefaultSla("", "vital-cloud", List(EscalationReference("red-flag")), Map("reborn" -> "red-swallow")))))),
       'endpoints(Map()),
       'parameters(Map())
     )
@@ -76,7 +76,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the anonymous scale" in {
     BlueprintReader.read(res("blueprint8.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Some(AnonymousScale(0.2, 120, 2)), None)), None))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Some(DefaultScale("", 0.2, 120, 2)), None)), None))),
       'endpoints(Map()),
       'parameters(Map())
     )
@@ -112,7 +112,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the routing with weight" in {
     BlueprintReader.read(res("blueprint12.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(AnonymousRouting(Some(50), List())))), None))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(DefaultRouting("", Some(50), List())))), None))),
       'endpoints(Map()),
       'parameters(Map())
     )
@@ -121,7 +121,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the routing with filter reference" in {
     BlueprintReader.read(res("blueprint13.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(Map()),
       'parameters(Map())
     )
@@ -130,7 +130,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the routing with filter references" in {
     BlueprintReader.read(res("blueprint14.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(AnonymousRouting(None, List(FilterReference("android"), FilterReference("ios")))))), None))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(DefaultRouting("", None, List(FilterReference("android"), FilterReference("ios")))))), None))),
       'endpoints(Map()),
       'parameters(Map())
     )
@@ -139,7 +139,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the routing with anonymous filter" in {
     BlueprintReader.read(res("blueprint15.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(AnonymousRouting(Some(10), List(AnonymousFilter("user.agent != ios")))))), None))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(DefaultRouting("", Some(10), List(DefaultFilter("", "user.agent != ios")))))), None))),
       'endpoints(Map()),
       'parameters(Map())
     )
@@ -157,7 +157,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "expand the filter list" in {
     BlueprintReader.read(res("blueprint17.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(Map()),
       'parameters(Map())
     )
@@ -193,7 +193,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "expand the more complex blueprint" in {
     BlueprintReader.read(res("blueprint21.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), List(), List(), Map()), None, None)), Some(SlaReference("strong-mountain", List()))), Cluster("omega", List(Service(BreedReference("scary-lion"), None, None)), None), Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Some(AnonymousScale(0.2, 120.0, 2)), Some(AnonymousRouting(Some(95), List(AnonymousFilter("ua = android"))))), Service(BreedReference("remote-venus"), Some(ScaleReference("worthy")), None)), Some(AnonymousSla("vital-cloud", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), AnonymousEscalation("cloud-beam", Map("sound" -> "furious"))), Map("reborn" -> "red-swallow")))), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), List(), List(), Map()), None, None)), Some(SlaReference("fish-steamy", List()))))),
+      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), List(), List(), Map()), None, None)), Some(SlaReference("strong-mountain", List()))), Cluster("omega", List(Service(BreedReference("scary-lion"), None, None)), None), Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Some(DefaultScale("", 0.2, 120.0, 2)), Some(DefaultRouting("", Some(95), List(DefaultFilter("", "ua = android"))))), Service(BreedReference("remote-venus"), Some(ScaleReference("worthy")), None)), Some(DefaultSla("", "vital-cloud", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), DefaultEscalation("", "cloud-beam", Map("sound" -> "furious"))), Map("reborn" -> "red-swallow")))), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), List(), List(), Map()), None, None)), Some(SlaReference("fish-steamy", List()))))),
       'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
       'parameters(Map(Trait.Name.asName("omega.ports.aspect") -> "thorium"))
     )
@@ -344,7 +344,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read scale and routing - expanded" in {
     BlueprintReader.read(res("blueprint38.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), Some(AnonymousScale(0.5, 512.0, 1)), Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
       'parameters(Map())
     )
@@ -353,7 +353,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read scale and routing - service single element." in {
     BlueprintReader.read(res("blueprint39.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), Some(AnonymousScale(0.5, 512.0, 1)), Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
       'parameters(Map())
     )
@@ -362,7 +362,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read scale and routing - no service just cluster." in {
     BlueprintReader.read(res("blueprint40.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), Some(AnonymousScale(0.5, 512.0, 1)), Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
       'parameters(Map())
     )
@@ -371,7 +371,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read scale and routing - no service and compact breed." in {
     BlueprintReader.read(res("blueprint41.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
       'parameters(Map())
     )
@@ -380,7 +380,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read scale and routing - cluster contains list." in {
     BlueprintReader.read(res("blueprint42.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
       'parameters(Map())
     )

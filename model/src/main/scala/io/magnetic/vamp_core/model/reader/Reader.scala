@@ -3,8 +3,6 @@ package io.magnetic.vamp_core.model.reader
 import java.io.{File, InputStream, Reader, StringReader}
 
 import _root_.io.magnetic.vamp_common.notification.NotificationErrorException
-import _root_.io.magnetic.vamp_core.model.artifact.InlineArtifact
-import _root_.io.magnetic.vamp_core.model.artifact.artifact.Inline
 import _root_.io.magnetic.vamp_core.model.notification._
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
@@ -93,14 +91,6 @@ trait YamlReader[T] extends ModelNotificationProvider {
     case Some(v) => v
   }
 
-  protected def getAndRemoveOrError[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<!-[V](path)
-
-  protected def <<!-[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = {
-    val value = <<![V](path)
-    >>(path)
-    value
-  }
-
   protected def <<?[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): Option[V] = path match {
     case last :: Nil => source.get(last) match {
       case None => None
@@ -169,19 +159,17 @@ trait YamlReader[T] extends ModelNotificationProvider {
 
 trait ReferenceYamlReader[T] extends YamlReader[T] {
   def readReference(any: Any): T
-
-  def readReferenceFromSource(any: Any): T = readReference(load(new StringReader(any.toString), close = true))
 }
 
-trait WeakReferenceYamlReader[T] extends ReferenceYamlReader[T] {
+trait WeakReferenceYamlReader[T] extends YamlReader[T] {
 
-  override def readReference(any: Any): T = any match {
+  def readReferenceOrAnonymous(any: Any): T = any match {
     case string: String => createReference(new YamlObject() += ("name" -> string))
     case map: collection.Map[_, _] => read(validateEitherReferenceOrAnonymous(map.asInstanceOf[YamlObject]))
   }
 
-  def readOptionalReference(path: YamlPath)(implicit source: YamlObject): Option[T] = <<?[Any](path).flatMap {
-    reference => Some(readReference(reference))
+  def readOptionalReferenceOrAnonymous(path: YamlPath)(implicit source: YamlObject): Option[T] = <<?[Any](path).flatMap {
+    reference => Some(readReferenceOrAnonymous(reference))
   }
 
   protected def validateEitherReferenceOrAnonymous(implicit source: YamlObject): YamlObject = {
@@ -190,7 +178,12 @@ trait WeakReferenceYamlReader[T] extends ReferenceYamlReader[T] {
     source
   }
 
-  override protected def parse(implicit source: YamlObject): T = if (isAnonymous) createAnonymous else createReference
+  protected override def name(implicit source: YamlObject): String = <<?[String]("name") match {
+    case None => ""
+    case Some(value) => value
+  }
+
+  override protected def parse(implicit source: YamlObject): T = if (isAnonymous) createDefault else createReference
 
   protected def isAnonymous(implicit source: YamlObject): Boolean = <<?[String]("name").isEmpty
 
@@ -202,13 +195,8 @@ trait WeakReferenceYamlReader[T] extends ReferenceYamlReader[T] {
 
   protected def createReference(implicit source: YamlObject): T
 
-  protected def createAnonymous(implicit source: YamlObject): T
+  protected def createDefault(implicit source: YamlObject): T
 
   protected def asReferenceOf: String = getClass.getSimpleName.substring(0, getClass.getSimpleName.indexOf("Reader")).toLowerCase
 }
 
-class NamedWeakReferenceYamlReader(reader: WeakReferenceYamlReader[_]) extends YamlReader[InlineArtifact] {
-  override protected def parse(implicit source: YamlObject): InlineArtifact = {
-    InlineArtifact(<<!-[String]("name"), reader.read(source).asInstanceOf[Inline])
-  }
-}

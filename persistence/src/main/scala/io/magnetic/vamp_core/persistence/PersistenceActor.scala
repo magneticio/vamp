@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.magnetic.vamp_common.akka._
-import io.magnetic.vamp_core.model.artifact.{DefaultBlueprint, DefaultBreed}
+import io.magnetic.vamp_core.model.artifact.{Artifact, DefaultBlueprint, DefaultBreed}
 import io.magnetic.vamp_core.persistence.notification.{UnsupportedPersistenceRequest, PersistenceNotificationProvider}
 import io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
 
@@ -20,15 +20,15 @@ object PersistenceActor extends ActorDescription {
 
   trait PersistenceMessages
 
-  case class All(`type`: Class[_]) extends PersistenceMessages
+  case class All(`type`: Class[_ <: Artifact]) extends PersistenceMessages
 
-  case class Create(any: AnyRef, ignoreIfExists: Boolean = false) extends PersistenceMessages
+  case class Create(artifact: Artifact, ignoreIfExists: Boolean = false) extends PersistenceMessages
 
-  case class Read(name: String, `type`: Class[_]) extends PersistenceMessages
+  case class Read(name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
 
-  case class Update(any: AnyRef, create: Boolean = false) extends PersistenceMessages
+  case class Update(artifact: Artifact, create: Boolean = false) extends PersistenceMessages
 
-  case class Delete(name: String, `type`: Class[_]) extends PersistenceMessages
+  case class Delete(name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
 
 }
 

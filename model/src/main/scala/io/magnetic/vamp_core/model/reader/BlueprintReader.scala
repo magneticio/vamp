@@ -63,7 +63,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       case Some(map) => map.map({
         case (name: String, cluster: collection.Map[_, _]) =>
           implicit val source = cluster.asInstanceOf[YamlObject]
-          val sla = SlaReader.readOptionalReference("sla")
+          val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
           <<?[List[YamlObject]]("services") match {
             case None => Cluster(name, List(), sla)
@@ -149,7 +149,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   }
 
   private def parseService(implicit source: YamlObject): Service =
-    Service(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReference("scale"), RoutingReader.readOptionalReference("routing"))
+    Service(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReferenceOrAnonymous("scale"), RoutingReader.readOptionalReferenceOrAnonymous("routing"))
 
   protected def traitNameMapping(path: YamlPath)(implicit source: YamlObject): Map[Trait.Name, String] = <<?[YamlObject](path) match {
     case None => Map()
@@ -176,12 +176,12 @@ object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
 
   override protected def createReference(implicit source: YamlObject): Sla = SlaReference(reference, escalations)
 
-  override protected def createAnonymous(implicit source: YamlObject): Sla = AnonymousSla(`type`, escalations, parameters)
+  override protected def createDefault(implicit source: YamlObject): Sla = DefaultSla(name, `type`, escalations, parameters)
 
   protected def escalations(implicit source: YamlObject): List[Escalation] = <<?[YamlList]("escalations") match {
     case None => List[Escalation]()
     case Some(list: YamlList) => list.map {
-      EscalationReader.readReference
+      EscalationReader.readReferenceOrAnonymous
     }
   }
 
@@ -192,26 +192,26 @@ object EscalationReader extends YamlReader[Escalation] with WeakReferenceYamlRea
 
   override protected def createReference(implicit source: YamlObject): Escalation = EscalationReference(reference)
 
-  override protected def createAnonymous(implicit source: YamlObject): Escalation = AnonymousEscalation(`type`, parameters)
+  override protected def createDefault(implicit source: YamlObject): Escalation = DefaultEscalation(name, `type`, parameters)
 }
 
 object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale] {
 
   override protected def createReference(implicit source: YamlObject): Scale = ScaleReference(reference)
 
-  override protected def createAnonymous(implicit source: YamlObject): Scale = AnonymousScale(<<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
+  override protected def createDefault(implicit source: YamlObject): Scale = DefaultScale(name, <<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
 }
 
 object RoutingReader extends YamlReader[Routing] with WeakReferenceYamlReader[Routing] {
 
   override protected def createReference(implicit source: YamlObject): Routing = RoutingReference(reference)
 
-  override protected def createAnonymous(implicit source: YamlObject): Routing = AnonymousRouting(<<?[Int]("weight"), filters)
+  override protected def createDefault(implicit source: YamlObject): Routing = DefaultRouting(name, <<?[Int]("weight"), filters)
 
   protected def filters(implicit source: YamlObject): List[Filter] = <<?[YamlList]("filters") match {
     case None => List[Filter]()
     case Some(list: YamlList) => list.map {
-      FilterReader.readReference
+      FilterReader.readReferenceOrAnonymous
     }
   }
 }
@@ -220,6 +220,6 @@ object FilterReader extends YamlReader[Filter] with WeakReferenceYamlReader[Filt
 
   override protected def createReference(implicit source: YamlObject): Filter = FilterReference(reference)
 
-  override protected def createAnonymous(implicit source: YamlObject): Filter = AnonymousFilter(<<![String]("condition"))
+  override protected def createDefault(implicit source: YamlObject): Filter = DefaultFilter(name, <<![String]("condition"))
 }
 
