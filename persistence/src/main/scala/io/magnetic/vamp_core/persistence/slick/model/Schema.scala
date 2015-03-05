@@ -4,6 +4,7 @@ package io.magnetic.vamp_core.persistence.slick.model
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.persistence.slick.model.PortType.PortType
 
+import scala.language.implicitConversions
 import scala.slick.driver.JdbcProfile
 import scala.slick.jdbc.JdbcBackend.Session
 import scala.slick.lifted.ForeignKeyQuery
