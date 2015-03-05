@@ -23,14 +23,32 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
   import driver.simple._
   import io.magnetic.vamp_core.persistence.slick.model.Implicits._
 
-  def createDatabase() =
-    (environmentVariableQuery.schema ++ portsQuery.schema ++ breedsQuery.schema ++ dependenciesQuery.schema).create
+  lazy val createDatabase =
+    (EnvironmentVariableModel.environmentVariableQuery.schema ++ PortModel.portsQuery.schema ++ BreedModel.breedsQuery.schema ++ DependencyModel.dependenciesQuery.schema).create
 
   case class EnvironmentVariableModel(id: Option[Int],name: String, alias: Option[String], value: Option[String], direction: Trait.Direction.Value, breedName: String) {
     def toVamp = EnvironmentVariable(name, alias, value, direction)
   }
 
   object EnvironmentVariableModel extends ((Option[Int],String, Option[String], Option[String], Trait.Direction.Value, String) => EnvironmentVariableModel) {
+    class EnvironmentVariables(tag: Tag) extends Table[EnvironmentVariableModel](tag, "environment_vars") {
+      def id = column[Int]("env_id", O.AutoInc, O.PrimaryKey)
+      def name = column[String]("name")
+      def alias = column[Option[String]]("alias")
+      def value = column[Option[String]]("value")
+      def direction = column[Trait.Direction.Value]("direction")
+      def breedName = column[String]("breed_name")
+
+      def * = (id.?, name, alias, value, direction, breedName) <>(EnvironmentVariableModel.tupled, EnvironmentVariableModel.unapply)
+
+      def idx = index("idx_environment_vars", (breedName, name), unique = true)
+
+      def breed : ForeignKeyQuery[BreedModel.Breeds, BreedModel] =
+        foreignKey("env_breed_fk", breedName, TableQuery[BreedModel.Breeds])(_.name )
+    }
+
+    val environmentVariableQuery = TableQuery[EnvironmentVariables]
+
     def fromVamp(env: EnvironmentVariable, breedName: String) = EnvironmentVariableModel(None,env.name.value, env.alias, env.value, env.direction, breedName)
   }
 
@@ -43,6 +61,25 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
   }
 
   object PortModel extends ((Option[Int],String, Option[String], PortType, Option[Int], Trait.Direction.Value, String) => PortModel) {
+    class Ports(tag: Tag) extends Table[PortModel](tag, "ports") {
+      def id = column[Int]("port_id", O.AutoInc, O.PrimaryKey)
+      def name = column[String]("name")
+      def alias = column[Option[String]]("alias")
+      def portType = column[PortType]("port_type")
+      def value = column[Option[Int]]("value")
+      def direction = column[Trait.Direction.Value]("direction")
+      def breedName = column[String]("breed_name")
+
+      def * = (id.?, name, alias, portType, value, direction, breedName) <>(PortModel.tupled, PortModel.unapply)
+
+      def idx = index("idx_ports", (breedName, name), unique = true)
+
+      def breed : ForeignKeyQuery[BreedModel.Breeds, BreedModel] =
+        foreignKey("port_breed_fk", breedName, TableQuery[BreedModel.Breeds])(_.name )
+    }
+
+    val portsQuery = TableQuery[Ports]
+
     def fromVamp(port: Port, breedName: String) =
       port match {
         case TcpPort(_, _, _, _) => PortModel(None,port.name.value, port.alias, PortType.TCP, port.value, port.direction, breedName)
@@ -59,15 +96,31 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
   }
 
   object DependencyModel extends ((Option[Int],String, String, DependencyType.Value, String) => DependencyModel) {
+    class Dependencies(tag: Tag) extends Table[DependencyModel](tag, "dependencies") {
+      def id = column[Int]("dep_id", O.AutoInc, O.PrimaryKey)
+      def name = column[String]("name")
+      def alias = column[String]("alias")
+      def onType = column[DependencyType.Value]("on_type")
+      def breedName = column[String]("breed_name")
+      def * = (id.?, name, alias, onType, breedName) <>(DependencyModel.tupled, DependencyModel.unapply)
+
+      def idx = index("idx_dependencies", (name, alias, onType, breedName), unique = true)
+
+      def breed : ForeignKeyQuery[BreedModel.Breeds, BreedModel] =
+        foreignKey("dep_breed_fk", breedName, TableQuery[BreedModel.Breeds])(_.name )
+    }
+
+    val dependenciesQuery = TableQuery[Dependencies]
+
     def fromVamp(dependency: Breed, alias: String, breedName: String) = DependencyModel(None,dependency.name, alias, DependencyType.Breed, breedName)
   }
 
   case class BreedModel(name: String, deployableName: String) {
-    private def portsQ = portsQuery.filter(p=> p.breedName === name).sortBy(_.id)
+    private def portsQ = PortModel.portsQuery.filter(p=> p.breedName === name).sortBy(_.id)
 
-    private def environmentVarsQ = environmentVariableQuery.filter(e=> e.breedName === name).sortBy(_.id)
+    private def environmentVarsQ = EnvironmentVariableModel.environmentVariableQuery.filter(e=> e.breedName === name).sortBy(_.id)
 
-    private def dependencyQ = dependenciesQuery.filter(d=> d.breedName === name && d.onType === DependencyType.Breed).sortBy(_.id)
+    private def dependencyQ = DependencyModel.dependenciesQuery.filter(d=> d.breedName === name && d.onType === DependencyType.Breed).sortBy(_.id)
 
     def toVamp : Breed = {
       DefaultBreed(name, Deployable(deployableName), portsQ.list.map((p) => p.toVamp), environmentVarsQ.list.map((e) => e.toVamp), dependencyQ.list.map((d) => d.toVamp).toMap)
@@ -75,72 +128,18 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
   }
 
   object BreedModel extends ((String, String) => BreedModel) {
+    class Breeds(tag: Tag) extends Table[BreedModel](tag, "breeds") {
+      def id = column[Int]("breed_id", O.AutoInc)
+      def name = column[String]("name", O.PrimaryKey)
+      def deployableName = column[String]("deployable_name")
+
+      def * = (name, deployableName) <>(BreedModel.tupled, BreedModel.unapply)
+    }
+
+    val breedsQuery = TableQuery[Breeds]
+
     def fromVamp(breed: DefaultBreed) = BreedModel(name = breed.name, deployableName = breed.deployable.name)
   }
-
-  class Dependencies(tag: Tag) extends Table[DependencyModel](tag, "dependencies") {
-    def id = column[Int]("dep_id", O.AutoInc, O.PrimaryKey)
-    def name = column[String]("name")
-    def alias = column[String]("alias")
-    def onType = column[DependencyType.Value]("on_type")
-    def breedName = column[String]("breed_name")
-    def * = (id.?, name, alias, onType, breedName) <>(DependencyModel.tupled, DependencyModel.unapply)
-
-    def idx = index("idx_dependencies", (name, alias, onType, breedName), unique = true)
-
-    def breed : ForeignKeyQuery[Breeds, BreedModel] =
-      foreignKey("dep_breed_fk", breedName, TableQuery[Breeds])(_.name )
-  }
-
-  val dependenciesQuery = TableQuery[Dependencies]
-
-  class Ports(tag: Tag) extends Table[PortModel](tag, "ports") {
-    def id = column[Int]("port_id", O.AutoInc, O.PrimaryKey)
-    def name = column[String]("name")
-    def alias = column[Option[String]]("alias")
-    def portType = column[PortType]("port_type")
-    def value = column[Option[Int]]("value")
-    def direction = column[Trait.Direction.Value]("direction")
-    def breedName = column[String]("breed_name")
-
-    def * = (id.?, name, alias, portType, value, direction, breedName) <>(PortModel.tupled, PortModel.unapply)
-
-    def idx = index("idx_ports", (breedName, name), unique = true)
-
-    def breed : ForeignKeyQuery[Breeds, BreedModel] =
-      foreignKey("port_breed_fk", breedName, TableQuery[Breeds])(_.name )
-  }
-
-  val portsQuery = TableQuery[Ports]
-
-  class EnvironmentVariables(tag: Tag) extends Table[EnvironmentVariableModel](tag, "environment_vars") {
-    def id = column[Int]("env_id", O.AutoInc, O.PrimaryKey)
-    def name = column[String]("name")
-    def alias = column[Option[String]]("alias")
-    def value = column[Option[String]]("value")
-    def direction = column[Trait.Direction.Value]("direction")
-    def breedName = column[String]("breed_name")
-
-    def * = (id.?, name, alias, value, direction, breedName) <>(EnvironmentVariableModel.tupled, EnvironmentVariableModel.unapply)
-
-    def idx = index("idx_environment_vars", (breedName, name), unique = true)
-
-    def breed : ForeignKeyQuery[Breeds, BreedModel] =
-      foreignKey("env_breed_fk", breedName, TableQuery[Breeds])(_.name )
-  }
-
-  val environmentVariableQuery = TableQuery[EnvironmentVariables]
-
-  class Breeds(tag: Tag) extends Table[BreedModel](tag, "breeds") {
-    def id = column[Int]("breed_id", O.AutoInc)
-    def name = column[String]("name", O.PrimaryKey)
-    def deployableName = column[String]("deployable_name")
-
-    def * = (name, deployableName) <>(BreedModel.tupled, BreedModel.unapply)
-  }
-
-  val breedsQuery = TableQuery[Breeds]
-
 
 }
 
