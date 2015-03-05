@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.persistence.store
 
 import io.magnetic.vamp_common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact._
-import io.magnetic.vamp_core.persistence.notification.{ArtifactNotFound, ArtifactAlreadyExists, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
+import io.magnetic.vamp_core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -15,9 +15,9 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
 
   private class InMemoryStore extends Store {
 
-    val store: mutable.Map[String, mutable.Map[String, AnyRef]] = new mutable.HashMap()
+    val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
-    def all(`type`: Class[_]): Future[List[_]] = Future {
+    def all(`type`: Class[_ <: Artifact]): Future[List[Artifact]] = Future {
       getBranch(`type`) match {
         case Some(branch) => store.get(branch) match {
           case None => Nil
@@ -27,27 +27,24 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
       }
     }
 
-    def create(any: AnyRef, ignoreIfExists: Boolean = false): Future[AnyRef] = Future {
-      val name = getName(any)
-      val artifact = getArtifact(any)
-
-      getBranch(any) match {
+    def create(artifact: Artifact, ignoreIfExists: Boolean = false): Future[Artifact] = Future {
+      getBranch(artifact) match {
         case Some(branch) => store.get(branch) match {
           case None =>
-            val map = new mutable.HashMap[String, AnyRef]()
-            map.put(name, artifact)
+            val map = new mutable.HashMap[String, Artifact]()
+            map.put(artifact.name, artifact)
             store.put(branch, map)
-          case Some(map) => map.get(name) match {
-            case None => map.put(name, artifact)
-            case Some(_) => if (!ignoreIfExists) error(ArtifactAlreadyExists(name, artifact.getClass))
+          case Some(map) => map.get(artifact.name) match {
+            case None => map.put(artifact.name, artifact)
+            case Some(_) => if (!ignoreIfExists) error(ArtifactAlreadyExists(artifact.name, artifact.getClass))
           }
         }
-        case None => error(UnsupportedPersistenceRequest(any.getClass))
+        case None => error(UnsupportedPersistenceRequest(artifact.getClass))
       }
       artifact
     }
 
-    def read(name: String, `type`: Class[_]): Future[Option[AnyRef]] = Future {
+    def read(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future {
       getBranch(`type`) match {
         case Some(branch) => store.get(branch) match {
           case None => None
@@ -57,25 +54,22 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
       }
     }
 
-    def update(any: AnyRef, create: Boolean = false): Future[AnyRef] = Future {
-      val name = getName(any)
-      val artifact = getArtifact(any)
-
-      getBranch(any) match {
+    def update(artifact: Artifact, create: Boolean = false): Future[Artifact] = Future {
+      getBranch(artifact) match {
         case Some(branch) => store.get(branch) match {
-          case None => if (create) this.create(any) else error(ArtifactNotFound(name, any.getClass))
+          case None => if (create) this.create(artifact) else error(ArtifactNotFound(artifact.name, artifact.getClass))
           case Some(map) =>
-            if (map.get(name).isEmpty)
-              if (create) this.create(any) else error(ArtifactNotFound(name, any.getClass))
+            if (map.get(artifact.name).isEmpty)
+              if (create) this.create(artifact) else error(ArtifactNotFound(artifact.name, artifact.getClass))
             else
-              map.put(name, artifact)
+              map.put(artifact.name, artifact)
         }
-        case None => if (create) this.create(any) else error(UnsupportedPersistenceRequest(any.getClass))
+        case None => if (create) this.create(artifact) else error(UnsupportedPersistenceRequest(artifact.getClass))
       }
       artifact
     }
 
-    def delete(name: String, `type`: Class[_]): Future[AnyRef] = Future {
+    def delete(name: String, `type`: Class[_ <: Artifact]): Future[Artifact] = Future {
       getBranch(`type`) match {
         case Some(branch) => store.get(branch) match {
           case None => error(ArtifactNotFound(name, `type`))
@@ -91,7 +85,6 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
   }
 
   private def getBranch(any: AnyRef): Option[String] = any match {
-    case InlineArtifact(_, artifact) => getBranch(artifact.getClass)
     case artifact: Artifact => getBranch(artifact.getClass)
     case _ => error(UnsupportedPersistenceRequest(any.getClass))
   }
@@ -106,17 +99,5 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
     case t if classOf[Routing].isAssignableFrom(t) => Some("routings")
     case t if classOf[Filter].isAssignableFrom(t) => Some("filters")
     case request => None
-  }
-
-  private def getName(any: AnyRef): String = any match {
-    case InlineArtifact(name, _) => name
-    case artifact: Artifact => artifact.name
-    case _ => error(UnsupportedPersistenceRequest(any.getClass))
-  }
-
-  private def getArtifact(any: AnyRef): AnyRef = any match {
-    case InlineArtifact(name, artifact) => artifact
-    case artifact: Artifact => artifact
-    case _ => error(UnsupportedPersistenceRequest(any.getClass))
   }
 }

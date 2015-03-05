@@ -1,5 +1,7 @@
 package io.magnetic.vamp_core.persistence.store
 
+import io.magnetic.vamp_core.model.artifact.Artifact
+
 import scala.concurrent.Future
 
 trait StoreProvider {
@@ -8,15 +10,15 @@ trait StoreProvider {
 
   trait Store {
 
-    def all(`type`: Class[_]): Future[List[_]]
+    def all(`type`: Class[_ <: Artifact]): Future[List[_]]
 
-    def create(any: AnyRef, ignoreIfExists: Boolean = false): Future[AnyRef]
+    def create(artifact: Artifact, ignoreIfExists: Boolean = false): Future[Artifact]
 
-    def read(name: String, `type`: Class[_]): Future[Option[AnyRef]]
+    def read(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]]
 
-    def update(any: AnyRef, create: Boolean = false): Future[AnyRef]
+    def update(artifact: Artifact, create: Boolean = false): Future[Artifact]
 
-    def delete(name: String, `type`: Class[_]): Future[AnyRef]
+    def delete(name: String, `type`: Class[_ <: Artifact]): Future[Artifact]
   }
 
 }
