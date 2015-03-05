@@ -163,9 +163,8 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport {
         actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint)
 
       case defaultBlueprint: DefaultBlueprint =>
-        sequentialExecution(List() :+
-          actorFor(PersistenceActor) ? PersistenceActor.Create(defaultBlueprint, ignoreIfExists = true) :+
-          actorFor(DeploymentActor) ? DeploymentActor.Create(defaultBlueprint))
+        actorFor(PersistenceActor) ? PersistenceActor.Create(defaultBlueprint, ignoreIfExists = true)
+        actorFor(DeploymentActor) ? DeploymentActor.Create(defaultBlueprint)
     }
 
     override def update(name: String, blueprint: Blueprint)(implicit timeout: Timeout) =
