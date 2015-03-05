@@ -1,6 +1,5 @@
 package io.magnetic.vamp_common.model.reader
 
-import io.magnetic.vamp_core.model._
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.notification._
 import io.magnetic.vamp_core.model.reader.BlueprintReader
@@ -327,7 +326,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "expand the service with breed only object" in {
     BlueprintReader.read(res("blueprint36.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic",List(Service(DefaultBreed("solid-barbershop",Deployable("donut"),List(),List(),Map()),None,None)),None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("donut"), List(), List(), Map()), None, None)), None))),
       'endpoints(Map()),
       'parameters(Map())
     )
@@ -336,8 +335,53 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "expand the service with breed reference only object" in {
     BlueprintReader.read(res("blueprint37.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic",List(Service(BreedReference("solid-barbershop"),None,None)),None))),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), None, None)), None))),
       'endpoints(Map()),
+      'parameters(Map())
+    )
+  }
+
+  it should "read scale and routing - expanded" in {
+    BlueprintReader.read(res("blueprint38.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), Some(AnonymousScale(0.5, 512.0, 1)), Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
+      'parameters(Map())
+    )
+  }
+
+  it should "read scale and routing - service single element." in {
+    BlueprintReader.read(res("blueprint39.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), Some(AnonymousScale(0.5, 512.0, 1)), Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
+      'parameters(Map())
+    )
+  }
+
+  it should "read scale and routing - no service just cluster." in {
+    BlueprintReader.read(res("blueprint40.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), Some(AnonymousScale(0.5, 512.0, 1)), Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
+      'parameters(Map())
+    )
+  }
+
+  it should "read scale and routing - no service and compact breed." in {
+    BlueprintReader.read(res("blueprint41.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
+      'parameters(Map())
+    )
+  }
+
+  it should "read scale and routing - cluster contains list." in {
+    BlueprintReader.read(res("blueprint42.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(AnonymousRouting(None, List(FilterReference("android")))))), None))),
+      'endpoints(Map(Trait.Name.asName("supersonic.ports.port") -> "$PORT")),
       'parameters(Map())
     )
   }

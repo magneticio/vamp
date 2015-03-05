@@ -22,44 +22,37 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       case None =>
       case Some(map) => map.map {
         case (name: String, breed: String) => >>("clusters" :: name :: "services", List(new YamlObject() += ("breed" -> breed)))
+        case (name: String, list: List[_]) => >>("clusters" :: name :: "services", list)
         case (name: String, cluster: collection.Map[_, _]) =>
           implicit val source = cluster.asInstanceOf[YamlObject]
           <<?[Any]("services") match {
-            case None => <<?[Any]("breed") match {
-              case None => <<?[Any]("name") match {
-                case None =>
-                case Some(_) => >>("services", List(new YamlObject() += ("breed" -> source)))
-              }
-              case Some(breed) => >>("services", List(new YamlObject() += ("breed" -> breed)))
-            }
-
+            case None => >>("services", List(source))
+            case Some(list: List[_]) =>
             case Some(breed: String) => >>("services", List(new YamlObject() += ("breed" -> breed)))
-
-            case Some(map: collection.Map[_, _]) =>
-              <<?[Any]("services" :: "breed") match {
-                case None => <<?[Any]("services" :: "breed" :: "name") match {
-                  case None =>
-                  case Some(breed) => >>("services", List(new YamlObject() += ("breed" -> breed)))
-                }
-                case Some(breed) => >>("services", List(new YamlObject() += ("breed" -> breed)))
-              }
-
-            case Some(list) =>
-              >>("services", list.asInstanceOf[List[_]].map {
-                case breed: String => new YamlObject() += ("breed" -> breed)
-                case map: collection.Map[_, _] =>
-                  implicit val source = map.asInstanceOf[YamlObject]
-                  <<?[Any]("routing") match {
-                    case None =>
-                    case Some(s: String) =>
-                    case Some(_) => expandToList("routing" :: "filters")
-                  }
-                  source
-              })
+            case Some(m) => >>("services", List(m))
           }
+          >>("services", <<![List[_]]("services").map { element =>
+            if (element.isInstanceOf[String]) {
+              new YamlObject() += ("breed" -> (new YamlObject() += ("name" -> element)))
+            } else {
+              implicit val source = element.asInstanceOf[YamlObject]
+              <<?[Any]("breed") match {
+                case None => <<?[Any]("name") match {
+                  case None =>
+                  case Some(_) => >>("breed", source)
+                }
+                case _ =>
+              }
+              <<?[Any]("routing") match {
+                case None =>
+                case Some(s: String) =>
+                case Some(_) => expandToList("routing" :: "filters")
+              }
+              element
+            }
+          })
       }
     }
-
     super.expand
   }
 
