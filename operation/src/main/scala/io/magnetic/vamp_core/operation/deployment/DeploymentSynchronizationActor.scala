@@ -1,7 +1,6 @@
 package io.magnetic.vamp_core.operation.deployment
 
 import _root_.io.magnetic.vamp_common.akka._
-import io.magnetic.vamp_core.container_driver.{ContainerService, ContainerDriverActor}
 import _root_.io.magnetic.vamp_core.model.artifact._
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import akka.actor.{Actor, ActorLogging, Props}
@@ -10,7 +9,8 @@ import akka.stream.ActorFlowMaterializer
 import akka.stream.scaladsl.{FlowGraph, ForeachSink, Source}
 import akka.util.Timeout
 import io.magnetic.vamp_core.container_driver.ContainerDriverActor.Deploy
-import io.magnetic.vamp_core.model.artifact.Deployment.ReadyForDeployment
+import io.magnetic.vamp_core.container_driver.{ContainerDriverActor, ContainerService}
+import io.magnetic.vamp_core.model.artifact.DeploymentService.ReadyForDeployment
 import io.magnetic.vamp_core.operation.notification.{DeploymentSynchronizationFailure, OperationNotificationProvider}
 
 import scala.util.{Failure, Success}
@@ -43,7 +43,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
     val sink = ForeachSink[DeploymentService] { service =>
       service.state match {
-        case ReadyForDeployment(initiated, _) => 
+        case ReadyForDeployment(initiated, _) =>
           val containerService = ContainerService(service.breed.name: String, Some(service.breed), service.scale)
           actorFor(ContainerDriverActor) ! Deploy(deployment, containerService)
       }

@@ -3,7 +3,7 @@ package io.magnetic.vamp_core.operation.deployment
 import java.util.UUID
 
 import _root_.io.magnetic.vamp_common.akka._
-import _root_.io.magnetic.vamp_core.model.artifact.Deployment.ReadyForDeployment
+import _root_.io.magnetic.vamp_core.model.artifact.DeploymentService.ReadyForDeployment
 import _root_.io.magnetic.vamp_core.model.artifact._
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentActor.{Create, Delete, DeploymentMessages, Update}
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.Synchronize
@@ -42,7 +42,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
 
   def reply(request: Any) = try {
     request match {
-      case Create(blueprint) => merge(Deployment(uuid, ReadyForDeployment(), List(), Map(), Map()), blueprint)
+      case Create(blueprint) => merge(Deployment(uuid, List(), Map(), Map()), blueprint)
       case Update(name, blueprint) => merge(artifactFor[Deployment](name), blueprint)
       case Delete(name, blueprint) => slice(artifactFor[Deployment](name), blueprint)
       case _ => exception(errorRequest(request))
@@ -64,7 +64,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     val endpoints = blueprint.endpoints ++ deployment.endpoints
     val parameters = blueprint.parameters ++ deployment.parameters
 
-    commit(Deployment(deployment.name, ReadyForDeployment(), clusters, endpoints, parameters))
+    commit(Deployment(deployment.name, clusters, endpoints, parameters))
   }
 
   private def mergeClusters(deployment: Deployment, blueprint: DefaultBlueprint): List[DeploymentCluster] = {
@@ -72,8 +72,8 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
 
     val blueprintClusters = blueprint.clusters.map { cluster =>
       deployment.clusters.find(_.name == cluster.name) match {
-        case None => DeploymentCluster(cluster.name, ReadyForDeployment(), mergeServices(None, cluster), cluster.sla)
-        case Some(deploymentCluster) => deploymentCluster.copy(state = ReadyForDeployment(), services = mergeServices(Some(deploymentCluster), cluster))
+        case None => DeploymentCluster(cluster.name, mergeServices(None, cluster), cluster.sla)
+        case Some(deploymentCluster) => deploymentCluster.copy(services = mergeServices(Some(deploymentCluster), cluster))
       }
     }
 
