@@ -5,7 +5,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.magnetic.vamp_common.akka._
 import io.magnetic.vamp_core.model.artifact.{DefaultBlueprint, DefaultBreed}
-import io.magnetic.vamp_core.persistence.notification.{PersistenceNotificationProvider, UnsupportedPersistenceRequest}
+import io.magnetic.vamp_core.persistence.notification.{UnsupportedPersistenceRequest, PersistenceNotificationProvider}
 import io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
 
 import scala.concurrent.Future

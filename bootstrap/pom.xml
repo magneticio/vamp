@@ -20,6 +20,11 @@
     <dependencies>
         <dependency>
             <groupId>io.magnetic.vamp-core</groupId>
+            <artifactId>persistence</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.magnetic.vamp-core</groupId>
             <artifactId>container_driver</artifactId>
             <version>${project.version}</version>
         </dependency>

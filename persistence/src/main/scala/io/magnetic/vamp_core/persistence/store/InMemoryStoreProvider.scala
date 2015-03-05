@@ -2,14 +2,13 @@ package io.magnetic.vamp_core.persistence.store
 
 import io.magnetic.vamp_common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact._
-import io.magnetic.vamp_core.operation.notification.OperationNotificationProvider
-import io.magnetic.vamp_core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, UnsupportedPersistenceRequest}
+import io.magnetic.vamp_core.persistence.notification.{ArtifactNotFound, ArtifactAlreadyExists, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
 
 import scala.collection.mutable
 import scala.concurrent.Future
 
 
-trait InMemoryStoreProvider extends StoreProvider with OperationNotificationProvider {
+trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationProvider {
   this: ExecutionContextProvider =>
 
   val store: Store = new InMemoryStore()
@@ -31,7 +30,7 @@ trait InMemoryStoreProvider extends StoreProvider with OperationNotificationProv
     def create(any: AnyRef, ignoreIfExists: Boolean = false): Future[AnyRef] = Future {
       val name = getName(any)
       val artifact = getArtifact(any)
-      
+
       getBranch(any) match {
         case Some(branch) => store.get(branch) match {
           case None =>
@@ -40,7 +39,7 @@ trait InMemoryStoreProvider extends StoreProvider with OperationNotificationProv
             store.put(branch, map)
           case Some(map) => map.get(name) match {
             case None => map.put(name, artifact)
-            case Some(_) => if(!ignoreIfExists) error(ArtifactAlreadyExists(name, artifact.getClass))
+            case Some(_) => if (!ignoreIfExists) error(ArtifactAlreadyExists(name, artifact.getClass))
           }
         }
         case None => error(UnsupportedPersistenceRequest(any.getClass))
@@ -61,17 +60,17 @@ trait InMemoryStoreProvider extends StoreProvider with OperationNotificationProv
     def update(any: AnyRef, create: Boolean = false): Future[AnyRef] = Future {
       val name = getName(any)
       val artifact = getArtifact(any)
-      
+
       getBranch(any) match {
         case Some(branch) => store.get(branch) match {
-          case None => if(create) this.create(any) else error(ArtifactNotFound(name, any.getClass))
+          case None => if (create) this.create(any) else error(ArtifactNotFound(name, any.getClass))
           case Some(map) =>
             if (map.get(name).isEmpty)
-              if(create) this.create(any) else error(ArtifactNotFound(name, any.getClass))
+              if (create) this.create(any) else error(ArtifactNotFound(name, any.getClass))
             else
               map.put(name, artifact)
         }
-        case None => if(create) this.create(any) else error(UnsupportedPersistenceRequest(any.getClass))
+        case None => if (create) this.create(any) else error(UnsupportedPersistenceRequest(any.getClass))
       }
       artifact
     }
