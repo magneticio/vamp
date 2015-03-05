@@ -11,6 +11,7 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, Matchers}
 
+import scala.language.postfixOps
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.slick.driver.H2Driver
