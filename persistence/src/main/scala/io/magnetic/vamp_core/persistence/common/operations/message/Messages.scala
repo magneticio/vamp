@@ -1,6 +1,6 @@
 package io.magnetic.vamp_core.persistence.common.operations.message
 
-import io.magnetic.vamp_core.model.{Trait, Breed}
+import io.magnetic.vamp_core.model.artifact.Breed
 
 trait Request {
   
