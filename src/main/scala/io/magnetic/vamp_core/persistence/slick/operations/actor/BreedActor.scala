@@ -57,13 +57,12 @@ class BreedActor(schema: Schema) extends DbActor(schema) {
 
   private def getBreed(breedName: String): Option[Breed] =
     BreedModel.breedsQuery.filter((b) => b.name === breedName).firstOption match {
-      case Some(breed) => Some(breed.toBreed)
+      case Some(breedModel) => Some(BreedModel.toBreed(breedModel))
       case None => None
     }
 
-
   private def getBreeds(pageNumber: Int, perPage: Int): List[Breed] =
-    BreedModel.breedsQuery.page(pageNumber, perPage).list.map(breed => breed.toBreed)
+    BreedModel.breedsQuery.page(pageNumber, perPage).list.map(breedModel => BreedModel.toBreed(breedModel))
 
 }
 

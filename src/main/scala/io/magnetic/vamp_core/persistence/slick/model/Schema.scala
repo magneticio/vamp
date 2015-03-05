@@ -53,7 +53,7 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
   }
 
   case class PortModel(id: Option[Int] ,name: String, alias: Option[String], portType: PortType, value: Option[Int], direction: Trait.Direction.Value, breedName: String) {
-    implicit def toVamp : Port = portType match {
+    implicit def toPort : Port = portType match {
       case PortType.HTTP => HttpPort(name, alias, value, direction)
       case PortType.TCP => TcpPort(name, alias, value, direction)
       case _ => throw new RuntimeException(s"Handler for this portType: $portType is not implemented")
@@ -115,17 +115,7 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
     def toDependencyModel(dependency: Breed, alias: String, breedName: String) = DependencyModel(None,dependency.name, alias, DependencyType.Breed, breedName)
   }
 
-  case class BreedModel(name: String, deployableName: String) {
-    private def portsQ = PortModel.portsQuery.filter(p=> p.breedName === name).sortBy(_.id)
-
-    private def environmentVarsQ = EnvironmentVariableModel.environmentVariableQuery.filter(e=> e.breedName === name).sortBy(_.id)
-
-    private def dependencyQ = DependencyModel.dependenciesQuery.filter(d=> d.breedName === name && d.onType === DependencyType.Breed).sortBy(_.id)
-
-    def toBreed : Breed = {
-      DefaultBreed(name, Deployable(deployableName), portsQ.list.map((p) => p.toVamp), environmentVarsQ.list.map((e) => e.toEnvironmentVariable), dependencyQ.list.map((d) => d.toDependency).toMap)
-    }
-  }
+  case class BreedModel(name: String, deployableName: String)
 
   object BreedModel extends ((String, String) => BreedModel) {
     class Breeds(tag: Tag) extends Table[BreedModel](tag, "breeds") {
@@ -136,11 +126,18 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
       def * = (name, deployableName) <>(BreedModel.tupled, BreedModel.unapply)
     }
 
-    val breedsQuery = TableQuery[Breeds]
-
-    implicit def toBreedModel(breed: DefaultBreed) : BreedModel = {
-      BreedModel(name = breed.name, deployableName = breed.deployable.name)
+    def toBreed(breed : BreedModel) : Breed = {
+      val portsQ = PortModel.portsQuery.filter(p=> p.breedName === breed.name).sortBy(_.id).list
+      val environmentVarsQ = EnvironmentVariableModel.environmentVariableQuery.filter(e=> e.breedName === breed.name).sortBy(_.id).list
+      val dependencyQ = DependencyModel.dependenciesQuery.filter(d=> d.breedName === breed.name && d.onType === DependencyType.Breed).sortBy(_.id).list
+      DefaultBreed(breed.name, Deployable(breed.deployableName), portsQ.map((p) => p.toPort), environmentVarsQ.map((e) => e.toEnvironmentVariable), dependencyQ.map((d) => d.toDependency).toMap)
     }
+
+    val breedsQuery = TableQuery[Breeds]
+  }
+
+  implicit def toBreedModel(breed: DefaultBreed) : BreedModel = {
+    BreedModel(name = breed.name, deployableName = breed.deployable.name)
   }
 
 }
