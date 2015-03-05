@@ -14,6 +14,7 @@ MissingEnvironmentVariableValueError : "Missing environment variable value for '
 NonUniquePortNameError               : "Non unique port name '{port.name}' for breed '{breed.name} -> {breed.deployable.name}'."
 NonUniqueEnvironmentVariableNameError: "Non unique environment variable name '{environmentVariable.name}' for breed '{breed.name} -> {breed.deployable.name}'."
 UnresolvedDependencyForTraitError    : "Dependency reference cannot be resolved for port/environment variable name '{name}' and breed '{breed.name} -> {breed.deployable.name}'."
+RecursiveDependenciesError           : "Recursive (cyclic) dependency detected for breed '{breed.name}'"
 
 # Blueprint Reader
 

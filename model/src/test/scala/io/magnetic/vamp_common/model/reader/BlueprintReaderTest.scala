@@ -385,4 +385,20 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'parameters(Map())
     )
   }
+
+  it should "fail on direct recursive dependency" in {
+    expectedError[RecursiveDependenciesError]({
+      BlueprintReader.read(res("blueprint43.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch",Deployable("magneticio/monarch:latest"),List(),List(),Map("db" -> BreedReference("monarch"))))
+    )
+  }
+
+  it should "fail on indirect recursive dependency" in {
+    expectedError[RecursiveDependenciesError]({
+      BlueprintReader.read(res("blueprint44.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch2",Deployable("magneticio/monarch2:latest"),List(),List(),Map("db" -> BreedReference("monarch1"))))
+    )
+  }
 }

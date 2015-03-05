@@ -14,3 +14,5 @@ case class NonUniquePortNameError(breed: Breed, port: Port) extends Notification
 case class NonUniqueEnvironmentVariableNameError(breed: Breed, environmentVariable: EnvironmentVariable) extends Notification
 
 case class UnresolvedDependencyForTraitError(breed: Breed, name: Trait.Name) extends Notification
+
+case class RecursiveDependenciesError(breed: Breed) extends Notification

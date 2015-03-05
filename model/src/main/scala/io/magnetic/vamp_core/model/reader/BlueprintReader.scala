@@ -1,7 +1,8 @@
 package io.magnetic.vamp_core.model.reader
 
 import io.magnetic.vamp_core.model.artifact._
-import io.magnetic.vamp_core.model.notification.{NonUniqueBlueprintBreedReferenceError, UnresolvedBreedDependencyError, UnresolvedEndpointPortError, UnresolvedParameterError}
+import io.magnetic.vamp_core.model.notification._
+import io.magnetic.vamp_core.model.reader.BreedReader._
 
 import scala.language.postfixOps
 
@@ -85,6 +86,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       val breeds = blueprint.clusters.flatMap(_.services.map(_.breed))
       validateBreeds(breeds)
       validateDependencies(breeds)
+      breeds.foreach(BreedReader.validateNonRecursiveDependencies)
 
       blueprint
   }

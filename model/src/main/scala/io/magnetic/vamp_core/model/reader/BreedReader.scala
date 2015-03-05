@@ -115,6 +115,23 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] {
         name => error(UnresolvedDependencyForTraitError(breed, name))
       }
 
+      validateNonRecursiveDependencies(breed)
+
       breed
+  }
+
+  def validateNonRecursiveDependencies(breed: Breed): Unit = {
+
+    recursive(breed, Set(breed.name))
+
+    def recursive(breed: Breed, visited: Set[String]): Unit = breed match {
+      case db: DefaultBreed => db.dependencies.foreach { dependency =>
+        if (visited.contains(dependency._2.name))
+          error(RecursiveDependenciesError(breed))
+        else
+          recursive(dependency._2, visited + dependency._2.name)
+      }
+      case _ =>
+    }
   }
 }

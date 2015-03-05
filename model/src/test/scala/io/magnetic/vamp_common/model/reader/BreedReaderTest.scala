@@ -1,6 +1,5 @@
 package io.magnetic.vamp_common.model.reader
 
-import io.magnetic.vamp_core.model._
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.notification._
 import io.magnetic.vamp_core.model.reader.BreedReader
@@ -177,6 +176,22 @@ class BreedReaderTest extends ReaderTest {
     }) should have(
       'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(TcpPort("db.ports.web", None, None, Trait.Direction.In)), List(), Map("db" -> DefaultBreed("mysql", Deployable("vamp/mysql"), List(), List(), Map())))),
       'name(Trait.Name.asName("db.ports.web"))
+    )
+  }
+
+  it should "fail on direct recursive dependency" in {
+    expectedError[RecursiveDependenciesError]({
+      BreedReader.read(res("breed18.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(TcpPort("db.ports.web", None, None, Trait.Direction.In)), List(), Map("db" -> BreedReference("monarch"))))
+    )
+  }
+
+  it should "fail on indirect recursive dependency" in {
+    expectedError[RecursiveDependenciesError]({
+      BreedReader.read(res("breed19.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch2", Deployable("magneticio/monarch2:latest"), List(), List(), Map("es" -> BreedReference("monarch1"))))
     )
   }
 }
