@@ -17,6 +17,14 @@ class Dispatch(val schema: Schema) extends Actor{
   
   override def receive: Receive = {
     case BreedOps(msg) => breedActor.forward(msg)
+    // TODO add operations for blueprint
+    // TODO add operations for deployments
+    // TODO add operations for slas
+    // TODO add operations for scales
+    // TODO add operations for escalations
+    // TODO add operations for routings
+    // TODO add operations for filters
+
     case _ => sender() ! DispatchError
   }
 }
