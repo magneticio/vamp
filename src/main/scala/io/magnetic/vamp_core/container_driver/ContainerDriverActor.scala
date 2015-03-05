@@ -8,7 +8,7 @@ import io.magnetic.marathon.client.Marathon
 import io.magnetic.marathon.client.api._
 import io.magnetic.vamp_core.container_driver.ContainerDriverActor.{All, ContainerDriveMessage, Deploy, Undeploy}
 import io.magnetic.vamp_core.container_driver.notification.{ContainerDriverNotificationProvider, ContainerResponseError, UnsupportedContainerDriverRequest}
-import io.magnetic.vamp_core.model.artifact.{AnonymousScale, DefaultBreed, Deployment}
+import io.magnetic.vamp_core.model.artifact.{DefaultScale, DefaultBreed, Deployment}
 
 import scala.concurrent.duration._
 
@@ -39,7 +39,7 @@ class ContainerDriverActor(url: String) extends Actor with ActorLogging with Act
   def reply(request: Any) = try {
     request match {
       case All => all
-      case Deploy(deployment, ContainerService(name, Some(breed: DefaultBreed), Some(scale: AnonymousScale))) => deploy(deployment, breed, scale)
+      case Deploy(deployment, ContainerService(name, Some(breed: DefaultBreed), Some(scale: DefaultScale))) => deploy(deployment, breed, scale)
       case Undeploy(deployment, service) => undeploy(deployment, service)
       case _ => exception(errorRequest(request))
     }
@@ -59,7 +59,7 @@ class ContainerDriverActor(url: String) extends Actor with ActorLogging with Act
     }
   }
 
-  private def deploy(deployment: Deployment, breed: DefaultBreed, scale: AnonymousScale) = {
+  private def deploy(deployment: Deployment, breed: DefaultBreed, scale: DefaultScale) = {
     val docker = Docker(breed.deployable.name, "BRIDGE", Nil)
     val app = App(s"/${deployment.name}/${breed.name}", None, Nil, None, Map(), scale.instances, scale.cpu, scale.memory, 0, "", Nil, Nil, Nil, Nil, requirePorts = false, 0, Container("DOCKER", Nil, docker), Nil, Nil, UpgradeStrategy(0), "1", Nil, None, None, 0, 0, 0)
     new Marathon(url).createApp(app)
