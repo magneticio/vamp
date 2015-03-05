@@ -27,8 +27,7 @@ class BreedActor(schema: Schema) extends DbActor(schema) {
     case DeleteBreed(name: String) =>
       deleteBreed(name) match {
         case 0 => sender ! NotFound
-        case 1 => sender ! OperationSuccess
-        case _ =>  sender ! OperationSuccess // TODO Should never happen, throw an exception
+        case _ => sender ! OperationSuccess
       }
 
     case ListBreeds(pageNumber: Int, perPage: Int) =>
@@ -46,8 +45,7 @@ class BreedActor(schema: Schema) extends DbActor(schema) {
       case _ =>
         portsQuery.filter((p) => p.breedName === name).delete
         environmentVariableQuery.filter((e) => e.breedName === name).delete
-        // TODO MDK: verify this
-        dependenciesQuery.filter((d) => d.onId === name && d.onType === DependencyType.Breed).delete
+        dependenciesQuery.filter((d) => d.breedName === name && d.onType === DependencyType.Breed).delete
         query.delete
     }
   }

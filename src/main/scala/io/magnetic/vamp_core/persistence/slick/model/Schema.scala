@@ -13,7 +13,6 @@ object DependencyType extends Enumeration {
 }
 
 object PortType extends Enumeration {
-  import scala.slick.driver.JdbcDriver.simple._
   type PortType = Value
   val HTTP, TCP = Value
 }
@@ -24,7 +23,7 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
   import driver.simple._
   import io.magnetic.vamp_core.persistence.slick.model.Implicits._
 
-  def createDatabase =
+  def createDatabase() =
     (environmentVariableQuery.schema ++ portsQuery.schema ++ breedsQuery.schema ++ dependenciesQuery.schema).create
 
   case class EnvironmentVariableModel(id: Option[Int],name: String, alias: Option[String], value: Option[String], direction: Trait.Direction.Value, breedName: String) {
@@ -52,7 +51,7 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
       }
   }
 
-  case class DependencyModel(id: Option[Int],name: String, alias: String, onType: DependencyType.Value, onId: String) {
+  case class DependencyModel(id: Option[Int],name: String, alias: String, onType: DependencyType.Value, breedName: String) {
     def toVamp = onType match {
       case DependencyType.Breed => alias -> BreedReference(name)
       case _ => throw new RuntimeException(s"Handler for this dependencyType: $onType is not implemented")
@@ -64,28 +63,11 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
   }
 
   case class BreedModel(name: String, deployableName: String) {
-    // Queries require implicit db session, therefore they could only be executed
-    // in designated places
-    def portsQ = {
-      for {
-        p <- portsQuery.sortBy(_.id)
-        if p.breedName === name
-      } yield p
-    }
+    def portsQ = portsQuery.filter(p=> p.breedName === name).sortBy(_.id)
 
-    def environmentVarsQ = {
-      for {
-        e <- environmentVariableQuery.sortBy(_.id)
-        if e.breedName === name
-      } yield e
-    }
+    def environmentVarsQ = environmentVariableQuery.filter(e=> e.breedName === name).sortBy(_.id)
 
-    def dependencyQ = {
-      for {
-        d <- dependenciesQuery.sortBy(_.id)
-        if d.onId === name && d.onType === DependencyType.Breed
-      } yield d
-    }
+    def dependencyQ = dependenciesQuery.filter(d=> d.breedName === name && d.onType === DependencyType.Breed).sortBy(_.id)
 
     def toVamp : Breed = {
       DefaultBreed(name, Deployable(deployableName), portsQ.list.map((p) => p.toVamp), environmentVarsQ.list.map((e) => e.toVamp), dependencyQ.list.map((d) => d.toVamp).toMap)
@@ -101,12 +83,13 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
     def name = column[String]("name")
     def alias = column[String]("alias")
     def onType = column[DependencyType.Value]("on_type")
-    def onId = column[String]("on_id")
-    def * = (id.?, name, alias, onType, onId) <>(DependencyModel.tupled, DependencyModel.unapply)
+    def breedName = column[String]("breed_name")
+    def * = (id.?, name, alias, onType, breedName) <>(DependencyModel.tupled, DependencyModel.unapply)
 
-    def idx = index("idx_dependencies", (name, alias, onType, onId), unique = true)
+    def idx = index("idx_dependencies", (name, alias, onType, breedName), unique = true)
 
-    //TODO add foreign key relation with breed
+    def breed : ForeignKeyQuery[Breeds, BreedModel] =
+      foreignKey("dep_breed_fk", breedName, TableQuery[Breeds])(_.name )
   }
 
   val dependenciesQuery = TableQuery[Dependencies]
