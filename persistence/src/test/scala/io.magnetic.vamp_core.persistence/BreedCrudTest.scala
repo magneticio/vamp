@@ -35,11 +35,10 @@ class BreedCrudTest extends FlatSpec with Matchers{
     it should "Save breed should return a breed back" in {
       Await.result(dispatch ? BreedOps(request = SaveBreed(TestData.breed)), awaitDuration)  shouldBe TestData.breed
       Await.result(dispatch ? BreedOps(request = SaveBreed(TestData.breed2)), awaitDuration) shouldBe TestData.breed2
-      Await.result(dispatch ? BreedOps(request = SaveBreed(TestData.breed3)), awaitDuration) shouldBe TestData.breed3
     }
 
-    it should "Return a list of previously saved breeds, that is three" in {
-      Await.result(dispatch ? BreedOps(request = ListBreeds()), awaitDuration).asInstanceOf[List[Breed]] should contain theSameElementsAs  List(TestData.breed, TestData.breed2, TestData.breed3)
+    it should "Return a list of previously saved breeds, that is two" in {
+      Await.result(dispatch ? BreedOps(request = ListBreeds()), awaitDuration).asInstanceOf[List[Breed]] should contain theSameElementsAs  List(TestData.breed, TestData.breed2)
     }
 
     it should "Return a breed by name" in {
@@ -58,8 +57,8 @@ class BreedCrudTest extends FlatSpec with Matchers{
       Await.result(dispatch ? BreedOps(request = DeleteBreed(TestData.breed2.name)), awaitDuration) shouldBe NotFound
     }
 
-    it should "Return only two breed in the list" in {
-      Await.result(dispatch ? BreedOps(request = ListBreeds()), awaitDuration).asInstanceOf[List[Breed]] should contain theSameElementsAs  List(TestData.breed, TestData.breed3)
+    it should "Return only one breed in the list" in {
+      Await.result(dispatch ? BreedOps(request = ListBreeds()), awaitDuration).asInstanceOf[List[Breed]] should contain theSameElementsAs  List(TestData.breed)
     }
 
     //TODO Add test for ListBreeds() with pagination (more testdata needed)

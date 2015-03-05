@@ -2,20 +2,20 @@ package io.magnetic.vamp_core.rest_api.serializer
 
 import java.time.format.DateTimeFormatter
 
-import io.magnetic.vamp_core.model.artifact.Deployment._
-import io.magnetic.vamp_core.model.artifact.{Deployment, DeploymentState}
+import io.magnetic.vamp_core.model.artifact.DeploymentService._
+import io.magnetic.vamp_core.model.artifact.{DeploymentService, DeploymentState}
 import io.magnetic.vamp_core.operation.notification.OperationNotificationProvider
 import org.json4s._
 
 object DeploymentSerializationFormat extends ArtifactSerializationFormat {
   override def customSerializers: List[ArtifactSerializer[_]] = super.customSerializers :+
-    new DeploymentStateSerializer()
+    new DeploymentServiceStateSerializer()
 
   override def fieldSerializers: List[ArtifactFieldSerializer[_]] = super.fieldSerializers :+
     new DeploymentStateFieldSerializer()
 }
 
-class DeploymentStateSerializer extends ArtifactSerializer[Deployment.State] with OperationNotificationProvider {
+class DeploymentServiceStateSerializer extends ArtifactSerializer[DeploymentService.State] with OperationNotificationProvider {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case state: Regular =>
       state.completed match {

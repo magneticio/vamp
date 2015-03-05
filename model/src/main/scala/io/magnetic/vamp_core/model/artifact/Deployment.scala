@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 
 import io.magnetic.vamp_common.notification.Notification
 
-object Deployment {
+object DeploymentService {
 
   trait State {
     def initiated: OffsetDateTime
@@ -29,11 +29,11 @@ object Deployment {
 }
 
 trait DeploymentState {
-  def state: Deployment.State
+  def state: DeploymentService.State
 }
 
-case class Deployment(name: String, state: Deployment.State, clusters: List[DeploymentCluster], endpoints: Map[Trait.Name, String], parameters: Map[Trait.Name, String]) extends Blueprint with DeploymentState
+case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints: Map[Trait.Name, String], parameters: Map[Trait.Name, String]) extends Blueprint
 
-case class DeploymentCluster(name: String, state: Deployment.State, services: List[DeploymentService], sla: Option[Sla]) extends AbstractCluster with DeploymentState
+case class DeploymentCluster(name: String, services: List[DeploymentService], sla: Option[Sla]) extends AbstractCluster
 
-case class DeploymentService(state: Deployment.State, breed: DefaultBreed, scale: Option[Scale], routing: Option[Routing]) extends AbstractService with DeploymentState
+case class DeploymentService(state: DeploymentService.State, breed: DefaultBreed, scale: Option[Scale], routing: Option[Routing]) extends AbstractService with DeploymentState
