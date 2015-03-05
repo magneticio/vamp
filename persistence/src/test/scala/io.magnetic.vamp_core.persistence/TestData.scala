@@ -23,5 +23,6 @@ object TestData {
 
   val breed2 = breed.copy(name = "wp-test")
 
+  val breed3 = DefaultBreed(name = "mysql-backup", deployable = Deployable("backup"), environmentVariables = List.empty, ports = List.empty, dependencies = Map.empty)
 
 }
