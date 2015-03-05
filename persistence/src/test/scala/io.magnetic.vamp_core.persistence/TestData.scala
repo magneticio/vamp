@@ -3,7 +3,7 @@ package io.magnetic.vamp_core.persistence
 import io.magnetic.vamp_core.model.artifact._
 
 /**
- * Created by Matthijs Dekker on 05/03/15.
+ * Testdata
  */
 object TestData {
 
