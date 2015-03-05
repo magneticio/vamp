@@ -24,11 +24,11 @@ object DeploymentActor extends ActorDescription {
 
   trait DeploymentMessages
 
-  case class Create(blueprint: DefaultBlueprint) extends DeploymentMessages
+  case class Create(blueprint: Blueprint) extends DeploymentMessages
 
-  case class Update(name: String, blueprint: DefaultBlueprint) extends DeploymentMessages
+  case class Update(name: String, blueprint: Blueprint) extends DeploymentMessages
 
-  case class Delete(name: String, blueprint: Option[DefaultBlueprint]) extends DeploymentMessages
+  case class Delete(name: String, blueprint: Option[Blueprint]) extends DeploymentMessages
 
 }
 
@@ -42,9 +42,11 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
 
   def reply(request: Any) = try {
     request match {
-      case Create(blueprint) => merge(Deployment(uuid, List(), Map(), Map()), blueprint)
-      case Update(name, blueprint) => merge(artifactFor[Deployment](name), blueprint)
-      case Delete(name, blueprint) => slice(artifactFor[Deployment](name), blueprint)
+      case Create(blueprint) => merge(Deployment(uuid, List(), Map(), Map()), asDefaultBlueprint(blueprint))
+      case Update(name, blueprint) => merge(artifactFor[Deployment](name), asDefaultBlueprint(blueprint))
+      case Delete(name, blueprint) => slice(artifactFor[Deployment](name), blueprint.flatMap { bp =>
+        Some(asDefaultBlueprint(bp))
+      })
       case _ => exception(errorRequest(request))
     }
   } catch {
@@ -57,6 +59,11 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
       case Some(artifact: T) => artifact
       case _ => error(ArtifactNotFound(name, classTag[T].runtimeClass))
     }
+  }
+
+  private def asDefaultBlueprint(blueprint: Blueprint): DefaultBlueprint = blueprint match {
+    case defaultBlueprint: DefaultBlueprint => defaultBlueprint
+    case reference: BlueprintReference => artifactFor[Blueprint](reference.name).asInstanceOf[DefaultBlueprint]
   }
 
   private def merge(deployment: Deployment, blueprint: DefaultBlueprint): Any = {

@@ -159,6 +159,8 @@ trait YamlReader[T] extends ModelNotificationProvider {
 
 trait ReferenceYamlReader[T] extends YamlReader[T] {
   def readReference(any: Any): T
+
+  def readReferenceFromSource(any: Any): T = readReference(load(new StringReader(any.toString), close = true))
 }
 
 trait WeakReferenceYamlReader[T] extends YamlReader[T] {
