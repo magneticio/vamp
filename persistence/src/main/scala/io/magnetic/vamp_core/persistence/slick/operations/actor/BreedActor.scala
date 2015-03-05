@@ -48,24 +48,22 @@ class BreedActor(schema: Schema) extends DbActor(schema) {
   }
 
   private def insertBreed(breed: DefaultBreed): DefaultBreed = {
-    BreedModel.breedsQuery += BreedModel.fromVamp(breed)
-    PortModel.portsQuery ++= breed.ports.map(tr => PortModel.fromVamp(tr, breed.name))
-    DependencyModel.dependenciesQuery ++= breed.dependencies.map((tuple) => DependencyModel.fromVamp(tuple._2, tuple._1, breed.name))
-    EnvironmentVariableModel.environmentVariableQuery ++= breed.environmentVariables.map(env => EnvironmentVariableModel.fromVamp(env, breed.name))
+    BreedModel.breedsQuery += breed //BreedModel.fromVamp(breed)
+    PortModel.portsQuery ++= breed.ports.map(port => PortModel.toPortModel(port, breed.name))
+    DependencyModel.dependenciesQuery ++= breed.dependencies.map(dep => DependencyModel.toDependencyModel(dep._2, dep._1, breed.name))
+    EnvironmentVariableModel.environmentVariableQuery ++= breed.environmentVariables.map(env => EnvironmentVariableModel.toEnvironmentVariableModel(env, breed.name))
     breed
   }
 
   private def getBreed(breedName: String): Option[Breed] =
     BreedModel.breedsQuery.filter((b) => b.name === breedName).firstOption match {
-      case Some(breed) => Some(breed.toVamp)
+      case Some(breed) => Some(breed.toBreed)
       case None => None
     }
 
 
   private def getBreeds(pageNumber: Int, perPage: Int): List[Breed] =
-    BreedModel.breedsQuery.page(pageNumber, perPage).list.map((breed) => {
-      breed.toVamp
-    })
+    BreedModel.breedsQuery.page(pageNumber, perPage).list.map(breed => breed.toBreed)
 
 }
 

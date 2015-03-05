@@ -27,7 +27,7 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
     (EnvironmentVariableModel.environmentVariableQuery.schema ++ PortModel.portsQuery.schema ++ BreedModel.breedsQuery.schema ++ DependencyModel.dependenciesQuery.schema).create
 
   case class EnvironmentVariableModel(id: Option[Int],name: String, alias: Option[String], value: Option[String], direction: Trait.Direction.Value, breedName: String) {
-    def toVamp = EnvironmentVariable(name, alias, value, direction)
+    def toEnvironmentVariable = EnvironmentVariable(name, alias, value, direction)
   }
 
   object EnvironmentVariableModel extends ((Option[Int],String, Option[String], Option[String], Trait.Direction.Value, String) => EnvironmentVariableModel) {
@@ -49,11 +49,11 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
 
     val environmentVariableQuery = TableQuery[EnvironmentVariables]
 
-    def fromVamp(env: EnvironmentVariable, breedName: String) = EnvironmentVariableModel(None,env.name.value, env.alias, env.value, env.direction, breedName)
+    def toEnvironmentVariableModel(env: EnvironmentVariable, breedName: String) = EnvironmentVariableModel(None,env.name.value, env.alias, env.value, env.direction, breedName)
   }
 
   case class PortModel(id: Option[Int] ,name: String, alias: Option[String], portType: PortType, value: Option[Int], direction: Trait.Direction.Value, breedName: String) {
-    def toVamp = portType match {
+    implicit def toVamp : Port = portType match {
       case PortType.HTTP => HttpPort(name, alias, value, direction)
       case PortType.TCP => TcpPort(name, alias, value, direction)
       case _ => throw new RuntimeException(s"Handler for this portType: $portType is not implemented")
@@ -80,7 +80,7 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
 
     val portsQuery = TableQuery[Ports]
 
-    def fromVamp(port: Port, breedName: String) =
+    def toPortModel(port: Port, breedName: String) : PortModel =
       port match {
         case TcpPort(_, _, _, _) => PortModel(None,port.name.value, port.alias, PortType.TCP, port.value, port.direction, breedName)
         case HttpPort(_, _, _, _) => PortModel(None,port.name.value, port.alias, PortType.HTTP, port.value, port.direction, breedName)
@@ -89,7 +89,7 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
   }
 
   case class DependencyModel(id: Option[Int],name: String, alias: String, onType: DependencyType.Value, breedName: String) {
-    def toVamp = onType match {
+    def toDependency = onType match {
       case DependencyType.Breed => alias -> BreedReference(name)
       case _ => throw new RuntimeException(s"Handler for this dependencyType: $onType is not implemented")
     }
@@ -112,7 +112,7 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
 
     val dependenciesQuery = TableQuery[Dependencies]
 
-    def fromVamp(dependency: Breed, alias: String, breedName: String) = DependencyModel(None,dependency.name, alias, DependencyType.Breed, breedName)
+    def toDependencyModel(dependency: Breed, alias: String, breedName: String) = DependencyModel(None,dependency.name, alias, DependencyType.Breed, breedName)
   }
 
   case class BreedModel(name: String, deployableName: String) {
@@ -122,8 +122,8 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
 
     private def dependencyQ = DependencyModel.dependenciesQuery.filter(d=> d.breedName === name && d.onType === DependencyType.Breed).sortBy(_.id)
 
-    def toVamp : Breed = {
-      DefaultBreed(name, Deployable(deployableName), portsQ.list.map((p) => p.toVamp), environmentVarsQ.list.map((e) => e.toVamp), dependencyQ.list.map((d) => d.toVamp).toMap)
+    def toBreed : Breed = {
+      DefaultBreed(name, Deployable(deployableName), portsQ.list.map((p) => p.toVamp), environmentVarsQ.list.map((e) => e.toEnvironmentVariable), dependencyQ.list.map((d) => d.toDependency).toMap)
     }
   }
 
@@ -138,7 +138,9 @@ class Schema(val driver: JdbcProfile, implicit val session: Session) extends Ext
 
     val breedsQuery = TableQuery[Breeds]
 
-    def fromVamp(breed: DefaultBreed) = BreedModel(name = breed.name, deployableName = breed.deployable.name)
+    implicit def toBreedModel(breed: DefaultBreed) : BreedModel = {
+      BreedModel(name = breed.name, deployableName = breed.deployable.name)
+    }
   }
 
 }
