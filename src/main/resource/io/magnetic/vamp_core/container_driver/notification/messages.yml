@@ -1,3 +1,4 @@
 # Yaml Reader
 
-UnsupportedContainerDriverRequest: "Unsupported deployment request."
+UnsupportedContainerDriverRequest: "Unsupported container driver request."
+ContainerResponseError           : "Container response error."
