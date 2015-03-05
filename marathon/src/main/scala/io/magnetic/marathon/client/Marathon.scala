@@ -14,7 +14,10 @@ class Marathon(url: String) {
 
   def apps: Future[Apps] = RestClient.request[Apps](s"GET $url/v2/apps")
 
-  def app(id: String): Future[App] = RestClient.request[App](s"GET $url/v2/apps/$id", "app")
+  def createApp(app: App): Future[App] = RestClient.request[App](s"POST $url/v2/apps", Some(app))
+
+  def app(id: String): Future[App] = RestClient.request[App](s"GET $url/v2/apps/$id", None, "app")
+
 
   //@RequestLine("POST /v2/apps") def createApp(app: App)
 
@@ -26,13 +29,13 @@ class Marathon(url: String) {
 object Marathon {
   def main(arguments: Array[String]): Unit = {
 
-    val marathon = new Marathon("http://10.20.79.175:8080")
+    val marathon = new Marathon("http://10.113.87.69:8080")
 
     val requests = for {
       info <- marathon.info
       apps <- marathon.apps
-      app <- marathon.app("/2/mysql/mysql")
-    } yield (info, apps, app)
+     // app <- marathon.app("/2/mysql/mysql")
+    } yield (info, apps)
 
     requests onComplete {
       case Success(result) =>

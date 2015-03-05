@@ -1,7 +1,7 @@
 package io.magnetic.vamp_core.operation.deployment
 
 import _root_.io.magnetic.vamp_common.akka._
-import _root_.io.magnetic.vamp_core.container_driver.{ContainerDriverActor, ContainerService}
+import io.magnetic.vamp_core.container_driver.{ContainerService, ContainerDriverActor}
 import _root_.io.magnetic.vamp_core.model.artifact._
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import akka.actor.{Actor, ActorLogging, Props}
@@ -9,7 +9,9 @@ import akka.pattern.ask
 import akka.stream.ActorFlowMaterializer
 import akka.stream.scaladsl.{FlowGraph, ForeachSink, Source}
 import akka.util.Timeout
-import io.magnetic.vamp_core.operation.notification.{ContainerServiceRetrievalError, DeploymentSynchronizationFailure, OperationNotificationProvider}
+import io.magnetic.vamp_core.container_driver.ContainerDriverActor.Deploy
+import io.magnetic.vamp_core.model.artifact.Deployment.ReadyForDeployment
+import io.magnetic.vamp_core.operation.notification.{DeploymentSynchronizationFailure, OperationNotificationProvider}
 
 import scala.util.{Failure, Success}
 
@@ -32,18 +34,21 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
   private def synchronize(deployments: List[Deployment]): Unit = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
-    offLoad(actorFor(ContainerDriverActor) ? ContainerDriverActor.All) match {
-      case containerServices: List[_] => deployments.foreach(deployment => synchronize(deployment, containerServices.asInstanceOf[List[ContainerService]]))
-      case any => exception(ContainerServiceRetrievalError(any))
-    }
+    val containerServices = offLoad(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
+    deployments.foreach(synchronize(_, containerServices))
   }
 
   private def synchronize(deployment: Deployment, containerServices: List[ContainerService]): Unit = {
-
     implicit val materializer = ActorFlowMaterializer()
 
     val sink = ForeachSink[DeploymentService] { service =>
-      println(service.breed.name)
+      service.state match {
+        case ReadyForDeployment(initiated, _) => 
+          val containerService = ContainerService(service.breed.name: String, Some(service.breed), service.scale)
+          actorFor(ContainerDriverActor) ! Deploy(deployment, containerService)
+      }
+
+      println(s"${service.breed.name}: ${service.state.getClass.getSimpleName}")
     }
 
     val materialized = FlowGraph { implicit builder =>

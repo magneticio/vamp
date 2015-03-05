@@ -13,5 +13,3 @@ case class NonUniqueBreedReferenceError(breed: Breed) extends Notification
 case class UnresolvedDependencyError(breed: Breed, dependency: Breed) extends Notification
 
 case class DeploymentSynchronizationFailure(deployment: Deployment, exception: Throwable) extends Notification
-
-case class ContainerServiceRetrievalError(any: Any) extends Notification
