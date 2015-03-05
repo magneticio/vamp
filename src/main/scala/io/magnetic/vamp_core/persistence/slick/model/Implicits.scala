@@ -1,31 +1,31 @@
 package io.magnetic.vamp_core.persistence.slick.model
 
-import io.magnetic.vamp_core.model.Trait
+import io.magnetic.vamp_core.model.artifact.Trait
+import io.magnetic.vamp_core.persistence.slick.model.PortType.PortType
 
 import scala.slick.driver.JdbcDriver.simple._
 
 
 /**
- * Created by lazycoder on 13/02/15.
+ * Implicit conversions for Slick columns
  */
 object Implicits {
-  implicit val traitTypeMapper = MappedColumnType.base[Trait.Type.Value, String](
-    { c => c.toString },
-    { s => Trait.Type.withName(s)}
-  )
-
-  implicit val traitPortMapper = MappedColumnType.base[Trait.Port.Value, String](
-    { c => c.toString },
-    { s => Trait.Port.withName(s)}
-  )
 
   implicit val traitDirectionMapper = MappedColumnType.base[Trait.Direction.Value, String](
-    { c => c.toString },
-    { s => Trait.Direction.withName(s)}
+  { c => c.toString},
+  { s => Trait.Direction.withName(s)}
   )
 
   implicit val dependencyTypeMapper = MappedColumnType.base[DependencyType.Value, String](
-    { c => c.toString },
-    { s => DependencyType.withName(s)}
+  { c => c.toString},
+  { s => DependencyType.withName(s)}
+  )
+
+  val portTypeMap = Map (
+    PortType.HTTP -> "http",
+    PortType.TCP -> "tcp"
+  )
+  implicit val portTypeColumnTypeMapper = MappedColumnType.base[PortType, String]  (
+    portTypeMap, portTypeMap.map(_.swap)
   )
 }
