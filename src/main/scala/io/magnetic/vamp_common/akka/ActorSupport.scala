@@ -3,20 +3,22 @@ package io.magnetic.vamp_common.akka
 import akka.actor._
 import io.magnetic.vamp_common.text.Text
 
+import scala.collection.immutable
+
 trait ActorDescription {
-  def props: Props
+  def props(args: Any*): Props
 
   def name: String = Text.toSnakeCase(getClass.getSimpleName)
 }
 
 object ActorSupport {
-  def actorOf(actorDescription: ActorDescription)(implicit actorSystem: ActorSystem) = actorSystem.actorOf(actorDescription.props, actorDescription.name)
+  def actorOf(actorDescription: ActorDescription, args: Any*)(implicit actorSystem: ActorSystem) = actorSystem.actorOf(actorDescription.props(args: _*), actorDescription.name)
 }
 
 trait ActorSupport {
   this: Actor =>
 
-  def actorOf(actorDescription: ActorDescription) = context.system.actorOf(actorDescription.props, actorDescription.name)
+  def actorOf(actorDescription: ActorDescription, args: Any*) = context.system.actorOf(actorDescription.props(args: _*), actorDescription.name)
 
   def actorFor(actorDescription: ActorDescription) = context.actorSelection(s"../${actorDescription.name}")
 }

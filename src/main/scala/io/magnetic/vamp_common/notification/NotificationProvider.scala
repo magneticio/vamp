@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory
 
 
 trait NotificationProvider {
+  def message(notification: Notification): String
+
   def info(notification: Notification)
 
   def exception(notification: Notification): Exception
@@ -18,12 +20,14 @@ trait LoggingNotificationProvider extends NotificationProvider {
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[Notification]))
 
-  def info(notification: Notification) = logger.info(messageResolver.resolve(notification))
+  def message(notification: Notification) = messageResolver.resolve(notification)
+
+  def info(notification: Notification) = logger.info(message(notification))
 
   def exception(notification: Notification): Exception = {
-    val message = messageResolver.resolve(notification)
-    logger.error(message)
-    NotificationErrorException(notification, message)
+    val msg = message(notification)
+    logger.error(msg)
+    NotificationErrorException(notification, msg)
   }
 }
 
@@ -32,14 +36,16 @@ trait ActorNotificationProvider extends NotificationProvider {
 
   private val notificationActor = context.actorOf(NotificationActor.props)
 
+  def message(notification: Notification) = messageResolver.resolve(notification)
+
   def info(notification: Notification) = {
-    notificationActor ! Info(notification, messageResolver.resolve(notification))
+    notificationActor ! Info(notification, message(notification))
   }
 
   def exception(notification: Notification): Exception = {
-    val message = messageResolver.resolve(notification)
-    notificationActor ! Error(notification, message)
-    NotificationErrorException(notification, message)
+    val msg = message(notification)
+    notificationActor ! Error(notification, msg)
+    NotificationErrorException(notification, msg)
   }
 }
 
