@@ -5,12 +5,12 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
 import com.typesafe.scalalogging.Logger
+import io.magnetic.vamp_common.text.Text
 import org.apache.commons.cli._
 import org.json4s.JsonAST.JArray
 import org.json4s._
 import org.json4s.native.JsonMethods
 import org.slf4j.LoggerFactory
-import io.magnetic.vamp_common.text.Text
 
 import scala.collection.mutable
 import scala.io.Source
@@ -99,20 +99,20 @@ object Json2CaseClass {
     val field = fieldPath(path, name)
     if (jArray.arr.map(_.getClass).toSet.size == 1) {
       jArray.arr.head match {
-        case v: JObject => processJObject(v, path, name, exclude, optional, stack)
+        case v: JObject => processJObject(v, path, name, exclude, optional, stack, list = true)
         case v => new CaseClassField(name, s"List[${jValue2ClassName(v)}]", optional = optional.contains(field))
       }
     } else new CaseClassField(name, s"List[Any]", optional = optional.contains(field))
   }
 
-  private def processJObject(jObject: JObject, path: String, name: String, exclude: Set[String], optional: Set[String], stack: mutable.Queue[CaseClass]): CaseClassField = {
+  private def processJObject(jObject: JObject, path: String, name: String, exclude: Set[String], optional: Set[String], stack: mutable.Queue[CaseClass], list: Boolean = false): CaseClassField = {
     val field = fieldPath(path, name)
     if (exclude.contains(field))
-      new CaseClassField(name, "Map[String, AnyRef]", optional = optional.contains(field))
+      new CaseClassField(name, if (list) "List[Map[String, AnyRef]]" else "Map[String, AnyRef]", optional = optional.contains(field))
     else {
       val className = Text.toUpperCamelCase(name.capitalize)
       addCaseClass(stack, field, className, jObject, exclude, optional)
-      new CaseClassField(name, className, optional = optional.contains(field))
+      new CaseClassField(name, if (list) s"List[$className]" else className, optional = optional.contains(field))
     }
   }
 
