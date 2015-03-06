@@ -4,11 +4,9 @@ import _root_.io.magnetic.vamp_common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.magnetic.marathon.client.Marathon
-import io.magnetic.marathon.client.api._
 import io.magnetic.vamp_core.container_driver.ContainerDriverActor.{All, ContainerDriveMessage, Deploy, Undeploy}
-import io.magnetic.vamp_core.container_driver.notification.{ContainerDriverNotificationProvider, ContainerResponseError, UnsupportedContainerDriverRequest}
-import io.magnetic.vamp_core.model.artifact.{DefaultScale, DefaultBreed, Deployment}
+import io.magnetic.vamp_core.container_driver.notification.{ContainerDriverNotificationProvider, UnsupportedContainerDriverRequest}
+import io.magnetic.vamp_core.model.artifact._
 
 import scala.concurrent.duration._
 
@@ -22,13 +20,13 @@ object ContainerDriverActor extends ActorDescription {
 
   object All extends ContainerDriveMessage
 
-  case class Deploy(deployment: Deployment, service: ContainerService) extends ContainerDriveMessage
+  case class Deploy(deployment: Deployment, service: DeploymentService) extends ContainerDriveMessage
 
-  case class Undeploy(deployment: Deployment, service: ContainerService) extends ContainerDriveMessage
+  case class Undeploy(deployment: Deployment, service: DeploymentService) extends ContainerDriveMessage
 
 }
 
-class ContainerDriverActor(url: String) extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupport with ActorExecutionContextProvider with ContainerDriverNotificationProvider {
+class ContainerDriverActor(driver: ContainerDriver) extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupport with ActorExecutionContextProvider with ContainerDriverNotificationProvider {
 
   implicit val timeout = ContainerDriverActor.timeout
 
@@ -38,32 +36,13 @@ class ContainerDriverActor(url: String) extends Actor with ActorLogging with Act
 
   def reply(request: Any) = try {
     request match {
-      case All => all
-      case Deploy(deployment, ContainerService(name, Some(breed: DefaultBreed), Some(scale: DefaultScale))) => deploy(deployment, breed, scale)
-      case Undeploy(deployment, service) => undeploy(deployment, service)
+      case All => offLoad(driver.all)
+      case Deploy(deployment, DeploymentService(_, breed: DefaultBreed, Some(scale: DefaultScale), _, _)) => driver.deploy(deployment, breed, scale)
+      case Undeploy(deployment, service) => driver.undeploy(deployment, service.breed)
       case _ => unsupported(request)
     }
   } catch {
     case e: Exception => e
   }
-
-  private def all: List[ContainerService] = {
-    offLoad(new Marathon(url).apps) match {
-      case response: Apps =>
-        response.apps.map { app =>
-          ContainerService(app.id, None, None)
-        }
-      case any =>
-        exception(ContainerResponseError(any))
-        List[ContainerService]()
-    }
-  }
-
-  private def deploy(deployment: Deployment, breed: DefaultBreed, scale: DefaultScale) = {
-    val docker = Docker(breed.deployable.name, "BRIDGE", Nil)
-    val app = App(s"/${deployment.name}/${breed.name}", None, Nil, None, Map(), scale.instances, scale.cpu, scale.memory, 0, "", Nil, Nil, Nil, Nil, requirePorts = false, 0, Container("DOCKER", Nil, docker), Nil, Nil, UpgradeStrategy(0), "1", Nil, None, None, 0, 0, 0)
-    new Marathon(url).createApp(app)
-  }
-
-  private def undeploy(deployment: Deployment, service: ContainerService) = {}
 }
+
