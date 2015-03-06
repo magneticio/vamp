@@ -1,0 +1,46 @@
+{
+  "name": "test_route_2",
+  "port": 9026,
+  "protocol": "http",
+  "filters": [
+    {
+      "name": "uses_internet_explorer",
+      "condition": "hdr_sub(user-agent) MSIE",
+      "destination": "group_b"
+    }
+  ],
+  "httpQuota": {
+    "sampleWindow": "1s",
+    "rate": 10000,
+    "expiryTime": "10s"
+  },
+  "tcpQuota": {
+    "sampleWindow": "3s",
+    "rate": 10000,
+    "expiryTime": "10s"
+  },
+  "groups": [
+    {
+      "name": "group_a",
+      "weight": 30,
+      "servers": [
+        {
+          "name": "paas.55f73f0d-6087-4964-a70e",
+          "host": "192.168.2.2",
+          "port": 8081
+        }
+      ]
+    },
+    {
+      "name": "group_b",
+      "weight": 70,
+      "servers": [
+        {
+          "name": "paas.fb76ea52-098f-4e2a-abbe",
+          "host": "192.168.2.2",
+          "port": 8082
+        }
+      ]
+    }
+  ]
+}

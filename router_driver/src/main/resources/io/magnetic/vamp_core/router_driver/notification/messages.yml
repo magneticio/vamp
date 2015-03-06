@@ -1,0 +1,4 @@
+# Yaml Reader
+
+UnsupportedRouterDriverRequest: "Unsupported router driver request."
+RouterResponseError           : "Router response error."

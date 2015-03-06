@@ -41,7 +41,7 @@ class ContainerDriverActor(url: String) extends Actor with ActorLogging with Act
       case All => all
       case Deploy(deployment, ContainerService(name, Some(breed: DefaultBreed), Some(scale: DefaultScale))) => deploy(deployment, breed, scale)
       case Undeploy(deployment, service) => undeploy(deployment, service)
-      case _ => exception(errorRequest(request))
+      case _ => unsupported(request)
     }
   } catch {
     case e: Exception => e
