@@ -1,4 +1,5 @@
 # Yaml Reader
 
+UnsupportedContainerDriverError  : "Unsupported container type: '{name}'."
 UnsupportedContainerDriverRequest: "Unsupported container driver request."
 ContainerResponseError           : "Container response error."

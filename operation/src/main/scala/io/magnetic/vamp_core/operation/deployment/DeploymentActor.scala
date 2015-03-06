@@ -94,7 +94,18 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
         case b: DefaultBreed => b
         case b: Breed => artifactFor[Breed](b.name).asInstanceOf[DefaultBreed]
       }
-      DeploymentService(ReadyForDeployment(), breed, service.scale, service.routing)
+
+      val scale = service.scale.flatMap {
+        case scale: DefaultScale => Some(scale)
+        case scale: Scale => Some(artifactFor[Scale](scale.name).asInstanceOf[DefaultScale])
+      }
+
+      val routing = service.routing.flatMap {
+        case routing: DefaultRouting => Some(routing)
+        case routing: Routing => Some(artifactFor[Routing](routing.name).asInstanceOf[DefaultRouting])
+      }
+
+      DeploymentService(ReadyForDeployment(), breed, scale, Nil, routing)
     }
 
     deploymentCluster match {

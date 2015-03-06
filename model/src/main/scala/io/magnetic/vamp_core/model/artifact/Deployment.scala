@@ -36,4 +36,6 @@ case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints
 
 case class DeploymentCluster(name: String, services: List[DeploymentService], sla: Option[Sla]) extends AbstractCluster
 
-case class DeploymentService(state: DeploymentService.State, breed: DefaultBreed, scale: Option[Scale], routing: Option[Routing]) extends AbstractService with DeploymentState
+case class DeploymentService(state: DeploymentService.State, breed: DefaultBreed, scale: Option[DefaultScale], servers: List[DeploymentServer], routing: Option[DefaultRouting]) extends AbstractService with DeploymentState
+
+case class DeploymentServer(host: String)

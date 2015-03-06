@@ -43,9 +43,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
     val sink = ForeachSink[DeploymentService] { service =>
       service.state match {
-        case ReadyForDeployment(initiated, _) =>
-          val containerService = ContainerService(service.breed.name: String, Some(service.breed), service.scale)
-          actorFor(ContainerDriverActor) ! Deploy(deployment, containerService)
+        case ReadyForDeployment(initiated, _) => actorFor(ContainerDriverActor) ! Deploy(deployment, service)
       }
 
       println(s"${service.breed.name}: ${service.state.getClass.getSimpleName}")
