@@ -11,3 +11,5 @@ case class Server(name: String, host: String, port: Int)
 case class Group(name: String, weight: Int, servers: List[Server])
 
 case class Route(name: String, port: Int, protocol: String, filters: List[Filter], httpQuota: Option[HttpQuota], tcpQuota: Option[TcpQuota], groups: List[Group])
+
+case class ClusterRoute(deploymentName: String, clusterName: String, portNumber: Int, groups: List[Group])

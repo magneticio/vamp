@@ -5,7 +5,7 @@ import io.magnetic.vamp_core.model.artifact.{DefaultBreed, DefaultScale, Deploym
 import scala.concurrent.Future
 
 
-case class ContainerService(deploymentName: String, breedName: String, servers: List[DeploymentServer])
+case class ContainerService(deploymentName: String, breedName: String, scale: DefaultScale, servers: List[DeploymentServer])
 
 trait ContainerDriver {
 

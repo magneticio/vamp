@@ -21,7 +21,7 @@
         <!-- should be standalone projects -->
         <module>marathon</module>
         <module>swagger</module>
-        <module>vamp_router</module>
+        <module>pulse_driver</module>
     </modules>
 
     <properties>

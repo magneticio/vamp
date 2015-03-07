@@ -8,7 +8,7 @@ import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.router_driver.RouterDriverActor.{All, Remove, RouterDriveMessage, Update}
 import io.magnetic.vamp_core.router_driver.notification.{RouterDriverNotificationProvider, UnsupportedRouterDriverRequest}
 
-import scala.collection._
+import scala.collection.mutable
 import scala.concurrent.duration._
 
 object RouterDriverActor extends ActorDescription {
@@ -61,7 +61,7 @@ class RouterDriverActor(url: String) extends Actor with ActorLogging with ActorS
     val routeName = name(deployment, cluster, port)
 
     cluster.services.view.zipWithIndex.map { case (service, index) =>
-      Group(s"$routeName/${service.breed.name}", if(index == size - 1) 100 - index * weight else weight, Nil)
+      Group(s"$routeName/${service.breed.name}", if (index == size - 1) 100 - index * weight else weight, Nil)
     }.toList
   }
 }

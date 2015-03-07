@@ -5,15 +5,10 @@ import _root_.io.magnetic.vamp_core.model.artifact._
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
-import akka.stream.ActorFlowMaterializer
-import akka.stream.scaladsl.{FlowGraph, ForeachSink, Source}
 import akka.util.Timeout
-import io.magnetic.vamp_core.container_driver.ContainerDriverActor.Deploy
 import io.magnetic.vamp_core.container_driver.{ContainerDriverActor, ContainerService}
-import io.magnetic.vamp_core.model.artifact.DeploymentService.ReadyForDeployment
-import io.magnetic.vamp_core.operation.notification.{DeploymentSynchronizationFailure, OperationNotificationProvider}
-
-import scala.util.{Failure, Success}
+import io.magnetic.vamp_core.model.artifact.DeploymentService._
+import io.magnetic.vamp_core.operation.notification.OperationNotificationProvider
 
 object DeploymentSynchronizationActor extends ActorDescription {
 
@@ -32,33 +27,48 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     case SynchronizeAll(deployments) => synchronize(deployments)
   }
 
-  private def synchronize(deployments: List[Deployment]): Unit = {
+  private def synchronize(deployments: List[Deployment]) = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
-    val containerServices = offLoad(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
-    deployments.foreach(synchronize(_, containerServices))
+
+    //val routes = offLoad(actorFor(RouterDriverActor) ? RouterDriverActor.All).asInstanceOf[List[ClusterRoute]]
+
+    deployments.foreach(synchronizeContainer(_, offLoad(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]))
   }
 
-  private def synchronize(deployment: Deployment, containerServices: List[ContainerService]): Unit = {
-    implicit val materializer = ActorFlowMaterializer()
+  private def synchronizeContainer(deployment: Deployment, services: List[ContainerService]) = {
+    deployment.clusters.foreach { cluster =>
+      cluster.services.foreach { service =>
+        val containerService = services.find(cs => cs.deploymentName == deployment.name && cs.breedName == service.breed.name)
 
-    val sink = ForeachSink[DeploymentService] { service =>
-      service.state match {
-        case ReadyForDeployment(initiated, _) => actorFor(ContainerDriverActor) ! Deploy(deployment, service)
+        service.state match {
+          case ReadyForDeployment(initiated, _) =>
+            if (outOfSynchronization(service, containerService))
+              actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, service)
+
+          case Deployed(initiated, _) =>
+            if (outOfSynchronization(service, containerService))
+              actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, service)
+
+          case ReadyForUndeployment(initiated, _) =>
+            if (outOfSynchronization(service, containerService))
+              actorFor(ContainerDriverActor) ! ContainerDriverActor.Undeploy(deployment, service)
+
+          case Undeployed(initiated, _) =>
+            if (outOfSynchronization(service, containerService))
+              actorFor(ContainerDriverActor) ! ContainerDriverActor.Undeploy(deployment, service)
+
+          case ReadyForRemoval(initiated, _) =>
+            if (outOfSynchronization(service, containerService))
+              actorFor(ContainerDriverActor) ! ContainerDriverActor.Undeploy(deployment, service)
+
+          case _ =>
+        }
       }
-
-      println(s"${service.breed.name}: ${service.state.getClass.getSimpleName}")
     }
+  }
 
-    val materialized = FlowGraph { implicit builder =>
-      import akka.stream.scaladsl.FlowGraphImplicits._
-      Source(() => deployment.clusters.iterator).mapConcat({ cluster =>
-        cluster.services
-      }) ~> sink
-    }.run()
-
-    materialized.get(sink).onComplete {
-      case Success(_) => log.debug(s"Synchronization is done for deployment: ${deployment.name}")
-      case Failure(e) => exception(DeploymentSynchronizationFailure(deployment, e))
-    }
+  private def outOfSynchronization(deploymentService: DeploymentService, containerService: Option[ContainerService]): Boolean = {
+    false
   }
 }
+
