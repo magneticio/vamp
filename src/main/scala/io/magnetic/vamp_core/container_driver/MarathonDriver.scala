@@ -25,7 +25,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
   //    }
 
   def deploy(deployment: Deployment, breed: DefaultBreed, scale: DefaultScale) =
-    services.put(name(deployment, breed), ContainerService(deployment.name, breed.name, (1 to scale.instances).map({ i => DeploymentServer(s"${breed.name}/$i")}).toList))
+    services.put(name(deployment, breed), ContainerService(deployment.name, breed.name, scale, (1 to scale.instances).map({ i => DeploymentServer(s"${breed.name}/$i")}).toList))
 
   //    val docker = Docker(breed.deployable.name, "BRIDGE", Nil)
   //    val app = App(s"/${deployment.name}/${breed.name}", None, Nil, None, Map(), scale.instances, scale.cpu, scale.memory, 0, "", Nil, Nil, Nil, Nil, requirePorts = false, 0, Container("DOCKER", Nil, docker), Nil, Nil, UpgradeStrategy(0), "1", Nil, None, None, 0, 0, 0)
