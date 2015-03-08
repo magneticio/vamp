@@ -8,8 +8,8 @@ case class TcpQuota(sampleWindow: String, rate: Int, expiryTime: String)
 
 case class Server(name: String, host: String, port: Int)
 
-case class Group(name: String, weight: Int, servers: List[Server])
+case class Service(name: String, weight: Int, servers: List[Server])
 
-case class Route(name: String, port: Int, protocol: String, filters: List[Filter], httpQuota: Option[HttpQuota], tcpQuota: Option[TcpQuota], groups: List[Group])
+case class Route(name: String, port: Int, protocol: String, filters: List[Filter], httpQuota: Option[HttpQuota], tcpQuota: Option[TcpQuota], services: List[Service])
 
-case class ClusterRoute(deploymentName: String, clusterName: String, portNumber: Int, groups: List[Group])
+case class ClusterRoute(deploymentName: String, clusterName: String, portNumber: Int, services: List[Service])

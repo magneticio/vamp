@@ -4,6 +4,7 @@ import _root_.io.magnetic.vamp_common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.magnetic.vamp_core._
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.router_driver.RouterDriverActor.{All, Remove, RouterDriveMessage, Update}
 import io.magnetic.vamp_core.router_driver.notification.{RouterDriverNotificationProvider, UnsupportedRouterDriverRequest}
@@ -40,8 +41,12 @@ class RouterDriverActor(url: String) extends Actor with ActorLogging with ActorS
   def reply(request: Any) = try {
     request match {
       case All => routes.values.toList
-      case Update(deployment, cluster, port) => routes.put(name(deployment, cluster, port), route(deployment, cluster, port))
-      case Remove(deployment, cluster, port) => routes.remove(name(deployment, cluster, port))
+      case Update(deployment, cluster, port) =>
+        log.info(s"route update: ${deployment.name}/${cluster.name}")
+        routes.put(name(deployment, cluster, port), route(deployment, cluster, port))
+      case Remove(deployment, cluster, port) =>
+        log.info(s"route removal: ${deployment.name}/${cluster.name}")
+        routes.remove(name(deployment, cluster, port))
 
       case _ => unsupported(request)
     }
@@ -52,16 +57,16 @@ class RouterDriverActor(url: String) extends Actor with ActorLogging with ActorS
   private def name(deployment: Deployment, cluster: DeploymentCluster, port: Port) = s"/${deployment.name}/${cluster.name}/${port.value.get}"
 
   private def route(deployment: Deployment, cluster: DeploymentCluster, port: Port) =
-    Route(name(deployment, cluster, port), port.value.get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", Nil, None, None, groups(deployment, cluster, port))
+    Route(name(deployment, cluster, port), port.value.get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", Nil, None, None, services(deployment, cluster, port))
 
 
-  private def groups(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
+  private def services(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
     val size = cluster.services.size
     val weight = Math.round(100 / size)
     val routeName = name(deployment, cluster, port)
 
     cluster.services.view.zipWithIndex.map { case (service, index) =>
-      Group(s"$routeName/${service.breed.name}", if (index == size - 1) 100 - index * weight else weight, Nil)
+      router_driver.Service(s"$routeName/${service.breed.name}", if (index == size - 1) 100 - index * weight else weight, Nil)
     }.toList
   }
 }

@@ -20,12 +20,6 @@ object DeploymentService {
 
   case class ReadyForUndeployment(initiated: OffsetDateTime = OffsetDateTime.now(), completed: Option[OffsetDateTime] = None) extends State with Regular
 
-  case class Undeployed(initiated: OffsetDateTime = OffsetDateTime.now(), completed: Option[OffsetDateTime] = None) extends State with Regular
-
-  case class ReadyForRemoval(initiated: OffsetDateTime = OffsetDateTime.now(), completed: Option[OffsetDateTime] = None) extends State with Regular
-
-  case class Removed(initiated: OffsetDateTime = OffsetDateTime.now(), completed: Option[OffsetDateTime] = None) extends State with Regular
-
   case class Error(notification: Notification, initiated: OffsetDateTime = OffsetDateTime.now()) extends State
 
 }
