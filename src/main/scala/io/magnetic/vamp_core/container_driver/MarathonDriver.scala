@@ -1,6 +1,8 @@
 package io.magnetic.vamp_core.container_driver
 
+import com.typesafe.scalalogging.Logger
 import io.magnetic.vamp_core.model.artifact._
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
@@ -8,6 +10,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
   protected implicit val executionContext = ec
 
+  private val logger = Logger(LoggerFactory.getLogger(classOf[MarathonDriver]))
   private val services = new mutable.LinkedHashMap[String, ContainerService]()
 
   def all: Future[List[ContainerService]] = Future {
@@ -24,14 +27,19 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
   //        List[ContainerService]()
   //    }
 
-  def deploy(deployment: Deployment, breed: DefaultBreed, scale: DefaultScale) =
+  def deploy(deployment: Deployment, breed: DefaultBreed, scale: DefaultScale) = {
+    logger.info(s"marathon deploying: ${deployment.name}/${breed.name}")
     services.put(name(deployment, breed), ContainerService(deployment.name, breed.name, scale, (1 to scale.instances).map({ i => DeploymentServer(s"${breed.name}/$i")}).toList))
+  }
 
   //    val docker = Docker(breed.deployable.name, "BRIDGE", Nil)
   //    val app = App(s"/${deployment.name}/${breed.name}", None, Nil, None, Map(), scale.instances, scale.cpu, scale.memory, 0, "", Nil, Nil, Nil, Nil, requirePorts = false, 0, Container("DOCKER", Nil, docker), Nil, Nil, UpgradeStrategy(0), "1", Nil, None, None, 0, 0, 0)
   //    new Marathon(url).createApp(app)
 
-  def undeploy(deployment: Deployment, breed: DefaultBreed) = services.remove(name(deployment, breed))
+  def undeploy(deployment: Deployment, breed: DefaultBreed) = {
+    logger.info(s"marathon undeploying: ${deployment.name}/${breed.name}")
+    services.remove(name(deployment, breed))
+  }
 
   private def name(deployment: Deployment, breed: DefaultBreed) = s"/${deployment.name}/${breed.name}"
 }
