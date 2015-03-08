@@ -9,6 +9,8 @@ import akka.util.Timeout
 import io.magnetic.vamp_core.container_driver.{ContainerDriverActor, ContainerService}
 import io.magnetic.vamp_core.model.artifact.DeploymentService._
 import io.magnetic.vamp_core.operation.notification.OperationNotificationProvider
+import io.magnetic.vamp_core.persistence.PersistenceActor
+import io.magnetic.vamp_core.router_driver.{ClusterRoute, RouterDriverActor}
 
 object DeploymentSynchronizationActor extends ActorDescription {
 
@@ -22,6 +24,24 @@ object DeploymentSynchronizationActor extends ActorDescription {
 
 class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with OperationNotificationProvider {
 
+  private object Processed {
+
+    trait State
+
+    object Persist extends State
+
+    case class UpdateRoute(port: Port) extends State
+
+    object Remove extends State
+
+    object Ignore extends State
+
+  }
+
+  private case class ProcessedService(state: Processed.State, service: DeploymentService)
+
+  private case class ProcessedCluster(state: Processed.State, cluster: DeploymentCluster)
+
   def receive: Receive = {
     case Synchronize(deployment) => synchronize(deployment :: Nil)
     case SynchronizeAll(deployments) => synchronize(deployments)
@@ -30,45 +50,99 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   private def synchronize(deployments: List[Deployment]) = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
 
-    //val routes = offLoad(actorFor(RouterDriverActor) ? RouterDriverActor.All).asInstanceOf[List[ClusterRoute]]
+    val clusterRoutes = offLoad(actorFor(RouterDriverActor) ? RouterDriverActor.All).asInstanceOf[List[ClusterRoute]]
+    val containerServices = offLoad(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
 
-    deployments.foreach(synchronizeContainer(_, offLoad(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]))
+    deployments.foreach(synchronizeContainer(_, containerServices, clusterRoutes))
   }
 
-  private def synchronizeContainer(deployment: Deployment, services: List[ContainerService]) = {
-    deployment.clusters.foreach { cluster =>
-      cluster.services.foreach { service =>
-        val containerService = services.find(cs => cs.deploymentName == deployment.name && cs.breedName == service.breed.name)
-
-        service.state match {
+  private def synchronizeContainer(deployment: Deployment, containerServices: List[ContainerService], clusterRoutes: List[ClusterRoute]) = {
+    val processedClusters = deployment.clusters.map { deploymentCluster =>
+      val processedServices = deploymentCluster.services.map { deploymentService =>
+        deploymentService.state match {
           case ReadyForDeployment(initiated, _) =>
-            if (outOfSynchronization(service, containerService))
-              actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, service)
+            readyForDeployment(deploymentService, containerServices, clusterRoutes)
 
           case Deployed(initiated, _) =>
-            if (outOfSynchronization(service, containerService))
-              actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, service)
+            deployed(deploymentService, containerServices, clusterRoutes)
 
           case ReadyForUndeployment(initiated, _) =>
-            if (outOfSynchronization(service, containerService))
-              actorFor(ContainerDriverActor) ! ContainerDriverActor.Undeploy(deployment, service)
+            readyForUndeployment(deploymentService, containerServices, clusterRoutes)
 
           case Undeployed(initiated, _) =>
-            if (outOfSynchronization(service, containerService))
-              actorFor(ContainerDriverActor) ! ContainerDriverActor.Undeploy(deployment, service)
+            undeployed(deploymentService, containerServices, clusterRoutes)
 
           case ReadyForRemoval(initiated, _) =>
-            if (outOfSynchronization(service, containerService))
-              actorFor(ContainerDriverActor) ! ContainerDriverActor.Undeploy(deployment, service)
+            readyForRemoval(deploymentService, containerServices, clusterRoutes)
+
+          case Removed(initiated, _) =>
+            ProcessedService(Processed.Remove, deploymentService)
 
           case _ =>
+            ProcessedService(Processed.Ignore, deploymentService)
         }
       }
+      processServiceResults(deployment, deploymentCluster, processedServices)
+    }
+    processClusterResults(deployment, processedClusters)
+  }
+
+  private def readyForDeployment(deploymentService: DeploymentService, services: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
+    //TODO actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, service)
+
+    ProcessedService(Processed.Ignore, deploymentService)
+  }
+
+  private def deployed(deploymentService: DeploymentService, services: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
+    //TODO
+    ProcessedService(Processed.Ignore, deploymentService)
+  }
+
+  private def readyForUndeployment(deploymentService: DeploymentService, services: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
+    //TODO
+    ProcessedService(Processed.Ignore, deploymentService)
+  }
+
+  private def undeployed(deploymentService: DeploymentService, services: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
+    //TODO
+    ProcessedService(Processed.Ignore, deploymentService)
+  }
+
+  private def readyForRemoval(deploymentService: DeploymentService, services: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
+    //TODO
+    ProcessedService(Processed.Ignore, deploymentService)
+  }
+
+  private def containerService(deployment: Deployment, deploymentService: DeploymentService, containerServices: List[ContainerService]): Option[ContainerService] =
+    containerServices.find(cs => cs.deploymentName == deployment.name && cs.breedName == deploymentService.breed.name)
+
+  private def clusterRoute(deployment: Deployment, deploymentCluster: DeploymentCluster, portNumber: Int, clusterRoutes: List[ClusterRoute]): Option[ClusterRoute] =
+    clusterRoutes.find(r => r.deploymentName == deployment.name && r.clusterName == deploymentCluster.name && portNumber == r.portNumber)
+
+  private def processServiceResults(deployment: Deployment, deploymentCluster: DeploymentCluster, processedServices: List[ProcessedService]): ProcessedCluster = {
+    val updated = processedServices.map({
+      _.state match {
+        case Processed.UpdateRoute(port) =>
+          actorFor(RouterDriverActor) ! RouterDriverActor.Update(deployment, deploymentCluster, port)
+          false
+
+        case Processed.Persist => true
+        case Processed.Remove => true
+        case _ => false
+      }
+    }).foldLeft(false)((s1, s2) => s1 || s2)
+
+    if (updated) {
+      val dc = deploymentCluster.copy(services = processedServices.filter(_.state != Processed.Remove).map(_.service))
+      ProcessedCluster(if (dc.services.isEmpty) Processed.Remove else Processed.Persist, dc)
+    } else
+      ProcessedCluster(Processed.Ignore, deploymentCluster)
+  }
+
+  private def processClusterResults(deployment: Deployment, processedCluster: List[ProcessedCluster]) = {
+    if (processedCluster.exists(pc => pc.state == Processed.Persist || pc.state == Processed.Remove)) {
+      val d = deployment.copy(clusters = processedCluster.filter(_.state != Processed.Remove).map(_.cluster))
+      actorFor(PersistenceActor) ! PersistenceActor.Update(d)
     }
   }
-
-  private def outOfSynchronization(deploymentService: DeploymentService, containerService: Option[ContainerService]): Boolean = {
-    false
-  }
 }
-

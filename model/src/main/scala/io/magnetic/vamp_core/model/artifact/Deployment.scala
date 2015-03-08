@@ -24,6 +24,8 @@ object DeploymentService {
 
   case class ReadyForRemoval(initiated: OffsetDateTime = OffsetDateTime.now(), completed: Option[OffsetDateTime] = None) extends State with Regular
 
+  case class Removed(initiated: OffsetDateTime = OffsetDateTime.now(), completed: Option[OffsetDateTime] = None) extends State with Regular
+
   case class Error(notification: Notification, initiated: OffsetDateTime = OffsetDateTime.now()) extends State
 
 }
