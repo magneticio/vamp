@@ -1,45 +1,39 @@
 package io.magnetic.vamp_core.container_driver
 
 import com.typesafe.scalalogging.Logger
+import io.magnetic.marathon.client.Marathon
+import io.magnetic.marathon.client.api.{CreateApp, CreateContainer, CreateDocker, CreatePortMappings}
 import io.magnetic.vamp_core.model.artifact._
 import org.slf4j.LoggerFactory
 
-import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
   protected implicit val executionContext = ec
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[MarathonDriver]))
-  private val services = new mutable.LinkedHashMap[String, ContainerService]()
 
-  def all: Future[List[ContainerService]] = Future {
-    services.values.toList
+  def all: Future[List[ContainerService]] = {
+    logger.debug(s"marathon get all")
+    new Marathon(url).apps.map(apps => apps.apps.map(app => ContainerService(deploymentName(app.id), breedName(app.id), scale = DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task => DeploymentServer(task.host)))).toList)
   }
-
-  //    offLoad(new Marathon(url).apps) match {
-  //      case response: Apps =>
-  //        response.apps.map { app =>
-  //          ContainerService(app.id, None, None)
-  //        }
-  //      case any =>
-  //        exception(ContainerResponseError(any))
-  //        List[ContainerService]()
-  //    }
 
   def deploy(deployment: Deployment, breed: DefaultBreed, scale: DefaultScale) = {
-    logger.info(s"marathon deploying: ${deployment.name}/${breed.name}")
-    services.put(name(deployment, breed), ContainerService(deployment.name, breed.name, scale, (1 to scale.instances).map({ i => DeploymentServer(s"${breed.name}/$i")}).toList))
+    val id = appId(deployment, breed)
+    logger.debug(s"marathon create app: $id")
+    new Marathon(url).createApp(CreateApp(id, CreateContainer(CreateDocker(breed.deployable.name, breed.ports.map(port => CreatePortMappings(port.value.get)))), scale.instances, scale.cpu, scale.memory, Map()))
   }
-
-  //    val docker = Docker(breed.deployable.name, "BRIDGE", Nil)
-  //    val app = App(s"/${deployment.name}/${breed.name}", None, Nil, None, Map(), scale.instances, scale.cpu, scale.memory, 0, "", Nil, Nil, Nil, Nil, requirePorts = false, 0, Container("DOCKER", Nil, docker), Nil, Nil, UpgradeStrategy(0), "1", Nil, None, None, 0, 0, 0)
-  //    new Marathon(url).createApp(app)
 
   def undeploy(deployment: Deployment, breed: DefaultBreed) = {
-    logger.info(s"marathon undeploying: ${deployment.name}/${breed.name}")
-    services.remove(name(deployment, breed))
+    val id = appId(deployment, breed)
+    logger.info(s"marathon delete app: $id")
+    new Marathon(url).deleteApp(id)
   }
 
-  private def name(deployment: Deployment, breed: DefaultBreed) = s"/${deployment.name}/${breed.name}"
+  private def appId(deployment: Deployment, breed: DefaultBreed) = s"/${deployment.name}/${breed.name}"
+
+  private def deploymentName(id: String) = id.split('/').apply(1)
+
+  private def breedName(id: String) = id.split('/').apply(2)
 }
+

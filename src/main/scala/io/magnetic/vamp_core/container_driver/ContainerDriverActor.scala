@@ -5,7 +5,7 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.magnetic.vamp_core.container_driver.ContainerDriverActor.{All, ContainerDriveMessage, Deploy, Undeploy}
-import io.magnetic.vamp_core.container_driver.notification.{ContainerDriverNotificationProvider, UnsupportedContainerDriverRequest}
+import io.magnetic.vamp_core.container_driver.notification.{ContainerDriverNotificationProvider, ContainerResponseError, UnsupportedContainerDriverRequest}
 import io.magnetic.vamp_core.model.artifact._
 
 import scala.concurrent.duration._
@@ -36,7 +36,12 @@ class ContainerDriverActor(driver: ContainerDriver) extends Actor with ActorLogg
 
   def reply(request: Any) = try {
     request match {
-      case All => offLoad(driver.all)
+      case All =>
+        offLoad(driver.all) match {
+          case response: List[_] => response.asInstanceOf[List[ContainerService]]
+          case any => exception(ContainerResponseError(any))
+        }
+
       case Deploy(deployment, DeploymentService(_, breed: DefaultBreed, Some(scale: DefaultScale), _, _)) => driver.deploy(deployment, breed, scale)
       case Undeploy(deployment, service) => driver.undeploy(deployment, service.breed)
       case _ => unsupported(request)
