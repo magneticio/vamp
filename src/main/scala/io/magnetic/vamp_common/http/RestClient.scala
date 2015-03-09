@@ -1,13 +1,18 @@
 package io.magnetic.vamp_common.http
 
+import com.typesafe.scalalogging.Logger
 import dispatch._
 import io.magnetic.vamp_common.text.Text
 import org.json4s._
+import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization._
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
 
 object RestClient {
+
+  private val logger = Logger(LoggerFactory.getLogger(RestClient.getClass))
 
   object Method extends Enumeration {
     val HEAD, GET, POST, PUT, DELETE, PATCH, TRACE, OPTIONS = Value
@@ -17,7 +22,7 @@ object RestClient {
    * JSON REST API HTTP request + JSON 
    *
    * @param request Request in format "[METHOD] URL", e.g. "GET https://api.github.com". By default method is GET.
-   * @param body Request body, optional. Will be serialized to JSON using default json4s format.
+   * @param body Request body. Will be serialized to JSON using default json4s format.
    * @param responsePath Json object path from the response.
    * @param jsonFieldTransformer Json field transformer.
    * @param executor Execution context
@@ -25,7 +30,7 @@ object RestClient {
    * @tparam A Response type
    * @return Response
    */
-  def request[A](request: String, body: Option[AnyRef] = None, responsePath: String = "", jsonFieldTransformer: PartialFunction[JField, JField] = defaultJsonFieldTransformer)
+  def request[A](request: String, body: AnyRef = None, responsePath: String = "", jsonFieldTransformer: PartialFunction[JField, JField] = defaultJsonFieldTransformer)
                 (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A]): Future[A] = {
 
     val method = Method.values.map(_.toString).find(method => request.startsWith(s"$method ")).getOrElse(Method.GET.toString)
@@ -38,12 +43,15 @@ object RestClient {
 
     val httpRequest = body match {
       case None => httpHeaders
-      case Some(anyRef) =>
+      case anyRef =>
         implicit val formats = DefaultFormats
-        httpHeaders.setBody(write(anyRef))
+        val body = write(anyRef)
+        logger.trace(s"req [$request] - $body")
+        httpHeaders.setBody(body)
     }
 
     Http(httpRequest OK dispatch.as.json4s.Json) map { json =>
+      logger.trace(s"rsp [$request] - ${compact(render(json))}")
       val jsonObject = if (responsePath.isEmpty) json else json \ responsePath
       jsonObject.transformField(jsonFieldTransformer).extract[A](DefaultFormats, mf)
     }
