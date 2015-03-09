@@ -7,7 +7,7 @@
         </encoder>
     </appender>
 
-    <logger name="io.magnetic.vamp_core" level="DEBUG"/>
+    <logger name="io.magnetic" level="TRACE"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

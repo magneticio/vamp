@@ -1,0 +1,73 @@
+{
+  "apps": [
+    {
+      "id": "/e882ce61-48d1-4596-9b2a-7abd860d62e7/wordpress1",
+      "cmd": null,
+      "args": [],
+      "user": null,
+      "env": {},
+      "instances": 2,
+      "cpus": 1.0,
+      "mem": 1024.0,
+      "disk": 0.0,
+      "executor": "",
+      "constraints": [],
+      "uris": [],
+      "storeUrls": [],
+      "ports": [32767],
+      "requirePorts": false,
+      "backoffSeconds": 1,
+      "backoffFactor": 1.15,
+      "maxLaunchDelaySeconds": 3600,
+      "container": {
+        "type": "DOCKER",
+        "volumes": [],
+        "docker": {
+          "image": "tutum/wordpress",
+          "network": "BRIDGE",
+          "portMappings": [
+            {
+              "containerPort": 80,
+              "hostPort": 0,
+              "servicePort": 32767,
+              "protocol": "tcp"
+            }
+          ],
+          "privileged": false,
+          "parameters": []
+        }
+      },
+      "healthChecks": [],
+      "dependencies": [],
+      "upgradeStrategy": {
+        "minimumHealthCapacity": 1.0,
+        "maximumOverCapacity": 1.0
+      },
+      "labels": {},
+      "version": "2015-03-09T17:15:00.175Z",
+      "tasksStaged": 0,
+      "tasksRunning": 2,
+      "deployments": [],
+      "tasks": [
+        {
+          "id": "e882ce61-48d1-4596-9b2a-7abd860d62e7_wordpress1.d1ffb654-c67f-11e4-b42e-56847afe9799",
+          "host": "10.130.106.218",
+          "ports": [31000],
+          "startedAt": "2015-03-09T17:15:01.968Z",
+          "stagedAt": "2015-03-09T17:15:01.430Z",
+          "version": "2015-03-09T17:15:00.175Z",
+          "appId": "/e882ce61-48d1-4596-9b2a-7abd860d62e7/wordpress1"
+        },
+        {
+          "id": "e882ce61-48d1-4596-9b2a-7abd860d62e7_wordpress1.d166d1b3-c67f-11e4-b42e-56847afe9799",
+          "host": "10.41.205.229",
+          "ports": [31000],
+          "startedAt": "2015-03-09T17:15:01.348Z",
+          "stagedAt": "2015-03-09T17:15:00.429Z",
+          "version": "2015-03-09T17:15:00.175Z",
+          "appId": "/e882ce61-48d1-4596-9b2a-7abd860d62e7/wordpress1"
+        }
+      ]
+    }
+  ]
+}

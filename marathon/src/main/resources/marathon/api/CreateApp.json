@@ -1,0 +1,22 @@
+{
+  "id": "/product/wordpress",
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "image": "tutum/wordpress",
+      "network": "BRIDGE",
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "hostPort": 0,
+          "protocol": "tcp"
+        }
+      ]
+    }
+  },
+  "cpus": 1,
+  "mem": 1024.0,
+  "env": {
+  },
+  "instances": 2
+}

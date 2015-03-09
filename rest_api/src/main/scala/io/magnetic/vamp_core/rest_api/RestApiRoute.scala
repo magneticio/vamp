@@ -7,8 +7,11 @@ import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider, Fut
 import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.reader._
-import io.magnetic.vamp_core.operation.deployment.DeploymentActor
+import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
+import io.magnetic.vamp_core.operation.deployment.{DeploymentSynchronizationActor, DeploymentActor}
+import io.magnetic.vamp_core.operation.notification.InternalServerError
 import io.magnetic.vamp_core.persistence.PersistenceActor
+import io.magnetic.vamp_core.persistence.PersistenceActor.All
 import io.magnetic.vamp_core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
 import io.magnetic.vamp_core.rest_api.serializer.{ArtifactSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
 import io.magnetic.vamp_core.rest_api.swagger.SwaggerResponse
@@ -44,6 +47,9 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
   }
 
   val route = noCachingAllowed {
+    pathPrefix("sync") {
+      complete(OK, sync())
+    } ~
     pathPrefix("api" / "v1") {
       respondWithMediaType(`application/json`) {
         path("docs") {
@@ -91,8 +97,17 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
   }
 }
 
-trait RestApiController extends RestApiNotificationProvider with ActorSupport {
+trait RestApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
   this: Actor with ExecutionContextProvider =>
+
+  def sync(): String = {
+    implicit val timeout = PersistenceActor.timeout
+    offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
+      case deployments: List[_] => actorFor(DeploymentSynchronizationActor) ! SynchronizeAll(deployments.asInstanceOf[List[Deployment]])
+      case any => error(InternalServerError(any))
+    }
+    ""
+  }
 
   def allArtifacts(artifact: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(demux) => demux.all
