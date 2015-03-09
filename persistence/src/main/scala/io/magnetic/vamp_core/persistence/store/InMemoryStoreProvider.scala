@@ -1,8 +1,10 @@
 package io.magnetic.vamp_core.persistence.store
 
+import com.typesafe.scalalogging.Logger
 import io.magnetic.vamp_common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -11,6 +13,8 @@ import scala.concurrent.Future
 trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationProvider {
   this: ExecutionContextProvider =>
 
+  private val logger = Logger(LoggerFactory.getLogger(classOf[InMemoryStoreProvider]))
+
   val store: Store = new InMemoryStore()
 
   private class InMemoryStore extends Store {
@@ -18,6 +22,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
     val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
     def all(`type`: Class[_ <: Artifact]): Future[List[Artifact]] = Future {
+      logger.info(s"persistence all: ${`type`.getSimpleName}")
       getBranch(`type`) match {
         case Some(branch) => store.get(branch) match {
           case None => Nil
@@ -28,6 +33,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
     }
 
     def create(artifact: Artifact, ignoreIfExists: Boolean = false): Future[Artifact] = Future {
+      logger.info(s"persistence create: ${artifact.getClass.getSimpleName}/${artifact.name}")
       getBranch(artifact) match {
         case Some(branch) => store.get(branch) match {
           case None =>
@@ -45,6 +51,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
     }
 
     def read(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future {
+      logger.info(s"persistence read: ${`type`.getSimpleName}/$name")
       getBranch(`type`) match {
         case Some(branch) => store.get(branch) match {
           case None => None
@@ -55,6 +62,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
     }
 
     def update(artifact: Artifact, create: Boolean = false): Future[Artifact] = Future {
+      logger.info(s"persistence update: ${artifact.getClass.getSimpleName}/${artifact.name}")
       getBranch(artifact) match {
         case Some(branch) => store.get(branch) match {
           case None => if (create) this.create(artifact) else error(ArtifactNotFound(artifact.name, artifact.getClass))
@@ -70,6 +78,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
     }
 
     def delete(name: String, `type`: Class[_ <: Artifact]): Future[Artifact] = Future {
+      logger.info(s"persistence delete: ${`type`.getSimpleName}/$name")
       getBranch(`type`) match {
         case Some(branch) => store.get(branch) match {
           case None => error(ArtifactNotFound(name, `type`))

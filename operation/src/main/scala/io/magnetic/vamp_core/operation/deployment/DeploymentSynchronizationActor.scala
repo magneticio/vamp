@@ -95,8 +95,12 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
       case Some(cs) =>
         if (!matching(deploymentService, cs)) {
-          actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentService)
-          ProcessedService(Processed.Ignore, deploymentService)
+          if(matchingScale(deploymentService, cs)) {
+            ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers))
+          } else {
+            actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentService)
+            ProcessedService(Processed.Ignore, deploymentService)
+          }
         } else {
           val ports = outOfSyncPorts(deployment, deploymentCluster, deploymentService, routes)
           if (ports.isEmpty) {
@@ -150,6 +154,10 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
   private def matching(deploymentService: DeploymentService, containerService: ContainerService) =
     deploymentService.servers.size == containerService.servers.size && deploymentService.servers.forall(server => containerService.servers.exists(_.host == server.host))
+
+  private def matchingScale(deploymentService: DeploymentService, containerService: ContainerService) =
+    // TODO check on cpu and memory as well
+    containerService.servers.size == deploymentService.scale.get.instances
 
   private def outOfSyncPorts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, clusterRoutes: List[ClusterRoute]): List[Port] = {
     deploymentService.breed.ports.filter({ port =>

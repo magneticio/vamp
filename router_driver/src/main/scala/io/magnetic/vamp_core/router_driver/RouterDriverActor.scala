@@ -40,7 +40,7 @@ class RouterDriverActor(url: String) extends Actor with ActorLogging with ActorS
 
   def reply(request: Any) = try {
     request match {
-      case All => routes.values.toList
+      case All => routes.values.map(route => ClusterRoute(deploymentName(route.name), clusterName(route.name), route.port, route.services))
       case Update(deployment, cluster, port) =>
         log.info(s"route update: ${deployment.name}/${cluster.name}")
         routes.put(name(deployment, cluster, port), route(deployment, cluster, port))
@@ -56,17 +56,19 @@ class RouterDriverActor(url: String) extends Actor with ActorLogging with ActorS
 
   private def name(deployment: Deployment, cluster: DeploymentCluster, port: Port) = s"/${deployment.name}/${cluster.name}/${port.value.get}"
 
+  private def deploymentName(name: String) = name.split('/').apply(1)
+
+  private def clusterName(name: String) = name.split('/').apply(2)
+
   private def route(deployment: Deployment, cluster: DeploymentCluster, port: Port) =
     Route(name(deployment, cluster, port), port.value.get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", Nil, None, None, services(deployment, cluster, port))
-
 
   private def services(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
     val size = cluster.services.size
     val weight = Math.round(100 / size)
-    val routeName = name(deployment, cluster, port)
 
     cluster.services.view.zipWithIndex.map { case (service, index) =>
-      router_driver.Service(s"$routeName/${service.breed.name}", if (index == size - 1) 100 - index * weight else weight, Nil)
+      router_driver.Service(s"${service.breed.name}", if (index == size - 1) 100 - index * weight else weight, service.servers.map(server => Server(server.host, server.host, port.value.get)))
     }.toList
   }
 }

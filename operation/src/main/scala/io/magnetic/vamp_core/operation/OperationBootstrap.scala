@@ -10,6 +10,6 @@ object OperationBootstrap extends Bootstrap {
   def run(implicit actorSystem: ActorSystem) = {
     ActorSupport.actorOf(DeploymentActor)
     ActorSupport.actorOf(DeploymentSynchronizationActor)
-    ActorSupport.actorOf(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(ConfigFactory.load().getInt("deployment.watchdog.period"))
+    ActorSupport.actorOf(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(ConfigFactory.load().getInt("deployment.synchronization.period"))
   }
 }
