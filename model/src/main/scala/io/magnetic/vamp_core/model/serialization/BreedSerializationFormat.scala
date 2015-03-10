@@ -1,4 +1,4 @@
-package io.magnetic.vamp_core.rest_api.serializer
+package io.magnetic.vamp_core.model.serialization
 
 import io.magnetic.vamp_core.model.artifact.{Deployable, Port, Trait}
 import org.json4s.JsonAST.JString

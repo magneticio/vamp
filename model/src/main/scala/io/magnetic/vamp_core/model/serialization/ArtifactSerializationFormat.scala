@@ -1,4 +1,4 @@
-package io.magnetic.vamp_core.rest_api.serializer
+package io.magnetic.vamp_core.model.serialization
 
 import org.json4s._
 
