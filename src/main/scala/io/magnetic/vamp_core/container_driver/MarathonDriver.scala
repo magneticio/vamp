@@ -12,10 +12,11 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
   protected implicit val executionContext = ec
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[MarathonDriver]))
+  private val nameDelimiter = '/'
 
   def all: Future[List[ContainerService]] = {
     logger.debug(s"marathon get all")
-    new Marathon(url).apps.map(apps => apps.apps.map(app => ContainerService(deploymentName(app.id), breedName(app.id), scale = DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task => DeploymentServer(task.host)))).toList)
+    new Marathon(url).apps.map(apps => apps.apps.filter(app => validName(app.id)).map(app => ContainerService(deploymentName(app.id), breedName(app.id), scale = DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task => DeploymentServer(task.host)))).toList)
   }
 
   def deploy(deployment: Deployment, breed: DefaultBreed, scale: DefaultScale) = {
@@ -30,10 +31,12 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
     new Marathon(url).deleteApp(id)
   }
 
-  private def appId(deployment: Deployment, breed: DefaultBreed) = s"/${deployment.name}/${breed.name}"
+  private def appId(deployment: Deployment, breed: DefaultBreed) = s"$nameDelimiter${deployment.name}$nameDelimiter${breed.name}"
 
-  private def deploymentName(id: String) = id.split('/').apply(1)
+  private def validName(id: String) = id.split(nameDelimiter).size == 3
 
-  private def breedName(id: String) = id.split('/').apply(2)
+  private def deploymentName(id: String) = id.split(nameDelimiter).apply(1)
+
+  private def breedName(id: String) = id.split(nameDelimiter).apply(2)
 }
 
