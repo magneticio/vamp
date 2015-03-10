@@ -1,11 +1,11 @@
 package io.magnetic.vamp_core.router_driver
 
 import com.typesafe.scalalogging.Logger
+import io.magnetic.vamp_common.http.RestClient
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.router_driver
 import org.slf4j.LoggerFactory
 
-import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 case class ClusterRoute(deploymentName: String, clusterName: String, portNumber: Int, services: List[Service])
@@ -23,36 +23,32 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   protected implicit val executionContext = ec
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[DefaultRouterDriver]))
-
-  private val routes = new mutable.LinkedHashMap[String, Route]()
+  private val nameDelimiter = '_'
 
   def all: Future[List[ClusterRoute]] = {
     logger.debug(s"router get all")
-    //new Marathon(url).apps.map(apps => apps.apps.map(app => ContainerService(deploymentName(app.id), breedName(app.id), scale = DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task => DeploymentServer(task.host)))).toList)
-    Future {
-      routes.values.map(route => ClusterRoute(deploymentName(route.name), clusterName(route.name), route.port, route.services)).toList
-    }
+    RestClient.request[List[Route]](s"GET $url/v1/routes").map(routes => routes.filter(route => validName(route.name)).map(route => ClusterRoute(deploymentName(route.name), clusterName(route.name), route.port, route.services)))
   }
 
   def update(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
     val name = routeName(deployment, cluster, port)
-    logger.debug(s"router update: $name")
-    routes.put(name, route(deployment, cluster, port))
-    //new Marathon(url).createApp(CreateApp(id, CreateContainer(CreateDocker(breed.deployable.name, breed.ports.map(port => CreatePortMappings(port.value.get)))), scale.instances, scale.cpu, scale.memory, Map()))
+    logger.info(s"router update: $name")
+    RestClient.request[Map[_, _]](s"POST $url/v1/routes", route(deployment, cluster, port))
   }
 
   def remove(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
     val name = routeName(deployment, cluster, port)
     logger.info(s"router remove: $name")
-    routes.remove(name)
-    //new Marathon(url).deleteApp(id)
+    RestClient.request[Map[_, _]](s"DELETE $url/v1/routes/$name")
   }
 
-  private def routeName(deployment: Deployment, cluster: DeploymentCluster, port: Port) = s"/${deployment.name}/${cluster.name}/${port.value.get}"
+  private def routeName(deployment: Deployment, cluster: DeploymentCluster, port: Port) = s"$nameDelimiter${deployment.name}$nameDelimiter${cluster.name}$nameDelimiter${port.value.get}"
 
-  private def deploymentName(name: String) = name.split('/').apply(1)
+  private def validName(name: String) = name.split(nameDelimiter).size == 4
 
-  private def clusterName(name: String) = name.split('/').apply(2)
+  private def deploymentName(name: String) = name.split(nameDelimiter).apply(1)
+
+  private def clusterName(name: String) = name.split(nameDelimiter).apply(2)
 
   private def route(deployment: Deployment, cluster: DeploymentCluster, port: Port) =
     Route(routeName(deployment, cluster, port), port.value.get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", Nil, None, None, services(deployment, cluster, port))
