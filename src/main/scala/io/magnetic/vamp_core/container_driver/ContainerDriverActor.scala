@@ -41,7 +41,6 @@ class ContainerDriverActor(driver: ContainerDriver) extends Actor with ActorLogg
           case response: List[_] => response.asInstanceOf[List[ContainerService]]
           case any => exception(ContainerResponseError(any))
         }
-
       case Deploy(deployment, DeploymentService(_, breed: DefaultBreed, Some(scale: DefaultScale), _, _)) => driver.deploy(deployment, breed, scale)
       case Undeploy(deployment, service) => driver.undeploy(deployment, service.breed)
       case _ => unsupported(request)
