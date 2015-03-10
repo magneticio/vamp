@@ -91,8 +91,6 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
           }
         })) actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentService)
 
-        implicit val timeout: Timeout = ContainerDriverActor.timeout
-        println(offLoad(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]])
         ProcessedService(Processed.Ignore, deploymentService)
 
       case Some(cs) =>

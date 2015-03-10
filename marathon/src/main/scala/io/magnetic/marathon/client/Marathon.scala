@@ -12,7 +12,7 @@ class Marathon(url: String) {
 
   def apps: Future[Apps] = RestClient.request[Apps](s"GET $url/v2/apps?embed=apps.tasks")
 
-  def createApp(app: CreateApp): Future[Map[_, _]] = RestClient.request[Map[_, _]](s"POST $url/v2/apps", app)
+  def createApp(app: CreateApp): Future[Any] = RestClient.request[Any](s"POST $url/v2/apps", app)
 
-  def deleteApp(id: String): Future[Map[_, _]] = RestClient.request[Map[_, _]](s"DELETE $url/v2/apps/$id")
+  def deleteApp(id: String): Future[Any] = RestClient.request[Any](s"DELETE $url/v2/apps/$id")
 }

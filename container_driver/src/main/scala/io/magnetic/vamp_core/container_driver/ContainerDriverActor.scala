@@ -26,7 +26,7 @@ object ContainerDriverActor extends ActorDescription {
 
 }
 
-class ContainerDriverActor(driver: ContainerDriver) extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupport with ActorExecutionContextProvider with ContainerDriverNotificationProvider {
+class ContainerDriverActor(driver: ContainerDriver) extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupportNotification with ActorExecutionContextProvider with ContainerDriverNotificationProvider {
 
   implicit val timeout = ContainerDriverActor.timeout
 
@@ -36,13 +36,9 @@ class ContainerDriverActor(driver: ContainerDriver) extends Actor with ActorLogg
 
   def reply(request: Any) = try {
     request match {
-      case All =>
-        offLoad(driver.all) match {
-          case response: List[_] => response.asInstanceOf[List[ContainerService]]
-          case any => exception(ContainerResponseError(any))
-        }
-      case Deploy(deployment, DeploymentService(_, breed: DefaultBreed, Some(scale: DefaultScale), _, _)) => driver.deploy(deployment, breed, scale)
-      case Undeploy(deployment, service) => driver.undeploy(deployment, service.breed)
+      case All => offLoad(driver.all, classOf[ContainerResponseError])
+      case Deploy(deployment, DeploymentService(_, breed: DefaultBreed, Some(scale: DefaultScale), _, _)) => offLoad(driver.deploy(deployment, breed, scale), classOf[ContainerResponseError])
+      case Undeploy(deployment, service) => offLoad(driver.undeploy(deployment, service.breed), classOf[ContainerResponseError])
       case _ => unsupported(request)
     }
   } catch {

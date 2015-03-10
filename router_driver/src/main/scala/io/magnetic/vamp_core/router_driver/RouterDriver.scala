@@ -14,9 +14,9 @@ trait RouterDriver {
 
   def all: Future[List[ClusterRoute]]
 
-  def update(deployment: Deployment, cluster: DeploymentCluster, port: Port)
+  def update(deployment: Deployment, cluster: DeploymentCluster, port: Port): Future[Any]
 
-  def remove(deployment: Deployment, cluster: DeploymentCluster, port: Port)
+  def remove(deployment: Deployment, cluster: DeploymentCluster, port: Port): Future[Any]
 }
 
 class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDriver {
@@ -33,13 +33,13 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   def update(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
     val name = routeName(deployment, cluster, port)
     logger.info(s"router update: $name")
-    RestClient.request[Map[_, _]](s"POST $url/v1/routes", route(deployment, cluster, port))
+    RestClient.request[Any](s"POST $url/v1/routes", route(deployment, cluster, port))
   }
 
   def remove(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
     val name = routeName(deployment, cluster, port)
     logger.info(s"router remove: $name")
-    RestClient.request[Map[_, _]](s"DELETE $url/v1/routes/$name")
+    RestClient.request[Any](s"DELETE $url/v1/routes/$name")
   }
 
   private def routeName(deployment: Deployment, cluster: DeploymentCluster, port: Port) = s"$nameDelimiter${deployment.name}$nameDelimiter${cluster.name}$nameDelimiter${port.value.get}"

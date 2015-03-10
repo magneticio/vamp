@@ -158,7 +158,6 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
       breed => breed.dependencies.values.find(dependency => !breedNames.contains(dependency.name)).flatMap {
         dependency => error(UnresolvedDependencyError(breed, dependency))
       }
-
     }
   }
 

@@ -11,7 +11,7 @@ trait ContainerDriver {
 
   def all: Future[List[ContainerService]]
 
-  def deploy(deployment: Deployment, breed: DefaultBreed, scale: DefaultScale): Unit
+  def deploy(deployment: Deployment, breed: DefaultBreed, scale: DefaultScale): Future[Any]
 
-  def undeploy(deployment: Deployment, breed: DefaultBreed): Unit
+  def undeploy(deployment: Deployment, breed: DefaultBreed): Future[Any]
 }

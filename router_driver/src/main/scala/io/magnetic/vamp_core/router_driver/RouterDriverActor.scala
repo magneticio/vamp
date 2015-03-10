@@ -26,7 +26,7 @@ object RouterDriverActor extends ActorDescription {
 
 }
 
-class RouterDriverActor(driver: RouterDriver) extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupport with ActorExecutionContextProvider with RouterDriverNotificationProvider {
+class RouterDriverActor(driver: RouterDriver) extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupportNotification with ActorExecutionContextProvider with RouterDriverNotificationProvider {
 
   implicit val timeout = RouterDriverActor.timeout
 
@@ -36,12 +36,9 @@ class RouterDriverActor(driver: RouterDriver) extends Actor with ActorLogging wi
 
   def reply(request: Any) = try {
     request match {
-      case All => offLoad(driver.all) match {
-        case response: List[_] => response.asInstanceOf[List[ClusterRoute]]
-        case any => exception(RouterResponseError(any))
-      }
-      case Update(deployment, cluster, port) => driver.update(deployment, cluster, port)
-      case Remove(deployment, cluster, port) => driver.remove(deployment, cluster, port)
+      case All => offLoad(driver.all, classOf[RouterResponseError])
+      case Update(deployment, cluster, port) => offLoad(driver.update(deployment, cluster, port), classOf[RouterResponseError])
+      case Remove(deployment, cluster, port) => offLoad(driver.remove(deployment, cluster, port), classOf[RouterResponseError])
       case _ => unsupported(request)
     }
   } catch {
