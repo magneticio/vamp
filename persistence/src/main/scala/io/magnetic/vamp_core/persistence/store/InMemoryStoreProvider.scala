@@ -3,7 +3,7 @@ package io.magnetic.vamp_core.persistence.store
 import com.typesafe.scalalogging.Logger
 import io.magnetic.vamp_common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact._
-import io.magnetic.vamp_core.model.serialization.{ArtifactSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
+import io.magnetic.vamp_core.model.serialization.{BlueprintSerializationFormat, ArtifactSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
 import io.magnetic.vamp_core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
 import org.json4s.native.Serialization.write
 import org.slf4j.LoggerFactory
@@ -16,7 +16,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
   this: ExecutionContextProvider =>
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[InMemoryStoreProvider]))
-  implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, DeploymentSerializationFormat)
+  implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, BlueprintSerializationFormat, DeploymentSerializationFormat)
 
   val store: Store = new InMemoryStore()
 

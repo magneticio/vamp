@@ -7,7 +7,7 @@ import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider, Fut
 import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.reader._
-import io.magnetic.vamp_core.model.serialization.{ArtifactSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
+import io.magnetic.vamp_core.model.serialization.{BlueprintSerializationFormat, ArtifactSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
 import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor}
 import io.magnetic.vamp_core.operation.notification.InternalServerError
@@ -35,7 +35,7 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
   protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
 
   private implicit val marshaller = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
-    implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, DeploymentSerializationFormat)
+    implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, BlueprintSerializationFormat, DeploymentSerializationFormat)
 
     val response = value match {
       case notification: NotificationErrorException => throw notification
