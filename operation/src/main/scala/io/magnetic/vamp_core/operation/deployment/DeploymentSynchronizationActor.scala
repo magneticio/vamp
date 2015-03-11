@@ -7,7 +7,7 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import io.magnetic.vamp_core._
-import io.magnetic.vamp_core.container_driver.{ContainerDriverActor, ContainerService}
+import io.magnetic.vamp_core.container_driver.{ContainerServer, ContainerDriverActor, ContainerService}
 import io.magnetic.vamp_core.model.artifact.DeploymentService._
 import io.magnetic.vamp_core.operation.notification.OperationNotificationProvider
 import io.magnetic.vamp_core.persistence.PersistenceActor
@@ -82,6 +82,14 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   }
 
   private def readyForDeployment(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
+    def convert(server: ContainerServer): DeploymentServer = {
+      val ports = for {
+        dp <- deploymentService.breed.ports.map(_.value.get)
+        sp <- server.ports
+      } yield (dp,sp)
+      DeploymentServer(server.host, ports.toMap)
+    }
+
     containerService(deployment, deploymentService, containerServices) match {
       case None =>
         if (deploymentService.breed.dependencies.forall({ case (n, d) =>
@@ -96,7 +104,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
       case Some(cs) =>
         if (!matching(deploymentService, cs)) {
           if (matchingScale(deploymentService, cs)) {
-            ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers))
+            ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers.map(convert)))
           } else {
             actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentService)
             ProcessedService(Processed.Ignore, deploymentService)

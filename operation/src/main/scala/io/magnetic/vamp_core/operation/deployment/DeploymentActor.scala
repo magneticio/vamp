@@ -3,7 +3,7 @@ package io.magnetic.vamp_core.operation.deployment
 import java.util.UUID
 
 import _root_.io.magnetic.vamp_common.akka._
-import _root_.io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForUndeployment, ReadyForDeployment}
+import _root_.io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import _root_.io.magnetic.vamp_core.model.artifact._
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentActor.{Create, Delete, DeploymentMessages, Update}
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.Synchronize
@@ -119,21 +119,19 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   }
 
   private def slice(deployment: Deployment, blueprint: Option[DefaultBlueprint]): Any = blueprint match {
-    case None => // TODO validation
+    // TODO validation
+    case None =>
       commit(deployment.copy(clusters = deployment.clusters.map({ cluster =>
         cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment())))
       })))
 
     case Some(bp) =>
-      // TODO set deployment/cluster/service state => for removal
-      //      deployment.copy(clusters = deployment.clusters.map(cluster =>
-      //        bp.clusters.find(_.name == cluster.name) match {
-      //          case None => cluster
-      //          case Some(bpc) => cluster.copy(services = cluster.services.filter(service => !bpc.services.exists(service.breed.name == _.breed.name)))
-      //        }
-      //      ).filter(_.services.nonEmpty))
-      val sliced = deployment
-      commit(sliced)
+      commit(deployment.copy(clusters = deployment.clusters.map(cluster =>
+        bp.clusters.find(_.name == cluster.name) match {
+          case None => cluster
+          case Some(bpc) => cluster.copy(services = cluster.services.filter(service => !bpc.services.exists(service.breed.name == _.breed.name)).map(service => service.copy(state = ReadyForUndeployment())))
+        }
+      ).filter(_.services.nonEmpty)))
   }
 
   private def commit(deployment: Deployment): Any = {
