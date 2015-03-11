@@ -25,7 +25,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
 
   def deploy(deployment: Deployment, breed: DefaultBreed, scale: DefaultScale) = {
     val id = appId(deployment, breed)
-    logger.debug(s"marathon create app: $id")
+    logger.info(s"marathon create app: $id")
     RestClient.request[Any](s"POST $url/v2/apps", CreateApp(id, CreateContainer(CreateDocker(breed.deployable.name, breed.ports.map(port => CreatePortMappings(port.value.get)))), scale.instances, scale.cpu, scale.memory, Map()))
   }
 
