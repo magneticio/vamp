@@ -1,11 +1,11 @@
 package io.magnetic.vamp_core.container_driver
 
-import io.magnetic.vamp_core.model.artifact.{DefaultBreed, DefaultScale, Deployment, DeploymentServer}
+import io.magnetic.vamp_core.model.artifact._
 
 import scala.concurrent.Future
 
 
-case class ContainerService(deploymentName: String, breedName: String, scale: DefaultScale, servers: List[DeploymentServer])
+case class ContainerService(matching: (Deployment, Breed) => Boolean, scale: DefaultScale, servers: List[DeploymentServer])
 
 trait ContainerDriver {
 

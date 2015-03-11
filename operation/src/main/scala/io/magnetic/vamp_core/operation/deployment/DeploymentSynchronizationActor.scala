@@ -136,7 +136,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   }
 
   private def readyForUndeployment(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
-    if (deploymentService.breed.ports.forall({ port => clusterRouteService(deployment, deploymentCluster, deploymentService, port.value.get, routes).isEmpty})) {
+    if (deploymentService.breed.ports.forall({ port => clusterRouteService(deployment, deploymentCluster, deploymentService, port, routes).isEmpty})) {
       containerService(deployment, deploymentService, containerServices) match {
         case None =>
           ProcessedService(Processed.RemoveFromPersistence, deploymentService)
@@ -150,7 +150,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   }
 
   private def containerService(deployment: Deployment, deploymentService: DeploymentService, containerServices: List[ContainerService]): Option[ContainerService] =
-    containerServices.find(cs => cs.deploymentName == deployment.name && cs.breedName == deploymentService.breed.name)
+    containerServices.find(cs => cs.matching(deployment, deploymentService.breed))
 
   private def matching(deploymentService: DeploymentService, containerService: ContainerService) =
     deploymentService.servers.size == containerService.servers.size && deploymentService.servers.forall(server => containerService.servers.exists(_.host == server.host))
@@ -161,7 +161,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
   private def outOfSyncPorts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, clusterRoutes: List[ClusterRoute]): List[Port] = {
     deploymentService.breed.ports.filter({ port =>
-      clusterRouteService(deployment, deploymentCluster, deploymentService, port.value.get, clusterRoutes) match {
+      clusterRouteService(deployment, deploymentCluster, deploymentService, port, clusterRoutes) match {
         case None => true
         case Some(routeService) => !matching(deploymentService, routeService)
       }
@@ -171,8 +171,8 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   private def matching(deploymentService: DeploymentService, routeService: router_driver.Service) =
     deploymentService.servers.size == routeService.servers.size && deploymentService.servers.forall(server => routeService.servers.exists(_.host == server.host))
 
-  private def clusterRouteService(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, portNumber: Int, clusterRoutes: List[ClusterRoute]): Option[router_driver.Service] =
-    clusterRoutes.find(r => r.deploymentName == deployment.name && r.clusterName == deploymentCluster.name && portNumber == r.portNumber) match {
+  private def clusterRouteService(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, port: Port, clusterRoutes: List[ClusterRoute]): Option[router_driver.Service] =
+    clusterRoutes.find(r => r.matching(deployment, deploymentCluster, port)) match {
       case None => None
       case Some(route) => route.services.find(_.name == deploymentService.breed.name)
     }

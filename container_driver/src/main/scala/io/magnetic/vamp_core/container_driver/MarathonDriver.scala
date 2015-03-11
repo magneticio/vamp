@@ -3,6 +3,7 @@ package io.magnetic.vamp_core.container_driver
 import com.typesafe.scalalogging.Logger
 import io.magnetic.marathon.client.Marathon
 import io.magnetic.marathon.client.api.{CreateApp, CreateContainer, CreateDocker, CreatePortMappings}
+import io.magnetic.vamp_common.crypto.Hash
 import io.magnetic.vamp_core.model.artifact._
 import org.slf4j.LoggerFactory
 
@@ -12,11 +13,13 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
   protected implicit val executionContext = ec
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[MarathonDriver]))
-  private val nameDelimiter = '/'
+
+  private val nameDelimiter = "/"
+  private val idMatcher = """^\w[\w-]*$""".r
 
   def all: Future[List[ContainerService]] = {
     logger.debug(s"marathon get all")
-    new Marathon(url).apps.map(apps => apps.apps.filter(app => validName(app.id)).map(app => ContainerService(deploymentName(app.id), breedName(app.id), scale = DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task => DeploymentServer(task.host)))).toList)
+    new Marathon(url).apps.map(apps => apps.apps.filter(app => processable(app.id)).map(app => ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task => DeploymentServer(task.host)))).toList)
   }
 
   def deploy(deployment: Deployment, breed: DefaultBreed, scale: DefaultScale) = {
@@ -31,12 +34,15 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
     new Marathon(url).deleteApp(id)
   }
 
-  private def appId(deployment: Deployment, breed: DefaultBreed) = s"$nameDelimiter${deployment.name}$nameDelimiter${breed.name}"
+  private def appId(deployment: Deployment, breed: Breed): String = s"$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
-  private def validName(id: String) = id.split(nameDelimiter).size == 3
+  private def processable(id: String): Boolean = id.split(nameDelimiter).size == 3
 
-  private def deploymentName(id: String) = id.split(nameDelimiter).apply(1)
+  private def nameMatcher(id: String): (Deployment, Breed) => Boolean = { (deployment: Deployment, breed: Breed) => id == appId(deployment, breed) }
 
-  private def breedName(id: String) = id.split(nameDelimiter).apply(2)
+  private def artifactName2Id(artifact: Artifact) = artifact.name match {
+    case idMatcher(_*) => artifact.name
+    case _ => Hash.hexSha1(artifact.name)
+  }
 }
 

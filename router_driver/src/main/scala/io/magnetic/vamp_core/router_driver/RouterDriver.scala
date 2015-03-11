@@ -1,6 +1,7 @@
 package io.magnetic.vamp_core.router_driver
 
 import com.typesafe.scalalogging.Logger
+import io.magnetic.vamp_common.crypto.Hash
 import io.magnetic.vamp_common.http.RestClient
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.router_driver
@@ -8,7 +9,7 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class ClusterRoute(deploymentName: String, clusterName: String, portNumber: Int, services: List[Service])
+case class ClusterRoute(matching: (Deployment, DeploymentCluster, Port) => Boolean, services: List[Service])
 
 trait RouterDriver {
 
@@ -23,11 +24,13 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   protected implicit val executionContext = ec
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[DefaultRouterDriver]))
-  private val nameDelimiter = '_'
+
+  private val nameDelimiter = "_"
+  private val idMatcher = """^\w[\w-]*$""".r
 
   def all: Future[List[ClusterRoute]] = {
     logger.debug(s"router get all")
-    RestClient.request[List[Route]](s"GET $url/v1/routes").map(routes => routes.filter(route => validName(route.name)).map(route => ClusterRoute(deploymentName(route.name), clusterName(route.name), route.port, route.services)))
+    RestClient.request[List[Route]](s"GET $url/v1/routes").map(routes => routes.filter(route => processable(route.name)).map(route => ClusterRoute(nameMatcher(route.name), route.services)))
   }
 
   def update(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
@@ -42,14 +45,6 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
     RestClient.request[Any](s"DELETE $url/v1/routes/$name")
   }
 
-  private def routeName(deployment: Deployment, cluster: DeploymentCluster, port: Port) = s"$nameDelimiter${deployment.name}$nameDelimiter${cluster.name}$nameDelimiter${port.value.get}"
-
-  private def validName(name: String) = name.split(nameDelimiter).size == 4
-
-  private def deploymentName(name: String) = name.split(nameDelimiter).apply(1)
-
-  private def clusterName(name: String) = name.split(nameDelimiter).apply(2)
-
   private def route(deployment: Deployment, cluster: DeploymentCluster, port: Port) =
     Route(routeName(deployment, cluster, port), port.value.get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", Nil, None, None, services(deployment, cluster, port))
 
@@ -60,5 +55,17 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
     cluster.services.view.zipWithIndex.map { case (service, index) =>
       router_driver.Service(s"${service.breed.name}", if (index == size - 1) 100 - index * weight else weight, service.servers.map(server => Server(server.host, server.host, port.value.get)))
     }.toList
+  }
+
+  private def routeName(deployment: Deployment, cluster: DeploymentCluster, port: Port): String =
+    s"${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(cluster)}$nameDelimiter${port.value.get}"
+
+  private def processable(name: String): Boolean = name.split(nameDelimiter).size == 4
+
+  private def nameMatcher(id: String): (Deployment, DeploymentCluster, Port) => Boolean = { (deployment: Deployment, cluster: DeploymentCluster, port: Port) => id == routeName(deployment, cluster, port) }
+
+  private def artifactName2Id(artifact: Artifact) = artifact.name match {
+    case idMatcher(_*) => artifact.name
+    case _ => Hash.hexSha1(artifact.name)
   }
 }
