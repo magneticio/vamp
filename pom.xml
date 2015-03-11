@@ -21,7 +21,6 @@
         <!-- should be standalone projects -->
         <module>marathon</module>
         <module>swagger</module>
-        <module>pulse_driver</module>
     </modules>
 
     <properties>
