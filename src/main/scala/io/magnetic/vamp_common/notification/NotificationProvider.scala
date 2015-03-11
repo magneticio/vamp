@@ -27,6 +27,14 @@ trait LoggingNotificationProvider extends NotificationProvider {
   def exception(notification: Notification): Exception = {
     val msg = message(notification)
     logger.error(msg)
+
+    notification match {
+      case error: ErrorNotification => error.reason match {
+        case reason: Throwable => logger.error(reason.getMessage, reason)
+        case reason => logger.error(reason.toString)
+      }
+    }
+
     NotificationErrorException(notification, msg)
   }
 }
