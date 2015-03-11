@@ -1,4 +1,4 @@
-package io.magnetic.marathon.client.api
+package io.magnetic.vamp_core.container_driver.marathon.api
 
 case class HttpConfig(assetsPath: AnyRef, httpPort: Int, httpsPort: Int)
 

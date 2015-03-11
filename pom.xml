@@ -19,7 +19,6 @@
         <module>tools</module>
         <module>bootstrap</module>
         <!-- should be standalone projects -->
-        <module>marathon</module>
         <module>swagger</module>
     </modules>
 
