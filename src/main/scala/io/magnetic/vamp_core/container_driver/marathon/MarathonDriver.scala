@@ -32,7 +32,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
   def undeploy(deployment: Deployment, breed: DefaultBreed) = {
     val id = appId(deployment, breed)
     logger.info(s"marathon delete app: $id")
-    RestClient.request[Any](s"DELETE $url/v2/apps/$id")
+    RestClient.delete(s"$url/v2/apps/$id")
   }
 
   private def appId(deployment: Deployment, breed: Breed): String = s"$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
