@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.Logger
 import io.magnetic.vamp_common.crypto.Hash
 import io.magnetic.vamp_common.http.RestClient
 import io.magnetic.vamp_core.container_driver.marathon.api._
-import io.magnetic.vamp_core.container_driver.{ContainerDriver, ContainerService}
+import io.magnetic.vamp_core.container_driver.{ContainerDriver, ContainerServer, ContainerService}
 import io.magnetic.vamp_core.model.artifact._
 import org.slf4j.LoggerFactory
 
@@ -20,8 +20,11 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
 
   def all: Future[List[ContainerService]] = {
     logger.debug(s"marathon get all")
-    RestClient.request[Apps](s"GET $url/v2/apps?embed=apps.tasks").map(apps => apps.apps.filter(app => processable(app.id)).map(app => ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task => DeploymentServer(task.host)))).toList)
+    RestClient.request[Apps](s"GET $url/v2/apps?embed=apps.tasks").map(apps => apps.apps.filter(app => processable(app.id)).map(app => containerService(app)).toList)
   }
+
+  private def containerService(app: App): ContainerService =
+    ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task => ContainerServer(task.host, task.ports)))
 
   def deploy(deployment: Deployment, breed: DefaultBreed, scale: DefaultScale) = {
     val id = appId(deployment, breed)
