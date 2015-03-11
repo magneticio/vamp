@@ -16,7 +16,6 @@
         <module>router_driver</module>
         <module>rest_api</module>
         <module>operation</module>
-        <module>tools</module>
         <module>bootstrap</module>
         <!-- should be standalone projects -->
         <module>swagger</module>
