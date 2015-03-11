@@ -7,7 +7,7 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import io.magnetic.vamp_core._
-import io.magnetic.vamp_core.container_driver.{ContainerServer, ContainerDriverActor, ContainerService}
+import io.magnetic.vamp_core.container_driver.{ContainerDriverActor, ContainerServer, ContainerService}
 import io.magnetic.vamp_core.model.artifact.DeploymentService._
 import io.magnetic.vamp_core.operation.notification.OperationNotificationProvider
 import io.magnetic.vamp_core.persistence.PersistenceActor
@@ -76,17 +76,17 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
             ProcessedService(Processed.Ignore, deploymentService)
         }
       }
-      processServiceResults(deployment, deploymentCluster, processedServices)
+      processServiceResults(deployment, deploymentCluster, clusterRoutes, processedServices)
     }
     processClusterResults(deployment, processedClusters)
   }
 
-  private def readyForDeployment(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
+  private def readyForDeployment(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], clusterRoutes: List[ClusterRoute]): ProcessedService = {
     def convert(server: ContainerServer): DeploymentServer = {
       val ports = for {
         dp <- deploymentService.breed.ports.map(_.value.get)
         sp <- server.ports
-      } yield (dp,sp)
+      } yield (dp, sp)
       DeploymentServer(server.id, server.host, ports.toMap)
     }
 
@@ -110,7 +110,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
             ProcessedService(Processed.Ignore, deploymentService)
           }
         } else {
-          val ports = outOfSyncPorts(deployment, deploymentCluster, deploymentService, routes)
+          val ports = outOfSyncPorts(deployment, deploymentCluster, deploymentService, clusterRoutes)
           if (ports.isEmpty) {
             ProcessedService(Processed.Persist, deploymentService.copy(state = new DeploymentService.Deployed))
           } else {
@@ -176,6 +176,20 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     })
   }
 
+  private def outOfSyncRoutePortMapping(deployment: Deployment, deploymentCluster: DeploymentCluster, clusterRoutes: List[ClusterRoute]): Option[Map[Int, Int]] = {
+    val ports = deploymentCluster.services.map(_.breed).flatMap(_.ports).distinct.flatMap({ port =>
+      clusterRoutes.find(_.matching(deployment, deploymentCluster, port)) match {
+        case None => Nil
+        case Some(route) => deploymentCluster.routes.get(port.value.get) match {
+          case None => (port.value.get -> route.port) :: Nil
+          case Some(entry) => if (entry == route.port) Nil else (port.value.get -> route.port) :: Nil
+        }
+      }
+    }).toMap
+
+    if (ports.isEmpty) None else Some(ports)
+  }
+
   private def matching(deploymentService: DeploymentService, routeService: router_driver.Service) =
     deploymentService.servers.size == routeService.servers.size && deploymentService.servers.forall(server => routeService.servers.exists(_.host == server.host))
 
@@ -185,9 +199,11 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
       case Some(route) => route.services.find(_.name == deploymentService.breed.name)
     }
 
-  private def processServiceResults(deployment: Deployment, deploymentCluster: DeploymentCluster, processedServices: List[ProcessedService]): ProcessedCluster = {
-    val processedCluster = if (processedServices.exists(s => s.state == Processed.Persist || s.state == Processed.RemoveFromPersistence)) {
-      val dc = deploymentCluster.copy(services = processedServices.filter(_.state != Processed.RemoveFromPersistence).map(_.service))
+  private def processServiceResults(deployment: Deployment, deploymentCluster: DeploymentCluster, clusterRoutes: List[ClusterRoute], processedServices: List[ProcessedService]): ProcessedCluster = {
+    val routeMappingUpdate = outOfSyncRoutePortMapping(deployment, deploymentCluster, clusterRoutes)
+
+    val processedCluster = if (processedServices.exists(s => s.state == Processed.Persist || s.state == Processed.RemoveFromPersistence) || routeMappingUpdate.isDefined) {
+      val dc = deploymentCluster.copy(services = processedServices.filter(_.state != Processed.RemoveFromPersistence).map(_.service), routes = routeMappingUpdate.getOrElse(deploymentCluster.routes))
       ProcessedCluster(if (dc.services.isEmpty) Processed.RemoveFromPersistence else Processed.Persist, dc)
     } else {
       ProcessedCluster(Processed.Ignore, deploymentCluster)
@@ -201,7 +217,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
     if (ports.nonEmpty) {
       val cluster = processedCluster.cluster.copy(services = processedServices.filter(_.state != Processed.RemoveFromRoute).map(_.service))
-      if(cluster.services.nonEmpty)
+      if (cluster.services.nonEmpty)
         ports.foreach(port => actorFor(RouterDriverActor) ! RouterDriverActor.Update(deployment, cluster, port))
       else
         ports.foreach(port => actorFor(RouterDriverActor) ! RouterDriverActor.Remove(deployment, cluster, port))

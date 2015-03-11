@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class ClusterRoute(matching: (Deployment, DeploymentCluster, Port) => Boolean, services: List[Service])
+case class ClusterRoute(matching: (Deployment, DeploymentCluster, Port) => Boolean, port: Int, services: List[Service])
 
 trait RouterDriver {
 
@@ -30,7 +30,7 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
 
   def all: Future[List[ClusterRoute]] = {
     logger.debug(s"router get all")
-    RestClient.request[List[Route]](s"GET $url/v1/routes").map(routes => routes.filter(route => processable(route.name)).map(route => ClusterRoute(nameMatcher(route.name), route.services)))
+    RestClient.request[List[Route]](s"GET $url/v1/routes").map(routes => routes.filter(route => processable(route.name)).map(route => ClusterRoute(nameMatcher(route.name), route.port, route.services)))
   }
 
   def update(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
@@ -46,7 +46,7 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   }
 
   private def route(deployment: Deployment, cluster: DeploymentCluster, port: Port) =
-    Route(routeName(deployment, cluster, port), port.value.get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", Nil, None, None, services(deployment, cluster, port))
+    Route(routeName(deployment, cluster, port), 32000, if (port.isInstanceOf[HttpPort]) "http" else "tcp", Nil, None, None, services(deployment, cluster, port))
 
   private def services(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
     val size = cluster.services.size
