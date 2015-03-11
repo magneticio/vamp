@@ -42,7 +42,7 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   def remove(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
     val name = routeName(deployment, cluster, port)
     logger.info(s"router remove: $name")
-    RestClient.request[Any](s"DELETE $url/v1/routes/$name")
+    RestClient.delete(s"$url/v1/routes/$name")
   }
 
   private def route(deployment: Deployment, cluster: DeploymentCluster, port: Port) =
@@ -60,7 +60,7 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   private def routeName(deployment: Deployment, cluster: DeploymentCluster, port: Port): String =
     s"${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(cluster)}$nameDelimiter${port.value.get}"
 
-  private def processable(name: String): Boolean = name.split(nameDelimiter).size == 4
+  private def processable(name: String): Boolean = name.split(nameDelimiter).size == 3
 
   private def nameMatcher(id: String): (Deployment, DeploymentCluster, Port) => Boolean = { (deployment: Deployment, cluster: DeploymentCluster, port: Port) => id == routeName(deployment, cluster, port) }
 

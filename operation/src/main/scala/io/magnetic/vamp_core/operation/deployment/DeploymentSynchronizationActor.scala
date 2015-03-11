@@ -95,7 +95,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
       case Some(cs) =>
         if (!matching(deploymentService, cs)) {
-          if(matchingScale(deploymentService, cs)) {
+          if (matchingScale(deploymentService, cs)) {
             ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers))
           } else {
             actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentService)
@@ -141,7 +141,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
         case None =>
           ProcessedService(Processed.RemoveFromPersistence, deploymentService)
         case Some(cs) =>
-          actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentService)
+          actorFor(ContainerDriverActor) ! ContainerDriverActor.Undeploy(deployment, deploymentService)
           ProcessedService(Processed.Ignore, deploymentService)
       }
     } else {
@@ -150,13 +150,13 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   }
 
   private def containerService(deployment: Deployment, deploymentService: DeploymentService, containerServices: List[ContainerService]): Option[ContainerService] =
-    containerServices.find(cs => cs.matching(deployment, deploymentService.breed))
+    containerServices.find(_.matching(deployment, deploymentService.breed))
 
   private def matching(deploymentService: DeploymentService, containerService: ContainerService) =
     deploymentService.servers.size == containerService.servers.size && deploymentService.servers.forall(server => containerService.servers.exists(_.host == server.host))
 
   private def matchingScale(deploymentService: DeploymentService, containerService: ContainerService) =
-    // TODO check on cpu and memory as well
+  // TODO check on cpu and memory as well
     containerService.servers.size == deploymentService.scale.get.instances
 
   private def outOfSyncPorts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, clusterRoutes: List[ClusterRoute]): List[Port] = {
@@ -172,7 +172,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     deploymentService.servers.size == routeService.servers.size && deploymentService.servers.forall(server => routeService.servers.exists(_.host == server.host))
 
   private def clusterRouteService(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, port: Port, clusterRoutes: List[ClusterRoute]): Option[router_driver.Service] =
-    clusterRoutes.find(r => r.matching(deployment, deploymentCluster, port)) match {
+    clusterRoutes.find(_.matching(deployment, deploymentCluster, port)) match {
       case None => None
       case Some(route) => route.services.find(_.name == deploymentService.breed.name)
     }
@@ -191,7 +191,13 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
       case _ => Nil
     }).toSet
 
-    ports.foreach(port => actorFor(RouterDriverActor) ! RouterDriverActor.Update(deployment, processedCluster.cluster, port))
+    if (ports.nonEmpty) {
+      val cluster = processedCluster.cluster.copy(services = processedServices.filter(_.state != Processed.RemoveFromRoute).map(_.service))
+      if(cluster.services.nonEmpty)
+        ports.foreach(port => actorFor(RouterDriverActor) ! RouterDriverActor.Update(deployment, cluster, port))
+      else
+        ports.foreach(port => actorFor(RouterDriverActor) ! RouterDriverActor.Remove(deployment, cluster, port))
+    }
 
     processedCluster
   }

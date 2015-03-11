@@ -7,9 +7,9 @@ import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider, Fut
 import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.reader._
-import io.magnetic.vamp_core.model.serialization.{DeploymentSerializationFormat, BreedSerializationFormat, ArtifactSerializationFormat}
+import io.magnetic.vamp_core.model.serialization.{ArtifactSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
 import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
-import io.magnetic.vamp_core.operation.deployment.{DeploymentSynchronizationActor, DeploymentActor}
+import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor}
 import io.magnetic.vamp_core.operation.notification.InternalServerError
 import io.magnetic.vamp_core.persistence.PersistenceActor
 import io.magnetic.vamp_core.persistence.PersistenceActor.All
@@ -49,51 +49,53 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
   val route = noCachingAllowed {
     pathPrefix("sync") {
       complete(OK, sync())
+    } ~ pathPrefix("reset") {
+      complete(OK, reset())
     } ~
-    pathPrefix("api" / "v1") {
-      respondWithMediaType(`application/json`) {
-        path("docs") {
-          pathEndOrSingleSlash {
-            complete(OK, swagger)
-          }
-        } ~ path(Segment) { artifact: String =>
-          pathEndOrSingleSlash {
-            get {
-              onSuccess(allArtifacts(artifact)) {
-                complete(OK, _)
-              }
-            } ~ post {
-              entity(as[String]) { request =>
-                onSuccess(createArtifact(artifact, request)) {
-                  complete(Created, _)
+      pathPrefix("api" / "v1") {
+        respondWithMediaType(`application/json`) {
+          path("docs") {
+            pathEndOrSingleSlash {
+              complete(OK, swagger)
+            }
+          } ~ path(Segment) { artifact: String =>
+            pathEndOrSingleSlash {
+              get {
+                onSuccess(allArtifacts(artifact)) {
+                  complete(OK, _)
+                }
+              } ~ post {
+                entity(as[String]) { request =>
+                  onSuccess(createArtifact(artifact, request)) {
+                    complete(Created, _)
+                  }
                 }
               }
             }
-          }
-        } ~ path(Segment / Segment) { (artifact: String, name: String) =>
-          pathEndOrSingleSlash {
-            get {
-              rejectEmptyResponse {
-                onSuccess(readArtifact(artifact, name)) {
-                  complete(OK, _)
+          } ~ path(Segment / Segment) { (artifact: String, name: String) =>
+            pathEndOrSingleSlash {
+              get {
+                rejectEmptyResponse {
+                  onSuccess(readArtifact(artifact, name)) {
+                    complete(OK, _)
+                  }
                 }
-              }
-            } ~ put {
-              entity(as[String]) { request =>
-                onSuccess(updateArtifact(artifact, name, request)) {
-                  complete(OK, _)
+              } ~ put {
+                entity(as[String]) { request =>
+                  onSuccess(updateArtifact(artifact, name, request)) {
+                    complete(OK, _)
+                  }
                 }
-              }
-            } ~ delete {
-              entity(as[String]) { request => onSuccess(deleteArtifact(artifact, name, request)) {
-                _ => complete(NoContent)
-              }
+              } ~ delete {
+                entity(as[String]) { request => onSuccess(deleteArtifact(artifact, name, request)) {
+                  _ => complete(NoContent)
+                }
+                }
               }
             }
           }
         }
       }
-    }
   }
 }
 
@@ -104,6 +106,14 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     implicit val timeout = PersistenceActor.timeout
     offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
       case deployments: List[_] => actorFor(DeploymentSynchronizationActor) ! SynchronizeAll(deployments.asInstanceOf[List[Deployment]])
+      case any => error(InternalServerError(any))
+    }
+  }
+
+  def reset(): Unit = {
+    implicit val timeout = PersistenceActor.timeout
+    offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
+      case deployments: List[_] => deployments.asInstanceOf[List[Deployment]].foreach(deployment => actorFor(DeploymentActor) ! DeploymentActor.Delete(deployment.name, None))
       case any => error(InternalServerError(any))
     }
   }
