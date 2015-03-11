@@ -19,7 +19,7 @@
     "rate": 10000,
     "expiryTime": "10s"
   },
-  "groups": [
+  "services": [
     {
       "name": "group_a",
       "weight": 30,
