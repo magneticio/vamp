@@ -18,8 +18,13 @@ object RestClient {
     val HEAD, GET, POST, PUT, DELETE, PATCH, TRACE, OPTIONS = Value
   }
 
+  def delete(url: String)(implicit executor: ExecutionContext): Future[String] = Http(request(url, Method.DELETE) OK as.String)
+
+  private def request(url: String, method: Method.Value): Req =
+    dispatch.url(url).setMethod(method.toString).setHeader("Accept", "application/json").setHeader("Content-Type", "application/json")
+
   /**
-   * JSON REST API HTTP request + JSON 
+   * JSON REST API HTTP request + JSON
    *
    * @param request Request in format "[METHOD] URL", e.g. "GET https://api.github.com". By default method is GET.
    * @param body Request body. Will be serialized to JSON using default json4s format.
