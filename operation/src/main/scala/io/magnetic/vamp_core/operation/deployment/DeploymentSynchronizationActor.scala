@@ -87,7 +87,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
         dp <- deploymentService.breed.ports.map(_.value.get)
         sp <- server.ports
       } yield (dp,sp)
-      DeploymentServer(server.host, ports.toMap)
+      DeploymentServer(server.id, server.host, ports.toMap)
     }
 
     containerService(deployment, deploymentService, containerServices) match {

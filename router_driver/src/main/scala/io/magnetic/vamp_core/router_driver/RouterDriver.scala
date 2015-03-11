@@ -53,8 +53,12 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
     val weight = Math.round(100 / size)
 
     cluster.services.view.zipWithIndex.map { case (service, index) =>
-      router_driver.Service(s"${service.breed.name}", if (index == size - 1) 100 - index * weight else weight, service.servers.map(server => Server(server.host, server.host, port.value.get)))
+      router_driver.Service(s"${service.breed.name}", if (index == size - 1) 100 - index * weight else weight, service.servers.map(server(service, _, port)))
     }.toList
+  }
+
+  private def server(service: DeploymentService, server: DeploymentServer, port: Port) = {
+    Server(server.name, server.host, server.ports.get(port.value.get).get)
   }
 
   private def routeName(deployment: Deployment, cluster: DeploymentCluster, port: Port): String =
