@@ -147,13 +147,19 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   }
 
   private def collectParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
+    implicit val timeout = DictionaryActor.timeout
+    val host = offLoad(actorFor(DictionaryActor) ? DictionaryActor.Get(DictionaryActor.hostResolver)) match {
+      case h: String => h
+      case e => error(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
+    }
+
     deployment.copy(parameters = deployment.clusters.flatMap({ cluster =>
       cluster.services.flatMap({ service =>
         val breed = service.breed
         breed.ports.filter(_.direction == Trait.Direction.Out).map(out => out.name.copy(scope = Some(cluster.name), group = Some(Trait.Name.Group.Ports)) -> out.value.get) ++
           breed.environmentVariables.filter(_.direction == Trait.Direction.Out).map(out => out.name.copy(scope = Some(cluster.name), group = Some(Trait.Name.Group.EnvironmentVariables)) -> out.value.get)
       })
-    }).toMap ++ deployment.parameters)
+    }).toMap ++ deployment.parameters ++ deployment.clusters.map(cluster => Trait.Name(Some(cluster.name), None, Trait.host) -> host))
   }
 
   private def validateAll: (Deployment => Deployment) =

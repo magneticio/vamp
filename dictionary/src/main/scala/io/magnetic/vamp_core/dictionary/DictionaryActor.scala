@@ -20,6 +20,8 @@ object DictionaryActor extends ActorDescription {
   case class Get(key: String) extends DictionaryMessage
 
   def portAssignment = "vamp://routes/port?deployment=%s&port=%d"
+
+  def hostResolver = "vamp://routes/host"
 }
 
 case class DictionaryEntry(key: String, value: String)
@@ -28,10 +30,19 @@ class DictionaryActor extends Actor with ActorLogging with ActorSupport with Rep
 
   implicit val timeout = DictionaryActor.timeout
 
-  private val portAssignment = "^vamp:\\/\\/routes\\/port\\?deployment=(.*?)&port=(\\d*?)$".r
+  private val portAssignment = toRegExp(DictionaryActor.portAssignment)
   private val portRange = ConfigFactory.load().getString("deployment.dictionary.port.range").split("-").map(_.toInt)
   private var currentPort = portRange(0) - 1
+  private val hostResolver = toRegExp(DictionaryActor.hostResolver)
 
+  private def toRegExp(string: String) = {
+    val value = string.
+      replaceAllLiterally("/", "\\/").
+      replaceAllLiterally("?", "\\?").
+      replaceAllLiterally("%s", "(.*?)").
+      replaceAllLiterally("%d", "(\\d*?)")
+    s"^$value$$".r
+  }
   override protected def requestType: Class[_] = classOf[DictionaryMessage]
 
   override protected def errorRequest(request: Any): RequestError = UnsupportedDictionaryRequest(request)
@@ -53,6 +64,7 @@ class DictionaryActor extends Actor with ActorLogging with ActorSupport with Rep
         currentPort += 1
         currentPort
       }
+    case hostResolver(_*) => ConfigFactory.load().getString("deployment.router.host")
     case value => value
   }
 
