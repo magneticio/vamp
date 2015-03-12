@@ -1,13 +1,11 @@
 package io.magnetic.vamp_core.dictionary
 
-import java.net.URL
-
 import _root_.io.magnetic.vamp_common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.magnetic.vamp_core.dictionary.DictionaryActor.{DictionaryMessage, Get}
-import io.magnetic.vamp_core.dictionary.notification.{DictionaryNotificationProvider, UnsupportedDictionaryRequest}
+import io.magnetic.vamp_core.dictionary.notification.{DictionaryNotificationProvider, NoAvailablePortError, UnsupportedDictionaryRequest}
 
 import scala.concurrent.duration._
 
@@ -21,11 +19,18 @@ object DictionaryActor extends ActorDescription {
 
   case class Get(key: String) extends DictionaryMessage
 
+  def portAssignment = "vamp://routes/port?deployment=%s&port=%d"
 }
+
+case class DictionaryEntry(key: String, value: String)
 
 class DictionaryActor extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupportNotification with ActorExecutionContextProvider with DictionaryNotificationProvider {
 
   implicit val timeout = DictionaryActor.timeout
+
+  private val portAssignment = "^vamp:\\/\\/routes\\/port\\?deployment=(.*?)&port=(\\d*?)$".r
+  private val portRange = ConfigFactory.load().getString("deployment.dictionary.port.range").split("-").map(_.toInt)
+  private var currentPort = portRange(0) - 1
 
   override protected def requestType: Class[_] = classOf[DictionaryMessage]
 
@@ -33,10 +38,22 @@ class DictionaryActor extends Actor with ActorLogging with ActorSupport with Rep
 
   def reply(request: Any) = try {
     request match {
-      case Get(key) => 33000
+      case Get(key) => get(key)
       case _ => unsupported(request)
     }
   } catch {
     case e: Exception => e
   }
+
+  private def get(key: String) = key match {
+    case portAssignment(deployment, port) =>
+      if (currentPort == portRange(1))
+        exception(NoAvailablePortError(portRange(0), portRange(1)))
+      else {
+        currentPort += 1
+        currentPort
+      }
+    case value => value
+  }
+
 }

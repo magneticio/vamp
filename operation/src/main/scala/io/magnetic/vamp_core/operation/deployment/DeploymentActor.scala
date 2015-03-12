@@ -123,7 +123,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     cluster.copy(routes = cluster.services.map(_.breed).flatMap(_.ports).map(_.value.get).map(port => cluster.routes.get(port) match {
       case None =>
         implicit val timeout = DictionaryActor.timeout
-        val key = s"vamp://routes/port?deployment=${deployment.name}&port=$port"
+        val key = DictionaryActor.portAssignment.format(deployment.name, port)
         port -> (offLoad(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
           case number: Int => number
           case e => error(UnresolvedEnvironmentValueError(key, e))
