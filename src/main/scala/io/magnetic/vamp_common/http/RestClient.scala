@@ -36,7 +36,7 @@ object RestClient {
    * @return Response
    */
   def request[A](request: String, body: AnyRef = None, responsePath: String = "", jsonFieldTransformer: PartialFunction[JField, JField] = defaultJsonFieldTransformer)
-                (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A]): Future[A] = {
+                (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
 
     val method = Method.values.map(_.toString).find(method => request.startsWith(s"$method ")).getOrElse(Method.GET.toString)
     val url = if (request.startsWith(s"$method ")) request.substring(s"$method ".length) else request
@@ -49,7 +49,6 @@ object RestClient {
     val httpRequest = body match {
       case None => httpHeaders
       case anyRef =>
-        implicit val formats = DefaultFormats
         val body = write(anyRef)
         logger.trace(s"req [$request] - $body")
         httpHeaders.setBody(body)

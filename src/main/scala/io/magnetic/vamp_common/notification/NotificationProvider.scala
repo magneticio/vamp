@@ -2,6 +2,9 @@ package io.magnetic.vamp_common.notification
 
 import akka.actor.Actor
 import com.typesafe.scalalogging.Logger
+import io.magnetic.vamp_common.akka.ExecutionContextProvider
+import io.magnetic.vamp_common.pulse.PulseClient
+import io.magnetic.vamp_common.pulse.api.Event
 import org.slf4j.LoggerFactory
 
 
@@ -36,6 +39,38 @@ trait LoggingNotificationProvider extends NotificationProvider {
     }
 
     NotificationErrorException(notification, msg)
+  }
+}
+
+trait PulseNotificationProvider extends LoggingNotificationProvider with TagResolverProvider {
+  this: MessageResolverProvider =>
+
+  protected val url: String
+
+  private val client = new PulseClient(url)
+
+  override def info(notification: Notification): Unit = {
+    client.sendEvent(
+      Event(resolveTags(notification,List("info", "notification" )),
+        Map("value" ->
+          Map("message" -> message(notification), "notification" -> notification
+          )
+        )
+      )
+    )
+    super.info(notification)
+  }
+
+  override def exception(notification: Notification): Exception = {
+    client.sendEvent(
+      Event(resolveTags(notification, List("error", "notification")),
+        Map("value" ->
+          Map("message" -> message(notification), "notification" -> notification
+          )
+        )
+      )
+    )
+    super.exception(notification)
   }
 }
 
