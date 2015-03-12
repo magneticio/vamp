@@ -7,9 +7,8 @@ import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider, Fut
 import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.reader._
-import io.magnetic.vamp_core.model.serialization.{BlueprintSerializationFormat, ArtifactSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
-import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
-import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor}
+import io.magnetic.vamp_core.model.serialization.{ArtifactSerializationFormat, BlueprintSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
+import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentWatchdogActor}
 import io.magnetic.vamp_core.operation.notification.InternalServerError
 import io.magnetic.vamp_core.persistence.PersistenceActor
 import io.magnetic.vamp_core.persistence.PersistenceActor.All
@@ -25,7 +24,8 @@ import spray.httpx.marshalling.Marshaller
 import spray.routing.HttpServiceBase
 
 import scala.concurrent.Future
-import scala.language.existentials
+import scala.concurrent.duration._
+import scala.language.{existentials, postfixOps}
 
 trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerResponse {
   this: Actor with ExecutionContextProvider =>
@@ -103,19 +103,20 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
   this: Actor with ExecutionContextProvider =>
 
   def sync(): Unit = {
-    implicit val timeout = PersistenceActor.timeout
-    offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
-      case deployments: List[_] => actorFor(DeploymentSynchronizationActor) ! SynchronizeAll(deployments.asInstanceOf[List[Deployment]])
-      case any => error(InternalServerError(any))
-    }
+    actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(1)
+    context.system.scheduler.scheduleOnce(5 seconds, new Runnable {
+      def run() = actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(0)
+    })
   }
 
   def reset(): Unit = {
     implicit val timeout = PersistenceActor.timeout
     offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
-      case deployments: List[_] => deployments.asInstanceOf[List[Deployment]].foreach(deployment => actorFor(DeploymentActor) ! DeploymentActor.Delete(deployment.name, None))
+      case deployments: List[_] =>
+        deployments.asInstanceOf[List[Deployment]].foreach(deployment => actorFor(DeploymentActor) ! DeploymentActor.Delete(deployment.name, None))
       case any => error(InternalServerError(any))
     }
+    sync()
   }
 
   def allArtifacts(artifact: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
