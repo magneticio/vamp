@@ -52,10 +52,7 @@ trait PulseNotificationProvider extends LoggingNotificationProvider with TagReso
   override def info(notification: Notification): Unit = {
     client.sendEvent(
       Event(resolveTags(notification,List("info", "notification" )),
-        Map("value" ->
-          Map("message" -> message(notification), "notification" -> notification
-          )
-        )
+        Map("value"-> notification)
       )
     )
     super.info(notification)
@@ -64,10 +61,7 @@ trait PulseNotificationProvider extends LoggingNotificationProvider with TagReso
   override def exception(notification: Notification): Exception = {
     client.sendEvent(
       Event(resolveTags(notification, List("error", "notification")),
-        Map("value" ->
-          Map("message" -> message(notification), "notification" -> notification
-          )
-        )
+        Map("value"-> notification)
       )
     )
     super.exception(notification)
