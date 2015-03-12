@@ -36,6 +36,7 @@ trait LoggingNotificationProvider extends NotificationProvider {
         case reason: Throwable => logger.error(reason.getMessage, reason)
         case reason => logger.error(reason.toString)
       }
+      case _ =>
     }
 
     NotificationErrorException(notification, msg)

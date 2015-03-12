@@ -48,7 +48,9 @@ object RestClient {
       .setHeader("Content-Type", "application/json")
 
     val httpRequest = body match {
-      case None => httpHeaders
+      case None =>
+        logger.trace(s"req [$request]")
+        httpHeaders
       case anyRef =>
         val body = write(anyRef)
         logger.trace(s"req [$request] - $body")
