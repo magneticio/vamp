@@ -1,8 +1,8 @@
 package io.magnetic.vamp_core.container_driver.marathon.api
 
-case class CreatePortMappings(containerPort: Int, protocol: String = "tcp", hostPort: Int = 0)
+case class CreatePortMapping(containerPort: Int, protocol: String = "tcp", hostPort: Int = 0)
 
-case class CreateDocker(image: String, portMappings: List[CreatePortMappings], network: String = "BRIDGE")
+case class CreateDocker(image: String, portMappings: List[CreatePortMapping], network: String = "BRIDGE")
 
 case class CreateContainer(docker: CreateDocker, `type`: String = "DOCKER")
 

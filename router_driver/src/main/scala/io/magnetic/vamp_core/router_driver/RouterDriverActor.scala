@@ -42,6 +42,6 @@ class RouterDriverActor(driver: RouterDriver) extends Actor with ActorLogging wi
       case _ => unsupported(request)
     }
   } catch {
-    case e: Exception => e
+    case e: Exception => exception(RouterResponseError(e))
   }
 }

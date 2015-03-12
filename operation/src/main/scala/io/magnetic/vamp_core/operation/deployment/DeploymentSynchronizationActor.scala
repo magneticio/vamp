@@ -97,7 +97,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
             case None => false
             case Some(service) => service.state.isInstanceOf[DeploymentService.Deployed]
           }
-        })) actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentService)
+        })) actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService)
 
         ProcessedService(Processed.Ignore, deploymentService)
 
@@ -106,7 +106,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
           if (matchingScale(deploymentService, cs)) {
             ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers.map(convert)))
           } else {
-            actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentService)
+            actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService)
             ProcessedService(Processed.Ignore, deploymentService)
           }
         } else {
