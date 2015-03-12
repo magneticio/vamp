@@ -9,7 +9,7 @@ trait PulseClientProvider {
   protected val url: String
 
   lazy protected val client = {
-    require(url != null)
+    require(url != null && url.contains("http"))
     new PulseClient(url)
   }
 }
