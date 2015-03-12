@@ -21,13 +21,20 @@
         <scala-logging.version>3.1.0</scala-logging.version>
         <scala.version>2.11</scala.version>
         <maven-scala-plugin.version>2.15.2</maven-scala-plugin.version>
+        <akka.version>2.3.9</akka.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_2.11</artifactId>
-            <version>2.3.9</version>
+            <version>${akka.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-testkit_2.11</artifactId>
+            <version>${akka.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>commons-cli</groupId>

@@ -42,11 +42,11 @@ class DefaultPulseNotificationActor(override protected val url: String) extends 
 
 }
 
-abstract class AbstractPulseNotificationActor(protected val url: String) extends Actor with NotificationActor with TagResolverProvider with PulseClientProvider {
+abstract class AbstractPulseNotificationActor(override protected val url: String) extends Actor with NotificationActor with TagResolverProvider with PulseClientProvider {
   override def error(notification: Notification, message: String): Unit = {
     client.sendEvent(
       Event(resolveTags(notification,List("info", "notification" )),
-        Map("value"-> notification)
+        Map("object" -> Map( notification.getClass.getCanonicalName -> notification))
       )
     )
   }
@@ -54,7 +54,7 @@ abstract class AbstractPulseNotificationActor(protected val url: String) extends
   override def info(notification: Notification, message: String): Unit = {
     client.sendEvent(
       Event(resolveTags(notification,List("error", "notification" )),
-        Map("value"-> notification)
+        Map("object" -> Map( notification.getClass.getCanonicalName -> notification))
       )
     )
   }

@@ -7,6 +7,8 @@ import io.magnetic.vamp_common.pulse.{PulseClientProvider, PulseClient}
 import io.magnetic.vamp_common.pulse.api.Event
 import org.slf4j.LoggerFactory
 
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 trait NotificationProvider {
   def message(notification: Notification): String
@@ -49,7 +51,7 @@ trait PulseLoggingNotificationProvider extends LoggingNotificationProvider with 
   override def info(notification: Notification): Unit = {
     client.sendEvent(
       Event(resolveTags(notification,List("info", "notification" )),
-        Map("value"-> notification)
+        Map("object" -> Map( notification.getClass.getCanonicalName -> notification))
       )
     )
     super.info(notification)
@@ -58,7 +60,7 @@ trait PulseLoggingNotificationProvider extends LoggingNotificationProvider with 
   override def exception(notification: Notification): Exception = {
     client.sendEvent(
       Event(resolveTags(notification, List("error", "notification")),
-        Map("value"-> notification)
+        Map("object" -> Map( notification.getClass.getCanonicalName -> notification))
       )
     )
     super.exception(notification)
