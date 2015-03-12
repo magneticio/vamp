@@ -97,7 +97,9 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
             case None => false
             case Some(service) => service.state.isInstanceOf[DeploymentService.Deployed]
           }
-        })) actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService)
+        })) {
+          actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService)
+        }
 
         ProcessedService(Processed.Ignore, deploymentService)
 
@@ -188,7 +190,15 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   private def processServiceResults(deployment: Deployment, deploymentCluster: DeploymentCluster, clusterRoutes: List[ClusterRoute], processedServices: List[ProcessedService]): ProcessedCluster = {
 
     val processedCluster = if (processedServices.exists(s => s.state == Processed.Persist || s.state == Processed.RemoveFromPersistence)) {
-      val dc = deploymentCluster.copy(services = processedServices.filter(_.state != Processed.RemoveFromPersistence).map(_.service))
+
+      val services = processedServices.filter(_.state != Processed.RemoveFromPersistence).map(_.service)
+
+      val parameters = processedServices.filter(ps => ps.state == Processed.Persist && ps.service.state.isInstanceOf[Deployed]).map(_.service.breed).flatMap(_.ports).map({ port =>
+        Trait.Name(Some(deploymentCluster.name), Some(Trait.Name.Group.Ports), port.name.value) -> deploymentCluster.routes.get(port.value.get).get
+      }).toMap ++ deploymentCluster.parameters
+
+      val dc = deploymentCluster.copy(services = services, parameters = parameters)
+
       ProcessedCluster(if (dc.services.isEmpty) Processed.RemoveFromPersistence else Processed.Persist, dc)
     } else {
       ProcessedCluster(Processed.Ignore, deploymentCluster)
