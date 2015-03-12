@@ -20,7 +20,7 @@ object ContainerDriverActor extends ActorDescription {
 
   object All extends ContainerDriveMessage
 
-  case class Deploy(deployment: Deployment, service: DeploymentService) extends ContainerDriveMessage
+  case class Deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) extends ContainerDriveMessage
 
   case class Undeploy(deployment: Deployment, service: DeploymentService) extends ContainerDriveMessage
 
@@ -37,12 +37,12 @@ class ContainerDriverActor(driver: ContainerDriver) extends Actor with ActorLogg
   def reply(request: Any) = try {
     request match {
       case All => offLoad(driver.all, classOf[ContainerResponseError])
-      case Deploy(deployment, DeploymentService(_, breed: DefaultBreed, Some(scale: DefaultScale), _, _)) => offLoad(driver.deploy(deployment, breed, scale), classOf[ContainerResponseError])
+      case Deploy(deployment, cluster, DeploymentService(_, breed: DefaultBreed, Some(scale: DefaultScale), _, _)) => offLoad(driver.deploy(deployment, cluster, breed, scale), classOf[ContainerResponseError])
       case Undeploy(deployment, service) => offLoad(driver.undeploy(deployment, service.breed), classOf[ContainerResponseError])
       case _ => unsupported(request)
     }
   } catch {
-    case e: Exception => e
+    case e: Exception => exception(ContainerResponseError(e))
   }
 }
 
