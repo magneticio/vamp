@@ -157,7 +157,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   }
 
   private def validateAll: (Deployment => Deployment) =
-    validateBreeds andThen validateEndpoints andThen validateValues
+    validateBreeds andThen validateEndpoints
 
   private def validateBreeds: (Deployment => Deployment) = { (deployment: Deployment) =>
     val breeds = deployment.clusters.flatMap(_.services).map(_.breed)
@@ -178,7 +178,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     deployment
   }
 
-  protected def validateEndpoints: (Deployment => Deployment) = { (deployment: Deployment) =>
+  private def validateEndpoints: (Deployment => Deployment) = { (deployment: Deployment) =>
     deployment.endpoints.find({
       case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), port), _) =>
         deployment.clusters.find(_.name == scope) match {
@@ -198,7 +198,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     deployment
   }
 
-  protected def validateParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
+  private def validateParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
     deployment.parameters.find({
       case (Trait.Name(Some(scope), Some(group), port), _) =>
         deployment.clusters.find(_.name == scope) match {
@@ -218,23 +218,10 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     deployment
   }
 
-  protected def validateValues: (Deployment => Deployment) = { (deployment: Deployment) =>
-    deployment.clusters.flatMap(_.services).flatMap(service => service.breed.inTraits.map(service.breed -> _)).find({ case (breed, in) =>
-      in.value match {
-        case None => deployment.parameters.find({
-          case (Trait.Name(Some(scope), Some(group), port), _) => true
-          case _ => true
-        }).isEmpty
-        case _ => false
-      }
-    }).flatMap {
-      case (breed, in) => error(UnresolvedVariableValueError(breed, in.name))
-    }
+  private def resolveParameters: (Deployment => Deployment) =
+    resolveRouteMapping andThen resolveLocalVariables
 
-    deployment
-  }
-
-  private def resolveParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
+  private def resolveRouteMapping: (Deployment => Deployment) = { (deployment: Deployment) =>
     deployment.copy(clusters = deployment.clusters.map({ cluster =>
       cluster.copy(routes = cluster.services.map(_.breed).flatMap(_.ports).map(_.value.get).map(port => cluster.routes.get(port) match {
         case None =>
@@ -246,6 +233,29 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
           })
         case Some(number) => port -> number
       }).toMap)
+    }))
+  }
+
+  private def resolveLocalVariables: (Deployment => Deployment) = { (deployment: Deployment) =>
+    deployment.copy(clusters = deployment.clusters.map({ cluster => cluster.copy(parameters = cluster.services.map(_.breed).flatMap({ breed =>
+      breed.ports.filter(_.direction == Trait.Direction.In).map({ port =>
+        port.name.copy(scope = Some(cluster.name), group = Some(Trait.Name.Group.Ports)) -> (deployment.parameters.find({
+          case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == cluster.name && value == port.name.value => true
+          case _ => false
+        }) match {
+          case None => error(UnresolvedVariableValueError(breed, port.name))
+          case Some(parameter) => parameter._2
+        })
+      }) ++ breed.environmentVariables.filter(_.direction == Trait.Direction.In).map({ ev =>
+        ev.name.copy(scope = Some(cluster.name), group = Some(Trait.Name.Group.EnvironmentVariables)) -> (deployment.parameters.find({
+          case (Trait.Name(Some(scope), Some(Trait.Name.Group.EnvironmentVariables), value), _) if scope == cluster.name && value == ev.name.value => true
+          case _ => false
+        }) match {
+          case None => error(UnresolvedVariableValueError(breed, ev.name))
+          case Some(parameter) => parameter._2
+        })
+      })
+    }).toMap)
     }))
   }
 
