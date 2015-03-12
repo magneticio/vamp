@@ -28,7 +28,7 @@ trait DeploymentState {
   def state: DeploymentService.State
 }
 
-case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints: Map[Trait.Name, String], parameters: Map[Trait.Name, String]) extends Blueprint
+case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints: Map[Trait.Name, Any], parameters: Map[Trait.Name, Any]) extends Blueprint
 
 case class DeploymentCluster(name: String, services: List[DeploymentService], sla: Option[Sla], routes: Map[Int, Int] = Map()) extends AbstractCluster
 

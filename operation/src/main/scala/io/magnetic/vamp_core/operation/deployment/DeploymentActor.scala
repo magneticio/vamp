@@ -6,6 +6,8 @@ import _root_.io.magnetic.vamp_common.akka._
 import _root_.io.magnetic.vamp_core.dictionary.DictionaryActor
 import _root_.io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import _root_.io.magnetic.vamp_core.model.artifact._
+import _root_.io.magnetic.vamp_core.model.notification.{UnresolvedEndpointPortError, UnresolvedParameterError}
+import _root_.io.magnetic.vamp_core.model.reader.BreedReader
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentActor.{Create, Delete, DeploymentMessages, Update}
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import _root_.io.magnetic.vamp_core.operation.notification._
@@ -16,7 +18,7 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 
-import scala.language.existentials
+import scala.language.{existentials, postfixOps}
 import scala.reflect._
 
 object DeploymentActor extends ActorDescription {
@@ -72,7 +74,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     val endpoints = blueprint.endpoints ++ deployment.endpoints
     val parameters = blueprint.parameters ++ deployment.parameters
 
-    commit(Deployment(deployment.name, clusters, endpoints, parameters))
+    (validateParameters andThen collectParameters andThen validateAll andThen resolveParameters andThen commit)(Deployment(deployment.name, clusters, endpoints, parameters))
   }
 
   private def mergeClusters(deployment: Deployment, blueprint: DefaultBlueprint): List[DeploymentCluster] = {
@@ -85,7 +87,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
       }
     }
 
-    deploymentClusters ++ resolveValues(deployment, blueprintClusters)
+    deploymentClusters ++ blueprintClusters
   }
 
   private def mergeServices(deploymentCluster: Option[DeploymentCluster], cluster: Cluster): List[DeploymentService] = {
@@ -119,19 +121,6 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     }
   }
 
-  private def resolveValues(deployment: Deployment, clusters: List[DeploymentCluster]): List[DeploymentCluster] = clusters.map({ cluster =>
-    cluster.copy(routes = cluster.services.map(_.breed).flatMap(_.ports).map(_.value.get).map(port => cluster.routes.get(port) match {
-      case None =>
-        implicit val timeout = DictionaryActor.timeout
-        val key = DictionaryActor.portAssignment.format(deployment.name, port)
-        port -> (offLoad(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
-          case number: Int => number
-          case e => error(UnresolvedEnvironmentValueError(key, e))
-        })
-      case Some(number) => port -> number
-    }).toMap)
-  })
-
   private def slice(deployment: Deployment, blueprint: Option[DefaultBlueprint]): Any = blueprint match {
     // TODO validation
     case None =>
@@ -149,7 +138,6 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   }
 
   private def commit(deployment: Deployment): Any = {
-    validate(deployment)
     persist(deployment) match {
       case persisted: Deployment =>
         actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
@@ -158,7 +146,20 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     }
   }
 
-  private def validate(deployment: Deployment) = {
+  private def collectParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
+    deployment.copy(parameters = deployment.clusters.flatMap({ cluster =>
+      cluster.services.flatMap({ service =>
+        val breed = service.breed
+        breed.ports.filter(_.direction == Trait.Direction.Out).map(out => out.name.copy(scope = Some(cluster.name), group = Some(Trait.Name.Group.Ports)) -> out.value.get) ++
+          breed.environmentVariables.filter(_.direction == Trait.Direction.Out).map(out => out.name.copy(scope = Some(cluster.name), group = Some(Trait.Name.Group.EnvironmentVariables)) -> out.value.get)
+      })
+    }).toMap ++ deployment.parameters)
+  }
+
+  private def validateAll: (Deployment => Deployment) =
+    validateBreeds andThen validateEndpoints andThen validateValues
+
+  private def validateBreeds: (Deployment => Deployment) = { (deployment: Deployment) =>
     val breeds = deployment.clusters.flatMap(_.services).map(_.breed)
 
     breeds.groupBy(_.name.toString).collect {
@@ -171,6 +172,81 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
         dependency => error(UnresolvedDependencyError(breed, dependency))
       }
     }
+
+    breeds.foreach(BreedReader.validateNonRecursiveDependencies)
+
+    deployment
+  }
+
+  protected def validateEndpoints: (Deployment => Deployment) = { (deployment: Deployment) =>
+    deployment.endpoints.find({
+      case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), port), _) =>
+        deployment.clusters.find(_.name == scope) match {
+          case None => true
+          case Some(cluster) => cluster.services.find({
+            service => service.breed match {
+              case breed: DefaultBreed => breed.ports.exists(_.name.toString == port)
+              case _ => false
+            }
+          }).isEmpty
+        }
+      case _ => true
+    }).flatMap {
+      case (name, value) => error(UnresolvedEndpointPortError(name, value))
+    }
+
+    deployment
+  }
+
+  protected def validateParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
+    deployment.parameters.find({
+      case (Trait.Name(Some(scope), Some(group), port), _) =>
+        deployment.clusters.find(_.name == scope) match {
+          case None => true
+          case Some(cluster) => cluster.services.find({
+            service => service.breed match {
+              case breed: DefaultBreed => breed.inTraits.exists(_.name.toString == port)
+              case _ => false
+            }
+          }).isEmpty
+        }
+      case _ => true
+    }).flatMap {
+      case (name, value) => error(UnresolvedParameterError(name, value))
+    }
+
+    deployment
+  }
+
+  protected def validateValues: (Deployment => Deployment) = { (deployment: Deployment) =>
+    deployment.clusters.flatMap(_.services).flatMap(service => service.breed.inTraits.map(service.breed -> _)).find({ case (breed, in) =>
+      in.value match {
+        case None => deployment.parameters.find({
+          case (Trait.Name(Some(scope), Some(group), port), _) => true
+          case _ => true
+        }).isEmpty
+        case _ => false
+      }
+    }).flatMap {
+      case (breed, in) => error(UnresolvedVariableValueError(breed, in.name))
+    }
+
+    deployment
+  }
+
+  private def resolveParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
+    deployment.copy(clusters = deployment.clusters.map({ cluster =>
+      cluster.copy(routes = cluster.services.map(_.breed).flatMap(_.ports).map(_.value.get).map(port => cluster.routes.get(port) match {
+        case None =>
+          implicit val timeout = DictionaryActor.timeout
+          val key = DictionaryActor.portAssignment.format(deployment.name, port)
+          port -> (offLoad(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
+            case number: Int => number
+            case e => error(UnresolvedEnvironmentValueError(key, e))
+          })
+        case Some(number) => port -> number
+      }).toMap)
+    }))
   }
 
   private def persist(deployment: Deployment): Any = {
