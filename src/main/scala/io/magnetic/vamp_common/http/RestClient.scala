@@ -32,6 +32,7 @@ object RestClient {
    * @param jsonFieldTransformer Json field transformer.
    * @param executor Execution context
    * @param mf manifest
+   * @param formats Formats Json formats, has a default value, but could be implicitly overridden by whatever is in the context
    * @tparam A Response type
    * @return Response
    */
