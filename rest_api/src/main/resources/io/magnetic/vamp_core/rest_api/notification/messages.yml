@@ -1,4 +1,3 @@
-# Yaml Reader
 
 UnexpectedEndOfRequest  : "Unexpected end of the request."
 InconsistentArtifactName: "Inconsistent resource name: parameter is '{expected}' but in the request body found '{body}'."

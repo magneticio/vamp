@@ -46,7 +46,7 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   }
 
   private def route(deployment: Deployment, cluster: DeploymentCluster, port: Port) =
-    Route(routeName(deployment, cluster, port), 32000, if (port.isInstanceOf[HttpPort]) "http" else "tcp", Nil, None, None, services(deployment, cluster, port))
+    Route(routeName(deployment, cluster, port), cluster.routes.get(port.value.get).get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", Nil, None, None, services(deployment, cluster, port))
 
   private def services(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
     val size = cluster.services.size

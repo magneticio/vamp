@@ -176,20 +176,6 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     })
   }
 
-  private def outOfSyncRoutePortMapping(deployment: Deployment, deploymentCluster: DeploymentCluster, clusterRoutes: List[ClusterRoute]): Option[Map[Int, Int]] = {
-    val ports = deploymentCluster.services.map(_.breed).flatMap(_.ports).distinct.flatMap({ port =>
-      clusterRoutes.find(_.matching(deployment, deploymentCluster, port)) match {
-        case None => Nil
-        case Some(route) => deploymentCluster.routes.get(port.value.get) match {
-          case None => (port.value.get -> route.port) :: Nil
-          case Some(entry) => if (entry == route.port) Nil else (port.value.get -> route.port) :: Nil
-        }
-      }
-    }).toMap
-
-    if (ports.isEmpty) None else Some(ports)
-  }
-
   private def matching(deploymentService: DeploymentService, routeService: router_driver.Service) =
     deploymentService.servers.size == routeService.servers.size && deploymentService.servers.forall(server => routeService.servers.exists(_.host == server.host))
 
@@ -200,10 +186,9 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     }
 
   private def processServiceResults(deployment: Deployment, deploymentCluster: DeploymentCluster, clusterRoutes: List[ClusterRoute], processedServices: List[ProcessedService]): ProcessedCluster = {
-    val routeMappingUpdate = outOfSyncRoutePortMapping(deployment, deploymentCluster, clusterRoutes)
 
-    val processedCluster = if (processedServices.exists(s => s.state == Processed.Persist || s.state == Processed.RemoveFromPersistence) || routeMappingUpdate.isDefined) {
-      val dc = deploymentCluster.copy(services = processedServices.filter(_.state != Processed.RemoveFromPersistence).map(_.service), routes = routeMappingUpdate.getOrElse(deploymentCluster.routes))
+    val processedCluster = if (processedServices.exists(s => s.state == Processed.Persist || s.state == Processed.RemoveFromPersistence)) {
+      val dc = deploymentCluster.copy(services = processedServices.filter(_.state != Processed.RemoveFromPersistence).map(_.service))
       ProcessedCluster(if (dc.services.isEmpty) Processed.RemoveFromPersistence else Processed.Persist, dc)
     } else {
       ProcessedCluster(Processed.Ignore, deploymentCluster)

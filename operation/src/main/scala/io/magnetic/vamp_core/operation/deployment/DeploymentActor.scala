@@ -3,11 +3,12 @@ package io.magnetic.vamp_core.operation.deployment
 import java.util.UUID
 
 import _root_.io.magnetic.vamp_common.akka._
+import _root_.io.magnetic.vamp_core.dictionary.DictionaryActor
 import _root_.io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import _root_.io.magnetic.vamp_core.model.artifact._
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentActor.{Create, Delete, DeploymentMessages, Update}
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.Synchronize
-import _root_.io.magnetic.vamp_core.operation.notification.{NonUniqueBreedReferenceError, OperationNotificationProvider, UnresolvedDependencyError, UnsupportedDeploymentRequest}
+import _root_.io.magnetic.vamp_core.operation.notification._
 import _root_.io.magnetic.vamp_core.persistence.PersistenceActor
 import _root_.io.magnetic.vamp_core.persistence.notification.ArtifactNotFound
 import _root_.io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
@@ -84,7 +85,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
       }
     }
 
-    deploymentClusters ++ blueprintClusters
+    deploymentClusters ++ resolveValues(deployment, blueprintClusters)
   }
 
   private def mergeServices(deploymentCluster: Option[DeploymentCluster], cluster: Cluster): List[DeploymentService] = {
@@ -117,6 +118,19 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
       }
     }
   }
+
+  private def resolveValues(deployment: Deployment, clusters: List[DeploymentCluster]): List[DeploymentCluster] = clusters.map({ cluster =>
+    cluster.copy(routes = cluster.services.map(_.breed).flatMap(_.ports).map(_.value.get).map(port => cluster.routes.get(port) match {
+      case None =>
+        implicit val timeout = DictionaryActor.timeout
+        val key = s"vamp://routes/port?deployment=${deployment.name}&port=$port"
+        port -> (offLoad(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
+          case number: Int => number
+          case e => error(UnresolvedEnvironmentValueError(key, e))
+        })
+      case Some(number) => port -> number
+    }).toMap)
+  })
 
   private def slice(deployment: Deployment, blueprint: Option[DefaultBlueprint]): Any = blueprint match {
     // TODO validation
