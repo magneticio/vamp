@@ -73,7 +73,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       }).toList
     }
 
-    DefaultBlueprint(name, clusters, traitNameMapping("endpoints"), traitNameMapping("parameters"))
+    DefaultBlueprint(name, clusters, endpoints("endpoints"), traitNameMapping("parameters"))
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {
@@ -92,7 +92,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   }
 
   protected def validateEndpoints(blueprint: DefaultBlueprint): Unit = {
-    blueprint.endpoints.find({
+    blueprint.endpoints.map(port => port.name -> port.value).find({
       case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), port), _) =>
         blueprint.clusters.find(_.name == scope) match {
           case None => true
@@ -160,6 +160,14 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
         implicit val source = map.asInstanceOf[YamlObject]
         (Trait.Name.asName(name), <<![String](name))
     } toMap
+  }
+
+  protected def endpoints(path: YamlPath)(implicit source: YamlObject): List[Port] = <<?[YamlObject](path) match {
+    case None => Nil
+    case Some(map) => map.map({
+      case (name: String, value) =>
+        Port.toPort(Trait.Name.asName(name), None, Some(value.toString), Trait.Direction.Out)
+    }).toList.distinct
   }
 }
 

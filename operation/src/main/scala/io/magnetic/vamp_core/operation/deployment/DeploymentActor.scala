@@ -45,7 +45,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
 
   def reply(request: Any) = try {
     request match {
-      case Create(blueprint) => merge(Deployment(uuid, List(), Map(), Map()), asDefaultBlueprint(blueprint))
+      case Create(blueprint) => merge(Deployment(uuid, List(), Nil, Map()), asDefaultBlueprint(blueprint))
       case Update(name, blueprint) => merge(artifactFor[Deployment](name), asDefaultBlueprint(blueprint))
       case Delete(name, blueprint) => slice(artifactFor[Deployment](name), blueprint.flatMap { bp =>
         Some(asDefaultBlueprint(bp))
@@ -71,7 +71,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
 
   private def merge(deployment: Deployment, blueprint: DefaultBlueprint): Any = {
     val clusters = mergeClusters(deployment, blueprint)
-    val endpoints = blueprint.endpoints ++ deployment.endpoints
+    val endpoints = (blueprint.endpoints ++ deployment.endpoints).distinct
     val parameters = blueprint.parameters ++ deployment.parameters
 
     (validateParameters andThen collectParameters andThen validateAll andThen resolveParameters andThen commit)(Deployment(deployment.name, clusters, endpoints, parameters))
@@ -185,7 +185,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   }
 
   private def validateEndpoints: (Deployment => Deployment) = { (deployment: Deployment) =>
-    deployment.endpoints.find({
+    deployment.endpoints.map(port => port.name -> port.value).find({
       case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), port), _) =>
         deployment.clusters.find(_.name == scope) match {
           case None => true

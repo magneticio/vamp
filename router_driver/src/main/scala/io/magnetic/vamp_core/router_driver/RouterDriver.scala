@@ -11,6 +11,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 case class ClusterRoute(matching: (Deployment, DeploymentCluster, Port) => Boolean, port: Int, services: List[Service])
 
+case class EndpointRoute(matching: (Deployment,  Port) => Boolean, port: Int, services: List[Service])
+
 trait RouterDriver {
 
   def all: Future[List[ClusterRoute]]
@@ -18,6 +20,10 @@ trait RouterDriver {
   def update(deployment: Deployment, cluster: DeploymentCluster, port: Port): Future[Any]
 
   def remove(deployment: Deployment, cluster: DeploymentCluster, port: Port): Future[Any]
+
+  def update(deployment: Deployment, port: Port): Future[Any]
+
+  def remove(deployment: Deployment, port: Port): Future[Any]
 }
 
 class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDriver {
@@ -43,6 +49,12 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
     val name = routeName(deployment, cluster, port)
     logger.info(s"router remove: $name")
     RestClient.delete(s"$url/v1/routes/$name")
+  }
+
+  def remove(deployment: Deployment, port: Port) = Future {
+  }
+
+  def update(deployment: Deployment, port: Port) = Future {
   }
 
   private def route(deployment: Deployment, cluster: DeploymentCluster, port: Port) =

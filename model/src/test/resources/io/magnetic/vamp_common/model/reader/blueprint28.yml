@@ -1,7 +1,7 @@
 name: nomadic-frostbite
 
 parameters:
-  supersonic.port: $PORT
+  supersonic.port: 8080
 
 clusters:
   supersonic:

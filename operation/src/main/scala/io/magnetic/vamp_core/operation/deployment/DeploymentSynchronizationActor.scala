@@ -79,6 +79,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
       processServiceResults(deployment, deploymentCluster, clusterRoutes, processedServices)
     }
     processClusterResults(deployment, processedClusters)
+    updateEndpoints(deployment, clusterRoutes)
   }
 
   private def readyForDeployment(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], clusterRoutes: List[ClusterRoute]): ProcessedService = {
@@ -221,7 +222,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     processedCluster
   }
 
-  private def processClusterResults(deployment: Deployment, processedCluster: List[ProcessedCluster]) =
+  private def processClusterResults(deployment: Deployment, processedCluster: List[ProcessedCluster]) = {
     if (processedCluster.exists(pc => pc.state == Processed.Persist || pc.state == Processed.RemoveFromPersistence)) {
       val d = deployment.copy(clusters = processedCluster.filter(_.state != Processed.RemoveFromPersistence).map(_.cluster))
       if (d.clusters.isEmpty)
@@ -229,4 +230,28 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
       else
         actorFor(PersistenceActor) ! PersistenceActor.Update(d)
     }
+  }
+
+  private def updateEndpoints(deployment: Deployment, routes: List[ClusterRoute]) = {
+    deployment.endpoints.foreach(port => port match {
+      case TcpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port, number)
+      case HttpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port, number)
+      case _ =>
+    })
+
+    def process(port: Port, number: Int) = {
+      deployment.clusters.find(_.name == port.name.scope.get) match {
+        case None =>
+          routes.find(_.port == number) match {
+            case None =>
+            case Some(route) => actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port)
+          }
+        case Some(cluster) =>
+          routes.find(_.port == number) match {
+            case None => actorFor(RouterDriverActor) ! RouterDriverActor.UpdateEndpoint(deployment, port)
+            case Some(route) =>
+          }
+      }
+    }
+  }
 }

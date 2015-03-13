@@ -5,7 +5,6 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.magnetic.vamp_core.model.artifact._
-import io.magnetic.vamp_core.router_driver.RouterDriverActor.{All, Remove, RouterDriveMessage, Update}
 import io.magnetic.vamp_core.router_driver.notification.{RouterDriverNotificationProvider, RouterResponseError, UnsupportedRouterDriverRequest}
 
 import scala.concurrent.duration._
@@ -22,11 +21,17 @@ object RouterDriverActor extends ActorDescription {
 
   case class Update(deployment: Deployment, cluster: DeploymentCluster, port: Port) extends RouterDriveMessage
 
+  case class UpdateEndpoint(deployment: Deployment, port: Port) extends RouterDriveMessage
+
   case class Remove(deployment: Deployment, cluster: DeploymentCluster, port: Port) extends RouterDriveMessage
+
+  case class RemoveEndpoint(deployment: Deployment, port: Port) extends RouterDriveMessage
 
 }
 
 class RouterDriverActor(driver: RouterDriver) extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupportNotification with ActorExecutionContextProvider with RouterDriverNotificationProvider {
+
+  import io.magnetic.vamp_core.router_driver.RouterDriverActor._
 
   implicit val timeout = RouterDriverActor.timeout
 
@@ -39,6 +44,8 @@ class RouterDriverActor(driver: RouterDriver) extends Actor with ActorLogging wi
       case All => offLoad(driver.all, classOf[RouterResponseError])
       case Update(deployment, cluster, port) => offLoad(driver.update(deployment, cluster, port), classOf[RouterResponseError])
       case Remove(deployment, cluster, port) => offLoad(driver.remove(deployment, cluster, port), classOf[RouterResponseError])
+      case UpdateEndpoint(deployment, port) => offLoad(driver.update(deployment, port), classOf[RouterResponseError])
+      case RemoveEndpoint(deployment, port) => offLoad(driver.remove(deployment, port), classOf[RouterResponseError])
       case _ => unsupported(request)
     }
   } catch {

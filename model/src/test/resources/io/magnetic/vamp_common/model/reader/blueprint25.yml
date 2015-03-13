@@ -1,7 +1,7 @@
 name: nomadic-frostbite
 
 endpoints:
-  supersonic.ports.http: $PORT
+  supersonic.ports.http: 8080
 
 clusters:
   supersonic:
