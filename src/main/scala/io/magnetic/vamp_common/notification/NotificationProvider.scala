@@ -1,14 +1,10 @@
 package io.magnetic.vamp_common.notification
 
-import akka.actor.{ActorRef, Actor}
+import akka.actor.{Actor, ActorRef}
 import com.typesafe.scalalogging.Logger
-import io.magnetic.vamp_common.akka.ExecutionContextProvider
-import io.magnetic.vamp_common.pulse.{PulseClientProvider, PulseClient}
+import io.magnetic.vamp_common.pulse.PulseClientProvider
 import io.magnetic.vamp_common.pulse.api.Event
 import org.slf4j.LoggerFactory
-
-import scala.concurrent.Await
-import scala.concurrent.duration._
 
 trait NotificationProvider {
   def message(notification: Notification): String

@@ -1,9 +1,6 @@
 package io.magnetic.vamp_common.notification
 
-import akka.actor.Actor.Receive
-import akka.actor.{Props, Actor, ActorRef, ActorSystem}
-import akka.testkit.TestKit
-import org.scalatest.{Matchers, WordSpecLike, FlatSpec}
+import org.scalatest.{Matchers, WordSpecLike}
 
 case class TestNotification(id: Int, name: String) extends Notification
 

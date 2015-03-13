@@ -2,11 +2,11 @@ package io.magnetic.vamp_common.pulse
 
 import io.magnetic.vamp_common.http.RestClient
 import io.magnetic.vamp_common.json.Serializers
-import io.magnetic.vamp_common.pulse.api.{EventQuery, Event}
+import io.magnetic.vamp_common.pulse.api.{Event, EventQuery}
 import org.json4s.Formats
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 

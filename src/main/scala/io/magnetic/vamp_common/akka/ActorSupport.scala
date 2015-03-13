@@ -3,8 +3,6 @@ package io.magnetic.vamp_common.akka
 import akka.actor._
 import io.magnetic.vamp_common.text.Text
 
-import scala.collection.immutable
-
 trait ActorDescription {
   def props(args: Any*): Props
 

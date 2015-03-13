@@ -1,7 +1,5 @@
 package io.magnetic.vamp_common.pulse
 
-import io.magnetic.vamp_common.json.Serializers
-
 /**
  * Created by lazycoder on 12/03/15.
  */

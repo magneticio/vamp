@@ -1,6 +1,6 @@
 package io.magnetic.vamp_common.notification
 
-import akka.actor.{Actor, AbstractLoggingActor, Props}
+import akka.actor.{AbstractLoggingActor, Actor, Props}
 import io.magnetic.vamp_common.pulse.PulseClientProvider
 import io.magnetic.vamp_common.pulse.api.Event
 
