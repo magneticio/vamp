@@ -41,24 +41,16 @@ trait LoggingNotificationProvider extends NotificationProvider {
   }
 }
 
-trait PulseLoggingNotificationProvider extends LoggingNotificationProvider with TagResolverProvider with PulseClientProvider {
+trait PulseLoggingNotificationProvider extends LoggingNotificationProvider with TagResolverProvider with PulseClientProvider with DefaultNotificationEventFormatter {
   this: MessageResolverProvider =>
 
   override def info(notification: Notification): Unit = {
-    client.sendEvent(
-      Event(resolveTags(notification,List("info", "notification" )),
-        Map("object" -> Map( notification.getClass.getCanonicalName -> notification))
-      )
-    )
+    client.sendEvent(formatNotification(notification, List("notification", "info")))
     super.info(notification)
   }
 
   override def exception(notification: Notification): Exception = {
-    client.sendEvent(
-      Event(resolveTags(notification, List("error", "notification")),
-        Map("object" -> Map( notification.getClass.getCanonicalName -> notification))
-      )
-    )
+    client.sendEvent(formatNotification(notification, List("notification", "error")))
     super.exception(notification)
   }
 }
