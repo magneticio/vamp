@@ -1,7 +1,7 @@
 package io.magnetic.vamp_core.bootstrap
 
 import akka.actor._
-import io.magnetic.vamp_core.container_driver.ContainerDriverBootstrap
+import io.magnetic.vamp_core.container_driver.{PulseDriverBootstrap, ContainerDriverBootstrap}
 import io.magnetic.vamp_core.dictionary.DictionaryBootstrap
 import io.magnetic.vamp_core.operation.OperationBootstrap
 import io.magnetic.vamp_core.persistence.PersistenceBootstrap
@@ -18,6 +18,7 @@ object VampCore extends App {
   DictionaryBootstrap.run
   ContainerDriverBootstrap.run
   RouterDriverBootstrap.run
+  PulseDriverBootstrap.run
   OperationBootstrap.run
   RestApiBootstrap.run
 }

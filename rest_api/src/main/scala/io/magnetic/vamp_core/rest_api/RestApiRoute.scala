@@ -10,6 +10,7 @@ import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.model.serialization.{ArtifactSerializationFormat, BlueprintSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
 import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentWatchdogActor}
 import io.magnetic.vamp_core.operation.notification.InternalServerError
+import io.magnetic.vamp_core.operation.sla.SlaMonitorActor
 import io.magnetic.vamp_core.persistence.PersistenceActor
 import io.magnetic.vamp_core.persistence.PersistenceActor.All
 import io.magnetic.vamp_core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
@@ -49,6 +50,8 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
   val route = noCachingAllowed {
     pathPrefix("sync") {
       complete(OK, sync())
+    } ~ pathPrefix("sla") {
+      complete(OK, sla())
     } ~ pathPrefix("reset") {
       complete(OK, reset())
     } ~
@@ -106,6 +109,13 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(1)
     context.system.scheduler.scheduleOnce(5 seconds, new Runnable {
       def run() = actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(0)
+    })
+  }
+
+  def sla(): Unit = {
+    actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(1)
+    context.system.scheduler.scheduleOnce(5 seconds, new Runnable {
+      def run() = actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(0)
     })
   }
 

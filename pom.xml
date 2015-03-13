@@ -14,6 +14,7 @@
         <module>persistence</module>
         <module>container_driver</module>
         <module>router_driver</module>
+        <module>pulse_driver</module>
         <module>rest_api</module>
         <module>operation</module>
         <module>dictionary</module>

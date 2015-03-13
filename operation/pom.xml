@@ -42,6 +42,11 @@
             <artifactId>router_driver</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.magnetic.vamp-core</groupId>
+            <artifactId>pulse_driver</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

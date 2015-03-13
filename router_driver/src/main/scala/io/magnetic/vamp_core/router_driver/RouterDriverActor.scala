@@ -15,17 +15,17 @@ object RouterDriverActor extends ActorDescription {
 
   def props(args: Any*): Props = Props(classOf[RouterDriverActor], args: _*)
 
-  trait RouterDriveMessage
+  trait RouterDriverMessage
 
-  object All extends RouterDriveMessage
+  object All extends RouterDriverMessage
 
-  case class Update(deployment: Deployment, cluster: DeploymentCluster, port: Port) extends RouterDriveMessage
+  case class Update(deployment: Deployment, cluster: DeploymentCluster, port: Port) extends RouterDriverMessage
 
-  case class UpdateEndpoint(deployment: Deployment, port: Port) extends RouterDriveMessage
+  case class UpdateEndpoint(deployment: Deployment, port: Port) extends RouterDriverMessage
 
-  case class Remove(deployment: Deployment, cluster: DeploymentCluster, port: Port) extends RouterDriveMessage
+  case class Remove(deployment: Deployment, cluster: DeploymentCluster, port: Port) extends RouterDriverMessage
 
-  case class RemoveEndpoint(deployment: Deployment, port: Port) extends RouterDriveMessage
+  case class RemoveEndpoint(deployment: Deployment, port: Port) extends RouterDriverMessage
 
 }
 
@@ -35,7 +35,7 @@ class RouterDriverActor(driver: RouterDriver) extends Actor with ActorLogging wi
 
   implicit val timeout = RouterDriverActor.timeout
 
-  override protected def requestType: Class[_] = classOf[RouterDriveMessage]
+  override protected def requestType: Class[_] = classOf[RouterDriverMessage]
 
   override protected def errorRequest(request: Any): RequestError = UnsupportedRouterDriverRequest(request)
 
