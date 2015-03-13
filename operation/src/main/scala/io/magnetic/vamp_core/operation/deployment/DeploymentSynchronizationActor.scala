@@ -11,7 +11,7 @@ import io.magnetic.vamp_core.container_driver.{ContainerDriverActor, ContainerSe
 import io.magnetic.vamp_core.model.artifact.DeploymentService._
 import io.magnetic.vamp_core.operation.notification.OperationNotificationProvider
 import io.magnetic.vamp_core.persistence.PersistenceActor
-import io.magnetic.vamp_core.router_driver.{ClusterRoute, RouterDriverActor}
+import io.magnetic.vamp_core.router_driver.{ClusterRoute, DeploymentRoutes, EndpointRoute, RouterDriverActor}
 
 object DeploymentSynchronizationActor extends ActorDescription {
 
@@ -53,33 +53,32 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   private def synchronize(deployments: List[Deployment]) = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
 
-    val clusterRoutes = offLoad(actorFor(RouterDriverActor) ? RouterDriverActor.All).asInstanceOf[List[ClusterRoute]]
+    val deploymentRoutes = offLoad(actorFor(RouterDriverActor) ? RouterDriverActor.All).asInstanceOf[DeploymentRoutes]
     val containerServices = offLoad(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
 
-    deployments.foreach(synchronizeContainer(_, containerServices, clusterRoutes))
+    deployments.foreach(synchronizeContainer(_, containerServices, deploymentRoutes))
   }
 
-  private def synchronizeContainer(deployment: Deployment, containerServices: List[ContainerService], clusterRoutes: List[ClusterRoute]) = {
+  private def synchronizeContainer(deployment: Deployment, containerServices: List[ContainerService], deploymentRoutes: DeploymentRoutes) = {
     val processedClusters = deployment.clusters.map { deploymentCluster =>
       val processedServices = deploymentCluster.services.map { deploymentService =>
         deploymentService.state match {
           case ReadyForDeployment(initiated, _) =>
-            readyForDeployment(deployment, deploymentCluster, deploymentService, containerServices, clusterRoutes)
+            readyForDeployment(deployment, deploymentCluster, deploymentService, containerServices, deploymentRoutes.clusterRoutes)
 
           case Deployed(initiated, _) =>
-            deployed(deployment, deploymentCluster, deploymentService, containerServices, clusterRoutes)
+            deployed(deployment, deploymentCluster, deploymentService, containerServices, deploymentRoutes.clusterRoutes)
 
           case ReadyForUndeployment(initiated, _) =>
-            readyForUndeployment(deployment, deploymentCluster, deploymentService, containerServices, clusterRoutes)
+            readyForUndeployment(deployment, deploymentCluster, deploymentService, containerServices, deploymentRoutes.clusterRoutes)
 
           case _ =>
             ProcessedService(Processed.Ignore, deploymentService)
         }
       }
-      processServiceResults(deployment, deploymentCluster, clusterRoutes, processedServices)
+      processServiceResults(deployment, deploymentCluster, deploymentRoutes.clusterRoutes, processedServices)
     }
-    processClusterResults(deployment, processedClusters)
-    updateEndpoints(deployment, clusterRoutes)
+    processClusterResults(deployment, processedClusters, deploymentRoutes.endpointRoutes)
   }
 
   private def readyForDeployment(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], clusterRoutes: List[ClusterRoute]): ProcessedService = {
@@ -222,9 +221,10 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     processedCluster
   }
 
-  private def processClusterResults(deployment: Deployment, processedCluster: List[ProcessedCluster]) = {
+  private def processClusterResults(deployment: Deployment, processedCluster: List[ProcessedCluster], routes: List[EndpointRoute]) = {
     if (processedCluster.exists(pc => pc.state == Processed.Persist || pc.state == Processed.RemoveFromPersistence)) {
       val d = deployment.copy(clusters = processedCluster.filter(_.state != Processed.RemoveFromPersistence).map(_.cluster))
+      updateEndpoints(d, routes)
       if (d.clusters.isEmpty)
         actorFor(PersistenceActor) ! PersistenceActor.Delete(d.name, classOf[Deployment])
       else
@@ -232,7 +232,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     }
   }
 
-  private def updateEndpoints(deployment: Deployment, routes: List[ClusterRoute]) = {
+  private def updateEndpoints(deployment: Deployment, routes: List[EndpointRoute]) = {
     deployment.endpoints.foreach(port => port match {
       case TcpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port, number)
       case HttpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port, number)
@@ -240,17 +240,10 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     })
 
     def process(port: Port, number: Int) = {
-      deployment.clusters.find(_.name == port.name.scope.get) match {
-        case None =>
-          routes.find(_.port == number) match {
-            case None =>
-            case Some(route) => actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port)
-          }
-        case Some(cluster) =>
-          routes.find(_.port == number) match {
-            case None => actorFor(RouterDriverActor) ! RouterDriverActor.UpdateEndpoint(deployment, port)
-            case Some(route) =>
-          }
+      (deployment.clusters.find(_.name == port.name.scope.get), routes.find(_.matching(deployment, port))) match {
+        case (None, Some(route)) => actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port)
+        case (Some(cluster), None) => actorFor(RouterDriverActor) ! RouterDriverActor.UpdateEndpoint(deployment, port)
+        case _ =>
       }
     }
   }
