@@ -1,4 +1,4 @@
-package io.magnetic.vamp_core.container_driver.notification
+package io.magnetic.vamp_core.pulse_driver.notification
 
 import io.magnetic.vamp_common.akka.RequestError
 import io.magnetic.vamp_common.notification.{ErrorNotification, Notification}

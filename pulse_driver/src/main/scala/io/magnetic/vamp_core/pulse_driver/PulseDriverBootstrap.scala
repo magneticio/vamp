@@ -1,10 +1,9 @@
-package io.magnetic.vamp_core.container_driver
+package io.magnetic.vamp_core.pulse_driver
 
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 import io.magnetic.vamp_common.akka.{ActorSupport, Bootstrap}
-import io.magnetic.vamp_core.container_driver.notification.PulseDriverNotificationProvider
-import io.magnetic.vamp_core.pulse_driver.{PulseDriverActor, DefaultPulseDriver}
+import io.magnetic.vamp_core.pulse_driver.notification.PulseDriverNotificationProvider
 
 object PulseDriverBootstrap extends Bootstrap with PulseDriverNotificationProvider {
 

@@ -4,9 +4,9 @@ import _root_.io.magnetic.vamp_common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.magnetic.vamp_core.container_driver.notification.{PulseDriverNotificationProvider, PulseResponseError, UnsupportedPulseDriverRequest}
+import io.magnetic.vamp_core.pulse_driver.notification.{PulseDriverNotificationProvider, PulseResponseError, UnsupportedPulseDriverRequest}
 import io.magnetic.vamp_core.model.artifact.{Deployment, DeploymentCluster}
-import io.magnetic.vamp_core.pulse_driver.PulseDriverActor.{LastSlaEvent, PulseDriverMessage}
+import io.magnetic.vamp_core.pulse_driver.PulseDriverActor.{LastSlaEventTimestamp, PulseDriverMessage, ResponseTime}
 
 import scala.concurrent.duration._
 
@@ -18,7 +18,9 @@ object PulseDriverActor extends ActorDescription {
 
   trait PulseDriverMessage
 
-  case class LastSlaEvent(deployment: Deployment, cluster: DeploymentCluster) extends PulseDriverMessage
+  case class LastSlaEventTimestamp(deployment: Deployment, cluster: DeploymentCluster) extends PulseDriverMessage
+
+  case class ResponseTime(deployment: Deployment, cluster: DeploymentCluster, period: Int) extends PulseDriverMessage
 
 }
 
@@ -32,7 +34,8 @@ class PulseDriverActor(driver: PulseDriver) extends Actor with ActorLogging with
 
   def reply(request: Any) = try {
     request match {
-      case LastSlaEvent(deployment, cluster) => offLoad(driver.lastSlaEvent(deployment, cluster), classOf[PulseResponseError])
+      case LastSlaEventTimestamp(deployment, cluster) => offLoad(driver.lastSlaEventTimestamp(deployment, cluster), classOf[PulseResponseError])
+      case ResponseTime(deployment, cluster, period) => offLoad(driver.responseTime(deployment, cluster, period), classOf[PulseResponseError])
       case _ => unsupported(request)
     }
   } catch {

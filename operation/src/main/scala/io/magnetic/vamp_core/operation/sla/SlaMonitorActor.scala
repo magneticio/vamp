@@ -8,7 +8,9 @@ import io.magnetic.vamp_core.operation.notification.{InternalServerError, Operat
 import io.magnetic.vamp_core.operation.sla.SlaMonitorActor.Period
 import io.magnetic.vamp_core.persistence.PersistenceActor
 import io.magnetic.vamp_core.persistence.PersistenceActor.All
+import io.magnetic.vamp_core.pulse_driver.PulseDriverActor
 
+import scala.collection._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -45,7 +47,11 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
     deployments.foreach(deployment => {
       deployment.clusters.foreach(cluster =>
         cluster.sla match {
-          case Some(sla: DefaultSla) if sla.`type` == "response_time_sliding_window" => responseTimeSlidingWindow(deployment, cluster, sla)
+          case Some(sla: DefaultSla) if sla.`type` == "response_time_sliding_window" => try {
+            responseTimeSlidingWindow(deployment, cluster, sla)
+          } catch {
+            case e: Exception => exception(InternalServerError(e))
+          }
           case _ =>
         })
     })
@@ -53,5 +59,20 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
 
   private def responseTimeSlidingWindow(deployment: Deployment, cluster: DeploymentCluster, sla: DefaultSla) = {
     log.info(s"sla check for: ${deployment.name}/${cluster.name}")
+    for {
+      upper <- sla.parameters.get("threshold").flatMap(threshold => threshold.asInstanceOf[mutable.Map[String, Any]].get("upper"))
+      lower <- sla.parameters.get("threshold").flatMap(threshold => threshold.asInstanceOf[mutable.Map[String, Any]].get("lower"))
+      interval <- sla.parameters.get("threshold").flatMap(threshold => threshold.asInstanceOf[mutable.Map[String, Any]].get("window").flatMap(window => window.asInstanceOf[mutable.Map[String, Any]].get("interval")))
+      cooldown <- sla.parameters.get("threshold").flatMap(threshold => threshold.asInstanceOf[mutable.Map[String, Any]].get("window").flatMap(window => window.asInstanceOf[mutable.Map[String, Any]].get("cooldown")))
+    } yield {
+      implicit val timeout = PulseDriverActor.timeout
+      for {
+        timestamp <- actorFor(PulseDriverActor) ? PulseDriverActor.LastSlaEventTimestamp(deployment, cluster)
+        responseTime <- actorFor(PulseDriverActor) ? PulseDriverActor.ResponseTime(deployment, cluster, interval.asInstanceOf[Int])
+      } yield {
+        println(s"timestamp   : $timestamp")
+        println(s"responseTime: $responseTime")
+      }
+    }
   }
 }

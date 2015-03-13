@@ -6,3 +6,4 @@ UnresolvedDependencyError       : "Unresolved dependency '{dependency.name}' for
 DeploymentSynchronizationFailure: "Failure during deployment '{deployment.name}' synchronization: {exception}"
 UnresolvedVariableValueError    : "Unresolved value of variable '{name}' for breed '{breed.name}'."
 UnresolvedEnvironmentValueError : "Unresolved environment value: '{key}'."
+UnsupportedSlaType              : "Unsupported SLA type {`type`} for given parameters."

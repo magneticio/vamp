@@ -4,7 +4,7 @@ import io.magnetic.vamp_common.akka.RequestError
 import io.magnetic.vamp_common.notification.{ErrorNotification, Notification}
 import io.magnetic.vamp_core.model.artifact.{Trait, Breed, Deployment}
 
-case class InternalServerError(any: Any) extends Notification
+case class InternalServerError(reason: Any) extends Notification with ErrorNotification
 
 case class UnsupportedDeploymentRequest(request: Any) extends Notification with RequestError
 
@@ -17,3 +17,5 @@ case class DeploymentSynchronizationFailure(deployment: Deployment, exception: T
 case class UnresolvedVariableValueError(breed: Breed, name: Trait.Name) extends Notification
 
 case class UnresolvedEnvironmentValueError(key: String, reason: Any) extends Notification
+
+case class UnsupportedSlaType(`type`: String) extends Notification
