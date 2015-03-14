@@ -49,7 +49,7 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with Deploymen
           pathEndOrSingleSlash {
             complete(OK, swagger)
           }
-        } ~ deploymentRoute ~
+        } ~ deploymentRoutes ~
           path(Segment) { artifact: String =>
             pathEndOrSingleSlash {
               get {

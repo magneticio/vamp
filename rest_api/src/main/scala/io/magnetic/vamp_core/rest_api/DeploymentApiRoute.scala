@@ -28,50 +28,74 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
 
   implicit def timeout: Timeout
 
-  val deploymentRoute =
-    pathPrefix("sync") {
-      complete(OK, sync())
-    } ~ pathPrefix("sla") {
-      complete(OK, sla())
-    } ~ pathPrefix("reset") {
-      complete(OK, reset())
-    } ~
-      pathPrefix("deployments") {
-        pathEndOrSingleSlash {
-          get {
-            onSuccess(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) {
-              complete(OK, _)
-            }
-          } ~ post {
-            entity(as[String]) { request =>
-              onSuccess(createDeployment(request)) {
-                complete(Created, _)
-              }
-            }
-          }
-        } ~ path(Segment) { name: String =>
-          pathEndOrSingleSlash {
-            get {
-              rejectEmptyResponse {
-                onSuccess(actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])) {
-                  complete(OK, _)
-                }
-              }
-            } ~ put {
-              entity(as[String]) { request =>
-                onSuccess(updateDeployment(name, request)) {
-                  complete(OK, _)
-                }
-              }
-            } ~ delete {
-              entity(as[String]) { request => onSuccess(deleteDeployment(name, request)) {
-                _ => complete(NoContent)
-              }
-              }
-            }
+  private val helperRoutes = pathPrefix("sync") {
+    complete(OK, sync())
+  } ~ pathPrefix("sla") {
+    complete(OK, slaMonitor())
+  } ~ pathPrefix("reset") {
+    complete(OK, reset())
+  }
+
+
+  private val deploymentRoute = pathPrefix("deployments") {
+    pathEndOrSingleSlash {
+      get {
+        onSuccess(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) {
+          complete(OK, _)
+        }
+      } ~ post {
+        entity(as[String]) { request =>
+          onSuccess(createDeployment(request)) {
+            complete(Created, _)
           }
         }
       }
+    } ~ path(Segment) { name: String =>
+      pathEndOrSingleSlash {
+        get {
+          rejectEmptyResponse {
+            onSuccess(actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])) {
+              complete(OK, _)
+            }
+          }
+        } ~ put {
+          entity(as[String]) { request =>
+            onSuccess(updateDeployment(name, request)) {
+              complete(OK, _)
+            }
+          }
+        } ~ delete {
+          entity(as[String]) { request => onSuccess(deleteDeployment(name, request)) {
+            _ => complete(NoContent)
+          }
+          }
+        }
+      }
+    }
+  }
+
+  private val slaRoute =
+    path("deployments" / Segment / "clusters" / Segment / "sla") { (deployment: String, cluster: String) =>
+      pathEndOrSingleSlash {
+        get {
+          onSuccess(sla(deployment, cluster)) {
+            complete(OK, _)
+          }
+        } ~ (post | put) {
+          entity(as[String]) { request =>
+            onSuccess(slaUpdate(deployment, cluster, request)) {
+              complete(OK, _)
+            }
+          }
+        } ~ delete {
+          onSuccess(slaDelete(deployment, cluster)) {
+            _ => complete(NoContent)
+          }
+        }
+      }
+    }
+
+  val deploymentRoutes = helperRoutes ~ deploymentRoute ~ slaRoute
 }
 
 trait DeploymentApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
@@ -84,7 +108,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
     })
   }
 
-  def sla(): Unit = {
+  def slaMonitor(): Unit = {
     actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(1)
     context.system.scheduler.scheduleOnce(5 seconds, new Runnable {
       def run() = actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(0)
@@ -118,4 +142,30 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
 
   def deleteDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] =
     actorFor(DeploymentActor) ? DeploymentActor.Delete(name, if (request.isEmpty) None else Some(DeploymentBlueprintReader.readReferenceFromSource(request)))
+
+  def sla(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
+    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
+      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(_.sla))
+    }
+
+  def slaUpdate(deploymentName: String, clusterName: String, request: String)(implicit timeout: Timeout) =
+    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
+      result.asInstanceOf[Option[Deployment]].flatMap {
+        deployment => deployment.clusters.find(_.name == clusterName).flatMap { _ =>
+          val sla = Some(SlaReader.read(request))
+          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => if (cluster.name == clusterName) cluster.copy(sla = sla) else cluster)))
+          sla
+        }
+      }
+    }
+
+  def slaDelete(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
+    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
+      result.asInstanceOf[Option[Deployment]].flatMap {
+        deployment => deployment.clusters.find(_.name == clusterName).flatMap { _ =>
+          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => if (cluster.name == clusterName) cluster.copy(sla = None) else cluster)))
+          None
+        }
+      }
+    }
 }
