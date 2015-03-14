@@ -10,9 +10,9 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait PulseDriver {
 
-  def lastSlaEventTimestamp(deployment: Deployment, cluster: DeploymentCluster): Future[Any]
+  def lastSlaEventTimestamp(deployment: Deployment, cluster: DeploymentCluster): Future[OffsetDateTime]
 
-  def responseTime(deployment: Deployment, cluster: DeploymentCluster, period: Int): Future[Any]
+  def responseTime(deployment: Deployment, cluster: DeploymentCluster, period: Int): Future[Int]
 }
 
 class DefaultPulseDriver(ec: ExecutionContext, url: String) extends PulseDriver {

@@ -19,3 +19,5 @@ case class UnresolvedVariableValueError(breed: Breed, name: Trait.Name) extends 
 case class UnresolvedEnvironmentValueError(key: String, reason: Any) extends Notification
 
 case class UnsupportedSlaType(`type`: String) extends Notification
+
+case class UnsupportedEscalationType(`type`: String) extends Notification
