@@ -8,11 +8,7 @@ import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.model.serialization.{ArtifactSerializationFormat, BlueprintSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
-import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentWatchdogActor}
-import io.magnetic.vamp_core.operation.notification.InternalServerError
-import io.magnetic.vamp_core.operation.sla.SlaMonitorActor
 import io.magnetic.vamp_core.persistence.PersistenceActor
-import io.magnetic.vamp_core.persistence.PersistenceActor.All
 import io.magnetic.vamp_core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
 import io.magnetic.vamp_core.rest_api.swagger.SwaggerResponse
 import org.json4s.native.Serialization._
@@ -25,17 +21,16 @@ import spray.httpx.marshalling.Marshaller
 import spray.routing.HttpServiceBase
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
 
-trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerResponse {
+trait RestApiRoute extends HttpServiceBase with RestApiController with DeploymentApiRoute with SwaggerResponse {
   this: Actor with ExecutionContextProvider =>
 
   implicit def timeout: Timeout
 
   protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
 
-  private implicit val marshaller = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
+  implicit val marshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
     implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, BlueprintSerializationFormat, DeploymentSerializationFormat)
 
     val response = value match {
@@ -48,20 +43,14 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
   }
 
   val route = noCachingAllowed {
-    pathPrefix("sync") {
-      complete(OK, sync())
-    } ~ pathPrefix("sla") {
-      complete(OK, sla())
-    } ~ pathPrefix("reset") {
-      complete(OK, reset())
-    } ~
-      pathPrefix("api" / "v1") {
-        respondWithMediaType(`application/json`) {
-          path("docs") {
-            pathEndOrSingleSlash {
-              complete(OK, swagger)
-            }
-          } ~ path(Segment) { artifact: String =>
+    pathPrefix("api" / "v1") {
+      respondWithMediaType(`application/json`) {
+        path("docs") {
+          pathEndOrSingleSlash {
+            complete(OK, swagger)
+          }
+        } ~ deploymentRoute ~
+          path(Segment) { artifact: String =>
             pathEndOrSingleSlash {
               get {
                 onSuccess(allArtifacts(artifact)) {
@@ -76,103 +65,74 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with SwaggerRe
               }
             }
           } ~ path(Segment / Segment) { (artifact: String, name: String) =>
-            pathEndOrSingleSlash {
-              get {
-                rejectEmptyResponse {
-                  onSuccess(readArtifact(artifact, name)) {
-                    complete(OK, _)
-                  }
+          pathEndOrSingleSlash {
+            get {
+              rejectEmptyResponse {
+                onSuccess(readArtifact(artifact, name)) {
+                  complete(OK, _)
                 }
-              } ~ put {
-                entity(as[String]) { request =>
-                  onSuccess(updateArtifact(artifact, name, request)) {
-                    complete(OK, _)
-                  }
+              }
+            } ~ put {
+              entity(as[String]) { request =>
+                onSuccess(updateArtifact(artifact, name, request)) {
+                  complete(OK, _)
                 }
-              } ~ delete {
-                entity(as[String]) { request => onSuccess(deleteArtifact(artifact, name, request)) {
-                  _ => complete(NoContent)
-                }
-                }
+              }
+            } ~ delete {
+              entity(as[String]) { request => onSuccess(deleteArtifact(artifact, name, request)) {
+                _ => complete(NoContent)
+              }
               }
             }
           }
         }
       }
+    }
   }
 }
 
 trait RestApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
   this: Actor with ExecutionContextProvider =>
 
-  def sync(): Unit = {
-    actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(1)
-    context.system.scheduler.scheduleOnce(5 seconds, new Runnable {
-      def run() = actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(0)
-    })
-  }
-
-  def sla(): Unit = {
-    actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(1)
-    context.system.scheduler.scheduleOnce(5 seconds, new Runnable {
-      def run() = actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(0)
-    })
-  }
-
-  def reset(): Unit = {
-    implicit val timeout = PersistenceActor.timeout
-    offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
-      case deployments: List[_] =>
-        deployments.asInstanceOf[List[Deployment]].foreach(deployment => actorFor(DeploymentActor) ! DeploymentActor.Delete(deployment.name, None))
-      case any => error(InternalServerError(any))
-    }
-    sync()
-  }
-
   def allArtifacts(artifact: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(demux) => demux.all
+    case Some(controller) => controller.all
     case None => error(UnexpectedArtifact(artifact))
   }
 
   def createArtifact(artifact: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(demux) => demux.asInstanceOf[Demux[Artifact]].create(demux.unmarshall(content))
+    case Some(controller) => controller.asInstanceOf[PersistenceController[Artifact]].create(controller.unmarshall(content))
     case None => error(UnexpectedArtifact(artifact))
   }
 
   def readArtifact(artifact: String, name: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(demux) => demux.read(name)
+    case Some(controller) => controller.read(name)
     case None => error(UnexpectedArtifact(artifact))
   }
 
   def updateArtifact(artifact: String, name: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(demux) => demux.asInstanceOf[Demux[Artifact]].update(name, demux.unmarshall(content))
+    case Some(controller) => controller.asInstanceOf[PersistenceController[Artifact]].update(name, controller.unmarshall(content))
     case None => error(UnexpectedArtifact(artifact))
   }
 
   def deleteArtifact(artifact: String, name: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(demux) =>
+    case Some(controller) =>
       if (content.isEmpty)
-        demux.delete(name, None)
+        controller.delete(name, None)
       else
-        demux.asInstanceOf[Demux[Artifact]].delete(name, Some(demux.unmarshall(content)))
+        controller.asInstanceOf[PersistenceController[Artifact]].delete(name, Some(controller.unmarshall(content)))
     case None => error(UnexpectedArtifact(artifact))
   }
 
-  trait Demux[T <: Artifact] {
-    def unmarshall(content: String): T
+  private val mapping: Map[String, PersistenceController[_ <: Artifact]] = Map() +
+    ("breeds" -> new PersistenceController[Breed](classOf[Breed], BreedReader)) +
+    ("blueprints" -> new PersistenceController[Blueprint](classOf[Blueprint], BlueprintReader)) +
+    ("slas" -> new PersistenceController[Sla](classOf[Sla], SlaReader)) +
+    ("scales" -> new PersistenceController[Scale](classOf[Scale], ScaleReader)) +
+    ("escalations" -> new PersistenceController[Escalation](classOf[Escalation], EscalationReader)) +
+    ("routings" -> new PersistenceController[Routing](classOf[Routing], RoutingReader)) +
+    ("filters" -> new PersistenceController[Filter](classOf[Filter], FilterReader))
 
-    def all(implicit timeout: Timeout): Future[Any]
-
-    def create(artifact: T)(implicit timeout: Timeout): Future[Any]
-
-    def read(name: String)(implicit timeout: Timeout): Future[Any]
-
-    def update(name: String, artifact: T)(implicit timeout: Timeout): Future[Any]
-
-    def delete(name: String, artifact: Option[T])(implicit timeout: Timeout): Future[Any]
-  }
-
-  private class PersistenceDemux[T <: Artifact](`type`: Class[_ <: Artifact], unmarshaller: YamlReader[T]) extends Demux[T] {
+  private class PersistenceController[T <: Artifact](`type`: Class[_ <: Artifact], unmarshaller: YamlReader[T]) {
     def unmarshall(content: String) = unmarshaller.read(content)
 
     def all(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.All(`type`)
@@ -190,32 +150,4 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     def delete(name: String, artifact: Option[T])(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)
   }
 
-  private class DeploymentDemux() extends PersistenceDemux[Blueprint](classOf[Deployment], DeploymentBlueprintReader) with FutureSupport {
-    override def unmarshall(content: String) = DeploymentBlueprintReader.readReferenceFromSource(content)
-
-    override def create(blueprint: Blueprint)(implicit timeout: Timeout) = blueprint match {
-      case reference: BlueprintReference =>
-        actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint)
-
-      case defaultBlueprint: DefaultBlueprint =>
-        actorFor(PersistenceActor) ? PersistenceActor.Create(defaultBlueprint, ignoreIfExists = true)
-        actorFor(DeploymentActor) ? DeploymentActor.Create(defaultBlueprint)
-    }
-
-    override def update(name: String, blueprint: Blueprint)(implicit timeout: Timeout) =
-      actorFor(DeploymentActor) ? DeploymentActor.Update(name, blueprint.asInstanceOf[DefaultBlueprint])
-
-    override def delete(name: String, blueprint: Option[Blueprint])(implicit timeout: Timeout) =
-      actorFor(DeploymentActor) ? DeploymentActor.Delete(name, if (blueprint.isEmpty) None else Some(blueprint.asInstanceOf[DefaultBlueprint]))
-  }
-
-  private val mapping: Map[String, Demux[_ <: Artifact]] = Map() +
-    ("breeds" -> new PersistenceDemux[Breed](classOf[Breed], BreedReader)) +
-    ("blueprints" -> new PersistenceDemux[Blueprint](classOf[Blueprint], BlueprintReader)) +
-    ("slas" -> new PersistenceDemux[Sla](classOf[Sla], SlaReader)) +
-    ("scales" -> new PersistenceDemux[Scale](classOf[Scale], ScaleReader)) +
-    ("escalations" -> new PersistenceDemux[Escalation](classOf[Escalation], EscalationReader)) +
-    ("routings" -> new PersistenceDemux[Routing](classOf[Routing], RoutingReader)) +
-    ("filters" -> new PersistenceDemux[Filter](classOf[Filter], FilterReader)) +
-    ("deployments" -> new DeploymentDemux)
 }

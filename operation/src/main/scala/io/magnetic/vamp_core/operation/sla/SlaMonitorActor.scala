@@ -122,6 +122,7 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
         if (c.name == cluster.name)
           c.copy(services = c.services match {
             case head :: tail => head.copy(scale = scale, state = ReadyForDeployment()) :: tail
+            case Nil => Nil
           })
         else
           c
