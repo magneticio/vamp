@@ -127,7 +127,7 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
             }
           }
         } ~ delete {
-          onSuccess(routingDelete(deployment, cluster, breed)) {
+          onSuccess(routingDelete(deployment, cluster)) {
             _ => complete(NoContent)
           }
         }

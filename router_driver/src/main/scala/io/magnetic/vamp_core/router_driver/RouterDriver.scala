@@ -79,8 +79,26 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   }
 
   private def route(name: String, deployment: Deployment, cluster: Option[DeploymentCluster], port: Port) = cluster match {
-    case None => Route(name, port.value.get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", Nil, None, None, services(deployment, None, port))
-    case Some(c) => Route(name, c.routes.get(port.value.get).get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", Nil, None, None, services(deployment, cluster, port))
+    case None => Route(name, port.value.get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", filters(cluster), None, None, services(deployment, None, port))
+    case Some(c) => Route(name, c.routes.get(port.value.get).get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", filters(cluster), None, None, services(deployment, cluster, port))
+  }
+
+  private def filters(cluster: Option[DeploymentCluster]): List[Filter] = {
+    (cluster match {
+      case None => None
+      case Some(c) => c.services.flatMap { service =>
+        service.routing match {
+          case None => Nil
+          case Some(routing) => routing.filters.flatMap({
+            case filter: DefaultFilter => Filter(filter.name, filter.condition, s"${service.breed.name}") :: Nil
+            case _ => Nil
+          })
+        }
+      }
+    }) match {
+      case result: List[_] => result.asInstanceOf[List[Filter]]
+      case _ => Nil
+    }
   }
 
   private def services(deployment: Deployment, cluster: Option[DeploymentCluster], port: Port): List[Service] = cluster match {
