@@ -196,15 +196,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   private def processServiceResults(deployment: Deployment, deploymentCluster: DeploymentCluster, clusterRoutes: List[ClusterRoute], processedServices: List[ProcessedService]): ProcessedCluster = {
 
     val processedCluster = if (processedServices.exists(s => s.state == Processed.Persist || s.state == Processed.RemoveFromPersistence)) {
-
-      val services = processedServices.filter(_.state != Processed.RemoveFromPersistence).map(_.service)
-
-      val parameters = processedServices.filter(ps => ps.state == Processed.Persist && ps.service.state.isInstanceOf[Deployed]).map(_.service.breed).flatMap(_.ports).map({ port =>
-        Trait.Name(Some(deploymentCluster.name), Some(Trait.Name.Group.Ports), port.name.value) -> deploymentCluster.routes.get(port.value.get).get
-      }).toMap ++ deploymentCluster.parameters
-
-      val dc = deploymentCluster.copy(services = services, parameters = parameters)
-
+      val dc = deploymentCluster.copy(services = processedServices.filter(_.state != Processed.RemoveFromPersistence).map(_.service))
       ProcessedCluster(if (dc.services.isEmpty) Processed.RemoveFromPersistence else Processed.Persist, dc)
     } else {
       ProcessedCluster(Processed.Ignore, deploymentCluster)
@@ -227,10 +219,20 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     processedCluster
   }
 
-  private def processClusterResults(deployment: Deployment, processedCluster: List[ProcessedCluster], routes: List[EndpointRoute]) = {
-    if (processedCluster.exists(pc => pc.state == Processed.Persist || pc.state == Processed.RemoveFromPersistence)) {
-      val d = deployment.copy(clusters = processedCluster.filter(_.state != Processed.RemoveFromPersistence).map(_.cluster))
-      updateEndpoints(d, routes)
+  private def processClusterResults(deployment: Deployment, processedClusters: List[ProcessedCluster], routes: List[EndpointRoute]) = {
+    if (processedClusters.exists(pc => pc.state == Processed.Persist || pc.state == Processed.RemoveFromPersistence)) {
+
+      val clusters = processedClusters.filter(_.state != Processed.RemoveFromPersistence).map(_.cluster)
+
+      val parameters = deployment.parameters ++ processedClusters.filter(_.state == Processed.Persist).map(_.cluster).flatMap({ cluster =>
+        cluster.services.map(_.breed).flatMap(_.ports).map({ port =>
+          Trait.Name(Some(cluster.name), Some(Trait.Name.Group.Ports), port.name.value) -> cluster.routes.get(port.value.get).get
+        })
+      }).toMap
+
+      val d = deployment.copy(clusters = clusters, parameters = parameters)
+
+        updateEndpoints(d, routes)
       if (d.clusters.isEmpty)
         actorFor(PersistenceActor) ! PersistenceActor.Delete(d.name, classOf[Deployment])
       else

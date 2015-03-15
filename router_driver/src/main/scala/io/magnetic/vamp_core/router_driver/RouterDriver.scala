@@ -126,14 +126,10 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
         case _ => false
       })
     } yield (h, p) match {
-        case ((_, host: String), (_, clusterPort: Int)) =>
+        case ((_, host: String), (_, routePort: Int)) =>
           deployment.clusters.find(_.name == port.name.scope.get) match {
             case None => Nil
-            case Some(cluster) =>
-              cluster.routes.get(clusterPort) match {
-                case None => Nil
-                case Some(targetPort) => Server(s"${deployment.name}_${port.value.get}", host, targetPort) :: Nil
-              }
+            case Some(cluster) => Server(s"${deployment.name}_${port.value.get}", host, routePort) :: Nil
           }
         case _ => Nil
       }

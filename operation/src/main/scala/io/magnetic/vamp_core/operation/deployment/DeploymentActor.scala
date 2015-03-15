@@ -225,7 +225,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   }
 
   private def resolveParameters: (Deployment => Deployment) =
-    resolveRouteMapping andThen resolveLocalVariables
+    resolveRouteMapping andThen resolveGlobalVariables
 
   private def resolveRouteMapping: (Deployment => Deployment) = { (deployment: Deployment) =>
     deployment.copy(clusters = deployment.clusters.map({ cluster =>
@@ -242,7 +242,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     }))
   }
 
-  private def resolveLocalVariables: (Deployment => Deployment) = { (deployment: Deployment) =>
+  private def resolveGlobalVariables: (Deployment => Deployment) = { (deployment: Deployment) =>
 
     def copyPort(breed: Breed, port: Port, targetScope: String, dependencyScope: String) = {
       port.name.copy(scope = Some(targetScope), group = Some(Trait.Name.Group.Ports)) -> (deployment.parameters.find({
@@ -265,7 +265,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
       })
     }
 
-    deployment.copy(clusters = deployment.clusters.map({ cluster => cluster.copy(parameters = cluster.services.map(_.breed).flatMap({ breed =>
+    deployment.copy(parameters = deployment.clusters.flatMap(cluster => cluster.services.map(_.breed).flatMap({ breed =>
       breed.ports.filter(_.direction == Trait.Direction.In).map({ port =>
         port.name.scope match {
           case None => copyPort(breed, port, cluster.name, cluster.name)
@@ -283,8 +283,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
             copyEnvironmentVariable(breed, ev, d, dependencyScope)
         }
       })
-    }).toMap)
-    }))
+    })).toMap ++ deployment.parameters)
   }
 
   private def persist(deployment: Deployment): Any = {
