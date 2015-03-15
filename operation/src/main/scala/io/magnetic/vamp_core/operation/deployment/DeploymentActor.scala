@@ -225,7 +225,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   }
 
   private def resolveParameters: (Deployment => Deployment) =
-    resolveRouteMapping andThen resolveGlobalVariables
+    resolveRouteMapping andThen resolveGlobalVariables andThen resolveDependencyMapping
 
   private def resolveRouteMapping: (Deployment => Deployment) = { (deployment: Deployment) =>
     deployment.copy(clusters = deployment.clusters.map({ cluster =>
@@ -266,24 +266,29 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     }
 
     deployment.copy(parameters = deployment.clusters.flatMap(cluster => cluster.services.map(_.breed).flatMap({ breed =>
-      breed.ports.filter(_.direction == Trait.Direction.In).map({ port =>
+      breed.ports.filter(_.direction == Trait.Direction.In).flatMap({ port =>
         port.name.scope match {
-          case None => copyPort(breed, port, cluster.name, cluster.name)
-          case Some(d) =>
-            val dependency = breed.dependencies.get(d).get
-            val dependencyScope = deployment.clusters.find(cluster => cluster.services.exists(_.breed.name == dependency.name)).get.name
-            copyPort(breed, port, d, dependencyScope)
+          case None => copyPort(breed, port, cluster.name, cluster.name) :: Nil
+          case _ => Nil
         }
-      }) ++ breed.environmentVariables.filter(ev => ev.direction == Trait.Direction.In && ev.name.scope.isDefined).map({ ev =>
+      }) ++ breed.environmentVariables.filter(ev => ev.direction == Trait.Direction.In).flatMap({ ev =>
         ev.name.scope match {
-          case None => copyEnvironmentVariable(breed, ev, cluster.name, cluster.name)
-          case Some(d) =>
-            val dependency = breed.dependencies.get(d).get
-            val dependencyScope = deployment.clusters.find(cluster => cluster.services.exists(_.breed.name == dependency.name)).get.name
-            copyEnvironmentVariable(breed, ev, d, dependencyScope)
+          case None => copyEnvironmentVariable(breed, ev, cluster.name, cluster.name) :: Nil
+          case _ => Nil
         }
       })
     })).toMap ++ deployment.parameters)
+  }
+
+  private def resolveDependencyMapping: (Deployment => Deployment) = { (deployment: Deployment) =>
+    val dependencies = deployment.clusters.flatMap(cluster => cluster.services.map(service => (service.breed.name, cluster.name))).toMap
+    deployment.copy(clusters = deployment.clusters.map({ cluster =>
+      cluster.copy(services = cluster.services.map({ service =>
+        service.copy(dependencies = service.breed.dependencies.map({ case (name, breed) =>
+          (name, dependencies.get(breed.name).get)
+        }).toMap)
+      }))
+    }))
   }
 
   private def persist(deployment: Deployment): Any = {

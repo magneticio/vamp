@@ -231,8 +231,8 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
       }).toMap
 
       val d = deployment.copy(clusters = clusters, parameters = parameters)
+      updateEndpoints(d, routes)
 
-        updateEndpoints(d, routes)
       if (d.clusters.isEmpty)
         actorFor(PersistenceActor) ! PersistenceActor.Delete(d.name, classOf[Deployment])
       else
@@ -250,7 +250,9 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     def process(port: Port, number: Int) = {
       (deployment.clusters.find(_.name == port.name.scope.get), routes.find(_.matching(deployment, port))) match {
         case (None, Some(route)) => actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port)
-        case (Some(cluster), None) => actorFor(RouterDriverActor) ! RouterDriverActor.UpdateEndpoint(deployment, port)
+        case (Some(cluster), None) =>
+          println(deployment)
+          actorFor(RouterDriverActor) ! RouterDriverActor.UpdateEndpoint(deployment, port)
         case _ =>
       }
     }

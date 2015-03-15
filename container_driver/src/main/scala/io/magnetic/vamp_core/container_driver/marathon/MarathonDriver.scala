@@ -50,18 +50,27 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
   }
 
   private def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] = {
-    service.breed.environmentVariables.filter(_.direction == Trait.Direction.In).map({ ev =>
-      val name = ev.alias match {
-        case None => ev.name.value
-        case Some(alias) => alias
-      }
+    def matchParameter(ev: EnvironmentVariable, parameter: Trait.Name): Boolean = {
+      ev.name match {
+        case Trait.Name(None, None, value) =>
+          parameter.scope.isDefined && parameter.scope.get == cluster.name && parameter.group == Some(Trait.Name.Group.EnvironmentVariables) && parameter.value == value
 
-      val value = deployment.parameters.find({
-        case (Trait.Name(Some(scope), Some(Trait.Name.Group.EnvironmentVariables), v), _) if scope == cluster.name && v == ev.name.value => true
+        case Trait.Name(Some(scope), group, value) =>
+          parameter.scope == service.dependencies.get(scope) && parameter.group == group && parameter.value == value
+
         case _ => false
-      }).get._2
+      }
+    }
 
-      name -> value.asInstanceOf[String]
+    service.breed.environmentVariables.filter(_.direction == Trait.Direction.In).flatMap({ ev =>
+      deployment.parameters.find({ case (name, value) => matchParameter(ev, name)}) match {
+        case Some((name, value)) =>
+          (ev.alias match {
+            case None => ev.name.value
+            case Some(alias) => alias
+          }) -> value.toString :: Nil
+        case _ => Nil
+      }
     }).toMap
   }
 
