@@ -2,24 +2,25 @@ package io.magnetic.vamp_core.operation.deployment
 
 import _root_.io.magnetic.vamp_common.akka._
 import _root_.io.magnetic.vamp_core.model.artifact._
-import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import io.magnetic.vamp_core._
 import io.magnetic.vamp_core.container_driver.{ContainerDriverActor, ContainerServer, ContainerService}
 import io.magnetic.vamp_core.model.artifact.DeploymentService._
-import io.magnetic.vamp_core.operation.notification.OperationNotificationProvider
+import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
+import io.magnetic.vamp_core.operation.notification.{InternalServerError, OperationNotificationProvider}
 import io.magnetic.vamp_core.persistence.PersistenceActor
+import io.magnetic.vamp_core.persistence.PersistenceActor.All
 import io.magnetic.vamp_core.router_driver.{ClusterRoute, DeploymentRoutes, EndpointRoute, RouterDriverActor}
 
 object DeploymentSynchronizationActor extends ActorDescription {
 
   def props(args: Any*): Props = Props[DeploymentSynchronizationActor]
 
-  case class Synchronize(deployment: Deployment)
+  object SynchronizeAll
 
-  case class SynchronizeAll(deployments: List[Deployment])
+  case class Synchronize(deployment: Deployment)
 
 }
 
@@ -46,8 +47,13 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   private case class ProcessedCluster(state: Processed.State, cluster: DeploymentCluster)
 
   def receive: Receive = {
+    case SynchronizeAll =>
+      implicit val timeout = PersistenceActor.timeout
+      offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
+        case deployments: List[_] => synchronize(deployments.asInstanceOf[List[Deployment]])
+        case any => error(InternalServerError(any))
+      }
     case Synchronize(deployment) => synchronize(deployment :: Nil)
-    case SynchronizeAll(deployments) => synchronize(deployments)
   }
 
   private def synchronize(deployments: List[Deployment]) = {
