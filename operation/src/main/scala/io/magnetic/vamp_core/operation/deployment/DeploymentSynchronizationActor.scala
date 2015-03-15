@@ -241,18 +241,23 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   }
 
   private def updateEndpoints(deployment: Deployment, routes: List[EndpointRoute]) = {
-    deployment.endpoints.foreach(port => port match {
-      case TcpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port, number)
-      case HttpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port, number)
-      case _ =>
+    deployment.endpoints.foreach({ port => {
+      port match {
+        case TcpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port, number)
+        case HttpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port, number)
+        case _ =>
+      }
+    }
     })
 
     def process(port: Port, number: Int) = {
       (deployment.clusters.find(_.name == port.name.scope.get), routes.find(_.matching(deployment, port))) match {
-        case (None, Some(route)) => actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port)
+        case (None, Some(_)) =>
+          actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port)
+
         case (Some(cluster), None) =>
-          println(deployment)
-          actorFor(RouterDriverActor) ! RouterDriverActor.UpdateEndpoint(deployment, port)
+          cluster.routes.get(number).map(_ => actorFor(RouterDriverActor) ! RouterDriverActor.UpdateEndpoint(deployment, port))
+
         case _ =>
       }
     }
