@@ -4,6 +4,7 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.magnetic.vamp_core.model.artifact.DeploymentService.ReadyForDeployment
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentWatchdogActor}
@@ -95,7 +96,24 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
       }
     }
 
-  val deploymentRoutes = helperRoutes ~ deploymentRoute ~ slaRoute
+  private val scaleRoute =
+    path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "scale") { (deployment: String, cluster: String, breed: String) =>
+      pathEndOrSingleSlash {
+        get {
+          onSuccess(scale(deployment, cluster, breed)) {
+            complete(OK, _)
+          }
+        } ~ (post | put) {
+          entity(as[String]) { request =>
+            onSuccess(scaleUpdate(deployment, cluster, breed, request)) {
+              complete(OK, _)
+            }
+          }
+        }
+      }
+    }
+
+  val deploymentRoutes = helperRoutes ~ deploymentRoute ~ slaRoute ~ scaleRoute
 }
 
 trait DeploymentApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
@@ -165,6 +183,28 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
         deployment => deployment.clusters.find(_.name == clusterName).flatMap { _ =>
           actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => if (cluster.name == clusterName) cluster.copy(sla = None) else cluster)))
           None
+        }
+      }
+    }
+
+  def scale(deploymentName: String, clusterName: String, breedName: String)(implicit timeout: Timeout) =
+    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
+      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(cluster => cluster.services.find(_.breed.name == breedName)).flatMap(_.scale))
+    }
+
+  def scaleUpdate(deploymentName: String, clusterName: String, breedName: String, request: String)(implicit timeout: Timeout) =
+    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
+      result.asInstanceOf[Option[Deployment]].flatMap {
+        deployment => deployment.clusters.find(_.name == clusterName).flatMap {
+          cluster => cluster.services.find(_.breed.name == breedName).flatMap {
+            service =>
+              val scale = Some(ScaleReader.read(request) match {
+                case s: ScaleReference => offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(s.name, classOf[Scale])).asInstanceOf[DefaultScale]
+                case s: DefaultScale => s
+              })
+              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(scale = scale, state = ReadyForDeployment()))))))
+              scale
+          }
         }
       }
     }
