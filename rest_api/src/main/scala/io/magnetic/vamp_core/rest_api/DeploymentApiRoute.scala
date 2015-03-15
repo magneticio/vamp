@@ -113,7 +113,28 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
       }
     }
 
-  val deploymentRoutes = helperRoutes ~ deploymentRoute ~ slaRoute ~ scaleRoute
+  private val routingRoute =
+    path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "routing") { (deployment: String, cluster: String, breed: String) =>
+      pathEndOrSingleSlash {
+        get {
+          onSuccess(routing(deployment, cluster, breed)) {
+            complete(OK, _)
+          }
+        } ~ (post | put) {
+          entity(as[String]) { request =>
+            onSuccess(routingUpdate(deployment, cluster, breed, request)) {
+              complete(OK, _)
+            }
+          }
+        } ~ delete {
+          onSuccess(routingDelete(deployment, cluster, breed)) {
+            _ => complete(NoContent)
+          }
+        }
+      }
+    }
+
+  val deploymentRoutes = helperRoutes ~ deploymentRoute ~ slaRoute ~ scaleRoute ~ routingRoute
 }
 
 trait DeploymentApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
@@ -205,6 +226,38 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
               actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(scale = scale, state = ReadyForDeployment()))))))
               scale
           }
+        }
+      }
+    }
+
+  def routing(deploymentName: String, clusterName: String, breedName: String)(implicit timeout: Timeout) =
+    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
+      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(cluster => cluster.services.find(_.breed.name == breedName)).flatMap(_.routing))
+    }
+
+  def routingUpdate(deploymentName: String, clusterName: String, breedName: String, request: String)(implicit timeout: Timeout) =
+    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
+      result.asInstanceOf[Option[Deployment]].flatMap {
+        deployment => deployment.clusters.find(_.name == clusterName).flatMap {
+          cluster => cluster.services.find(_.breed.name == breedName).flatMap {
+            service =>
+              val routing = Some(RoutingReader.read(request) match {
+                case r: RoutingReference => offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(r.name, classOf[Routing])).asInstanceOf[DefaultRouting]
+                case r: DefaultRouting => r
+              })
+              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(routing = routing, state = ReadyForDeployment()))))))
+              routing
+          }
+        }
+      }
+    }
+
+  def routingDelete(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
+    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
+      result.asInstanceOf[Option[Deployment]].flatMap {
+        deployment => deployment.clusters.find(_.name == clusterName).flatMap { _ =>
+          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(routing = None, state = ReadyForDeployment()))))))
+          None
         }
       }
     }
