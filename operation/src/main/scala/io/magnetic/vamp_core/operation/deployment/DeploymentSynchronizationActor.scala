@@ -211,7 +211,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     if (ports.nonEmpty) {
       val cluster = processedCluster.cluster.copy(services = processedServices.filter(_.state != Processed.RemoveFromRoute).map(_.service))
       if (cluster.services.nonEmpty)
-        ports.foreach(port => actorFor(RouterDriverActor) ! RouterDriverActor.Update(deployment, cluster, port))
+        ports.foreach(port => actorFor(RouterDriverActor) ! RouterDriverActor.Create(deployment, cluster, port, update = clusterRoutes.exists(_.matching(deployment, deploymentCluster, port))))
       else
         ports.foreach(port => actorFor(RouterDriverActor) ! RouterDriverActor.Remove(deployment, cluster, port))
     }
@@ -256,7 +256,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
           actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port)
 
         case (Some(cluster), None) =>
-          cluster.routes.get(number).map(_ => actorFor(RouterDriverActor) ! RouterDriverActor.UpdateEndpoint(deployment, port))
+          cluster.routes.get(number).map(_ => actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false))
 
         case _ =>
       }

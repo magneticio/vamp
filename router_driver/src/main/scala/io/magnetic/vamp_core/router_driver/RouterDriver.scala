@@ -25,11 +25,11 @@ trait RouterDriver {
 
   def all: Future[DeploymentRoutes]
 
-  def update(deployment: Deployment, cluster: DeploymentCluster, port: Port): Future[Any]
+  def create(deployment: Deployment, cluster: DeploymentCluster, port: Port, update: Boolean): Future[Any]
 
   def remove(deployment: Deployment, cluster: DeploymentCluster, port: Port): Future[Any]
 
-  def update(deployment: Deployment, port: Port): Future[Any]
+  def create(deployment: Deployment, port: Port, update: Boolean): Future[Any]
 
   def remove(deployment: Deployment, port: Port): Future[Any]
 }
@@ -54,19 +54,24 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
     DeploymentRoutes(clusterRoutes, endpointRoutes)
   }
 
-  def update(deployment: Deployment, cluster: DeploymentCluster, port: Port) = {
+  def create(deployment: Deployment, cluster: DeploymentCluster, port: Port, update: Boolean) = {
     val name = clusterRouteName(deployment, cluster, port)
-    update(name, route(name, deployment, Some(cluster), port))
+    create(name, route(name, deployment, Some(cluster), port), update)
   }
 
-  def update(deployment: Deployment, port: Port) = {
+  def create(deployment: Deployment, port: Port, update: Boolean) = {
     val name = endpointRouteName(deployment, port)
-    update(name, route(name, deployment, None, port))
+    create(name, route(name, deployment, None, port), update)
   }
 
-  private def update(name: String, route: Route) = {
-    logger.info(s"router update: $name")
-    RestClient.request[Any](s"POST $url/v1/routes", route)
+  private def create(name: String, route: Route, update: Boolean) = {
+    if (update) {
+      logger.info(s"router update: $name")
+      RestClient.request[Any](s"PUT $url/v1/routes/$name", route)
+    } else {
+      logger.info(s"router create: $name")
+      RestClient.request[Any](s"POST $url/v1/routes", route)
+    }
   }
 
   def remove(deployment: Deployment, cluster: DeploymentCluster, port: Port) = remove(clusterRouteName(deployment, cluster, port))

@@ -19,9 +19,9 @@ object RouterDriverActor extends ActorDescription {
 
   object All extends RouterDriverMessage
 
-  case class Update(deployment: Deployment, cluster: DeploymentCluster, port: Port) extends RouterDriverMessage
+  case class Create(deployment: Deployment, cluster: DeploymentCluster, port: Port, update: Boolean) extends RouterDriverMessage
 
-  case class UpdateEndpoint(deployment: Deployment, port: Port) extends RouterDriverMessage
+  case class CreateEndpoint(deployment: Deployment, port: Port, update: Boolean) extends RouterDriverMessage
 
   case class Remove(deployment: Deployment, cluster: DeploymentCluster, port: Port) extends RouterDriverMessage
 
@@ -42,9 +42,9 @@ class RouterDriverActor(driver: RouterDriver) extends Actor with ActorLogging wi
   def reply(request: Any) = try {
     request match {
       case All => offLoad(driver.all, classOf[RouterResponseError])
-      case Update(deployment, cluster, port) => offLoad(driver.update(deployment, cluster, port), classOf[RouterResponseError])
+      case Create(deployment, cluster, port, update) => offLoad(driver.create(deployment, cluster, port, update), classOf[RouterResponseError])
       case Remove(deployment, cluster, port) => offLoad(driver.remove(deployment, cluster, port), classOf[RouterResponseError])
-      case UpdateEndpoint(deployment, port) => offLoad(driver.update(deployment, port), classOf[RouterResponseError])
+      case CreateEndpoint(deployment, port, update) => offLoad(driver.create(deployment, port, update), classOf[RouterResponseError])
       case RemoveEndpoint(deployment, port) => offLoad(driver.remove(deployment, port), classOf[RouterResponseError])
       case _ => unsupported(request)
     }
