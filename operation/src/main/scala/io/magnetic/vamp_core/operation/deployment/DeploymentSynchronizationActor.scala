@@ -10,8 +10,8 @@ import io.magnetic.vamp_core.container_driver.{ContainerDriverActor, ContainerSe
 import io.magnetic.vamp_core.model.artifact.DeploymentService._
 import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import io.magnetic.vamp_core.operation.notification.{InternalServerError, OperationNotificationProvider}
-import io.magnetic.vamp_core.persistence.PersistenceActor
-import io.magnetic.vamp_core.persistence.PersistenceActor.All
+import io.magnetic.vamp_core.persistence.actor.PersistenceActor
+import io.magnetic.vamp_core.persistence.actor.PersistenceActor.All
 import io.magnetic.vamp_core.router_driver.{ClusterRoute, DeploymentRoutes, EndpointRoute, RouterDriverActor}
 
 object DeploymentSynchronizationActor extends ActorDescription {
