@@ -26,21 +26,22 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
   private def containerService(app: App): ContainerService =
     ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task => ContainerServer(task.id, task.host, task.ports)))
 
-  def deploy(deployment: Deployment, cluster: DeploymentCluster, breed: DefaultBreed, scale: DefaultScale) = {
-    val id = appId(deployment, breed)
+  def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
+    val id = appId(deployment, service.breed)
     logger.info(s"marathon create app: $id")
 
-    val app = CreateApp(id, CreateContainer(CreateDocker(breed.deployable.name, portMappings(cluster, breed))), scale.instances, scale.cpu, scale.memory, environment(cluster, breed))
+    val scale = service.scale.get
+    val app = CreateApp(id, CreateContainer(CreateDocker(service.breed.deployable.name, portMappings(deployment, cluster, service))), scale.instances, scale.cpu, scale.memory, environment(deployment, cluster, service))
 
     RestClient.request[Any](s"POST $url/v2/apps", app)
   }
 
-  private def portMappings(cluster: DeploymentCluster, breed: DefaultBreed): List[CreatePortMapping] = {
-    breed.ports.map({ port =>
+  private def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[CreatePortMapping] = {
+    service.breed.ports.map({ port =>
       port.direction match {
         case Trait.Direction.Out => CreatePortMapping(port.value.get)
         case Trait.Direction.In =>
-          CreatePortMapping(cluster.parameters.find({
+          CreatePortMapping(deployment.parameters.find({
             case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == cluster.name && value == port.name.value => true
             case _ => false
           }).get._2.toString.toInt)
@@ -48,14 +49,14 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
     })
   }
 
-  private def environment(cluster: DeploymentCluster, breed: DefaultBreed): Map[String, String] = {
-    breed.environmentVariables.filter(_.direction == Trait.Direction.In).map({ ev =>
+  private def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] = {
+    service.breed.environmentVariables.filter(_.direction == Trait.Direction.In).map({ ev =>
       val name = ev.alias match {
         case None => ev.name.value
         case Some(alias) => alias
       }
 
-      val value = cluster.parameters.find({
+      val value = deployment.parameters.find({
         case (Trait.Name(Some(scope), Some(Trait.Name.Group.EnvironmentVariables), v), _) if scope == cluster.name && v == ev.name.value => true
         case _ => false
       }).get._2
@@ -64,8 +65,8 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
     }).toMap
   }
 
-  def undeploy(deployment: Deployment, breed: DefaultBreed) = {
-    val id = appId(deployment, breed)
+  def undeploy(deployment: Deployment, service: DeploymentService) = {
+    val id = appId(deployment, service.breed)
     logger.info(s"marathon delete app: $id")
     RestClient.delete(s"$url/v2/apps/$id")
   }
