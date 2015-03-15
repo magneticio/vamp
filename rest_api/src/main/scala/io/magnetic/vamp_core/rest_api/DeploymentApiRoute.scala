@@ -47,7 +47,7 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
       } ~ post {
         entity(as[String]) { request =>
           onSuccess(createDeployment(request)) {
-            complete(Created, _)
+            complete(Accepted, _)
           }
         }
       }
@@ -62,12 +62,12 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
         } ~ put {
           entity(as[String]) { request =>
             onSuccess(updateDeployment(name, request)) {
-              complete(OK, _)
+              complete(Accepted, _)
             }
           }
         } ~ delete {
           entity(as[String]) { request => onSuccess(deleteDeployment(name, request)) {
-            _ => complete(NoContent)
+            _ => complete(Accepted)
           }
           }
         }
