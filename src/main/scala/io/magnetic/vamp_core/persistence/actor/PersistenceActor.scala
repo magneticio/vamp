@@ -7,7 +7,7 @@ import io.magnetic.vamp_common.akka._
 import io.magnetic.vamp_core.model.artifact.Artifact
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor.PersistenceMessages
 import io.magnetic.vamp_core.persistence.notification.UnsupportedPersistenceRequest
-import io.magnetic.vamp_core.persistence.store.JdbcStoreProvider
+import io.magnetic.vamp_core.persistence.store.{InMemoryStoreProvider, JdbcStoreProvider}
 
 import scala.concurrent.duration._
 import scala.language.existentials
@@ -32,7 +32,7 @@ object PersistenceActor extends ActorDescription {
 
 }
 
-class PersistenceActor extends PersistingActor with JdbcStoreProvider {
+class PersistenceActor extends PersistingActor with InMemoryStoreProvider {
 
   override protected def requestType: Class[_] = classOf[PersistenceMessages]
 
