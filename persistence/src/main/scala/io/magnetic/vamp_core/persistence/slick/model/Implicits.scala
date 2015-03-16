@@ -3,6 +3,7 @@ package io.magnetic.vamp_core.persistence.slick.model
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterType.ParameterType
+import io.magnetic.vamp_core.persistence.slick.model.PortParentType.PortParentType
 import io.magnetic.vamp_core.persistence.slick.model.PortType.PortType
 import io.magnetic.vamp_core.persistence.slick.util.VampPersistenceUtil
 
@@ -35,9 +36,18 @@ object Implicits {
     ParameterParentType.Escalation -> "escalation",
     ParameterParentType.Sla -> "sla"
   )
-  implicit val parentTypeColumnTypeMapper = MappedColumnType.base[ParameterParentType, String](
+  implicit val parentParameterTypeColumnTypeMapper = MappedColumnType.base[ParameterParentType, String](
     parentParameterTypeMap, parentParameterTypeMap.map(_.swap)
   )
+
+  val parentPortTypeMap = Map(
+    PortParentType.Breed -> "breed",
+    PortParentType.BlueprintEndpoint -> "blueprint_endpoint"
+  )
+  implicit val parentPortTypeColumnTypeMapper = MappedColumnType.base[PortParentType, String](
+    parentPortTypeMap, parentPortTypeMap.map(_.swap)
+  )
+
 
   val parameterTypeMap = Map(
     ParameterType.String -> "String",

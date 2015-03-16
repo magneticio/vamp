@@ -4,6 +4,7 @@ import io.magnetic.vamp_core.model.artifact.Trait
 import io.magnetic.vamp_core.persistence.slick.extension.{VampTableQueries, VampTables}
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterType.ParameterType
+import io.magnetic.vamp_core.persistence.slick.model.PortParentType.PortParentType
 import io.magnetic.vamp_core.persistence.slick.model.PortType.PortType
 import io.magnetic.vamp_core.persistence.slick.model._
 import io.strongtyped.active.slick.Profile
@@ -303,7 +304,7 @@ trait Schema extends Logging {
   }
 
   class PortTable(tag: Tag) extends NameableEntityTable[PortModel](tag, "ports") {
-    def * = (name, alias, portType, value, direction, id.?, breedId) <>(PortModel.tupled, PortModel.unapply)
+    def * = (name, alias, portType, value, direction, id.?, parentId,  parentType) <>(PortModel.tupled, PortModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -317,9 +318,11 @@ trait Schema extends Logging {
 
     def name = column[String]("name")
 
-    def breedId = column[Option[Int]]("breed_id") //TODO add foreignkey check
+    def parentId = column[Option[Int]]("parent_id") //TODO add foreignkey check
 
-    def idx = index("idx_ports", (name, breedId), unique = true)
+    def parentType = column[Option[PortParentType]]("parent_type")
+
+    def idx = index("idx_ports", (name, parentId, parentType), unique = true)
   }
 
   class DependencyTable(tag: Tag) extends NameableEntityTable[DependencyModel](tag, "breed_dependencies") {

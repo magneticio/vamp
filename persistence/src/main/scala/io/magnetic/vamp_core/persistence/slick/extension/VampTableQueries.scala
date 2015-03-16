@@ -16,6 +16,10 @@ trait VampTableQueries extends TableQueries with VampTables {
   class NameableEntityTableQuery[M <: Nameable[M], T <: NameableEntityTable[M]](cons: Tag => T)(implicit ev1: BaseColumnType[M#Id])
     extends EntityTableQuery[M, T](cons) {
 
+    def defaultSort  = this.sortBy(m => m.id.asc)
+
+    override def fetchAll(implicit sess: Session): List[M] = defaultSort.list
+
     def filterByName(name: String)(implicit sess: Session) = filter(_.name === name)
 
     def deleteByName(name: String)(implicit sess: Session): Unit = tryDeleteByName(name).get
@@ -51,14 +55,13 @@ trait VampTableQueries extends TableQueries with VampTables {
     extends NameableEntityTableQuery[M, T](cons) {
 
     // Remap the 'fetch list' methods to exclude the anonymous rows
-    override def fetchAll(implicit sess: Session): List[M] = this.filter(m=> m.isAnonymous === false ).list
+    override def fetchAll(implicit sess: Session): List[M] = defaultSort.filter(m=> m.isAnonymous === false ).list
     override def pagedList(pageIndex: Int, limit: Int)(implicit sess: Session): List[M] =
-      filter(m=> m.isAnonymous === false).drop(pageIndex).take(limit).run.toList
+      defaultSort.filter(m=> m.isAnonymous === false).drop(pageIndex).take(limit).run.toList
 
     // Map the original 'fetch list' methods to other method names. Can be used for inspecting the database contents
     def fetchAllIncludeAnonymous(implicit sess: Session): List[M] = super.fetchAll
     def pagedListIncludeAnonymous(pageIndex: Int, limit: Int)(implicit sess: Session): List[M] = super.pagedList(pageIndex, limit)
-
 
     // Override the 'anonymous' name, to prevent name classes in a unique constraint
     override def tryAdd(model: M)(implicit sess: Session): Try[M#Id] = {
