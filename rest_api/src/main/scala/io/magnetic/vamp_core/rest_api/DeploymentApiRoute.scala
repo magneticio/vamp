@@ -127,10 +127,6 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
               complete(OK, _)
             }
           }
-        } ~ delete {
-          onSuccess(routingDelete(deployment, cluster)) {
-            _ => complete(NoContent)
-          }
         }
       }
     }
@@ -211,7 +207,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
 
   def scale(deploymentName: String, clusterName: String, breedName: String)(implicit timeout: Timeout) =
     (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(cluster => cluster.services.find(_.breed.name == breedName)).flatMap(_.scale))
+      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(cluster => cluster.services.find(_.breed.name == breedName)).flatMap(service => Some(service.scale)))
     }
 
   def scaleUpdate(deploymentName: String, clusterName: String, breedName: String, request: String)(implicit timeout: Timeout) =
@@ -220,12 +216,12 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
         deployment => deployment.clusters.find(_.name == clusterName).flatMap {
           cluster => cluster.services.find(_.breed.name == breedName).flatMap {
             service =>
-              val scale = Some(ScaleReader.read(request) match {
+              val scale = ScaleReader.read(request) match {
                 case s: ScaleReference => offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(s.name, classOf[Scale])).asInstanceOf[DefaultScale]
                 case s: DefaultScale => s
-              })
+              }
               actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(scale = scale, state = ReadyForDeployment()))))))
-              scale
+              Some(scale)
           }
         }
       }
@@ -233,7 +229,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
 
   def routing(deploymentName: String, clusterName: String, breedName: String)(implicit timeout: Timeout) =
     (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(cluster => cluster.services.find(_.breed.name == breedName)).flatMap(_.routing))
+      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(cluster => cluster.services.find(_.breed.name == breedName)).flatMap(service => Some(service.routing)))
     }
 
   def routingUpdate(deploymentName: String, clusterName: String, breedName: String, request: String)(implicit timeout: Timeout) =
@@ -242,23 +238,13 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
         deployment => deployment.clusters.find(_.name == clusterName).flatMap {
           cluster => cluster.services.find(_.breed.name == breedName).flatMap {
             service =>
-              val routing = Some(RoutingReader.read(request) match {
+              val routing = RoutingReader.read(request) match {
                 case r: RoutingReference => offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(r.name, classOf[Routing])).asInstanceOf[DefaultRouting]
                 case r: DefaultRouting => r
-              })
+              }
               actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(routing = routing, state = ReadyForDeployment()))))))
-              routing
+              Some(routing)
           }
-        }
-      }
-    }
-
-  def routingDelete(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
-    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap {
-        deployment => deployment.clusters.find(_.name == clusterName).flatMap { _ =>
-          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(routing = None, state = ReadyForDeployment()))))))
-          None
         }
       }
     }

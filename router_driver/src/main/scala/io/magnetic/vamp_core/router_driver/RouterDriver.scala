@@ -92,13 +92,10 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
     (cluster match {
       case None => None
       case Some(c) => c.services.flatMap { service =>
-        service.routing match {
-          case None => Nil
-          case Some(routing) => routing.filters.flatMap({
-            case filter: DefaultFilter => Filter(filter.name, filter.condition, s"${service.breed.name}") :: Nil
-            case _ => Nil
-          })
-        }
+        service.routing.filters.flatMap({
+        case filter: DefaultFilter => Filter(filter.name, filter.condition, s"${service.breed.name}") :: Nil
+        case _ => Nil
+      })
       }
     }) match {
       case result: List[_] => result.asInstanceOf[List[Filter]]

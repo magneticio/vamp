@@ -93,22 +93,22 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
           maximum <- p.get("maximum").flatMap(value => Some(value.asInstanceOf[Double]))
           scaleBy <- p.get("scale_by").flatMap(value => Some(value.asInstanceOf[Int]))
         } yield {
-          val scale = cluster.services(0).scale.get
+          val scale = cluster.services(0).scale
           t match {
             case "scale_instances" =>
               val instances = if (escalate) scale.instances + scaleBy else scale.instances - scaleBy
               if (instances <= maximum && instances >= minimum) {
-                persist(Some(scale.copy(instances = instances.toInt)))
+                persist(scale.copy(instances = instances.toInt))
               }
             case "scale_cpu" =>
               val cpu = if (escalate) scale.cpu + scaleBy else scale.cpu - scaleBy
               if (cpu <= maximum && cpu >= minimum) {
-                persist(Some(scale.copy(cpu = cpu)))
+                persist(scale.copy(cpu = cpu))
               }
             case "scale_memory" =>
               val memory = if (escalate) scale.memory + scaleBy else scale.memory - scaleBy
               if (memory <= maximum && memory >= minimum) {
-                persist(Some(scale.copy(memory = memory)))
+                persist(scale.copy(memory = memory))
               }
           }
         }
@@ -116,7 +116,7 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
       case e: Escalation => error(UnsupportedEscalationType(e.name))
     })
 
-    def persist(scale: Option[DefaultScale]) = {
+    def persist(scale: DefaultScale) = {
       actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(c => {
         if (c.name == cluster.name)
           c.copy(services = c.services match {

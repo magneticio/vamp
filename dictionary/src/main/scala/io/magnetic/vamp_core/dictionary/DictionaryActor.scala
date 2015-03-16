@@ -6,6 +6,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.magnetic.vamp_core.dictionary.DictionaryActor.{DictionaryMessage, Get}
 import io.magnetic.vamp_core.dictionary.notification.{DictionaryNotificationProvider, NoAvailablePortError, UnsupportedDictionaryRequest}
+import io.magnetic.vamp_core.model.artifact.DefaultScale
 
 import scala.concurrent.duration._
 
@@ -19,9 +20,11 @@ object DictionaryActor extends ActorDescription {
 
   case class Get(key: String) extends DictionaryMessage
 
-  def portAssignment = "vamp://routes/port?deployment=%s&port=%d"
+  val portAssignment = "vamp://routes/port?deployment=%s&port=%d"
 
-  def hostResolver = "vamp://routes/host"
+  val hostResolver = "vamp://routes/host"
+
+  val containerScale = "vamp://container/scale?deployment=%s&service=%s"
 }
 
 case class DictionaryEntry(key: String, value: String)
@@ -34,6 +37,7 @@ class DictionaryActor extends Actor with ActorLogging with ActorSupport with Rep
   private val portRange = ConfigFactory.load().getString("deployment.dictionary.port.range").split("-").map(_.toInt)
   private var currentPort = portRange(0) - 1
   private val hostResolver = toRegExp(DictionaryActor.hostResolver)
+  private val containerScale = toRegExp(DictionaryActor.containerScale)
 
   private def toRegExp(string: String) = {
     val value = string.
@@ -64,7 +68,17 @@ class DictionaryActor extends Actor with ActorLogging with ActorSupport with Rep
         currentPort += 1
         currentPort
       }
-    case hostResolver(_*) => ConfigFactory.load().getString("deployment.router.host")
+
+    case hostResolver(_*) =>
+      ConfigFactory.load().getString("deployment.router.host")
+
+    case containerScale(deployment, service) =>
+      val config = ConfigFactory.load()
+      val cpu = config.getDouble("deployment.container.default-scale.cpu")
+      val memory = config.getDouble("deployment.container.default-scale.memory")
+      val instances = config.getInt("deployment.container.default-scale.instances")
+      DefaultScale("", cpu, memory, instances)
+
     case value => value
   }
 

@@ -7,24 +7,10 @@ case class DefaultBlueprint(name: String, clusters: List[Cluster], endpoints: Li
 case class BlueprintReference(name: String) extends Blueprint with Reference
 
 
-abstract class AbstractCluster extends Artifact {
-  def services: List[AbstractService]
-
-  def sla: Option[Sla]
-}
-
-case class Cluster(name: String, services: List[Service], sla: Option[Sla]) extends AbstractCluster
+case class Cluster(name: String, services: List[Service], sla: Option[Sla]) extends Artifact
 
 
-abstract class AbstractService {
-  def breed: Breed
-
-  def scale: Option[Scale]
-
-  def routing: Option[Routing]
-}
-
-case class Service(breed: Breed, scale: Option[Scale], routing: Option[Routing]) extends AbstractService
+case class Service(breed: Breed, scale: Option[Scale], routing: Option[Routing])
 
 
 trait Sla extends Artifact

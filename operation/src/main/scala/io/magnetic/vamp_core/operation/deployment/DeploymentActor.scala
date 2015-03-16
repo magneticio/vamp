@@ -82,15 +82,15 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
 
     val blueprintClusters = blueprint.clusters.map { cluster =>
       deployment.clusters.find(_.name == cluster.name) match {
-        case None => DeploymentCluster(cluster.name, mergeServices(None, cluster), cluster.sla)
-        case Some(deploymentCluster) => deploymentCluster.copy(services = mergeServices(Some(deploymentCluster), cluster))
+        case None => DeploymentCluster(cluster.name, mergeServices(deployment, None, cluster), cluster.sla)
+        case Some(deploymentCluster) => deploymentCluster.copy(services = mergeServices(deployment, Some(deploymentCluster), cluster))
       }
     }
 
     deploymentClusters ++ blueprintClusters
   }
 
-  private def mergeServices(deploymentCluster: Option[DeploymentCluster], cluster: Cluster): List[DeploymentService] = {
+  private def mergeServices(deployment: Deployment, deploymentCluster: Option[DeploymentCluster], cluster: Cluster): List[DeploymentService] = {
 
     def asDeploymentService(service: Service) = {
       val breed = service.breed match {
@@ -98,24 +98,32 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
         case b: Breed => artifactFor[Breed](b.name).asInstanceOf[DefaultBreed]
       }
 
-      val scale = service.scale.flatMap {
-        case scale: DefaultScale => Some(scale)
-        case scale: Scale => Some(artifactFor[Scale](scale.name).asInstanceOf[DefaultScale])
+      val scale = service.scale match {
+        case None =>
+          implicit val timeout = DictionaryActor.timeout
+          val key = DictionaryActor.containerScale.format(deployment.name, service.breed.name)
+          offLoad(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
+            case scale: DefaultScale => scale
+            case e => error(UnresolvedEnvironmentValueError(key, e))
+          }
+        case Some(scale: DefaultScale) => scale
+        case Some(scale: Scale) => artifactFor[Scale](scale.name).asInstanceOf[DefaultScale]
       }
 
-      val routing = service.routing.flatMap {
-        case routing: DefaultRouting => Some(routing)
-        case routing: Routing => Some(artifactFor[Routing](routing.name).asInstanceOf[DefaultRouting])
+      val routing = service.routing match {
+        case None => DefaultRouting("", Some(100), Nil)
+        case Some(routing: DefaultRouting) => routing
+        case Some(routing: Routing) => artifactFor[Routing](routing.name).asInstanceOf[DefaultRouting]
       }
 
-      DeploymentService(ReadyForDeployment(), breed, scale, Nil, routing)
+      DeploymentService(ReadyForDeployment(), breed, scale, routing, Nil)
     }
 
     deploymentCluster match {
       case None => cluster.services.map {
         asDeploymentService
       }
-      case Some(deployment) => deployment.services ++ cluster.services.filter(service => deployment.services.find(_.breed.name == service.breed.name).isEmpty).map {
+      case Some(c) => c.services ++ cluster.services.filter(service => c.services.find(_.breed.name == service.breed.name).isEmpty).map {
         asDeploymentService
       }
     }
