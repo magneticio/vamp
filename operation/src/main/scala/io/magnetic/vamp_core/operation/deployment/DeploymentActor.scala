@@ -13,7 +13,6 @@ import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizati
 import _root_.io.magnetic.vamp_core.operation.notification._
 import _root_.io.magnetic.vamp_core.persistence.actor.PersistenceActor
 import _root_.io.magnetic.vamp_core.persistence.notification.ArtifactNotFound
-import _root_.io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
@@ -35,7 +34,7 @@ object DeploymentActor extends ActorDescription {
 
 }
 
-class DeploymentActor extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupport with InMemoryStoreProvider with ActorExecutionContextProvider with OperationNotificationProvider {
+class DeploymentActor extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupport with ActorExecutionContextProvider with OperationNotificationProvider {
 
   private def uuid = UUID.randomUUID.toString
 
