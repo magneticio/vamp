@@ -3,13 +3,13 @@ package io.magnetic.vamp_core.persistence.store
 import com.typesafe.scalalogging.Logger
 import io.magnetic.vamp_common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact._
-import io.magnetic.vamp_core.model.serialization.{BlueprintSerializationFormat, ArtifactSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
+import io.magnetic.vamp_core.model.serialization.{ArtifactSerializationFormat, BlueprintSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
 import io.magnetic.vamp_core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
 import org.json4s.native.Serialization.write
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
-import scala.concurrent.Future
+
 
 
 trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationProvider {
@@ -24,7 +24,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
 
     val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
-    def all(`type`: Class[_ <: Artifact]): Future[List[Artifact]] = Future {
+    def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
       logger.trace(s"persistence all [${`type`.getSimpleName}]")
       getBranch(`type`) match {
         case Some(branch) => store.get(branch) match {
@@ -35,7 +35,8 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
       }
     }
 
-    def create(artifact: Artifact, ignoreIfExists: Boolean = false): Future[Artifact] = Future {
+
+    def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
       logger.trace(s"persistence create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
       getBranch(artifact) match {
         case Some(branch) => store.get(branch) match {
@@ -53,7 +54,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
       artifact
     }
 
-    def read(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future {
+    def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
       logger.trace(s"persistence read [${`type`.getSimpleName}] - $name}")
       getBranch(`type`) match {
         case Some(branch) => store.get(branch) match {
@@ -64,7 +65,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
       }
     }
 
-    def update(artifact: Artifact, create: Boolean = false): Future[Artifact] = Future {
+    def update(artifact: Artifact, create: Boolean = false): Artifact =  {
       logger.trace(s"persistence update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
       getBranch(artifact) match {
         case Some(branch) => store.get(branch) match {
@@ -80,7 +81,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
       artifact
     }
 
-    def delete(name: String, `type`: Class[_ <: Artifact]): Future[Artifact] = Future {
+    def delete(name: String, `type`: Class[_ <: Artifact]): Artifact =  {
       logger.trace(s"persistence delete [${`type`.getSimpleName}] - $name}")
       getBranch(`type`) match {
         case Some(branch) => store.get(branch) match {

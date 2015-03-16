@@ -11,7 +11,7 @@ import _root_.io.magnetic.vamp_core.model.reader.BreedReader
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentActor.{Create, Delete, DeploymentMessages, Update}
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import _root_.io.magnetic.vamp_core.operation.notification._
-import _root_.io.magnetic.vamp_core.persistence.PersistenceActor
+import _root_.io.magnetic.vamp_core.persistence.actor.PersistenceActor
 import _root_.io.magnetic.vamp_core.persistence.notification.ArtifactNotFound
 import _root_.io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
 import akka.actor.{Actor, ActorLogging, Props}

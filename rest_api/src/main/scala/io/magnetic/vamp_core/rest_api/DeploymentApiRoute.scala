@@ -10,8 +10,9 @@ import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentWatchdogActor}
 import io.magnetic.vamp_core.operation.notification.InternalServerError
 import io.magnetic.vamp_core.operation.sla.SlaMonitorActor
-import io.magnetic.vamp_core.persistence.PersistenceActor
-import io.magnetic.vamp_core.persistence.PersistenceActor.All
+import io.magnetic.vamp_core.persistence.actor.PersistenceActor
+import PersistenceActor.All
+import io.magnetic.vamp_core.persistence.actor.PersistenceActor
 import io.magnetic.vamp_core.rest_api.notification.RestApiNotificationProvider
 import io.magnetic.vamp_core.rest_api.swagger.SwaggerResponse
 import spray.http.StatusCodes._

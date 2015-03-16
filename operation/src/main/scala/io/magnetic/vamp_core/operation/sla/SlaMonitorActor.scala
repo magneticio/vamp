@@ -10,8 +10,7 @@ import io.magnetic.vamp_core.model.artifact.DeploymentService.ReadyForDeployment
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType, UnsupportedSlaType}
 import io.magnetic.vamp_core.operation.sla.SlaMonitorActor.Period
-import io.magnetic.vamp_core.persistence.PersistenceActor
-import io.magnetic.vamp_core.persistence.PersistenceActor.All
+import io.magnetic.vamp_core.persistence.actor.PersistenceActor
 import io.magnetic.vamp_core.pulse_driver.PulseDriverActor
 
 import scala.collection._

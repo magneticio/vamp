@@ -8,7 +8,7 @@ import io.magnetic.vamp_common.notification.NotificationErrorException
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.model.serialization.{ArtifactSerializationFormat, BlueprintSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
-import io.magnetic.vamp_core.persistence.PersistenceActor
+import io.magnetic.vamp_core.persistence.actor.PersistenceActor
 import io.magnetic.vamp_core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
 import io.magnetic.vamp_core.rest_api.swagger.SwaggerResponse
 import org.json4s.native.Serialization._
