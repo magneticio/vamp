@@ -94,8 +94,10 @@ object TestData {
   private val myCluster_logger = Cluster(name = "logger", services = List(myService1), sla = None)
   private val myEndpointPort1 = HttpPort(name = "port8080", alias = Option("HTTP"), value = Option(8080), direction = Trait.Direction.In)
   private val myEndpointPort2 = TcpPort(name = "port21", alias = Option("FTP"), value = Option(8080), direction = Trait.Direction.In)
-  private val myParameter1 = (Trait.Name(Some("myParameter1"), Some(Trait.Name.Group.EnvironmentVariables), "GO_HOME"), "/var/lib/go/bin")
-  private val myParameter2 = (Trait.Name(Some("myParameter2"), Some(Trait.Name.Group.EnvironmentVariables), "PATH"), "$PATH:$GO_HOME")
+  private val myParameter1 = (Trait.Name(Some("myParameter1"), None, "GO_HOME"), "/var/lib/go/bin")
+  private val myParameter2 = (Trait.Name(Some("myParameter2"), Some(Trait.Name.Group.EnvironmentVariables), "PATH"), EnvironmentVariable(name = "", alias = Some("JAVA_HOME"), value = Some("/opt/java/bin"), direction = Trait.Direction.In))
+  private val myParameter3 = (Trait.Name(Some("myParameter3"), Some(Trait.Name.Group.Ports), "HOME_PORT"), TcpPort(name = "", alias = Option("Telnet"), value = Option(23), direction = Trait.Direction.In))
+
 
   val sla4 = DefaultSla(name = "sla4", `type` = "aType", escalations = List(escalation4.copy(name = "sla4-escalation1"), escalation5.copy(name = "sla4-escalation2")), parameters = Map("my-first" -> "This is a another string value"))
   val sla4Updated = sla4.copy(`type` = "aType-updated", escalations = List.empty, parameters = Map.empty)
@@ -133,7 +135,7 @@ object TestData {
     name = "blueprint_full",
     clusters = List(myCluster_db, myCluster_app),
     endpoints = List(myEndpointPort1, myEndpointPort2),
-    parameters = Map(myParameter1, myParameter2)
+    parameters = Map(myParameter1, myParameter2, myParameter3)
   )
 
 }

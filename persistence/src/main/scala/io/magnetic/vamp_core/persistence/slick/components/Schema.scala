@@ -2,6 +2,7 @@ package io.magnetic.vamp_core.persistence.slick.components
 
 import io.magnetic.vamp_core.model.artifact.Trait
 import io.magnetic.vamp_core.persistence.slick.extension.{VampTableQueries, VampTables}
+import io.magnetic.vamp_core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterType.ParameterType
 import io.magnetic.vamp_core.persistence.slick.model.PortParentType.PortParentType
@@ -38,6 +39,7 @@ trait Schema extends Logging {
   val Ports = NameableEntityTableQuery[PortModel, PortTable](tag => new PortTable(tag))
   val Dependencies = NameableEntityTableQuery[DependencyModel, DependencyTable](tag => new DependencyTable(tag))
   val Parameters = NameableEntityTableQuery[ParameterModel, ParameterTable](tag => new ParameterTable(tag))
+  val TraitNameParameters = NameableEntityTableQuery[TraitNameParameterModel, TraitNameParameterTable](tag => new TraitNameParameterTable(tag))
 
   def createSchema(implicit sess: Session) = {
     logger.info("Creating schema ... ")
@@ -60,7 +62,8 @@ trait Schema extends Logging {
       EnvironmentVariables.ddl ++
       Ports.ddl ++
       Dependencies.ddl ++
-      Parameters.ddl
+      Parameters.ddl ++
+      TraitNameParameters.ddl
       ).create
   }
 
@@ -169,9 +172,9 @@ trait Schema extends Logging {
 
     def isAnonymous = column[Boolean]("anonymous")
 
-    def name = column[String]("name")
-
     def idx = index("idx_default_escalation", name, unique = true)
+
+    def name = column[String]("name")
   }
 
   class ScaleReferenceTable(tag: Tag) extends NameableEntityTable[ScaleReferenceModel](tag, "scale_references") {
@@ -209,11 +212,11 @@ trait Schema extends Logging {
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
-    def name = column[String]("name")
-
     def isDefinedInline = column[Boolean]("is_defined_inline")
 
     def idx = index("idx_routing_reference", name, unique = true)
+
+    def name = column[String]("name")
   }
 
   class DefaultRoutingTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultRoutingModel](tag, "default_routings") {
@@ -225,9 +228,9 @@ trait Schema extends Logging {
 
     def isAnonymous = column[Boolean]("anonymous")
 
-    def name = column[String]("name")
-
     def idx = index("idx_default_routing", name, unique = true)
+
+    def name = column[String]("name")
   }
 
   class FilterReferenceTable(tag: Tag) extends NameableEntityTable[FilterReferenceModel](tag, "filter_references") {
@@ -235,13 +238,13 @@ trait Schema extends Logging {
 
     def id = column[Int]("id", O.AutoInc)
 
-    def name = column[String]("name")
-
-    def routingId = column[Int]("routing_id") //TODO add foreignkey check
-
     def isDefinedInline = column[Boolean]("is_defined_inline")
 
     def idx = index("idx_filter_reference", (name, routingId), unique = true)
+
+    def name = column[String]("name")
+
+    def routingId = column[Int]("routing_id") //TODO add foreignkey check
   }
 
   class DefaultFilterTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultFilterModel](tag, "default_filters") {
@@ -286,7 +289,7 @@ trait Schema extends Logging {
   }
 
   class EnvironmentVariableTable(tag: Tag) extends NameableEntityTable[EnvironmentVariableModel](tag, "environment_variables") {
-    def * = (name, alias, value, direction, id.?, breedId) <>(EnvironmentVariableModel.tupled, EnvironmentVariableModel.unapply)
+    def * = (name, alias, value, direction, id.?, parentId, parentType) <>(EnvironmentVariableModel.tupled, EnvironmentVariableModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -298,13 +301,15 @@ trait Schema extends Logging {
 
     def name = column[String]("name")
 
-    def breedId = column[Int]("breed_id") //TODO add foreignkey check
+    def parentId = column[Option[Int]]("parent_id") //TODO add foreignkey check
 
-    def idx = index("idx_environment_variables", (name, breedId), unique = true)
+    def parentType = column[Option[EnvironmentVariableParentType]]("parent_type")
+
+    //def idx = index("idx_environment_variables", (name, parent), unique = true)
   }
 
   class PortTable(tag: Tag) extends NameableEntityTable[PortModel](tag, "ports") {
-    def * = (name, alias, portType, value, direction, id.?, parentId,  parentType) <>(PortModel.tupled, PortModel.unapply)
+    def * = (name, alias, portType, value, direction, id.?, parentId, parentType) <>(PortModel.tupled, PortModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -316,29 +321,29 @@ trait Schema extends Logging {
 
     def direction = column[Trait.Direction.Value]("direction")
 
+    def idx = index("idx_ports", (name, parentId, parentType), unique = true)
+
     def name = column[String]("name")
 
     def parentId = column[Option[Int]]("parent_id") //TODO add foreignkey check
 
     def parentType = column[Option[PortParentType]]("parent_type")
-
-    def idx = index("idx_ports", (name, parentId, parentType), unique = true)
   }
 
   class DependencyTable(tag: Tag) extends NameableEntityTable[DependencyModel](tag, "breed_dependencies") {
     def * = (name, breedName, id.?, isDefinedInline, parentBreedName) <>(DependencyModel.tupled, DependencyModel.unapply)
 
-    def id = column[Int]("dep_id", O.AutoInc, O.PrimaryKey)
+    def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def isDefinedInline = column[Boolean]("is_defined_inline")
-
-    def idx = index("idx_breed_dependencies", (name, breedName, parentBreedName), unique = true)
 
     def name = column[String]("name")
 
     def breedName = column[String]("breed_name")
 
     def parentBreedName = column[String]("parent_breed_name")
+
+    def idx = index("idx_breed_dependencies", (name, breedName, parentBreedName), unique = true)
 
     //    def breed: ForeignKeyQuery[BreedModel.Breeds, BreedModel] =
     //      foreignKey("dep_breed_fk", breedName, TableQuery[BreedModel.Breeds])(_.name)
@@ -347,7 +352,7 @@ trait Schema extends Logging {
   class ParameterTable(tag: Tag) extends NameableEntityTable[ParameterModel](tag, "parameters") {
     def * = (name, stringValue, intValue, doubleValue, parameterType, id.?, parentType, parentName) <>(ParameterModel.tupled, ParameterModel.unapply)
 
-    def id = column[Int]("dep_id", O.AutoInc, O.PrimaryKey)
+    def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def stringValue = column[Option[String]]("string_value")
 
@@ -357,16 +362,38 @@ trait Schema extends Logging {
 
     def parameterType = column[ParameterType]("parameter_type")
 
+    def idx = index("idx_parameters", (name, parentType, parentName), unique = true)
+
     def name = column[String]("name")
 
     def parentType = column[ParameterParentType]("parent_type")
 
     def parentName = column[String]("parent_name")
 
-    def idx = index("idx_parameters", (name, parentType, parentName), unique = true)
-
     //    def breed: ForeignKeyQuery[BreedModel.Breeds, BreedModel] =
     //      foreignKey("dep_breed_fk", breedName, TableQuery[BreedModel.Breeds])(_.name)
+  }
+
+
+  class TraitNameParameterTable(tag: Tag) extends NameableEntityTable[TraitNameParameterModel](tag, "trait_name_parameters") {
+    def * = (id.?, name, scope, group, stringValue, groupId, parentId) <>(TraitNameParameterModel.tupled, TraitNameParameterModel.unapply)
+
+    def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
+
+    def name = column[String]("name")
+
+    def scope = column[Option[String]]("scope")
+
+    def group = column[Option[Trait.Name.Group.Value]]("group")
+
+    def stringValue = column[Option[String]]("string_value")
+
+    def groupId = column[Option[Int]]("group_id")
+
+    def parentId = column[Int]("parent_id")
+
+    def idx = index("idx_trait_name_parameters", (name, scope, group, parentId), unique = true)
+
   }
 
 
