@@ -135,8 +135,8 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
           deployment.clusters.find(_.name == port.name.scope.get) match {
             case None => Nil
             case Some(cluster) =>
-              cluster.routes.get(routePort) match {
-                case Some(value) => Server(s"${deployment.name}_${port.value.get}", host, value) :: Nil
+              cluster.routes.map(_._2).find(_ == routePort) match {
+                case Some(_) => Server(s"${deployment.name}_${port.value.get}", host, routePort) :: Nil
                 case _ => Nil
               }
           }

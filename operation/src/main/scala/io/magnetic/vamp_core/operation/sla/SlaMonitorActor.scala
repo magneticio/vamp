@@ -37,7 +37,7 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
         implicit val timeout = PersistenceActor.timeout
         timer = Some(context.system.scheduler.schedule(0 milliseconds, period seconds, new Runnable {
           def run() = {
-            offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
+            offLoad(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
               case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]])
               case any => exception(InternalServerError(any))
             }

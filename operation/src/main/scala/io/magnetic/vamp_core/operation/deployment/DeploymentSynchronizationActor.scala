@@ -257,7 +257,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
         case (Some(cluster), None) =>
           cluster.routes.get(number).map(_ => actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false))
-
+          
         case _ =>
       }
     }
