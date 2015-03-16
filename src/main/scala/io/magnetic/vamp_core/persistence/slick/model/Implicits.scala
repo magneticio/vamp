@@ -1,6 +1,7 @@
 package io.magnetic.vamp_core.persistence.slick.model
 
 import io.magnetic.vamp_core.model.artifact._
+import io.magnetic.vamp_core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterType.ParameterType
 import io.magnetic.vamp_core.persistence.slick.model.PortParentType.PortParentType
@@ -42,7 +43,8 @@ object Implicits {
 
   val parentPortTypeMap = Map(
     PortParentType.Breed -> "breed",
-    PortParentType.BlueprintEndpoint -> "blueprint_endpoint"
+    PortParentType.BlueprintEndpoint -> "blueprint_endpoint",
+    PortParentType.BlueprintParameter -> "blueprint_parameter"
   )
   implicit val parentPortTypeColumnTypeMapper = MappedColumnType.base[PortParentType, String](
     parentPortTypeMap, parentPortTypeMap.map(_.swap)
@@ -56,6 +58,22 @@ object Implicits {
   )
   implicit val parameterTypeColumnTypeMapper = MappedColumnType.base[ParameterType, String](
     parameterTypeMap, parameterTypeMap.map(_.swap)
+  )
+
+  val traitNameParameterGroupTypeMap = Map(
+    Trait.Name.Group.EnvironmentVariables -> "environment_variables",
+    Trait.Name.Group.Ports -> "ports"
+  )
+  implicit val traitNameParameterGroupTypeMapper = MappedColumnType.base[Trait.Name.Group.Value, String](
+    traitNameParameterGroupTypeMap, traitNameParameterGroupTypeMap.map(_.swap)
+  )
+
+  val environmentVariableParentTypeMap = Map(
+    EnvironmentVariableParentType.Breed -> "breed",
+    EnvironmentVariableParentType.BlueprintParameter -> "blueprint_parameter"
+  )
+  implicit val environmentVariableParentTypeMapper = MappedColumnType.base[EnvironmentVariableParentType, String](
+    environmentVariableParentTypeMap, environmentVariableParentTypeMap.map(_.swap)
   )
 
   implicit def defaultBlueprint2Model(a: DefaultBlueprint): DefaultBlueprintModel =

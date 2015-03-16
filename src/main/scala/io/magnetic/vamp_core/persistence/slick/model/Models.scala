@@ -2,9 +2,10 @@ package io.magnetic.vamp_core.persistence.slick.model
 
 import io.magnetic.vamp_core.model.artifact.Trait
 import io.magnetic.vamp_core.persistence.slick.extension.{AnonymousNameable, Nameable}
-import io.magnetic.vamp_core.persistence.slick.model.PortParentType.PortParentType
+import io.magnetic.vamp_core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterType.ParameterType
+import io.magnetic.vamp_core.persistence.slick.model.PortParentType.PortParentType
 import io.magnetic.vamp_core.persistence.slick.model.PortType.PortType
 import io.magnetic.vamp_core.persistence.slick.util.VampPersistenceUtil
 import io.strongtyped.active.slick.models.Identifiable
@@ -102,7 +103,7 @@ case class PortModel(name: String, alias: Option[String], portType: PortType, va
   override def withId(id: Id): PortModel = copy(id = Option(id))
 }
 
-case class EnvironmentVariableModel(name: String, alias: Option[String], value: Option[String], direction: Trait.Direction.Value, id: Option[Int] = None, breedId: Int) extends VampNameablePersistenceModel[EnvironmentVariableModel] {
+case class EnvironmentVariableModel(name: String, alias: Option[String], value: Option[String], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int], parentType: Option[EnvironmentVariableParentType]) extends VampNameablePersistenceModel[EnvironmentVariableModel] {
   override def withId(id: Id): EnvironmentVariableModel = copy(id = Option(id))
 }
 
@@ -114,6 +115,9 @@ case class ParameterModel(name: String, stringValue: Option[String] = None, intV
   override def withId(id: Id): ParameterModel = copy(id = Option(id))
 }
 
+case class TraitNameParameterModel(id: Option[Int] = None, name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], stringValue: Option[String] = None, groupId: Option[Int] = None, parentId: Int) extends VampNameablePersistenceModel[TraitNameParameterModel] {
+  override def withId(id: Id): TraitNameParameterModel = copy(id = Option(id))
+}
 
 
 
