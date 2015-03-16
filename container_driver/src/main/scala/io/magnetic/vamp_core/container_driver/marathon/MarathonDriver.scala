@@ -16,7 +16,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
   private val logger = Logger(LoggerFactory.getLogger(classOf[MarathonDriver]))
 
   private val nameDelimiter = "/"
-  private val idMatcher = """^\w[\w-]*$""".r
+  private val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
 
   def all: Future[List[ContainerService]] = {
     logger.debug(s"marathon get all")
