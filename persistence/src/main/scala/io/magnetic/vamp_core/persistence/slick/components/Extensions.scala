@@ -38,8 +38,8 @@ trait DefaultBlueprintExtensions {
     override def table = DefaultBlueprints
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
-    def parameters(implicit session: JdbcBackend#Session): List[ParameterModel] =
-      for {r <- Parameters.fetchAll if r.parentName == model.name && r.parentType == ParameterParentType.Blueprint} yield r
+    def parameters(implicit session: JdbcBackend#Session): List[TraitNameParameterModel] =
+      for {r <- TraitNameParameters.fetchAll if r.parentId == model.id.get} yield r
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def clusters(implicit session: JdbcBackend#Session): List[ClusterModel] =
@@ -47,7 +47,7 @@ trait DefaultBlueprintExtensions {
 
     //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def endpoints(implicit session: JdbcBackend#Session): List[PortModel] =
-      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.BlueprintEndpoint) } yield r
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.BlueprintEndpoint)} yield r
 
   }
 
@@ -182,11 +182,11 @@ trait DefaultBreedExtensions {
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def environmentVariables(implicit session: JdbcBackend#Session): List[EnvironmentVariableModel] =
-      for {r <- EnvironmentVariables.fetchAll if r.breedId == model.id.get} yield r
+      for {r <- EnvironmentVariables.fetchAll if r.parentId == model.id && r.parentType == Some(EnvironmentVariableParentType.Breed)} yield r
 
     //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def ports(implicit session: JdbcBackend#Session): List[PortModel] =
-      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.Breed) } yield r
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.Breed)} yield r
 
     //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def dependencies(implicit session: JdbcBackend#Session): List[DependencyModel] =

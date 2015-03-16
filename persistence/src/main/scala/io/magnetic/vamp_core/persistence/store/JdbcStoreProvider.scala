@@ -2,6 +2,7 @@ package io.magnetic.vamp_core.persistence.store
 
 import com.typesafe.scalalogging.Logger
 import io.magnetic.vamp_common.akka.ExecutionContextProvider
+import io.magnetic.vamp_core.model.artifact.Trait.Name
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.persistence.notification._
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
@@ -154,15 +155,18 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       createClusters(artifact.clusters, existing.id.get)
       deleteModelPorts(existing.endpoints)
       createPorts(artifact.endpoints, existing.id, parentType = Some(PortParentType.BlueprintEndpoint))
-      deleteExistingParameters(existing.parameters)
-      //TODO create parameters
+      deleteModelTraitNameParameters(existing.parameters)
+      createTraitNameParameters(artifact.parameters, existing.id.get)
       existing.update
     }
 
-    private def deleteModelPorts(ports : List[PortModel]): Unit = {
-      for(p <- ports) Ports.deleteById(p.id.get)
+    private def deleteModelPorts(ports: List[PortModel]): Unit = {
+      for (p <- ports) Ports.deleteById(p.id.get)
     }
 
+    private def deleteModelTraitNameParameters(params: List[TraitNameParameterModel]): Unit = {
+      for (p <- params) TraitNameParameters.deleteById(p.id.get)
+    }
 
     private def updateScale(existing: DefaultScaleModel, a: DefaultScale): Unit = {
       existing.copy(cpu = a.cpu, memory = a.memory, instances = a.instances).update
@@ -284,7 +288,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       )
 
 
-    private def readPortsToArtifactList(ports : List[PortModel]) : List[Port]  = ports.map(p => portModel2Port(p)).toList
+    private def readPortsToArtifactList(ports: List[PortModel]): List[Port] = ports.map(p => portModel2Port(p)).toList
 
     private def readToArtifact(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] = {
       ofType match {
@@ -295,8 +299,8 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
               DefaultBlueprint(
                 name = VampPersistenceUtil.restoreToAnonymous(b.name, b.isAnonymous),
                 clusters = findClusterArtifacts(b.clusters),
-                endpoints = readPortsToArtifactList(b.endpoints), // TODO Create endpoints //b.endpoints.map(p => portModel2Port(p)).toList
-                parameters = Map.empty //TODO read parameters
+                endpoints = readPortsToArtifactList(b.endpoints),
+                parameters = traitNameParametersToArtifactMap(b.parameters)
               )
             )
             case None => None
@@ -452,6 +456,64 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def createDefaultScaleModelFromArtifact(artifact: DefaultScale): DefaultScaleModel =
       DefaultScales.findById(DefaultScales.add(artifact))
 
+    private def createTraitNameParameters(parameters: Map[Trait.Name, Any], parentId: Int): Unit = {
+      for (param <- parameters) {
+        val prefilledParameter = TraitNameParameterModel(name = param._1.value, scope = param._1.scope, parentId = parentId, groupType = param._1.group)
+        param._1.group match {
+          case Some(group) if group == Trait.Name.Group.Ports =>
+            param._2 match {
+              case port: Port =>
+                TraitNameParameters.add(prefilledParameter.copy(groupId = Some(Ports.add(port2PortModel(port).copy(parentType = Some(PortParentType.BlueprintParameter))))))
+              case env =>
+                // Not gone work, if the group is port, the parameter should be too
+                throw exception(PersistenceOperationFailure(s"Parameter [${param._1.value}}] of type [${param._1.group}] does not match the supplied parameter [${param._2}}]."))
+            }
+          case Some(group) if group == Trait.Name.Group.EnvironmentVariables =>
+            param._2 match {
+              case env: EnvironmentVariable =>
+                TraitNameParameters.add(prefilledParameter.copy(
+                  groupId = Some(EnvironmentVariables.add(
+                    EnvironmentVariableModel(
+                      name = env.name.value,
+                      alias = env.alias,
+                      direction = env.direction,
+                      value = env.value,
+                      parentId = None,
+                      parentType = Some(EnvironmentVariableParentType.BlueprintParameter))
+                  )
+                  )))
+              case env =>
+                // Not gone work, if the group is EnvironmentVariable, the parameter should be too
+                throw exception(PersistenceOperationFailure(s"Parameter [${param._1.value}}] of type [${param._1.group}] does not match the supplied parameter [${param._2}}]."))
+
+            }
+          case None =>
+            TraitNameParameters.add(
+              param._2 match {
+                case value: String =>
+                  prefilledParameter.copy(stringValue = Some(value))
+                case value =>
+                  // Seems incorrect, store the value as a string
+                  prefilledParameter.copy(stringValue = Some(value.toString))
+              }
+            )
+        }
+      }
+    }
+
+    private def traitNameParametersToArtifactMap(traitNames: List[TraitNameParameterModel]): Map[Trait.Name, Any] = (
+      for {traitName <- traitNames
+           restoredArtifact: Any = traitName.groupType match {
+             case Some(group) if group == Trait.Name.Group.Ports =>
+               portModel2Port(Ports.findById(traitName.groupId.get))
+             case Some(group) if group == Trait.Name.Group.EnvironmentVariables =>
+               environmentVariableModel2Artifact(EnvironmentVariables.findById(traitName.groupId.get))
+             case _ =>
+               traitName.stringValue.getOrElse("")
+           }
+
+      } yield Name(scope = traitName.scope, group = traitName.groupType, value = traitName.name) -> restoredArtifact).toMap
+
 
     private def addArtifact(artifact: Artifact): Artifact = {
       val nameOfArtifact: String = artifact match {
@@ -460,8 +522,8 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         case a: DefaultBlueprint =>
           val blueprintId = DefaultBlueprints.add(a)
           createClusters(a.clusters, blueprintId)
-          createPorts(ports=a.endpoints, parentId = Some(blueprintId),parentType = Some(PortParentType.BlueprintEndpoint))
-          //TODO create parameters
+          createPorts(ports = a.endpoints, parentId = Some(blueprintId), parentType = Some(PortParentType.BlueprintEndpoint))
+          createTraitNameParameters(a.parameters, blueprintId)
           DefaultBlueprints.findById(blueprintId).name
 
         case a: DefaultEscalation =>
@@ -524,13 +586,13 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       DefaultBreeds.findById(breedId)
     }
 
-    private def createPorts(ports : List[Port], parentId : Option[Int], parentType : Option[PortParentType]): Unit = {
-      for(port <- ports) Ports.add(port2PortModel(port).copy(parentId = parentId, parentType = parentType))
+    private def createPorts(ports: List[Port], parentId: Option[Int], parentType: Option[PortParentType]): Unit = {
+      for (port <- ports) Ports.add(port2PortModel(port).copy(parentId = parentId, parentType = parentType))
     }
 
     private def createBreedChildren(parentBreedModel: DefaultBreedModel, a: DefaultBreed): Unit = {
       a.environmentVariables.map(env =>
-        EnvironmentVariables.add(EnvironmentVariableModel(name = env.name.value, alias = env.alias, direction = env.direction, value = env.value, breedId = parentBreedModel.id.get))
+        EnvironmentVariables.add(EnvironmentVariableModel(name = env.name.value, alias = env.alias, direction = env.direction, value = env.value, parentId = parentBreedModel.id, parentType = Some(EnvironmentVariableParentType.Breed)))
       )
       createPorts(a.ports, parentBreedModel.id, parentType = Some(PortParentType.Breed))
       a.dependencies.map(dependency =>
@@ -612,7 +674,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
     private def deleteBlueprintModel(blueprint: DefaultBlueprintModel): Unit = {
       deleteClusters(blueprint.clusters)
-      //TODO remove parameters
+      deleteModelTraitNameParameters(blueprint.parameters)
       deleteModelPorts(blueprint.endpoints)
       DefaultBlueprints.deleteById(blueprint.id.get)
     }

@@ -109,14 +109,13 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       secondArtifact = TestData.blueprintMinimalUpdatedWithCluster.copy(name = "with-cluster2"))
   }
 
-  it should "CRUD blueprint-full without parameters" in {
-    var bp1 = TestData.blueprintFull.copy(parameters = Map.empty)
+  it should "CRUD blueprint-full" in {
+    var bp1 = TestData.blueprintFull
     performCrudTest(
       firstArtifact = bp1,
       updatedFirstArtifact = bp1.copy(clusters = List.empty),
       secondArtifact = bp1.copy(name = "bp2"))
   }
-
 
 
   def performCrudTest(firstArtifact: Artifact, updatedFirstArtifact: Artifact, secondArtifact: Artifact): Unit = {
