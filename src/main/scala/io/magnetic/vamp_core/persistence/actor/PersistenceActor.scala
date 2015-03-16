@@ -7,7 +7,7 @@ import io.magnetic.vamp_common.akka._
 import io.magnetic.vamp_core.model.artifact.Artifact
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor.PersistenceMessages
 import io.magnetic.vamp_core.persistence.notification.UnsupportedPersistenceRequest
-import io.magnetic.vamp_core.persistence.store.{InMemoryStoreProvider, JdbcStoreProvider}
+import io.magnetic.vamp_core.persistence.store.InMemoryStoreProvider
 
 import scala.concurrent.duration._
 import scala.language.existentials
