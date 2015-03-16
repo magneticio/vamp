@@ -1,15 +1,19 @@
 package io.magnetic.vamp_core.operation.deployment
 
+import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
+
 import _root_.io.magnetic.vamp_common.akka._
-import _root_.io.magnetic.vamp_core.model.artifact._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
 import io.magnetic.vamp_core._
 import io.magnetic.vamp_core.container_driver.{ContainerDriverActor, ContainerServer, ContainerService}
 import io.magnetic.vamp_core.model.artifact.DeploymentService._
+import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
-import io.magnetic.vamp_core.operation.notification.{InternalServerError, OperationNotificationProvider}
+import io.magnetic.vamp_core.operation.notification.{DeploymentServiceError, InternalServerError, OperationNotificationProvider}
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor.All
 import io.magnetic.vamp_core.router_driver.{ClusterRoute, DeploymentRoutes, EndpointRoute, RouterDriverActor}
@@ -56,26 +60,57 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     case Synchronize(deployment) => synchronize(deployment :: Nil)
   }
 
-  private def synchronize(deployments: List[Deployment]) = {
+  private def synchronize(deployments: List[Deployment]): Unit = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
 
     val deploymentRoutes = offLoad(actorFor(RouterDriverActor) ? RouterDriverActor.All).asInstanceOf[DeploymentRoutes]
     val containerServices = offLoad(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
 
-    deployments.foreach(synchronizeContainer(_, containerServices, deploymentRoutes))
+    deployments.filterNot(withError).foreach(synchronize(containerServices, deploymentRoutes))
   }
 
-  private def synchronizeContainer(deployment: Deployment, containerServices: List[ContainerService], deploymentRoutes: DeploymentRoutes) = {
+  private def withError(deployment: Deployment): Boolean = {
+    lazy val now = OffsetDateTime.now()
+    lazy val config = ConfigFactory.load()
+    lazy val deploymentTimeout = config.getInt("deployment.timeout.ready-for-deployment")
+    lazy val undeploymentTimeout = config.getInt("deployment.timeout.ready-for-undeployment")
+
+    def handleTimeout(service: DeploymentService) = {
+      val notification = DeploymentServiceError(deployment, service)
+      exception(notification)
+      actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map({ s =>
+        if (s.breed.name == service.breed.name) {
+          s.copy(state = Error(notification))
+        } else s
+      })))))
+      true
+    }
+
+    deployment.clusters.flatMap(_.services).exists({ service =>
+      service.state match {
+        case ReadyForDeployment(startedAt) =>
+          if (now.minus(deploymentTimeout, ChronoUnit.SECONDS).isAfter(startedAt)) handleTimeout(service) else false
+
+        case ReadyForUndeployment(startedAt) =>
+          if (now.minus(undeploymentTimeout, ChronoUnit.SECONDS).isAfter(startedAt)) handleTimeout(service) else false
+
+        case state: Error => true
+        case _ => false
+      }
+    })
+  }
+
+  private def synchronize(containerServices: List[ContainerService], deploymentRoutes: DeploymentRoutes): (Deployment => Unit) = { (deployment: Deployment) =>
     val processedClusters = deployment.clusters.map { deploymentCluster =>
       val processedServices = deploymentCluster.services.map { deploymentService =>
         deploymentService.state match {
-          case ReadyForDeployment(initiated, _) =>
+          case ReadyForDeployment(_) =>
             readyForDeployment(deployment, deploymentCluster, deploymentService, containerServices, deploymentRoutes.clusterRoutes)
 
-          case Deployed(initiated, _) =>
+          case Deployed(_) =>
             deployed(deployment, deploymentCluster, deploymentService, containerServices, deploymentRoutes.clusterRoutes)
 
-          case ReadyForUndeployment(initiated, _) =>
+          case ReadyForUndeployment(_) =>
             readyForUndeployment(deployment, deploymentCluster, deploymentService, containerServices, deploymentRoutes.clusterRoutes)
 
           case _ =>
@@ -172,8 +207,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     deploymentService.servers.size == containerService.servers.size && deploymentService.servers.forall(server => containerService.servers.exists(_.host == server.host))
 
   private def matchingScale(deploymentService: DeploymentService, containerService: ContainerService) =
-  // TODO check on cpu and memory as well
-    containerService.servers.size == deploymentService.scale.instances
+    containerService.servers.size == deploymentService.scale.instances && containerService.scale.cpu == deploymentService.scale.cpu && containerService.scale.memory == deploymentService.scale.memory
 
   private def outOfSyncPorts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, clusterRoutes: List[ClusterRoute]): List[Port] = {
     deploymentService.breed.ports.filter({ port =>
@@ -257,7 +291,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
         case (Some(cluster), None) =>
           cluster.routes.get(number).map(_ => actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false))
-          
+
         case _ =>
       }
     }

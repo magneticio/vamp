@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.operation.notification
 
 import io.magnetic.vamp_common.akka.RequestError
 import io.magnetic.vamp_common.notification.{ErrorNotification, Notification}
-import io.magnetic.vamp_core.model.artifact.{DeploymentCluster, Trait, Breed, Deployment}
+import io.magnetic.vamp_core.model.artifact._
 
 case class InternalServerError(reason: Any) extends Notification with ErrorNotification
 
@@ -23,3 +23,5 @@ case class UnsupportedRoutingWeight(deployment: Deployment, cluster: DeploymentC
 case class UnsupportedSlaType(`type`: String) extends Notification
 
 case class UnsupportedEscalationType(`type`: String) extends Notification
+
+case class DeploymentServiceError(deployment: Deployment, service: DeploymentService) extends Notification

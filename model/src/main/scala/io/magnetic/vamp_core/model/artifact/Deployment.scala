@@ -7,20 +7,16 @@ import io.magnetic.vamp_common.notification.Notification
 object DeploymentService {
 
   trait State {
-    def initiated: OffsetDateTime
+    def startedAt: OffsetDateTime
   }
 
-  trait Regular extends State {
-    def completed: Option[OffsetDateTime]
-  }
+  case class ReadyForDeployment(startedAt: OffsetDateTime = OffsetDateTime.now()) extends State
 
-  case class ReadyForDeployment(initiated: OffsetDateTime = OffsetDateTime.now(), completed: Option[OffsetDateTime] = None) extends State with Regular
+  case class Deployed(startedAt: OffsetDateTime = OffsetDateTime.now()) extends State
 
-  case class Deployed(initiated: OffsetDateTime = OffsetDateTime.now(), completed: Option[OffsetDateTime] = None) extends State with Regular
+  case class ReadyForUndeployment(startedAt: OffsetDateTime = OffsetDateTime.now()) extends State
 
-  case class ReadyForUndeployment(initiated: OffsetDateTime = OffsetDateTime.now(), completed: Option[OffsetDateTime] = None) extends State with Regular
-
-  case class Error(notification: Notification, initiated: OffsetDateTime = OffsetDateTime.now()) extends State
+  case class Error(notification: Notification, startedAt: OffsetDateTime = OffsetDateTime.now()) extends State
 
 }
 

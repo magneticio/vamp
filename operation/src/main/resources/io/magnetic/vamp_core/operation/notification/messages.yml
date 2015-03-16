@@ -8,3 +8,4 @@ UnresolvedVariableValueError    : "Unresolved value of variable '{name}' for bre
 UnsupportedRoutingWeight        : "Total routing weight for deployment '{deployment.name}' and cluster '{cluster.name}' must be 100%, not {weight}%"
 UnresolvedEnvironmentValueError : "Unresolved environment value: '{key}'."
 UnsupportedSlaType              : "Unsupported SLA type {`type`} for given parameters."
+DeploymentServiceError          : "Deployment service error for deployment '{deployment.name}' and service '{service.breed.name}'."

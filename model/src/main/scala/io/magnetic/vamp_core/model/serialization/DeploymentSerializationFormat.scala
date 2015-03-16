@@ -17,13 +17,11 @@ object DeploymentSerializationFormat extends ArtifactSerializationFormat {
 
 class DeploymentServiceStateSerializer extends ArtifactSerializer[DeploymentService.State] with ModelNotificationProvider {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case state: Regular =>
-      state.completed match {
-        case None => JObject(JField("name", JString(state.getClass.getSimpleName)), JField("initiated", JString(state.initiated.format(DateTimeFormatter.ISO_INSTANT))))
-        case Some(completed) => JObject(JField("name", JString(state.getClass.getSimpleName)), JField("initiated", JString(state.initiated.format(DateTimeFormatter.ISO_INSTANT))), JField("completed", JString(completed.format(DateTimeFormatter.ISO_INSTANT))))
-      }
     case state: Error =>
-      JObject(JField("name", JString(state.getClass.getSimpleName)), JField("initiated", JString(state.initiated.format(DateTimeFormatter.ISO_INSTANT))), JField("notification", JString(message(state.notification))))
+      JObject(JField("name", JString(state.getClass.getSimpleName)), JField("startedAt", JString(state.startedAt.format(DateTimeFormatter.ISO_INSTANT))), JField("notification", JString(message(state.notification))))
+
+    case state: DeploymentService.State =>
+      JObject(JField("name", JString(state.getClass.getSimpleName)), JField("startedAt", JString(state.startedAt.format(DateTimeFormatter.ISO_INSTANT))))
   }
 }
 
