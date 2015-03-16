@@ -88,6 +88,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
       validateEndpoints(blueprint)
       validateParameters(blueprint)
+      validateRoutingWeights(blueprint)
 
       val breeds = blueprint.clusters.flatMap(_.services.map(_.breed))
       validateBreeds(breeds)
@@ -136,6 +137,15 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       case _ => true
     }).flatMap {
       case (name, value) => error(UnresolvedParameterError(name, value))
+    }
+  }
+
+  protected def validateRoutingWeights(blueprint: DefaultBlueprint): Unit = {
+    blueprint.clusters.find({ cluster =>
+      val weights = cluster.services.map(_.routing).flatten.filter(_.isInstanceOf[DefaultRouting]).map(_.asInstanceOf[DefaultRouting]).map(_.weight).flatten
+      weights.exists(_ < 0) || weights.sum > 100
+    }).flatMap {
+      case cluster => error(RoutingWeightError(cluster))
     }
   }
 

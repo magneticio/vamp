@@ -24,7 +24,7 @@ object DictionaryActor extends ActorDescription {
 
   val hostResolver = "vamp://routes/host"
 
-  val containerScale = "vamp://container/scale?deployment=%s&service=%s"
+  val containerScale = "vamp://container/scale?deployment=%s&cluster=%s&service=%s"
 }
 
 case class DictionaryEntry(key: String, value: String)
@@ -72,7 +72,7 @@ class DictionaryActor extends Actor with ActorLogging with ActorSupport with Rep
     case hostResolver(_*) =>
       ConfigFactory.load().getString("deployment.router.host")
 
-    case containerScale(deployment, service) =>
+    case containerScale(deployment, cluster, service) =>
       val config = ConfigFactory.load()
       val cpu = config.getDouble("deployment.container.default-scale.cpu")
       val memory = config.getDouble("deployment.container.default-scale.memory")

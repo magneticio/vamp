@@ -93,9 +93,9 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
       case None => None
       case Some(c) => c.services.flatMap { service =>
         service.routing.filters.flatMap({
-        case filter: DefaultFilter => Filter(filter.name, filter.condition, s"${service.breed.name}") :: Nil
-        case _ => Nil
-      })
+          case filter: DefaultFilter => Filter(filter.name, filter.condition, s"${service.breed.name}") :: Nil
+          case _ => Nil
+        })
       }
     }) match {
       case result: List[_] => result.asInstanceOf[List[Filter]]
@@ -104,11 +104,8 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   }
 
   private def services(deployment: Deployment, cluster: Option[DeploymentCluster], port: Port): List[Service] = cluster match {
-    case Some(c) => val size = c.services.size
-      val weight = Math.round(100 / size)
-      c.services.view.zipWithIndex.map { case (service, index) =>
-        router_driver.Service(s"${service.breed.name}", if (index == size - 1) 100 - index * weight else weight, service.servers.map(server(service, _, port)))
-      }.toList
+    case Some(c) =>
+      c.services.map { service => router_driver.Service(s"${service.breed.name}", service.routing.weight.getOrElse(100), service.servers.map(server(service, _, port)))}.toList
 
     case None =>
       router_driver.Service(s"${port.name}", 100, servers(deployment, port)) :: Nil

@@ -82,17 +82,23 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
 
     val blueprintClusters = blueprint.clusters.map { cluster =>
       deployment.clusters.find(_.name == cluster.name) match {
-        case None => DeploymentCluster(cluster.name, mergeServices(deployment, None, cluster), cluster.sla)
-        case Some(deploymentCluster) => deploymentCluster.copy(services = mergeServices(deployment, Some(deploymentCluster), cluster))
+        case None =>
+          val dc = DeploymentCluster(cluster.name, Nil, cluster.sla)
+          dc.copy(services = mergeServices(deployment, dc, cluster))
+        case Some(deploymentCluster) =>
+          deploymentCluster.copy(services = mergeServices(deployment, deploymentCluster, cluster))
       }
     }
 
     deploymentClusters ++ blueprintClusters
   }
 
-  private def mergeServices(deployment: Deployment, deploymentCluster: Option[DeploymentCluster], cluster: Cluster): List[DeploymentService] = {
+  private def mergeServices(deployment: Deployment, deploymentCluster: DeploymentCluster, cluster: Cluster): List[DeploymentService] = {
 
-    def asDeploymentService(service: Service) = {
+    val oldWeight = deploymentCluster.services.map(_.routing.weight).flatten.sum
+    val newServices = cluster.services.filter(service => !deploymentCluster.services.exists(_.breed.name == service.breed.name))
+
+    deploymentCluster.services ++ newServices.map({service =>
       val breed = service.breed match {
         case b: DefaultBreed => b
         case b: Breed => artifactFor[Breed](b.name).asInstanceOf[DefaultBreed]
@@ -101,7 +107,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
       val scale = service.scale match {
         case None =>
           implicit val timeout = DictionaryActor.timeout
-          val key = DictionaryActor.containerScale.format(deployment.name, service.breed.name)
+          val key = DictionaryActor.containerScale.format(deployment.name, deploymentCluster.name, service.breed.name)
           offLoad(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
             case scale: DefaultScale => scale
             case e => error(UnresolvedEnvironmentValueError(key, e))
@@ -117,16 +123,15 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
       }
 
       DeploymentService(ReadyForDeployment(), breed, scale, routing, Nil)
-    }
+    })
+  }
 
-    deploymentCluster match {
-      case None => cluster.services.map {
-        asDeploymentService
-      }
-      case Some(c) => c.services ++ cluster.services.filter(service => c.services.find(_.breed.name == service.breed.name).isEmpty).map {
-        asDeploymentService
-      }
-    }
+  private def resolveRoutingWeights: (Deployment => Deployment) = { (deployment: Deployment) =>
+    //      val weight = Math.round(100 / size)
+    //      c.services.view.zipWithIndex.map { case (service, index) =>
+    //        router_driver.Service(s"${service.breed.name}", if (index == size - 1) 100 - index * weight else weight, service.servers.map(server(service, _, port)))
+    //      }.toList
+    deployment
   }
 
   private def slice(deployment: Deployment, blueprint: Option[DefaultBlueprint]): Any = blueprint match {
@@ -171,7 +176,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   }
 
   private def validateAll: (Deployment => Deployment) =
-    validateBreeds andThen validateEndpoints
+    validateBreeds andThen validateEndpoints andThen validateRoutingWeights
 
   private def validateBreeds: (Deployment => Deployment) = { (deployment: Deployment) =>
     val breeds = deployment.clusters.flatMap(_.services).map(_.breed)
@@ -209,6 +214,12 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
       case (name, value) => error(UnresolvedEndpointPortError(name, value))
     }
 
+    deployment
+  }
+
+  private def validateRoutingWeights: (Deployment => Deployment) = { (deployment: Deployment) =>
+    def weight(cluster: DeploymentCluster) = cluster.services.map(_.routing.weight).flatten.sum
+    deployment.clusters.find(cluster => weight(cluster) != 100).flatMap(cluster => error(UnsupportedRoutingWeight(deployment, cluster, weight(cluster))))
     deployment
   }
 
