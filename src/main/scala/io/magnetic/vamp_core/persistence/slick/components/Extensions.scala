@@ -45,9 +45,9 @@ trait DefaultBlueprintExtensions {
     def clusters(implicit session: JdbcBackend#Session): List[ClusterModel] =
       for {r <- Clusters.fetchAll if r.blueprintId == model.id.get} yield r
 
-    //    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
-    //    def endpoints(implicit session: JdbcBackend#Session): List[ParameterModel] =
-    //      for {r <- Parameters.fetchAll if r.parentName == model.name && r.parentType == ParameterParentType.Blueprint} yield r
+    //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
+    def endpoints(implicit session: JdbcBackend#Session): List[PortModel] =
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.BlueprintEndpoint) } yield r
 
   }
 
@@ -186,7 +186,7 @@ trait DefaultBreedExtensions {
 
     //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def ports(implicit session: JdbcBackend#Session): List[PortModel] =
-      for {r <- Ports.fetchAll if r.breedId == model.id} yield r
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.Breed) } yield r
 
     //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def dependencies(implicit session: JdbcBackend#Session): List[DependencyModel] =

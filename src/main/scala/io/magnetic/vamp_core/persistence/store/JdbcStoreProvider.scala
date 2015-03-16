@@ -5,6 +5,7 @@ import io.magnetic.vamp_common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.persistence.notification._
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
+import io.magnetic.vamp_core.persistence.slick.model.PortParentType.PortParentType
 import io.magnetic.vamp_core.persistence.slick.model._
 import io.magnetic.vamp_core.persistence.slick.util.VampPersistenceUtil
 import org.slf4j.LoggerFactory
@@ -85,7 +86,6 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
     def defaultBreedModel2DefaultBreedArtifact(b: DefaultBreedModel): DefaultBreed = {
       val envs = b.environmentVariables.map(e => environmentVariableModel2Artifact(e))
-      val ports = b.ports.map(p => portModel2Port(p))
       val dependencies = for {
         d <- b.dependencies
         breedRef = if (d.isDefinedInline) {
@@ -98,7 +98,11 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           BreedReference(d.breedName)
         }
       } yield d.name -> breedRef
-      DefaultBreed(name = VampPersistenceUtil.restoreToAnonymous(b.name, b.isAnonymous), deployable = Deployable(b.deployable), ports = ports, environmentVariables = envs, dependencies = dependencies.toMap)
+      DefaultBreed(name = VampPersistenceUtil.restoreToAnonymous(b.name, b.isAnonymous),
+        deployable = Deployable(b.deployable),
+        ports = readPortsToArtifactList(b.ports),
+        environmentVariables = envs,
+        dependencies = dependencies.toMap)
     }
 
     private def deleteExistingParameters(parameters: List[ParameterModel]): Unit =
@@ -133,7 +137,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         }
         Dependencies.deleteById(d.id.get)
       }
-      existing.ports.map(p => Ports.deleteById(p.id.get))
+      deleteModelPorts(existing.ports)
       existing.environmentVariables.map(e => EnvironmentVariables.deleteById(e.id.get))
       createBreedChildren(existing, artifact)
       existing.copy(deployable = artifact.deployable.name).update
@@ -148,11 +152,17 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def updateBlueprint(existing: DefaultBlueprintModel, artifact: DefaultBlueprint): Unit = {
       deleteClusters(existing.clusters)
       createClusters(artifact.clusters, existing.id.get)
-      // TODO delete + create Endpoints
+      deleteModelPorts(existing.endpoints)
+      createPorts(artifact.endpoints, existing.id, parentType = Some(PortParentType.BlueprintEndpoint))
       deleteExistingParameters(existing.parameters)
       //TODO create parameters
       existing.update
     }
+
+    private def deleteModelPorts(ports : List[PortModel]): Unit = {
+      for(p <- ports) Ports.deleteById(p.id.get)
+    }
+
 
     private def updateScale(existing: DefaultScaleModel, a: DefaultScale): Unit = {
       existing.copy(cpu = a.cpu, memory = a.memory, instances = a.instances).update
@@ -273,6 +283,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         sla = findOptionSlaArtifactViaReferenceName(cluster.slaReference))
       )
 
+
+    private def readPortsToArtifactList(ports : List[PortModel]) : List[Port]  = ports.map(p => portModel2Port(p)).toList
+
     private def readToArtifact(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] = {
       ofType match {
         //TODO implement deployment types
@@ -282,7 +295,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
               DefaultBlueprint(
                 name = VampPersistenceUtil.restoreToAnonymous(b.name, b.isAnonymous),
                 clusters = findClusterArtifacts(b.clusters),
-                endpoints = List.empty, // TODO read Endpoints
+                endpoints = readPortsToArtifactList(b.endpoints), // TODO Create endpoints //b.endpoints.map(p => portModel2Port(p)).toList
                 parameters = Map.empty //TODO read parameters
               )
             )
@@ -447,7 +460,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         case a: DefaultBlueprint =>
           val blueprintId = DefaultBlueprints.add(a)
           createClusters(a.clusters, blueprintId)
-          // TODO create Endpoints
+          createPorts(ports=a.endpoints, parentId = Some(blueprintId),parentType = Some(PortParentType.BlueprintEndpoint))
           //TODO create parameters
           DefaultBlueprints.findById(blueprintId).name
 
@@ -511,13 +524,15 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       DefaultBreeds.findById(breedId)
     }
 
+    private def createPorts(ports : List[Port], parentId : Option[Int], parentType : Option[PortParentType]): Unit = {
+      for(port <- ports) Ports.add(port2PortModel(port).copy(parentId = parentId, parentType = parentType))
+    }
+
     private def createBreedChildren(parentBreedModel: DefaultBreedModel, a: DefaultBreed): Unit = {
       a.environmentVariables.map(env =>
         EnvironmentVariables.add(EnvironmentVariableModel(name = env.name.value, alias = env.alias, direction = env.direction, value = env.value, breedId = parentBreedModel.id.get))
       )
-      a.ports.map(port =>
-        Ports.add(port2PortModel(port).copy(breedId = Some(parentBreedModel.id.get)))
-      )
+      createPorts(a.ports, parentBreedModel.id, parentType = Some(PortParentType.Breed))
       a.dependencies.map(dependency =>
         dependency._2 match {
           case db: DefaultBreed =>
@@ -598,7 +613,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def deleteBlueprintModel(blueprint: DefaultBlueprintModel): Unit = {
       deleteClusters(blueprint.clusters)
       //TODO remove parameters
-      // TODO remove endpoints
+      deleteModelPorts(blueprint.endpoints)
       DefaultBlueprints.deleteById(blueprint.id.get)
     }
 

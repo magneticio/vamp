@@ -2,6 +2,7 @@ package io.magnetic.vamp_core.persistence.slick.model
 
 import io.magnetic.vamp_core.model.artifact.Trait
 import io.magnetic.vamp_core.persistence.slick.extension.{AnonymousNameable, Nameable}
+import io.magnetic.vamp_core.persistence.slick.model.PortParentType.PortParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterType.ParameterType
 import io.magnetic.vamp_core.persistence.slick.model.PortType.PortType
@@ -97,12 +98,10 @@ case class DefaultBreedModel(name: String, deployable: String, id: Option[Int] =
   override def withAnonymousName: DefaultBreedModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
 }
 
-//TODO replace breedId with parentId + ParentType
-case class PortModel(name: String, alias: Option[String], portType: PortType, value: Option[Int], direction: Trait.Direction.Value, id: Option[Int] = None, breedId: Option[Int] = None) extends VampNameablePersistenceModel[PortModel] {
+case class PortModel(name: String, alias: Option[String], portType: PortType, value: Option[Int], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int] = None, parentType: Option[PortParentType] = None) extends VampNameablePersistenceModel[PortModel] {
   override def withId(id: Id): PortModel = copy(id = Option(id))
 }
 
-//TODO replace breedId with parentId + ParentType
 case class EnvironmentVariableModel(name: String, alias: Option[String], value: Option[String], direction: Trait.Direction.Value, id: Option[Int] = None, breedId: Int) extends VampNameablePersistenceModel[EnvironmentVariableModel] {
   override def withId(id: Id): EnvironmentVariableModel = copy(id = Option(id))
 }
