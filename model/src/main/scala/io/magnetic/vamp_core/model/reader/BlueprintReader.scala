@@ -2,7 +2,6 @@ package io.magnetic.vamp_core.model.reader
 
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.notification._
-import io.magnetic.vamp_core.model.reader.BreedReader._
 
 import scala.language.postfixOps
 
@@ -20,10 +19,15 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
   override protected def expand(implicit source: YamlObject) = {
     <<?[YamlObject]("clusters") match {
-      case None =>
       case Some(map) => map.map {
         case (name: String, breed: String) => >>("clusters" :: name :: "services", List(new YamlObject() += ("breed" -> breed)))
         case (name: String, list: List[_]) => >>("clusters" :: name :: "services", list)
+        case _ =>
+      }
+      case _ =>
+    }
+    <<?[YamlObject]("clusters") match {
+      case Some(map) => map.map {
         case (name: String, cluster: collection.Map[_, _]) =>
           implicit val source = cluster.asInstanceOf[YamlObject]
           <<?[Any]("services") match {
@@ -47,12 +51,14 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
               <<?[Any]("routing") match {
                 case None =>
                 case Some(s: String) =>
-                case Some(_) => expandToList("routing" :: "filters")
+                case Some(s) => expandToList("routing" :: "filters")
               }
               element
             }
           })
+        case _ =>
       }
+      case _ =>
     }
     super.expand
   }

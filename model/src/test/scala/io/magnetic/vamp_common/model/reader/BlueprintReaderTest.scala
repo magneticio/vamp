@@ -390,7 +390,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[RecursiveDependenciesError]({
       BlueprintReader.read(res("blueprint43.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch",Deployable("magneticio/monarch:latest"),List(),List(),Map("db" -> BreedReference("monarch"))))
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(), List(), Map("db" -> BreedReference("monarch"))))
     )
   }
 
@@ -398,7 +398,25 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[RecursiveDependenciesError]({
       BlueprintReader.read(res("blueprint44.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch2",Deployable("magneticio/monarch2:latest"),List(),List(),Map("db" -> BreedReference("monarch1"))))
+      'breed(DefaultBreed("monarch2", Deployable("magneticio/monarch2:latest"), List(), List(), Map("db" -> BreedReference("monarch1"))))
+    )
+  }
+
+  it should "expand single reference filter to a list." in {
+    BlueprintReader.read(res("blueprint45.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), None, Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
+      'endpoints(List(TcpPort(Trait.Name.asName("supersonic.ports.port"), None, Some(8080), Trait.Direction.Out))),
+      'parameters(Map())
+    )
+  }
+
+  it should "expand single filter to a list." in {
+    BlueprintReader.read(res("blueprint46.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(DefaultRouting("", None, List(DefaultFilter("", "user.agent == android")))))), None))),
+      'endpoints(List(TcpPort(Trait.Name.asName("supersonic.ports.port"), None, Some(8080), Trait.Direction.Out))),
+      'parameters(Map())
     )
   }
 }
