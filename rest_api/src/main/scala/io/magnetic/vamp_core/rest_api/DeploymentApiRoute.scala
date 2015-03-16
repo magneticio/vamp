@@ -13,7 +13,7 @@ import io.magnetic.vamp_core.operation.sla.SlaMonitorActor
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor
 import PersistenceActor.All
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor
-import io.magnetic.vamp_core.rest_api.notification.RestApiNotificationProvider
+import io.magnetic.vamp_core.rest_api.notification.{UnsupportedRoutingWeightChangeError, RestApiNotificationProvider}
 import io.magnetic.vamp_core.rest_api.swagger.SwaggerResponse
 import spray.http.StatusCodes._
 import spray.httpx.marshalling.Marshaller
@@ -242,6 +242,12 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
                 case r: RoutingReference => offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(r.name, classOf[Routing])).asInstanceOf[DefaultRouting]
                 case r: DefaultRouting => r
               }
+
+              routing.weight match {
+                case Some(w) if w != service.routing.weight.getOrElse(0) => error(UnsupportedRoutingWeightChangeError(service.routing.weight.getOrElse(0)))
+                case _ =>
+              }
+
               actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(routing = routing, state = ReadyForDeployment()))))))
               Some(routing)
           }

@@ -1,4 +1,5 @@
 
-UnexpectedEndOfRequest  : "Unexpected end of the request."
-InconsistentArtifactName: "Inconsistent resource name: parameter is '{expected}' but in the request body found '{body}'."
-UnexpectedArtifact      : "Unexpected resource: '{artifact}'."
+UnexpectedEndOfRequest             : "Unexpected end of the request."
+InconsistentArtifactName           : "Inconsistent resource name: parameter is '{expected}' but in the request body found '{body}'."
+UnexpectedArtifact                 : "Unexpected resource: '{artifact}'."
+UnsupportedRoutingWeightChangeError: "Routing weight cannot be changed only for one service alone. Current weight: {weight}."

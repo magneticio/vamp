@@ -6,7 +6,7 @@ import _root_.io.magnetic.vamp_common.akka._
 import _root_.io.magnetic.vamp_core.dictionary.DictionaryActor
 import _root_.io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import _root_.io.magnetic.vamp_core.model.artifact._
-import _root_.io.magnetic.vamp_core.model.notification.{UnresolvedEndpointPortError, UnresolvedParameterError}
+import _root_.io.magnetic.vamp_core.model.notification.{RoutingWeightError, UnresolvedEndpointPortError, UnresolvedParameterError}
 import _root_.io.magnetic.vamp_core.model.reader.BreedReader
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentActor.{Create, Delete, DeploymentMessages, Update}
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.Synchronize
@@ -94,44 +94,47 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
   }
 
   private def mergeServices(deployment: Deployment, deploymentCluster: DeploymentCluster, cluster: Cluster): List[DeploymentService] = {
-
-    val oldWeight = deploymentCluster.services.map(_.routing.weight).flatten.sum
     val newServices = cluster.services.filter(service => !deploymentCluster.services.exists(_.breed.name == service.breed.name))
 
-    deploymentCluster.services ++ newServices.map({service =>
-      val breed = service.breed match {
-        case b: DefaultBreed => b
-        case b: Breed => artifactFor[Breed](b.name).asInstanceOf[DefaultBreed]
-      }
+    if (newServices.size > 0) {
+      val oldWeight = deploymentCluster.services.map(_.routing.weight).flatten.sum
+      val newWeight = newServices.map(_.routing).flatten.filter(_.isInstanceOf[DefaultRouting]).map(_.asInstanceOf[DefaultRouting]).map(_.weight).flatten.sum
+      val availableWeight = 100 - oldWeight - newWeight
 
-      val scale = service.scale match {
-        case None =>
-          implicit val timeout = DictionaryActor.timeout
-          val key = DictionaryActor.containerScale.format(deployment.name, deploymentCluster.name, service.breed.name)
-          offLoad(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
-            case scale: DefaultScale => scale
-            case e => error(UnresolvedEnvironmentValueError(key, e))
-          }
-        case Some(scale: DefaultScale) => scale
-        case Some(scale: Scale) => artifactFor[Scale](scale.name).asInstanceOf[DefaultScale]
-      }
+      if (availableWeight < 0)
+        error(RoutingWeightError(cluster))
 
-      val routing = service.routing match {
-        case None => DefaultRouting("", Some(100), Nil)
-        case Some(routing: DefaultRouting) => routing
-        case Some(routing: Routing) => artifactFor[Routing](routing.name).asInstanceOf[DefaultRouting]
-      }
+      val weight = Math.round(availableWeight / newServices.size)
 
-      DeploymentService(ReadyForDeployment(), breed, scale, routing, Nil)
-    })
-  }
+      deploymentCluster.services ++ newServices.view.zipWithIndex.map({ case (service, index) =>
 
-  private def resolveRoutingWeights: (Deployment => Deployment) = { (deployment: Deployment) =>
-    //      val weight = Math.round(100 / size)
-    //      c.services.view.zipWithIndex.map { case (service, index) =>
-    //        router_driver.Service(s"${service.breed.name}", if (index == size - 1) 100 - index * weight else weight, service.servers.map(server(service, _, port)))
-    //      }.toList
-    deployment
+        val breed = service.breed match {
+          case b: DefaultBreed => b
+          case b: Breed => artifactFor[Breed](b.name).asInstanceOf[DefaultBreed]
+        }
+
+        val scale = service.scale match {
+          case None =>
+            implicit val timeout = DictionaryActor.timeout
+            val key = DictionaryActor.containerScale.format(deployment.name, deploymentCluster.name, service.breed.name)
+            offLoad(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
+              case scale: DefaultScale => scale
+              case e => error(UnresolvedEnvironmentValueError(key, e))
+            }
+          case Some(scale: DefaultScale) => scale
+          case Some(scale: Scale) => artifactFor[Scale](scale.name).asInstanceOf[DefaultScale]
+        }
+
+        val routing = service.routing match {
+          case None => DefaultRouting("", Some(if (index == newServices.size - 1) availableWeight - index * weight else weight), Nil)
+          case Some(routing: DefaultRouting) => routing
+          case Some(routing: Routing) => artifactFor[Routing](routing.name).asInstanceOf[DefaultRouting]
+        }
+
+        DeploymentService(ReadyForDeployment(), breed, scale, routing, Nil)
+      })
+    }
+    else Nil
   }
 
   private def slice(deployment: Deployment, blueprint: Option[DefaultBlueprint]): Any = blueprint match {
