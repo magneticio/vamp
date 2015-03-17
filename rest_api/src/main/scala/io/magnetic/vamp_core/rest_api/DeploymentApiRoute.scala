@@ -136,14 +136,14 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
 trait DeploymentApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
   this: Actor with ExecutionContextProvider =>
 
-  def sync(period: Int = 5): Unit = {
+  def sync(period: Int = 10): Unit = {
     actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(1)
     context.system.scheduler.scheduleOnce(period seconds, new Runnable {
       def run() = actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(0)
     })
   }
 
-  def slaMonitor(period: Int = 5): Unit = {
+  def slaMonitor(period: Int = 10): Unit = {
     actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(1)
     context.system.scheduler.scheduleOnce(period seconds, new Runnable {
       def run() = actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(0)

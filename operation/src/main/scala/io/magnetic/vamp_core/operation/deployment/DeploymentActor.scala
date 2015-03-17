@@ -165,7 +165,10 @@ trait DeploymentMerger {
         service.copy(scale = Some(scale), routing = routing)
       })
     }
-    else Nil
+    else stableCluster match {
+      case None => Nil
+      case Some(sc) => sc.services
+    }
   }
 
   def validateAndCollectParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
