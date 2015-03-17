@@ -130,6 +130,31 @@ trait DeployableArtifact  {
   def artifact : Artifact
 }
 
+case class DeploymentModel(id: Option[Int] = None,name: String
+                      //clusters: List[DeploymentCluster], endpoints: List[Port], parameters: Map[Trait.Name, Any]
+                      ) extends VampPersistenceModelIdentifiable[DeploymentModel] {
+  override def withId(id: Id): DeploymentModel = copy(id = Option(id))
+}
+
+case class DeploymentClusterModel(deploymentId : Option[Int],id: Option[Int] = None,name: String
+                             //services: List[DeploymentService], sla: Option[Sla], routes: Map[Int, Int] = Map()
+                             )extends VampNameablePersistenceModel[DeploymentClusterModel] {
+override def withId(id: Id): DeploymentClusterModel = copy(id = Option(id))
+}
+
+//DeploymentService.State
+case class DeploymentServiceModel(deploymentId : Option[Int],id: Option[Int] = None, name: String, breed: Int, scale: Int, routing: Int)
+  //servers: List[DeploymentServer], dependencies: Map[String, String] = Map())
+  extends VampNameablePersistenceModel[DeploymentServiceModel] {
+override def withId(id: Id): DeploymentServiceModel = copy(id = Option(id))
+}
+
+// , ports: Map[Int, Int]
+case class DeploymentServerModel(deploymentId : Option[Int],id: Option[Int] = None, name: String, host: String)  extends VampNameablePersistenceModel[DeploymentServerModel] {
+  override def withId(id: Id): DeploymentServerModel = copy(id = Option(id))
+}
+
+
 case class DeploymentDefaultFilter(deploymentId : Option[Int], artifact: DefaultFilter)
 case class DeploymentDefaultSla(deploymentId : Option[Int], artifact: DefaultSla)
 case class DeploymentDefaultScale(deploymentId : Option[Int], artifact: DefaultScale)
