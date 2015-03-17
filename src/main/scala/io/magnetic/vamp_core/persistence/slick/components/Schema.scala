@@ -123,11 +123,13 @@ trait Schema extends Logging {
 
 
   class DefaultBlueprintTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultBlueprintModel](tag, "default_blueprints") {
-    def * = (name, id.?, isAnonymous) <>(DefaultBlueprintModel.tupled, DefaultBlueprintModel.unapply)
+    def * = (deploymentId, name, id.?, isAnonymous) <>(DefaultBlueprintModel.tupled, DefaultBlueprintModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def isAnonymous = column[Boolean]("anonymous")
+
+    def deploymentId = column[Option[Int]]("deployment_fk")
 
     def idx = index("idx_default_blueprint", name, unique = true)
 
@@ -138,8 +140,6 @@ trait Schema extends Logging {
     def * = (name, id.?, isDefinedInline) <>(BlueprintReferenceModel.tupled, BlueprintReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
-
-    //TODO add key to parent object, which is ???
 
     def name = column[String]("name")
 
@@ -174,6 +174,7 @@ trait Schema extends Logging {
     def routingReferenceName = column[Option[String]]("routing_reference")
 
     def scaleReferenceName = column[Option[String]]("scale_reference")
+
   }
 
   class SlaReferenceTable(tag: Tag) extends NameableEntityTable[SlaReferenceModel](tag, "sla_references") {
@@ -189,11 +190,13 @@ trait Schema extends Logging {
   }
 
   class DefaultSlaTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultSlaModel](tag, "default_slas") {
-    def * = (name, slaType, id.?, isAnonymous) <>(DefaultSlaModel.tupled, DefaultSlaModel.unapply)
+    def * = (deploymentId, name, slaType, id.?, isAnonymous) <>(DefaultSlaModel.tupled, DefaultSlaModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def slaType = column[String]("sla_type")
+
+    def deploymentId = column[Option[Int]]("deployment_fk")
 
     def isAnonymous = column[Boolean]("anonymous")
 
@@ -211,6 +214,8 @@ trait Schema extends Logging {
 
     def idx = index("idx_escalation_references", (name, slaId, slaRefId), unique = true)
 
+    def deploymentId = column[Option[Int]]("deployment_fk")
+
     def slaId = column[Option[Int]]("sla_id") //TODO add foreignkey check
 
     def slaRefId = column[Option[Int]]("sla_ref_id") //TODO add foreignkey check
@@ -219,7 +224,7 @@ trait Schema extends Logging {
   }
 
   class DefaultEscalationTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultEscalationModel](tag, "default_escalations") {
-    def * = (name, escalationType, id.?, isAnonymous) <>(DefaultEscalationModel.tupled, DefaultEscalationModel.unapply)
+    def * = (deploymentId, name, escalationType, id.?, isAnonymous) <>(DefaultEscalationModel.tupled, DefaultEscalationModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -228,6 +233,8 @@ trait Schema extends Logging {
     def isAnonymous = column[Boolean]("anonymous")
 
     def idx = index("idx_default_escalation", name, unique = true)
+
+    def deploymentId = column[Option[Int]]("deployment_fk")
 
     def name = column[String]("name")
   }
@@ -245,7 +252,7 @@ trait Schema extends Logging {
   }
 
   class DefaultScaleTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultScaleModel](tag, "default_scales") {
-    def * = (name, cpu, memory, instances, id.?, isAnonymous) <>(DefaultScaleModel.tupled, DefaultScaleModel.unapply)
+    def * = (deploymentId, name, cpu, memory, instances, id.?, isAnonymous) <>(DefaultScaleModel.tupled, DefaultScaleModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -258,6 +265,8 @@ trait Schema extends Logging {
     def isAnonymous = column[Boolean]("anonymous")
 
     def idx = index("idx_default_scala", name, unique = true)
+
+    def deploymentId = column[Option[Int]]("deployment_fk")
 
     def name = column[String]("name")
   }
@@ -275,7 +284,7 @@ trait Schema extends Logging {
   }
 
   class DefaultRoutingTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultRoutingModel](tag, "default_routings") {
-    def * = (name, weight, id.?, isAnonymous) <>(DefaultRoutingModel.tupled, DefaultRoutingModel.unapply)
+    def * = (deploymentId, name, weight, id.?, isAnonymous) <>(DefaultRoutingModel.tupled, DefaultRoutingModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -284,6 +293,8 @@ trait Schema extends Logging {
     def isAnonymous = column[Boolean]("anonymous")
 
     def idx = index("idx_default_routing", name, unique = true)
+
+    def deploymentId = column[Option[Int]]("deployment_fk")
 
     def name = column[String]("name")
   }
@@ -297,19 +308,23 @@ trait Schema extends Logging {
 
     def idx = index("idx_filter_reference", (name, routingId), unique = true)
 
+    def deploymentId = column[Option[Int]]("deployment_fk")
+
     def name = column[String]("name")
 
     def routingId = column[Int]("routing_id") //TODO add foreignkey check
   }
 
   class DefaultFilterTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultFilterModel](tag, "default_filters") {
-    def * = (name, condition, id.?, isAnonymous) <>(DefaultFilterModel.tupled, DefaultFilterModel.unapply)
+    def * = (deploymentId, name, condition, id.?, isAnonymous) <>(DefaultFilterModel.tupled, DefaultFilterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def name = column[String]("name")
 
     def condition = column[String]("condition")
+
+    def deploymentId = column[Option[Int]]("deployment_fk")
 
     def isAnonymous = column[Boolean]("anonymous")
 
@@ -330,13 +345,15 @@ trait Schema extends Logging {
   }
 
   class DefaultBreedTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultBreedModel](tag, "default_breeds") {
-    def * = (name, deployable, id.?, isAnonymous) <>(DefaultBreedModel.tupled, DefaultBreedModel.unapply)
+    def * = (deploymentId, name, deployable, id.?, isAnonymous) <>(DefaultBreedModel.tupled, DefaultBreedModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def deployable = column[String]("deployable")
 
     def isAnonymous = column[Boolean]("anonymous")
+
+    def deploymentId = column[Option[Int]]("deployment_fk")
 
     def name = column[String]("name")
 
@@ -386,7 +403,7 @@ trait Schema extends Logging {
   }
 
   class DependencyTable(tag: Tag) extends NameableEntityTable[DependencyModel](tag, "breed_dependencies") {
-    def * = (name, breedName, id.?, isDefinedInline, parentBreedName) <>(DependencyModel.tupled, DependencyModel.unapply)
+    def * = (name, breedName, id.?, isDefinedInline, parentId) <>(DependencyModel.tupled, DependencyModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -396,16 +413,16 @@ trait Schema extends Logging {
 
     def breedName = column[String]("breed_name")
 
-    def parentBreedName = column[String]("parent_breed_name")
+    def parentId = column[Int]("parent_id")
 
-    def idx = index("idx_breed_dependencies", (name, breedName, parentBreedName), unique = true)
+    def idx = index("idx_breed_dependencies", (name, breedName, parentId), unique = true)
 
     //    def breed: ForeignKeyQuery[BreedModel.Breeds, BreedModel] =
     //      foreignKey("dep_breed_fk", breedName, TableQuery[BreedModel.Breeds])(_.name)
   }
 
   class ParameterTable(tag: Tag) extends NameableEntityTable[ParameterModel](tag, "parameters") {
-    def * = (name, stringValue, intValue, doubleValue, parameterType, id.?, parentType, parentName) <>(ParameterModel.tupled, ParameterModel.unapply)
+    def * = (name, stringValue, intValue, doubleValue, parameterType, id.?, parentType, parentId) <>(ParameterModel.tupled, ParameterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -417,18 +434,17 @@ trait Schema extends Logging {
 
     def parameterType = column[ParameterType]("parameter_type")
 
-    def idx = index("idx_parameters", (name, parentType, parentName), unique = true)
+    def idx = index("idx_parameters", (name, parentType, parentId), unique = true)
 
     def name = column[String]("name")
 
     def parentType = column[ParameterParentType]("parent_type")
 
-    def parentName = column[String]("parent_name")
+    def parentId = column[Int]("parent_id")
 
     //    def breed: ForeignKeyQuery[BreedModel.Breeds, BreedModel] =
     //      foreignKey("dep_breed_fk", breedName, TableQuery[BreedModel.Breeds])(_.name)
   }
-
 
   class TraitNameParameterTable(tag: Tag) extends NameableEntityTable[TraitNameParameterModel](tag, "trait_name_parameters") {
     def * = (id.?, name, scope, group, stringValue, groupId, parentId) <>(TraitNameParameterModel.tupled, TraitNameParameterModel.unapply)

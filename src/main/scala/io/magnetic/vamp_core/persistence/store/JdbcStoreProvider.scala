@@ -129,7 +129,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def updateSla(existing: DefaultSlaModel, a: DefaultSla): Unit = {
       deleteSlaModelChildObjects(existing)
       createEscalationReferences(a.escalations, existing.id, None)
-      createParameters(a.parameters, a.name, ParameterParentType.Sla)
+      createParameters(a.parameters, existing.id.get, ParameterParentType.Sla)
       existing.copy(slaType = a.`type`).update
     }
 
@@ -209,7 +209,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def updateEscalation(a: DefaultEscalation): Unit = {
       val existing = DefaultEscalations.findByName(a.name)
       deleteExistingParameters(existing.parameters)
-      createParameters(a.parameters, a.name, ParameterParentType.Escalation)
+      createParameters(a.parameters, existing.id.get, ParameterParentType.Escalation)
       existing.copy(escalationType = a.`type`).update
     }
 
@@ -357,13 +357,13 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           EscalationReference(esc.name)
       )
 
-    private def createParameters(parameters: Map[String, Any], parentName: String, parentType: ParameterParentType): Unit = {
+    private def createParameters(parameters: Map[String, Any], parentId: Int, parentType: ParameterParentType): Unit = {
       parameters.map(param =>
         param._2 match {
-          case i: Int => Parameters.add(ParameterModel(name = param._1, intValue = i, parameterType = ParameterType.Int, parentType = parentType, parentName = parentName))
-          case d: Double => Parameters.add(ParameterModel(name = param._1, doubleValue = d, parameterType = ParameterType.Double, parentType = parentType, parentName = parentName))
-          case s: String => Parameters.add(ParameterModel(name = param._1, stringValue = Some(s), parameterType = ParameterType.String, parentType = parentType, parentName = parentName))
-          case e => throw exception(UnsupportedPersistenceRequest(s"Invalid parameter for $parentType with name $parentName for type ${e.getClass}"))
+          case i: Int => Parameters.add(ParameterModel(name = param._1, intValue = i, parameterType = ParameterType.Int, parentType = parentType, parentId = parentId))
+          case d: Double => Parameters.add(ParameterModel(name = param._1, doubleValue = d, parameterType = ParameterType.Double, parentType = parentType, parentId = parentId))
+          case s: String => Parameters.add(ParameterModel(name = param._1, stringValue = Some(s), parameterType = ParameterType.String, parentType = parentType, parentId = parentId))
+          case e => throw exception(UnsupportedPersistenceRequest(s"Invalid parameter for $parentType with name $parentId for type ${e.getClass}"))
         }
       )
     }
@@ -447,7 +447,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
     private def createDefaultSlaModelFromArtifact(a: DefaultSla): DefaultSlaModel = {
       val storedSlaId = DefaultSlas.add(a)
-      createParameters(a.parameters, a.name, ParameterParentType.Sla)
+      createParameters(a.parameters, storedSlaId, ParameterParentType.Sla)
       createEscalationReferences(escalations = a.escalations, slaId = Some(storedSlaId), slaRefId = None)
       DefaultSlas.findById(storedSlaId)
     }
@@ -574,7 +574,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
     private def createEscalation(a: DefaultEscalation): DefaultEscalationModel = {
       val storedEscalation = DefaultEscalations.findById(DefaultEscalations.add(a))
-      createParameters(a.parameters, storedEscalation.name, ParameterParentType.Escalation)
+      createParameters(a.parameters, storedEscalation.id.get, ParameterParentType.Escalation)
       storedEscalation
     }
 
@@ -604,9 +604,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         dependency._2 match {
           case db: DefaultBreed =>
             val savedName = createOrUpdateBreed(db: DefaultBreed).name
-            Dependencies.add(DependencyModel(name = dependency._1, breedName = savedName, isDefinedInline = true, parentBreedName = parentBreedModel.name))
+            Dependencies.add(DependencyModel(name = dependency._1, breedName = savedName, isDefinedInline = true, parentId = parentBreedModel.id.get))
           case br: BreedReference =>
-            Dependencies.add(DependencyModel(name = dependency._1, breedName = br.name, isDefinedInline = false, parentBreedName = parentBreedModel.name))
+            Dependencies.add(DependencyModel(name = dependency._1, breedName = br.name, isDefinedInline = false, parentId = parentBreedModel.id.get))
         }
       )
     }
