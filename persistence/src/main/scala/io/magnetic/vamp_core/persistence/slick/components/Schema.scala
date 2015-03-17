@@ -44,7 +44,10 @@ trait Schema extends Logging {
   val Parameters = NameableEntityTableQuery[ParameterModel, ParameterTable](tag => new ParameterTable(tag))
   val TraitNameParameters = NameableEntityTableQuery[TraitNameParameterModel, TraitNameParameterTable](tag => new TraitNameParameterTable(tag))
   val VampPersistenceMetaDatas = EntityTableQuery[VampPersistenceMetaDataModel, VampPersistenceMetaDataTable](tag => new VampPersistenceMetaDataTable(tag))
-
+  val DeploymentServers = NameableEntityTableQuery[DeploymentServerModel, DeploymentServerTable](tag => new DeploymentServerTable(tag))
+  val DeploymentServices = NameableEntityTableQuery[DeploymentServiceModel, DeploymentServiceTable](tag => new DeploymentServiceTable(tag))
+  val DeploymentClusters = NameableEntityTableQuery[DeploymentClusterModel, DeploymentClusterTable](tag => new DeploymentClusterTable(tag))
+  val Deployments = EntityTableQuery[DeploymentModel, DeploymentTable](tag => new DeploymentTable(tag))
 
   private def tableQueries  = List(
     Ports,
@@ -68,6 +71,10 @@ trait Schema extends Logging {
     Clusters,
     DefaultBlueprints,
     BlueprintReferences,
+    DeploymentServers,
+    DeploymentServices,
+    DeploymentClusters,
+    Deployments,
     VampPersistenceMetaDatas
   )
 
@@ -492,6 +499,60 @@ trait Schema extends Logging {
 
     def idx = index("idx_trait_name_parameters", (name, scope, group, parentId, deploymentId), unique = true)
 
+  }
+
+  class DeploymentServerTable(tag: Tag) extends NameableEntityTable[DeploymentServerModel](tag, "deployment_servers") {
+    def * = (deploymentId, id.?, name,host) <>(DeploymentServerModel.tupled, DeploymentServerModel.unapply)
+
+    def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
+
+    def name = column[String]("name")
+
+    def host = column[String]("host_name")
+
+    def deploymentId = column[Option[Int]]("deployment_fk")   // Add foreign_key
+
+    def idx = index("idx_deployment_servers", (name, deploymentId), unique = true)
+  }
+
+  class DeploymentServiceTable(tag: Tag) extends NameableEntityTable[DeploymentServiceModel](tag, "deployment_services") {
+    def * = (deploymentId, id.?, name, breedId, scaleId, routingId) <>(DeploymentServiceModel.tupled, DeploymentServiceModel.unapply)
+
+    def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
+
+    def name = column[String]("name")
+
+    def breedId = column[Int]("breed_id")
+
+    def scaleId = column[Int]("scale_id")
+
+    def routingId = column[Int]("routing_id")
+
+    def deploymentId = column[Option[Int]]("deployment_fk")   // Add foreign_key
+
+    def idx = index("idx_deployment_services", (name, deploymentId), unique = true)
+  }
+
+  class DeploymentClusterTable(tag: Tag) extends NameableEntityTable[DeploymentClusterModel](tag, "deployment_clusters") {
+    def * = (deploymentId, id.?, name) <>(DeploymentClusterModel.tupled, DeploymentClusterModel.unapply)
+
+    def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
+
+    def name = column[String]("name")
+
+    def deploymentId = column[Option[Int]]("deployment_fk")   // Add foreign_key
+
+    def idx = index("idx_deployment_clusters", (name, deploymentId), unique = true)
+  }
+
+  class DeploymentTable(tag: Tag) extends EntityTable[DeploymentModel](tag, "deployments") {
+    def * = (id.?, name) <>(DeploymentModel.tupled, DeploymentModel.unapply)
+
+    def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
+
+    def name = column[String]("name")
+
+    def idx = index("idx_deployments", name, unique = true)
   }
 
 

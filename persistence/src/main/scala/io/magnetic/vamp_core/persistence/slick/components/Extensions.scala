@@ -169,7 +169,7 @@ trait SlaReferenceExtensions {
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def escalationReferences(implicit session: JdbcBackend#Session): List[EscalationReferenceModel] =
-      for {r <- EscalationReferences.fetchAll if r.slaRefId.get == model.id.get  && r.deploymentId == model.deploymentId} yield r
+      for {r <- EscalationReferences.fetchAll if r.slaRefId.get == model.id.get  && r.deploymentId == model.deploymentId } yield r
   }
 
 }
@@ -182,11 +182,11 @@ trait DefaultBreedExtensions {
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def environmentVariables(implicit session: JdbcBackend#Session): List[EnvironmentVariableModel] =
-      for {r <- EnvironmentVariables.fetchAll if r.parentId == model.id && r.parentType == Some(EnvironmentVariableParentType.Breed)  && r.deploymentId == model.deploymentId} yield r
+      for {r <- EnvironmentVariables.fetchAll if r.parentId == model.id && r.parentType == Some(EnvironmentVariableParentType.Breed)  && r.deploymentId == model.deploymentId } yield r
 
     //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def ports(implicit session: JdbcBackend#Session): List[PortModel] =
-      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.Breed)  && r.deploymentId == model.deploymentId} yield r
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.Breed)  && r.deploymentId == model.deploymentId } yield r
 
     //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def dependencies(implicit session: JdbcBackend#Session): List[DependencyModel] =
