@@ -1,5 +1,7 @@
 package io.magnetic.vamp_core.persistence.slick.components
 
+import java.sql.Timestamp
+
 import io.magnetic.vamp_core.model.artifact.Trait
 import io.magnetic.vamp_core.persistence.slick.extension.{VampTableQueries, VampTables}
 import io.magnetic.vamp_core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
@@ -11,13 +13,14 @@ import io.magnetic.vamp_core.persistence.slick.model._
 import io.strongtyped.active.slick.Profile
 
 import scala.language.implicitConversions
+import scala.slick.jdbc.meta.MTable
 import scala.slick.util.Logging
 
 trait Schema extends Logging {
   this: VampTables with VampTableQueries with Profile =>
 
-  import io.magnetic.vamp_core.persistence.slick.model.Implicits._
   import jdbcDriver.simple._
+  import io.magnetic.vamp_core.persistence.slick.model.Implicits._
 
   val DefaultBlueprints = AnonymousNameableEntityTableQuery[DefaultBlueprintModel, DefaultBlueprintTable](tag => new DefaultBlueprintTable(tag))
   val BlueprintReferences = NameableEntityTableQuery[BlueprintReferenceModel, BlueprintReferenceTable](tag => new BlueprintReferenceTable(tag))
@@ -40,32 +43,84 @@ trait Schema extends Logging {
   val Dependencies = NameableEntityTableQuery[DependencyModel, DependencyTable](tag => new DependencyTable(tag))
   val Parameters = NameableEntityTableQuery[ParameterModel, ParameterTable](tag => new ParameterTable(tag))
   val TraitNameParameters = NameableEntityTableQuery[TraitNameParameterModel, TraitNameParameterTable](tag => new TraitNameParameterTable(tag))
+  val VampPersistenceMetaDatas = EntityTableQuery[VampPersistenceMetaDataModel, VampPersistenceMetaDataTable](tag => new VampPersistenceMetaDataTable(tag))
 
-  def createSchema(implicit sess: Session) = {
-    logger.info("Creating schema ... ")
-    (BlueprintReferences.ddl ++
-      Clusters.ddl ++
-      DefaultBlueprints.ddl ++
-      DefaultEscalations.ddl ++
-      DefaultFilters.ddl ++
-      DefaultRoutings.ddl ++
-      DefaultScales.ddl ++
-      DefaultSlas.ddl ++
-      EscalationReferences.ddl ++
-      FilterReferences.ddl ++
-      RoutingReferences.ddl ++
-      ScaleReferences.ddl ++
-      Services.ddl ++
-      SlaReferences.ddl ++
-      BreedReferences.ddl ++
-      DefaultBreeds.ddl ++
-      EnvironmentVariables.ddl ++
-      Ports.ddl ++
-      Dependencies.ddl ++
-      Parameters.ddl ++
-      TraitNameParameters.ddl
-      ).create
+
+  private def tableQueries  = List(
+    Ports,
+    EnvironmentVariables,
+    Parameters,
+    TraitNameParameters,
+    DefaultFilters,
+    FilterReferences,
+    DefaultRoutings,
+    RoutingReferences,
+    DefaultEscalations,
+    EscalationReferences,
+    DefaultSlas,
+    SlaReferences,
+    DefaultScales,
+    ScaleReferences,
+    Dependencies,
+    DefaultBreeds,
+    BreedReferences,
+    Services,
+    Clusters,
+    DefaultBlueprints,
+    BlueprintReferences,
+    VampPersistenceMetaDatas
+  )
+
+  private def schemaVersion : Int = 1
+
+  def upgradeSchema(implicit sess: Session) = {
+    getCurrentSchemaVersion match {
+      case version if version == schemaVersion =>
+        // Up to date
+      case version if version == 0 =>
+        createSchema
+    }
   }
+
+  private def createSchema(implicit sess: Session) = {
+    logger.info("Creating schema ...")
+    for (tableQuery <- tableQueries) {
+      logger.info(tableQuery.ddl.createStatements.mkString)
+      tableQuery.ddl.create
+    }
+    VampPersistenceMetaDatas.add(VampPersistenceMetaDataModel(schemaVersion=schemaVersion))
+    logger.info("Schema created")
+  }
+
+  private def getCurrentSchemaVersion(implicit sess: Session) : Int =
+    MTable.getTables("vamp-meta-data").firstOption match {
+      case Some(_) => VampPersistenceMetaDatas.sortBy(_.id.desc).firstOption match {
+        case Some(metaData) => metaData.schemaVersion
+        case None => 0
+      }
+      case None => 0
+    }
+
+   def destroySchema(implicit sess: Session) = {
+     if (getCurrentSchemaVersion == schemaVersion) {
+     logger.info("Removing everything from the schema ...")
+     for (tableQuery <- tableQueries.reverse) {
+       logger.info(tableQuery.ddl.dropStatements.mkString)
+       tableQuery.ddl.drop
+     }
+     logger.info("Schema cleared")
+   } }
+
+  class VampPersistenceMetaDataTable(tag: Tag) extends EntityTable[VampPersistenceMetaDataModel](tag, "vamp-meta-data") {
+    def * = (id.?, schemaVersion, created) <>(VampPersistenceMetaDataModel.tupled, VampPersistenceMetaDataModel.unapply)
+
+    def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
+
+    def schemaVersion = column[Int]("schema_version")
+
+    def created = column[Timestamp]("created")
+  }
+
 
   class DefaultBlueprintTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultBlueprintModel](tag, "default_blueprints") {
     def * = (name, id.?, isAnonymous) <>(DefaultBlueprintModel.tupled, DefaultBlueprintModel.unapply)
@@ -295,9 +350,9 @@ trait Schema extends Logging {
 
     def alias = column[Option[String]]("alias")
 
-    def value = column[Option[String]]("value")
+    def value = column[Option[String]]("env_value")
 
-    def direction = column[Trait.Direction.Value]("direction")
+    def direction = column[Trait.Direction.Value]("env_direction")
 
     def name = column[String]("name")
 
@@ -317,9 +372,9 @@ trait Schema extends Logging {
 
     def portType = column[PortType]("port_type")
 
-    def value = column[Option[Int]]("value")
+    def value = column[Option[Int]]("port_value")
 
-    def direction = column[Trait.Direction.Value]("direction")
+    def direction = column[Trait.Direction.Value]("port_direction")
 
     def idx = index("idx_ports", (name, parentId, parentType), unique = true)
 
@@ -382,9 +437,9 @@ trait Schema extends Logging {
 
     def name = column[String]("name")
 
-    def scope = column[Option[String]]("scope")
+    def scope = column[Option[String]]("param_scope")
 
-    def group = column[Option[Trait.Name.Group.Value]]("group")
+    def group = column[Option[Trait.Name.Group.Value]]("param_group")
 
     def stringValue = column[Option[String]]("string_value")
 

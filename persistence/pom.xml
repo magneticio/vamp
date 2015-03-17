@@ -43,6 +43,12 @@
             <artifactId>active-slick_2.11</artifactId>
             <version>0.2.2</version>
         </dependency>
+        <dependency>
+            <groupId>postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>9.1-901.jdbc4</version>
+        </dependency>
+
     </dependencies>
 
 </project>
