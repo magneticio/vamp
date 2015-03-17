@@ -1,6 +1,7 @@
 package io.magnetic.vamp_common.notification
 
 import akka.actor.{AbstractLoggingActor, Actor, Props}
+import io.magnetic.vamp_common.akka.ActorExecutionContextProvider
 import io.magnetic.vamp_common.pulse.PulseClientProvider
 import io.magnetic.vamp_common.pulse.api.Event
 
@@ -42,7 +43,7 @@ class DefaultPulseNotificationActor(override protected val url: String) extends 
 
 }
 
-abstract class AbstractPulseNotificationActor(override protected val url: String) extends Actor with NotificationActor with TagResolverProvider with PulseClientProvider with PulseNotificationEventFormatter  {
+abstract class AbstractPulseNotificationActor(override protected val url: String) extends AbstractLoggingActor with NotificationActor with TagResolverProvider with PulseClientProvider with PulseNotificationEventFormatter with ActorExecutionContextProvider  {
   override def error(notification: Notification, message: String): Unit = {
     client.sendEvent(formatNotification(notification, List("notification", "error")))
   }

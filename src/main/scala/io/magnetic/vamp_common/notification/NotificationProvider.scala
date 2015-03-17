@@ -1,6 +1,6 @@
 package io.magnetic.vamp_common.notification
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{AbstractLoggingActor, Actor, ActorRef}
 import com.typesafe.scalalogging.Logger
 import io.magnetic.vamp_common.pulse.PulseClientProvider
 import io.magnetic.vamp_common.pulse.api.Event
@@ -68,6 +68,27 @@ trait ActorNotificationProvider extends NotificationProvider {
 
   def exception(notification: Notification): Exception = {
     val msg = message(notification)
+    notificationActor ! Error(notification, msg)
+    NotificationErrorException(notification, msg)
+  }
+}
+
+trait ActorLoggingNotificationProvider extends NotificationProvider {
+  this: AbstractLoggingActor with MessageResolverProvider =>
+
+  protected val notificationActor: ActorRef
+
+  def message(notification: Notification) = messageResolver.resolve(notification)
+
+  def info(notification: Notification) = {
+    val msg = message(notification)
+    log.info(msg)
+    notificationActor ! Info(notification, msg)
+  }
+
+  def exception(notification: Notification): Exception = {
+    val msg = message(notification)
+    log.error(msg)
     notificationActor ! Error(notification, msg)
     NotificationErrorException(notification, msg)
   }
