@@ -61,7 +61,7 @@ trait DefaultEscalationExtensions {
 
     def parameters(implicit session: JdbcBackend#Session): List[ParameterModel] =
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
-      for {r <- Parameters.fetchAll if r.parentName == model.name && r.parentType == ParameterParentType.Escalation} yield r
+      for {r <- Parameters.fetchAll if r.parentId == model.id.get && r.parentType == ParameterParentType.Escalation} yield r
   }
 
 }
@@ -105,7 +105,7 @@ trait DefaultSlaExtensions {
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def parameters(implicit session: JdbcBackend#Session): List[ParameterModel] =
-      for {r <- Parameters.fetchAll if r.parentName == model.name && r.parentType == ParameterParentType.Sla} yield r
+      for {r <- Parameters.fetchAll if r.parentId == model.id.get && r.parentType == ParameterParentType.Sla} yield r
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def escalationReferences(implicit session: JdbcBackend#Session): List[EscalationReferenceModel] =
@@ -190,7 +190,7 @@ trait DefaultBreedExtensions {
 
     //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def dependencies(implicit session: JdbcBackend#Session): List[DependencyModel] =
-      for {r <- Dependencies.fetchAll if r.parentBreedName == model.name} yield r
+      for {r <- Dependencies.fetchAll if r.parentId == model.id.get} yield r
 
   }
 
