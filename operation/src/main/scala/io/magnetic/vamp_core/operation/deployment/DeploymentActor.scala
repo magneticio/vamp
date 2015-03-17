@@ -121,7 +121,22 @@ trait DeploymentMerger {
     deploymentClusters ++ blueprintClusters
   }
 
-  def mergeServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[DeploymentService] = {
+  def mergeServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[DeploymentService] =
+    mergeOldServices(deployment, stableCluster, blueprintCluster) ++ mergeNewServices(deployment, stableCluster, blueprintCluster)
+
+  def mergeOldServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[DeploymentService] = stableCluster match {
+    case None => Nil
+    case Some(sc) =>
+      sc.services.map { service =>
+        blueprintCluster.services.find(_.breed.name == service.breed.name) match {
+          case None => service
+          case Some(bpService) =>
+            service.copy(scale = bpService.scale, routing = bpService.routing, state = if (service.scale != bpService.scale || service.routing != bpService.routing) ReadyForDeployment() else service.state)
+        }
+      }
+  }
+
+  def mergeNewServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[DeploymentService] = {
     val newServices = blueprintCluster.services.filter(service => stableCluster match {
       case None => true
       case Some(sc) => !sc.services.exists(_.breed.name == service.breed.name)
@@ -140,11 +155,7 @@ trait DeploymentMerger {
 
       val weight = Math.round(availableWeight / newServices.size)
 
-      (stableCluster match {
-        case None => Nil
-        case Some(sc) => sc.services
-      }) ++ newServices.view.zipWithIndex.map({ case (service, index) =>
-
+      newServices.view.zipWithIndex.map({ case (service, index) =>
         val scale = service.scale match {
           case None =>
             implicit val timeout = DictionaryActor.timeout
@@ -161,14 +172,10 @@ trait DeploymentMerger {
           case None => Some(DefaultRouting("", Some(defaultWeight), Nil))
           case Some(r: DefaultRouting) => Some(r.copy(weight = Some(r.weight.getOrElse(defaultWeight))))
         }
-
         service.copy(scale = Some(scale), routing = routing)
-      })
+      }).toList
     }
-    else stableCluster match {
-      case None => Nil
-      case Some(sc) => sc.services
-    }
+    else Nil
   }
 
   def validateAndCollectParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
