@@ -162,7 +162,7 @@ trait DeploymentMerger {
           case Some(r: DefaultRouting) => Some(r.copy(weight = Some(r.weight.getOrElse(defaultWeight))))
         }
 
-        DeploymentService(ReadyForDeployment(), service.breed, Some(scale), routing, Nil)
+        service.copy(scale = Some(scale), routing = routing)
       })
     }
     else Nil
