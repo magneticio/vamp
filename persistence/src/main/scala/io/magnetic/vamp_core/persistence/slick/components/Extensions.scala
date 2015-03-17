@@ -26,7 +26,7 @@ trait ClusterExtensions {
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def services(implicit session: JdbcBackend#Session): List[ServiceModel] =
-      for {r <- Services.fetchAll if r.clusterId == model.id.get} yield r
+      for {r <- Services.fetchAll if r.clusterId == model.id.get  && r.deploymentId == model.deploymentId} yield r
   }
 
 }
@@ -83,7 +83,7 @@ trait DefaultRoutingExtensions {
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def filterReferences(implicit session: JdbcBackend#Session): List[FilterReferenceModel] =
-      for {r <- FilterReferences.fetchAll if r.routingId == model.id.get} yield r
+      for {r <- FilterReferences.fetchAll if r.routingId == model.id.get } yield r
   }
 
 }
