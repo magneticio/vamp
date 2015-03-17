@@ -51,9 +51,9 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Blu
     case e: Exception => e
   }
 
-  def commit: (Deployment => Deployment) = { (deployment: Deployment) =>
+  def commit(create: Boolean): (Deployment => Deployment) = { (deployment: Deployment) =>
     implicit val timeout: Timeout = PersistenceActor.timeout
-    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, create = true)) match {
+    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, create = create)) match {
       case persisted: Deployment =>
         actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
         persisted
@@ -84,10 +84,39 @@ trait BlueprintSupport {
   }
 }
 
-trait DeploymentMerger {
+trait DeploymentValidation {
   this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
-  def commit: (Deployment => Deployment)
+  def validateBreeds: (Deployment => Deployment) = { (deployment: Deployment) =>
+    val breeds = deployment.clusters.flatMap(_.services).filterNot(_.state.isInstanceOf[ReadyForUndeployment]).map(_.breed)
+
+    breeds.groupBy(_.name.toString).collect {
+      case (name, list) if list.size > 1 => error(NonUniqueBreedReferenceError(list.head))
+    }
+
+    val breedNames = breeds.map(_.name.toString).toSet
+    breeds.foreach {
+      breed => breed.dependencies.values.find(dependency => !breedNames.contains(dependency.name)).flatMap {
+        dependency => error(UnresolvedDependencyError(breed, dependency))
+      }
+    }
+
+    breeds.foreach(BreedReader.validateNonRecursiveDependencies)
+
+    deployment
+  }
+
+  def validateRoutingWeights: (Deployment => Deployment) = { (deployment: Deployment) =>
+    def weight(cluster: DeploymentCluster) = cluster.services.map(_.routing).flatten.map(_.weight).flatten.sum
+    deployment.clusters.find(cluster => weight(cluster) != 100).flatMap(cluster => error(UnsupportedRoutingWeight(deployment, cluster, weight(cluster))))
+    deployment
+  }
+}
+
+trait DeploymentMerger extends DeploymentValidation {
+  this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
+
+  def commit(create: Boolean): (Deployment => Deployment)
 
   def validate = validateAndCollectParameters andThen validateEndpoints
 
@@ -97,13 +126,13 @@ trait DeploymentMerger {
 
   def merge(deployment: Deployment, blueprint: Deployment): Deployment = {
 
-    val appendage = (validate andThen resolveProperties)(blueprint)
+    val attachment = (validate andThen resolveProperties)(blueprint)
 
-    val clusters = mergeClusters(deployment, appendage)
-    val endpoints = (appendage.endpoints ++ deployment.endpoints).distinct
-    val parameters = appendage.parameters ++ deployment.parameters
+    val clusters = mergeClusters(deployment, attachment)
+    val endpoints = (attachment.endpoints ++ deployment.endpoints).distinct
+    val parameters = attachment.parameters ++ deployment.parameters
 
-    (validateMerge andThen commit)(Deployment(deployment.name, clusters, endpoints, parameters))
+    (validateMerge andThen commit(create = true))(Deployment(deployment.name, clusters, endpoints, parameters))
   }
 
   def mergeClusters(stable: Deployment, blueprint: Deployment): List[DeploymentCluster] = {
@@ -295,44 +324,18 @@ trait DeploymentMerger {
       }))
     }))
   }
-
-  def validateBreeds: (Deployment => Deployment) = { (deployment: Deployment) =>
-    val breeds = deployment.clusters.flatMap(_.services).map(_.breed)
-
-    breeds.groupBy(_.name.toString).collect {
-      case (name, list) if list.size > 1 => error(NonUniqueBreedReferenceError(list.head))
-    }
-
-    val breedNames = breeds.map(_.name.toString).toSet
-    breeds.foreach {
-      breed => breed.dependencies.values.find(dependency => !breedNames.contains(dependency.name)).flatMap {
-        dependency => error(UnresolvedDependencyError(breed, dependency))
-      }
-    }
-
-    breeds.foreach(BreedReader.validateNonRecursiveDependencies)
-
-    deployment
-  }
-
-  def validateRoutingWeights: (Deployment => Deployment) = { (deployment: Deployment) =>
-    def weight(cluster: DeploymentCluster) = cluster.services.map(_.routing).flatten.map(_.weight).flatten.sum
-    deployment.clusters.find(cluster => weight(cluster) != 100).flatMap(cluster => error(UnsupportedRoutingWeight(deployment, cluster, weight(cluster))))
-    deployment
-  }
 }
 
-trait DeploymentSlicer {
+trait DeploymentSlicer extends DeploymentValidation {
   this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
-  def commit: (Deployment => Deployment)
+  def commit(create: Boolean): (Deployment => Deployment)
 
   def slice(stable: Deployment, blueprint: Deployment): Deployment = {
-    // TODO validate cross dependencies
-    commit(stable.copy(clusters = blueprint.clusters.map(cluster =>
+    (validateBreeds andThen validateRoutingWeights andThen commit(create = false))(stable.copy(clusters = stable.clusters.map(cluster =>
       blueprint.clusters.find(_.name == cluster.name) match {
         case None => cluster
-        case Some(bpc) => cluster.copy(services = cluster.services.filter(service => !bpc.services.exists(service.breed.name == _.breed.name)).map(service => service.copy(state = ReadyForUndeployment())))
+        case Some(bpc) => cluster.copy(services = cluster.services.map(service => service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) ReadyForUndeployment() else service.state)))
       }
     ).filter(_.services.nonEmpty)))
   }

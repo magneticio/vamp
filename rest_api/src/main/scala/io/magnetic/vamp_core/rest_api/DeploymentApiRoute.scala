@@ -67,7 +67,7 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
           }
         } ~ delete {
           entity(as[String]) { request => onSuccess(deleteDeployment(name, request)) {
-            _ => complete(Accepted)
+            complete(Accepted, _)
           }
           }
         }
@@ -169,7 +169,6 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
       actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint)
   }
 
-
   def updateDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] = DeploymentBlueprintReader.readReferenceFromSource(request) match {
     case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint)
     case blueprint: DefaultBlueprint =>
@@ -177,8 +176,12 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
       actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint)
   }
 
-  def deleteDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] =
-    actorFor(DeploymentActor) ? DeploymentActor.Slice(name, DeploymentBlueprintReader.readReferenceFromSource(request))
+  def deleteDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] = {
+    if (request.nonEmpty)
+      actorFor(DeploymentActor) ? DeploymentActor.Slice(name, DeploymentBlueprintReader.readReferenceFromSource(request))
+    else Future {
+    }
+  }
 
   def sla(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
     (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
