@@ -171,14 +171,14 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
 
 
   def updateDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] = DeploymentBlueprintReader.readReferenceFromSource(request) match {
-    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Update(name, blueprint)
+    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint)
     case blueprint: DefaultBlueprint =>
       actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, ignoreIfExists = true)
-      actorFor(DeploymentActor) ? DeploymentActor.Update(name, blueprint)
+      actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint)
   }
 
   def deleteDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] =
-    actorFor(DeploymentActor) ? DeploymentActor.Delete(name, DeploymentBlueprintReader.readReferenceFromSource(request))
+    actorFor(DeploymentActor) ? DeploymentActor.Slice(name, DeploymentBlueprintReader.readReferenceFromSource(request))
 
   def sla(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
     (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
@@ -221,7 +221,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
                 case s: ScaleReference => offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(s.name, classOf[Scale])).asInstanceOf[DefaultScale]
                 case s: DefaultScale => s
               }
-              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(scale = scale, state = ReadyForDeployment()))))))
+              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(scale = Some(scale), state = ReadyForDeployment()))))))
               Some(scale)
           }
         }
@@ -245,11 +245,11 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
               }
 
               routing.weight match {
-                case Some(w) if w != service.routing.weight.getOrElse(0) => error(UnsupportedRoutingWeightChangeError(service.routing.weight.getOrElse(0)))
+                case Some(w) if w != service.routing.getOrElse(DefaultRouting("", Some(0), Nil)).weight.getOrElse(0) => error(UnsupportedRoutingWeightChangeError(service.routing.getOrElse(DefaultRouting("", Some(0), Nil)).weight.getOrElse(0)))
                 case _ =>
               }
 
-              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(routing = routing, state = ReadyForDeployment()))))))
+              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(routing = Some(routing), state = ReadyForDeployment()))))))
               Some(routing)
           }
         }

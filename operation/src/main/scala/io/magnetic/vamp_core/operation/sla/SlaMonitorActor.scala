@@ -93,7 +93,8 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
           maximum <- p.get("maximum").flatMap(value => Some(value.asInstanceOf[Double]))
           scaleBy <- p.get("scale_by").flatMap(value => Some(value.asInstanceOf[Int]))
         } yield {
-          val scale = cluster.services(0).scale
+          // Scale only the first service.
+          val scale = cluster.services(0).scale.get
           t match {
             case "scale_instances" =>
               val instances = if (escalate) scale.instances + scaleBy else scale.instances - scaleBy
@@ -120,7 +121,7 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
       actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(c => {
         if (c.name == cluster.name)
           c.copy(services = c.services match {
-            case head :: tail => head.copy(scale = scale, state = ReadyForDeployment()) :: tail
+            case head :: tail => head.copy(scale = Some(scale), state = ReadyForDeployment()) :: tail
             case Nil => Nil
           })
         else

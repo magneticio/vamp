@@ -207,7 +207,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     deploymentService.servers.size == containerService.servers.size && deploymentService.servers.forall(server => containerService.servers.exists(_.host == server.host))
 
   private def matchingScale(deploymentService: DeploymentService, containerService: ContainerService) =
-    containerService.servers.size == deploymentService.scale.instances && containerService.scale.cpu == deploymentService.scale.cpu && containerService.scale.memory == deploymentService.scale.memory
+    containerService.servers.size == deploymentService.scale.get.instances && containerService.scale.cpu == deploymentService.scale.get.cpu && containerService.scale.memory == deploymentService.scale.get.memory
 
   private def outOfSyncPorts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, clusterRoutes: List[ClusterRoute]): List[Port] = {
     deploymentService.breed.ports.filter({ port =>

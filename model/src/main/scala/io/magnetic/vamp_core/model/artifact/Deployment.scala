@@ -26,8 +26,8 @@ trait DeploymentState {
 
 case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints: List[Port], parameters: Map[Trait.Name, Any]) extends Blueprint
 
-case class DeploymentCluster(name: String, services: List[DeploymentService], sla: Option[Sla], routes: Map[Int, Int] = Map()) extends Artifact
+case class DeploymentCluster(name: String, services: List[DeploymentService], sla: Option[Sla], routes: Map[Int, Int] = Map()) extends AbstractCluster
 
-case class DeploymentService(state: DeploymentService.State, breed: DefaultBreed, scale: DefaultScale, routing: DefaultRouting, servers: List[DeploymentServer], dependencies: Map[String, String] = Map()) extends DeploymentState
+case class DeploymentService(state: DeploymentService.State, breed: DefaultBreed, scale: Option[DefaultScale], routing: Option[DefaultRouting], servers: List[DeploymentServer], dependencies: Map[String, String] = Map()) extends AbstractService with DeploymentState
 
 case class DeploymentServer(name: String, host: String, ports: Map[Int, Int])

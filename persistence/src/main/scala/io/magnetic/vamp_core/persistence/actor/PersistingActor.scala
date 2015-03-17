@@ -1,12 +1,15 @@
 package io.magnetic.vamp_core.persistence.actor
 
+import _root_.io.magnetic.vamp_common.akka._
+import _root_.io.magnetic.vamp_common.notification.NotificationProvider
+import _root_.io.magnetic.vamp_core.model.artifact._
+import _root_.io.magnetic.vamp_core.persistence.actor.PersistenceActor._
+import _root_.io.magnetic.vamp_core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
 import akka.actor.{Actor, ActorLogging}
-import io.magnetic.vamp_common.akka.{ActorExecutionContextProvider, FutureSupport, ReplyActor, RequestError}
-import io.magnetic.vamp_core.model.artifact.Artifact
-import io.magnetic.vamp_core.persistence.actor.PersistenceActor._
-import io.magnetic.vamp_core.persistence.notification.{PersistenceNotificationProvider, UnsupportedPersistenceRequest}
+import akka.pattern.ask
 
 import scala.concurrent.Future
+import scala.reflect._
 
 /**
  * Framework for the Persistence Actor
@@ -58,4 +61,26 @@ trait PersistingActor extends Actor with ActorLogging with ReplyActor with Futur
 
   def getAllDefaultArtifacts(ofType: Class[_ <: Artifact]): List[_ <: Artifact]
 
+}
+
+trait ArtifactSupport {
+  this: FutureSupport with ActorSupport with NotificationProvider =>
+
+  def artifactFor[T <: Artifact : ClassTag](artifact: Option[Artifact]): Option[T] = artifact match {
+    case None => None
+    case Some(a) => Some(artifactFor[T](a))
+  }
+
+  def artifactFor[T <: Artifact : ClassTag](artifact: Artifact): T = artifact match {
+    case a: T => a
+    case _ => artifactFor[T](artifact.name)
+  }
+
+  def artifactFor[T <: Artifact : ClassTag](name: String): T = {
+    implicit val timeout = PersistenceActor.timeout
+    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(name, classTag[T].runtimeClass.asInstanceOf[Class[Artifact]])) match {
+      case Some(artifact: T) => artifact
+      case _ => error(ArtifactNotFound(name, classTag[T].runtimeClass))
+    }
+  }
 }
