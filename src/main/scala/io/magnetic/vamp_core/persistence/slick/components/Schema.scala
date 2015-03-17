@@ -374,7 +374,7 @@ trait Schema extends Logging {
   }
 
   class EnvironmentVariableTable(tag: Tag) extends NameableEntityTable[EnvironmentVariableModel](tag, "environment_variables") {
-    def * = (name, alias, value, direction, id.?, parentId, parentType) <>(EnvironmentVariableModel.tupled, EnvironmentVariableModel.unapply)
+    def * = (deploymentId, name, alias, value, direction, id.?, parentId, parentType) <>(EnvironmentVariableModel.tupled, EnvironmentVariableModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -390,14 +390,14 @@ trait Schema extends Logging {
 
     def parentType = column[Option[EnvironmentVariableParentType]]("parent_type")
 
-    //def deploymentId = column[Option[Int]]("deployment_fk")
+    def deploymentId = column[Option[Int]]("deployment_fk")
 
 
     //def idx = index("idx_environment_variables", (name, parent), unique = true)
   }
 
   class PortTable(tag: Tag) extends NameableEntityTable[PortModel](tag, "ports") {
-    def * = (name, alias, portType, value, direction, id.?, parentId, parentType) <>(PortModel.tupled, PortModel.unapply)
+    def * = (deploymentId, name, alias, portType, value, direction, id.?, parentId, parentType) <>(PortModel.tupled, PortModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -417,6 +417,7 @@ trait Schema extends Logging {
 
     def parentType = column[Option[PortParentType]]("parent_type")
 
+    def deploymentId = column[Option[Int]]("deployment_fk")
 
   }
 
@@ -443,7 +444,7 @@ trait Schema extends Logging {
   }
 
   class ParameterTable(tag: Tag) extends NameableEntityTable[ParameterModel](tag, "parameters") {
-    def * = (name, stringValue, intValue, doubleValue, parameterType, id.?, parentType, parentId) <>(ParameterModel.tupled, ParameterModel.unapply)
+    def * = (deploymentId, name, stringValue, intValue, doubleValue, parameterType, id.?, parentType, parentId) <>(ParameterModel.tupled, ParameterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -463,7 +464,7 @@ trait Schema extends Logging {
 
     def parentId = column[Int]("parent_id")
 
-    //def deploymentId = column[Option[Int]]("deployment_fk")
+    def deploymentId = column[Option[Int]]("deployment_fk")
 
 
     //    def breed: ForeignKeyQuery[BreedModel.Breeds, BreedModel] =
@@ -471,7 +472,7 @@ trait Schema extends Logging {
   }
 
   class TraitNameParameterTable(tag: Tag) extends NameableEntityTable[TraitNameParameterModel](tag, "trait_name_parameters") {
-    def * = (id.?, name, scope, group, stringValue, groupId, parentId) <>(TraitNameParameterModel.tupled, TraitNameParameterModel.unapply)
+    def * = (deploymentId, id.?, name, scope, group, stringValue, groupId, parentId) <>(TraitNameParameterModel.tupled, TraitNameParameterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -487,7 +488,9 @@ trait Schema extends Logging {
 
     def parentId = column[Int]("parent_id")
 
-    def idx = index("idx_trait_name_parameters", (name, scope, group, parentId), unique = true)
+    def deploymentId = column[Option[Int]]("deployment_fk")
+
+    def idx = index("idx_trait_name_parameters", (name, scope, group, parentId, deploymentId), unique = true)
 
   }
 

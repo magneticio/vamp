@@ -7,4 +7,5 @@ import io.strongtyped.active.slick.models.Identifiable
  */
 trait Nameable[E <: Nameable[E]] extends Identifiable[E] {
   def name: String
+  def deploymentId : Option[Int]
 }
