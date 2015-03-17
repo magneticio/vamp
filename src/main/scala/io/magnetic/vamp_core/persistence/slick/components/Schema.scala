@@ -131,13 +131,13 @@ trait Schema extends Logging {
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
-    def idx = index("idx_default_blueprint", name, unique = true)
+    def idx = index("idx_default_blueprint", (name, deploymentId), unique = true)
 
     def name = column[String]("name")
   }
 
   class BlueprintReferenceTable(tag: Tag) extends NameableEntityTable[BlueprintReferenceModel](tag, "blueprint_references") {
-    def * = (name, id.?, isDefinedInline) <>(BlueprintReferenceModel.tupled, BlueprintReferenceModel.unapply)
+    def * = (deploymentId, name, id.?, isDefinedInline) <>(BlueprintReferenceModel.tupled, BlueprintReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -145,11 +145,13 @@ trait Schema extends Logging {
 
     def isDefinedInline = column[Boolean]("is_defined_inline")
 
-    def idx = index("idx_blueprint_reference", name, unique = true)
+    def deploymentId = column[Option[Int]]("deployment_fk")
+
+    def idx = index("idx_blueprint_reference", (name , deploymentId), unique = true)
   }
 
   class ClusterTable(tag: Tag) extends NameableEntityTable[ClusterModel](tag, "clusters") {
-    def * = (name, blueprintId, slaReference, id.?) <>(ClusterModel.tupled, ClusterModel.unapply)
+    def * = (deploymentId, name, blueprintId, slaReference, id.?) <>(ClusterModel.tupled, ClusterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -159,11 +161,13 @@ trait Schema extends Logging {
 
     def name = column[String]("name")
 
-    def idx = index("idx_cluster", (name, blueprintId), unique = true)
+    def deploymentId = column[Option[Int]]("deployment_fk")
+
+    def idx = index("idx_cluster", (name, blueprintId, deploymentId), unique = true)
   }
 
   class ServiceTable(tag: Tag) extends EntityTable[ServiceModel](tag, "services") {
-    def * = (clusterId, breedReferenceName, routingReferenceName, scaleReferenceName, id.?) <>(ServiceModel.tupled, ServiceModel.unapply)
+    def * = (deploymentId, clusterId, breedReferenceName, routingReferenceName, scaleReferenceName, id.?) <>(ServiceModel.tupled, ServiceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -175,10 +179,12 @@ trait Schema extends Logging {
 
     def scaleReferenceName = column[Option[String]]("scale_reference")
 
+    def deploymentId = column[Option[Int]]("deployment_fk")
+
   }
 
   class SlaReferenceTable(tag: Tag) extends NameableEntityTable[SlaReferenceModel](tag, "sla_references") {
-    def * = (name, id.?, isDefinedInline) <>(SlaReferenceModel.tupled, SlaReferenceModel.unapply)
+    def * = (deploymentId, name, id.?, isDefinedInline) <>(SlaReferenceModel.tupled, SlaReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -186,6 +192,7 @@ trait Schema extends Logging {
 
     def isDefinedInline = column[Boolean]("is_defined_inline")
 
+    def deploymentId = column[Option[Int]]("deployment_fk")
     //def idx = index("idx_sla_references", (name, clusterId) , unique = true)
   }
 
@@ -200,19 +207,19 @@ trait Schema extends Logging {
 
     def isAnonymous = column[Boolean]("anonymous")
 
-    def idx = index("idx_default_sla", name, unique = true)
+    def idx = index("idx_default_sla", (name, deploymentId), unique = true)
 
     def name = column[String]("name")
   }
 
   class EscalationReferenceTable(tag: Tag) extends NameableEntityTable[EscalationReferenceModel](tag, "escalation_references") {
-    def * = (name, slaId, slaRefId, id.?, isDefinedInline) <>(EscalationReferenceModel.tupled, EscalationReferenceModel.unapply)
+    def * = (deploymentId, name, slaId, slaRefId, id.?, isDefinedInline) <>(EscalationReferenceModel.tupled, EscalationReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def isDefinedInline = column[Boolean]("is_defined_inline")
 
-    def idx = index("idx_escalation_references", (name, slaId, slaRefId), unique = true)
+    def idx = index("idx_escalation_references", (name, slaId, slaRefId, deploymentId), unique = true)
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
@@ -232,7 +239,7 @@ trait Schema extends Logging {
 
     def isAnonymous = column[Boolean]("anonymous")
 
-    def idx = index("idx_default_escalation", name, unique = true)
+    def idx = index("idx_default_escalation", (name, deploymentId) , unique = true)
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
@@ -240,13 +247,15 @@ trait Schema extends Logging {
   }
 
   class ScaleReferenceTable(tag: Tag) extends NameableEntityTable[ScaleReferenceModel](tag, "scale_references") {
-    def * = (name, id.?, isDefinedInline) <>(ScaleReferenceModel.tupled, ScaleReferenceModel.unapply)
+    def * = (deploymentId, name, id.?, isDefinedInline) <>(ScaleReferenceModel.tupled, ScaleReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def name = column[String]("name")
 
     def isDefinedInline = column[Boolean]("is_defined_inline")
+
+    def deploymentId = column[Option[Int]]("deployment_fk")
 
     //def idx = index("idx_sla_reference", name, unique = true)
   }
@@ -264,7 +273,7 @@ trait Schema extends Logging {
 
     def isAnonymous = column[Boolean]("anonymous")
 
-    def idx = index("idx_default_scala", name, unique = true)
+    def idx = index("idx_default_scala", (name, deploymentId), unique = true)
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
@@ -272,15 +281,17 @@ trait Schema extends Logging {
   }
 
   class RoutingReferenceTable(tag: Tag) extends NameableEntityTable[RoutingReferenceModel](tag, "routing_references") {
-    def * = (name, id.?, isDefinedInline) <>(RoutingReferenceModel.tupled, RoutingReferenceModel.unapply)
+    def * = (deploymentId, name, id.?, isDefinedInline) <>(RoutingReferenceModel.tupled, RoutingReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def isDefinedInline = column[Boolean]("is_defined_inline")
 
-    def idx = index("idx_routing_reference", name, unique = true)
+    def idx = index("idx_routing_reference", (name, deploymentId), unique = true)
 
     def name = column[String]("name")
+
+    def deploymentId = column[Option[Int]]("deployment_fk")
   }
 
   class DefaultRoutingTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultRoutingModel](tag, "default_routings") {
@@ -292,7 +303,7 @@ trait Schema extends Logging {
 
     def isAnonymous = column[Boolean]("anonymous")
 
-    def idx = index("idx_default_routing", name, unique = true)
+    def idx = index("idx_default_routing", (name, deploymentId), unique = true)
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
@@ -300,7 +311,7 @@ trait Schema extends Logging {
   }
 
   class FilterReferenceTable(tag: Tag) extends NameableEntityTable[FilterReferenceModel](tag, "filter_references") {
-    def * = (name, id.?, routingId, isDefinedInline) <>(FilterReferenceModel.tupled, FilterReferenceModel.unapply)
+    def * = (deploymentId, name, id.?, routingId, isDefinedInline) <>(FilterReferenceModel.tupled, FilterReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc)
 
@@ -332,13 +343,15 @@ trait Schema extends Logging {
   }
 
   class BreedReferenceTable(tag: Tag) extends NameableEntityTable[BreedReferenceModel](tag, "breed_references") {
-    def * = (name, id.?, isDefinedInline) <>(BreedReferenceModel.tupled, BreedReferenceModel.unapply)
+    def * = (deploymentId, name, id.?, isDefinedInline) <>(BreedReferenceModel.tupled, BreedReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def name = column[String]("name")
 
     def isDefinedInline = column[Boolean]("is_defined_inline")
+
+    def deploymentId = column[Option[Int]]("deployment_fk")
 
     //def idx = index("idx_reference_breed", name, unique = true)
 
@@ -357,7 +370,7 @@ trait Schema extends Logging {
 
     def name = column[String]("name")
 
-    def idx = index("idx_default_breed", name, unique = true)
+    def idx = index("idx_default_breed", (name, deploymentId), unique = true)
   }
 
   class EnvironmentVariableTable(tag: Tag) extends NameableEntityTable[EnvironmentVariableModel](tag, "environment_variables") {
@@ -376,6 +389,9 @@ trait Schema extends Logging {
     def parentId = column[Option[Int]]("parent_id") //TODO add foreignkey check
 
     def parentType = column[Option[EnvironmentVariableParentType]]("parent_type")
+
+    //def deploymentId = column[Option[Int]]("deployment_fk")
+
 
     //def idx = index("idx_environment_variables", (name, parent), unique = true)
   }
@@ -400,10 +416,12 @@ trait Schema extends Logging {
     def parentId = column[Option[Int]]("parent_id") //TODO add foreignkey check
 
     def parentType = column[Option[PortParentType]]("parent_type")
+
+
   }
 
   class DependencyTable(tag: Tag) extends NameableEntityTable[DependencyModel](tag, "breed_dependencies") {
-    def * = (name, breedName, id.?, isDefinedInline, parentId) <>(DependencyModel.tupled, DependencyModel.unapply)
+    def * = (deploymentId, name, breedName, id.?, isDefinedInline, parentId) <>(DependencyModel.tupled, DependencyModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -415,7 +433,10 @@ trait Schema extends Logging {
 
     def parentId = column[Int]("parent_id")
 
-    def idx = index("idx_breed_dependencies", (name, breedName, parentId), unique = true)
+    def idx = index("idx_breed_dependencies", (name, breedName, parentId, deploymentId), unique = true)
+
+    def deploymentId = column[Option[Int]]("deployment_fk")
+
 
     //    def breed: ForeignKeyQuery[BreedModel.Breeds, BreedModel] =
     //      foreignKey("dep_breed_fk", breedName, TableQuery[BreedModel.Breeds])(_.name)
@@ -441,6 +462,9 @@ trait Schema extends Logging {
     def parentType = column[ParameterParentType]("parent_type")
 
     def parentId = column[Int]("parent_id")
+
+    //def deploymentId = column[Option[Int]]("deployment_fk")
+
 
     //    def breed: ForeignKeyQuery[BreedModel.Breeds, BreedModel] =
     //      foreignKey("dep_breed_fk", breedName, TableQuery[BreedModel.Breeds])(_.name)

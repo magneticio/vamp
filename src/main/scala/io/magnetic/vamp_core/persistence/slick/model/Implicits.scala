@@ -76,32 +76,32 @@ object Implicits {
     environmentVariableParentTypeMap, environmentVariableParentTypeMap.map(_.swap)
   )
 
-  implicit def defaultBlueprint2Model(a: DefaultBlueprint): DefaultBlueprintModel =
-    DefaultBlueprintModel(deploymentId =None, name = a.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.name))
+  implicit def defaultBlueprint2Model(a: DeploymentDefaultBlueprint): DefaultBlueprintModel =
+    DefaultBlueprintModel(deploymentId =a.deploymentId, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-  implicit def defaultEscalation2Model(artifact: DefaultEscalation): DefaultEscalationModel =
-    DefaultEscalationModel(deploymentId =None, name = artifact.name, escalationType = artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(artifact.name))
+  implicit def defaultEscalation2Model(a: DeploymentDefaultEscalation): DefaultEscalationModel =
+    DefaultEscalationModel(deploymentId =a.deploymentId, name = a.artifact.name, escalationType = a.artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def defaultFilterModel2Artifact(m: DefaultFilterModel): DefaultFilter =
     DefaultFilter(name = VampPersistenceUtil.restoreToAnonymous(m.name, m.isAnonymous), condition = m.condition)
 
-  implicit def defaultFilter2Model(a: DefaultFilter): DefaultFilterModel =
-    DefaultFilterModel(deploymentId = None, condition = a.condition, name = a.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.name))
+  implicit def defaultFilter2Model(a: DeploymentDefaultFilter): DefaultFilterModel =
+    DefaultFilterModel(deploymentId = a.deploymentId, condition = a.artifact.condition, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-  implicit def defaultRouting2Model(a: DefaultRouting): DefaultRoutingModel =
-    DefaultRoutingModel(deploymentId =None, weight = a.weight, name = a.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.name))
+  implicit def defaultRouting2Model(a: DeploymentDefaultRouting): DefaultRoutingModel =
+    DefaultRoutingModel(deploymentId =a.deploymentId, weight = a.artifact.weight, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def defaultScaleModel2Artifact(m: DefaultScaleModel): DefaultScale =
     DefaultScale(cpu = m.cpu, memory = m.memory, instances = m.instances, name = VampPersistenceUtil.restoreToAnonymous(m.name, m.isAnonymous))
 
-  implicit def defaultScale2Model(a: DefaultScale): DefaultScaleModel =
-    DefaultScaleModel(deploymentId =None, cpu = a.cpu, memory = a.memory, instances = a.instances, name = a.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.name))
+  implicit def defaultScale2Model(a: DeploymentDefaultScale): DefaultScaleModel =
+    DefaultScaleModel(deploymentId =a.deploymentId, cpu = a.artifact.cpu, memory = a.artifact.memory, instances = a.artifact.instances, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-  implicit def defaultSla2Model(artifact: DefaultSla): DefaultSlaModel =
-    DefaultSlaModel(deploymentId =None, name = artifact.name, slaType = artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(artifact.name))
+  implicit def defaultSla2Model(a: DeploymentDefaultSla): DefaultSlaModel =
+    DefaultSlaModel(deploymentId = a.deploymentId, name = a.artifact.name, slaType = a.artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-  implicit def defaultBreed2Model(a: DefaultBreed): DefaultBreedModel =
-    DefaultBreedModel(deploymentId =None, deployable = a.deployable.name, name = a.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.name))
+  implicit def defaultBreed2Model(a: DeploymentDefaultBreed): DefaultBreedModel =
+    DefaultBreedModel(deploymentId =a.deploymentId, deployable = a.artifact.deployable.name, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def environmentVariableModel2Artifact(m: EnvironmentVariableModel): EnvironmentVariable =
     EnvironmentVariable(name = m.name, alias = m.alias, value = m.value, direction = m.direction)

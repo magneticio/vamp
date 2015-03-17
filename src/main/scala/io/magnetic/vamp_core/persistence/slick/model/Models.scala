@@ -3,7 +3,7 @@ package io.magnetic.vamp_core.persistence.slick.model
 import java.sql.Timestamp
 import java.time.LocalDateTime
 
-import io.magnetic.vamp_core.model.artifact.Trait
+import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.persistence.slick.extension.{AnonymousNameable, Nameable}
 import io.magnetic.vamp_core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
@@ -33,19 +33,19 @@ case class DefaultBlueprintModel(deploymentId : Option[Int], name: String, id: O
   override def withAnonymousName: DefaultBlueprintModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
 }
 
-case class BlueprintReferenceModel(name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampNameablePersistenceModel[BlueprintReferenceModel] {
+case class BlueprintReferenceModel(deploymentId : Option[Int], name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampNameablePersistenceModel[BlueprintReferenceModel] {
   override def withId(id: Id): BlueprintReferenceModel = copy(id = Option(id))
 }
 
-case class ClusterModel(name: String, blueprintId: Int, slaReference: Option[String], id: Option[Int] = None) extends VampNameablePersistenceModel[ClusterModel] {
+case class ClusterModel(deploymentId : Option[Int], name: String, blueprintId: Int, slaReference: Option[String], id: Option[Int] = None) extends VampNameablePersistenceModel[ClusterModel] {
   override def withId(id: Id): ClusterModel = copy(id = Option(id))
 }
 
-case class ServiceModel(clusterId: Int, breedReferenceName: String, routingReferenceName: Option[String], scaleReferenceName: Option[String], id: Option[Int] = None) extends VampPersistenceModelIdentifiable[ServiceModel] {
+case class ServiceModel(deploymentId : Option[Int], clusterId: Int, breedReferenceName: String, routingReferenceName: Option[String], scaleReferenceName: Option[String], id: Option[Int] = None) extends VampPersistenceModelIdentifiable[ServiceModel] {
   override def withId(id: Id): ServiceModel = copy(id = Option(id))
 }
 
-case class SlaReferenceModel(name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampNameablePersistenceModel[SlaReferenceModel] {
+case class SlaReferenceModel(deploymentId : Option[Int], name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampNameablePersistenceModel[SlaReferenceModel] {
   override def withId(id: Id): SlaReferenceModel = copy(id = Option(id))
 }
 
@@ -55,7 +55,7 @@ case class DefaultSlaModel(deploymentId : Option[Int], name: String, slaType: St
   override def withAnonymousName: DefaultSlaModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
 }
 
-case class EscalationReferenceModel(name: String, slaId: Option[Int], slaRefId: Option[Int], id: Option[Int] = None, isDefinedInline: Boolean) extends VampNameablePersistenceModel[EscalationReferenceModel] {
+case class EscalationReferenceModel(deploymentId : Option[Int], name: String, slaId: Option[Int], slaRefId: Option[Int], id: Option[Int] = None, isDefinedInline: Boolean) extends VampNameablePersistenceModel[EscalationReferenceModel] {
   override def withId(id: Id): EscalationReferenceModel = copy(id = Option(id))
 }
 
@@ -65,7 +65,7 @@ case class DefaultEscalationModel(deploymentId : Option[Int], name: String, esca
   override def withAnonymousName: DefaultEscalationModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
 }
 
-case class ScaleReferenceModel(name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampNameablePersistenceModel[ScaleReferenceModel] {
+case class ScaleReferenceModel(deploymentId : Option[Int], name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampNameablePersistenceModel[ScaleReferenceModel] {
   override def withId(id: Id): ScaleReferenceModel = copy(id = Option(id))
 }
 
@@ -75,7 +75,7 @@ case class DefaultScaleModel(deploymentId : Option[Int], name: String, cpu: Doub
   override def withAnonymousName: DefaultScaleModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
 }
 
-case class RoutingReferenceModel(name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampNameablePersistenceModel[RoutingReferenceModel] {
+case class RoutingReferenceModel(deploymentId : Option[Int], name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampNameablePersistenceModel[RoutingReferenceModel] {
   override def withId(id: Id): RoutingReferenceModel = copy(id = Option(id))
 }
 
@@ -85,7 +85,7 @@ case class DefaultRoutingModel(deploymentId : Option[Int], name: String, weight:
   override def withAnonymousName: DefaultRoutingModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
 }
 
-case class FilterReferenceModel(name: String, id: Option[Int] = None, routingId: Int, isDefinedInline: Boolean) extends VampNameablePersistenceModel[FilterReferenceModel] {
+case class FilterReferenceModel(deploymentId : Option[Int], name: String, id: Option[Int] = None, routingId: Int, isDefinedInline: Boolean) extends VampNameablePersistenceModel[FilterReferenceModel] {
   override def withId(id: Id): FilterReferenceModel = copy(id = Option(id))
 }
 
@@ -95,7 +95,7 @@ case class DefaultFilterModel(deploymentId : Option[Int], name: String, conditio
   override def withAnonymousName: DefaultFilterModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
 }
 
-case class BreedReferenceModel(name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampNameablePersistenceModel[BreedReferenceModel] {
+case class BreedReferenceModel(deploymentId : Option[Int], name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampNameablePersistenceModel[BreedReferenceModel] {
   override def withId(id: Id): BreedReferenceModel = copy(id = Option(id))
 }
 
@@ -113,7 +113,7 @@ case class EnvironmentVariableModel(name: String, alias: Option[String], value: 
   override def withId(id: Id): EnvironmentVariableModel = copy(id = Option(id))
 }
 
-case class DependencyModel(name: String, breedName: String, id: Option[Int] = None, isDefinedInline: Boolean, parentId: Int) extends VampNameablePersistenceModel[DependencyModel] {
+case class DependencyModel(deploymentId : Option[Int], name: String, breedName: String, id: Option[Int] = None, isDefinedInline: Boolean, parentId: Int) extends VampNameablePersistenceModel[DependencyModel] {
   override def withId(id: Id): DependencyModel = copy(id = Option(id))
 }
 
@@ -125,5 +125,15 @@ case class TraitNameParameterModel(id: Option[Int] = None, name: String, scope: 
   override def withId(id: Id): TraitNameParameterModel = copy(id = Option(id))
 }
 
+trait DeployableArtifact  {
+  def deploymentId : Option[Int]
+  def artifact : Artifact
+}
 
-
+case class DeploymentDefaultFilter(deploymentId : Option[Int], artifact: DefaultFilter)
+case class DeploymentDefaultSla(deploymentId : Option[Int], artifact: DefaultSla)
+case class DeploymentDefaultScale(deploymentId : Option[Int], artifact: DefaultScale)
+case class DeploymentDefaultEscalation(deploymentId : Option[Int], artifact: DefaultEscalation)
+case class DeploymentDefaultRouting(deploymentId : Option[Int], artifact: DefaultRouting)
+case class DeploymentDefaultBreed(deploymentId : Option[Int], artifact: DefaultBreed)
+case class DeploymentDefaultBlueprint(deploymentId : Option[Int], artifact: DefaultBlueprint)
