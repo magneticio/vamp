@@ -20,30 +20,32 @@ trait VampTableQueries extends TableQueries with VampTables {
 
     override def fetchAll(implicit sess: Session): List[M] = defaultSort.list
 
-    def filterByName(name: String)(implicit sess: Session) = filter(_.name === name)
+    def fetchAllFromDeployment(deploymentId : Option[Int])(implicit sess: Session): List[M] = defaultSort.list
 
-    def deleteByName(name: String)(implicit sess: Session): Unit = tryDeleteByName(name).get
+    def filterByName(name: String, deploymentId : Option[Int])(implicit sess: Session) = filter(attrib => (attrib.name === name))// && attrib.deploymentId === deploymentId))
 
-    def tryDeleteByName(name: String)(implicit sess: Session): Try[Unit] = {
+    def deleteByName(name: String, deploymentId : Option[Int])(implicit sess: Session): Unit = tryDeleteByName(name, deploymentId).get
+
+    def tryDeleteByName(name: String, deploymentId : Option[Int])(implicit sess: Session): Try[Unit] = {
       rollbackOnFailure {
         mustAffectOneSingleRow {
-          filterByName(name).delete
+          filterByName(name, deploymentId).delete
         }.recoverWith {
           case NoRowsAffectedException => Failure(RowNotFoundException(name))
         }
       }
     }
 
-    def tryFindByName(name: String)(implicit sess: Session): Try[M] = {
-      findOptionByName(name) match {
+    def tryFindByName(name: String, deploymentId : Option[Int])(implicit sess: Session): Try[M] = {
+      findOptionByName(name, deploymentId) match {
         case Some(model) => Success(model)
         case None => Failure(RowNotFoundException(name))
       }
     }
 
-    def findByName(name: String)(implicit sess: Session): M = findOptionByName(name).get
+    def findByName(name: String, deploymentId : Option[Int])(implicit sess: Session): M = findOptionByName(name, deploymentId).get
 
-    def findOptionByName(name: String)(implicit sess: Session): Option[M] = filterByName(name).firstOption
+    def findOptionByName(name: String, deploymentId : Option[Int])(implicit sess: Session): Option[M] = filterByName(name, deploymentId).firstOption
   }
 
   object NameableEntityTableQuery {

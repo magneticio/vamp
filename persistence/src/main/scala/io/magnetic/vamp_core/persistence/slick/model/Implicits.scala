@@ -114,8 +114,8 @@ object Implicits {
 
   implicit def port2PortModel(port: Port): PortModel =
     port match {
-      case TcpPort(_, _, _, _) => PortModel(name = port.name.value, alias = port.alias, portType = PortType.TCP, value = port.value, direction = port.direction)
-      case HttpPort(_, _, _, _) => PortModel(name = port.name.value, alias = port.alias, portType = PortType.HTTP, value = port.value, direction = port.direction)
+      case TcpPort(_, _, _, _) => PortModel(deploymentId = None, name = port.name.value, alias = port.alias, portType = PortType.TCP, value = port.value, direction = port.direction)
+      case HttpPort(_, _, _, _) => PortModel(deploymentId = None, name = port.name.value, alias = port.alias, portType = PortType.HTTP, value = port.value, direction = port.direction)
       case _ => throw new RuntimeException(s"Handler for portType not implemented")
     }
 }

@@ -105,11 +105,11 @@ case class DefaultBreedModel(deploymentId : Option[Int], name: String, deployabl
   override def withAnonymousName: DefaultBreedModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
 }
 
-case class PortModel(name: String, alias: Option[String], portType: PortType, value: Option[Int], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int] = None, parentType: Option[PortParentType] = None) extends VampNameablePersistenceModel[PortModel] {
+case class PortModel(deploymentId : Option[Int],name: String, alias: Option[String], portType: PortType, value: Option[Int], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int] = None, parentType: Option[PortParentType] = None) extends VampNameablePersistenceModel[PortModel] {
   override def withId(id: Id): PortModel = copy(id = Option(id))
 }
 
-case class EnvironmentVariableModel(name: String, alias: Option[String], value: Option[String], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int], parentType: Option[EnvironmentVariableParentType]) extends VampNameablePersistenceModel[EnvironmentVariableModel] {
+case class EnvironmentVariableModel(deploymentId : Option[Int],name: String, alias: Option[String], value: Option[String], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int], parentType: Option[EnvironmentVariableParentType]) extends VampNameablePersistenceModel[EnvironmentVariableModel] {
   override def withId(id: Id): EnvironmentVariableModel = copy(id = Option(id))
 }
 
@@ -117,11 +117,11 @@ case class DependencyModel(deploymentId : Option[Int], name: String, breedName: 
   override def withId(id: Id): DependencyModel = copy(id = Option(id))
 }
 
-case class ParameterModel(name: String, stringValue: Option[String] = None, intValue: Int = 0, doubleValue: Double = 0, parameterType: ParameterType, id: Option[Int] = None, parentType: ParameterParentType, parentId : Int) extends VampNameablePersistenceModel[ParameterModel] {
+case class ParameterModel(deploymentId : Option[Int],name: String, stringValue: Option[String] = None, intValue: Int = 0, doubleValue: Double = 0, parameterType: ParameterType, id: Option[Int] = None, parentType: ParameterParentType, parentId : Int) extends VampNameablePersistenceModel[ParameterModel] {
   override def withId(id: Id): ParameterModel = copy(id = Option(id))
 }
 
-case class TraitNameParameterModel(id: Option[Int] = None, name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], stringValue: Option[String] = None, groupId: Option[Int] = None, parentId: Int) extends VampNameablePersistenceModel[TraitNameParameterModel] {
+case class TraitNameParameterModel(deploymentId : Option[Int],id: Option[Int] = None, name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], stringValue: Option[String] = None, groupId: Option[Int] = None, parentId: Int) extends VampNameablePersistenceModel[TraitNameParameterModel] {
   override def withId(id: Id): TraitNameParameterModel = copy(id = Option(id))
 }
 
