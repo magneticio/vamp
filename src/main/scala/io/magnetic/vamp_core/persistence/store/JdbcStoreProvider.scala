@@ -5,6 +5,7 @@ import io.magnetic.vamp_common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact.Trait.Name
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.persistence.notification._
+import io.magnetic.vamp_core.persistence.slick.components.Components
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.magnetic.vamp_core.persistence.slick.model.PortParentType.PortParentType
 import io.magnetic.vamp_core.persistence.slick.model._
@@ -20,15 +21,19 @@ import scala.slick.jdbc.JdbcBackend._
 trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvider {
   this: ExecutionContextProvider =>
 
-  override val store: Store = new JdbcStore()
+
   val db: Database = Database.forConfig("persistence.jdbcProvider")
   implicit val sess = db.createSession()
   private val logger = Logger(LoggerFactory.getLogger(classOf[JdbcStoreProvider]))
 
-  private class JdbcStore extends Store {
+  override val store: Store = new JdbcStore()
 
+
+  private class JdbcStore extends Store {
     import io.magnetic.vamp_core.persistence.slick.components.Components.instance._
     import io.magnetic.vamp_core.persistence.slick.model.Implicits._
+
+    Components.instance.upgradeSchema
 
     def create(artifact: Artifact, ignoreIfExists: Boolean): Artifact = {
       read(artifact.name, artifact.getClass) match {

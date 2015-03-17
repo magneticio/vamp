@@ -24,7 +24,7 @@ with BeforeAndAfterAll {
   val db: Database = Database.forConfig("persistence.jdbcProvider")
   implicit val sess = db.createSession()
   val persist = ActorSupport.actorOf(PersistenceActor)
-  createSchema
+  upgradeSchema
   def this() = this(ActorSystem("vamp-persistence"))
 
   override def afterAll() {

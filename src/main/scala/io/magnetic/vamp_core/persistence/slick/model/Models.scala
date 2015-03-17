@@ -1,5 +1,8 @@
 package io.magnetic.vamp_core.persistence.slick.model
 
+import java.sql.Timestamp
+import java.time.LocalDateTime
+
 import io.magnetic.vamp_core.model.artifact.Trait
 import io.magnetic.vamp_core.persistence.slick.extension.{AnonymousNameable, Nameable}
 import io.magnetic.vamp_core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
@@ -20,6 +23,9 @@ trait VampNameablePersistenceModel[E <: Nameable[E]] extends VampPersistenceMode
 
 trait VampAnonymousNameablePersistenceModel[E <: AnonymousNameable[E]] extends VampNameablePersistenceModel[E] with AnonymousNameable[E]
 
+case class VampPersistenceMetaDataModel(id: Option[Int] = None, schemaVersion : Int, created : Timestamp = Timestamp.valueOf(LocalDateTime.now())) extends VampPersistenceModelIdentifiable[VampPersistenceMetaDataModel] {
+  override def withId(id: Id): VampPersistenceMetaDataModel = copy(id = Option(id))
+}
 
 case class DefaultBlueprintModel(name: String, id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[DefaultBlueprintModel] {
   override def withId(id: Id): DefaultBlueprintModel = copy(id = Option(id))

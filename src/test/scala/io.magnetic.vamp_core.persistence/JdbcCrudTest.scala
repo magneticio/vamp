@@ -12,7 +12,8 @@ import org.scalatest.{FlatSpec, Matchers}
 class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
   this: ExecutionContextProvider =>
 
-  createSchema
+  //destroySchema
+  //upgradeSchema
 
   val jdbcStore = store
 
@@ -116,6 +117,8 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       updatedFirstArtifact = bp1.copy(clusters = List.empty),
       secondArtifact = bp1.copy(name = "bp2"))
   }
+
+
 
 
   def performCrudTest(firstArtifact: Artifact, updatedFirstArtifact: Artifact, secondArtifact: Artifact): Unit = {
