@@ -30,7 +30,7 @@ object DeploymentActor extends ActorDescription {
 
   case class Update(name: String, blueprint: Blueprint) extends DeploymentMessages
 
-  case class Delete(name: String, blueprint: Option[Blueprint] = None) extends DeploymentMessages
+  case class Delete(name: String, blueprint: Blueprint) extends DeploymentMessages
 
 }
 
@@ -46,9 +46,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     request match {
       case Create(blueprint) => merge(Deployment(uuid, List(), Nil, Map()), asDefaultBlueprint(blueprint))
       case Update(name, blueprint) => merge(artifactFor[Deployment](name), asDefaultBlueprint(blueprint))
-      case Delete(name, blueprint) => slice(artifactFor[Deployment](name), blueprint.flatMap { bp =>
-        Some(asDefaultBlueprint(bp))
-      })
+      case Delete(name, blueprint) => slice(artifactFor[Deployment](name), asDefaultBlueprint(blueprint))
       case _ => exception(errorRequest(request))
     }
   } catch {
@@ -136,20 +134,13 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Rep
     else Nil
   }
 
-  private def slice(deployment: Deployment, blueprint: Option[DefaultBlueprint]): Any = blueprint match {
-    // TODO validation
-    case None =>
-      commit(deployment.copy(clusters = deployment.clusters.map({ cluster =>
-        cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment())))
-      })))
-
-    case Some(bp) =>
-      commit(deployment.copy(clusters = deployment.clusters.map(cluster =>
-        bp.clusters.find(_.name == cluster.name) match {
-          case None => cluster
-          case Some(bpc) => cluster.copy(services = cluster.services.filter(service => !bpc.services.exists(service.breed.name == _.breed.name)).map(service => service.copy(state = ReadyForUndeployment())))
-        }
-      ).filter(_.services.nonEmpty)))
+  private def slice(deployment: Deployment, blueprint: DefaultBlueprint): Any = {
+    commit(deployment.copy(clusters = deployment.clusters.map(cluster =>
+      blueprint.clusters.find(_.name == cluster.name) match {
+        case None => cluster
+        case Some(bpc) => cluster.copy(services = cluster.services.filter(service => !bpc.services.exists(service.breed.name == _.breed.name)).map(service => service.copy(state = ReadyForUndeployment())))
+      }
+    ).filter(_.services.nonEmpty)))
   }
 
   private def commit(deployment: Deployment): Any = {

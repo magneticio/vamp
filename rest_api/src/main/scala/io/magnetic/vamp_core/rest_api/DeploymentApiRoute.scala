@@ -4,16 +4,15 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
-import io.magnetic.vamp_core.model.artifact.DeploymentService.ReadyForDeployment
+import io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentWatchdogActor}
 import io.magnetic.vamp_core.operation.notification.InternalServerError
 import io.magnetic.vamp_core.operation.sla.SlaMonitorActor
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor
-import PersistenceActor.All
-import io.magnetic.vamp_core.persistence.actor.PersistenceActor
-import io.magnetic.vamp_core.rest_api.notification.{UnsupportedRoutingWeightChangeError, RestApiNotificationProvider}
+import io.magnetic.vamp_core.persistence.actor.PersistenceActor.All
+import io.magnetic.vamp_core.rest_api.notification.{RestApiNotificationProvider, UnsupportedRoutingWeightChangeError}
 import io.magnetic.vamp_core.rest_api.swagger.SwaggerResponse
 import spray.http.StatusCodes._
 import spray.httpx.marshalling.Marshaller
@@ -137,16 +136,16 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
 trait DeploymentApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
   this: Actor with ExecutionContextProvider =>
 
-  def sync(): Unit = {
+  def sync(period: Int = 5): Unit = {
     actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(1)
-    context.system.scheduler.scheduleOnce(5 seconds, new Runnable {
+    context.system.scheduler.scheduleOnce(period seconds, new Runnable {
       def run() = actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(0)
     })
   }
 
-  def slaMonitor(): Unit = {
+  def slaMonitor(period: Int = 5): Unit = {
     actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(1)
-    context.system.scheduler.scheduleOnce(5 seconds, new Runnable {
+    context.system.scheduler.scheduleOnce(period seconds, new Runnable {
       def run() = actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(0)
     })
   }
@@ -155,7 +154,9 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
     implicit val timeout = PersistenceActor.timeout
     offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
       case deployments: List[_] =>
-        deployments.asInstanceOf[List[Deployment]].foreach(deployment => actorFor(DeploymentActor) ! DeploymentActor.Delete(deployment.name, None))
+        deployments.asInstanceOf[List[Deployment]].foreach({ deployment =>
+          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
+        })
       case any => error(InternalServerError(any))
     }
     sync()
@@ -177,7 +178,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
   }
 
   def deleteDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] =
-    actorFor(DeploymentActor) ? DeploymentActor.Delete(name, if (request.isEmpty) None else Some(DeploymentBlueprintReader.readReferenceFromSource(request)))
+    actorFor(DeploymentActor) ? DeploymentActor.Delete(name, DeploymentBlueprintReader.readReferenceFromSource(request))
 
   def sla(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
     (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
