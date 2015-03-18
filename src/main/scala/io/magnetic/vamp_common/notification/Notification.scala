@@ -2,7 +2,7 @@ package io.magnetic.vamp_common.notification
 
 trait Notification
 
-trait ErrorNotification {
+trait ErrorNotification extends Notification {
   def reason: Any
 }
 
