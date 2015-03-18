@@ -3,6 +3,10 @@ package io.magnetic.vamp_core.persistence.slick.components
 import io.magnetic.vamp_core.persistence.slick.extension.VampActiveSlick
 
 trait ModelExtensions extends Schema
+with DeploymentExtensions
+with DeploymentClusterExtensions
+with DeploymentServiceExtensions
+with DeploymentServerExtensions
 with BlueprintReferenceExtensions
 with ClusterExtensions
 with DefaultBlueprintExtensions

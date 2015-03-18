@@ -30,6 +30,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
 
   private class JdbcStore extends Store {
+
     import io.magnetic.vamp_core.persistence.slick.components.Components.instance._
     import io.magnetic.vamp_core.persistence.slick.model.Implicits._
 
@@ -68,7 +69,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
     def all(ofType: Class[_ <: Artifact]): List[_ <: Artifact] = {
       ofType match {
-        //TODO implement deployment types
+        case _ if ofType == classOf[Deployment] => Deployments.fetchAll.map(a => read(a.name, ofType).get)
         case _ if ofType == classOf[DefaultBlueprint] => DefaultBlueprints.fetchAll.map(a => read(a.name, ofType).get)
         case _ if ofType == classOf[DefaultEscalation] => DefaultEscalations.fetchAll.map(a => read(a.name, ofType).get)
         case _ if ofType == classOf[DefaultFilter] => DefaultFilters.fetchAll.map(a => read(a.name, ofType).get)
@@ -80,10 +81,10 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       }
     }
 
-    def defaultRoutingModel2DefaultRoutingArtifact(r: DefaultRoutingModel): DefaultRouting = {
+    def defaultRoutingModel2Artifact(r: DefaultRoutingModel): DefaultRouting = {
       val filters: List[Filter] = r.filterReferences.map(filter =>
         if (filter.isDefinedInline)
-          defaultFilterModel2Artifact(DefaultFilters.findByName(filter.name))
+          defaultFilterModel2Artifact(DefaultFilters.findByName(filter.name, filter.deploymentId))
         else
           FilterReference(filter.name)
       )
@@ -117,27 +118,27 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def deleteFilterReferences(filterReferences: List[FilterReferenceModel]): Unit = {
       for (filter <- filterReferences) {
         if (filter.isDefinedInline) {
-          DefaultFilters.findOptionByName(filter.name) match {
-            case Some(storedFilter) if storedFilter.isAnonymous => DefaultFilters.deleteByName(filter.name)
+          DefaultFilters.findOptionByName(filter.name, filter.deploymentId) match {
+            case Some(storedFilter) if storedFilter.isAnonymous => DefaultFilters.deleteByName(filter.name, filter.deploymentId)
             case _ =>
           }
         }
-        FilterReferences.deleteByName(filter.name)
+        FilterReferences.deleteByName(filter.name, filter.deploymentId)
       }
     }
 
     private def updateSla(existing: DefaultSlaModel, a: DefaultSla): Unit = {
       deleteSlaModelChildObjects(existing)
-      createEscalationReferences(a.escalations, existing.id, None)
-      createParameters(a.parameters, a.name, ParameterParentType.Sla)
+      createEscalationReferences(a.escalations, existing.id, None, existing.deploymentId)
+      createParameters(a.parameters, existing.id.get, ParameterParentType.Sla)
       existing.copy(slaType = a.`type`).update
     }
 
-    private def updateBreed(existing: DefaultBreedModel, artifact: DefaultBreed): Unit = {
+    private def updateBreed(existing: DefaultBreedModel, a: DefaultBreed): Unit = {
       for (d <- existing.dependencies) {
         if (d.isDefinedInline) {
-          DefaultBreeds.findOptionByName(d.breedName) match {
-            case Some(breed) => if (breed.isAnonymous) deleteDefaultBreedModel(breed)
+          DefaultBreeds.findOptionByName(d.breedName, d.deploymentId) match {
+            case Some(breed) => if (breed.isAnonymous) deleteDefaultBreedModel(breed, existing.deploymentId)
             case _ =>
           }
         }
@@ -145,19 +146,19 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       }
       deleteModelPorts(existing.ports)
       existing.environmentVariables.map(e => EnvironmentVariables.deleteById(e.id.get))
-      createBreedChildren(existing, artifact)
-      existing.copy(deployable = artifact.deployable.name).update
+      createBreedChildren(existing, DeploymentDefaultBreed(existing.deploymentId, a))
+      existing.copy(deployable = a.deployable.name).update
     }
 
     private def updateRouting(existing: DefaultRoutingModel, artifact: DefaultRouting): Unit = {
       deleteFilterReferences(existing.filterReferences)
-      createFilterReferences(artifact, existing.id.get)
+      createFilterReferences(DeploymentDefaultRouting(existing.deploymentId, artifact), existing.id.get)
       existing.copy(weight = artifact.weight).update
     }
 
     private def updateBlueprint(existing: DefaultBlueprintModel, artifact: DefaultBlueprint): Unit = {
-      deleteClusters(existing.clusters)
-      createClusters(artifact.clusters, existing.id.get)
+      deleteBlueprintClusters(existing.clusters)
+      createBlueprintClusters(artifact.clusters, existing.id.get, existing.deploymentId)
       deleteModelPorts(existing.endpoints)
       createPorts(artifact.endpoints, existing.id, parentType = Some(PortParentType.BlueprintEndpoint))
       deleteModelTraitNameParameters(existing.parameters)
@@ -177,40 +178,55 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       existing.copy(cpu = a.cpu, memory = a.memory, instances = a.instances).update
     }
 
+    private def updateDeployment(existing: DeploymentModel, artifact: Deployment): Unit = {
+      deleteDeploymentClusters(existing.clusters, existing.id)
+      deleteDeploymentEndpoints(existing.endpoints, existing.id)
+      createDeploymentClusters(artifact.clusters, existing.id)
+      createDeploymentEndpoints(artifact.endpoints, existing.id)
+      //TODO delete  parameters
+      //deleteDeploymentParameters(existing.parameters, existing.id)
+      createDeploymentParameters(artifact.parameters, existing.id)
+      Deployments.update(existing)
+    }
+
     private def updateArtifact(artifact: Artifact): Artifact = {
+      val deploymentId: Option[Int] = None
       artifact match {
-        //TODO implement deployment types
+
+        case a: Deployment =>
+          updateDeployment(Deployments.findByName(a.name), a)
+
         case a: DefaultBlueprint =>
-          updateBlueprint(DefaultBlueprints.findByName(a.name), a)
+          updateBlueprint(DefaultBlueprints.findByName(a.name, deploymentId), a)
 
         case a: DefaultEscalation =>
-          updateEscalation(a)
+          updateEscalation(DeploymentDefaultEscalation(deploymentId, a))
 
         case a: DefaultFilter =>
-          DefaultFilters.findByName(a.name).copy(condition = a.condition).update
+          DefaultFilters.findByName(a.name, deploymentId).copy(condition = a.condition).update
 
         case a: DefaultRouting =>
-          updateRouting(DefaultRoutings.findByName(a.name), a)
+          updateRouting(DefaultRoutings.findByName(a.name, deploymentId), a)
 
         case a: DefaultScale =>
-          updateScale(DefaultScales.findByName(a.name), a)
+          updateScale(DefaultScales.findByName(a.name, deploymentId), a)
 
         case a: DefaultSla =>
-          updateSla(DefaultSlas.findByName(a.name), a)
+          updateSla(DefaultSlas.findByName(a.name, deploymentId), a)
 
         case a: DefaultBreed =>
-          updateBreed(DefaultBreeds.findByName(a.name), a)
+          updateBreed(DefaultBreeds.findByName(a.name, deploymentId), a)
 
         case _ => throw exception(UnsupportedPersistenceRequest(artifact.getClass))
       }
       read(artifact.name, artifact.getClass).get
     }
 
-    private def updateEscalation(a: DefaultEscalation): Unit = {
-      val existing = DefaultEscalations.findByName(a.name)
+    private def updateEscalation(a: DeploymentDefaultEscalation): Unit = {
+      val existing = DefaultEscalations.findByName(a.artifact.name, a.deploymentId)
       deleteExistingParameters(existing.parameters)
-      createParameters(a.parameters, a.name, ParameterParentType.Escalation)
-      existing.copy(escalationType = a.`type`).update
+      createParameters(a.artifact.parameters, existing.id.get, ParameterParentType.Escalation)
+      existing.copy(escalationType = a.artifact.`type`).update
     }
 
     private def parametersToArtifact(e: List[ParameterModel]): Map[String, Any] = {
@@ -223,12 +239,12 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       } yield param.name -> value).toMap
     }
 
-    private def findOptionRoutingArtifactViaReference(artifactName: Option[String]): Option[Routing] = artifactName match {
+    private def findOptionRoutingArtifactViaReference(artifactName: Option[String], deploymentId: Option[Int]): Option[Routing] = artifactName match {
       case Some(routingRef) =>
-        RoutingReferences.findOptionByName(routingRef) match {
+        RoutingReferences.findOptionByName(routingRef, deploymentId) match {
           case Some(ref: RoutingReferenceModel) if ref.isDefinedInline =>
-            DefaultRoutings.findOptionByName(ref.name) match {
-              case Some(defaultRouting) => Some(defaultRoutingModel2DefaultRoutingArtifact(defaultRouting))
+            DefaultRoutings.findOptionByName(ref.name, deploymentId) match {
+              case Some(defaultRouting) => Some(defaultRoutingModel2Artifact(defaultRouting))
               case None => Some(RoutingReference(name = ref.name)) // Not found, return a reference instead
             }
           case Some(ref) => Some(RoutingReference(name = ref.name))
@@ -237,19 +253,19 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       case None => None
     }
 
-    private def findBreedArtifactViaReference(artifactName: String): Breed =
-      BreedReferences.findOptionByName(artifactName) match {
+    private def findBreedArtifactViaReference(artifactName: String, deploymentId: Option[Int]): Breed =
+      BreedReferences.findOptionByName(artifactName, deploymentId) match {
         case Some(breedRef) if breedRef.isDefinedInline =>
-          DefaultBreeds.findOptionByName(breedRef.name) match {
+          DefaultBreeds.findOptionByName(breedRef.name, deploymentId) match {
             case Some(b) => defaultBreedModel2DefaultBreedArtifact(b)
             case None => BreedReference(name = artifactName) //Not breed not found, return a reference instead
           }
         case _ => BreedReference(name = artifactName)
       }
 
-    private def findOptionSlaArtifactViaReferenceName(artifactName: Option[String]): Option[Sla] = artifactName match {
+    private def findOptionSlaArtifactViaReferenceName(artifactName: Option[String], deploymentId: Option[Int]): Option[Sla] = artifactName match {
       case Some(slaName) =>
-        SlaReferences.findOptionByName(slaName) match {
+        SlaReferences.findOptionByName(slaName, deploymentId) match {
           case Some(slaReference) if slaReference.isDefinedInline =>
             readToArtifact(slaReference.name, classOf[DefaultSla]) match {
               case Some(slaArtifact: DefaultSla) => Some(slaArtifact)
@@ -263,11 +279,11 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       case None => None
     }
 
-    private def findOptionScaleArtifactViaReferenceName(artifactName: Option[String]): Option[Scale] = artifactName match {
+    private def findOptionScaleArtifactViaReferenceName(artifactName: Option[String], deploymentId: Option[Int]): Option[Scale] = artifactName match {
       case Some(scaleRef) =>
-        ScaleReferences.findOptionByName(scaleRef) match {
+        ScaleReferences.findOptionByName(scaleRef, deploymentId) match {
           case Some(ref: ScaleReferenceModel) if ref.isDefinedInline =>
-            DefaultScales.findOptionByName(ref.name) match {
+            DefaultScales.findOptionByName(ref.name, deploymentId) match {
               case Some(defaultScale) => Some(defaultScale)
               case None => Some(ScaleReference(name = ref.name)) // Not found, return a reference instead
             }
@@ -277,33 +293,76 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       case None => None
     }
 
-    private def findServicesArtifacts(services: List[ServiceModel]): List[Service] = services.map(service =>
+    private def findServicesArtifacts(services: List[ServiceModel], deploymentId: Option[Int]): List[Service] = services.map(service =>
       Service(
-        breed = findBreedArtifactViaReference(service.breedReferenceName),
-        scale = findOptionScaleArtifactViaReferenceName(service.scaleReferenceName),
-        routing = findOptionRoutingArtifactViaReference(service.routingReferenceName)
+        breed = findBreedArtifactViaReference(service.breedReferenceName, deploymentId),
+        scale = findOptionScaleArtifactViaReferenceName(service.scaleReferenceName, deploymentId),
+        routing = findOptionRoutingArtifactViaReference(service.routingReferenceName, deploymentId)
       )
     )
 
-    private def findClusterArtifacts(clusters: List[ClusterModel]): List[Cluster] =
+    private def findBlueprintClusterArtifacts(clusters: List[ClusterModel], deploymentId: Option[Int]): List[Cluster] =
       clusters.map(cluster => Cluster(
         name = cluster.name,
-        services = findServicesArtifacts(cluster.services),
-        sla = findOptionSlaArtifactViaReferenceName(cluster.slaReference))
+        services = findServicesArtifacts(cluster.services, deploymentId),
+        sla = findOptionSlaArtifactViaReferenceName(cluster.slaReference, deploymentId))
       )
 
+
+    private def serverPorts2Artifact(ports: List[ServerPortModel]): Map[Int, Int] = ports.map(port => port.portIn -> port.portOut).toMap
+
+
+    private def deploymentServerModels2Artifacts(servers: List[DeploymentServerModel]): List[DeploymentServer] =
+      servers.map(server =>
+        DeploymentServer(name = server.name, host = server.host, ports = serverPorts2Artifact(server.ports))
+      )
+
+    private def deploymentServiceDependencies2Artifacts(dependencies: List[DeploymentServiceDependencyModel]): Map[String, String] =
+      dependencies.map(dep => dep.name -> dep.value).toMap
+
+
+    private def findDeploymentServiceArtifacts(services: List[DeploymentServiceModel]): List[DeploymentService] =
+      services.map(service =>
+        DeploymentService(state = deploymentService2deploymentState(service),
+          breed = defaultBreedModel2DefaultBreedArtifact(DefaultBreeds.findById(service.breed)),
+          scale = defaultScaleModel2Artifact(DefaultScales.findById(service.scale)),
+          routing = defaultRoutingModel2Artifact(DefaultRoutings.findById(service.routing)),
+          servers = deploymentServerModels2Artifacts(service.servers),
+          dependencies = deploymentServiceDependencies2Artifacts(service.dependencies)
+        )
+      )
+
+
+    private def findDeploymentClusterArtifacts(clusters: List[DeploymentClusterModel], deploymentId: Option[Int]): List[DeploymentCluster] =
+      clusters.map(cluster =>
+        DeploymentCluster(
+          name = cluster.name,
+          services = findDeploymentServiceArtifacts(cluster.services),
+          sla = findOptionSlaArtifactViaReferenceName(cluster.slaReference, deploymentId))
+      )
 
     private def readPortsToArtifactList(ports: List[PortModel]): List[Port] = ports.map(p => portModel2Port(p)).toList
 
     private def readToArtifact(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] = {
+      val defaultDeploymentId: Option[Int] = None
       ofType match {
-        //TODO implement deployment types
+
+        case _ if ofType == classOf[Deployment] =>
+          Deployments.findOptionByName(name) match {
+            case Some(deployment) =>
+              Some(Deployment(name = deployment.name,
+                clusters = findDeploymentClusterArtifacts(deployment.clusters, deployment.id),
+                endpoints = List.empty, // TODO read endpoints
+                parameters = Map.empty)) // TODO read parameters
+            case _ => None
+          }
+
         case _ if ofType == classOf[DefaultBlueprint] =>
-          DefaultBlueprints.findOptionByName(name) match {
+          DefaultBlueprints.findOptionByName(name, defaultDeploymentId) match {
             case Some(b) => Some(
               DefaultBlueprint(
                 name = VampPersistenceUtil.restoreToAnonymous(b.name, b.isAnonymous),
-                clusters = findClusterArtifacts(b.clusters),
+                clusters = findBlueprintClusterArtifacts(b.clusters, defaultDeploymentId),
                 endpoints = readPortsToArtifactList(b.endpoints),
                 parameters = traitNameParametersToArtifactMap(b.parameters)
               )
@@ -312,32 +371,32 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           }
 
         case _ if ofType == classOf[DefaultEscalation] =>
-          DefaultEscalations.findOptionByName(name) match {
+          DefaultEscalations.findOptionByName(name, defaultDeploymentId) match {
             case Some(e) =>
               Some(DefaultEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), `type` = e.escalationType, parameters = parametersToArtifact(e.parameters)))
             case None => None
           }
 
         case _ if ofType == classOf[DefaultFilter] =>
-          DefaultFilters.findOptionByName(name).map(a => a)
+          DefaultFilters.findOptionByName(name, defaultDeploymentId).map(a => a)
 
         case _ if ofType == classOf[DefaultRouting] =>
-          DefaultRoutings.findOptionByName(name) match {
-            case Some(r) => Some(defaultRoutingModel2DefaultRoutingArtifact(r))
+          DefaultRoutings.findOptionByName(name, defaultDeploymentId) match {
+            case Some(r) => Some(defaultRoutingModel2Artifact(r))
             case None => None
           }
         case _ if ofType == classOf[DefaultScale] =>
-          DefaultScales.findOptionByName(name).map(a => a)
+          DefaultScales.findOptionByName(name, defaultDeploymentId).map(a => a)
 
         case _ if ofType == classOf[DefaultSla] =>
-          DefaultSlas.findOptionByName(name) match {
+          DefaultSlas.findOptionByName(name, defaultDeploymentId) match {
             case Some(s) =>
               Some(DefaultSla(name = VampPersistenceUtil.restoreToAnonymous(s.name, s.isAnonymous), `type` = s.slaType, escalations = readEscalationsArtifacts(s.escalationReferences), parameters = parametersToArtifact(s.parameters)))
             case None => None
           }
 
         case _ if ofType == classOf[DefaultBreed] =>
-          DefaultBreeds.findOptionByName(name) match {
+          DefaultBreeds.findOptionByName(name, defaultDeploymentId) match {
             case Some(b) => Some(defaultBreedModel2DefaultBreedArtifact(b))
             case None => None
           }
@@ -357,113 +416,116 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           EscalationReference(esc.name)
       )
 
-    private def createParameters(parameters: Map[String, Any], parentName: String, parentType: ParameterParentType): Unit = {
+    private def createParameters(parameters: Map[String, Any], parentId: Int, parentType: ParameterParentType): Unit = {
       parameters.map(param =>
         param._2 match {
-          case i: Int => Parameters.add(ParameterModel(name = param._1, intValue = i, parameterType = ParameterType.Int, parentType = parentType, parentName = parentName))
-          case d: Double => Parameters.add(ParameterModel(name = param._1, doubleValue = d, parameterType = ParameterType.Double, parentType = parentType, parentName = parentName))
-          case s: String => Parameters.add(ParameterModel(name = param._1, stringValue = Some(s), parameterType = ParameterType.String, parentType = parentType, parentName = parentName))
-          case e => throw exception(UnsupportedPersistenceRequest(s"Invalid parameter for $parentType with name $parentName for type ${e.getClass}"))
+          case i: Int => Parameters.add(ParameterModel(deploymentId = None, name = param._1, intValue = i, parameterType = ParameterType.Int, parentType = parentType, parentId = parentId))
+          case d: Double => Parameters.add(ParameterModel(deploymentId = None, name = param._1, doubleValue = d, parameterType = ParameterType.Double, parentType = parentType, parentId = parentId))
+          case s: String => Parameters.add(ParameterModel(deploymentId = None, name = param._1, stringValue = Some(s), parameterType = ParameterType.String, parentType = parentType, parentId = parentId))
+          case e => throw exception(UnsupportedPersistenceRequest(s"Invalid parameter for $parentType with name $parentId for type ${e.getClass}"))
         }
       )
     }
 
-    private def createBreedReference(artifact: Breed): String = artifact match {
+    private def createBreedReference(artifact: Breed, deploymentId: Option[Int]): String = artifact match {
       case breed: DefaultBreed =>
-        val savedName = createOrUpdateBreed(breed: DefaultBreed).name
-        BreedReferences.add(BreedReferenceModel(name = savedName, isDefinedInline = true))
+        val savedName = createOrUpdateBreed(DeploymentDefaultBreed(deploymentId, breed)).name
+        BreedReferences.add(BreedReferenceModel(deploymentId = deploymentId, name = savedName, isDefinedInline = true))
         savedName
       case breed: BreedReference =>
-        BreedReferences.add(BreedReferenceModel(name = breed.name, isDefinedInline = true))
+        BreedReferences.add(BreedReferenceModel(deploymentId = deploymentId, name = breed.name, isDefinedInline = true))
         breed.name
     }
 
-    private def createScaleReference(artifact: Option[Scale]): Option[String] = artifact match {
+    private def createScaleReference(artifact: Option[Scale], deploymentId: Option[Int]): Option[String] = artifact match {
       case Some(scale: DefaultScale) =>
-        DefaultScales.findOptionByName(scale.name) match {
+        DefaultScales.findOptionByName(scale.name, deploymentId) match {
           case Some(existing) => updateScale(existing, scale)
             Some(existing.name)
           case None =>
-            val scaleName = createDefaultScaleModelFromArtifact(scale).name
-            ScaleReferences.add(ScaleReferenceModel(name = scaleName, isDefinedInline = true))
+            val scaleName = createDefaultScaleModelFromArtifact(DeploymentDefaultScale(deploymentId, scale)).name
+            ScaleReferences.add(ScaleReferenceModel(deploymentId = deploymentId, name = scaleName, isDefinedInline = true))
             Some(scaleName)
         }
       case Some(scale: ScaleReference) =>
-        ScaleReferences.add(ScaleReferenceModel(name = scale.name, isDefinedInline = false))
+        ScaleReferences.add(ScaleReferenceModel(deploymentId = deploymentId, name = scale.name, isDefinedInline = false))
         Some(scale.name)
       case _ => None
     }
 
-    private def createRoutingReference(artifact: Option[Routing]): Option[String] = artifact match {
+    private def createRoutingReference(artifact: Option[Routing], deploymentId: Option[Int]): Option[String] = artifact match {
       case Some(routing: DefaultRouting) =>
-        DefaultRoutings.findOptionByName(routing.name) match {
+        DefaultRoutings.findOptionByName(routing.name, deploymentId) match {
           case Some(existing) => updateRouting(existing, routing)
             Some(existing.name)
           case None =>
-            val routingName = createDefaultRoutingModelFromArtifact(routing).name
-            RoutingReferences.add(RoutingReferenceModel(name = routingName, isDefinedInline = true))
+            val routingName = createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(deploymentId, routing)).name
+            RoutingReferences.add(RoutingReferenceModel(deploymentId = deploymentId, name = routingName, isDefinedInline = true))
             Some(routingName)
         }
       case Some(routing: RoutingReference) =>
-        RoutingReferences.add(RoutingReferenceModel(name = routing.name, isDefinedInline = false))
+        RoutingReferences.add(RoutingReferenceModel(deploymentId = deploymentId, name = routing.name, isDefinedInline = false))
         Some(routing.name)
       case _ => None
     }
 
-    private def createServices(services: List[Service], clusterId: Int): Unit = {
+    private def createServices(services: List[Service], clusterId: Int, deploymentId: Option[Int]): Unit = {
       services.map(service =>
         Services.add(ServiceModel(
+          deploymentId = deploymentId,
           clusterId = clusterId,
-          breedReferenceName = createBreedReference(service.breed),
-          routingReferenceName = createRoutingReference(service.routing),
-          scaleReferenceName = createScaleReference(service.scale))
+          breedReferenceName = createBreedReference(service.breed, deploymentId),
+          routingReferenceName = createRoutingReference(service.routing, deploymentId),
+          scaleReferenceName = createScaleReference(service.scale, deploymentId))
         )
       )
     }
 
-    private def createClusters(clusters: List[Cluster], blueprintId: Int): Unit = {
-      for (cluster <- clusters) {
-        val slaRefName: Option[String] = cluster.sla match {
-          case Some(sla: DefaultSla) =>
-            val defaultSlaName = DefaultSlas.findOptionByName(sla.name) match {
-              case Some(existingSla) =>
-                updateSla(existingSla, sla)
-                existingSla.name
-              case None =>
-                createDefaultSlaModelFromArtifact(sla).name
-            }
-            SlaReferences.add(SlaReferenceModel(name = defaultSlaName, isDefinedInline = true))
-            Some(defaultSlaName)
-          case Some(sla: SlaReference) =>
-            val slaRefId = SlaReferences.add(SlaReferenceModel(name = sla.name, isDefinedInline = false))
-            createEscalationReferences(sla.escalations, None, Some(slaRefId))
-            Some(sla.name)
-          case _ => None
+    private def createSla(clusterSla: Option[Sla], deploymentId: Option[Int]): Option[String] = clusterSla match {
+      case Some(sla: DeploymentDefaultSla) =>
+        val defaultSlaName = DefaultSlas.findOptionByName(sla.name, deploymentId) match {
+          case Some(existingSla) =>
+            updateSla(existingSla, sla.artifact)
+            existingSla.name
+          case None =>
+            createDefaultSlaModelFromArtifact(sla).name
         }
-        val clusterId = Clusters.add(ClusterModel(name = cluster.name, blueprintId = blueprintId, slaReference = slaRefName))
-        createServices(cluster.services, clusterId)
+        SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = defaultSlaName, isDefinedInline = true))
+        Some(defaultSlaName)
+      case Some(sla: SlaReference) =>
+        val slaRefId = SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = sla.name, isDefinedInline = false))
+        createEscalationReferences(sla.escalations, None, Some(slaRefId), deploymentId)
+        Some(sla.name)
+      case _ => None
+    }
+
+    private def createBlueprintClusters(clusters: List[Cluster], blueprintId: Int, deploymentId: Option[Int]): Unit = {
+      for (cluster <- clusters) {
+        val slaRefName: Option[String] = createSla(cluster.sla, deploymentId)
+        val clusterId = Clusters.add(ClusterModel(deploymentId = deploymentId, name = cluster.name, blueprintId = blueprintId, slaReference = slaRefName))
+        createServices(cluster.services, clusterId, deploymentId)
       }
     }
 
-    private def createDefaultSlaModelFromArtifact(a: DefaultSla): DefaultSlaModel = {
+    private def createDefaultSlaModelFromArtifact(a: DeploymentDefaultSla): DefaultSlaModel = {
       val storedSlaId = DefaultSlas.add(a)
-      createParameters(a.parameters, a.name, ParameterParentType.Sla)
-      createEscalationReferences(escalations = a.escalations, slaId = Some(storedSlaId), slaRefId = None)
+      createParameters(a.artifact.parameters, storedSlaId, ParameterParentType.Sla)
+      createEscalationReferences(escalations = a.artifact.escalations, slaId = Some(storedSlaId), slaRefId = None, a.deploymentId)
       DefaultSlas.findById(storedSlaId)
     }
 
-    private def createDefaultRoutingModelFromArtifact(artifact: DefaultRouting): DefaultRoutingModel = {
+    private def createDefaultRoutingModelFromArtifact(artifact: DeploymentDefaultRouting): DefaultRoutingModel = {
       val routingId = DefaultRoutings.add(artifact)
       createFilterReferences(artifact, routingId)
       DefaultRoutings.findById(routingId)
     }
 
-    private def createDefaultScaleModelFromArtifact(artifact: DefaultScale): DefaultScaleModel =
+    private def createDefaultScaleModelFromArtifact(artifact: DeploymentDefaultScale): DefaultScaleModel =
       DefaultScales.findById(DefaultScales.add(artifact))
 
     private def createTraitNameParameters(parameters: Map[Trait.Name, Any], parentId: Int): Unit = {
       for (param <- parameters) {
-        val prefilledParameter = TraitNameParameterModel(name = param._1.value, scope = param._1.scope, parentId = parentId, groupType = param._1.group)
+        val prefilledParameter = TraitNameParameterModel(deploymentId = None, name = param._1.value, scope = param._1.scope, parentId = parentId, groupType = param._1.group)
         param._1.group match {
           case Some(group) if group == Trait.Name.Group.Ports =>
             param._2 match {
@@ -479,6 +541,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
                 TraitNameParameters.add(prefilledParameter.copy(
                   groupId = Some(EnvironmentVariables.add(
                     EnvironmentVariableModel(
+                      deploymentId = None,
                       name = env.name.value,
                       alias = env.alias,
                       direction = env.direction,
@@ -520,34 +583,89 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       } yield Name(scope = traitName.scope, group = traitName.groupType, value = traitName.name) -> restoredArtifact).toMap
 
 
+    private def createDeploymentClusters(clusters: List[DeploymentCluster], deploymentId: Option[Int]) {
+      for (cluster <- clusters) {
+        val slaRef = createSla(cluster.sla, deploymentId)
+        val clusterId = DeploymentClusters.add(DeploymentClusterModel(name = cluster.name, slaReference = slaRef, deploymentId = deploymentId))
+        //TODO add routes
+        for (route <- cluster.routes) {
+          //route.
+        }
+        for (service <- cluster.services) {
+          val breedModel = createOrUpdateBreed(DeploymentDefaultBreed(deploymentId, service.breed))
+          val scaleId = DefaultScales.add(DeploymentDefaultScale(deploymentId, service.scale))
+          val routingModel = createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(deploymentId, service.routing))
+
+          val serviceId = DeploymentServices.add(
+            DeploymentServiceModel(
+              clusterId = clusterId,
+              name = s"service-for-${cluster.name}",
+              deploymentId = deploymentId,
+              breed = breedModel.id.get,
+              scale = scaleId,
+              routing = routingModel.id.get,
+              deploymentState = service.state,
+              deploymentTime = service.state.startedAt,
+              message = None) // //TODO message is ignored for now
+          )
+          for (dep <- service.dependencies) DeploymentServiceDependencies.add(DeploymentServiceDependencyModel(name = dep._1, value = dep._2, serviceId = serviceId))
+          for (server <- service.servers) {
+            val serverId = DeploymentServers.add(DeploymentServerModel(serviceId = serviceId, name = server.name, host = server.host, deploymentId = deploymentId))
+            for (port <- server.ports) ServerPorts.add(ServerPortModel(portIn = port._1, portOut = port._2, serverId = serverId))
+          }
+
+
+        }
+      }
+    }
+
+    private def createDeploymentEndpoints(endpoints: List[Port], deploymentId: Option[Int]) {
+      for (endpoint <- endpoints) {
+        //TODO add endpoints
+      }
+    }
+
+    private def createDeploymentParameters(parameters: Map[Trait.Name, Any], deploymentId: Option[Int]) {
+      for (parameter <- parameters) {
+        //TODO add parameters
+      }
+    }
+
     private def addArtifact(artifact: Artifact): Artifact = {
       val nameOfArtifact: String = artifact match {
-        //TODO implement deployment types
+
+        case a: Deployment =>
+          val deploymentId = Some(Deployments.add(a))
+          createDeploymentClusters(a.clusters, deploymentId)
+          createDeploymentEndpoints(a.endpoints, deploymentId)
+          createDeploymentParameters(a.parameters, deploymentId)
+          Deployments.findById(deploymentId.get).name
 
         case a: DefaultBlueprint =>
-          val blueprintId = DefaultBlueprints.add(a)
-          createClusters(a.clusters, blueprintId)
+          val deploymentId: Option[Int] = None
+          val blueprintId = DefaultBlueprints.add(DeploymentDefaultBlueprint(deploymentId, a))
+          createBlueprintClusters(a.clusters, blueprintId, deploymentId)
           createPorts(ports = a.endpoints, parentId = Some(blueprintId), parentType = Some(PortParentType.BlueprintEndpoint))
           createTraitNameParameters(a.parameters, blueprintId)
           DefaultBlueprints.findById(blueprintId).name
 
         case a: DefaultEscalation =>
-          createEscalation(a).name
+          createEscalationFromArtifact(DeploymentDefaultEscalation(None, a)).name
 
         case a: DefaultFilter =>
-          DefaultFilters.findById(DefaultFilters.add(a)).name
+          DefaultFilters.findById(DefaultFilters.add(DeploymentDefaultFilter(None, a))).name
 
         case a: DefaultRouting =>
-          createDefaultRoutingModelFromArtifact(a).name
+          createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(None, a)).name
 
         case a: DefaultScale =>
-          createDefaultScaleModelFromArtifact(a).name
+          createDefaultScaleModelFromArtifact(DeploymentDefaultScale(None, a)).name
 
         case a: DefaultSla =>
-          createDefaultSlaModelFromArtifact(a).name
+          createDefaultSlaModelFromArtifact(DeploymentDefaultSla(None, a)).name
 
         case a: DefaultBreed =>
-          createOrUpdateBreed(a).name
+          createOrUpdateBreed(DeploymentDefaultBreed(None, a)).name
 
         case _ => throw exception(UnsupportedPersistenceRequest(artifact.getClass))
       }
@@ -557,32 +675,32 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       }
     }
 
-    private def createEscalationReferences(escalations: List[Escalation], slaId: Option[Int], slaRefId: Option[Int]): Unit = {
+    private def createEscalationReferences(escalations: List[Escalation], slaId: Option[Int], slaRefId: Option[Int], deploymentId: Option[Int]): Unit = {
       for (escalation <- escalations) {
         escalation match {
           case e: DefaultEscalation =>
-            DefaultEscalations.findOptionByName(e.name) match {
-              case Some(existing) => updateEscalation(e)
-              case None => createEscalation(e)
+            DefaultEscalations.findOptionByName(e.name, deploymentId) match {
+              case Some(existing) => updateEscalation(DeploymentDefaultEscalation(deploymentId, e))
+              case None => createEscalationFromArtifact(DeploymentDefaultEscalation(deploymentId, e))
             }
-            EscalationReferences.add(EscalationReferenceModel(name = e.name, slaId = slaId, slaRefId = slaRefId, isDefinedInline = true))
+            EscalationReferences.add(EscalationReferenceModel(deploymentId = deploymentId, name = e.name, slaId = slaId, slaRefId = slaRefId, isDefinedInline = true))
           case e: EscalationReference =>
-            EscalationReferences.add(EscalationReferenceModel(name = e.name, slaId = slaId, slaRefId = slaRefId, isDefinedInline = false))
+            EscalationReferences.add(EscalationReferenceModel(deploymentId = deploymentId, name = e.name, slaId = slaId, slaRefId = slaRefId, isDefinedInline = false))
         }
       }
     }
 
-    private def createEscalation(a: DefaultEscalation): DefaultEscalationModel = {
+    private def createEscalationFromArtifact(a: DeploymentDefaultEscalation): DefaultEscalationModel = {
       val storedEscalation = DefaultEscalations.findById(DefaultEscalations.add(a))
-      createParameters(a.parameters, storedEscalation.name, ParameterParentType.Escalation)
+      createParameters(a.artifact.parameters, storedEscalation.id.get, ParameterParentType.Escalation)
       storedEscalation
     }
 
-    private def createOrUpdateBreed(a: DefaultBreed): DefaultBreedModel = {
+    private def createOrUpdateBreed(a: DeploymentDefaultBreed): DefaultBreedModel = {
       val breedId: Int =
-        DefaultBreeds.findOptionByName(a.name) match {
+        DefaultBreeds.findOptionByName(a.artifact.name, a.deploymentId) match {
           case Some(existingBreed) =>
-            existingBreed.copy(deployable = a.deployable.name).update
+            existingBreed.copy(deployable = a.artifact.deployable.name).update
             existingBreed.id.get
           case None => DefaultBreeds.add(a)
         }
@@ -595,81 +713,108 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       for (port <- ports) Ports.add(port2PortModel(port).copy(parentId = parentId, parentType = parentType))
     }
 
-    private def createBreedChildren(parentBreedModel: DefaultBreedModel, a: DefaultBreed): Unit = {
-      a.environmentVariables.map(env =>
-        EnvironmentVariables.add(EnvironmentVariableModel(name = env.name.value, alias = env.alias, direction = env.direction, value = env.value, parentId = parentBreedModel.id, parentType = Some(EnvironmentVariableParentType.Breed)))
+    private def createBreedChildren(parentBreedModel: DefaultBreedModel, a: DeploymentDefaultBreed): Unit = {
+      a.artifact.environmentVariables.map(env =>
+        EnvironmentVariables.add(EnvironmentVariableModel(deploymentId = None, name = env.name.value, alias = env.alias, direction = env.direction, value = env.value, parentId = parentBreedModel.id, parentType = Some(EnvironmentVariableParentType.Breed)))
       )
-      createPorts(a.ports, parentBreedModel.id, parentType = Some(PortParentType.Breed))
-      a.dependencies.map(dependency =>
+      createPorts(a.artifact.ports, parentBreedModel.id, parentType = Some(PortParentType.Breed))
+      a.artifact.dependencies.map(dependency =>
         dependency._2 match {
           case db: DefaultBreed =>
-            val savedName = createOrUpdateBreed(db: DefaultBreed).name
-            Dependencies.add(DependencyModel(name = dependency._1, breedName = savedName, isDefinedInline = true, parentBreedName = parentBreedModel.name))
+            val savedName = createOrUpdateBreed(DeploymentDefaultBreed(a.deploymentId, db)).name
+            Dependencies.add(DependencyModel(deploymentId = a.deploymentId, name = dependency._1, breedName = savedName, isDefinedInline = true, parentId = parentBreedModel.id.get))
           case br: BreedReference =>
-            Dependencies.add(DependencyModel(name = dependency._1, breedName = br.name, isDefinedInline = false, parentBreedName = parentBreedModel.name))
+            Dependencies.add(DependencyModel(deploymentId = a.deploymentId, name = dependency._1, breedName = br.name, isDefinedInline = false, parentId = parentBreedModel.id.get))
         }
       )
     }
 
-    private def createFilterReferences(a: DefaultRouting, routingId: DefaultRoutingModel#Id): Unit = {
-      for (filter <- a.filters) {
+    private def createFilterReferences(a: DeploymentDefaultRouting, routingId: DefaultRoutingModel#Id): Unit = {
+      for (filter <- a.artifact.filters) {
         filter match {
           case f: DefaultFilter =>
-            val filterId: Int = DefaultFilters.findOptionByName(f.name) match {
+            val filterId: Int = DefaultFilters.findOptionByName(f.name, a.deploymentId) match {
               case Some(existing) =>
                 DefaultFilters.update(existing.copy(condition = f.condition))
                 existing.id.get
               case _ =>
-                DefaultFilters.add(f)
+                DefaultFilters.add(DeploymentDefaultFilter(a.deploymentId, f))
             }
             val defFilter = DefaultFilters.findById(filterId)
-            FilterReferences.add(FilterReferenceModel(name = defFilter.name, routingId = routingId, isDefinedInline = true))
+            FilterReferences.add(FilterReferenceModel(deploymentId = a.deploymentId, name = defFilter.name, routingId = routingId, isDefinedInline = true))
 
           case f: FilterReference =>
-            FilterReferences.add(FilterReferenceModel(name = filter.name, routingId = routingId, isDefinedInline = false))
+            FilterReferences.add(FilterReferenceModel(deploymentId = a.deploymentId, name = filter.name, routingId = routingId, isDefinedInline = false))
         }
       }
     }
 
+    private def deleteDeploymentClusters(clusters: List[DeploymentClusterModel], deploymentId: Option[Int]): Unit = {
+      //TODO delete deployment clusters
+
+    }
+
+    private def deleteDeploymentEndpoints(ports: List[PortModel], deploymentId: Option[Int]): Unit = {
+      //TODO delete deployment endpoints
+    }
+
+    private def deleteDeploymentParameters(parameters: Map[Trait.Name, Any], deploymentId: Option[Int]): Unit = {
+      //TODO delete deployment parameters
+    }
+
+
+    private def deleteDeploymentModel(m: DeploymentModel): Unit = {
+      deleteDeploymentClusters(m.clusters, m.id)
+      deleteDeploymentEndpoints(m.endpoints, m.id)
+      //TODO enable call to delete  deployment parameters
+      //deleteDeploymentParameters(m.parameters, Some(m.id))
+      Deployments.deleteById(m.id.get)
+    }
+
     private def deleteArtifact(artifact: Artifact): Unit = {
       artifact match {
-        //TODO implement deployment types
+
+        case _: Deployment =>
+          Deployments.findOptionByName(artifact.name) match {
+            case Some(deployment) => deleteDeploymentModel(deployment)
+            case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
+          }
 
         case _: DefaultBlueprint =>
-          DefaultBlueprints.findOptionByName(artifact.name) match {
+          DefaultBlueprints.findOptionByName(artifact.name, None) match {
             case Some(blueprint) => deleteBlueprintModel(blueprint)
             case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
           }
 
         case _: DefaultEscalation =>
-          DefaultEscalations.findOptionByName(artifact.name) match {
+          DefaultEscalations.findOptionByName(artifact.name, None) match {
             case Some(escalation) =>
               deleteEscalationModel(escalation)
             case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
           }
 
         case _: DefaultFilter =>
-          DefaultFilters.deleteByName(artifact.name)
+          DefaultFilters.deleteByName(artifact.name, None)
 
         case _: DefaultRouting =>
-          DefaultRoutings.findOptionByName(artifact.name) match {
+          DefaultRoutings.findOptionByName(artifact.name, None) match {
             case Some(routing) =>
               deleteRoutingModel(routing)
             case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
           }
 
         case _: DefaultScale =>
-          DefaultScales.deleteByName(artifact.name)
+          DefaultScales.deleteByName(artifact.name, None)
 
-        case _: DefaultSla => DefaultSlas.findOptionByName(artifact.name) match {
+        case _: DefaultSla => DefaultSlas.findOptionByName(artifact.name, None) match {
           case Some(sla) =>
             deleteSlaModel(sla)
           case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
         }
         case _: DefaultBreed =>
-          DefaultBreeds.findOptionByName(artifact.name) match {
+          DefaultBreeds.findOptionByName(artifact.name, None) match {
             case Some(breed: DefaultBreedModel) =>
-              deleteDefaultBreedModel(breed)
+              deleteDefaultBreedModel(breed, None)
             case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
           }
 
@@ -678,30 +823,30 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     }
 
     private def deleteBlueprintModel(blueprint: DefaultBlueprintModel): Unit = {
-      deleteClusters(blueprint.clusters)
+      deleteBlueprintClusters(blueprint.clusters)
       deleteModelTraitNameParameters(blueprint.parameters)
       deleteModelPorts(blueprint.endpoints)
       DefaultBlueprints.deleteById(blueprint.id.get)
     }
 
-    private def deleteClusters(clusters: List[ClusterModel]): Unit = {
+    private def deleteBlueprintClusters(clusters: List[ClusterModel]): Unit = {
       for (cluster <- clusters) {
         cluster.slaReference match {
           case Some(slaRef) =>
-            DefaultSlas.findOptionByName(slaRef) match {
+            DefaultSlas.findOptionByName(slaRef, cluster.deploymentId) match {
               case Some(sla) if sla.isAnonymous => deleteSlaModel(sla)
               case Some(sla) =>
               case None => // Should not happen (log it as not critical)
             }
-            SlaReferences.deleteByName(slaRef)
+            SlaReferences.deleteByName(slaRef, cluster.deploymentId)
           case None => // Should not happen (log it as not critical)
         }
         for (service <- cluster.services) {
-          BreedReferences.findOptionByName(service.breedReferenceName) match {
+          BreedReferences.findOptionByName(service.breedReferenceName, service.deploymentId) match {
             case Some(breedRef) =>
               if (breedRef.isDefinedInline)
-                DefaultBreeds.findOptionByName(breedRef.name) match {
-                  case Some(breed) if breed.isAnonymous => deleteDefaultBreedModel(breed)
+                DefaultBreeds.findOptionByName(breedRef.name, service.deploymentId) match {
+                  case Some(breed) if breed.isAnonymous => deleteDefaultBreedModel(breed, service.deploymentId)
                   case Some(breed) =>
                   case None => // Should not happen (log it as not critical)
                 }
@@ -710,9 +855,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           }
           service.scaleReferenceName match {
             case Some(scaleName) =>
-              ScaleReferences.findOptionByName(scaleName) match {
+              ScaleReferences.findOptionByName(scaleName, service.deploymentId) match {
                 case Some(scaleRef) if scaleRef.isDefinedInline =>
-                  DefaultScales.findOptionByName(scaleRef.name) match {
+                  DefaultScales.findOptionByName(scaleRef.name, service.deploymentId) match {
                     case Some(scale) if scale.isAnonymous => DefaultScales.deleteById(scale.id.get)
                     case Some(scale) =>
                     case None => // Should not happen (log it as not critical)
@@ -724,9 +869,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           }
           service.routingReferenceName match {
             case Some(routingName) =>
-              RoutingReferences.findOptionByName(routingName) match {
+              RoutingReferences.findOptionByName(routingName, service.deploymentId) match {
                 case Some(routingRef) if routingRef.isDefinedInline =>
-                  DefaultRoutings.findOptionByName(routingRef.name) match {
+                  DefaultRoutings.findOptionByName(routingRef.name, service.deploymentId) match {
                     case Some(routing) if routing.isAnonymous => deleteRoutingModel(routing)
                     case Some(routing) =>
                     case None => // Should not happen (log it as not critical)
@@ -745,7 +890,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
     private def deleteSlaModelChildObjects(sla: DefaultSlaModel): Unit = {
       for (escalationRef <- sla.escalationReferences) {
-        DefaultEscalations.findOptionByName(escalationRef.name) match {
+        DefaultEscalations.findOptionByName(escalationRef.name, escalationRef.deploymentId) match {
           case Some(escalation) if escalation.isAnonymous => deleteEscalationModel(escalation)
           case Some(escalation) =>
           case None => // Should not happen (log it as not critical)
@@ -772,14 +917,14 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     }
 
     // Delete breed and all anonymous artifact in the hierarchy
-    private def deleteDefaultBreedModel(breed: DefaultBreedModel): Unit = {
+    private def deleteDefaultBreedModel(breed: DefaultBreedModel, deploymentId: Option[Int]): Unit = {
       for (port <- breed.ports) Ports.deleteById(port.id.get)
       for (envVar <- breed.environmentVariables) EnvironmentVariables.deleteById(envVar.id.get)
       for (dependency <- breed.dependencies) {
         val depModel = Dependencies.findById(dependency.id.get)
         if (depModel.isDefinedInline) {
-          DefaultBreeds.findOptionByName(depModel.name) match {
-            case Some(childBreed) if childBreed.isAnonymous => deleteDefaultBreedModel(childBreed) // Here is the recursive bit
+          DefaultBreeds.findOptionByName(depModel.name, deploymentId) match {
+            case Some(childBreed) if childBreed.isAnonymous => deleteDefaultBreedModel(childBreed, deploymentId) // Here is the recursive bit
             case Some(childBreed) =>
             case None => // Should not happen (log it as not critical)  logFailedToFindReferencedArtifact(depModel)
           }
