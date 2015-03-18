@@ -144,7 +144,7 @@ case class DeploymentServiceModel(deploymentId : Option[Int], clusterId : Int, i
 override def withId(id: Id): DeploymentServiceModel = copy(id = Option(id))
 }
 
-case class DeploymentServerModel(deploymentId : Option[Int],serviceId : Int, id: Option[Int] = None, name: String, host: String)  extends VampDeployablePersistenceModel[DeploymentServerModel] {
+case class DeploymentServerModel(deploymentId : Option[Int],serviceId : Int, id: Option[Int] = None, name: String, host: String, deployed: Boolean)  extends VampDeployablePersistenceModel[DeploymentServerModel] {
   override def withId(id: Id): DeploymentServerModel = copy(id = Option(id))
 }
 

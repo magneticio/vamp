@@ -510,7 +510,7 @@ trait Schema extends Logging {
   }
 
   class DeploymentServerTable(tag: Tag) extends DeployableEntityTable[DeploymentServerModel](tag, "deployment_servers") {
-    def * = (deploymentId, serviceId, id.?, name,host) <>(DeploymentServerModel.tupled, DeploymentServerModel.unapply)
+    def * = (deploymentId, serviceId, id.?, name,host, deployed) <>(DeploymentServerModel.tupled, DeploymentServerModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -519,6 +519,8 @@ trait Schema extends Logging {
     def name = column[String]("name")
 
     def host = column[String]("host_name")
+
+    def deployed = column[Boolean]("deployed")
 
     def deploymentId = column[Option[Int]]("deployment_fk")   // Add foreign_key
 

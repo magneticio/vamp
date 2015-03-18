@@ -314,7 +314,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
     private def deploymentServerModels2Artifacts(servers: List[DeploymentServerModel]): List[DeploymentServer] =
       servers.map(server =>
-        DeploymentServer(name = server.name, host = server.host, ports = serverPorts2Artifact(server.ports))
+        DeploymentServer(name = server.name, host = server.host, ports = serverPorts2Artifact(server.ports), deployed = server.deployed)
       )
 
     private def deploymentServiceDependencies2Artifacts(dependencies: List[DeploymentServiceDependencyModel]): Map[String, String] =
@@ -325,8 +325,8 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       services.map(service =>
         DeploymentService(state = deploymentService2deploymentState(service),
           breed = defaultBreedModel2DefaultBreedArtifact(DefaultBreeds.findById(service.breed)),
-          scale = defaultScaleModel2Artifact(DefaultScales.findById(service.scale)),
-          routing = defaultRoutingModel2Artifact(DefaultRoutings.findById(service.routing)),
+          scale = Some(defaultScaleModel2Artifact(DefaultScales.findById(service.scale))),
+          routing = Some(defaultRoutingModel2Artifact(DefaultRoutings.findById(service.routing))),
           servers = deploymentServerModels2Artifacts(service.servers),
           dependencies = deploymentServiceDependencies2Artifacts(service.dependencies)
         )
@@ -593,8 +593,10 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         }
         for (service <- cluster.services) {
           val breedModel = createOrUpdateBreed(DeploymentDefaultBreed(deploymentId, service.breed))
-          val scaleId = DefaultScales.add(DeploymentDefaultScale(deploymentId, service.scale))
-          val routingModel = createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(deploymentId, service.routing))
+
+          val scaleId = DefaultScales.add(DeploymentDefaultScale(deploymentId, service.scale.get)) //TODO error
+
+          val routingModel = createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(deploymentId, service.routing.get))    //TODO fix this
 
           val serviceId = DeploymentServices.add(
             DeploymentServiceModel(
@@ -610,7 +612,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           )
           for (dep <- service.dependencies) DeploymentServiceDependencies.add(DeploymentServiceDependencyModel(name = dep._1, value = dep._2, serviceId = serviceId))
           for (server <- service.servers) {
-            val serverId = DeploymentServers.add(DeploymentServerModel(serviceId = serviceId, name = server.name, host = server.host, deploymentId = deploymentId))
+            val serverId = DeploymentServers.add(DeploymentServerModel(serviceId = serviceId, name = server.name, host = server.host, deployed = server.deployed, deploymentId = deploymentId))
             for (port <- server.ports) ServerPorts.add(ServerPortModel(portIn = port._1, portOut = port._2, serverId = serverId))
           }
 
