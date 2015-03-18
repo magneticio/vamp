@@ -67,7 +67,7 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
           }
         } ~ delete {
           entity(as[String]) { request => onSuccess(deleteDeployment(name, request)) {
-            _ => complete(Accepted)
+            complete(Accepted, _)
           }
           }
         }
@@ -136,14 +136,14 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
 trait DeploymentApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
   this: Actor with ExecutionContextProvider =>
 
-  def sync(period: Int = 5): Unit = {
+  def sync(period: Int = 10): Unit = {
     actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(1)
     context.system.scheduler.scheduleOnce(period seconds, new Runnable {
       def run() = actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(0)
     })
   }
 
-  def slaMonitor(period: Int = 5): Unit = {
+  def slaMonitor(period: Int = 10): Unit = {
     actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(1)
     context.system.scheduler.scheduleOnce(period seconds, new Runnable {
       def run() = actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(0)
@@ -169,16 +169,19 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
       actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint)
   }
 
-
   def updateDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] = DeploymentBlueprintReader.readReferenceFromSource(request) match {
-    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Update(name, blueprint)
+    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint)
     case blueprint: DefaultBlueprint =>
       actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, ignoreIfExists = true)
-      actorFor(DeploymentActor) ? DeploymentActor.Update(name, blueprint)
+      actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint)
   }
 
-  def deleteDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] =
-    actorFor(DeploymentActor) ? DeploymentActor.Delete(name, DeploymentBlueprintReader.readReferenceFromSource(request))
+  def deleteDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] = {
+    if (request.nonEmpty)
+      actorFor(DeploymentActor) ? DeploymentActor.Slice(name, DeploymentBlueprintReader.readReferenceFromSource(request))
+    else
+      actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])
+  }
 
   def sla(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
     (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
@@ -221,7 +224,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
                 case s: ScaleReference => offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(s.name, classOf[Scale])).asInstanceOf[DefaultScale]
                 case s: DefaultScale => s
               }
-              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(scale = scale, state = ReadyForDeployment()))))))
+              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(scale = Some(scale), state = ReadyForDeployment()))))))
               Some(scale)
           }
         }
@@ -245,11 +248,11 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
               }
 
               routing.weight match {
-                case Some(w) if w != service.routing.weight.getOrElse(0) => error(UnsupportedRoutingWeightChangeError(service.routing.weight.getOrElse(0)))
+                case Some(w) if w != service.routing.getOrElse(DefaultRouting("", Some(0), Nil)).weight.getOrElse(0) => error(UnsupportedRoutingWeightChangeError(service.routing.getOrElse(DefaultRouting("", Some(0), Nil)).weight.getOrElse(0)))
                 case _ =>
               }
 
-              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(routing = routing, state = ReadyForDeployment()))))))
+              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(routing = Some(routing), state = ReadyForDeployment()))))))
               Some(routing)
           }
         }

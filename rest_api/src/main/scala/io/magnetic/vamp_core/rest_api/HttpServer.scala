@@ -20,9 +20,11 @@ class HttpServer extends HttpServiceActor with ActorLogging with RestApiRoute wi
 
   implicit val timeout = HttpServer.timeout
 
+  val requestMalformedMessage = "The request content was malformed"
+
   def exceptionHandler = ExceptionHandler {
     case e: NotificationErrorException => 
-      complete(BadRequest, s"$requestMalformedMessage:\n${e.message}")
+      complete(BadRequest, s"$requestMalformedMessage: ${e.message}")
       
     case e: Exception => requestUri { uri =>
       log.error(e, "Request to {} could not be handled normally: {}", uri, e.getMessage)
@@ -30,11 +32,9 @@ class HttpServer extends HttpServiceActor with ActorLogging with RestApiRoute wi
     }
   }
 
-  val requestMalformedMessage = "The request content was malformed"
-
   def rejectionHandler = RejectionHandler {
     case MalformedRequestContentRejection(msg, Some(e: NotificationErrorException)) :: _ =>
-      complete(BadRequest, s"$requestMalformedMessage:\n$msg")
+      complete(BadRequest, s"$requestMalformedMessage: $msg")
 
     case MalformedRequestContentRejection(msg, Some(ex)) :: _ =>
       log.error(ex, ex.getMessage)

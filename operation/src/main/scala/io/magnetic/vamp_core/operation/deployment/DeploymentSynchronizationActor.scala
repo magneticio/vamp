@@ -128,7 +128,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
         dp <- deploymentService.breed.ports.map(_.value.get)
         sp <- server.ports
       } yield (dp, sp)
-      DeploymentServer(server.id, server.host, ports.toMap)
+      DeploymentServer(server.id, server.host, ports.toMap, server.deployed)
     }
 
     containerService(deployment, deploymentService, containerServices) match {
@@ -139,19 +139,17 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
             case Some(service) => service.state.isInstanceOf[DeploymentService.Deployed]
           }
         })) {
-          actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService)
+          actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = false)
         }
 
         ProcessedService(Processed.Ignore, deploymentService)
 
       case Some(cs) =>
-        if (!matching(deploymentService, cs)) {
-          if (matchingScale(deploymentService, cs)) {
-            ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers.map(convert)))
-          } else {
-            actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService)
-            ProcessedService(Processed.Ignore, deploymentService)
-          }
+        if (!matchingScale(deploymentService, cs)) {
+          actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = true)
+          ProcessedService(Processed.Ignore, deploymentService)
+        } else if (!matchingServers(deploymentService, cs)) {
+          ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers.map(convert)))
         } else {
           val ports = outOfSyncPorts(deployment, deploymentCluster, deploymentService, clusterRoutes)
           if (ports.isEmpty) {
@@ -173,7 +171,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     containerService(deployment, deploymentService, containerServices) match {
       case None => redeploy()
       case Some(cs) =>
-        if (!matching(deploymentService, cs)) {
+        if (!matchingServers(deploymentService, cs) || !matchingScale(deploymentService, cs)) {
           redeploy()
         } else {
           val ports = outOfSyncPorts(deployment, deploymentCluster, deploymentService, routes)
@@ -203,11 +201,11 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   private def containerService(deployment: Deployment, deploymentService: DeploymentService, containerServices: List[ContainerService]): Option[ContainerService] =
     containerServices.find(_.matching(deployment, deploymentService.breed))
 
-  private def matching(deploymentService: DeploymentService, containerService: ContainerService) =
-    deploymentService.servers.size == containerService.servers.size && deploymentService.servers.forall(server => containerService.servers.exists(_.host == server.host))
+  private def matchingServers(deploymentService: DeploymentService, containerService: ContainerService) =
+    deploymentService.servers.size == containerService.servers.size && deploymentService.servers.forall(server => containerService.servers.exists(_.host == server.host) && server.deployed)
 
   private def matchingScale(deploymentService: DeploymentService, containerService: ContainerService) =
-    containerService.servers.size == deploymentService.scale.instances && containerService.scale.cpu == deploymentService.scale.cpu && containerService.scale.memory == deploymentService.scale.memory
+    containerService.servers.size == deploymentService.scale.get.instances && containerService.scale.cpu == deploymentService.scale.get.cpu && containerService.scale.memory == deploymentService.scale.get.memory
 
   private def outOfSyncPorts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, clusterRoutes: List[ClusterRoute]): List[Port] = {
     deploymentService.breed.ports.filter({ port =>
@@ -258,14 +256,16 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
       val clusters = processedClusters.filter(_.state != Processed.RemoveFromPersistence).map(_.cluster)
 
-      val parameters = deployment.parameters ++ processedClusters.filter(_.state == Processed.Persist).map(_.cluster).flatMap({ cluster =>
+      val parameters = (deployment.parameters ++ processedClusters.filter(_.state == Processed.Persist).map(_.cluster).flatMap({ cluster =>
         cluster.services.map(_.breed).flatMap(_.ports).map({ port =>
           Trait.Name(Some(cluster.name), Some(Trait.Name.Group.Ports), port.name.value) -> cluster.routes.get(port.value.get).get
         })
-      }).toMap
+      }).toMap).filter({
+        case (Trait.Name(Some(scope), _, _), _) => clusters.exists(_.name == scope)
+        case _ => true
+      })
 
-      val d = deployment.copy(clusters = clusters, parameters = parameters)
-      updateEndpoints(d, routes)
+      val d = updateEndpoints(routes)(deployment.copy(clusters = clusters, parameters = parameters))
 
       if (d.clusters.isEmpty)
         actorFor(PersistenceActor) ! PersistenceActor.Delete(d.name, classOf[Deployment])
@@ -274,26 +274,32 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     }
   }
 
-  private def updateEndpoints(deployment: Deployment, routes: List[EndpointRoute]) = {
-    deployment.endpoints.foreach({ port => {
-      port match {
-        case TcpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port, number)
-        case HttpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port, number)
-        case _ =>
-      }
-    }
-    })
-
-    def process(port: Port, number: Int) = {
+  private def updateEndpoints(routes: List[EndpointRoute]): (Deployment => Deployment) = { deployment: Deployment =>
+    def process(port: Port, number: Int): Boolean = {
       (deployment.clusters.find(_.name == port.name.scope.get), routes.find(_.matching(deployment, port))) match {
         case (None, Some(_)) =>
           actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port)
+          false
 
         case (Some(cluster), None) =>
           cluster.routes.get(number).map(_ => actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false))
+          true
 
-        case _ =>
+        case (Some(cluster), Some(route)) if route.services.flatMap(_.servers).count(_ => true) == 0 =>
+          cluster.routes.get(number).map(_ => actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = true))
+          true
+
+        case _ => true
       }
     }
+
+    deployment.copy(endpoints = deployment.endpoints.filter({ port => {
+      port match {
+        case TcpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port, number)
+        case HttpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port, number)
+        case _ => false
+      }
+    }
+    }))
   }
 }

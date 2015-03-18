@@ -1,6 +1,7 @@
 package io.magnetic.vamp_core.model.serialization
 
-import io.magnetic.vamp_core.model.artifact.{Deployable, Port, Trait}
+import io.magnetic.vamp_core.model.artifact._
+import org.json4s.FieldSerializer._
 import org.json4s.JsonAST.JString
 import org.json4s._
 
@@ -16,6 +17,9 @@ object BreedSerializationFormat extends ArtifactSerializationFormat {
 
   override def customKeySerializers: List[ArtifactKeySerializer[_]] = super.customKeySerializers :+
     new TraitNameKeySerializer()
+
+  override def fieldSerializers: List[ArtifactFieldSerializer[_]] = super.fieldSerializers :+
+    new BreedFieldSerializer()
 }
 
 class TraitNameSerializer extends ArtifactSerializer[Trait.Name] {
@@ -55,4 +59,8 @@ class DeployableSerializer extends ArtifactSerializer[Deployable] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case Deployable(name) => JString(name)
   }
+}
+
+class BreedFieldSerializer extends ArtifactFieldSerializer[DefaultBreed] {
+  override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = renameTo("environmentVariables", "environment_variables")
 }

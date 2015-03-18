@@ -1,7 +1,7 @@
 package io.magnetic.vamp_core.model.notification
 
 import io.magnetic.vamp_common.notification.Notification
-import io.magnetic.vamp_core.model.artifact.{Cluster, Breed, Trait}
+import io.magnetic.vamp_core.model.artifact._
 
 case class UnresolvedEndpointPortError(name: Trait.Name, value: Any) extends Notification
 
@@ -11,4 +11,4 @@ case class NonUniqueBlueprintBreedReferenceError(name: String) extends Notificat
 
 case class UnresolvedBreedDependencyError(breed: Breed, dependency: (String, Breed)) extends Notification
 
-case class RoutingWeightError(cluster: Cluster) extends Notification
+case class RoutingWeightError(cluster: AbstractCluster) extends Notification
