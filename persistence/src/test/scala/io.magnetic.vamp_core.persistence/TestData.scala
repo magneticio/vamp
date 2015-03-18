@@ -143,7 +143,7 @@ object TestData {
   )
 
 
-  val deploymentServer1 = DeploymentServer(name="deployment-1-server-1", host="vamp.magnetic.io", ports= Map(80 -> 8080, 22 -> 2222))
+  val deploymentServer1 = DeploymentServer(name="deployment-1-server-1", host="vamp.magnetic.io", ports= Map(80 -> 8080, 22 -> 2222), deployed = true)
 
   val deploymentServiceBreed1 =  DefaultBreed(
     name = "wp4",
@@ -161,8 +161,8 @@ object TestData {
     state = Deployed(),
     servers = List(deploymentServer1),
     breed = deploymentServiceBreed1,
-    scale = DefaultScale(name = "my-scale2", cpu = 2, memory = 4096, instances = 4),
-    routing = DefaultRouting(name = "route5", weight = None, filters = List.empty),
+    scale = Some(DefaultScale(name = "my-scale2", cpu = 2, memory = 4096, instances = 4)),
+    routing = Some(DefaultRouting(name = "route5", weight = None, filters = List.empty)),
     dependencies =  Map("abc" -> "def")
   )
 
