@@ -4,7 +4,7 @@
     <parent>
         <groupId>io.magnetic.vamp-core</groupId>
         <artifactId>vamp-core</artifactId>
-        <version>0.6.0</version>
+        <version>0.7.0-RC1</version>
     </parent>
 
     <name>persistence</name>
