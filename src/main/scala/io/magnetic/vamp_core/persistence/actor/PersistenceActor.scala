@@ -22,7 +22,7 @@ object PersistenceActor extends ActorDescription {
 
   case class All(`type`: Class[_ <: Artifact]) extends PersistenceMessages
 
-  case class Create(artifact: Artifact, ignoreIfExists: Boolean = false) extends PersistenceMessages
+  case class Create(artifact: Artifact, ignoreIfExists: Boolean = true) extends PersistenceMessages
 
   case class Read(name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
 
