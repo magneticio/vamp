@@ -5,7 +5,7 @@
     <groupId>io.magnetic.vamp-common</groupId>
     <name>vamp-common</name>
     <artifactId>vamp-common</artifactId>
-    <version>0.6.0</version>
+    <version>0.7.0-RC1</version>
 
     <packaging>jar</packaging>
     <url>http://maven.apache.org</url>
