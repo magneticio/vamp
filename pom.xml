@@ -5,7 +5,7 @@
 
     <groupId>io.magnetic.vamp-core</groupId>
     <artifactId>vamp-core</artifactId>
-    <version>0.6.0</version>
+    <version>0.7.0-RC1</version>
     <packaging>pom</packaging>
     <name>vamp-core</name>
 
@@ -19,7 +19,7 @@
         <module>operation</module>
         <module>dictionary</module>
         <module>bootstrap</module>
-        <!-- should be standalone projects -->
+        <!-- should be a standalone project -->
         <module>swagger</module>
     </modules>
 
@@ -29,7 +29,7 @@
         <json4s.version>3.2.11</json4s.version>
         <akka.version>2.3.9</akka.version>
         <akka-stream.version>1.0-M3</akka-stream.version>
-        <vamp-common.version>0.6.0</vamp-common.version>
+        <vamp-common.version>0.7.0-RC1</vamp-common.version>
         <scala-logging.version>3.1.0</scala-logging.version>
         <slf4j.version>1.7.10</slf4j.version>
         <logback.version>1.1.2</logback.version>
