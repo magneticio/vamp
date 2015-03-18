@@ -145,13 +145,11 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
         ProcessedService(Processed.Ignore, deploymentService)
 
       case Some(cs) =>
-        if (!matching(deploymentService, cs)) {
-          if (matchingScale(deploymentService, cs)) {
-            ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers.map(convert)))
-          } else {
-            actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = true)
-            ProcessedService(Processed.Ignore, deploymentService)
-          }
+        if (!matchingScale(deploymentService, cs)) {
+          actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = true)
+          ProcessedService(Processed.Ignore, deploymentService)
+        } else if (!matchingServers(deploymentService, cs)) {
+          ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers.map(convert)))
         } else {
           val ports = outOfSyncPorts(deployment, deploymentCluster, deploymentService, clusterRoutes)
           if (ports.isEmpty) {
@@ -173,7 +171,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     containerService(deployment, deploymentService, containerServices) match {
       case None => redeploy()
       case Some(cs) =>
-        if (!matching(deploymentService, cs)) {
+        if (!matchingServers(deploymentService, cs) || !matchingScale(deploymentService, cs)) {
           redeploy()
         } else {
           val ports = outOfSyncPorts(deployment, deploymentCluster, deploymentService, routes)
@@ -203,7 +201,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   private def containerService(deployment: Deployment, deploymentService: DeploymentService, containerServices: List[ContainerService]): Option[ContainerService] =
     containerServices.find(_.matching(deployment, deploymentService.breed))
 
-  private def matching(deploymentService: DeploymentService, containerService: ContainerService) =
+  private def matchingServers(deploymentService: DeploymentService, containerService: ContainerService) =
     deploymentService.servers.size == containerService.servers.size && deploymentService.servers.forall(server => containerService.servers.exists(_.host == server.host) && server.deployed)
 
   private def matchingScale(deploymentService: DeploymentService, containerService: ContainerService) =
