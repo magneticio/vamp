@@ -36,7 +36,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
     }
 
 
-    def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
+    def create(artifact: Artifact, ignoreIfExists: Boolean = true): Artifact = {
       logger.trace(s"persistence create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
       getBranch(artifact) match {
         case Some(branch) => store.get(branch) match {
