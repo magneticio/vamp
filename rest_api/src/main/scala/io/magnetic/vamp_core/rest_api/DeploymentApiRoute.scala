@@ -179,8 +179,8 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
   def deleteDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] = {
     if (request.nonEmpty)
       actorFor(DeploymentActor) ? DeploymentActor.Slice(name, DeploymentBlueprintReader.readReferenceFromSource(request))
-    else Future {
-    }
+    else
+      actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])
   }
 
   def sla(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =

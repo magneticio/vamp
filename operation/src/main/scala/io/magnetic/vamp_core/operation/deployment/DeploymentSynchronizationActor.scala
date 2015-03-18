@@ -128,7 +128,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
         dp <- deploymentService.breed.ports.map(_.value.get)
         sp <- server.ports
       } yield (dp, sp)
-      DeploymentServer(server.id, server.host, ports.toMap)
+      DeploymentServer(server.id, server.host, ports.toMap, server.deployed)
     }
 
     containerService(deployment, deploymentService, containerServices) match {
@@ -204,7 +204,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     containerServices.find(_.matching(deployment, deploymentService.breed))
 
   private def matching(deploymentService: DeploymentService, containerService: ContainerService) =
-    deploymentService.servers.size == containerService.servers.size && deploymentService.servers.forall(server => containerService.servers.exists(_.host == server.host))
+    deploymentService.servers.size == containerService.servers.size && deploymentService.servers.forall(server => containerService.servers.exists(_.host == server.host) && server.deployed)
 
   private def matchingScale(deploymentService: DeploymentService, containerService: ContainerService) =
     containerService.servers.size == deploymentService.scale.get.instances && containerService.scale.cpu == deploymentService.scale.get.cpu && containerService.scale.memory == deploymentService.scale.get.memory
@@ -291,7 +291,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
           cluster.routes.get(number).map(_ => actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = true))
           true
 
-        case _ => false
+        case _ => true
       }
     }
 
