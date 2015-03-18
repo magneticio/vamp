@@ -3,7 +3,7 @@ package io.magnetic.vamp_core.persistence.slick.extension
 /**
  * Table with a name which can be made anonymous
  */
-trait AnonymousNameable[E <: AnonymousNameable[E]] extends Nameable[E] {
+trait AnonymousDeployable[E <: AnonymousDeployable[E]] extends NamedDeployable[E] {
 
   def isAnonymous: Boolean
 

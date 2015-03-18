@@ -11,29 +11,43 @@ trait VampTables extends Tables {
 
   import jdbcDriver.simple._
 
-  trait NameColumn {
-    def name: Column[String]
+  
+  trait NameableColumn {
+    def name: Column[String] 
   }
 
-  abstract class IdNameableTable[M, I](tag: Tag, schemaName: Option[String], tableName: String)(override implicit val colType: BaseColumnType[I])
-    extends IdTable[M, I](tag, schemaName, tableName)(colType) with NameColumn {
+  abstract class NameableTable[M, I](tag: Tag, schemaName: Option[String], tableName: String)(override implicit val colType: BaseColumnType[I])
+    extends IdTable[M, I](tag, schemaName, tableName)(colType) with NameableColumn {
 
     def this(tag: Tag, tableName: String)(implicit mapping: BaseColumnType[I]) = this(tag, None, tableName)
   }
 
-  type NameableEntityTable[M <: Nameable[M]] = IdNameableTable[M, M#Id]
+  type NameableEntityTable[M <: Nameable[M]] = NameableTable[M, M#Id]
+  
+  trait DeployableColumn {
+    def deploymentId : Column[Option[Int]]
+  }
+
+  abstract class NamedDeployableTable[M, I](tag: Tag, schemaName: Option[String], tableName: String)(override implicit val colType: BaseColumnType[I])
+    extends NameableTable[M, I](tag, schemaName, tableName)(colType) with DeployableColumn {
+
+    def this(tag: Tag, tableName: String)(implicit mapping: BaseColumnType[I]) = this(tag, None, tableName)
+  }
+  
+  
+  type DeployableEntityTable[M <: NamedDeployable[M]] = NamedDeployableTable[M, M#Id]
 
   trait IsAnonymousColumn {
     def isAnonymous: Column[Boolean]
   }
 
-  abstract class AnonymousNameableTable[M, I](tag: Tag, schemaName: Option[String], tableName: String)(override implicit val colType: BaseColumnType[I])
-    extends IdNameableTable[M, I](tag, schemaName, tableName)(colType) with IsAnonymousColumn {
+  abstract class AnonymousDeployablebleTable[M, I](tag: Tag, schemaName: Option[String], tableName: String)(override implicit val colType: BaseColumnType[I])
+    extends NamedDeployableTable[M, I](tag, schemaName, tableName)(colType) with IsAnonymousColumn {
 
     def this(tag: Tag, tableName: String)(implicit mapping: BaseColumnType[I]) = this(tag, None, tableName)
   }
 
-  type AnonymousNameableEntityTable[M <: AnonymousNameable[M]] = AnonymousNameableTable[M, M#Id]
+  type AnonymousNameableEntityTable[M <: AnonymousDeployable[M]] = AnonymousDeployablebleTable[M, M#Id]
 
 }
 

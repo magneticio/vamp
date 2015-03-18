@@ -118,7 +118,13 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       secondArtifact = bp1.copy(name = "bp2"))
   }
 
-
+  it should "CRUD depployment-1" in {
+    //var bp1 = TestData.blueprintFull
+    performCrudTest(
+      firstArtifact = TestData.deployment1,
+      updatedFirstArtifact = TestData.deployment1Updated,
+      secondArtifact = TestData.deployment2)
+  }
 
 
   def performCrudTest(firstArtifact: Artifact, updatedFirstArtifact: Artifact, secondArtifact: Artifact): Unit = {

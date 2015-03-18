@@ -1,6 +1,12 @@
 package io.magnetic.vamp_core.persistence.slick.model
 
+import java.time.OffsetDateTime
+
+import io.magnetic.vamp_common.notification.NotificationActor
+import io.magnetic.vamp_core.model.artifact.DeploymentService._
 import io.magnetic.vamp_core.model.artifact._
+import io.magnetic.vamp_core.persistence.notification.PersistenceOperationFailure
+import io.magnetic.vamp_core.persistence.slick.model.DeploymentStateType.DeploymentStateType
 import io.magnetic.vamp_core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterType.ParameterType
@@ -50,6 +56,31 @@ object Implicits {
     parentPortTypeMap, parentPortTypeMap.map(_.swap)
   )
 
+  val deploymentStateTypeMap = Map(
+    DeploymentStateType.ReadyForDeployment -> "readyForDeployment",
+    DeploymentStateType.Deployed -> "deployed",
+    DeploymentStateType.ReadyForUndeployment -> "readyForUndeployment",
+    DeploymentStateType.Error -> "error"
+  )
+  implicit val deploymentStateTypeColumnTypeMapper = MappedColumnType.base[DeploymentStateType, String](
+    deploymentStateTypeMap, deploymentStateTypeMap.map(_.swap)
+  )
+
+  implicit def deploymentServiceState2DeploymentStateType(state : DeploymentService.State) : DeploymentStateType = state match {
+    case _: ReadyForDeployment => DeploymentStateType.ReadyForDeployment
+    case _ : Deployed =>  DeploymentStateType.Deployed
+    case _ : ReadyForUndeployment => DeploymentStateType.ReadyForDeployment
+    case _: Error => DeploymentStateType.Error
+  }
+
+
+  implicit def deploymentService2deploymentState(deploymentService : DeploymentServiceModel) : State =
+  deploymentService.deploymentState match {
+    case  DeploymentStateType.ReadyForDeployment => ReadyForDeployment(startedAt = deploymentService.deploymentTime)
+    case  DeploymentStateType.Deployed => Deployed(startedAt = deploymentService.deploymentTime)
+    case  DeploymentStateType.ReadyForUndeployment => ReadyForUndeployment(startedAt = deploymentService.deploymentTime)
+    case  DeploymentStateType.Error =>Error(startedAt = deploymentService.deploymentTime, notification = PersistenceOperationFailure(deploymentService.message))  //TODO Fix: Wrapping the notification in a default Notifcation for now
+  }
 
   val parameterTypeMap = Map(
     ParameterType.String -> "String",
@@ -76,32 +107,35 @@ object Implicits {
     environmentVariableParentTypeMap, environmentVariableParentTypeMap.map(_.swap)
   )
 
-  implicit def defaultBlueprint2Model(a: DefaultBlueprint): DefaultBlueprintModel =
-    DefaultBlueprintModel(name = a.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.name))
+  implicit def deployment2Model(a: Deployment) : DeploymentModel =
+    DeploymentModel(name = a.name)
 
-  implicit def defaultEscalation2Model(artifact: DefaultEscalation): DefaultEscalationModel =
-    DefaultEscalationModel(name = artifact.name, escalationType = artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(artifact.name))
+  implicit def defaultBlueprint2Model(a: DeploymentDefaultBlueprint): DefaultBlueprintModel =
+    DefaultBlueprintModel(deploymentId =a.deploymentId, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+
+  implicit def defaultEscalation2Model(a: DeploymentDefaultEscalation): DefaultEscalationModel =
+    DefaultEscalationModel(deploymentId =a.deploymentId, name = a.artifact.name, escalationType = a.artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def defaultFilterModel2Artifact(m: DefaultFilterModel): DefaultFilter =
     DefaultFilter(name = VampPersistenceUtil.restoreToAnonymous(m.name, m.isAnonymous), condition = m.condition)
 
-  implicit def defaultFilter2Model(a: DefaultFilter): DefaultFilterModel =
-    DefaultFilterModel(condition = a.condition, name = a.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.name))
+  implicit def defaultFilter2Model(a: DeploymentDefaultFilter): DefaultFilterModel =
+    DefaultFilterModel(deploymentId = a.deploymentId, condition = a.artifact.condition, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-  implicit def defaultRouting2Model(a: DefaultRouting): DefaultRoutingModel =
-    DefaultRoutingModel(weight = a.weight, name = a.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.name))
+  implicit def defaultRouting2Model(a: DeploymentDefaultRouting): DefaultRoutingModel =
+    DefaultRoutingModel(deploymentId =a.deploymentId, weight = a.artifact.weight, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def defaultScaleModel2Artifact(m: DefaultScaleModel): DefaultScale =
     DefaultScale(cpu = m.cpu, memory = m.memory, instances = m.instances, name = VampPersistenceUtil.restoreToAnonymous(m.name, m.isAnonymous))
 
-  implicit def defaultScale2Model(a: DefaultScale): DefaultScaleModel =
-    DefaultScaleModel(cpu = a.cpu, memory = a.memory, instances = a.instances, name = a.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.name))
+  implicit def defaultScale2Model(a: DeploymentDefaultScale): DefaultScaleModel =
+    DefaultScaleModel(deploymentId =a.deploymentId, cpu = a.artifact.cpu, memory = a.artifact.memory, instances = a.artifact.instances, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-  implicit def defaultSla2Model(artifact: DefaultSla): DefaultSlaModel =
-    DefaultSlaModel(name = artifact.name, slaType = artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(artifact.name))
+  implicit def defaultSla2Model(a: DeploymentDefaultSla): DefaultSlaModel =
+    DefaultSlaModel(deploymentId = a.deploymentId, name = a.artifact.name, slaType = a.artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-  implicit def defaultBreed2Model(a: DefaultBreed): DefaultBreedModel =
-    DefaultBreedModel(deployable = a.deployable.name, name = a.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.name))
+  implicit def defaultBreed2Model(a: DeploymentDefaultBreed): DefaultBreedModel =
+    DefaultBreedModel(deploymentId =a.deploymentId, deployable = a.artifact.deployable.name, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def environmentVariableModel2Artifact(m: EnvironmentVariableModel): EnvironmentVariable =
     EnvironmentVariable(name = m.name, alias = m.alias, value = m.value, direction = m.direction)
@@ -114,8 +148,14 @@ object Implicits {
 
   implicit def port2PortModel(port: Port): PortModel =
     port match {
-      case TcpPort(_, _, _, _) => PortModel(name = port.name.value, alias = port.alias, portType = PortType.TCP, value = port.value, direction = port.direction)
-      case HttpPort(_, _, _, _) => PortModel(name = port.name.value, alias = port.alias, portType = PortType.HTTP, value = port.value, direction = port.direction)
+      case TcpPort(_, _, _, _) => PortModel(deploymentId = None, name = port.name.value, alias = port.alias, portType = PortType.TCP, value = port.value, direction = port.direction)
+      case HttpPort(_, _, _, _) => PortModel(deploymentId = None, name = port.name.value, alias = port.alias, portType = PortType.HTTP, value = port.value, direction = port.direction)
       case _ => throw new RuntimeException(s"Handler for portType not implemented")
     }
+
+  implicit val offsetDateTimeColumnTypeMapper = MappedColumnType.base[OffsetDateTime, String](
+  { s => s.toString}, { c => OffsetDateTime.parse(c)}
+  )
+
+
 }
