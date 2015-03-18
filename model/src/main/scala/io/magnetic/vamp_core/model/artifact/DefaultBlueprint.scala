@@ -2,7 +2,17 @@ package io.magnetic.vamp_core.model.artifact
 
 abstract class Blueprint extends Artifact
 
-case class DefaultBlueprint(name: String, clusters: List[Cluster], endpoints: List[Port], parameters: Map[Trait.Name, Any]) extends Blueprint
+trait AbstractBlueprint extends Blueprint {
+  def name: String
+
+  def clusters: List[AbstractCluster]
+
+  def endpoints: List[Port]
+
+  def parameters: Map[Trait.Name, Any]
+}
+
+case class DefaultBlueprint(name: String, clusters: List[Cluster], endpoints: List[Port], parameters: Map[Trait.Name, Any]) extends AbstractBlueprint
 
 case class BlueprintReference(name: String) extends Blueprint with Reference
 

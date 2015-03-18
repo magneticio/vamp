@@ -121,7 +121,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
   protected def validateParameters(blueprint: DefaultBlueprint): Unit = {
     blueprint.parameters.find({
-      case (Trait.Name(Some(scope), Some(group), port), _) =>
+      case (Trait.Name(Some(scope), Some(group), name), _) =>
         blueprint.clusters.find(_.name == scope) match {
           case None => true
           case Some(cluster) => cluster.services.exists(_.breed match {
@@ -129,7 +129,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
             case _ => false
           }) && cluster.services.find({
             service => service.breed match {
-              case breed: DefaultBreed => breed.inTraits.exists(_.name.toString == port)
+              case breed: DefaultBreed => breed.inTraits.exists(_.name.toString == name)
               case _ => false
             }
           }).isEmpty
@@ -183,7 +183,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     case Some(map) => map.map({
       case (name: String, value) =>
         Port.toPort(Trait.Name.asName(name), None, Some(value.toString), Trait.Direction.Out)
-    }).toList.distinct
+    }).toList
   }
 }
 
