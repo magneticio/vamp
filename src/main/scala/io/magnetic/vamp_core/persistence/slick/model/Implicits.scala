@@ -1,6 +1,12 @@
 package io.magnetic.vamp_core.persistence.slick.model
 
+import java.time.OffsetDateTime
+
+import io.magnetic.vamp_common.notification.NotificationActor
+import io.magnetic.vamp_core.model.artifact.DeploymentService._
 import io.magnetic.vamp_core.model.artifact._
+import io.magnetic.vamp_core.persistence.notification.PersistenceOperationFailure
+import io.magnetic.vamp_core.persistence.slick.model.DeploymentStateType.DeploymentStateType
 import io.magnetic.vamp_core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.magnetic.vamp_core.persistence.slick.model.ParameterType.ParameterType
@@ -50,6 +56,31 @@ object Implicits {
     parentPortTypeMap, parentPortTypeMap.map(_.swap)
   )
 
+  val deploymentStateTypeMap = Map(
+    DeploymentStateType.ReadyForDeployment -> "readyForDeployment",
+    DeploymentStateType.Deployed -> "deployed",
+    DeploymentStateType.ReadyForUndeployment -> "readyForUndeployment",
+    DeploymentStateType.Error -> "error"
+  )
+  implicit val deploymentStateTypeColumnTypeMapper = MappedColumnType.base[DeploymentStateType, String](
+    deploymentStateTypeMap, deploymentStateTypeMap.map(_.swap)
+  )
+
+  implicit def deploymentServiceState2DeploymentStateType(state : DeploymentService.State) : DeploymentStateType = state match {
+    case _: ReadyForDeployment => DeploymentStateType.ReadyForDeployment
+    case _ : Deployed =>  DeploymentStateType.Deployed
+    case _ : ReadyForUndeployment => DeploymentStateType.ReadyForDeployment
+    case _: Error => DeploymentStateType.Error
+  }
+
+
+  implicit def deploymentService2deploymentState(deploymentService : DeploymentServiceModel) : State =
+  deploymentService.deploymentState match {
+    case  DeploymentStateType.ReadyForDeployment => ReadyForDeployment(startedAt = deploymentService.deploymentTime)
+    case  DeploymentStateType.Deployed => Deployed(startedAt = deploymentService.deploymentTime)
+    case  DeploymentStateType.ReadyForUndeployment => ReadyForUndeployment(startedAt = deploymentService.deploymentTime)
+    case  DeploymentStateType.Error =>Error(startedAt = deploymentService.deploymentTime, notification = PersistenceOperationFailure(deploymentService.message))  //TODO Fix: Wrapping the notification in a default Notifcation for now
+  }
 
   val parameterTypeMap = Map(
     ParameterType.String -> "String",
@@ -75,6 +106,9 @@ object Implicits {
   implicit val environmentVariableParentTypeMapper = MappedColumnType.base[EnvironmentVariableParentType, String](
     environmentVariableParentTypeMap, environmentVariableParentTypeMap.map(_.swap)
   )
+
+  implicit def deployment2Model(a: Deployment) : DeploymentModel =
+    DeploymentModel(name = a.name)
 
   implicit def defaultBlueprint2Model(a: DeploymentDefaultBlueprint): DefaultBlueprintModel =
     DefaultBlueprintModel(deploymentId =a.deploymentId, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
@@ -118,4 +152,10 @@ object Implicits {
       case HttpPort(_, _, _, _) => PortModel(deploymentId = None, name = port.name.value, alias = port.alias, portType = PortType.HTTP, value = port.value, direction = port.direction)
       case _ => throw new RuntimeException(s"Handler for portType not implemented")
     }
+
+  implicit val offsetDateTimeColumnTypeMapper = MappedColumnType.base[OffsetDateTime, String](
+  { s => s.toString}, { c => OffsetDateTime.parse(c)}
+  )
+
+
 }
