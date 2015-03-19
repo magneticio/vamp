@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.persistence.slick.model
 
 import java.time.OffsetDateTime
 
-import io.magnetic.vamp_common.notification.NotificationActor
+import io.magnetic.vamp_core.model.artifact.Deployment
 import io.magnetic.vamp_core.model.artifact.DeploymentService._
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.persistence.notification.PersistenceOperationFailure
@@ -12,6 +12,7 @@ import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.Paramet
 import io.magnetic.vamp_core.persistence.slick.model.ParameterType.ParameterType
 import io.magnetic.vamp_core.persistence.slick.model.PortParentType.PortParentType
 import io.magnetic.vamp_core.persistence.slick.model.PortType.PortType
+import io.magnetic.vamp_core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
 import io.magnetic.vamp_core.persistence.slick.util.VampPersistenceUtil
 
 import scala.language.implicitConversions
@@ -38,30 +39,40 @@ object Implicits {
     portTypeMap, portTypeMap.map(_.swap)
   )
 
-  val parentParameterTypeMap = Map(
-    ParameterParentType.Blueprint -> "blueprint",
+  val parameterParentTypeMap = Map(
     ParameterParentType.Escalation -> "escalation",
     ParameterParentType.Sla -> "sla"
   )
-  implicit val parentParameterTypeColumnTypeMapper = MappedColumnType.base[ParameterParentType, String](
-    parentParameterTypeMap, parentParameterTypeMap.map(_.swap)
+  implicit val parameterParentTypeColumnTypeMapper = MappedColumnType.base[ParameterParentType, String](
+    parameterParentTypeMap, parameterParentTypeMap.map(_.swap)
   )
 
-  val parentPortTypeMap = Map(
+  val portParentTypeMap = Map(
     PortParentType.Breed -> "breed",
     PortParentType.BlueprintEndpoint -> "blueprint_endpoint",
-    PortParentType.BlueprintParameter -> "blueprint_parameter"
+    PortParentType.BlueprintParameter -> "blueprint_parameter",
+    PortParentType.Deployment -> "deployment_endpoint"
   )
-  implicit val parentPortTypeColumnTypeMapper = MappedColumnType.base[PortParentType, String](
-    parentPortTypeMap, parentPortTypeMap.map(_.swap)
+  implicit val portParentTypeColumnTypeMapper = MappedColumnType.base[PortParentType, String](
+    portParentTypeMap, portParentTypeMap.map(_.swap)
+  )
+
+  val traitParameterParentTypeMap = Map(
+    TraitParameterParentType.Blueprint -> "Blueprint",
+    TraitParameterParentType.Deployment -> "Deployment"
+  )
+
+  implicit val traitParameterParentTypeColumnTypeMapper = MappedColumnType.base[TraitParameterParentType, String](
+    traitParameterParentTypeMap, traitParameterParentTypeMap.map(_.swap)
   )
 
   val deploymentStateTypeMap = Map(
-    DeploymentStateType.ReadyForDeployment -> "readyForDeployment",
-    DeploymentStateType.Deployed -> "deployed",
-    DeploymentStateType.ReadyForUndeployment -> "readyForUndeployment",
-    DeploymentStateType.Error -> "error"
+    DeploymentStateType.ReadyForDeployment -> "ReadyForDeployment",
+    DeploymentStateType.Deployed -> "Deployed",
+    DeploymentStateType.ReadyForUndeployment -> "ReadyForUndeployment",
+    DeploymentStateType.Error -> "Error"
   )
+
   implicit val deploymentStateTypeColumnTypeMapper = MappedColumnType.base[DeploymentStateType, String](
     deploymentStateTypeMap, deploymentStateTypeMap.map(_.swap)
   )
@@ -148,8 +159,8 @@ object Implicits {
 
   implicit def port2PortModel(port: Port): PortModel =
     port match {
-      case TcpPort(_, _, _, _) => PortModel(deploymentId = None, name = port.name.value, alias = port.alias, portType = PortType.TCP, value = port.value, direction = port.direction)
-      case HttpPort(_, _, _, _) => PortModel(deploymentId = None, name = port.name.value, alias = port.alias, portType = PortType.HTTP, value = port.value, direction = port.direction)
+      case TcpPort(_, _, _, _) => PortModel(name = port.name.value, alias = port.alias, portType = PortType.TCP, value = port.value, direction = port.direction)
+      case HttpPort(_, _, _, _) => PortModel(name = port.name.value, alias = port.alias, portType = PortType.HTTP, value = port.value, direction = port.direction)
       case _ => throw new RuntimeException(s"Handler for portType not implemented")
     }
 
