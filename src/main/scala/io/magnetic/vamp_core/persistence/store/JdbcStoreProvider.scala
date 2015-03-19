@@ -323,10 +323,17 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
     private def findDeploymentServiceArtifacts(services: List[DeploymentServiceModel]): List[DeploymentService] =
       services.map(service =>
+
         DeploymentService(state = deploymentService2deploymentState(service),
           breed = defaultBreedModel2DefaultBreedArtifact(DefaultBreeds.findById(service.breed)),
-          scale = Some(defaultScaleModel2Artifact(DefaultScales.findById(service.scale))),
-          routing = Some(defaultRoutingModel2Artifact(DefaultRoutings.findById(service.routing))),
+          scale = service.scale match {
+            case Some(scale) => Some(defaultScaleModel2Artifact(DefaultScales.findById(scale)))
+            case _ => None
+          },
+          routing = service.routing match {
+            case Some(routing) => Some(defaultRoutingModel2Artifact(DefaultRoutings.findById(routing)))
+            case _ => None
+          },
           servers = deploymentServerModels2Artifacts(service.servers),
           dependencies = deploymentServiceDependencies2Artifacts(service.dependencies)
         )
@@ -592,20 +599,25 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           //route.
         }
         for (service <- cluster.services) {
-          val breedModel = createOrUpdateBreed(DeploymentDefaultBreed(deploymentId, service.breed))
+          val breedId = createOrUpdateBreed(DeploymentDefaultBreed(deploymentId, service.breed)).id.get
 
-          val scaleId = DefaultScales.add(DeploymentDefaultScale(deploymentId, service.scale.get)) //TODO error
-
-          val routingModel = createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(deploymentId, service.routing.get))    //TODO fix this
+          val scaleId =  service.scale match {
+            case Some(scale) => Some(DefaultScales.add(DeploymentDefaultScale(deploymentId, scale)))
+            case _ => None
+          }
+          val routingId = service.routing match {
+            case Some(routing) => createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(deploymentId, routing)).id
+            case _ => None
+          }
 
           val serviceId = DeploymentServices.add(
             DeploymentServiceModel(
               clusterId = clusterId,
-              name = s"service-for-${cluster.name}",
+              name = s"service-for-${cluster.name}", // Dummy name
               deploymentId = deploymentId,
-              breed = breedModel.id.get,
+              breed = breedId,
               scale = scaleId,
-              routing = routingModel.id.get,
+              routing = routingId,
               deploymentState = service.state,
               deploymentTime = service.state.startedAt,
               message = None) // //TODO message is ignored for now
