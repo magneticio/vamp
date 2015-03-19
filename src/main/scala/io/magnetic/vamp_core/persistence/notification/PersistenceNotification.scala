@@ -1,7 +1,7 @@
 package io.magnetic.vamp_core.persistence.notification
 
-import io.magnetic.vamp_common.akka.RequestError
-import io.magnetic.vamp_common.notification.Notification
+import io.vamp.common.akka.RequestError
+import io.vamp.common.notification.Notification
 
 import scala.language.existentials
 

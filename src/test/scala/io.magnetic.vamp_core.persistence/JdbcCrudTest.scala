@@ -1,6 +1,6 @@
 package io.magnetic.vamp_core.persistence
 
-import io.magnetic.vamp_common.akka.ExecutionContextProvider
+import io.vamp.common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact.Artifact
 import io.magnetic.vamp_core.persistence.slick.components.Components.instance._
 import io.magnetic.vamp_core.persistence.store.JdbcStoreProvider
