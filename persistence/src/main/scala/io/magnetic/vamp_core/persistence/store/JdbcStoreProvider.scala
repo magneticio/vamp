@@ -24,7 +24,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
   val db: Database = Database.forConfig("persistence.jdbcProvider")
   implicit val sess = db.createSession()
-  private val logger = Logger(LoggerFactory.getLogger(classOf[JdbcStoreProvider]))
+  private val logger = Logger(LoggerFactory.getLogger(classOf[JdbcStoreProvider])) //TODO use logger
 
   override val store: Store = new JdbcStore()
 
@@ -81,7 +81,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       }
     }
 
-    def defaultRoutingModel2Artifact(r: DefaultRoutingModel): DefaultRouting = {
+    private def defaultRoutingModel2Artifact(r: DefaultRoutingModel): DefaultRouting = {
       val filters: List[Filter] = r.filterReferences.map(filter =>
         if (filter.isDefinedInline)
           defaultFilterModel2Artifact(DefaultFilters.findByName(filter.name, filter.deploymentId))
@@ -91,26 +91,26 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       DefaultRouting(name = VampPersistenceUtil.restoreToAnonymous(r.name, r.isAnonymous), weight = r.weight, filters = filters)
     }
 
-    def defaultBreedModel2DefaultBreedArtifact(b: DefaultBreedModel): DefaultBreed = {
-      val envs = b.environmentVariables.map(e => environmentVariableModel2Artifact(e))
-      val dependencies = for {
-        d <- b.dependencies
-        breedRef = if (d.isDefinedInline) {
-          readToArtifact(d.breedName, classOf[DefaultBreed]) match {
-            case Some(childBreed: DefaultBreed) => childBreed
-            case Some(childBreed: BreedReference) => childBreed
-            case _ => BreedReference(d.breedName) //Not found, return a reference instead
-          }
-        } else {
-          BreedReference(d.breedName)
+    private def breedDependencies2Artifact(dependencies: List[DependencyModel]): Map[String, Breed] = (for {
+      d <- dependencies
+      breedRef = if (d.isDefinedInline) {
+        readToArtifact(d.breedName, classOf[DefaultBreed]) match {
+          case Some(childBreed: DefaultBreed) => childBreed
+          case Some(childBreed: BreedReference) => childBreed
+          case _ => BreedReference(d.breedName) //Not found, return a reference instead
         }
-      } yield d.name -> breedRef
+      } else {
+        BreedReference(d.breedName)
+      }
+    } yield d.name -> breedRef).toMap
+
+    private def defaultBreedModel2DefaultBreedArtifact(b: DefaultBreedModel): DefaultBreed =
       DefaultBreed(name = VampPersistenceUtil.restoreToAnonymous(b.name, b.isAnonymous),
         deployable = Deployable(b.deployable),
         ports = readPortsToArtifactList(b.ports),
-        environmentVariables = envs,
-        dependencies = dependencies.toMap)
-    }
+        environmentVariables = b.environmentVariables.map(e => environmentVariableModel2Artifact(e)),
+        dependencies = breedDependencies2Artifact(b.dependencies))
+
 
     private def deleteExistingParameters(parameters: List[ParameterModel]): Unit =
       for (param <- parameters) Parameters.deleteById(param.id.get)
@@ -145,7 +145,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         Dependencies.deleteById(d.id.get)
       }
       deleteModelPorts(existing.ports)
-      existing.environmentVariables.map(e => EnvironmentVariables.deleteById(e.id.get))
+      for (e <- existing.environmentVariables) {
+        EnvironmentVariables.deleteById(e.id.get)
+      }
       createBreedChildren(existing, DeploymentDefaultBreed(existing.deploymentId, a))
       existing.copy(deployable = a.deployable.name).update
     }
@@ -166,17 +168,17 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       existing.update
     }
 
-    private def deleteModelPorts(ports: List[PortModel]): Unit = {
+    private def deleteModelPorts(ports: List[PortModel]): Unit =
       for (p <- ports) Ports.deleteById(p.id.get)
-    }
 
-    private def deleteModelTraitNameParameters(params: List[TraitNameParameterModel]): Unit = {
+
+    private def deleteModelTraitNameParameters(params: List[TraitNameParameterModel]): Unit =
       for (p <- params) TraitNameParameters.deleteById(p.id.get)
-    }
 
-    private def updateScale(existing: DefaultScaleModel, a: DefaultScale): Unit = {
+
+    private def updateScale(existing: DefaultScaleModel, a: DefaultScale): Unit =
       existing.copy(cpu = a.cpu, memory = a.memory, instances = a.instances).update
-    }
+
 
     private def updateDeployment(existing: DeploymentModel, artifact: Deployment): Unit = {
       deleteDeploymentClusters(existing.clusters, existing.id)
@@ -273,7 +275,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
               case _ => None
             }
           case Some(slaReference) =>
-            Some(SlaReference(name = slaReference.name, escalations = readEscalationsArtifacts(slaReference.escalationReferences)))
+            Some(SlaReference(name = slaReference.name, escalations = escalations2Artifacts(slaReference.escalationReferences)))
           case None => None
         }
       case None => None
@@ -348,7 +350,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           sla = findOptionSlaArtifactViaReferenceName(cluster.slaReference, deploymentId))
       )
 
-    private def readPortsToArtifactList(ports: List[PortModel]): List[Port] = ports.map(p => portModel2Port(p)).toList
+    private def readPortsToArtifactList(ports: List[PortModel]): List[Port] = ports.map(p => portModel2Port(p))
 
     private def readToArtifact(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] = {
       val defaultDeploymentId: Option[Int] = None
@@ -398,7 +400,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         case _ if ofType == classOf[DefaultSla] =>
           DefaultSlas.findOptionByName(name, defaultDeploymentId) match {
             case Some(s) =>
-              Some(DefaultSla(name = VampPersistenceUtil.restoreToAnonymous(s.name, s.isAnonymous), `type` = s.slaType, escalations = readEscalationsArtifacts(s.escalationReferences), parameters = parametersToArtifact(s.parameters)))
+              Some(DefaultSla(name = VampPersistenceUtil.restoreToAnonymous(s.name, s.isAnonymous), `type` = s.slaType, escalations = escalations2Artifacts(s.escalationReferences), parameters = parametersToArtifact(s.parameters)))
             case None => None
           }
 
@@ -412,7 +414,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       }
     }
 
-    private def readEscalationsArtifacts(escalationReferences: List[EscalationReferenceModel]): List[Escalation] =
+    private def escalations2Artifacts(escalationReferences: List[EscalationReferenceModel]): List[Escalation] =
       escalationReferences.map(esc =>
         if (esc.isDefinedInline)
           read(esc.name, classOf[DefaultEscalation]) match {
@@ -539,7 +541,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
               case port: Port =>
                 TraitNameParameters.add(prefilledParameter.copy(groupId = Some(Ports.add(port2PortModel(port).copy(parentType = Some(PortParentType.BlueprintParameter))))))
               case env =>
-                // Not gone work, if the group is port, the parameter should be too
+                // Not going to work, if the group is port, the parameter should be too
                 throw exception(PersistenceOperationFailure(s"Parameter [${param._1.value}}] of type [${param._1.group}] does not match the supplied parameter [${param._2}}]."))
             }
           case Some(group) if group == Trait.Name.Group.EnvironmentVariables =>
@@ -558,7 +560,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
                   )
                   )))
               case env =>
-                // Not gone work, if the group is EnvironmentVariable, the parameter should be too
+                // Not going to work, if the group is EnvironmentVariable, the parameter should be too
                 throw exception(PersistenceOperationFailure(s"Parameter [${param._1.value}}] of type [${param._1.group}] does not match the supplied parameter [${param._2}}]."))
 
             }
@@ -590,7 +592,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       } yield Name(scope = traitName.scope, group = traitName.groupType, value = traitName.name) -> restoredArtifact).toMap
 
 
-    private def createDeploymentClusters(clusters: List[DeploymentCluster], deploymentId: Option[Int]) {
+    private def createDeploymentClusters(clusters: List[DeploymentCluster], deploymentId: Option[Int]) : Unit = {
       for (cluster <- clusters) {
         val slaRef = createSla(cluster.sla, deploymentId)
         val clusterId = DeploymentClusters.add(DeploymentClusterModel(name = cluster.name, slaReference = slaRef, deploymentId = deploymentId))
@@ -601,7 +603,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         for (service <- cluster.services) {
           val breedId = createOrUpdateBreed(DeploymentDefaultBreed(deploymentId, service.breed)).id.get
 
-          val scaleId =  service.scale match {
+          val scaleId = service.scale match {
             case Some(scale) => Some(DefaultScales.add(DeploymentDefaultScale(deploymentId, scale)))
             case _ => None
           }
@@ -633,13 +635,13 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       }
     }
 
-    private def createDeploymentEndpoints(endpoints: List[Port], deploymentId: Option[Int]) {
+    private def createDeploymentEndpoints(endpoints: List[Port], deploymentId: Option[Int]) : Unit = {
       for (endpoint <- endpoints) {
         //TODO add endpoints
       }
     }
 
-    private def createDeploymentParameters(parameters: Map[Trait.Name, Any], deploymentId: Option[Int]) {
+    private def createDeploymentParameters(parameters: Map[Trait.Name, Any], deploymentId: Option[Int]) : Unit = {
       for (parameter <- parameters) {
         //TODO add parameters
       }
@@ -728,11 +730,11 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     }
 
     private def createBreedChildren(parentBreedModel: DefaultBreedModel, a: DeploymentDefaultBreed): Unit = {
-      a.artifact.environmentVariables.map(env =>
+      for (env <- a.artifact.environmentVariables) {
         EnvironmentVariables.add(EnvironmentVariableModel(deploymentId = None, name = env.name.value, alias = env.alias, direction = env.direction, value = env.value, parentId = parentBreedModel.id, parentType = Some(EnvironmentVariableParentType.Breed)))
-      )
+      }
       createPorts(a.artifact.ports, parentBreedModel.id, parentType = Some(PortParentType.Breed))
-      a.artifact.dependencies.map(dependency =>
+      for (dependency <- a.artifact.dependencies) {
         dependency._2 match {
           case db: DefaultBreed =>
             val savedName = createOrUpdateBreed(DeploymentDefaultBreed(a.deploymentId, db)).name
@@ -740,7 +742,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           case br: BreedReference =>
             Dependencies.add(DependencyModel(deploymentId = a.deploymentId, name = dependency._1, breedName = br.name, isDefinedInline = false, parentId = parentBreedModel.id.get))
         }
-      )
+      }
     }
 
     private def createFilterReferences(a: DeploymentDefaultRouting, routingId: DefaultRoutingModel#Id): Unit = {
@@ -940,17 +942,13 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           DefaultBreeds.findOptionByName(depModel.name, deploymentId) match {
             case Some(childBreed) if childBreed.isAnonymous => deleteDefaultBreedModel(childBreed, deploymentId) // Here is the recursive bit
             case Some(childBreed) =>
-            case None => // Should not happen (log it as not critical)  logFailedToFindReferencedArtifact(depModel)
+            case None => // Should not happen (log it as not critical)
           }
         }
         Dependencies.deleteById(depModel.id.get)
       }
       DefaultBreeds.deleteById(breed.id.get)
     }
-
-    //private def logFailedToFindReferencedArtifact(artifact : VampNameablePersistenceModel) = {
-    //logger.warn(s"Could not find [${artifact.name}] for ${artifact.getClass}")
-    //}
 
   }
 
