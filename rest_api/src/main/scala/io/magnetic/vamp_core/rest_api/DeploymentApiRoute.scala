@@ -6,6 +6,7 @@ import akka.util.Timeout
 import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
 import io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import io.magnetic.vamp_core.model.artifact._
+import io.magnetic.vamp_core.model.conversion.DeploymentConversion._
 import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor}
@@ -44,8 +45,10 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
   private val deploymentRoute = pathPrefix("deployments") {
     pathEndOrSingleSlash {
       get {
-        onSuccess(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) {
-          complete(OK, _)
+        parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
+          onSuccess(deployments(asBlueprint)) {
+            complete(OK, _)
+          }
         }
       } ~ post {
         entity(as[String]) { request =>
@@ -58,8 +61,10 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
       pathEndOrSingleSlash {
         get {
           rejectEmptyResponse {
-            onSuccess(actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])) {
-              complete(OK, _)
+            parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
+              onSuccess(deployment(name, asBlueprint)) {
+                complete(OK, _)
+              }
             }
           }
         } ~ put {
@@ -152,8 +157,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
     })
   }
 
-  def reset(): Unit = {
-    implicit val timeout = PersistenceActor.timeout
+  def reset()(implicit timeout: Timeout): Unit = {
     offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
       case deployments: List[_] =>
         deployments.asInstanceOf[List[Deployment]].map({ deployment =>
@@ -162,6 +166,19 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
         }).reduceOption(_ max _).foreach(max => sync(max * 3))
       case any => error(InternalServerError(any))
     }
+  }
+
+  def deployments(asBlueprint: Boolean)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])).map {
+    case list: List[_] => list.map {
+      case deployment: Deployment => if (asBlueprint) deployment.asBlueprint else deployment
+      case any => any
+    }
+    case any => any
+  }
+
+  def deployment(name: String, asBlueprint: Boolean)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])).map {
+    case deployment: Deployment => if (asBlueprint) deployment.asBlueprint else deployment
+    case any => any
   }
 
   def createDeployment(request: String)(implicit timeout: Timeout) = DeploymentBlueprintReader.readReferenceFromSource(request) match {
