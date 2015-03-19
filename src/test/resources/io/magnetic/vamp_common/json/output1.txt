@@ -1,7 +1,0 @@
-package io.magnetic
-
-case class Var5(var5Var1: Int)
-
-case class Var6(var6Var1: Int)
-
-case class Input1(var1: String, var2: Boolean, var3: Int, var4: Double, var5: Var5, var6: Var6, var7: List[Any], var8: List[Int], var9: AnyRef)
