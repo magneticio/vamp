@@ -1,8 +1,7 @@
-package io.vamp.common.model.reader
+package io.magnetic.vamp_core.model.reader
 
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.notification._
-import io.magnetic.vamp_core.model.reader.BreedReader
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 

@@ -31,13 +31,13 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
 
   implicit def timeout: Timeout
 
-  private val helperRoutes = pathPrefix("sync") {
+  private val helperRoutes = path("sync") {
     parameters('rate.as[Int] ? 10) { period =>
       complete(OK, sync(period))
     }
-  } ~ pathPrefix("sla") {
+  } ~ path("sla") {
     complete(OK, slaMonitor())
-  } ~ pathPrefix("reset") {
+  } ~ path("reset") {
     complete(OK, reset())
   }
 

@@ -20,7 +20,7 @@ object PulseDriverActor extends ActorDescription {
 
   case class LastSlaEventTimestamp(deployment: Deployment, cluster: DeploymentCluster) extends PulseDriverMessage
 
-  case class ResponseTime(deployment: Deployment, cluster: DeploymentCluster, period: Int) extends PulseDriverMessage
+  case class ResponseTime(deployment: Deployment, cluster: DeploymentCluster, period: Long) extends PulseDriverMessage
 
 }
 

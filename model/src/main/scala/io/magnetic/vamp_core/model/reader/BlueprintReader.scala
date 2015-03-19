@@ -194,34 +194,6 @@ object DeploymentBlueprintReader extends AbstractBlueprintReader {
   override protected def validateDependencies(breeds: List[Breed]): Unit = {}
 }
 
-object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
-
-  override protected def validateEitherReferenceOrAnonymous(implicit source: YamlObject): YamlObject = {
-    if (source.filterKeys(k => k != "name" && k != "escalations").nonEmpty) super.validate
-    source
-  }
-
-  override protected def createReference(implicit source: YamlObject): Sla = SlaReference(reference, escalations)
-
-  override protected def createDefault(implicit source: YamlObject): Sla = DefaultSla(name, `type`, escalations, parameters)
-
-  protected def escalations(implicit source: YamlObject): List[Escalation] = <<?[YamlList]("escalations") match {
-    case None => List[Escalation]()
-    case Some(list: YamlList) => list.map {
-      EscalationReader.readReferenceOrAnonymous
-    }
-  }
-
-  override protected def parameters(implicit source: YamlObject): Map[String, Any] = super.parameters.filterKeys(_ != "escalations")
-}
-
-object EscalationReader extends YamlReader[Escalation] with WeakReferenceYamlReader[Escalation] {
-
-  override protected def createReference(implicit source: YamlObject): Escalation = EscalationReference(reference)
-
-  override protected def createDefault(implicit source: YamlObject): Escalation = DefaultEscalation(name, `type`, parameters)
-}
-
 object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale] {
 
   override protected def createReference(implicit source: YamlObject): Scale = ScaleReference(reference)

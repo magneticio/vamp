@@ -2,8 +2,8 @@ package io.magnetic.vamp_core.model.reader
 
 import java.io.{File, InputStream, Reader, StringReader}
 
-import _root_.io.vamp.common.notification.NotificationErrorException
 import _root_.io.magnetic.vamp_core.model.notification._
+import _root_.io.vamp.common.notification.NotificationErrorException
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
 
@@ -175,7 +175,7 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] {
   }
 
   protected def validateEitherReferenceOrAnonymous(implicit source: YamlObject): YamlObject = {
-    if (!isAnonymous && source.size > 1)
+    if (!isAnonymous && !isReference)
       error(EitherReferenceOrAnonymous(asReferenceOf, reference))
     source
   }
@@ -185,7 +185,9 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] {
     case Some(value) => value
   }
 
-  override protected def parse(implicit source: YamlObject): T = if (isAnonymous) createDefault else createReference
+  override protected def parse(implicit source: YamlObject): T = if (isReference) createReference else createDefault
+
+  protected def isReference(implicit source: YamlObject): Boolean = <<?[String]("name").nonEmpty && source.size == 1
 
   protected def isAnonymous(implicit source: YamlObject): Boolean = <<?[String]("name").isEmpty
 

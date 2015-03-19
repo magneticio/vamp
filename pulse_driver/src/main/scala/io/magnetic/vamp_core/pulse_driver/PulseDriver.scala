@@ -12,7 +12,7 @@ trait PulseDriver {
 
   def lastSlaEventTimestamp(deployment: Deployment, cluster: DeploymentCluster): Future[OffsetDateTime]
 
-  def responseTime(deployment: Deployment, cluster: DeploymentCluster, period: Int): Future[Int]
+  def responseTime(deployment: Deployment, cluster: DeploymentCluster, period: Long): Future[Long]
 }
 
 class DefaultPulseDriver(ec: ExecutionContext, url: String) extends PulseDriver {
@@ -22,5 +22,6 @@ class DefaultPulseDriver(ec: ExecutionContext, url: String) extends PulseDriver 
     OffsetDateTime.now().minus(1, ChronoUnit.HOURS)
   }
 
-  def responseTime(deployment: Deployment, cluster: DeploymentCluster, period: Int) = RestClient.request[Any](s"GET $url/api/v1/events/get").map(result => result.asInstanceOf[Map[String, BigInt]].get("value").get.toInt)
+  def responseTime(deployment: Deployment, cluster: DeploymentCluster, period: Long) =
+    RestClient.request[Any](s"GET $url/api/v1/events/get").map(result => result.asInstanceOf[Map[String, BigInt]].get("value").get.toLong)
 }

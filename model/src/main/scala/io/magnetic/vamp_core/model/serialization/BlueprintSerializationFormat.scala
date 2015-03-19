@@ -11,8 +11,6 @@ object BlueprintSerializationFormat extends ArtifactSerializationFormat {
 
   override def customSerializers: List[ArtifactSerializer[_]] = super.customSerializers :+
     new BlueprintSerializer() :+
-    new SlaSerializer() :+
-    new EscalationSerializer() :+
     new ScaleSerializer() :+
     new RoutingSerializer() :+
     new FilterSerializer()
@@ -37,34 +35,6 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] {
 class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = ignore("name")
 }
-
-class SlaSerializer extends ArtifactSerializer[Sla] {
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case sla: SlaReference => new JObject(JField("name", JString(sla.name)) :: JField("escalations", Extraction.decompose(sla.escalations)) :: Nil)
-    case sla: DefaultSla =>
-      val list = new ArrayBuffer[JField]
-      if (sla.name.nonEmpty)
-        list += JField("name", JString(sla.name))
-      list += JField("type", JString(sla.`type`))
-      list += JField("parameters", Extraction.decompose(sla.parameters))
-      list += JField("escalations", Extraction.decompose(sla.escalations))
-      new JObject(list.toList)
-  }
-}
-
-class EscalationSerializer extends ArtifactSerializer[Escalation] {
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case escalation: EscalationReference => new JObject(JField("name", JString(escalation.name)) :: Nil)
-    case escalation: DefaultEscalation =>
-      val list = new ArrayBuffer[JField]
-      if (escalation.name.nonEmpty)
-        list += JField("name", JString(escalation.name))
-      list += JField("type", JString(escalation.`type`))
-      list += JField("parameters", Extraction.decompose(escalation.parameters))
-      new JObject(list.toList)
-  }
-}
-
 
 class ScaleSerializer extends ArtifactSerializer[Scale] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {

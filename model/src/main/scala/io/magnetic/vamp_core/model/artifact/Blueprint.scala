@@ -37,20 +37,6 @@ abstract class AbstractService {
 case class Service(breed: Breed, scale: Option[Scale], routing: Option[Routing]) extends AbstractService
 
 
-trait Sla extends Artifact
-
-case class SlaReference(name: String, escalations: List[Escalation]) extends Reference with Sla
-
-case class DefaultSla(name: String, `type`: String, escalations: List[Escalation], parameters: Map[String, Any]) extends Sla with Type
-
-
-trait Escalation extends Artifact
-
-case class EscalationReference(name: String) extends Reference with Escalation
-
-case class DefaultEscalation(name: String, `type`: String, parameters: Map[String, Any]) extends Escalation with Type
-
-
 trait Scale extends Artifact
 
 case class ScaleReference(name: String) extends Reference with Scale
