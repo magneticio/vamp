@@ -538,9 +538,9 @@ trait Schema extends Logging {
 
     def breedId = column[Int]("breed_id")
 
-    def scaleId = column[Int]("scale_id")
+    def scaleId = column[Option[Int]]("scale_id")
 
-    def routingId = column[Int]("routing_id")
+    def routingId = column[Option[Int]]("routing_id")
 
     def deploymentId = column[Option[Int]]("deployment_fk")   // Add foreign_key
 

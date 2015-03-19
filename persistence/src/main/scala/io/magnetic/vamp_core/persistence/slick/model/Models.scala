@@ -139,7 +139,7 @@ case class DeploymentClusterModel(deploymentId : Option[Int],id: Option[Int] = N
 override def withId(id: Id): DeploymentClusterModel = copy(id = Option(id))
 }
 
-case class DeploymentServiceModel(deploymentId : Option[Int], clusterId : Int, id: Option[Int] = None, name: String, breed: Int, scale: Int, routing: Int, deploymentState : DeploymentStateType, deploymentTime : OffsetDateTime, message : Option[String] = None)
+case class DeploymentServiceModel(deploymentId : Option[Int], clusterId : Int, id: Option[Int] = None, name: String, breed: Int, scale: Option[Int], routing: Option[Int], deploymentState : DeploymentStateType, deploymentTime : OffsetDateTime, message : Option[String] = None)
   extends VampDeployablePersistenceModel[DeploymentServiceModel] {
 override def withId(id: Id): DeploymentServiceModel = copy(id = Option(id))
 }
