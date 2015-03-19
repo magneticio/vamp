@@ -18,7 +18,7 @@ trait DeploymentExtensions {
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def parameters(implicit session: JdbcBackend#Session): List[TraitNameParameterModel] =
-      for {r <- TraitNameParameters.fetchAllFromDeployment(model.id) if r.deploymentId == model.id} yield r
+      for {r <- TraitNameParameters.fetchAll if r.parentId == model.id && r.parentType == TraitParameterParentType.Deployment} yield r
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def clusters(implicit session: JdbcBackend#Session): List[DeploymentClusterModel] =
@@ -26,7 +26,7 @@ trait DeploymentExtensions {
 
     //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def endpoints(implicit session: JdbcBackend#Session): List[PortModel] =
-      for {r <- Ports.fetchAllFromDeployment(model.id) if r.deploymentId == model.id && r.parentId == model.id && r.parentType == Some(PortParentType.BlueprintEndpoint) } yield r
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.Deployment) } yield r
 
   }
 
@@ -112,7 +112,7 @@ trait DefaultBlueprintExtensions {
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def parameters(implicit session: JdbcBackend#Session): List[TraitNameParameterModel] =
-      for {r <- TraitNameParameters.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id.get } yield r
+      for {r <- TraitNameParameters.fetchAll if r.parentId == model.id && r.parentType == TraitParameterParentType.Blueprint } yield r
 
     // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def clusters(implicit session: JdbcBackend#Session): List[ClusterModel] =
@@ -120,7 +120,7 @@ trait DefaultBlueprintExtensions {
 
     //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def endpoints(implicit session: JdbcBackend#Session): List[PortModel] =
-      for {r <- Ports.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id && r.parentType == Some(PortParentType.BlueprintEndpoint) } yield r
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.BlueprintEndpoint) } yield r
 
   }
 
@@ -259,7 +259,7 @@ trait DefaultBreedExtensions {
 
     //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def ports(implicit session: JdbcBackend#Session): List[PortModel] =
-      for {r <- Ports.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id && r.parentType == Some(PortParentType.Breed)  } yield r
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.Breed)  } yield r
 
     //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def dependencies(implicit session: JdbcBackend#Session): List[DependencyModel] =

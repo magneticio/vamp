@@ -11,6 +11,7 @@ import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.Paramet
 import io.magnetic.vamp_core.persistence.slick.model.ParameterType.ParameterType
 import io.magnetic.vamp_core.persistence.slick.model.PortParentType.PortParentType
 import io.magnetic.vamp_core.persistence.slick.model.PortType.PortType
+import io.magnetic.vamp_core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
 import io.magnetic.vamp_core.persistence.slick.model._
 import io.strongtyped.active.slick.Profile
 
@@ -21,8 +22,8 @@ import scala.slick.util.Logging
 trait Schema extends Logging {
   this: VampTables with VampTableQueries with Profile =>
 
-  import jdbcDriver.simple._
   import io.magnetic.vamp_core.persistence.slick.model.Implicits._
+  import jdbcDriver.simple._
 
   val DefaultBlueprints = AnonymousNameableEntityTableQuery[DefaultBlueprintModel, DefaultBlueprintTable](tag => new DefaultBlueprintTable(tag))
   val BlueprintReferences = DeployableNameEntityTableQuery[BlueprintReferenceModel, BlueprintReferenceTable](tag => new BlueprintReferenceTable(tag))
@@ -41,10 +42,10 @@ trait Schema extends Logging {
   val BreedReferences = DeployableNameEntityTableQuery[BreedReferenceModel, BreedReferenceTable](tag => new BreedReferenceTable(tag))
   val DefaultBreeds = AnonymousNameableEntityTableQuery[DefaultBreedModel, DefaultBreedTable](tag => new DefaultBreedTable(tag))
   val EnvironmentVariables = DeployableNameEntityTableQuery[EnvironmentVariableModel, EnvironmentVariableTable](tag => new EnvironmentVariableTable(tag))
-  val Ports = DeployableNameEntityTableQuery[PortModel, PortTable](tag => new PortTable(tag))
+  val Ports = NameableEntityTableQuery[PortModel, PortTable](tag => new PortTable(tag))
   val Dependencies = DeployableNameEntityTableQuery[DependencyModel, DependencyTable](tag => new DependencyTable(tag))
   val Parameters = DeployableNameEntityTableQuery[ParameterModel, ParameterTable](tag => new ParameterTable(tag))
-  val TraitNameParameters = DeployableNameEntityTableQuery[TraitNameParameterModel, TraitNameParameterTable](tag => new TraitNameParameterTable(tag))
+  val TraitNameParameters = NameableEntityTableQuery[TraitNameParameterModel, TraitNameParameterTable](tag => new TraitNameParameterTable(tag))
   val VampPersistenceMetaDatas = EntityTableQuery[VampPersistenceMetaDataModel, VampPersistenceMetaDataTable](tag => new VampPersistenceMetaDataTable(tag))
   val DeploymentServers = DeployableNameEntityTableQuery[DeploymentServerModel, DeploymentServerTable](tag => new DeploymentServerTable(tag))
   val DeploymentServices = DeployableNameEntityTableQuery[DeploymentServiceModel, DeploymentServiceTable](tag => new DeploymentServiceTable(tag))
@@ -54,7 +55,7 @@ trait Schema extends Logging {
   val DeploymentServiceDependencies = EntityTableQuery[DeploymentServiceDependencyModel, DeploymentServiceDependencyTable](tag => new DeploymentServiceDependencyTable(tag))
   val ClusterRoutes = EntityTableQuery[ClusterRouteModel, ClusterRouteTable](tag => new ClusterRouteTable(tag))
 
-  private def tableQueries  = List(
+  private def tableQueries = List(
     Ports,
     EnvironmentVariables,
     Parameters,
@@ -86,12 +87,12 @@ trait Schema extends Logging {
     VampPersistenceMetaDatas
   )
 
-  private def schemaVersion : Int = 1
+  private def schemaVersion: Int = 1
 
   def upgradeSchema(implicit sess: Session) = {
     getCurrentSchemaVersion match {
       case version if version == schemaVersion =>
-        // Up to date
+      // Schema is up-to-date
       case version if version == 0 =>
         createSchema
     }
@@ -103,11 +104,11 @@ trait Schema extends Logging {
       logger.info(tableQuery.ddl.createStatements.mkString)
       tableQuery.ddl.create
     }
-    VampPersistenceMetaDatas.add(VampPersistenceMetaDataModel(schemaVersion=schemaVersion))
+    VampPersistenceMetaDatas.add(VampPersistenceMetaDataModel(schemaVersion = schemaVersion))
     logger.info("Schema created")
   }
 
-  private def getCurrentSchemaVersion(implicit sess: Session) : Int =
+  private def getCurrentSchemaVersion(implicit sess: Session): Int =
     MTable.getTables("vamp-meta-data").firstOption match {
       case Some(_) => VampPersistenceMetaDatas.sortBy(_.id.desc).firstOption match {
         case Some(metaData) => metaData.schemaVersion
@@ -116,15 +117,16 @@ trait Schema extends Logging {
       case None => 0
     }
 
-   def destroySchema(implicit sess: Session) = {
-     if (getCurrentSchemaVersion == schemaVersion) {
-     logger.info("Removing everything from the schema ...")
-     for (tableQuery <- tableQueries.reverse) {
-       logger.info(tableQuery.ddl.dropStatements.mkString)
-       tableQuery.ddl.drop
-     }
-     logger.info("Schema cleared")
-   } }
+  def destroySchema(implicit sess: Session) = {
+    if (getCurrentSchemaVersion == schemaVersion) {
+      logger.info("Removing everything from the schema ...")
+      for (tableQuery <- tableQueries.reverse) {
+        logger.info(tableQuery.ddl.dropStatements.mkString)
+        tableQuery.ddl.drop
+      }
+      logger.info("Schema cleared")
+    }
+  }
 
   class VampPersistenceMetaDataTable(tag: Tag) extends EntityTable[VampPersistenceMetaDataModel](tag, "vamp-meta-data") {
     def * = (id.?, schemaVersion, created) <>(VampPersistenceMetaDataModel.tupled, VampPersistenceMetaDataModel.unapply)
@@ -162,7 +164,7 @@ trait Schema extends Logging {
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
-    def idx = index("idx_blueprint_reference", (name , deploymentId), unique = true)
+    def idx = index("idx_blueprint_reference", (name, deploymentId), unique = true)
   }
 
   class ClusterTable(tag: Tag) extends DeployableEntityTable[ClusterModel](tag, "clusters") {
@@ -208,6 +210,7 @@ trait Schema extends Logging {
     def isDefinedInline = column[Boolean]("is_defined_inline")
 
     def deploymentId = column[Option[Int]]("deployment_fk")
+
     //def idx = index("idx_sla_references", (name, clusterId) , unique = true)
   }
 
@@ -254,7 +257,7 @@ trait Schema extends Logging {
 
     def isAnonymous = column[Boolean]("anonymous")
 
-    def idx = index("idx_default_escalation", (name, deploymentId) , unique = true)
+    def idx = index("idx_default_escalation", (name, deploymentId), unique = true)
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
@@ -407,12 +410,11 @@ trait Schema extends Logging {
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
-
-    //def idx = index("idx_environment_variables", (name, parent), unique = true)
+    def idx = index("idx_environment_variables", (name, parentId, parentType), unique = true)
   }
 
-  class PortTable(tag: Tag) extends DeployableEntityTable[PortModel](tag, "ports") {
-    def * = (deploymentId, name, alias, portType, value, direction, id.?, parentId, parentType) <>(PortModel.tupled, PortModel.unapply)
+  class PortTable(tag: Tag) extends NameableEntityTable[PortModel](tag, "ports") {
+    def * = (name, alias, portType, value, direction, id.?, parentId, parentType) <>(PortModel.tupled, PortModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -432,7 +434,7 @@ trait Schema extends Logging {
 
     def parentType = column[Option[PortParentType]]("parent_type")
 
-    def deploymentId = column[Option[Int]]("deployment_fk")
+    //def deploymentId = column[Option[Int]]("deployment_fk")
 
   }
 
@@ -486,8 +488,8 @@ trait Schema extends Logging {
     //      foreignKey("dep_breed_fk", breedName, TableQuery[BreedModel.Breeds])(_.name)
   }
 
-  class TraitNameParameterTable(tag: Tag) extends DeployableEntityTable[TraitNameParameterModel](tag, "trait_name_parameters") {
-    def * = (deploymentId, id.?, name, scope, group, stringValue, groupId, parentId) <>(TraitNameParameterModel.tupled, TraitNameParameterModel.unapply)
+  class TraitNameParameterTable(tag: Tag) extends NameableEntityTable[TraitNameParameterModel](tag, "trait_name_parameters") {
+    def * = (id.?, name, scope, groupType, stringValue, groupId, parentId, parentType) <>(TraitNameParameterModel.tupled, TraitNameParameterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -495,26 +497,25 @@ trait Schema extends Logging {
 
     def scope = column[Option[String]]("param_scope")
 
-    def group = column[Option[Trait.Name.Group.Value]]("param_group")
+    def groupType = column[Option[Trait.Name.Group.Value]]("param_group")
 
     def stringValue = column[Option[String]]("string_value")
 
     def groupId = column[Option[Int]]("group_id")
 
-    def parentId = column[Int]("parent_id")
+    def parentId = column[Option[Int]]("parent_id")
 
-    def deploymentId = column[Option[Int]]("deployment_fk")
+    def parentType = column[TraitParameterParentType]("parent_type")
 
-    def idx = index("idx_trait_name_parameters", (name, scope, group, parentId, deploymentId), unique = true)
-
+    def idx = index("idx_trait_name_parameters", (name, scope, groupType, parentId, parentType), unique = true)
   }
 
   class DeploymentServerTable(tag: Tag) extends DeployableEntityTable[DeploymentServerModel](tag, "deployment_servers") {
-    def * = (deploymentId, serviceId, id.?, name,host, deployed) <>(DeploymentServerModel.tupled, DeploymentServerModel.unapply)
+    def * = (deploymentId, serviceId, id.?, name, host, deployed) <>(DeploymentServerModel.tupled, DeploymentServerModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
-    def serviceId = column[Int]("service_fk")   // Add foreign_key
+    def serviceId = column[Int]("service_fk") // Add foreign_key
 
     def name = column[String]("name")
 
@@ -522,17 +523,17 @@ trait Schema extends Logging {
 
     def deployed = column[Boolean]("deployed")
 
-    def deploymentId = column[Option[Int]]("deployment_fk")   // Add foreign_key
+    def deploymentId = column[Option[Int]]("deployment_fk") // Add foreign_key
 
     def idx = index("idx_deployment_servers", (name, deploymentId), unique = true)
   }
 
   class DeploymentServiceTable(tag: Tag) extends DeployableEntityTable[DeploymentServiceModel](tag, "deployment_services") {
-    def * = (deploymentId, clusterId, id.?, name, breedId, scaleId, routingId, deploymentStateType, deploymentTime, message ) <>(DeploymentServiceModel.tupled, DeploymentServiceModel.unapply)
+    def * = (deploymentId, clusterId, id.?, name, breedId, scaleId, routingId, deploymentStateType, deploymentTime, message) <>(DeploymentServiceModel.tupled, DeploymentServiceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
-    def clusterId = column[Int]("cluster_fk")   // Add foreign_key
+    def clusterId = column[Int]("cluster_fk") // Add foreign_key
 
     def name = column[String]("name")
 
@@ -542,11 +543,11 @@ trait Schema extends Logging {
 
     def routingId = column[Option[Int]]("routing_id")
 
-    def deploymentId = column[Option[Int]]("deployment_fk")   // Add foreign_key
+    def deploymentId = column[Option[Int]]("deployment_fk") // Add foreign_key
 
     def deploymentStateType = column[DeploymentStateType]("deployment_state")
 
-    def deploymentTime= column[OffsetDateTime]("deployment_time")
+    def deploymentTime = column[OffsetDateTime]("deployment_time")
 
     def message = column[Option[String]]("message")
 
@@ -562,7 +563,7 @@ trait Schema extends Logging {
 
     def slaReference = column[Option[String]]("sla_reference")
 
-    def deploymentId = column[Option[Int]]("deployment_fk")   // Add foreign_key
+    def deploymentId = column[Option[Int]]("deployment_fk") // Add foreign_key
 
     def idx = index("idx_deployment_clusters", (name, deploymentId), unique = true)
   }
@@ -586,7 +587,7 @@ trait Schema extends Logging {
 
     def portOut = column[Int]("port_out")
 
-    def serverId = column[Int]("server_fk")   // Add foreign_key
+    def serverId = column[Int]("server_fk") // Add foreign_key
   }
 
 
@@ -599,7 +600,7 @@ trait Schema extends Logging {
 
     def value = column[String]("dep_value")
 
-    def serviceId = column[Int]("service_fk")   // Add foreign_key
+    def serviceId = column[Int]("service_fk") // Add foreign_key
   }
 
   class ClusterRouteTable(tag: Tag) extends EntityTable[ClusterRouteModel](tag, "cluster_routes") {
@@ -611,7 +612,9 @@ trait Schema extends Logging {
 
     def portOut = column[Int]("port_out")
 
-    def clusterId = column[Int]("server_fk")   // Add foreign_key
+    def clusterId = column[Int]("server_fk") // Add foreign_key
+
+    def idx = index("idx_cluster_routes", (portIn, clusterId), unique = true)
   }
 
 }

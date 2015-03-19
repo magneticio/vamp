@@ -5,5 +5,5 @@ package io.magnetic.vamp_core.persistence.slick.model
  */
 object ParameterParentType extends Enumeration {
   type ParameterParentType = Value
-  val Escalation, Blueprint, Sla = Value
+  val Escalation, Sla = Value
 }

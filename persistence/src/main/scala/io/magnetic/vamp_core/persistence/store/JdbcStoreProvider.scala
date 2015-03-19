@@ -8,6 +8,7 @@ import io.magnetic.vamp_core.persistence.notification._
 import io.magnetic.vamp_core.persistence.slick.components.Components
 import io.magnetic.vamp_core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.magnetic.vamp_core.persistence.slick.model.PortParentType.PortParentType
+import io.magnetic.vamp_core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
 import io.magnetic.vamp_core.persistence.slick.model._
 import io.magnetic.vamp_core.persistence.slick.util.VampPersistenceUtil
 import org.slf4j.LoggerFactory
@@ -138,7 +139,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       for (d <- existing.dependencies) {
         if (d.isDefinedInline) {
           DefaultBreeds.findOptionByName(d.breedName, d.deploymentId) match {
-            case Some(breed) => if (breed.isAnonymous) deleteDefaultBreedModel(breed, existing.deploymentId)
+            case Some(breed) => if (breed.isAnonymous) deleteDefaultBreedModel(breed)
             case _ =>
           }
         }
@@ -164,7 +165,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       deleteModelPorts(existing.endpoints)
       createPorts(artifact.endpoints, existing.id, parentType = Some(PortParentType.BlueprintEndpoint))
       deleteModelTraitNameParameters(existing.parameters)
-      createTraitNameParameters(artifact.parameters, existing.id.get)
+      createTraitNameParameters(artifact.parameters, existing.id, TraitParameterParentType.Blueprint)
       existing.update
     }
 
@@ -182,12 +183,11 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
     private def updateDeployment(existing: DeploymentModel, artifact: Deployment): Unit = {
       deleteDeploymentClusters(existing.clusters, existing.id)
-      deleteDeploymentEndpoints(existing.endpoints, existing.id)
+      deleteModelPorts(existing.endpoints)
+      deleteModelTraitNameParameters(existing.parameters)
       createDeploymentClusters(artifact.clusters, existing.id)
-      createDeploymentEndpoints(artifact.endpoints, existing.id)
-      //TODO delete  parameters
-      //deleteDeploymentParameters(existing.parameters, existing.id)
-      createDeploymentParameters(artifact.parameters, existing.id)
+      createPorts(artifact.endpoints, existing.id,Some(PortParentType.Deployment))
+      createTraitNameParameters(artifact.parameters, existing.id, TraitParameterParentType.Deployment)
       Deployments.update(existing)
     }
 
@@ -341,13 +341,18 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         )
       )
 
+    private def clusterRouteModels2Artifacts(routes : List[ClusterRouteModel]) : Map[Int,Int] =
+      routes.map(route => route.portIn -> route.portOut).toMap
 
     private def findDeploymentClusterArtifacts(clusters: List[DeploymentClusterModel], deploymentId: Option[Int]): List[DeploymentCluster] =
       clusters.map(cluster =>
         DeploymentCluster(
           name = cluster.name,
           services = findDeploymentServiceArtifacts(cluster.services),
-          sla = findOptionSlaArtifactViaReferenceName(cluster.slaReference, deploymentId))
+          routes = clusterRouteModels2Artifacts(cluster.routes),
+          sla = findOptionSlaArtifactViaReferenceName(cluster.slaReference, deploymentId)
+        )
+
       )
 
     private def readPortsToArtifactList(ports: List[PortModel]): List[Port] = ports.map(p => portModel2Port(p))
@@ -359,10 +364,12 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         case _ if ofType == classOf[Deployment] =>
           Deployments.findOptionByName(name) match {
             case Some(deployment) =>
-              Some(Deployment(name = deployment.name,
+              Some(Deployment(
+                name = deployment.name,
                 clusters = findDeploymentClusterArtifacts(deployment.clusters, deployment.id),
-                endpoints = List.empty, // TODO read endpoints
-                parameters = Map.empty)) // TODO read parameters
+                endpoints = readPortsToArtifactList(deployment.endpoints),
+                parameters = traitNameParametersToArtifactMap(deployment.parameters))
+              )
             case _ => None
           }
 
@@ -532,9 +539,10 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def createDefaultScaleModelFromArtifact(artifact: DeploymentDefaultScale): DefaultScaleModel =
       DefaultScales.findById(DefaultScales.add(artifact))
 
-    private def createTraitNameParameters(parameters: Map[Trait.Name, Any], parentId: Int): Unit = {
+    private def createTraitNameParameters(parameters: Map[Trait.Name, Any], parentId: Option[Int], parentType : TraitParameterParentType): Unit = {
+      val deploymentId = None
       for (param <- parameters) {
-        val prefilledParameter = TraitNameParameterModel(deploymentId = None, name = param._1.value, scope = param._1.scope, parentId = parentId, groupType = param._1.group)
+        val prefilledParameter = TraitNameParameterModel(name = param._1.value, scope = param._1.scope, parentId = parentId, groupType = param._1.group, parentType = parentType)
         param._1.group match {
           case Some(group) if group == Trait.Name.Group.Ports =>
             param._2 match {
@@ -550,7 +558,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
                 TraitNameParameters.add(prefilledParameter.copy(
                   groupId = Some(EnvironmentVariables.add(
                     EnvironmentVariableModel(
-                      deploymentId = None,
+                      deploymentId = deploymentId,
                       name = env.name.value,
                       alias = env.alias,
                       direction = env.direction,
@@ -596,9 +604,8 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       for (cluster <- clusters) {
         val slaRef = createSla(cluster.sla, deploymentId)
         val clusterId = DeploymentClusters.add(DeploymentClusterModel(name = cluster.name, slaReference = slaRef, deploymentId = deploymentId))
-        //TODO add routes
         for (route <- cluster.routes) {
-          //route.
+          ClusterRoutes.add(ClusterRouteModel(portIn = route._1, portOut = route._2, clusterId = clusterId))
         }
         for (service <- cluster.services) {
           val breedId = createOrUpdateBreed(DeploymentDefaultBreed(deploymentId, service.breed)).id.get
@@ -629,21 +636,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
             val serverId = DeploymentServers.add(DeploymentServerModel(serviceId = serviceId, name = server.name, host = server.host, deployed = server.deployed, deploymentId = deploymentId))
             for (port <- server.ports) ServerPorts.add(ServerPortModel(portIn = port._1, portOut = port._2, serverId = serverId))
           }
-
-
         }
-      }
-    }
-
-    private def createDeploymentEndpoints(endpoints: List[Port], deploymentId: Option[Int]) : Unit = {
-      for (endpoint <- endpoints) {
-        //TODO add endpoints
-      }
-    }
-
-    private def createDeploymentParameters(parameters: Map[Trait.Name, Any], deploymentId: Option[Int]) : Unit = {
-      for (parameter <- parameters) {
-        //TODO add parameters
       }
     }
 
@@ -651,18 +644,18 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       val nameOfArtifact: String = artifact match {
 
         case a: Deployment =>
-          val deploymentId = Some(Deployments.add(a))
-          createDeploymentClusters(a.clusters, deploymentId)
-          createDeploymentEndpoints(a.endpoints, deploymentId)
-          createDeploymentParameters(a.parameters, deploymentId)
-          Deployments.findById(deploymentId.get).name
+          val deploymentId = Deployments.add(a)
+          createDeploymentClusters(a.clusters, Some(deploymentId))
+          createPorts(a.endpoints, Some(deploymentId),Some(PortParentType.Deployment))
+          createTraitNameParameters(a.parameters, Some(deploymentId), TraitParameterParentType.Deployment)
+          Deployments.findById(deploymentId).name
 
         case a: DefaultBlueprint =>
           val deploymentId: Option[Int] = None
           val blueprintId = DefaultBlueprints.add(DeploymentDefaultBlueprint(deploymentId, a))
           createBlueprintClusters(a.clusters, blueprintId, deploymentId)
           createPorts(ports = a.endpoints, parentId = Some(blueprintId), parentType = Some(PortParentType.BlueprintEndpoint))
-          createTraitNameParameters(a.parameters, blueprintId)
+          createTraitNameParameters(a.parameters, Some(blueprintId) ,TraitParameterParentType.Blueprint)
           DefaultBlueprints.findById(blueprintId).name
 
         case a: DefaultEscalation =>
@@ -766,24 +759,48 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     }
 
     private def deleteDeploymentClusters(clusters: List[DeploymentClusterModel], deploymentId: Option[Int]): Unit = {
-      //TODO delete deployment clusters
-
+      for(cluster <- clusters) {
+        cluster.slaReference match {
+          case Some(slaName) => DefaultSlas.findOptionByName(slaName, deploymentId) match {
+            case Some(slaModel) => deleteSlaModel(slaModel)
+            case _ =>
+          }
+          case _ =>
+        }
+        for(route <- cluster.routes) {ClusterRoutes.deleteById(route.id.get)}
+        for(service <- cluster.services) {
+          for(dependency <-service.dependencies) {DeploymentServiceDependencies.deleteById(dependency.id.get)}
+          service.breed match {
+            case breedId => deleteDefaultBreedModel(DefaultBreeds.findById(breedId))
+          }
+          service.scale match {
+            case Some(scaleId) => DefaultScales.deleteById(scaleId)
+            case _ =>
+          }
+          service.routing match {
+            case Some(routing) => deleteRoutingModel(DefaultRoutings.findById(routing))
+            case _ =>
+          }
+          for(dependency <-service.dependencies){ DeploymentServiceDependencies.deleteById(dependency.id.get)}
+          for(server <- service.servers) {
+            for(port <- server.ports) ServerPorts.deleteById(port.id.get)
+            DeploymentServers.deleteById(server.id.get)
+          }
+          DeploymentServices.deleteById(service.id.get)
+        }
+        DeploymentClusters.deleteById(cluster.id.get)
+      }
     }
 
-    private def deleteDeploymentEndpoints(ports: List[PortModel], deploymentId: Option[Int]): Unit = {
-      //TODO delete deployment endpoints
-    }
-
-    private def deleteDeploymentParameters(parameters: Map[Trait.Name, Any], deploymentId: Option[Int]): Unit = {
-      //TODO delete deployment parameters
+     private def deleteDeploymentParameters(parameters: List[TraitNameParameterModel]) : Unit = {
+       for(parameter <- parameters) TraitNameParameters.deleteById(parameter.id.get)
     }
 
 
     private def deleteDeploymentModel(m: DeploymentModel): Unit = {
       deleteDeploymentClusters(m.clusters, m.id)
-      deleteDeploymentEndpoints(m.endpoints, m.id)
-      //TODO enable call to delete  deployment parameters
-      //deleteDeploymentParameters(m.parameters, Some(m.id))
+      deleteModelPorts(m.endpoints)
+      deleteDeploymentParameters(m.parameters)
       Deployments.deleteById(m.id.get)
     }
 
@@ -830,7 +847,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         case _: DefaultBreed =>
           DefaultBreeds.findOptionByName(artifact.name, None) match {
             case Some(breed: DefaultBreedModel) =>
-              deleteDefaultBreedModel(breed, None)
+              deleteDefaultBreedModel(breed)
             case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
           }
 
@@ -862,7 +879,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
             case Some(breedRef) =>
               if (breedRef.isDefinedInline)
                 DefaultBreeds.findOptionByName(breedRef.name, service.deploymentId) match {
-                  case Some(breed) if breed.isAnonymous => deleteDefaultBreedModel(breed, service.deploymentId)
+                  case Some(breed) if breed.isAnonymous => deleteDefaultBreedModel(breed)
                   case Some(breed) =>
                   case None => // Should not happen (log it as not critical)
                 }
@@ -933,14 +950,14 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     }
 
     // Delete breed and all anonymous artifact in the hierarchy
-    private def deleteDefaultBreedModel(breed: DefaultBreedModel, deploymentId: Option[Int]): Unit = {
+    private def deleteDefaultBreedModel(breed: DefaultBreedModel): Unit = {
       for (port <- breed.ports) Ports.deleteById(port.id.get)
       for (envVar <- breed.environmentVariables) EnvironmentVariables.deleteById(envVar.id.get)
       for (dependency <- breed.dependencies) {
         val depModel = Dependencies.findById(dependency.id.get)
         if (depModel.isDefinedInline) {
-          DefaultBreeds.findOptionByName(depModel.name, deploymentId) match {
-            case Some(childBreed) if childBreed.isAnonymous => deleteDefaultBreedModel(childBreed, deploymentId) // Here is the recursive bit
+          DefaultBreeds.findOptionByName(depModel.name, breed.deploymentId) match {
+            case Some(childBreed) if childBreed.isAnonymous => deleteDefaultBreedModel(childBreed) // Here is the recursive bit
             case Some(childBreed) =>
             case None => // Should not happen (log it as not critical)
           }

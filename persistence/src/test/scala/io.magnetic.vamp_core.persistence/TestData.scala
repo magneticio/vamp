@@ -106,6 +106,14 @@ object TestData {
   private val myParameter3 = (Trait.Name(Some("myParameter3"), Some(Trait.Name.Group.Ports), "HOME_PORT"), TcpPort(name = "", alias = Option("Telnet"), value = Option(23), direction = Trait.Direction.In))
 
 
+  private val myEndpointPort5 = HttpPort(name = "port8080", alias = Option("HTTP"), value = Option(8080), direction = Trait.Direction.In)
+  private val myEndpointPort6 = TcpPort(name = "port21", alias = Option("FTP"), value = Option(8080), direction = Trait.Direction.In)
+  private val myParameter5 = (Trait.Name(Some("myParameter1"), None, "GO_HOME"), "/var/lib/go/bin")
+  private val myParameter6 = (Trait.Name(Some("myParameter2"), Some(Trait.Name.Group.EnvironmentVariables), "PATH"), EnvironmentVariable(name = "", alias = Some("JAVA_HOME"), value = Some("/opt/java/bin"), direction = Trait.Direction.In))
+  private val myParameter7 = (Trait.Name(Some("myParameter3"), Some(Trait.Name.Group.Ports), "HOME_PORT"), TcpPort(name = "", alias = Option("Telnet"), value = Option(23), direction = Trait.Direction.In))
+
+
+
   val myCluster_db = Cluster(name = "db", services = List(myService2), sla = None)
   val blueprintMinimal = DefaultBlueprint(
     name = "blueprint_minimal",
@@ -180,11 +188,11 @@ object TestData {
         name = "deployment-cluster-1",
         services = List(deploymentService1),
         sla = Some(SlaReference("sla-ref-deployment1", escalations = List.empty)),
-        routes = Map.empty
+        routes = Map(80 -> 23890, 8080 -> 45720)
       )
     ),
-    endpoints = List.empty,
-    parameters = Map.empty
+    endpoints = List(myEndpointPort5, myEndpointPort6),
+    parameters = Map(myParameter5, myParameter6, myParameter7)
   )
 
 
@@ -195,7 +203,6 @@ object TestData {
         name = "deployment-cluster-2",
         services = List.empty,
         sla = Some(SlaReference("sla-ref-deployment2", escalations = List.empty)),
-
         routes = Map.empty
       )
     ),
