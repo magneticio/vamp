@@ -1,5 +1,5 @@
 package io.magnetic.vamp_core.persistence.notification
 
-import io.magnetic.vamp_common.notification.{DefaultPackageMessageResolverProvider, LoggingNotificationProvider}
+import io.vamp.common.notification.{DefaultPackageMessageResolverProvider, LoggingNotificationProvider}
 
 trait PersistenceNotificationProvider extends LoggingNotificationProvider with DefaultPackageMessageResolverProvider

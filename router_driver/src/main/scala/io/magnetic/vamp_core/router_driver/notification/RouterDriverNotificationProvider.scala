@@ -1,5 +1,5 @@
 package io.magnetic.vamp_core.router_driver.notification
 
-import io.magnetic.vamp_common.notification.{DefaultPackageMessageResolverProvider, LoggingNotificationProvider}
+import io.vamp.common.notification.{DefaultPackageMessageResolverProvider, LoggingNotificationProvider}
 
 trait RouterDriverNotificationProvider extends LoggingNotificationProvider with DefaultPackageMessageResolverProvider

@@ -1,7 +1,7 @@
 package io.magnetic.vamp_core.dictionary.notification
 
-import io.magnetic.vamp_common.akka.RequestError
-import io.magnetic.vamp_common.notification.{ErrorNotification, Notification}
+import io.vamp.common.akka.RequestError
+import io.vamp.common.notification.{ErrorNotification, Notification}
 
 case class UnsupportedDictionaryRequest(request: Any) extends Notification with RequestError
 

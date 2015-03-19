@@ -1,8 +1,8 @@
 package io.magnetic.vamp_core.router_driver
 
 import com.typesafe.scalalogging.Logger
-import io.magnetic.vamp_common.crypto.Hash
-import io.magnetic.vamp_common.http.RestClient
+import io.vamp.common.crypto.Hash
+import io.vamp.common.http.RestClient
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.router_driver
 import org.slf4j.LoggerFactory

@@ -1,6 +1,6 @@
 package io.magnetic.vamp_core.rest_api.notification
 
-import io.magnetic.vamp_common.notification.Notification
+import io.vamp.common.notification.Notification
 import io.magnetic.vamp_core.model.artifact.Artifact
 
 case class UnexpectedEndOfRequest() extends Notification

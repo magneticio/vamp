@@ -1,7 +1,7 @@
 package io.magnetic.vamp_core.dictionary
 
 import akka.actor.ActorSystem
-import io.magnetic.vamp_common.akka.{ActorSupport, Bootstrap}
+import io.vamp.common.akka.{ActorSupport, Bootstrap}
 
 object DictionaryBootstrap extends Bootstrap {
 

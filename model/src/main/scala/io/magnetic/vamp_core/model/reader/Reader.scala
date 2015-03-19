@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.model.reader
 
 import java.io.{File, InputStream, Reader, StringReader}
 
-import _root_.io.magnetic.vamp_common.notification.NotificationErrorException
+import _root_.io.vamp.common.notification.NotificationErrorException
 import _root_.io.magnetic.vamp_core.model.notification._
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException

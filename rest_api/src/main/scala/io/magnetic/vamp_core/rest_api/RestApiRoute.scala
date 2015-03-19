@@ -3,8 +3,8 @@ package io.magnetic.vamp_core.rest_api
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
-import io.magnetic.vamp_common.notification.NotificationErrorException
+import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.notification.NotificationErrorException
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.model.serialization.{ArtifactSerializationFormat, BlueprintSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}

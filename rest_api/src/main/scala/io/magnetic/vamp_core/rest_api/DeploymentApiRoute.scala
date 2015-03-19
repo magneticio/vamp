@@ -3,7 +3,7 @@ package io.magnetic.vamp_core.rest_api
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
 import io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.conversion.DeploymentConversion._

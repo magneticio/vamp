@@ -1,7 +1,7 @@
 package io.magnetic.vamp_core.operation.deployment
 
 import akka.actor._
-import io.magnetic.vamp_common.akka.{ActorDescription, ActorExecutionContextProvider, ActorSupport, FutureSupport}
+import io.vamp.common.akka.{ActorDescription, ActorExecutionContextProvider, ActorSupport, FutureSupport}
 import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.magnetic.vamp_core.operation.deployment.DeploymentWatchdogActor.Period
 import io.magnetic.vamp_core.operation.notification.OperationNotificationProvider

@@ -3,7 +3,7 @@ package io.magnetic.vamp_core.operation.deployment
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
-import _root_.io.magnetic.vamp_common.akka._
+import _root_.io.vamp.common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout

@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.persistence.slick.model
 
 import java.time.OffsetDateTime
 
-import io.magnetic.vamp_common.notification.NotificationActor
+import io.vamp.common.notification.NotificationActor
 import io.magnetic.vamp_core.model.artifact.DeploymentService._
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.persistence.notification.PersistenceOperationFailure

@@ -1,6 +1,6 @@
 package io.magnetic.vamp_core.pulse_driver
 
-import _root_.io.magnetic.vamp_common.akka._
+import _root_.io.vamp.common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory

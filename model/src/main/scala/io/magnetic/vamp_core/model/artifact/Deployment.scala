@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.model.artifact
 
 import java.time.OffsetDateTime
 
-import io.magnetic.vamp_common.notification.Notification
+import io.vamp.common.notification.Notification
 
 object DeploymentService {
 

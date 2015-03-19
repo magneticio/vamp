@@ -1,8 +1,8 @@
 package io.magnetic.vamp_core.container_driver.marathon
 
 import com.typesafe.scalalogging.Logger
-import io.magnetic.vamp_common.crypto.Hash
-import io.magnetic.vamp_common.http.RestClient
+import io.vamp.common.crypto.Hash
+import io.vamp.common.http.RestClient
 import io.magnetic.vamp_core.container_driver.marathon.api._
 import io.magnetic.vamp_core.container_driver.{ContainerDriver, ContainerServer, ContainerService}
 import io.magnetic.vamp_core.model.artifact._
