@@ -161,9 +161,9 @@ case class ClusterRouteModel(id: Option[Int] = None, portIn : Int, portOut : Int
 }
 
 case class DeploymentDefaultFilter(deploymentId : Option[Int], artifact: DefaultFilter)
-case class DeploymentDefaultSla(deploymentId : Option[Int], artifact: DefaultSla)
+case class DeploymentDefaultSla(deploymentId : Option[Int], artifact: GenericSla)
 case class DeploymentDefaultScale(deploymentId : Option[Int], artifact: DefaultScale)
-case class DeploymentDefaultEscalation(deploymentId : Option[Int], artifact: DefaultEscalation)
+case class DeploymentDefaultEscalation(deploymentId : Option[Int], artifact: GenericEscalation)
 case class DeploymentDefaultRouting(deploymentId : Option[Int], artifact: DefaultRouting)
 case class DeploymentDefaultBreed(deploymentId : Option[Int], artifact: DefaultBreed)
 case class DeploymentDefaultBlueprint(deploymentId : Option[Int], artifact: DefaultBlueprint)
