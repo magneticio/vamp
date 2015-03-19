@@ -3,7 +3,7 @@ package io.magnetic.vamp_core.pulse_driver
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
-import io.magnetic.vamp_common.http.RestClient
+import io.vamp.common.http.RestClient
 import io.magnetic.vamp_core.model.artifact.{Deployment, DeploymentCluster}
 
 import scala.concurrent.{ExecutionContext, Future}

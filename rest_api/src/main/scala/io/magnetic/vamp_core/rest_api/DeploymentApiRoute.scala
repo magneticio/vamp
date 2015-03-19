@@ -3,11 +3,13 @@ package io.magnetic.vamp_core.rest_api
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.magnetic.vamp_common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
 import io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import io.magnetic.vamp_core.model.artifact._
+import io.magnetic.vamp_core.model.conversion.DeploymentConversion._
 import io.magnetic.vamp_core.model.reader._
-import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentWatchdogActor}
+import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
+import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor}
 import io.magnetic.vamp_core.operation.notification.InternalServerError
 import io.magnetic.vamp_core.operation.sla.SlaMonitorActor
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor
@@ -30,7 +32,9 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
   implicit def timeout: Timeout
 
   private val helperRoutes = pathPrefix("sync") {
-    complete(OK, sync())
+    parameters('rate.as[Int] ? 10) { period =>
+      complete(OK, sync(period))
+    }
   } ~ pathPrefix("sla") {
     complete(OK, slaMonitor())
   } ~ pathPrefix("reset") {
@@ -41,8 +45,10 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
   private val deploymentRoute = pathPrefix("deployments") {
     pathEndOrSingleSlash {
       get {
-        onSuccess(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) {
-          complete(OK, _)
+        parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
+          onSuccess(deployments(asBlueprint)) {
+            complete(OK, _)
+          }
         }
       } ~ post {
         entity(as[String]) { request =>
@@ -55,8 +61,10 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
       pathEndOrSingleSlash {
         get {
           rejectEmptyResponse {
-            onSuccess(actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])) {
-              complete(OK, _)
+            parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
+              onSuccess(deployment(name, asBlueprint)) {
+                complete(OK, _)
+              }
             }
           }
         } ~ put {
@@ -136,11 +144,10 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
 trait DeploymentApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
   this: Actor with ExecutionContextProvider =>
 
-  def sync(period: Int = 10): Unit = {
-    actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(1)
-    context.system.scheduler.scheduleOnce(period seconds, new Runnable {
-      def run() = actorFor(DeploymentWatchdogActor) ! DeploymentWatchdogActor.Period(0)
-    })
+  def sync(rate: Int): Unit = {
+    for (i <- 0 until rate) {
+      actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
+    }
   }
 
   def slaMonitor(period: Int = 10): Unit = {
@@ -150,16 +157,28 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
     })
   }
 
-  def reset(): Unit = {
-    implicit val timeout = PersistenceActor.timeout
+  def reset()(implicit timeout: Timeout): Unit = {
     offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
       case deployments: List[_] =>
-        deployments.asInstanceOf[List[Deployment]].foreach({ deployment =>
+        deployments.asInstanceOf[List[Deployment]].map({ deployment =>
           actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
-        })
+          deployment.clusters.count(_ => true)
+        }).reduceOption(_ max _).foreach(max => sync(max * 3))
       case any => error(InternalServerError(any))
     }
-    sync()
+  }
+
+  def deployments(asBlueprint: Boolean)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])).map {
+    case list: List[_] => list.map {
+      case deployment: Deployment => if (asBlueprint) deployment.asBlueprint else deployment
+      case any => any
+    }
+    case any => any
+  }
+
+  def deployment(name: String, asBlueprint: Boolean)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])).map {
+    case deployment: Deployment => if (asBlueprint) deployment.asBlueprint else deployment
+    case any => any
   }
 
   def createDeployment(request: String)(implicit timeout: Timeout) = DeploymentBlueprintReader.readReferenceFromSource(request) match {

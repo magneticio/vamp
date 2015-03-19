@@ -90,8 +90,8 @@
             <version>${akka-stream.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.magnetic.vamp-common</groupId>
-            <artifactId>vamp-common</artifactId>
+            <groupId>io.vamp</groupId>
+            <artifactId>common</artifactId>
             <version>${vamp-common.version}</version>
         </dependency>
         <dependency>

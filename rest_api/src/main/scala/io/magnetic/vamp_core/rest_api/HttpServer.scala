@@ -3,8 +3,8 @@ package io.magnetic.vamp_core.rest_api
 import akka.actor.ActorLogging
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.magnetic.vamp_common.akka.ActorExecutionContextProvider
-import io.magnetic.vamp_common.notification.NotificationErrorException
+import io.vamp.common.akka.ActorExecutionContextProvider
+import io.vamp.common.notification.NotificationErrorException
 import spray.http.StatusCodes._
 import spray.http.{HttpRequest, HttpResponse, Timedout}
 import spray.routing._

@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.operation.deployment
 
 import java.util.UUID
 
-import _root_.io.magnetic.vamp_common.akka._
+import _root_.io.vamp.common.akka._
 import _root_.io.magnetic.vamp_core.dictionary.DictionaryActor
 import _root_.io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import _root_.io.magnetic.vamp_core.model.artifact._
@@ -16,7 +16,7 @@ import _root_.io.magnetic.vamp_core.persistence.notification.PersistenceOperatio
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import io.magnetic.vamp_common.notification.NotificationProvider
+import io.vamp.common.notification.NotificationProvider
 
 import scala.language.{existentials, postfixOps}
 

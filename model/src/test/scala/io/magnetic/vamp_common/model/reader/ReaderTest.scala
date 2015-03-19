@@ -1,6 +1,6 @@
-package io.magnetic.vamp_common.model.reader
+package io.vamp.common.model.reader
 
-import _root_.io.magnetic.vamp_common.notification.NotificationErrorException
+import _root_.io.vamp.common.notification.NotificationErrorException
 import _root_.io.magnetic.vamp_core.model.notification.{UnexpectedInnerElementError, UnexpectedTypeError, YamlParsingError}
 import _root_.io.magnetic.vamp_core.model.reader.YamlReader
 import org.junit.runner.RunWith

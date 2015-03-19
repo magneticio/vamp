@@ -4,7 +4,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.io.IO
 import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
-import io.magnetic.vamp_common.akka.Bootstrap
+import io.vamp.common.akka.Bootstrap
 import spray.can.Http
 
 object RestApiBootstrap extends Bootstrap {

@@ -9,12 +9,13 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
   override def readReference(any: Any): Blueprint = any match {
     case string: String => BlueprintReference(string)
-    case map =>
+    case map: collection.Map[_, _] =>
       implicit val source = map.asInstanceOf[YamlObject]
       if (source.size > 1)
         read(source)
       else
         BlueprintReference(name)
+    case _ => error(UnexpectedInnerElementError("/", classOf[YamlObject]))
   }
 
   override protected def expand(implicit source: YamlObject) = {

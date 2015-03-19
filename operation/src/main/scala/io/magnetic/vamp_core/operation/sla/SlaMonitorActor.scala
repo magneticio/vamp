@@ -5,7 +5,7 @@ import java.time.temporal.ChronoUnit
 
 import akka.actor._
 import akka.pattern.ask
-import io.magnetic.vamp_common.akka.{ActorDescription, ActorExecutionContextProvider, ActorSupport, FutureSupport}
+import io.vamp.common.akka.{ActorDescription, ActorExecutionContextProvider, ActorSupport, FutureSupport}
 import io.magnetic.vamp_core.model.artifact.DeploymentService.ReadyForDeployment
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType, UnsupportedSlaType}

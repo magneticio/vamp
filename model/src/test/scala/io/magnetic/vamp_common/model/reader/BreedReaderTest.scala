@@ -1,4 +1,4 @@
-package io.magnetic.vamp_common.model.reader
+package io.vamp.common.model.reader
 
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.notification._

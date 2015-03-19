@@ -3,7 +3,7 @@ package io.magnetic.vamp_core.persistence.actor
 import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.magnetic.vamp_common.akka._
+import io.vamp.common.akka._
 import io.magnetic.vamp_core.model.artifact.Artifact
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor.PersistenceMessages
 import io.magnetic.vamp_core.persistence.notification.UnsupportedPersistenceRequest

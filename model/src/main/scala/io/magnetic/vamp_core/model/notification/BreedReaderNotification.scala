@@ -1,6 +1,6 @@
 package io.magnetic.vamp_core.model.notification
 
-import io.magnetic.vamp_common.notification.Notification
+import io.vamp.common.notification.Notification
 import io.magnetic.vamp_core.model.artifact.{Breed, EnvironmentVariable, Port, Trait}
 
 case class MalformedTraitNameError(breed: Breed, name: Trait.Name) extends Notification

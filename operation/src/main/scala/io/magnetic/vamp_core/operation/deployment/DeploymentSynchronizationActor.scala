@@ -3,7 +3,7 @@ package io.magnetic.vamp_core.operation.deployment
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
-import _root_.io.magnetic.vamp_common.akka._
+import _root_.io.vamp.common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
@@ -282,11 +282,11 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
           false
 
         case (Some(cluster), None) =>
-          cluster.routes.get(number).map(_ => actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false))
+          cluster.routes.get(number).foreach(_ => actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false))
           true
 
         case (Some(cluster), Some(route)) if route.services.flatMap(_.servers).count(_ => true) == 0 =>
-          cluster.routes.get(number).map(_ => actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = true))
+          cluster.routes.get(number).foreach(_ => actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = true))
           true
 
         case _ => true

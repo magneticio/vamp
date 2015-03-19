@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.operation
 
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
-import io.magnetic.vamp_common.akka.{ActorSupport, Bootstrap}
+import io.vamp.common.akka.{ActorSupport, Bootstrap}
 import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor, DeploymentWatchdogActor}
 import io.magnetic.vamp_core.operation.sla.SlaMonitorActor
 

@@ -1,7 +1,7 @@
 package io.magnetic.vamp_core.persistence.actor
 
-import _root_.io.magnetic.vamp_common.akka._
-import _root_.io.magnetic.vamp_common.notification.NotificationProvider
+import _root_.io.vamp.common.akka._
+import _root_.io.vamp.common.notification.NotificationProvider
 import _root_.io.magnetic.vamp_core.model.artifact._
 import _root_.io.magnetic.vamp_core.persistence.actor.PersistenceActor._
 import _root_.io.magnetic.vamp_core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
