@@ -1,7 +1,7 @@
 package io.magnetic.vamp_core.persistence.store
 
 import com.typesafe.scalalogging.Logger
-import io.magnetic.vamp_common.akka.ExecutionContextProvider
+import io.vamp.common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact.Trait.Name
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.persistence.notification._

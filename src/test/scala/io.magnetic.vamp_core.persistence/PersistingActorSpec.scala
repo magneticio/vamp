@@ -2,7 +2,7 @@ package io.magnetic.vamp_core.persistence
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
-import io.magnetic.vamp_common.akka.ActorSupport
+import io.vamp.common.akka.ActorSupport
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor._
 import io.magnetic.vamp_core.persistence.slick.components.Components.instance._
