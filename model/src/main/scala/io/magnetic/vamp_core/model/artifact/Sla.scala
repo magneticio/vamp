@@ -29,7 +29,21 @@ case class EscalationReference(name: String) extends Reference with Escalation
 
 case class GenericEscalation(name: String, `type`: String, parameters: Map[String, Any]) extends Escalation with Type
 
-trait ScaleEscalation[T] extends Escalation {
+
+trait GroupEscalation extends Escalation with Type {
+  def escalations: List[Escalation]
+}
+
+case class ToAllEscalation(name: String, escalations: List[Escalation]) extends GroupEscalation {
+  def `type` = "to_all"
+}
+
+case class ToOneEscalation(name: String, escalations: List[Escalation]) extends GroupEscalation {
+  def `type` = "to_one"
+}
+
+
+trait ScaleEscalation[T] extends Escalation with Type {
   def minimum: T
 
   def maximum: T
@@ -37,10 +51,16 @@ trait ScaleEscalation[T] extends Escalation {
   def scaleBy: T
 }
 
-case class ScaleInstancesEscalation(name: String, minimum: Int, maximum: Int, scaleBy: Int) extends ScaleEscalation[Int]
+case class ScaleInstancesEscalation(name: String, minimum: Int, maximum: Int, scaleBy: Int) extends ScaleEscalation[Int] {
+  def `type` = "scale_instances"
+}
 
-case class ScaleCpuEscalation(name: String, minimum: Double, maximum: Double, scaleBy: Double) extends ScaleEscalation[Double]
+case class ScaleCpuEscalation(name: String, minimum: Double, maximum: Double, scaleBy: Double) extends ScaleEscalation[Double] {
+  def `type` = "scale_cpu"
+}
 
-case class ScaleMemoryEscalation(name: String, minimum: Double, maximum: Double, scaleBy: Double) extends ScaleEscalation[Double]
+case class ScaleMemoryEscalation(name: String, minimum: Double, maximum: Double, scaleBy: Double) extends ScaleEscalation[Double] {
+  def `type` = "scale_memory"
+}
 
 
