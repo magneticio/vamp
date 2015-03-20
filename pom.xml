@@ -1,14 +1,52 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <name>Vamp common libraries</name>
+
+    <description>
+        This is a common set of libraries for vamp products, such as helpers, case class generators, various traits and such.
+    </description>
+
+    <url>http://vamp.io</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Roman Useinov</name>
+            <email>roman@mangetic.io</email>
+            <organization>VAMP</organization>
+            <organizationUrl>http://vamp.io</organizationUrl>
+        </developer>
+
+        <developer>
+            <name>Dragoslav Pavkovic</name>
+            <email>drago@mangetic.io</email>
+            <organization>VAMP</organization>
+            <organizationUrl>http://vamp.io</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git@github.com:magneticio/vamp-common.git</connection>
+        <developerConnection>scm:git:git@github.com:magneticio/vamp-common.git</developerConnection>
+        <url>git@github.com:magneticio/vamp-common.git</url>
+    </scm>
+
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.vamp</groupId>
-    <name>common</name>
     <artifactId>common</artifactId>
     <version>0.7.0-RC1</version>
 
     <packaging>jar</packaging>
-    <url>http://maven.apache.org</url>
+
+
 
     <properties>
         <dispatch.version>0.11.2</dispatch.version>
@@ -103,6 +141,23 @@
                         <goals>
                             <goal>jar-no-fork</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>empty-javadoc-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>javadoc</classifier>
+                            <classesDirectory>${basedir}/javadoc</classesDirectory>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
