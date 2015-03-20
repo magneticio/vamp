@@ -91,7 +91,7 @@
         </dependency>
         <dependency>
             <groupId>io.vamp</groupId>
-            <artifactId>common</artifactId>
+            <artifactId>common_2.11</artifactId>
             <version>${vamp-common.version}</version>
         </dependency>
         <dependency>
