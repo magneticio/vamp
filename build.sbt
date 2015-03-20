@@ -1,10 +1,4 @@
-import SonatypeKeys._
-
-sonatypeSettings
-
 organization := "io.vamp"
-
-profileName := "io.vamp"
 
 
 name := """Common"""
@@ -61,15 +55,20 @@ resolvers ++= Seq(
   Resolver.mavenLocal
 )
 
+val akkaV = "2.3.9"
+
+val dispatchV = "0.11.2"
+
+val json4sV = "3.2.11"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.3.9",
-  "com.typesafe.akka" %% "akka-testkit" % "2.3.9",
+  "com.typesafe.akka" %% "akka-actor" % akkaV,
+  "com.typesafe.akka" %% "akka-testkit" % akkaV,
   "commons-cli" % "commons-cli" % "1.2",
-  "net.databinder.dispatch" %% "dispatch-core" % "0.11.2",
-  "net.databinder.dispatch" %% "dispatch-json4s-native" % "0.11.2",
-  "org.json4s" %% "json4s-core" % "3.2.11",
-  "org.json4s" %% "json4s-native" % "3.2.11",
+  "net.databinder.dispatch" %% "dispatch-core" % dispatchV,
+  "net.databinder.dispatch" %% "dispatch-json4s-native" % dispatchV,
+  "org.json4s" %% "json4s-core" % json4sV,
+  "org.json4s" %% "json4s-native" % json4sV,
   "org.yaml" % "snakeyaml" % "1.14",
   "org.scalatest" %% "scalatest" % "3.0.0-SNAP4" % "test",
   "junit" % "junit" % "4.11" % "test",
