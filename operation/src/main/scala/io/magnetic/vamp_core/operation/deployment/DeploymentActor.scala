@@ -2,20 +2,20 @@ package io.magnetic.vamp_core.operation.deployment
 
 import java.util.UUID
 
-import _root_.io.vamp.common.akka._
 import _root_.io.magnetic.vamp_core.dictionary.DictionaryActor
 import _root_.io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import _root_.io.magnetic.vamp_core.model.artifact._
-import _root_.io.magnetic.vamp_core.model.notification.{RoutingWeightError, UnresolvedEndpointPortError, UnresolvedParameterError}
-import _root_.io.magnetic.vamp_core.model.reader.BreedReader
+import io.magnetic.vamp_core.model.reader.{BlueprintReader, BreedReader}
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentActor.{Create, DeploymentMessages, Merge, Slice}
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import _root_.io.magnetic.vamp_core.operation.notification._
 import _root_.io.magnetic.vamp_core.persistence.actor.{ArtifactSupport, PersistenceActor}
 import _root_.io.magnetic.vamp_core.persistence.notification.PersistenceOperationFailure
+import _root_.io.vamp.common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
+import io.magnetic.vamp_core.model.notification.{RoutingWeightError, UnresolvedEndpointPortError, UnresolvedParameterError, UnresolvedScaleEscalationTargetCluster}
 import io.vamp.common.notification.NotificationProvider
 
 import scala.language.{existentials, postfixOps}
@@ -111,6 +111,11 @@ trait DeploymentValidation {
     deployment.clusters.find(cluster => weight(cluster) != 100).flatMap(cluster => error(UnsupportedRoutingWeight(deployment, cluster, weight(cluster))))
     deployment
   }
+
+  def validateScaleEscalations: (Deployment => Deployment) = { (deployment: Deployment) =>
+    BlueprintReader.validateScaleEscalations(deployment)
+    deployment
+  }
 }
 
 trait DeploymentMerger extends DeploymentValidation {
@@ -122,7 +127,7 @@ trait DeploymentMerger extends DeploymentValidation {
 
   def resolveProperties = resolveParameters andThen resolveRouteMapping andThen resolveGlobalVariables andThen resolveDependencyMapping
 
-  def validateMerge = validateBreeds andThen validateRoutingWeights
+  def validateMerge = validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations
 
   def merge(deployment: Deployment, blueprint: Deployment): Deployment = {
 
@@ -320,7 +325,7 @@ trait DeploymentMerger extends DeploymentValidation {
       cluster.copy(services = cluster.services.map({ service =>
         service.copy(dependencies = service.breed.dependencies.map({ case (name, breed) =>
           (name, dependencies.get(breed.name).get)
-        }).toMap)
+        }))
       }))
     }))
   }
@@ -332,7 +337,7 @@ trait DeploymentSlicer extends DeploymentValidation {
   def commit(create: Boolean): (Deployment => Deployment)
 
   def slice(stable: Deployment, blueprint: Deployment): Deployment = {
-    (validateBreeds andThen validateRoutingWeights andThen commit(create = false))(stable.copy(clusters = stable.clusters.map(cluster =>
+    (validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations andThen commit(create = false))(stable.copy(clusters = stable.clusters.map(cluster =>
       blueprint.clusters.find(_.name == cluster.name) match {
         case None => cluster
         case Some(bpc) => cluster.copy(services = cluster.services.map(service => service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) ReadyForUndeployment() else service.state)))

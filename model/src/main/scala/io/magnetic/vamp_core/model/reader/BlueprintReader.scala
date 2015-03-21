@@ -188,7 +188,35 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   }
 }
 
-object BlueprintReader extends AbstractBlueprintReader
+object BlueprintReader extends AbstractBlueprintReader {
+
+  override protected def validate(blueprint: Blueprint) = {
+    super.validate(blueprint)
+    blueprint match {
+      case bp: AbstractBlueprint => validateScaleEscalations(bp)
+      case _ =>
+    }
+    blueprint
+  }
+
+  def validateScaleEscalations(blueprint: AbstractBlueprint): Unit = {
+    blueprint.clusters.foreach { cluster =>
+      cluster.sla match {
+        case None =>
+        case Some(s) => s.escalations.foreach {
+          case escalation: ScaleEscalation[_] => escalation.targetCluster match {
+            case None =>
+            case Some(clusterName) => blueprint.clusters.find(_.name == clusterName) match {
+              case None => error(UnresolvedScaleEscalationTargetCluster(cluster, clusterName))
+              case Some(_) =>
+            }
+          }
+          case _ =>
+        }
+      }
+    }
+  }
+}
 
 object DeploymentBlueprintReader extends AbstractBlueprintReader {
   override protected def validateDependencies(breeds: List[Breed]): Unit = {}

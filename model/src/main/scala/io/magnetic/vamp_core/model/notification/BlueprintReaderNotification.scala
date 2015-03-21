@@ -12,3 +12,5 @@ case class NonUniqueBlueprintBreedReferenceError(name: String) extends Notificat
 case class UnresolvedBreedDependencyError(breed: Breed, dependency: (String, Breed)) extends Notification
 
 case class RoutingWeightError(cluster: AbstractCluster) extends Notification
+
+case class UnresolvedScaleEscalationTargetCluster(cluster: AbstractCluster, target: String) extends Notification

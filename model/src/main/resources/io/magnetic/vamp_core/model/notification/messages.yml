@@ -1,25 +1,26 @@
 # Yaml Reader
 
-YamlParsingError                     : "Error: {message}"
-MissingPathValueError                : "Can't find any value for path: /{path}"
-UnexpectedTypeError                  : "Unexpected value type of '{path}'."
-UnexpectedInnerElementError          : "Can't find a nested element of '{path}', found {found}"
-EitherReferenceOrAnonymous           : "Either it should be a reference '{name} -> {reference}' or an anonymous inline definition, but not both."
+YamlParsingError                      : "Error: {message}"
+MissingPathValueError                 : "Can't find any value for path: /{path}"
+UnexpectedTypeError                   : "Unexpected value type of '{path}'."
+UnexpectedInnerElementError           : "Can't find a nested element of '{path}', found {found}"
+EitherReferenceOrAnonymous            : "Either it should be a reference '{name} -> {reference}' or an anonymous inline definition, but not both."
 
 # Breed Reader
 
-MalformedTraitNameError              : "Malformed port/environment variable name '{name}' for breed '{breed}'. Name should be in the format [scope.[ports|environment_variables].]local"
-MissingPortValueError                : "Missing port value for '{port.name}' and breed '{breed.name} -> {breed.deployable.name}'."
-MissingEnvironmentVariableValueError : "Missing environment variable value for '{environmentVariable.name}' and breed '{breed.name} -> {breed.deployable.name}'."
-NonUniquePortNameError               : "Non unique port name '{port.name}' for breed '{breed.name} -> {breed.deployable.name}'."
-NonUniqueEnvironmentVariableNameError: "Non unique environment variable name '{environmentVariable.name}' for breed '{breed.name} -> {breed.deployable.name}'."
-UnresolvedDependencyForTraitError    : "Dependency reference cannot be resolved for port/environment variable name '{name}' and breed '{breed.name} -> {breed.deployable.name}'."
-RecursiveDependenciesError           : "Recursive (cyclic) dependency detected for breed '{breed.name}'"
+MalformedTraitNameError               : "Malformed port/environment variable name '{name}' for breed '{breed}'. Name should be in the format [scope.[ports|environment_variables].]local"
+MissingPortValueError                 : "Missing port value for '{port.name}' and breed '{breed.name} -> {breed.deployable.name}'."
+MissingEnvironmentVariableValueError  : "Missing environment variable value for '{environmentVariable.name}' and breed '{breed.name} -> {breed.deployable.name}'."
+NonUniquePortNameError                : "Non unique port name '{port.name}' for breed '{breed.name} -> {breed.deployable.name}'."
+NonUniqueEnvironmentVariableNameError : "Non unique environment variable name '{environmentVariable.name}' for breed '{breed.name} -> {breed.deployable.name}'."
+UnresolvedDependencyForTraitError     : "Dependency reference cannot be resolved for port/environment variable name '{name}' and breed '{breed.name} -> {breed.deployable.name}'."
+RecursiveDependenciesError            : "Recursive (cyclic) dependency detected for breed '{breed.name}'"
 
 # Blueprint Reader
 
-UnresolvedEndpointPortError          : "Endpoint port '{name} -> {value}' cannot be resolved. Check if cluster '{name.scope.get}' exists and if it has any breed with port name '{name.value}'."
-UnresolvedParameterError             : "Parameter '{name} -> {value}' cannot be resolved. Check if cluster '{name.scope.get}' exists and if it has any breed with a port or environment variable '{name.value}' and IN direction."
-NonUniqueBlueprintBreedReferenceError: "Multiple references for breed: '{name}'."
-UnresolvedBreedDependencyError       : "Unresolved breed dependency for breed '{breed.name}' and dependency '{dependency._1} -> {dependency._2.name}'."
-RoutingWeightError                   : "Total routing weight cannot exceed 100 or be a negative value. Check cluster: '{cluster.name}'."
+UnresolvedEndpointPortError           : "Endpoint port '{name} -> {value}' cannot be resolved. Check if cluster '{name.scope.get}' exists and if it has any breed with port name '{name.value}'."
+UnresolvedParameterError              : "Parameter '{name} -> {value}' cannot be resolved. Check if cluster '{name.scope.get}' exists and if it has any breed with a port or environment variable '{name.value}' and IN direction."
+NonUniqueBlueprintBreedReferenceError : "Multiple references for breed: '{name}'."
+UnresolvedBreedDependencyError        : "Unresolved breed dependency for breed '{breed.name}' and dependency '{dependency._1} -> {dependency._2.name}'."
+RoutingWeightError                    : "Total routing weight cannot exceed 100 or be a negative value. Check cluster: '{cluster.name}'."
+UnresolvedScaleEscalationTargetCluster: "Unresolved scale escalation target cluster '{target}' for cluster '{cluster.name}'"

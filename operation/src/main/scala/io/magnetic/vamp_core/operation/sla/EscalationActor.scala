@@ -74,15 +74,15 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
       case Some(targetCluster) =>
         val scale = cluster.services.head.scale.get
         escalation match {
-          case ScaleInstancesEscalation(_, minimum, maximum, scaleBy) =>
+          case ScaleInstancesEscalation(_, minimum, maximum, scaleBy, _) =>
             val instances = if (escalate) scale.instances + scaleBy else scale.instances - scaleBy
             if (instances <= maximum && instances >= minimum) commit(targetCluster, scale.copy(instances = instances.toInt))
 
-          case ScaleCpuEscalation(_, minimum, maximum, scaleBy) =>
+          case ScaleCpuEscalation(_, minimum, maximum, scaleBy, _) =>
             val cpu = if (escalate) scale.cpu + scaleBy else scale.cpu - scaleBy
             if (cpu <= maximum && cpu >= minimum) commit(targetCluster, scale.copy(cpu = cpu))
 
-          case ScaleMemoryEscalation(_, minimum, maximum, scaleBy) =>
+          case ScaleMemoryEscalation(_, minimum, maximum, scaleBy, _) =>
             val memory = if (escalate) scale.memory + scaleBy else scale.memory - scaleBy
             if (memory <= maximum && memory >= minimum) commit(targetCluster, scale.copy(memory = memory))
         }
