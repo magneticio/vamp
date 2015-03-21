@@ -10,6 +10,11 @@ case class SlaReference(name: String, escalations: List[Escalation]) extends Ref
 
 case class GenericSla(name: String, `type`: String, escalations: List[Escalation], parameters: Map[String, Any]) extends Sla with Type
 
+case class EscalationOnlySla(name: String, escalations: List[Escalation]) extends Sla with Type {
+  def `type` = "escalation_only"
+}
+
+
 trait SlidingWindowSla[T] extends Sla {
   def upper: T
 
@@ -49,17 +54,19 @@ trait ScaleEscalation[T] extends Escalation with Type {
   def maximum: T
 
   def scaleBy: T
+
+  def targetCluster: Option[String]
 }
 
-case class ScaleInstancesEscalation(name: String, minimum: Int, maximum: Int, scaleBy: Int) extends ScaleEscalation[Int] {
+case class ScaleInstancesEscalation(name: String, minimum: Int, maximum: Int, scaleBy: Int, targetCluster: Option[String]) extends ScaleEscalation[Int] {
   def `type` = "scale_instances"
 }
 
-case class ScaleCpuEscalation(name: String, minimum: Double, maximum: Double, scaleBy: Double) extends ScaleEscalation[Double] {
+case class ScaleCpuEscalation(name: String, minimum: Double, maximum: Double, scaleBy: Double, targetCluster: Option[String]) extends ScaleEscalation[Double] {
   def `type` = "scale_cpu"
 }
 
-case class ScaleMemoryEscalation(name: String, minimum: Double, maximum: Double, scaleBy: Double) extends ScaleEscalation[Double] {
+case class ScaleMemoryEscalation(name: String, minimum: Double, maximum: Double, scaleBy: Double, targetCluster: Option[String]) extends ScaleEscalation[Double] {
   def `type` = "scale_memory"
 }
 

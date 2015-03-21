@@ -33,6 +33,9 @@ object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
 
       ResponseTimeSlidingWindowSla(name, upper, lower, interval, cooldown, escalations)
 
+    case "escalation_only" =>
+      EscalationOnlySla(name, escalations)
+
     case generic =>
       GenericSla(name, generic, escalations, parameters)
   }
@@ -80,13 +83,13 @@ object EscalationReader extends YamlReader[Escalation] with WeakReferenceYamlRea
       ToOneEscalation(name, <<![YamlList]("escalations").map(EscalationReader.readReferenceOrAnonymous))
 
     case "scale_instances" =>
-      ScaleInstancesEscalation(name, <<![Int]("minimum"), <<![Int]("maximum"), <<![Int]("scale_by"))
+      ScaleInstancesEscalation(name, <<![Int]("minimum"), <<![Int]("maximum"), <<![Int]("scale_by"), <<?[String]("target"))
 
     case "scale_cpu" =>
-      ScaleCpuEscalation(name, <<![Double]("minimum"), <<![Double]("maximum"), <<![Double]("scale_by"))
+      ScaleCpuEscalation(name, <<![Double]("minimum"), <<![Double]("maximum"), <<![Double]("scale_by"), <<?[String]("target"))
 
     case "scale_memory" =>
-      ScaleMemoryEscalation(name, <<![Double]("minimum"), <<![Double]("maximum"), <<![Double]("scale_by"))
+      ScaleMemoryEscalation(name, <<![Double]("minimum"), <<![Double]("maximum"), <<![Double]("scale_by"), <<?[String]("target"))
 
     case generic =>
       GenericEscalation(name, generic, parameters)

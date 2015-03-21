@@ -35,6 +35,14 @@ class SlaSerializer extends ArtifactSerializer[Sla] {
       list += JField("parameters", Extraction.decompose(sla.parameters))
       list += JField("escalations", Extraction.decompose(sla.escalations))
       new JObject(list.toList)
+
+    case sla: EscalationOnlySla =>
+      val list = new ArrayBuffer[JField]
+      if (sla.name.nonEmpty)
+        list += JField("name", JString(sla.name))
+      list += JField("type", JString(sla.`type`))
+      list += JField("escalations", Extraction.decompose(sla.escalations))
+      new JObject(list.toList)
   }
 }
 

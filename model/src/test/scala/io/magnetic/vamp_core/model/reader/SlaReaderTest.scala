@@ -38,7 +38,7 @@ class SlaReaderTest extends FlatSpec with Matchers with ReaderTest {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(ToAllEscalation("", List(ScaleInstancesEscalation("", 1, 4, 1), ScaleCpuEscalation("", 1.0, 4.0, 1.0), ScaleMemoryEscalation("", 1024.0, 2048.5, 512.1)))))
+      'escalations(List(ToAllEscalation("", List(ScaleInstancesEscalation("", 1, 4, 1, None), ScaleCpuEscalation("", 1.0, 4.0, 1.0, None), ScaleMemoryEscalation("", 1024.0, 2048.5, 512.1, None)))))
     )
   }
 
@@ -49,7 +49,7 @@ class SlaReaderTest extends FlatSpec with Matchers with ReaderTest {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(ToAllEscalation("", List(EscalationReference("notify"), ToOneEscalation("", List(ScaleInstancesEscalation("", 1, 4, 1), ScaleCpuEscalation("", 1.0, 4.0, 1.0)))))))
+      'escalations(List(ToAllEscalation("", List(EscalationReference("notify"), ToOneEscalation("", List(ScaleInstancesEscalation("", 1, 4, 1, None), ScaleCpuEscalation("", 1.0, 4.0, 1.0, None)))))))
     )
   }
 
@@ -60,7 +60,7 @@ class SlaReaderTest extends FlatSpec with Matchers with ReaderTest {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(ToAllEscalation("", List(EscalationReference("notify"), ToOneEscalation("", List(ScaleInstancesEscalation("", 1, 4, 1), ScaleCpuEscalation("", 1.0, 4.0, 1.0)))))))
+      'escalations(List(ToAllEscalation("", List(EscalationReference("notify"), ToOneEscalation("", List(ScaleInstancesEscalation("", 1, 4, 1, None), ScaleCpuEscalation("", 1.0, 4.0, 1.0, None)))))))
     )
   }
 
@@ -71,7 +71,7 @@ class SlaReaderTest extends FlatSpec with Matchers with ReaderTest {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(ToAllEscalation("", List(EscalationReference("notify"), ToOneEscalation("", List(ScaleInstancesEscalation("", 1, 4, 1), ToAllEscalation("", List(ScaleCpuEscalation("", 1.0, 4.0, 1.0), EscalationReference("email")))))))))
+      'escalations(List(ToAllEscalation("", List(EscalationReference("notify"), ToOneEscalation("", List(ScaleInstancesEscalation("", 1, 4, 1, None), ToAllEscalation("", List(ScaleCpuEscalation("", 1.0, 4.0, 1.0, None), EscalationReference("email")))))))))
     )
   }
 }

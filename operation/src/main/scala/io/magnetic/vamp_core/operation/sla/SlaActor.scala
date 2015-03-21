@@ -49,7 +49,8 @@ class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupp
       deployment.clusters.foreach(cluster =>
         cluster.sla match {
           case Some(sla: ResponseTimeSlidingWindowSla) => responseTimeSlidingWindow(deployment, cluster, sla)
-          case Some(s: GenericSla) => exception(UnsupportedSlaType(s.`type`))
+          case Some(s: EscalationOnlySla) =>
+          case Some(s: GenericSla) => info(UnsupportedSlaType(s.`type`))
           case Some(s: Sla) => error(UnsupportedSlaType(s.name))
           case None =>
         })
