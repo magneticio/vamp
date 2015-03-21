@@ -11,7 +11,7 @@ import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor}
 import io.magnetic.vamp_core.operation.notification.InternalServerError
-import io.magnetic.vamp_core.operation.sla.SlaMonitorActor
+import io.magnetic.vamp_core.operation.sla.SlaActor$
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor.All
 import io.magnetic.vamp_core.rest_api.notification.{RestApiNotificationProvider, UnsupportedRoutingWeightChangeError}
@@ -151,9 +151,9 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
   }
 
   def slaMonitor(period: Int = 10): Unit = {
-    actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(1)
+    actorFor(SlaActor) ! SlaActor.Period(1)
     context.system.scheduler.scheduleOnce(period seconds, new Runnable {
-      def run() = actorFor(SlaMonitorActor) ! SlaMonitorActor.Period(0)
+      def run() = actorFor(SlaActor) ! SlaActor.Period(0)
     })
   }
 

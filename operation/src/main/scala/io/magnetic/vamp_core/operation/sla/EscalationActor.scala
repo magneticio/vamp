@@ -1,24 +1,20 @@
 package io.magnetic.vamp_core.operation.sla
 
-import java.time.OffsetDateTime
-import java.time.temporal.ChronoUnit
-
 import akka.actor._
 import akka.pattern.ask
 import io.magnetic.vamp_core.model.artifact.DeploymentService.ReadyForDeployment
 import io.magnetic.vamp_core.model.artifact._
-import io.magnetic.vamp_core.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType, UnsupportedSlaType}
-import io.magnetic.vamp_core.operation.sla.SlaMonitorActor.Period
+import io.magnetic.vamp_core.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType}
+import io.magnetic.vamp_core.operation.sla.EscalationActor.Period
 import io.magnetic.vamp_core.persistence.actor.PersistenceActor
-import io.magnetic.vamp_core.pulse_driver.PulseDriverActor
 import io.vamp.common.akka.{ActorDescription, ActorExecutionContextProvider, ActorSupport, FutureSupport}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-object SlaMonitorActor extends ActorDescription {
+object EscalationActor extends ActorDescription {
 
-  def props(args: Any*): Props = Props[SlaMonitorActor]
+  def props(args: Any*): Props = Props[SlaActor]
 
   case class Period(period: Int)
 
@@ -46,29 +42,16 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
   }
 
   private def check(deployments: List[Deployment]) = {
-    deployments.foreach(deployment => {
-      deployment.clusters.foreach(cluster =>
-        cluster.sla match {
-          case Some(sla: ResponseTimeSlidingWindowSla) => responseTimeSlidingWindow(deployment, cluster, sla)
-          case Some(s: GenericSla) => exception(UnsupportedSlaType(s.`type`))
-          case Some(s: Sla) => error(UnsupportedSlaType(s.name))
-          case None =>
-        })
-    })
-  }
-
-  private def responseTimeSlidingWindow(deployment: Deployment, cluster: DeploymentCluster, sla: ResponseTimeSlidingWindowSla) = {
-    log.debug(s"response time sliding window sla check for: ${deployment.name}/${cluster.name}")
-
-    implicit val timeout = PulseDriverActor.timeout
-    val timestamp = offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.LastSlaEventTimestamp(deployment, cluster)).asInstanceOf[OffsetDateTime]
-    if (timestamp.isBefore(OffsetDateTime.now().minus((sla.interval + sla.cooldown).toSeconds, ChronoUnit.SECONDS))) {
-      val responseTime = offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.ResponseTime(deployment, cluster, sla.interval.toSeconds)).asInstanceOf[Long]
-      if (responseTime > sla.upper.toMillis)
-        escalation(deployment, cluster, sla, escalate = true)
-      else if (responseTime < sla.lower.toMillis)
-        escalation(deployment, cluster, sla, escalate = false)
-    }
+    // TODO for each cluster get escalations & escalate/deescalate Pulse events
+    //    deployments.foreach(deployment => {
+    //      deployment.clusters.foreach(cluster =>
+    //        cluster.sla match {
+    //          case Some(sla: ResponseTimeSlidingWindowSla) => responseTimeSlidingWindow(deployment, cluster, sla)
+    //          case Some(s: GenericSla) => exception(UnsupportedSlaType(s.`type`))
+    //          case Some(s: Sla) => error(UnsupportedSlaType(s.name))
+    //          case None =>
+    //        })
+    //    })
   }
 
   private def escalation(deployment: Deployment, cluster: DeploymentCluster, sla: Sla, escalate: Boolean) = {
@@ -110,3 +93,4 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
     }
   }
 }
+
