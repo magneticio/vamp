@@ -57,32 +57,41 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
   private def escalation(deployment: Deployment, cluster: DeploymentCluster, sla: Sla, escalate: Boolean) = {
     sla.escalations.foreach {
       case e: ScaleEscalation[_] => scaleEscalation(deployment, cluster, e, escalate)
-      case e: GenericEscalation => exception(UnsupportedEscalationType(e.`type`))
+      case e: GenericEscalation => info(UnsupportedEscalationType(e.`type`))
       case e: Escalation => error(UnsupportedEscalationType(e.name))
     }
   }
 
   private def scaleEscalation(deployment: Deployment, cluster: DeploymentCluster, escalation: ScaleEscalation[_], escalate: Boolean) = {
-    // Scale only the first service.
-    val scale = cluster.services.head.scale.get
+    (escalation.targetCluster match {
+      case None => Some(cluster)
+      case Some(name) => deployment.clusters.find(_.name == name) match {
+        case None => None
+        case Some(c) => Some(c)
+      }
+    }) match {
+      case None =>
+      case Some(targetCluster) =>
+        val scale = cluster.services.head.scale.get
+        escalation match {
+          case ScaleInstancesEscalation(_, minimum, maximum, scaleBy) =>
+            val instances = if (escalate) scale.instances + scaleBy else scale.instances - scaleBy
+            if (instances <= maximum && instances >= minimum) commit(targetCluster, scale.copy(instances = instances.toInt))
 
-    escalation match {
-      case ScaleInstancesEscalation(_, minimum, maximum, scaleBy) =>
-        val instances = if (escalate) scale.instances + scaleBy else scale.instances - scaleBy
-        if (instances <= maximum && instances >= minimum) persist(scale.copy(instances = instances.toInt))
+          case ScaleCpuEscalation(_, minimum, maximum, scaleBy) =>
+            val cpu = if (escalate) scale.cpu + scaleBy else scale.cpu - scaleBy
+            if (cpu <= maximum && cpu >= minimum) commit(targetCluster, scale.copy(cpu = cpu))
 
-      case ScaleCpuEscalation(_, minimum, maximum, scaleBy) =>
-        val cpu = if (escalate) scale.cpu + scaleBy else scale.cpu - scaleBy
-        if (cpu <= maximum && cpu >= minimum) persist(scale.copy(cpu = cpu))
-
-      case ScaleMemoryEscalation(_, minimum, maximum, scaleBy) =>
-        val memory = if (escalate) scale.memory + scaleBy else scale.memory - scaleBy
-        if (memory <= maximum && memory >= minimum) persist(scale.copy(memory = memory))
+          case ScaleMemoryEscalation(_, minimum, maximum, scaleBy) =>
+            val memory = if (escalate) scale.memory + scaleBy else scale.memory - scaleBy
+            if (memory <= maximum && memory >= minimum) commit(targetCluster, scale.copy(memory = memory))
+        }
     }
 
-    def persist(scale: DefaultScale) = {
+    def commit(targetCluster: DeploymentCluster, scale: DefaultScale) = {
+      // Scale only the first service.
       actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(c => {
-        if (c.name == cluster.name)
+        if (c.name == targetCluster.name)
           c.copy(services = c.services match {
             case head :: tail => head.copy(scale = Some(scale), state = ReadyForDeployment()) :: tail
             case Nil => Nil
