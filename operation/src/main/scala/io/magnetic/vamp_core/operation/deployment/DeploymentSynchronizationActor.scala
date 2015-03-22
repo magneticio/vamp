@@ -14,9 +14,8 @@ import io.magnetic.vamp_core.model.artifact.DeploymentService._
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import io.magnetic.vamp_core.operation.notification.{DeploymentServiceError, InternalServerError, OperationNotificationProvider}
-import io.magnetic.vamp_core.persistence.actor.PersistenceActor
-import io.magnetic.vamp_core.persistence.actor.PersistenceActor.All
 import io.magnetic.vamp_core.router_driver.{ClusterRoute, DeploymentRoutes, EndpointRoute, RouterDriverActor}
+import io.vamp.core.persistence.actor.PersistenceActor
 
 object DeploymentSynchronizationActor extends ActorDescription {
 
@@ -185,7 +184,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   }
 
   private def readyForUndeployment(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
-    if (deploymentService.breed.ports.forall({ port => clusterRouteService(deployment, deploymentCluster, deploymentService, port, routes).isEmpty})) {
+    if (deploymentService.breed.ports.forall({ port => clusterRouteService(deployment, deploymentCluster, deploymentService, port, routes).isEmpty })) {
       containerService(deployment, deploymentService, containerServices) match {
         case None =>
           ProcessedService(Processed.RemoveFromPersistence, deploymentService)

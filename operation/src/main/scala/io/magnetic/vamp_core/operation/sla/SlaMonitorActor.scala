@@ -5,13 +5,13 @@ import java.time.temporal.ChronoUnit
 
 import akka.actor._
 import akka.pattern.ask
-import io.vamp.common.akka.{ActorDescription, ActorExecutionContextProvider, ActorSupport, FutureSupport}
 import io.magnetic.vamp_core.model.artifact.DeploymentService.ReadyForDeployment
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType, UnsupportedSlaType}
 import io.magnetic.vamp_core.operation.sla.SlaMonitorActor.Period
-import io.magnetic.vamp_core.persistence.actor.PersistenceActor
 import io.magnetic.vamp_core.pulse_driver.PulseDriverActor
+import io.vamp.common.akka.{ActorDescription, ActorExecutionContextProvider, ActorSupport, FutureSupport}
+import io.vamp.core.persistence.actor.PersistenceActor
 
 import scala.collection._
 import scala.concurrent.duration._
