@@ -1,0 +1,26 @@
+package io.vamp.core.persistence.slick.components
+
+import io.vamp.core.persistence.slick.extension.VampActiveSlick
+
+trait ModelExtensions extends Schema
+with DeploymentExtensions
+with DeploymentClusterExtensions
+with DeploymentServiceExtensions
+with DeploymentServerExtensions
+with BlueprintReferenceExtensions
+with ClusterExtensions
+with DefaultBlueprintExtensions
+with DefaultEscalationExtensions
+with DefaultFilterExtensions
+with DefaultRoutingExtensions
+with DefaultScaleExtensions
+with DefaultSlaExtensions
+with EscalationReferenceExtensions
+with FilterReferenceExtensions
+with RoutingReferenceExtensions
+with ScaleReferenceExtensions
+with ServiceExtensions
+with SlaReferenceExtensions
+with DefaultBreedExtensions {
+  this: VampActiveSlick =>
+}
