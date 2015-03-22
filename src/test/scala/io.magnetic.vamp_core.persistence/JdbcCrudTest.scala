@@ -1,9 +1,11 @@
 package io.magnetic.vamp_core.persistence
 
+import io.magnetic.vamp_core.persistence.notification.ArtifactNotFound
 import io.vamp.common.akka.ExecutionContextProvider
 import io.magnetic.vamp_core.model.artifact.Artifact
 import io.magnetic.vamp_core.persistence.slick.components.Components.instance._
 import io.magnetic.vamp_core.persistence.store.JdbcStoreProvider
+import io.vamp.common.notification.NotificationErrorException
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, Matchers}
@@ -23,8 +25,6 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       updatedFirstArtifact = TestData.breed1Updated,
       secondArtifact = TestData.breed2)
   }
-
-  // BLUEPRINTS
 
   it should "CRUD scale" in {
     performCrudTest(
@@ -88,7 +88,6 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       secondArtifact = TestData.sla5)
   }
 
-
   it should "CRUD blueprint-minimal with simple service" in {
     performCrudTest(
       firstArtifact = TestData.blueprintMinimal,
@@ -118,7 +117,7 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       secondArtifact = bp1.copy(name = "bp2"))
   }
 
-  it should "CRUD depployment-1" in {
+  it should "CRUD deployment-1" in {
     //var bp1 = TestData.blueprintFull
     performCrudTest(
       firstArtifact = TestData.deployment1,
@@ -147,8 +146,10 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
 
     jdbcStore.all(firstArtifact.getClass) should contain theSameElementsAs List(updatedFirstArtifact, secondArtifact)
     jdbcStore.delete(firstArtifact.name, firstArtifact.getClass) shouldBe updatedFirstArtifact
-    // TODO test for exception
-    //jdbcStore.delete(firstArtifact.name, firstArtifact.getClass) shouldBe updatedFirstArtifact
+
+    // second delete of the artifact throws an exception
+    val thrown = the [NotificationErrorException] thrownBy jdbcStore.delete(firstArtifact.name, firstArtifact.getClass)
+    thrown.notification should equal(ArtifactNotFound(firstArtifact.name, firstArtifact.getClass))
 
     jdbcStore.delete(secondArtifact.name, secondArtifact.getClass) shouldBe secondArtifact
     // All artifacts should now be removed
