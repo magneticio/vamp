@@ -30,6 +30,7 @@ object PersistenceActor extends ActorDescription {
 
   case class Delete(name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
 
+  case class ReadExpanded (name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
 }
 
 class PersistenceActor extends PersistingActor with InMemoryStoreProvider {
