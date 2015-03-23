@@ -17,6 +17,17 @@ import io.vamp.core.operation.notification.{DeploymentServiceError, InternalServ
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.router_driver.{ClusterRoute, DeploymentRoutes, EndpointRoute, RouterDriverActor}
 
+object DeploymentSynchronizationSchedulerActor extends ActorDescription {
+
+  def props(args: Any*): Props = Props[DeploymentSynchronizationSchedulerActor]
+
+}
+
+class DeploymentSynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
+
+  def tick() = actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
+}
+
 object DeploymentSynchronizationActor extends ActorDescription {
 
   def props(args: Any*): Props = Props[DeploymentSynchronizationActor]

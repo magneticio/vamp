@@ -37,10 +37,12 @@ object SlaActor extends ActorDescription {
 class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with SlaNotificationProvider {
 
   def receive: Receive = {
-    case SlaProcessAll => offLoad(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
-      case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]])
-      case any => exception(InternalServerError(any))
-    }
+    case SlaProcessAll =>
+      implicit val timeout = PersistenceActor.timeout
+      offLoad(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
+        case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]])
+        case any => exception(InternalServerError(any))
+      }
   }
 
   private def check(deployments: List[Deployment]) = {

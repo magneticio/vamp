@@ -34,10 +34,12 @@ object EscalationActor extends ActorDescription {
 class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with OperationNotificationProvider {
 
   def receive: Receive = {
-    case EscalationProcessAll => offLoad(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
-      case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]])
-      case any => exception(InternalServerError(any))
-    }
+    case EscalationProcessAll =>
+      implicit val timeout = PersistenceActor.timeout
+      offLoad(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
+        case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]])
+        case any => exception(InternalServerError(any))
+      }
   }
 
   private def check(deployments: List[Deployment]) = {
