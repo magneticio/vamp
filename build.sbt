@@ -50,6 +50,7 @@ pomExtra := (<url>http://vamp.io</url>
     </scm>
 )
 
+resolvers in ThisBuild += Resolver.mavenLocal
 
 // Shared dependencies
 
