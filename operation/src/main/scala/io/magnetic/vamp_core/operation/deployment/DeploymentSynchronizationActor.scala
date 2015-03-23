@@ -52,7 +52,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   def receive: Receive = {
     case SynchronizeAll =>
       implicit val timeout = PersistenceActor.timeout
-      offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
+      offLoad(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
         case deployments: List[_] => synchronize(deployments.asInstanceOf[List[Deployment]])
         case any => error(InternalServerError(any))
       }
