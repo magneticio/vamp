@@ -40,7 +40,7 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   private val logger = Logger(LoggerFactory.getLogger(classOf[DefaultRouterDriver]))
 
   private val nameDelimiter = "_"
-  private val idMatcher = """^\w[\w-]*$""".r
+  private val idMatcher = """^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]{3,64}$""".r
 
   def all: Future[DeploymentRoutes] = {
     logger.debug(s"router get all")
@@ -105,14 +105,14 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
 
   private def services(deployment: Deployment, cluster: Option[DeploymentCluster], port: Port): List[Service] = cluster match {
     case Some(c) =>
-      c.services.map { service => router_driver.Service(s"${service.breed.name}", service.routing.getOrElse(DefaultRouting("", Some(100), Nil)).weight.getOrElse(100), service.servers.map(server(service, _, port)))}.toList
+      c.services.map { service => router_driver.Service(s"${service.breed.name}", service.routing.getOrElse(DefaultRouting("", Some(100), Nil)).weight.getOrElse(100), service.servers.map(server(service, _, port))) }
 
     case None =>
       router_driver.Service(s"${port.name}", 100, servers(deployment, port)) :: Nil
   }
 
   private def server(service: DeploymentService, server: DeploymentServer, port: Port) =
-    Server(server.name, server.host, server.ports.get(port.value.get).get)
+    Server(artifactName2Id(server), server.host, server.ports.get(port.value.get).get)
 
   private def servers(deployment: Deployment, port: Port): List[Server] = {
     val list = for {
@@ -130,7 +130,7 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
             case None => Nil
             case Some(cluster) =>
               cluster.routes.map(_._2).find(_ == routePort) match {
-                case Some(_) => Server(s"${deployment.name}_${port.value.get}", host, routePort) :: Nil
+                case Some(_) => Server(string2Id(s"${deployment.name}_${port.value.get}"), host, routePort) :: Nil
                 case _ => Nil
               }
           }
@@ -153,8 +153,10 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
 
   private def endpointRouteNameMatcher(id: String): (Deployment, Port) => Boolean = { (deployment: Deployment, port: Port) => id == endpointRouteName(deployment, port) }
 
-  private def artifactName2Id(artifact: Artifact) = artifact.name match {
-    case idMatcher(_*) => artifact.name
-    case _ => Hash.hexSha1(artifact.name)
+  private def artifactName2Id(artifact: Artifact) = string2Id(artifact.name)
+
+  private def string2Id(string: String) = string match {
+    case idMatcher(_*) => string
+    case _ => Hash.hexSha1(string)
   }
 }

@@ -30,4 +30,4 @@ case class DeploymentCluster(name: String, services: List[DeploymentService], sl
 
 case class DeploymentService(state: DeploymentService.State, breed: DefaultBreed, scale: Option[DefaultScale], routing: Option[DefaultRouting], servers: List[DeploymentServer], dependencies: Map[String, String] = Map()) extends AbstractService with DeploymentState
 
-case class DeploymentServer(name: String, host: String, ports: Map[Int, Int], deployed: Boolean)
+case class DeploymentServer(name: String, host: String, ports: Map[Int, Int], deployed: Boolean) extends Artifact
