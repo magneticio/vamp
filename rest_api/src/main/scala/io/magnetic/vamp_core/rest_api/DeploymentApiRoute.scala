@@ -3,7 +3,6 @@ package io.magnetic.vamp_core.rest_api
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
 import io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.conversion.DeploymentConversion._
@@ -11,11 +10,12 @@ import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.magnetic.vamp_core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor}
 import io.magnetic.vamp_core.operation.notification.InternalServerError
-import io.magnetic.vamp_core.operation.sla.SlaActor$
-import io.magnetic.vamp_core.persistence.actor.PersistenceActor
-import io.magnetic.vamp_core.persistence.actor.PersistenceActor.All
+import io.magnetic.vamp_core.operation.sla.SlaActor
 import io.magnetic.vamp_core.rest_api.notification.{RestApiNotificationProvider, UnsupportedRoutingWeightChangeError}
 import io.magnetic.vamp_core.rest_api.swagger.SwaggerResponse
+import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.core.persistence.actor.PersistenceActor
+import io.vamp.core.persistence.actor.PersistenceActor.All
 import spray.http.StatusCodes._
 import spray.httpx.marshalling.Marshaller
 import spray.routing.HttpServiceBase

@@ -6,7 +6,7 @@ import io.magnetic.vamp_core.model.artifact.DeploymentService.ReadyForDeployment
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType}
 import io.magnetic.vamp_core.operation.sla.EscalationActor.Period
-import io.magnetic.vamp_core.persistence.actor.PersistenceActor
+import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.common.akka.{ActorDescription, ActorExecutionContextProvider, ActorSupport, FutureSupport}
 
 import scala.concurrent.duration._

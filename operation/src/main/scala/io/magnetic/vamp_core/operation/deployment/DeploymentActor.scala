@@ -5,18 +5,18 @@ import java.util.UUID
 import _root_.io.magnetic.vamp_core.dictionary.DictionaryActor
 import _root_.io.magnetic.vamp_core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import _root_.io.magnetic.vamp_core.model.artifact._
-import io.magnetic.vamp_core.model.reader.{BlueprintReader, BreedReader}
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentActor.{Create, DeploymentMessages, Merge, Slice}
 import _root_.io.magnetic.vamp_core.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import _root_.io.magnetic.vamp_core.operation.notification._
-import _root_.io.magnetic.vamp_core.persistence.actor.{ArtifactSupport, PersistenceActor}
-import _root_.io.magnetic.vamp_core.persistence.notification.PersistenceOperationFailure
 import _root_.io.vamp.common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import io.magnetic.vamp_core.model.notification.{RoutingWeightError, UnresolvedEndpointPortError, UnresolvedParameterError, UnresolvedScaleEscalationTargetCluster}
+import io.magnetic.vamp_core.model.notification.{RoutingWeightError, UnresolvedEndpointPortError, UnresolvedParameterError}
+import io.magnetic.vamp_core.model.reader.{BlueprintReader, BreedReader}
 import io.vamp.common.notification.NotificationProvider
+import io.vamp.core.persistence.actor.{ArtifactSupport, PersistenceActor}
+import io.vamp.core.persistence.notification.PersistenceOperationFailure
 
 import scala.language.{existentials, postfixOps}
 

@@ -8,9 +8,9 @@ import akka.pattern.ask
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.operation.notification._
 import io.magnetic.vamp_core.operation.sla.SlaActor.Period
-import io.magnetic.vamp_core.persistence.actor.PersistenceActor
 import io.magnetic.vamp_core.pulse_driver.PulseDriverActor
 import io.vamp.common.akka.{ActorDescription, ActorExecutionContextProvider, ActorSupport, FutureSupport}
+import io.vamp.core.persistence.actor.PersistenceActor
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

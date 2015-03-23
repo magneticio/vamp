@@ -6,11 +6,11 @@ import akka.util.Timeout
 import io.magnetic.vamp_core.model.artifact._
 import io.magnetic.vamp_core.model.reader._
 import io.magnetic.vamp_core.model.serialization.{ArtifactSerializationFormat, BlueprintSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat, SlaSerializationFormat}
-import io.magnetic.vamp_core.persistence.actor.PersistenceActor
 import io.magnetic.vamp_core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
 import io.magnetic.vamp_core.rest_api.swagger.SwaggerResponse
 import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
 import io.vamp.common.notification.NotificationErrorException
+import io.vamp.core.persistence.actor.PersistenceActor
 import org.json4s.native.Serialization._
 import spray.http.CacheDirectives.`no-store`
 import spray.http.HttpEntity
