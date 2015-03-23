@@ -6,7 +6,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.core.container_driver.ContainerDriverActor.{All, ContainerDriveMessage, Deploy, Undeploy}
 import io.vamp.core.container_driver.notification.{ContainerDriverNotificationProvider, ContainerResponseError, UnsupportedContainerDriverRequest}
-import io.vamp.core.model.artifact._
+import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, DeploymentService}
 
 import scala.concurrent.duration._
 

@@ -20,7 +20,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
 
   def all: Future[List[ContainerService]] = {
     logger.debug(s"marathon get all")
-    RestClient.request[Apps](s"GET $url/v2/apps?embed=apps.tasks").map(apps => apps.apps.filter(app => processable(app.id)).map(app => containerService(app)).toList)
+    RestClient.request[Apps](s"GET $url/v2/apps?embed=apps.tasks").map(apps => apps.apps.filter(app => processable(app.id)).map(app => containerService(app)))
   }
 
   private def containerService(app: App): ContainerService =
@@ -65,7 +65,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
     }
 
     service.breed.environmentVariables.filter(_.direction == Trait.Direction.In).flatMap({ ev =>
-      deployment.parameters.find({ case (name, value) => matchParameter(ev, name)}) match {
+      deployment.parameters.find({ case (name, value) => matchParameter(ev, name) }) match {
         case Some((name, value)) =>
           (ev.alias match {
             case None => ev.name.value
