@@ -8,6 +8,7 @@ import io.vamp.core.persistence.store.JdbcStoreProvider
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, Matchers}
+//import io.vamp.core.persistence.slick.components.Components.instance._
 
 @RunWith(classOf[JUnitRunner])
 class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
@@ -109,7 +110,7 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
   }
 
   it should "CRUD blueprint-full" in {
-    var bp1 = TestData.blueprintFull
+    val bp1 = TestData.blueprintFull
     performCrudTest(
       firstArtifact = bp1,
       updatedFirstArtifact = bp1.copy(clusters = List.empty),
