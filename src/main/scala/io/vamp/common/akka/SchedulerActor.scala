@@ -8,7 +8,7 @@ import scala.language.postfixOps
 
 object SchedulerActor {
 
-  case class Period(period: Int)
+  case class Period(period: FiniteDuration)
 
 }
 
@@ -17,17 +17,19 @@ abstract class SchedulerActor extends Actor with ActorLogging with ActorSupport 
   private var timer: Option[Cancellable] = None
 
   def receive: Receive = {
-    case Period(period) =>
-      timer.map(_.cancel())
+    case Period(period) => schedule(period)
+  }
 
-      if (period > 0) {
-        implicit val actorSystem = context.system
-        timer = Some(context.system.scheduler.schedule(0 milliseconds, period seconds, new Runnable {
-          def run() = {
-            tick()
-          }
-        }))
-      } else timer = None
+  def schedule(period: FiniteDuration) = {
+    timer.map(_.cancel())
+    if (period.toNanos > 0) {
+      implicit val actorSystem = context.system
+      timer = Some(context.system.scheduler.schedule(0 seconds, period, new Runnable {
+        def run() = {
+          tick()
+        }
+      }))
+    } else timer = None
   }
 
   def tick(): Unit
