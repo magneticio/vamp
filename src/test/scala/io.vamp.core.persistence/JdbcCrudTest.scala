@@ -1,6 +1,6 @@
 package io.vamp.core.persistence
 
-import io.magnetic.vamp_core.model.artifact.Artifact
+import io.vamp.core.model.artifact.Artifact
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.persistence.notification.ArtifactNotFound
