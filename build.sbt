@@ -108,6 +108,9 @@ dependencyOverrides in ThisBuild ++= Set(
 
 // Root project and subproject definitions
 lazy val root = project.in(file(".")).settings(
+
+  // Disable publishing root empty pom
+  packagedArtifacts in file(".") := Map.empty,
   // allows running main classes from subprojects
   run := {
     (run in bootstrap in Compile).evaluated
