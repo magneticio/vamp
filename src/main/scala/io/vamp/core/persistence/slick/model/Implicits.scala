@@ -2,8 +2,8 @@ package io.vamp.core.persistence.slick.model
 
 import java.time.OffsetDateTime
 
-import io.magnetic.vamp_core.model.artifact.DeploymentService._
-import io.magnetic.vamp_core.model.artifact.{Deployment, _}
+import io.vamp.core.model.artifact.DeploymentService._
+import io.vamp.core.model.artifact.{Deployment, _}
 import io.vamp.core.persistence.notification.PersistenceOperationFailure
 import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
