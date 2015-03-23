@@ -1,12 +1,12 @@
-package io.magnetic.vamp_core.container_driver
+package io.vamp.core.container_driver
 
 import _root_.io.vamp.common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.magnetic.vamp_core.container_driver.ContainerDriverActor.{All, ContainerDriveMessage, Deploy, Undeploy}
-import io.magnetic.vamp_core.container_driver.notification.{ContainerDriverNotificationProvider, ContainerResponseError, UnsupportedContainerDriverRequest}
-import io.magnetic.vamp_core.model.artifact._
+import io.vamp.core.container_driver.ContainerDriverActor.{All, ContainerDriveMessage, Deploy, Undeploy}
+import io.vamp.core.container_driver.notification.{ContainerDriverNotificationProvider, ContainerResponseError, UnsupportedContainerDriverRequest}
+import io.vamp.core.model.artifact._
 
 import scala.concurrent.duration._
 

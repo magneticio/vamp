@@ -1,11 +1,11 @@
-package io.magnetic.vamp_core.container_driver.marathon
+package io.vamp.core.container_driver.marathon
 
 import com.typesafe.scalalogging.Logger
 import io.vamp.common.crypto.Hash
 import io.vamp.common.http.RestClient
-import io.magnetic.vamp_core.container_driver.marathon.api._
-import io.magnetic.vamp_core.container_driver.{ContainerDriver, ContainerServer, ContainerService}
-import io.magnetic.vamp_core.model.artifact._
+import io.vamp.core.container_driver.marathon.api._
+import io.vamp.core.container_driver.{ContainerDriver, ContainerServer, ContainerService}
+import io.vamp.core.model.artifact._
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}

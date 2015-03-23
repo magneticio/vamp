@@ -1,6 +1,6 @@
-package io.magnetic.vamp_core.container_driver
+package io.vamp.core.container_driver
 
-import io.magnetic.vamp_core.model.artifact._
+import io.vamp.core.model.artifact._
 
 import scala.concurrent.Future
 

@@ -1,4 +1,4 @@
-package io.magnetic.vamp_core.container_driver.marathon.api
+package io.vamp.core.container_driver.marathon.api
 
 case class PortMappings(containerPort: Int, hostPort: Int, servicePort: Int, protocol: String)
 

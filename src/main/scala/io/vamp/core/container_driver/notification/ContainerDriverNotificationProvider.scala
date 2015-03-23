@@ -1,4 +1,4 @@
-package io.magnetic.vamp_core.container_driver.notification
+package io.vamp.core.container_driver.notification
 
 import io.vamp.common.notification.{DefaultPackageMessageResolverProvider, LoggingNotificationProvider}
 

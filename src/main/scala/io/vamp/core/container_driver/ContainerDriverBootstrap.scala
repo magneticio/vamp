@@ -1,10 +1,10 @@
-package io.magnetic.vamp_core.container_driver
+package io.vamp.core.container_driver
 
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ActorSupport, Bootstrap}
-import io.magnetic.vamp_core.container_driver.marathon.MarathonDriver
-import io.magnetic.vamp_core.container_driver.notification.{ContainerDriverNotificationProvider, UnsupportedContainerDriverError}
+import io.vamp.core.container_driver.marathon.MarathonDriver
+import io.vamp.core.container_driver.notification.{ContainerDriverNotificationProvider, UnsupportedContainerDriverError}
 
 object ContainerDriverBootstrap extends Bootstrap with ContainerDriverNotificationProvider {
 
