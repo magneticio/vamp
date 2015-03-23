@@ -99,9 +99,10 @@ val postgresVersion = "9.1-901.jdbc4"
 
 
 // Force scala version for the dependencies
-dependencyOverrides in ThisBuild += "org.scala-lang" % "scala-compiler" % scalaVersion.value
-
-dependencyOverrides in ThisBuild += "org.scala-lang" % "scala-library" % scalaVersion.value
+dependencyOverrides in ThisBuild ++= Set(
+  "org.scala-lang" % "scala-compiler" % scalaVersion.value,
+  "org.scala-lang" % "scala-library" % scalaVersion.value
+)
 
 
 // Root project and subproject definitions
