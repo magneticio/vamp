@@ -2,7 +2,7 @@ import _root_.sbt.Keys._
 
 
 
-organization := "io.vamp"
+organization in ThisBuild := "io.vamp"
 
 
 name := """Core"""
@@ -17,12 +17,13 @@ scalaVersion in ThisBuild := scalaVersion.value
 
 publishMavenStyle := true
 
-description := """Core is a module that brings all the bits and pieces of the ecosystem together taking care of the VAMP workflow"""
+// This has to be overridden for sub-modules to have different description
+description in ThisBuild:= """Core is a module that brings all the bits and pieces of the ecosystem together taking care of the VAMP workflow"""
 
 
 
 
-pomExtra := (<url>http://vamp.io</url>
+pomExtra in ThisBuild := (<url>http://vamp.io</url>
     <licenses>
       <license>
         <name>The Apache License, Version 2.0</name>
