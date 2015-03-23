@@ -23,7 +23,7 @@ description in ThisBuild:= """Core is a module that brings all the bits and piec
 
 
 
-pomExtra in ThisBuild := (<url>http://vamp.io</url>
+pomExtra in ThisBuild := <url>http://vamp.io</url>
     <licenses>
       <license>
         <name>The Apache License, Version 2.0</name>
@@ -33,13 +33,13 @@ pomExtra in ThisBuild := (<url>http://vamp.io</url>
     <developers>
       <developer>
         <name>Dragoslav Pavkovic</name>
-        <email>drago@mangetic.io</email>
+        <email>drago@magnetic.io</email>
         <organization>VAMP</organization>
         <organizationUrl>http://vamp.io</organizationUrl>
       </developer>
       <developer>
         <name>Roman Useinov</name>
-        <email>roman@mangetic.io</email>
+        <email>roman@magnetic.io</email>
         <organization>VAMP</organization>
         <organizationUrl>http://vamp.io</organizationUrl>
       </developer>
@@ -49,7 +49,7 @@ pomExtra in ThisBuild := (<url>http://vamp.io</url>
       <developerConnection>scm:git:git@github.com:magneticio/vamp-core.git</developerConnection>
       <url>git@github.com:magneticio/vamp-core.git</url>
     </scm>
-)
+
 
 resolvers in ThisBuild += Resolver.mavenLocal
 
@@ -108,7 +108,6 @@ dependencyOverrides in ThisBuild ++= Set(
 
 // Root project and subproject definitions
 lazy val root = project.in(file(".")).settings(
-
   // Disable publishing root empty pom
   packagedArtifacts in file(".") := Map.empty,
   // allows running main classes from subprojects
