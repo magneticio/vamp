@@ -13,16 +13,13 @@ description := """This is a common set of libraries for vamp products, such as h
 
 
 
-pomExtra := (
-  <url>http://vamp.io</url>
-
+pomExtra := (<url>http://vamp.io</url>
     <licenses>
       <license>
         <name>The Apache License, Version 2.0</name>
         <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
       </license>
     </licenses>
-
     <developers>
       <developer>
         <name>Roman Useinov</name>
@@ -30,7 +27,6 @@ pomExtra := (
         <organization>VAMP</organization>
         <organizationUrl>http://vamp.io</organizationUrl>
       </developer>
-
       <developer>
         <name>Dragoslav Pavkovic</name>
         <email>drago@mangetic.io</email>
@@ -38,7 +34,6 @@ pomExtra := (
         <organizationUrl>http://vamp.io</organizationUrl>
       </developer>
     </developers>
-
     <scm>
       <connection>scm:git:git@github.com:magneticio/vamp-common.git</connection>
       <developerConnection>scm:git:git@github.com:magneticio/vamp-common.git</developerConnection>
