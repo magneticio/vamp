@@ -13,7 +13,7 @@ description := """This is a common set of libraries for vamp products, such as h
 
 
 
-pomExtra := {
+pomExtra := (
   <url>http://vamp.io</url>
 
     <licenses>
@@ -44,7 +44,7 @@ pomExtra := {
       <developerConnection>scm:git:git@github.com:magneticio/vamp-common.git</developerConnection>
       <url>git@github.com:magneticio/vamp-common.git</url>
     </scm>
-}
+)
 
 
 resolvers ++= Seq(
