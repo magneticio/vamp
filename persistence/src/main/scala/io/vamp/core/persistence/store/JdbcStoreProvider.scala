@@ -1,8 +1,8 @@
 package io.vamp.core.persistence.store
 
 import com.typesafe.scalalogging.Logger
-import io.magnetic.vamp_core.model.artifact.Trait.Name
-import io.magnetic.vamp_core.model.artifact._
+import io.vamp.core.model.artifact.Trait.Name
+import io.vamp.core.model.artifact._
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, PersistenceOperationFailure, UnsupportedPersistenceRequest}
 import io.vamp.core.persistence.slick.components.Components

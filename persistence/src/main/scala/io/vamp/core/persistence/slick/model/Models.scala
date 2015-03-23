@@ -3,7 +3,7 @@ package io.vamp.core.persistence.slick.model
 import java.sql.Timestamp
 import java.time.{LocalDateTime, OffsetDateTime}
 
-import io.magnetic.vamp_core.model.artifact._
+import io.vamp.core.model.artifact._
 import io.strongtyped.active.slick.models.Identifiable
 import io.vamp.core.persistence.slick.extension.{AnonymousDeployable, Nameable, NamedDeployable}
 import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType

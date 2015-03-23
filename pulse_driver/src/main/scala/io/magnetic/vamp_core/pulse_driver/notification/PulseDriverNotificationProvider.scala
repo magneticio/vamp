@@ -1,5 +1,0 @@
-package io.magnetic.vamp_core.pulse_driver.notification
-
-import io.vamp.common.notification.{DefaultPackageMessageResolverProvider, LoggingNotificationProvider}
-
-trait PulseDriverNotificationProvider extends LoggingNotificationProvider with DefaultPackageMessageResolverProvider

@@ -1,7 +1,7 @@
 package io.vamp.core.persistence
 
-import io.magnetic.vamp_core.model.artifact.DeploymentService.Deployed
-import io.magnetic.vamp_core.model.artifact._
+import io.vamp.core.model.artifact.DeploymentService.Deployed
+import io.vamp.core.model.artifact._
 
 /**
  * Testdata

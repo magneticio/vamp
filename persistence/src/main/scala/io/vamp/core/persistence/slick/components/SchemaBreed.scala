@@ -1,6 +1,6 @@
 package io.vamp.core.persistence.slick.components
 
-import io.magnetic.vamp_core.model.artifact.Trait
+import io.vamp.core.model.artifact.Trait
 import io.strongtyped.active.slick.Profile
 import io.vamp.core.persistence.slick.extension.{VampTableQueries, VampTables}
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
