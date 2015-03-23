@@ -22,16 +22,13 @@ description := """Core is a module that brings all the bits and pieces of the ec
 
 
 
-pomExtra := (
-  <url>http://vamp.io</url>
-
+pomExtra := (<url>http://vamp.io</url>
     <licenses>
       <license>
         <name>The Apache License, Version 2.0</name>
         <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
       </license>
     </licenses>
-
     <developers>
       <developer>
         <name>Dragoslav Pavkovic</name>
@@ -46,7 +43,6 @@ pomExtra := (
         <organizationUrl>http://vamp.io</organizationUrl>
       </developer>
     </developers>
-
     <scm>
       <connection>scm:git:git@github.com:magneticio/vamp-core.git</connection>
       <developerConnection>scm:git:git@github.com:magneticio/vamp-core.git</developerConnection>
