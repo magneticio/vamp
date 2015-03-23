@@ -5,43 +5,42 @@ import java.time.temporal.ChronoUnit
 
 import akka.actor._
 import akka.pattern.ask
+import io.vamp.common.akka._
 import io.vamp.core.model.artifact._
 import io.vamp.core.operation.notification._
-import io.vamp.core.operation.sla.SlaActor.Period
-import io.vamp.core.pulse_driver.PulseDriverActor
-import io.vamp.common.akka.{ActorDescription, ActorExecutionContextProvider, ActorSupport, FutureSupport}
+import io.vamp.core.operation.sla.SlaActor.SlaProcessAll
 import io.vamp.core.persistence.actor.PersistenceActor
+import io.vamp.core.pulse_driver.PulseDriverActor
 
-import scala.concurrent.duration._
 import scala.language.postfixOps
+
+object SlaSchedulerActor extends ActorDescription {
+
+  def props(args: Any*): Props = Props[SlaSchedulerActor]
+
+}
+
+class SlaSchedulerActor extends SchedulerActor with OperationNotificationProvider {
+
+  def tick() = actorFor(SlaActor) ! SlaProcessAll
+
+}
 
 object SlaActor extends ActorDescription {
 
   def props(args: Any*): Props = Props[SlaActor]
 
-  case class Period(period: Int)
+  object SlaProcessAll
 
 }
 
 class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with SlaNotificationProvider {
 
-  private var timer: Option[Cancellable] = None
-
   def receive: Receive = {
-    case Period(period) =>
-      timer.map(_.cancel())
-      if (period > 0) {
-        implicit val actorSystem = context.system
-        implicit val timeout = PersistenceActor.timeout
-        timer = Some(context.system.scheduler.schedule(0 milliseconds, period seconds, new Runnable {
-          def run() = {
-            offLoad(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
-              case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]])
-              case any => exception(InternalServerError(any))
-            }
-          }
-        }))
-      } else timer = None
+    case SlaProcessAll => offLoad(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
+      case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]])
+      case any => exception(InternalServerError(any))
+    }
   }
 
   private def check(deployments: List[Deployment]) = {
