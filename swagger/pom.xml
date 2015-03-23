@@ -2,13 +2,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>io.magnetic.vamp-core</groupId>
-        <artifactId>vamp-core</artifactId>
+        <groupId>io.vamp</groupId>
+        <artifactId>core</artifactId>
         <version>0.7.0-RC1</version>
     </parent>
 
-    <name>swagger</name>
+    <groupId>io.vamp.core</groupId>
     <artifactId>swagger</artifactId>
+    <name>swagger</name>
 
     <packaging>jar</packaging>
     <url>http://maven.apache.org</url>
