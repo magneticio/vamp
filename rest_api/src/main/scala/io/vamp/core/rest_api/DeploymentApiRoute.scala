@@ -3,7 +3,7 @@ package io.vamp.core.rest_api
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{SchedulerActor, ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport, SchedulerActor}
 import io.vamp.core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.conversion.DeploymentConversion._
@@ -151,9 +151,9 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
   }
 
   def slaMonitor(period: Int = 10): Unit = {
-    actorFor(SlaActor) ! SchedulerActor.Period(1)
+    actorFor(SlaActor) ! SchedulerActor.Period(1 seconds)
     context.system.scheduler.scheduleOnce(period seconds, new Runnable {
-      def run() = actorFor(SlaActor) ! SchedulerActor.Period(0)
+      def run() = actorFor(SlaActor) ! SchedulerActor.Period(0 seconds)
     })
   }
 

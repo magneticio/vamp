@@ -1,12 +1,14 @@
 package io.vamp.core.pulse_driver
 
+import java.time.OffsetDateTime
+
 import _root_.io.vamp.common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.vamp.core.pulse_driver.notification.{PulseDriverNotificationProvider, PulseResponseError, UnsupportedPulseDriverRequest}
 import io.vamp.core.model.artifact.{Deployment, DeploymentCluster}
-import io.vamp.core.pulse_driver.PulseDriverActor.{LastSlaEventTimestamp, PulseDriverMessage, ResponseTime}
+import io.vamp.core.pulse_driver.PulseDriverActor.{QuerySlaNotificationEvents, LastSlaEventTimestamp, PulseDriverMessage, ResponseTime}
+import io.vamp.core.pulse_driver.notification.{PulseDriverNotificationProvider, PulseResponseError, UnsupportedPulseDriverRequest}
 
 import scala.concurrent.duration._
 
@@ -22,6 +24,8 @@ object PulseDriverActor extends ActorDescription {
 
   case class ResponseTime(deployment: Deployment, cluster: DeploymentCluster, period: Long) extends PulseDriverMessage
 
+  case class QuerySlaNotificationEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime)
+
 }
 
 class PulseDriverActor(driver: PulseDriver) extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupportNotification with ActorExecutionContextProvider with PulseDriverNotificationProvider {
@@ -36,6 +40,7 @@ class PulseDriverActor(driver: PulseDriver) extends Actor with ActorLogging with
     request match {
       case LastSlaEventTimestamp(deployment, cluster) => offLoad(driver.lastSlaEventTimestamp(deployment, cluster), classOf[PulseResponseError])
       case ResponseTime(deployment, cluster, period) => offLoad(driver.responseTime(deployment, cluster, period), classOf[PulseResponseError])
+      case QuerySlaNotificationEvents(deployment, cluster, from, to) => offLoad(driver.querySlaNotificationEvents(deployment, cluster, from, to), classOf[PulseResponseError])
       case _ => unsupported(request)
     }
   } catch {

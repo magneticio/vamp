@@ -6,13 +6,16 @@ import io.vamp.common.akka.{ActorSupport, Bootstrap, SchedulerActor}
 import io.vamp.core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor, DeploymentSynchronizationSchedulerActor}
 import io.vamp.core.operation.sla.{EscalationSchedulerActor, SlaSchedulerActor}
 
+import scala.concurrent.duration._
+import scala.language.postfixOps
+
 object OperationBootstrap extends Bootstrap {
 
   def run(implicit actorSystem: ActorSystem) = {
     ActorSupport.actorOf(DeploymentActor)
     ActorSupport.actorOf(DeploymentSynchronizationActor)(mailbox = "deployment.deployment-synchronization-mailbox", actorSystem)
-    ActorSupport.actorOf(DeploymentSynchronizationSchedulerActor) ! SchedulerActor.Period(ConfigFactory.load().getInt("deployment.synchronization.period"))
-    ActorSupport.actorOf(SlaSchedulerActor) ! SchedulerActor.Period(ConfigFactory.load().getInt("deployment.sla.period"))
-    ActorSupport.actorOf(EscalationSchedulerActor) ! SchedulerActor.Period(ConfigFactory.load().getInt("deployment.escalation.period"))
+    ActorSupport.actorOf(DeploymentSynchronizationSchedulerActor) ! SchedulerActor.Period(ConfigFactory.load().getInt("deployment.synchronization.period") seconds)
+    ActorSupport.actorOf(SlaSchedulerActor) ! SchedulerActor.Period(ConfigFactory.load().getInt("deployment.sla.period") seconds)
+    ActorSupport.actorOf(EscalationSchedulerActor) ! SchedulerActor.Period(ConfigFactory.load().getInt("deployment.escalation.period") seconds)
   }
 }
