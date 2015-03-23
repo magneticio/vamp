@@ -1,6 +1,6 @@
 package io.vamp.core.persistence.store
 
-import io.magnetic.vamp_core.model.artifact.Artifact
+import io.vamp.core.model.artifact.Artifact
 
 trait StoreProvider {
 

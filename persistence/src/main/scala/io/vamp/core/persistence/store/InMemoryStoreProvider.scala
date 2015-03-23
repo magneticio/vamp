@@ -1,8 +1,8 @@
 package io.vamp.core.persistence.store
 
 import com.typesafe.scalalogging.Logger
-import io.magnetic.vamp_core.model.artifact._
-import io.magnetic.vamp_core.model.serialization.{ArtifactSerializationFormat, BlueprintSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
+import io.vamp.core.model.artifact._
+import io.vamp.core.model.serialization.{ArtifactSerializationFormat, BlueprintSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
 import org.json4s.native.Serialization.write
