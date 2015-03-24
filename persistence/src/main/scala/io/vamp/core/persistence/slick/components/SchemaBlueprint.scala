@@ -69,19 +69,23 @@ trait SchemaBlueprint extends SchemaBreed {
   }
 
   class ServiceTable(tag: Tag) extends EntityTable[ServiceModel](tag, "services") {
-    def * = (deploymentId, clusterId, breedReferenceName, routingReferenceName, scaleReferenceName, id.?) <>(ServiceModel.tupled, ServiceModel.unapply)
+    def * = (deploymentId, clusterId, breedReferenceName, routingReference, scaleReference, id.?) <>(ServiceModel.tupled, ServiceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def clusterId = column[Int]("clusterid")
 
-    def breedReferenceName = column[String]("breed_reference")
+    def breedReferenceName = column[String]("breed_reference")     //TODO change this to an Option[Int]
 
-    def routingReferenceName = column[Option[String]]("routing_reference")
+    def routingReference = column[Option[Int]]("routing_reference_fk")
 
-    def scaleReferenceName = column[Option[String]]("scale_reference")
+    def scaleReference = column[Option[Int]]("scale_reference_fk")
 
     def deploymentId = column[Option[Int]]("deployment_fk")
+
+    def scale = foreignKey("service_scale_reference_fk", scaleReference, ScaleReferences)(_.id)
+
+    def routing = foreignKey("service_routing_reference_fk", routingReference, RoutingReferences)(_.id)
 
     def cluster = foreignKey("service_cluster_fk", clusterId, Clusters)(_.id)
   }
