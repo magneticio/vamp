@@ -175,14 +175,13 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def deleteModelPorts(ports: List[PortModel]): Unit =
       for (p <- ports) Ports.deleteById(p.id.get)
 
-
     private def deleteModelTraitNameParameters(params: List[TraitNameParameterModel]): Unit =
       for (p <- params) {
         p.groupType match {
-          case env : Trait.Name.Group.EnvironmentVariables.type =>
-            //TODO remove environment variables
-          case ports : Trait.Name.Group.Ports.type =>
-            //TODO remove ports
+          case Some(env : Trait.Name.Group.EnvironmentVariables.type) =>    //TODO Verify this for issue #244
+            EnvironmentVariables.deleteById(p.groupId.get)
+          case Some(ports : Trait.Name.Group.Ports.type) =>
+            Ports.deleteById(p.groupId.get)
           case _ =>
         }
         TraitNameParameters.deleteById(p.id.get)
@@ -191,7 +190,6 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
     private def updateScale(existing: DefaultScaleModel, a: DefaultScale): Unit =
       existing.copy(cpu = a.cpu, memory = a.memory, instances = a.instances).update
-
 
     private def updateDeployment(existing: DeploymentModel, artifact: Deployment): Unit = {
       deleteDeploymentClusters(existing.clusters, existing.id)
