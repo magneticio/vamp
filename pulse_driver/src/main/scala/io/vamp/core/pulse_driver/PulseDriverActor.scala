@@ -7,8 +7,7 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.pulse.api.Event
-import io.vamp.core.model.artifact.{Deployment, DeploymentCluster}
-import io.vamp.core.pulse_driver.PulseDriverActor.{LastSlaEventTimestamp, PulseDriverMessage, QuerySlaEvents, ResponseTime}
+import io.vamp.core.model.artifact.{Port, Deployment, DeploymentCluster}
 import io.vamp.core.pulse_driver.notification.{PulseDriverNotificationProvider, PulseResponseError, UnsupportedPulseDriverRequest}
 
 import scala.concurrent.duration._
@@ -21,15 +20,17 @@ object PulseDriverActor extends ActorDescription {
 
   trait PulseDriverMessage
 
-  case class LastSlaEventTimestamp(deployment: Deployment, cluster: DeploymentCluster) extends PulseDriverMessage
+  case class EventExists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime) extends PulseDriverMessage
 
-  case class ResponseTime(deployment: Deployment, cluster: DeploymentCluster, period: Long) extends PulseDriverMessage
+  case class ResponseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime) extends PulseDriverMessage
 
   case class QuerySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime)
 
 }
 
 class PulseDriverActor(driver: PulseDriver) extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupportNotification with ActorExecutionContextProvider with PulseDriverNotificationProvider {
+
+  import io.vamp.core.pulse_driver.PulseDriverActor._
 
   implicit val timeout = PulseDriverActor.timeout
 
@@ -40,8 +41,8 @@ class PulseDriverActor(driver: PulseDriver) extends Actor with ActorLogging with
   def reply(request: Any) = try {
     request match {
       case event: Event => offLoad(driver.event(event), classOf[PulseResponseError])
-      case LastSlaEventTimestamp(deployment, cluster) => offLoad(driver.lastSlaEventTimestamp(deployment, cluster), classOf[PulseResponseError])
-      case ResponseTime(deployment, cluster, period) => offLoad(driver.responseTime(deployment, cluster, period), classOf[PulseResponseError])
+      case EventExists(deployment, cluster, from) => offLoad(driver.exists(deployment, cluster, from), classOf[PulseResponseError])
+      case ResponseTime(deployment, cluster, port, from, to) => offLoad(driver.responseTime(deployment, cluster, port, from, to), classOf[PulseResponseError])
       case QuerySlaEvents(deployment, cluster, from, to) => offLoad(driver.querySlaEvents(deployment, cluster, from, to), classOf[PulseResponseError])
       case _ => unsupported(request)
     }

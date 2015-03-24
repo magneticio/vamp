@@ -34,13 +34,10 @@ trait RouterDriver {
   def remove(deployment: Deployment, port: Port): Future[Any]
 }
 
-class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDriver {
+class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDriver with DefaultRouterDriverNameMatcher {
   protected implicit val executionContext = ec
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[DefaultRouterDriver]))
-
-  private val nameDelimiter = "_"
-  private val idMatcher = """^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]{3,64}$""".r
 
   def all: Future[DeploymentRoutes] = {
     logger.debug(s"router get all")
@@ -139,12 +136,6 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
     list.getOrElse(Nil)
   }
 
-  private def clusterRouteName(deployment: Deployment, cluster: DeploymentCluster, port: Port): String =
-    s"${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(cluster)}$nameDelimiter${port.value.get}"
-
-  private def endpointRouteName(deployment: Deployment, port: Port): String =
-    s"${artifactName2Id(deployment)}$nameDelimiter${port.value.get}"
-
   private def processableClusterRoute(name: String): Boolean = name.split(nameDelimiter).size == 3
 
   private def processableEndpointRoute(name: String): Boolean = name.split(nameDelimiter).size == 2
@@ -152,10 +143,22 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   private def clusterRouteNameMatcher(id: String): (Deployment, DeploymentCluster, Port) => Boolean = { (deployment: Deployment, cluster: DeploymentCluster, port: Port) => id == clusterRouteName(deployment, cluster, port) }
 
   private def endpointRouteNameMatcher(id: String): (Deployment, Port) => Boolean = { (deployment: Deployment, port: Port) => id == endpointRouteName(deployment, port) }
+}
 
-  private def artifactName2Id(artifact: Artifact) = string2Id(artifact.name)
+trait DefaultRouterDriverNameMatcher {
 
-  private def string2Id(string: String) = string match {
+  val nameDelimiter = "_"
+  val idMatcher = """^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]{3,64}$""".r
+
+  def clusterRouteName(deployment: Deployment, cluster: DeploymentCluster, port: Port): String =
+    s"${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(cluster)}$nameDelimiter${port.value.get}"
+
+  def endpointRouteName(deployment: Deployment, port: Port): String =
+    s"${artifactName2Id(deployment)}$nameDelimiter${port.value.get}"
+
+  def artifactName2Id(artifact: Artifact) = string2Id(artifact.name)
+
+  def string2Id(string: String) = string match {
     case idMatcher(_*) => string
     case _ => Hash.hexSha1(string)
   }

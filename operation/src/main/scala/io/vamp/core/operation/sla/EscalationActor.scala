@@ -77,8 +77,8 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
             implicit val timeout = PulseDriverActor.timeout
             offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.QuerySlaEvents(deployment, cluster, from, to)) match {
               case escalationEvents: List[_] => escalationEvents.foreach {
-                case Escalate(d, c) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = true)
-                case DeEscalate(d, c) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = false)
+                case Escalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = true)
+                case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = false)
                 case _ =>
               }
               case any => exception(InternalServerError(any))
@@ -96,10 +96,11 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
       case e: ToAllEscalation =>
         escalateToAll(deployment, cluster, e.escalations, escalate)
 
-      case e: ToOneEscalation => e.escalations.find(escalation => escalateToAll(deployment, cluster, escalation :: Nil, escalate)) match {
-        case None => false
-        case Some(_) => true
-      }
+      case e: ToOneEscalation =>
+        (if (escalate) e.escalations else e.escalations.reverse).find(escalation => escalateToAll(deployment, cluster, escalation :: Nil, escalate)) match {
+          case None => false
+          case Some(_) => true
+        }
 
       case e: GenericEscalation =>
         info(UnsupportedEscalationType(e.`type`))
@@ -112,6 +113,19 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
   }
 
   private def scaleEscalation(deployment: Deployment, cluster: DeploymentCluster, escalation: ScaleEscalation[_], escalate: Boolean): Boolean = {
+    def commit(targetCluster: DeploymentCluster, scale: DefaultScale) = {
+      // Scale only the first service.
+      actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(c => {
+        if (c.name == targetCluster.name)
+          c.copy(services = c.services match {
+            case head :: tail => head.copy(scale = Some(scale), state = ReadyForDeployment()) :: tail
+            case Nil => Nil
+          })
+        else
+          c
+      })))
+    }
+
     (escalation.targetCluster match {
       case None => Some(cluster)
       case Some(name) => deployment.clusters.find(_.name == name) match {
@@ -145,19 +159,6 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
               true
             } else false
         }
-    }
-
-    def commit(targetCluster: DeploymentCluster, scale: DefaultScale) = {
-      // Scale only the first service.
-      actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(c => {
-        if (c.name == targetCluster.name)
-          c.copy(services = c.services match {
-            case head :: tail => head.copy(scale = Some(scale), state = ReadyForDeployment()) :: tail
-            case Nil => Nil
-          })
-        else
-          c
-      })))
     }
   }
 }

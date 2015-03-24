@@ -23,6 +23,12 @@
             <artifactId>model</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>io.vamp.core</groupId>
+            <artifactId>router_driver</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

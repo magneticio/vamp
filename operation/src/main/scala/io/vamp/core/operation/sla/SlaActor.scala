@@ -67,12 +67,19 @@ class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupp
     log.debug(s"response time sliding window sla check for: ${deployment.name}/${cluster.name}")
 
     implicit val timeout = PulseDriverActor.timeout
-    val timestamp = offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.LastSlaEventTimestamp(deployment, cluster)).asInstanceOf[OffsetDateTime]
-    if (timestamp.isBefore(OffsetDateTime.now().minus((sla.interval + sla.cooldown).toSeconds, ChronoUnit.SECONDS))) {
-      val responseTime = offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.ResponseTime(deployment, cluster, sla.interval.toSeconds)).asInstanceOf[Long]
-      if (responseTime > sla.upper.toMillis)
+    val from = OffsetDateTime.now().minus((sla.interval + sla.cooldown).toSeconds, ChronoUnit.SECONDS)
+
+    if (offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.EventExists(deployment, cluster, from)).asInstanceOf[Boolean]) {
+      val to = OffsetDateTime.now()
+      val from = to.minus(sla.interval.toSeconds, ChronoUnit.SECONDS)
+
+      val responseTimes = cluster.routes.keys.map(value => TcpPort("", None, Some(value), Trait.Direction.Out)).map { port =>
+        offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.ResponseTime(deployment, cluster, port, from, to)).asInstanceOf[Long]
+      }
+
+      if (responseTimes.max > sla.upper.toMillis)
         info(Escalate(deployment, cluster))
-      else if (responseTime < sla.lower.toMillis)
+      else if (responseTimes.max < sla.lower.toMillis)
         info(DeEscalate(deployment, cluster))
     }
   }

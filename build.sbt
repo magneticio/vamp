@@ -146,7 +146,7 @@ lazy val container_driver = project.dependsOn(model)
 
 lazy val dictionary = project.dependsOn(persistence)
 
-lazy val pulse_driver = project.dependsOn(model)
+lazy val pulse_driver = project.dependsOn(model, router_driver)
 
 lazy val rest_api = project.dependsOn(operation, model, swagger)
 
