@@ -177,7 +177,16 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
 
     private def deleteModelTraitNameParameters(params: List[TraitNameParameterModel]): Unit =
-      for (p <- params) TraitNameParameters.deleteById(p.id.get)
+      for (p <- params) {
+        p.groupType match {
+          case env : Trait.Name.Group.EnvironmentVariables.type =>
+            //TODO remove environment variables
+          case ports : Trait.Name.Group.Ports.type =>
+            //TODO remove ports
+          case _ =>
+        }
+        TraitNameParameters.deleteById(p.id.get)
+      }
 
 
     private def updateScale(existing: DefaultScaleModel, a: DefaultScale): Unit =
@@ -550,7 +559,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           case Some(group) if group == Trait.Name.Group.Ports =>
             param._2 match {
               case port: Port =>
-                TraitNameParameters.add(prefilledParameter.copy(groupId = Some(Ports.add(port2PortModel(port).copy(parentType = Some(PortParentType.BlueprintParameter))))))
+                TraitNameParameters.add(prefilledParameter.copy(groupId = Some(Ports.add(port2PortModel(port).copy(parentType = Some(PortParentType.BlueprintParameter), parentId = parentId)))))
               case env =>
                 // Not going to work, if the group is port, the parameter should be too
                 throw exception(PersistenceOperationFailure(s"Parameter [${param._1.value}}] of type [${param._1.group}] does not match the supplied parameter [${param._2}}]."))
@@ -566,7 +575,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
                       alias = env.alias,
                       direction = env.direction,
                       value = env.value,
-                      parentId = None,
+                      parentId = parentId,
                       parentType = Some(EnvironmentVariableParentType.BlueprintParameter))
                   )
                   )))
