@@ -1,14 +1,15 @@
 package io.vamp.core.persistence
 
-import io.vamp.core.model.artifact._
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.notification.NotificationErrorException
+import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.ArtifactNotFound
 import io.vamp.core.persistence.store.JdbcStoreProvider
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, Matchers}
-//import io.vamp.core.persistence.slick.components.Components.instance._
+
+import io.vamp.core.persistence.slick.components.Components.instance._
 
 @RunWith(classOf[JUnitRunner])
 class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
@@ -38,12 +39,6 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       firstArtifact = TestData.filter1,
       updatedFirstArtifact = TestData.filter1Updated,
       secondArtifact = TestData.filter2)
-  }
-
-  it should "Create an anonymous filter (but not read it)" in {
-    val firstArtifact = TestData.filter1.copy(name = "")
-    jdbcStore.create(firstArtifact, ignoreIfExists = false) shouldBe firstArtifact
-    jdbcStore.read(firstArtifact.name, firstArtifact.getClass) shouldBe None
   }
 
   it should "CRUD Routing " in {
@@ -139,6 +134,18 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
     jdbcStore.delete("my-scale2", classOf[DefaultScale])
   }
 
+  it should "prove all tables are empty" in {
+    jdbcStore.all(classOf[DefaultBlueprint]) shouldBe List.empty
+    jdbcStore.all(classOf[DefaultBreed]) shouldBe List.empty
+    jdbcStore.all(classOf[DefaultEscalation]) shouldBe List.empty
+    jdbcStore.all(classOf[DefaultFilter]) shouldBe List.empty
+    jdbcStore.all(classOf[DefaultRouting]) shouldBe List.empty
+    jdbcStore.all(classOf[DefaultScale]) shouldBe List.empty
+    jdbcStore.all(classOf[DefaultSla]) shouldBe List.empty
+    jdbcStore.all(classOf[Deployment]) shouldBe List.empty
+
+    totalNumberOfRowsInDB shouldBe 1  // There is always a row in the vamp meta data table
+  }
 
 
   def performCrudTest(firstArtifact: Artifact, updatedFirstArtifact: Artifact, secondArtifact: Artifact): Unit = {

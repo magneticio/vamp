@@ -1,9 +1,9 @@
 package io.vamp.core.persistence.store
 
 import com.typesafe.scalalogging.Logger
+import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.core.model.artifact.Trait.Name
 import io.vamp.core.model.artifact._
-import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, PersistenceOperationFailure, UnsupportedPersistenceRequest}
 import io.vamp.core.persistence.slick.components.Components
 import io.vamp.core.persistence.slick.model.ParameterParentType.ParameterParentType
@@ -32,8 +32,8 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
   private class JdbcStore extends Store {
 
-    import Components.instance._
-    import Implicits._
+    import io.vamp.core.persistence.slick.components.Components.instance._
+    import io.vamp.core.persistence.slick.model.Implicits._
 
     Components.instance.upgradeSchema
 
@@ -86,7 +86,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       val filters: List[Filter] = r.filterReferences.map(filter =>
         if (filter.isDefinedInline)
           DefaultFilters.findOptionByName(filter.name, filter.deploymentId) match {
-            case Some(defaultFilter : DefaultFilterModel) => defaultFilterModel2Artifact(defaultFilter)
+            case Some(defaultFilter: DefaultFilterModel) => defaultFilterModel2Artifact(defaultFilter)
             case _ => FilterReference(filter.name)
           }
         else
@@ -178,9 +178,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def deleteModelTraitNameParameters(params: List[TraitNameParameterModel]): Unit =
       for (p <- params) {
         p.groupType match {
-          case Some(env : Trait.Name.Group.EnvironmentVariables.type) =>    //TODO Verify this for issue #244
+          case Some(env: Trait.Name.Group.EnvironmentVariables.type) =>
             EnvironmentVariables.deleteById(p.groupId.get)
-          case Some(ports : Trait.Name.Group.Ports.type) =>
+          case Some(ports: Trait.Name.Group.Ports.type) =>
             Ports.deleteById(p.groupId.get)
           case _ =>
         }
@@ -251,9 +251,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       } yield param.name -> value).toMap
     }
 
-    private def findOptionRoutingArtifactViaReference(artifactName: Option[String], deploymentId: Option[Int]): Option[Routing] = artifactName match {
-      case Some(routingRef) =>
-        RoutingReferences.findOptionByName(routingRef, deploymentId) match {
+    private def findOptionRoutingArtifactViaReference(referenceId: Option[Int], deploymentId: Option[Int]): Option[Routing] = referenceId match {
+      case Some(routingRefId) =>
+        RoutingReferences.findOptionById(routingRefId) match {
           case Some(ref: RoutingReferenceModel) if ref.isDefinedInline =>
             DefaultRoutings.findOptionByName(ref.name, deploymentId) match {
               case Some(defaultRouting) => Some(defaultRoutingModel2Artifact(defaultRouting))
@@ -291,9 +291,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       case None => None
     }
 
-    private def findOptionScaleArtifactViaReferenceName(artifactName: Option[String], deploymentId: Option[Int]): Option[Scale] = artifactName match {
-      case Some(scaleRef) =>
-        ScaleReferences.findOptionByName(scaleRef, deploymentId) match {
+    private def findOptionScaleArtifactViaReferenceName(artifactId: Option[Int], deploymentId: Option[Int]): Option[Scale] = artifactId match {
+      case Some(scaleRefId) =>
+        ScaleReferences.findOptionById(scaleRefId) match {
           case Some(ref: ScaleReferenceModel) if ref.isDefinedInline =>
             DefaultScales.findOptionByName(ref.name, deploymentId) match {
               case Some(defaultScale) => Some(defaultScale)
@@ -308,8 +308,8 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def findServicesArtifacts(services: List[ServiceModel], deploymentId: Option[Int]): List[Service] = services.map(service =>
       Service(
         breed = findBreedArtifactViaReference(service.breedReferenceName, deploymentId),
-        scale = findOptionScaleArtifactViaReferenceName(service.scaleReferenceName, deploymentId),
-        routing = findOptionRoutingArtifactViaReference(service.routingReferenceName, deploymentId)
+        scale = findOptionScaleArtifactViaReferenceName(service.scaleReference, deploymentId),
+        routing = findOptionRoutingArtifactViaReference(service.routingReference, deploymentId)
       )
     )
 
@@ -463,35 +463,31 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         breed.name
     }
 
-    private def createScaleReference(artifact: Option[Scale], deploymentId: Option[Int]): Option[String] = artifact match {
+    private def createScaleReference(artifact: Option[Scale], deploymentId: Option[Int]): Option[Int] = artifact match {
       case Some(scale: DefaultScale) =>
         DefaultScales.findOptionByName(scale.name, deploymentId) match {
           case Some(existing) => updateScale(existing, scale)
-            Some(existing.name)
+            Some(ScaleReferences.add(ScaleReferenceModel(deploymentId = deploymentId, name = existing.name, isDefinedInline = true)))
           case None =>
             val scaleName = createDefaultScaleModelFromArtifact(DeploymentDefaultScale(deploymentId, scale)).name
-            ScaleReferences.add(ScaleReferenceModel(deploymentId = deploymentId, name = scaleName, isDefinedInline = true))
-            Some(scaleName)
+            Some(ScaleReferences.add(ScaleReferenceModel(deploymentId = deploymentId, name = scaleName, isDefinedInline = true)))
         }
       case Some(scale: ScaleReference) =>
-        ScaleReferences.add(ScaleReferenceModel(deploymentId = deploymentId, name = scale.name, isDefinedInline = false))
-        Some(scale.name)
+        Some(ScaleReferences.add(ScaleReferenceModel(deploymentId = deploymentId, name = scale.name, isDefinedInline = false)))
       case _ => None
     }
 
-    private def createRoutingReference(artifact: Option[Routing], deploymentId: Option[Int]): Option[String] = artifact match {
+    private def createRoutingReference(artifact: Option[Routing], deploymentId: Option[Int]): Option[Int] = artifact match {
       case Some(routing: DefaultRouting) =>
         DefaultRoutings.findOptionByName(routing.name, deploymentId) match {
           case Some(existing) => updateRouting(existing, routing)
-            Some(existing.name)
+            Some(RoutingReferences.add(RoutingReferenceModel(deploymentId = deploymentId, name = existing.name, isDefinedInline = true)))
           case None =>
             val routingName = createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(deploymentId, routing)).name
-            RoutingReferences.add(RoutingReferenceModel(deploymentId = deploymentId, name = routingName, isDefinedInline = true))
-            Some(routingName)
+            Some(RoutingReferences.add(RoutingReferenceModel(deploymentId = deploymentId, name = routingName, isDefinedInline = true)))
         }
       case Some(routing: RoutingReference) =>
-        RoutingReferences.add(RoutingReferenceModel(deploymentId = deploymentId, name = routing.name, isDefinedInline = false))
-        Some(routing.name)
+        Some(RoutingReferences.add(RoutingReferenceModel(deploymentId = deploymentId, name = routing.name, isDefinedInline = false)))
       case _ => None
     }
 
@@ -501,8 +497,8 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           deploymentId = deploymentId,
           clusterId = clusterId,
           breedReferenceName = createBreedReference(service.breed, deploymentId),
-          routingReferenceName = createRoutingReference(service.routing, deploymentId),
-          scaleReferenceName = createScaleReference(service.scale, deploymentId))
+          routingReference = createRoutingReference(service.routing, deploymentId),
+          scaleReference = createScaleReference(service.scale, deploymentId))
         )
       )
     }
@@ -810,15 +806,10 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       }
     }
 
-    private def deleteDeploymentParameters(parameters: List[TraitNameParameterModel]): Unit = {
-      for (parameter <- parameters) TraitNameParameters.deleteById(parameter.id.get)
-    }
-
-
     private def deleteDeploymentModel(m: DeploymentModel): Unit = {
       deleteDeploymentClusters(m.clusters, m.id)
       deleteModelPorts(m.endpoints)
-      deleteDeploymentParameters(m.parameters)
+      deleteModelTraitNameParameters(m.parameters)
       Deployments.deleteById(m.id.get)
     }
 
@@ -883,6 +874,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def deleteBlueprintClusters(clusters: List[ClusterModel]): Unit = {
       for (cluster <- clusters) {
         for (service <- cluster.services) {
+          Services.deleteById(service.id.get)
           BreedReferences.findOptionByName(service.breedReferenceName, service.deploymentId) match {
             case Some(breedRef) =>
               if (breedRef.isDefinedInline)
@@ -894,35 +886,38 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
               BreedReferences.deleteById(breedRef.id.get)
             case None => /// Should not happen (log it as not critical)
           }
-          service.scaleReferenceName match {
-            case Some(scaleName) =>
-              ScaleReferences.findOptionByName(scaleName, service.deploymentId) match {
+          service.scaleReference match {
+            case Some(scaleRefId) =>
+              ScaleReferences.findOptionById(scaleRefId) match {
                 case Some(scaleRef) if scaleRef.isDefinedInline =>
                   DefaultScales.findOptionByName(scaleRef.name, service.deploymentId) match {
                     case Some(scale) if scale.isAnonymous => DefaultScales.deleteById(scale.id.get)
                     case Some(scale) =>
                     case None => // Should not happen (log it as not critical)
                   }
+                  ScaleReferences.deleteById(scaleRefId)
                 case Some(scaleRef) =>
+                  ScaleReferences.deleteById(scaleRefId)
                 case None => // Should not happen (log it as not critical)
               }
             case None => // Nothing to delete
           }
-          service.routingReferenceName match {
-            case Some(routingName) =>
-              RoutingReferences.findOptionByName(routingName, service.deploymentId) match {
+          service.routingReference match {
+            case Some(routingId) =>
+              RoutingReferences.findOptionById(routingId) match {
                 case Some(routingRef) if routingRef.isDefinedInline =>
                   DefaultRoutings.findOptionByName(routingRef.name, service.deploymentId) match {
                     case Some(routing) if routing.isAnonymous => deleteRoutingModel(routing)
                     case Some(routing) =>
                     case None => // Should not happen (log it as not critical)
                   }
-                case Some(scaleRef) =>
+                  RoutingReferences.deleteById(routingRef.id.get)
+                case Some(routingRef) =>
+                  RoutingReferences.deleteById(routingRef.id.get)
                 case None => // Should not happen (log it as not critical)
               }
             case None => // Nothing to delete
           }
-          Services.deleteById(service.id.get)
         }
         Clusters.deleteById(cluster.id.get)
 
@@ -983,7 +978,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       for (dependency <- breed.dependencies) {
         val depModel = Dependencies.findById(dependency.id.get)
         if (depModel.isDefinedInline) {
-          DefaultBreeds.findOptionByName(depModel.name, breed.deploymentId) match {
+          DefaultBreeds.findOptionByName(depModel.breedName, breed.deploymentId) match {
             case Some(childBreed) if childBreed.isAnonymous => deleteDefaultBreedModel(childBreed) // Here is the recursive bit
             case Some(childBreed) =>
             case None => // Should not happen (log it as not critical)
