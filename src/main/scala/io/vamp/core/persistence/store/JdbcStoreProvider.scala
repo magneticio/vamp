@@ -85,7 +85,10 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def defaultRoutingModel2Artifact(r: DefaultRoutingModel): DefaultRouting = {
       val filters: List[Filter] = r.filterReferences.map(filter =>
         if (filter.isDefinedInline)
-          defaultFilterModel2Artifact(DefaultFilters.findByName(filter.name, filter.deploymentId))
+          DefaultFilters.findOptionByName(filter.name, filter.deploymentId) match {
+            case Some(defaultFilter : DefaultFilterModel) => defaultFilterModel2Artifact(defaultFilter)
+            case _ => FilterReference(filter.name)
+          }
         else
           FilterReference(filter.name)
       )
