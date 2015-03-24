@@ -126,9 +126,9 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
   }
 
   it should "Clean up left over definitions" in {
-    jdbcStore.delete("my-escalation", classOf[DefaultEscalation])
-    jdbcStore.delete("sla4-escalation1", classOf[DefaultEscalation])
-    jdbcStore.delete("sla4-escalation2", classOf[DefaultEscalation])
+    jdbcStore.delete("my-escalation", classOf[GenericEscalation])
+    jdbcStore.delete("sla4-escalation1", classOf[GenericEscalation])
+    jdbcStore.delete("sla4-escalation2", classOf[GenericEscalation])
     jdbcStore.delete("full-service-breed", classOf[DefaultBreed])
     jdbcStore.delete("filter1", classOf[DefaultFilter])
     jdbcStore.delete("filter2", classOf[DefaultFilter])

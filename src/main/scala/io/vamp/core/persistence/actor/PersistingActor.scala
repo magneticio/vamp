@@ -70,9 +70,9 @@ trait PersistingActor extends Actor with ActorLogging with ReplyActor with Futur
       case Some(deployment: Deployment) => Some(deployment) // Deployments are already fully expanded
       case Some(blueprint: DefaultBlueprint) => Some(blueprint.copy(clusters = expandClusters(blueprint.clusters)))
       case Some(breed: DefaultBreed) => Some(breed.copy(dependencies = expandDependencies(breed.dependencies)))
-      case Some(sla: DefaultSla) => Some(sla.copy(escalations = expandEscalations(sla.escalations)))
+      case Some(sla: GenericSla) => Some(sla.copy(escalations = expandEscalations(sla.escalations)))
       case Some(routing: DefaultRouting) => Some(routing.copy(filters = expandFilters(routing.filters)))
-      case Some(escalation: DefaultEscalation) => Some(escalation)
+      case Some(escalation: GenericEscalation) => Some(escalation)
       case Some(filter: DefaultFilter) => Some(filter)
       case Some(scale: DefaultScale) => Some(scale)
       case _ => throw exception(UnsupportedPersistenceRequest(ofType))
@@ -82,10 +82,10 @@ trait PersistingActor extends Actor with ActorLogging with ReplyActor with Futur
     clusters.map(cluster =>
       cluster.copy(services = expandServices(cluster.services),
         sla = cluster.sla match {
-          case Some(sla: DefaultSla) => Some(sla)
-          case Some(sla: SlaReference) => readDefaultArtifact(sla.name, classOf[DefaultSla]) match {
-            case Some(slaDefault: DefaultSla) => Some(slaDefault.copy(escalations = sla.escalations)) //Copy the escalations from the reference
-            case _ => throw exception(ArtifactNotFound(sla.name, classOf[DefaultSla]))
+          case Some(sla: GenericSla) => Some(sla)
+          case Some(sla: SlaReference) => readDefaultArtifact(sla.name, classOf[GenericSla]) match {
+            case Some(slaDefault: GenericSla) => Some(slaDefault.copy(escalations = sla.escalations)) //Copy the escalations from the reference
+            case _ => throw exception(ArtifactNotFound(sla.name, classOf[GenericSla]))
           }
           case _ => None
         }
@@ -137,14 +137,14 @@ trait PersistingActor extends Actor with ActorLogging with ReplyActor with Futur
       case defaultArtifact: DefaultFilter => defaultArtifact
     }
 
-  private def expandEscalations(list: List[Escalation]): List[DefaultEscalation] =
+  private def expandEscalations(list: List[Escalation]): List[GenericEscalation] =
     list.map {
       case referencedArtifact: EscalationReference =>
-        readDefaultArtifact(referencedArtifact.name, classOf[DefaultEscalation]) match {
-          case Some(defaultArtifact: DefaultEscalation) => defaultArtifact
-          case _ => throw exception(ArtifactNotFound(referencedArtifact.name, classOf[DefaultEscalation]))
+        readDefaultArtifact(referencedArtifact.name, classOf[GenericEscalation]) match {
+          case Some(defaultArtifact: GenericEscalation) => defaultArtifact
+          case _ => throw exception(ArtifactNotFound(referencedArtifact.name, classOf[GenericEscalation]))
         }
-      case defaultArtifact: DefaultEscalation => defaultArtifact
+      case defaultArtifact: GenericEscalation => defaultArtifact
     }
 
 }
