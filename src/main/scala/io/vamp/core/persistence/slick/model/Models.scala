@@ -43,7 +43,7 @@ case class ClusterModel(deploymentId: Option[Int], name: String, blueprintId: In
   override def withId(id: Id): ClusterModel = copy(id = Option(id))
 }
 
-case class ServiceModel(deploymentId: Option[Int], clusterId: Int, breedReferenceName: String, routingReferenceName: Option[String], scaleReferenceName: Option[String], id: Option[Int] = None) extends VampPersistenceModel[ServiceModel] {
+case class ServiceModel(deploymentId: Option[Int], clusterId: Int, breedReferenceName: String, routingReference: Option[Int], scaleReference: Option[Int], id: Option[Int] = None) extends VampPersistenceModel[ServiceModel] {
   override def withId(id: Id): ServiceModel = copy(id = Option(id))
 }
 
