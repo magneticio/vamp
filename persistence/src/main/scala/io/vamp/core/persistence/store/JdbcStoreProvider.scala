@@ -178,7 +178,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private def deleteModelTraitNameParameters(params: List[TraitNameParameterModel]): Unit =
       for (p <- params) {
         p.groupType match {
-          case Some(env : Trait.Name.Group.EnvironmentVariables.type) =>    //TODO Verify this for issue #244
+          case Some(env : Trait.Name.Group.EnvironmentVariables.type) =>
             EnvironmentVariables.deleteById(p.groupId.get)
           case Some(ports : Trait.Name.Group.Ports.type) =>
             Ports.deleteById(p.groupId.get)
@@ -978,7 +978,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       for (dependency <- breed.dependencies) {
         val depModel = Dependencies.findById(dependency.id.get)
         if (depModel.isDefinedInline) {
-          DefaultBreeds.findOptionByName(depModel.name, breed.deploymentId) match {
+          DefaultBreeds.findOptionByName(depModel.breedName, breed.deploymentId) match {
             case Some(childBreed) if childBreed.isAnonymous => deleteDefaultBreedModel(childBreed) // Here is the recursive bit
             case Some(childBreed) =>
             case None => // Should not happen (log it as not critical)
