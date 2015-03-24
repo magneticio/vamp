@@ -30,7 +30,6 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
     logger.info("Creating schema ...")
     for (tableQuery <- tableQueries) {
       logger.info(tableQuery.ddl.createStatements.mkString)
-      println(tableQuery.ddl.createStatements.mkString)
       tableQuery.ddl.create
     }
     VampPersistenceMetaDatas.add(VampPersistenceMetaDataModel(schemaVersion = schemaVersion))
@@ -91,6 +90,10 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
       case None => 0
     }
 
+  def totalNumberOfRowsInDB(implicit sess: Session) : Int =
+    tableQueries.map(query => query.fetchAll.length).sum
+
+
   class VampPersistenceMetaDataTable(tag: Tag) extends EntityTable[VampPersistenceMetaDataModel](tag, "vamp-meta-data") {
     def * = (id.?, schemaVersion, created) <>(VampPersistenceMetaDataModel.tupled, VampPersistenceMetaDataModel.unapply)
 
@@ -100,5 +103,6 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
 
     def created = column[Timestamp]("created")
   }
+
 
 }

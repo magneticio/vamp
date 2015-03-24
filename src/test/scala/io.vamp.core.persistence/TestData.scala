@@ -59,18 +59,18 @@ object TestData {
   val myScale1Updated = myScale1.copy(name = "my-scale", cpu = 2, memory = 128, instances = 5)
   val myScale2 = DefaultScale(name = "my-scale2", cpu = 2, memory = 4096, instances = 4)
 
-  val filter1 = DefaultFilter(name = "filter1", condition = "my-condition")
+  val filter1 = DefaultFilter(name = "filter1", condition = "my-condition-1")
   val filter1Updated = filter1.copy(condition = "updated condition")
-  val filter2 = DefaultFilter(name = "filter2", condition = "my-condition")
+  val filter2 = DefaultFilter(name = "filter2", condition = "my-condition-2")
 
-  val filterAnonymous = DefaultFilter(name = "", condition = "test")
+  val filterAnonymous = DefaultFilter(name = "", condition = "test-anonymous")
   val filterRef1 = FilterReference(name = "referenced_filter")
 
   val routeSimple1 = DefaultRouting(name = "simpleRoute1", weight = Some(1), filters = List.empty)
   val routeSimple1Updated = routeSimple1.copy(weight = Some(12), filters = List.empty)
   val routeSimple2 = DefaultRouting(name = "simpleRoute2", weight = None, filters = List.empty)
 
-  val route4 = DefaultRouting(name = "route4", weight = Some(1), filters = List(filter1, filterAnonymous, filterRef1))
+  val route4 = DefaultRouting(name = "route4", weight = Some(1), filters = List(filter1.copy(condition = "route4-condition"), filterAnonymous, filterRef1))
   val route4Updated = DefaultRouting(name = "route4", weight = Some(12), filters = List(filter1Updated))
   val route5 = DefaultRouting(name = "route5", weight = None, filters = List(filter2))
 
