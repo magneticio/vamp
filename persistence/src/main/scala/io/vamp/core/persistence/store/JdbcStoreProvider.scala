@@ -810,15 +810,10 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       }
     }
 
-    private def deleteDeploymentParameters(parameters: List[TraitNameParameterModel]): Unit = {
-      for (parameter <- parameters) TraitNameParameters.deleteById(parameter.id.get)
-    }
-
-
     private def deleteDeploymentModel(m: DeploymentModel): Unit = {
       deleteDeploymentClusters(m.clusters, m.id)
       deleteModelPorts(m.endpoints)
-      deleteDeploymentParameters(m.parameters)
+      deleteModelTraitNameParameters(m.parameters)
       Deployments.deleteById(m.id.get)
     }
 
