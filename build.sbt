@@ -2,7 +2,7 @@ import _root_.sbt.Keys._
 
 
 
-organization in ThisBuild := "io.vamp"
+organization in ThisBuild := "io.vamp.core"
 
 
 name := """Core"""
