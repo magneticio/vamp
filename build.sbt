@@ -2,12 +2,12 @@ import _root_.sbt.Keys._
 
 
 
-organization := "io.vamp"
+organization in ThisBuild := "io.vamp.core"
 
 
 name := """Core"""
 
-version := "0.7.0-RC1"
+version in ThisBuild := "0.7.0-RC1"
 
 scalaVersion := "2.11.5"
 
@@ -17,12 +17,13 @@ scalaVersion in ThisBuild := scalaVersion.value
 
 publishMavenStyle := true
 
-description := """Core is a module that brings all the bits and pieces of the ecosystem together taking care of the VAMP workflow"""
+// This has to be overridden for sub-modules to have different description
+description in ThisBuild:= """Core is a module that brings all the bits and pieces of the ecosystem together taking care of the VAMP workflow"""
 
 
 
 
-pomExtra := (<url>http://vamp.io</url>
+pomExtra in ThisBuild := <url>http://vamp.io</url>
     <licenses>
       <license>
         <name>The Apache License, Version 2.0</name>
@@ -32,13 +33,13 @@ pomExtra := (<url>http://vamp.io</url>
     <developers>
       <developer>
         <name>Dragoslav Pavkovic</name>
-        <email>drago@mangetic.io</email>
+        <email>drago@magnetic.io</email>
         <organization>VAMP</organization>
         <organizationUrl>http://vamp.io</organizationUrl>
       </developer>
       <developer>
         <name>Roman Useinov</name>
-        <email>roman@mangetic.io</email>
+        <email>roman@magnetic.io</email>
         <organization>VAMP</organization>
         <organizationUrl>http://vamp.io</organizationUrl>
       </developer>
@@ -48,7 +49,7 @@ pomExtra := (<url>http://vamp.io</url>
       <developerConnection>scm:git:git@github.com:magneticio/vamp-core.git</developerConnection>
       <url>git@github.com:magneticio/vamp-core.git</url>
     </scm>
-)
+
 
 resolvers in ThisBuild += Resolver.mavenLocal
 
@@ -99,13 +100,16 @@ val postgresVersion = "9.1-901.jdbc4"
 
 
 // Force scala version for the dependencies
-dependencyOverrides in ThisBuild += "org.scala-lang" % "scala-compiler" % scalaVersion.value
-
-dependencyOverrides in ThisBuild += "org.scala-lang" % "scala-library" % scalaVersion.value
+dependencyOverrides in ThisBuild ++= Set(
+  "org.scala-lang" % "scala-compiler" % scalaVersion.value,
+  "org.scala-lang" % "scala-library" % scalaVersion.value
+)
 
 
 // Root project and subproject definitions
 lazy val root = project.in(file(".")).settings(
+  // Disable publishing root empty pom
+  packagedArtifacts in file(".") := Map.empty,
   // allows running main classes from subprojects
   run := {
     (run in bootstrap in Compile).evaluated

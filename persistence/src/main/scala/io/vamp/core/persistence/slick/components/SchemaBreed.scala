@@ -182,7 +182,7 @@ trait SchemaBreed extends Logging with VampSchema {
   class FilterReferenceTable(tag: Tag) extends DeployableEntityTable[FilterReferenceModel](tag, "filter_references") {
     def * = (deploymentId, name, id.?, routingId, isDefinedInline) <>(FilterReferenceModel.tupled, FilterReferenceModel.unapply)
 
-    def id = column[Int]("id", O.AutoInc)
+    def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def isDefinedInline = column[Boolean]("is_defined_inline")
 
