@@ -24,3 +24,8 @@ NonUniqueBlueprintBreedReferenceError : "Multiple references for breed: '{name}'
 UnresolvedBreedDependencyError        : "Unresolved breed dependency for breed '{breed.name}' and dependency '{dependency._1} -> {dependency._2.name}'."
 RoutingWeightError                    : "Total routing weight cannot exceed 100 or be a negative value. Check cluster: '{cluster.name}'."
 UnresolvedScaleEscalationTargetCluster: "Unresolved scale escalation target cluster '{target}' for cluster '{cluster.name}'"
+
+# SLA
+
+Escalate                              : "Escalate '{deployment.name}/{cluster.name}'."
+DeEscalate                            : "Deescalate '{deployment.name}/{cluster.name}'."

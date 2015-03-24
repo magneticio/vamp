@@ -5,6 +5,7 @@ import java.time.OffsetDateTime
 import akka.actor._
 import akka.pattern.ask
 import io.vamp.common.akka._
+import io.vamp.common.notification.DefaultPackageMessageResolverProvider
 import io.vamp.core.model.artifact.DeploymentService.ReadyForDeployment
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification.{DeEscalate, Escalate}
@@ -12,6 +13,7 @@ import io.vamp.core.operation.notification.{InternalServerError, OperationNotifi
 import io.vamp.core.operation.sla.EscalationActor.EscalationProcessAll
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.pulse_driver.PulseDriverActor
+import io.vamp.core.pulse_driver.notification.PulseNotificationProvider
 
 import scala.concurrent.duration.FiniteDuration
 import scala.language.postfixOps
@@ -47,13 +49,15 @@ class EscalationSchedulerActor extends SchedulerActor with OperationNotification
 
 object EscalationActor extends ActorDescription {
 
-  def props(args: Any*): Props = Props[SlaActor]
+  def props(args: Any*): Props = Props[EscalationActor]
 
   case class EscalationProcessAll(from: OffsetDateTime, to: OffsetDateTime)
 
 }
 
-class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with OperationNotificationProvider {
+class EscalationActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with PulseNotificationProvider with DefaultPackageMessageResolverProvider {
+
+  def tags = "escalation" :: Nil
 
   def receive: Receive = {
     case EscalationProcessAll(from, to) =>
@@ -71,10 +75,10 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
         case Some(sla) =>
           sla.escalations.foreach { _ =>
             implicit val timeout = PulseDriverActor.timeout
-            offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.QuerySlaNotificationEvents(deployment, cluster, from, to)) match {
+            offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.QuerySlaEvents(deployment, cluster, from, to)) match {
               case escalationEvents: List[_] => escalationEvents.foreach {
-                case Escalate(_, _, _) => escalate(deployment, cluster, sla, escalate = true)
-                case DeEscalate(_, _, _) => escalate(deployment, cluster, sla, escalate = false)
+                case Escalate(d, c) if d.name == deployment.name && c.name == cluster.name => escalate(deployment, cluster, sla, escalate = true)
+                case DeEscalate(d, c) if d.name == deployment.name && c.name == cluster.name => escalate(deployment, cluster, sla, escalate = false)
                 case _ =>
               }
               case any => exception(InternalServerError(any))
@@ -87,6 +91,8 @@ class SlaMonitorActor extends Actor with ActorLogging with ActorSupport with Fut
   private def escalate(deployment: Deployment, cluster: DeploymentCluster, sla: Sla, escalate: Boolean) = {
     sla.escalations.foreach {
       case e: ScaleEscalation[_] => scaleEscalation(deployment, cluster, e, escalate)
+      case e: ToAllEscalation => // TODO
+      case e: ToOneEscalation => // TODO
       case e: GenericEscalation => info(UnsupportedEscalationType(e.`type`))
       case e: Escalation => error(UnsupportedEscalationType(e.name))
     }

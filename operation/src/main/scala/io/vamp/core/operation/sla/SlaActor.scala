@@ -6,12 +6,14 @@ import java.time.temporal.ChronoUnit
 import akka.actor._
 import akka.pattern.ask
 import io.vamp.common.akka._
+import io.vamp.common.notification.DefaultPackageMessageResolverProvider
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification.{DeEscalate, Escalate}
 import io.vamp.core.operation.notification._
 import io.vamp.core.operation.sla.SlaActor.SlaProcessAll
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.pulse_driver.PulseDriverActor
+import io.vamp.core.pulse_driver.notification.PulseNotificationProvider
 
 import scala.language.postfixOps
 
@@ -35,7 +37,9 @@ object SlaActor extends ActorDescription {
 
 }
 
-class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with SlaNotificationProvider {
+class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with PulseNotificationProvider with DefaultPackageMessageResolverProvider {
+
+  def tags = "sla" :: Nil
 
   def receive: Receive = {
     case SlaProcessAll =>
@@ -67,9 +71,9 @@ class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupp
     if (timestamp.isBefore(OffsetDateTime.now().minus((sla.interval + sla.cooldown).toSeconds, ChronoUnit.SECONDS))) {
       val responseTime = offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.ResponseTime(deployment, cluster, sla.interval.toSeconds)).asInstanceOf[Long]
       if (responseTime > sla.upper.toMillis)
-        info(Escalate(deployment, cluster, sla))
+        info(Escalate(deployment, cluster))
       else if (responseTime < sla.lower.toMillis)
-        info(DeEscalate(deployment, cluster, sla))
+        info(DeEscalate(deployment, cluster))
     }
   }
 }
