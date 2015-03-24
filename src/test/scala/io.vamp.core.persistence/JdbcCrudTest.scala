@@ -1,6 +1,6 @@
 package io.vamp.core.persistence
 
-import io.vamp.core.model.artifact.Artifact
+import io.vamp.core.model.artifact._
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.persistence.notification.ArtifactNotFound
@@ -124,6 +124,21 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       updatedFirstArtifact = TestData.deployment1Updated,
       secondArtifact = TestData.deployment2)
   }
+
+  it should "Clean up left over definitions" in {
+    jdbcStore.delete("my-escalation", classOf[DefaultEscalation])
+    jdbcStore.delete("sla4-escalation1", classOf[DefaultEscalation])
+    jdbcStore.delete("sla4-escalation2", classOf[DefaultEscalation])
+    jdbcStore.delete("full-service-breed", classOf[DefaultBreed])
+    jdbcStore.delete("filter1", classOf[DefaultFilter])
+    jdbcStore.delete("filter2", classOf[DefaultFilter])
+    jdbcStore.delete("my-filter", classOf[DefaultFilter])
+    jdbcStore.delete("my-route", classOf[DefaultRouting])
+    jdbcStore.delete("route4", classOf[DefaultRouting])
+    jdbcStore.delete("my-scale", classOf[DefaultScale])
+    jdbcStore.delete("my-scale2", classOf[DefaultScale])
+  }
+
 
 
   def performCrudTest(firstArtifact: Artifact, updatedFirstArtifact: Artifact, secondArtifact: Artifact): Unit = {
