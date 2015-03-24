@@ -4,6 +4,8 @@ import akka.actor.Actor
 import akka.actor.Status.Failure
 import io.vamp.common.notification.{Notification, NotificationProvider}
 
+import scala.runtime.BoxedUnit
+
 trait RequestError extends Notification {
   def request: Any
 }
@@ -12,7 +14,10 @@ trait ReplyActor {
   this: Actor with NotificationProvider =>
 
   final override def receive: Receive = {
-    case request if requestType.isAssignableFrom(request.getClass) => sender ! reply(request)
+    case request if requestType.isAssignableFrom(request.getClass) => reply(request) match {
+      case response: BoxedUnit =>
+      case response => sender ! response
+    }
     case request => sender ! unsupported(request)
   }
 
