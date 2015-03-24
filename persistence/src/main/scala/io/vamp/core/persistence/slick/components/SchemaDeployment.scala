@@ -96,7 +96,7 @@ trait SchemaDeployment extends Logging with SchemaBreed {
 
     def deployment = foreignKey("deployment_cluster_deployment_fk", deploymentId, Deployments)(_.id)
 
-    def slaRef = foreignKey("deployment_cluster_sla_reference_fk", slaReference, SlaReferences)(_.name)
+    //def slaRef = foreignKey("deployment_cluster_sla_reference_fk", slaReference, SlaReferences)(_.name) //TODO fix this foreign key
   }
 
   class ServerPortTable(tag: Tag) extends EntityTable[ServerPortModel](tag, "server_ports") {

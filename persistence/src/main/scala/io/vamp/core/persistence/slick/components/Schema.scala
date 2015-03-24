@@ -30,6 +30,7 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
     logger.info("Creating schema ...")
     for (tableQuery <- tableQueries) {
       logger.info(tableQuery.ddl.createStatements.mkString)
+      println(tableQuery.ddl.createStatements.mkString)
       tableQuery.ddl.create
     }
     VampPersistenceMetaDatas.add(VampPersistenceMetaDataModel(schemaVersion = schemaVersion))
