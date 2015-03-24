@@ -1,4 +1,4 @@
-package io.vamp.common
+package io.vamp.common.config
 
 import com.typesafe.config.ConfigFactory
 
