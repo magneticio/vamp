@@ -7,7 +7,7 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.pulse.api.Event
-import io.vamp.core.model.artifact.{Port, Deployment, DeploymentCluster}
+import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, Port}
 import io.vamp.core.pulse_driver.notification.{PulseDriverNotificationProvider, PulseResponseError, UnsupportedPulseDriverRequest}
 
 import scala.concurrent.duration._
@@ -19,6 +19,8 @@ object PulseDriverActor extends ActorDescription {
   def props(args: Any*): Props = Props(classOf[PulseDriverActor], args: _*)
 
   trait PulseDriverMessage
+
+  case class Publish(event: Event) extends PulseDriverMessage
 
   case class EventExists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime) extends PulseDriverMessage
 
@@ -40,7 +42,7 @@ class PulseDriverActor(driver: PulseDriver) extends Actor with ActorLogging with
 
   def reply(request: Any) = try {
     request match {
-      case event: Event => offLoad(driver.event(event), classOf[PulseResponseError])
+      case Publish(event) => driver.event(event)
       case EventExists(deployment, cluster, from) => offLoad(driver.exists(deployment, cluster, from), classOf[PulseResponseError])
       case ResponseTime(deployment, cluster, port, from, to) => offLoad(driver.responseTime(deployment, cluster, port, from, to), classOf[PulseResponseError])
       case QuerySlaEvents(deployment, cluster, from, to) => offLoad(driver.querySlaEvents(deployment, cluster, from, to), classOf[PulseResponseError])

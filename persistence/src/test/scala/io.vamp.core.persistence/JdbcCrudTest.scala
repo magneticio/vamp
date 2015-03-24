@@ -137,11 +137,11 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
   it should "prove all tables are empty" in {
     jdbcStore.all(classOf[DefaultBlueprint]) shouldBe List.empty
     jdbcStore.all(classOf[DefaultBreed]) shouldBe List.empty
-    jdbcStore.all(classOf[DefaultEscalation]) shouldBe List.empty
+    jdbcStore.all(classOf[GenericEscalation]) shouldBe List.empty
     jdbcStore.all(classOf[DefaultFilter]) shouldBe List.empty
     jdbcStore.all(classOf[DefaultRouting]) shouldBe List.empty
     jdbcStore.all(classOf[DefaultScale]) shouldBe List.empty
-    jdbcStore.all(classOf[DefaultSla]) shouldBe List.empty
+    jdbcStore.all(classOf[GenericSla]) shouldBe List.empty
     jdbcStore.all(classOf[Deployment]) shouldBe List.empty
 
     totalNumberOfRowsInDB shouldBe 1  // There is always a row in the vamp meta data table

@@ -15,6 +15,8 @@ trait SlaEvent extends PulseEvent {
   def cluster: DeploymentCluster
 
   def timestamp: OffsetDateTime
+
+  override def value: AnyRef = getClass.getSimpleName.toLowerCase
 }
 
 object Escalate {

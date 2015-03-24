@@ -9,14 +9,15 @@ import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.core.router_driver.DefaultRouterDriverNameMatcher
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 trait PulseDriver {
 
-  def event(event: Event): Future[Event]
+  def event(event: Event): Unit
 
   def exists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime): Future[Boolean]
 
-  def responseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime): Future[Long]
+  def responseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime): Future[Option[Double]]
 
   def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime): Future[List[SlaEvent]]
 }
@@ -36,9 +37,8 @@ class DefaultPulseDriver(ec: ExecutionContext, url: String) extends PulseClient(
   def responseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime) = {
     val tags = "route" :: clusterRouteName(deployment, cluster, port) :: "backend" :: "rtime" :: Nil
     getEvents(EventQuery(tags, TimeRange(from, to), Some(Aggregator("average")))).map {
-      case result =>
-        //println(result)
-        1000
+      case result: Map[_, _] => Try(result.asInstanceOf[Map[String, Any]].get("value").flatMap(value => Some(value.toString.toDouble))) getOrElse None
+      case _ => None
     }
   }
 

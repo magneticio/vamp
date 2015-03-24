@@ -69,18 +69,28 @@ class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupp
     implicit val timeout = PulseDriverActor.timeout
     val from = OffsetDateTime.now().minus((sla.interval + sla.cooldown).toSeconds, ChronoUnit.SECONDS)
 
-    if (offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.EventExists(deployment, cluster, from)).asInstanceOf[Boolean]) {
-      val to = OffsetDateTime.now()
-      val from = to.minus(sla.interval.toSeconds, ChronoUnit.SECONDS)
+    offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.EventExists(deployment, cluster, from)) match {
+      case exists: Boolean => if (!exists) {
+        val to = OffsetDateTime.now()
+        val from = to.minus(sla.interval.toSeconds, ChronoUnit.SECONDS)
 
-      val responseTimes = cluster.routes.keys.map(value => TcpPort("", None, Some(value), Trait.Direction.Out)).map { port =>
-        offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.ResponseTime(deployment, cluster, port, from, to)).asInstanceOf[Long]
-      }
+        val responseTimes = cluster.routes.keys.map(value => TcpPort("", None, Some(value), Trait.Direction.Out)).flatMap({ port =>
+          offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.ResponseTime(deployment, cluster, port, from, to)) match {
+            case Some(responseTime: Double) => responseTime :: Nil
+            case _ => Nil
+          }
+        })
 
-      if (responseTimes.max > sla.upper.toMillis)
-        info(Escalate(deployment, cluster))
-      else if (responseTimes.max < sla.lower.toMillis)
-        info(DeEscalate(deployment, cluster))
+        if (responseTimes.nonEmpty) {
+          val maxResponseTimes = responseTimes.max
+
+          if (maxResponseTimes > sla.upper.toMillis)
+            info(Escalate(deployment, cluster))
+          else if (maxResponseTimes < sla.lower.toMillis)
+            info(DeEscalate(deployment, cluster))
+        }
+      } else log.debug(s"escalation event found within cooldown + interval period for: ${deployment.name}/${cluster.name}")
+      case _ =>
     }
   }
 }
