@@ -52,14 +52,18 @@ class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupp
 
   private def check(deployments: List[Deployment]) = {
     deployments.foreach(deployment => {
-      deployment.clusters.foreach(cluster =>
-        cluster.sla match {
-          case Some(sla: ResponseTimeSlidingWindowSla) => responseTimeSlidingWindow(deployment, cluster, sla)
-          case Some(s: EscalationOnlySla) =>
-          case Some(s: GenericSla) => info(UnsupportedSlaType(s.`type`))
-          case Some(s: Sla) => error(UnsupportedSlaType(s.name))
-          case None =>
-        })
+      try {
+        deployment.clusters.foreach(cluster =>
+          cluster.sla match {
+            case Some(sla: ResponseTimeSlidingWindowSla) => responseTimeSlidingWindow(deployment, cluster, sla)
+            case Some(s: EscalationOnlySla) =>
+            case Some(s: GenericSla) => info(UnsupportedSlaType(s.`type`))
+            case Some(s: Sla) => error(UnsupportedSlaType(s.name))
+            case None =>
+          })
+      } catch {
+        case any: Throwable => exception(InternalServerError(any))
+      }
     })
   }
 

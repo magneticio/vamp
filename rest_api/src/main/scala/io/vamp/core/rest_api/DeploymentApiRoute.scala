@@ -1,5 +1,8 @@
 package io.vamp.core.rest_api
 
+import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
+
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
@@ -11,7 +14,7 @@ import io.vamp.core.model.reader._
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.vamp.core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor}
 import io.vamp.core.operation.notification.InternalServerError
-import io.vamp.core.operation.sla.SlaActor
+import io.vamp.core.operation.sla.{EscalationActor, SlaActor}
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.persistence.actor.PersistenceActor.All
 import io.vamp.core.rest_api.notification.{RestApiNotificationProvider, UnsupportedRoutingWeightChangeError}
@@ -35,7 +38,9 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
       complete(OK, sync(period))
     }
   } ~ path("sla") {
-    complete(OK, slaMonitor())
+    complete(OK, slaCheck())
+  } ~ path("escalation") {
+    complete(OK, slaEscalation())
   } ~ path("reset") {
     complete(OK, reset())
   }
@@ -149,7 +154,14 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
     }
   }
 
-  def slaMonitor() = actorFor(SlaActor) ! SlaActor.SlaProcessAll
+  def slaCheck() = {
+    actorFor(SlaActor) ! SlaActor.SlaProcessAll
+  }
+
+  def slaEscalation() = {
+    val now = OffsetDateTime.now()
+    actorFor(EscalationActor) ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
+  }
 
   def reset()(implicit timeout: Timeout): Unit = {
     offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {

@@ -70,33 +70,40 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
 
   private def check(deployments: List[Deployment], from: OffsetDateTime, to: OffsetDateTime) = {
     deployments.foreach(deployment => {
-      deployment.clusters.foreach(cluster => cluster.sla match {
-        case None =>
-        case Some(sla) =>
-          sla.escalations.foreach { _ =>
-            implicit val timeout = PulseDriverActor.timeout
-            offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.QuerySlaEvents(deployment, cluster, from, to)) match {
-              case escalationEvents: List[_] => escalationEvents.foreach {
-                case Escalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = true)
-                case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = false)
-                case _ =>
+      try {
+        deployment.clusters.foreach(cluster => cluster.sla match {
+          case None =>
+          case Some(sla) =>
+            sla.escalations.foreach { _ =>
+              implicit val timeout = PulseDriverActor.timeout
+              offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.QuerySlaEvents(deployment, cluster, from, to)) match {
+                case escalationEvents: List[_] => escalationEvents.foreach {
+                  case Escalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = true)
+                  case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = false)
+                  case _ =>
+                }
+                case any => exception(InternalServerError(any))
               }
-              case any => exception(InternalServerError(any))
             }
-          }
-      })
+        })
+      } catch {
+        case any: Throwable => exception(InternalServerError(any))
+      }
     })
   }
 
   private def escalateToAll(deployment: Deployment, cluster: DeploymentCluster, escalations: List[Escalation], escalate: Boolean): Boolean = {
     escalations.foldLeft(false)((result, escalation) => result || (escalation match {
       case e: ScaleEscalation[_] =>
+        log.debug(s"scale escalation: ${deployment.name}/${cluster.name}")
         scaleEscalation(deployment, cluster, e, escalate)
 
       case e: ToAllEscalation =>
+        log.debug(s"to all escalation: ${deployment.name}/${cluster.name}")
         escalateToAll(deployment, cluster, e.escalations, escalate)
 
       case e: ToOneEscalation =>
+        log.debug(s"to one escalation: ${deployment.name}/${cluster.name}")
         (if (escalate) e.escalations else e.escalations.reverse).find(escalation => escalateToAll(deployment, cluster, escalation :: Nil, escalate)) match {
           case None => false
           case Some(_) => true
@@ -136,28 +143,41 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
       case None => false
       case Some(targetCluster) =>
         // Scale only the first service.
-        val scale = cluster.services.head.scale.get
+        val scale = targetCluster.services.head.scale.get
         escalation match {
+
           case ScaleInstancesEscalation(_, minimum, maximum, scaleBy, _) =>
             val instances = if (escalate) scale.instances + scaleBy else scale.instances - scaleBy
             if (instances <= maximum && instances >= minimum) {
+              log.info(s"scale instances: ${deployment.name}/${targetCluster.name} to $instances")
               commit(targetCluster, scale.copy(instances = instances.toInt))
               true
-            } else false
+            } else {
+              log.debug(s"scale instances not within boundaries: ${deployment.name}/${targetCluster.name} is already $instances")
+              false
+            }
 
           case ScaleCpuEscalation(_, minimum, maximum, scaleBy, _) =>
             val cpu = if (escalate) scale.cpu + scaleBy else scale.cpu - scaleBy
             if (cpu <= maximum && cpu >= minimum) {
+              log.info(s"scale cpu: ${deployment.name}/${targetCluster.name} to $cpu")
               commit(targetCluster, scale.copy(cpu = cpu))
               true
-            } else false
+            } else {
+              log.debug(s"scale cpu not within boundaries: ${deployment.name}/${targetCluster.name} is already $cpu")
+              false
+            }
 
           case ScaleMemoryEscalation(_, minimum, maximum, scaleBy, _) =>
             val memory = if (escalate) scale.memory + scaleBy else scale.memory - scaleBy
             if (memory <= maximum && memory >= minimum) {
+              log.info(s"scale memory: ${deployment.name}/${targetCluster.name} to $memory")
               commit(targetCluster, scale.copy(memory = memory))
               true
-            } else false
+            } else {
+              log.debug(s"scale memory not within boundaries: ${deployment.name}/${targetCluster.name} is already $memory")
+              false
+            }
         }
     }
   }

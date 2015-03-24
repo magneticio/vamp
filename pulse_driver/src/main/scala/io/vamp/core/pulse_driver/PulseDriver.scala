@@ -44,12 +44,17 @@ class DefaultPulseDriver(ec: ExecutionContext, url: String) extends PulseClient(
 
   def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime) = {
     getEvents(EventQuery(SlaEvent.slaTags(deployment, cluster), TimeRange(from, to))).map {
-      case list: List[_] => list.asInstanceOf[List[Event]].flatMap { event =>
-        if (Escalate.tags.forall(event.tags.contains)) {
-          Escalate(deployment, cluster, event.timestamp) :: Nil
-        } else if (DeEscalate.tags.forall(event.tags.contains)) {
-          DeEscalate(deployment, cluster, event.timestamp) :: Nil
-        } else Nil
+      case list: List[_] => list.asInstanceOf[List[Map[String, _]]].flatMap { event =>
+        Try {
+          event.get("tags") match {
+            case None => Nil
+            case Some(tags) => if (Escalate.tags.forall(tags.asInstanceOf[List[String]].contains)) {
+              Escalate(deployment, cluster) :: Nil
+            } else if (DeEscalate.tags.forall(tags.asInstanceOf[List[String]].contains)) {
+              DeEscalate(deployment, cluster) :: Nil
+            } else Nil
+          }
+        } getOrElse Nil
       }
       case _ => Nil
     }

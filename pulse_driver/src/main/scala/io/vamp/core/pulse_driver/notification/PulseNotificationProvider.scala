@@ -18,14 +18,8 @@ trait PulseNotificationProvider extends LoggingNotificationProvider {
     super.info(notification)
   }
 
-  override def exception(notification: Notification): Exception = {
-    actorFor(PulseDriverActor) ! Publish(eventOf(notification, List("notification", "error")))
-    super.exception(notification)
-  }
-
   def eventOf(notification: Notification, globalTags: List[String]): Event = notification match {
     case event: PulseEvent => Event(globalTags ++ tags ++ event.tags, event.value, OffsetDateTime.now(), event.schema)
     case _ => Event(globalTags ++ tags, notification, OffsetDateTime.now(), "")
   }
 }
-

@@ -26,7 +26,7 @@ object PulseDriverActor extends ActorDescription {
 
   case class ResponseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime) extends PulseDriverMessage
 
-  case class QuerySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime)
+  case class QuerySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime) extends PulseDriverMessage
 
 }
 

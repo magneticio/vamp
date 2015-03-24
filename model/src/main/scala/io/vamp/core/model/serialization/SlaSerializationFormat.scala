@@ -63,7 +63,12 @@ class EscalationSerializer extends ArtifactSerializer[Escalation] {
       val list = new ArrayBuffer[JField]
       if (escalation.name.nonEmpty)
         list += JField("name", JString(escalation.name))
+
       list += JField("type", JString(escalation.`type`))
+
+      if (escalation.targetCluster.nonEmpty)
+        list += JField("target", JString(escalation.targetCluster.get))
+
       list += JField("minimum", Extraction.decompose(escalation.minimum))
       list += JField("maximum", Extraction.decompose(escalation.maximum))
       list += JField("scale_by", Extraction.decompose(escalation.scaleBy))
