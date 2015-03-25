@@ -15,15 +15,12 @@ trait DeploymentExtensions {
   implicit class DeploymentExtensions(val model: DeploymentModel) extends ActiveRecord[DeploymentModel] {
     override def table = Deployments
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def parameters(implicit session: JdbcBackend#Session): List[TraitNameParameterModel] =
       for {r <- TraitNameParameters.fetchAll if r.parentId == model.id && r.parentType == TraitParameterParentType.Deployment} yield r
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def clusters(implicit session: JdbcBackend#Session): List[DeploymentClusterModel] =
       for {r <- DeploymentClusters.fetchAllFromDeployment(model.id) if r.deploymentId == model.id} yield r
 
-    //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def endpoints(implicit session: JdbcBackend#Session): List[PortModel] =
       for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.Deployment)} yield r
 
@@ -37,7 +34,6 @@ trait DeploymentClusterExtensions {
   implicit class DeploymentClusterExtensions(val model: DeploymentClusterModel) extends ActiveRecord[DeploymentClusterModel] {
     override def table = DeploymentClusters
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def services(implicit session: JdbcBackend#Session): List[DeploymentServiceModel] =
       for {r <- DeploymentServices.fetchAllFromDeployment(model.id) if r.clusterId == model.id.get} yield r
 
@@ -55,7 +51,6 @@ trait DeploymentServiceExtensions {
   implicit class DeploymentServiceExtensions(val model: DeploymentServiceModel) extends ActiveRecord[DeploymentServiceModel] {
     override def table = DeploymentServices
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def servers(implicit session: JdbcBackend#Session): List[DeploymentServerModel] =
       for {r <- DeploymentServers.fetchAllFromDeployment(model.id) if r.serviceId == model.id.get} yield r
 
@@ -73,7 +68,6 @@ trait DeploymentServerExtensions {
   implicit class DeploymentServerExtensions(val model: DeploymentServerModel) extends ActiveRecord[DeploymentServerModel] {
     override def table = DeploymentServers
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def ports(implicit session: JdbcBackend#Session): List[ServerPortModel] =
       for {r <- ServerPorts.fetchAll if r.serverId == model.id.get} yield r
 
@@ -97,7 +91,6 @@ trait ClusterExtensions {
   implicit class CLusterExtensions(val model: ClusterModel) extends ActiveRecord[ClusterModel] {
     override def table = Clusters
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def services(implicit session: JdbcBackend#Session): List[ServiceModel] =
       for {r <- Services.fetchAll if r.clusterId == model.id.get && r.deploymentId == model.deploymentId} yield r
   }
@@ -110,15 +103,12 @@ trait DefaultBlueprintExtensions {
   implicit class DefaultBlueprintExtensions(val model: DefaultBlueprintModel) extends ActiveRecord[DefaultBlueprintModel] {
     override def table = DefaultBlueprints
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def parameters(implicit session: JdbcBackend#Session): List[TraitNameParameterModel] =
       for {r <- TraitNameParameters.fetchAll if r.parentId == model.id && r.parentType == TraitParameterParentType.Blueprint} yield r
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def clusters(implicit session: JdbcBackend#Session): List[ClusterModel] =
       for {r <- Clusters.fetchAllFromDeployment(model.deploymentId) if r.blueprintId == model.id.get} yield r
 
-    //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def endpoints(implicit session: JdbcBackend#Session): List[PortModel] =
       for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.BlueprintEndpoint)} yield r
 
@@ -133,7 +123,6 @@ trait DefaultEscalationExtensions {
     override def table = DefaultEscalations
 
     def parameters(implicit session: JdbcBackend#Session): List[ParameterModel] =
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
       for {r <- Parameters.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id.get && r.parentType == ParameterParentType.Escalation} yield r
   }
 
@@ -154,7 +143,6 @@ trait DefaultRoutingExtensions {
   implicit class DefaultRoutingExtensions(val model: DefaultRoutingModel) extends ActiveRecord[DefaultRoutingModel] {
     override def table = DefaultRoutings
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def filterReferences(implicit session: JdbcBackend#Session): List[FilterReferenceModel] =
       for {r <- FilterReferences.fetchAllFromDeployment(model.deploymentId) if r.routingId == model.id.get} yield r
   }
@@ -176,11 +164,9 @@ trait DefaultSlaExtensions {
   implicit class DefaultSlaExtensions(val model: DefaultSlaModel) extends ActiveRecord[DefaultSlaModel] {
     override def table = DefaultSlas
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def parameters(implicit session: JdbcBackend#Session): List[ParameterModel] =
       for {r <- Parameters.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id.get && r.parentType == ParameterParentType.Sla} yield r
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def escalationReferences(implicit session: JdbcBackend#Session): List[EscalationReferenceModel] =
       for {r <- EscalationReferences.fetchAllFromDeployment(model.deploymentId) if r.slaId.get == model.id.get} yield r
 
@@ -240,7 +226,6 @@ trait SlaReferenceExtensions {
   implicit class SlaReferenceExtensions(val model: SlaReferenceModel) extends ActiveRecord[SlaReferenceModel] {
     override def table = SlaReferences
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def escalationReferences(implicit session: JdbcBackend#Session): List[EscalationReferenceModel] =
       for {r <- EscalationReferences.fetchAllFromDeployment(model.deploymentId) if r.slaRefId.get == model.id.get} yield r
   }
@@ -253,15 +238,12 @@ trait DefaultBreedExtensions {
   implicit class DefaultBreedExtensions(val model: DefaultBreedModel) extends ActiveRecord[DefaultBreedModel] {
     override def table = DefaultBreeds
 
-    // TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def environmentVariables(implicit session: JdbcBackend#Session): List[EnvironmentVariableModel] =
       for {r <- EnvironmentVariables.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id && r.parentType == Some(EnvironmentVariableParentType.Breed)} yield r
 
-    //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def ports(implicit session: JdbcBackend#Session): List[PortModel] =
       for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.Breed)} yield r
 
-    //TODO FIX: This filters the data in Scala, not in the DB (bad!!)
     def dependencies(implicit session: JdbcBackend#Session): List[DependencyModel] =
       for {r <- Dependencies.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id.get} yield r
 
