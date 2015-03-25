@@ -3,7 +3,8 @@ package io.vamp.core.rest_api
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
+import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.core.model.artifact.DeploymentService.{Deployed, ReadyForDeployment, ReadyForUndeployment}
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.conversion.DeploymentConversion._
 import io.vamp.core.model.reader._
@@ -11,11 +12,10 @@ import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.Synchron
 import io.vamp.core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor}
 import io.vamp.core.operation.notification.InternalServerError
 import io.vamp.core.operation.sla.SlaMonitorActor
-import io.vamp.core.rest_api.notification.{RestApiNotificationProvider, UnsupportedRoutingWeightChangeError}
-import io.vamp.core.rest_api.swagger.SwaggerResponse
-import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.persistence.actor.PersistenceActor.All
+import io.vamp.core.rest_api.notification.{RestApiNotificationProvider, UnsupportedRoutingWeightChangeError}
+import io.vamp.core.rest_api.swagger.SwaggerResponse
 import spray.http.StatusCodes._
 import spray.httpx.marshalling.Marshaller
 import spray.routing.HttpServiceBase
@@ -32,7 +32,7 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
   implicit def timeout: Timeout
 
   private val helperRoutes = pathPrefix("sync") {
-    parameters('rate.as[Int] ? 10) { period =>
+    parameters('rate.as[Int] ?) { period =>
       complete(OK, sync(period))
     }
   } ~ pathPrefix("sla") {
@@ -40,7 +40,6 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
   } ~ pathPrefix("reset") {
     complete(OK, reset())
   }
-
 
   private val deploymentRoute = pathPrefix("deployments") {
     pathEndOrSingleSlash {
@@ -144,10 +143,20 @@ trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController wi
 trait DeploymentApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
   this: Actor with ExecutionContextProvider =>
 
-  def sync(rate: Int): Unit = {
-    for (i <- 0 until rate) {
-      actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
-    }
+  def sync(rate: Option[Int])(implicit timeout: Timeout): Unit = rate match {
+    case Some(r) =>
+      for (i <- 0 until r) {
+        actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
+      }
+
+    case None =>
+      offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
+        case deployments: List[_] =>
+          deployments.asInstanceOf[List[Deployment]].map({ deployment =>
+            deployment.clusters.filter(cluster => cluster.services.exists(!_.state.isInstanceOf[Deployed])).count(_ => true)
+          }).reduceOption(_ max _).foreach(max => sync(Some(max * 3)))
+        case any => error(InternalServerError(any))
+      }
   }
 
   def slaMonitor(period: Int = 10): Unit = {
@@ -163,7 +172,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
         deployments.asInstanceOf[List[Deployment]].map({ deployment =>
           actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
           deployment.clusters.count(_ => true)
-        }).reduceOption(_ max _).foreach(max => sync(max * 3))
+        }).reduceOption(_ max _).foreach(max => sync(Some(max * 3)))
       case any => error(InternalServerError(any))
     }
   }
