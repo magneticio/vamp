@@ -1,6 +1,5 @@
 package io.vamp.core.persistence.store
 
-import com.typesafe.scalalogging.Logger
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.core.model.artifact.Trait.Name
 import io.vamp.core.model.artifact._
@@ -11,7 +10,6 @@ import io.vamp.core.persistence.slick.model.PortParentType.PortParentType
 import io.vamp.core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
 import io.vamp.core.persistence.slick.model._
 import io.vamp.core.persistence.slick.util.VampPersistenceUtil
-import org.slf4j.LoggerFactory
 
 import scala.slick.jdbc.JdbcBackend._
 
@@ -25,7 +23,6 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
   val db: Database = Database.forConfig("persistence.jdbcProvider")
   implicit val sess = db.createSession()
-  private val logger = Logger(LoggerFactory.getLogger(classOf[JdbcStoreProvider])) //TODO use logger
 
   override val store: Store = new JdbcStore()
 
@@ -270,7 +267,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         case Some(breedRef) if breedRef.isDefinedInline =>
           DefaultBreeds.findOptionByName(breedRef.name, deploymentId) match {
             case Some(b) => defaultBreedModel2DefaultBreedArtifact(b)
-            case None => BreedReference(name = artifactName) //Not breed not found, return a reference instead
+            case None => BreedReference(name = artifactName) //Not found, return a reference instead
           }
         case _ => BreedReference(name = artifactName)
       }
@@ -926,7 +923,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
             DefaultSlas.findOptionByName(slaRef, cluster.deploymentId) match {
               case Some(sla) if sla.isAnonymous => deleteSlaModel(sla)
               case Some(sla) =>
-              case None => // Should not happen (log it as not critical)
+              case None => // Should not happen
             }
             SlaReferences.findOptionByName(slaRef, cluster.deploymentId) match {
               case Some(slaReference) =>
@@ -937,7 +934,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
             }
             SlaReferences.deleteByName(slaRef, cluster.deploymentId)
 
-          case None => // Should not happen (log it as not critical)
+          case None => // Should not happen
         }
       }
     }
@@ -948,7 +945,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         DefaultEscalations.findOptionByName(escalationRef.name, escalationRef.deploymentId) match {
           case Some(escalation) if escalation.isAnonymous => deleteEscalationModel(escalation)
           case Some(escalation) =>
-          case None => // Should not happen (log it as not critical)
+          case None => // Should not happen
         }
         EscalationReferences.deleteById(escalationRef.id.get)
       }
@@ -981,7 +978,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           DefaultBreeds.findOptionByName(depModel.breedName, breed.deploymentId) match {
             case Some(childBreed) if childBreed.isAnonymous => deleteDefaultBreedModel(childBreed) // Here is the recursive bit
             case Some(childBreed) =>
-            case None => // Should not happen (log it as not critical)
+            case None => // Should not happen
           }
         }
         Dependencies.deleteById(depModel.id.get)
