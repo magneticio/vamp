@@ -65,7 +65,7 @@ trait SchemaBlueprint extends SchemaBreed {
 
     def blueprint = foreignKey("cluster_blueprintfk", blueprintId, DefaultBlueprints)(_.id)
 
-    //def slaRef = foreignKey("cluster_sla_reference_fk", slaReference, SlaReferences)(_.name)         //TODO fix this foreign key
+    //def slaRef = foreignKey("cluster_sla_reference_fk", slaReference, SlaReferences)(_.name)  //issue #242
   }
 
   class ServiceTable(tag: Tag) extends EntityTable[ServiceModel](tag, "services") {
@@ -75,7 +75,7 @@ trait SchemaBlueprint extends SchemaBreed {
 
     def clusterId = column[Int]("clusterid")
 
-    def breedReferenceName = column[String]("breed_reference")     //TODO change this to an Option[Int]
+    def breedReferenceName = column[String]("breed_reference")
 
     def routingReference = column[Option[Int]]("routing_reference_fk")
 

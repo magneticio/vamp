@@ -56,11 +56,11 @@ trait VampTableQueries extends TableQueries with VampTables {
 
     def defaultSort = this.sortBy(m => m.id.asc)
 
-    override def fetchAll(implicit sess: Session): List[M] = defaultSort.filter(_.deploymentId.getOrElse(0) === 0).list // TODO the filter check
+    override def fetchAll(implicit sess: Session): List[M] = defaultSort.filter(_.deploymentId.getOrElse(0) === 0).list
 
     def fetchAllFromDeployment(deploymentId: Option[Int])(implicit sess: Session): List[M] = defaultSort.list
 
-    def filterByName(name: String, deploymentId: Option[Int])(implicit sess: Session) = filter(attrib => (attrib.name === name)) // && attrib.deploymentId === deploymentId))  // TODO fix this
+    def filterByName(name: String, deploymentId: Option[Int])(implicit sess: Session) = filter(attrib => attrib.name === name)
 
     def deleteByName(name: String, deploymentId: Option[Int])(implicit sess: Session): Unit = tryDeleteByName(name, deploymentId)
 
@@ -97,7 +97,6 @@ trait VampTableQueries extends TableQueries with VampTables {
     // Remap the 'fetch list' methods to exclude the anonymous rows
     override def fetchAll(implicit sess: Session): List[M] = defaultSort.filter(m => m.isAnonymous === false && m.deploymentId.getOrElse(0) === 0).list
 
-    // TODO Add check on deploymentId
     override def pagedList(pageIndex: Int, limit: Int)(implicit sess: Session): List[M] =
       defaultSort.filter(m => m.isAnonymous === false).drop(pageIndex).take(limit).run.toList
 
