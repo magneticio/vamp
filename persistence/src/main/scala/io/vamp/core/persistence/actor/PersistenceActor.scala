@@ -3,11 +3,11 @@ package io.vamp.core.persistence.actor
 import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka._
 import io.vamp.core.model.artifact.Artifact
+import io.vamp.common.akka._
 import io.vamp.core.persistence.actor.PersistenceActor.PersistenceMessages
 import io.vamp.core.persistence.notification.UnsupportedPersistenceRequest
-import io.vamp.core.persistence.store.JdbcStoreProvider
+import io.vamp.core.persistence.store.InMemoryStoreProvider
 
 import scala.concurrent.duration._
 import scala.language.existentials
@@ -30,11 +30,10 @@ object PersistenceActor extends ActorDescription {
 
   case class Delete(name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
 
-  case class ReadExpanded(name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
-
+  case class ReadExpanded (name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
 }
 
-class PersistenceActor extends PersistingActor with JdbcStoreProvider {
+class PersistenceActor extends PersistingActor with InMemoryStoreProvider {
 
   override protected def requestType: Class[_] = classOf[PersistenceMessages]
 
