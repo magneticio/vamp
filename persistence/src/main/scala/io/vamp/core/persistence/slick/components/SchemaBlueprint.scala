@@ -75,7 +75,7 @@ trait SchemaBlueprint extends SchemaBreed {
 
     def clusterId = column[Int]("clusterid")
 
-    def breedReferenceName = column[String]("breed_reference")     //TODO change this to an Option[Int]
+    def breedReferenceName = column[String]("breed_reference")
 
     def routingReference = column[Option[Int]]("routing_reference_fk")
 
