@@ -153,7 +153,7 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
               commit(targetCluster, scale.copy(instances = instances.toInt))
               true
             } else {
-              log.debug(s"scale instances not within boundaries: ${deployment.name}/${targetCluster.name} is already $instances")
+              log.debug(s"scale instances not within boundaries: ${deployment.name}/${targetCluster.name} is already ${scale.instances}")
               false
             }
 
@@ -164,7 +164,7 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
               commit(targetCluster, scale.copy(cpu = cpu))
               true
             } else {
-              log.debug(s"scale cpu not within boundaries: ${deployment.name}/${targetCluster.name} is already $cpu")
+              log.debug(s"scale cpu not within boundaries: ${deployment.name}/${targetCluster.name} is already ${scale.cpu}")
               false
             }
 
@@ -175,7 +175,7 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
               commit(targetCluster, scale.copy(memory = memory))
               true
             } else {
-              log.debug(s"scale memory not within boundaries: ${deployment.name}/${targetCluster.name} is already $memory")
+              log.debug(s"scale memory not within boundaries: ${deployment.name}/${targetCluster.name} is already ${scale.memory}")
               false
             }
         }
