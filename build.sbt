@@ -7,7 +7,7 @@ organization in ThisBuild := "io.vamp.core"
 
 name := """Core"""
 
-version in ThisBuild := "0.7.0-RC1"
+version in ThisBuild := "0.7.0-RC2"
 
 scalaVersion := "2.11.5"
 
@@ -66,7 +66,7 @@ val slf4jVersion = "1.7.10"
 val logbackVersion = "1.1.2"
 val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
-val vampCommonVersion = "0.7.0-RC1"
+val vampCommonVersion = "0.7.0-RC2"
 
 // Note ThisBuild, this is what makes these dependencies shared
 libraryDependencies in ThisBuild ++= Seq(
