@@ -1,7 +1,7 @@
 organization := "io.vamp"
 
 
-name := """Common"""
+name := """common"""
 
 version := "0.7.0-RC2"
 
