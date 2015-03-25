@@ -5,7 +5,7 @@ import _root_.sbt.Keys._
 organization in ThisBuild := "io.vamp.core"
 
 
-name := """Core"""
+name := """core"""
 
 version in ThisBuild := "0.7.0-RC2"
 
