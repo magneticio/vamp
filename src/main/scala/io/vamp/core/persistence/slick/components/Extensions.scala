@@ -116,11 +116,11 @@ trait DefaultBlueprintExtensions {
 
 }
 
-trait DefaultEscalationExtensions {
+trait GenericEscalationExtensions {
   this: VampActiveSlick with ModelExtensions =>
 
-  implicit class DefaultEscalationExtensions(val model: DefaultEscalationModel) extends ActiveRecord[DefaultEscalationModel] {
-    override def table = DefaultEscalations
+  implicit class GenericEscalationExtensions(val model: GenericEscalationModel) extends ActiveRecord[GenericEscalationModel] {
+    override def table = GenericEscalations
 
     def parameters(implicit session: JdbcBackend#Session): List[ParameterModel] =
       for {r <- Parameters.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id.get && r.parentType == ParameterParentType.Escalation} yield r
@@ -158,17 +158,17 @@ trait DefaultScaleExtensions {
 
 }
 
-trait DefaultSlaExtensions {
+trait GenericSlaExtensions {
   this: VampActiveSlick with ModelExtensions =>
 
-  implicit class DefaultSlaExtensions(val model: DefaultSlaModel) extends ActiveRecord[DefaultSlaModel] {
-    override def table = DefaultSlas
+  implicit class GenericSlaExtensions(val model: GenericSlaModel) extends ActiveRecord[GenericSlaModel] {
+    override def table = GenericSlas
 
     def parameters(implicit session: JdbcBackend#Session): List[ParameterModel] =
       for {r <- Parameters.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id.get && r.parentType == ParameterParentType.Sla} yield r
 
     def escalationReferences(implicit session: JdbcBackend#Session): List[EscalationReferenceModel] =
-      for {r <- EscalationReferences.fetchAllFromDeployment(model.deploymentId) if r.slaId.get == model.id.get} yield r
+      for {r <- EscalationReferences.fetchAllFromDeployment(model.deploymentId) if r.slaId == model.id} yield r
 
   }
 

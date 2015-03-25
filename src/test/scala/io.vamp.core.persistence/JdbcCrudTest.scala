@@ -158,7 +158,7 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
     jdbcStore.read(firstArtifact.name, firstArtifact.getClass) shouldBe Some(updatedFirstArtifact)
 
     // Read non-existing artifact
-    jdbcStore.read(secondArtifact.name, firstArtifact.getClass) shouldBe None
+    jdbcStore.read(secondArtifact.name, secondArtifact.getClass) shouldBe None
 
     // Update non-existing artifact
     jdbcStore.update(secondArtifact, create = true) shouldBe secondArtifact
