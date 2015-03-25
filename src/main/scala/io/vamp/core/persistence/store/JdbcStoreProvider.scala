@@ -1,5 +1,6 @@
 package io.vamp.core.persistence.store
 
+import com.typesafe.scalalogging.Logger
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.core.model.artifact.Trait.Name
 import io.vamp.core.model.artifact._
@@ -10,6 +11,7 @@ import io.vamp.core.persistence.slick.model.PortParentType.PortParentType
 import io.vamp.core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
 import io.vamp.core.persistence.slick.model._
 import io.vamp.core.persistence.slick.util.VampPersistenceUtil
+import org.slf4j.LoggerFactory
 
 import scala.slick.jdbc.JdbcBackend._
 
@@ -20,7 +22,6 @@ import scala.slick.jdbc.JdbcBackend._
 trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvider {
   this: ExecutionContextProvider =>
 
-
   val db: Database = Database.forConfig("persistence.jdbcProvider")
   implicit val sess = db.createSession()
 
@@ -29,8 +30,11 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
   private class JdbcStore extends Store {
 
+
     import io.vamp.core.persistence.slick.components.Components.instance._
     import io.vamp.core.persistence.slick.model.Implicits._
+
+    private val logger = Logger(LoggerFactory.getLogger(classOf[JdbcStoreProvider]))
 
     Components.instance.upgradeSchema
 
@@ -68,14 +72,16 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     def all(ofType: Class[_ <: Artifact]): List[_ <: Artifact] = {
       ofType match {
         case _ if ofType == classOf[Deployment] => Deployments.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[DefaultBlueprint] => DefaultBlueprints.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[GenericEscalation] => DefaultEscalations.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[DefaultFilter] => DefaultFilters.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[DefaultRouting] => DefaultRoutings.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[DefaultScale] => DefaultScales.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[GenericSla] => DefaultSlas.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[DefaultBreed] => DefaultBreeds.fetchAll.map(a => read(a.name, ofType).get)
-        case _ => throw exception(UnsupportedPersistenceRequest(ofType))
+        case _ if ofType == classOf[Blueprint] => DefaultBlueprints.fetchAll.map(a => read(a.name, ofType).get)
+        case _ if ofType == classOf[Escalation] => DefaultEscalations.fetchAll.map(a => read(a.name, ofType).get)
+        case _ if ofType == classOf[Filter] => DefaultFilters.fetchAll.map(a => read(a.name, ofType).get)
+        case _ if ofType == classOf[Routing] => DefaultRoutings.fetchAll.map(a => read(a.name, ofType).get)
+        case _ if ofType == classOf[Scale] => DefaultScales.fetchAll.map(a => read(a.name, ofType).get)
+        case _ if ofType == classOf[Sla] => DefaultSlas.fetchAll.map(a => read(a.name, ofType).get)
+        case _ if ofType == classOf[Breed] => DefaultBreeds.fetchAll.map(a => read(a.name, ofType).get)
+        case _ =>
+          logger.info(s"Unsupported Persistence Request - All - $ofType")
+          throw exception(UnsupportedPersistenceRequest(ofType))
       }
     }
 
@@ -226,7 +232,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         case a: DefaultBreed =>
           updateBreed(DefaultBreeds.findByName(a.name, deploymentId), a)
 
-        case _ => throw exception(UnsupportedPersistenceRequest(artifact.getClass))
+        case _ =>
+          logger.info(s"Unsupported Persistence Request - Update - ${artifact.getClass}")
+          throw exception(UnsupportedPersistenceRequest(artifact.getClass))
       }
       read(artifact.name, artifact.getClass).get
     }
@@ -380,7 +388,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
             case _ => None
           }
 
-        case _ if ofType == classOf[DefaultBlueprint] =>
+        case _ if ofType == classOf[DefaultBlueprint] || ofType == classOf[Blueprint] =>
           DefaultBlueprints.findOptionByName(name, defaultDeploymentId) match {
             case Some(b) => Some(
               DefaultBlueprint(
@@ -393,14 +401,14 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
             case None => None
           }
 
-        case _ if ofType == classOf[GenericEscalation] =>
+        case _ if ofType == classOf[GenericEscalation] || ofType == classOf[Escalation]=>
           DefaultEscalations.findOptionByName(name, defaultDeploymentId) match {
             case Some(e) =>
               Some(GenericEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), `type` = e.escalationType, parameters = parametersToArtifact(e.parameters)))
             case None => None
           }
 
-        case _ if ofType == classOf[DefaultFilter] =>
+        case _ if ofType == classOf[DefaultFilter] || ofType == classOf[Filter]=>
           DefaultFilters.findOptionByName(name, defaultDeploymentId).map(a => a)
 
         case _ if ofType == classOf[DefaultRouting] =>
@@ -408,23 +416,25 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
             case Some(r) => Some(defaultRoutingModel2Artifact(r))
             case None => None
           }
-        case _ if ofType == classOf[DefaultScale] =>
+        case _ if ofType == classOf[DefaultScale] || ofType == classOf[Scale]=>
           DefaultScales.findOptionByName(name, defaultDeploymentId).map(a => a)
 
-        case _ if ofType == classOf[GenericSla] =>
+        case _ if ofType == classOf[GenericSla] || ofType == classOf[Sla]=>
           DefaultSlas.findOptionByName(name, defaultDeploymentId) match {
             case Some(s) =>
               Some(GenericSla(name = VampPersistenceUtil.restoreToAnonymous(s.name, s.isAnonymous), `type` = s.slaType, escalations = escalations2Artifacts(s.escalationReferences), parameters = parametersToArtifact(s.parameters)))
             case None => None
           }
 
-        case _ if ofType == classOf[DefaultBreed] =>
+        case _ if ofType == classOf[DefaultBreed] || ofType == classOf[Breed]  =>
           DefaultBreeds.findOptionByName(name, defaultDeploymentId) match {
             case Some(b) => Some(defaultBreedModel2DefaultBreedArtifact(b))
             case None => None
           }
 
-        case _ => throw exception(UnsupportedPersistenceRequest(ofType))
+        case _ =>
+          logger.info(s"Unsupported Persistence Request - Read - $ofType")
+          throw exception(UnsupportedPersistenceRequest(ofType))
       }
     }
 
@@ -652,33 +662,40 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           createTraitNameParameters(a.parameters, Some(deploymentId), TraitParameterParentType.Deployment)
           Deployments.findById(deploymentId).name
 
-        case a: DefaultBlueprint =>
-          val deploymentId: Option[Int] = None
-          val blueprintId = DefaultBlueprints.add(DeploymentDefaultBlueprint(deploymentId, a))
-          createBlueprintClusters(a.clusters, blueprintId, deploymentId)
-          createPorts(ports = a.endpoints, parentId = Some(blueprintId), parentType = Some(PortParentType.BlueprintEndpoint))
-          createTraitNameParameters(a.parameters, Some(blueprintId), TraitParameterParentType.Blueprint)
-          DefaultBlueprints.findById(blueprintId).name
+        case art: Blueprint => art match {
+          case a: DefaultBlueprint =>
+            val deploymentId: Option[Int] = None
+            val blueprintId = DefaultBlueprints.add(DeploymentDefaultBlueprint(deploymentId, a))
+            createBlueprintClusters(a.clusters, blueprintId, deploymentId)
+            createPorts(ports = a.endpoints, parentId = Some(blueprintId), parentType = Some(PortParentType.BlueprintEndpoint))
+            createTraitNameParameters(a.parameters, Some(blueprintId), TraitParameterParentType.Blueprint)
+            DefaultBlueprints.findById(blueprintId).name
+        }
 
-        case a: GenericEscalation =>
-          createEscalationFromArtifact(DeploymentDefaultEscalation(None, a)).name
+        case art: Escalation => art match {
+          case a: GenericEscalation => createEscalationFromArtifact(DeploymentDefaultEscalation(None, a)).name
+        }
 
-        case a: DefaultFilter =>
-          DefaultFilters.findById(DefaultFilters.add(DeploymentDefaultFilter(None, a))).name
+        case art: Filter => art match {
+          case a: DefaultFilter => DefaultFilters.findById(DefaultFilters.add(DeploymentDefaultFilter(None, a))).name
 
-        case a: DefaultRouting =>
-          createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(None, a)).name
+        }
+        case art: Routing => art match {
+          case a: DefaultRouting => createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(None, a)).name
+        }
+        case art: Scale => art match {
+          case a: DefaultScale => createDefaultScaleModelFromArtifact(DeploymentDefaultScale(None, a)).name
+        }
+        case art: Sla => art match {
+          case a: GenericSla => createDefaultSlaModelFromArtifact(DeploymentDefaultSla(None, a)).name
+        }
+        case art: Breed => art match {
+          case a: DefaultBreed => createOrUpdateBreed(DeploymentDefaultBreed(None, a)).name
+        }
 
-        case a: DefaultScale =>
-          createDefaultScaleModelFromArtifact(DeploymentDefaultScale(None, a)).name
-
-        case a: GenericSla =>
-          createDefaultSlaModelFromArtifact(DeploymentDefaultSla(None, a)).name
-
-        case a: DefaultBreed =>
-          createOrUpdateBreed(DeploymentDefaultBreed(None, a)).name
-
-        case _ => throw exception(UnsupportedPersistenceRequest(artifact.getClass))
+        case _ =>
+          logger.info(s"Unsupported Persistence Request - Add - ${artifact.getClass}")
+          throw exception(UnsupportedPersistenceRequest(artifact.getClass))
       }
       readToArtifact(nameOfArtifact, artifact.getClass) match {
         case Some(result) => result
@@ -857,7 +874,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
             case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
           }
 
-        case _ => throw exception(UnsupportedPersistenceRequest(artifact.getClass))
+        case _ =>
+          logger.info(s"Unsupported Persistence Request - Delete - ${artifact.getClass}")
+          throw exception(UnsupportedPersistenceRequest(artifact.getClass))
       }
     }
 
