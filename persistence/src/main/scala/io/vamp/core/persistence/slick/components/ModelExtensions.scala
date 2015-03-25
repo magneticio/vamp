@@ -10,11 +10,11 @@ with DeploymentServerExtensions
 with BlueprintReferenceExtensions
 with ClusterExtensions
 with DefaultBlueprintExtensions
-with DefaultEscalationExtensions
+with GenericEscalationExtensions
 with DefaultFilterExtensions
 with DefaultRoutingExtensions
 with DefaultScaleExtensions
-with DefaultSlaExtensions
+with GenericSlaExtensions
 with EscalationReferenceExtensions
 with FilterReferenceExtensions
 with RoutingReferenceExtensions

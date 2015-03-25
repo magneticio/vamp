@@ -20,9 +20,9 @@ trait SchemaBreed extends Logging with VampSchema {
   import jdbcDriver.simple._
 
   val SlaReferences = DeployableNameEntityTableQuery[SlaReferenceModel, SlaReferenceTable](tag => new SlaReferenceTable(tag))
-  val DefaultSlas = AnonymousNameableEntityTableQuery[DefaultSlaModel, DefaultSlaTable](tag => new DefaultSlaTable(tag))
+  val GenericSlas = AnonymousNameableEntityTableQuery[GenericSlaModel, GenericSlaTable](tag => new GenericSlaTable(tag))
   val EscalationReferences = DeployableNameEntityTableQuery[EscalationReferenceModel, EscalationReferenceTable](tag => new EscalationReferenceTable(tag))
-  val DefaultEscalations = AnonymousNameableEntityTableQuery[DefaultEscalationModel, DefaultEscalationTable](tag => new DefaultEscalationTable(tag))
+  val GenericEscalations = AnonymousNameableEntityTableQuery[GenericEscalationModel, GenericEscalationTable](tag => new GenericEscalationTable(tag))
   val ScaleReferences = DeployableNameEntityTableQuery[ScaleReferenceModel, ScaleReferenceTable](tag => new ScaleReferenceTable(tag))
   val DefaultScales = AnonymousNameableEntityTableQuery[DefaultScaleModel, DefaultScaleTable](tag => new DefaultScaleTable(tag))
   val RoutingReferences = DeployableNameEntityTableQuery[RoutingReferenceModel, RoutingReferenceTable](tag => new RoutingReferenceTable(tag))
@@ -51,8 +51,8 @@ trait SchemaBreed extends Logging with VampSchema {
     def deployment = foreignKey("sla_reference_deployment_fk", deploymentId, Deployments)(_.id)
   }
 
-  class DefaultSlaTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultSlaModel](tag, "default_slas") {
-    def * = (deploymentId, name, slaType, id.?, isAnonymous) <>(DefaultSlaModel.tupled, DefaultSlaModel.unapply)
+  class GenericSlaTable(tag: Tag) extends AnonymousNameableEntityTable[GenericSlaModel](tag, "generic_slas") {
+    def * = (deploymentId, name, slaType, id.?, isAnonymous) <>(GenericSlaModel.tupled, GenericSlaModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -64,9 +64,9 @@ trait SchemaBreed extends Logging with VampSchema {
 
     def name = column[String]("name")
 
-    def idx = index("idx_default_sla", (name, deploymentId), unique = true)
+    def idx = index("idx_generic_sla", (name, deploymentId), unique = true)
 
-    def deployment = foreignKey("default_sla_deployment_fk", deploymentId, Deployments)(_.id)
+    def deployment = foreignKey("generic_sla_deployment_fk", deploymentId, Deployments)(_.id)
   }
 
   class EscalationReferenceTable(tag: Tag) extends DeployableEntityTable[EscalationReferenceModel](tag, "escalation_references") {
@@ -86,15 +86,15 @@ trait SchemaBreed extends Logging with VampSchema {
 
     def idx = index("idx_escalation_references", (name, slaId, slaRefId, deploymentId), unique = true)
 
-    def sla = foreignKey("escalation_sla_fk", slaId, DefaultSlas)(_.id)
+    def sla = foreignKey("escalation_sla_fk", slaId, GenericSlas)(_.id)
 
     def slaRef = foreignKey("escalation_sla_reference_fk", slaRefId, SlaReferences)(_.id)
 
     def deployment = foreignKey("escalation_reference_deployment_fk", deploymentId, Deployments)(_.id)
   }
 
-  class DefaultEscalationTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultEscalationModel](tag, "default_escalations") {
-    def * = (deploymentId, name, escalationType, id.?, isAnonymous) <>(DefaultEscalationModel.tupled, DefaultEscalationModel.unapply)
+  class GenericEscalationTable(tag: Tag) extends AnonymousNameableEntityTable[GenericEscalationModel](tag, "generic_escalations") {
+    def * = (deploymentId, name, escalationType, id.?, isAnonymous) <>(GenericEscalationModel.tupled, GenericEscalationModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -102,13 +102,13 @@ trait SchemaBreed extends Logging with VampSchema {
 
     def isAnonymous = column[Boolean]("anonymous")
 
-    def idx = index("idx_default_escalation", (name, deploymentId), unique = true)
+    def idx = index("idx_generic_escalation", (name, deploymentId), unique = true)
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
     def name = column[String]("name")
 
-    def deployment = foreignKey("default_escalation_deployment_fk", deploymentId, Deployments)(_.id)
+    def deployment = foreignKey("generic_escalation_deployment_fk", deploymentId, Deployments)(_.id)
   }
 
   class ScaleReferenceTable(tag: Tag) extends DeployableEntityTable[ScaleReferenceModel](tag, "scale_references") {
