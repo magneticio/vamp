@@ -89,7 +89,7 @@ object Implicits {
       case DeploymentStateType.ReadyForDeployment => ReadyForDeployment(startedAt = deploymentService.deploymentTime)
       case DeploymentStateType.Deployed => Deployed(startedAt = deploymentService.deploymentTime)
       case DeploymentStateType.ReadyForUndeployment => ReadyForUndeployment(startedAt = deploymentService.deploymentTime)
-      case DeploymentStateType.Error => Error(startedAt = deploymentService.deploymentTime, notification = PersistenceOperationFailure(deploymentService.message)) //TODO Fix: Wrapping the notification in a default Notifcation for now
+      case DeploymentStateType.Error => Error(startedAt = deploymentService.deploymentTime, notification = PersistenceOperationFailure(deploymentService.message))
     }
 
   val parameterTypeMap = Map(
