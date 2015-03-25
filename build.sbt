@@ -87,13 +87,10 @@ libraryDependencies in ThisBuild ++= Seq(
   "org.scalatest" %% "scalatest" % scalatestVersion
 )
 
-
-
 // Sub-project dependency versions
 val configVersion = "1.2.1"
 val snakeyamlVersion = "1.14"
 val h2Version = "1.3.166"
-val slf4jNopVersion = "1.6.4"
 val slickVersion = "2.1.0"
 val activeSlickVersion = "0.2.2"
 val postgresVersion = "9.1-901.jdbc4"
@@ -121,7 +118,6 @@ lazy val root = project.in(file(".")).settings(
 lazy val persistence = project.settings(
   libraryDependencies ++=Seq(
     "com.h2database" % "h2" % h2Version,
-    "org.slf4j" % "slf4j-nop" % slf4jNopVersion,
     "com.typesafe.slick" %% "slick" % slickVersion,
     "io.strongtyped" %% "active-slick" % activeSlickVersion,
     "postgresql" % "postgresql" % postgresVersion
