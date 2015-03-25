@@ -634,7 +634,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
               routing = routingId,
               deploymentState = service.state,
               deploymentTime = service.state.startedAt,
-              message = None) // //TODO message is ignored for now
+              message = None)
           )
           for (dep <- service.dependencies) DeploymentServiceDependencies.add(DeploymentServiceDependencyModel(name = dep._1, value = dep._2, serviceId = serviceId))
           for (server <- service.servers) {
