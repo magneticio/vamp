@@ -69,6 +69,13 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       secondArtifact = TestData.escalation5)
   }
 
+  it should "CRUD scaling escalations" in {
+    performCrudTest(
+      firstArtifact = TestData.escalation7,
+      updatedFirstArtifact = TestData.escalation7Updated,
+      secondArtifact = TestData.escalation8)
+  }
+
   it should "CRUD sla without escalations or parameters" in {
     performCrudTest(
       firstArtifact = TestData.sla1,
@@ -153,7 +160,7 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
     jdbcStore.all(classOf[GenericSla]) shouldBe List.empty
     jdbcStore.all(classOf[Deployment]) shouldBe List.empty
 
-    totalNumberOfRowsInDB shouldBe 1  // There is always a row in the vamp meta data table
+    totalNumberOfRowsInDB shouldBe 1 // There is always a row in the vamp meta data table
   }
 
 

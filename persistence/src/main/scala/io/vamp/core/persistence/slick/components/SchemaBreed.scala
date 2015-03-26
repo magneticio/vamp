@@ -103,7 +103,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class GenericEscalationTable(tag: Tag) extends AnonymousNameableEntityTable[GenericEscalationModel](tag, "generic_escalations") {
-    def * = (deploymentId, name, escalationType, id.?, isAnonymous) <>(GenericEscalationModel.tupled, GenericEscalationModel.unapply)
+    def * = (deploymentId, name, escalationType, minimumInt, maximumInt, scaleByInt, minimumDouble, maximumDouble, scaleByDouble, targetCluster, id.?, isAnonymous) <>(GenericEscalationModel.tupled, GenericEscalationModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -116,6 +116,20 @@ trait SchemaBreed extends Logging with VampSchema {
     def deploymentId = column[Option[Int]]("deployment_fk")
 
     def name = column[String]("name")
+
+    def minimumInt = column[Option[Int]]("minimum_int")
+
+    def maximumInt = column[Option[Int]]("maximum_int")
+
+    def scaleByInt = column[Option[Int]]("scale_by_int")
+
+    def minimumDouble = column[Option[Double]]("minimum_double")
+
+    def maximumDouble = column[Option[Double]]("maximum_double")
+
+    def scaleByDouble = column[Option[Double]]("scale_by_double")
+
+    def targetCluster = column[Option[String]]("target_cluster")
 
     def deployment = foreignKey("generic_escalation_deployment_fk", deploymentId, Deployments)(_.id)
   }

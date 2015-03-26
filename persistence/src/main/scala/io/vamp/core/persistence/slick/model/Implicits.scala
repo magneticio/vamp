@@ -125,8 +125,33 @@ object Implicits {
   implicit def defaultBlueprint2Model(a: DeploymentDefaultBlueprint): DefaultBlueprintModel =
     DefaultBlueprintModel(deploymentId = a.deploymentId, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-  implicit def genericEscalation2Model(a: DeploymentGenericEscalation): GenericEscalationModel =
-    GenericEscalationModel(deploymentId = a.deploymentId, name = a.artifact.name, escalationType = a.artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+  implicit def genericEscalation2Model(a: DeploymentGenericEscalation): GenericEscalationModel = a.artifact match {
+    //TODO check this
+    case artifact: GenericEscalation =>
+      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+
+    case artifact: ScaleInstancesEscalation =>
+      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = "scale_instances",
+        minimumInt = Some(artifact.minimum), maximumInt = Some(artifact.maximum), scaleByInt = Some(artifact.scaleBy), targetCluster = artifact.targetCluster,
+        isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+
+    case artifact: ScaleCpuEscalation =>
+      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = "scale_cpu",
+        minimumDouble = Some(artifact.minimum), maximumDouble = Some(artifact.maximum), scaleByDouble = Some(artifact.scaleBy), targetCluster = artifact.targetCluster,
+        isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+
+    case artifact: ScaleMemoryEscalation =>
+      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = "scale_memory",
+        minimumDouble = Some(artifact.minimum), maximumDouble = Some(artifact.maximum), scaleByDouble = Some(artifact.scaleBy), targetCluster = artifact.targetCluster,
+        isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+
+    case artifact: ToAllEscalation =>
+      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = "to_all", isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+
+    case artifact: ToOneEscalation =>
+      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = "to_one", isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+  }
+
 
   implicit def defaultFilterModel2Artifact(m: DefaultFilterModel): DefaultFilter =
     DefaultFilter(name = VampPersistenceUtil.restoreToAnonymous(m.name, m.isAnonymous), condition = m.condition)
