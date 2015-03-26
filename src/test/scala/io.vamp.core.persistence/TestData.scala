@@ -1,7 +1,11 @@
 package io.vamp.core.persistence
 
+import java.util.concurrent.TimeUnit
+
 import io.vamp.core.model.artifact.DeploymentService.Deployed
 import io.vamp.core.model.artifact._
+
+import scala.concurrent.duration.FiniteDuration
 
 /**
  * Testdata
@@ -77,6 +81,16 @@ object TestData {
   val sla1 = GenericSla(name = "sla1", `type` = "aType", escalations = List.empty, parameters = Map.empty)
   val sla1Updated = sla1.copy(`type` = "aType-updated", escalations = List.empty, parameters = Map.empty)
   val sla2 = GenericSla(name = "sla2", `type` = "aType", escalations = List.empty, parameters = Map.empty)
+
+  val sla7 = EscalationOnlySla(name = "sla7", escalations = List.empty)
+  val sla7Updated = sla7.copy(escalations = List(GenericEscalation(name = "sla7-escalation", `type` = "my-type7", parameters = Map.empty)))
+  val sla8 = ResponseTimeSlidingWindowSla(name = "sla8",
+    upper = FiniteDuration(length=1, unit = TimeUnit.HOURS),
+    lower = FiniteDuration(length=10, unit = TimeUnit.MINUTES),
+    interval = FiniteDuration(length=5, unit = TimeUnit.SECONDS),
+    cooldown = FiniteDuration(length=15, unit = TimeUnit.MILLISECONDS),
+    escalations = List.empty)
+
 
   val escalation1 = GenericEscalation(name = "escalation1", `type` = "my-type", parameters = Map.empty)
   val escalation1Updated = escalation1.copy(`type` = "my-other-type", parameters = Map.empty)

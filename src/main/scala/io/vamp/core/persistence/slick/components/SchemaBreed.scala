@@ -10,6 +10,7 @@ import io.vamp.core.persistence.slick.model.PortParentType.PortParentType
 import io.vamp.core.persistence.slick.model.PortType.PortType
 import io.vamp.core.persistence.slick.model._
 
+import scala.concurrent.duration.FiniteDuration
 import scala.language.implicitConversions
 import scala.slick.util.Logging
 
@@ -52,7 +53,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class GenericSlaTable(tag: Tag) extends AnonymousNameableEntityTable[GenericSlaModel](tag, "generic_slas") {
-    def * = (deploymentId, name, slaType, id.?, isAnonymous) <>(GenericSlaModel.tupled, GenericSlaModel.unapply)
+    def * = (deploymentId, name, slaType, id.?, upper, lower, interval, cooldown, isAnonymous) <>(GenericSlaModel.tupled, GenericSlaModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -63,6 +64,14 @@ trait SchemaBreed extends Logging with VampSchema {
     def isAnonymous = column[Boolean]("anonymous")
 
     def name = column[String]("name")
+
+    def upper = column[Option[FiniteDuration]]("upper")
+
+    def lower = column[Option[FiniteDuration]]("lower")
+
+    def interval = column[Option[FiniteDuration]]("interval")
+
+    def cooldown = column[Option[FiniteDuration]]("cooldown")
 
     def idx = index("idx_generic_sla", (name, deploymentId), unique = true)
 
