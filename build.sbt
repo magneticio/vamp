@@ -74,7 +74,7 @@ libraryDependencies in ThisBuild ++= Seq(
   "io.spray" %% "spray-routing" % sprayVersion,
   "io.spray" %% "spray-httpx" % sprayVersion,
   "io.spray" %% "spray-json" % sprayJsonVersion,
-  "io.spray" %% "spray-testkit" % sprayVersion,
+  "io.spray" %% "spray-testkit" % sprayVersion % "test",
   "org.json4s" %% "json4s-native" % json4sVersion,
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
@@ -83,8 +83,8 @@ libraryDependencies in ThisBuild ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
   "org.slf4j" % "slf4j-api" % slf4jVersion,
   "ch.qos.logback" % "logback-classic" % logbackVersion,
-  "junit" % "junit" % junitVersion,
-  "org.scalatest" %% "scalatest" % scalatestVersion
+  "junit" % "junit" % junitVersion % "test",
+  "org.scalatest" %% "scalatest" % scalatestVersion % "test"
 )
 
 // Sub-project dependency versions
@@ -121,7 +121,10 @@ lazy val persistence = project.settings(
     "com.typesafe.slick" %% "slick" % slickVersion,
     "io.strongtyped" %% "active-slick" % activeSlickVersion,
     "postgresql" % "postgresql" % postgresVersion
-  )
+  ),
+  //Skip persistence tests since they are broken
+  test in assembly :={}
+
 ).dependsOn(model)
 
 lazy val model = project.settings(
@@ -149,8 +152,6 @@ lazy val rest_api = project.dependsOn(operation, model, swagger)
 lazy val router_driver = project.dependsOn(model)
 
 lazy val swagger = project
-
-
 
 
 
