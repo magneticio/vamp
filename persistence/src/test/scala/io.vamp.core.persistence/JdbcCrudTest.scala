@@ -83,6 +83,14 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       secondArtifact = TestData.sla5)
   }
 
+  it should "CRUD sla with actual types" in {
+    performCrudTest(
+      firstArtifact = TestData.sla7,
+      updatedFirstArtifact = TestData.sla7Updated,
+      secondArtifact = TestData.sla8)
+  }
+
+
   it should "CRUD blueprint-minimal with simple service" in {
     performCrudTest(
       firstArtifact = TestData.blueprintMinimal,
@@ -132,6 +140,7 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
     jdbcStore.delete("route4", classOf[DefaultRouting])
     jdbcStore.delete("my-scale", classOf[DefaultScale])
     jdbcStore.delete("my-scale2", classOf[DefaultScale])
+    jdbcStore.delete("sla7-escalation", classOf[GenericEscalation])
   }
 
   it should "prove all tables are empty" in {
@@ -158,7 +167,7 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
     jdbcStore.read(firstArtifact.name, firstArtifact.getClass) shouldBe Some(updatedFirstArtifact)
 
     // Read non-existing artifact
-    jdbcStore.read(secondArtifact.name, firstArtifact.getClass) shouldBe None
+    jdbcStore.read(secondArtifact.name, secondArtifact.getClass) shouldBe None
 
     // Update non-existing artifact
     jdbcStore.update(secondArtifact, create = true) shouldBe secondArtifact

@@ -22,7 +22,7 @@ trait DeploymentExtensions {
       for {r <- DeploymentClusters.fetchAllFromDeployment(model.id) if r.deploymentId == model.id} yield r
 
     def endpoints(implicit session: JdbcBackend#Session): List[PortModel] =
-      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.Deployment)} yield r
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType.contains(PortParentType.Deployment)} yield r
 
   }
 
@@ -110,17 +110,17 @@ trait DefaultBlueprintExtensions {
       for {r <- Clusters.fetchAllFromDeployment(model.deploymentId) if r.blueprintId == model.id.get} yield r
 
     def endpoints(implicit session: JdbcBackend#Session): List[PortModel] =
-      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.BlueprintEndpoint)} yield r
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType.contains(PortParentType.BlueprintEndpoint)} yield r
 
   }
 
 }
 
-trait DefaultEscalationExtensions {
+trait GenericEscalationExtensions {
   this: VampActiveSlick with ModelExtensions =>
 
-  implicit class DefaultEscalationExtensions(val model: DefaultEscalationModel) extends ActiveRecord[DefaultEscalationModel] {
-    override def table = DefaultEscalations
+  implicit class GenericEscalationExtensions(val model: GenericEscalationModel) extends ActiveRecord[GenericEscalationModel] {
+    override def table = GenericEscalations
 
     def parameters(implicit session: JdbcBackend#Session): List[ParameterModel] =
       for {r <- Parameters.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id.get && r.parentType == ParameterParentType.Escalation} yield r
@@ -158,17 +158,17 @@ trait DefaultScaleExtensions {
 
 }
 
-trait DefaultSlaExtensions {
+trait GenericSlaExtensions {
   this: VampActiveSlick with ModelExtensions =>
 
-  implicit class DefaultSlaExtensions(val model: DefaultSlaModel) extends ActiveRecord[DefaultSlaModel] {
-    override def table = DefaultSlas
+  implicit class GenericSlaExtensions(val model: GenericSlaModel) extends ActiveRecord[GenericSlaModel] {
+    override def table = GenericSlas
 
     def parameters(implicit session: JdbcBackend#Session): List[ParameterModel] =
       for {r <- Parameters.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id.get && r.parentType == ParameterParentType.Sla} yield r
 
     def escalationReferences(implicit session: JdbcBackend#Session): List[EscalationReferenceModel] =
-      for {r <- EscalationReferences.fetchAllFromDeployment(model.deploymentId) if r.slaId.get == model.id.get} yield r
+      for {r <- EscalationReferences.fetchAllFromDeployment(model.deploymentId) if r.slaId == model.id} yield r
 
   }
 
@@ -227,7 +227,7 @@ trait SlaReferenceExtensions {
     override def table = SlaReferences
 
     def escalationReferences(implicit session: JdbcBackend#Session): List[EscalationReferenceModel] =
-      for {r <- EscalationReferences.fetchAllFromDeployment(model.deploymentId) if r.slaRefId.get == model.id.get} yield r
+      for {r <- EscalationReferences.fetchAllFromDeployment(model.deploymentId) if r.slaRefId == model.id} yield r
   }
 
 }
@@ -239,10 +239,10 @@ trait DefaultBreedExtensions {
     override def table = DefaultBreeds
 
     def environmentVariables(implicit session: JdbcBackend#Session): List[EnvironmentVariableModel] =
-      for {r <- EnvironmentVariables.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id && r.parentType == Some(EnvironmentVariableParentType.Breed)} yield r
+      for {r <- EnvironmentVariables.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id && r.parentType.contains(EnvironmentVariableParentType.Breed)} yield r
 
     def ports(implicit session: JdbcBackend#Session): List[PortModel] =
-      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType == Some(PortParentType.Breed)} yield r
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType.contains(PortParentType.Breed)} yield r
 
     def dependencies(implicit session: JdbcBackend#Session): List[DependencyModel] =
       for {r <- Dependencies.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id.get} yield r

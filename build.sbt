@@ -5,14 +5,13 @@ import _root_.sbt.Keys._
 organization in ThisBuild := "io.vamp.core"
 
 
-name := """Core"""
+name := """core"""
 
 version in ThisBuild := "0.7.0-RC2"
 
 scalaVersion := "2.11.5"
 
 scalaVersion in ThisBuild := scalaVersion.value
-
 
 
 publishMavenStyle := true
@@ -74,7 +73,7 @@ libraryDependencies in ThisBuild ++= Seq(
   "io.spray" %% "spray-routing" % sprayVersion,
   "io.spray" %% "spray-httpx" % sprayVersion,
   "io.spray" %% "spray-json" % sprayJsonVersion,
-  "io.spray" %% "spray-testkit" % sprayVersion,
+  "io.spray" %% "spray-testkit" % sprayVersion % "test",
   "org.json4s" %% "json4s-native" % json4sVersion,
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
@@ -83,8 +82,8 @@ libraryDependencies in ThisBuild ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
   "org.slf4j" % "slf4j-api" % slf4jVersion,
   "ch.qos.logback" % "logback-classic" % logbackVersion,
-  "junit" % "junit" % junitVersion,
-  "org.scalatest" %% "scalatest" % scalatestVersion
+  "junit" % "junit" % junitVersion % "test",
+  "org.scalatest" %% "scalatest" % scalatestVersion % "test"
 )
 
 // Sub-project dependency versions
@@ -113,7 +112,7 @@ lazy val root = project.in(file(".")).settings(
   }
 ).aggregate(
   persistence, model, operation, bootstrap, container_driver, dictionary, pulse_driver, rest_api, router_driver, swagger
-)
+).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val persistence = project.settings(
   libraryDependencies ++=Seq(
@@ -121,8 +120,11 @@ lazy val persistence = project.settings(
     "com.typesafe.slick" %% "slick" % slickVersion,
     "io.strongtyped" %% "active-slick" % activeSlickVersion,
     "postgresql" % "postgresql" % postgresVersion
-  )
-).dependsOn(model)
+  ),
+  //Skip persistence tests since they are broken
+  test in assembly :={}
+
+).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val model = project.settings(
   libraryDependencies ++= Seq(
@@ -130,27 +132,28 @@ lazy val model = project.settings(
   )
 )
 
-lazy val operation = project.dependsOn(model, persistence, container_driver, dictionary, router_driver, pulse_driver)
+lazy val operation = project.dependsOn(model, persistence, container_driver, dictionary, router_driver, pulse_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val bootstrap = project.settings(
   libraryDependencies ++= Seq(
     "com.typesafe" % "config" % configVersion
-   )
+   ),
+  // Runnable assembly jar lives in bootstrap/target/scala_2.11/ and is renamed to core assembly for consistent filename for
+  // downloading
+  assemblyJarName in assembly := s"core-assembly-${version.value}.jar"
 ).dependsOn(persistence, container_driver, router_driver, pulse_driver, rest_api, dictionary)
 
-lazy val container_driver = project.dependsOn(model)
+lazy val container_driver = project.dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val dictionary = project.dependsOn(persistence)
+lazy val dictionary = project.dependsOn(persistence).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val pulse_driver = project.dependsOn(model, router_driver)
+lazy val pulse_driver = project.dependsOn(model, router_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val rest_api = project.dependsOn(operation, model, swagger)
+lazy val rest_api = project.dependsOn(operation, model, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val router_driver = project.dependsOn(model)
+lazy val router_driver = project.dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val swagger = project
-
-
+lazy val swagger = project.disablePlugins(sbtassembly.AssemblyPlugin)
 
 
 

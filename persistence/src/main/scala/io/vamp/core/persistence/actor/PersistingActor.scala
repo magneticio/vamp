@@ -71,6 +71,8 @@ trait PersistingActor extends Actor with ActorLogging with ReplyActor with Futur
       case Some(blueprint: DefaultBlueprint) => Some(blueprint.copy(clusters = expandClusters(blueprint.clusters)))
       case Some(breed: DefaultBreed) => Some(breed.copy(dependencies = expandDependencies(breed.dependencies)))
       case Some(sla: GenericSla) => Some(sla.copy(escalations = expandEscalations(sla.escalations)))
+      case Some(sla: EscalationOnlySla) => Some(sla.copy(escalations = expandEscalations(sla.escalations)))
+      case Some(sla: ResponseTimeSlidingWindowSla) => Some(sla.copy(escalations = expandEscalations(sla.escalations)))
       case Some(routing: DefaultRouting) => Some(routing.copy(filters = expandFilters(routing.filters)))
       case Some(escalation: GenericEscalation) => Some(escalation)
       case Some(filter: DefaultFilter) => Some(filter)
@@ -83,6 +85,8 @@ trait PersistingActor extends Actor with ActorLogging with ReplyActor with Futur
       cluster.copy(services = expandServices(cluster.services),
         sla = cluster.sla match {
           case Some(sla: GenericSla) => Some(sla)
+          case Some(sla: EscalationOnlySla) => Some(sla)
+          case Some(sla: ResponseTimeSlidingWindowSla) => Some(sla)
           case Some(sla: SlaReference) => readDefaultArtifact(sla.name, classOf[GenericSla]) match {
             case Some(slaDefault: GenericSla) => Some(slaDefault.copy(escalations = sla.escalations)) //Copy the escalations from the reference
             case _ => throw exception(ArtifactNotFound(sla.name, classOf[GenericSla]))
@@ -115,7 +119,7 @@ trait PersistingActor extends Actor with ActorLogging with ReplyActor with Futur
       )
     )
 
-  private def replaceBreed(breed: Breed) : DefaultBreed = breed match {
+  private def replaceBreed(breed: Breed): DefaultBreed = breed match {
     case defaultBreed: DefaultBreed => defaultBreed
     case breedReference: BreedReference => readExpandedArtifact(breedReference.name, classOf[DefaultBreed]) match {
       case Some(defaultBreed: DefaultBreed) => defaultBreed

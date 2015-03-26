@@ -15,6 +15,8 @@ import io.vamp.core.persistence.slick.model.PortType.PortType
 import io.vamp.core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
 import io.vamp.core.persistence.slick.util.VampPersistenceUtil
 
+import scala.concurrent.duration.FiniteDuration
+
 trait VampPersistenceModel[E <: io.strongtyped.active.slick.models.Identifiable[E]] extends Identifiable[E] {
   type Id = Int // Default is using Int as our id column type
 }
@@ -51,20 +53,23 @@ case class SlaReferenceModel(deploymentId: Option[Int], name: String, id: Option
   override def withId(id: Id): SlaReferenceModel = copy(id = Option(id))
 }
 
-case class DefaultSlaModel(deploymentId: Option[Int], name: String, slaType: String, id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[DefaultSlaModel] {
-  override def withId(id: Id): DefaultSlaModel = copy(id = Option(id))
+case class GenericSlaModel(deploymentId: Option[Int], name: String, slaType: String, id: Option[Int] = None,
+                           upper: Option[FiniteDuration] = None, lower: Option[FiniteDuration] = None,
+                           interval: Option[FiniteDuration] = None, cooldown: Option[FiniteDuration] = None,
+                           isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[GenericSlaModel] {
+  override def withId(id: Id): GenericSlaModel = copy(id = Option(id))
 
-  override def withAnonymousName: DefaultSlaModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
+  override def withAnonymousName: GenericSlaModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
 }
 
 case class EscalationReferenceModel(deploymentId: Option[Int], name: String, slaId: Option[Int], slaRefId: Option[Int], id: Option[Int] = None, isDefinedInline: Boolean) extends VampDeployablePersistenceModel[EscalationReferenceModel] {
   override def withId(id: Id): EscalationReferenceModel = copy(id = Option(id))
 }
 
-case class DefaultEscalationModel(deploymentId: Option[Int], name: String, escalationType: String, id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[DefaultEscalationModel] {
-  override def withId(id: Id): DefaultEscalationModel = copy(id = Option(id))
+case class GenericEscalationModel(deploymentId: Option[Int], name: String, escalationType: String, id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[GenericEscalationModel] {
+  override def withId(id: Id): GenericEscalationModel = copy(id = Option(id))
 
-  override def withAnonymousName: DefaultEscalationModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
+  override def withAnonymousName: GenericEscalationModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
 }
 
 case class ScaleReferenceModel(deploymentId: Option[Int], name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampDeployablePersistenceModel[ScaleReferenceModel] {
@@ -164,11 +169,11 @@ case class ClusterRouteModel(id: Option[Int] = None, portIn: Int, portOut: Int, 
 
 case class DeploymentDefaultFilter(deploymentId: Option[Int], artifact: DefaultFilter)
 
-case class DeploymentDefaultSla(deploymentId: Option[Int], artifact: GenericSla)
+case class DeploymentGenericSla(deploymentId: Option[Int], artifact: Sla)
 
 case class DeploymentDefaultScale(deploymentId: Option[Int], artifact: DefaultScale)
 
-case class DeploymentDefaultEscalation(deploymentId: Option[Int], artifact: GenericEscalation)
+case class DeploymentGenericEscalation(deploymentId: Option[Int], artifact: GenericEscalation)
 
 case class DeploymentDefaultRouting(deploymentId: Option[Int], artifact: DefaultRouting)
 

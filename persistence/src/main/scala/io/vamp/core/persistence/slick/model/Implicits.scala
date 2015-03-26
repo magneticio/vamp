@@ -1,6 +1,7 @@
 package io.vamp.core.persistence.slick.model
 
 import java.time.OffsetDateTime
+import java.util.concurrent.TimeUnit
 
 import io.vamp.core.model.artifact.DeploymentService._
 import io.vamp.core.model.artifact.{Deployment, _}
@@ -14,6 +15,7 @@ import io.vamp.core.persistence.slick.model.PortType.PortType
 import io.vamp.core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
 import io.vamp.core.persistence.slick.util.VampPersistenceUtil
 
+import scala.concurrent.duration.FiniteDuration
 import scala.language.implicitConversions
 import scala.slick.driver.JdbcDriver.simple._
 
@@ -123,8 +125,8 @@ object Implicits {
   implicit def defaultBlueprint2Model(a: DeploymentDefaultBlueprint): DefaultBlueprintModel =
     DefaultBlueprintModel(deploymentId = a.deploymentId, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-  implicit def defaultEscalation2Model(a: DeploymentDefaultEscalation): DefaultEscalationModel =
-    DefaultEscalationModel(deploymentId = a.deploymentId, name = a.artifact.name, escalationType = a.artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+  implicit def genericEscalation2Model(a: DeploymentGenericEscalation): GenericEscalationModel =
+    GenericEscalationModel(deploymentId = a.deploymentId, name = a.artifact.name, escalationType = a.artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def defaultFilterModel2Artifact(m: DefaultFilterModel): DefaultFilter =
     DefaultFilter(name = VampPersistenceUtil.restoreToAnonymous(m.name, m.isAnonymous), condition = m.condition)
@@ -141,8 +143,17 @@ object Implicits {
   implicit def defaultScale2Model(a: DeploymentDefaultScale): DefaultScaleModel =
     DefaultScaleModel(deploymentId = a.deploymentId, cpu = a.artifact.cpu, memory = a.artifact.memory, instances = a.artifact.instances, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-  implicit def defaultSla2Model(a: DeploymentDefaultSla): DefaultSlaModel =
-    DefaultSlaModel(deploymentId = a.deploymentId, name = a.artifact.name, slaType = a.artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+  implicit def genericSla2Model(a: DeploymentGenericSla): GenericSlaModel = a.artifact match {
+    case artifact: EscalationOnlySla =>
+      GenericSlaModel(deploymentId = a.deploymentId, name = artifact.name, slaType = "escalation_only", isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+    case artifact: ResponseTimeSlidingWindowSla =>
+      GenericSlaModel(
+        deploymentId = a.deploymentId, name = a.artifact.name, slaType = "response_time_sliding_window",
+        upper = Some(artifact.upper), lower = Some(artifact.lower), interval = Some(artifact.interval), cooldown = Some(artifact.cooldown),
+        isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+    case artifact: GenericSla =>
+      GenericSlaModel(deploymentId = a.deploymentId, name = artifact.name, slaType = artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+  }
 
   implicit def defaultBreed2Model(a: DeploymentDefaultBreed): DefaultBreedModel =
     DefaultBreedModel(deploymentId = a.deploymentId, deployable = a.artifact.deployable.name, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
@@ -167,5 +178,12 @@ object Implicits {
   { s => s.toString }, { c => OffsetDateTime.parse(c) }
   )
 
+  implicit val finiteDurationColumnTypeMapper = MappedColumnType.base[FiniteDuration, String](
+  { fd => s"${fd.length}~${timeUnit2String(fd.unit)}" }, { s => new FiniteDuration(length = s.split("~")(0).toLong, unit = string2TimeUnit(s.split("~")(1))) }
+  )
+
+  implicit def timeUnit2String(tu: TimeUnit): String = tu.name() //timeUnitMap(tu)
+
+  implicit def string2TimeUnit(str: String): TimeUnit = TimeUnit.valueOf(str)
 
 }

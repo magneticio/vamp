@@ -1,5 +1,6 @@
 package io.vamp.core.persistence.store
 
+import com.typesafe.scalalogging.Logger
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.core.model.artifact.Trait.Name
 import io.vamp.core.model.artifact._
@@ -10,6 +11,7 @@ import io.vamp.core.persistence.slick.model.PortParentType.PortParentType
 import io.vamp.core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
 import io.vamp.core.persistence.slick.model._
 import io.vamp.core.persistence.slick.util.VampPersistenceUtil
+import org.slf4j.LoggerFactory
 
 import scala.slick.jdbc.JdbcBackend._
 
@@ -20,7 +22,6 @@ import scala.slick.jdbc.JdbcBackend._
 trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvider {
   this: ExecutionContextProvider =>
 
-
   val db: Database = Database.forConfig("persistence.jdbcProvider")
   implicit val sess = db.createSession()
 
@@ -29,8 +30,11 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
   private class JdbcStore extends Store {
 
+
     import io.vamp.core.persistence.slick.components.Components.instance._
     import io.vamp.core.persistence.slick.model.Implicits._
+
+    private val logger = Logger(LoggerFactory.getLogger(classOf[JdbcStoreProvider]))
 
     Components.instance.upgradeSchema
 
@@ -68,14 +72,16 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     def all(ofType: Class[_ <: Artifact]): List[_ <: Artifact] = {
       ofType match {
         case _ if ofType == classOf[Deployment] => Deployments.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[DefaultBlueprint] => DefaultBlueprints.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[GenericEscalation] => DefaultEscalations.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[DefaultFilter] => DefaultFilters.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[DefaultRouting] => DefaultRoutings.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[DefaultScale] => DefaultScales.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[GenericSla] => DefaultSlas.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[DefaultBreed] => DefaultBreeds.fetchAll.map(a => read(a.name, ofType).get)
-        case _ => throw exception(UnsupportedPersistenceRequest(ofType))
+        case _ if ofType == classOf[DefaultBlueprint] || ofType == classOf[Blueprint] => DefaultBlueprints.fetchAll.map(a => read(a.name, classOf[DefaultBlueprint]).get)
+        case _ if ofType == classOf[GenericEscalation] || ofType == classOf[Escalation] => GenericEscalations.fetchAll.map(a => read(a.name, classOf[GenericEscalation]).get)
+        case _ if ofType == classOf[DefaultFilter] || ofType == classOf[Filter] => DefaultFilters.fetchAll.map(a => read(a.name, classOf[DefaultFilter]).get)
+        case _ if ofType == classOf[DefaultRouting] || ofType == classOf[Routing] => DefaultRoutings.fetchAll.map(a => read(a.name, classOf[DefaultRouting]).get)
+        case _ if ofType == classOf[DefaultScale] || ofType == classOf[Scale] => DefaultScales.fetchAll.map(a => read(a.name, classOf[DefaultScale]).get)
+        case _ if ofType == classOf[GenericSla] || ofType == classOf[EscalationOnlySla] || ofType == classOf[ResponseTimeSlidingWindowSla] || ofType == classOf[Sla] => GenericSlas.fetchAll.map(a => read(a.name, classOf[GenericSla]).get)
+        case _ if ofType == classOf[DefaultBreed] || ofType == classOf[Breed] => DefaultBreeds.fetchAll.map(a => read(a.name, classOf[DefaultBreed]).get)
+        case _ =>
+          logger.info(s"Unsupported Persistence Request - All - $ofType")
+          throw exception(UnsupportedPersistenceRequest(ofType))
       }
     }
 
@@ -128,11 +134,18 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       }
     }
 
-    private def updateSla(existing: DefaultSlaModel, a: GenericSla): Unit = {
+    private def updateSla(existing: GenericSlaModel, a: Sla): Unit = {
       deleteSlaModelChildObjects(existing)
       createEscalationReferences(a.escalations, existing.id, None, existing.deploymentId)
-      createParameters(a.parameters, existing.id.get, ParameterParentType.Sla)
-      existing.copy(slaType = a.`type`).update
+      a match {
+        case artifact: GenericSla =>
+          createParameters(artifact.parameters, existing.id.get, ParameterParentType.Sla)
+          existing.copy(slaType = artifact.`type`).update
+        case artifact: ResponseTimeSlidingWindowSla =>
+          existing.copy(slaType = "response_time_sliding_window", upper = Some(artifact.upper), lower = Some(artifact.lower), interval = Some(artifact.interval), cooldown = Some(artifact.cooldown)).update
+        case artifact: EscalationOnlySla =>
+          existing.copy(slaType = "escalation_only").update
+      }
     }
 
     private def updateBreed(existing: DefaultBreedModel, a: DefaultBreed): Unit = {
@@ -209,7 +222,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           updateBlueprint(DefaultBlueprints.findByName(a.name, deploymentId), a)
 
         case a: GenericEscalation =>
-          updateEscalation(DeploymentDefaultEscalation(deploymentId, a))
+          updateEscalation(DeploymentGenericEscalation(deploymentId, a))
 
         case a: DefaultFilter =>
           DefaultFilters.findByName(a.name, deploymentId).copy(condition = a.condition).update
@@ -221,18 +234,26 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           updateScale(DefaultScales.findByName(a.name, deploymentId), a)
 
         case a: GenericSla =>
-          updateSla(DefaultSlas.findByName(a.name, deploymentId), a)
+          updateSla(GenericSlas.findByName(a.name, deploymentId), a)
+
+        case a: ResponseTimeSlidingWindowSla =>
+          updateSla(GenericSlas.findByName(a.name, deploymentId), a)
+
+        case a: EscalationOnlySla =>
+          updateSla(GenericSlas.findByName(a.name, deploymentId), a)
 
         case a: DefaultBreed =>
           updateBreed(DefaultBreeds.findByName(a.name, deploymentId), a)
 
-        case _ => throw exception(UnsupportedPersistenceRequest(artifact.getClass))
+        case _ =>
+          logger.info(s"Unsupported Persistence Request - Update - ${artifact.getClass}")
+          throw exception(UnsupportedPersistenceRequest(artifact.getClass))
       }
       read(artifact.name, artifact.getClass).get
     }
 
-    private def updateEscalation(a: DeploymentDefaultEscalation): Unit = {
-      val existing = DefaultEscalations.findByName(a.artifact.name, a.deploymentId)
+    private def updateEscalation(a: DeploymentGenericEscalation): Unit = {
+      val existing = GenericEscalations.findByName(a.artifact.name, a.deploymentId)
       deleteExistingParameters(existing.parameters)
       createParameters(a.artifact.parameters, existing.id.get, ParameterParentType.Escalation)
       existing.copy(escalationType = a.artifact.`type`).update
@@ -277,6 +298,8 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         SlaReferences.findOptionByName(slaName, deploymentId) match {
           case Some(slaReference) if slaReference.isDefinedInline =>
             readToArtifact(slaReference.name, classOf[GenericSla]) match {
+              case Some(slaArtifact: EscalationOnlySla) => Some(slaArtifact)
+              case Some(slaArtifact: ResponseTimeSlidingWindowSla) => Some(slaArtifact)
               case Some(slaArtifact: GenericSla) => Some(slaArtifact)
               case Some(slaArtifact: SlaReference) => Some(slaArtifact)
               case _ => None
@@ -380,7 +403,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
             case _ => None
           }
 
-        case _ if ofType == classOf[DefaultBlueprint] =>
+        case _ if ofType == classOf[DefaultBlueprint] || ofType == classOf[Blueprint] =>
           DefaultBlueprints.findOptionByName(name, defaultDeploymentId) match {
             case Some(b) => Some(
               DefaultBlueprint(
@@ -393,14 +416,14 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
             case None => None
           }
 
-        case _ if ofType == classOf[GenericEscalation] =>
-          DefaultEscalations.findOptionByName(name, defaultDeploymentId) match {
+        case _ if ofType == classOf[GenericEscalation] || ofType == classOf[Escalation] =>
+          GenericEscalations.findOptionByName(name, defaultDeploymentId) match {
             case Some(e) =>
               Some(GenericEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), `type` = e.escalationType, parameters = parametersToArtifact(e.parameters)))
             case None => None
           }
 
-        case _ if ofType == classOf[DefaultFilter] =>
+        case _ if ofType == classOf[DefaultFilter] || ofType == classOf[Filter] =>
           DefaultFilters.findOptionByName(name, defaultDeploymentId).map(a => a)
 
         case _ if ofType == classOf[DefaultRouting] =>
@@ -408,23 +431,32 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
             case Some(r) => Some(defaultRoutingModel2Artifact(r))
             case None => None
           }
-        case _ if ofType == classOf[DefaultScale] =>
+        case _ if ofType == classOf[DefaultScale] || ofType == classOf[Scale] =>
           DefaultScales.findOptionByName(name, defaultDeploymentId).map(a => a)
 
-        case _ if ofType == classOf[GenericSla] =>
-          DefaultSlas.findOptionByName(name, defaultDeploymentId) match {
-            case Some(s) =>
-              Some(GenericSla(name = VampPersistenceUtil.restoreToAnonymous(s.name, s.isAnonymous), `type` = s.slaType, escalations = escalations2Artifacts(s.escalationReferences), parameters = parametersToArtifact(s.parameters)))
+        case _ if ofType == classOf[GenericSla] || ofType == classOf[ResponseTimeSlidingWindowSla] || ofType == classOf[EscalationOnlySla] || ofType == classOf[Sla] =>
+          GenericSlas.findOptionByName(name, defaultDeploymentId) match {
+            case Some(s) => s.slaType match {
+              case "escalation_only" =>
+                Some(EscalationOnlySla(name = VampPersistenceUtil.restoreToAnonymous(s.name, s.isAnonymous), escalations = escalations2Artifacts(s.escalationReferences)))
+              case "response_time_sliding_window" =>
+                Some(ResponseTimeSlidingWindowSla(name = VampPersistenceUtil.restoreToAnonymous(s.name, s.isAnonymous), escalations = escalations2Artifacts(s.escalationReferences),
+                  upper = s.upper.get, lower = s.lower.get, interval = s.interval.get, cooldown = s.cooldown.get))
+              case _ =>
+                Some(GenericSla(name = VampPersistenceUtil.restoreToAnonymous(s.name, s.isAnonymous), `type` = s.slaType, escalations = escalations2Artifacts(s.escalationReferences), parameters = parametersToArtifact(s.parameters)))
+            }
             case None => None
           }
 
-        case _ if ofType == classOf[DefaultBreed] =>
+        case _ if ofType == classOf[DefaultBreed] || ofType == classOf[Breed] =>
           DefaultBreeds.findOptionByName(name, defaultDeploymentId) match {
             case Some(b) => Some(defaultBreedModel2DefaultBreedArtifact(b))
             case None => None
           }
 
-        case _ => throw exception(UnsupportedPersistenceRequest(ofType))
+        case _ =>
+          logger.info(s"Unsupported Persistence Request - Read - $ofType")
+          throw exception(UnsupportedPersistenceRequest(ofType))
       }
     }
 
@@ -501,16 +533,16 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     }
 
     private def createSla(clusterSla: Option[Sla], deploymentId: Option[Int]): Option[String] = clusterSla match {
-      case Some(sla: DeploymentDefaultSla) =>
-        val defaultSlaName = DefaultSlas.findOptionByName(sla.name, deploymentId) match {
+      case Some(sla: DeploymentGenericSla) =>
+        val genericSlaName = GenericSlas.findOptionByName(sla.name, deploymentId) match {
           case Some(existingSla) =>
             updateSla(existingSla, sla.artifact)
             existingSla.name
           case None =>
-            createDefaultSlaModelFromArtifact(sla).name
+            createGenericSlaModelFromArtifact(sla).name
         }
-        SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = defaultSlaName, isDefinedInline = true))
-        Some(defaultSlaName)
+        SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = genericSlaName, isDefinedInline = true))
+        Some(genericSlaName)
       case Some(sla: SlaReference) =>
         val slaRefId = SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = sla.name, isDefinedInline = false))
         createEscalationReferences(sla.escalations, None, Some(slaRefId), deploymentId)
@@ -526,11 +558,15 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       }
     }
 
-    private def createDefaultSlaModelFromArtifact(a: DeploymentDefaultSla): DefaultSlaModel = {
-      val storedSlaId = DefaultSlas.add(a)
-      createParameters(a.artifact.parameters, storedSlaId, ParameterParentType.Sla)
+    private def createGenericSlaModelFromArtifact(a: DeploymentGenericSla): GenericSlaModel = {
+      val storedSlaId = GenericSlas.add(a)
+      a.artifact match {
+        case artifact: GenericSla =>
+          createParameters(artifact.parameters, storedSlaId, ParameterParentType.Sla)
+        case _ =>
+      }
       createEscalationReferences(escalations = a.artifact.escalations, slaId = Some(storedSlaId), slaRefId = None, a.deploymentId)
-      DefaultSlas.findById(storedSlaId)
+      GenericSlas.findById(storedSlaId)
     }
 
     private def createDefaultRoutingModelFromArtifact(artifact: DeploymentDefaultRouting): DefaultRoutingModel = {
@@ -652,33 +688,42 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           createTraitNameParameters(a.parameters, Some(deploymentId), TraitParameterParentType.Deployment)
           Deployments.findById(deploymentId).name
 
-        case a: DefaultBlueprint =>
-          val deploymentId: Option[Int] = None
-          val blueprintId = DefaultBlueprints.add(DeploymentDefaultBlueprint(deploymentId, a))
-          createBlueprintClusters(a.clusters, blueprintId, deploymentId)
-          createPorts(ports = a.endpoints, parentId = Some(blueprintId), parentType = Some(PortParentType.BlueprintEndpoint))
-          createTraitNameParameters(a.parameters, Some(blueprintId), TraitParameterParentType.Blueprint)
-          DefaultBlueprints.findById(blueprintId).name
+        case art: Blueprint => art match {
+          case a: DefaultBlueprint =>
+            val deploymentId: Option[Int] = None
+            val blueprintId = DefaultBlueprints.add(DeploymentDefaultBlueprint(deploymentId, a))
+            createBlueprintClusters(a.clusters, blueprintId, deploymentId)
+            createPorts(ports = a.endpoints, parentId = Some(blueprintId), parentType = Some(PortParentType.BlueprintEndpoint))
+            createTraitNameParameters(a.parameters, Some(blueprintId), TraitParameterParentType.Blueprint)
+            DefaultBlueprints.findById(blueprintId).name
+        }
 
-        case a: GenericEscalation =>
-          createEscalationFromArtifact(DeploymentDefaultEscalation(None, a)).name
+        case art: Escalation => art match {
+          case a: GenericEscalation => createEscalationFromArtifact(DeploymentGenericEscalation(None, a)).name
+        }
 
-        case a: DefaultFilter =>
-          DefaultFilters.findById(DefaultFilters.add(DeploymentDefaultFilter(None, a))).name
+        case art: Filter => art match {
+          case a: DefaultFilter => DefaultFilters.findById(DefaultFilters.add(DeploymentDefaultFilter(None, a))).name
 
-        case a: DefaultRouting =>
-          createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(None, a)).name
+        }
+        case art: Routing => art match {
+          case a: DefaultRouting => createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(None, a)).name
+        }
+        case art: Scale => art match {
+          case a: DefaultScale => createDefaultScaleModelFromArtifact(DeploymentDefaultScale(None, a)).name
+        }
+        case art: Sla => art match {
+          case a: EscalationOnlySla => createGenericSlaModelFromArtifact(DeploymentGenericSla(None, a)).name
+          case a: ResponseTimeSlidingWindowSla => createGenericSlaModelFromArtifact(DeploymentGenericSla(None, a)).name
+          case a: GenericSla => createGenericSlaModelFromArtifact(DeploymentGenericSla(None, a)).name
+        }
+        case art: Breed => art match {
+          case a: DefaultBreed => createOrUpdateBreed(DeploymentDefaultBreed(None, a)).name
+        }
 
-        case a: DefaultScale =>
-          createDefaultScaleModelFromArtifact(DeploymentDefaultScale(None, a)).name
-
-        case a: GenericSla =>
-          createDefaultSlaModelFromArtifact(DeploymentDefaultSla(None, a)).name
-
-        case a: DefaultBreed =>
-          createOrUpdateBreed(DeploymentDefaultBreed(None, a)).name
-
-        case _ => throw exception(UnsupportedPersistenceRequest(artifact.getClass))
+        case _ =>
+          logger.info(s"Unsupported Persistence Request - Add - ${artifact.getClass}")
+          throw exception(UnsupportedPersistenceRequest(artifact.getClass))
       }
       readToArtifact(nameOfArtifact, artifact.getClass) match {
         case Some(result) => result
@@ -690,9 +735,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       for (escalation <- escalations) {
         escalation match {
           case e: GenericEscalation =>
-            DefaultEscalations.findOptionByName(e.name, deploymentId) match {
-              case Some(existing) => updateEscalation(DeploymentDefaultEscalation(deploymentId, e))
-              case None => createEscalationFromArtifact(DeploymentDefaultEscalation(deploymentId, e))
+            GenericEscalations.findOptionByName(e.name, deploymentId) match {
+              case Some(existing) => updateEscalation(DeploymentGenericEscalation(deploymentId, e))
+              case None => createEscalationFromArtifact(DeploymentGenericEscalation(deploymentId, e))
             }
             EscalationReferences.add(EscalationReferenceModel(deploymentId = deploymentId, name = e.name, slaId = slaId, slaRefId = slaRefId, isDefinedInline = true))
           case e: EscalationReference =>
@@ -701,8 +746,8 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       }
     }
 
-    private def createEscalationFromArtifact(a: DeploymentDefaultEscalation): DefaultEscalationModel = {
-      val storedEscalation = DefaultEscalations.findById(DefaultEscalations.add(a))
+    private def createEscalationFromArtifact(a: DeploymentGenericEscalation): GenericEscalationModel = {
+      val storedEscalation = GenericEscalations.findById(GenericEscalations.add(a))
       createParameters(a.artifact.parameters, storedEscalation.id.get, ParameterParentType.Escalation)
       storedEscalation
     }
@@ -793,7 +838,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         }
         DeploymentClusters.deleteById(cluster.id.get)
         cluster.slaReference match {
-          case Some(slaName) => DefaultSlas.findOptionByName(slaName, deploymentId) match {
+          case Some(slaName) => GenericSlas.findOptionByName(slaName, deploymentId) match {
             case Some(slaModel) => deleteSlaModel(slaModel)
             case _ =>
           }
@@ -826,7 +871,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           }
 
         case _: GenericEscalation =>
-          DefaultEscalations.findOptionByName(artifact.name, None) match {
+          GenericEscalations.findOptionByName(artifact.name, None) match {
             case Some(escalation) =>
               deleteEscalationModel(escalation)
             case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
@@ -845,11 +890,22 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         case _: DefaultScale =>
           DefaultScales.deleteByName(artifact.name, None)
 
-        case _: GenericSla => DefaultSlas.findOptionByName(artifact.name, None) match {
-          case Some(sla) =>
-            deleteSlaModel(sla)
+        case _: GenericSla => GenericSlas.findOptionByName(artifact.name, None) match {
+          case Some(sla) => deleteSlaModel(sla)
           case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
         }
+
+        case _: EscalationOnlySla => GenericSlas.findOptionByName(artifact.name, None) match {
+          case Some(sla) => deleteSlaModel(sla)
+          case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
+        }
+
+        case _: ResponseTimeSlidingWindowSla => GenericSlas.findOptionByName(artifact.name, None) match {
+          case Some(sla) => deleteSlaModel(sla)
+          case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
+        }
+
+
         case _: DefaultBreed =>
           DefaultBreeds.findOptionByName(artifact.name, None) match {
             case Some(breed: DefaultBreedModel) =>
@@ -857,7 +913,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
             case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
           }
 
-        case _ => throw exception(UnsupportedPersistenceRequest(artifact.getClass))
+        case _ =>
+          logger.info(s"Unsupported Persistence Request - Delete - ${artifact.getClass}")
+          throw exception(UnsupportedPersistenceRequest(artifact.getClass))
       }
     }
 
@@ -920,7 +978,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
         cluster.slaReference match {
           case Some(slaRef) =>
-            DefaultSlas.findOptionByName(slaRef, cluster.deploymentId) match {
+            GenericSlas.findOptionByName(slaRef, cluster.deploymentId) match {
               case Some(sla) if sla.isAnonymous => deleteSlaModel(sla)
               case Some(sla) =>
               case None => // Should not happen
@@ -940,9 +998,9 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     }
 
 
-    private def deleteSlaModelChildObjects(sla: DefaultSlaModel): Unit = {
+    private def deleteSlaModelChildObjects(sla: GenericSlaModel): Unit = {
       for (escalationRef <- sla.escalationReferences) {
-        DefaultEscalations.findOptionByName(escalationRef.name, escalationRef.deploymentId) match {
+        GenericEscalations.findOptionByName(escalationRef.name, escalationRef.deploymentId) match {
           case Some(escalation) if escalation.isAnonymous => deleteEscalationModel(escalation)
           case Some(escalation) =>
           case None => // Should not happen
@@ -952,14 +1010,14 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
       deleteExistingParameters(sla.parameters)
     }
 
-    private def deleteSlaModel(sla: DefaultSlaModel) {
+    private def deleteSlaModel(sla: GenericSlaModel) {
       deleteSlaModelChildObjects(sla)
-      DefaultSlas.deleteById(sla.id.get)
+      GenericSlas.deleteById(sla.id.get)
     }
 
-    private def deleteEscalationModel(escalation: DefaultEscalationModel): Unit = {
+    private def deleteEscalationModel(escalation: GenericEscalationModel): Unit = {
       for (param <- escalation.parameters) Parameters.deleteById(param.id.get)
-      DefaultEscalations.deleteById(escalation.id.get)
+      GenericEscalations.deleteById(escalation.id.get)
     }
 
 
