@@ -63,6 +63,7 @@ libraryDependencies ++= Seq(
   "net.databinder.dispatch" %% "dispatch-core" % dispatchV,
   "net.databinder.dispatch" %% "dispatch-json4s-native" % dispatchV,
   "org.json4s" %% "json4s-core" % json4sV,
+  "org.json4s" %% "json4s-ext" % json4sV,
   "org.json4s" %% "json4s-native" % json4sV,
   "org.yaml" % "snakeyaml" % "1.14",
   "org.scalatest" %% "scalatest" % "3.0.0-SNAP4" % "test",
