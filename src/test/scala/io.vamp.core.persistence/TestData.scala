@@ -85,10 +85,10 @@ object TestData {
   val sla7 = EscalationOnlySla(name = "sla7", escalations = List.empty)
   val sla7Updated = sla7.copy(escalations = List(GenericEscalation(name = "sla7-escalation", `type` = "my-type7", parameters = Map.empty)))
   val sla8 = ResponseTimeSlidingWindowSla(name = "sla8",
-    upper = FiniteDuration(length=1, unit = TimeUnit.HOURS),
-    lower = FiniteDuration(length=10, unit = TimeUnit.MINUTES),
-    interval = FiniteDuration(length=5, unit = TimeUnit.SECONDS),
-    cooldown = FiniteDuration(length=15, unit = TimeUnit.MILLISECONDS),
+    upper = FiniteDuration(length = 1, unit = TimeUnit.HOURS),
+    lower = FiniteDuration(length = 10, unit = TimeUnit.MINUTES),
+    interval = FiniteDuration(length = 5, unit = TimeUnit.SECONDS),
+    cooldown = FiniteDuration(length = 15, unit = TimeUnit.MILLISECONDS),
     escalations = List.empty)
 
 
@@ -102,6 +102,10 @@ object TestData {
   val sla4 = GenericSla(name = "sla4", `type` = "aType", escalations = List(escalation4.copy(name = "sla4-escalation1"), escalation5.copy(name = "sla4-escalation2")), parameters = Map("my-first" -> "This is a another string value"))
   val sla4Updated = sla4.copy(`type` = "aType-updated", escalations = List.empty, parameters = Map.empty)
   val sla5 = GenericSla(name = "sla5", `type` = "aType", escalations = List(EscalationReference(name = "for-reference-only")), parameters = Map("my-first" -> 1))
+
+  val escalation7 = ScaleInstancesEscalation(name = "escalation-7", minimum = 1, maximum = 5, scaleBy = 2, targetCluster = Some("target-cluster-1"))
+  val escalation7Updated = ScaleCpuEscalation(name = "escalation-7", minimum = 1.2, maximum = 6, scaleBy = 0.4, targetCluster = Some("target-cluster-2"))
+  val escalation8 = ScaleMemoryEscalation(name = "escalation-8", minimum = 64, maximum = 4096, scaleBy = 32, targetCluster = Some("target-cluster-1"))
 
   private val minimalBreedReference = BreedReference("minimal-breed")
   private val myRoute = DefaultRouting(name = "my-route", weight = Some(1), filters = List(DefaultFilter(name = "my-filter", condition = "my-condition")))

@@ -66,7 +66,11 @@ case class EscalationReferenceModel(deploymentId: Option[Int], name: String, sla
   override def withId(id: Id): EscalationReferenceModel = copy(id = Option(id))
 }
 
-case class GenericEscalationModel(deploymentId: Option[Int], name: String, escalationType: String, id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[GenericEscalationModel] {
+case class GenericEscalationModel(deploymentId: Option[Int], name: String, escalationType: String,
+                                  minimumInt: Option[Int] = None, maximumInt: Option[Int] = None, scaleByInt: Option[Int] = None,
+                                  minimumDouble: Option[Double] = None, maximumDouble: Option[Double] = None, scaleByDouble: Option[Double] = None,
+                                  targetCluster: Option[String] = None,
+                                  id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[GenericEscalationModel] {
   override def withId(id: Id): GenericEscalationModel = copy(id = Option(id))
 
   override def withAnonymousName: GenericEscalationModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
@@ -173,7 +177,7 @@ case class DeploymentGenericSla(deploymentId: Option[Int], artifact: Sla)
 
 case class DeploymentDefaultScale(deploymentId: Option[Int], artifact: DefaultScale)
 
-case class DeploymentGenericEscalation(deploymentId: Option[Int], artifact: GenericEscalation)
+case class DeploymentGenericEscalation(deploymentId: Option[Int], artifact: Escalation)
 
 case class DeploymentDefaultRouting(deploymentId: Option[Int], artifact: DefaultRouting)
 
