@@ -14,7 +14,6 @@ scalaVersion := "2.11.5"
 scalaVersion in ThisBuild := scalaVersion.value
 
 
-
 publishMavenStyle := true
 
 // This has to be overridden for sub-modules to have different description
@@ -113,7 +112,7 @@ lazy val root = project.in(file(".")).settings(
   }
 ).aggregate(
   persistence, model, operation, bootstrap, container_driver, dictionary, pulse_driver, rest_api, router_driver, swagger
-)
+).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val persistence = project.settings(
   libraryDependencies ++=Seq(
@@ -125,7 +124,7 @@ lazy val persistence = project.settings(
   //Skip persistence tests since they are broken
   test in assembly :={}
 
-).dependsOn(model)
+).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val model = project.settings(
   libraryDependencies ++= Seq(
@@ -133,7 +132,7 @@ lazy val model = project.settings(
   )
 )
 
-lazy val operation = project.dependsOn(model, persistence, container_driver, dictionary, router_driver, pulse_driver)
+lazy val operation = project.dependsOn(model, persistence, container_driver, dictionary, router_driver, pulse_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val bootstrap = project.settings(
   libraryDependencies ++= Seq(
@@ -144,17 +143,17 @@ lazy val bootstrap = project.settings(
   assemblyJarName in assembly := s"core-assembly-${version.value}.jar"
 ).dependsOn(persistence, container_driver, router_driver, pulse_driver, rest_api, dictionary)
 
-lazy val container_driver = project.dependsOn(model)
+lazy val container_driver = project.dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val dictionary = project.dependsOn(persistence)
+lazy val dictionary = project.dependsOn(persistence).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val pulse_driver = project.dependsOn(model, router_driver)
+lazy val pulse_driver = project.dependsOn(model, router_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val rest_api = project.dependsOn(operation, model, swagger)
+lazy val rest_api = project.dependsOn(operation, model, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val router_driver = project.dependsOn(model)
+lazy val router_driver = project.dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val swagger = project
+lazy val swagger = project.disablePlugins(sbtassembly.AssemblyPlugin)
 
 
 
