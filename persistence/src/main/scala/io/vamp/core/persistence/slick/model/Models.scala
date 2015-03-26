@@ -15,6 +15,8 @@ import io.vamp.core.persistence.slick.model.PortType.PortType
 import io.vamp.core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
 import io.vamp.core.persistence.slick.util.VampPersistenceUtil
 
+import scala.concurrent.duration.FiniteDuration
+
 trait VampPersistenceModel[E <: io.strongtyped.active.slick.models.Identifiable[E]] extends Identifiable[E] {
   type Id = Int // Default is using Int as our id column type
 }
@@ -51,7 +53,10 @@ case class SlaReferenceModel(deploymentId: Option[Int], name: String, id: Option
   override def withId(id: Id): SlaReferenceModel = copy(id = Option(id))
 }
 
-case class GenericSlaModel(deploymentId: Option[Int], name: String, slaType: String, id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[GenericSlaModel] {
+case class GenericSlaModel(deploymentId: Option[Int], name: String, slaType: String, id: Option[Int] = None,
+                           upper: Option[FiniteDuration] = None, lower: Option[FiniteDuration] = None,
+                           interval: Option[FiniteDuration] = None, cooldown: Option[FiniteDuration] = None,
+                           isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[GenericSlaModel] {
   override def withId(id: Id): GenericSlaModel = copy(id = Option(id))
 
   override def withAnonymousName: GenericSlaModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
@@ -164,7 +169,7 @@ case class ClusterRouteModel(id: Option[Int] = None, portIn: Int, portOut: Int, 
 
 case class DeploymentDefaultFilter(deploymentId: Option[Int], artifact: DefaultFilter)
 
-case class DeploymentGenericSla(deploymentId: Option[Int], artifact: GenericSla)
+case class DeploymentGenericSla(deploymentId: Option[Int], artifact: Sla)
 
 case class DeploymentDefaultScale(deploymentId: Option[Int], artifact: DefaultScale)
 
