@@ -138,7 +138,10 @@ lazy val operation = project.dependsOn(model, persistence, container_driver, dic
 lazy val bootstrap = project.settings(
   libraryDependencies ++= Seq(
     "com.typesafe" % "config" % configVersion
-   )
+   ),
+  // Runnable assembly jar lives in bootstrap/target/scala_2.11/ and is renamed to core assembly for consistent filename for
+  // downloading
+  assemblyJarName in assembly := s"core-assembly-${version.value}.jar"
 ).dependsOn(persistence, container_driver, router_driver, pulse_driver, rest_api, dictionary)
 
 lazy val container_driver = project.dependsOn(model)
