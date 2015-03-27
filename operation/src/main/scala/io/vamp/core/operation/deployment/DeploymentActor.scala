@@ -288,7 +288,7 @@ trait DeploymentMerger extends DeploymentValidation {
         case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == dependencyScope && value == port.name.value => true
         case _ => false
       }) match {
-        case None => error(UnresolvedVariableValueError(breed, port.name))
+        case None => port.value.getOrElse(error(UnresolvedVariableValueError(breed, port.name)))
         case Some(parameter) => parameter._2
       })
     }
@@ -299,7 +299,7 @@ trait DeploymentMerger extends DeploymentValidation {
         case (Trait.Name(Some(scope), None, value), _) if scope == dependencyScope && value == ev.name.value && value == Trait.host => true
         case _ => false
       }) match {
-        case None => error(UnresolvedVariableValueError(breed, ev.name))
+        case None => ev.value.getOrElse(error(UnresolvedVariableValueError(breed, ev.name)))
         case Some(parameter) => parameter._2
       })
     }
