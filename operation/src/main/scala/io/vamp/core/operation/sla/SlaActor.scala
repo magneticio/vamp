@@ -44,7 +44,7 @@ class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupp
   def receive: Receive = {
     case SlaProcessAll =>
       implicit val timeout = PersistenceActor.timeout
-      offLoad(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
+      offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
         case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]])
         case any => exception(InternalServerError(any))
       }
@@ -73,13 +73,13 @@ class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupp
     implicit val timeout = PulseDriverActor.timeout
     val from = OffsetDateTime.now().minus((sla.interval + sla.cooldown).toSeconds, ChronoUnit.SECONDS)
 
-    offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.EventExists(deployment, cluster, from)) match {
+    offload(actorFor(PulseDriverActor) ? PulseDriverActor.EventExists(deployment, cluster, from)) match {
       case exists: Boolean => if (!exists) {
         val to = OffsetDateTime.now()
         val from = to.minus(sla.interval.toSeconds, ChronoUnit.SECONDS)
 
         val responseTimes = cluster.routes.keys.map(value => TcpPort("", None, Some(value), Trait.Direction.Out)).flatMap({ port =>
-          offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.ResponseTime(deployment, cluster, port, from, to)) match {
+          offload(actorFor(PulseDriverActor) ? PulseDriverActor.ResponseTime(deployment, cluster, port, from, to)) match {
             case Some(responseTime: Double) => responseTime :: Nil
             case _ => Nil
           }

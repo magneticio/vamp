@@ -53,7 +53,7 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Blu
 
   def commit(create: Boolean): (Deployment => Deployment) = { (deployment: Deployment) =>
     implicit val timeout: Timeout = PersistenceActor.timeout
-    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, create = create)) match {
+    offload(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, create = create)) match {
       case persisted: Deployment =>
         actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
         persisted
@@ -194,7 +194,7 @@ trait DeploymentMerger extends DeploymentValidation {
           case None =>
             implicit val timeout = DictionaryActor.timeout
             val key = DictionaryActor.containerScale.format(deployment.name, blueprintCluster.name, service.breed.name)
-            offLoad(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
+            offload(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
               case scale: DefaultScale => scale
               case e => error(UnresolvedEnvironmentValueError(key, e))
             }
@@ -252,7 +252,7 @@ trait DeploymentMerger extends DeploymentValidation {
 
   def resolveParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
     implicit val timeout = DictionaryActor.timeout
-    val host = offLoad(actorFor(DictionaryActor) ? DictionaryActor.Get(DictionaryActor.hostResolver)) match {
+    val host = offload(actorFor(DictionaryActor) ? DictionaryActor.Get(DictionaryActor.hostResolver)) match {
       case h: String => h
       case e => error(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
     }
@@ -272,7 +272,7 @@ trait DeploymentMerger extends DeploymentValidation {
         case None =>
           implicit val timeout = DictionaryActor.timeout
           val key = DictionaryActor.portAssignment.format(deployment.name, port)
-          port -> (offLoad(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
+          port -> (offload(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
             case number: Int => number
             case e => error(UnresolvedEnvironmentValueError(key, e))
           })

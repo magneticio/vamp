@@ -43,9 +43,9 @@ class PulseDriverActor(driver: PulseDriver) extends Actor with ActorLogging with
   def reply(request: Any) = try {
     request match {
       case Publish(event) => driver.event(event)
-      case EventExists(deployment, cluster, from) => offLoad(driver.exists(deployment, cluster, from), classOf[PulseResponseError])
-      case ResponseTime(deployment, cluster, port, from, to) => offLoad(driver.responseTime(deployment, cluster, port, from, to), classOf[PulseResponseError])
-      case QuerySlaEvents(deployment, cluster, from, to) => offLoad(driver.querySlaEvents(deployment, cluster, from, to), classOf[PulseResponseError])
+      case EventExists(deployment, cluster, from) => offload(driver.exists(deployment, cluster, from), classOf[PulseResponseError])
+      case ResponseTime(deployment, cluster, port, from, to) => offload(driver.responseTime(deployment, cluster, port, from, to), classOf[PulseResponseError])
+      case QuerySlaEvents(deployment, cluster, from, to) => offload(driver.querySlaEvents(deployment, cluster, from, to), classOf[PulseResponseError])
       case _ => unsupported(request)
     }
   } catch {

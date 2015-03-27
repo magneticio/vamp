@@ -62,7 +62,7 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
   def receive: Receive = {
     case EscalationProcessAll(from, to) =>
       implicit val timeout = PersistenceActor.timeout
-      offLoad(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
+      offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
         case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]], from, to)
         case any => exception(InternalServerError(any))
       }
@@ -76,7 +76,7 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
           case Some(sla) =>
             sla.escalations.foreach { _ =>
               implicit val timeout = PulseDriverActor.timeout
-              offLoad(actorFor(PulseDriverActor) ? PulseDriverActor.QuerySlaEvents(deployment, cluster, from, to)) match {
+              offload(actorFor(PulseDriverActor) ? PulseDriverActor.QuerySlaEvents(deployment, cluster, from, to)) match {
                 case escalationEvents: List[_] => escalationEvents.foreach {
                   case Escalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = true)
                   case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = false)

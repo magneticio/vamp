@@ -36,9 +36,9 @@ class ContainerDriverActor(driver: ContainerDriver) extends Actor with ActorLogg
 
   def reply(request: Any) = try {
     request match {
-      case All => offLoad(driver.all, classOf[ContainerResponseError])
-      case Deploy(deployment, cluster, service, update) => offLoad(driver.deploy(deployment, cluster, service, update), classOf[ContainerResponseError])
-      case Undeploy(deployment, service) => offLoad(driver.undeploy(deployment, service), classOf[ContainerResponseError])
+      case All => offload(driver.all, classOf[ContainerResponseError])
+      case Deploy(deployment, cluster, service, update) => offload(driver.deploy(deployment, cluster, service, update), classOf[ContainerResponseError])
+      case Undeploy(deployment, service) => offload(driver.undeploy(deployment, service), classOf[ContainerResponseError])
       case _ => unsupported(request)
     }
   } catch {

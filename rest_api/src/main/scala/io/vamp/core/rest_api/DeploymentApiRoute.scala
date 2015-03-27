@@ -154,7 +154,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
       }
 
     case None =>
-      offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
+      offload(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
         case deployments: List[_] =>
           deployments.asInstanceOf[List[Deployment]].map({ deployment =>
             deployment.clusters.filter(cluster => cluster.services.exists(!_.state.isInstanceOf[Deployed])).count(_ => true)
@@ -173,7 +173,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
   }
 
   def reset()(implicit timeout: Timeout): Unit = {
-    offLoad(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
+    offload(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
       case deployments: List[_] =>
         deployments.asInstanceOf[List[Deployment]].map({ deployment =>
           actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
@@ -255,7 +255,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
           cluster => cluster.services.find(_.breed.name == breedName).flatMap {
             service =>
               val scale = ScaleReader.read(request) match {
-                case s: ScaleReference => offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(s.name, classOf[Scale])).asInstanceOf[DefaultScale]
+                case s: ScaleReference => offload(actorFor(PersistenceActor) ? PersistenceActor.Read(s.name, classOf[Scale])).asInstanceOf[DefaultScale]
                 case s: DefaultScale => s
               }
               actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(scale = Some(scale), state = ReadyForDeployment()))))))
@@ -277,7 +277,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
           cluster => cluster.services.find(_.breed.name == breedName).flatMap {
             service =>
               val routing = RoutingReader.read(request) match {
-                case r: RoutingReference => offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(r.name, classOf[Routing])).asInstanceOf[DefaultRouting]
+                case r: RoutingReference => offload(actorFor(PersistenceActor) ? PersistenceActor.Read(r.name, classOf[Routing])).asInstanceOf[DefaultRouting]
                 case r: DefaultRouting => r
               }
 

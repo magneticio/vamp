@@ -63,7 +63,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   def receive: Receive = {
     case SynchronizeAll =>
       implicit val timeout = PersistenceActor.timeout
-      offLoad(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
+      offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
         case deployments: List[_] => synchronize(deployments.asInstanceOf[List[Deployment]])
         case any => error(InternalServerError(any))
       }
@@ -73,8 +73,8 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   private def synchronize(deployments: List[Deployment]): Unit = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
 
-    val deploymentRoutes = offLoad(actorFor(RouterDriverActor) ? RouterDriverActor.All).asInstanceOf[DeploymentRoutes]
-    val containerServices = offLoad(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
+    val deploymentRoutes = offload(actorFor(RouterDriverActor) ? RouterDriverActor.All).asInstanceOf[DeploymentRoutes]
+    val containerServices = offload(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
 
     deployments.filterNot(withError).foreach(synchronize(containerServices, deploymentRoutes))
   }
