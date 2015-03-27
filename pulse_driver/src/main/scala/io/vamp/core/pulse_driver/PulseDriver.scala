@@ -30,8 +30,7 @@ class DefaultPulseDriver(ec: ExecutionContext, url: String) extends PulseClient(
   def exists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime) = {
     getEvents(EventQuery(SlaEvent.slaTags(deployment, cluster), TimeRange(from), Some(Aggregator("count")))).map {
       case result: Map[_, _] => result.asInstanceOf[Map[String, Any]].get("value") match {
-        case Some(value: Int) => value > 0
-        case Some(value: Double) => value > 0
+        case Some(value: BigDecimal) => value > 0
         case _ => false
       }
       case _ => false
