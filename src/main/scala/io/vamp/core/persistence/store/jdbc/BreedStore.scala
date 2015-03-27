@@ -100,14 +100,12 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
     case a: DefaultBreed => createOrUpdateBreed(DeploymentDefaultBreed(None, a)).name
   }
 
-  protected def createBreedReference(artifact: Breed, deploymentId: Option[Int]): String = artifact match {
+  protected def createBreedReference(artifact: Breed, deploymentId: Option[Int]): Int = artifact match {
     case breed: DefaultBreed =>
       val savedName = createOrUpdateBreed(DeploymentDefaultBreed(deploymentId, breed)).name
       BreedReferences.add(BreedReferenceModel(deploymentId = deploymentId, name = savedName, isDefinedInline = true))
-      savedName
     case breed: BreedReference =>
       BreedReferences.add(BreedReferenceModel(deploymentId = deploymentId, name = breed.name, isDefinedInline = true))
-      breed.name
   }
 
   private def createBreedChildren(parentBreedModel: DefaultBreedModel, a: DeploymentDefaultBreed): Unit = {
@@ -131,14 +129,14 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
     }
   }
 
-  protected def findBreedArtifactViaReference(artifactName: String, deploymentId: Option[Int]): Breed =
-    BreedReferences.findOptionByName(artifactName, deploymentId) match {
-      case Some(breedRef) if breedRef.isDefinedInline =>
+  protected def findBreedArtifactViaReferenceId(referenceId: Int, deploymentId: Option[Int]): Breed =
+    BreedReferences.findById(referenceId) match {
+      case breedRef if breedRef.isDefinedInline =>
         DefaultBreeds.findOptionByName(breedRef.name, deploymentId) match {
           case Some(b) => defaultBreedModel2DefaultBreedArtifact(b)
-          case None => BreedReference(name = artifactName) //Not found, return a reference instead
+          case None => BreedReference(name = breedRef.name) //Not found, return a reference instead
         }
-      case _ => BreedReference(name = artifactName)
+      case breedRef => BreedReference(name = breedRef.name)
     }
 
   private def breedDependencies2Artifact(dependencies: List[DependencyModel]): Map[String, Breed] = (for {
