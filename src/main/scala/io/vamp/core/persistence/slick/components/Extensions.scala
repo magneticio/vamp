@@ -88,7 +88,7 @@ trait BlueprintReferenceExtensions {
 trait ClusterExtensions {
   this: VampActiveSlick with ModelExtensions =>
 
-  implicit class CLusterExtensions(val model: ClusterModel) extends ActiveRecord[ClusterModel] {
+  implicit class ClusterExtensions(val model: ClusterModel) extends ActiveRecord[ClusterModel] {
     override def table = Clusters
 
     def services(implicit session: JdbcBackend#Session): List[ServiceModel] =
