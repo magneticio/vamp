@@ -60,11 +60,16 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
       }
       DeploymentClusters.deleteById(cluster.id.get)
       cluster.slaReference match {
-        case Some(slaName) => GenericSlas.findOptionByName(slaName, deploymentId) match {
-          case Some(slaModel) => deleteSlaModel(slaModel)
-          case _ =>
-        }
-          SlaReferences.deleteByName(slaName, deploymentId)
+        case Some(slaRefId) =>
+          SlaReferences.findOptionById(slaRefId) match {
+            case Some(slaReference) =>
+              GenericSlas.findOptionByName(slaReference.name, deploymentId) match {
+                case Some(slaModel) => deleteSlaModel(slaModel)
+                case _ =>
+              }
+              SlaReferences.deleteById(slaRefId)
+            case None => // should not happen, foreign key constraint
+          }
         case _ =>
       }
     }
@@ -72,8 +77,8 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
 
   private def createDeploymentClusters(clusters: List[DeploymentCluster], deploymentId: Option[Int]): Unit = {
     for (cluster <- clusters) {
-      val slaRef = createSla(cluster.sla, deploymentId)
-      val clusterId = DeploymentClusters.add(DeploymentClusterModel(name = cluster.name, slaReference = slaRef, deploymentId = deploymentId))
+      val slaRefId = createSla(cluster.sla, deploymentId)
+      val clusterId = DeploymentClusters.add(DeploymentClusterModel(name = cluster.name, slaReference = slaRefId, deploymentId = deploymentId))
       for (route <- cluster.routes) {
         ClusterRoutes.add(ClusterRouteModel(portIn = route._1, portOut = route._2, clusterId = clusterId))
       }
@@ -128,7 +133,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
         name = cluster.name,
         services = findDeploymentServiceArtifacts(cluster.services),
         routes = clusterRouteModels2Artifacts(cluster.routes),
-        sla = findOptionSlaArtifactViaReferenceName(cluster.slaReference, deploymentId)
+        sla = findOptionSlaArtifactViaReferenceId(cluster.slaReference, deploymentId)
       )
 
     )

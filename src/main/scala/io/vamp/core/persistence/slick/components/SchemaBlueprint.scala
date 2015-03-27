@@ -49,11 +49,11 @@ trait SchemaBlueprint extends SchemaBreed {
   }
 
   class ClusterTable(tag: Tag) extends DeployableEntityTable[ClusterModel](tag, "clusters") {
-    def * = (deploymentId, name, blueprintId, slaReference, id.?) <>(ClusterModel.tupled, ClusterModel.unapply)
+    def * = (deploymentId, name, blueprintId, slaReferenceId, id.?) <>(ClusterModel.tupled, ClusterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
-    def slaReference = column[Option[String]]("sla_reference")
+    def slaReferenceId = column[Option[Int]]("sla_reference_id")
 
     def idx = index("idx_cluster", (name, blueprintId, deploymentId), unique = true)
 
@@ -65,7 +65,7 @@ trait SchemaBlueprint extends SchemaBreed {
 
     def blueprint = foreignKey("cluster_blueprintfk", blueprintId, DefaultBlueprints)(_.id)
 
-    //def slaRef = foreignKey("cluster_sla_reference_fk", slaReference, SlaReferences)(_.name)  //issue #242
+    def slaRef = foreignKey("cluster_sla_reference_fk", slaReferenceId, SlaReferences)(_.id)
   }
 
   class ServiceTable(tag: Tag) extends EntityTable[ServiceModel](tag, "services") {

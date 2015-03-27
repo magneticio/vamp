@@ -82,13 +82,13 @@ trait SchemaDeployment extends Logging with SchemaBreed {
   }
 
   class DeploymentClusterTable(tag: Tag) extends DeployableEntityTable[DeploymentClusterModel](tag, "deployment_clusters") {
-    def * = (deploymentId, id.?, name, slaReference) <>(DeploymentClusterModel.tupled, DeploymentClusterModel.unapply)
+    def * = (deploymentId, id.?, name, slaReferenceId) <>(DeploymentClusterModel.tupled, DeploymentClusterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def name = column[String]("name")
 
-    def slaReference = column[Option[String]]("sla_reference")
+    def slaReferenceId = column[Option[Int]]("sla_reference")
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
@@ -96,7 +96,7 @@ trait SchemaDeployment extends Logging with SchemaBreed {
 
     def deployment = foreignKey("deployment_cluster_deployment_fk", deploymentId, Deployments)(_.id)
 
-    //def slaRef = foreignKey("deployment_cluster_sla_reference_fk", slaReference, SlaReferences)(_.name) //issue #242
+    def slaRef = foreignKey("deployment_cluster_sla_reference_fk", slaReferenceId, SlaReferences)(_.id)
   }
 
   class ServerPortTable(tag: Tag) extends EntityTable[ServerPortModel](tag, "server_ports") {
