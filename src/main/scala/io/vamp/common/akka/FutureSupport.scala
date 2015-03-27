@@ -8,7 +8,7 @@ import scala.util.{Failure, Success}
 
 trait FutureSupport {
 
-  def offLoad(future: Future[Any])(implicit timeout: Timeout): Any = {
+  def offload(future: Future[Any])(implicit timeout: Timeout): Any = {
     Await.ready(future, timeout.duration)
     future.value.get match {
       case Success(result) => result
@@ -30,7 +30,7 @@ trait FutureSupport {
 trait FutureSupportNotification extends FutureSupport {
   this: NotificationProvider =>
 
-  def offLoad(future: Future[Any], `class`: Class[_ <: Notification])(implicit timeout: Timeout): Any = {
+  def offload(future: Future[Any], `class`: Class[_ <: Notification])(implicit timeout: Timeout): Any = {
     Await.ready(future, timeout.duration)
     future.value.get match {
       case Success(result) => result
