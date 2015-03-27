@@ -19,3 +19,5 @@ project/plugins/project/
 .scala_dependencies
 .worksheet
 *.iml
+
+conf/application.conf
