@@ -28,7 +28,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
     for (cluster <- clusters) {
       for (service <- cluster.services) {
         Services.deleteById(service.id.get)
-        BreedReferences.findOptionByName(service.breedReferenceName, service.deploymentId) match {
+        BreedReferences.findOptionById(service.breedReferenceId) match {
           case Some(breedRef) =>
             if (breedRef.isDefinedInline)
               DefaultBreeds.findOptionByName(breedRef.name, service.deploymentId) match {
@@ -118,7 +118,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
 
   private def findServicesArtifacts(services: List[ServiceModel], deploymentId: Option[Int]): List[Service] = services.map(service =>
     Service(
-      breed = findBreedArtifactViaReference(service.breedReferenceName, deploymentId),
+      breed = findBreedArtifactViaReferenceId(service.breedReferenceId, deploymentId),
       scale = findOptionScaleArtifactViaReferenceName(service.scaleReference, deploymentId),
       routing = findOptionRoutingArtifactViaReference(service.routingReference, deploymentId)
     )
@@ -161,7 +161,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
       Services.add(ServiceModel(
         deploymentId = deploymentId,
         clusterId = clusterId,
-        breedReferenceName = createBreedReference(service.breed, deploymentId),
+        breedReferenceId = createBreedReference(service.breed, deploymentId),
         routingReference = createRoutingReference(service.routing, deploymentId),
         scaleReference = createScaleReference(service.scale, deploymentId))
       )
