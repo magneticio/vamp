@@ -14,21 +14,21 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
   import io.vamp.core.persistence.slick.components.Components.instance._
   import io.vamp.core.persistence.slick.model.Implicits._
 
-  protected def createSla(clusterSla: Option[Sla], deploymentId: Option[Int]): Option[String] = clusterSla match {
+  protected def createSla(clusterSla: Option[Sla], deploymentId: Option[Int]): Option[Int] = clusterSla match {
     case Some(sla: DeploymentGenericSla) =>
-      val genericSlaName = GenericSlas.findOptionByName(sla.name, deploymentId) match {
+      val slaId = GenericSlas.findOptionByName(sla.name, deploymentId) match {
         case Some(existingSla) =>
           updateSla(existingSla, sla.artifact)
-          existingSla.name
+          existingSla.id
         case None =>
-          createGenericSlaModelFromArtifact(sla).name
+          createGenericSlaModelFromArtifact(sla).id
       }
-      SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = genericSlaName, isDefinedInline = true))
-      Some(genericSlaName)
+      val storedSla = GenericSlas.findById(slaId.get)
+      Some(SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = storedSla.name, isDefinedInline = true)))
     case Some(sla: SlaReference) =>
       val slaRefId = SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = sla.name, isDefinedInline = false))
       createEscalationReferences(sla.escalations, None, Some(slaRefId), deploymentId)
-      Some(sla.name)
+      Some(slaRefId)
     case _ => None
   }
 
@@ -70,9 +70,9 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
     deleteExistingParameters(sla.parameters)
   }
 
-  protected def findOptionSlaArtifactViaReferenceName(artifactName: Option[String], deploymentId: Option[Int]): Option[Sla] = artifactName match {
-    case Some(slaName) =>
-      SlaReferences.findOptionByName(slaName, deploymentId) match {
+  protected def findOptionSlaArtifactViaReferenceId(referenceId: Option[Int], deploymentId: Option[Int]): Option[Sla] = referenceId match {
+    case Some(refId) =>
+      SlaReferences.findOptionById(refId) match {
         case Some(slaReference) if slaReference.isDefinedInline =>
           findSlaOptionArtifact(slaReference.name, deploymentId) match {
             case Some(slaArtifact: EscalationOnlySla) => Some(slaArtifact)

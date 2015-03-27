@@ -76,19 +76,19 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
 
       cluster.slaReference match {
         case Some(slaRef) =>
-          GenericSlas.findOptionByName(slaRef, cluster.deploymentId) match {
-            case Some(sla) if sla.isAnonymous => deleteSlaModel(sla)
-            case Some(sla) =>
-            case None => // Should not happen
-          }
-          SlaReferences.findOptionByName(slaRef, cluster.deploymentId) match {
+          SlaReferences.findOptionById(slaRef) match {
             case Some(slaReference) =>
               for (escalationReference <- slaReference.escalationReferences) {
                 EscalationReferences.deleteById(escalationReference.id.get)
               }
+              GenericSlas.findOptionByName(slaReference.name, slaReference.deploymentId) match {
+                case Some(sla) if sla.isAnonymous => deleteSlaModel(sla)
+                case Some(sla) =>
+                case None => // Should not happen
+              }
             case None =>
           }
-          SlaReferences.deleteByName(slaRef, cluster.deploymentId)
+          SlaReferences.deleteById(slaRef)
 
         case None => // Should not happen
       }
@@ -113,7 +113,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
     clusters.map(cluster => Cluster(
       name = cluster.name,
       services = findServicesArtifacts(cluster.services, deploymentId),
-      sla = findOptionSlaArtifactViaReferenceName(cluster.slaReference, deploymentId))
+      sla = findOptionSlaArtifactViaReferenceId(cluster.slaReference, deploymentId))
     )
 
   private def findServicesArtifacts(services: List[ServiceModel], deploymentId: Option[Int]): List[Service] = services.map(service =>
@@ -150,8 +150,8 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
 
   private def createBlueprintClusters(clusters: List[Cluster], blueprintId: Int, deploymentId: Option[Int]): Unit = {
     for (cluster <- clusters) {
-      val slaRefName: Option[String] = createSla(cluster.sla, deploymentId)
-      val clusterId = Clusters.add(ClusterModel(deploymentId = deploymentId, name = cluster.name, blueprintId = blueprintId, slaReference = slaRefName))
+      val slaRefId: Option[Int] = createSla(cluster.sla, deploymentId)
+      val clusterId = Clusters.add(ClusterModel(deploymentId = deploymentId, name = cluster.name, blueprintId = blueprintId, slaReference = slaRefId))
       createServices(cluster.services, clusterId, deploymentId)
     }
   }

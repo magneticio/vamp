@@ -41,7 +41,7 @@ case class BlueprintReferenceModel(deploymentId: Option[Int], name: String, id: 
   override def withId(id: Id): BlueprintReferenceModel = copy(id = Option(id))
 }
 
-case class ClusterModel(deploymentId: Option[Int], name: String, blueprintId: Int, slaReference: Option[String], id: Option[Int] = None) extends VampDeployablePersistenceModel[ClusterModel] {
+case class ClusterModel(deploymentId: Option[Int], name: String, blueprintId: Int, slaReference: Option[Int], id: Option[Int] = None) extends VampDeployablePersistenceModel[ClusterModel] {
   override def withId(id: Id): ClusterModel = copy(id = Option(id))
 }
 
@@ -146,7 +146,7 @@ case class DeploymentModel(id: Option[Int] = None, name: String) extends VampNam
   override def withId(id: Id): DeploymentModel = copy(id = Option(id))
 }
 
-case class DeploymentClusterModel(deploymentId: Option[Int], id: Option[Int] = None, name: String, slaReference: Option[String]) extends VampDeployablePersistenceModel[DeploymentClusterModel] {
+case class DeploymentClusterModel(deploymentId: Option[Int], id: Option[Int] = None, name: String, slaReference: Option[Int]) extends VampDeployablePersistenceModel[DeploymentClusterModel] {
   override def withId(id: Id): DeploymentClusterModel = copy(id = Option(id))
 }
 

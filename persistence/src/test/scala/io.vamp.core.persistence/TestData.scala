@@ -40,7 +40,6 @@ object TestData {
     dependencies = Map(
       "db" -> BreedReference(name = "postgres"),
       "http" -> BreedReference(name = "nginx"),
-      //"backup" -> breedSimple,
       "recovery" -> breedAnonymous,
       "recovery2" -> breedAnonymous.copy(ports = List.empty, dependencies = Map.empty)
     )

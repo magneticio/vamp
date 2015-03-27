@@ -26,6 +26,12 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       updatedFirstArtifact = TestData.breed1Updated,
       secondArtifact = TestData.breed2)
   }
+  it should "CRUD overlapping breeds" in {
+    performCrudTest(
+      firstArtifact = TestData.breed2,
+      updatedFirstArtifact = TestData.breed2.copy(deployable = Deployable("updated")),
+      secondArtifact = TestData.breed2.copy(name ="copy of breed2"))
+  }
 
   it should "CRUD scale" in {
     performCrudTest(
@@ -125,6 +131,14 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       firstArtifact = bp1,
       updatedFirstArtifact = bp1.copy(clusters = List.empty),
       secondArtifact = bp1.copy(name = "bp2"))
+  }
+
+  it should "CRUD blueprint-full overlapping" in {
+    val bp1 = TestData.blueprintFull.copy(name="full-2")
+    performCrudTest(
+      firstArtifact = bp1,
+      updatedFirstArtifact = bp1,
+      secondArtifact = bp1.copy(name = "full-3"))
   }
 
   it should "CRUD deployment-1" in {
