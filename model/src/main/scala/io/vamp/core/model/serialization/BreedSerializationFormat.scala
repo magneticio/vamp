@@ -62,5 +62,7 @@ class DeployableSerializer extends ArtifactSerializer[Deployable] {
 }
 
 class BreedFieldSerializer extends ArtifactFieldSerializer[DefaultBreed] {
-  override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = renameTo("environmentVariables", "environment_variables")
+  override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] =
+    ignore("traits") orElse renameTo("environmentVariables", "environment_variables")
 }
+
