@@ -52,7 +52,7 @@ trait PersistingActor extends Actor with ActorLogging with ReplyActor with Futur
       case _ => error(errorRequest(request))
     }
 
-    offLoad(future)
+    offload(future)
   }
 
   def createDefaultArtifact(artifact: Artifact, ignoreIfExists: Boolean): Artifact
@@ -168,7 +168,7 @@ trait ArtifactSupport {
 
   def artifactFor[T <: Artifact : ClassTag](name: String): T = {
     implicit val timeout = PersistenceActor.timeout
-    offLoad(actorFor(PersistenceActor) ? PersistenceActor.Read(name, classTag[T].runtimeClass.asInstanceOf[Class[Artifact]])) match {
+    offload(actorFor(PersistenceActor) ? PersistenceActor.Read(name, classTag[T].runtimeClass.asInstanceOf[Class[Artifact]])) match {
       case Some(artifact: T) => artifact
       case _ => error(ArtifactNotFound(name, classTag[T].runtimeClass))
     }
