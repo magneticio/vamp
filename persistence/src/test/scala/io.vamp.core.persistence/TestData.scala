@@ -117,15 +117,15 @@ object TestData {
   private val myEndpointPort1 = HttpPort(name = "port8080", alias = Option("HTTP"), value = Option(8080), direction = Trait.Direction.In)
   private val myEndpointPort2 = TcpPort(name = "port21", alias = Option("FTP"), value = Option(8080), direction = Trait.Direction.In)
   private val myParameter1 = (Trait.Name(Some("myParameter1"), None, "GO_HOME"), "/var/lib/go/bin")
-  private val myParameter2 = (Trait.Name(Some("myParameter2"), Some(Trait.Name.Group.EnvironmentVariables), "PATH"), EnvironmentVariable(name = "", alias = Some("JAVA_HOME"), value = Some("/opt/java/bin"), direction = Trait.Direction.In))
-  private val myParameter3 = (Trait.Name(Some("myParameter3"), Some(Trait.Name.Group.Ports), "HOME_PORT"), TcpPort(name = "", alias = Option("Telnet"), value = Option(23), direction = Trait.Direction.In))
+  private val myParameter2 = (Trait.Name(Some("myParameter2"), Some(Trait.Name.Group.EnvironmentVariables), "PATH"),"/opt/java/bin")
+  private val myParameter3 = (Trait.Name(Some("myParameter3"), Some(Trait.Name.Group.Ports), "HOME_PORT"), 23)
 
 
   private val myEndpointPort5 = HttpPort(name = "port8080", alias = Option("HTTP"), value = Option(8080), direction = Trait.Direction.In)
   private val myEndpointPort6 = TcpPort(name = "port21", alias = Option("FTP"), value = Option(8080), direction = Trait.Direction.In)
   private val myParameter5 = (Trait.Name(Some("myParameter1"), None, "GO_HOME"), "/var/lib/go/bin")
-  private val myParameter6 = (Trait.Name(Some("myParameter2"), Some(Trait.Name.Group.EnvironmentVariables), "PATH"), EnvironmentVariable(name = "", alias = Some("JAVA_HOME"), value = Some("/opt/java/bin"), direction = Trait.Direction.In))
-  private val myParameter7 = (Trait.Name(Some("myParameter3"), Some(Trait.Name.Group.Ports), "HOME_PORT"), TcpPort(name = "", alias = Option("Telnet"), value = Option(23), direction = Trait.Direction.In))
+  private val myParameter6 = (Trait.Name(Some("myParameter2"), Some(Trait.Name.Group.EnvironmentVariables), "PATH"), "/opt/java/bin")
+  private val myParameter7 = (Trait.Name(Some("myParameter3"), Some(Trait.Name.Group.Ports), "HOME_PORT"), 23)
 
 
   val myCluster_db = Cluster(name = "db", services = List(myService2), sla = None)

@@ -21,46 +21,17 @@ trait TraitNameParameterStore extends PersistenceNotificationProvider {
     val deploymentId = None
     for (param <- parameters) {
       val prefilledParameter = TraitNameParameterModel(name = param._1.value, scope = param._1.scope, parentId = parentId, groupType = param._1.group, parentType = parentType)
-      param._1.group match {
-        case Some(group) if group == Trait.Name.Group.Ports =>
-          param._2 match {
-            case port: Port =>
-              TraitNameParameters.add(prefilledParameter.copy(groupId = Some(Ports.add(port2PortModel(port).copy(parentType = Some(PortParentType.BlueprintParameter), parentId = parentId)))))
-            case env =>
-              // Not going to work, if the group is port, the parameter should be too
-              throw exception(PersistenceOperationFailure(s"Parameter [${param._1.value}}] of type [${param._1.group}] does not match the supplied parameter [${param._2}}]."))
-          }
-        case Some(group) if group == Trait.Name.Group.EnvironmentVariables =>
-          param._2 match {
-            case env: EnvironmentVariable =>
-              TraitNameParameters.add(prefilledParameter.copy(
-                groupId = Some(EnvironmentVariables.add(
-                  EnvironmentVariableModel(
-                    deploymentId = deploymentId,
-                    name = env.name.value,
-                    alias = env.alias,
-                    direction = env.direction,
-                    value = env.value,
-                    parentId = parentId,
-                    parentType = Some(EnvironmentVariableParentType.BlueprintParameter))
-                )
-                )))
-            case env =>
-              // Not going to work, if the group is EnvironmentVariable, the parameter should be too
-              throw exception(PersistenceOperationFailure(s"Parameter [${param._1.value}}] of type [${param._1.group}] does not match the supplied parameter [${param._2}}]."))
-
-          }
-        case None =>
           TraitNameParameters.add(
             param._2 match {
               case value: String =>
                 prefilledParameter.copy(stringValue = Some(value))
-              case value =>
+              case value: Int =>
+                prefilledParameter.copy(intValue = Some(value))
+              case value  =>
                 // Seems incorrect, store the value as a string
                 prefilledParameter.copy(stringValue = Some(value.toString))
             }
           )
-      }
     }
   }
 
@@ -68,9 +39,9 @@ trait TraitNameParameterStore extends PersistenceNotificationProvider {
     for {traitName <- traitNames
          restoredArtifact: Any = traitName.groupType match {
            case Some(group) if group == Trait.Name.Group.Ports =>
-             portModel2Port(Ports.findById(traitName.groupId.get))
+             traitName.intValue.getOrElse(0)
            case Some(group) if group == Trait.Name.Group.EnvironmentVariables =>
-             environmentVariableModel2Artifact(EnvironmentVariables.findById(traitName.groupId.get))
+             traitName.stringValue.getOrElse("")
            case _ =>
              traitName.stringValue.getOrElse("")
          }
@@ -78,13 +49,6 @@ trait TraitNameParameterStore extends PersistenceNotificationProvider {
 
   protected def deleteModelTraitNameParameters(params: List[TraitNameParameterModel]): Unit =
     for (p <- params) {
-      p.groupType match {
-        case Some(env: Trait.Name.Group.EnvironmentVariables.type) =>
-          EnvironmentVariables.deleteById(p.groupId.get)
-        case Some(ports: Trait.Name.Group.Ports.type) =>
-          Ports.deleteById(p.groupId.get)
-        case _ =>
-      }
       TraitNameParameters.deleteById(p.id.get)
     }
 

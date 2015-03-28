@@ -15,8 +15,8 @@ import io.vamp.core.persistence.slick.components.Components.instance._
 class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
   this: ExecutionContextProvider =>
 
-  //destroySchema
-  //upgradeSchema
+  destroySchema
+  upgradeSchema
 
   val jdbcStore = store
 
