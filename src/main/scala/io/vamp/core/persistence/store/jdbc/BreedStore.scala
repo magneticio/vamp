@@ -41,9 +41,7 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
     val breedId: Int =
       DefaultBreeds.findOptionByName(a.artifact.name, a.deploymentId) match {
         case Some(existingBreed) =>
-          //TODO fix this
           existingBreed.copy(deployable = a.artifact.deployable.name).update
-          //updateBreed(existingBreed,a.artifact)
           removeBreedChildren(existingBreed)
           existingBreed.id.get
         case None =>
@@ -51,7 +49,6 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
       }
     val newBreed = DefaultBreeds.findById(breedId)
     createBreedChildren(newBreed, a)
-    //DefaultBreeds.findById(breedId)
     newBreed
   }
 
@@ -110,12 +107,7 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
 
   private def createBreedChildren(parentBreedModel: DefaultBreedModel, a: DeploymentDefaultBreed): Unit = {
     for (env <- a.artifact.environmentVariables) {
-      //EnvironmentVariables.findOptionByName(env.name.value, a.deploymentId) match {   //TODO add parentId in check
-      //  case Some(existing : EnvironmentVariableModel) =>
-      //    existing.copy(alias = env.alias, direction = env.direction, value = env.value)
-      //  case None =>
           EnvironmentVariables.add(EnvironmentVariableModel(deploymentId = None, name = env.name.value, alias = env.alias, direction = env.direction, value = env.value, parentId = parentBreedModel.id, parentType = Some(EnvironmentVariableParentType.Breed)))
-     // }
     }
     createPorts(a.artifact.ports, parentBreedModel.id, parentType = Some(PortParentType.Breed))
     for (dependency <- a.artifact.dependencies) {

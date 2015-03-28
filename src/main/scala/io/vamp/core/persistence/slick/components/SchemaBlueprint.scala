@@ -93,13 +93,13 @@ trait SchemaBlueprint extends SchemaBreed {
   }
 
   class TraitNameParameterTable(tag: Tag) extends NameableEntityTable[TraitNameParameterModel](tag, "trait_name_parameters") {
-    def * = (id.?, name, scope, groupType, stringValue, groupId, parentId, parentType) <>(TraitNameParameterModel.tupled, TraitNameParameterModel.unapply)
+    def * = (id.?, name, scope, groupType, stringValue, intValue, parentId, parentType) <>(TraitNameParameterModel.tupled, TraitNameParameterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def stringValue = column[Option[String]]("string_value")
 
-    def groupId = column[Option[Int]]("group_id")
+    def intValue = column[Option[Int]]("int_value")
 
     def idx = index("idx_trait_name_parameters", (name, scope, groupType, parentId, parentType), unique = true)
 

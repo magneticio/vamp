@@ -132,7 +132,7 @@ case class ParameterModel(deploymentId: Option[Int], name: String, stringValue: 
   override def withId(id: Id): ParameterModel = copy(id = Option(id))
 }
 
-case class TraitNameParameterModel(id: Option[Int] = None, name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], stringValue: Option[String] = None, groupId: Option[Int] = None, parentId: Option[Int], parentType: TraitParameterParentType) extends VampNameablePersistenceModel[TraitNameParameterModel] {
+case class TraitNameParameterModel(id: Option[Int] = None, name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], stringValue: Option[String] = None, intValue : Option[Int] = None, parentId: Option[Int], parentType: TraitParameterParentType) extends VampNameablePersistenceModel[TraitNameParameterModel] {
   override def withId(id: Id): TraitNameParameterModel = copy(id = Option(id))
 }
 
