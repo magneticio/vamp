@@ -22,3 +22,6 @@ and a deep and extendable metrics engine that monitors everything and directly f
 For documentation, installation and all other info please check: [vamp.io](http://vamp.io)
 
 
+## Contributing
+
+Vamp is open source. Any contribtions are welcome. Please check [our contribution guidelines](https://github.com/magneticio/vamp/blob/master/CONTRIBUTING.md)

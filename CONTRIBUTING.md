@@ -1,3 +1,5 @@
+![](http://vamp.io/img/vamp_logo_blue.svg)
+
 Vamp is actively developed by [Magnetic.io](http://magnetic.io) but is an open source project. 
 We encourage anyone to pitch in with pull requests, issues etc.
 
