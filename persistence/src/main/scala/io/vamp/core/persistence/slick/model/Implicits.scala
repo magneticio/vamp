@@ -4,6 +4,7 @@ import java.time.OffsetDateTime
 import java.util.concurrent.TimeUnit
 
 import io.vamp.core.model.artifact.DeploymentService._
+import io.vamp.core.model.artifact.Trait.Name
 import io.vamp.core.model.artifact.{Deployment, _}
 import io.vamp.core.persistence.notification.PersistenceOperationFailure
 import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
@@ -187,15 +188,15 @@ object Implicits {
     EnvironmentVariable(name = m.name, alias = m.alias, value = m.value, direction = m.direction)
 
   implicit def portModel2Port(model: PortModel): Port = model.portType match {
-    case PortType.HTTP => HttpPort(model.name, model.alias, model.value, model.direction)
-    case PortType.TCP => TcpPort(model.name, model.alias, model.value, model.direction)
+    case PortType.HTTP => HttpPort(Name(value=model.name, group = model.groupType, scope = model.scope), model.alias, model.value, model.direction)
+    case PortType.TCP => TcpPort(Name(value=model.name, group = model.groupType, scope = model.scope), model.alias, model.value, model.direction)
     case _ => throw new RuntimeException(s"Handler for this portType: ${model.portType} is not implemented")
   }
 
   implicit def port2PortModel(port: Port): PortModel =
     port match {
-      case TcpPort(_, _, _, _) => PortModel(name = port.name.value, alias = port.alias, portType = PortType.TCP, value = port.value, direction = port.direction)
-      case HttpPort(_, _, _, _) => PortModel(name = port.name.value, alias = port.alias, portType = PortType.HTTP, value = port.value, direction = port.direction)
+      case TcpPort(_, _, _, _) => PortModel(name = port.name.value, scope = port.name.scope, groupType = port.name.group, alias = port.alias, portType = PortType.TCP, value = port.value, direction = port.direction)
+      case HttpPort(_, _, _, _) => PortModel(name = port.name.value, scope = port.name.scope, groupType = port.name.group, alias = port.alias, portType = PortType.HTTP, value = port.value, direction = port.direction)
       case _ => throw new RuntimeException(s"Handler for portType not implemented")
     }
 
