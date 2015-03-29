@@ -4,6 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import io.vamp.core.model.artifact.DeploymentService.Deployed
 import io.vamp.core.model.artifact._
+import io.vamp.core.persistence.notification.UnsupportedPersistenceRequest
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -198,6 +199,8 @@ object TestData {
   )
 
 
+
+
   val deployment1 = Deployment(
     name = "deployment-1",
     clusters = List.empty,
@@ -218,7 +221,6 @@ object TestData {
     parameters = Map(myParameter5, myParameter6, myParameter7)
   )
 
-
   val deployment2 = Deployment(
     name = "deployment-2",
     clusters = List(
@@ -226,6 +228,21 @@ object TestData {
         name = "deployment-cluster-2",
         services = List.empty,
         sla = Some(SlaReference("sla-ref-deployment2", escalations = List.empty)),
+        routes = Map.empty
+      )
+    ),
+    endpoints = List.empty,
+    parameters = Map.empty
+  )
+
+  val deploymentServiceWithError = deploymentService1.copy(state=DeploymentService.Error(UnsupportedPersistenceRequest("ERROR")))
+  val deployment4WithErrorService = Deployment(
+    name = "deployment-4",
+    clusters = List(
+      DeploymentCluster(
+        name = "deployment-cluster-2",
+        services = List(deploymentServiceWithError),
+        sla = None,
         routes = Map.empty
       )
     ),
