@@ -17,7 +17,7 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
   protected def createSla(clusterSla: Option[Sla], deploymentId: Option[Int]): Option[Int] = clusterSla match {
     case Some(sla: SlaReference) =>
       val slaRefId = SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = sla.name, isDefinedInline = false))
-      createEscalationReferences(sla.escalations, None, Some(slaRefId), deploymentId)
+      createEscalationReferences(sla.escalations, None, Some(slaRefId), None, deploymentId)
       Some(slaRefId)
     case Some(sla: Sla) =>
       val slaId = GenericSlas.findOptionByName(sla.name, deploymentId) match {
@@ -29,12 +29,12 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
       }
       val storedSla = GenericSlas.findById(slaId.get)
       Some(SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = storedSla.name, isDefinedInline = true)))
-    case _ => None  // Should never happen
+    case _ => None // Should never happen
   }
 
   protected def updateSla(existing: GenericSlaModel, a: Sla): Unit = {
     deleteSlaModelChildObjects(existing)
-    createEscalationReferences(a.escalations, existing.id, None, existing.deploymentId)
+    createEscalationReferences(a.escalations, existing.id, None, None, existing.deploymentId)
     a match {
       case artifact: GenericSla =>
         createParameters(artifact.parameters, existing.id.get, ParameterParentType.Sla)
@@ -116,7 +116,7 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
         createParameters(artifact.parameters, storedSlaId, ParameterParentType.Sla)
       case _ =>
     }
-    createEscalationReferences(escalations = a.artifact.escalations, slaId = Some(storedSlaId), slaRefId = None, a.deploymentId)
+    createEscalationReferences(escalations = a.artifact.escalations, slaId = Some(storedSlaId), slaRefId = None, parentEscalationId = None, a.deploymentId)
     GenericSlas.findById(storedSlaId)
   }
 

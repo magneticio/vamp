@@ -127,7 +127,6 @@ object Implicits {
     DefaultBlueprintModel(deploymentId = a.deploymentId, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def genericEscalation2Model(a: DeploymentGenericEscalation): GenericEscalationModel = a.artifact match {
-    //TODO verify this - issue #271
     case artifact: GenericEscalation =>
       GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
@@ -185,11 +184,11 @@ object Implicits {
     DefaultBreedModel(deploymentId = a.deploymentId, deployable = a.artifact.deployable.name, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def environmentVariableModel2Artifact(m: EnvironmentVariableModel): EnvironmentVariable =
-    EnvironmentVariable(name = Name(value=m.name, group = m.groupType, scope = m.scope), alias = m.alias, value = m.value, direction = m.direction)
+    EnvironmentVariable(name = Name(value = m.name, group = m.groupType, scope = m.scope), alias = m.alias, value = m.value, direction = m.direction)
 
   implicit def portModel2Port(model: PortModel): Port = model.portType match {
-    case PortType.HTTP => HttpPort(Name(value=model.name, group = model.groupType, scope = model.scope), model.alias, model.value, model.direction)
-    case PortType.TCP => TcpPort(Name(value=model.name, group = model.groupType, scope = model.scope), model.alias, model.value, model.direction)
+    case PortType.HTTP => HttpPort(Name(value = model.name, group = model.groupType, scope = model.scope), model.alias, model.value, model.direction)
+    case PortType.TCP => TcpPort(Name(value = model.name, group = model.groupType, scope = model.scope), model.alias, model.value, model.direction)
     case _ => throw new RuntimeException(s"Handler for this portType: ${model.portType} is not implemented")
   }
 

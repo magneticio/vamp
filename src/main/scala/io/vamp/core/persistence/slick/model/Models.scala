@@ -3,8 +3,8 @@ package io.vamp.core.persistence.slick.model
 import java.sql.Timestamp
 import java.time.{LocalDateTime, OffsetDateTime}
 
-import io.vamp.core.model.artifact._
 import io.strongtyped.active.slick.models.Identifiable
+import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.slick.extension.{AnonymousDeployable, Nameable, NamedDeployable}
 import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
@@ -62,7 +62,7 @@ case class GenericSlaModel(deploymentId: Option[Int], name: String, slaType: Str
   override def withAnonymousName: GenericSlaModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
 }
 
-case class EscalationReferenceModel(deploymentId: Option[Int], name: String, slaId: Option[Int], slaRefId: Option[Int], id: Option[Int] = None, isDefinedInline: Boolean) extends VampDeployablePersistenceModel[EscalationReferenceModel] {
+case class EscalationReferenceModel(deploymentId: Option[Int], name: String, slaId: Option[Int], slaRefId: Option[Int], parentEscalationId: Option[Int], id: Option[Int] = None, isDefinedInline: Boolean) extends VampDeployablePersistenceModel[EscalationReferenceModel] {
   override def withId(id: Id): EscalationReferenceModel = copy(id = Option(id))
 }
 
@@ -132,7 +132,7 @@ case class ParameterModel(deploymentId: Option[Int], name: String, stringValue: 
   override def withId(id: Id): ParameterModel = copy(id = Option(id))
 }
 
-case class TraitNameParameterModel(id: Option[Int] = None, name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], stringValue: Option[String] = None, intValue : Option[Int] = None, parentId: Option[Int], parentType: TraitParameterParentType) extends VampNameablePersistenceModel[TraitNameParameterModel] {
+case class TraitNameParameterModel(id: Option[Int] = None, name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], stringValue: Option[String] = None, intValue: Option[Int] = None, parentId: Option[Int], parentType: TraitParameterParentType) extends VampNameablePersistenceModel[TraitNameParameterModel] {
   override def withId(id: Id): TraitNameParameterModel = copy(id = Option(id))
 }
 

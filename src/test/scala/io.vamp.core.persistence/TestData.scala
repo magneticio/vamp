@@ -106,6 +106,10 @@ object TestData {
   val escalation7Updated = ScaleCpuEscalation(name = "escalation-7", minimum = 1.2, maximum = 6, scaleBy = 0.4, targetCluster = Some("target-cluster-2"))
   val escalation8 = ScaleMemoryEscalation(name = "escalation-8", minimum = 64, maximum = 4096, scaleBy = 32, targetCluster = Some("target-cluster-1"))
 
+  val escalation11 = ToOneEscalation(name = "escalation11", escalations = List(escalation7.copy(name = ""), escalation8.copy(name = "")))
+  val escalation11Updated = escalation11.copy(escalations = List(escalation7.copy(name = "")))
+  val escalation12 = ToAllEscalation(name = "escalation12", escalations = List(escalation7.copy(name = ""), escalation8.copy(name = "")))
+
   private val minimalBreedReference = BreedReference("minimal-breed")
   private val myRoute = DefaultRouting(name = "my-route", weight = Some(1), filters = List(DefaultFilter(name = "my-filter", condition = "my-condition")))
   private val myService1 = Service(breed = minimalBreedReference, scale = Some(myScale1), routing = None)
@@ -123,9 +127,8 @@ object TestData {
   private val myEndpointPort1 = HttpPort(name = "port8080", alias = Option("HTTP"), value = Option(8080), direction = Trait.Direction.In)
   private val myEndpointPort2 = TcpPort(name = "port21", alias = Option("FTP"), value = Option(8080), direction = Trait.Direction.In)
   private val myParameter1 = (Trait.Name(Some("myParameter1"), None, "GO_HOME"), "/var/lib/go/bin")
-  private val myParameter2 = (Trait.Name(Some("myParameter2"), Some(Trait.Name.Group.EnvironmentVariables), "PATH"),"/opt/java/bin")
+  private val myParameter2 = (Trait.Name(Some("myParameter2"), Some(Trait.Name.Group.EnvironmentVariables), "PATH"), "/opt/java/bin")
   private val myParameter3 = (Trait.Name(Some("myParameter3"), Some(Trait.Name.Group.Ports), "HOME_PORT"), 23)
-
 
   private val myEndpointPort5 = HttpPort(name = "port8080", alias = Option("HTTP"), value = Option(8080), direction = Trait.Direction.In)
   private val myEndpointPort6 = TcpPort(name = "port21", alias = Option("FTP"), value = Option(8080), direction = Trait.Direction.In)
