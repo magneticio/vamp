@@ -43,10 +43,10 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
       case artifact: ScaleMemoryEscalation =>
         existing.copy(escalationType = "scale_memory", minimumDouble = Some(artifact.minimum), maximumDouble = Some(artifact.maximum), scaleByDouble = Some(artifact.scaleBy), targetCluster = artifact.targetCluster).update
       case artifact: ToAllEscalation =>
-        //TODO remove & create child escalations
+        //TODO remove & create child escalations - issue #271
         existing.copy(escalationType = "to_all").update
       case artifact: ToOneEscalation =>
-        //TODO remove & create child escalations
+        //TODO remove & create child escalations - issue #271
         existing.copy(escalationType = "to_one").update
     }
   }
@@ -55,8 +55,8 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
     val storedEscalation = GenericEscalations.findById(GenericEscalations.add(a))
     a.artifact match {
       case artifact: GenericEscalation => createParameters(artifact.parameters, storedEscalation.id.get, ParameterParentType.Escalation)
-      case artifact: ToAllEscalation => //TODO Save the child escalations
-      case artifact: ToOneEscalation => //TODO Save the child escalations
+      case artifact: ToAllEscalation => //TODO Save the child escalations - issue #271
+      case artifact: ToOneEscalation => //TODO Save the child escalations - issue #271
       case _ =>
     }
     storedEscalation
@@ -111,9 +111,9 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
           case "scale_memory" =>
             Some(ScaleMemoryEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), minimum = e.minimumDouble.get, maximum = e.maximumDouble.get, scaleBy = e.scaleByDouble.get, targetCluster = e.targetCluster))
           case "to_all" =>
-            Some(ToAllEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), escalations = List.empty)) //TODO child escalations are missing
+            Some(ToAllEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), escalations = List.empty)) //TODO child escalations are missing - issue #271
           case "to_one" =>
-            Some(ToOneEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), escalations = List.empty)) //TODO child escalations are missing
+            Some(ToOneEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), escalations = List.empty)) //TODO child escalations are missing - issue #271
           case _ =>
             Some(GenericEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), `type` = e.escalationType, parameters = parametersToArtifact(e.parameters)))
         }
