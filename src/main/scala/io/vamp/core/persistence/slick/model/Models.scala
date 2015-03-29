@@ -116,7 +116,7 @@ case class DefaultBreedModel(deploymentId: Option[Int], name: String, deployable
   override def withAnonymousName: DefaultBreedModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
 }
 
-case class PortModel(name: String, alias: Option[String], portType: PortType, value: Option[Int], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int] = None, parentType: Option[PortParentType] = None) extends VampNameablePersistenceModel[PortModel] {
+case class PortModel(name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], alias: Option[String], portType: PortType, value: Option[Int], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int] = None, parentType: Option[PortParentType] = None) extends VampNameablePersistenceModel[PortModel] {
   override def withId(id: Id): PortModel = copy(id = Option(id))
 }
 

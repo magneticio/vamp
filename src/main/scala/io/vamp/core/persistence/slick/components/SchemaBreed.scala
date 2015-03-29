@@ -297,7 +297,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class PortTable(tag: Tag) extends NameableEntityTable[PortModel](tag, "ports") {
-    def * = (name, alias, portType, value, direction, id.?, parentId, parentType) <>(PortModel.tupled, PortModel.unapply)
+    def * = (name, scope, groupType, alias, portType, value, direction, id.?, parentId, parentType) <>(PortModel.tupled, PortModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -312,6 +312,10 @@ trait SchemaBreed extends Logging with VampSchema {
     def idx = index("idx_ports", (name, parentId, parentType), unique = true)
 
     def name = column[String]("name")
+
+    def scope = column[Option[String]]("trait_scope")
+
+    def groupType = column[Option[Trait.Name.Group.Value]]("trait_group")
 
     def parentId = column[Option[Int]]("parent_id")
 
