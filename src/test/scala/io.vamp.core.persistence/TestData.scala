@@ -111,8 +111,14 @@ object TestData {
   private val myService1 = Service(breed = minimalBreedReference, scale = Some(myScale1), routing = None)
   private val myService2 = Service(breed = minimalBreedReference, scale = Some(myScale2), routing = Some(myRoute))
   private val myEscalation = GenericEscalation(name = "my-escalation", `type` = "my-type", parameters = Map("param1" -> 1, "param2" -> "Hello"))
-  private val mySla = SlaReference(name = "my-sla", escalations = List(myEscalation))
-  private val myCluster_app = Cluster(name = "app", services = List(myService1), sla = Some(mySla))
+  private val mySlaReference = SlaReference(name = "my-sla", escalations = List(myEscalation))
+  private val mySlidingWindowSla = ResponseTimeSlidingWindowSla("",
+    lower = FiniteDuration(100, TimeUnit.MILLISECONDS),
+    upper = FiniteDuration(100, TimeUnit.MILLISECONDS),
+    interval = FiniteDuration(5, TimeUnit.MINUTES),
+    cooldown = FiniteDuration(10, TimeUnit.MINUTES),
+    escalations = List(GenericEscalation(name = "", `type` = "my-sliding-escalation", parameters = Map("param1" -> 1, "param2" -> "Hello"))))
+  private val myCluster_app = Cluster(name = "app", services = List(myService1), sla = Some(mySlidingWindowSla))
   private val myCluster_logger = Cluster(name = "logger", services = List(myService1), sla = None)
   private val myEndpointPort1 = HttpPort(name = "port8080", alias = Option("HTTP"), value = Option(8080), direction = Trait.Direction.In)
   private val myEndpointPort2 = TcpPort(name = "port21", alias = Option("FTP"), value = Option(8080), direction = Trait.Direction.In)
@@ -142,7 +148,7 @@ object TestData {
     clusters = List(
       myCluster_db.copy(
         name = "cluster-with-sla",
-        sla = Some(mySla.copy(name = "cluster-sla1")))),
+        sla = Some(mySlaReference.copy(name = "cluster-sla1")))),
     endpoints = List.empty,
     parameters = Map.empty)
   val blueprintWithFullSlaUpdated = blueprintWithFullSla.copy(clusters = List.empty)

@@ -20,11 +20,14 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
         case e: EscalationReference =>
           EscalationReferences.add(EscalationReferenceModel(deploymentId = deploymentId, name = e.name, slaId = slaId, slaRefId = slaRefId, isDefinedInline = false))
         case e =>
-          GenericEscalations.findOptionByName(e.name, deploymentId) match {
-            case Some(existing) => updateEscalation(DeploymentGenericEscalation(deploymentId, e))
-            case None => createEscalationFromArtifact(DeploymentGenericEscalation(deploymentId, e))
+          val storedEscalation = GenericEscalations.findOptionByName(e.name, deploymentId) match {
+            case Some(existing) =>
+              updateEscalation(DeploymentGenericEscalation(deploymentId, e))
+              existing
+            case None =>
+              createEscalationFromArtifact(DeploymentGenericEscalation(deploymentId, e))
           }
-          EscalationReferences.add(EscalationReferenceModel(deploymentId = deploymentId, name = e.name, slaId = slaId, slaRefId = slaRefId, isDefinedInline = true))
+          EscalationReferences.add(EscalationReferenceModel(deploymentId = deploymentId, name = storedEscalation.name, slaId = slaId, slaRefId = slaRefId, isDefinedInline = true))
       }
     }
   }
