@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 import io.vamp.core.model.artifact.DeploymentService._
 import io.vamp.core.model.artifact.Trait.Name
 import io.vamp.core.model.artifact.{Deployment, _}
-import io.vamp.core.persistence.notification.PersistenceOperationFailure
+import io.vamp.core.persistence.notification.{NotificationMessageNotRestored, PersistenceOperationFailure}
 import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.vamp.core.persistence.slick.model.ParameterParentType.ParameterParentType
@@ -92,7 +92,7 @@ object Implicits {
       case DeploymentStateType.ReadyForDeployment => ReadyForDeployment(startedAt = deploymentService.deploymentTime)
       case DeploymentStateType.Deployed => Deployed(startedAt = deploymentService.deploymentTime)
       case DeploymentStateType.ReadyForUndeployment => ReadyForUndeployment(startedAt = deploymentService.deploymentTime)
-      case DeploymentStateType.Error => Error(startedAt = deploymentService.deploymentTime, notification = PersistenceOperationFailure(deploymentService.message))
+      case DeploymentStateType.Error => Error(startedAt = deploymentService.deploymentTime, notification = NotificationMessageNotRestored(deploymentService.message.getOrElse("")))
     }
 
   val parameterTypeMap = Map(
@@ -151,7 +151,6 @@ object Implicits {
     case artifact: ToOneEscalation =>
       GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = "to_one", isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
   }
-
 
   implicit def defaultFilterModel2Artifact(m: DefaultFilterModel): DefaultFilter =
     DefaultFilter(name = VampPersistenceUtil.restoreToAnonymous(m.name, m.isAnonymous), condition = m.condition)

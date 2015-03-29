@@ -13,4 +13,4 @@ case class PersistenceOperationFailure(exception: Any) extends Notification
 
 case class ArtifactAlreadyExists(name: String, `type`: Class[_]) extends Notification
 
-
+case class NotificationMessageNotRestored(message: String) extends Notification

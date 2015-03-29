@@ -6,10 +6,7 @@ import io.vamp.core.persistence.slick.model._
 
 import scala.slick.jdbc.JdbcBackend
 
-/**
- * Author: matthijs 
- * Created on: 27 Mar 2015.
- */
+
 trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParameterStore with ScaleStore with RoutingStore with SlaStore with PersistenceNotificationProvider {
 
   implicit val sess: JdbcBackend.Session
@@ -84,7 +81,6 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
       }
       for (service <- cluster.services) {
         val breedId = createOrUpdateBreed(DeploymentDefaultBreed(deploymentId, service.breed)).id.get
-
         val scaleId = service.scale match {
           case Some(scale) => Some(DefaultScales.add(DeploymentDefaultScale(deploymentId, scale)))
           case _ => None
@@ -93,6 +89,12 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
           case Some(routing) => createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(deploymentId, routing)).id
           case _ => None
         }
+        val message = service.state match {
+          case error : DeploymentService.Error =>
+            Some(s"Problem in cluster ${cluster.name}, with a service containing breed ${DefaultBreeds.findById(breedId).name}.")
+          case _ =>  None
+        }
+
         val serviceId = DeploymentServices.add(
           DeploymentServiceModel(
             clusterId = clusterId,
@@ -103,7 +105,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
             routing = routingId,
             deploymentState = service.state,
             deploymentTime = service.state.startedAt,
-            message = None)
+            message = message)
         )
         for (dep <- service.dependencies) DeploymentServiceDependencies.add(DeploymentServiceDependencyModel(name = dep._1, value = dep._2, serviceId = serviceId))
         for (server <- service.servers) {
