@@ -185,7 +185,7 @@ object Implicits {
     DefaultBreedModel(deploymentId = a.deploymentId, deployable = a.artifact.deployable.name, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def environmentVariableModel2Artifact(m: EnvironmentVariableModel): EnvironmentVariable =
-    EnvironmentVariable(name = m.name, alias = m.alias, value = m.value, direction = m.direction)
+    EnvironmentVariable(name = Name(value=m.name, group = m.groupType, scope = m.scope), alias = m.alias, value = m.value, direction = m.direction)
 
   implicit def portModel2Port(model: PortModel): Port = model.portType match {
     case PortType.HTTP => HttpPort(Name(value=model.name, group = model.groupType, scope = model.scope), model.alias, model.value, model.direction)
