@@ -15,21 +15,21 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
   import io.vamp.core.persistence.slick.model.Implicits._
 
   protected def createSla(clusterSla: Option[Sla], deploymentId: Option[Int]): Option[Int] = clusterSla match {
-    case Some(sla: DeploymentGenericSla) =>
-      val slaId = GenericSlas.findOptionByName(sla.name, deploymentId) match {
-        case Some(existingSla) =>
-          updateSla(existingSla, sla.artifact)
-          existingSla.id
-        case None =>
-          createGenericSlaModelFromArtifact(sla).id
-      }
-      val storedSla = GenericSlas.findById(slaId.get)
-      Some(SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = storedSla.name, isDefinedInline = true)))
     case Some(sla: SlaReference) =>
       val slaRefId = SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = sla.name, isDefinedInline = false))
       createEscalationReferences(sla.escalations, None, Some(slaRefId), deploymentId)
       Some(slaRefId)
-    case _ => None
+    case Some(sla: Sla) =>
+      val slaId = GenericSlas.findOptionByName(sla.name, deploymentId) match {
+        case Some(existingSla) =>
+          updateSla(existingSla, sla)
+          existingSla.id
+        case None =>
+          createGenericSlaModelFromArtifact(DeploymentGenericSla(deploymentId, sla)).id
+      }
+      val storedSla = GenericSlas.findById(slaId.get)
+      Some(SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = storedSla.name, isDefinedInline = true)))
+    case _ => None  // Should never happen
   }
 
   protected def updateSla(existing: GenericSlaModel, a: Sla): Unit = {
