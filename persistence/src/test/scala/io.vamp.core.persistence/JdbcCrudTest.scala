@@ -4,12 +4,11 @@ import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.ArtifactNotFound
+import io.vamp.core.persistence.slick.components.Components.instance._
 import io.vamp.core.persistence.store.JdbcStoreProvider
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, Matchers}
-
-import io.vamp.core.persistence.slick.components.Components.instance._
 
 @RunWith(classOf[JUnitRunner])
 class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
@@ -30,7 +29,7 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
     performCrudTest(
       firstArtifact = TestData.breed2,
       updatedFirstArtifact = TestData.breed2.copy(deployable = Deployable("updated")),
-      secondArtifact = TestData.breed2.copy(name ="copy of breed2"))
+      secondArtifact = TestData.breed2.copy(name = "copy of breed2"))
   }
 
   it should "CRUD scale" in {
@@ -80,6 +79,13 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       firstArtifact = TestData.escalation7,
       updatedFirstArtifact = TestData.escalation7Updated,
       secondArtifact = TestData.escalation8)
+  }
+
+  it should "CRUD to_one & to_all escalations" in {
+    performCrudTest(
+      firstArtifact = TestData.escalation11,
+      updatedFirstArtifact = TestData.escalation11Updated,
+      secondArtifact = TestData.escalation12)
   }
 
   it should "CRUD sla without escalations or parameters" in {
@@ -134,7 +140,7 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
   }
 
   it should "CRUD blueprint-full overlapping" in {
-    val bp1 = TestData.blueprintFull.copy(name="full-2")
+    val bp1 = TestData.blueprintFull.copy(name = "full-2")
     performCrudTest(
       firstArtifact = bp1,
       updatedFirstArtifact = bp1,

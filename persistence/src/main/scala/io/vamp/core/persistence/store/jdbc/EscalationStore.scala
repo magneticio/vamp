@@ -14,11 +14,11 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
   import io.vamp.core.persistence.slick.components.Components.instance._
   import io.vamp.core.persistence.slick.model.Implicits._
 
-  protected def createEscalationReferences(escalations: List[Escalation], slaId: Option[Int], slaRefId: Option[Int], deploymentId: Option[Int]): Unit = {
+  protected def createEscalationReferences(escalations: List[Escalation], slaId: Option[Int], slaRefId: Option[Int], parentEscalationId: Option[Int], deploymentId: Option[Int]): Unit = {
     for (escalation <- escalations) {
       escalation match {
         case e: EscalationReference =>
-          EscalationReferences.add(EscalationReferenceModel(deploymentId = deploymentId, name = e.name, slaId = slaId, slaRefId = slaRefId, isDefinedInline = false))
+          EscalationReferences.add(EscalationReferenceModel(deploymentId = deploymentId, name = e.name, slaId = slaId, slaRefId = slaRefId, parentEscalationId = parentEscalationId, isDefinedInline = false))
         case e =>
           val storedEscalation = GenericEscalations.findOptionByName(e.name, deploymentId) match {
             case Some(existing) =>
@@ -27,7 +27,7 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
             case None =>
               createEscalationFromArtifact(DeploymentGenericEscalation(deploymentId, e))
           }
-          EscalationReferences.add(EscalationReferenceModel(deploymentId = deploymentId, name = storedEscalation.name, slaId = slaId, slaRefId = slaRefId, isDefinedInline = true))
+          EscalationReferences.add(EscalationReferenceModel(deploymentId = deploymentId, name = storedEscalation.name, slaId = slaId, slaRefId = slaRefId, parentEscalationId = parentEscalationId, isDefinedInline = true))
       }
     }
   }
@@ -46,11 +46,13 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
       case artifact: ScaleMemoryEscalation =>
         existing.copy(escalationType = "scale_memory", minimumDouble = Some(artifact.minimum), maximumDouble = Some(artifact.maximum), scaleByDouble = Some(artifact.scaleBy), targetCluster = artifact.targetCluster).update
       case artifact: ToAllEscalation =>
-        //TODO remove & create child escalations - issue #271
         existing.copy(escalationType = "to_all").update
+        deleteChildEscalations(existing.escalationReferences)
+        createEscalationReferences(artifact.escalations, None, None, existing.id, a.deploymentId)
       case artifact: ToOneEscalation =>
-        //TODO remove & create child escalations - issue #271
         existing.copy(escalationType = "to_one").update
+        deleteChildEscalations(existing.escalationReferences)
+        createEscalationReferences(artifact.escalations, None, None, existing.id, a.deploymentId)
     }
   }
 
@@ -58,8 +60,10 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
     val storedEscalation = GenericEscalations.findById(GenericEscalations.add(a))
     a.artifact match {
       case artifact: GenericEscalation => createParameters(artifact.parameters, storedEscalation.id.get, ParameterParentType.Escalation)
-      case artifact: ToAllEscalation => //TODO Save the child escalations - issue #271
-      case artifact: ToOneEscalation => //TODO Save the child escalations - issue #271
+      case artifact: ToAllEscalation =>
+        createEscalationReferences(artifact.escalations, None, None, storedEscalation.id, a.deploymentId)
+      case artifact: ToOneEscalation =>
+        createEscalationReferences(artifact.escalations, None, None, storedEscalation.id, a.deploymentId)
       case _ =>
     }
     storedEscalation
@@ -84,7 +88,20 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
 
   protected def deleteEscalationModel(escalation: GenericEscalationModel): Unit = {
     for (param <- escalation.parameters) Parameters.deleteById(param.id.get)
+    deleteChildEscalations(escalation.escalationReferences)
     GenericEscalations.deleteById(escalation.id.get)
+  }
+
+
+  private def deleteChildEscalations(escalations: List[EscalationReferenceModel]): Unit = {
+    for (escalationRef <- escalations) {
+      GenericEscalations.findOptionByName(escalationRef.name, escalationRef.deploymentId) match {
+        case Some(escalationChild) if escalationChild.isAnonymous => deleteEscalationModel(escalationChild)
+        case Some(escalationChild) =>
+        case None => // Should not happen
+      }
+      EscalationReferences.deleteById(escalationRef.id.get)
+    }
   }
 
   protected def escalations2Artifacts(escalationReferences: List[EscalationReferenceModel]): List[Escalation] =
@@ -114,9 +131,9 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
           case "scale_memory" =>
             Some(ScaleMemoryEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), minimum = e.minimumDouble.get, maximum = e.maximumDouble.get, scaleBy = e.scaleByDouble.get, targetCluster = e.targetCluster))
           case "to_all" =>
-            Some(ToAllEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), escalations = List.empty)) //TODO child escalations are missing - issue #271
+            Some(ToAllEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), escalations = escalations2Artifacts(e.escalationReferences)))
           case "to_one" =>
-            Some(ToOneEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), escalations = List.empty)) //TODO child escalations are missing - issue #271
+            Some(ToOneEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), escalations = escalations2Artifacts(e.escalationReferences)))
           case _ =>
             Some(GenericEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), `type` = e.escalationType, parameters = parametersToArtifact(e.parameters)))
         }

@@ -1,7 +1,7 @@
 package io.vamp.core.persistence.slick.components
 
-import io.vamp.core.model.artifact.Trait
 import io.strongtyped.active.slick.Profile
+import io.vamp.core.model.artifact.Trait
 import io.vamp.core.persistence.slick.extension.{VampTableQueries, VampTables}
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.vamp.core.persistence.slick.model.ParameterParentType.ParameterParentType
@@ -79,7 +79,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class EscalationReferenceTable(tag: Tag) extends DeployableEntityTable[EscalationReferenceModel](tag, "escalation_references") {
-    def * = (deploymentId, name, slaId, slaRefId, id.?, isDefinedInline) <>(EscalationReferenceModel.tupled, EscalationReferenceModel.unapply)
+    def * = (deploymentId, name, slaId, slaRefId, parentEscalationId, id.?, isDefinedInline) <>(EscalationReferenceModel.tupled, EscalationReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -91,6 +91,8 @@ trait SchemaBreed extends Logging with VampSchema {
 
     def slaRefId = column[Option[Int]]("sla_ref_id")
 
+    def parentEscalationId = column[Option[Int]]("escalation_parent_id")
+
     def name = column[String]("name")
 
     def idx = index("idx_escalation_references", (name, slaId, slaRefId, deploymentId), unique = true)
@@ -98,6 +100,8 @@ trait SchemaBreed extends Logging with VampSchema {
     def sla = foreignKey("escalation_sla_fk", slaId, GenericSlas)(_.id)
 
     def slaRef = foreignKey("escalation_sla_reference_fk", slaRefId, SlaReferences)(_.id)
+
+    def escalationParent = foreignKey("escalation_escalation_parent_fk", parentEscalationId, GenericEscalations)(_.id)
 
     def deployment = foreignKey("escalation_reference_deployment_fk", deploymentId, Deployments)(_.id)
   }

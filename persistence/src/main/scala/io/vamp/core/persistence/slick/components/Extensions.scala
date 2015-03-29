@@ -124,6 +124,9 @@ trait GenericEscalationExtensions {
 
     def parameters(implicit session: JdbcBackend#Session): List[ParameterModel] =
       for {r <- Parameters.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id.get && r.parentType == ParameterParentType.Escalation} yield r
+
+    def escalationReferences(implicit session: JdbcBackend#Session): List[EscalationReferenceModel] =
+      for {r <- EscalationReferences.fetchAllFromDeployment(model.deploymentId) if r.parentEscalationId == model.id} yield r
   }
 
 }
