@@ -1,26 +1,27 @@
 ![](http://vamp.io/img/vamp_logo_blue.svg)
 
-Vamp is the Very Awesome Microservices Platform. Vamp is open source and mostly written in Scala, with some
-parts in Go. Of course, Vamp is made of multiple services itself. Monolith bad, services good...
+Vamp is the Very Awesome Microservices Platform. Vamp's core features are a platform-agnostic microservices DSL, easy A-B testing/canary releasing on everything and a deep and extendable metrics engine that monitors everything and directly feeds back into your services.
+
+Vamp is open source and mostly written in Scala, with some
+parts in Go. Vamp is currently in [alpha](http://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha).
+Of course, Vamp is made of multiple services itself. Monolith bad, services good...
 
 1. [Vamp-core](https://github.com/magneticio/vamp-core) : the brains of the organization.
 2. [Vamp-pulse](https://github.com/magneticio/vamp-pulse) : takes care of storing and retrieving metrics and events.
 3. [Vamp-router](https://github.com/magneticio/vamp-router) : routes, balances and filters traffic in clever ways.
 
-## More about Vamp
+## Deploy Vamp on your laptop
 
-Vamp's core features are a platform-agnostic microservices DSL, A-B testing/canary releasing on everything and a deep and extendable metrics engine that monitors everything and directly feeds back into your services.
+Vamp can run on your laptop with one command. Check out our [Docker compose](https://github.com/magneticio/vamp-docker#run-vamp-with-a-mesos-and-marathon-cluster) script and get up and running. This should be enough to kick the tires.
 
-Vamp's core features are a platform-agnostic microservices DSL, A-B testing/canary releasing on everything
-and a deep and extendable metrics engine that monitors everything and directly feeds back into your services.
+## Deploy Vamp with a serious backend
 
-* Vamp is not a PaaS, but uses the power of PaaS systems under the hood, starting with the [Mesosphere](http://mesosphere.com) stack
-* Vamp is functionality agnostic, but functions well in an API centric, event driven and stateless environment. 
-* Vamp is inspired by [Netflix OSS](http://netflix.github.io/) but also by Reactive programming patterns. Vamp comes in an open source flavour and an Enterprise™ flavour.
-* Vamp strongly focusses on giving you the benefit of microservices, without the downsides.
+Vamp uses underlying PaaS and container management platforms like Mesosphere. This is how you run Vamp
+[on a Mesosphere cluster](https://github.com/magneticio/vamp-docker#build-the-all-in-one-vamp-container-run-it-with-an-external-mesosmarathon). This should work on Google Compute Engine, Digital Ocean or anywhere where Mesos runs. This setup should enable to do some serious vamping!
 
-For documentation, installation and all other info please check: [vamp.io](http://vamp.io)
+## Using Vamp and more
 
+For documentation on using Vamp and all other info please check: [vamp.io](http://vamp.io/documentation/).
 
 ## Contributing
 
