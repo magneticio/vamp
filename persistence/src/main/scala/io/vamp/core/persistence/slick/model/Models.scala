@@ -120,7 +120,7 @@ case class PortModel(name: String, scope: Option[String], groupType: Option[Trai
   override def withId(id: Id): PortModel = copy(id = Option(id))
 }
 
-case class EnvironmentVariableModel(deploymentId: Option[Int], name: String, alias: Option[String], value: Option[String], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int], parentType: Option[EnvironmentVariableParentType]) extends VampDeployablePersistenceModel[EnvironmentVariableModel] {
+case class EnvironmentVariableModel(deploymentId: Option[Int], name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], alias: Option[String], value: Option[String], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int], parentType: Option[EnvironmentVariableParentType]) extends VampDeployablePersistenceModel[EnvironmentVariableModel] {
   override def withId(id: Id): EnvironmentVariableModel = copy(id = Option(id))
 }
 
