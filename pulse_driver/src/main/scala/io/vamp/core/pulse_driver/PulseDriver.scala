@@ -3,7 +3,7 @@ package io.vamp.core.pulse_driver
 import java.time.OffsetDateTime
 
 import io.vamp.common.pulse.PulseClient
-import io.vamp.common.pulse.api.{Aggregator, Event, EventQuery, TimeRange}
+import io.vamp.pulse.api._
 import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, Port}
 import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.core.router_driver.DefaultRouterDriverNameMatcher
@@ -28,7 +28,7 @@ class DefaultPulseDriver(ec: ExecutionContext, url: String) extends PulseClient(
   def event(event: Event) = sendEvent(event)
 
   def exists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime) = {
-    getEvents(EventQuery(SlaEvent.slaTags(deployment, cluster), TimeRange(from), Some(Aggregator("count")))).map {
+    getEvents(EventQuery(SlaEvent.slaTags(deployment, cluster), TimeRange(from), Some(Aggregator(AggregatorType.count)))).map {
       case result: Map[_, _] => result.asInstanceOf[Map[String, Any]].get("value") match {
         case Some(value: BigDecimal) => value > 0
         case _ => false
@@ -39,7 +39,7 @@ class DefaultPulseDriver(ec: ExecutionContext, url: String) extends PulseClient(
 
   def responseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime) = {
     val tags = "route" :: clusterRouteName(deployment, cluster, port) :: "backend" :: "rtime" :: Nil
-    getEvents(EventQuery(tags, TimeRange(from, to), Some(Aggregator("average")))).map {
+    getEvents(EventQuery(tags, TimeRange(from, to), Some(Aggregator(AggregatorType.average)))).map {
       case result: Map[_, _] => Try(result.asInstanceOf[Map[String, Any]].get("value").flatMap(value => Some(value.toString.toDouble))) getOrElse None
       case _ => None
     }

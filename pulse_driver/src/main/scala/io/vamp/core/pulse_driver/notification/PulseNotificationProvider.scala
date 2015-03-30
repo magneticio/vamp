@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 
 import io.vamp.common.akka.ActorSupport
 import io.vamp.common.notification._
-import io.vamp.common.pulse.api.Event
+import io.vamp.pulse.api.Event
 import io.vamp.core.pulse_driver.PulseDriverActor
 import io.vamp.core.pulse_driver.PulseDriverActor.Publish
 

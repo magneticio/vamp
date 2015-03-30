@@ -66,6 +66,7 @@ val logbackVersion = "1.1.2"
 val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
 val vampCommonVersion = "0.7.0-RC2"
+val vampPulseApiVersion = "0.7.0-RC2"
 
 // Note ThisBuild, this is what makes these dependencies shared
 libraryDependencies in ThisBuild ++= Seq(
@@ -79,6 +80,7 @@ libraryDependencies in ThisBuild ++= Seq(
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
   "com.typesafe.akka" %% "akka-stream-experimental" % akkaStreamsVersion,
   "io.vamp" %% "common" % vampCommonVersion,
+  "io.vamp" %% "pulse-api" % vampPulseApiVersion,
   "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
   "org.slf4j" % "slf4j-api" % slf4jVersion,
   "ch.qos.logback" % "logback-classic" % logbackVersion,
@@ -123,7 +125,6 @@ lazy val persistence = project.settings(
   ),
   //Skip persistence tests since they are broken
   test in assembly :={}
-
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val model = project.settings(

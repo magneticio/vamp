@@ -6,7 +6,7 @@ import _root_.io.vamp.common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.pulse.api.Event
+import io.vamp.pulse.api.Event
 import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, Port}
 import io.vamp.core.pulse_driver.notification.{PulseDriverNotificationProvider, PulseResponseError, UnsupportedPulseDriverRequest}
 
