@@ -2,6 +2,7 @@ package io.vamp.core.persistence
 
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.notification.NotificationErrorException
+import io.vamp.core.model.artifact.DeploymentService.ReadyForUndeployment
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, NotificationMessageNotRestored}
 import io.vamp.core.persistence.slick.components.Components.instance._

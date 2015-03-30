@@ -3,9 +3,9 @@ package io.vamp.core.persistence.slick.model
 import java.time.OffsetDateTime
 import java.util.concurrent.TimeUnit
 
+import io.vamp.core.model.artifact._
 import io.vamp.core.model.artifact.DeploymentService._
 import io.vamp.core.model.artifact.Trait.Name
-import io.vamp.core.model.artifact.{Deployment, _}
 import io.vamp.core.persistence.notification.NotificationMessageNotRestored
 import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
@@ -77,7 +77,7 @@ object Implicits {
   implicit def deploymentServiceState2DeploymentStateType(state: DeploymentService.State): DeploymentStateType = state match {
     case _ : ReadyForDeployment => DeploymentStateType.ReadyForDeployment
     case _ : Deployed => DeploymentStateType.Deployed
-    case _ : ReadyForUndeployment => DeploymentStateType.ReadyForDeployment
+    case _ : ReadyForUndeployment => DeploymentStateType.ReadyForUndeployment
     case _ : Error => DeploymentStateType.Error
   }
 
