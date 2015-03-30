@@ -90,7 +90,6 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
         deleteDefaultBreedModel(breed)
       case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
     }
-
   }
 
   protected def createBreedArtifact(art: Breed): String = art match {

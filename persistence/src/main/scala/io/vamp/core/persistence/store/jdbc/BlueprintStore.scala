@@ -41,7 +41,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
                 case None => logger.debug(s"Referenced breed ${breedRef.name} not found")
               }
             BreedReferences.deleteById(breedRef.id.get)
-          case None => logger.warn(s"Referenced breed not found.")
+          case None => // Nothing to delete
         }
         service.scaleReference match {
           case Some(scaleRefId) =>
@@ -66,7 +66,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
                 DefaultRoutings.findOptionByName(routingRef.name, service.deploymentId) match {
                   case Some(routing) if routing.isAnonymous => deleteRoutingModel(routing)
                   case Some(routing) =>
-                  case None => logger.warn(s"Referenced routing ${routingRef.name} not found")
+                  case None => logger.debug(s"Referenced routing ${routingRef.name} not found")
                 }
                 RoutingReferences.deleteById(routingRef.id.get)
               case Some(routingRef) =>
@@ -88,13 +88,12 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
               GenericSlas.findOptionByName(slaReference.name, slaReference.deploymentId) match {
                 case Some(sla) if sla.isAnonymous => deleteSlaModel(sla)
                 case Some(sla) =>
-                case None => logger.warn(s"Referenced sla ${slaReference.name} not found")
+                case None => logger.debug(s"Referenced sla ${slaReference.name} not found")
               }
             case None =>
           }
           SlaReferences.deleteById(slaRef)
-
-        case None => // Should not happen
+        case None => // Nothing to delete
       }
     }
   }
