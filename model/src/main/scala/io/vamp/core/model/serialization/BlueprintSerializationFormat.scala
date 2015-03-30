@@ -9,13 +9,13 @@ import scala.collection.mutable.ArrayBuffer
 
 object BlueprintSerializationFormat extends ArtifactSerializationFormat {
 
-  override def customSerializers: List[ArtifactSerializer[_]] = super.customSerializers :+
+  override def customSerializers = super.customSerializers :+
     new BlueprintSerializer() :+
     new ScaleSerializer() :+
     new RoutingSerializer() :+
     new FilterSerializer()
 
-  override def fieldSerializers: List[ArtifactFieldSerializer[_]] = super.fieldSerializers :+
+  override def fieldSerializers = super.fieldSerializers :+
     new ClusterFieldSerializer()
 }
 

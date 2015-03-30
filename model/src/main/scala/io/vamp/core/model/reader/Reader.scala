@@ -49,7 +49,7 @@ trait YamlReader[T] extends ModelNotificationProvider {
 
   private def read(reader: Reader, close: Boolean = false): T = load(reader, close) match {
     case source: collection.Map[_, _] => read(source.asInstanceOf[YamlObject])
-    case source => error(UnexpectedTypeError("/", classOf[YamlObject], source.getClass))
+    case source => error(UnexpectedTypeError("/", classOf[YamlObject], if (source != null) source.getClass else classOf[Object]))
   }
 
   protected def load(reader: Reader, close: Boolean = false): Any = try {

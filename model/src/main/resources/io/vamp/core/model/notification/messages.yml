@@ -3,7 +3,7 @@
 YamlParsingError                      : "Error: {message}"
 MissingPathValueError                 : "Can't find any value for path: /{path}"
 UnexpectedTypeError                   : "Unexpected value type of '{path}'."
-UnexpectedInnerElementError           : "Can't find a nested element of '{path}', found {found}"
+UnexpectedInnerElementError           : "Can't find a nested element of '{path}'."
 EitherReferenceOrAnonymous            : "Either it should be a reference '{name} -> {reference}' or an anonymous inline definition, but not both."
 
 # Breed Reader

@@ -8,7 +8,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object SlaSerializationFormat extends ArtifactSerializationFormat {
 
-  override def customSerializers: List[ArtifactSerializer[_]] = super.customSerializers :+
+  override def customSerializers = super.customSerializers :+
     new SlaSerializer() :+
     new EscalationSerializer()
 }
