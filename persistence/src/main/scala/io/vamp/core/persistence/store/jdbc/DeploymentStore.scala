@@ -90,9 +90,9 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
           case _ => None
         }
         val message = service.state match {
-          case error : DeploymentService.Error =>
+          case error: DeploymentService.Error =>
             Some(s"Problem in cluster ${cluster.name}, with a service containing breed ${DefaultBreeds.findById(breedId).name}.")
-          case _ =>  None
+          case _ => None
         }
 
         val serviceId = DeploymentServices.add(

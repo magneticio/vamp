@@ -3,7 +3,7 @@ package io.vamp.core.persistence.store.jdbc
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
 import io.vamp.core.persistence.slick.model.{DeploymentGenericEscalation, EscalationReferenceModel, GenericEscalationModel, ParameterParentType}
-import io.vamp.core.persistence.slick.util.VampPersistenceUtil
+import io.vamp.core.persistence.slick.util.{Constants, VampPersistenceUtil}
 
 import scala.slick.jdbc.JdbcBackend
 
@@ -40,17 +40,17 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
         createParameters(artifact.parameters, existing.id.get, ParameterParentType.Escalation)
         existing.copy(escalationType = artifact.`type`).update
       case artifact: ScaleInstancesEscalation =>
-        existing.copy(escalationType = "scale_instances", minimumInt = Some(artifact.minimum), maximumInt = Some(artifact.maximum), scaleByInt = Some(artifact.scaleBy), targetCluster = artifact.targetCluster).update
+        existing.copy(escalationType = Constants.Escalation_Scale_Instances, minimumInt = Some(artifact.minimum), maximumInt = Some(artifact.maximum), scaleByInt = Some(artifact.scaleBy), targetCluster = artifact.targetCluster).update
       case artifact: ScaleCpuEscalation =>
-        existing.copy(escalationType = "scale_cpu", minimumDouble = Some(artifact.minimum), maximumDouble = Some(artifact.maximum), scaleByDouble = Some(artifact.scaleBy), targetCluster = artifact.targetCluster).update
+        existing.copy(escalationType = Constants.Escalation_Scale_Cpu, minimumDouble = Some(artifact.minimum), maximumDouble = Some(artifact.maximum), scaleByDouble = Some(artifact.scaleBy), targetCluster = artifact.targetCluster).update
       case artifact: ScaleMemoryEscalation =>
-        existing.copy(escalationType = "scale_memory", minimumDouble = Some(artifact.minimum), maximumDouble = Some(artifact.maximum), scaleByDouble = Some(artifact.scaleBy), targetCluster = artifact.targetCluster).update
+        existing.copy(escalationType = Constants.Escalation_Scale_Memory, minimumDouble = Some(artifact.minimum), maximumDouble = Some(artifact.maximum), scaleByDouble = Some(artifact.scaleBy), targetCluster = artifact.targetCluster).update
       case artifact: ToAllEscalation =>
-        existing.copy(escalationType = "to_all").update
+        existing.copy(escalationType = Constants.Escalation_To_all).update
         deleteChildEscalations(existing.escalationReferences)
         createEscalationReferences(artifact.escalations, None, None, existing.id, a.deploymentId)
       case artifact: ToOneEscalation =>
-        existing.copy(escalationType = "to_one").update
+        existing.copy(escalationType = Constants.Escalation_To_One).update
         deleteChildEscalations(existing.escalationReferences)
         createEscalationReferences(artifact.escalations, None, None, existing.id, a.deploymentId)
     }
@@ -124,15 +124,15 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
     GenericEscalations.findOptionByName(name, defaultDeploymentId) match {
       case Some(e) =>
         e.escalationType match {
-          case "scale_instances" =>
+          case Constants.Escalation_Scale_Instances =>
             Some(ScaleInstancesEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), minimum = e.minimumInt.get, maximum = e.maximumInt.get, scaleBy = e.scaleByInt.get, targetCluster = e.targetCluster))
-          case "scale_cpu" =>
+          case Constants.Escalation_Scale_Cpu =>
             Some(ScaleCpuEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), minimum = e.minimumDouble.get, maximum = e.maximumDouble.get, scaleBy = e.scaleByDouble.get, targetCluster = e.targetCluster))
-          case "scale_memory" =>
+          case Constants.Escalation_Scale_Memory =>
             Some(ScaleMemoryEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), minimum = e.minimumDouble.get, maximum = e.maximumDouble.get, scaleBy = e.scaleByDouble.get, targetCluster = e.targetCluster))
-          case "to_all" =>
+          case Constants.Escalation_To_all =>
             Some(ToAllEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), escalations = escalations2Artifacts(e.escalationReferences)))
-          case "to_one" =>
+          case Constants.Escalation_To_One =>
             Some(ToOneEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), escalations = escalations2Artifacts(e.escalationReferences)))
           case _ =>
             Some(GenericEscalation(name = VampPersistenceUtil.restoreToAnonymous(e.name, e.isAnonymous), `type` = e.escalationType, parameters = parametersToArtifact(e.parameters)))

@@ -5,7 +5,6 @@ import akka.testkit.{ImplicitSender, TestKit}
 import io.vamp.common.akka.ActorSupport
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.persistence.actor.PersistenceActor._
-import io.vamp.core.persistence.slick.components.Components
 import io.vamp.core.persistence.slick.components.Components.instance._
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 

@@ -15,7 +15,7 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
   import io.vamp.core.persistence.slick.model.Implicits._
 
 
-  private def removeBreedChildren(existing: DefaultBreedModel): Unit =  {
+  private def removeBreedChildren(existing: DefaultBreedModel): Unit = {
     for (d <- existing.dependencies) {
       if (d.isDefinedInline) {
         DefaultBreeds.findOptionByName(d.breedName, d.deploymentId) match {
@@ -107,7 +107,7 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
 
   private def createBreedChildren(parentBreedModel: DefaultBreedModel, a: DeploymentDefaultBreed): Unit = {
     for (env <- a.artifact.environmentVariables) {
-          EnvironmentVariables.add(EnvironmentVariableModel(deploymentId = None, name = env.name.value, scope = env.name.scope, groupType = env.name.group, alias = env.alias, direction = env.direction, value = env.value, parentId = parentBreedModel.id, parentType = Some(EnvironmentVariableParentType.Breed)))
+      EnvironmentVariables.add(EnvironmentVariableModel(deploymentId = None, name = env.name.value, scope = env.name.scope, groupType = env.name.group, alias = env.alias, direction = env.direction, value = env.value, parentId = parentBreedModel.id, parentType = Some(EnvironmentVariableParentType.Breed)))
     }
     createPorts(a.artifact.ports, parentBreedModel.id, parentType = Some(PortParentType.Breed))
     for (dependency <- a.artifact.dependencies) {

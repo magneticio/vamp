@@ -17,7 +17,7 @@ trait ParameterStore extends PersistenceNotificationProvider {
         case i: Int => Parameters.add(ParameterModel(deploymentId = None, name = param._1, intValue = i, parameterType = ParameterType.Int, parentType = parentType, parentId = parentId))
         case d: Double => Parameters.add(ParameterModel(deploymentId = None, name = param._1, doubleValue = d, parameterType = ParameterType.Double, parentType = parentType, parentId = parentId))
         case s: String => Parameters.add(ParameterModel(deploymentId = None, name = param._1, stringValue = Some(s), parameterType = ParameterType.String, parentType = parentType, parentId = parentId))
-        case e => throw exception (UnsupportedParameterToPersist(name = param._1, parent = parentType.toString, parameterType = e.getClass.toString))
+        case e => throw exception(UnsupportedParameterToPersist(name = param._1, parent = parentType.toString, parameterType = e.getClass.toString))
       }
     )
   }
