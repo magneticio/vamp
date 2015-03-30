@@ -3,20 +3,15 @@ package io.vamp.core.rest_api
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.core.model.artifact._
-import io.vamp.core.model.reader._
-import io.vamp.core.model.serialization.{ArtifactSerializationFormat, BlueprintSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat, SlaSerializationFormat}
-import io.vamp.core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
-import io.vamp.core.rest_api.swagger.SwaggerResponse
-
-import io.vamp.core.model.artifact._
-import io.vamp.core.model.reader._
-import io.vamp.core.model.serialization.{ArtifactSerializationFormat, BlueprintSerializationFormat, BreedSerializationFormat, DeploymentSerializationFormat}
-import io.vamp.core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
-import io.vamp.core.rest_api.swagger.SwaggerResponse
 import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.jvm.JvmVitalsSerializationFormat
 import io.vamp.common.notification.NotificationErrorException
+import io.vamp.core.model.artifact._
+import io.vamp.core.model.reader._
+import io.vamp.core.model.serialization._
 import io.vamp.core.persistence.actor.PersistenceActor
+import io.vamp.core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
+import io.vamp.core.rest_api.swagger.SwaggerResponse
 import org.json4s.native.Serialization._
 import spray.http.CacheDirectives.`no-store`
 import spray.http.HttpEntity
@@ -29,7 +24,7 @@ import spray.routing.HttpServiceBase
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 
-trait RestApiRoute extends HttpServiceBase with RestApiController with DeploymentApiRoute with SwaggerResponse {
+trait RestApiRoute extends HttpServiceBase with RestApiController with DeploymentApiRoute with HiRoute with SwaggerResponse {
   this: Actor with ExecutionContextProvider =>
 
   implicit def timeout: Timeout
@@ -37,11 +32,12 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with Deploymen
   protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
 
   implicit val marshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
-    implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, BlueprintSerializationFormat, SlaSerializationFormat, DeploymentSerializationFormat)
+    implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, BlueprintSerializationFormat, SlaSerializationFormat, DeploymentSerializationFormat, JvmVitalsSerializationFormat)
 
     val response = value match {
       case notification: NotificationErrorException => throw notification
       case exception: Exception => throw new RuntimeException(exception)
+      case response: PrettyJson => writePretty(response)
       case response: AnyRef => write(response)
       case any => write(any.toString)
     }
@@ -55,7 +51,7 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with Deploymen
           pathEndOrSingleSlash {
             complete(OK, swagger)
           }
-        } ~ deploymentRoutes ~
+        } ~ hiRoute ~ deploymentRoutes ~
           path(Segment) { artifact: String =>
             pathEndOrSingleSlash {
               get {

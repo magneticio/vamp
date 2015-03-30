@@ -9,7 +9,7 @@ import org.json4s.JsonAST.JString
 import org.json4s._
 
 object DeploymentSerializationFormat extends ArtifactSerializationFormat {
-  override def customSerializers: List[ArtifactSerializer[_]] = super.customSerializers :+
+  override def customSerializers = super.customSerializers :+
     new DeploymentServiceStateSerializer()
 }
 

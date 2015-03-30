@@ -9,16 +9,16 @@ import scala.collection.mutable.ArrayBuffer
 
 object BreedSerializationFormat extends ArtifactSerializationFormat {
 
-  override def customSerializers: List[ArtifactSerializer[_]] = super.customSerializers :+
+  override def customSerializers = super.customSerializers :+
     new TraitNameSerializer() :+
     new TraitDirectionSerializer() :+
     new PortSerializer() :+
     new DeployableSerializer()
 
-  override def customKeySerializers: List[ArtifactKeySerializer[_]] = super.customKeySerializers :+
+  override def customKeySerializers = super.customKeySerializers :+
     new TraitNameKeySerializer()
 
-  override def fieldSerializers: List[ArtifactFieldSerializer[_]] = super.fieldSerializers :+
+  override def fieldSerializers = super.fieldSerializers :+
     new BreedFieldSerializer()
 }
 
