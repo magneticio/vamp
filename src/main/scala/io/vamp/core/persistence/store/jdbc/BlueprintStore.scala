@@ -55,7 +55,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
                 ScaleReferences.deleteById(scaleRefId)
               case Some(scaleRef) =>
                 ScaleReferences.deleteById(scaleRefId)
-              case None => logger.warn(s"Referenced scale not found".)
+              case None => logger.warn(s"Referenced scale not found.")
             }
           case None => // Nothing to delete
         }
