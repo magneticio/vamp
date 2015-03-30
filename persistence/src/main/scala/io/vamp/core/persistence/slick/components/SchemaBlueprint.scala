@@ -1,7 +1,7 @@
 package io.vamp.core.persistence.slick.components
 
-import io.vamp.core.model.artifact.Trait
 import io.strongtyped.active.slick.Profile
+import io.vamp.core.model.artifact.Trait
 import io.vamp.core.persistence.slick.extension.{VampTableQueries, VampTables}
 import io.vamp.core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
 import io.vamp.core.persistence.slick.model._
@@ -32,6 +32,8 @@ trait SchemaBlueprint extends SchemaBreed {
     def name = column[String]("name")
 
     def idx = index("idx_default_blueprint", (name, deploymentId), unique = true)
+
+    def deployment = foreignKey("default_blueprint_deployment_fk", deploymentId, Deployments)(_.id)
   }
 
   class BlueprintReferenceTable(tag: Tag) extends DeployableEntityTable[BlueprintReferenceModel](tag, "blueprint_references") {
@@ -46,6 +48,8 @@ trait SchemaBlueprint extends SchemaBreed {
     def deploymentId = column[Option[Int]]("deployment_fk")
 
     def idx = index("idx_blueprint_reference", (name, deploymentId), unique = true)
+
+    def deployment = foreignKey("blueprint_reference_deployment_fk", deploymentId, Deployments)(_.id)
   }
 
   class ClusterTable(tag: Tag) extends DeployableEntityTable[ClusterModel](tag, "clusters") {
@@ -66,6 +70,8 @@ trait SchemaBlueprint extends SchemaBreed {
     def blueprint = foreignKey("cluster_blueprintfk", blueprintId, DefaultBlueprints)(_.id)
 
     def slaRef = foreignKey("cluster_sla_reference_fk", slaReferenceId, SlaReferences)(_.id)
+
+    def deployment = foreignKey("cluster_deployment_fk", deploymentId, Deployments)(_.id)
   }
 
   class ServiceTable(tag: Tag) extends EntityTable[ServiceModel](tag, "services") {
@@ -90,6 +96,8 @@ trait SchemaBlueprint extends SchemaBreed {
     def cluster = foreignKey("service_cluster_fk", clusterId, Clusters)(_.id)
 
     def breedReference = foreignKey("service_breed_reference_fk", breedReferenceId, BreedReferences)(_.id)
+
+    def deployment = foreignKey("service_deployment_fk", deploymentId, Deployments)(_.id)
   }
 
   class TraitNameParameterTable(tag: Tag) extends NameableEntityTable[TraitNameParameterModel](tag, "trait_name_parameters") {
