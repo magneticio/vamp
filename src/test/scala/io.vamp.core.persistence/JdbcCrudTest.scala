@@ -3,7 +3,7 @@ package io.vamp.core.persistence
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
-import io.vamp.core.persistence.notification.{NotificationMessageNotRestored, ArtifactNotFound}
+import io.vamp.core.persistence.notification.{ArtifactNotFound, NotificationMessageNotRestored}
 import io.vamp.core.persistence.slick.components.Components.instance._
 import io.vamp.core.persistence.store.JdbcStoreProvider
 import org.junit.runner.RunWith
@@ -157,12 +157,12 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
 
 
   it should "Store a deployment state error" in {
-    jdbcStore.create(TestData.deployment4WithErrorService)  match {
-      case storedDeployment : Deployment =>
-        for(cluster <- storedDeployment.clusters) {
-          for(service <- cluster.services) {
+    jdbcStore.create(TestData.deployment4WithErrorService) match {
+      case storedDeployment: Deployment =>
+        for (cluster <- storedDeployment.clusters) {
+          for (service <- cluster.services) {
             service.state match {
-              case state : io.vamp.core.model.artifact.DeploymentService.Error =>
+              case state: io.vamp.core.model.artifact.DeploymentService.Error =>
                 state.notification.getClass shouldBe classOf[NotificationMessageNotRestored]
                 state.notification shouldBe NotificationMessageNotRestored("Problem in cluster deployment-cluster-2, with a service containing breed wp4.")
             }

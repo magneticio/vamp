@@ -3,7 +3,7 @@ package io.vamp.core.persistence.store.jdbc
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
 import io.vamp.core.persistence.slick.model.{DeploymentGenericSla, GenericSlaModel, ParameterParentType, SlaReferenceModel}
-import io.vamp.core.persistence.slick.util.VampPersistenceUtil
+import io.vamp.core.persistence.slick.util.{Constants, VampPersistenceUtil}
 
 import scala.slick.jdbc.JdbcBackend
 
@@ -40,9 +40,9 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
         createParameters(artifact.parameters, existing.id.get, ParameterParentType.Sla)
         existing.copy(slaType = artifact.`type`).update
       case artifact: ResponseTimeSlidingWindowSla =>
-        existing.copy(slaType = "response_time_sliding_window", upper = Some(artifact.upper), lower = Some(artifact.lower), interval = Some(artifact.interval), cooldown = Some(artifact.cooldown)).update
+        existing.copy(slaType = Constants.Sla_Response_Time_Sliding_Window, upper = Some(artifact.upper), lower = Some(artifact.lower), interval = Some(artifact.interval), cooldown = Some(artifact.cooldown)).update
       case artifact: EscalationOnlySla =>
-        existing.copy(slaType = "escalation_only").update
+        existing.copy(slaType = Constants.Sla_Escalation_only).update
     }
   }
 

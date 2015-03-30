@@ -34,7 +34,7 @@ case class VampPersistenceMetaDataModel(id: Option[Int] = None, schemaVersion: I
 case class DefaultBlueprintModel(deploymentId: Option[Int], name: String, id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[DefaultBlueprintModel] {
   override def withId(id: Id): DefaultBlueprintModel = copy(id = Option(id))
 
-  override def withAnonymousName: DefaultBlueprintModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
+  override def withAnonymousName: DefaultBlueprintModel = copy(name = VampPersistenceUtil.generateAnonymousName)
 }
 
 case class BlueprintReferenceModel(deploymentId: Option[Int], name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampDeployablePersistenceModel[BlueprintReferenceModel] {
@@ -59,7 +59,7 @@ case class GenericSlaModel(deploymentId: Option[Int], name: String, slaType: Str
                            isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[GenericSlaModel] {
   override def withId(id: Id): GenericSlaModel = copy(id = Option(id))
 
-  override def withAnonymousName: GenericSlaModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
+  override def withAnonymousName: GenericSlaModel = copy(name = VampPersistenceUtil.generateAnonymousName)
 }
 
 case class EscalationReferenceModel(deploymentId: Option[Int], name: String, slaId: Option[Int], slaRefId: Option[Int], parentEscalationId: Option[Int], id: Option[Int] = None, isDefinedInline: Boolean) extends VampDeployablePersistenceModel[EscalationReferenceModel] {
@@ -73,7 +73,7 @@ case class GenericEscalationModel(deploymentId: Option[Int], name: String, escal
                                   id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[GenericEscalationModel] {
   override def withId(id: Id): GenericEscalationModel = copy(id = Option(id))
 
-  override def withAnonymousName: GenericEscalationModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
+  override def withAnonymousName: GenericEscalationModel = copy(name = VampPersistenceUtil.generateAnonymousName)
 }
 
 case class ScaleReferenceModel(deploymentId: Option[Int], name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampDeployablePersistenceModel[ScaleReferenceModel] {
@@ -83,7 +83,7 @@ case class ScaleReferenceModel(deploymentId: Option[Int], name: String, id: Opti
 case class DefaultScaleModel(deploymentId: Option[Int], name: String, cpu: Double, memory: Double, instances: Int, id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[DefaultScaleModel] {
   override def withId(id: Id): DefaultScaleModel = copy(id = Option(id))
 
-  override def withAnonymousName: DefaultScaleModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
+  override def withAnonymousName: DefaultScaleModel = copy(name = VampPersistenceUtil.generateAnonymousName)
 }
 
 case class RoutingReferenceModel(deploymentId: Option[Int], name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampDeployablePersistenceModel[RoutingReferenceModel] {
@@ -93,7 +93,7 @@ case class RoutingReferenceModel(deploymentId: Option[Int], name: String, id: Op
 case class DefaultRoutingModel(deploymentId: Option[Int], name: String, weight: Option[Int], id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[DefaultRoutingModel] {
   override def withId(id: Id): DefaultRoutingModel = copy(id = Option(id))
 
-  override def withAnonymousName: DefaultRoutingModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
+  override def withAnonymousName: DefaultRoutingModel = copy(name = VampPersistenceUtil.generateAnonymousName)
 }
 
 case class FilterReferenceModel(deploymentId: Option[Int], name: String, id: Option[Int] = None, routingId: Int, isDefinedInline: Boolean) extends VampDeployablePersistenceModel[FilterReferenceModel] {
@@ -103,7 +103,7 @@ case class FilterReferenceModel(deploymentId: Option[Int], name: String, id: Opt
 case class DefaultFilterModel(deploymentId: Option[Int], name: String, condition: String, id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[DefaultFilterModel] {
   override def withId(id: Id): DefaultFilterModel = copy(id = Option(id))
 
-  override def withAnonymousName: DefaultFilterModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
+  override def withAnonymousName: DefaultFilterModel = copy(name = VampPersistenceUtil.generateAnonymousName)
 }
 
 case class BreedReferenceModel(deploymentId: Option[Int], name: String, id: Option[Int] = None, isDefinedInline: Boolean) extends VampDeployablePersistenceModel[BreedReferenceModel] {
@@ -113,7 +113,7 @@ case class BreedReferenceModel(deploymentId: Option[Int], name: String, id: Opti
 case class DefaultBreedModel(deploymentId: Option[Int], name: String, deployable: String, id: Option[Int] = None, isAnonymous: Boolean = false) extends VampAnonymousNameablePersistenceModel[DefaultBreedModel] {
   override def withId(id: Id): DefaultBreedModel = copy(id = Option(id))
 
-  override def withAnonymousName: DefaultBreedModel = copy(name = VampPersistenceUtil.generatedAnonymousName)
+  override def withAnonymousName: DefaultBreedModel = copy(name = VampPersistenceUtil.generateAnonymousName)
 }
 
 case class PortModel(name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], alias: Option[String], portType: PortType, value: Option[Int], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int] = None, parentType: Option[PortParentType] = None) extends VampNameablePersistenceModel[PortModel] {

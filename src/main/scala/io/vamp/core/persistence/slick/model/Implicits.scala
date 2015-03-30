@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 import io.vamp.core.model.artifact.DeploymentService._
 import io.vamp.core.model.artifact.Trait.Name
 import io.vamp.core.model.artifact.{Deployment, _}
-import io.vamp.core.persistence.notification.{NotificationMessageNotRestored, PersistenceOperationFailure}
+import io.vamp.core.persistence.notification.NotificationMessageNotRestored
 import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.vamp.core.persistence.slick.model.ParameterParentType.ParameterParentType
@@ -14,7 +14,7 @@ import io.vamp.core.persistence.slick.model.ParameterType.ParameterType
 import io.vamp.core.persistence.slick.model.PortParentType.PortParentType
 import io.vamp.core.persistence.slick.model.PortType.PortType
 import io.vamp.core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
-import io.vamp.core.persistence.slick.util.VampPersistenceUtil
+import io.vamp.core.persistence.slick.util.{Constants, VampPersistenceUtil}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.language.implicitConversions
@@ -27,10 +27,6 @@ object Implicits {
 
   implicit val traitDirectionMapper = MappedColumnType.base[Trait.Direction.Value, String](
   { c => c.toString }, { s => Trait.Direction.withName(s) }
-  )
-
-  implicit val dependencyTypeMapper = MappedColumnType.base[DependencyType.Value, String](
-  { c => c.toString }, { s => DependencyType.withName(s) }
   )
 
   val portTypeMap = Map(
@@ -52,7 +48,6 @@ object Implicits {
   val portParentTypeMap = Map(
     PortParentType.Breed -> "breed",
     PortParentType.BlueprintEndpoint -> "blueprint_endpoint",
-    PortParentType.BlueprintParameter -> "blueprint_parameter",
     PortParentType.Deployment -> "deployment_endpoint"
   )
   implicit val portParentTypeColumnTypeMapper = MappedColumnType.base[PortParentType, String](
@@ -80,10 +75,10 @@ object Implicits {
   )
 
   implicit def deploymentServiceState2DeploymentStateType(state: DeploymentService.State): DeploymentStateType = state match {
-    case _: ReadyForDeployment => DeploymentStateType.ReadyForDeployment
-    case _: Deployed => DeploymentStateType.Deployed
-    case _: ReadyForUndeployment => DeploymentStateType.ReadyForDeployment
-    case _: Error => DeploymentStateType.Error
+    case _ : ReadyForDeployment => DeploymentStateType.ReadyForDeployment
+    case _ : Deployed => DeploymentStateType.Deployed
+    case _ : ReadyForUndeployment => DeploymentStateType.ReadyForDeployment
+    case _ : Error => DeploymentStateType.Error
   }
 
 
@@ -131,25 +126,25 @@ object Implicits {
       GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
     case artifact: ScaleInstancesEscalation =>
-      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = "scale_instances",
+      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = Constants.Escalation_Scale_Instances,
         minimumInt = Some(artifact.minimum), maximumInt = Some(artifact.maximum), scaleByInt = Some(artifact.scaleBy), targetCluster = artifact.targetCluster,
         isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
     case artifact: ScaleCpuEscalation =>
-      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = "scale_cpu",
+      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = Constants.Escalation_Scale_Cpu,
         minimumDouble = Some(artifact.minimum), maximumDouble = Some(artifact.maximum), scaleByDouble = Some(artifact.scaleBy), targetCluster = artifact.targetCluster,
         isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
     case artifact: ScaleMemoryEscalation =>
-      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = "scale_memory",
+      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = Constants.Escalation_Scale_Memory,
         minimumDouble = Some(artifact.minimum), maximumDouble = Some(artifact.maximum), scaleByDouble = Some(artifact.scaleBy), targetCluster = artifact.targetCluster,
         isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
     case artifact: ToAllEscalation =>
-      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = "to_all", isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = Constants.Escalation_To_all, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
     case artifact: ToOneEscalation =>
-      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = "to_one", isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = Constants.Escalation_To_One , isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
   }
 
   implicit def defaultFilterModel2Artifact(m: DefaultFilterModel): DefaultFilter =
@@ -169,10 +164,10 @@ object Implicits {
 
   implicit def genericSla2Model(a: DeploymentGenericSla): GenericSlaModel = a.artifact match {
     case artifact: EscalationOnlySla =>
-      GenericSlaModel(deploymentId = a.deploymentId, name = artifact.name, slaType = "escalation_only", isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+      GenericSlaModel(deploymentId = a.deploymentId, name = artifact.name, slaType = Constants.Sla_Escalation_only, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
     case artifact: ResponseTimeSlidingWindowSla =>
       GenericSlaModel(
-        deploymentId = a.deploymentId, name = a.artifact.name, slaType = "response_time_sliding_window",
+        deploymentId = a.deploymentId, name = a.artifact.name, slaType = Constants.Sla_Response_Time_Sliding_Window,
         upper = Some(artifact.upper), lower = Some(artifact.lower), interval = Some(artifact.interval), cooldown = Some(artifact.cooldown),
         isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
     case artifact: GenericSla =>
@@ -188,7 +183,7 @@ object Implicits {
   implicit def portModel2Port(model: PortModel): Port = model.portType match {
     case PortType.HTTP => HttpPort(Name(value = model.name, group = model.groupType, scope = model.scope), model.alias, model.value, model.direction)
     case PortType.TCP => TcpPort(Name(value = model.name, group = model.groupType, scope = model.scope), model.alias, model.value, model.direction)
-    case _ => throw new RuntimeException(s"Handler for this portType: ${model.portType} is not implemented")
+    case _ => throw new RuntimeException(s"Handler for portType ${model.portType} not implemented")
   }
 
   implicit def port2PortModel(port: Port): PortModel =
@@ -206,7 +201,7 @@ object Implicits {
   { fd => s"${fd.length}~${timeUnit2String(fd.unit)}" }, { s => new FiniteDuration(length = s.split("~")(0).toLong, unit = string2TimeUnit(s.split("~")(1))) }
   )
 
-  implicit def timeUnit2String(tu: TimeUnit): String = tu.name() //timeUnitMap(tu)
+  implicit def timeUnit2String(tu: TimeUnit): String = tu.name()
 
   implicit def string2TimeUnit(str: String): TimeUnit = TimeUnit.valueOf(str)
 

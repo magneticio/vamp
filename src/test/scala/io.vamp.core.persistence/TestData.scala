@@ -199,8 +199,6 @@ object TestData {
   )
 
 
-
-
   val deployment1 = Deployment(
     name = "deployment-1",
     clusters = List.empty,
@@ -235,7 +233,7 @@ object TestData {
     parameters = Map.empty
   )
 
-  val deploymentServiceWithError = deploymentService1.copy(state=DeploymentService.Error(UnsupportedPersistenceRequest("ERROR")))
+  val deploymentServiceWithError = deploymentService1.copy(state = DeploymentService.Error(UnsupportedPersistenceRequest("ERROR")))
   val deployment4WithErrorService = Deployment(
     name = "deployment-4",
     clusters = List(

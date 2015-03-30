@@ -1,10 +1,10 @@
 package io.vamp.core.persistence.store.jdbc
 
+import io.vamp.core.model.artifact.Trait
 import io.vamp.core.model.artifact.Trait.Name
-import io.vamp.core.model.artifact.{EnvironmentVariable, Port, Trait}
-import io.vamp.core.persistence.notification.{PersistenceNotificationProvider, PersistenceOperationFailure}
+import io.vamp.core.persistence.notification.PersistenceNotificationProvider
+import io.vamp.core.persistence.slick.model.TraitNameParameterModel
 import io.vamp.core.persistence.slick.model.TraitParameterParentType._
-import io.vamp.core.persistence.slick.model.{EnvironmentVariableModel, EnvironmentVariableParentType, PortParentType, TraitNameParameterModel}
 
 import scala.slick.jdbc.JdbcBackend
 
@@ -14,24 +14,23 @@ trait TraitNameParameterStore extends PersistenceNotificationProvider {
   implicit val sess: JdbcBackend.Session
 
   import io.vamp.core.persistence.slick.components.Components.instance._
-  import io.vamp.core.persistence.slick.model.Implicits._
 
 
   protected def createTraitNameParameters(parameters: Map[Trait.Name, Any], parentId: Option[Int], parentType: TraitParameterParentType): Unit = {
     val deploymentId = None
     for (param <- parameters) {
       val prefilledParameter = TraitNameParameterModel(name = param._1.value, scope = param._1.scope, parentId = parentId, groupType = param._1.group, parentType = parentType)
-          TraitNameParameters.add(
-            param._2 match {
-              case value: String =>
-                prefilledParameter.copy(stringValue = Some(value))
-              case value: Int =>
-                prefilledParameter.copy(intValue = Some(value))
-              case value  =>
-                // Seems incorrect, store the value as a string
-                prefilledParameter.copy(stringValue = Some(value.toString))
-            }
-          )
+      TraitNameParameters.add(
+        param._2 match {
+          case value: String =>
+            prefilledParameter.copy(stringValue = Some(value))
+          case value: Int =>
+            prefilledParameter.copy(intValue = Some(value))
+          case value =>
+            // Seems incorrect, store the value as a string
+            prefilledParameter.copy(stringValue = Some(value.toString))
+        }
+      )
     }
   }
 

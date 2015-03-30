@@ -15,4 +15,4 @@ case class ArtifactAlreadyExists(name: String, `type`: Class[_]) extends Notific
 
 case class NotificationMessageNotRestored(message: String) extends Notification
 
-case class UnsupportedParameterToPersist(name : String, parent : String, parameterType : String ) extends Notification
+case class UnsupportedParameterToPersist(name: String, parent: String, parameterType: String) extends Notification

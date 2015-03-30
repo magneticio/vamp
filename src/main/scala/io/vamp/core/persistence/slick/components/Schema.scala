@@ -79,9 +79,9 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
     VampPersistenceMetaDatas
   )
 
-  private def schemaVersion : Int = 1
+  private def schemaVersion: Int = 1
 
-  private def metaDataTableName : String ="vamp-meta-data"
+  private def metaDataTableName: String = "vamp-meta-data"
 
   private def getCurrentSchemaVersion(implicit sess: Session): Int =
     MTable.getTables(metaDataTableName).firstOption match {
@@ -92,7 +92,7 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
       case None => 0
     }
 
-  def totalNumberOfRowsInDB(implicit sess: Session) : Int =
+  def totalNumberOfRowsInDB(implicit sess: Session): Int =
     tableQueries.map(query => query.fetchAll.length).sum
 
 
