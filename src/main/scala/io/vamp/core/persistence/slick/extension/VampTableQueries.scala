@@ -44,6 +44,10 @@ trait VampTableQueries extends TableQueries with VampTables {
     def findByName(name: String)(implicit sess: Session): M = findOptionByName(name).get
 
     def findOptionByName(name: String)(implicit sess: Session): Option[M] = filterByName(name).firstOption
+
+    override def pagedList(pageIndex: Int, limit: Int)(implicit sess: Session): List[M] =
+      defaultSort.drop(pageIndex).take(limit).run.toList
+
   }
 
   object NameableEntityTableQuery {
@@ -60,7 +64,7 @@ trait VampTableQueries extends TableQueries with VampTables {
 
     def fetchAllFromDeployment(deploymentId: Option[Int])(implicit sess: Session): List[M] = defaultSort.list
 
-    def filterByName(name: String, deploymentId: Option[Int])(implicit sess: Session) = filter(attrib => attrib.name === name)
+    def filterByName(name: String, deploymentId: Option[Int])(implicit sess: Session) = filter(attrib => attrib.name === name) filter (attrib => attrib.deploymentId.getOrElse(0) === deploymentId.getOrElse(0))
 
     def deleteByName(name: String, deploymentId: Option[Int])(implicit sess: Session): Unit = tryDeleteByName(name, deploymentId)
 
@@ -84,6 +88,10 @@ trait VampTableQueries extends TableQueries with VampTables {
     def findByName(name: String, deploymentId: Option[Int])(implicit sess: Session): M = findOptionByName(name, deploymentId).get
 
     def findOptionByName(name: String, deploymentId: Option[Int])(implicit sess: Session): Option[M] = filterByName(name, deploymentId).firstOption
+
+    override def pagedList(pageIndex: Int, limit: Int)(implicit sess: Session): List[M] =
+      defaultSort.filter(_.deploymentId.getOrElse(0) === 0).drop(pageIndex).take(limit).run.toList
+
   }
 
   object DeployableNameEntityTableQuery {
