@@ -39,9 +39,6 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
           }
           DeploymentServers.deleteById(server.id.get)
         }
-        for (dependency <- service.dependencies) {
-          DeploymentServiceDependencies.deleteById(dependency.id.get)
-        }
         DeploymentServices.deleteById(service.id.get)
         service.breed match {
           case breedId => deleteDefaultBreedModel(DefaultBreeds.findById(breedId))
