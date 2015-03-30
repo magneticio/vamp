@@ -1,9 +1,11 @@
 package io.vamp.core.persistence.store.jdbc
 
+import com.typesafe.scalalogging.Logger
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
 import io.vamp.core.persistence.slick.model._
 import io.vamp.core.persistence.slick.util.VampPersistenceUtil
+import org.slf4j.LoggerFactory
 
 import scala.slick.jdbc.JdbcBackend
 
@@ -13,6 +15,8 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
 
   import io.vamp.core.persistence.slick.components.Components.instance._
   import io.vamp.core.persistence.slick.model.Implicits._
+
+  private val logger = Logger(LoggerFactory.getLogger(classOf[BlueprintStore]))
 
   protected def updateBlueprint(existing: DefaultBlueprintModel, artifact: DefaultBlueprint): Unit = {
     deleteBlueprintClusters(existing.clusters)
@@ -34,10 +38,10 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
               DefaultBreeds.findOptionByName(breedRef.name, service.deploymentId) match {
                 case Some(breed) if breed.isAnonymous => deleteDefaultBreedModel(breed)
                 case Some(breed) =>
-                case None => // Should not happen (log it as not critical)
+                case None => logger.debug(s"Referenced breed ${breedRef.name} not found")
               }
             BreedReferences.deleteById(breedRef.id.get)
-          case None => /// Should not happen (log it as not critical)
+          case None => logger.warn(s"Referenced breed not found.")
         }
         service.scaleReference match {
           case Some(scaleRefId) =>
@@ -51,7 +55,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
                 ScaleReferences.deleteById(scaleRefId)
               case Some(scaleRef) =>
                 ScaleReferences.deleteById(scaleRefId)
-              case None => // Should not happen (log it as not critical)
+              case None => logger.warn(s"Referenced scale not found".)
             }
           case None => // Nothing to delete
         }
@@ -62,12 +66,12 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
                 DefaultRoutings.findOptionByName(routingRef.name, service.deploymentId) match {
                   case Some(routing) if routing.isAnonymous => deleteRoutingModel(routing)
                   case Some(routing) =>
-                  case None => // Should not happen (log it as not critical)
+                  case None => logger.warn(s"Referenced routing ${routingRef.name} not found")
                 }
                 RoutingReferences.deleteById(routingRef.id.get)
               case Some(routingRef) =>
                 RoutingReferences.deleteById(routingRef.id.get)
-              case None => // Should not happen (log it as not critical)
+              case None => logger.warn(s"Referenced routing not found.")
             }
           case None => // Nothing to delete
         }
@@ -84,7 +88,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
               GenericSlas.findOptionByName(slaReference.name, slaReference.deploymentId) match {
                 case Some(sla) if sla.isAnonymous => deleteSlaModel(sla)
                 case Some(sla) =>
-                case None => // Should not happen
+                case None => logger.warn(s"Referenced sla ${slaReference.name} not found")
               }
             case None =>
           }
