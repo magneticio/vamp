@@ -1,8 +1,8 @@
 package io.vamp.common.pulse
 
 import io.vamp.common.http.RestClient
-import io.vamp.common.json.Serializers
-import io.vamp.common.pulse.api.{Event, EventQuery}
+import io.vamp.pulse.api.{Event, EventQuery}
+import io.vamp.pulse.util.Serializers
 import org.json4s.Formats
 
 import scala.concurrent.ExecutionContext.Implicits.global

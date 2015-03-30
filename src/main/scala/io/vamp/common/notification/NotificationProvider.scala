@@ -3,7 +3,7 @@ package io.vamp.common.notification
 import akka.actor.{AbstractLoggingActor, Actor, ActorRef}
 import com.typesafe.scalalogging.Logger
 import io.vamp.common.pulse.PulseClientProvider
-import io.vamp.common.pulse.api.Event
+import io.vamp.pulse.api.Event
 import org.slf4j.LoggerFactory
 
 trait NotificationProvider {

@@ -1,7 +1,7 @@
 package io.vamp.common.notification
 
 import java.time.OffsetDateTime
-import io.vamp.common.pulse.api.Event
+import io.vamp.pulse.api.Event
 
 /**
  * Created by lazycoder on 13/03/15.

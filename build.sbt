@@ -68,7 +68,8 @@ libraryDependencies ++= Seq(
   "org.yaml" % "snakeyaml" % "1.14",
   "org.scalatest" %% "scalatest" % "3.0.0-SNAP4" % "test",
   "junit" % "junit" % "4.11" % "test",
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0"
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
+  "io.vamp" %% "pulse-api" % "0.7.0-RC2"
 )
 
 

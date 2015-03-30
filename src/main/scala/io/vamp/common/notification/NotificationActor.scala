@@ -3,7 +3,7 @@ package io.vamp.common.notification
 import akka.actor.{AbstractLoggingActor, Actor, Props}
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.pulse.PulseClientProvider
-import io.vamp.common.pulse.api.Event
+import io.vamp.pulse.api.Event
 
 object LoggingNotificationActor {
   def props: Props = Props[LoggingNotificationActor]
