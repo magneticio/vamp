@@ -29,7 +29,7 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
   private def createSchema(implicit sess: Session) = {
     logger.info("Creating schema ...")
     for (tableQuery <- tableQueries) {
-      logger.info(tableQuery.ddl.createStatements.mkString)
+      logger.debug(tableQuery.ddl.createStatements.mkString)
       tableQuery.ddl.create
     }
     VampPersistenceMetaDatas.add(VampPersistenceMetaDataModel(schemaVersion = schemaVersion))
@@ -40,7 +40,7 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
     if (getCurrentSchemaVersion == schemaVersion) {
       logger.info("Removing everything from the schema ...")
       for (tableQuery <- tableQueries.reverse) {
-        logger.info(tableQuery.ddl.dropStatements.mkString)
+        logger.debug(tableQuery.ddl.dropStatements.mkString)
         tableQuery.ddl.drop
       }
       logger.info("Schema cleared")
@@ -79,10 +79,12 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
     VampPersistenceMetaDatas
   )
 
-  private def schemaVersion: Int = 1
+  private def schemaVersion : Int = 1
+
+  private def metaDataTableName : String ="vamp-meta-data"
 
   private def getCurrentSchemaVersion(implicit sess: Session): Int =
-    MTable.getTables("vamp-meta-data").firstOption match {
+    MTable.getTables(metaDataTableName).firstOption match {
       case Some(_) => VampPersistenceMetaDatas.sortBy(_.id.desc).firstOption match {
         case Some(metaData) => metaData.schemaVersion
         case None => 0
@@ -94,7 +96,7 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
     tableQueries.map(query => query.fetchAll.length).sum
 
 
-  class VampPersistenceMetaDataTable(tag: Tag) extends EntityTable[VampPersistenceMetaDataModel](tag, "vamp-meta-data") {
+  class VampPersistenceMetaDataTable(tag: Tag) extends EntityTable[VampPersistenceMetaDataModel](tag, metaDataTableName) {
     def * = (id.?, schemaVersion, created) <>(VampPersistenceMetaDataModel.tupled, VampPersistenceMetaDataModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
