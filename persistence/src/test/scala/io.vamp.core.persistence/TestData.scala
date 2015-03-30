@@ -210,7 +210,7 @@ object TestData {
     clusters = List(
       DeploymentCluster(
         name = "deployment-cluster-1",
-        services = List(deploymentService1),
+        services = List(deploymentService1.copy(state = DeploymentService.ReadyForUndeployment())),
         sla = Some(SlaReference("sla-ref-deployment1", escalations = List.empty)),
         routes = Map(80 -> 23890, 8080 -> 45720)
       )
