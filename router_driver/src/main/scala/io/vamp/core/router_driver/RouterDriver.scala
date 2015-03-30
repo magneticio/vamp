@@ -14,12 +14,14 @@ case class DeploymentRoutes(clusterRoutes: List[ClusterRoute], endpointRoutes: L
 trait DeploymentRoute {
   def port: Int
 
-  def services: List[Service]
+  def services: List[RouteService]
 }
 
-case class ClusterRoute(matching: (Deployment, DeploymentCluster, Port) => Boolean, port: Int, services: List[Service]) extends DeploymentRoute
+case class ClusterRoute(matching: (Deployment, DeploymentCluster, Port) => Boolean, port: Int, services: List[RouteService]) extends DeploymentRoute
 
-case class EndpointRoute(matching: (Deployment, Port) => Boolean, port: Int, services: List[Service]) extends DeploymentRoute
+case class RouteService(name: String, weight: Int, servers: List[Server], filters: List[Filter])
+
+case class EndpointRoute(matching: (Deployment, Port) => Boolean, port: Int, services: List[RouteService]) extends DeploymentRoute
 
 trait RouterDriver {
 
@@ -45,8 +47,8 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   }
 
   def deploymentRoutes(routes: List[Route]): DeploymentRoutes = {
-    val clusterRoutes = routes.filter(route => processableClusterRoute(route.name)).map(route => ClusterRoute(clusterRouteNameMatcher(route.name), route.port, route.services))
-    val endpointRoutes = routes.filter(route => processableEndpointRoute(route.name)).map(route => EndpointRoute(endpointRouteNameMatcher(route.name), route.port, route.services))
+    val clusterRoutes = routes.filter(route => processableClusterRoute(route.name)).map(route => ClusterRoute(clusterRouteNameMatcher(route.name), route.port, services(route, route.services)))
+    val endpointRoutes = routes.filter(route => processableEndpointRoute(route.name)).map(route => EndpointRoute(endpointRouteNameMatcher(route.name), route.port, services(route, route.services)))
 
     DeploymentRoutes(clusterRoutes, endpointRoutes)
   }
@@ -106,6 +108,10 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
 
     case None =>
       router_driver.Service(s"${port.name}", 100, servers(deployment, port)) :: Nil
+  }
+
+  private def services(route: Route, services: List[Service]): List[RouteService] = services.map { service =>
+    RouteService(service.name, service.weight, service.servers, route.filters.filter(_.destination == service.name))
   }
 
   private def server(service: DeploymentService, server: DeploymentServer, port: Port) =
