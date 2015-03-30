@@ -8,14 +8,13 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.vamp.core._
 import io.vamp.core.container_driver.{ContainerDriverActor, ContainerServer, ContainerService}
 import io.vamp.core.model.artifact.DeploymentService._
 import io.vamp.core.model.artifact._
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import io.vamp.core.operation.notification.{DeploymentServiceError, InternalServerError, OperationNotificationProvider}
 import io.vamp.core.persistence.actor.PersistenceActor
-import io.vamp.core.router_driver.{ClusterRoute, DeploymentRoutes, EndpointRoute, RouterDriverActor}
+import io.vamp.core.router_driver._
 
 object DeploymentSynchronizationSchedulerActor extends ActorDescription {
 
@@ -226,10 +225,26 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
     })
   }
 
-  private def matching(deploymentService: DeploymentService, routeService: router_driver.Service) =
-    deploymentService.servers.size == routeService.servers.size && deploymentService.servers.forall(server => routeService.servers.exists(_.host == server.host))
+  private def matching(deploymentService: DeploymentService, routeService: RouteService) = {
+    val matchingServers = deploymentService.servers.size == routeService.servers.size && deploymentService.servers.forall(server => routeService.servers.exists(_.host == server.host))
 
-  private def clusterRouteService(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, port: Port, clusterRoutes: List[ClusterRoute]): Option[router_driver.Service] =
+    val matchingServersWeight = deploymentService.routing.flatMap(_.weight.flatMap(w => Some(w == routeService.weight))) match {
+      case None => false
+      case Some(m) => m
+    }
+
+    val matchingFilters = (deploymentService.routing match {
+      case None => Nil
+      case Some(r) => r.filters.flatMap {
+        case d: DefaultFilter => d.condition :: Nil
+        case _ => Nil
+      }
+    }) == routeService.filters.map(_.condition)
+
+    matchingServers && matchingServersWeight && matchingFilters
+  }
+
+  private def clusterRouteService(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, port: Port, clusterRoutes: List[ClusterRoute]): Option[RouteService] =
     clusterRoutes.find(_.matching(deployment, deploymentCluster, port)) match {
       case None => None
       case Some(route) => route.services.find(_.name == deploymentService.breed.name)

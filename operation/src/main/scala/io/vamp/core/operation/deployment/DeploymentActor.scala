@@ -165,7 +165,11 @@ trait DeploymentMerger extends DeploymentValidation {
         blueprintCluster.services.find(_.breed.name == service.breed.name) match {
           case None => service
           case Some(bpService) =>
-            service.copy(scale = bpService.scale, routing = bpService.routing, state = if (service.scale != bpService.scale || service.routing != bpService.routing) ReadyForDeployment() else service.state)
+            val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
+            val routing = if (bpService.routing.isDefined) bpService.routing else service.routing
+            val state = if (service.scale != bpService.scale || service.routing != bpService.routing) ReadyForDeployment() else service.state
+
+            service.copy(scale = scale, routing = routing, state = state)
         }
       }
   }
