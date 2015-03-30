@@ -1,6 +1,6 @@
 package io.vamp.core.persistence.store.jdbc
 
-import io.vamp.core.persistence.notification.{PersistenceNotificationProvider, UnsupportedPersistenceRequest}
+import io.vamp.core.persistence.notification.{PersistenceNotificationProvider, UnsupportedParameterToPersist}
 import io.vamp.core.persistence.slick.model.ParameterParentType._
 import io.vamp.core.persistence.slick.model.{ParameterModel, ParameterType}
 
@@ -17,7 +17,7 @@ trait ParameterStore extends PersistenceNotificationProvider {
         case i: Int => Parameters.add(ParameterModel(deploymentId = None, name = param._1, intValue = i, parameterType = ParameterType.Int, parentType = parentType, parentId = parentId))
         case d: Double => Parameters.add(ParameterModel(deploymentId = None, name = param._1, doubleValue = d, parameterType = ParameterType.Double, parentType = parentType, parentId = parentId))
         case s: String => Parameters.add(ParameterModel(deploymentId = None, name = param._1, stringValue = Some(s), parameterType = ParameterType.String, parentType = parentType, parentId = parentId))
-        case e => throw exception(UnsupportedPersistenceRequest(s"Invalid parameter for $parentType with name $parentId for type ${e.getClass}"))
+        case e => throw exception (UnsupportedParameterToPersist(name = param._1, parent = parentType.toString, parameterType = e.getClass.toString))
       }
     )
   }
