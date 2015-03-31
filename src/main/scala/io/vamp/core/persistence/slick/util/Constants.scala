@@ -8,7 +8,7 @@ object Constants {
   val Escalation_Scale_Cpu : String = "scale_cpu"
   val Escalation_Scale_Memory : String = "scale_memory"
 
-  val Sla_Escalation_only : String = "escalation_only"
+  val Sla_Escalation_Only : String = "escalation_only"
   val Sla_Response_Time_Sliding_Window = "response_time_sliding_window"
   
 }

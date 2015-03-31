@@ -107,13 +107,13 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
   protected def escalations2Artifacts(escalationReferences: List[EscalationReferenceModel]): List[Escalation] =
     escalationReferences.map(esc =>
       if (esc.isDefinedInline)
-        findEscalationOptionArtifact(esc.name) match {
-          case Some(escalation: GenericEscalation) => escalation
+        findEscalationOptionArtifact(esc.name, esc.deploymentId) match {
           case Some(escalation: ScaleInstancesEscalation) => escalation
           case Some(escalation: ScaleCpuEscalation) => escalation
           case Some(escalation: ScaleMemoryEscalation) => escalation
           case Some(escalation: ToAllEscalation) => escalation
           case Some(escalation: ToOneEscalation) => escalation
+          case Some(escalation: GenericEscalation) => escalation
           case _ => EscalationReference(esc.name)
         }
       else
