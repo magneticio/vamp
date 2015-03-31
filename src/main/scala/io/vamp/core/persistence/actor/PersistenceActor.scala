@@ -34,7 +34,7 @@ object PersistenceActor extends ActorDescription {
 
 }
 
-class PersistenceActor extends PersistingActor with InMemoryStoreProvider /* JdbcStoreProvider */ {
+class PersistenceActor extends PersistingActor with JdbcStoreProvider {
 
   override protected def requestType: Class[_] = classOf[PersistenceMessages]
 
