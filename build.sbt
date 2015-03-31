@@ -122,9 +122,7 @@ lazy val persistence = project.settings(
     "com.typesafe.slick" %% "slick" % slickVersion,
     "io.strongtyped" %% "active-slick" % activeSlickVersion,
     "postgresql" % "postgresql" % postgresVersion
-  ),
-  //Skip persistence tests since they are broken
-  test in assembly :={}
+  )
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val model = project.settings(
