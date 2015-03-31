@@ -17,7 +17,7 @@ scalaVersion in ThisBuild := scalaVersion.value
 publishMavenStyle := true
 
 // This has to be overridden for sub-modules to have different description
-description in ThisBuild:= """Core is a module that brings all the bits and pieces of the ecosystem together taking care of the VAMP workflow"""
+description in ThisBuild:= """Core is the brains of Vamp."""
 
 
 
