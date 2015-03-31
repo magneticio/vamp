@@ -3,7 +3,9 @@
 Vamp is the Very Awesome Microservices Platform. Vamp's core features are a platform-agnostic microservices DSL, easy A-B testing/canary releasing on everything and a deep and extendable metrics engine that monitors everything and directly feeds back into your services.
 
 Vamp is open source and mostly written in Scala, with some
-parts in Go. Vamp is currently in [alpha](http://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha).
+parts in Go. 
+> Vamp is currently in [alpha](http://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha).
+
 Of course, Vamp is made of multiple services itself. Monolith bad, services good...
 
 1. [Vamp-core](https://github.com/magneticio/vamp-core) : the brains of the organization.
