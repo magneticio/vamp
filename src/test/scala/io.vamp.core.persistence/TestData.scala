@@ -70,17 +70,9 @@ object TestData {
   val filterAnonymous = DefaultFilter(name = "", condition = "test-anonymous")
   val filterRef1 = FilterReference(name = "referenced_filter")
 
-  val routeSimple1 = DefaultRouting(name = "simpleRoute1", weight = Some(1), filters = List.empty)
-  val routeSimple1Updated = routeSimple1.copy(weight = Some(12), filters = List.empty)
-  val routeSimple2 = DefaultRouting(name = "simpleRoute2", weight = None, filters = List.empty)
-
   val route4 = DefaultRouting(name = "route4", weight = Some(1), filters = List(filter1.copy(condition = "route4-condition"), filterAnonymous, filterRef1))
   val route4Updated = DefaultRouting(name = "route4", weight = Some(12), filters = List(filter1Updated))
   val route5 = DefaultRouting(name = "route5", weight = None, filters = List(filter2))
-
-  val sla1 = GenericSla(name = "sla1", `type` = "aType", escalations = List.empty, parameters = Map.empty)
-  val sla1Updated = sla1.copy(`type` = "aType-updated", escalations = List.empty, parameters = Map.empty)
-  val sla2 = GenericSla(name = "sla2", `type` = "aType", escalations = List.empty, parameters = Map.empty)
 
   val sla7 = EscalationOnlySla(name = "sla7", escalations = List.empty)
   val sla7Updated = sla7.copy(escalations = List(GenericEscalation(name = "sla7-escalation", `type` = "my-type7", parameters = Map.empty)))
@@ -91,14 +83,10 @@ object TestData {
     cooldown = FiniteDuration(length = 15, unit = TimeUnit.MILLISECONDS),
     escalations = List.empty)
 
-
-  val escalation1 = GenericEscalation(name = "escalation1", `type` = "my-type", parameters = Map.empty)
-  val escalation1Updated = escalation1.copy(`type` = "my-other-type", parameters = Map.empty)
-  val escalation2 = GenericEscalation(name = "escalation2", `type` = "my-type", parameters = Map.empty)
-
   val escalation4 = GenericEscalation(name = "escalation4", `type` = "my-type", parameters = Map("my-first" -> "This is a string value"))
   val escalation4Updated = escalation4.copy(`type` = "my-other-type", parameters = Map.empty)
   val escalation5 = GenericEscalation(name = "escalation5", `type` = "my-type", parameters = Map("my-first" -> 1))
+
   val sla4 = GenericSla(name = "sla4", `type` = "aType", escalations = List(escalation4.copy(name = "sla4-escalation1"), escalation5.copy(name = "sla4-escalation2")), parameters = Map("my-first" -> "This is a another string value"))
   val sla4Updated = sla4.copy(`type` = "aType-updated", escalations = List.empty, parameters = Map.empty)
   val sla5 = GenericSla(name = "sla5", `type` = "aType", escalations = List(EscalationReference(name = "for-reference-only")), parameters = Map("my-first" -> 1))
@@ -139,14 +127,14 @@ object TestData {
 
 
   val myCluster_db = Cluster(name = "db", services = List(myService2), sla = None)
-  val blueprintMinimal = DefaultBlueprint(
+  private val blueprintMinimal = DefaultBlueprint(
     name = "blueprint_minimal",
     clusters = List.empty,
     endpoints = List.empty,
     parameters = Map.empty
   )
   val blueprintMinimalUpdatedWithCluster = TestData.blueprintMinimal.copy(clusters = List(myCluster_logger))
-  val blueprintMinimal2 = blueprintMinimalUpdatedWithCluster.copy(name = "blueprint-minimal2")
+
   val blueprintWithFullSla = DefaultBlueprint(
     name = "blueprint_with_full_sla",
     clusters = List(

@@ -2,7 +2,6 @@ package io.vamp.core.persistence
 
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.notification.NotificationErrorException
-import io.vamp.core.model.artifact.DeploymentService.ReadyForUndeployment
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, NotificationMessageNotRestored}
 import io.vamp.core.persistence.slick.components.Components.instance._
@@ -47,28 +46,14 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       secondArtifact = TestData.filter2)
   }
 
-  it should "CRUD Routing " in {
-    performCrudTest(
-      firstArtifact = TestData.routeSimple1,
-      updatedFirstArtifact = TestData.routeSimple1Updated,
-      secondArtifact = TestData.routeSimple2)
-  }
-
-  it should "CRUD Routing complete " in {
+  it should "CRUD Routing" in {
     performCrudTest(
       firstArtifact = TestData.route4,
       updatedFirstArtifact = TestData.route4Updated,
       secondArtifact = TestData.route5)
   }
 
-  it should "CRUD escalations without parameters" in {
-    performCrudTest(
-      firstArtifact = TestData.escalation1,
-      updatedFirstArtifact = TestData.escalation1Updated,
-      secondArtifact = TestData.escalation2)
-  }
-
-  it should "CRUD escalations with parameters" in {
+  it should "CRUD generic escalations" in {
     performCrudTest(
       firstArtifact = TestData.escalation4,
       updatedFirstArtifact = TestData.escalation4Updated,
@@ -89,13 +74,6 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       secondArtifact = TestData.escalation12)
   }
 
-  it should "CRUD sla without escalations or parameters" in {
-    performCrudTest(
-      firstArtifact = TestData.sla1,
-      updatedFirstArtifact = TestData.sla1Updated,
-      secondArtifact = TestData.sla2)
-  }
-
   it should "CRUD sla" in {
     performCrudTest(
       firstArtifact = TestData.sla4,
@@ -110,26 +88,18 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       secondArtifact = TestData.sla8)
   }
 
-
-  it should "CRUD blueprint-minimal with simple service" in {
-    performCrudTest(
-      firstArtifact = TestData.blueprintMinimal,
-      updatedFirstArtifact = TestData.blueprintMinimal,
-      secondArtifact = TestData.blueprintMinimalUpdatedWithCluster.copy(name = "with-cluster"))
-  }
-
-  it should "CRUD blueprint-minimal with full service" in {
+  it should "CRUD blueprint with full service" in {
     performCrudTest(
       firstArtifact = TestData.blueprintWithFullService,
       updatedFirstArtifact = TestData.blueprintWithFullServiceUpdated,
       secondArtifact = TestData.blueprintMinimalUpdatedWithCluster.copy(name = "with-cluster2"))
   }
 
-  it should "CRUD blueprint-minimal with full sla" in {
+  it should "CRUD blueprint with full sla" in {
     performCrudTest(
       firstArtifact = TestData.blueprintWithFullSla,
       updatedFirstArtifact = TestData.blueprintWithFullSlaUpdated,
-      secondArtifact = TestData.blueprintMinimalUpdatedWithCluster.copy(name = "with-cluster2"))
+      secondArtifact = TestData.blueprintMinimalUpdatedWithCluster.copy(name = "with-cluster3"))
   }
 
   it should "CRUD blueprint-full" in {
@@ -148,8 +118,7 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       secondArtifact = bp1.copy(name = "full-3"))
   }
 
-  it should "CRUD deployment-1" in {
-    //var bp1 = TestData.blueprintFull
+  it should "CRUD deployment" in {
     performCrudTest(
       firstArtifact = TestData.deployment1,
       updatedFirstArtifact = TestData.deployment1Updated,
