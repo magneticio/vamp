@@ -1,25 +1,1965 @@
 {
-  "swagger": "2.0",
-  "info": {
-    "description": "The Vamp API <a href=\"http://swagger.io\">http://vamp.io</a>",
-    "version": "1.0.0",
-    "title": "Vamp API",
-    "termsOfService": "http://vamp.io/terms",
-    "contact": {"email": "api@vamp.io"},
-    "license": {
-      "name": "Apache 2.0",
-      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    "swagger": "2.0",
+    "info": {
+        "title": "Vamp API",
+        "description": "The Vamp API <a href='http://vamp.io'>http://vamp.io</a>",
+        "version": "1.0.0",
+        "termsOfService": "http://vamp.io/terms",
+        "contact": {
+            "email": "info@magnetic.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        }
+    },
+    "schemes": [
+        "http"
+    ],
+    "host": "",
+    "basePath": "/api/v1",
+    "produces": [
+        "application/json"
+    ],
+    "paths": {
+        "/breeds": {
+            "get": {
+                "summary": "Get All Breeds",
+                "description": "Endpoint returns information about all breeds in the system.\n",
+                "tags": [
+                    "Breed"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "an array of breeds",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Breed"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a Breed",
+                "description": "Endpoint for creation (import) of a new breed.\n",
+                "tags": [
+                    "Breed"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Breed object that needs to be created.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Breed"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the breed just created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Breed"
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/breeds/{breedName}": {
+            "get": {
+                "summary": "Get Breed by Name",
+                "description": "Endpoint returns information about single breed in the system.\n",
+                "tags": [
+                    "Breed"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "breedName",
+                        "in": "path",
+                        "description": "name of breed to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "breed",
+                        "schema": {
+                            "$ref": "#/definitions/Breed"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Updates a Breed",
+                "description": "Endpoint updates a breed in the system.\n",
+                "tags": [
+                    "Breed"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "breedName",
+                        "in": "path",
+                        "description": "name of breed to return",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Breed.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Breed"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "updated breed",
+                        "schema": {
+                            "$ref": "#/definitions/Breed"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Deletes a Breed",
+                "description": "Endpoint deletes a breed in the system.\n",
+                "tags": [
+                    "Breed"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "breedName",
+                        "in": "path",
+                        "description": "name of breed to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "no content"
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/blueprints": {
+            "get": {
+                "summary": "Get All Blueprints",
+                "description": "Endpoint returns information about all blueprints in the system.\n",
+                "tags": [
+                    "Blueprint",
+                    "SLA",
+                    "Scale",
+                    "Escalation",
+                    "Routing",
+                    "Filter",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "an array of blueprints",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Blueprint"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a Blueprint",
+                "description": "Endpoint for creation (import) of a new blueprint.\n",
+                "tags": [
+                    "Blueprint",
+                    "SLA",
+                    "Scale",
+                    "Escalation",
+                    "Routing",
+                    "Filter",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Blueprint object that needs to be created.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Blueprint"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the blueprint just created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Blueprint"
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/blueprinta/{blueprintName}": {
+            "get": {
+                "summary": "Get Blueprint by Name",
+                "description": "Endpoint returns information about single blueprint in the system.\n",
+                "tags": [
+                    "Blueprint",
+                    "SLA",
+                    "Scale",
+                    "Escalation",
+                    "Routing",
+                    "Filter",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "blueprintName",
+                        "in": "path",
+                        "description": "name of blueprint to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "blueprint",
+                        "schema": {
+                            "$ref": "#/definitions/Blueprint"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Updates a Blueprint",
+                "description": "Endpoint updates a blueprint in the system.\n",
+                "tags": [
+                    "Blueprint",
+                    "SLA",
+                    "Scale",
+                    "Escalation",
+                    "Routing",
+                    "Filter",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "blueprintName",
+                        "in": "path",
+                        "description": "name of blueprint to return",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Blueprint.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Blueprint"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "updated blueprint",
+                        "schema": {
+                            "$ref": "#/definitions/Blueprint"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Deletes a Blueprint",
+                "description": "Endpoint deletes a blueprint in the system.\n",
+                "tags": [
+                    "Blueprint",
+                    "SLA",
+                    "Scale",
+                    "Escalation",
+                    "Routing",
+                    "Filter",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "blueprintName",
+                        "in": "path",
+                        "description": "name of blueprint to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "no content"
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/slas": {
+            "get": {
+                "summary": "Get All SLAs",
+                "description": "Endpoint returns information about all SLAs in the system.\n",
+                "tags": [
+                    "SLA",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "an array of slas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Sla"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a SLA",
+                "description": "Endpoint for creation (import) of a new SLA.\n",
+                "tags": [
+                    "SLA",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "SLA object that needs to be created.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Sla"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the SLA just created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Sla"
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/slas/{slaName}": {
+            "get": {
+                "summary": "Get SLA by Name",
+                "description": "Endpoint returns information about single SLA in the system.\n",
+                "tags": [
+                    "SLA",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "slaName",
+                        "in": "path",
+                        "description": "name of SLA to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SLA",
+                        "schema": {
+                            "$ref": "#/definitions/Sla"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Updates a SLA",
+                "description": "Endpoint updates a SLA in the system.\n",
+                "tags": [
+                    "SLA",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "slaName",
+                        "in": "path",
+                        "description": "name of SLA to return",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "SLA.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Sla"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "updated SLA",
+                        "schema": {
+                            "$ref": "#/definitions/Sla"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Deletes a SLA",
+                "description": "Endpoint deletes a SLA in the system.\n",
+                "tags": [
+                    "SLA",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "slaName",
+                        "in": "path",
+                        "description": "name of SLA to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "no content"
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/scales": {
+            "get": {
+                "summary": "Get All Scales",
+                "description": "Endpoint returns information about all scales in the system.\n",
+                "tags": [
+                    "Scale",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "an array of scales",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Scale"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a Scale",
+                "description": "Endpoint for creation (import) of a new scale.\n",
+                "tags": [
+                    "Scale",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Scale object that needs to be created.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Scale"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the scale just created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Scale"
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/scales/{scaleName}": {
+            "get": {
+                "summary": "Get Scale by Name",
+                "description": "Endpoint returns information about single scale in the system.\n",
+                "tags": [
+                    "Scale",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "scaleName",
+                        "in": "path",
+                        "description": "name of scale to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "scale",
+                        "schema": {
+                            "$ref": "#/definitions/Scale"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Updates a Scale",
+                "description": "Endpoint updates a scale in the system.\n",
+                "tags": [
+                    "Scale",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "scaleName",
+                        "in": "path",
+                        "description": "name of scale to return",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Scale.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Scale"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "updated scale",
+                        "schema": {
+                            "$ref": "#/definitions/Scale"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Deletes a Scale",
+                "description": "Endpoint deletes a scale in the system.\n",
+                "tags": [
+                    "Scale",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "scaleName",
+                        "in": "path",
+                        "description": "name of scale to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "no content"
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/escalations": {
+            "get": {
+                "summary": "Get All Escalations",
+                "description": "Endpoint returns information about all escalations in the system.\n",
+                "tags": [
+                    "Escalation",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "an array of escalations",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Escalation"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create an Escalation",
+                "description": "Endpoint for creation (import) of a new escalation.\n",
+                "tags": [
+                    "Escalation",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Escalation object that needs to be created.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Escalation"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the escalation just created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Escalation"
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/escalations/{escalationName}": {
+            "get": {
+                "summary": "Get Escalation by Name",
+                "description": "Endpoint returns information about single escalation in the system.\n",
+                "tags": [
+                    "Escalation",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "escalationName",
+                        "in": "path",
+                        "description": "name of escalation to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "escalation",
+                        "schema": {
+                            "$ref": "#/definitions/Escalation"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Updates an Escalation",
+                "description": "Endpoint updates an escalation in the system.\n",
+                "tags": [
+                    "Escalation",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "escalationName",
+                        "in": "path",
+                        "description": "name of escalation to return",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Escalation.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Escalation"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "updated escalation",
+                        "schema": {
+                            "$ref": "#/definitions/Escalation"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Deletes an Escalation",
+                "description": "Endpoint deletes an escalation in the system.\n",
+                "tags": [
+                    "Escalation",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "escalationName",
+                        "in": "path",
+                        "description": "name of escalation to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "no content"
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/routings": {
+            "get": {
+                "summary": "Get All Routings",
+                "description": "Endpoint returns information about all routings in the system.\n",
+                "tags": [
+                    "Routing",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "an array of routings",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Routing"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a Routing",
+                "description": "Endpoint for creation (import) of a new routing.\n",
+                "tags": [
+                    "Routing",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Routing object that needs to be created.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Routing"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the routing just created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Routing"
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/routings/{routingName}": {
+            "get": {
+                "summary": "Get Ruting by Name",
+                "description": "Endpoint returns information about single routing in the system.\n",
+                "tags": [
+                    "Routing",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "routingName",
+                        "in": "path",
+                        "description": "name of routing to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "routing",
+                        "schema": {
+                            "$ref": "#/definitions/Routing"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Updates a Routing",
+                "description": "Endpoint updates a routing in the system.\n",
+                "tags": [
+                    "Routing",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "routingName",
+                        "in": "path",
+                        "description": "name of routing to return",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Routing.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Routing"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "updated routing",
+                        "schema": {
+                            "$ref": "#/definitions/Routing"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Deletes a Routing",
+                "description": "Endpoint deletes a routing in the system.\n",
+                "tags": [
+                    "Routing",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "routingName",
+                        "in": "path",
+                        "description": "name of routing to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "no content"
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/filters": {
+            "get": {
+                "summary": "Get All Filters",
+                "description": "Endpoint returns information about all filters in the system.\n",
+                "tags": [
+                    "Filter",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "an array of filters",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Filter"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a Filter",
+                "description": "Endpoint for creation (import) of a new filter.\n",
+                "tags": [
+                    "Filter",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Filter object that needs to be created.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Filter"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the filter just created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Filter"
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/filters/{filterName}": {
+            "get": {
+                "summary": "Get Filter by Name",
+                "description": "Endpoint returns information about single filter in the system.\n",
+                "tags": [
+                    "Filter",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "filterName",
+                        "in": "path",
+                        "description": "name of filter to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "filter",
+                        "schema": {
+                            "$ref": "#/definitions/Filter"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Updates a Filter",
+                "description": "Endpoint updates a filter in the system.\n",
+                "tags": [
+                    "Filter",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "filterName",
+                        "in": "path",
+                        "description": "name of filter to return",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Filter.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Filter"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "updated filter",
+                        "schema": {
+                            "$ref": "#/definitions/Filter"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Deletes a Filter",
+                "description": "Endpoint deletes a filter in the system.\n",
+                "tags": [
+                    "Filter",
+                    "Blueprint",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "filterName",
+                        "in": "path",
+                        "description": "name of filter to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "no content"
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/deployments": {
+            "get": {
+                "summary": "Get All Deployments",
+                "description": "Endpoint returns information about all deployments in the system.\n",
+                "tags": [
+                    "Blueprint",
+                    "SLA",
+                    "Scale",
+                    "Escalation",
+                    "Routing",
+                    "Filter",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "an array of deployments",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Deployment"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a Deployment",
+                "description": "Endpoint for creation (import) of a new deployment.\n",
+                "tags": [
+                    "Blueprint",
+                    "SLA",
+                    "Scale",
+                    "Escalation",
+                    "Routing",
+                    "Filter",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Blueprint.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Blueprint"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "the deployment just created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Deployment"
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/deployments/{deploymentName}": {
+            "get": {
+                "summary": "Get Deployment by Name",
+                "description": "Endpoint returns information about single deployment in the system.\n",
+                "tags": [
+                    "Blueprint",
+                    "SLA",
+                    "Scale",
+                    "Escalation",
+                    "Routing",
+                    "Filter",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "deploymentName",
+                        "in": "path",
+                        "description": "name of deployment to return",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "deployment",
+                        "schema": {
+                            "$ref": "#/definitions/Deployment"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Updates a Deployment",
+                "description": "Endpoint updates a deployment in the system.\n",
+                "tags": [
+                    "Blueprint",
+                    "SLA",
+                    "Scale",
+                    "Escalation",
+                    "Routing",
+                    "Filter",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "deploymentName",
+                        "in": "path",
+                        "description": "name of deployment to return",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Blueprint.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Blueprint"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "updated deployment",
+                        "schema": {
+                            "$ref": "#/definitions/Deployment"
+                        }
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Deletes a Deployment",
+                "description": "Endpoint deletes a deployment in the system.\n",
+                "tags": [
+                    "Blueprint",
+                    "SLA",
+                    "Scale",
+                    "Escalation",
+                    "Routing",
+                    "Filter",
+                    "Deployment"
+                ],
+                "consumes": [
+                    "application/json",
+                    "application/x-yaml"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "name": "deploymentName",
+                        "in": "path",
+                        "description": "name of deployment to return",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Blueprint.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Blueprint"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "no content"
+                    },
+                    "default": {
+                        "description": "user or system error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "Breed": {
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Unique name of the breed."
+                },
+                "deployable": {
+                    "type": "string",
+                    "description": "Docker image."
+                },
+                "ports": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Port"
+                    },
+                    "description": "Breed ports."
+                },
+                "environment_variables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/EnvironmentVariables"
+                    },
+                    "description": "Breed environment variables."
+                },
+                "dependencies": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/Breed"
+                    },
+                    "description": "Breed dependencies."
+                }
+            }
+        },
+        "Port": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "alias": {
+                    "type": "string"
+                },
+                "direction": {
+                    "type": "string",
+                    "enum": [
+                        "IN",
+                        "OUT"
+                    ],
+                    "description": "Port direction."
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "EnvironmentVariables": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "Blueprint": {
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Unique name of the blueprint."
+                },
+                "endpoints": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Blueprint endpoints."
+                },
+                "parameters": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Blueprint parameters."
+                },
+                "clusters": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/Cluster"
+                    },
+                    "description": "Blueprint clusters."
+                }
+            }
+        },
+        "Cluster": {
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Unique name of the cluster within the blueprint."
+                },
+                "services": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Service"
+                    },
+                    "description": "Cluster services."
+                },
+                "sla": {
+                    "$ref": "#/definitions/Sla",
+                    "description": "Cluster SLA."
+                }
+            }
+        },
+        "Service": {
+            "properties": {
+                "breed": {
+                    "$ref": "#/definitions/Breed"
+                },
+                "scale": {
+                    "$ref": "#/definitions/Scale"
+                },
+                "routing": {
+                    "$ref": "#/definitions/Routing"
+                }
+            }
+        },
+        "Sla": {
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Unique name of the sla."
+                },
+                "type": {
+                    "type": "string"
+                },
+                "escalations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Escalation"
+                    }
+                }
+            }
+        },
+        "Escalation": {
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Unique name of the escalation."
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "Scale": {
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Unique name of the scale."
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "Routing": {
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Unique name of the routing."
+                },
+                "weight": {
+                    "type": "integer"
+                },
+                "filters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Filter"
+                    }
+                }
+            }
+        },
+        "Filter": {
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Unique name of the filter."
+                },
+                "conditions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "Deployment": {
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Unique name of the deployment."
+                },
+                "endpoints": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Deployment endpoints."
+                },
+                "parameters": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "description": "Deployment parameters."
+                },
+                "clusters": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/DeploymentCluster"
+                    },
+                    "description": "Deployment clusters."
+                }
+            }
+        },
+        "DeploymentCluster": {
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Unique name of the deployment cluster within the deployment."
+                },
+                "services": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/DeploymentService"
+                    },
+                    "description": "Deployment cluster services."
+                },
+                "sla": {
+                    "$ref": "#/definitions/Sla",
+                    "description": "Deployment cluster SLA."
+                },
+                "routes": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    },
+                    "description": "Route port mapping."
+                }
+            }
+        },
+        "DeploymentService": {
+            "properties": {
+                "breed": {
+                    "$ref": "#/definitions/Breed"
+                },
+                "scale": {
+                    "$ref": "#/definitions/Scale"
+                },
+                "routing": {
+                    "$ref": "#/definitions/Routing"
+                },
+                "state": {
+                    "$ref": "#/definitions/State"
+                },
+                "servers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Server"
+                    }
+                }
+            }
+        },
+        "State": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "Server": {
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "ports": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "deployed": {
+                    "type": "boolean"
+                }
+            }
+        }
     }
-  },
-  "host": "",
-  "basePath": "",
-  "tags": [
-  ],
-  "schemes": ["http"],
-  "paths": {
-  },
-  "securityDefinitions": {
-  },
-  "definitions": {
-  }
 }

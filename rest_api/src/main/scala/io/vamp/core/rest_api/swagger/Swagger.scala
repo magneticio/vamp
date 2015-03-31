@@ -12,4 +12,4 @@ case class SecurityDefinitions()
 
 case class Definitions()
 
-case class Swagger(swagger: String, info: Info, host: String, basePath: String, tags: List[Any], schemes: List[String], paths: Paths, securityDefinitions: SecurityDefinitions, definitions: Definitions)
+case class Swagger(swagger: String, info: Info, host: String, basePath: String, tags: List[Any], schemes: List[String], paths: Map[String, AnyRef], definitions: Map[String, AnyRef])
