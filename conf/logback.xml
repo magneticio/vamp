@@ -9,6 +9,8 @@
 
     <logger name="io.vamp" level="TRACE"/>
 
+    <logger name="scala.slick" level="WARN"/>
+
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>
