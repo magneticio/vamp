@@ -97,8 +97,8 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
     for (escalationRef <- escalations) {
       GenericEscalations.findOptionByName(escalationRef.name, escalationRef.deploymentId) match {
         case Some(escalationChild) if escalationChild.isAnonymous => deleteEscalationModel(escalationChild)
-        case Some(escalationChild) =>
-        case None => // Should not happen
+        case Some(escalationChild) => // Never delete children with a name
+        case None => // Foreign key constraint should prevent this from happening
       }
       EscalationReferences.deleteById(escalationRef.id.get)
     }

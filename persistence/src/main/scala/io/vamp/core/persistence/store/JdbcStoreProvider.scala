@@ -24,7 +24,6 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
 
   override val store: Store = new JdbcStore()
 
-
   private class JdbcStore(implicit val sess: JdbcBackend.Session) extends Store with ScaleStore with PortStore
   with DeploymentStore with BlueprintStore with BreedStore
   with RoutingStore with FilterStore
@@ -82,7 +81,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         case _ if ofType == classOf[GenericSla] || ofType == classOf[EscalationOnlySla] || ofType == classOf[ResponseTimeSlidingWindowSla] || ofType == classOf[Sla] => GenericSlas.fetchAll.map(a => read(a.name, classOf[GenericSla]).get)
         case _ if ofType == classOf[DefaultBreed] || ofType == classOf[Breed] => DefaultBreeds.fetchAll.map(a => read(a.name, classOf[DefaultBreed]).get)
         case _ =>
-          logger.info(s"Unsupported Persistence Request - All - $ofType")
+          logger.error(s"Unsupported Persistence Request - All - $ofType")
           throw exception(UnsupportedPersistenceRequest(ofType))
       }
     }
@@ -116,7 +115,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           updateBreed(DefaultBreeds.findByName(a.name, deploymentId), a)
 
         case _ =>
-          logger.info(s"Unsupported Persistence Request - Update - ${artifact.getClass}")
+          logger.error(s"Unsupported Persistence Request - Update - ${artifact.getClass}")
           throw exception(UnsupportedPersistenceRequest(artifact.getClass))
       }
       read(artifact.name, artifact.getClass).get
@@ -152,7 +151,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
           findBreedOptionArtifact(name)
 
         case _ =>
-          logger.info(s"Unsupported Persistence Request - Read - $ofType")
+          logger.error(s"Unsupported Persistence Request - Find - $ofType")
           throw exception(UnsupportedPersistenceRequest(ofType))
       }
 
@@ -176,7 +175,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         case art: Breed => createBreedArtifact(art)
 
         case _ =>
-          logger.info(s"Unsupported Persistence Request - Add - ${artifact.getClass}")
+          logger.info(s"Unsupported Persistence Request - Create - ${artifact.getClass}")
           throw exception(UnsupportedPersistenceRequest(artifact.getClass))
       }
       findArtifact(nameOfArtifact, artifact.getClass) match {
@@ -205,7 +204,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
         case breed: DefaultBreed => deleteBreedFromDb(breed)
 
         case _ =>
-          logger.info(s"Unsupported Persistence Request - Delete - ${artifact.getClass}")
+          logger.error(s"Unsupported Persistence Request - Delete - ${artifact.getClass}")
           throw exception(UnsupportedPersistenceRequest(artifact.getClass))
       }
     }

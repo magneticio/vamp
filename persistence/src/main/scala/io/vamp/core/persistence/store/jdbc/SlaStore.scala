@@ -14,7 +14,7 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
   import io.vamp.core.persistence.slick.components.Components.instance._
   import io.vamp.core.persistence.slick.model.Implicits._
 
-  protected def createSla(clusterSla: Option[Sla], deploymentId: Option[Int]): Option[Int] = clusterSla match {
+  protected def createSla(slaArtifact: Option[Sla], deploymentId: Option[Int]): Option[Int] = slaArtifact match {
     case Some(sla: SlaReference) =>
       val slaRefId = SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = sla.name, isDefinedInline = false))
       createEscalationReferences(sla.escalations, None, Some(slaRefId), None, deploymentId)
@@ -29,7 +29,7 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
       }
       val storedSla = GenericSlas.findById(slaId.get)
       Some(SlaReferences.add(SlaReferenceModel(deploymentId = deploymentId, name = storedSla.name, isDefinedInline = true)))
-    case _ => None // Should never happen
+    case _ => None
   }
 
   protected def updateSla(existing: GenericSlaModel, a: Sla): Unit = {
@@ -62,8 +62,8 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
     for (escalationRef <- sla.escalationReferences) {
       GenericEscalations.findOptionByName(escalationRef.name, escalationRef.deploymentId) match {
         case Some(escalation) if escalation.isAnonymous => deleteEscalationModel(escalation)
-        case Some(escalation) =>
-        case None => // Should not happen
+        case Some(escalation) => // Non anonymous artifact should not be removed when parent artifact gets removed
+        case None => // Foreign key constraint prevents this
       }
       EscalationReferences.deleteById(escalationRef.id.get)
     }
@@ -91,9 +91,9 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
   protected def findSlaOptionArtifact(name: String, defaultDeploymentId: Option[Int] = None): Option[Artifact] = {
     GenericSlas.findOptionByName(name, defaultDeploymentId) match {
       case Some(s) => s.slaType match {
-        case "escalation_only" =>
+        case Constants.Sla_Escalation_Only =>
           Some(EscalationOnlySla(name = VampPersistenceUtil.restoreToAnonymous(s.name, s.isAnonymous), escalations = escalations2Artifacts(s.escalationReferences)))
-        case "response_time_sliding_window" =>
+        case Constants.Sla_Response_Time_Sliding_Window =>
           Some(ResponseTimeSlidingWindowSla(name = VampPersistenceUtil.restoreToAnonymous(s.name, s.isAnonymous), escalations = escalations2Artifacts(s.escalationReferences),
             upper = s.upper.get, lower = s.lower.get, interval = s.interval.get, cooldown = s.cooldown.get))
         case _ =>
