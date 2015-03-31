@@ -42,7 +42,7 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
       case artifact: ResponseTimeSlidingWindowSla =>
         existing.copy(slaType = Constants.Sla_Response_Time_Sliding_Window, upper = Some(artifact.upper), lower = Some(artifact.lower), interval = Some(artifact.interval), cooldown = Some(artifact.cooldown)).update
       case artifact: EscalationOnlySla =>
-        existing.copy(slaType = Constants.Sla_Escalation_only).update
+        existing.copy(slaType = Constants.Sla_Escalation_Only).update
     }
   }
 

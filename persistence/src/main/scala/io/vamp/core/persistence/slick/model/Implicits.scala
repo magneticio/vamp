@@ -164,7 +164,7 @@ object Implicits {
 
   implicit def genericSla2Model(a: DeploymentGenericSla): GenericSlaModel = a.artifact match {
     case artifact: EscalationOnlySla =>
-      GenericSlaModel(deploymentId = a.deploymentId, name = artifact.name, slaType = Constants.Sla_Escalation_only, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+      GenericSlaModel(deploymentId = a.deploymentId, name = artifact.name, slaType = Constants.Sla_Escalation_Only, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
     case artifact: ResponseTimeSlidingWindowSla =>
       GenericSlaModel(
         deploymentId = a.deploymentId, name = a.artifact.name, slaType = Constants.Sla_Response_Time_Sliding_Window,
