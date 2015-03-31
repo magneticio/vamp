@@ -2,14 +2,13 @@ package io.vamp.core.pulse_driver
 
 import java.time.OffsetDateTime
 
-import io.vamp.common.pulse.PulseClient
-import io.vamp.pulse.api._
+import io.vamp.common.pulse.{Average, Count, PulseClient}
 import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, Port}
 import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.core.router_driver.DefaultRouterDriverNameMatcher
+import io.vamp.pulse.api._
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 trait PulseDriver {
 
@@ -22,44 +21,21 @@ trait PulseDriver {
   def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime): Future[List[SlaEvent]]
 }
 
-class DefaultPulseDriver(ec: ExecutionContext, url: String) extends PulseClient(url) with PulseDriver with DefaultRouterDriverNameMatcher {
+class DefaultPulseDriver(ec: ExecutionContext, url: String) extends PulseClient(url) with PulseDriver with Average with Count with DefaultRouterDriverNameMatcher {
   protected implicit val executionContext = ec
 
   def event(event: Event) = sendEvent(event)
 
-  def exists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime) = {
-    getEvents(EventQuery(SlaEvent.slaTags(deployment, cluster), TimeRange(from), Some(Aggregator(AggregatorType.count)))).map {
-      case result: Map[_, _] => result.asInstanceOf[Map[String, Any]].get("value") match {
-        case Some(value: BigDecimal) => value > 0
-        case _ => false
-      }
-      case _ => false
-    }
-  }
+  def exists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime) =
+    count(SlaEvent.slaTags(deployment, cluster), from, OffsetDateTime.now()).map(count => count.value > 0)
 
-  def responseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime) = {
-    val tags = "route" :: clusterRouteName(deployment, cluster, port) :: "backend" :: "rtime" :: Nil
-    getEvents(EventQuery(tags, TimeRange(from, to), Some(Aggregator(AggregatorType.average)))).map {
-      case result: Map[_, _] => Try(result.asInstanceOf[Map[String, Any]].get("value").flatMap(value => Some(value.toString.toDouble))) getOrElse None
-      case _ => None
-    }
-  }
+  def responseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime) =
+    average("route" :: clusterRouteName(deployment, cluster, port) :: "backend" :: "rtime" :: Nil, from, to).map(average => Some(average.value))
 
-  def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime) = {
-    getEvents(EventQuery(SlaEvent.slaTags(deployment, cluster), TimeRange(from, to))).map {
-      case list: List[_] => list.asInstanceOf[List[Map[String, _]]].flatMap { event =>
-        Try {
-          event.get("tags") match {
-            case None => Nil
-            case Some(tags) => if (Escalate.tags.forall(tags.asInstanceOf[List[String]].contains)) {
-              Escalate(deployment, cluster) :: Nil
-            } else if (DeEscalate.tags.forall(tags.asInstanceOf[List[String]].contains)) {
-              DeEscalate(deployment, cluster) :: Nil
-            } else Nil
-          }
-        } getOrElse Nil
-      }
-      case _ => Nil
-    }
-  }
+  def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime) =
+    getEvents(SlaEvent.slaTags(deployment, cluster), from, to).map(events => events.flatMap { event =>
+      if (Escalate.tags.forall(event.tags.contains)) Escalate(deployment, cluster, event.timestamp) :: Nil
+      else if (DeEscalate.tags.forall(event.tags.contains)) DeEscalate(deployment, cluster, event.timestamp) :: Nil
+      else Nil
+    })
 }
