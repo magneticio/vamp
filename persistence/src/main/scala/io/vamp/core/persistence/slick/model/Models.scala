@@ -136,12 +136,6 @@ case class TraitNameParameterModel(id: Option[Int] = None, name: String, scope: 
   override def withId(id: Id): TraitNameParameterModel = copy(id = Option(id))
 }
 
-trait DeployableArtifact {
-  def deploymentId: Option[Int]
-
-  def artifact: Artifact
-}
-
 case class DeploymentModel(id: Option[Int] = None, name: String) extends VampNameablePersistenceModel[DeploymentModel] {
   override def withId(id: Id): DeploymentModel = copy(id = Option(id))
 }
