@@ -62,7 +62,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
                 case _ =>
               }
               SlaReferences.deleteById(slaRefId)
-            case None => // should not happen, foreign key constraint
+            case None => // Foreign key constraint prevents this
           }
         case _ =>
       }
@@ -95,7 +95,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
         val serviceId = DeploymentServices.add(
           DeploymentServiceModel(
             clusterId = clusterId,
-            name = s"service-for-${cluster.name}-${java.util.UUID.randomUUID.toString}", // Dummy name
+            name = s"${cluster.name}~${java.util.UUID.randomUUID.toString}", // Dummy name
             deploymentId = deploymentId,
             breed = breedId,
             scale = scaleId,

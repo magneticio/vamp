@@ -1,10 +1,12 @@
 package io.vamp.core.persistence.store.jdbc
 
+import com.typesafe.scalalogging.Logger
 import io.vamp.core.model.artifact.Trait
 import io.vamp.core.model.artifact.Trait.Name
 import io.vamp.core.persistence.notification.PersistenceNotificationProvider
 import io.vamp.core.persistence.slick.model.TraitNameParameterModel
 import io.vamp.core.persistence.slick.model.TraitParameterParentType._
+import org.slf4j.LoggerFactory
 
 import scala.slick.jdbc.JdbcBackend
 
@@ -15,9 +17,9 @@ trait TraitNameParameterStore extends PersistenceNotificationProvider {
 
   import io.vamp.core.persistence.slick.components.Components.instance._
 
+  private val logger = Logger(LoggerFactory.getLogger(classOf[TraitNameParameterStore]))
 
   protected def createTraitNameParameters(parameters: Map[Trait.Name, Any], parentId: Option[Int], parentType: TraitParameterParentType): Unit = {
-    val deploymentId = None
     for (param <- parameters) {
       val prefilledParameter = TraitNameParameterModel(name = param._1.value, scope = param._1.scope, parentId = parentId, groupType = param._1.group, parentType = parentType)
       TraitNameParameters.add(
@@ -27,7 +29,7 @@ trait TraitNameParameterStore extends PersistenceNotificationProvider {
           case value: Int =>
             prefilledParameter.copy(intValue = Some(value))
           case value =>
-            // Seems incorrect, store the value as a string
+            logger.warn(s"Incorrect trait name parameter of type ${value.getClass} found; storing it as a string value.")
             prefilledParameter.copy(stringValue = Some(value.toString))
         }
       )

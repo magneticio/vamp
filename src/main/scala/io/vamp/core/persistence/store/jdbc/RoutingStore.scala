@@ -91,5 +91,4 @@ trait RoutingStore extends FilterStore with PersistenceNotificationProvider {
     case a: DefaultRouting => createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(None, a)).name
   }
 
-
 }
