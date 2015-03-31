@@ -95,7 +95,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
         val serviceId = DeploymentServices.add(
           DeploymentServiceModel(
             clusterId = clusterId,
-            name = s"service-for-${cluster.name}", // Dummy name
+            name = s"service-for-${cluster.name}-${java.util.UUID.randomUUID.toString}", // Dummy name
             deploymentId = deploymentId,
             breed = breedId,
             scale = scaleId,
