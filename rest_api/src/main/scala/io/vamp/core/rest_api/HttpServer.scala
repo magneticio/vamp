@@ -5,8 +5,9 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.notification.NotificationErrorException
+import org.json4s.DefaultFormats
 import spray.http.StatusCodes._
-import spray.http.{HttpRequest, HttpResponse, Timedout}
+import spray.http.{HttpRequest, HttpResponse, StatusCode, Timedout}
 import spray.routing._
 import spray.util.LoggingContext
 
@@ -20,28 +21,26 @@ class HttpServer extends HttpServiceActor with ActorLogging with RestApiRoute wi
 
   implicit val timeout = HttpServer.timeout
 
-  val requestMalformedMessage = "The request content was malformed"
-
   def exceptionHandler = ExceptionHandler {
-    case e: NotificationErrorException => 
-      complete(BadRequest, s"$requestMalformedMessage: ${e.message}")
-      
+    case e: NotificationErrorException =>
+      respondWithError(BadRequest, s"${e.message}")
+
     case e: Exception => requestUri { uri =>
       log.error(e, "Request to {} could not be handled normally: {}", uri, e.getMessage)
-      complete(InternalServerError)
+      respondWithError(InternalServerError)
     }
   }
 
   def rejectionHandler = RejectionHandler {
     case MalformedRequestContentRejection(msg, Some(e: NotificationErrorException)) :: _ =>
-      complete(BadRequest, s"$requestMalformedMessage: $msg")
+      respondWithError(BadRequest, s"$msg")
 
     case MalformedRequestContentRejection(msg, Some(ex)) :: _ =>
       log.error(ex, ex.getMessage)
-      complete(BadRequest, requestMalformedMessage)
+      respondWithError(BadRequest)
 
     case MalformedRequestContentRejection(msg, None) :: _ =>
-      complete(BadRequest, requestMalformedMessage)
+      respondWithError(BadRequest)
   }
 
   def routingSettings = RoutingSettings.default
@@ -54,4 +53,12 @@ class HttpServer extends HttpServiceActor with ActorLogging with RestApiRoute wi
   }
 
   def receive = handleTimeouts orElse runRoute(route)(exceptionHandler, rejectionHandler, context, routingSettings, loggingContext)
+
+  def respondWithError(code: StatusCode, message: String = "") = {
+    val base = "The request content was malformed."
+    val response = if (message.isEmpty) base else s"$base $message"
+
+    implicit val json4sFormats = DefaultFormats
+    complete(code, "message" -> response)
+  }
 }
