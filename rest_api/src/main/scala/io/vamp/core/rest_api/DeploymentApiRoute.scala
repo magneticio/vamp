@@ -18,7 +18,6 @@ import io.vamp.core.operation.sla.{EscalationActor, SlaActor}
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.persistence.actor.PersistenceActor.All
 import io.vamp.core.rest_api.notification.{RestApiNotificationProvider, UnsupportedRoutingWeightChangeError}
-import io.vamp.core.rest_api.swagger.SwaggerResponse
 import spray.http.StatusCodes._
 import spray.httpx.marshalling.Marshaller
 import spray.routing.HttpServiceBase
