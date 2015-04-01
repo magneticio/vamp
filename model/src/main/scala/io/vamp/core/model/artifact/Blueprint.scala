@@ -9,10 +9,10 @@ trait AbstractBlueprint extends Blueprint {
 
   def endpoints: List[Port]
 
-  def parameters: Map[Trait.Name, Any]
+  def environmentVariables: Map[Trait.Name, Any]
 }
 
-case class DefaultBlueprint(name: String, clusters: List[Cluster], endpoints: List[Port], parameters: Map[Trait.Name, Any]) extends AbstractBlueprint
+case class DefaultBlueprint(name: String, clusters: List[Cluster], endpoints: List[Port], environmentVariables: Map[Trait.Name, Any]) extends AbstractBlueprint
 
 case class BlueprintReference(name: String) extends Blueprint with Reference
 

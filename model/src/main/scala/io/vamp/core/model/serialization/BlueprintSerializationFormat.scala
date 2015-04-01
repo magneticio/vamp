@@ -27,7 +27,7 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] {
       list += JField("name", JString(blueprint.name))
       list += JField("endpoints", Extraction.decompose(blueprint.endpoints.map(endpoint => endpoint.name -> endpoint.value).toMap))
       list += JField("clusters", Extraction.decompose(blueprint.clusters.map(cluster => cluster.name -> cluster).toMap))
-      list += JField("parameters", Extraction.decompose(blueprint.parameters))
+      list += JField("environment_variables", Extraction.decompose(blueprint.environmentVariables))
       new JObject(list.toList)
   }
 }

@@ -20,7 +20,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
     deleteModelTraitNameParameters(existing.parameters)
     createDeploymentClusters(artifact.clusters, existing.id)
     createPorts(artifact.endpoints, existing.id, Some(PortParentType.Deployment))
-    createTraitNameParameters(artifact.parameters, existing.id, TraitParameterParentType.Deployment)
+    createTraitNameParameters(artifact.environmentVariables, existing.id, TraitParameterParentType.Deployment)
     Deployments.update(existing)
   }
 
@@ -120,7 +120,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
           name = deployment.name,
           clusters = findDeploymentClusterArtifacts(deployment.clusters, deployment.id),
           endpoints = readPortsToArtifactList(deployment.endpoints),
-          parameters = traitNameParametersToArtifactMap(deployment.parameters))
+          environmentVariables = traitNameParametersToArtifactMap(deployment.parameters))
         )
       case _ => None
     }
@@ -186,7 +186,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
     val deploymentId = Deployments.add(a)
     createDeploymentClusters(a.clusters, Some(deploymentId))
     createPorts(a.endpoints, Some(deploymentId), Some(PortParentType.Deployment))
-    createTraitNameParameters(a.parameters, Some(deploymentId), TraitParameterParentType.Deployment)
+    createTraitNameParameters(a.environmentVariables, Some(deploymentId), TraitParameterParentType.Deployment)
     Deployments.findById(deploymentId).name
   }
 

@@ -281,7 +281,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
       val clusters = processedClusters.filter(_.state != Processed.RemoveFromPersistence).map(_.cluster)
 
-      val parameters = (deployment.parameters ++ processedClusters.filter(_.state == Processed.Persist).map(_.cluster).flatMap({ cluster =>
+      val environmentVariables = (deployment.environmentVariables ++ processedClusters.filter(_.state == Processed.Persist).map(_.cluster).flatMap({ cluster =>
         cluster.services.map(_.breed).flatMap(_.ports).map({ port =>
           Trait.Name(Some(cluster.name), Some(Trait.Name.Group.Ports), port.name.value) -> cluster.routes.get(port.value.get).get
         })
@@ -290,7 +290,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
         case _ => true
       })
 
-      val d = updateEndpoints(routes)(deployment.copy(clusters = clusters, parameters = parameters))
+      val d = updateEndpoints(routes)(deployment.copy(clusters = clusters, environmentVariables = environmentVariables))
 
       if (d.clusters.isEmpty)
         actorFor(PersistenceActor) ! PersistenceActor.Delete(d.name, classOf[Deployment])

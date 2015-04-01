@@ -10,5 +10,5 @@ clusters:
         breed:
           name: nocturnal-viper
           
-parameters:
+environment_variables:
   notorious.ports.aspect: thorium

@@ -48,5 +48,5 @@ clusters:
   
   omega: scary-lion
           
-parameters:
+environment_variables:
   omega.ports.aspect: thorium

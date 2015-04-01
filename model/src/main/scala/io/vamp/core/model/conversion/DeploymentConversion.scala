@@ -15,7 +15,7 @@ class DeploymentConversion(val deployment: Deployment) {
       Cluster(cluster.name, cluster.services.map(service => Service(service.breed, service.scale, service.routing)), cluster.sla)
     })
 
-    val parameters = deployment.parameters.filter {
+    val environmentVariables = deployment.environmentVariables.filter {
       case (Trait.Name(Some(scope), Some(group), parameterName), value) =>
         deployment.clusters.find(_.name == scope) match {
           case None => false
@@ -30,6 +30,6 @@ class DeploymentConversion(val deployment: Deployment) {
       case _ => false
     }
 
-    DefaultBlueprint(deployment.name, clusters, deployment.endpoints, parameters)
+    DefaultBlueprint(deployment.name, clusters, deployment.endpoints, environmentVariables)
   }
 }

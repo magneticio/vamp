@@ -80,7 +80,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       }).toList
     }
 
-    DefaultBlueprint(name, clusters, endpoints("endpoints"), traitNameMapping("parameters"))
+    DefaultBlueprint(name, clusters, endpoints("endpoints"), traitNameMapping("environment_variables"))
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {
@@ -88,7 +88,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     case blueprint: DefaultBlueprint =>
 
       validateEndpoints(blueprint)
-      validateParameters(blueprint)
+      validateEnvironmentVariables(blueprint)
       validateRoutingWeights(blueprint)
 
       val breeds = blueprint.clusters.flatMap(_.services.map(_.breed))
@@ -120,8 +120,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     }
   }
 
-  protected def validateParameters(blueprint: DefaultBlueprint): Unit = {
-    blueprint.parameters.find({
+  protected def validateEnvironmentVariables(blueprint: DefaultBlueprint): Unit = {
+    blueprint.environmentVariables.find({
       case (Trait.Name(Some(scope), Some(group), name), _) =>
         blueprint.clusters.find(_.name == scope) match {
           case None => true

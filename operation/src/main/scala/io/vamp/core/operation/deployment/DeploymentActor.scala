@@ -80,7 +80,7 @@ trait BlueprintSupport {
       }, cluster.sla)
     }
 
-    Deployment(uuid, clusters, bp.endpoints, bp.parameters)
+    Deployment(uuid, clusters, bp.endpoints, bp.environmentVariables)
   }
 }
 
@@ -123,7 +123,7 @@ trait DeploymentMerger extends DeploymentValidation {
 
   def commit(create: Boolean): (Deployment => Deployment)
 
-  def validate = validateAndCollectParameters andThen validateEndpoints
+  def validate = validateAndCollectEnvironmentVariables andThen validateEndpoints
 
   def resolveProperties = resolveParameters andThen resolveRouteMapping andThen resolveGlobalVariables andThen resolveDependencyMapping
 
@@ -135,9 +135,9 @@ trait DeploymentMerger extends DeploymentValidation {
 
     val clusters = mergeClusters(deployment, attachment)
     val endpoints = (attachment.endpoints ++ deployment.endpoints).distinct
-    val parameters = attachment.parameters ++ deployment.parameters
+    val environmentVariables = attachment.environmentVariables ++ deployment.environmentVariables
 
-    (validateMerge andThen commit(create = true))(Deployment(deployment.name, clusters, endpoints, parameters))
+    (validateMerge andThen commit(create = true))(Deployment(deployment.name, clusters, endpoints, environmentVariables))
   }
 
   def mergeClusters(stable: Deployment, blueprint: Deployment): List[DeploymentCluster] = {
@@ -216,8 +216,8 @@ trait DeploymentMerger extends DeploymentValidation {
     else Nil
   }
 
-  def validateAndCollectParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
-    deployment.parameters.find({
+  def validateAndCollectEnvironmentVariables: (Deployment => Deployment) = { (deployment: Deployment) =>
+    deployment.environmentVariables.find({
       case (Trait.Name(Some(scope), Some(group), port), _) =>
         deployment.clusters.find(_.name == scope) match {
           case None => true
@@ -261,13 +261,13 @@ trait DeploymentMerger extends DeploymentValidation {
       case e => error(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
     }
 
-    deployment.copy(parameters = deployment.clusters.flatMap({ cluster =>
+    deployment.copy(environmentVariables = deployment.clusters.flatMap({ cluster =>
       cluster.services.flatMap({ service =>
         val breed = service.breed
         breed.ports.filter(_.direction == Trait.Direction.Out).map(out => out.name.copy(scope = Some(cluster.name), group = Some(Trait.Name.Group.Ports)) -> out.value.get) ++
           breed.environmentVariables.filter(_.direction == Trait.Direction.Out).map(out => out.name.copy(scope = Some(cluster.name), group = Some(Trait.Name.Group.EnvironmentVariables)) -> out.value.get)
       })
-    }).toMap ++ deployment.parameters ++ deployment.clusters.map(cluster => Trait.Name(Some(cluster.name), None, Trait.host) -> host))
+    }).toMap ++ deployment.environmentVariables ++ deployment.clusters.map(cluster => Trait.Name(Some(cluster.name), None, Trait.host) -> host))
   }
 
   def resolveRouteMapping: (Deployment => Deployment) = { (deployment: Deployment) =>
@@ -288,7 +288,7 @@ trait DeploymentMerger extends DeploymentValidation {
   def resolveGlobalVariables: (Deployment => Deployment) = { (deployment: Deployment) =>
 
     def copyPort(breed: Breed, port: Port, targetScope: String, dependencyScope: String) = {
-      port.name.copy(scope = Some(targetScope), group = Some(Trait.Name.Group.Ports)) -> (deployment.parameters.find({
+      port.name.copy(scope = Some(targetScope), group = Some(Trait.Name.Group.Ports)) -> (deployment.environmentVariables.find({
         case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == dependencyScope && value == port.name.value => true
         case _ => false
       }) match {
@@ -298,7 +298,7 @@ trait DeploymentMerger extends DeploymentValidation {
     }
 
     def copyEnvironmentVariable(breed: Breed, ev: EnvironmentVariable, targetScope: String, dependencyScope: String) = {
-      ev.name.copy(scope = Some(targetScope), group = Some(Trait.Name.Group.EnvironmentVariables)) -> (deployment.parameters.find({
+      ev.name.copy(scope = Some(targetScope), group = Some(Trait.Name.Group.EnvironmentVariables)) -> (deployment.environmentVariables.find({
         case (Trait.Name(Some(scope), Some(_), value), _) if scope == dependencyScope && value == ev.name.value => true
         case (Trait.Name(Some(scope), None, value), _) if scope == dependencyScope && value == ev.name.value && value == Trait.host => true
         case _ => false
@@ -308,7 +308,7 @@ trait DeploymentMerger extends DeploymentValidation {
       })
     }
 
-    deployment.copy(parameters = deployment.clusters.flatMap(cluster => cluster.services.map(_.breed).flatMap({ breed =>
+    deployment.copy(environmentVariables = deployment.clusters.flatMap(cluster => cluster.services.map(_.breed).flatMap({ breed =>
       breed.ports.filter(_.direction == Trait.Direction.In).flatMap({ port =>
         port.name.scope match {
           case None => copyPort(breed, port, cluster.name, cluster.name) :: Nil
@@ -320,7 +320,7 @@ trait DeploymentMerger extends DeploymentValidation {
           case _ => Nil
         }
       })
-    })).toMap ++ deployment.parameters)
+    })).toMap ++ deployment.environmentVariables)
   }
 
   def resolveDependencyMapping: (Deployment => Deployment) = { (deployment: Deployment) =>

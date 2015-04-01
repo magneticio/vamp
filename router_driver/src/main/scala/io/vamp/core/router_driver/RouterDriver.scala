@@ -119,11 +119,11 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
 
   private def servers(deployment: Deployment, port: Port): List[Server] = {
     val list = for {
-      h <- deployment.parameters.find({
+      h <- deployment.environmentVariables.find({
         case (Trait.Name(Some(scope), None, value), _) if scope == port.name.scope.get && value == Trait.host => true
         case _ => false
       })
-      p <- deployment.parameters.find({
+      p <- deployment.environmentVariables.find({
         case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == port.name.scope.get && value == port.name.value => true
         case _ => false
       })
