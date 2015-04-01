@@ -14,7 +14,7 @@ import spray.util.LoggingContext
 import scala.concurrent.duration._
 
 object HttpServer {
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("server.response.timeout").seconds)
+  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.rest-api.response-timeout").seconds)
 }
 
 class HttpServer extends HttpServiceActor with ActorLogging with RestApiRoute with ActorExecutionContextProvider {

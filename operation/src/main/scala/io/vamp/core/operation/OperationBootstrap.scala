@@ -15,13 +15,13 @@ object OperationBootstrap extends Bootstrap {
 
     ActorSupport.actorOf(DeploymentActor)
 
-    ActorSupport.actorOf(DeploymentSynchronizationActor)(mailbox = "deployment.deployment-synchronization-mailbox", actorSystem)
-    ActorSupport.actorOf(DeploymentSynchronizationSchedulerActor) ! SchedulerActor.Period(ConfigFactory.load().getInt("deployment.synchronization.period") seconds)
+    ActorSupport.actorOf(DeploymentSynchronizationActor)(mailbox = "vamp.core.operation.synchronization.mailbox", actorSystem)
+    ActorSupport.actorOf(DeploymentSynchronizationSchedulerActor) ! SchedulerActor.Period(ConfigFactory.load().getInt("vamp.core.operation.synchronization.period") seconds)
 
     ActorSupport.actorOf(SlaActor)
-    ActorSupport.actorOf(SlaSchedulerActor) ! SchedulerActor.Period(ConfigFactory.load().getInt("deployment.sla.period") seconds)
+    ActorSupport.actorOf(SlaSchedulerActor) ! SchedulerActor.Period(ConfigFactory.load().getInt("vamp.core.operation.sla.period") seconds)
 
     ActorSupport.actorOf(EscalationActor)
-    ActorSupport.actorOf(EscalationSchedulerActor) ! SchedulerActor.Period(ConfigFactory.load().getInt("deployment.escalation.period") seconds)
+    ActorSupport.actorOf(EscalationSchedulerActor) ! SchedulerActor.Period(ConfigFactory.load().getInt("vamp.core.operation.escalation.period") seconds)
   }
 }

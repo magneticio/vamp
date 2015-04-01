@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 
 object DictionaryActor extends ActorDescription {
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("deployment.dictionary.response.timeout").seconds)
+  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.dictionary.response-timeout").seconds)
 
   def props(args: Any*): Props = Props(classOf[DictionaryActor])
 
@@ -34,7 +34,7 @@ class DictionaryActor extends Actor with ActorLogging with ActorSupport with Rep
   implicit val timeout = DictionaryActor.timeout
 
   private val portAssignment = toRegExp(DictionaryActor.portAssignment)
-  private val portRange = ConfigFactory.load().getString("deployment.dictionary.port.range").split("-").map(_.toInt)
+  private val portRange = ConfigFactory.load().getString("vamp.core.dictionary.port-range").split("-").map(_.toInt)
   private var currentPort = portRange(0) - 1
   private val hostResolver = toRegExp(DictionaryActor.hostResolver)
   private val containerScale = toRegExp(DictionaryActor.containerScale)
@@ -71,13 +71,13 @@ class DictionaryActor extends Actor with ActorLogging with ActorSupport with Rep
       }
 
     case hostResolver(_*) =>
-      ConfigFactory.load().getString("deployment.router.host")
+      ConfigFactory.load().getString("vamp.core.router-driver.host")
 
     case containerScale(deployment, cluster, service) =>
       val config = ConfigFactory.load()
-      val cpu = config.getDouble("deployment.container.default-scale.cpu")
-      val memory = config.getDouble("deployment.container.default-scale.memory")
-      val instances = config.getInt("deployment.container.default-scale.instances")
+      val cpu = config.getDouble("vamp.core.dictionary.default-scale.cpu")
+      val memory = config.getDouble("vamp.core.dictionary.default-scale.memory")
+      val instances = config.getInt("vamp.core.dictionary.default-scale.instances")
       DefaultScale("", cpu, memory, instances)
 
     case value => value

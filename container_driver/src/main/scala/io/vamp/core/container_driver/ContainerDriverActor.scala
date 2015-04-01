@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 
 object ContainerDriverActor extends ActorDescription {
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("deployment.container.response.timeout").seconds)
+  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.container-driver.response-timeout").seconds)
 
   def props(args: Any*): Props = Props(classOf[ContainerDriverActor], args: _*)
 

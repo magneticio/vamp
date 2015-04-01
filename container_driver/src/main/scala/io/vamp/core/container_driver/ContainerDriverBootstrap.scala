@@ -10,8 +10,8 @@ object ContainerDriverBootstrap extends Bootstrap with ContainerDriverNotificati
 
   def run(implicit actorSystem: ActorSystem) = {
 
-    val driver = ConfigFactory.load().getString("deployment.container.driver.type").toLowerCase match {
-      case "marathon" => new MarathonDriver(actorSystem.dispatcher, ConfigFactory.load().getString("deployment.container.driver.url"))
+    val driver = ConfigFactory.load().getString("vamp.core.container-driver.type").toLowerCase match {
+      case "marathon" => new MarathonDriver(actorSystem.dispatcher, ConfigFactory.load().getString("vamp.core.container-driver.url"))
       case value => error(UnsupportedContainerDriverError(value))
     }
 

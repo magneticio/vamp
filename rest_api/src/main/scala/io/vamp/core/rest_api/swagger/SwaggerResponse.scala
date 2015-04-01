@@ -9,9 +9,9 @@ import scala.io.Source
 
 trait SwaggerResponse {
   lazy val swagger: Swagger = {
-    val config = ConfigFactory.load()
-    val port = config.getInt("server.port")
-    val host = config.getString("server.host")
+    val config = ConfigFactory.load().getConfig("vamp.core.rest-api")
+    val port = config.getInt("port")
+    val host = config.getString("host")
 
     implicit val formats = Serialization.formats(NoTypeHints)
     val result = read[Swagger](Source.fromURL(getClass.getResource("/swagger/swagger.json")).bufferedReader())

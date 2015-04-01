@@ -80,9 +80,9 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
   private def withError(deployment: Deployment): Boolean = {
     lazy val now = OffsetDateTime.now()
-    lazy val config = ConfigFactory.load()
-    lazy val deploymentTimeout = config.getInt("deployment.timeout.ready-for-deployment")
-    lazy val undeploymentTimeout = config.getInt("deployment.timeout.ready-for-undeployment")
+    lazy val config = ConfigFactory.load().getConfig("vamp.core.operation.synchronization.timeout")
+    lazy val deploymentTimeout = config.getInt("ready-for-deployment")
+    lazy val undeploymentTimeout = config.getInt("ready-for-undeployment")
 
     def handleTimeout(service: DeploymentService) = {
       val notification = DeploymentServiceError(deployment, service)

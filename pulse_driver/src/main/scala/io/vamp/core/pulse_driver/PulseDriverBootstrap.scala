@@ -8,6 +8,6 @@ import io.vamp.core.pulse_driver.notification.PulseDriverNotificationProvider
 object PulseDriverBootstrap extends Bootstrap with PulseDriverNotificationProvider {
 
   def run(implicit actorSystem: ActorSystem) = {
-    ActorSupport.actorOf(PulseDriverActor, new DefaultPulseDriver(actorSystem.dispatcher, ConfigFactory.load().getString("deployment.pulse.driver.url")))
+    ActorSupport.actorOf(PulseDriverActor, new DefaultPulseDriver(actorSystem.dispatcher, ConfigFactory.load().getString("vamp.core.pulse-driver.url")))
   }
 }

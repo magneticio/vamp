@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 
 object RouterDriverActor extends ActorDescription {
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("deployment.router.response.timeout").seconds)
+  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.router-driver.response-timeout").seconds)
 
   def props(args: Any*): Props = Props(classOf[RouterDriverActor], args: _*)
 

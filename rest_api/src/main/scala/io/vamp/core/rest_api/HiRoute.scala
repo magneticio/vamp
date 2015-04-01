@@ -21,7 +21,7 @@ trait HiRoute extends HttpServiceBase with JmxVitalsProvider {
 
   implicit def timeout: Timeout
 
-  private lazy val hi = ConfigFactory.load().getString("vamp.message")
+  private lazy val hi = ConfigFactory.load().getString("vamp.core.hi-message")
 
   val hiRoute = pathPrefix("hi") {
     pathEndOrSingleSlash {

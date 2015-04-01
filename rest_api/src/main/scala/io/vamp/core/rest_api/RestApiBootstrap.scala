@@ -11,10 +11,10 @@ object RestApiBootstrap extends Bootstrap {
 
   def run(implicit actorSystem: ActorSystem) = {
 
-    val config = ConfigFactory.load()
+    val config = ConfigFactory.load().getConfig("vamp.core.rest-api")
     val server = actorSystem.actorOf(Props[HttpServer], "server-actor")
-    val interface = config.getString("server.interface")
-    val port = config.getInt("server.port")
+    val interface = config.getString("interface")
+    val port = config.getInt("port")
 
     implicit val timeout = HttpServer.timeout
 

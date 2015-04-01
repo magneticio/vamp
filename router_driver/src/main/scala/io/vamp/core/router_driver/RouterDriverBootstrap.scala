@@ -7,6 +7,6 @@ import io.vamp.common.akka.{ActorSupport, Bootstrap}
 object RouterDriverBootstrap extends Bootstrap {
 
   def run(implicit actorSystem: ActorSystem) = {
-    ActorSupport.actorOf(RouterDriverActor, new DefaultRouterDriver(actorSystem.dispatcher, ConfigFactory.load().getString("deployment.router.driver.url")))
+    ActorSupport.actorOf(RouterDriverActor, new DefaultRouterDriver(actorSystem.dispatcher, ConfigFactory.load().getString("vamp.core.router-driver.url")))
   }
 }

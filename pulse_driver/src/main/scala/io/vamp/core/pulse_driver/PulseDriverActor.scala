@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 
 object PulseDriverActor extends ActorDescription {
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("deployment.pulse.response.timeout").seconds)
+  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.pulse-driver.response-timeout").seconds)
 
   def props(args: Any*): Props = Props(classOf[PulseDriverActor], args: _*)
 
