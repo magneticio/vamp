@@ -4,4 +4,6 @@ import akka.actor.ActorSystem
 
 trait Bootstrap {
   def run(implicit actorSystem: ActorSystem)
+
+  def shutdown(implicit actorSystem: ActorSystem) = {}
 }
