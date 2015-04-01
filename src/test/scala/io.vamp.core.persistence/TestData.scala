@@ -131,7 +131,7 @@ object TestData {
     name = "blueprint_minimal",
     clusters = List.empty,
     endpoints = List.empty,
-    parameters = Map.empty
+    environmentVariables = Map.empty
   )
   val blueprintMinimalUpdatedWithCluster = TestData.blueprintMinimal.copy(clusters = List(myCluster_logger))
 
@@ -142,7 +142,7 @@ object TestData {
         name = "cluster-with-sla",
         sla = Some(mySlaReference.copy(name = "cluster-sla1")))),
     endpoints = List.empty,
-    parameters = Map.empty)
+    environmentVariables = Map.empty)
   val blueprintWithFullSlaUpdated = blueprintWithFullSla.copy(clusters = List.empty)
   val blueprintWithFullService = DefaultBlueprint(
     name = "blueprint_with_full_service",
@@ -153,13 +153,13 @@ object TestData {
         services = List(Service(breed = breed1Updated.copy(name = "full-service-breed"), routing = Some(route4), scale = Some(myScale2)))
       )),
     endpoints = List.empty,
-    parameters = Map.empty)
+    environmentVariables = Map.empty)
   val blueprintWithFullServiceUpdated = blueprintWithFullService.copy(clusters = List.empty)
   val blueprintFull = DefaultBlueprint(
     name = "blueprint_full",
     clusters = List(myCluster_db, myCluster_app),
     endpoints = List(myEndpointPort1, myEndpointPort2),
-    parameters = Map(myParameter1, myParameter2, myParameter3)
+    environmentVariables = Map(myParameter1, myParameter2, myParameter3)
   )
 
 
@@ -191,7 +191,7 @@ object TestData {
     name = "deployment-1",
     clusters = List.empty,
     endpoints = List.empty,
-    parameters = Map.empty
+    environmentVariables = Map.empty
   )
 
   val deployment1Updated = deployment1.copy(
@@ -204,7 +204,7 @@ object TestData {
       )
     ),
     endpoints = List(myEndpointPort5, myEndpointPort6),
-    parameters = Map(myParameter5, myParameter6, myParameter7)
+    environmentVariables = Map(myParameter5, myParameter6, myParameter7)
   )
 
   val deployment2 = Deployment(
@@ -218,7 +218,7 @@ object TestData {
       )
     ),
     endpoints = List.empty,
-    parameters = Map.empty
+    environmentVariables = Map.empty
   )
 
   val deploymentServiceWithError = deploymentService1.copy(state = DeploymentService.Error(UnsupportedPersistenceRequest("ERROR")))
@@ -233,7 +233,7 @@ object TestData {
       )
     ),
     endpoints = List.empty,
-    parameters = Map.empty
+    environmentVariables = Map.empty
   )
 
 }

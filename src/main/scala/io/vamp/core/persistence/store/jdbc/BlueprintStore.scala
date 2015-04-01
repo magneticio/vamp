@@ -24,7 +24,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
     deleteModelPorts(existing.endpoints)
     createPorts(artifact.endpoints, existing.id, parentType = Some(PortParentType.BlueprintEndpoint))
     deleteModelTraitNameParameters(existing.parameters)
-    createTraitNameParameters(artifact.parameters, existing.id, TraitParameterParentType.Blueprint)
+    createTraitNameParameters(artifact.environmentVariables, existing.id, TraitParameterParentType.Blueprint)
     existing.update
   }
 
@@ -105,7 +105,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
           name = VampPersistenceUtil.restoreToAnonymous(b.name, b.isAnonymous),
           clusters = findBlueprintClusterArtifacts(b.clusters, defaultDeploymentId),
           endpoints = readPortsToArtifactList(b.endpoints),
-          parameters = traitNameParametersToArtifactMap(b.parameters)
+          environmentVariables = traitNameParametersToArtifactMap(b.parameters)
         )
       )
       case None => None
@@ -147,7 +147,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
       val blueprintId = DefaultBlueprints.add(DeploymentDefaultBlueprint(deploymentId, a))
       createBlueprintClusters(a.clusters, blueprintId, deploymentId)
       createPorts(ports = a.endpoints, parentId = Some(blueprintId), parentType = Some(PortParentType.BlueprintEndpoint))
-      createTraitNameParameters(a.parameters, Some(blueprintId), TraitParameterParentType.Blueprint)
+      createTraitNameParameters(a.environmentVariables, Some(blueprintId), TraitParameterParentType.Blueprint)
       DefaultBlueprints.findById(blueprintId).name
   }
 
