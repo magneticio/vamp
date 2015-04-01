@@ -43,7 +43,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
       port.direction match {
         case Trait.Direction.Out => CreatePortMapping(port.value.get)
         case Trait.Direction.In =>
-          CreatePortMapping(deployment.parameters.find({
+          CreatePortMapping(deployment.environmentVariables.find({
             case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == cluster.name && value == port.name.value => true
             case _ => false
           }).get._2.toString.toInt)
@@ -65,7 +65,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
     }
 
     service.breed.environmentVariables.filter(_.direction == Trait.Direction.In).flatMap({ ev =>
-      deployment.parameters.find({ case (name, value) => matchParameter(ev, name) }) match {
+      deployment.environmentVariables.find({ case (name, value) => matchParameter(ev, name) }) match {
         case Some((name, value)) =>
           (ev.alias match {
             case None => ev.name.value
