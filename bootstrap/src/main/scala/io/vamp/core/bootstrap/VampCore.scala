@@ -15,11 +15,22 @@ object VampCore extends App {
 
   implicit val actorSystem = ActorSystem("vamp-core")
 
-  PersistenceBootstrap.run
-  DictionaryBootstrap.run
-  ContainerDriverBootstrap.run
-  RouterDriverBootstrap.run
-  PulseDriverBootstrap.run
-  OperationBootstrap.run
-  RestApiBootstrap.run
+  def bootstrap = {
+    List() :+
+      PersistenceBootstrap :+
+      DictionaryBootstrap :+
+      ContainerDriverBootstrap :+
+      RouterDriverBootstrap :+
+      PulseDriverBootstrap :+
+      OperationBootstrap :+
+      RestApiBootstrap
+  }
+
+  Runtime.getRuntime.addShutdownHook(new Thread() {
+    override def run() = {
+      bootstrap.foreach(_.shutdown)
+    }
+  })
+
+  bootstrap.foreach(_.run)
 }
