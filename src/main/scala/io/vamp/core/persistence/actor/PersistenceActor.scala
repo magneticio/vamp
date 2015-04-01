@@ -14,7 +14,7 @@ import scala.language.existentials
 
 object PersistenceActor extends ActorDescription {
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("persistence.response.timeout").seconds)
+  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.model.persistence.response-timeout").seconds)
 
   def props(args: Any*): Props = Props[PersistenceActor]
 

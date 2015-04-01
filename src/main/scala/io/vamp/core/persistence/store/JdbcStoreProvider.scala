@@ -19,7 +19,7 @@ import scala.slick.jdbc.JdbcBackend._
 trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvider {
   this: ExecutionContextProvider =>
 
-  val db: Database = Database.forConfig("persistence.jdbcProvider")
+  val db: Database = Database.forConfig("vamp.core.model.persistence.jdbcProvider")
   implicit val sess = db.createSession()
 
   override val store: Store = new JdbcStore()
