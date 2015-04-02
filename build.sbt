@@ -47,7 +47,7 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
       <connection>scm:git:git@github.com:magneticio/vamp-core.git</connection>
       <developerConnection>scm:git:git@github.com:magneticio/vamp-core.git</developerConnection>
       <url>git@github.com:magneticio/vamp-core.git</url>
-    </scm>;
+    </scm>
 
 
 resolvers in ThisBuild += Resolver.mavenLocal
