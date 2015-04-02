@@ -30,6 +30,7 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with Deploymen
   implicit def timeout: Timeout
 
   protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
+  protected def  allowXHRfromOtherHosts = respondWithHeader(RawHeader("Access-Control-Allow-Origin", "*"))
 
   implicit val marshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
     implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, BlueprintSerializationFormat, SlaSerializationFormat, DeploymentSerializationFormat, JvmVitalsSerializationFormat)
@@ -45,45 +46,47 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with Deploymen
   }
 
   val route = noCachingAllowed {
-    pathPrefix("api" / "v1") {
-      respondWithMediaType(`application/json`) {
-        path("docs") {
-          pathEndOrSingleSlash {
-            complete(OK, swagger)
-          }
-        } ~ hiRoute ~ deploymentRoutes ~
-          path(Segment) { artifact: String =>
+    allowXHRfromOtherHosts {
+      pathPrefix("api" / "v1") {  
+        respondWithMediaType(`application/json`) {
+          path("docs") {
             pathEndOrSingleSlash {
-              get {
-                onSuccess(allArtifacts(artifact)) {
-                  complete(OK, _)
-                }
-              } ~ post {
-                entity(as[String]) { request =>
-                  onSuccess(createArtifact(artifact, request)) {
-                    complete(Created, _)
+              complete(OK, swagger)
+            }
+          } ~ hiRoute ~ deploymentRoutes ~
+            path(Segment) { artifact: String =>
+              pathEndOrSingleSlash {
+                get {
+                  onSuccess(allArtifacts(artifact)) {
+                    complete(OK, _)
+                  }
+                } ~ post {
+                  entity(as[String]) { request =>
+                    onSuccess(createArtifact(artifact, request)) {
+                      complete(Created, _)
+                    }
                   }
                 }
               }
-            }
-          } ~ path(Segment / Segment) { (artifact: String, name: String) =>
-          pathEndOrSingleSlash {
-            get {
-              rejectEmptyResponse {
-                onSuccess(readArtifact(artifact, name)) {
-                  complete(OK, _)
+            } ~ path(Segment / Segment) { (artifact: String, name: String) =>
+            pathEndOrSingleSlash {
+              get {
+                rejectEmptyResponse {
+                  onSuccess(readArtifact(artifact, name)) {
+                    complete(OK, _)
+                  }
                 }
-              }
-            } ~ put {
-              entity(as[String]) { request =>
-                onSuccess(updateArtifact(artifact, name, request)) {
-                  complete(OK, _)
+              } ~ put {
+                entity(as[String]) { request =>
+                  onSuccess(updateArtifact(artifact, name, request)) {
+                    complete(OK, _)
+                  }
                 }
-              }
-            } ~ delete {
-              entity(as[String]) { request => onSuccess(deleteArtifact(artifact, name, request)) {
-                _ => complete(NoContent)
-              }
+              } ~ delete {
+                entity(as[String]) { request => onSuccess(deleteArtifact(artifact, name, request)) {
+                  _ => complete(NoContent)
+                }
+                }
               }
             }
           }
