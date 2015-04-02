@@ -50,7 +50,13 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
     </scm>
 
 
-resolvers in ThisBuild += Resolver.mavenLocal
+resolvers ++= Seq(
+  "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
+  "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
+  "spray repo" at "http://repo.spray.io",
+  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+  Resolver.mavenLocal
+)
 
 // Shared dependencies
 
