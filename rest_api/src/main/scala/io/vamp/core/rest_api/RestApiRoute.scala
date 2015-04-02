@@ -30,7 +30,8 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with Deploymen
   implicit def timeout: Timeout
 
   protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
-  protected def  allowXHRfromOtherHosts = respondWithHeader(RawHeader("Access-Control-Allow-Origin", "*"))
+
+  protected def allowXhrFromOtherHosts = respondWithHeader(RawHeader("Access-Control-Allow-Origin", "*"))
 
   implicit val marshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
     implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, BlueprintSerializationFormat, SlaSerializationFormat, DeploymentSerializationFormat, JvmVitalsSerializationFormat)
@@ -46,8 +47,8 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with Deploymen
   }
 
   val route = noCachingAllowed {
-    allowXHRfromOtherHosts {
-      pathPrefix("api" / "v1") {  
+    allowXhrFromOtherHosts {
+      pathPrefix("api" / "v1") {
         respondWithMediaType(`application/json`) {
           path("docs") {
             pathEndOrSingleSlash {

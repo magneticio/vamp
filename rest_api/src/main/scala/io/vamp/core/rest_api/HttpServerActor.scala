@@ -1,9 +1,9 @@
 package io.vamp.core.rest_api
 
-import akka.actor.ActorLogging
+import akka.actor.{ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.ActorExecutionContextProvider
+import io.vamp.common.akka.{ActorDescription, ActorExecutionContextProvider}
 import io.vamp.common.notification.NotificationErrorException
 import org.json4s.DefaultFormats
 import spray.http.StatusCodes._
@@ -13,13 +13,16 @@ import spray.util.LoggingContext
 
 import scala.concurrent.duration._
 
-object HttpServer {
+object HttpServerActor extends ActorDescription {
+
   lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.rest-api.response-timeout").seconds)
+
+  def props(args: Any*): Props = Props[HttpServerActor]
 }
 
-class HttpServer extends HttpServiceActor with ActorLogging with RestApiRoute with ActorExecutionContextProvider {
+class HttpServerActor extends HttpServiceActor with ActorLogging with RestApiRoute with ActorExecutionContextProvider {
 
-  implicit val timeout = HttpServer.timeout
+  implicit val timeout = HttpServerActor.timeout
 
   def exceptionHandler = ExceptionHandler {
     case e: NotificationErrorException =>
