@@ -49,7 +49,7 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
       <url>git@github.com:magneticio/vamp-core.git</url>
     </scm>
 
-
+// Use local maven repository
 resolvers in ThisBuild += Resolver.mavenLocal
 
 
