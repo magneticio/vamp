@@ -47,16 +47,12 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
       <connection>scm:git:git@github.com:magneticio/vamp-core.git</connection>
       <developerConnection>scm:git:git@github.com:magneticio/vamp-core.git</developerConnection>
       <url>git@github.com:magneticio/vamp-core.git</url>
-    </scm>
+    </scm>;
 
 
-resolvers ++= Seq(
-  "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
-  "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
-  "spray repo" at "http://repo.spray.io",
-  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-  Resolver.mavenLocal
-)
+resolvers in ThisBuild += Resolver.mavenLocal
+
+
 
 // Shared dependencies
 
