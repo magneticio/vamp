@@ -4,5 +4,5 @@ scala:
 jdk:
   - oraclejdk8
 
-script: "sbt clean coverage test"
+script: "sbt clean coverage test publishLocal"
 after_success: "sbt coveralls"
