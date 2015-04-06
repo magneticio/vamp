@@ -1,18 +1,15 @@
 language: scala
 scala:
-   - 2.11.5
+- 2.11.5
 jdk:
-  - oraclejdk8
-
-# Use container-based infrastructure
+- oraclejdk8
 sudo: false
-
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M clean coverage test
-
-  # Tricks to avoid unnecessary cache updates
-  - find $HOME/.sbt -name "*.lock" | xargs rm
-  - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
-
+- sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M clean coverage test
+- find $HOME/.sbt -name "*.lock" | xargs rm
+- find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
 after_success:
-  - sbt coveralls
+- sbt coveralls
+notifications:
+  slack:
+    secure: hgJmcZMbOgMAVpJeYToBogo5OSPaPV/nrYg2tOHAMIUJJMoQ/qdGOIxP7/YM4WfYCN3P/pNfaffcGNwcKOYsP6wioEXS45CSWoXhWyV5dwOVH30CS03Hj/EYsprJxeBBL3zrzwRCbQvutmfowSTCunNfDggZweML6D4Wo6i7gZM=
