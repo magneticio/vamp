@@ -4,5 +4,15 @@ scala:
 jdk:
   - oraclejdk8
 
-script: "sbt clean coverage test publishLocal"
-after_success: "sbt coveralls"
+# Use container-based infrastructure
+sudo: false
+
+script:
+  - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M clean coverage test
+
+  # Tricks to avoid unnecessary cache updates
+  - find $HOME/.sbt -name "*.lock" | xargs rm
+  - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
+
+after_success:
+  - sbt coveralls
