@@ -105,7 +105,6 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.scala-lang" % "scala-library" % scalaVersion.value
 )
 
-
 // Root project and subproject definitions
 lazy val root = project.in(file(".")).settings(
   // Disable publishing root empty pom
