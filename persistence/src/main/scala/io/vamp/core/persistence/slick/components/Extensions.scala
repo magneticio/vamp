@@ -35,7 +35,7 @@ trait DeploymentClusterExtensions {
     override def table = DeploymentClusters
 
     def services(implicit session: JdbcBackend#Session): List[DeploymentServiceModel] =
-      for {r <- DeploymentServices.fetchAllFromDeployment(model.id) if r.clusterId == model.id.get} yield r
+      for {r <- DeploymentServices.fetchAllFromDeployment(model.deploymentId) if r.clusterId == model.id.get} yield r
 
     def routes(implicit session: JdbcBackend#Session): List[ClusterRouteModel] =
       for {r <- ClusterRoutes.fetchAll if r.clusterId == model.id.get} yield r
@@ -52,7 +52,7 @@ trait DeploymentServiceExtensions {
     override def table = DeploymentServices
 
     def servers(implicit session: JdbcBackend#Session): List[DeploymentServerModel] =
-      for {r <- DeploymentServers.fetchAllFromDeployment(model.id) if r.serviceId == model.id.get} yield r
+      for {r <- DeploymentServers.fetchAllFromDeployment(model.deploymentId) if r.serviceId == model.id.get} yield r
 
     def dependencies(implicit session: JdbcBackend#Session): List[DeploymentServiceDependencyModel] =
       for {r <- DeploymentServiceDependencies.fetchAll if r.serviceId == model.id.get} yield r

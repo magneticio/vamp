@@ -125,8 +125,8 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       secondArtifact = TestData.deployment2)
   }
 
-
   it should "Store a deployment state error" in {
+    jdbcStore.create(TestData.deployment5Deployed)
     jdbcStore.create(TestData.deployment4WithErrorService) match {
       case storedDeployment: Deployment =>
         for (cluster <- storedDeployment.clusters) {
@@ -140,9 +140,11 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
         }
       case _ => fail("Deployment not created")
     }
+    jdbcStore.update(TestData.deployment4WithErrorService)
+    jdbcStore.read(TestData.deployment5Deployed.name,classOf[Deployment]) shouldBe Some(TestData.deployment5Deployed)
     jdbcStore.delete(TestData.deployment4WithErrorService.name, TestData.deployment4WithErrorService.getClass)
+    jdbcStore.delete(TestData.deployment5Deployed.name, TestData.deployment5Deployed.getClass)
   }
-
 
   it should "Clean up left over definitions" in {
     jdbcStore.delete("my-escalation", classOf[GenericEscalation])

@@ -236,4 +236,19 @@ object TestData {
     environmentVariables = Map.empty
   )
 
+  val deployment5Deployed = Deployment(
+    name = "deployment-5",
+    clusters = List(
+      DeploymentCluster(
+        name = "deployment-cluster-2",
+        services = List(deploymentService1),
+        sla = None,
+        routes = Map.empty
+      )
+    ),
+    endpoints = List.empty,
+    environmentVariables = Map.empty
+  )
+
+
 }
