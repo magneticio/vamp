@@ -52,7 +52,12 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
 // Use local maven repository
 resolvers in ThisBuild += Resolver.mavenLocal
 
+//resolvers in ThisBuild +=  bintray.Opts.resolver.jcenter
+//
+//resolvers in ThisBuild +=  Resolver.jcenterRepo
 
+
+Seq(bintraySettings:_*)
 
 // Shared dependencies
 
