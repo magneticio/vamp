@@ -50,9 +50,10 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
     </scm>
 
 // Use local maven repository
-resolvers in ThisBuild += Resolver.mavenLocal
+resolvers in ThisBuild ++= Seq(
+  Resolver.mavenLocal,
+  Resolver.jcenterRepo)
 
-Seq(bintraySettings:_*)
 
 // Shared dependencies
 

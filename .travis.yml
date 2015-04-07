@@ -5,6 +5,7 @@ jdk:
 - oraclejdk8
 sudo: false
 script:
+- sh "$TRAVIS_BUILD_DIR/.travis-ci-bintray-credentials.sh"
 - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M clean coverage test
 - find $HOME/.sbt -name "*.lock" | xargs rm
 - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
