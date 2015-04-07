@@ -5,6 +5,8 @@ jdk:
 - oraclejdk8
 sudo: false
 script:
+
+curl https://bintray.com/artifact/download/magnetic-io/vamp/io/vamp/pulse-api_2.11/0.7.0-RC3.dev-16/pulse-api_2.11-0.7.0-RC3.dev-16.jar
 - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M clean coverage test
 - find $HOME/.sbt -name "*.lock" | xargs rm
 - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
