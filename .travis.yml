@@ -9,7 +9,18 @@ script:
 - find $HOME/.sbt -name "*.lock" | xargs rm
 - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
 after_success:
-- sbt coveralls
+- test "${TRAVIS_PULL_REQUEST}" = 'false' &&
+  test "${TRAVIS_JDK_VERSION}" = 'oraclejdk8' &&
+  sh "$TRAVIS_BUILD_DIR/.travis-ci-bintray-credentials.sh" &&
+  sbt 'set version := version.value + "-" + System.getenv("TRAVIS_BUILD_NUMBER")' publish
+
+
 notifications:
   slack:
-    secure: hgJmcZMbOgMAVpJeYToBogo5OSPaPV/nrYg2tOHAMIUJJMoQ/qdGOIxP7/YM4WfYCN3P/pNfaffcGNwcKOYsP6wioEXS45CSWoXhWyV5dwOVH30CS03Hj/EYsprJxeBBL3zrzwRCbQvutmfowSTCunNfDggZweML6D4Wo6i7gZM=
+    secure: PKQe6hKY8yWhrDQTp/p4EZpVe8MOn+bo7iRaDbOX70lYtLGikHUsOn93ko1B+TQdhqt48P/ITu6I49QPDLZewqTPPJtpROnC8vLxSlAeinT2KGpdt5qds7G9MpNUuMUeehsLWGO0R6gJ4qW2EwOXx2ww0rMIMFbjxWNbyxsm1Lc=
+env:
+  global:
+  - secure: ThtLy45wKUoDAuFeHQEayPdqLCdzrxwYlZrAF5GM0BXgVzwlDuXQ4c9BiqQP5tRrLxFZFeDDjE+4HVcvKeSjAInXxu/qj3ep7aPSmZlmuKaUFnlcYSdJ4EapT5jJMd+bBuThyWmQzZWjVzABpYDa2gBdi8/0iBCG0XdpTQogiyw=
+  - secure: BMl0qKSSmq66XIa8Ob8XkT0DMUck3sDbrZL2RAwpm71z2L2ch5Me4J0cZzhmu+I7wedLasijN+/XeImBVPXVR5k6GHITo61FhlW77gQOuNRFxbSSCPYfm+ucssQb+vu68kETIrY40Ms+VmIbknf82NfX14cwHdzRk6+9E+9lB5E=
+  - secure: ChBEdckgXpRqjbc4mXm3x4cqOZREEWsANc73gUO11W3EU4kwkVspjenkjc63ecwVoyYBdMjwIOxgvp8utjc8ZC8Lvo+7me4qy8Hb84PIJP7k+cKqy0D3pYR597z9JjEtOiiMx/E6xdYX1hJbH7Mcr4AsfEXDdXDfGlqSPxQ0/eo=
+  - secure: QUjw8FJgbaxspnqBlQ4XVghNY2804HhSSQ1/lX2PgIZ4r3s0Qu+8Q01C05/zyLRu/BHiZyfBRSw5DMr66HYTtoWaDBpZNRtboPdLctImP1SHIKOPpyUWB/WKUZ9C/M4i/XUhkCyFaSqcV55VfUB0HFlL8iXEnnXIjPs12fvXvXk=

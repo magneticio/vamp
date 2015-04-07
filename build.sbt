@@ -3,7 +3,9 @@ organization := "io.vamp"
 
 name := """common"""
 
-version := "0.7.0-RC3"
+val versionAddition = "-RC3.dev"
+
+version := "0.7.0" + versionAddition
 
 scalaVersion := "2.11.5"
 
@@ -50,11 +52,15 @@ resolvers ++= Seq(
   Resolver.mavenLocal
 )
 
+Seq(bintraySettings:_*)
+
 val akkaV = "2.3.9"
 
 val dispatchV = "0.11.2"
 
 val json4sV = "3.2.11"
+
+val vampCommonV =  "0.7.0" + versionAddition + "-16"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaV,
@@ -69,7 +75,13 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.0-SNAP4" % "test",
   "junit" % "junit" % "4.11" % "test",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-  "io.vamp" %% "pulse-api" % "0.7.0-RC2"
+  "io.vamp" %% "pulse-api" %  vampCommonV
 )
 
+bintrayPublishSettings
 
+bintray.Keys.repository in bintray.Keys.bintray := "vamp"
+
+licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html"))
+
+bintray.Keys.bintrayOrganization in bintray.Keys.bintray := Some("magnetic-io")
