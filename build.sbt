@@ -60,7 +60,7 @@ val dispatchV = "0.11.2"
 
 val json4sV = "3.2.11"
 
-val vampCommonV =  "0.7.0" + versionAddition + "-16"
+val vampPulseApiV =  "0.7.0" + versionAddition + "-16"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaV,
@@ -75,7 +75,7 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.0-SNAP4" % "test",
   "junit" % "junit" % "4.11" % "test",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-  "io.vamp" %% "pulse-api" %  vampCommonV
+  "io.vamp" %% "pulse-api" %  vampPulseApiV
 )
 
 bintrayPublishSettings
