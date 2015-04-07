@@ -90,7 +90,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
 
   private def artifactName2Id(artifact: Artifact) = artifact.name match {
     case idMatcher(_*) => artifact.name
-    case _ => Hash.hexSha1(artifact.name)
+    case _ => Hash.hexSha1(artifact.name).substring(0, 20)
   }
 }
 
