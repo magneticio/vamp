@@ -44,6 +44,9 @@ class HttpServerActor extends HttpServiceActor with ActorLogging with RestApiRou
 
     case MalformedRequestContentRejection(msg, None) :: _ =>
       respondWithError(BadRequest)
+
+    case MalformedHeaderRejection(headerName, msg, cause) :: _ =>
+      respondWithError(BadRequest, s"$msg")
   }
 
   def routingSettings = RoutingSettings.default
