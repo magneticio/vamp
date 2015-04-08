@@ -242,7 +242,7 @@ trait DefaultBreedExtensions {
     override def table = DefaultBreeds
 
     def environmentVariables(implicit session: JdbcBackend#Session): List[EnvironmentVariableModel] =
-      for {r <- EnvironmentVariables.fetchAll if r.parentId == model.id && r.parentType.contains(EnvironmentVariableParentType.Breed)} yield r
+      for {r <- EnvironmentVariables.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id && r.parentType.contains(EnvironmentVariableParentType.Breed)} yield r
 
     def ports(implicit session: JdbcBackend#Session): List[PortModel] =
       for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType.contains(PortParentType.Breed)} yield r
