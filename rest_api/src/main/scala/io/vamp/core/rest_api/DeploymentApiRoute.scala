@@ -191,7 +191,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
   }
 
   def deployment(name: String, asBlueprint: Boolean)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])).map {
-    case deployment: Deployment => if (asBlueprint) deployment.asBlueprint else deployment
+    case Some(deployment: Deployment) => if (asBlueprint) deployment.asBlueprint else deployment
     case any => any
   }
 
