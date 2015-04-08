@@ -1,8 +1,10 @@
 package io.vamp.core.persistence.store.jdbc
 
+import com.typesafe.scalalogging.Logger
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
 import io.vamp.core.persistence.slick.model._
+import org.slf4j.LoggerFactory
 
 import scala.slick.jdbc.JdbcBackend
 
@@ -10,6 +12,8 @@ import scala.slick.jdbc.JdbcBackend
 trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParameterStore with ScaleStore with RoutingStore with SlaStore with PersistenceNotificationProvider {
 
   implicit val sess: JdbcBackend.Session
+
+  private val logger = Logger(LoggerFactory.getLogger(classOf[DeploymentStore]))
 
   import io.vamp.core.persistence.slick.components.Components.instance._
   import io.vamp.core.persistence.slick.model.Implicits._
@@ -40,31 +44,64 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
           DeploymentServers.deleteById(server.id.get)
         }
         DeploymentServices.deleteById(service.id.get)
-        service.breed match {
-          case breedId => deleteDefaultBreedModel(DefaultBreeds.findById(breedId))
+        BreedReferences.findOptionById(service.breed) match {
+          case Some(breedRef) =>
+            if (breedRef.isDefinedInline)
+              DefaultBreeds.findOptionByName(breedRef.name, service.deploymentId) match {
+                case Some(breed) => deleteDefaultBreedModel(breed)
+                case None => logger.debug(s"Referenced breed ${breedRef.name} not found")
+              }
+            BreedReferences.deleteById(breedRef.id.get)
+          case None => // Nothing to delete
         }
         service.scale match {
-          case Some(scaleId) => DefaultScales.deleteById(scaleId)
-          case _ =>
+          case Some(scaleRefId) =>
+            ScaleReferences.findOptionById(scaleRefId) match {
+              case Some(scaleRef) if scaleRef.isDefinedInline =>
+                DefaultScales.findOptionByName(scaleRef.name, service.deploymentId) match {
+                  case Some(scale) => DefaultScales.deleteById(scale.id.get)
+                  case None => // Should not happen (log it as not critical)
+                }
+                ScaleReferences.deleteById(scaleRefId)
+              case Some(scaleRef) =>
+                ScaleReferences.deleteById(scaleRefId)
+              case None => logger.warn(s"Referenced scale not found.")
+            }
+          case None => // Nothing to delete
         }
         service.routing match {
-          case Some(routing) => deleteRoutingModel(DefaultRoutings.findById(routing))
-          case _ =>
+          case Some(routingId) =>
+            RoutingReferences.findOptionById(routingId) match {
+              case Some(routingRef) if routingRef.isDefinedInline =>
+                DefaultRoutings.findOptionByName(routingRef.name, service.deploymentId) match {
+                  case Some(routing) => deleteRoutingModel(routing)
+                  case None => logger.debug(s"Referenced routing ${routingRef.name} not found")
+                }
+                RoutingReferences.deleteById(routingRef.id.get)
+              case Some(routingRef) =>
+                RoutingReferences.deleteById(routingRef.id.get)
+              case None => logger.warn(s"Referenced routing not found.")
+            }
+          case None => // Nothing to delete
         }
       }
       DeploymentClusters.deleteById(cluster.id.get)
+
       cluster.slaReference match {
-        case Some(slaRefId) =>
-          SlaReferences.findOptionById(slaRefId) match {
+        case Some(slaRef) =>
+          SlaReferences.findOptionById(slaRef) match {
             case Some(slaReference) =>
-              GenericSlas.findOptionByName(slaReference.name, deploymentId) match {
-                case Some(slaModel) => deleteSlaModel(slaModel)
-                case _ =>
+              for (escalationReference <- slaReference.escalationReferences) {
+                EscalationReferences.deleteById(escalationReference.id.get)
               }
-              SlaReferences.deleteById(slaRefId)
-            case None => // Foreign key constraint prevents this
+              GenericSlas.findOptionByName(slaReference.name, slaReference.deploymentId) match {
+                case Some(sla) => deleteSlaModel(sla)
+                case None => logger.debug(s"Referenced sla ${slaReference.name} not found")
+              }
+            case None =>
           }
-        case _ =>
+          SlaReferences.deleteById(slaRef)
+        case None => // Nothing to delete
       }
     }
   }
@@ -77,29 +114,20 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
         ClusterRoutes.add(ClusterRouteModel(portIn = route._1, portOut = route._2, clusterId = clusterId))
       }
       for (service <- cluster.services) {
-        val breedId = createOrUpdateBreed(DeploymentDefaultBreed(deploymentId, service.breed)).id.get
-        val scaleId = service.scale match {
-          case Some(scale) => Some(DefaultScales.add(DeploymentDefaultScale(deploymentId, scale)))
-          case _ => None
-        }
-        val routingId = service.routing match {
-          case Some(routing) => createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(deploymentId, routing)).id
-          case _ => None
-        }
+        val breedRefId = createBreedReference(service.breed, deploymentId)
         val message = service.state match {
           case error: DeploymentService.Error =>
-            Some(s"Problem in cluster ${cluster.name}, with a service containing breed ${DefaultBreeds.findById(breedId).name}.")
+            Some(s"Problem in cluster ${cluster.name}, with a service containing breed ${BreedReferences.findById(breedRefId).name}.")
           case _ => None
         }
-
         val serviceId = DeploymentServices.add(
           DeploymentServiceModel(
             clusterId = clusterId,
             name = s"${cluster.name}~${java.util.UUID.randomUUID.toString}", // Dummy name
             deploymentId = deploymentId,
-            breed = breedId,
-            scale = scaleId,
-            routing = routingId,
+            breed = breedRefId,
+            scale = createScaleReference(service.scale, deploymentId),
+            routing = createRoutingReference(service.routing, deploymentId),
             deploymentState = service.state,
             deploymentTime = service.state.startedAt,
             message = message)
@@ -144,13 +172,13 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
     services.map(service =>
 
       DeploymentService(state = deploymentService2deploymentState(service),
-        breed = defaultBreedModel2DefaultBreedArtifact(DefaultBreeds.findById(service.breed)),
+        breed = defaultBreedModel2DefaultBreedArtifact(DefaultBreeds.findByName(BreedReferences.findById(service.breed).name, service.deploymentId)),
         scale = service.scale match {
-          case Some(scale) => Some(defaultScaleModel2Artifact(DefaultScales.findById(scale)))
+          case Some(scale) => Some(defaultScaleModel2Artifact(DefaultScales.findByName(ScaleReferences.findById(scale).name, service.deploymentId)))
           case _ => None
         },
         routing = service.routing match {
-          case Some(routing) => Some(defaultRoutingModel2Artifact(DefaultRoutings.findById(routing)))
+          case Some(routing) => Some(defaultRoutingModel2Artifact(DefaultRoutings.findByName(RoutingReferences.findById(routing).name, service.deploymentId)))
           case _ => None
         },
         servers = deploymentServerModels2Artifacts(service.servers),
