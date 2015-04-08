@@ -169,7 +169,7 @@ trait SchemaBreed extends Logging with VampSchema {
 
     def name = column[String]("name")
 
-    def idx = index("idx_default_scala", (name, deploymentId), unique = true)
+    def idx = index("idx_default_scale", (name, deploymentId), unique = true)
 
     def deployment = foreignKey("default_scale_deployment_fk", deploymentId, Deployments)(_.id)
   }
