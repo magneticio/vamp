@@ -13,6 +13,7 @@ import scala.slick.util.Logging
 trait SchemaDeployment extends Logging with SchemaBreed {
   this: VampTables with VampTableQueries with Profile =>
 
+  import Implicits._
   import jdbcDriver.simple._
 
   val DeploymentServers = DeployableNameEntityTableQuery[DeploymentServerModel, DeploymentServerTable](tag => new DeploymentServerTable(tag))
