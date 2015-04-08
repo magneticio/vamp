@@ -13,7 +13,6 @@ import scala.slick.util.Logging
 trait SchemaDeployment extends Logging with SchemaBreed {
   this: VampTables with VampTableQueries with Profile =>
 
-  import Implicits._
   import jdbcDriver.simple._
 
   val DeploymentServers = DeployableNameEntityTableQuery[DeploymentServerModel, DeploymentServerTable](tag => new DeploymentServerTable(tag))
@@ -38,7 +37,7 @@ trait SchemaDeployment extends Logging with SchemaBreed {
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
-    def idx = index("idx_deployment_servers", (name, deploymentId), unique = true)
+    def idx = index("idx_deployment_servers", (name, deploymentId, serviceId), unique = true)
 
     def deployment = foreignKey("deployment_server_deployment_fk", deploymentId, Deployments)(_.id)
 
@@ -72,11 +71,11 @@ trait SchemaDeployment extends Logging with SchemaBreed {
 
     def deployment = foreignKey("deployment_service_deployment_fk", deploymentId, Deployments)(_.id)
 
-    def breed = foreignKey("deployment_service_breed_fk", breedId, DefaultBreeds)(_.id)
+    def breed = foreignKey("deployment_service_breed_fk", breedId, BreedReferences)(_.id)
 
-    def scale = foreignKey("deployment_service_scale_fk", scaleId, DefaultScales)(_.id)
+    def scale = foreignKey("deployment_service_scale_fk", scaleId, ScaleReferences)(_.id)
 
-    def routing = foreignKey("deployment_service_routing_fk", routingId, DefaultRoutings)(_.id)
+    def routing = foreignKey("deployment_service_routing_fk", routingId, RoutingReferences)(_.id)
 
     def cluster = foreignKey("deployment_service_deployment_cluster_fk", clusterId, DeploymentClusters)(_.id)
   }

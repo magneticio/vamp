@@ -151,6 +151,7 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
     jdbcStore.delete("sla4-escalation1", classOf[GenericEscalation])
     jdbcStore.delete("sla4-escalation2", classOf[GenericEscalation])
     jdbcStore.delete("full-service-breed", classOf[DefaultBreed])
+    jdbcStore.delete("full-service-breed2", classOf[DefaultBreed])
     jdbcStore.delete("filter1", classOf[DefaultFilter])
     jdbcStore.delete("filter2", classOf[DefaultFilter])
     jdbcStore.delete("my-filter", classOf[DefaultFilter])

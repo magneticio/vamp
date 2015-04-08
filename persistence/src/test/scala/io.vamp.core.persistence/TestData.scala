@@ -148,10 +148,16 @@ object TestData {
     name = "blueprint_with_full_service",
     clusters = List(
       myCluster_db.copy(
-        name = "cluster-with-sla",
+        name = "cluster-without-sla",
         sla = None,
         services = List(Service(breed = breed1Updated.copy(name = "full-service-breed"), routing = Some(route4), scale = Some(myScale2)))
-      )),
+      ),
+      myCluster_db.copy(
+        name = "cluster-without-sla-2",
+        sla = None,
+        services = List(Service(breed = breed1Updated.copy(name = "full-service-breed2"), routing = Some(route4), scale = Some(myScale2)))
+      )
+    ),
     endpoints = List.empty,
     environmentVariables = Map.empty)
   val blueprintWithFullServiceUpdated = blueprintWithFullService.copy(clusters = List.empty)
@@ -172,7 +178,7 @@ object TestData {
       HttpPort(name = "port8080", alias = Option("HTTP"), value = Option(8080), direction = Trait.Direction.In)
     ),
     environmentVariables = List(
-      EnvironmentVariable(name = "HI_MEM", alias = None, value = Some("64K"), direction = Trait.Direction.Out)
+      EnvironmentVariable(name = "UPPER_MEM", alias = None, value = Some("128K"), direction = Trait.Direction.Out)
     ),
     dependencies = Map("db" -> BreedReference(name = "mysql"))
   )
@@ -187,18 +193,20 @@ object TestData {
   )
 
 
+  val deploymentService2 = deploymentService1.copy(breed = deploymentServiceBreed1.copy(name="another_version"))
+
   val deployment1 = Deployment(
     name = "deployment-1",
     clusters = List.empty,
     endpoints = List.empty,
-    environmentVariables = Map.empty
+    environmentVariables = Map(myParameter5, myParameter6)
   )
 
   val deployment1Updated = deployment1.copy(
     clusters = List(
       DeploymentCluster(
         name = "deployment-cluster-1",
-        services = List(deploymentService1.copy(state = DeploymentService.ReadyForUndeployment())),
+        services = List(deploymentService1.copy(state = DeploymentService.ReadyForUndeployment()), deploymentService2),
         sla = Some(SlaReference("sla-ref-deployment1", escalations = List.empty)),
         routes = Map(80 -> 23890, 8080 -> 45720)
       )
