@@ -5,11 +5,16 @@ import io.vamp.core.model.artifact._
 import scala.concurrent.Future
 
 
-case class ContainerServer(id: String, host: String, ports: List[Int], deployed: Boolean)
+case class ContainerInfo(`type`: String, container: AnyRef)
 
 case class ContainerService(matching: (Deployment, Breed) => Boolean, scale: DefaultScale, servers: List[ContainerServer])
 
+case class ContainerServer(id: String, host: String, ports: List[Int], deployed: Boolean)
+
+
 trait ContainerDriver {
+
+  def info: Future[ContainerInfo]
 
   def all: Future[List[ContainerService]]
 

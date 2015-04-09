@@ -13,33 +13,18 @@ import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
 import io.vamp.core.rest_api.swagger.SwaggerResponse
 import org.json4s.native.Serialization._
-import shapeless.HNil
-import spray.http.CacheDirectives.`no-store`
-import spray.http.HttpHeaders.{RawHeader, `Cache-Control`, `Content-Type`}
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 import spray.http._
 import spray.httpx.marshalling.Marshaller
-import spray.routing.{Directive0, HttpServiceBase, MalformedHeaderRejection}
 
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 
-trait RestApiRoute extends HttpServiceBase with RestApiController with DeploymentApiRoute with HiRoute with SwaggerResponse {
+trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApiRoute with HiRoute with SwaggerResponse {
   this: Actor with ExecutionContextProvider =>
 
   implicit def timeout: Timeout
-
-  val `application/x-yaml` = register(MediaType.custom(mainType = "application", subType = "x-yaml", compressible = true, binary = true, fileExtensions = Seq("yaml")))
-
-  protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
-
-  protected def allowXhrFromOtherHosts = respondWithHeader(RawHeader("Access-Control-Allow-Origin", "*"))
-
-  protected def contentTypeOnly(mt: MediaType*): Directive0 = extract(_.request.headers).flatMap[HNil] {
-    case headers if mt.exists(t => headers.contains(`Content-Type`(t))) => pass
-    case _ => reject(MalformedHeaderRejection("Content-Type", s"Only the following media types are supported: ${mt.mkString(", ")}"))
-  } & cancelAllRejections(ofType[MalformedHeaderRejection])
 
   implicit val marshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
     implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, BlueprintSerializationFormat, SlaSerializationFormat, DeploymentSerializationFormat, JvmVitalsSerializationFormat)
@@ -56,47 +41,45 @@ trait RestApiRoute extends HttpServiceBase with RestApiController with Deploymen
 
   val route = noCachingAllowed {
     allowXhrFromOtherHosts {
-      contentTypeOnly(`application/json`, `application/x-yaml`) {
-        pathPrefix("api" / "v1") {
-          respondWithMediaType(`application/json`) {
-            path("docs") {
+      pathPrefix("api" / "v1") {
+        respondWithMediaType(`application/json`) {
+          path("docs") {
+            pathEndOrSingleSlash {
+              complete(OK, swagger)
+            }
+          } ~ hiRoute ~ deploymentRoutes ~
+            path(Segment) { artifact: String =>
               pathEndOrSingleSlash {
-                complete(OK, swagger)
-              }
-            } ~ hiRoute ~ deploymentRoutes ~
-              path(Segment) { artifact: String =>
-                pathEndOrSingleSlash {
-                  get {
-                    onSuccess(allArtifacts(artifact)) {
-                      complete(OK, _)
-                    }
-                  } ~ post {
-                    entity(as[String]) { request =>
-                      onSuccess(createArtifact(artifact, request)) {
-                        complete(Created, _)
-                      }
+                get {
+                  onSuccess(allArtifacts(artifact)) {
+                    complete(OK, _)
+                  }
+                } ~ post {
+                  entity(as[String]) { request =>
+                    onSuccess(createArtifact(artifact, request)) {
+                      complete(Created, _)
                     }
                   }
                 }
-              } ~ path(Segment / Segment) { (artifact: String, name: String) =>
-              pathEndOrSingleSlash {
-                get {
-                  rejectEmptyResponse {
-                    onSuccess(readArtifact(artifact, name)) {
-                      complete(OK, _)
-                    }
+              }
+            } ~ path(Segment / Segment) { (artifact: String, name: String) =>
+            pathEndOrSingleSlash {
+              get {
+                rejectEmptyResponse {
+                  onSuccess(readArtifact(artifact, name)) {
+                    complete(OK, _)
                   }
-                } ~ put {
-                  entity(as[String]) { request =>
-                    onSuccess(updateArtifact(artifact, name, request)) {
-                      complete(OK, _)
-                    }
+                }
+              } ~ put {
+                entity(as[String]) { request =>
+                  onSuccess(updateArtifact(artifact, name, request)) {
+                    complete(OK, _)
                   }
-                } ~ delete {
-                  entity(as[String]) { request => onSuccess(deleteArtifact(artifact, name, request)) {
-                    _ => complete(NoContent)
-                  }
-                  }
+                }
+              } ~ delete {
+                entity(as[String]) { request => onSuccess(deleteArtifact(artifact, name, request)) {
+                  _ => complete(NoContent)
+                }
                 }
               }
             }

@@ -25,7 +25,7 @@ import spray.routing.HttpServiceBase
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 
-trait DeploymentApiRoute extends HttpServiceBase with DeploymentApiController {
+trait DeploymentApiRoute extends RestApiBase with DeploymentApiController {
   this: Actor with ExecutionContextProvider =>
 
   implicit def marshaller: Marshaller[Any]

@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.Logger
 import io.vamp.common.crypto.Hash
 import io.vamp.common.http.RestClient
 import io.vamp.core.container_driver.marathon.api._
-import io.vamp.core.container_driver.{ContainerDriver, ContainerServer, ContainerService}
+import io.vamp.core.container_driver.{ContainerDriver, ContainerInfo, ContainerServer, ContainerService}
 import io.vamp.core.model.artifact._
 import org.slf4j.LoggerFactory
 
@@ -17,6 +17,10 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
 
   private val nameDelimiter = "/"
   private val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
+
+  def info: Future[ContainerInfo] = RestClient.request[Info](s"GET $url/v2/info").map {
+    ContainerInfo("marathon", _)
+  }
 
   def all: Future[List[ContainerService]] = {
     logger.debug(s"marathon get all")
