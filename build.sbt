@@ -51,8 +51,10 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
 
 // Use local maven repository
 resolvers in ThisBuild ++= Seq(
+  "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
   Resolver.mavenLocal,
-  Resolver.jcenterRepo)
+  Resolver.jcenterRepo
+)
 
 
 // Shared dependencies
@@ -68,8 +70,8 @@ val slf4jVersion = "1.7.10"
 val logbackVersion = "1.1.2"
 val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
-val vampCommonVersion = "0.7.0-RC3.dev-13"
-val vampPulseApiVersion = "0.7.0-RC3.dev-16"
+val vampCommonVersion = "0.7.0.+"
+val vampPulseApiVersion = "0.7.0.+"
 
 // Note ThisBuild, this is what makes these dependencies shared
 libraryDependencies in ThisBuild ++= Seq(
