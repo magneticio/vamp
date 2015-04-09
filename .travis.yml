@@ -9,6 +9,7 @@ script:
 - find $HOME/.sbt -name "*.lock" | xargs rm
 - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
 after_success:
+- sbt coveralls
 - test "${TRAVIS_PULL_REQUEST}" = 'false' && test "${TRAVIS_JDK_VERSION}" = 'oraclejdk8' &&
   sh "$TRAVIS_BUILD_DIR/.travis-ci-bintray-credentials.sh" &&
   sbt 'set version := version.value + "." + System.getenv("TRAVIS_BUILD_NUMBER")' publish
