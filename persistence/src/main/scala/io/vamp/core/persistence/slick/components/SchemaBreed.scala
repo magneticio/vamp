@@ -299,7 +299,7 @@ trait SchemaBreed extends Logging with VampSchema {
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
-    def idx = index("idx_environment_variables", (name, parentId, parentType), unique = true)
+    def idx = index("idx_environment_variables", (name, groupType, scope, parentId, parentType), unique = true)
 
     def deployment = foreignKey("environment_variables_deployment_fk", deploymentId, Deployments)(_.id)
   }
