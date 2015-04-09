@@ -3,9 +3,7 @@ organization := "io.vamp"
 
 name := """common"""
 
-val versionAddition = "-RC3.dev"
-
-version := "0.7.0" + versionAddition
+version := "0.7.0"
 
 scalaVersion := "2.11.5"
 
@@ -49,7 +47,8 @@ resolvers ++= Seq(
   "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
   "spray repo" at "http://repo.spray.io",
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-  Resolver.mavenLocal
+  Resolver.mavenLocal,
+  Resolver.jcenterRepo
 )
 
 Seq(bintraySettings:_*)
@@ -60,7 +59,7 @@ val dispatchV = "0.11.2"
 
 val json4sV = "3.2.11"
 
-val vampPulseApiV =  "0.7.0" + versionAddition + "-16"
+val vampPulseApiV =  "0.7.0.+"     // or use "latest.release" for the stable version
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaV,
