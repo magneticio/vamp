@@ -16,6 +16,8 @@ class PulseClient(val url: String)(implicit val formats: Formats = Serializers.f
 
   import PulseClient._
 
+  def info: Future[Any] = RestClient.request[Any](s"GET $url/api/v1/info")
+
   def sendEvent(event: Event): Future[Event] = RestClient.request[Event](s"POST $url/api/v1/events", event)
 
   def getEvents(tags: List[String], from: OffsetDateTime, to: OffsetDateTime): Future[List[Event]] = getEvents(tags, Some(from), Some(to))

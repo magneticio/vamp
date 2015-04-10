@@ -3,6 +3,7 @@ package io.vamp.common.akka
 import akka.actor.Actor
 import akka.actor.Status.Failure
 import io.vamp.common.notification.{Notification, NotificationProvider}
+import io.vamp.common.vitals.InfoRequest
 
 import scala.runtime.BoxedUnit
 
@@ -14,7 +15,7 @@ trait ReplyActor {
   this: Actor with NotificationProvider =>
 
   final override def receive: Receive = {
-    case request if requestType.isAssignableFrom(request.getClass) => reply(request) match {
+    case request if requestType.isAssignableFrom(request.getClass) || (request == InfoRequest) => reply(request) match {
       case response: BoxedUnit =>
       case response => sender ! response
     }

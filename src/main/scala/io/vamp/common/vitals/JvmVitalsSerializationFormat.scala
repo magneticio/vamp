@@ -1,4 +1,4 @@
-package io.vamp.common.jvm
+package io.vamp.common.vitals
 
 import io.vamp.common.json.SerializationFormat
 import org.json4s.FieldSerializer._

@@ -1,4 +1,4 @@
-package io.vamp.common.jvm
+package io.vamp.common.vitals
 
 import java.lang.management.ManagementFactory
 
