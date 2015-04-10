@@ -17,7 +17,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
   this: ExecutionContextProvider =>
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[InMemoryStoreProvider]))
-  implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, BlueprintSerializationFormat, SlaSerializationFormat, DeploymentSerializationFormat)
+  implicit val formats = SerializationFormat.default
 
   val store: Store = new InMemoryStore()
 

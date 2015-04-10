@@ -4,7 +4,8 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.akka.{ActorDescription, ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.{InfoRequest, JmxVitalsProvider, JvmVitals}
 import io.vamp.core.container_driver.ContainerDriverActor
 import io.vamp.core.model.serialization.PrettyJson
@@ -44,10 +45,17 @@ trait HiRoute extends HttpServiceBase with JmxVitalsProvider with FutureSupport 
 
   def info: Future[InfoMessage] = vitals().map { vitals =>
     InfoMessage(vitals,
-      Try(offload(actorFor(PersistenceActor) ? InfoRequest)) getOrElse Map[String, Any](),
-      Try(offload(actorFor(RouterDriverActor) ? InfoRequest)) getOrElse Map[String, Any](),
-      Try(offload(actorFor(PulseDriverActor) ? InfoRequest)) getOrElse Map[String, Any](),
-      Try(offload(actorFor(ContainerDriverActor) ? InfoRequest)) getOrElse Map[String, Any]()
+      info(PersistenceActor),
+      info(RouterDriverActor),
+      info(PulseDriverActor),
+      info(ContainerDriverActor)
     )
+  }
+
+  private def info(actor: ActorDescription): Any = {
+    Try(offload(actorFor(actor) ? InfoRequest)) getOrElse Map[String, Any]() match {
+      case NotificationErrorException(_, message) => "error" -> message
+      case any => any
+    }
   }
 }

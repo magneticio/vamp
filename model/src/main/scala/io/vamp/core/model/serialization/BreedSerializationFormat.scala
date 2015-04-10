@@ -7,7 +7,7 @@ import org.json4s._
 
 import scala.collection.mutable.ArrayBuffer
 
-object BreedSerializationFormat extends ArtifactSerializationFormat {
+object BreedSerializationFormat extends io.vamp.common.json.SerializationFormat {
 
   override def customSerializers = super.customSerializers :+
     new TraitNameSerializer() :+

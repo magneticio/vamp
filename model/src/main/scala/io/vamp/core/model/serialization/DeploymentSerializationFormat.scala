@@ -8,7 +8,7 @@ import io.vamp.core.model.notification.ModelNotificationProvider
 import org.json4s.JsonAST.JString
 import org.json4s._
 
-object DeploymentSerializationFormat extends ArtifactSerializationFormat {
+object DeploymentSerializationFormat extends io.vamp.common.json.SerializationFormat {
   override def customSerializers = super.customSerializers :+
     new DeploymentServiceStateSerializer()
 }

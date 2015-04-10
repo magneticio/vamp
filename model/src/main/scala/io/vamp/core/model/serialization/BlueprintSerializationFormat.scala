@@ -7,7 +7,7 @@ import org.json4s._
 
 import scala.collection.mutable.ArrayBuffer
 
-object BlueprintSerializationFormat extends ArtifactSerializationFormat {
+object BlueprintSerializationFormat extends io.vamp.common.json.SerializationFormat {
 
   override def customSerializers = super.customSerializers :+
     new BlueprintSerializer() :+

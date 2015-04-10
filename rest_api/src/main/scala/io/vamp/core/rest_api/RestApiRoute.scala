@@ -4,7 +4,6 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
-import io.vamp.common.vitals.JvmVitalsSerializationFormat
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
@@ -27,7 +26,7 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
   implicit def timeout: Timeout
 
   implicit val marshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
-    implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, BlueprintSerializationFormat, SlaSerializationFormat, DeploymentSerializationFormat, JvmVitalsSerializationFormat)
+    implicit val formats = SerializationFormat.default
 
     val response = value match {
       case notification: NotificationErrorException => throw notification

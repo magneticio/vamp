@@ -6,7 +6,7 @@ import org.json4s._
 
 import scala.collection.mutable.ArrayBuffer
 
-object SlaSerializationFormat extends ArtifactSerializationFormat {
+object SlaSerializationFormat extends io.vamp.common.json.SerializationFormat {
 
   override def customSerializers = super.customSerializers :+
     new SlaSerializer() :+
