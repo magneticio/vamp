@@ -7,7 +7,7 @@ import io.vamp.common.akka._
 import io.vamp.core.model.artifact.Artifact
 import io.vamp.core.persistence.actor.PersistenceActor.PersistenceMessages
 import io.vamp.core.persistence.notification.UnsupportedPersistenceRequest
-import io.vamp.core.persistence.store.{InMemoryStoreProvider, JdbcStoreProvider}
+import io.vamp.core.persistence.store.JdbcStoreProvider
 
 import scala.concurrent.duration._
 import scala.language.existentials
@@ -36,17 +36,20 @@ object PersistenceActor extends ActorDescription {
 
 class PersistenceActor extends PersistingActor with JdbcStoreProvider {
 
+  def info = store.info
+
+  def createDefaultArtifact(artifact: Artifact, ignoreIfExists: Boolean): Artifact = store.create(artifact, ignoreIfExists)
+
+  def getAllDefaultArtifacts(ofType: Class[_ <: Artifact]): List[_ <: Artifact] = store.all(ofType)
+
+  def updateDefaultArtifact(artifact: Artifact, create: Boolean): Artifact = store.update(artifact, create)
+
+  def deleteDefaultArtifact(name: String, ofType: Class[_ <: Artifact]): Artifact = store.delete(name, ofType)
+
+  def readDefaultArtifact(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] = store.read(name, ofType)
+
   override protected def requestType: Class[_] = classOf[PersistenceMessages]
 
   override protected def errorRequest(request: Any): RequestError = UnsupportedPersistenceRequest(request)
 
-  override def createDefaultArtifact(artifact: Artifact, ignoreIfExists: Boolean): Artifact = store.create(artifact, ignoreIfExists)
-
-  override def getAllDefaultArtifacts(ofType: Class[_ <: Artifact]): List[_ <: Artifact] = store.all(ofType)
-
-  override def updateDefaultArtifact(artifact: Artifact, create: Boolean): Artifact = store.update(artifact, create)
-
-  override def deleteDefaultArtifact(name: String, ofType: Class[_ <: Artifact]): Artifact = store.delete(name, ofType)
-
-  override def readDefaultArtifact(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] = store.read(name, ofType)
 }

@@ -6,6 +6,7 @@ import _root_.io.vamp.common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.vitals.InfoRequest
 import io.vamp.pulse.api.Event
 import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, Port}
 import io.vamp.core.pulse_driver.notification.{PulseDriverNotificationProvider, PulseResponseError, UnsupportedPulseDriverRequest}
@@ -42,6 +43,7 @@ class PulseDriverActor(driver: PulseDriver) extends Actor with ActorLogging with
 
   def reply(request: Any) = try {
     request match {
+      case InfoRequest => offload(driver.info, classOf[PulseResponseError])
       case Publish(event) => driver.event(event)
       case EventExists(deployment, cluster, from) => offload(driver.exists(deployment, cluster, from), classOf[PulseResponseError])
       case ResponseTime(deployment, cluster, port, from, to) => offload(driver.responseTime(deployment, cluster, port, from, to), classOf[PulseResponseError])

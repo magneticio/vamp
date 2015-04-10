@@ -12,6 +12,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait PulseDriver {
 
+  def info: Future[Any]
+
   def event(event: Event): Unit
 
   def exists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime): Future[Boolean]

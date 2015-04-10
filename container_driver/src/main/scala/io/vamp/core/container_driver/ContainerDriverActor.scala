@@ -4,6 +4,7 @@ import _root_.io.vamp.common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.container_driver.notification.{ContainerDriverNotificationProvider, ContainerResponseError, UnsupportedContainerDriverRequest}
 import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, DeploymentService}
 
@@ -16,8 +17,6 @@ object ContainerDriverActor extends ActorDescription {
   def props(args: Any*): Props = Props(classOf[ContainerDriverActor], args: _*)
 
   trait ContainerDriveMessage
-
-  object Info extends ContainerDriveMessage
 
   object All extends ContainerDriveMessage
 
@@ -39,7 +38,7 @@ class ContainerDriverActor(driver: ContainerDriver) extends Actor with ActorLogg
 
   def reply(request: Any) = try {
     request match {
-      case Info => offload(driver.info, classOf[ContainerResponseError])
+      case InfoRequest => offload(driver.info, classOf[ContainerResponseError])
       case All => offload(driver.all, classOf[ContainerResponseError])
       case Deploy(deployment, cluster, service, update) => offload(driver.deploy(deployment, cluster, service, update), classOf[ContainerResponseError])
       case Undeploy(deployment, service) => offload(driver.undeploy(deployment, service), classOf[ContainerResponseError])

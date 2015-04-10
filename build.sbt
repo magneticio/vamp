@@ -52,7 +52,6 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
 // Use local maven repository
 resolvers in ThisBuild ++= Seq(
   "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
-  Resolver.mavenLocal,
   Resolver.jcenterRepo
 )
 
