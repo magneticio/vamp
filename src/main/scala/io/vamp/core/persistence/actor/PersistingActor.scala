@@ -2,6 +2,7 @@ package io.vamp.core.persistence.actor
 
 import _root_.io.vamp.common.akka._
 import _root_.io.vamp.common.notification.NotificationProvider
+import _root_.io.vamp.common.vitals.InfoRequest
 import _root_.io.vamp.core.model.artifact._
 import _root_.io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
 import akka.actor.{Actor, ActorLogging}
@@ -25,6 +26,10 @@ trait PersistingActor extends Actor with ActorLogging with ReplyActor with Futur
 
   def reply(request: Any) = {
     val future: Future[Any] = request match {
+      case InfoRequest => Future {
+        info
+      }
+
       case All(ofType) => Future {
         getAllDefaultArtifacts(ofType)
       }
@@ -54,6 +59,8 @@ trait PersistingActor extends Actor with ActorLogging with ReplyActor with Futur
 
     offload(future)
   }
+
+  def info: Any
 
   def createDefaultArtifact(artifact: Artifact, ignoreIfExists: Boolean): Artifact
 

@@ -8,6 +8,8 @@ trait StoreProvider {
 
   trait Store {
 
+    def info: Any
+
     def all(`type`: Class[_ <: Artifact]): List[Artifact]
 
     def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact
