@@ -67,7 +67,7 @@ trait BlueprintSupport {
 
   private def uuid = UUID.randomUUID.toString
 
-  def deploymentFor(): Deployment = Deployment(uuid, List(), Nil, Map())
+  def deploymentFor(): Deployment = Deployment(uuid, Nil, Nil, Nil, Nil)
 
   def deploymentFor(name: String): Deployment = artifactFor[Deployment](name)
 
@@ -80,7 +80,7 @@ trait BlueprintSupport {
       }, cluster.sla)
     }
 
-    Deployment(uuid, clusters, bp.endpoints, bp.environmentVariables)
+    Deployment(uuid, clusters, bp.endpoints, bp.environmentVariables, Nil)
   }
 }
 
@@ -137,7 +137,7 @@ trait DeploymentMerger extends DeploymentValidation {
     val endpoints = (attachment.endpoints ++ deployment.endpoints).distinct
     val environmentVariables = attachment.environmentVariables ++ deployment.environmentVariables
 
-    (validateMerge andThen commit(create = true))(Deployment(deployment.name, clusters, endpoints, environmentVariables))
+    (validateMerge andThen commit(create = true))(Deployment(deployment.name, clusters, endpoints, environmentVariables, Nil))
   }
 
   def mergeClusters(stable: Deployment, blueprint: Deployment): List[DeploymentCluster] = {
@@ -217,110 +217,114 @@ trait DeploymentMerger extends DeploymentValidation {
   }
 
   def validateAndCollectEnvironmentVariables: (Deployment => Deployment) = { (deployment: Deployment) =>
-    deployment.environmentVariables.find({
-      case (Trait.Name(Some(scope), Some(group), port), _) =>
-        deployment.clusters.find(_.name == scope) match {
-          case None => true
-          case Some(cluster) => cluster.services.find({
-            service => service.breed match {
-              case breed: DefaultBreed => breed.inTraits.exists(_.name.toString == port)
-              case _ => false
-            }
-          }).isEmpty
-        }
-      case _ => true
-    }).flatMap {
-      case (name, value) => error(UnresolvedParameterError(name, value))
-    }
+//    deployment.environmentVariables.find({
+//      case (Trait.Name(Some(scope), Some(group), port), _) =>
+//        deployment.clusters.find(_.name == scope) match {
+//          case None => true
+//          case Some(cluster) => cluster.services.find({
+//            service => service.breed match {
+//              case breed: DefaultBreed => breed.inTraits.exists(_.name.toString == port)
+//              case _ => false
+//            }
+//          }).isEmpty
+//        }
+//      case _ => true
+//    }).flatMap {
+//      case (name, value) => error(UnresolvedParameterError(name, value))
+//    }
     deployment
   }
 
   def validateEndpoints: (Deployment => Deployment) = { (deployment: Deployment) =>
-    deployment.endpoints.map(port => port.name -> port.value).find({
-      case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), port), _) =>
-        deployment.clusters.find(_.name == scope) match {
-          case None => true
-          case Some(cluster) => cluster.services.find({
-            service => service.breed match {
-              case breed: DefaultBreed => breed.ports.exists(_.name.toString == port)
-              case _ => false
-            }
-          }).isEmpty
-        }
-      case _ => true
-    }).flatMap {
-      case (name, value) => error(UnresolvedEndpointPortError(name, value))
-    }
+//    deployment.endpoints.map(port => port.name -> port.value).find({
+//      case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), port), _) =>
+//        deployment.clusters.find(_.name == scope) match {
+//          case None => true
+//          case Some(cluster) => cluster.services.find({
+//            service => service.breed match {
+//              case breed: DefaultBreed => breed.ports.exists(_.name.toString == port)
+//              case _ => false
+//            }
+//          }).isEmpty
+//        }
+//      case _ => true
+//    }).flatMap {
+//      case (name, value) => error(UnresolvedEndpointPortError(name, value))
+//    }
     deployment
   }
 
   def resolveParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
-    implicit val timeout = DictionaryActor.timeout
-    val host = offload(actorFor(DictionaryActor) ? DictionaryActor.Get(DictionaryActor.hostResolver)) match {
-      case h: String => h
-      case e => error(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
-    }
-
-    deployment.copy(environmentVariables = deployment.clusters.flatMap({ cluster =>
-      cluster.services.flatMap({ service =>
-        val breed = service.breed
-        breed.ports.filter(_.direction == Trait.Direction.Out).map(out => out.name.copy(scope = Some(cluster.name), group = Some(Trait.Name.Group.Ports)) -> out.value.get) ++
-          breed.environmentVariables.filter(_.direction == Trait.Direction.Out).map(out => out.name.copy(scope = Some(cluster.name), group = Some(Trait.Name.Group.EnvironmentVariables)) -> out.value.get)
-      })
-    }).toMap ++ deployment.environmentVariables ++ deployment.clusters.map(cluster => Trait.Name(Some(cluster.name), None, Trait.host) -> host))
+//    implicit val timeout = DictionaryActor.timeout
+//    val host = offload(actorFor(DictionaryActor) ? DictionaryActor.Get(DictionaryActor.hostResolver)) match {
+//      case h: String => h
+//      case e => error(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
+//    }
+//
+//    deployment.copy(environmentVariables = deployment.clusters.flatMap({ cluster =>
+//      cluster.services.flatMap({ service =>
+//        val breed = service.breed
+//        breed.ports.filter(_.direction == Trait.Direction.Out).map(out => out.name.copy(scope = Some(cluster.name), group = Some(Trait.Name.Group.Ports)) -> out.value.get) ++
+//          breed.environmentVariables.filter(_.direction == Trait.Direction.Out).map(out => out.name.copy(scope = Some(cluster.name), group = Some(Trait.Name.Group.EnvironmentVariables)) -> out.value.get)
+//      })
+//    }).toMap ++ deployment.environmentVariables ++ deployment.clusters.map(cluster => Trait.Name(Some(cluster.name), None, Trait.host) -> host))
+    deployment
   }
 
   def resolveRouteMapping: (Deployment => Deployment) = { (deployment: Deployment) =>
-    deployment.copy(clusters = deployment.clusters.map({ cluster =>
-      cluster.copy(routes = cluster.services.map(_.breed).flatMap(_.ports).map(_.value.get).map(port => cluster.routes.get(port) match {
-        case None =>
-          implicit val timeout = DictionaryActor.timeout
-          val key = DictionaryActor.portAssignment.format(deployment.name, port)
-          port -> (offload(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
-            case number: Int => number
-            case e => error(UnresolvedEnvironmentValueError(key, e))
-          })
-        case Some(number) => port -> number
-      }).toMap)
-    }))
+//    deployment.copy(clusters = deployment.clusters.map({ cluster =>
+//      cluster.copy(routes = cluster.services.map(_.breed).flatMap(_.ports).map(_.value.get).map(port => cluster.routes.get(port) match {
+//        case None =>
+//          implicit val timeout = DictionaryActor.timeout
+//          val key = DictionaryActor.portAssignment.format(deployment.name, port)
+//          port -> (offload(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
+//            case number: Int => number
+//            case e => error(UnresolvedEnvironmentValueError(key, e))
+//          })
+//        case Some(number) => port -> number
+//      }).toMap)
+//    }))
+    deployment
   }
 
   def resolveGlobalVariables: (Deployment => Deployment) = { (deployment: Deployment) =>
 
-    def copyPort(breed: Breed, port: Port, targetScope: String, dependencyScope: String) = {
-      port.name.copy(scope = Some(targetScope), group = Some(Trait.Name.Group.Ports)) -> (deployment.environmentVariables.find({
-        case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == dependencyScope && value == port.name.value => true
-        case _ => false
-      }) match {
-        case None => port.value.getOrElse(error(UnresolvedVariableValueError(breed, port.name)))
-        case Some(parameter) => parameter._2
-      })
-    }
+//    def copyPort(breed: Breed, port: Port, targetScope: String, dependencyScope: String) = {
+//      port.name.copy(scope = Some(targetScope), group = Some(Trait.Name.Group.Ports)) -> (deployment.environmentVariables.find({
+//        case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == dependencyScope && value == port.name.value => true
+//        case _ => false
+//      }) match {
+//        case None => port.value.getOrElse(error(UnresolvedVariableValueError(breed, port.name)))
+//        case Some(parameter) => parameter._2
+//      })
+//    }
+//
+//    def copyEnvironmentVariable(breed: Breed, ev: EnvironmentVariable, targetScope: String, dependencyScope: String) = {
+//      ev.name.copy(scope = Some(targetScope), group = Some(Trait.Name.Group.EnvironmentVariables)) -> (deployment.environmentVariables.find({
+//        case (Trait.Name(Some(scope), Some(_), value), _) if scope == dependencyScope && value == ev.name.value => true
+//        case (Trait.Name(Some(scope), None, value), _) if scope == dependencyScope && value == ev.name.value && value == Trait.host => true
+//        case _ => false
+//      }) match {
+//        case None => ev.value.getOrElse(error(UnresolvedVariableValueError(breed, ev.name)))
+//        case Some(parameter) => parameter._2
+//      })
+//    }
+//
+//    deployment.copy(environmentVariables = deployment.clusters.flatMap(cluster => cluster.services.map(_.breed).flatMap({ breed =>
+//      breed.ports.filter(_.direction == Trait.Direction.In).flatMap({ port =>
+//        port.name.scope match {
+//          case None => copyPort(breed, port, cluster.name, cluster.name) :: Nil
+//          case _ => Nil
+//        }
+//      }) ++ breed.environmentVariables.filter(ev => ev.direction == Trait.Direction.In).flatMap({ ev =>
+//        ev.name.scope match {
+//          case None => copyEnvironmentVariable(breed, ev, cluster.name, cluster.name) :: Nil
+//          case _ => Nil
+//        }
+//      })
+//    })).toMap ++ deployment.environmentVariables)
 
-    def copyEnvironmentVariable(breed: Breed, ev: EnvironmentVariable, targetScope: String, dependencyScope: String) = {
-      ev.name.copy(scope = Some(targetScope), group = Some(Trait.Name.Group.EnvironmentVariables)) -> (deployment.environmentVariables.find({
-        case (Trait.Name(Some(scope), Some(_), value), _) if scope == dependencyScope && value == ev.name.value => true
-        case (Trait.Name(Some(scope), None, value), _) if scope == dependencyScope && value == ev.name.value && value == Trait.host => true
-        case _ => false
-      }) match {
-        case None => ev.value.getOrElse(error(UnresolvedVariableValueError(breed, ev.name)))
-        case Some(parameter) => parameter._2
-      })
-    }
-
-    deployment.copy(environmentVariables = deployment.clusters.flatMap(cluster => cluster.services.map(_.breed).flatMap({ breed =>
-      breed.ports.filter(_.direction == Trait.Direction.In).flatMap({ port =>
-        port.name.scope match {
-          case None => copyPort(breed, port, cluster.name, cluster.name) :: Nil
-          case _ => Nil
-        }
-      }) ++ breed.environmentVariables.filter(ev => ev.direction == Trait.Direction.In).flatMap({ ev =>
-        ev.name.scope match {
-          case None => copyEnvironmentVariable(breed, ev, cluster.name, cluster.name) :: Nil
-          case _ => Nil
-        }
-      })
-    })).toMap ++ deployment.environmentVariables)
+    deployment
   }
 
   def resolveDependencyMapping: (Deployment => Deployment) = { (deployment: Deployment) =>

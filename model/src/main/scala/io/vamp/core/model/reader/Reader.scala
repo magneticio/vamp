@@ -3,6 +3,7 @@ package io.vamp.core.model.reader
 import java.io.{File, InputStream, Reader, StringReader}
 
 import _root_.io.vamp.common.notification.NotificationErrorException
+import _root_.io.vamp.core.model.artifact.{Constant, EnvironmentVariable, Port, Trait}
 import _root_.io.vamp.core.model.notification._
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
@@ -202,5 +203,38 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] {
   protected def createDefault(implicit source: YamlObject): T
 
   protected def asReferenceOf: String = getClass.getSimpleName.substring(0, getClass.getSimpleName.indexOf("Reader")).toLowerCase
+}
+
+trait TraitReader[T] {
+  this: YamlReader[T] =>
+
+  def parseTraits[A <: Trait](source: Option[YamlObject], mapper: (String, Option[String], Option[String]) => A): List[A] = {
+    source match {
+      case None => List[A]()
+      case Some(map: YamlObject) => map.map {
+        case (name, value) if value == null => mapper(name, None, None)
+        case (name, value: String) => mapper(name, None, Some(value))
+        case (name, _) => error(MalformedTraitError(name))
+      } toList
+    }
+  }
+
+  def ports(name: String = "ports")(implicit source: YamlObject): List[Port] = {
+    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
+      Port(name, alias, value)
+    })
+  }
+
+  def environmentVariables(name: String = "environment_variables")(implicit source: YamlObject): List[EnvironmentVariable] = {
+    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
+      EnvironmentVariable(name, alias, value)
+    })
+  }
+
+  def constants(name: String = "constants")(implicit source: YamlObject): List[Constant] = {
+    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
+      Constant(name, alias, value)
+    })
+  }
 }
 

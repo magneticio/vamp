@@ -14,7 +14,7 @@ case class UnresolvedDependencyError(breed: Breed, dependency: Breed) extends No
 
 case class DeploymentSynchronizationFailure(deployment: Deployment, exception: Throwable) extends Notification
 
-case class UnresolvedVariableValueError(breed: Breed, name: Trait.Name) extends Notification
+case class UnresolvedVariableValueError(breed: Breed, name: String) extends Notification
 
 case class UnresolvedEnvironmentValueError(key: String, reason: Any) extends Notification
 

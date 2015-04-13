@@ -22,8 +22,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint2.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), None))),
-      'endpoints(List(TcpPort(Trait.Name.asName("notorious.ports.port"), None, Some(8080), Trait.Direction.Out))),
-      'environmentVariables(Map(Trait.Name.asName("notorious.ports.aspect") -> "thorium"))
+      'endpoints(List(Port("notorious.ports.port", None, Some("8080")))),
+      'environmentVariables(List(EnvironmentVariable("notorious.ports.aspect", None, Some("thorium"))))
     )
   }
 
@@ -48,7 +48,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the reference sla with escalations" in {
     BlueprintReader.read(res("blueprint/blueprint5.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(SlaReference("strong-mountain", List(ToAllEscalation("",List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("","cloud-beam",Map("sound" -> "furious")))))))))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(SlaReference("strong-mountain", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious")))))))))),
       'endpoints(List()),
       'environmentVariables(Map())
     )
@@ -192,17 +192,17 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "expand the more complex blueprint" in {
     BlueprintReader.read(res("blueprint/blueprint21.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), List(), List(), Map()), None, None)), Some(SlaReference("strong-mountain", List()))), Cluster("omega", List(Service(BreedReference("scary-lion"), None, None)), None), Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Some(DefaultScale("", 0.2, 120.0, 2)), Some(DefaultRouting("", Some(95), List(DefaultFilter("", "ua = android"))))), Service(BreedReference("remote-venus"), Some(ScaleReference("worthy")), None)), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious"))))), Map("reborn" -> "red-swallow")))), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), List(), List(), Map()), None, None)), Some(SlaReference("fish-steamy", List()))))),
-      'endpoints(List(TcpPort(Trait.Name.asName("supersonic.ports.port"), None, Some(8080), Trait.Direction.Out))),
-      'environmentVariables(Map(Trait.Name.asName("omega.ports.aspect") -> "thorium"))
+      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), Nil, Nil, Nil, Map()), None, None)), Some(SlaReference("strong-mountain", List()))), Cluster("omega", List(Service(BreedReference("scary-lion"), None, None)), None), Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Some(DefaultScale("", 0.2, 120.0, 2)), Some(DefaultRouting("", Some(95), List(DefaultFilter("", "ua = android"))))), Service(BreedReference("remote-venus"), Some(ScaleReference("worthy")), None)), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious"))))), Map("reborn" -> "red-swallow")))), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), Nil, Nil, Nil, Map()), None, None)), Some(SlaReference("fish-steamy", List()))))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
+      'environmentVariables(List(EnvironmentVariable("omega.ports.aspect", None, Some("thorium"))))
     )
   }
 
   it should "validate endpoints for inline breeds - valid case" in {
     BlueprintReader.read(res("blueprint/blueprint22.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), None, None)), None))),
-      'endpoints(List(TcpPort(Trait.Name.asName("supersonic.ports.port"), None, Some(8080), Trait.Direction.Out))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(Port("port", None, Some("80"))), Nil, Nil, Map()), None, None)), None))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
       'environmentVariables(Map())
     )
   }
@@ -211,7 +211,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedEndpointPortError]({
       BlueprintReader.read(res("blueprint/blueprint23.yml"))
     }) should have(
-      'name(Trait.Name.asName("omega.ports.port")),
+      'name("omega.ports.port"),
       'value(Some(8080))
     )
   }
@@ -220,7 +220,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedEndpointPortError]({
       BlueprintReader.read(res("blueprint/blueprint24.yml"))
     }) should have(
-      'name(Trait.Name.asName("supersonic.environment_variables.port")),
+      'name("supersonic.environment_variables.port"),
       'value(Some(8080))
     )
   }
@@ -229,7 +229,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedEndpointPortError]({
       BlueprintReader.read(res("blueprint/blueprint25.yml"))
     }) should have(
-      'name(Trait.Name.asName("supersonic.ports.http")),
+      'name("supersonic.ports.http"),
       'value(Some(8080))
     )
   }
@@ -237,9 +237,9 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "validate parameters for inline breeds - valid case" in {
     BlueprintReader.read(res("blueprint/blueprint26.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(TcpPort("port", None, None, Trait.Direction.In)), List(), Map()), None, None)), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(Port("port", None, None)), Nil, Nil, Map()), None, None)), None))),
       'endpoints(List()),
-      'environmentVariables(Map(Trait.Name.asName("supersonic.ports.port") -> "8080"))
+      'environmentVariables(List(EnvironmentVariable("supersonic.ports.port", None, Some("8080"))))
     )
   }
 
@@ -247,7 +247,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedParameterError]({
       BlueprintReader.read(res("blueprint/blueprint27.yml"))
     }) should have(
-      'name(Trait.Name.asName("omega.ports.port")),
+      'name("omega.ports.port"),
       'value("8080")
     )
   }
@@ -256,7 +256,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedParameterError]({
       BlueprintReader.read(res("blueprint/blueprint28.yml"))
     }) should have(
-      'name(Trait.Name.asName("supersonic.port")),
+      'name("supersonic.port"),
       'value("8080")
     )
   }
@@ -265,7 +265,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedParameterError]({
       BlueprintReader.read(res("blueprint/blueprint29.yml"))
     }) should have(
-      'name(Trait.Name.asName("supersonic.ports.http")),
+      'name("supersonic.ports.http"),
       'value("8080")
     )
   }
@@ -274,7 +274,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedParameterError]({
       BlueprintReader.read(res("blueprint/blueprint30.yml"))
     }) should have(
-      'name(Trait.Name.asName("supersonic.ports.port")),
+      'name("supersonic.ports.port"),
       'value("8080")
     )
   }
@@ -307,7 +307,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "validate breed cross dependencies - inline and valid" in {
     BlueprintReader.read(res("blueprint/blueprint34.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("elastic-search"), None, None)), None), Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("solid/barbershop"), List(), List(), Map("es" -> BreedReference("elastic-search"))), None, None)), None))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("elastic-search"), None, None)), None), Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("solid/barbershop"), Nil, Nil, Nil, Map("es" -> BreedReference("elastic-search"))), None, None)), None))),
       'endpoints(List()),
       'environmentVariables(Map())
     )
@@ -317,7 +317,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedBreedDependencyError]({
       BlueprintReader.read(res("blueprint/blueprint35.yml"))
     }) should have(
-      'breed(DefaultBreed("solid-barbershop", Deployable("solid/barbershop"), List(), List(), Map("es" -> BreedReference("elastic-search")))),
+      'breed(DefaultBreed("solid-barbershop", Deployable("solid/barbershop"), Nil, Nil, Nil, Map("es" -> BreedReference("elastic-search")))),
       'dependency("es" -> BreedReference("elastic-search"))
     )
   }
@@ -325,7 +325,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "expand the service with breed only object" in {
     BlueprintReader.read(res("blueprint/blueprint36.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("donut"), List(), List(), Map()), None, None)), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("donut"), Nil, Nil, Nil, Map()), None, None)), None))),
       'endpoints(List()),
       'environmentVariables(Map())
     )
@@ -343,8 +343,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read scale and routing - expanded" in {
     BlueprintReader.read(res("blueprint/blueprint38.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
-      'endpoints(List(TcpPort(Trait.Name.asName("supersonic.ports.port"), None, Some(8080), Trait.Direction.Out))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(Port("port", None, Some("80"))), Nil, Nil, Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
       'environmentVariables(Map())
     )
   }
@@ -352,8 +352,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read scale and routing - service single element." in {
     BlueprintReader.read(res("blueprint/blueprint39.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
-      'endpoints(List(TcpPort(Trait.Name.asName("supersonic.ports.port"), None, Some(8080), Trait.Direction.Out))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(Port("port", None, Some("80"))), Nil, Nil, Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
       'environmentVariables(Map())
     )
   }
@@ -361,8 +361,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read scale and routing - no service just cluster." in {
     BlueprintReader.read(res("blueprint/blueprint40.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out)), List(), Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
-      'endpoints(List(TcpPort(Trait.Name.asName("supersonic.ports.port"), None, Some(8080), Trait.Direction.Out))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(Port("port", None, Some("80"))), Nil, Nil, Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
       'environmentVariables(Map())
     )
   }
@@ -371,7 +371,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint41.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
-      'endpoints(List(TcpPort(Trait.Name.asName("supersonic.ports.port"), None, Some(8080), Trait.Direction.Out))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
       'environmentVariables(Map())
     )
   }
@@ -380,7 +380,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint42.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
-      'endpoints(List(TcpPort(Trait.Name.asName("supersonic.ports.port"), None, Some(8080), Trait.Direction.Out))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
       'environmentVariables(Map())
     )
   }
@@ -389,7 +389,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[RecursiveDependenciesError]({
       BlueprintReader.read(res("blueprint/blueprint43.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(), List(), Map("db" -> BreedReference("monarch"))))
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), Nil, Nil, Nil, Map("db" -> BreedReference("monarch"))))
     )
   }
 
@@ -397,7 +397,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[RecursiveDependenciesError]({
       BlueprintReader.read(res("blueprint/blueprint44.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch2", Deployable("magneticio/monarch2:latest"), List(), List(), Map("db" -> BreedReference("monarch1"))))
+      'breed(DefaultBreed("monarch2", Deployable("magneticio/monarch2:latest"), Nil, Nil, Nil, Map("db" -> BreedReference("monarch1"))))
     )
   }
 
@@ -405,7 +405,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint45.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), None, Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
-      'endpoints(List(TcpPort(Trait.Name.asName("supersonic.ports.port"), None, Some(8080), Trait.Direction.Out))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
       'environmentVariables(Map())
     )
   }
@@ -414,7 +414,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint46.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(DefaultRouting("", None, List(DefaultFilter("", "user.agent == android")))))), None))),
-      'endpoints(List(TcpPort(Trait.Name.asName("supersonic.ports.port"), None, Some(8080), Trait.Direction.Out))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
       'environmentVariables(Map())
     )
   }

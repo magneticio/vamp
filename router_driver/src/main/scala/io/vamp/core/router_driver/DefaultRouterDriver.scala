@@ -61,8 +61,8 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   }
 
   private def route(name: String, deployment: Deployment, cluster: Option[DeploymentCluster], port: Port) = cluster match {
-    case None => Route(name, port.value.get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", filters(cluster), None, None, services(deployment, None, port))
-    case Some(c) => Route(name, c.routes.get(port.value.get).get, if (port.isInstanceOf[HttpPort]) "http" else "tcp", filters(cluster), None, None, services(deployment, cluster, port))
+    case None => Route(name, port.value.get.toInt, /*if (port.isInstanceOf[HttpPort]) "http" else */ "tcp", filters(cluster), None, None, services(deployment, None, port))
+    case Some(c) => Route(name, c.routes.get(port.value.get.toInt).get, /* if (port.isInstanceOf[HttpPort]) "http" else */"tcp", filters(cluster), None, None, services(deployment, cluster, port))
   }
 
   private def filters(cluster: Option[DeploymentCluster]): List[Filter] = {
@@ -93,31 +93,33 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   }
 
   private def server(service: DeploymentService, server: DeploymentServer, port: Port) =
-    Server(artifactName2Id(server), server.host, server.ports.get(port.value.get).get)
+    Server(artifactName2Id(server), server.host, server.ports.get(port.value.get.toInt).get)
 
   private def servers(deployment: Deployment, port: Port): List[Server] = {
-    val list = for {
-      h <- deployment.environmentVariables.find({
-        case (Trait.Name(Some(scope), None, value), _) if scope == port.name.scope.get && value == Trait.host => true
-        case _ => false
-      })
-      p <- deployment.environmentVariables.find({
-        case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == port.name.scope.get && value == port.name.value => true
-        case _ => false
-      })
-    } yield (h, p) match {
-        case ((_, host: String), (_, routePort: Int)) =>
-          deployment.clusters.find(_.name == port.name.scope.get) match {
-            case None => Nil
-            case Some(cluster) =>
-              cluster.routes.map(_._2).find(_ == routePort) match {
-                case Some(_) => Server(string2Id(s"${deployment.name}_${port.value.get}"), host, routePort) :: Nil
-                case _ => Nil
-              }
-          }
-        case _ => Nil
-      }
-    list.getOrElse(Nil)
+//    val list = for {
+//      h <- deployment.environmentVariables.find({
+//        case (Trait.Name(Some(scope), None, value), _) if scope == port.name.scope.get && value == Trait.host => true
+//        case _ => false
+//      })
+//      p <- deployment.environmentVariables.find({
+//        case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == port.name.scope.get && value == port.name.value => true
+//        case _ => false
+//      })
+//    } yield (h, p) match {
+//        case ((_, host: String), (_, routePort: Int)) =>
+//          deployment.clusters.find(_.name == port.name.scope.get) match {
+//            case None => Nil
+//            case Some(cluster) =>
+//              cluster.routes.map(_._2).find(_ == routePort) match {
+//                case Some(_) => Server(string2Id(s"${deployment.name}_${port.value.get}"), host, routePort) :: Nil
+//                case _ => Nil
+//              }
+//          }
+//        case _ => Nil
+//      }
+//    list.getOrElse(Nil)
+//
+    Nil
   }
 
   private def processableClusterRoute(name: String): Boolean = name.split(nameDelimiter).size == 3

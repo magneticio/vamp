@@ -20,7 +20,6 @@ import io.vamp.core.persistence.actor.PersistenceActor.All
 import io.vamp.core.rest_api.notification.{RestApiNotificationProvider, UnsupportedRoutingWeightChangeError}
 import spray.http.StatusCodes._
 import spray.httpx.marshalling.Marshaller
-import spray.routing.HttpServiceBase
 
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}

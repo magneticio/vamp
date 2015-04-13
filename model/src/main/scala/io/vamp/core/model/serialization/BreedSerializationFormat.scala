@@ -10,34 +10,11 @@ import scala.collection.mutable.ArrayBuffer
 object BreedSerializationFormat extends io.vamp.common.json.SerializationFormat {
 
   override def customSerializers = super.customSerializers :+
-    new TraitNameSerializer() :+
-    new TraitDirectionSerializer() :+
     new PortSerializer() :+
     new DeployableSerializer()
 
-  override def customKeySerializers = super.customKeySerializers :+
-    new TraitNameKeySerializer()
-
   override def fieldSerializers = super.fieldSerializers :+
     new BreedFieldSerializer()
-}
-
-class TraitNameSerializer extends ArtifactSerializer[Trait.Name] {
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case name: Trait.Name => JString(name.toString)
-  }
-}
-
-class TraitNameKeySerializer extends ArtifactKeySerializer[Trait.Name] {
-  override def serialize(implicit format: Formats): PartialFunction[Any, String] = {
-    case name: Trait.Name => name.toString
-  }
-}
-
-class TraitDirectionSerializer extends ArtifactSerializer[Trait.Direction.Value] {
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case direction: Trait.Direction.Value => JString(direction.toString.toUpperCase)
-  }
 }
 
 class PortSerializer extends ArtifactSerializer[Port] {
@@ -49,8 +26,7 @@ class PortSerializer extends ArtifactSerializer[Port] {
         case None =>
         case Some(a) => list += JField("alias", JString(a))
       }
-      list += JField("value", JString(port.valueAsString))
-      list += JField("direction", JString(port.direction.toString.toUpperCase))
+      //list += JField("value", JString(port.value))
       new JObject(list.toList)
   }
 }

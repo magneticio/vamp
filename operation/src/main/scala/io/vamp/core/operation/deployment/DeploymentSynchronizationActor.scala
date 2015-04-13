@@ -134,7 +134,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   private def readyForDeployment(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], clusterRoutes: List[ClusterRoute]): ProcessedService = {
     def convert(server: ContainerServer): DeploymentServer = {
       val ports = for {
-        dp <- deploymentService.breed.ports.map(_.value.get)
+        dp <- deploymentService.breed.ports.map(_.value.get.toInt)
         sp <- server.ports
       } yield (dp, sp)
       DeploymentServer(server.id, server.host, ports.toMap, server.deployed)
@@ -281,16 +281,16 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
       val clusters = processedClusters.filter(_.state != Processed.RemoveFromPersistence).map(_.cluster)
 
-      val environmentVariables = (deployment.environmentVariables ++ processedClusters.filter(_.state == Processed.Persist).map(_.cluster).flatMap({ cluster =>
-        cluster.services.map(_.breed).flatMap(_.ports).map({ port =>
-          Trait.Name(Some(cluster.name), Some(Trait.Name.Group.Ports), port.name.value) -> cluster.routes.get(port.value.get).get
-        })
-      }).toMap).filter({
-        case (Trait.Name(Some(scope), _, _), _) => clusters.exists(_.name == scope)
-        case _ => true
-      })
+      //      val environmentVariables = (deployment.environmentVariables ++ processedClusters.filter(_.state == Processed.Persist).map(_.cluster).flatMap({ cluster =>
+      //        cluster.services.map(_.breed).flatMap(_.ports).map({ port =>
+      //          Trait.Name(Some(cluster.name), Some(Trait.Name.Group.Ports), port.name.value) -> cluster.routes.get(port.value.get).get
+      //        })
+      //      }).toMap).filter({
+      //        case (Trait.Name(Some(scope), _, _), _) => clusters.exists(_.name == scope)
+      //        case _ => true
+      //      })
 
-      val d = updateEndpoints(routes)(deployment.copy(clusters = clusters, environmentVariables = environmentVariables))
+      val d = updateEndpoints(routes)(deployment.copy(clusters = clusters)) //, environmentVariables = environmentVariables))
 
       if (d.clusters.isEmpty)
         actorFor(PersistenceActor) ! PersistenceActor.Delete(d.name, classOf[Deployment])
@@ -300,31 +300,33 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   }
 
   private def updateEndpoints(routes: List[EndpointRoute]): (Deployment => Deployment) = { deployment: Deployment =>
-    def process(port: Port): Boolean = {
-      (deployment.clusters.find(_.name == port.name.scope.get), routes.find(_.matching(deployment, port))) match {
-        case (None, Some(_)) =>
-          actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port)
-          false
+    //    def process(port: Port): Boolean = {
+    //      (deployment.clusters.find(_.name == port.name.scope.get), routes.find(_.matching(deployment, port))) match {
+    //        case (None, Some(_)) =>
+    //          actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port)
+    //          false
+    //
+    //        case (Some(cluster), None) =>
+    //          actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false)
+    //          true
+    //
+    //        case (Some(cluster), Some(route)) if route.services.flatMap(_.servers).count(_ => true) == 0 =>
+    //          actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = true)
+    //          true
+    //
+    //        case _ => true
+    //      }
+    //    }
+    //
+    //    deployment.copy(endpoints = deployment.endpoints.filter({ port => {
+    //      port match {
+    //        case TcpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port)
+    //        case HttpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port)
+    //        case _ => false
+    //      }
+    //    }
+    //    }))
 
-        case (Some(cluster), None) =>
-          actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false)
-          true
-
-        case (Some(cluster), Some(route)) if route.services.flatMap(_.servers).count(_ => true) == 0 =>
-          actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = true)
-          true
-
-        case _ => true
-      }
-    }
-
-    deployment.copy(endpoints = deployment.endpoints.filter({ port => {
-      port match {
-        case TcpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port)
-        case HttpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port)
-        case _ => false
-      }
-    }
-    }))
+    deployment
   }
 }

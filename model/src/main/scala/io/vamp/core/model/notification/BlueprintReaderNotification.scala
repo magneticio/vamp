@@ -1,11 +1,11 @@
 package io.vamp.core.model.notification
 
 import io.vamp.common.notification.Notification
-import io.vamp.core.model.artifact.{AbstractCluster, Breed, Trait}
+import io.vamp.core.model.artifact.{AbstractCluster, Breed, TraitReference}
 
-case class UnresolvedEndpointPortError(name: Trait.Name, value: Any) extends Notification
+case class UnresolvedEndpointPortError(name: String, value: Any) extends Notification
 
-case class UnresolvedParameterError(name: Trait.Name, value: Any) extends Notification
+case class UnresolvedParameterError(name: TraitReference, value: Any) extends Notification
 
 case class NonUniqueBlueprintBreedReferenceError(name: String) extends Notification
 

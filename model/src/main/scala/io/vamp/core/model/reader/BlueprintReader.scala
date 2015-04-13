@@ -5,7 +5,7 @@ import io.vamp.core.model.notification._
 
 import scala.language.postfixOps
 
-trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] {
+trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader[Blueprint] {
 
   override def readReference(any: Any): Blueprint = any match {
     case string: String => BlueprintReference(string)
@@ -80,7 +80,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       }).toList
     }
 
-    DefaultBlueprint(name, clusters, endpoints("endpoints"), traitNameMapping("environment_variables"))
+    DefaultBlueprint(name, clusters, ports("endpoints"), environmentVariables())
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {
@@ -100,45 +100,47 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   }
 
   protected def validateEndpoints(blueprint: DefaultBlueprint): Unit = {
-    blueprint.endpoints.map(port => port.name -> port.value).find({
-      case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), port), _) =>
-        blueprint.clusters.find(_.name == scope) match {
-          case None => true
-          case Some(cluster) => cluster.services.exists(_.breed match {
-            case _: DefaultBreed => true
-            case _ => false
-          }) && cluster.services.find({
-            service => service.breed match {
-              case breed: DefaultBreed => breed.ports.exists(_.name.toString == port)
-              case _ => false
-            }
-          }).isEmpty
-        }
-      case _ => true
-    }).flatMap {
-      case (name, value) => error(UnresolvedEndpointPortError(name, value))
-    }
+//    blueprint.endpoints.find({ port =>
+    //      TraitReference.referenceFor(port.name) match {
+    //        case (Some(TraitReference(cluster, "ports", name)), _) =>
+    //          blueprint.clusters.find(_.name == cluster) match {
+    //            case None => true
+    //            case Some(c) => c.services.exists(_.breed match {
+    //              case _: DefaultBreed => true
+    //              case _ => false
+    //            }) && c.services.find({
+    //              service => service.breed match {
+    //                case breed: DefaultBreed => breed.ports.exists(_.name.toString == name)
+    //                case _ => false
+    //              }
+    //            }).isEmpty
+    //          }
+    //        case _ => true
+    //      }
+    //    }).flatMap {
+    //      case (port, value) => error(UnresolvedEndpointPortError(port, value))
+    //    }
   }
 
   protected def validateEnvironmentVariables(blueprint: DefaultBlueprint): Unit = {
-    blueprint.environmentVariables.find({
-      case (Trait.Name(Some(scope), Some(group), name), _) =>
-        blueprint.clusters.find(_.name == scope) match {
-          case None => true
-          case Some(cluster) => cluster.services.exists(_.breed match {
-            case _: DefaultBreed => true
-            case _ => false
-          }) && cluster.services.find({
-            service => service.breed match {
-              case breed: DefaultBreed => breed.inTraits.exists(_.name.toString == name)
-              case _ => false
-            }
-          }).isEmpty
-        }
-      case _ => true
-    }).flatMap {
-      case (name, value) => error(UnresolvedParameterError(name, value))
-    }
+    //    blueprint.environmentVariables.find({
+    //      case (Trait.Name(Some(scope), Some(group), name), _) =>
+    //        blueprint.clusters.find(_.name == scope) match {
+    //          case None => true
+    //          case Some(cluster) => cluster.services.exists(_.breed match {
+    //            case _: DefaultBreed => true
+    //            case _ => false
+    //          }) && cluster.services.find({
+    //            service => service.breed match {
+    //              case breed: DefaultBreed => breed.inTraits.exists(_.name.toString == name)
+    //              case _ => false
+    //            }
+    //          }).isEmpty
+    //        }
+    //      case _ => true
+    //    }).flatMap {
+    //      case (name, value) => error(UnresolvedParameterError(name, value))
+    //    }
   }
 
   protected def validateRoutingWeights(blueprint: DefaultBlueprint): Unit = {
@@ -169,23 +171,6 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
   private def parseService(implicit source: YamlObject): Service =
     Service(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReferenceOrAnonymous("scale"), RoutingReader.readOptionalReferenceOrAnonymous("routing"))
-
-  protected def traitNameMapping(path: YamlPath)(implicit source: YamlObject): Map[Trait.Name, String] = <<?[YamlObject](path) match {
-    case None => Map()
-    case Some(map) => map.map {
-      case (name: String, _) =>
-        implicit val source = map.asInstanceOf[YamlObject]
-        (Trait.Name.asName(name), <<![String](name))
-    } toMap
-  }
-
-  protected def endpoints(path: YamlPath)(implicit source: YamlObject): List[Port] = <<?[YamlObject](path) match {
-    case None => Nil
-    case Some(map) => map.map({
-      case (name: String, value) =>
-        Port.toPort(Trait.Name.asName(name), None, Some(value.toString), Trait.Direction.Out)
-    }).toList
-  }
 }
 
 object BlueprintReader extends AbstractBlueprintReader {
