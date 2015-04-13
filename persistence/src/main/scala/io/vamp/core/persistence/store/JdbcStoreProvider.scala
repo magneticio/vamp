@@ -12,6 +12,9 @@ import org.slf4j.LoggerFactory
 import scala.slick.jdbc.JdbcBackend
 import scala.slick.jdbc.JdbcBackend._
 
+case class JdbcStoreInfo(url: String, database: DatabaseInfo)
+
+case class DatabaseInfo(name: String, version: String)
 
 /**
  * JDBC storage of artifacts
@@ -35,6 +38,11 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     private val logger = Logger(LoggerFactory.getLogger(classOf[JdbcStoreProvider]))
 
     Components.instance.upgradeSchema
+
+    def info = JdbcStoreInfo(
+      sess.conn.getMetaData.getURL,
+      DatabaseInfo(sess.conn.getMetaData.getDatabaseProductName, sess.conn.getMetaData.getDatabaseProductVersion)
+    )
 
     def create(artifact: Artifact, ignoreIfExists: Boolean): Artifact = {
       read(artifact.name, artifact.getClass) match {

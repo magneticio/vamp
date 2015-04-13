@@ -4,6 +4,7 @@ import _root_.io.vamp.common.akka._
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.artifact._
 import io.vamp.core.router_driver.notification.{RouterDriverNotificationProvider, RouterResponseError, UnsupportedRouterDriverRequest}
 
@@ -41,6 +42,7 @@ class RouterDriverActor(driver: RouterDriver) extends Actor with ActorLogging wi
 
   def reply(request: Any) = try {
     request match {
+      case InfoRequest => offload(driver.info, classOf[RouterResponseError])
       case All => offload(driver.all, classOf[RouterResponseError])
       case Create(deployment, cluster, port, update) => offload(driver.create(deployment, cluster, port, update), classOf[RouterResponseError])
       case Remove(deployment, cluster, port) => offload(driver.remove(deployment, cluster, port), classOf[RouterResponseError])

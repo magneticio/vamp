@@ -9,7 +9,9 @@ import org.json4s.native.Serialization.write
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
+import scala.language.postfixOps
 
+case class InMemoryStoreInfo(artifacts: Map[String, Map[String, Any]])
 
 trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationProvider {
   this: ExecutionContextProvider =>
@@ -22,6 +24,10 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
   private class InMemoryStore extends Store {
 
     val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
+
+    def info = InMemoryStoreInfo(store.map {
+      case (key, value) => key -> Map[String, Any]("count" -> value.values.size)
+    } toMap)
 
     def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
       logger.trace(s"persistence all [${`type`.getSimpleName}]")

@@ -5,9 +5,12 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
-import io.vamp.common.jvm.JmxVitalsProvider
+import io.vamp.common.vitals.{InfoRequest, JmxVitalsProvider, JvmVitals}
 import io.vamp.core.container_driver.ContainerDriverActor
 import io.vamp.core.model.serialization.PrettyJson
+import io.vamp.core.persistence.actor.PersistenceActor
+import io.vamp.core.pulse_driver.PulseDriverActor
+import io.vamp.core.router_driver.RouterDriverActor
 import spray.http.StatusCodes._
 import spray.httpx.marshalling.Marshaller
 import spray.routing.HttpServiceBase
@@ -16,7 +19,9 @@ import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 import scala.util.Try
 
-case class HiMessage(message: String, info: Map[String, Any]) extends PrettyJson
+case class HiMessage(message: String, info: InfoMessage) extends PrettyJson
+
+case class InfoMessage(jvm: JvmVitals, persistence: Any, router: Any, pulse: Any, containerDriver: Any)
 
 trait HiRoute extends HttpServiceBase with JmxVitalsProvider with FutureSupport with ActorSupport {
   this: Actor with ExecutionContextProvider =>
@@ -27,7 +32,7 @@ trait HiRoute extends HttpServiceBase with JmxVitalsProvider with FutureSupport 
 
   private lazy val hiMessage = ConfigFactory.load().getString("vamp.core.hi-message")
 
-  val hiRoute = pathPrefix("hi") {
+  val hiRoute = (pathPrefix("hi") | pathPrefix("info")) {
     pathEndOrSingleSlash {
       get {
         onSuccess(info) { info =>
@@ -37,9 +42,12 @@ trait HiRoute extends HttpServiceBase with JmxVitalsProvider with FutureSupport 
     }
   }
 
-  def info: Future[Map[String, Any]] = vitals().map { vitals =>
-    val containerInfo = Try(offload(actorFor(ContainerDriverActor) ? ContainerDriverActor.Info)) getOrElse Map[String, Any]()
-    Map("vitals" -> vitals, "containerDriver" -> containerInfo)
+  def info: Future[InfoMessage] = vitals().map { vitals =>
+    InfoMessage(vitals,
+      Try(offload(actorFor(PersistenceActor) ? InfoRequest)) getOrElse Map[String, Any](),
+      Try(offload(actorFor(RouterDriverActor) ? InfoRequest)) getOrElse Map[String, Any](),
+      Try(offload(actorFor(PulseDriverActor) ? InfoRequest)) getOrElse Map[String, Any](),
+      Try(offload(actorFor(ContainerDriverActor) ? InfoRequest)) getOrElse Map[String, Any]()
+    )
   }
 }
-
