@@ -51,7 +51,9 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
             store.put(branch, map)
           case Some(map) => map.get(artifact.name) match {
             case None => map.put(artifact.name, artifact)
-            case Some(_) => if (!ignoreIfExists) error(ArtifactAlreadyExists(artifact.name, artifact.getClass))
+            case Some(_) =>
+              if (!ignoreIfExists) error(ArtifactAlreadyExists(artifact.name, artifact.getClass))
+              map.put(artifact.name, artifact)
           }
         }
         case None => error(UnsupportedPersistenceRequest(artifact.getClass))
