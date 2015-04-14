@@ -6,27 +6,35 @@ import org.json4s.JsonAST.JString
 import org.json4s._
 
 import scala.collection.mutable.ArrayBuffer
+import scala.language.postfixOps
 
 object BreedSerializationFormat extends io.vamp.common.json.SerializationFormat {
 
   override def customSerializers = super.customSerializers :+
-    new PortSerializer() :+
+    new BreedSerializer() :+
     new DeployableSerializer()
 
   override def fieldSerializers = super.fieldSerializers :+
     new BreedFieldSerializer()
 }
 
-class PortSerializer extends ArtifactSerializer[Port] {
+trait TraitDecomposer {
+  def traits(traits: List[Trait]) = new JObject(traits.map(t => t.name -> t.value.orNull).toMap.map {
+    case (name, null) => JField(name, JNull)
+    case (name, value) => JField(name, JString(value))
+  } toList)
+}
+
+class BreedSerializer extends ArtifactSerializer[DefaultBreed] with TraitDecomposer{
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case port: Port =>
+    case breed: DefaultBreed =>
       val list = new ArrayBuffer[JField]
-      list += JField("name", JString(port.name.toString))
-      port.alias match {
-        case None =>
-        case Some(a) => list += JField("alias", JString(a))
-      }
-      //list += JField("value", JString(port.value))
+      list += JField("name", JString(breed.name))
+      list += JField("deployable", Extraction.decompose(breed.deployable))
+      list += JField("ports", traits(breed.ports))
+      list += JField("environment_variables", traits(breed.environmentVariables))
+      list += JField("constants", traits(breed.constants))
+      list += JField("dependencies", Extraction.decompose(breed.dependencies))
       new JObject(list.toList)
   }
 }

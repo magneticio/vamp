@@ -67,7 +67,7 @@ trait YamlReader[T] extends ModelNotificationProvider {
   private def convert(any: Any): Any = any match {
     case source: java.util.Map[_, _] =>
       val map = new YamlObject()
-      source.entrySet().asScala.filter(entry => entry.getValue != null).foreach(entry => map += entry.getKey.toString -> convert(entry.getValue))
+      source.entrySet().asScala.foreach(entry => map += entry.getKey.toString -> convert(entry.getValue))
       map
     case source: java.util.List[_] => source.asScala.map(convert).toList
     case source => source
