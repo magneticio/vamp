@@ -281,16 +281,19 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
       val clusters = processedClusters.filter(_.state != Processed.RemoveFromPersistence).map(_.cluster)
 
-      //      val environmentVariables = (deployment.environmentVariables ++ processedClusters.filter(_.state == Processed.Persist).map(_.cluster).flatMap({ cluster =>
-      //        cluster.services.map(_.breed).flatMap(_.ports).map({ port =>
-      //          Trait.Name(Some(cluster.name), Some(Trait.Name.Group.Ports), port.name.value) -> cluster.routes.get(port.value.get).get
-      //        })
-      //      }).toMap).filter({
-      //        case (Trait.Name(Some(scope), _, _), _) => clusters.exists(_.name == scope)
-      //        case _ => true
-      //      })
+      val ports = (deployment.ports.map(p => p.name -> p).toMap ++ processedClusters.filter(_.state == Processed.Persist).map(_.cluster).flatMap({ cluster =>
+        cluster.services.map(_.breed).flatMap(_.ports).map({ port =>
+          Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, Some(cluster.routes.get(port.number).toString))
+        })
+      }).map(p => p.name -> p).toMap).filter({
+        case (name, port) => TraitReference.referenceFor(name) match {
+          case Some(TraitReference(c, _, _)) => clusters.exists(_.name == c)
+          case _ => false
+        }
+        case _ => true
+      })
 
-      val d = updateEndpoints(routes)(deployment.copy(clusters = clusters)) //, environmentVariables = environmentVariables))
+      val d = updateEndpoints(routes)(deployment.copy(clusters = clusters, ports = ports.values.toList))
 
       if (d.clusters.isEmpty)
         actorFor(PersistenceActor) ! PersistenceActor.Delete(d.name, classOf[Deployment])

@@ -24,7 +24,7 @@ trait DeploymentState {
   def state: DeploymentService.State
 }
 
-case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints: List[Port], environmentVariables: List[EnvironmentVariable], hosts: List[Host]) extends AbstractBlueprint
+case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints: List[Port], ports: List[Port], environmentVariables: List[EnvironmentVariable], constants: List[Constant], hosts: List[Host]) extends AbstractBlueprint
 
 case class DeploymentCluster(name: String, services: List[DeploymentService], sla: Option[Sla], routes: Map[Int, Int] = Map()) extends AbstractCluster
 
@@ -32,6 +32,9 @@ case class DeploymentService(state: DeploymentService.State, breed: DefaultBreed
 
 case class DeploymentServer(name: String, host: String, ports: Map[Int, Int], deployed: Boolean) extends Artifact
 
+object Host {
+  val host = "host"
+}
 
 case class Host(name: String, value: Option[String]) extends Trait {
   def alias = None

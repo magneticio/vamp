@@ -23,6 +23,7 @@ class DeploymentSerializer extends ArtifactSerializer[Deployment] with TraitDeco
       list += JField("name", JString(deployment.name))
       list += JField("endpoints", traits(deployment.endpoints))
       list += JField("clusters", Extraction.decompose(deployment.clusters.map(cluster => cluster.name -> cluster).toMap))
+      list += JField("ports", traits(deployment.ports))
       list += JField("environment_variables", traits(deployment.environmentVariables))
       list += JField("hosts", traits(deployment.hosts))
       new JObject(list.toList)
