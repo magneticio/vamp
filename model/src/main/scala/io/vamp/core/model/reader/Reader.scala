@@ -212,9 +212,9 @@ trait TraitReader[T] {
     source match {
       case None => List[A]()
       case Some(map: YamlObject) => map.map {
+        case (name, value) if value.isInstanceOf[collection.Map[_, _]] || value.isInstanceOf[List[_]] => error(MalformedTraitError(name))
         case (name, value) if value == null => mapper(name, None, None)
-        case (name, value: String) => mapper(name, None, Some(value))
-        case (name, _) => error(MalformedTraitError(name))
+        case (name, value) => mapper(name, None, Some(value.toString))
       } toList
     }
   }
