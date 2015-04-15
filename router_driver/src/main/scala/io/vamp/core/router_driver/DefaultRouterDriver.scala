@@ -100,7 +100,10 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
     TraitReference.referenceFor(port.name) match {
       case Some(TraitReference(cluster, _, name)) =>
         (for {
-          h <- deployment.hosts.find(host => host.name == cluster)
+          h <- deployment.hosts.find(host => TraitReference.referenceFor(host.name) match {
+            case Some(TraitReference(c, _, _)) if c == cluster => true
+            case _ => false
+          })
           p <- deployment.ports.find(_.name == port.name)
         } yield (h, p) match {
             case (host, routePort) =>

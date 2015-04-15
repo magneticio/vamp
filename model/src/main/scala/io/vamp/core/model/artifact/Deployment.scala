@@ -24,7 +24,9 @@ trait DeploymentState {
   def state: DeploymentService.State
 }
 
-case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints: List[Port], ports: List[Port], environmentVariables: List[EnvironmentVariable], constants: List[Constant], hosts: List[Host]) extends AbstractBlueprint
+case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints: List[Port], ports: List[Port], environmentVariables: List[EnvironmentVariable], constants: List[Constant], hosts: List[Host]) extends AbstractBlueprint {
+  lazy val traits = ports ++ environmentVariables ++ constants ++ hosts
+}
 
 case class DeploymentCluster(name: String, services: List[DeploymentService], sla: Option[Sla], routes: Map[Int, Int] = Map()) extends AbstractCluster
 
@@ -38,4 +40,23 @@ object Host {
 
 case class Host(name: String, value: Option[String]) extends Trait {
   def alias = None
+}
+
+object HostReference {
+
+  val delimiter = TraitReference.delimiter
+
+  def referenceFor(reference: String): Option[HostReference] = reference.indexOf(delimiter) match {
+    case -1 => None
+    case clusterIndex =>
+      val cluster = reference.substring(0, clusterIndex)
+      val name = reference.substring(clusterIndex + 1)
+      if (name == Host.host) Some(HostReference(cluster)) else None
+  }
+}
+
+case class HostReference(cluster: String) {
+  def asTraitReference = TraitReference(cluster, TraitReference.Hosts, Host.host).toString
+
+  override def toString = s"$cluster.${Host.host}"
 }

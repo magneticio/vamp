@@ -3,8 +3,6 @@ package io.vamp.core.operation.deployment
 import java.util.UUID
 
 import _root_.io.vamp.common.akka._
-import _root_.io.vamp.core.dictionary.DictionaryActor
-import _root_.io.vamp.core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import _root_.io.vamp.core.model.artifact._
 import _root_.io.vamp.core.operation.deployment.DeploymentActor.{Create, DeploymentMessages, Merge, Slice}
 import _root_.io.vamp.core.operation.deployment.DeploymentSynchronizationActor.Synchronize
@@ -12,8 +10,11 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.notification.NotificationProvider
+import io.vamp.core.dictionary.DictionaryActor
+import io.vamp.core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import io.vamp.core.model.notification._
 import io.vamp.core.model.reader.{BlueprintReader, BreedReader}
+import io.vamp.core.model.resolver.TraitValueResolver
 import io.vamp.core.operation.notification._
 import io.vamp.core.persistence.actor.{ArtifactSupport, PersistenceActor}
 import io.vamp.core.persistence.notification.PersistenceOperationFailure
@@ -148,7 +149,7 @@ trait DeploymentValidator {
   }
 }
 
-trait DeploymentMerger extends DeploymentValidator {
+trait DeploymentMerger extends DeploymentValidator with TraitValueResolver {
   this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
   def commit(create: Boolean): (Deployment => Deployment)
@@ -159,7 +160,7 @@ trait DeploymentMerger extends DeploymentValidator {
     deployment
   }
 
-  def resolveProperties = resolveParameters andThen resolveRouteMapping andThen resolveGlobalVariables andThen resolveDependencyMapping
+  def resolveProperties = resolveParameters andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
 
   def validateMerge = validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations
 
@@ -274,7 +275,7 @@ trait DeploymentMerger extends DeploymentValidator {
       })
     }).toMap ++ deployment.constants.map(constant => constant.name -> constant).toMap
 
-    val hosts = deployment.clusters.map(cluster => Host(cluster.name, Some(host)))
+    val hosts = deployment.clusters.map(cluster => Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(host)))
 
     deployment.copy(environmentVariables = environmentVariables.values.toList, constants = constants.values.toList, hosts = hosts)
   }
@@ -294,33 +295,22 @@ trait DeploymentMerger extends DeploymentValidator {
     }))
   }
 
-  def resolveGlobalVariables: (Deployment => Deployment) = { (deployment: Deployment) =>
-    //    def copyEnvironmentVariable(breed: Breed, ev: EnvironmentVariable, targetScope: String, dependencyScope: String) = {
-    //      ev.name.copy(scope = Some(targetScope), group = Some(Trait.Name.Group.EnvironmentVariables)) -> (deployment.environmentVariables.find({
-    //        case (Trait.Name(Some(scope), Some(_), value), _) if scope == dependencyScope && value == ev.name.value => true
-    //        case (Trait.Name(Some(scope), None, value), _) if scope == dependencyScope && value == ev.name.value && value == Trait.host => true
-    //        case _ => false
-    //      }) match {
-    //        case None => ev.value.getOrElse(error(UnresolvedVariableValueError(breed, ev.name)))
-    //        case Some(parameter) => parameter._2
-    //      })
-    //    }
-    //
-    //    val environmentVariables = deployment.clusters.flatMap({ cluster =>
-    //      cluster.services.flatMap(service => service.breed.environmentVariables.filter(_.value.isDefined))
-    //    }).map(ev => ev.name -> ev).toMap ++ deployment.environmentVariables.map(ev => ev.name -> ev).toMap
-    //
-    //
-    //
-    //    deployment.clusters.flatMap(cluster => cluster.services.map(_.breed).flatMap({ breed =>
-    //    breed.environmentVariables.filter(ev => ev.value.isEmpty).flatMap({ ev => TraitReference.referenceFor()
-    //      ev.name.scope match {
-    //        case None => copyEnvironmentVariable(breed, ev, cluster.name, cluster.name) :: Nil
-    //        case _ => Nil
-    //      }
-    //    })}))
-    //
-    //    deployment.copy(environmentVariables = environmentVariables.values.toList)
+  def validateEmptyVariables: (Deployment => Deployment) = { (deployment: Deployment) =>
+
+    deployment.clusters.flatMap({ cluster =>
+      cluster.services.flatMap(service => {
+        service.breed.ports.filter(_.value.isEmpty).map(port => {
+          val name = TraitReference(cluster.name, TraitReference.Ports, port.name).toString
+          deployment.environmentVariables.find(_.name == name).getOrElse(error(UnresolvedVariableValueError(service.breed, port.name)))
+        })
+
+        service.breed.environmentVariables.filter(_.value.isEmpty).map(environmentVariable => {
+          val name = TraitReference(cluster.name, TraitReference.Ports, environmentVariable.name).toString
+          deployment.environmentVariables.find(_.name == name).getOrElse(error(UnresolvedVariableValueError(service.breed, environmentVariable.name)))
+        })
+      })
+    })
+
     deployment
   }
 
