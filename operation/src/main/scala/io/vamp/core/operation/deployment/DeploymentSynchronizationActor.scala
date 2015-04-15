@@ -134,7 +134,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
   private def readyForDeployment(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], clusterRoutes: List[ClusterRoute]): ProcessedService = {
     def convert(server: ContainerServer): DeploymentServer = {
       val ports = for {
-        dp <- deploymentService.breed.ports.map(_.value.get.toInt)
+        dp <- deploymentService.breed.ports.map(_.number)
         sp <- server.ports
       } yield (dp, sp)
       DeploymentServer(server.id, server.host, ports.toMap, server.deployed)

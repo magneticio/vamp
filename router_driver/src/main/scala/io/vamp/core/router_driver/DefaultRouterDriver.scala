@@ -62,8 +62,8 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   }
 
   private def route(name: String, deployment: Deployment, cluster: Option[DeploymentCluster], port: Port) = cluster match {
-    case None => Route(name, port.value.get.toInt, if (port.`type` == Port.Http) "http" else "tcp", filters(cluster), None, None, services(deployment, None, port))
-    case Some(c) => Route(name, c.routes.get(port.value.get.toInt).get, if (port.`type` == Port.Http) "http" else "tcp", filters(cluster), None, None, services(deployment, cluster, port))
+    case None => Route(name, port.number, if (port.`type` == Port.Http) "http" else "tcp", filters(cluster), None, None, services(deployment, None, port))
+    case Some(c) => Route(name, c.routes.get(port.number).get, if (port.`type` == Port.Http) "http" else "tcp", filters(cluster), None, None, services(deployment, cluster, port))
   }
 
   private def filters(cluster: Option[DeploymentCluster]): List[Filter] = {
@@ -94,11 +94,11 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   }
 
   private def server(service: DeploymentService, server: DeploymentServer, port: Port) =
-    Server(artifactName2Id(server), server.host, server.ports.get(port.value.get.toInt).get)
+    Server(artifactName2Id(server), server.host, server.ports.get(port.number).get)
 
   private def servers(deployment: Deployment, port: Port): List[Server] = {
     TraitReference.referenceFor(port.name) match {
-      case Some(TraitReference(cluster, _, name)) => Nil
+      case Some(TraitReference(cluster, _, name)) =>
         (for {
           h <- deployment.hosts.find(host => host.name == cluster)
           p <- deployment.ports.find(_.name == port.name)
@@ -108,7 +108,7 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
                 case None => Nil
                 case Some(c) =>
                   c.routes.map(_._2).find(_ == routePort.number) match {
-                    case Some(_) => Server(string2Id(s"${deployment.name}_${port.value.get}"), host.value.get, routePort.number) :: Nil
+                    case Some(_) => Server(string2Id(s"${deployment.name}_${port.number}"), host.value.get, routePort.number) :: Nil
                     case _ => Nil
                   }
               }
@@ -133,10 +133,10 @@ trait DefaultRouterDriverNameMatcher {
   val idMatcher = """^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]{3,64}$""".r
 
   def clusterRouteName(deployment: Deployment, cluster: DeploymentCluster, port: Port): String =
-    s"${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(cluster)}$nameDelimiter${port.value.get}"
+    s"${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(cluster)}$nameDelimiter${port.number}"
 
   def endpointRouteName(deployment: Deployment, port: Port): String =
-    s"${artifactName2Id(deployment)}$nameDelimiter${port.value.get}"
+    s"${artifactName2Id(deployment)}$nameDelimiter${port.number}"
 
   def artifactName2Id(artifact: Artifact) = string2Id(artifact.name)
 
