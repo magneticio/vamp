@@ -19,13 +19,22 @@ object BreedSerializationFormat extends io.vamp.common.json.SerializationFormat 
 }
 
 trait TraitDecomposer {
-  def traits(traits: List[Trait]) = new JObject(traits.map(t => t.name -> t.value.orNull).toMap.map {
-    case (name, null) => JField(name, JNull)
-    case (name, value) => JField(name, JString(value))
-  } toList)
+
+  def traits(traits: List[Trait]) = {
+    def traitName(name: String) = TraitReference.referenceFor(name) match {
+      case Some(TraitReference(c, g, Host.host)) if g == TraitReference.groupFor(TraitReference.Hosts) => c
+      case Some(TraitReference(c, g, n)) => s"$c${TraitReference.delimiter}$n"
+      case None => name
+    }
+
+    new JObject(traits.map(t => t.name -> t.value.orNull).toMap.map {
+      case (name, null) => JField(traitName(name), JNull)
+      case (name, value) => JField(traitName(name), JString(value))
+    } toList)
+  }
 }
 
-class BreedSerializer extends ArtifactSerializer[DefaultBreed] with TraitDecomposer{
+class BreedSerializer extends ArtifactSerializer[DefaultBreed] with TraitDecomposer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case breed: DefaultBreed =>
       val list = new ArrayBuffer[JField]
