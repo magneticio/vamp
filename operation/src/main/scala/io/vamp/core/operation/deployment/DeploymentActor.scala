@@ -260,19 +260,23 @@ trait DeploymentMerger extends DeploymentValidator {
       case e => error(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
     }
 
-    val ports = deployment.clusters.flatMap({ cluster =>
-      cluster.services.flatMap(service => service.breed.ports.filter(_.value.isDefined))
-    }).map(port => port.name -> port).toMap ++ deployment.ports.map(port => port.name -> port).toMap
-
     val environmentVariables = deployment.clusters.flatMap({ cluster =>
-      cluster.services.flatMap(service => service.breed.environmentVariables.filter(_.value.isDefined))
-    }).map(ev => ev.name -> ev).toMap ++ deployment.environmentVariables.map(ev => ev.name -> ev).toMap
+      cluster.services.flatMap(service => service.breed.environmentVariables.filter(_.value.isDefined)).map(ev => {
+        val name = TraitReference(cluster.name, TraitReference.EnvironmentVariables, ev.name).toString
+        name -> ev.copy(name = name)
+      })
+    }).toMap ++ deployment.environmentVariables.map(ev => ev.name -> ev).toMap
 
     val constants = deployment.clusters.flatMap({ cluster =>
-      cluster.services.flatMap(service => service.breed.constants.filter(_.value.isDefined))
-    }).map(c => c.name -> c).toMap ++ deployment.constants.map(c => c.name -> c).toMap
+      cluster.services.flatMap(service => service.breed.constants.filter(_.value.isDefined)).map(constant => {
+        val name = TraitReference(cluster.name, TraitReference.Constants, constant.name).toString
+        name -> constant.copy(name = name)
+      })
+    }).toMap ++ deployment.constants.map(constant => constant.name -> constant).toMap
 
-    deployment.copy(ports = ports.values.toList, environmentVariables = environmentVariables.values.toList, constants = constants.values.toList, hosts = deployment.clusters.map(cluster => Host(cluster.name, Some(host))))
+    val hosts = deployment.clusters.map(cluster => Host(cluster.name, Some(host)))
+
+    deployment.copy(environmentVariables = environmentVariables.values.toList, constants = constants.values.toList, hosts = hosts)
   }
 
   def resolveRouteMapping: (Deployment => Deployment) = { (deployment: Deployment) =>

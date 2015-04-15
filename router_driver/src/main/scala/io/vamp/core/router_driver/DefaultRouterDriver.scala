@@ -8,6 +8,7 @@ import io.vamp.core.router_driver
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.postfixOps
 
 class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDriver with DefaultRouterDriverNameMatcher {
   protected implicit val executionContext = ec
@@ -96,27 +97,25 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
     Server(artifactName2Id(server), server.host, server.ports.get(port.value.get.toInt).get)
 
   private def servers(deployment: Deployment, port: Port): List[Server] = {
-//    val list = for {
-//      h <- deployment.hosts.find(host => port.name == TraitReference.referenceFor(host.name).toString)
-//      p <- deployment.environmentVariables.find({
-//        case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == port.name.scope.get && value == port.name.value => true
-//        case _ => false
-//      })
-//    } yield (h, p) match {
-//        case ((_, host: String), (_, routePort: Int)) =>
-//          deployment.clusters.find(_.name == port.name.scope.get) match {
-//            case None => Nil
-//            case Some(cluster) =>
-//              cluster.routes.map(_._2).find(_ == routePort) match {
-//                case Some(_) => Server(string2Id(s"${deployment.name}_${port.value.get}"), host, routePort) :: Nil
-//                case _ => Nil
-//              }
-//          }
-//        case _ => Nil
-//      }
-//    list.getOrElse(Nil)
-
-    Nil
+    TraitReference.referenceFor(port.name) match {
+      case Some(TraitReference(cluster, _, name)) => Nil
+        (for {
+          h <- deployment.hosts.find(host => host.name == cluster)
+          p <- deployment.ports.find(_.name == port.name)
+        } yield (h, p) match {
+            case (host, routePort) =>
+              deployment.clusters.find(_.name == cluster) match {
+                case None => Nil
+                case Some(c) =>
+                  c.routes.map(_._2).find(_ == routePort.number) match {
+                    case Some(_) => Server(string2Id(s"${deployment.name}_${port.value.get}"), host.value.get, routePort.number) :: Nil
+                    case _ => Nil
+                  }
+              }
+            case _ => Nil
+          }) getOrElse Nil
+      case _ => Nil
+    }
   }
 
   private def processableClusterRoute(name: String): Boolean = name.split(nameDelimiter).size == 3

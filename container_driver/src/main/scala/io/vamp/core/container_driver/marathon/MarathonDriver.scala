@@ -42,8 +42,13 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
       RestClient.request[Any](s"POST $url/v2/apps", app)
   }
 
-  private def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[CreatePortMapping] =
-    service.breed.ports.map(port => CreatePortMapping(deployment.ports.find(p => TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number))
+  private def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[CreatePortMapping] = {
+    service.breed.ports.map(port =>
+      port.value match {
+        case Some(_) => CreatePortMapping(port.number)
+        case None => CreatePortMapping(deployment.ports.find(p => TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
+      })
+  }
 
   private def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] =
     service.breed.environmentVariables.map(ev => ev.name -> deployment.environmentVariables.find(e => TraitReference(cluster.name, TraitReference.EnvironmentVariables, ev.name).toString == e.name).get.value.get).toMap

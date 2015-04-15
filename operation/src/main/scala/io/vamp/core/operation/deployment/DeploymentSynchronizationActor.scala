@@ -283,7 +283,7 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
 
       val ports = (deployment.ports.map(p => p.name -> p).toMap ++ processedClusters.filter(_.state == Processed.Persist).map(_.cluster).flatMap({ cluster =>
         cluster.services.map(_.breed).flatMap(_.ports).map({ port =>
-          Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, Some(cluster.routes.get(port.number).toString))
+          Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.routes.get(port.number).flatMap(n => Some(n.toString)))
         })
       }).map(p => p.name -> p).toMap).filter({
         case (name, port) => TraitReference.referenceFor(name) match {
@@ -299,37 +299,33 @@ class DeploymentSynchronizationActor extends Actor with ActorLogging with ActorS
         actorFor(PersistenceActor) ! PersistenceActor.Delete(d.name, classOf[Deployment])
       else
         actorFor(PersistenceActor) ! PersistenceActor.Update(d)
+    } else {
+      // TODO clean up this if/else.
+      updateEndpoints(routes)(deployment)
     }
   }
 
   private def updateEndpoints(routes: List[EndpointRoute]): (Deployment => Deployment) = { deployment: Deployment =>
-    //    def process(port: Port): Boolean = {
-    //      (deployment.clusters.find(_.name == port.name.scope.get), routes.find(_.matching(deployment, port))) match {
-    //        case (None, Some(_)) =>
-    //          actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port)
-    //          false
-    //
-    //        case (Some(cluster), None) =>
-    //          actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false)
-    //          true
-    //
-    //        case (Some(cluster), Some(route)) if route.services.flatMap(_.servers).count(_ => true) == 0 =>
-    //          actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = true)
-    //          true
-    //
-    //        case _ => true
-    //      }
-    //    }
-    //
-    //    deployment.copy(endpoints = deployment.endpoints.filter({ port => {
-    //      port match {
-    //        case TcpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port)
-    //        case HttpPort(Trait.Name(Some(scope), Some(group), value), None, Some(number), Trait.Direction.Out) => process(port)
-    //        case _ => false
-    //      }
-    //    }
-    //    }))
+    deployment.copy(endpoints = deployment.endpoints.filter { port =>
+      TraitReference.referenceFor(port.name) match {
+        case Some(TraitReference(cluster, _, _)) =>
+          (deployment.clusters.find(_.name == cluster), routes.find(_.matching(deployment, port))) match {
+            case (None, Some(_)) =>
+              actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port)
+              false
 
-    deployment
+            case (Some(_), None) =>
+              actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false)
+              true
+
+            case (Some(_), Some(route)) if route.services.flatMap(_.servers).count(_ => true) == 0 =>
+              actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = true)
+              true
+
+            case _ => true
+          }
+        case _ => false
+      }
+    })
   }
 }

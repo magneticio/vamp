@@ -156,7 +156,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
         case deployments: List[_] =>
           deployments.asInstanceOf[List[Deployment]].map({ deployment =>
             deployment.clusters.filter(cluster => cluster.services.exists(!_.state.isInstanceOf[Deployed])).count(_ => true)
-          }).reduceOption(_ max _).foreach(max => sync(Some(max * 3)))
+          }).reduceOption(_ max _).foreach(max => sync(Some(max * 3 + 1)))
         case any => error(InternalServerError(any))
       }
   }
