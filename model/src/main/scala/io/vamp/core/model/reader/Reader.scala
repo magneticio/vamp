@@ -95,6 +95,7 @@ trait YamlReader[T] extends ModelNotificationProvider {
   protected def <<?[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): Option[V] = path match {
     case last :: Nil => source.get(last) match {
       case None => None
+      case Some(null) => None
       case Some(value: V) => Some(value.asInstanceOf[V])
       // if V == Double, conversion from Int to Double if Double is expected and Int provided.
       case Some(value: Int) if classTag[V].runtimeClass == classOf[Double] => Some(value.toDouble.asInstanceOf[V])

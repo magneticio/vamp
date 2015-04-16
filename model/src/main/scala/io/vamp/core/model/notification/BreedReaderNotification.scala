@@ -10,3 +10,5 @@ case class MissingPortValueError(breed: Breed, port: Port) extends Notification
 case class MissingConstantValueError(breed: Breed, constant: Constant) extends Notification
 
 case class RecursiveDependenciesError(breed: Breed) extends Notification
+
+case class UnresolvedDependencyInTraitValueError(breed: Breed, reference: String) extends Notification

@@ -61,8 +61,16 @@ object TraitReference extends Enumeration {
   }
 }
 
-case class TraitReference(cluster: String, group: String, name: String) {
-  override def toString = s"$cluster.$group.$name"
+trait ValueReference {
+  def cluster: String
+
+  def reference: String
+
+  override def toString = reference
+}
+
+case class TraitReference(cluster: String, group: String, name: String) extends ValueReference {
+  lazy val reference = s"$cluster.$group.$name"
 }
 
 

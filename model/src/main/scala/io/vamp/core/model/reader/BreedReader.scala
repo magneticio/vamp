@@ -2,10 +2,11 @@ package io.vamp.core.model.reader
 
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification._
+import io.vamp.core.model.validator.TraitValueValidator
 
 import scala.language.postfixOps
 
-object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader[Breed] {
+object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader[Breed] with TraitValueValidator {
 
   override def readReference(any: Any): Breed = any match {
     case reference: String => BreedReference(reference)
@@ -56,6 +57,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
       breed.ports.find(_.value.isEmpty).flatMap(port => error(MissingPortValueError(breed, port)))
       breed.constants.find(_.value.isEmpty).flatMap(constant => error(MissingConstantValueError(breed, constant)))
 
+      validateBreedTraitValues(breed)
       validateNonRecursiveDependencies(breed)
 
       breed

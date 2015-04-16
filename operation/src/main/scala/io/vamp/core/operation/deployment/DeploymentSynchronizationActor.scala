@@ -11,7 +11,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.core.container_driver.{ContainerDriverActor, ContainerServer, ContainerService}
 import io.vamp.core.model.artifact.DeploymentService._
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.resolver.TraitValueResolver
+import io.vamp.core.model.resolver.DeploymentTraitValueResolver
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import io.vamp.core.operation.notification.{DeploymentServiceError, InternalServerError, OperationNotificationProvider}
 import io.vamp.core.persistence.actor.PersistenceActor
@@ -40,7 +40,7 @@ object DeploymentSynchronizationActor extends ActorDescription {
 
 }
 
-class DeploymentSynchronizationActor extends Actor with TraitValueResolver with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with OperationNotificationProvider {
+class DeploymentSynchronizationActor extends Actor with DeploymentTraitValueResolver with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with OperationNotificationProvider {
 
   private object Processed {
 

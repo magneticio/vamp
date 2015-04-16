@@ -1,6 +1,5 @@
 name: monarch
 deployable: magneticio/monarch:latest
 
-ports:
-  port: 80/http
-  port: 8080/http
+constants:
+  port: ~

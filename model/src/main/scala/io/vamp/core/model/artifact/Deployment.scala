@@ -55,8 +55,8 @@ object HostReference {
   }
 }
 
-case class HostReference(cluster: String) {
+case class HostReference(cluster: String) extends ValueReference {
   def asTraitReference = TraitReference(cluster, TraitReference.Hosts, Host.host).toString
 
-  override def toString = s"$cluster.${Host.host}"
+  lazy val reference = s"$cluster.${Host.host}"
 }

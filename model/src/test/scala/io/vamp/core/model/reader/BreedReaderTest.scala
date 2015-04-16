@@ -12,7 +12,6 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed/breed1.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List()),
       'ports(List()),
       'environmentVariables(List()),
       'dependencies(Map())
@@ -23,7 +22,7 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed/breed2.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'ports(List(Port("port", None, Some("8080")))),
+      'ports(List(Port("port", None, Some("8080/http")))),
       'environmentVariables(List()),
       'dependencies(Map())
     )
@@ -33,8 +32,8 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed/breed3.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'ports(List(Port("port", None, Some("8080")))),
-      'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None), EnvironmentVariable("db.ports.port", Some("DB_PORT"), None))),
+      'ports(List(Port("port", None, Some("8080/http")))),
+      'environmentVariables(List(EnvironmentVariable("DB_HOST", None, Some("$db.host")), EnvironmentVariable("DB_PORT", None, Some("$db.ports.port")))),
       'dependencies(Map("db" -> BreedReference("mysql")))
     )
   }
@@ -43,8 +42,8 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed/breed4.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'ports(List(Port("port", None, Some("8080")))),
-      'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None))),
+      'ports(List(Port("port", None, Some("8080/http")))),
+      'environmentVariables(List(EnvironmentVariable("DB_HOST", None, Some("$db.host")))),
       'dependencies(Map("db" -> BreedReference("mysql")))
     )
   }
@@ -53,7 +52,6 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed/breed5.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List()),
       'ports(List()),
       'environmentVariables(List()),
       'dependencies(Map("db" -> BreedReference("mysql")))
@@ -64,7 +62,6 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed/breed6.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List()),
       'ports(List()),
       'environmentVariables(List()),
       'dependencies(Map("db" -> BreedReference("mysql")))
@@ -75,7 +72,6 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed/breed7.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List()),
       'ports(List()),
       'environmentVariables(List()),
       'dependencies(Map("db" -> DefaultBreed("mysql", Deployable("magneticio/mysql:latest"), Nil, Nil, Nil, Map())))
@@ -86,7 +82,6 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed/breed8.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'traits(List()),
       'ports(List()),
       'environmentVariables(List()),
       'dependencies(Map("db" -> DefaultBreed("mysql", Deployable("magneticio/mysql:latest"), Nil, Nil, Nil, Map())))
@@ -97,9 +92,9 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed/breed9.yml")) should have(
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
-      'ports(List(Port("port", None, Some("8080")))),
-      'environmentVariables(List(EnvironmentVariable("db.host", Some("DB_HOST"), None), EnvironmentVariable("db.ports.port", Some("DB_PORT"), None))),
-      'dependencies(Map("db" -> DefaultBreed("mysql-wrapper", Deployable("magneticio/mysql-wrapper:latest"), List(Port("port", None, Some("3006"))), Nil, Nil, Map("mysql" -> BreedReference("mysql")))))
+      'ports(List(Port("port", None, Some("8080/tcp")))),
+      'environmentVariables(List(EnvironmentVariable("DB_HOST", None, Some("$db.host")), EnvironmentVariable("DB_PORT", None, Some("$db.ports.port")))),
+      'dependencies(Map("db" -> DefaultBreed("mysql-wrapper", Deployable("magneticio/mysql-wrapper:latest"), List(Port("port", None, Some("3006/tcp"))), Nil, Nil, Map("mysql" -> BreedReference("mysql")))))
     )
   }
 
@@ -120,65 +115,68 @@ class BreedReaderTest extends ReaderTest {
     )
   }
 
-  //  it should "fail on missing environment variable values" in {
-  //    expectedError[MissingEnvironmentVariableValueError]({
-  //      BreedReader.read(res("breed/breed12.yml"))
-  //    }) should have(
-  //      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(), List(EnvironmentVariable("port", None, None, Trait.Direction.Out)), Map())),
-  //      'environmentVariable(EnvironmentVariable("port", None, None, Trait.Direction.Out))
-  //    )
-  //  }
+  it should "not fail on missing environment variable values" in {
+    BreedReader.read(res("breed/breed12.yml")) should have(
+      'name("monarch"),
+      'deployable(Deployable("magneticio/monarch:latest")),
+      'ports(List()),
+      'environmentVariables(List(EnvironmentVariable("port", None, None))),
+      'dependencies(Map())
+    )
+  }
 
-  //  it should "fail on non unique port name" in {
-  //    expectedError[NonUniquePortNameError]({
-  //      BreedReader.read(res("breed/breed13.yml"))
-  //    }) should have(
-  //      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(HttpPort("port", None, Some(80), Trait.Direction.Out), HttpPort("port", None, Some(8080), Trait.Direction.Out)), List(), Map())),
-  //      'port(HttpPort("port", None, Some(80), Trait.Direction.Out))
-  //    )
-  //  }
+  it should "not fail on non unique port name but should get the last one only" in {
+    BreedReader.read(res("breed/breed13.yml")) should have(
+      'name("monarch"),
+      'deployable(Deployable("magneticio/monarch:latest")),
+      'ports(List(Port("port", None, Some("8080/http")))),
+      'environmentVariables(List()),
+      'dependencies(Map())
+    )
+  }
 
-  //  it should "fail on non unique environment variable name" in {
-  //    expectedError[NonUniqueEnvironmentVariableNameError]({
-  //      BreedReader.read(res("breed/breed14.yml"))
-  //    }) should have(
-  //      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(), List(EnvironmentVariable("port", None, Some("80/http"), Trait.Direction.Out), EnvironmentVariable("port", None, Some("8080/http"), Trait.Direction.Out)), Map())),
-  //      'environmentVariable(EnvironmentVariable("port", None, Some("80/http"), Trait.Direction.Out))
-  //    )
-  //  }
-  //
-  //  it should "fail on unresolved dependency reference" in {
-  //    expectedError[UnresolvedDependencyForTraitError]({
-  //      BreedReader.read(res("breed/breed15.yml"))
-  //    }) should have(
-  //      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(), List(EnvironmentVariable("es.ports.port", None, None, Trait.Direction.In)), Map("db" -> BreedReference("mysql")))),
-  //      'name(Trait.Name.asName("es.ports.port"))
-  //    )
-  //  }
+  it should "not fail on non unique environment variable name but should get the last one only" in {
+    BreedReader.read(res("breed/breed14.yml")) should have(
+      'name("monarch"),
+      'deployable(Deployable("magneticio/monarch:latest")),
+      'ports(List()),
+      'environmentVariables(List(EnvironmentVariable("port", None, Some("8080/http")))),
+      'dependencies(Map())
+    )
+  }
 
-  //  it should "fail on missing dependency environment variable" in {
-  //    expectedError[UnresolvedDependencyForTraitError]({
-  //      BreedReader.read(res("breed/breed16.yml"))
-  //    }) should have(
-  //      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(), List(EnvironmentVariable("db.ports.web", None, None, Trait.Direction.In)), Map("db" -> DefaultBreed("mysql", Deployable("vamp/mysql"), List(), List(), Map())))),
-  //      'name(Trait.Name.asName("db.ports.web"))
-  //    )
-  //  }
-  //
-  //  it should "fail on missing dependency port" in {
-  //    expectedError[UnresolvedDependencyForTraitError]({
-  //      BreedReader.read(res("breed/breed17.yml"))
-  //    }) should have(
-  //      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(TcpPort("db.ports.web", None, None, Trait.Direction.In)), List(), Map("db" -> DefaultBreed("mysql", Deployable("vamp/mysql"), List(), List(), Map())))),
-  //      'name(Trait.Name.asName("db.ports.web"))
-  //    )
-  //  }
+  it should "fail on unresolved dependency reference" in {
+    expectedError[UnresolvedDependencyInTraitValueError]({
+      BreedReader.read(res("breed/breed15.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), Nil, List(EnvironmentVariable("port", None, Some("$es.ports.port"))), Nil, Map("db" -> BreedReference("mysql")))),
+      'reference("es.ports.port")
+    )
+  }
+
+  it should "fail on missing dependency environment variable" in {
+    expectedError[UnresolvedDependencyInTraitValueError]({
+      BreedReader.read(res("breed/breed16.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), Nil, List(EnvironmentVariable("port", None, Some("$db.ports.web"))), Nil, Map("db" -> DefaultBreed("mysql", Deployable("vamp/mysql"), Nil, Nil, Nil, Map())))),
+      'reference("db.ports.web")
+    )
+  }
+
+  it should "fail on missing dependency port" in {
+    expectedError[UnresolvedDependencyInTraitValueError]({
+      BreedReader.read(res("breed/breed17.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(Port("port", None, Some("$db.ports.web"))), Nil, Nil, Map("db" -> DefaultBreed("mysql", Deployable("vamp/mysql"), Nil, Nil, Nil, Map())))),
+      'reference("db.ports.web")
+    )
+  }
 
   it should "fail on direct recursive dependency" in {
     expectedError[RecursiveDependenciesError]({
       BreedReader.read(res("breed/breed18.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(Port("db.ports.web", None, None)), Nil, Nil, Map("db" -> BreedReference("monarch"))))
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(Port("port", None, Some("$db.ports.web"))), Nil, Nil, Map("db" -> BreedReference("monarch"))))
     )
   }
 
@@ -187,6 +185,34 @@ class BreedReaderTest extends ReaderTest {
       BreedReader.read(res("breed/breed19.yml"))
     }) should have(
       'breed(DefaultBreed("monarch2", Deployable("magneticio/monarch2:latest"), Nil, Nil, Nil, Map("es" -> BreedReference("monarch1"))))
+    )
+  }
+
+  it should "fail on missing constant values" in {
+    expectedError[MissingConstantValueError]({
+      BreedReader.read(res("breed/breed20.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), Nil, Nil, List(Constant("port", None, None)), Map())),
+      'constant(Constant("port", None, None))
+    )
+  }
+
+  it should "fail on missing dependency constant" in {
+    expectedError[UnresolvedDependencyInTraitValueError]({
+      BreedReader.read(res("breed/breed21.yml"))
+    }) should have(
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), List(Port("port", None, Some("$db.constants.web"))), Nil, Nil, Map("db" -> DefaultBreed("mysql", Deployable("vamp/mysql"), List(Port("web", None, Some("80"))), List(EnvironmentVariable("web", None, Some("80"))), Nil, Map())))),
+      'reference("db.constants.web")
+    )
+  }
+
+  it should "resolve dependency constant" in {
+    BreedReader.read(res("breed/breed22.yml")) should have(
+      'name("monarch"),
+      'deployable(Deployable("magneticio/monarch:latest")),
+      'ports(List(Port("web", None, Some("$db.constants.port")))),
+      'environmentVariables(List()),
+      'dependencies(Map("db" -> DefaultBreed("mysql", Deployable("vamp/mysql"), Nil, Nil, List(Constant("port", None, Some("80/tcp"))), Map())))
     )
   }
 }
