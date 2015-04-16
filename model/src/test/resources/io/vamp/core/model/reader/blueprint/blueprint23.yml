@@ -1,7 +1,7 @@
 name: nomadic-frostbite
 
 endpoints:
-  omega.ports.port: 8080
+  omega.port: 8080
 
 clusters:
   supersonic:

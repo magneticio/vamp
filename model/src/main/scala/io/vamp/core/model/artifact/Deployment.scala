@@ -58,5 +58,24 @@ object HostReference {
 case class HostReference(cluster: String) extends ValueReference {
   def asTraitReference = TraitReference(cluster, TraitReference.Hosts, Host.host).toString
 
-  lazy val reference = s"$cluster.${Host.host}"
+  lazy val reference = s"$cluster${HostReference.delimiter}${Host.host}"
+}
+
+object NoGroupReference {
+
+  val delimiter = TraitReference.delimiter
+
+  def referenceFor(reference: String): Option[NoGroupReference] = reference.indexOf(delimiter) match {
+    case -1 => None
+    case clusterIndex =>
+      val cluster = reference.substring(0, clusterIndex)
+      val name = reference.substring(clusterIndex + 1)
+      Some(NoGroupReference(cluster, name))
+  }
+}
+
+case class NoGroupReference(cluster: String, name: String) extends ValueReference {
+  def asTraitReference(group: String) = TraitReference(cluster, group, name).toString
+
+  lazy val reference = s"$cluster${NoGroupReference.delimiter}$name"
 }

@@ -81,7 +81,21 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       }).toList
     }
 
-    DefaultBlueprint(name, clusters, ports("endpoints"), environmentVariables())
+    val endpoints = ports("endpoints").map { port =>
+      NoGroupReference.referenceFor(port.name) match {
+        case Some(ref) => port.copy(name = ref.asTraitReference(TraitReference.Ports))
+        case None => port
+      }
+    }
+
+    val evs = environmentVariables().map { ev =>
+      NoGroupReference.referenceFor(ev.name) match {
+        case Some(ref) => ev.copy(name = ref.asTraitReference(TraitReference.EnvironmentVariables))
+        case None => ev
+      }
+    }
+
+    DefaultBlueprint(name, clusters, endpoints, evs)
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {

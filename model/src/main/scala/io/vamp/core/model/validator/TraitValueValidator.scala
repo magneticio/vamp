@@ -2,7 +2,7 @@ package io.vamp.core.model.validator
 
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.notification.{UnresolvedEnvironmentVariableError, UnresolvedDependencyInTraitValueError, UnresolvedEndpointPortError}
+import io.vamp.core.model.notification.{UnresolvedDependencyInTraitValueError, UnresolvedEndpointPortError, UnresolvedEnvironmentVariableError}
 import io.vamp.core.model.resolver.TraitValueResolver
 
 import scala.language.postfixOps
@@ -46,78 +46,35 @@ trait BlueprintTraitValueValidator extends TraitValueResolver {
   def validateBlueprintTraitValues = validateEndpoints andThen validateEnvironmentVariables
 
   private def validateEndpoints: (DefaultBlueprint => DefaultBlueprint) = { blueprint: DefaultBlueprint =>
-    def reportError(endpoint: Port) =
-      error(UnresolvedEndpointPortError(endpoint.name, endpoint.value))
-
-    blueprint.endpoints.foreach { endpoint =>
-      resolveReferences(s"$marker${endpoint.name}") match {
-        case Some(ref: TraitReference) if ref.group == TraitReference.groupFor(TraitReference.Ports) =>
-          blueprint.clusters.find(_.name == ref.cluster) match {
-            case None => reportError(endpoint)
-            case Some(cluster) =>
-              if (cluster.services.exists(_.breed match {
-                case _: DefaultBreed => true
-                case _ => false
-              }) && cluster.services.find({
-                service => service.breed match {
-                  case breed: DefaultBreed => breed.ports.exists(_.name.toString == ref.name)
-                  case _ => false
-                }
-              }).isEmpty) reportError(endpoint)
-          }
-
-        case _ => reportError(endpoint)
-      }
-    }
-
-    blueprint
+    validateVariables(blueprint.endpoints, TraitReference.Ports, { endpoint => error(UnresolvedEndpointPortError(endpoint.name, endpoint.value)) })(blueprint)
   }
 
   private def validateEnvironmentVariables: (DefaultBlueprint => DefaultBlueprint) = { blueprint: DefaultBlueprint =>
-    def reportError(ev: EnvironmentVariable) =
-      error(UnresolvedEnvironmentVariableError(ev.name, ev.value))
+    validateVariables(blueprint.environmentVariables, TraitReference.EnvironmentVariables, { ev => error(UnresolvedEnvironmentVariableError(ev.name, ev.value)) })(blueprint)
+  }
 
-    blueprint.environmentVariables.foreach { ev =>
-      resolveReferences(s"$marker${ev.name}") match {
-        case Some(ref: TraitReference) if ref.group == TraitReference.groupFor(TraitReference.EnvironmentVariables) =>
-          blueprint.clusters.find(_.name == ref.cluster) match {
-            case None => reportError(ev)
-            case Some(cluster) =>
-              if (cluster.services.exists(_.breed match {
+  private def validateVariables(variables: List[Trait], group: String, fail: (Trait => Unit)): (DefaultBlueprint => DefaultBlueprint) = { blueprint: DefaultBlueprint =>
+    variables.foreach { `trait` =>
+      TraitReference.referenceFor(`trait`.name) match {
+        case Some(TraitReference(cluster, g, name)) if g == group =>
+          blueprint.clusters.find(_.name == cluster) match {
+            case None => fail(`trait`)
+            case Some(c) =>
+              if (c.services.exists(_.breed match {
                 case _: DefaultBreed => true
                 case _ => false
-              }) && cluster.services.find({
+              }) && c.services.find({
                 service => service.breed match {
-                  case breed: DefaultBreed => breed.environmentVariables.exists(_.name.toString == ref.name)
+                  case breed: DefaultBreed => breed.traitsFor(group).exists(_.name.toString == name)
                   case _ => false
                 }
-              }).isEmpty) reportError(ev)
+              }).isEmpty) fail(`trait`)
           }
 
-        case _ => reportError(ev)
+        case _ => fail(`trait`)
       }
     }
 
     blueprint
   }
-
-  //    blueprint.environmentVariables.find({
-  //      case (Trait.Name(Some(scope), Some(group), name), _) =>
-  //        blueprint.clusters.find(_.name == scope) match {
-  //          case None => true
-  //          case Some(cluster) => cluster.services.exists(_.breed match {
-  //            case _: DefaultBreed => true
-  //            case _ => false
-  //          }) && cluster.services.find({
-  //            service => service.breed match {
-  //              case breed: DefaultBreed => breed.inTraits.exists(_.name.toString == name)
-  //              case _ => false
-  //            }
-  //          }).isEmpty
-  //        }
-  //      case _ => true
-  //    }).flatMap {
-  //      case (name, value) => error(UnresolvedParameterError(name, value))
-  //    }
-
 }

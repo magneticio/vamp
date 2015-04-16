@@ -220,7 +220,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedEndpointPortError]({
       BlueprintReader.read(res("blueprint/blueprint24.yml"))
     }) should have(
-      'name("supersonic.environment_variables.port"),
+      'name("supersonic.ports.port"),
       'value(Some("8080"))
     )
   }
@@ -234,7 +234,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  it should "validate parameters for inline breeds - valid case" in {
+  it should "validate environment variables for inline breeds - valid case" in {
     BlueprintReader.read(res("blueprint/blueprint26.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), Nil, List(EnvironmentVariable("port", None, None)), Nil, Map()), None, None)), None))),
@@ -243,38 +243,38 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  it should "validate parameters for inline breeds - no cluster" in {
+  it should "validate environment variables for inline breeds - no cluster" in {
     expectedError[UnresolvedEnvironmentVariableError]({
       BlueprintReader.read(res("blueprint/blueprint27.yml"))
     }) should have(
-      'name("omega.ports.port"),
+      'name("omega.environment_variables.port"),
       'value(Some("8080"))
     )
   }
 
-  it should "validate parameters for inline breeds - not a trait" in {
+  it should "validate environment variables for inline breeds - not a trait" in {
     expectedError[UnresolvedEnvironmentVariableError]({
       BlueprintReader.read(res("blueprint/blueprint28.yml"))
     }) should have(
-      'name("supersonic.port"),
+      'name("supersonic.environment_variables.port"),
       'value(Some("8080"))
     )
   }
 
-  it should "validate parameters for inline breeds - no trait" in {
+  it should "validate environment variables for inline breeds - no trait" in {
     expectedError[UnresolvedEnvironmentVariableError]({
       BlueprintReader.read(res("blueprint/blueprint29.yml"))
     }) should have(
-      'name("supersonic.ports.http"),
+      'name("supersonic.environment_variables.http"),
       'value(Some("8080"))
     )
   }
 
-  it should "validate parameters for setting port values" in {
+  it should "validate environment variables for setting port values" in {
     expectedError[UnresolvedEnvironmentVariableError]({
       BlueprintReader.read(res("blueprint/blueprint30.yml"))
     }) should have(
-      'name("supersonic.ports.port"),
+      'name("supersonic.environment_variables.port"),
       'value(Some("8080"))
     )
   }
