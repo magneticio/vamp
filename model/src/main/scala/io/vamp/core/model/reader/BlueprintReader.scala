@@ -2,10 +2,11 @@ package io.vamp.core.model.reader
 
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification._
+import io.vamp.core.model.validator.BlueprintTraitValueValidator
 
 import scala.language.postfixOps
 
-trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader[Blueprint] {
+trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader[Blueprint] with BlueprintTraitValueValidator {
 
   override def readReference(any: Any): Blueprint = any match {
     case string: String => BlueprintReference(string)
@@ -87,8 +88,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     case blueprint: BlueprintReference => blueprint
     case blueprint: DefaultBlueprint =>
 
-      validateEndpoints(blueprint)
-      validateEnvironmentVariables(blueprint)
+      validateBlueprintTraitValues(blueprint)
       validateRoutingWeights(blueprint)
 
       val breeds = blueprint.clusters.flatMap(_.services.map(_.breed))
@@ -97,50 +97,6 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       breeds.foreach(BreedReader.validateNonRecursiveDependencies)
 
       blueprint
-  }
-
-  protected def validateEndpoints(blueprint: DefaultBlueprint): Unit = {
-//    blueprint.endpoints.find({ port =>
-    //      TraitReference.referenceFor(port.name) match {
-    //        case (Some(TraitReference(cluster, "ports", name)), _) =>
-    //          blueprint.clusters.find(_.name == cluster) match {
-    //            case None => true
-    //            case Some(c) => c.services.exists(_.breed match {
-    //              case _: DefaultBreed => true
-    //              case _ => false
-    //            }) && c.services.find({
-    //              service => service.breed match {
-    //                case breed: DefaultBreed => breed.ports.exists(_.name.toString == name)
-    //                case _ => false
-    //              }
-    //            }).isEmpty
-    //          }
-    //        case _ => true
-    //      }
-    //    }).flatMap {
-    //      case (port, value) => error(UnresolvedEndpointPortError(port, value))
-    //    }
-  }
-
-  protected def validateEnvironmentVariables(blueprint: DefaultBlueprint): Unit = {
-    //    blueprint.environmentVariables.find({
-    //      case (Trait.Name(Some(scope), Some(group), name), _) =>
-    //        blueprint.clusters.find(_.name == scope) match {
-    //          case None => true
-    //          case Some(cluster) => cluster.services.exists(_.breed match {
-    //            case _: DefaultBreed => true
-    //            case _ => false
-    //          }) && cluster.services.find({
-    //            service => service.breed match {
-    //              case breed: DefaultBreed => breed.inTraits.exists(_.name.toString == name)
-    //              case _ => false
-    //            }
-    //          }).isEmpty
-    //        }
-    //      case _ => true
-    //    }).flatMap {
-    //      case (name, value) => error(UnresolvedParameterError(name, value))
-    //    }
   }
 
   protected def validateRoutingWeights(blueprint: DefaultBlueprint): Unit = {

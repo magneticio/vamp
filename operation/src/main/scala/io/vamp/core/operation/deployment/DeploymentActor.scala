@@ -121,7 +121,7 @@ trait DeploymentValidator {
 
   def validateEnvironmentVariables(blueprint: Blueprint, strictBreeds: Boolean) = blueprint match {
     case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds)).flatMap {
-      case t => error(UnresolvedParameterError(t.name, t.value))
+      case t => error(UnresolvedEnvironmentVariableError(t.name, t.value))
     }
     case _ =>
   }

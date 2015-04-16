@@ -10,6 +10,4 @@ clusters:
       deployable: vamp/solid-barbershop
 
       ports:
-        name: port
-        value: 80/http
-        direction: OUT
+        port: 80/http

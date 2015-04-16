@@ -5,7 +5,7 @@ import io.vamp.core.model.artifact.{AbstractCluster, Breed, TraitReference}
 
 case class UnresolvedEndpointPortError(name: String, value: Any) extends Notification
 
-case class UnresolvedParameterError(name: String, value: Any) extends Notification
+case class UnresolvedEnvironmentVariableError(name: String, value: Any) extends Notification
 
 case class NonUniqueBlueprintBreedReferenceError(name: String) extends Notification
 

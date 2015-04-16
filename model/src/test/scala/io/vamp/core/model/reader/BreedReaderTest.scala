@@ -106,7 +106,7 @@ class BreedReaderTest extends ReaderTest {
     )
   }
 
-  it should "fail on missing port values" in {
+  it should "not fail on missing port values" in {
     expectedError[MissingPortValueError]({
       BreedReader.read(res("breed/breed11.yml"))
     }) should have(

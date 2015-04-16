@@ -10,9 +10,7 @@ clusters:
         name: wordpress1
         deployable: tutum/wordpress:latest
         ports:
-          name: port
-          direction: OUT
-          value: 80/http
+          port: 80/http
       scale:
         cpu: 0.5
         memory: 512

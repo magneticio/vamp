@@ -11,4 +11,4 @@ clusters:
           name: nocturnal-viper
           
 environment_variables:
-  notorious.ports.aspect: thorium
+  notorious.environment_variables.aspect: thorium

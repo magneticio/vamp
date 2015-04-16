@@ -10,5 +10,4 @@ clusters:
       deployable: vamp/solid-barbershop
 
       ports:
-        name: port
-        direction: IN
+        port: 80

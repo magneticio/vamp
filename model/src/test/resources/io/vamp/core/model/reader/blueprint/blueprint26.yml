@@ -1,7 +1,7 @@
 name: nomadic-frostbite
 
 environment_variables:
-  supersonic.ports.port: 8080
+  supersonic.environment_variables.port: 8080
 
 clusters:
   supersonic:
@@ -9,6 +9,5 @@ clusters:
       name: solid-barbershop
       deployable: vamp/solid-barbershop
 
-      ports:
-        name: port
-        direction: IN
+      environment_variables:
+        port: ~

@@ -13,8 +13,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint1.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -23,25 +23,25 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), None))),
       'endpoints(List(Port("notorious.ports.port", None, Some("8080")))),
-      'environmentVariables(List(EnvironmentVariable("notorious.ports.aspect", None, Some("thorium"))))
+      'environmentVariables(List(EnvironmentVariable("notorious.environment_variables.aspect", None, Some("thorium"))))
     )
   }
 
   it should "read the reference sla" in {
     BlueprintReader.read(res("blueprint/blueprint3.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(SlaReference("strong-mountain", List()))))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(SlaReference("strong-mountain", Nil))))),
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
   it should "read the reference sla with explicit name" in {
     BlueprintReader.read(res("blueprint/blueprint4.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(SlaReference("strong-mountain", List()))))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(SlaReference("strong-mountain", Nil))))),
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -49,17 +49,17 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint5.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(SlaReference("strong-mountain", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious")))))))))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
   it should "read the anonymous sla" in {
     BlueprintReader.read(res("blueprint/blueprint6.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(GenericSla("", "vital-cloud", List(), Map("reborn" -> "red-swallow")))))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(GenericSla("", "vital-cloud", Nil, Map("reborn" -> "red-swallow")))))),
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -67,8 +67,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint7.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), Some(GenericSla("", "vital-cloud", List(EscalationReference("red-flag")), Map("reborn" -> "red-swallow")))))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -76,8 +76,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint8.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Some(DefaultScale("", 0.2, 120, 2)), None)), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -85,8 +85,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint9.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Some(ScaleReference("large")), None)), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -94,8 +94,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint10.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Some(ScaleReference("large")), None)), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -103,17 +103,17 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint11.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(RoutingReference("conservative")))), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
   it should "read the routing with weight" in {
     BlueprintReader.read(res("blueprint/blueprint12.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(DefaultRouting("", Some(50), List())))), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(DefaultRouting("", Some(50), Nil)))), None))),
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -121,8 +121,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint13.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -130,8 +130,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint14.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(DefaultRouting("", None, List(FilterReference("android"), FilterReference("ios")))))), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -139,8 +139,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint15.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(DefaultRouting("", Some(10), List(DefaultFilter("", "user.agent != ios")))))), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -157,8 +157,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint17.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -166,8 +166,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint18.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -175,8 +175,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint19.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -184,26 +184,26 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint20.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), None, None)), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
   it should "expand the more complex blueprint" in {
     BlueprintReader.read(res("blueprint/blueprint21.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), Nil, Nil, Nil, Map()), None, None)), Some(SlaReference("strong-mountain", List()))), Cluster("omega", List(Service(BreedReference("scary-lion"), None, None)), None), Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Some(DefaultScale("", 0.2, 120.0, 2)), Some(DefaultRouting("", Some(95), List(DefaultFilter("", "ua = android"))))), Service(BreedReference("remote-venus"), Some(ScaleReference("worthy")), None)), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious"))))), Map("reborn" -> "red-swallow")))), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), Nil, Nil, Nil, Map()), None, None)), Some(SlaReference("fish-steamy", List()))))),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Some(DefaultScale("", 0.2, 120.0, 2)), Some(DefaultRouting("", Some(95), List(DefaultFilter("", "ua = android"))))), Service(BreedReference("remote-venus"), Some(ScaleReference("worthy")), None)), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious"))))), Map("reborn" -> "red-swallow")))), Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), Nil, Nil, Nil, Map()), None, None)), Some(SlaReference("strong-mountain", Nil))), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), Nil, Nil, Nil, Map()), None, None)), Some(SlaReference("fish-steamy", Nil))), Cluster("omega", List(Service(BreedReference("scary-lion"), None, None)), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-      'environmentVariables(List(EnvironmentVariable("omega.ports.aspect", None, Some("thorium"))))
+      'environmentVariables(List(EnvironmentVariable("omega.environment_variables.aspect", None, Some("thorium"))))
     )
   }
 
   it should "validate endpoints for inline breeds - valid case" in {
     BlueprintReader.read(res("blueprint/blueprint22.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(Port("port", None, Some("80"))), Nil, Nil, Map()), None, None)), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), None, None)), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-      'environmentVariables(Map())
+      'environmentVariables(Nil)
     )
   }
 
@@ -212,7 +212,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       BlueprintReader.read(res("blueprint/blueprint23.yml"))
     }) should have(
       'name("omega.ports.port"),
-      'value(Some(8080))
+      'value(Some("8080"))
     )
   }
 
@@ -221,7 +221,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       BlueprintReader.read(res("blueprint/blueprint24.yml"))
     }) should have(
       'name("supersonic.environment_variables.port"),
-      'value(Some(8080))
+      'value(Some("8080"))
     )
   }
 
@@ -230,52 +230,52 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       BlueprintReader.read(res("blueprint/blueprint25.yml"))
     }) should have(
       'name("supersonic.ports.http"),
-      'value(Some(8080))
+      'value(Some("8080"))
     )
   }
 
   it should "validate parameters for inline breeds - valid case" in {
     BlueprintReader.read(res("blueprint/blueprint26.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(Port("port", None, None)), Nil, Nil, Map()), None, None)), None))),
-      'endpoints(List()),
-      'environmentVariables(List(EnvironmentVariable("supersonic.ports.port", None, Some("8080"))))
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), Nil, List(EnvironmentVariable("port", None, None)), Nil, Map()), None, None)), None))),
+      'endpoints(Nil),
+      'environmentVariables(List(EnvironmentVariable("supersonic.environment_variables.port", None, Some("8080"))))
     )
   }
 
   it should "validate parameters for inline breeds - no cluster" in {
-    expectedError[UnresolvedParameterError]({
+    expectedError[UnresolvedEnvironmentVariableError]({
       BlueprintReader.read(res("blueprint/blueprint27.yml"))
     }) should have(
       'name("omega.ports.port"),
-      'value("8080")
+      'value(Some("8080"))
     )
   }
 
   it should "validate parameters for inline breeds - not a trait" in {
-    expectedError[UnresolvedParameterError]({
+    expectedError[UnresolvedEnvironmentVariableError]({
       BlueprintReader.read(res("blueprint/blueprint28.yml"))
     }) should have(
       'name("supersonic.port"),
-      'value("8080")
+      'value(Some("8080"))
     )
   }
 
   it should "validate parameters for inline breeds - no trait" in {
-    expectedError[UnresolvedParameterError]({
+    expectedError[UnresolvedEnvironmentVariableError]({
       BlueprintReader.read(res("blueprint/blueprint29.yml"))
     }) should have(
       'name("supersonic.ports.http"),
-      'value("8080")
+      'value(Some("8080"))
     )
   }
 
-  it should "validate parameters for inline breeds - no IN trait" in {
-    expectedError[UnresolvedParameterError]({
+  it should "validate parameters for setting port values" in {
+    expectedError[UnresolvedEnvironmentVariableError]({
       BlueprintReader.read(res("blueprint/blueprint30.yml"))
     }) should have(
       'name("supersonic.ports.port"),
-      'value("8080")
+      'value(Some("8080"))
     )
   }
 
@@ -299,17 +299,17 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint33.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), None, None)), None), Cluster("notorious", List(Service(BreedReference("elastic-search"), None, None)), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
   it should "validate breed cross dependencies - inline and valid" in {
     BlueprintReader.read(res("blueprint/blueprint34.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("elastic-search"), None, None)), None), Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("solid/barbershop"), Nil, Nil, Nil, Map("es" -> BreedReference("elastic-search"))), None, None)), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("solid/barbershop"), Nil, Nil, Nil, Map("es" -> BreedReference("elastic-search"))), None, None)), None), Cluster("notorious", List(Service(BreedReference("elastic-search"), None, None)), None))),
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -326,8 +326,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint36.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("donut"), Nil, Nil, Nil, Map()), None, None)), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
@@ -335,35 +335,35 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint37.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), None, None)), None))),
-      'endpoints(List()),
-      'environmentVariables(Map())
+      'endpoints(Nil),
+      'environmentVariables(Nil)
     )
   }
 
   it should "read scale and routing - expanded" in {
     BlueprintReader.read(res("blueprint/blueprint38.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(Port("port", None, Some("80"))), Nil, Nil, Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-      'environmentVariables(Map())
+      'environmentVariables(Nil)
     )
   }
 
   it should "read scale and routing - service single element." in {
     BlueprintReader.read(res("blueprint/blueprint39.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(Port("port", None, Some("80"))), Nil, Nil, Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-      'environmentVariables(Map())
+      'environmentVariables(Nil)
     )
   }
 
   it should "read scale and routing - no service just cluster." in {
     BlueprintReader.read(res("blueprint/blueprint40.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(Port("port", None, Some("80"))), Nil, Nil, Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-      'environmentVariables(Map())
+      'environmentVariables(Nil)
     )
   }
 
@@ -372,7 +372,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-      'environmentVariables(Map())
+      'environmentVariables(Nil)
     )
   }
 
@@ -381,7 +381,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-      'environmentVariables(Map())
+      'environmentVariables(Nil)
     )
   }
 
@@ -406,7 +406,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), None, Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-      'environmentVariables(Map())
+      'environmentVariables(Nil)
     )
   }
 
@@ -415,7 +415,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(DefaultRouting("", None, List(DefaultFilter("", "user.agent == android")))))), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-      'environmentVariables(Map())
+      'environmentVariables(Nil)
     )
   }
 }

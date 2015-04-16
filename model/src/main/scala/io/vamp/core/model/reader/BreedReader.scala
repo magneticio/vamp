@@ -2,11 +2,11 @@ package io.vamp.core.model.reader
 
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification._
-import io.vamp.core.model.validator.TraitValueValidator
+import io.vamp.core.model.validator.BreedTraitValueValidator
 
 import scala.language.postfixOps
 
-object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader[Breed] with TraitValueValidator {
+object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader[Breed] with BreedTraitValueValidator {
 
   override def readReference(any: Any): Breed = any match {
     case reference: String => BreedReference(reference)

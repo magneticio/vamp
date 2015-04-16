@@ -4,10 +4,12 @@ import io.vamp.core.model.artifact._
 
 trait TraitValueResolver {
 
+  val marker = "$"
+
   def resolveReferences(value: Option[String]): Option[ValueReference] = value.flatMap(resolveReferences)
 
   def resolveReferences(value: String): Option[ValueReference] = {
-    if (value.startsWith("$") && !value.startsWith("$$")) {
+    if (value.startsWith(marker) && !value.startsWith(s"$marker$marker")) {
       val reference = value.substring(1)
       TraitReference.referenceFor(reference).orElse(HostReference.referenceFor(reference))
     } else None
