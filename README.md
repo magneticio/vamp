@@ -23,7 +23,8 @@ Vamp uses underlying PaaS and container management platforms like Mesosphere. Th
 
 ## Using Vamp and more
 
-For documentation on using Vamp and all other info please check: [vamp.io](http://vamp.io/documentation/).
+For documentation on using Vamp and all other info please check [vamp.io](http://vamp.io/documentation/) and
+take some time to walk through the [getting started](http://vamp.io/getting-started).
 
 ## Contributing
 
