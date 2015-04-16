@@ -215,4 +215,14 @@ class BreedReaderTest extends ReaderTest {
       'dependencies(Map("db" -> DefaultBreed("mysql", Deployable("vamp/mysql"), Nil, Nil, List(Constant("port", None, Some("80/tcp"))), Map())))
     )
   }
+
+  it should "resolve environment variable alias" in {
+    BreedReader.read(res("breed/breed23.yml")) should have(
+      'name("monarch"),
+      'deployable(Deployable("magneticio/monarch:latest")),
+      'ports(Nil),
+      'environmentVariables(List(EnvironmentVariable("period[]", None, Some("100")), EnvironmentVariable("timeout", Some("TIME_OUT"), Some("10")))),
+      'dependencies(Map())
+    )
+  }
 }

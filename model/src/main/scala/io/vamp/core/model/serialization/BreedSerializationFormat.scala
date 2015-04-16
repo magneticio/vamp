@@ -1,6 +1,7 @@
 package io.vamp.core.model.serialization
 
 import io.vamp.core.model.artifact._
+import io.vamp.core.model.resolver.TraitResolver
 import org.json4s.FieldSerializer._
 import org.json4s.JsonAST.JString
 import org.json4s._
@@ -18,18 +19,20 @@ object BreedSerializationFormat extends io.vamp.common.json.SerializationFormat 
     new BreedFieldSerializer()
 }
 
-trait TraitDecomposer {
+trait TraitDecomposer extends TraitResolver {
 
-  def traits(traits: List[Trait]) = {
+  def traits(traits: List[Trait], alias: Boolean = true) = {
     def traitName(name: String) = TraitReference.referenceFor(name) match {
       case Some(TraitReference(c, g, Host.host)) if g == TraitReference.groupFor(TraitReference.Hosts) => c
       case Some(TraitReference(c, g, n)) => s"$c${TraitReference.delimiter}$n"
       case None => name
     }
 
-    new JObject(traits.map(t => t.name -> t.value.orNull).toMap.map {
-      case (name, null) => JField(traitName(name), JNull)
-      case (name, value) => JField(traitName(name), JString(value))
+    new JObject(traits.map(t => t.name -> t).toMap.values.map { t =>
+      val name = traitName(if (alias) asName(t.name, t.alias) else t.name)
+      val value = if (t.value == null) JNull else JString(t.value.getOrElse(""))
+
+      JField(name, value)
     } toList)
   }
 }

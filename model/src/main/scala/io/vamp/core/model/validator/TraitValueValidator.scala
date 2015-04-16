@@ -3,11 +3,11 @@ package io.vamp.core.model.validator
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification.{UnresolvedDependencyInTraitValueError, UnresolvedEndpointPortError, UnresolvedEnvironmentVariableError}
-import io.vamp.core.model.resolver.TraitValueResolver
+import io.vamp.core.model.resolver.TraitResolver
 
 import scala.language.postfixOps
 
-trait BreedTraitValueValidator extends TraitValueResolver {
+trait BreedTraitValueValidator extends TraitResolver {
   this: NotificationProvider =>
 
   def validateBreedTraitValues(breed: DefaultBreed) = {
@@ -40,7 +40,7 @@ trait BreedTraitValueValidator extends TraitValueResolver {
   }
 }
 
-trait BlueprintTraitValueValidator extends TraitValueResolver {
+trait BlueprintTraitValidator extends TraitResolver {
   this: NotificationProvider =>
 
   def validateBlueprintTraitValues = validateEndpoints andThen validateEnvironmentVariables

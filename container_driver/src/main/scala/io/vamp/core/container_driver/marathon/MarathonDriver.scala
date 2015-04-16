@@ -51,7 +51,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
   }
 
   private def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] =
-    service.breed.environmentVariables.map(ev => ev.name -> deployment.environmentVariables.find(e => TraitReference(cluster.name, TraitReference.EnvironmentVariables, ev.name).toString == e.name).get.value.get).toMap
+    service.breed.environmentVariables.map(ev => ev.alias.getOrElse(ev.name) -> deployment.environmentVariables.find(e => TraitReference(cluster.name, TraitReference.EnvironmentVariables, ev.name).toString == e.name).get.value.get).toMap
 
   def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)

@@ -2,9 +2,22 @@ package io.vamp.core.model.resolver
 
 import io.vamp.core.model.artifact._
 
-trait TraitValueResolver {
+trait TraitResolver {
 
   val marker = "$"
+
+  private val namePattern = "^(.+?)(\\[.+\\])?$".r
+
+  def resolveNameAlias(name: String): (String, Option[String]) = {
+    name match {
+      case namePattern(n, a, _*) => n -> (if (a == null) None else Some(a.substring(1, a.length - 1)))
+    }
+  }
+
+  def asName(name: String, alias: Option[String]) = alias match {
+    case Some(a) => s"$name[$a]"
+    case None => name
+  }
 
   def resolveReferences(value: Option[String]): Option[ValueReference] = value.flatMap(resolveReferences)
 
@@ -16,7 +29,7 @@ trait TraitValueResolver {
   }
 }
 
-trait DeploymentTraitValueResolver extends TraitValueResolver {
+trait DeploymentTraitResolver extends TraitResolver {
 
   def resolveEnvironmentVariables(deployment: Deployment, clusters: List[DeploymentCluster], environmentVariables: List[EnvironmentVariable]): List[EnvironmentVariable] = {
     environmentVariables.map(ev => ev.value match {

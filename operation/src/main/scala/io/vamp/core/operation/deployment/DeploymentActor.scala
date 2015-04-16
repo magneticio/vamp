@@ -14,7 +14,7 @@ import io.vamp.core.dictionary.DictionaryActor
 import io.vamp.core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import io.vamp.core.model.notification._
 import io.vamp.core.model.reader.{BlueprintReader, BreedReader}
-import io.vamp.core.model.resolver.DeploymentTraitValueResolver
+import io.vamp.core.model.resolver.DeploymentTraitResolver
 import io.vamp.core.operation.notification._
 import io.vamp.core.persistence.actor.{ArtifactSupport, PersistenceActor}
 import io.vamp.core.persistence.notification.PersistenceOperationFailure
@@ -149,7 +149,7 @@ trait DeploymentValidator {
   }
 }
 
-trait DeploymentMerger extends DeploymentValidator with DeploymentTraitValueResolver {
+trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver {
   this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
   def commit(create: Boolean): (Deployment => Deployment)

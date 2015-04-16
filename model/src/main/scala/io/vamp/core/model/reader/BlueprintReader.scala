@@ -2,11 +2,11 @@ package io.vamp.core.model.reader
 
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification._
-import io.vamp.core.model.validator.BlueprintTraitValueValidator
+import io.vamp.core.model.validator.BlueprintTraitValidator
 
 import scala.language.postfixOps
 
-trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader[Blueprint] with BlueprintTraitValueValidator {
+trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader[Blueprint] with BlueprintTraitValidator {
 
   override def readReference(any: Any): Blueprint = any match {
     case string: String => BlueprintReference(string)
@@ -88,7 +88,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       }
     }
 
-    val evs = environmentVariables().map { ev =>
+    val evs = environmentVariables("environment_variables", alias = false).map { ev =>
       NoGroupReference.referenceFor(ev.name) match {
         case Some(ref) => ev.copy(name = ref.asTraitReference(TraitReference.EnvironmentVariables))
         case None => ev
