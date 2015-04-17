@@ -26,16 +26,16 @@ trait BreedTraitValueValidator extends TraitResolver {
     }
 
     (breed.ports ++ breed.environmentVariables ++ breed.constants).foreach { `trait` =>
-      resolveReferences(`trait`.value) match {
-        case Some(ref: TraitReference) =>
+      `trait`.value.foreach(value => referencesFor(value).foreach({
+        case ref: TraitReference =>
           validateCluster(ref)
           validateDependencyTraitExists(ref)
 
-        case Some(ref: HostReference) =>
+        case ref: HostReference =>
           validateCluster(ref)
 
         case _ =>
-      }
+      }))
     }
   }
 }

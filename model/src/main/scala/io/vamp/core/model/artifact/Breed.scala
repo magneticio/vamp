@@ -69,10 +69,15 @@ trait ValueReference {
   override def toString = reference
 }
 
+case class LocalReference(name: String) extends ValueReference {
+  val cluster = ""
+
+  lazy val reference = name
+}
+
 case class TraitReference(cluster: String, group: String, name: String) extends ValueReference {
   lazy val reference = s"$cluster.$group.$name"
 }
-
 
 object Port extends Enumeration {
 
