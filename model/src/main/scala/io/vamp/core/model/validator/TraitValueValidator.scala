@@ -46,11 +46,15 @@ trait BlueprintTraitValidator extends TraitResolver {
   def validateBlueprintTraitValues = validateEndpoints andThen validateEnvironmentVariables
 
   private def validateEndpoints: (DefaultBlueprint => DefaultBlueprint) = { blueprint: DefaultBlueprint =>
-    validateVariables(blueprint.endpoints, TraitReference.Ports, { endpoint => error(UnresolvedEndpointPortError(endpoint.name, endpoint.value)) })(blueprint)
+    validateVariables(blueprint.endpoints, TraitReference.Ports, { endpoint =>
+      error(UnresolvedEndpointPortError(TraitReference.referenceFor(endpoint.name).flatMap(r => Some(r.referenceWithoutGroup)).getOrElse(endpoint.name), endpoint.value))
+    })(blueprint)
   }
 
   private def validateEnvironmentVariables: (DefaultBlueprint => DefaultBlueprint) = { blueprint: DefaultBlueprint =>
-    validateVariables(blueprint.environmentVariables, TraitReference.EnvironmentVariables, { ev => error(UnresolvedEnvironmentVariableError(ev.name, ev.value)) })(blueprint)
+    validateVariables(blueprint.environmentVariables, TraitReference.EnvironmentVariables, { ev =>
+      error(UnresolvedEnvironmentVariableError(TraitReference.referenceFor(ev.name).flatMap(r => Some(r.referenceWithoutGroup)).getOrElse(ev.name), ev.value))
+    })(blueprint)
   }
 
   private def validateVariables(variables: List[Trait], group: String, fail: (Trait => Unit)): (DefaultBlueprint => DefaultBlueprint) = { blueprint: DefaultBlueprint =>

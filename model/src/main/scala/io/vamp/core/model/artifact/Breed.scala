@@ -77,6 +77,8 @@ case class LocalReference(name: String) extends ValueReference {
 
 case class TraitReference(cluster: String, group: String, name: String) extends ValueReference {
   lazy val reference = s"$cluster.$group.$name"
+
+  def referenceWithoutGroup = s"$cluster.$name"
 }
 
 object Port extends Enumeration {
