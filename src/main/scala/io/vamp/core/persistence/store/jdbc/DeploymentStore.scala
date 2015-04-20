@@ -1,0 +1,222 @@
+package io.vamp.core.persistence.store.jdbc
+
+import com.typesafe.scalalogging.Logger
+import io.vamp.core.model.artifact._
+import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
+import io.vamp.core.persistence.slick.model._
+import org.slf4j.LoggerFactory
+
+import scala.slick.jdbc.JdbcBackend
+
+
+trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParameterStore with ScaleStore with RoutingStore with SlaStore with PersistenceNotificationProvider {
+
+  implicit val sess: JdbcBackend.Session
+
+  private val logger = Logger(LoggerFactory.getLogger(classOf[DeploymentStore]))
+
+  import io.vamp.core.persistence.slick.components.Components.instance._
+  import io.vamp.core.persistence.slick.model.Implicits._
+
+  protected def updateDeployment(existing: DeploymentModel, artifact: Deployment): Unit = {
+    deleteDeploymentClusters(existing.clusters, existing.id)
+    deleteModelPorts(existing.endpoints)
+    deleteModelTraitNameParameters(existing.parameters)
+    createDeploymentClusters(artifact.clusters, existing.id)
+    createPorts(artifact.endpoints, existing.id, Some(PortParentType.Deployment))
+    createTraitNameParameters(artifact.environmentVariables, existing.id, TraitParameterParentType.Deployment)
+    Deployments.update(existing)
+  }
+
+  private def deleteDeploymentClusters(clusters: List[DeploymentClusterModel], deploymentId: Option[Int]): Unit = {
+    for (cluster <- clusters) {
+      for (route <- cluster.routes) {
+        ClusterRoutes.deleteById(route.id.get)
+      }
+      for (service <- cluster.services) {
+        for (dependency <- service.dependencies) {
+          DeploymentServiceDependencies.deleteById(dependency.id.get)
+        }
+        for (server <- service.servers) {
+          for (port <- server.ports) {
+            ServerPorts.deleteById(port.id.get)
+          }
+          DeploymentServers.deleteById(server.id.get)
+        }
+        DeploymentServices.deleteById(service.id.get)
+        BreedReferences.findOptionById(service.breed) match {
+          case Some(breedRef) =>
+            if (breedRef.isDefinedInline)
+              DefaultBreeds.findOptionByName(breedRef.name, service.deploymentId) match {
+                case Some(breed) => deleteDefaultBreedModel(breed)
+                case None => logger.debug(s"Referenced breed ${breedRef.name} not found")
+              }
+            BreedReferences.deleteById(breedRef.id.get)
+          case None => // Nothing to delete
+        }
+        service.scale match {
+          case Some(scaleRefId) =>
+            ScaleReferences.findOptionById(scaleRefId) match {
+              case Some(scaleRef) if scaleRef.isDefinedInline =>
+                DefaultScales.findOptionByName(scaleRef.name, service.deploymentId) match {
+                  case Some(scale) => DefaultScales.deleteById(scale.id.get)
+                  case None => // Should not happen (log it as not critical)
+                }
+                ScaleReferences.deleteById(scaleRefId)
+              case Some(scaleRef) =>
+                ScaleReferences.deleteById(scaleRefId)
+              case None => logger.warn(s"Referenced scale not found.")
+            }
+          case None => // Nothing to delete
+        }
+        service.routing match {
+          case Some(routingId) =>
+            RoutingReferences.findOptionById(routingId) match {
+              case Some(routingRef) if routingRef.isDefinedInline =>
+                DefaultRoutings.findOptionByName(routingRef.name, service.deploymentId) match {
+                  case Some(routing) => deleteRoutingModel(routing)
+                  case None => logger.debug(s"Referenced routing ${routingRef.name} not found")
+                }
+                RoutingReferences.deleteById(routingRef.id.get)
+              case Some(routingRef) =>
+                RoutingReferences.deleteById(routingRef.id.get)
+              case None => logger.warn(s"Referenced routing not found.")
+            }
+          case None => // Nothing to delete
+        }
+      }
+      DeploymentClusters.deleteById(cluster.id.get)
+
+      cluster.slaReference match {
+        case Some(slaRef) =>
+          SlaReferences.findOptionById(slaRef) match {
+            case Some(slaReference) =>
+              for (escalationReference <- slaReference.escalationReferences) {
+                EscalationReferences.deleteById(escalationReference.id.get)
+              }
+              GenericSlas.findOptionByName(slaReference.name, slaReference.deploymentId) match {
+                case Some(sla) => deleteSlaModel(sla)
+                case None => logger.debug(s"Referenced sla ${slaReference.name} not found")
+              }
+            case None =>
+          }
+          SlaReferences.deleteById(slaRef)
+        case None => // Nothing to delete
+      }
+    }
+  }
+
+  private def createDeploymentClusters(clusters: List[DeploymentCluster], deploymentId: Option[Int]): Unit = {
+    for (cluster <- clusters) {
+      val slaRefId = createSla(cluster.sla, deploymentId)
+      val clusterId = DeploymentClusters.add(DeploymentClusterModel(name = cluster.name, slaReference = slaRefId, deploymentId = deploymentId))
+      for (route <- cluster.routes) {
+        ClusterRoutes.add(ClusterRouteModel(portIn = route._1, portOut = route._2, clusterId = clusterId))
+      }
+      for (service <- cluster.services) {
+        val breedRefId = createBreedReference(service.breed, deploymentId)
+        val message = service.state match {
+          case error: DeploymentService.Error =>
+            Some(s"Problem in cluster ${cluster.name}, with a service containing breed ${BreedReferences.findById(breedRefId).name}.")
+          case _ => None
+        }
+        val serviceId = DeploymentServices.add(
+          DeploymentServiceModel(
+            clusterId = clusterId,
+            name = s"${cluster.name}~${java.util.UUID.randomUUID.toString}", // Dummy name
+            deploymentId = deploymentId,
+            breed = breedRefId,
+            scale = createScaleReference(service.scale, deploymentId),
+            routing = createRoutingReference(service.routing, deploymentId),
+            deploymentState = service.state,
+            deploymentTime = service.state.startedAt,
+            message = message)
+        )
+        for (dep <- service.dependencies) DeploymentServiceDependencies.add(DeploymentServiceDependencyModel(name = dep._1, value = dep._2, serviceId = serviceId))
+        for (server <- service.servers) {
+          val serverId = DeploymentServers.add(DeploymentServerModel(serviceId = serviceId, name = server.name, host = server.host, deployed = server.deployed, deploymentId = deploymentId))
+          for (port <- server.ports) ServerPorts.add(ServerPortModel(portIn = port._1, portOut = port._2, serverId = serverId))
+        }
+      }
+    }
+  }
+
+  protected def findDeploymentOptionArtifact(name: String, defaultDeploymentId: Option[Int] = None): Option[Artifact] = {
+    Deployments.findOptionByName(name) match {
+      case Some(deployment) =>
+        Some(Deployment(
+          name = deployment.name,
+          clusters = findDeploymentClusterArtifacts(deployment.clusters, deployment.id),
+          endpoints = readPortsToArtifactList(deployment.endpoints),
+          environmentVariables = traitNameParametersToArtifactMap(deployment.parameters))
+        )
+      case _ => None
+    }
+  }
+
+  private def findDeploymentClusterArtifacts(clusters: List[DeploymentClusterModel], deploymentId: Option[Int]): List[DeploymentCluster] =
+    clusters.map(cluster =>
+      DeploymentCluster(
+        name = cluster.name,
+        services = findDeploymentServiceArtifacts(cluster.services),
+        routes = clusterRouteModels2Artifacts(cluster.routes),
+        sla = findOptionSlaArtifactViaReferenceId(cluster.slaReference, deploymentId)
+      )
+
+    )
+
+  private def clusterRouteModels2Artifacts(routes: List[ClusterRouteModel]): Map[Int, Int] =
+    routes.map(route => route.portIn -> route.portOut).toMap
+
+  private def findDeploymentServiceArtifacts(services: List[DeploymentServiceModel]): List[DeploymentService] =
+    services.map(service =>
+
+      DeploymentService(state = deploymentService2deploymentState(service),
+        breed = defaultBreedModel2DefaultBreedArtifact(DefaultBreeds.findByName(BreedReferences.findById(service.breed).name, service.deploymentId)),
+        scale = service.scale match {
+          case Some(scale) => Some(defaultScaleModel2Artifact(DefaultScales.findByName(ScaleReferences.findById(scale).name, service.deploymentId)))
+          case _ => None
+        },
+        routing = service.routing match {
+          case Some(routing) => Some(defaultRoutingModel2Artifact(DefaultRoutings.findByName(RoutingReferences.findById(routing).name, service.deploymentId)))
+          case _ => None
+        },
+        servers = deploymentServerModels2Artifacts(service.servers),
+        dependencies = deploymentServiceDependencies2Artifacts(service.dependencies)
+      )
+    )
+
+  private def deploymentServerModels2Artifacts(servers: List[DeploymentServerModel]): List[DeploymentServer] =
+    servers.map(server =>
+      DeploymentServer(name = server.name, host = server.host, ports = serverPorts2Artifact(server.ports), deployed = server.deployed)
+    )
+
+  private def serverPorts2Artifact(ports: List[ServerPortModel]): Map[Int, Int] = ports.map(port => port.portIn -> port.portOut).toMap
+
+  private def deploymentServiceDependencies2Artifacts(dependencies: List[DeploymentServiceDependencyModel]): Map[String, String] =
+    dependencies.map(dep => dep.name -> dep.value).toMap
+
+  protected def deleteDeploymentFromDb(artifact: Deployment): Unit = {
+    Deployments.findOptionByName(artifact.name) match {
+      case Some(deployment) => deleteDeploymentModel(deployment)
+      case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
+    }
+  }
+
+  private def deleteDeploymentModel(m: DeploymentModel): Unit = {
+    deleteDeploymentClusters(m.clusters, m.id)
+    deleteModelPorts(m.endpoints)
+    deleteModelTraitNameParameters(m.parameters)
+    Deployments.deleteById(m.id.get)
+  }
+
+  protected def createDeploymentArtifact(a: Deployment): String = {
+    val deploymentId = Deployments.add(a)
+    createDeploymentClusters(a.clusters, Some(deploymentId))
+    createPorts(a.endpoints, Some(deploymentId), Some(PortParentType.Deployment))
+    createTraitNameParameters(a.environmentVariables, Some(deploymentId), TraitParameterParentType.Deployment)
+    Deployments.findById(deploymentId).name
+  }
+
+
+}
