@@ -318,8 +318,11 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
     val dependencies = deployment.clusters.flatMap(cluster => cluster.services.map(service => (service.breed.name, cluster.name))).toMap
     deployment.copy(clusters = deployment.clusters.map({ cluster =>
       cluster.copy(services = cluster.services.map({ service =>
-        service.copy(dependencies = service.breed.dependencies.map({ case (name, breed) =>
-          (name, dependencies.get(breed.name).get)
+        service.copy(dependencies = service.breed.dependencies.flatMap({ case (name, breed) =>
+          dependencies.get(breed.name) match {
+            case Some(d) => (name, d) :: Nil
+            case None => Nil
+          }
         }))
       }))
     }))
