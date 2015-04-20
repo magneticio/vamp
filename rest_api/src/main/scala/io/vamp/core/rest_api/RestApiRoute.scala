@@ -20,7 +20,7 @@ import spray.httpx.marshalling.Marshaller
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 
-trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApiRoute with HiRoute with SwaggerResponse {
+trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApiRoute with InfoRoute with SwaggerResponse {
   this: Actor with ExecutionContextProvider =>
 
   implicit def timeout: Timeout
@@ -46,7 +46,7 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
             pathEndOrSingleSlash {
               complete(OK, swagger)
             }
-          } ~ hiRoute ~ deploymentRoutes ~
+          } ~ infoRoute ~ deploymentRoutes ~
             path(Segment) { artifact: String =>
               pathEndOrSingleSlash {
                 get {

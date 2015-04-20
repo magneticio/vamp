@@ -8,7 +8,6 @@ import io.vamp.common.akka.{ActorDescription, ActorSupport, ExecutionContextProv
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.{InfoRequest, JmxVitalsProvider, JvmVitals}
 import io.vamp.core.container_driver.ContainerDriverActor
-import io.vamp.core.model.serialization.PrettyJson
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.pulse_driver.PulseDriverActor
 import io.vamp.core.router_driver.RouterDriverActor
@@ -20,31 +19,30 @@ import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 import scala.util.Try
 
-case class HiMessage(message: String, info: InfoMessage) extends PrettyJson
+case class InfoMessage(message: String, jvm: JvmVitals, persistence: Any, router: Any, pulse: Any, containerDriver: Any)
 
-case class InfoMessage(jvm: JvmVitals, persistence: Any, router: Any, pulse: Any, containerDriver: Any)
-
-trait HiRoute extends HttpServiceBase with JmxVitalsProvider with FutureSupport with ActorSupport {
+trait InfoRoute extends HttpServiceBase with JmxVitalsProvider with FutureSupport with ActorSupport {
   this: Actor with ExecutionContextProvider =>
 
   implicit def marshaller: Marshaller[Any]
 
   implicit def timeout: Timeout
 
-  private lazy val hiMessage = ConfigFactory.load().getString("vamp.core.hi-message")
+  private lazy val infoMessage = ConfigFactory.load().getString("vamp.core.hi-message")
 
-  val hiRoute = (pathPrefix("hi") | pathPrefix("info")) {
+  val infoRoute = pathPrefix("info") {
     pathEndOrSingleSlash {
       get {
-        onSuccess(info) { info =>
-          complete(OK, HiMessage(hiMessage, info))
+        onSuccess(info) {
+          complete(OK, _)
         }
       }
     }
   }
 
   def info: Future[InfoMessage] = vitals().map { vitals =>
-    InfoMessage(vitals,
+    InfoMessage(infoMessage,
+      vitals,
       info(PersistenceActor),
       info(RouterDriverActor),
       info(PulseDriverActor),
