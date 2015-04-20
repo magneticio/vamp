@@ -30,7 +30,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
   private class JdbcStore(implicit val sess: JdbcBackend.Session) extends Store with ScaleStore with PortStore
   with DeploymentStore with BlueprintStore with BreedStore
   with RoutingStore with FilterStore
-  with TraitNameParameterStore
+  with EnvironmentVariableStore
   with SlaStore with EscalationStore with ParameterStore {
 
     import io.vamp.core.persistence.slick.components.Components.instance._

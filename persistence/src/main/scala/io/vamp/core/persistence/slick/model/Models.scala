@@ -6,13 +6,12 @@ import java.time.{LocalDateTime, OffsetDateTime}
 import io.strongtyped.active.slick.models.Identifiable
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.slick.extension.{AnonymousDeployable, Nameable, NamedDeployable}
+import io.vamp.core.persistence.slick.model.ConstantParentType.ConstantParentType
 import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.vamp.core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.vamp.core.persistence.slick.model.ParameterType.ParameterType
 import io.vamp.core.persistence.slick.model.PortParentType.PortParentType
-import io.vamp.core.persistence.slick.model.PortType.PortType
-import io.vamp.core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
 import io.vamp.core.persistence.slick.util.VampPersistenceUtil
 
 import scala.concurrent.duration.FiniteDuration
@@ -116,11 +115,15 @@ case class DefaultBreedModel(deploymentId: Option[Int], name: String, deployable
   override def withAnonymousName: DefaultBreedModel = copy(name = VampPersistenceUtil.generateAnonymousName)
 }
 
-case class PortModel(name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], alias: Option[String], portType: PortType, value: Option[Int], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int] = None, parentType: Option[PortParentType] = None) extends VampNameablePersistenceModel[PortModel] {
+case class PortModel(name: String, alias: Option[String], value: Option[String], id: Option[Int] = None, parentId: Option[Int] = None, parentType: Option[PortParentType] = None) extends VampNameablePersistenceModel[PortModel] {
   override def withId(id: Id): PortModel = copy(id = Option(id))
 }
 
-case class EnvironmentVariableModel(deploymentId: Option[Int], name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], alias: Option[String], value: Option[String], direction: Trait.Direction.Value, id: Option[Int] = None, parentId: Option[Int], parentType: Option[EnvironmentVariableParentType]) extends VampDeployablePersistenceModel[EnvironmentVariableModel] {
+case class ConstantModel(name: String, alias: Option[String], value: Option[String], id: Option[Int] = None, parentId: Option[Int] = None, parentType: Option[ConstantParentType]) extends VampNameablePersistenceModel[ConstantModel] {
+  override def withId(id: Id): ConstantModel = copy(id = Option(id))
+}
+
+case class EnvironmentVariableModel(deploymentId: Option[Int], name: String, alias: Option[String], value: Option[String], id: Option[Int] = None, parentId: Option[Int], parentType: Option[EnvironmentVariableParentType]) extends VampDeployablePersistenceModel[EnvironmentVariableModel] {
   override def withId(id: Id): EnvironmentVariableModel = copy(id = Option(id))
 }
 
@@ -130,10 +133,6 @@ case class DependencyModel(deploymentId: Option[Int], name: String, breedName: S
 
 case class ParameterModel(deploymentId: Option[Int], name: String, stringValue: Option[String] = None, intValue: Int = 0, doubleValue: Double = 0, parameterType: ParameterType, id: Option[Int] = None, parentType: ParameterParentType, parentId: Int) extends VampDeployablePersistenceModel[ParameterModel] {
   override def withId(id: Id): ParameterModel = copy(id = Option(id))
-}
-
-case class TraitNameParameterModel(id: Option[Int] = None, name: String, scope: Option[String], groupType: Option[Trait.Name.Group.Value], stringValue: Option[String] = None, intValue: Option[Int] = None, parentId: Option[Int], parentType: TraitParameterParentType) extends VampNameablePersistenceModel[TraitNameParameterModel] {
-  override def withId(id: Id): TraitNameParameterModel = copy(id = Option(id))
 }
 
 case class DeploymentModel(id: Option[Int] = None, name: String) extends VampNameablePersistenceModel[DeploymentModel] {
@@ -155,6 +154,10 @@ case class DeploymentServerModel(deploymentId: Option[Int], serviceId: Int, id: 
 
 case class ServerPortModel(id: Option[Int] = None, portIn: Int, portOut: Int, serverId: Int) extends VampPersistenceModel[ServerPortModel] {
   override def withId(id: Id): ServerPortModel = copy(id = Option(id))
+}
+
+case class HostModel(id: Option[Int] = None, name: String, value : Option[String], deploymentId: Option[Int]) extends VampNameablePersistenceModel[HostModel] {
+  override def withId(id: Id): HostModel = copy(id = Option(id))
 }
 
 case class DeploymentServiceDependencyModel(id: Option[Int] = None, name: String, value: String, serviceId: Int) extends VampPersistenceModel[DeploymentServiceDependencyModel] {

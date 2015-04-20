@@ -2,18 +2,18 @@ package io.vamp.core.persistence.store.jdbc
 
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
+import io.vamp.core.persistence.slick.model.ConstantParentType.ConstantParentType
 import io.vamp.core.persistence.slick.model._
 import io.vamp.core.persistence.slick.util.VampPersistenceUtil
 
 import scala.slick.jdbc.JdbcBackend
 
-trait BreedStore extends ParameterStore with PortStore with PersistenceNotificationProvider {
+trait BreedStore extends ParameterStore with EnvironmentVariableStore with PortStore with PersistenceNotificationProvider {
 
   implicit val sess: JdbcBackend.Session
 
   import io.vamp.core.persistence.slick.components.Components.instance._
   import io.vamp.core.persistence.slick.model.Implicits._
-
 
   private def removeBreedChildren(existing: DefaultBreedModel): Unit = {
     for (d <- existing.dependencies) {
@@ -26,9 +26,8 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
       Dependencies.deleteById(d.id.get)
     }
     deleteModelPorts(existing.ports)
-    for (e <- existing.environmentVariables) {
-      EnvironmentVariables.deleteById(e.id.get)
-    }
+    for (e <- existing.environmentVariables) EnvironmentVariables.deleteById(e.id.get)
+    for (constant <- existing.constants) ModelConstants.deleteById(constant.id.get)
   }
 
   protected def updateBreed(existing: DefaultBreedModel, a: DefaultBreed): Unit = {
@@ -54,19 +53,7 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
 
   // Delete breed and all anonymous artifact in the hierarchy
   protected def deleteDefaultBreedModel(breed: DefaultBreedModel): Unit = {
-    for (port <- breed.ports) Ports.deleteById(port.id.get)
-    for (envVar <- breed.environmentVariables) EnvironmentVariables.deleteById(envVar.id.get)
-    for (dependency <- breed.dependencies) {
-      val depModel = Dependencies.findById(dependency.id.get)
-      if (depModel.isDefinedInline) {
-        DefaultBreeds.findOptionByName(depModel.breedName, breed.deploymentId) match {
-          case Some(childBreed) if childBreed.isAnonymous => deleteDefaultBreedModel(childBreed) // Here is the recursive bit
-          case Some(childBreed) =>
-          case None => // Should not happen
-        }
-      }
-      Dependencies.deleteById(depModel.id.get)
-    }
+    removeBreedChildren(breed)
     DefaultBreeds.deleteById(breed.id.get)
   }
 
@@ -75,14 +62,12 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
       deployable = Deployable(b.deployable),
       ports = readPortsToArtifactList(b.ports),
       environmentVariables = b.environmentVariables.map(e => environmentVariableModel2Artifact(e)),
+      constants = b.constants.map(c => modelConstants2Artifact(c)),
       dependencies = breedDependencies2Artifact(b.dependencies))
 
-  protected def findBreedOptionArtifact(name: String, defaultDeploymentId: Option[Int] = None): Option[Artifact] = {
-    DefaultBreeds.findOptionByName(name, defaultDeploymentId) match {
-      case Some(b) => Some(defaultBreedModel2DefaultBreedArtifact(b))
-      case None => None
-    }
-  }
+  protected def findBreedOptionArtifact(name: String, defaultDeploymentId: Option[Int] = None): Option[Artifact] =
+    DefaultBreeds.findOptionByName(name, defaultDeploymentId) flatMap { b=> Some(defaultBreedModel2DefaultBreedArtifact(b)) }
+
 
   protected def deleteBreedFromDb(artifact: DefaultBreed): Unit = {
     DefaultBreeds.findOptionByName(artifact.name, None) match {
@@ -105,9 +90,7 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
   }
 
   private def createBreedChildren(parentBreedModel: DefaultBreedModel, a: DeploymentDefaultBreed): Unit = {
-    for (env <- a.artifact.environmentVariables) {
-      EnvironmentVariables.add(EnvironmentVariableModel(deploymentId = a.deploymentId, name = env.name.value, scope = env.name.scope, groupType = env.name.group, alias = env.alias, direction = env.direction, value = env.value, parentId = parentBreedModel.id, parentType = Some(EnvironmentVariableParentType.Breed)))
-    }
+    createEnvironmentVariables(a.artifact.environmentVariables, EnvironmentVariableParentType.Breed, parentBreedModel.id.get, a.deploymentId)
     createPorts(a.artifact.ports, parentBreedModel.id, parentType = Some(PortParentType.Breed))
     for (dependency <- a.artifact.dependencies) {
       dependency._2 match {
@@ -118,7 +101,17 @@ trait BreedStore extends ParameterStore with PortStore with PersistenceNotificat
           Dependencies.add(DependencyModel(deploymentId = a.deploymentId, name = dependency._1, breedName = br.name, isDefinedInline = false, parentId = parentBreedModel.id.get))
       }
     }
+    createConstants(a.artifact.constants, parentId = parentBreedModel.id, parentType = ConstantParentType.Breed)
   }
+
+  protected def createConstants(constants : List[Constant], parentId : Option[Int], parentType: ConstantParentType) : Unit = {
+    for (constant <- constants) {
+      ModelConstants.add(ConstantModel(name = constant.name, alias = constant.alias, value = constant.value, parentId = parentId, parentType = Some(parentType)))
+    }
+  }
+
+  protected def deleteConstants(constants : List[ConstantModel]) : Unit =
+    for (c <- constants) ModelConstants.deleteById(c.id.get)
 
   protected def findBreedArtifactViaReferenceId(referenceId: Int, deploymentId: Option[Int]): Breed =
     BreedReferences.findById(referenceId) match {

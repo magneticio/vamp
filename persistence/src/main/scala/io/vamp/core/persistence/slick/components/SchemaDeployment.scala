@@ -22,6 +22,7 @@ trait SchemaDeployment extends Logging with SchemaBreed {
   val ServerPorts = EntityTableQuery[ServerPortModel, ServerPortTable](tag => new ServerPortTable(tag))
   val DeploymentServiceDependencies = EntityTableQuery[DeploymentServiceDependencyModel, DeploymentServiceDependencyTable](tag => new DeploymentServiceDependencyTable(tag))
   val ClusterRoutes = EntityTableQuery[ClusterRouteModel, ClusterRouteTable](tag => new ClusterRouteTable(tag))
+  val DeploymentHosts = NameableEntityTableQuery[HostModel, HostTable](tag => new HostTable(tag))
 
   class DeploymentServerTable(tag: Tag) extends DeployableEntityTable[DeploymentServerModel](tag, "deployment_servers") {
     def * = (deploymentId, serviceId, id.?, name, host, deployed) <>(DeploymentServerModel.tupled, DeploymentServerModel.unapply)
@@ -142,6 +143,22 @@ trait SchemaDeployment extends Logging with SchemaBreed {
     def idx = index("idx_cluster_routes", (portIn, clusterId), unique = true)
 
     def cluster = foreignKey("cluster_route_deployment_cluster_fk", clusterId, DeploymentClusters)(_.id)
+  }
+
+  class HostTable(tag: Tag) extends NameableEntityTable[HostModel](tag, "deployment_hosts") {
+    def * = (id.?, name, value, deploymentId) <>(HostModel.tupled, HostModel.unapply)
+
+    def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
+
+    def value = column[Option[String]]("host_value")
+
+    def idx = index("idx_deployment_hosts", (name, deploymentId), unique = true)
+
+    def name = column[String]("name")
+
+    def deploymentId = column[Option[Int]]("breed_id")
+
+    def deployment = foreignKey("deployment_host_deployment_fk", deploymentId, Deployments)(_.id)
   }
 
 }
