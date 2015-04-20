@@ -1,7 +1,7 @@
 name: nomadic-frostbite
 
 endpoints:
-  supersonic.ports.port: 8080
+  supersonic.port: 8080
 
 clusters:
 
@@ -49,4 +49,4 @@ clusters:
   omega: scary-lion
           
 environment_variables:
-  omega.ports.aspect: thorium
+  omega.aspect: thorium

@@ -1,7 +1,7 @@
 name: nomadic-frostbite
 
 endpoints:
-  notorious.ports.port: 8080
+  notorious.port: 8080
 
 clusters:
   notorious:
@@ -11,4 +11,4 @@ clusters:
           name: nocturnal-viper
           
 environment_variables:
-  notorious.ports.aspect: thorium
+  notorious.aspect: thorium

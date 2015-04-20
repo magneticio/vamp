@@ -2,6 +2,7 @@ package io.vamp.core.persistence.notification
 
 import io.vamp.common.akka.RequestError
 import io.vamp.common.notification.Notification
+import io.vamp.core.model.artifact.Artifact
 
 import scala.language.existentials
 
@@ -16,3 +17,5 @@ case class ArtifactAlreadyExists(name: String, `type`: Class[_]) extends Notific
 case class NotificationMessageNotRestored(message: String) extends Notification
 
 case class UnsupportedParameterToPersist(name: String, parent: String, parameterType: String) extends Notification
+
+case class ArtifactArchivingError(artifact: Artifact) extends Notification

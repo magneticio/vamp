@@ -17,7 +17,7 @@ scalaVersion in ThisBuild := scalaVersion.value
 publishMavenStyle := true
 
 // This has to be overridden for sub-modules to have different description
-description in ThisBuild:= """Core is the brains of Vamp."""
+description in ThisBuild:= """Core is the brain of Vamp."""
 
 
 

@@ -5,5 +5,5 @@ package io.vamp.core.persistence.slick.model
  */
 object PortParentType extends Enumeration {
   type PortParentType = Value
-  val Breed, BlueprintEndpoint, Deployment = Value
+  val Breed, BlueprintEndpoint, DeploymentEndPoint, DeploymentPort = Value
 }
