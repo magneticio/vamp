@@ -5,3 +5,4 @@ PersistenceOperationFailure    : "Persistence operation failure.  Reason: {excep
 ArtifactAlreadyExists          : "Artifact already exists: '{name}'."
 NotificationMessageNotRestored : "Deployment service error was not restored.  {message}"
 UnsupportedParameterToPersist  : "Unsupported parameter {name} of type {parameterType} in {parent}"
+ArtifactArchivingError         : "Artifact {artifact.name} cannot be archived."

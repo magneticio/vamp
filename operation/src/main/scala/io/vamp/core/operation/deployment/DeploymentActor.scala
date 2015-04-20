@@ -3,7 +3,6 @@ package io.vamp.core.operation.deployment
 import java.util.UUID
 
 import _root_.io.vamp.common.akka._
-import _root_.io.vamp.core.model.artifact._
 import _root_.io.vamp.core.operation.deployment.DeploymentActor.{Create, DeploymentMessages, Merge, Slice}
 import _root_.io.vamp.core.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import akka.actor.{Actor, ActorLogging, Props}
@@ -12,6 +11,7 @@ import akka.util.Timeout
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.dictionary.DictionaryActor
 import io.vamp.core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
+import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification._
 import io.vamp.core.model.reader.{BlueprintReader, BreedReader}
 import io.vamp.core.model.resolver.DeploymentTraitResolver
@@ -27,11 +27,11 @@ object DeploymentActor extends ActorDescription {
 
   trait DeploymentMessages
 
-  case class Create(blueprint: Blueprint) extends DeploymentMessages
+  case class Create(blueprint: Blueprint, source: String) extends DeploymentMessages
 
-  case class Merge(name: String, blueprint: Blueprint) extends DeploymentMessages
+  case class Merge(name: String, blueprint: Blueprint, source: String) extends DeploymentMessages
 
-  case class Slice(name: String, blueprint: Blueprint) extends DeploymentMessages
+  case class Slice(name: String, blueprint: Blueprint, source: String) extends DeploymentMessages
 
 }
 
@@ -43,18 +43,21 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Blu
 
   def reply(request: Any) = try {
     request match {
-      case Create(blueprint) => merge(deploymentFor(), deploymentFor(blueprint))
-      case Merge(name, blueprint) => merge(deploymentFor(name), deploymentFor(blueprint))
-      case Slice(name, blueprint) => slice(deploymentFor(name), deploymentFor(blueprint))
+      case Create(blueprint, source) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source))(deploymentFor())
+
+      case Merge(name, blueprint, source) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source))(deploymentFor(name))
+
+      case Slice(name, blueprint, source) => (slice(deploymentFor(blueprint)) andThen commit(create = false, source))(deploymentFor(name))
+
       case _ => exception(errorRequest(request))
     }
   } catch {
     case e: Exception => e
   }
 
-  def commit(create: Boolean): (Deployment => Deployment) = { (deployment: Deployment) =>
+  def commit(create: Boolean, source: String): (Deployment => Deployment) = { (deployment: Deployment) =>
     implicit val timeout: Timeout = PersistenceActor.timeout
-    offload(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, create = create)) match {
+    offload(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, Some(source), create = create)) match {
       case persisted: Deployment =>
         actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
         persisted
@@ -152,7 +155,7 @@ trait DeploymentValidator {
 trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver {
   this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
-  def commit(create: Boolean): (Deployment => Deployment)
+  def commit(create: Boolean, source: String): (Deployment => Deployment)
 
   def validate = { (deployment: Deployment) =>
     validateEnvironmentVariables(deployment, strictBreeds = true)
@@ -164,7 +167,7 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
 
   def validateMerge = validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations
 
-  def merge(deployment: Deployment, blueprint: Deployment): Deployment = {
+  def merge(blueprint: Deployment): (Deployment => Deployment) = { (deployment: Deployment) =>
 
     val attachment = (validate andThen resolveProperties)(blueprint)
 
@@ -175,7 +178,7 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
     val constants = attachment.constants ++ deployment.constants
     val hosts = attachment.hosts ++ deployment.hosts
 
-    (validateMerge andThen commit(create = true))(Deployment(deployment.name, clusters, endpoints, ports, environmentVariables, constants, hosts))
+    validateMerge(Deployment(deployment.name, clusters, endpoints, ports, environmentVariables, constants, hosts))
   }
 
   def mergeClusters(stable: Deployment, blueprint: Deployment): List[DeploymentCluster] = {
@@ -332,10 +335,10 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
 trait DeploymentSlicer extends DeploymentValidator {
   this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
-  def commit(create: Boolean): (Deployment => Deployment)
+  def commit(create: Boolean, source: String): (Deployment => Deployment)
 
-  def slice(stable: Deployment, blueprint: Deployment): Deployment = {
-    (validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations andThen commit(create = false))(stable.copy(clusters = stable.clusters.map(cluster =>
+  def slice(blueprint: Deployment): (Deployment => Deployment) = { (stable: Deployment) =>
+    (validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster =>
       blueprint.clusters.find(_.name == cluster.name) match {
         case None => cluster
         case Some(bpc) => cluster.copy(services = cluster.services.map(service => service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) ReadyForUndeployment() else service.state)))
