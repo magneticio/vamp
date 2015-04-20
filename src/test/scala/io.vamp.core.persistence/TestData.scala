@@ -20,7 +20,6 @@ object TestData {
 
   val breedSimple = DefaultBreed(name = "mysql-backup", deployable = Deployable("backup"), environmentVariables = List.empty, ports = List.empty, dependencies = Map.empty, constants = List.empty)
 
-
   val breed1 = DefaultBreed(
     name = "wp4",
     deployable = Deployable("Wordpress 4.0"),
@@ -33,8 +32,8 @@ object TestData {
     dependencies = Map("db" -> BreedReference(name = "mysql")),
     constants = List(
       Constant(name = "MY_CONST", alias = None, value = Some("DO NOT CHANGE")),
-        Constant(name = "MY_CONST2", alias = None, value = Some("DO NOT CHANGE EITHER"))
-      )
+      Constant(name = "MY_CONST2", alias = None, value = Some("DO NOT CHANGE EITHER"))
+    )
   )
 
   val breedAnonymous = breed1.copy(name = "")
@@ -97,7 +96,7 @@ object TestData {
   val escalation4Updated = escalation4.copy(`type` = "my-other-type", parameters = Map.empty)
   val escalation5 = GenericEscalation(name = "escalation5", `type` = "my-type", parameters = Map("my-first" -> 1))
 
-  val sla4 = GenericSla(name = "sla4", `type` = "aType", escalations = List(escalation4.copy(name = "sla4-escalation1"), escalation5.copy(name = "sla4-escalation2")), parameters = Map("my-first" -> "This is a another string value"))
+  val sla4 = GenericSla(name = "sla4", `type` = "aType", escalations = List(escalation4.copy(name = "sla4-escalation1"), escalation5.copy(name = "sla4-escalation2")), parameters = Map("my-first" -> "This is a another string value", "my-second" -> 5.0, "my-third" -> 3))
   val sla4Updated = sla4.copy(`type` = "aType-updated", escalations = List.empty, parameters = Map.empty)
   val sla5 = GenericSla(name = "sla5", `type` = "aType", escalations = List(EscalationReference(name = "for-reference-only")), parameters = Map("my-first" -> 1))
 
@@ -125,15 +124,15 @@ object TestData {
   private val myCluster_logger = Cluster(name = "logger", services = List(myService1), sla = None)
   private val myEndpointPort1 = Port(name = "port8080", alias = Option("HTTP"), value = Option("8080/http"))
   private val myEndpointPort2 = Port(name = "port21", alias = Option("FTP"), value = Option("8080/http"))
-  private val myParameter1 = EnvironmentVariable(name = "myParameter1", alias = None, "GO_HOME"), value = Some("/var/lib/go/bin")
+  private val myParameter1 = EnvironmentVariable(name = "myParameter1", alias = None, value = Some("/var/lib/go/bin"))
   private val myParameter2 = EnvironmentVariable(name = "myParameter2", alias = Some("PATH"), value = Some("/opt/java/bin"))
-  private val myParameter3 = EnvironmentVariable(name="myParameter3", alias = Some("HOME_PORT"), value = Some("23"))
+  private val myParameter3 = EnvironmentVariable(name = "myParameter3", alias = Some("HOME_PORT"), value = Some("23"))
 
   private val myEndpointPort5 = Port(name = "port8080", alias = Option("HTTP"), value = Option("8080/http"))
   private val myEndpointPort6 = Port(name = "port21", alias = Option("FTP"), value = Option("8080/tcp"))
-  private val myParameter5 =  EnvironmentVariable(name="myParameter1", alias = None,  value = Some("/var/lib/go/bin"))
-  private val myParameter6 =  EnvironmentVariable(name="myParameter2", alias = Some("PATH"),  value = Some("/opt/java/bin"))
-  private val myParameter7 =  EnvironmentVariable(name="myParameter3", alias = Some("HOME_PORT"),  value = Some("24"))
+  private val myParameter5 = EnvironmentVariable(name = "myParameter1", alias = None, value = Some("/var/lib/go/bin"))
+  private val myParameter6 = EnvironmentVariable(name = "myParameter2", alias = Some("PATH"), value = Some("/opt/java/bin"))
+  private val myParameter7 = EnvironmentVariable(name = "myParameter3", alias = Some("HOME_PORT"), value = Some("24"))
 
   val myCluster_db = Cluster(name = "db", services = List(myService2), sla = None)
   private val blueprintMinimal = DefaultBlueprint(
@@ -168,7 +167,7 @@ object TestData {
       )
     ),
     endpoints = List.empty,
-    environmentVariables = Map.empty)
+    environmentVariables = List.empty)
   val blueprintWithFullServiceUpdated = blueprintWithFullService.copy(clusters = List.empty)
   val blueprintFull = DefaultBlueprint(
     name = "blueprint_full",
@@ -176,7 +175,6 @@ object TestData {
     endpoints = List(myEndpointPort1, myEndpointPort2),
     environmentVariables = List(myParameter1, myParameter2, myParameter3)
   )
-
 
   val deploymentServer1 = DeploymentServer(name = "deployment-1-server-1", host = "vamp.magnetic.io", ports = Map(80 -> 8080, 22 -> 2222), deployed = true)
 
@@ -202,8 +200,7 @@ object TestData {
     dependencies = Map("abc" -> "def")
   )
 
-
-  val deploymentService2 = deploymentService1.copy(breed = deploymentServiceBreed1.copy(name="another_version"))
+  val deploymentService2 = deploymentService1.copy(breed = deploymentServiceBreed1.copy(name = "another_version"))
 
   val deployment1 = Deployment(
     name = "deployment-1",
@@ -228,21 +225,28 @@ object TestData {
     environmentVariables = List(myParameter5, myParameter6, myParameter7)
   )
 
+
   val deployment2 = Deployment(
     name = "deployment-2",
     clusters = List(
       DeploymentCluster(
         name = "deployment-cluster-2",
         services = List.empty,
-        sla = Some(SlaReference("sla-ref-deployment2", escalations = List.empty)),
+        sla = Some(SlaReference("sla-ref-deployment2", escalations = List(escalation12.copy(name = "")))),
         routes = Map.empty
       )
     ),
-    endpoints = List.empty,
-    environmentVariables = Map.empty,
-    ports = List.empty,              // TODO set values
-    constants = List.empty,          // TODO set values
-    hosts = List.empty               // TODO set values
+    endpoints = List(myEndpointPort5, myEndpointPort6),
+    environmentVariables = List.empty,
+    ports = List(myEndpointPort5, myEndpointPort6),
+    constants = List(
+      Constant(name = "MY_CONST", alias = None, value = Some("DNC")),
+      Constant(name = "Some", alias = None, value = Some("other"))
+    ),
+    hosts = List(
+      Host(name = "abc", value = Some("alpha.bravo.charlie")),
+      Host(name = "def", value = Some("delta.echo.foxtrot"))
+    )
   )
 
   val deploymentServiceWithError = deploymentService1.copy(state = DeploymentService.Error(UnsupportedPersistenceRequest("ERROR")))
@@ -269,16 +273,24 @@ object TestData {
       DeploymentCluster(
         name = "deployment-cluster-2",
         services = List(deploymentService1),
-        sla = None,
+        sla = Some(mySlidingWindowSla),
         routes = Map.empty
       )
     ),
     endpoints = List.empty,
     environmentVariables = List.empty,
-    ports = List.empty,              // TODO set values
-    constants = List.empty,          // TODO set values
-    hosts = List.empty               // TODO set values
+    ports = List(
+      Port(name = "some port", alias = Option("HTTP"), value = Option("INVALID/http")),
+      Port(name = "port21", alias = Option("FTP"), value = Option("21/tcp"))
+    ),
+    constants = List(
+      Constant(name = "Not changed", alias = None, value = Some("in a while")),
+      Constant(name = "Still the same", alias = None, value = Some("value"))
+    ),
+    hosts = List(
+      Host(name = "ghi", value = Some("golf.hotel.lima")),
+      Host(name = "def", value = None)
+    )
   )
-
 
 }

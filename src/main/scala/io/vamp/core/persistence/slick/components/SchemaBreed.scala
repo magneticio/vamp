@@ -1,13 +1,12 @@
 package io.vamp.core.persistence.slick.components
 
 import io.strongtyped.active.slick.Profile
-import io.vamp.core.model.artifact.Trait
 import io.vamp.core.persistence.slick.extension.{VampTableQueries, VampTables}
+import io.vamp.core.persistence.slick.model.ConstantParentType.ConstantParentType
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.vamp.core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.vamp.core.persistence.slick.model.ParameterType.ParameterType
 import io.vamp.core.persistence.slick.model.PortParentType.PortParentType
-import io.vamp.core.persistence.slick.model.PortType.PortType
 import io.vamp.core.persistence.slick.model._
 
 import scala.concurrent.duration.FiniteDuration
@@ -36,7 +35,7 @@ trait SchemaBreed extends Logging with VampSchema {
   val Ports = NameableEntityTableQuery[PortModel, PortTable](tag => new PortTable(tag))
   val Dependencies = DeployableNameEntityTableQuery[DependencyModel, DependencyTable](tag => new DependencyTable(tag))
   val Parameters = DeployableNameEntityTableQuery[ParameterModel, ParameterTable](tag => new ParameterTable(tag))
-
+  val ModelConstants = NameableEntityTableQuery[ConstantModel, ModelConstantTable](tag => new ModelConstantTable(tag))
 
   class SlaReferenceTable(tag: Tag) extends DeployableEntityTable[SlaReferenceModel](tag, "sla_references") {
     def * = (deploymentId, name, id.?, isDefinedInline) <>(SlaReferenceModel.tupled, SlaReferenceModel.unapply)
@@ -223,7 +222,7 @@ trait SchemaBreed extends Logging with VampSchema {
 
     def routing = foreignKey("filter_ref_routing_fk", routingId, DefaultRoutings)(_.id)
 
-    def deployment = foreignKey("filter_reference_eployment_fk", deploymentId, Deployments)(_.id)
+    def deployment = foreignKey("filter_reference_deployment_fk", deploymentId, Deployments)(_.id)
   }
 
   class DefaultFilterTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultFilterModel](tag, "default_filters") {
@@ -277,7 +276,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class EnvironmentVariableTable(tag: Tag) extends DeployableEntityTable[EnvironmentVariableModel](tag, "environment_variables") {
-    def * = (deploymentId, name, scope, groupType, alias, value, direction, id.?, parentId, parentType) <>(EnvironmentVariableModel.tupled, EnvironmentVariableModel.unapply)
+    def * = (deploymentId, name, alias, value, id.?, parentId, parentType) <>(EnvironmentVariableModel.tupled, EnvironmentVariableModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -285,13 +284,7 @@ trait SchemaBreed extends Logging with VampSchema {
 
     def value = column[Option[String]]("env_value")
 
-    def direction = column[Trait.Direction.Value]("env_direction")
-
     def name = column[String]("name")
-
-    def scope = column[Option[String]]("trait_scope")
-
-    def groupType = column[Option[Trait.Name.Group.Value]]("trait_group")
 
     def parentId = column[Option[Int]]("parent_id")
 
@@ -299,39 +292,50 @@ trait SchemaBreed extends Logging with VampSchema {
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
-    def idx = index("idx_environment_variables", (name, groupType, scope, parentId, parentType), unique = true)
+    def idx = index("idx_environment_variables", (name, parentId, parentType), unique = true)
 
     def deployment = foreignKey("environment_variables_deployment_fk", deploymentId, Deployments)(_.id)
   }
 
   class PortTable(tag: Tag) extends NameableEntityTable[PortModel](tag, "ports") {
-    def * = (name, scope, groupType, alias, portType, value, direction, id.?, parentId, parentType) <>(PortModel.tupled, PortModel.unapply)
+    def * = (name, alias, value, id.?, parentId, parentType) <>(PortModel.tupled, PortModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def alias = column[Option[String]]("alias")
 
-    def portType = column[PortType]("port_type")
-
-    def value = column[Option[Int]]("port_value")
-
-    def direction = column[Trait.Direction.Value]("port_direction")
+    def value = column[Option[String]]("port_value")
 
     def idx = index("idx_ports", (name, parentId, parentType), unique = true)
 
     def name = column[String]("name")
-
-    def scope = column[Option[String]]("trait_scope")
-
-    def groupType = column[Option[Trait.Name.Group.Value]]("trait_group")
 
     def parentId = column[Option[Int]]("parent_id")
 
     def parentType = column[Option[PortParentType]]("parent_type")
   }
 
+  class ModelConstantTable(tag: Tag) extends NameableEntityTable[ConstantModel](tag, "model_constants") {
+    def * = (name, alias, value, id.?, parentId, parentType) <>(ConstantModel.tupled, ConstantModel.unapply)
+
+    def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
+
+    def alias = column[Option[String]]("alias")
+
+    def value = column[Option[String]]("constant_value")
+
+    def idx = index("idx_model_constants", (name, parentId, parentType), unique = true)
+
+    def name = column[String]("name")
+
+    def parentId = column[Option[Int]]("parent_id")
+
+    def parentType = column[Option[ConstantParentType]]("parent_type")
+
+  }
+
   class DependencyTable(tag: Tag) extends DeployableEntityTable[DependencyModel](tag, "breed_dependencies") {
-    def * = (deploymentId, name, breedName, id.?, isDefinedInline, parentId) <>(DependencyModel.tupled, DependencyModel.unapply)
+    def * = (deploymentId, name, breedName, id.?, isDefinedInline, breedId) <>(DependencyModel.tupled, DependencyModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -341,13 +345,15 @@ trait SchemaBreed extends Logging with VampSchema {
 
     def breedName = column[String]("breed_name")
 
-    def parentId = column[Int]("parent_id")
+    def breedId = column[Int]("breed_id")
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
-    def idx = index("idx_breed_dependencies", (name, breedName, parentId, deploymentId), unique = true)
+    def idx = index("idx_breed_dependencies", (name, breedName, breedId, deploymentId), unique = true)
 
     def deployment = foreignKey("dependency_table_deployment_fk", deploymentId, Deployments)(_.id)
+
+    def breed = foreignKey("breed_dependencies_breed_fk", breedId, DefaultBreeds)(_.id)
   }
 
   class ParameterTable(tag: Tag) extends DeployableEntityTable[ParameterModel](tag, "parameters") {
