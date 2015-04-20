@@ -7,7 +7,7 @@ import io.vamp.common.akka._
 import io.vamp.core.model.artifact.Artifact
 import io.vamp.core.persistence.actor.PersistenceActor.PersistenceMessages
 import io.vamp.core.persistence.notification.UnsupportedPersistenceRequest
-import io.vamp.core.persistence.store.InMemoryStoreProvider
+import io.vamp.core.persistence.store.{JdbcStoreProvider, InMemoryStoreProvider}
 
 import scala.concurrent.duration._
 import scala.language.existentials
@@ -34,7 +34,7 @@ object PersistenceActor extends ActorDescription {
 
 }
 
-class PersistenceActor extends PersistingActor with InMemoryStoreProvider {
+class PersistenceActor extends PersistingActor with JdbcStoreProvider {
 
   def info = store.info
 
