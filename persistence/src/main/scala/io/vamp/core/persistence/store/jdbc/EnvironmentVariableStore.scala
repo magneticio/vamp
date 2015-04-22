@@ -20,7 +20,7 @@ trait EnvironmentVariableStore extends PersistenceNotificationProvider {
 
   protected def createEnvironmentVariables(envVars: List[EnvironmentVariable], t: EnvironmentVariableParentType, parentId: Int, deploymentId: Option[Int]): Unit =
     for (env <- envVars)
-      EnvironmentVariables.add(EnvironmentVariableModel(deploymentId = deploymentId, name = env.name, alias = env.alias, value = env.value, parentId = Some(parentId), parentType = Some(t)))
+      EnvironmentVariables.add(EnvironmentVariableModel(deploymentId = deploymentId, name = env.name, alias = env.alias, value = env.value, interpolated = env.interpolated, parentId = Some(parentId), parentType = Some(t)))
 
   protected def deleteEnvironmentVariables(envVars: List[EnvironmentVariableModel]): Unit =
     for (e <- envVars)
