@@ -7,7 +7,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.core.model.artifact.{Artifact, _}
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
-import io.vamp.core.persistence.store.JdbcStoreProvider
+import io.vamp.core.persistence.store.{InMemoryStoreProvider, JdbcStoreProvider}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -35,7 +35,7 @@ object PersistenceActor extends ActorDescription {
 
 }
 
-class PersistenceActor extends JdbcStoreProvider with Actor with ActorLogging with ReplyActor with ArchivingProvider with FutureSupport with ActorExecutionContextProvider with PersistenceNotificationProvider {
+class PersistenceActor extends InMemoryStoreProvider with Actor with ActorLogging with ReplyActor with ArchivingProvider with FutureSupport with ActorExecutionContextProvider with PersistenceNotificationProvider {
 
   import PersistenceActor._
 

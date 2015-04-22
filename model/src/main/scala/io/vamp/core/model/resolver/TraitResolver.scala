@@ -24,6 +24,23 @@ trait TraitResolver {
     case None => name
   }
 
+  def referenceAsPart(reference: ValueReference) = s"$marker{${reference.reference}}"
+
+  def referencesFor(value: String): List[ValueReference] = partsFor(value)._2
+
+  def resolve(value: String, provider: (ValueReference => String)): String = partsFor(value) match {
+    case (fragments, references) =>
+      val fi = fragments.iterator
+      val ri = references.iterator
+      val sb = new StringBuilder()
+      while (ri.hasNext) {
+        sb append fi.next
+        sb append provider(ri.next())
+      }
+      if (fi.hasNext) sb append fi.next
+      sb.toString()
+  }
+
   def partsFor(value: String): (List[String], List[ValueReference]) = {
     val matches = referencePattern findAllMatchIn value filterNot (m => value.substring(m.start, m.end) == "$$") toList
 
@@ -49,45 +66,31 @@ trait TraitResolver {
 
     (fragments, references)
   }
-
-  def referencesFor(value: String): List[ValueReference] = partsFor(value)._2
-
-  def referenceAsPart(reference: ValueReference) = s"$marker{${reference.reference}}"
 }
 
 trait DeploymentTraitResolver extends TraitResolver {
 
-  def resolveEnvironmentVariables(deployment: Deployment, clusters: List[DeploymentCluster], environmentVariables: List[EnvironmentVariable]): List[EnvironmentVariable] = {
+  def resolveEnvironmentVariables(deployment: Deployment, clusters: List[DeploymentCluster]): List[EnvironmentVariable] = {
 
-    def valueFor(cluster: DeploymentCluster, reference: ValueReference): Option[String] = reference match {
-      case ref: TraitReference if clusters.exists(_.name == ref.cluster) => deployment.traits.find(_.name == ref.reference).flatMap(_.value)
-      case ref: HostReference if clusters.exists(_.name == ref.cluster) => deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value)
-      case ref: LocalReference =>
-        (deployment.environmentVariables ++ deployment.constants).find(tr => TraitReference.referenceFor(tr.name).exists(r => r.cluster == cluster.name && r.name == ref.name)).flatMap(_.value)
-      case ref => None
-    }
-
-    def assemble(cluster: DeploymentCluster, fragments: List[String], references: List[ValueReference]): String = {
-      val fi = fragments.iterator
-      val ri = references.iterator
-      val sb = new StringBuilder()
-      while (ri.hasNext) {
-        sb append fi.next
-        val reference = ri.next()
-        sb append valueFor(cluster, reference).getOrElse(referenceAsPart(reference))
+    def valueFor(cluster: DeploymentCluster)(reference: ValueReference): String = {
+      val value = reference match {
+        case ref: TraitReference => deployment.traits.find(_.name == ref.reference).flatMap(_.value)
+        case ref: HostReference => deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value)
+        case ref: LocalReference =>
+          (deployment.environmentVariables ++ deployment.constants).find(tr => TraitReference.referenceFor(tr.name).exists(r => r.cluster == cluster.name && r.name == ref.name)).flatMap(_.value)
+        case ref => None
       }
-      if (fi.hasNext) sb append fi.next
-      sb.toString()
+
+      value.getOrElse("")
     }
 
-    environmentVariables.map({ ev =>
-      TraitReference.referenceFor(ev.name).flatMap(ref => deployment.clusters.find(_.name == ref.cluster)).flatMap { cluster =>
-        ev.value.flatMap {
-          partsFor(_) match {
-            case (fragments, references) => Some(ev.copy(value = Some(assemble(cluster, fragments, references))))
-          }
+    deployment.environmentVariables.map(ev => TraitReference.referenceFor(ev.name) match {
+      case Some(TraitReference(c, g, n)) if g == TraitReference.groupFor(TraitReference.EnvironmentVariables) && !ev.interpolated && ev.value.isDefined =>
+        clusters.find(_.name == c) match {
+          case Some(cluster) => EnvironmentVariable(ev.name, None, Some(resolve(ev.value.get, valueFor(cluster))), interpolated = true)
+          case _ => ev
         }
-      } getOrElse ev
+      case _ => ev
     })
   }
 }
