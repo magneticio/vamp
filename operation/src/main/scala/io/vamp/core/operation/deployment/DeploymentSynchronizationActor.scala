@@ -283,7 +283,7 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
     val persist = processedClusters.filter(_.state == Processed.Persist).map(_.cluster)
     val remove = processedClusters.filter(_.state == Processed.RemoveFromPersistence).map(_.cluster)
 
-    (updateTraits(persist) andThen purgeTraits(remove) andThen updateEndpoints(remove, routes) andThen persistDeployment(persist, remove))(deployment)
+    (updateTraits(persist) andThen updateEndpoints(remove, routes) andThen purgeTraits(remove) andThen persistDeployment(persist, remove))(deployment)
   }
 
   private def updateTraits(persist: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
@@ -306,9 +306,11 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
   }
 
   private def updateEndpoints(remove: List[DeploymentCluster], routes: List[EndpointRoute]): (Deployment => Deployment) = { deployment: Deployment =>
-    remove.flatMap(_.routes.keys).map(n => Port("", None, Some(n.toString))).foreach { port =>
-      routes.find(_.matching(deployment, port)).foreach(r => actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port))
-    }
+
+    deployment.endpoints.foreach(endpoint => TraitReference.referenceFor(endpoint.name) match {
+      case Some(TraitReference(cluster, _, _)) if remove.exists(_.name == cluster) => actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, endpoint)
+      case _ =>
+    })
 
     deployment.endpoints.foreach { port =>
       TraitReference.referenceFor(port.name) match {
