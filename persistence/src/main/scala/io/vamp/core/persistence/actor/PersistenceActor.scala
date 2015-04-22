@@ -46,8 +46,8 @@ class PersistenceActor extends Actor with ActorLogging with ReplyActor with Arch
   override protected def errorRequest(request: Any): RequestError = UnsupportedPersistenceRequest(request)
 
   private lazy val store = ConfigFactory.load().getString("vamp.core.model.persistence.storage-type") match {
-    case "jdbc" => new JdbcStoreProvider(context.dispatcher).store
-    case _ => new InMemoryStoreProvider(context.dispatcher).store
+    case "in-memory" => new InMemoryStoreProvider(context.dispatcher).store
+    case _ => new JdbcStoreProvider(context.dispatcher).store
   }
 
   def reply(request: Any) = {
