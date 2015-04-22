@@ -1,7 +1,6 @@
 package io.vamp.core.persistence.store
 
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.serialization._
 import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
@@ -9,12 +8,12 @@ import org.json4s.native.Serialization.write
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
 
-case class InMemoryStoreInfo(artifacts: Map[String, Map[String, Any]])
+case class InMemoryStoreInfo(`type`: String, artifacts: Map[String, Map[String, Any]])
 
-trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationProvider {
-  this: ExecutionContextProvider =>
+class InMemoryStoreProvider(executionContext: ExecutionContext) extends StoreProvider with PersistenceNotificationProvider {
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[InMemoryStoreProvider]))
   implicit val formats = SerializationFormat.default
@@ -25,7 +24,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
 
     val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
-    def info = InMemoryStoreInfo(store.map {
+    def info = InMemoryStoreInfo("in-memory", store.map {
       case (key, value) => key -> Map[String, Any]("count" -> value.values.size)
     } toMap)
 
