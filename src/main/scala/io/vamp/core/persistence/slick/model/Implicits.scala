@@ -157,7 +157,7 @@ object Implicits {
     DefaultBreedModel(deploymentId = a.deploymentId, deployable = a.artifact.deployable.name, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def environmentVariableModel2Artifact(m: EnvironmentVariableModel): EnvironmentVariable =
-    EnvironmentVariable(name = m.name, alias = m.alias, value = m.value)
+    EnvironmentVariable(name = m.name, alias = m.alias, value = m.value, interpolated = m.interpolated)
 
   implicit def hostModel2Artifact(m: HostModel): Host =
    Host(name = m.name, value = m.value)

@@ -123,7 +123,7 @@ case class ConstantModel(name: String, alias: Option[String], value: Option[Stri
   override def withId(id: Id): ConstantModel = copy(id = Option(id))
 }
 
-case class EnvironmentVariableModel(deploymentId: Option[Int], name: String, alias: Option[String], value: Option[String], id: Option[Int] = None, parentId: Option[Int], parentType: Option[EnvironmentVariableParentType]) extends VampDeployablePersistenceModel[EnvironmentVariableModel] {
+case class EnvironmentVariableModel(deploymentId: Option[Int], name: String, alias: Option[String], value: Option[String], interpolated: Boolean, id: Option[Int] = None, parentId: Option[Int], parentType: Option[EnvironmentVariableParentType]) extends VampDeployablePersistenceModel[EnvironmentVariableModel] {
   override def withId(id: Id): EnvironmentVariableModel = copy(id = Option(id))
 }
 
