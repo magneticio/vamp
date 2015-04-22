@@ -70,6 +70,7 @@ val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
 val vampCommonVersion = "0.7.0.24"
 val vampPulseApiVersion = "0.7.0.23"
+val tugboatVersion = "0.2.0.1"
 
 // Note ThisBuild, this is what makes these dependencies shared
 libraryDependencies in ThisBuild ++= Seq(
@@ -89,7 +90,7 @@ libraryDependencies in ThisBuild ++= Seq(
   "ch.qos.logback" % "logback-classic" % logbackVersion,
   "junit" % "junit" % junitVersion % "test",
   "org.scalatest" %% "scalatest" % scalatestVersion % "test",
-  "io.vamp" %% "tugboat" % "0.2.0"
+  "io.vamp" %% "tugboat" % tugboatVersion
 )
 
 // Sub-project dependency versions
