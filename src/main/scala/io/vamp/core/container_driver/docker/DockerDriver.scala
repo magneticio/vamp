@@ -7,7 +7,7 @@ import io.vamp.core.container_driver.marathon.api._
 import io.vamp.core.container_driver.{ContainerDriver, ContainerInfo, ContainerServer, ContainerService}
 import io.vamp.core.model.artifact._
 import org.slf4j.LoggerFactory
-import tugboat.{ContainerConfig, Container, ContainerDetails}
+import tugboat._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -37,14 +37,14 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
 
   def all: Future[List[ContainerService]] = Future({
     logger.debug(s"docker get all")
-
+    logger.debug(s"docker :${docker}")
     val details: List[ContainerDetails] =
       for {
         container: Container <- getContainers
         detail: ContainerDetails = getContainerDetails(container.id)
       } yield detail
 
-    for (detail <- details) logger.debug(s"[ALL] name: ${detail.name} [monitored by VAMP: ${processable(detail.name)}]")
+    for (detail <- details) logger.debug(s"[ALL] name: ${detail.name} ${if (processable(detail.name)) {"[Monitored by VAMP]" } else {"[Non-vamp container]"} }")
 
     // TODO service of the same deloyment need to be folded into a single containerDetail enitity
     val containerDetails: List[ContainerService] =
@@ -87,7 +87,6 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
 
   /**
    * Blocking method to get a list of all containers
-   * @param id
    * @return
    */private def getContainers: List[Container] = {
     val dockerContainers: Future[List[Container]] = docker.containers.list()
@@ -104,6 +103,13 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
     Await.result(containerDetails, timeout)
   }
 
+  /**
+   * Blocking method to get a list of all containers
+   * @return
+   */private def getImages: List[Image] = {
+    val dockerImages: Future[List[Image]] = docker.images.list()
+    Await.result(dockerImages, timeout)
+  }
 
 
   private def containerService(container: ContainerDetails): ContainerService =
@@ -114,23 +120,23 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
         ContainerServer(
           name = serverNameFromContainer(container),
           host = container.config.hostname,
-          ports = container.config.exposedPorts.map(port => port.toInt).toList,
+          ports = container.networkSettings.ports.map(port => port._2.map(e=> e.hostPort)).flatten.toList,
           deployed = container.state.running)
       )
     )
 
   private def serverNameFromContainer(container: ContainerDetails): String = {
     val parts = container.name.split("_")
-    if (parts.size == 2)
-      parts(1)
+    if (parts.size == 3)
+      parts(2)
     else
       container.name
   }
 
   private def deploymentNameFromContainer(container: ContainerDetails): String = {
     val parts = container.name.split("_")
-    if (parts.size == 2)
-      parts(0).substring(1)
+    if (parts.size == 3)
+      parts(1)
     else
       container.name
   }
@@ -146,11 +152,31 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
   }
 
 
+  private def pullImage(name : String): Unit = {
+    docker.images.pull(name).stream {
+      case Pull.Status(msg) =>  logger.debug(s"[DEPLOY] pulling image $name: $msg")
+      case Pull.Progress(msg, _, details) =>
+        logger.debug(s"[DEPLOY] pulling image $name: $msg")
+        details.foreach { dets =>
+          logger.debug(s"[DEPLOY] pulling image $name: ${dets.bar}")
+        }
+      case Pull.Error(msg, _) =>  logger.error(s"[DEPLOY] pulling image $name failed: $msg")
+    }
+
+  }
+
 
   private def createContainer(id: String, deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
-    //TODO check if the docker image is already present, or needs to be pulled first
+    val dockerImageName = service.breed.deployable.name
 
-    val containerwithName = docker.containers.create(service.breed.deployable.name).name(id)
+    //TODO check if the docker image is already present, or needs to be pulled first
+    val images = getImages
+    val matchingNames = images.filter(image => image.id == dockerImageName)
+    if (matchingNames.isEmpty) {
+      pullImage(dockerImageName)
+    }
+
+    val containerwithName = docker.containers.create(dockerImageName).name(id)
 
     val containerPrep = service.scale match {
       case Some(scale) => containerwithName.cpuShares(scale.cpu.toInt).memory(if(scale.memory.toLong < dockerMinimumMemory) dockerMinimumMemory else scale.memory.toLong  )
@@ -167,6 +193,7 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
     // Configure the container for starting
     var prepStart = docker.containers.get(container.id).start
     for (port <- portMappings(deployment, cluster, service)) {
+      logger.trace(s"[DEPLOY] setting port: 0.0.0.0:${port.hostPort} -> ${port.containerPort}/tcp")
       prepStart = prepStart.portBind(tugboat.Port.Tcp(port.containerPort), tugboat.PortBinding.local(port.hostPort))
     }
     Future(prepStart())
@@ -192,9 +219,9 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
 
 
 
-  private def appId(deployment: Deployment, breed: Breed): String = s"/${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
+  private def appId(deployment: Deployment, breed: Breed): String = s"/vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
-  private def processable(id: String): Boolean = id.split(nameDelimiter).size == 2
+  private def processable(id: String): Boolean = id.split(nameDelimiter).size == 3
 
   private def nameMatcher(id: String): (Deployment, Breed) => Boolean = { (deployment: Deployment, breed: Breed) => id == appId(deployment, breed) }
 
