@@ -26,7 +26,7 @@ trait TraitResolver {
 
   def referenceAsPart(reference: ValueReference) = s"$marker{${reference.reference}}"
 
-  def referencesFor(value: String): List[ValueReference] = partsFor(value)._2
+  def referencesFor(value: String): List[ValueReference] = partsFor(value)._2.filter(_.cluster != s"$marker")
 
   def resolve(value: String, provider: (ValueReference => String)): String = partsFor(value) match {
     case (fragments, references) =>
@@ -42,7 +42,8 @@ trait TraitResolver {
   }
 
   def partsFor(value: String): (List[String], List[ValueReference]) = {
-    val matches = referencePattern findAllMatchIn value filterNot (m => value.substring(m.start, m.end) == "$$") toList
+    val escape = s"$marker$marker"
+    val matches = referencePattern findAllMatchIn value toList
 
     def tailFragments(matches: List[Match]): List[String] = {
       matches match {
@@ -56,7 +57,7 @@ trait TraitResolver {
 
     val references = matches.flatMap { ref =>
       value.substring(ref.start, ref.end) match {
-        case "$$" => Nil
+        case s if s == escape => s"$marker" :: Nil
         case s if s.startsWith("${") => s.substring(2, s.length - 1) :: Nil
         case s => s.substring(1) :: Nil
       }
@@ -76,6 +77,7 @@ trait DeploymentTraitResolver extends TraitResolver {
       val value = reference match {
         case ref: TraitReference => deployment.traits.find(_.name == ref.reference).flatMap(_.value)
         case ref: HostReference => deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value)
+        case ref: LocalReference if ref.name == s"$marker" => Some(s"$marker")
         case ref: LocalReference =>
           (deployment.environmentVariables ++ deployment.constants).find(tr => TraitReference.referenceFor(tr.name).exists(r => r.cluster == cluster.name && r.name == ref.name)).flatMap(_.value)
         case ref => None

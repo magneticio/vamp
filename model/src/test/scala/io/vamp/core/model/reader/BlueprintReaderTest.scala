@@ -211,7 +211,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedEndpointPortError]({
       BlueprintReader.read(res("blueprint/blueprint23.yml"))
     }) should have(
-      'name("omega.ports.port"),
+      'name("omega.port"),
       'value(Some("8080"))
     )
   }
@@ -220,7 +220,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedEndpointPortError]({
       BlueprintReader.read(res("blueprint/blueprint24.yml"))
     }) should have(
-      'name("supersonic.ports.port"),
+      'name("supersonic.port"),
       'value(Some("8080"))
     )
   }
@@ -229,7 +229,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedEndpointPortError]({
       BlueprintReader.read(res("blueprint/blueprint25.yml"))
     }) should have(
-      'name("supersonic.ports.http"),
+      'name("supersonic.http"),
       'value(Some("8080"))
     )
   }
@@ -247,7 +247,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedEnvironmentVariableError]({
       BlueprintReader.read(res("blueprint/blueprint27.yml"))
     }) should have(
-      'name("omega.environment_variables.port"),
+      'name("omega.port"),
       'value(Some("8080"))
     )
   }
@@ -256,7 +256,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedEnvironmentVariableError]({
       BlueprintReader.read(res("blueprint/blueprint28.yml"))
     }) should have(
-      'name("supersonic.environment_variables.port"),
+      'name("supersonic.port"),
       'value(Some("8080"))
     )
   }
@@ -265,7 +265,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedEnvironmentVariableError]({
       BlueprintReader.read(res("blueprint/blueprint29.yml"))
     }) should have(
-      'name("supersonic.environment_variables.http"),
+      'name("supersonic.http"),
       'value(Some("8080"))
     )
   }
@@ -274,7 +274,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnresolvedEnvironmentVariableError]({
       BlueprintReader.read(res("blueprint/blueprint30.yml"))
     }) should have(
-      'name("supersonic.environment_variables.port"),
+      'name("supersonic.port"),
       'value(Some("8080"))
     )
   }
