@@ -3,17 +3,16 @@ package io.vamp.core.persistence.slick.model
 import java.time.OffsetDateTime
 import java.util.concurrent.TimeUnit
 
+import io.vamp.core.model.artifact.Deployment
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.artifact.DeploymentService._
-import io.vamp.core.model.artifact.Trait.Name
 import io.vamp.core.persistence.notification.NotificationMessageNotRestored
+import io.vamp.core.persistence.slick.model.ConstantParentType._
 import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.vamp.core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.vamp.core.persistence.slick.model.ParameterType.ParameterType
 import io.vamp.core.persistence.slick.model.PortParentType.PortParentType
-import io.vamp.core.persistence.slick.model.PortType.PortType
-import io.vamp.core.persistence.slick.model.TraitParameterParentType.TraitParameterParentType
 import io.vamp.core.persistence.slick.util.{Constants, VampPersistenceUtil}
 
 import scala.concurrent.duration.FiniteDuration
@@ -24,18 +23,6 @@ import scala.slick.driver.JdbcDriver.simple._
  * Implicit conversions for Slick columns
  */
 object Implicits {
-
-  implicit val traitDirectionMapper = MappedColumnType.base[Trait.Direction.Value, String](
-  { c => c.toString }, { s => Trait.Direction.withName(s) }
-  )
-
-  val portTypeMap = Map(
-    PortType.HTTP -> "http",
-    PortType.TCP -> "tcp"
-  )
-  implicit val portTypeColumnTypeMapper = MappedColumnType.base[PortType, String](
-    portTypeMap, portTypeMap.map(_.swap)
-  )
 
   val parameterParentTypeMap = Map(
     ParameterParentType.Escalation -> "escalation",
@@ -48,19 +35,11 @@ object Implicits {
   val portParentTypeMap = Map(
     PortParentType.Breed -> "breed",
     PortParentType.BlueprintEndpoint -> "blueprint_endpoint",
-    PortParentType.Deployment -> "deployment_endpoint"
+    PortParentType.DeploymentEndPoint -> "deployment_endpoint",
+    PortParentType.DeploymentPort -> "deployment_port"
   )
   implicit val portParentTypeColumnTypeMapper = MappedColumnType.base[PortParentType, String](
     portParentTypeMap, portParentTypeMap.map(_.swap)
-  )
-
-  val traitParameterParentTypeMap = Map(
-    TraitParameterParentType.Blueprint -> "Blueprint",
-    TraitParameterParentType.Deployment -> "Deployment"
-  )
-
-  implicit val traitParameterParentTypeColumnTypeMapper = MappedColumnType.base[TraitParameterParentType, String](
-    traitParameterParentTypeMap, traitParameterParentTypeMap.map(_.swap)
   )
 
   val deploymentStateTypeMap = Map(
@@ -81,7 +60,6 @@ object Implicits {
     case _ : Error => DeploymentStateType.Error
   }
 
-
   implicit def deploymentService2deploymentState(deploymentService: DeploymentServiceModel): State =
     deploymentService.deploymentState match {
       case DeploymentStateType.ReadyForDeployment => ReadyForDeployment(startedAt = deploymentService.deploymentTime)
@@ -99,20 +77,21 @@ object Implicits {
     parameterTypeMap, parameterTypeMap.map(_.swap)
   )
 
-  val traitNameParameterGroupTypeMap = Map(
-    Trait.Name.Group.EnvironmentVariables -> "environment_variables",
-    Trait.Name.Group.Ports -> "ports"
-  )
-  implicit val traitNameParameterGroupTypeMapper = MappedColumnType.base[Trait.Name.Group.Value, String](
-    traitNameParameterGroupTypeMap, traitNameParameterGroupTypeMap.map(_.swap)
-  )
-
   val environmentVariableParentTypeMap = Map(
     EnvironmentVariableParentType.Breed -> "breed",
-    EnvironmentVariableParentType.BlueprintParameter -> "blueprint_parameter"
+    EnvironmentVariableParentType.Blueprint -> "blueprint",
+    EnvironmentVariableParentType.Deployment -> "deployment"
   )
   implicit val environmentVariableParentTypeMapper = MappedColumnType.base[EnvironmentVariableParentType, String](
     environmentVariableParentTypeMap, environmentVariableParentTypeMap.map(_.swap)
+  )
+
+  val constantParentTypeMap = Map(
+    ConstantParentType.Breed -> "breed",
+    ConstantParentType.Deployment -> "deployment"
+  )
+  implicit val constantParentTypeMapper = MappedColumnType.base[ConstantParentType, String](
+    constantParentTypeMap, constantParentTypeMap.map(_.swap)
   )
 
   implicit def deployment2Model(a: Deployment): DeploymentModel =
@@ -178,20 +157,20 @@ object Implicits {
     DefaultBreedModel(deploymentId = a.deploymentId, deployable = a.artifact.deployable.name, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def environmentVariableModel2Artifact(m: EnvironmentVariableModel): EnvironmentVariable =
-    EnvironmentVariable(name = Name(value = m.name, group = m.groupType, scope = m.scope), alias = m.alias, value = m.value, direction = m.direction)
+    EnvironmentVariable(name = m.name, alias = m.alias, value = m.value)
 
-  implicit def portModel2Port(model: PortModel): Port = model.portType match {
-    case PortType.HTTP => HttpPort(Name(value = model.name, group = model.groupType, scope = model.scope), model.alias, model.value, model.direction)
-    case PortType.TCP => TcpPort(Name(value = model.name, group = model.groupType, scope = model.scope), model.alias, model.value, model.direction)
-    case _ => throw new RuntimeException(s"Handler for portType ${model.portType} not implemented")
-  }
+  implicit def hostModel2Artifact(m: HostModel): Host =
+   Host(name = m.name, value = m.value)
+
+  implicit def modelConstants2Artifact(c: ConstantModel) : Constant =
+    Constant(name = c.name, alias = c.alias, value = c.value)
+
+  implicit def portModel2Port(model: PortModel): Port =
+    Port(name = model.name, alias= model.alias, model.value)
+
 
   implicit def port2PortModel(port: Port): PortModel =
-    port match {
-      case TcpPort(_, _, _, _) => PortModel(name = port.name.value, scope = port.name.scope, groupType = port.name.group, alias = port.alias, portType = PortType.TCP, value = port.value, direction = port.direction)
-      case HttpPort(_, _, _, _) => PortModel(name = port.name.value, scope = port.name.scope, groupType = port.name.group, alias = port.alias, portType = PortType.HTTP, value = port.value, direction = port.direction)
-      case _ => throw new RuntimeException(s"Handler for portType not implemented")
-    }
+    PortModel(name = port.name, alias = port.alias, value = port.value)
 
   implicit val offsetDateTimeColumnTypeMapper = MappedColumnType.base[OffsetDateTime, String](
   { s => s.toString }, { c => OffsetDateTime.parse(c) }

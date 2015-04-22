@@ -15,14 +15,23 @@ trait DeploymentExtensions {
   implicit class DeploymentExtensions(val model: DeploymentModel) extends ActiveRecord[DeploymentModel] {
     override def table = Deployments
 
-    def parameters(implicit session: JdbcBackend#Session): List[TraitNameParameterModel] =
-      for {r <- TraitNameParameters.fetchAll if r.parentId == model.id && r.parentType == TraitParameterParentType.Deployment} yield r
+    def environmentVariables(implicit session: JdbcBackend#Session): List[EnvironmentVariableModel] =
+      for {r <- EnvironmentVariables.fetchAllFromDeployment(model.id) if r.parentId == model.id && r.parentType.contains(EnvironmentVariableParentType.Deployment)} yield r
 
     def clusters(implicit session: JdbcBackend#Session): List[DeploymentClusterModel] =
       for {r <- DeploymentClusters.fetchAllFromDeployment(model.id) if r.deploymentId == model.id} yield r
 
     def endpoints(implicit session: JdbcBackend#Session): List[PortModel] =
-      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType.contains(PortParentType.Deployment)} yield r
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType.contains(PortParentType.DeploymentEndPoint)} yield r
+
+    def hosts(implicit session: JdbcBackend#Session): List[HostModel] =
+      for {r <- DeploymentHosts.fetchAll if r.deploymentId == model.id} yield r
+
+    def constants(implicit session: JdbcBackend#Session): List[ConstantModel] =
+      for {r <- ModelConstants.fetchAll if r.parentId == model.id && r.parentType.contains(ConstantParentType.Deployment)} yield r
+
+    def ports(implicit session: JdbcBackend#Session): List[PortModel] =
+      for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType.contains(PortParentType.DeploymentPort)} yield r
 
   }
 
@@ -43,7 +52,6 @@ trait DeploymentClusterExtensions {
   }
 
 }
-
 
 trait DeploymentServiceExtensions {
   this: VampActiveSlick with ModelExtensions =>
@@ -75,7 +83,6 @@ trait DeploymentServerExtensions {
 
 }
 
-
 trait BlueprintReferenceExtensions {
   this: VampActiveSlick with ModelExtensions =>
 
@@ -103,14 +110,14 @@ trait DefaultBlueprintExtensions {
   implicit class DefaultBlueprintExtensions(val model: DefaultBlueprintModel) extends ActiveRecord[DefaultBlueprintModel] {
     override def table = DefaultBlueprints
 
-    def parameters(implicit session: JdbcBackend#Session): List[TraitNameParameterModel] =
-      for {r <- TraitNameParameters.fetchAll if r.parentId == model.id && r.parentType == TraitParameterParentType.Blueprint} yield r
-
     def clusters(implicit session: JdbcBackend#Session): List[ClusterModel] =
       for {r <- Clusters.fetchAllFromDeployment(model.deploymentId) if r.blueprintId == model.id.get} yield r
 
     def endpoints(implicit session: JdbcBackend#Session): List[PortModel] =
       for {r <- Ports.fetchAll if r.parentId == model.id && r.parentType.contains(PortParentType.BlueprintEndpoint)} yield r
+
+    def environmentVariables(implicit session: JdbcBackend#Session): List[EnvironmentVariableModel] =
+      for {r <- EnvironmentVariables.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id && r.parentType.contains(EnvironmentVariableParentType.Blueprint)} yield r
 
   }
 
@@ -249,6 +256,9 @@ trait DefaultBreedExtensions {
 
     def dependencies(implicit session: JdbcBackend#Session): List[DependencyModel] =
       for {r <- Dependencies.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id.get} yield r
+
+    def constants(implicit session: JdbcBackend#Session): List[ConstantModel] =
+      for {r <- ModelConstants.fetchAll if r.parentId == model.id && r.parentType.contains(ConstantParentType.Breed)} yield r
 
   }
 

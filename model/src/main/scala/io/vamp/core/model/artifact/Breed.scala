@@ -4,115 +4,109 @@ import scala.language.implicitConversions
 
 trait Breed extends Artifact
 
-case class DefaultBreed(name: String, deployable: Deployable, ports: List[Port], environmentVariables: List[EnvironmentVariable], dependencies: Map[String, Breed]) extends Breed {
-  lazy val traits = ports ++ environmentVariables
-
-  def inTraits: List[Trait[_]] = traits.filter(_.direction == Trait.Direction.In)
-
-  def outTraits: List[Trait[_]] = traits.filter(_.direction == Trait.Direction.Out)
+case class DefaultBreed(name: String, deployable: Deployable, ports: List[Port], environmentVariables: List[EnvironmentVariable], constants: List[Constant], dependencies: Map[String, Breed]) extends Breed {
+  def traitsFor(group: String): List[Trait] = TraitReference.groupFor(group) match {
+    case Some(TraitReference.Ports) => ports
+    case Some(TraitReference.EnvironmentVariables) => environmentVariables
+    case Some(TraitReference.Constants) => constants
+    case _ => Nil
+  }
 }
 
 case class BreedReference(name: String) extends Reference with Breed
 
 case class Deployable(name: String) extends Artifact
 
-object Trait {
 
-  val host = "host"
+trait Trait {
 
-  object Direction extends Enumeration {
-    val In, Out = Value
-  }
-
-  object Name {
-
-    object Group extends Enumeration {
-      val Ports, EnvironmentVariables = Value
-    }
-
-    val delimiter = "."
-
-    implicit def asName(string: String): Name = string.indexOf(delimiter) match {
-      case -1 => Name(None, None, string)
-      case scopeIndex => string.substring(scopeIndex + 1).indexOf(delimiter) match {
-        case -1 => Name(Some(string.substring(0, scopeIndex)), None, string.substring(scopeIndex + 1))
-        case groupIndex =>
-          val scope = Some(string.substring(0, scopeIndex))
-          val group = string.substring(scopeIndex + 1, scopeIndex + groupIndex + 1) match {
-            case g if g == "ports" => Some(Name.Group.Ports)
-            case g if g == "environment_variables" => Some(Name.Group.EnvironmentVariables)
-            case _ => None
-          }
-          val value = string.substring(scopeIndex + groupIndex + 2)
-
-          Name(scope, group, value)
-      }
-    }
-  }
-
-  case class Name(scope: Option[String], group: Option[Name.Group.Value], value: String) {
-    override def toString: String = scope match {
-      case None => value
-      case Some(s) => group match {
-        case None => s"$s${Name.delimiter}$value"
-        case Some(Name.Group.EnvironmentVariables) => s"$s${Name.delimiter}environment_variables${Name.delimiter}$value"
-        case Some(g) => s"$s${Name.delimiter}${g.toString.toLowerCase}${Name.delimiter}$value"
-      }
-    }
-  }
-
-}
-
-trait Trait[A] {
-
-  def name: Trait.Name
+  def name: String
 
   def alias: Option[String]
 
-  def direction: Trait.Direction.Value
-
-  def value: Option[A]
+  def value: Option[String]
 }
 
-object Port {
-  
-  def toPort(name: Trait.Name, alias: Option[String], value: Option[String], direction: Trait.Direction.Value): Port = value match {
-    case None => TcpPort(name, alias, None, direction)
-    case Some(portValue) =>
-      val tcp = "/tcp"
-      val http = "/http"
+object TraitReference extends Enumeration {
 
-      val number = if (portValue.toLowerCase.endsWith(http))
-        portValue.substring(0, portValue.length - http.length).toInt
-      else if (portValue.toLowerCase.endsWith(tcp))
-        portValue.substring(0, portValue.length - tcp.length).toInt
+  val Ports, EnvironmentVariables, Constants, Hosts = Value
+
+  val delimiter = "."
+
+  def groupFor(group: String): Option[TraitReference.Value] = group match {
+    case "ports" => Some(Ports)
+    case "environment_variables" => Some(EnvironmentVariables)
+    case "constants" => Some(Constants)
+    case "hosts" => Some(Hosts)
+    case _ => None
+  }
+
+  implicit def groupFor(group: TraitReference.Value): String = group match {
+    case Ports => "ports"
+    case EnvironmentVariables => "environment_variables"
+    case Constants => "constants"
+    case Hosts => "hosts"
+  }
+
+  def referenceFor(reference: String): Option[TraitReference] = reference.indexOf(delimiter) match {
+    case -1 => None
+    case clusterIndex => reference.substring(clusterIndex + 1).indexOf(delimiter) match {
+      case -1 => None
+      case groupIndex =>
+        val cluster = reference.substring(0, clusterIndex)
+        val group = reference.substring(clusterIndex + 1, clusterIndex + groupIndex + 1)
+        val value = reference.substring(clusterIndex + groupIndex + 2)
+        Some(TraitReference(cluster, group, value))
+    }
+  }
+}
+
+trait ValueReference {
+  def cluster: String
+
+  def reference: String
+
+  override def toString = reference
+}
+
+case class LocalReference(name: String) extends ValueReference {
+  val cluster = ""
+
+  lazy val reference = name
+}
+
+case class TraitReference(cluster: String, group: String, name: String) extends ValueReference {
+  lazy val reference = s"$cluster.$group.$name"
+
+  def referenceWithoutGroup = s"$cluster.$name"
+}
+
+object Port extends Enumeration {
+
+  val Tcp, Http = Value
+}
+
+case class Port(name: String, alias: Option[String], value: Option[String]) extends Trait {
+  private val tcp = "/tcp"
+  private val http = "/http"
+
+  lazy val number: Int = value match {
+    case None => 0
+    case Some(v) =>
+      if (v.toLowerCase.endsWith(http))
+        v.substring(0, v.length - http.length).toInt
+      else if (v.toLowerCase.endsWith(tcp))
+        v.substring(0, v.length - tcp.length).toInt
       else
-        portValue.toInt
+        v.toInt
+  }
 
-      if (portValue.toLowerCase.endsWith(http))
-        HttpPort(name, alias, Some(number), direction)
-      else
-        TcpPort(name, alias, Some(number), direction)
+  lazy val `type`: Port.Value = value match {
+    case None => Port.Tcp
+    case Some(v) => if (v.toLowerCase.endsWith(http)) Port.Http else Port.Tcp
   }
 }
 
-trait Port extends Trait[Int] {
-  def valueAsString: String
-}
+case class EnvironmentVariable(name: String, alias: Option[String], value: Option[String]) extends Trait
 
-case class TcpPort(name: Trait.Name, alias: Option[String], value: Option[Int], direction: Trait.Direction.Value) extends Port {
-  def valueAsString: String = value match {
-    case None => ""
-    case Some(number) => s"$number/tcp"
-  }
-}
-
-case class HttpPort(name: Trait.Name, alias: Option[String], value: Option[Int], direction: Trait.Direction.Value) extends Port {
-  def valueAsString: String = value match {
-    case None => ""
-    case Some(number) => s"$number/http"
-  }
-}
-
-
-case class EnvironmentVariable(name: Trait.Name, alias: Option[String], value: Option[String], direction: Trait.Direction.Value) extends Trait[String]
+case class Constant(name: String, alias: Option[String], value: Option[String]) extends Trait

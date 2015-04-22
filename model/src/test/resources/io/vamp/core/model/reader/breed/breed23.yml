@@ -1,0 +1,8 @@
+name: monarch
+deployable: magneticio/monarch:latest
+
+environment_variables:
+  period[]: 100
+  timeout[TIME_OUT]: 10
+
+

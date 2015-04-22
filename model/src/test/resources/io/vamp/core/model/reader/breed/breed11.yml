@@ -2,5 +2,4 @@ name: monarch
 deployable: magneticio/monarch:latest
 
 ports:
-  name: port
-  direction: OUT
+  port: ~

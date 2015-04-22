@@ -1,6 +1,6 @@
 package io.vamp.core.model.serialization
 
-import io.vamp.common.json.{MapSerializer, OffsetDateTimeSerializer, SnakeCaseSerializationFormat}
+import io.vamp.common.json._
 import org.json4s._
 
 object SerializationFormat {
@@ -22,4 +22,3 @@ abstract class ArtifactKeySerializer[A: Manifest] extends KeySerializer[A] {
 }
 
 abstract class ArtifactFieldSerializer[A: Manifest] extends FieldSerializer[A]
-

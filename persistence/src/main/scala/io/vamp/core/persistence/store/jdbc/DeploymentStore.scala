@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory
 import scala.slick.jdbc.JdbcBackend
 
 
-trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParameterStore with ScaleStore with RoutingStore with SlaStore with PersistenceNotificationProvider {
+trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVariableStore with ScaleStore with RoutingStore with SlaStore with PersistenceNotificationProvider {
 
   implicit val sess: JdbcBackend.Session
 
@@ -19,12 +19,8 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
   import io.vamp.core.persistence.slick.model.Implicits._
 
   protected def updateDeployment(existing: DeploymentModel, artifact: Deployment): Unit = {
-    deleteDeploymentClusters(existing.clusters, existing.id)
-    deleteModelPorts(existing.endpoints)
-    deleteModelTraitNameParameters(existing.parameters)
-    createDeploymentClusters(artifact.clusters, existing.id)
-    createPorts(artifact.endpoints, existing.id, Some(PortParentType.Deployment))
-    createTraitNameParameters(artifact.environmentVariables, existing.id, TraitParameterParentType.Deployment)
+    deleteChildren(existing)
+    createChildren(artifact, existing.id.get)
     Deployments.update(existing)
   }
 
@@ -92,6 +88,9 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
           SlaReferences.findOptionById(slaRef) match {
             case Some(slaReference) =>
               for (escalationReference <- slaReference.escalationReferences) {
+                GenericEscalations.findOptionByName(escalationReference.name, deploymentId) match {
+                  case Some(escalation) if escalation.isAnonymous =>  deleteEscalationModel(escalation)
+                }
                 EscalationReferences.deleteById(escalationReference.id.get)
               }
               GenericSlas.findOptionByName(slaReference.name, slaReference.deploymentId) match {
@@ -141,18 +140,19 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
     }
   }
 
-  protected def findDeploymentOptionArtifact(name: String, defaultDeploymentId: Option[Int] = None): Option[Artifact] = {
-    Deployments.findOptionByName(name) match {
-      case Some(deployment) =>
-        Some(Deployment(
-          name = deployment.name,
-          clusters = findDeploymentClusterArtifacts(deployment.clusters, deployment.id),
-          endpoints = readPortsToArtifactList(deployment.endpoints),
-          environmentVariables = traitNameParametersToArtifactMap(deployment.parameters))
-        )
-      case _ => None
+  protected def findDeploymentOptionArtifact(name: String, defaultDeploymentId: Option[Int] = None): Option[Artifact] =
+    Deployments.findOptionByName(name) flatMap { deployment => Some(
+      Deployment(
+        name = deployment.name,
+        clusters = findDeploymentClusterArtifacts(deployment.clusters, deployment.id),
+        endpoints = readPortsToArtifactList(deployment.endpoints),
+        environmentVariables = deployment.environmentVariables.map(e => environmentVariableModel2Artifact(e)),
+        hosts = deployment.hosts.map(h => hostModel2Artifact(h)),
+        constants = deployment.constants.map(c => modelConstants2Artifact(c)),
+        ports = readPortsToArtifactList(deployment.ports)
+      )
+    )
     }
-  }
 
   private def findDeploymentClusterArtifacts(clusters: List[DeploymentClusterModel], deploymentId: Option[Int]): List[DeploymentCluster] =
     clusters.map(cluster =>
@@ -162,7 +162,6 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
         routes = clusterRouteModels2Artifacts(cluster.routes),
         sla = findOptionSlaArtifactViaReferenceId(cluster.slaReference, deploymentId)
       )
-
     )
 
   private def clusterRouteModels2Artifacts(routes: List[ClusterRouteModel]): Map[Int, Int] =
@@ -170,17 +169,10 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
 
   private def findDeploymentServiceArtifacts(services: List[DeploymentServiceModel]): List[DeploymentService] =
     services.map(service =>
-
       DeploymentService(state = deploymentService2deploymentState(service),
         breed = defaultBreedModel2DefaultBreedArtifact(DefaultBreeds.findByName(BreedReferences.findById(service.breed).name, service.deploymentId)),
-        scale = service.scale match {
-          case Some(scale) => Some(defaultScaleModel2Artifact(DefaultScales.findByName(ScaleReferences.findById(scale).name, service.deploymentId)))
-          case _ => None
-        },
-        routing = service.routing match {
-          case Some(routing) => Some(defaultRoutingModel2Artifact(DefaultRoutings.findByName(RoutingReferences.findById(routing).name, service.deploymentId)))
-          case _ => None
-        },
+        scale = service.scale flatMap { scale => Some(defaultScaleModel2Artifact(DefaultScales.findByName(ScaleReferences.findById(scale).name, service.deploymentId))) },
+        routing = service.routing flatMap { routing => Some(defaultRoutingModel2Artifact(DefaultRoutings.findByName(RoutingReferences.findById(routing).name, service.deploymentId))) },
         servers = deploymentServerModels2Artifacts(service.servers),
         dependencies = deploymentServiceDependencies2Artifacts(service.dependencies)
       )
@@ -204,19 +196,33 @@ trait DeploymentStore extends BlueprintStore with BreedStore with TraitNameParam
   }
 
   private def deleteDeploymentModel(m: DeploymentModel): Unit = {
-    deleteDeploymentClusters(m.clusters, m.id)
-    deleteModelPorts(m.endpoints)
-    deleteModelTraitNameParameters(m.parameters)
+    deleteChildren(m)
     Deployments.deleteById(m.id.get)
   }
 
   protected def createDeploymentArtifact(a: Deployment): String = {
     val deploymentId = Deployments.add(a)
-    createDeploymentClusters(a.clusters, Some(deploymentId))
-    createPorts(a.endpoints, Some(deploymentId), Some(PortParentType.Deployment))
-    createTraitNameParameters(a.environmentVariables, Some(deploymentId), TraitParameterParentType.Deployment)
+    createChildren(a, deploymentId = deploymentId)
     Deployments.findById(deploymentId).name
   }
 
+
+  private def deleteChildren(model: DeploymentModel): Unit = {
+    deleteDeploymentClusters(model.clusters, model.id)
+    deleteModelPorts(model.endpoints)
+    deleteEnvironmentVariables(model.environmentVariables)
+    deleteConstants(model.constants)
+    for (host <- model.hosts) DeploymentHosts.deleteById(host.id.get)
+    deleteModelPorts(model.ports)
+  }
+
+  private def createChildren(deployment: Deployment, deploymentId: Int): Unit = {
+    createDeploymentClusters(deployment.clusters, Some(deploymentId))
+    createPorts(deployment.endpoints, Some(deploymentId), Some(PortParentType.DeploymentEndPoint))
+    createEnvironmentVariables(deployment.environmentVariables, EnvironmentVariableParentType.Deployment, deploymentId, Some(deploymentId))
+    createConstants(deployment.constants, parentId = Some(deploymentId), parentType = ConstantParentType.Deployment)
+    for (host <- deployment.hosts) DeploymentHosts.add(HostModel(name = host.name, value = host.value, deploymentId = Some(deploymentId)))
+    createPorts(deployment.ports, Some(deploymentId), Some(PortParentType.DeploymentPort))
+  }
 
 }

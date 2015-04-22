@@ -9,10 +9,14 @@ trait AbstractBlueprint extends Blueprint {
 
   def endpoints: List[Port]
 
-  def environmentVariables: Map[Trait.Name, Any]
+  def environmentVariables: List[EnvironmentVariable]
+
+  def traits: List[Trait]
 }
 
-case class DefaultBlueprint(name: String, clusters: List[Cluster], endpoints: List[Port], environmentVariables: Map[Trait.Name, Any]) extends AbstractBlueprint
+case class DefaultBlueprint(name: String, clusters: List[Cluster], endpoints: List[Port], environmentVariables: List[EnvironmentVariable]) extends AbstractBlueprint {
+  lazy val traits = environmentVariables
+}
 
 case class BlueprintReference(name: String) extends Blueprint with Reference
 

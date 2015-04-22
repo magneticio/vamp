@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory
 
 import scala.slick.jdbc.JdbcBackend
 
-trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleStore with RoutingStore with SlaStore with PersistenceNotificationProvider {
+trait BlueprintStore extends BreedStore with ScaleStore with RoutingStore with SlaStore with PersistenceNotificationProvider {
 
   implicit val sess: JdbcBackend.Session
 
@@ -23,8 +23,8 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
     createBlueprintClusters(artifact.clusters, existing.id.get, existing.deploymentId)
     deleteModelPorts(existing.endpoints)
     createPorts(artifact.endpoints, existing.id, parentType = Some(PortParentType.BlueprintEndpoint))
-    deleteModelTraitNameParameters(existing.parameters)
-    createTraitNameParameters(artifact.environmentVariables, existing.id, TraitParameterParentType.Blueprint)
+    deleteEnvironmentVariables(existing.environmentVariables)
+    createEnvironmentVariables(artifact.environmentVariables, EnvironmentVariableParentType.Blueprint, existing.id.get, existing.deploymentId)
     existing.update
   }
 
@@ -98,19 +98,17 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
     }
   }
 
-  protected def findBlueprintOptionArtifact(name: String, defaultDeploymentId: Option[Int] = None): Option[Artifact] = {
-    DefaultBlueprints.findOptionByName(name, defaultDeploymentId) match {
-      case Some(b) => Some(
+  protected def findBlueprintOptionArtifact(name: String, defaultDeploymentId: Option[Int] = None): Option[Artifact] =
+    DefaultBlueprints.findOptionByName(name, defaultDeploymentId) flatMap { b =>
+      Some(
         DefaultBlueprint(
           name = VampPersistenceUtil.restoreToAnonymous(b.name, b.isAnonymous),
           clusters = findBlueprintClusterArtifacts(b.clusters, defaultDeploymentId),
           endpoints = readPortsToArtifactList(b.endpoints),
-          environmentVariables = traitNameParametersToArtifactMap(b.parameters)
+          environmentVariables = b.environmentVariables.map(e => environmentVariableModel2Artifact(e))
         )
       )
-      case None => None
     }
-  }
 
   private def findBlueprintClusterArtifacts(clusters: List[ClusterModel], deploymentId: Option[Int]): List[Cluster] =
     clusters.map(cluster => Cluster(
@@ -136,7 +134,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
 
   private def deleteBlueprintModel(blueprint: DefaultBlueprintModel): Unit = {
     deleteBlueprintClusters(blueprint.clusters)
-    deleteModelTraitNameParameters(blueprint.parameters)
+    deleteEnvironmentVariables(blueprint.environmentVariables)
     deleteModelPorts(blueprint.endpoints)
     DefaultBlueprints.deleteById(blueprint.id.get)
   }
@@ -147,7 +145,7 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
       val blueprintId = DefaultBlueprints.add(DeploymentDefaultBlueprint(deploymentId, a))
       createBlueprintClusters(a.clusters, blueprintId, deploymentId)
       createPorts(ports = a.endpoints, parentId = Some(blueprintId), parentType = Some(PortParentType.BlueprintEndpoint))
-      createTraitNameParameters(a.environmentVariables, Some(blueprintId), TraitParameterParentType.Blueprint)
+      createEnvironmentVariables(a.environmentVariables, EnvironmentVariableParentType.Blueprint, blueprintId, deploymentId)
       DefaultBlueprints.findById(blueprintId).name
   }
 
@@ -170,6 +168,5 @@ trait BlueprintStore extends BreedStore with TraitNameParameterStore with ScaleS
       )
     )
   }
-
 
 }
