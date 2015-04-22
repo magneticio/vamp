@@ -7,7 +7,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.core.model.artifact.{Artifact, _}
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
-import io.vamp.core.persistence.store.JdbcStoreProvider
+import io.vamp.core.persistence.store.{InMemoryStoreProvider, JdbcStoreProvider}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -35,7 +35,7 @@ object PersistenceActor extends ActorDescription {
 
 }
 
-class PersistenceActor extends JdbcStoreProvider with Actor with ActorLogging with ReplyActor with ArchivingProvider with FutureSupport with ActorExecutionContextProvider with PersistenceNotificationProvider {
+class PersistenceActor extends Actor with ActorLogging with ReplyActor with ArchivingProvider with FutureSupport with ActorExecutionContextProvider with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
@@ -44,6 +44,11 @@ class PersistenceActor extends JdbcStoreProvider with Actor with ActorLogging wi
   override protected def requestType: Class[_] = classOf[PersistenceMessages]
 
   override protected def errorRequest(request: Any): RequestError = UnsupportedPersistenceRequest(request)
+
+  private lazy val store = ConfigFactory.load().getString("vamp.core.model.persistence.storage-type") match {
+    case "jdbc" => new JdbcStoreProvider(context.dispatcher).store
+    case _ => new InMemoryStoreProvider(context.dispatcher).store
+  }
 
   def reply(request: Any) = {
     val future: Future[Any] = request match {
