@@ -44,7 +44,7 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
         detail: ContainerDetails = getContainerDetails(container.id)
       } yield detail
 
-    for (detail <- details) logger.debug(s"[ALL] id: ${detail.id} name: ${detail.name} [monitored by VAMP: ${processable(detail.name)}]")
+    for (detail <- details) logger.debug(s"[ALL] name: ${detail.name} [monitored by VAMP: ${processable(detail.name)}]")
 
     // TODO service of the same deloyment need to be folded into a single containerDetail enitity
     val containerDetails: List[ContainerService] =
@@ -85,11 +85,20 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
     )
   }
 
-  private def getContainers: List[Container] = {
+  /**
+   * Blocking method to get a list of all containers
+   * @param id
+   * @return
+   */private def getContainers: List[Container] = {
     val dockerContainers: Future[List[Container]] = docker.containers.list()
     Await.result(dockerContainers, timeout)
   }
 
+  /**
+   * Blocking method to get details of a single container
+   * @param id
+   * @return
+   */
   private def getContainerDetails(id: String): ContainerDetails = {
     val containerDetails: Future[ContainerDetails] = docker.containers.get(id)()
     Await.result(containerDetails, timeout)
@@ -103,7 +112,7 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
       scale = DefaultScale(name = "", cpu = container.config.cpuShares, memory = defaultMemory, instances = 1 /* TODO memory locked, instances set to 1 */),
       servers = List(
         ContainerServer(
-          id = serverNameFromContainer(container),
+          name = serverNameFromContainer(container),
           host = container.config.hostname,
           ports = container.config.exposedPorts.map(port => port.toInt).toList,
           deployed = container.state.running)
@@ -127,9 +136,13 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
   }
 
   private def findContainer(name: String): Option[Container] = {
-    val matching = getContainers.filter(container => getContainerDetails(container.id).name == name)
-    if (matching.isEmpty) None
-    else Some(matching.head)
+    val containers = getContainers
+    if (containers.isEmpty)  None
+    else {
+      val matching = containers.filter(container => getContainerDetails(container.id).name == name)
+      if (matching.isEmpty) None
+      else Some(matching.head)
+    }
   }
 
 
@@ -146,7 +159,7 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
 
     // TODO environment variables need to be set
 
-    // Create the actual container
+    // Create the actual container [Blocking]
     val container = Await.result(containerPrep(), timeout)
 
     logger.debug(s"[DEPLOY] ports: ${portMappings(deployment, cluster, service)}")
@@ -167,41 +180,16 @@ class DockerDriver(ec: ExecutionContext, url: String) extends ContainerDriver {
 
 
   private def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[CreatePortMapping] = {
-    service.breed.ports.map({ port =>
-      port.direction match {
-        case Trait.Direction.Out => CreatePortMapping(port.value.get)
-        case Trait.Direction.In =>
-          CreatePortMapping(deployment.environmentVariables.find({
-            case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == cluster.name && value == port.name.value => true
-            case _ => false
-          }).get._2.toString.toInt)
-      }
-    })
+    service.breed.ports.map(port =>
+      port.value match {
+        case Some(_) => CreatePortMapping(port.number)
+        case None => CreatePortMapping(deployment.ports.find(p => TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
+      })
   }
 
-  private def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] = {
-    def matchParameter(ev: EnvironmentVariable, parameter: Trait.Name): Boolean = {
-      ev.name match {
-        case Trait.Name(None, None, value) =>
-          parameter.scope.isDefined && parameter.scope.get == cluster.name && parameter.group == Some(Trait.Name.Group.EnvironmentVariables) && parameter.value == value
+  private def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] =
+    service.breed.environmentVariables.map(ev => ev.alias.getOrElse(ev.name) -> deployment.environmentVariables.find(e => TraitReference(cluster.name, TraitReference.EnvironmentVariables, ev.name).toString == e.name).get.value.get).toMap
 
-        case Trait.Name(Some(scope), group, value) =>
-          parameter.scope == service.dependencies.get(scope) && parameter.group == group && parameter.value == value
-
-        case _ => false
-      }
-    }
-    service.breed.environmentVariables.filter(_.direction == Trait.Direction.In).flatMap({ ev =>
-      deployment.environmentVariables.find({ case (name, value) => matchParameter(ev, name) }) match {
-        case Some((name, value)) =>
-          (ev.alias match {
-            case None => ev.name.value
-            case Some(alias) => alias
-          }) -> value.toString :: Nil
-        case _ => Nil
-      }
-    }).toMap
-  }
 
 
   private def appId(deployment: Deployment, breed: Breed): String = s"/${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
