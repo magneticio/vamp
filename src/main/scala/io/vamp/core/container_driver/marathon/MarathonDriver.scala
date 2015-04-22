@@ -43,42 +43,15 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends ContainerDriver 
   }
 
   private def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[CreatePortMapping] = {
-    service.breed.ports.map({ port =>
-      port.direction match {
-        case Trait.Direction.Out => CreatePortMapping(port.value.get)
-        case Trait.Direction.In =>
-          CreatePortMapping(deployment.environmentVariables.find({
-            case (Trait.Name(Some(scope), Some(Trait.Name.Group.Ports), value), _) if scope == cluster.name && value == port.name.value => true
-            case _ => false
-          }).get._2.toString.toInt)
-      }
-    })
+    service.breed.ports.map(port =>
+      port.value match {
+        case Some(_) => CreatePortMapping(port.number)
+        case None => CreatePortMapping(deployment.ports.find(p => TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
+      })
   }
 
-  private def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] = {
-    def matchParameter(ev: EnvironmentVariable, parameter: Trait.Name): Boolean = {
-      ev.name match {
-        case Trait.Name(None, None, value) =>
-          parameter.scope.isDefined && parameter.scope.get == cluster.name && parameter.group == Some(Trait.Name.Group.EnvironmentVariables) && parameter.value == value
-
-        case Trait.Name(Some(scope), group, value) =>
-          parameter.scope == service.dependencies.get(scope) && parameter.group == group && parameter.value == value
-
-        case _ => false
-      }
-    }
-
-    service.breed.environmentVariables.filter(_.direction == Trait.Direction.In).flatMap({ ev =>
-      deployment.environmentVariables.find({ case (name, value) => matchParameter(ev, name) }) match {
-        case Some((name, value)) =>
-          (ev.alias match {
-            case None => ev.name.value
-            case Some(alias) => alias
-          }) -> value.toString :: Nil
-        case _ => Nil
-      }
-    }).toMap
-  }
+  private def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] =
+    service.breed.environmentVariables.map(ev => ev.alias.getOrElse(ev.name) -> deployment.environmentVariables.find(e => TraitReference(cluster.name, TraitReference.EnvironmentVariables, ev.name).toString == e.name).get.value.get).toMap
 
   def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
