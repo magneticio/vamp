@@ -15,7 +15,7 @@ import scala.language.existentials
 
 object PersistenceActor extends ActorDescription {
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.model.persistence.response-timeout").seconds)
+  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.persistence.response-timeout").seconds)
 
   def props(args: Any*): Props = Props[PersistenceActor]
 
@@ -45,7 +45,7 @@ class PersistenceActor extends Actor with ActorLogging with ReplyActor with Arch
 
   override protected def errorRequest(request: Any): RequestError = UnsupportedPersistenceRequest(request)
 
-  private lazy val store = ConfigFactory.load().getString("vamp.core.model.persistence.storage-type") match {
+  private lazy val store = ConfigFactory.load().getString("vamp.core.persistence.storage-type") match {
     case "in-memory" => new InMemoryStoreProvider(context.dispatcher).store
     case _ => new JdbcStoreProvider(context.dispatcher).store
   }

@@ -21,7 +21,7 @@ case class DatabaseInfo(name: String, version: String)
  */
 class JdbcStoreProvider(executionContext: ExecutionContext) extends StoreProvider with PersistenceNotificationProvider {
 
-  val db: Database = Database.forConfig("vamp.core.model.persistence.jdbc.provider")
+  val db: Database = Database.forConfig("vamp.core.persistence.jdbc.provider")
   implicit val sess = db.createSession()
 
   override val store: Store = new JdbcStore()
