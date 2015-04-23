@@ -45,6 +45,7 @@ class JdbcStoreProvider(executionContext: ExecutionContext) extends StoreProvide
     )
 
     def create(artifact: Artifact, ignoreIfExists: Boolean): Artifact = {
+      logger.debug(s"create [$ignoreIfExists] $artifact")
       read(artifact.name, artifact.getClass) match {
         case None => createArtifact(artifact)
         case Some(storedArtifact) if !ignoreIfExists => update(artifact, create = false)
@@ -57,6 +58,7 @@ class JdbcStoreProvider(executionContext: ExecutionContext) extends StoreProvide
     }
 
     def update(artifact: Artifact, create: Boolean): Artifact = {
+      logger.debug(s"update [$create] $artifact")
       read(artifact.name, artifact.getClass) match {
         case None =>
           if (create) this.createArtifact(artifact)
