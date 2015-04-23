@@ -8,7 +8,7 @@ import shapeless.HNil
 import spray.http.CacheDirectives.`no-store`
 import spray.http.HttpHeaders.{RawHeader, `Cache-Control`, `Content-Type`}
 import spray.http.MediaTypes._
-import spray.http.{HttpEntity, MediaType}
+import spray.http.{HttpEntity, MediaRange, MediaType}
 import spray.httpx.marshalling.{Marshaller, ToResponseMarshaller}
 import spray.routing._
 
@@ -21,6 +21,11 @@ trait RestApiBase extends HttpServiceBase with RestApiMarshaller with RestApiCon
   protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
 
   protected def allowXhrFromOtherHosts = respondWithHeader(RawHeader("Access-Control-Allow-Origin", "*"))
+
+  protected def accept(mr: MediaRange*): Directive0 = headerValueByName("Accept").flatMap {
+    case actual if actual.split(",").map(_.trim).exists(v => v.startsWith("*/*") || mr.exists(_.value == v)) => pass
+    case actual => reject(MalformedHeaderRejection("Accept", s"Only the following media types are supported: ${mr.mkString(", ")}, but not $actual"))
+  }
 
   protected def contentTypeOnly(mt: MediaType*): Directive0 = extract(_.request.headers).flatMap[HNil] {
     case headers if mt.exists(t => headers.contains(`Content-Type`(t))) => pass
@@ -38,7 +43,7 @@ trait RestApiBase extends HttpServiceBase with RestApiMarshaller with RestApiCon
 
 trait RestApiMarshaller {
   this: RestApiContentTypes =>
-  
+
   implicit def marshaller: ToResponseMarshaller[Any] = ToResponseMarshaller.oneOf(`application/json`, `application/x-yaml`)(jsonMarshaller, yamlMarshaller)
 
   def jsonMarshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) => ctx.marshalTo(HttpEntity(contentType, toJson(value))) }

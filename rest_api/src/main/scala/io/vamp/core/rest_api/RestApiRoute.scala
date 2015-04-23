@@ -9,6 +9,7 @@ import io.vamp.core.model.reader._
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
 import io.vamp.core.rest_api.swagger.SwaggerResponse
+import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 
 import scala.concurrent.Future
@@ -22,43 +23,45 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
   val route = noCachingAllowed {
     allowXhrFromOtherHosts {
       pathPrefix("api" / "v1") {
-        path("docs") {
-          pathEndOrSingleSlash {
-            complete(OK, swagger)
-          }
-        } ~ infoRoute ~ deploymentRoutes ~
-          path(Segment) { artifact: String =>
+        accept(`application/json`, `application/x-yaml`) {
+          path("docs") {
             pathEndOrSingleSlash {
-              get {
-                onSuccess(allArtifacts(artifact)) {
-                  complete(OK, _)
-                }
-              } ~ post {
-                entity(as[String]) { request =>
-                  onSuccess(createArtifact(artifact, request)) {
-                    complete(Created, _)
+              complete(OK, swagger)
+            }
+          } ~ infoRoute ~ deploymentRoutes ~
+            path(Segment) { artifact: String =>
+              pathEndOrSingleSlash {
+                get {
+                  onSuccess(allArtifacts(artifact)) {
+                    complete(OK, _)
+                  }
+                } ~ post {
+                  entity(as[String]) { request =>
+                    onSuccess(createArtifact(artifact, request)) {
+                      complete(Created, _)
+                    }
                   }
                 }
               }
-            }
-          } ~ path(Segment / Segment) { (artifact: String, name: String) =>
-          pathEndOrSingleSlash {
-            get {
-              rejectEmptyResponse {
-                onSuccess(readArtifact(artifact, name)) {
-                  complete(OK, _)
+            } ~ path(Segment / Segment) { (artifact: String, name: String) =>
+            pathEndOrSingleSlash {
+              get {
+                rejectEmptyResponse {
+                  onSuccess(readArtifact(artifact, name)) {
+                    complete(OK, _)
+                  }
                 }
-              }
-            } ~ put {
-              entity(as[String]) { request =>
-                onSuccess(updateArtifact(artifact, name, request)) {
-                  complete(OK, _)
+              } ~ put {
+                entity(as[String]) { request =>
+                  onSuccess(updateArtifact(artifact, name, request)) {
+                    complete(OK, _)
+                  }
                 }
-              }
-            } ~ delete {
-              entity(as[String]) { request => onSuccess(deleteArtifact(artifact, name, request)) {
-                _ => complete(NoContent)
-              }
+              } ~ delete {
+                entity(as[String]) { request => onSuccess(deleteArtifact(artifact, name, request)) {
+                  _ => complete(NoContent)
+                }
+                }
               }
             }
           }
