@@ -12,7 +12,6 @@ import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.pulse_driver.PulseDriverActor
 import io.vamp.core.router_driver.RouterDriverActor
 import spray.http.StatusCodes._
-import spray.httpx.marshalling.Marshaller
 import spray.routing.HttpServiceBase
 
 import scala.concurrent.Future
@@ -22,9 +21,7 @@ import scala.util.Try
 case class InfoMessage(message: String, jvm: JvmVitals, persistence: Any, router: Any, pulse: Any, containerDriver: Any)
 
 trait InfoRoute extends HttpServiceBase with JmxVitalsProvider with FutureSupport with ActorSupport {
-  this: Actor with ExecutionContextProvider =>
-
-  implicit def marshaller: Marshaller[Any]
+  this: Actor with RestApiBase with ExecutionContextProvider =>
 
   implicit def timeout: Timeout
 

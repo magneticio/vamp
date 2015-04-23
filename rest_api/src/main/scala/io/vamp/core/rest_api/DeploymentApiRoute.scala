@@ -19,15 +19,13 @@ import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.persistence.actor.PersistenceActor.All
 import io.vamp.core.rest_api.notification.{RestApiNotificationProvider, UnsupportedRoutingWeightChangeError}
 import spray.http.StatusCodes._
-import spray.httpx.marshalling.Marshaller
+import spray.httpx.marshalling.ToResponseMarshaller
 
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 
-trait DeploymentApiRoute extends RestApiBase with DeploymentApiController {
-  this: Actor with ExecutionContextProvider =>
-
-  implicit def marshaller: Marshaller[Any]
+trait DeploymentApiRoute extends DeploymentApiController {
+  this: Actor with RestApiBase with ExecutionContextProvider =>
 
   implicit def timeout: Timeout
 
