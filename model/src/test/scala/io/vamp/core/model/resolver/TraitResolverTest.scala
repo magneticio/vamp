@@ -73,25 +73,39 @@ class TraitResolverTest extends FlatSpec with Matchers with TraitResolver {
     )
   }
 
+  it should "split into parts sequence" in {
+    partsFor("/$a$b$c/") should have(
+      '_1(List("/", "", "", "/")),
+      '_2(List(LocalReference("a"), LocalReference("b"), LocalReference("c")))
+    )
+  }
+
   it should "ignore $$" in {
     partsFor("a$$b") should have(
-      '_1(List("a$$b")),
-      '_2(Nil)
+      '_1(List("a", "b")),
+      '_2(List(LocalReference("$")))
+    )
+  }
+
+  it should "ignore $$$$" in {
+    partsFor("a$$$$b") should have(
+      '_1(List("a", "", "b")),
+      '_2(List(LocalReference("$"), LocalReference("$")))
     )
   }
 
   it should "$$ with immediate reference" in {
 
     partsFor("$$$d") should have(
-      '_1(List("$$", "")),
-      '_2(List(LocalReference("d")))
+      '_1(List("", "", "")),
+      '_2(List(LocalReference("$"), LocalReference("d")))
     )
   }
 
   it should "ignore $$ with reference" in {
     partsFor("a$$b$d") should have(
-      '_1(List("a$$b", "")),
-      '_2(List(LocalReference("d")))
+      '_1(List("a", "b", "")),
+      '_2(List(LocalReference("$"), LocalReference("d")))
     )
   }
 

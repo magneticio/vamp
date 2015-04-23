@@ -14,7 +14,7 @@ trait ArchivingProvider extends PulseClientProvider {
 
   implicit val timeout: Timeout
 
-  val url = ConfigFactory.load().getString("vamp.core.model.persistence.pulse.url")
+  val url = ConfigFactory.load().getString("vamp.core.persistence.pulse.url")
 
   def archiveCreate(artifact: Artifact, source: Option[String]): Artifact =
     if (source.isDefined) archive(artifact, source, s"archiving:create") else artifact

@@ -276,13 +276,15 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class EnvironmentVariableTable(tag: Tag) extends DeployableEntityTable[EnvironmentVariableModel](tag, "environment_variables") {
-    def * = (deploymentId, name, alias, value, id.?, parentId, parentType) <>(EnvironmentVariableModel.tupled, EnvironmentVariableModel.unapply)
+    def * = (deploymentId, name, alias, value, interpolated, id.?, parentId, parentType) <>(EnvironmentVariableModel.tupled, EnvironmentVariableModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def alias = column[Option[String]]("alias")
 
     def value = column[Option[String]]("env_value")
+
+    def interpolated = column[Boolean]("env_interpolated")
 
     def name = column[String]("name")
 

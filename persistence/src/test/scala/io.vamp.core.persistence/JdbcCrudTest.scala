@@ -1,6 +1,5 @@
 package io.vamp.core.persistence
 
-import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, NotificationMessageNotRestored}
@@ -10,14 +9,18 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, Matchers}
 
+import scala.concurrent.ExecutionContext
+
 @RunWith(classOf[JUnitRunner])
-class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
-  this: ExecutionContextProvider =>
+class JdbcCrudTest extends FlatSpec with Matchers {
+
+  val jdbcStoreProvider = new JdbcStoreProvider(ExecutionContext.global)
+  val jdbcStore = jdbcStoreProvider.store
+
+  implicit val sess = jdbcStoreProvider.sess
 
   destroySchema
   upgradeSchema
-
-  val jdbcStore = store
 
   it should "CRUD breeds" in {
     performCrudTest(
@@ -141,7 +144,7 @@ class JdbcCrudTest extends FlatSpec with JdbcStoreProvider with Matchers {
       case _ => fail("Deployment not created")
     }
     jdbcStore.update(TestData.deployment4WithErrorService)
-    jdbcStore.read(TestData.deployment5Deployed.name,classOf[Deployment]) shouldBe Some(TestData.deployment5Deployed)
+    jdbcStore.read(TestData.deployment5Deployed.name, classOf[Deployment]) shouldBe Some(TestData.deployment5Deployed)
     jdbcStore.delete(TestData.deployment4WithErrorService.name, TestData.deployment4WithErrorService.getClass)
     jdbcStore.delete(TestData.deployment5Deployed.name, TestData.deployment5Deployed.getClass)
   }

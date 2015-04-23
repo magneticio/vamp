@@ -84,6 +84,8 @@ case class TraitReference(cluster: String, group: String, name: String) extends 
 object Port extends Enumeration {
 
   val Tcp, Http = Value
+
+  def portFor(number: Int): Port = Port("", None, Some(number.toString))
 }
 
 case class Port(name: String, alias: Option[String], value: Option[String]) extends Trait {
@@ -107,6 +109,6 @@ case class Port(name: String, alias: Option[String], value: Option[String]) exte
   }
 }
 
-case class EnvironmentVariable(name: String, alias: Option[String], value: Option[String]) extends Trait
+case class EnvironmentVariable(name: String, alias: Option[String], value: Option[String], interpolated: Boolean = false) extends Trait
 
 case class Constant(name: String, alias: Option[String], value: Option[String]) extends Trait

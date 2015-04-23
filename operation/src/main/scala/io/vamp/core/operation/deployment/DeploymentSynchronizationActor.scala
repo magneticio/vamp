@@ -48,6 +48,8 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
 
     object Persist extends State
 
+    object ResolveEnvironmentVariables extends State
+
     case class UpdateRoute(ports: List[Port]) extends State
 
     object RemoveFromRoute extends State
@@ -145,16 +147,16 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
 
     containerService(deployment, deploymentService, containerServices) match {
       case None =>
-        if (deploymentService.breed.dependencies.forall({ case (n, d) =>
-          deployment.clusters.flatMap(_.services).find(s => s.breed.name == d.name) match {
-            case None => false
-            case Some(service) => service.state.isInstanceOf[DeploymentService.Deployed]
+        if (hasDependenciesDeployed(deployment, deploymentCluster, deploymentService)) {
+          if (hasResolvedEnvironmentVariables(deployment, deploymentCluster, deploymentService)) {
+            actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = false)
+            ProcessedService(Processed.Ignore, deploymentService)
+          } else {
+            ProcessedService(Processed.ResolveEnvironmentVariables, deploymentService)
           }
-        })) {
-          actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = false)
+        } else {
+          ProcessedService(Processed.Ignore, deploymentService)
         }
-
-        ProcessedService(Processed.Ignore, deploymentService)
 
       case Some(cs) =>
         if (!matchingScale(deploymentService, cs)) {
@@ -171,6 +173,26 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
           }
         }
     }
+  }
+
+  private def hasDependenciesDeployed(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService) = {
+    deploymentService.breed.dependencies.forall({ case (n, d) =>
+      deployment.clusters.flatMap(_.services).find(s => s.breed.name == d.name) match {
+        case None => false
+        case Some(service) => service.state.isInstanceOf[DeploymentService.Deployed]
+      }
+    })
+  }
+
+  private def hasResolvedEnvironmentVariables(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService) = {
+    deploymentService.breed.environmentVariables.forall({ evBreed =>
+      !deployment.environmentVariables.exists(evDeployment => if (!evDeployment.interpolated) {
+        TraitReference.referenceFor(evDeployment.name) match {
+          case Some(TraitReference(cluster, group, name)) => cluster == deploymentCluster.name && evBreed.name == name && group == TraitReference.groupFor(TraitReference.EnvironmentVariables)
+          case _ => false
+        }
+      } else false)
+    })
   }
 
   private def deployed(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
@@ -255,9 +277,13 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
 
   private def processServiceResults(deployment: Deployment, deploymentCluster: DeploymentCluster, clusterRoutes: List[ClusterRoute], processedServices: List[ProcessedService]): ProcessedCluster = {
 
-    val processedCluster = if (processedServices.exists(s => s.state == Processed.Persist || s.state == Processed.RemoveFromPersistence)) {
+    val processedCluster = if (processedServices.exists(s => s.state == Processed.Persist || s.state == Processed.RemoveFromPersistence || s.state == Processed.ResolveEnvironmentVariables)) {
       val dc = deploymentCluster.copy(services = processedServices.filter(_.state != Processed.RemoveFromPersistence).map(_.service))
-      ProcessedCluster(if (dc.services.isEmpty) Processed.RemoveFromPersistence else Processed.Persist, dc)
+      val state = if (dc.services.isEmpty) Processed.RemoveFromPersistence
+      else {
+        if (processedServices.exists(s => s.state == Processed.ResolveEnvironmentVariables)) Processed.ResolveEnvironmentVariables else Processed.Persist
+      }
+      ProcessedCluster(state, dc)
     } else {
       ProcessedCluster(Processed.Ignore, deploymentCluster)
     }
@@ -280,20 +306,23 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
   }
 
   private def processClusterResults(deployment: Deployment, processedClusters: List[ProcessedCluster], routes: List[EndpointRoute]) = {
+    val resolveEnvironmentVariables = processedClusters.filter(_.state == Processed.ResolveEnvironmentVariables).map(_.cluster)
     val persist = processedClusters.filter(_.state == Processed.Persist).map(_.cluster)
     val remove = processedClusters.filter(_.state == Processed.RemoveFromPersistence).map(_.cluster)
 
-    (updateTraits(persist) andThen purgeTraits(remove) andThen updateEndpoints(remove, routes) andThen persistDeployment(persist, remove))(deployment)
+    (updateTraits(persist, resolveEnvironmentVariables) andThen purgeTraits(remove) andThen updateEndpoints(remove, routes) andThen persistDeployment(persist ++ resolveEnvironmentVariables, remove))(deployment)
   }
 
-  private def updateTraits(persist: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
+  private def updateTraits(persist: List[DeploymentCluster], resolve: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
     val ports = persist.flatMap({ cluster =>
       cluster.services.map(_.breed).flatMap(_.ports).map({ port =>
         Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.routes.get(port.number).flatMap(n => Some(n.toString)))
       })
     }).map(p => p.name -> p).toMap ++ deployment.ports.map(p => p.name -> p).toMap
 
-    deployment.copy(ports = ports.values.toList, environmentVariables = resolveEnvironmentVariables(deployment, persist, deployment.environmentVariables))
+    val environmentVariables = if (resolve.nonEmpty) resolveEnvironmentVariables(deployment, resolve) else deployment.environmentVariables
+
+    deployment.copy(ports = ports.values.toList, environmentVariables = environmentVariables)
   }
 
   private def purgeTraits(remove: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
@@ -306,9 +335,10 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
   }
 
   private def updateEndpoints(remove: List[DeploymentCluster], routes: List[EndpointRoute]): (Deployment => Deployment) = { deployment: Deployment =>
-    remove.flatMap(_.routes.keys).map(n => Port("", None, Some(n.toString))).foreach { port =>
-      routes.find(_.matching(deployment, port)).foreach(r => actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, port))
-    }
+
+    routes.foreach(route => if (!deployment.endpoints.exists(_.number == route.port)) {
+      actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, Port.portFor(route.port))
+    })
 
     deployment.endpoints.foreach { port =>
       TraitReference.referenceFor(port.name) match {
@@ -331,11 +361,13 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
   }
 
   private def persistDeployment(persist: List[DeploymentCluster], remove: List[DeploymentCluster]): (Deployment => Unit) = { deployment: Deployment =>
-    val clusters = deployment.clusters.filterNot(cluster => remove.exists(_.name == cluster.name)).map(cluster => persist.find(_.name == cluster.name).getOrElse(cluster))
+    if (persist.nonEmpty || remove.nonEmpty) {
+      val clusters = deployment.clusters.filterNot(cluster => remove.exists(_.name == cluster.name)).map(cluster => persist.find(_.name == cluster.name).getOrElse(cluster))
 
-    if (clusters.isEmpty)
-      actorFor(PersistenceActor) ! PersistenceActor.Delete(deployment.name, classOf[Deployment])
-    else
-      actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = clusters))
+      if (clusters.isEmpty)
+        actorFor(PersistenceActor) ! PersistenceActor.Delete(deployment.name, classOf[Deployment])
+      else
+        actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = clusters))
+    }
   }
 }

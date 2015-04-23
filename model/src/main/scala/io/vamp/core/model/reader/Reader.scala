@@ -7,6 +7,7 @@ import _root_.io.vamp.core.model.artifact.{Constant, EnvironmentVariable, Port, 
 import _root_.io.vamp.core.model.notification._
 import _root_.io.vamp.core.model.resolver.TraitResolver
 import org.yaml.snakeyaml.Yaml
+import org.yaml.snakeyaml.constructor.Constructor
 import org.yaml.snakeyaml.error.YAMLException
 
 import scala.collection.JavaConverters._
@@ -55,7 +56,7 @@ trait YamlReader[T] extends ModelNotificationProvider {
   }
 
   protected def load(reader: Reader, close: Boolean = false): Any = try {
-    convert(new Yaml().load(reader))
+    convert(yaml.load(reader))
   } catch {
     case e: NotificationErrorException => throw e
     case e: YAMLException => error(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
@@ -63,6 +64,12 @@ trait YamlReader[T] extends ModelNotificationProvider {
   finally {
     if (close)
       reader.close()
+  }
+
+  protected def yaml = {
+    new Yaml(new Constructor() {
+      override def getClassForName(name: String): Class[_] = throw new YAMLException("Not supported.")
+    })
   }
 
   private def convert(any: Any): Any = any match {
