@@ -37,9 +37,9 @@ class DeploymentTraitResolverTest extends FlatSpec with Matchers with Deployment
       EnvironmentVariable("backend1.environment_variables.timeout", None, Some("${frontend.constants.const1}")) :: Nil
 
     resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", Nil, None) :: Nil) should equal(
-      EnvironmentVariable("backend.environment_variables.port", None, Some("9050"), interpolated = true) ::
-        EnvironmentVariable("backend.environment_variables.timeout", None, Some("$backend1.host"), interpolated = true) ::
-        EnvironmentVariable("backend1.environment_variables.timeout", None, Some("${frontend.constants.const1}"), interpolated = false) :: Nil
+      EnvironmentVariable("backend.environment_variables.port", None, Some("$frontend.constants.const1"), interpolated = Some("9050")) ::
+        EnvironmentVariable("backend.environment_variables.timeout", None, Some("${backend1.constants.const2}"), interpolated = Some("$backend1.host")) ::
+        EnvironmentVariable("backend1.environment_variables.timeout", None, Some("${frontend.constants.const1}"), interpolated = None) :: Nil
     )
   }
 
@@ -49,8 +49,8 @@ class DeploymentTraitResolverTest extends FlatSpec with Matchers with Deployment
       EnvironmentVariable("backend1.environment_variables.timeout", None, Some("4000")) :: Nil
 
     resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", Nil, None) :: Nil) should equal(
-      EnvironmentVariable("backend.environment_variables.url", None, Some("http://vamp.io:9050/api/$/4000"), interpolated = true) ::
-        EnvironmentVariable("backend1.environment_variables.timeout", None, Some("4000"), interpolated = false) :: Nil
+      EnvironmentVariable("backend.environment_variables.url", None, Some("http://$backend1.host:$frontend.constants.const1/api/$$/$backend1.environment_variables.timeout"), interpolated = Some("http://vamp.io:9050/api/$/4000")) ::
+        EnvironmentVariable("backend1.environment_variables.timeout", None, Some("4000"), interpolated = None) :: Nil
     )
   }
 

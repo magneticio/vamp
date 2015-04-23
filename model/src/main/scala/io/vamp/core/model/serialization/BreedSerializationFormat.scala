@@ -30,7 +30,13 @@ trait TraitDecomposer extends TraitResolver {
 
     new JObject(traits.map(t => t.name -> t).toMap.values.map { t =>
       val name = traitName(if (alias) asName(t.name, t.alias) else t.name)
-      val value = if (t.value == null || t.value.isEmpty) JNull else JString(t.value.get)
+      val value = if (t.value == null || t.value.isEmpty) JNull
+      else {
+        JString(t match {
+          case EnvironmentVariable(_, _, v, i) => i.getOrElse(v.get)
+          case any => t.value.get
+        })
+      }
 
       JField(name, value)
     } toList)
