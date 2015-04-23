@@ -1,15 +1,22 @@
 package io.vamp.core.rest_api
 
+import io.vamp.common.notification.NotificationErrorException
+import io.vamp.core.model.serialization.{PrettyJson, SerializationFormat}
+import org.json4s.native.Serialization._
+import org.yaml.snakeyaml.Yaml
 import shapeless.HNil
 import spray.http.CacheDirectives.`no-store`
 import spray.http.HttpHeaders.{RawHeader, `Cache-Control`, `Content-Type`}
-import spray.http.MediaType
 import spray.http.MediaTypes._
+import spray.http.{HttpEntity, MediaType}
+import spray.httpx.marshalling.{Marshaller, ToResponseMarshaller}
 import spray.routing._
 
-trait RestApiBase extends HttpServiceBase {
-
+trait RestApiContentTypes {
   val `application/x-yaml` = register(MediaType.custom(mainType = "application", subType = "x-yaml", compressible = true, binary = true, fileExtensions = Seq("yaml")))
+}
+
+trait RestApiBase extends HttpServiceBase with RestApiMarshaller with RestApiContentTypes {
 
   protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
 
@@ -27,4 +34,33 @@ trait RestApiBase extends HttpServiceBase {
   override def put: Directive0 = super.put & contentTypeForModification
 
   override def post: Directive0 = super.post & contentTypeForModification
+}
+
+trait RestApiMarshaller {
+  this: RestApiContentTypes =>
+
+  implicit def marshaller: Marshaller[Any] = jsonMarshaller
+
+  implicit def dataMarshaller: ToResponseMarshaller[Any] = ToResponseMarshaller.oneOf(`application/json`, `application/x-yaml`)(jsonMarshaller, yamlMarshaller)
+
+  def jsonMarshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) => ctx.marshalTo(HttpEntity(contentType, toJson(value))) }
+
+  def yamlMarshaller: Marshaller[Any] = Marshaller.of[Any](`application/x-yaml`) { (value, contentType, ctx) =>
+    val yaml = new Yaml()
+    ctx.marshalTo(HttpEntity(contentType, yaml.dumpAsMap(yaml.load(toJson(value)))))
+  }
+
+  def toJson(any: Any) = {
+    implicit val formats = SerializationFormat.default
+    (any match {
+      case (_1, _2) => _2
+      case v => v
+    }) match {
+      case notification: NotificationErrorException => throw notification
+      case exception: Exception => throw new RuntimeException(exception)
+      case value: PrettyJson => writePretty(value)
+      case value: AnyRef => write(value)
+      case value => write(value.toString)
+    }
+  }
 }
