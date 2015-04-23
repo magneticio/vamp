@@ -14,7 +14,7 @@ import scala.slick.jdbc.JdbcBackend._
 
 case class JdbcStoreInfo(`type`: String, url: String, database: DatabaseInfo)
 
-case class DatabaseInfo(name: String, version: String)
+case class DatabaseInfo(name: String, version: String, schemaVersion : String)
 
 /**
  * JDBC storage of artifacts
@@ -41,7 +41,7 @@ class JdbcStoreProvider(executionContext: ExecutionContext) extends StoreProvide
     def info = JdbcStoreInfo(
       "jdbc",
       sess.conn.getMetaData.getURL,
-      DatabaseInfo(sess.conn.getMetaData.getDatabaseProductName, sess.conn.getMetaData.getDatabaseProductVersion)
+      DatabaseInfo(sess.conn.getMetaData.getDatabaseProductName, sess.conn.getMetaData.getDatabaseProductVersion, Components.instance.schemaInfo(sess))
     )
 
     def create(artifact: Artifact, ignoreIfExists: Boolean): Artifact = {
