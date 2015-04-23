@@ -87,9 +87,9 @@ trait DeploymentTraitResolver extends TraitResolver {
     }
 
     deployment.environmentVariables.map(ev => TraitReference.referenceFor(ev.name) match {
-      case Some(TraitReference(c, g, n)) if g == TraitReference.groupFor(TraitReference.EnvironmentVariables) && !ev.interpolated && ev.value.isDefined =>
+      case Some(TraitReference(c, g, n)) if g == TraitReference.groupFor(TraitReference.EnvironmentVariables) && ev.interpolated.isEmpty && ev.value.isDefined =>
         clusters.find(_.name == c) match {
-          case Some(cluster) => EnvironmentVariable(ev.name, None, Some(resolve(ev.value.get, valueFor(cluster))), interpolated = true)
+          case Some(cluster) => ev.copy(alias = None, interpolated = Some(resolve(ev.value.get, valueFor(cluster))))
           case _ => ev
         }
       case _ => ev

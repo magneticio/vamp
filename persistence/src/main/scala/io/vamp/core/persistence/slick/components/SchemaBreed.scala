@@ -284,7 +284,7 @@ trait SchemaBreed extends Logging with VampSchema {
 
     def value = column[Option[String]]("env_value")
 
-    def interpolated = column[Boolean]("env_interpolated")
+    def interpolated = column[Option[String]]("env_interpolated")
 
     def name = column[String]("name")
 
