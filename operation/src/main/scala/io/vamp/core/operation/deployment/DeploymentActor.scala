@@ -222,10 +222,16 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
     })
 
     if (newServices.size > 0) {
-      val oldWeight = stableCluster.flatMap(cluster => Some(cluster.services.map(_.routing).flatten.map(_.weight).flatten.sum)) match {
+      val oldWeight = stableCluster.flatMap(cluster => Some(cluster.services.map({ service =>
+        blueprintCluster.services.find(_.breed.name == service.breed.name) match {
+          case None => service.routing
+          case Some(update) => update.routing
+        }
+      }).flatten.map(_.weight).flatten.sum)) match {
         case None => 0
         case Some(sum) => sum
       }
+
       val newWeight = newServices.map(_.routing).flatten.filter(_.isInstanceOf[DefaultRouting]).map(_.weight).flatten.sum
       val availableWeight = 100 - oldWeight - newWeight
 
