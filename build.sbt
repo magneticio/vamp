@@ -3,7 +3,7 @@ organization := "io.vamp"
 
 name := """common"""
 
-version := "0.7.0"
+version := "0.7.5"
 
 scalaVersion := "2.11.5"
 
@@ -58,7 +58,7 @@ val dispatchV = "0.11.2"
 
 val json4sV = "3.2.11"
 
-val vampPulseApiV =  "0.7.0+"     // or use "latest.release" for the stable version
+val vampPulseApiV =  "0.7.5"     // or use "latest.release" for the stable version
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaV,
