@@ -20,7 +20,6 @@ import io.vamp.core.persistence.actor.PersistenceActor.All
 import io.vamp.core.rest_api.notification.{RestApiNotificationProvider, UnsupportedRoutingWeightChangeError}
 import spray.http.StatusCodes._
 import spray.httpx.marshalling.Marshaller
-import spray.routing.HttpServiceBase
 
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
@@ -157,7 +156,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
         case deployments: List[_] =>
           deployments.asInstanceOf[List[Deployment]].map({ deployment =>
             deployment.clusters.filter(cluster => cluster.services.exists(!_.state.isInstanceOf[Deployed])).count(_ => true)
-          }).reduceOption(_ max _).foreach(max => sync(Some(max * 3)))
+          }).reduceOption(_ max _).foreach(max => sync(Some(max * 3 + 1)))
         case any => error(InternalServerError(any))
       }
   }
@@ -196,22 +195,22 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
   }
 
   def createDeployment(request: String)(implicit timeout: Timeout) = DeploymentBlueprintReader.readReferenceFromSource(request) match {
-    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint)
+    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint, request)
     case blueprint: DefaultBlueprint =>
-      actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, ignoreIfExists = true)
-      actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint)
+      actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, Some(request), ignoreIfExists = true)
+      actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint, request)
   }
 
   def updateDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] = DeploymentBlueprintReader.readReferenceFromSource(request) match {
-    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint)
+    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint, request)
     case blueprint: DefaultBlueprint =>
-      actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, ignoreIfExists = true)
-      actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint)
+      actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, Some(request), ignoreIfExists = true)
+      actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint, request)
   }
 
   def deleteDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] = {
     if (request.nonEmpty)
-      actorFor(DeploymentActor) ? DeploymentActor.Slice(name, DeploymentBlueprintReader.readReferenceFromSource(request))
+      actorFor(DeploymentActor) ? DeploymentActor.Slice(name, DeploymentBlueprintReader.readReferenceFromSource(request), request)
     else
       actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])
   }
@@ -226,7 +225,8 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
       result.asInstanceOf[Option[Deployment]].flatMap {
         deployment => deployment.clusters.find(_.name == clusterName).flatMap { _ =>
           val sla = Some(SlaReader.read(request))
-          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => if (cluster.name == clusterName) cluster.copy(sla = sla) else cluster)))
+          val clusters = deployment.clusters.map(cluster => if (cluster.name == clusterName) cluster.copy(sla = sla) else cluster)
+          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = clusters), Some(request))
           sla
         }
       }
@@ -236,7 +236,8 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
     (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
       result.asInstanceOf[Option[Deployment]].flatMap {
         deployment => deployment.clusters.find(_.name == clusterName).flatMap { _ =>
-          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => if (cluster.name == clusterName) cluster.copy(sla = None) else cluster)))
+          val clusters = deployment.clusters.map(cluster => if (cluster.name == clusterName) cluster.copy(sla = None) else cluster)
+          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = clusters))
           None
         }
       }
@@ -257,7 +258,8 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
                 case s: ScaleReference => offload(actorFor(PersistenceActor) ? PersistenceActor.Read(s.name, classOf[Scale])).asInstanceOf[DefaultScale]
                 case s: DefaultScale => s
               }
-              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(scale = Some(scale), state = ReadyForDeployment()))))))
+              val clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(scale = Some(scale), state = ReadyForDeployment()))))
+              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = clusters), Some(request))
               Some(scale)
           }
         }
@@ -285,7 +287,8 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
                 case _ =>
               }
 
-              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(routing = Some(routing), state = ReadyForDeployment()))))))
+              val clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(routing = Some(routing), state = ReadyForDeployment()))))
+              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = clusters), Some(request))
               Some(routing)
           }
         }

@@ -2,8 +2,7 @@ name: monarch
 deployable: magneticio/monarch:latest
 
 environment_variables:
-  name: db.ports.web
-  direction: IN
+  port: $db.ports.web
     
 dependencies:
   db: 

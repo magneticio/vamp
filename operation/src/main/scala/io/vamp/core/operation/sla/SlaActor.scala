@@ -78,7 +78,7 @@ class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupp
         val to = OffsetDateTime.now()
         val from = to.minus(sla.interval.toSeconds, ChronoUnit.SECONDS)
 
-        val responseTimes = cluster.routes.keys.map(value => TcpPort("", None, Some(value), Trait.Direction.Out)).flatMap({ port =>
+        val responseTimes = cluster.routes.keys.map(value => Port.portFor(value)).flatMap({ port =>
           offload(actorFor(PulseDriverActor) ? PulseDriverActor.ResponseTime(deployment, cluster, port, from, to)) match {
             case Some(responseTime: Double) => responseTime :: Nil
             case _ => Nil

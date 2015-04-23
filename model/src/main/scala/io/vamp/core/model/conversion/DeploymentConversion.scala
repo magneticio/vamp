@@ -15,19 +15,17 @@ class DeploymentConversion(val deployment: Deployment) {
       Cluster(cluster.name, cluster.services.map(service => Service(service.breed, service.scale, service.routing)), cluster.sla)
     })
 
-    val environmentVariables = deployment.environmentVariables.filter {
-      case (Trait.Name(Some(scope), Some(group), parameterName), value) =>
-        deployment.clusters.find(_.name == scope) match {
-          case None => false
-          case Some(cluster) => cluster.services.map(_.breed).exists { breed =>
-            breed.inTraits.exists {
-              case t: Port if group == Trait.Name.Group.Ports => t.name.value == parameterName && t.name.scope == None && t.name.group == None
-              case EnvironmentVariable(Trait.Name(None, None, traitName), _, _, _) if group == Trait.Name.Group.EnvironmentVariables => traitName == parameterName
-              case _ => false
+    val environmentVariables = deployment.environmentVariables.filter { ev =>
+      TraitReference.referenceFor(ev.name) match {
+        case Some(TraitReference(cluster, group, name)) =>
+          deployment.clusters.find(_.name == cluster) match {
+            case None => false
+            case Some(c) => c.services.map(_.breed).exists { breed =>
+              breed.traitsFor(group).exists(_.name == name)
             }
           }
-        }
-      case _ => false
+        case _ => false
+      }
     }
 
     DefaultBlueprint(deployment.name, clusters, deployment.endpoints, environmentVariables)

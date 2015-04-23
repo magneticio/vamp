@@ -7,7 +7,7 @@ organization in ThisBuild := "io.vamp.core"
 
 name := """core"""
 
-version in ThisBuild := "0.7.0-RC4"
+version in ThisBuild := "0.7.5"
 
 scalaVersion := "2.11.5"
 
@@ -17,7 +17,7 @@ scalaVersion in ThisBuild := scalaVersion.value
 publishMavenStyle := true
 
 // This has to be overridden for sub-modules to have different description
-description in ThisBuild:= """Core is the brains of Vamp."""
+description in ThisBuild:= """Core is the brain of Vamp."""
 
 
 
@@ -69,8 +69,8 @@ val slf4jVersion = "1.7.10"
 val logbackVersion = "1.1.2"
 val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
-val vampCommonVersion = "0.7.0-RC4"
-val vampPulseApiVersion = "0.7.0-RC3"
+val vampCommonVersion = "0.7.5"
+val vampPulseApiVersion = "0.7.5"
 
 // Note ThisBuild, this is what makes these dependencies shared
 libraryDependencies in ThisBuild ++= Seq(
@@ -156,8 +156,6 @@ lazy val rest_api = project.dependsOn(operation, model, swagger).disablePlugins(
 lazy val router_driver = project.dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val swagger = project.disablePlugins(sbtassembly.AssemblyPlugin)
-
-
 
 
 

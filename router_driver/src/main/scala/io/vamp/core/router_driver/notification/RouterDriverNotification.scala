@@ -5,4 +5,4 @@ import io.vamp.common.notification.{ErrorNotification, Notification}
 
 case class UnsupportedRouterDriverRequest(request: Any) extends Notification with RequestError
 
-case class RouterResponseError(reason: Any) extends Notification  with ErrorNotification
+case class RouterResponseError(reason: Any) extends Notification with ErrorNotification

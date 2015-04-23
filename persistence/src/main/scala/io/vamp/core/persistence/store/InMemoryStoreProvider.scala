@@ -1,7 +1,6 @@
 package io.vamp.core.persistence.store
 
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.serialization._
 import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
@@ -9,15 +8,15 @@ import org.json4s.native.Serialization.write
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
 
-case class InMemoryStoreInfo(artifacts: Map[String, Map[String, Any]])
+case class InMemoryStoreInfo(`type`: String, artifacts: Map[String, Map[String, Any]])
 
-trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationProvider {
-  this: ExecutionContextProvider =>
+class InMemoryStoreProvider(executionContext: ExecutionContext) extends StoreProvider with PersistenceNotificationProvider {
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[InMemoryStoreProvider]))
-  implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, BlueprintSerializationFormat, SlaSerializationFormat, DeploymentSerializationFormat)
+  implicit val formats = SerializationFormat.default
 
   val store: Store = new InMemoryStore()
 
@@ -25,7 +24,7 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
 
     val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
-    def info = InMemoryStoreInfo(store.map {
+    def info = InMemoryStoreInfo("in-memory", store.map {
       case (key, value) => key -> Map[String, Any]("count" -> value.values.size)
     } toMap)
 
@@ -40,7 +39,6 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
       }
     }
 
-
     def create(artifact: Artifact, ignoreIfExists: Boolean = true): Artifact = {
       logger.trace(s"persistence create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
       getBranch(artifact) match {
@@ -51,7 +49,9 @@ trait InMemoryStoreProvider extends StoreProvider with PersistenceNotificationPr
             store.put(branch, map)
           case Some(map) => map.get(artifact.name) match {
             case None => map.put(artifact.name, artifact)
-            case Some(_) => if (!ignoreIfExists) error(ArtifactAlreadyExists(artifact.name, artifact.getClass))
+            case Some(_) =>
+              if (!ignoreIfExists) error(ArtifactAlreadyExists(artifact.name, artifact.getClass))
+              map.put(artifact.name, artifact)
           }
         }
         case None => error(UnsupportedPersistenceRequest(artifact.getClass))

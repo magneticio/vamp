@@ -1,7 +1,6 @@
 package io.vamp.core.persistence.store
 
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, PersistenceOperationFailure, UnsupportedPersistenceRequest}
 import io.vamp.core.persistence.slick.components.Components
@@ -9,20 +8,20 @@ import io.vamp.core.persistence.slick.model._
 import io.vamp.core.persistence.store.jdbc._
 import org.slf4j.LoggerFactory
 
+import scala.concurrent.ExecutionContext
 import scala.slick.jdbc.JdbcBackend
 import scala.slick.jdbc.JdbcBackend._
 
-case class JdbcStoreInfo(url: String, database: DatabaseInfo)
+case class JdbcStoreInfo(`type`: String, url: String, database: DatabaseInfo)
 
-case class DatabaseInfo(name: String, version: String)
+case class DatabaseInfo(name: String, version: String, schemaVersion : String)
 
 /**
  * JDBC storage of artifacts
  */
-trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvider {
-  this: ExecutionContextProvider =>
+class JdbcStoreProvider(executionContext: ExecutionContext) extends StoreProvider with PersistenceNotificationProvider {
 
-  val db: Database = Database.forConfig("vamp.core.model.persistence.jdbcProvider")
+  val db: Database = Database.forConfig("vamp.core.persistence.jdbc.provider")
   implicit val sess = db.createSession()
 
   override val store: Store = new JdbcStore()
@@ -30,7 +29,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
   private class JdbcStore(implicit val sess: JdbcBackend.Session) extends Store with ScaleStore with PortStore
   with DeploymentStore with BlueprintStore with BreedStore
   with RoutingStore with FilterStore
-  with TraitNameParameterStore
+  with EnvironmentVariableStore
   with SlaStore with EscalationStore with ParameterStore {
 
     import io.vamp.core.persistence.slick.components.Components.instance._
@@ -40,11 +39,13 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     Components.instance.upgradeSchema
 
     def info = JdbcStoreInfo(
+      "jdbc",
       sess.conn.getMetaData.getURL,
-      DatabaseInfo(sess.conn.getMetaData.getDatabaseProductName, sess.conn.getMetaData.getDatabaseProductVersion)
+      DatabaseInfo(sess.conn.getMetaData.getDatabaseProductName, sess.conn.getMetaData.getDatabaseProductVersion, Components.instance.schemaInfo(sess))
     )
 
     def create(artifact: Artifact, ignoreIfExists: Boolean): Artifact = {
+      logger.debug(s"create [$ignoreIfExists] $artifact")
       read(artifact.name, artifact.getClass) match {
         case None => createArtifact(artifact)
         case Some(storedArtifact) if !ignoreIfExists => update(artifact, create = false)
@@ -57,6 +58,7 @@ trait JdbcStoreProvider extends StoreProvider with PersistenceNotificationProvid
     }
 
     def update(artifact: Artifact, create: Boolean): Artifact = {
+      logger.debug(s"update [$create] $artifact")
       read(artifact.name, artifact.getClass) match {
         case None =>
           if (create) this.createArtifact(artifact)

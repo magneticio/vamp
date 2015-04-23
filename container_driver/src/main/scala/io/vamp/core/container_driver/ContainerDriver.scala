@@ -9,7 +9,7 @@ case class ContainerInfo(`type`: String, container: AnyRef)
 
 case class ContainerService(matching: (Deployment, Breed) => Boolean, scale: DefaultScale, servers: List[ContainerServer])
 
-case class ContainerServer(id: String, host: String, ports: List[Int], deployed: Boolean)
+case class ContainerServer(name: String, host: String, ports: List[Int], deployed: Boolean)
 
 
 trait ContainerDriver {

@@ -1,7 +1,7 @@
 name: nomadic-frostbite
 
 environment_variables:
-  omega.ports.port: 8080
+  omega.port: 8080
 
 clusters:
   supersonic:
@@ -10,5 +10,4 @@ clusters:
       deployable: vamp/solid-barbershop
 
       ports:
-        name: port
-        direction: IN
+        port: 80

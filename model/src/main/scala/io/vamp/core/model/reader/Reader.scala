@@ -3,8 +3,11 @@ package io.vamp.core.model.reader
 import java.io.{File, InputStream, Reader, StringReader}
 
 import _root_.io.vamp.common.notification.NotificationErrorException
+import _root_.io.vamp.core.model.artifact.{Constant, EnvironmentVariable, Port, Trait}
 import _root_.io.vamp.core.model.notification._
+import _root_.io.vamp.core.model.resolver.TraitResolver
 import org.yaml.snakeyaml.Yaml
+import org.yaml.snakeyaml.constructor.Constructor
 import org.yaml.snakeyaml.error.YAMLException
 
 import scala.collection.JavaConverters._
@@ -53,7 +56,7 @@ trait YamlReader[T] extends ModelNotificationProvider {
   }
 
   protected def load(reader: Reader, close: Boolean = false): Any = try {
-    convert(new Yaml().load(reader))
+    convert(yaml.load(reader))
   } catch {
     case e: NotificationErrorException => throw e
     case e: YAMLException => error(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
@@ -63,10 +66,16 @@ trait YamlReader[T] extends ModelNotificationProvider {
       reader.close()
   }
 
+  protected def yaml = {
+    new Yaml(new Constructor() {
+      override def getClassForName(name: String): Class[_] = throw new YAMLException("Not supported.")
+    })
+  }
+
   private def convert(any: Any): Any = any match {
     case source: java.util.Map[_, _] =>
       val map = new YamlObject()
-      source.entrySet().asScala.filter(entry => entry.getValue != null).foreach(entry => map += entry.getKey.toString -> convert(entry.getValue))
+      source.entrySet().asScala.foreach(entry => map += entry.getKey.toString -> convert(entry.getValue))
       map
     case source: java.util.List[_] => source.asScala.map(convert).toList
     case source => source
@@ -94,6 +103,7 @@ trait YamlReader[T] extends ModelNotificationProvider {
   protected def <<?[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): Option[V] = path match {
     case last :: Nil => source.get(last) match {
       case None => None
+      case Some(null) => None
       case Some(value: V) => Some(value.asInstanceOf[V])
       // if V == Double, conversion from Int to Double if Double is expected and Int provided.
       case Some(value: Int) if classTag[V].runtimeClass == classOf[Double] => Some(value.toDouble.asInstanceOf[V])
@@ -202,5 +212,39 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] {
   protected def createDefault(implicit source: YamlObject): T
 
   protected def asReferenceOf: String = getClass.getSimpleName.substring(0, getClass.getSimpleName.indexOf("Reader")).toLowerCase
+}
+
+trait TraitReader[T] extends TraitResolver {
+  this: YamlReader[T] =>
+
+  def parseTraits[A <: Trait](source: Option[YamlObject], mapper: (String, Option[String], Option[String]) => A, alias: Boolean): List[A] = {
+    source match {
+      case None => List[A]()
+      case Some(map: YamlObject) => map.map {
+        case (name, value) if value.isInstanceOf[collection.Map[_, _]] || value.isInstanceOf[List[_]] => error(MalformedTraitError(name))
+        case (name, value) =>
+          val nameAlias = resolveNameAlias(name)
+          mapper(nameAlias._1, nameAlias._2, if (value == null) None else Some(value.toString))
+      } toList
+    }
+  }
+
+  def ports(name: String = "ports")(implicit source: YamlObject): List[Port] = {
+    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
+      Port(name, alias, value)
+    }, false)
+  }
+
+  def environmentVariables(name: String = "environment_variables", alias: Boolean = true)(implicit source: YamlObject): List[EnvironmentVariable] = {
+    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
+      EnvironmentVariable(name, alias, value)
+    }, alias)
+  }
+
+  def constants(name: String = "constants")(implicit source: YamlObject): List[Constant] = {
+    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
+      Constant(name, alias, value)
+    }, false)
+  }
 }
 

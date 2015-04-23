@@ -4,7 +4,6 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
-import io.vamp.common.vitals.JvmVitalsSerializationFormat
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
@@ -21,13 +20,13 @@ import spray.httpx.marshalling.Marshaller
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 
-trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApiRoute with HiRoute with SwaggerResponse {
+trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApiRoute with InfoRoute with SwaggerResponse {
   this: Actor with ExecutionContextProvider =>
 
   implicit def timeout: Timeout
 
   implicit val marshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
-    implicit val formats = ArtifactSerializationFormat(BreedSerializationFormat, BlueprintSerializationFormat, SlaSerializationFormat, DeploymentSerializationFormat, JvmVitalsSerializationFormat)
+    implicit val formats = SerializationFormat.default
 
     val response = value match {
       case notification: NotificationErrorException => throw notification
@@ -47,7 +46,7 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
             pathEndOrSingleSlash {
               complete(OK, swagger)
             }
-          } ~ hiRoute ~ deploymentRoutes ~
+          } ~ infoRoute ~ deploymentRoutes ~
             path(Segment) { artifact: String =>
               pathEndOrSingleSlash {
                 get {
@@ -99,7 +98,7 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
   }
 
   def createArtifact(artifact: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) => controller.asInstanceOf[PersistenceController[Artifact]].create(controller.unmarshall(content))
+    case Some(controller) => controller.asInstanceOf[PersistenceController[Artifact]].create(content)
     case None => error(UnexpectedArtifact(artifact))
   }
 
@@ -109,16 +108,16 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
   }
 
   def updateArtifact(artifact: String, name: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) => controller.asInstanceOf[PersistenceController[Artifact]].update(name, controller.unmarshall(content))
+    case Some(controller) => controller.asInstanceOf[PersistenceController[Artifact]].update(name, content)
     case None => error(UnexpectedArtifact(artifact))
   }
 
   def deleteArtifact(artifact: String, name: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(controller) =>
       if (content.isEmpty)
-        controller.delete(name, None)
+        controller.delete(name)
       else
-        controller.asInstanceOf[PersistenceController[Artifact]].delete(name, Some(controller.unmarshall(content)))
+        controller.asInstanceOf[PersistenceController[Artifact]].delete(name)
     case None => error(UnexpectedArtifact(artifact))
   }
 
@@ -132,21 +131,24 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     ("filters" -> new PersistenceController[Filter](classOf[Filter], FilterReader))
 
   private class PersistenceController[T <: Artifact](`type`: Class[_ <: Artifact], unmarshaller: YamlReader[T]) {
-    def unmarshall(content: String) = unmarshaller.read(content)
 
     def all(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.All(`type`)
 
-    def create(artifact: T)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Create(artifact)
+    def create(source: String)(implicit timeout: Timeout) = {
+      val artifact = unmarshaller.read(source)
+      actorFor(PersistenceActor) ? PersistenceActor.Create(artifact, Some(source))
+    }
 
     def read(name: String)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Read(name, `type`)
 
-    def update(name: String, artifact: T)(implicit timeout: Timeout) = {
+    def update(name: String, source: String)(implicit timeout: Timeout) = {
+      val artifact = unmarshaller.read(source)
       if (name != artifact.name)
         error(InconsistentArtifactName(name, artifact))
-      actorFor(PersistenceActor) ? PersistenceActor.Update(artifact)
+      actorFor(PersistenceActor) ? PersistenceActor.Update(artifact, Some(source))
     }
 
-    def delete(name: String, artifact: Option[T])(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)
+    def delete(name: String)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)
   }
 
 }
