@@ -39,9 +39,9 @@ trait RestApiBase extends HttpServiceBase with RestApiMarshaller with RestApiCon
 trait RestApiMarshaller {
   this: RestApiContentTypes =>
 
-  implicit def marshaller: Marshaller[Any] = jsonMarshaller
+  implicit def marshaller: Marshaller[Any] = throw new UnsupportedOperationException
 
-  implicit def dataMarshaller: ToResponseMarshaller[Any] = ToResponseMarshaller.oneOf(`application/json`, `application/x-yaml`)(jsonMarshaller, yamlMarshaller)
+  implicit def responseMarshaller: ToResponseMarshaller[Any] = ToResponseMarshaller.oneOf(`application/json`, `application/x-yaml`)(jsonMarshaller, yamlMarshaller)
 
   def jsonMarshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) => ctx.marshalTo(HttpEntity(contentType, toJson(value))) }
 
