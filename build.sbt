@@ -14,12 +14,6 @@ description := """This is a common set of libraries for vamp products, such as h
 
 
 pomExtra := (<url>http://vamp.io</url>
-    <licenses>
-      <license>
-        <name>The Apache License, Version 2.0</name>
-        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      </license>
-    </licenses>
     <developers>
       <developer>
         <name>Roman Useinov</name>
@@ -83,3 +77,4 @@ bintray.Keys.repository in bintray.Keys.bintray := "vamp"
 licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html"))
 
 bintray.Keys.bintrayOrganization in bintray.Keys.bintray := Some("magnetic-io")
+
