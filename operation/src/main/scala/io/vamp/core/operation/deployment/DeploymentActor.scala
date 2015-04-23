@@ -172,14 +172,17 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
     val attachment = (validate andThen resolveProperties)(blueprint)
 
     val clusters = mergeClusters(deployment, attachment)
-    val endpoints = (attachment.endpoints ++ deployment.endpoints).distinct
-    val ports = attachment.ports ++ deployment.ports
-    val environmentVariables = attachment.environmentVariables ++ deployment.environmentVariables
-    val constants = attachment.constants ++ deployment.constants
-    val hosts = attachment.hosts ++ deployment.hosts
+    val endpoints = mergeTrait(attachment.endpoints, deployment.endpoints)
+    val ports = mergeTrait(attachment.ports, deployment.ports)
+    val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
+    val constants = mergeTrait(attachment.constants, deployment.constants)
+    val hosts = mergeTrait(attachment.hosts, deployment.hosts)
 
     validateMerge(Deployment(deployment.name, clusters, endpoints, ports, environmentVariables, constants, hosts))
   }
+
+  def mergeTrait[A <: Trait](traits1: List[A], traits2: List[A]): List[A] =
+    (traits1.map(t => t.name -> t).toMap ++ traits2.map(t => t.name -> t).toMap).values.toList
 
   def mergeClusters(stable: Deployment, blueprint: Deployment): List[DeploymentCluster] = {
     val deploymentClusters = stable.clusters.filter(cluster => blueprint.clusters.find(_.name == cluster.name).isEmpty)
@@ -222,10 +225,16 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
     })
 
     if (newServices.size > 0) {
-      val oldWeight = stableCluster.flatMap(cluster => Some(cluster.services.map(_.routing).flatten.map(_.weight).flatten.sum)) match {
+      val oldWeight = stableCluster.flatMap(cluster => Some(cluster.services.map({ service =>
+        blueprintCluster.services.find(_.breed.name == service.breed.name) match {
+          case None => service.routing
+          case Some(update) => update.routing
+        }
+      }).flatten.map(_.weight).flatten.sum)) match {
         case None => 0
         case Some(sum) => sum
       }
+
       val newWeight = newServices.map(_.routing).flatten.filter(_.isInstanceOf[DefaultRouting]).map(_.weight).flatten.sum
       val availableWeight = 100 - oldWeight - newWeight
 
