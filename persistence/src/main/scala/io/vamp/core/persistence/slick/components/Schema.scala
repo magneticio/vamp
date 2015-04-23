@@ -3,6 +3,7 @@ package io.vamp.core.persistence.slick.components
 import java.sql.Timestamp
 
 import io.strongtyped.active.slick.Profile
+import io.vamp.core.persistence.notification.{PersistenceNotificationProvider, PersistenceOperationFailure}
 import io.vamp.core.persistence.slick.extension.{VampTableQueries, VampTables}
 import io.vamp.core.persistence.slick.model.VampPersistenceMetaDataModel
 
@@ -10,7 +11,7 @@ import scala.language.implicitConversions
 import scala.slick.jdbc.meta.MTable
 import scala.slick.util.Logging
 
-trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDeployment {
+trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDeployment with PersistenceNotificationProvider {
   this: VampTables with VampTableQueries with Profile =>
 
   import jdbcDriver.simple._
@@ -23,8 +24,19 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
       // Schema is up-to-date
       case version if version == 0 =>
         createSchema
+      case version if version == 1 =>
+        logger.info("Your database is outdated, automatic migration not supported. Please drop and recreate your database")
+        throw exception(PersistenceOperationFailure("Your database is outdated, automatic migration not supported. Please drop and recreate your database"))
     }
   }
+
+  def schemaInfo(implicit sess: Session): String =
+    geSchemaData match {
+      case Some(meta) if meta.schemaVersion == schemaVersion => s"V${meta.schemaVersion} / ${meta.created} [Up to date]"
+      case Some(meta)  => s"V${meta.schemaVersion} / ${meta.created} [Outdated]"
+      case None=> "Not present"
+    }
+
 
   private def createSchema(implicit sess: Session) = {
     logger.info("Creating schema ...")
@@ -80,18 +92,22 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
     VampPersistenceMetaDatas
   )
 
-  private def schemaVersion: Int = 1
+  private def schemaVersion: Int = 2
 
   private def metaDataTableName: String = "vamp-meta-data"
 
   private def getCurrentSchemaVersion(implicit sess: Session): Int =
-    MTable.getTables(metaDataTableName).firstOption match {
-      case Some(_) => VampPersistenceMetaDatas.sortBy(_.id.desc).firstOption match {
-        case Some(metaData) => metaData.schemaVersion
-        case None => 0
-      }
+    geSchemaData match {
+      case Some(metaData) => metaData.schemaVersion
       case None => 0
     }
+
+  private def geSchemaData(implicit sess: Session): Option[VampPersistenceMetaDataModel] =
+    MTable.getTables(metaDataTableName).firstOption match {
+      case Some(_) => VampPersistenceMetaDatas.sortBy(_.id.desc).firstOption
+      case None => None
+    }
+
 
   def totalNumberOfRowsInDB(implicit sess: Session): Int =
     tableQueries.map(query => query.fetchAll.length).sum
