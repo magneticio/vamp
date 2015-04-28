@@ -13,7 +13,7 @@ object ContainerDriverBootstrap extends Bootstrap with ContainerDriverNotificati
 
     val driver = ConfigFactory.load().getString("vamp.core.container-driver.type").toLowerCase match {
       case "marathon" => new MarathonDriver(actorSystem.dispatcher, ConfigFactory.load().getString("vamp.core.container-driver.url"))
-      case "docker"   => new DockerDriver(actorSystem.dispatcher, ConfigFactory.load().getString("vamp.core.container-driver.url"))
+      case "docker"   => new DockerDriver(actorSystem.dispatcher)
       case value => error(UnsupportedContainerDriverError(value))
     }
 
