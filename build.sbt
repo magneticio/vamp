@@ -69,6 +69,7 @@ val slf4jVersion = "1.7.10"
 val logbackVersion = "1.1.2"
 val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
+val tugboatVersion = "0.2.1"
 val vampCommonVersion = "0.7.5"
 val vampPulseApiVersion = "0.7.5"
 
@@ -85,9 +86,11 @@ libraryDependencies in ThisBuild ++= Seq(
   "com.typesafe.akka" %% "akka-stream-experimental" % akkaStreamsVersion,
   "io.vamp" %% "common" % vampCommonVersion,
   "io.vamp" %% "pulse-api" % vampPulseApiVersion,
+  "io.vamp" %% "tugboat" % tugboatVersion,
   "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
   "org.slf4j" % "slf4j-api" % slf4jVersion,
   "ch.qos.logback" % "logback-classic" % logbackVersion,
+  "org.scala-lang.modules" %% "scala-async" % "0.9.2",
   "junit" % "junit" % junitVersion % "test",
   "org.scalatest" %% "scalatest" % scalatestVersion % "test"
 )
@@ -164,6 +167,8 @@ scalacOptions += "-target:jvm-1.8"
 
 javacOptions ++= Seq("-encoding", "UTF-8")
 
+scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation, Opts.compile.unchecked) ++
+  Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint", "-feature")
 
 
 
