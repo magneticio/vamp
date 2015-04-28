@@ -7,7 +7,7 @@ organization in ThisBuild := "io.vamp.core"
 
 name := """core"""
 
-version in ThisBuild := "0.7.0-RC4"
+version in ThisBuild := "0.7.5"
 
 scalaVersion := "2.11.5"
 
@@ -55,6 +55,7 @@ resolvers in ThisBuild ++= Seq(
   Resolver.jcenterRepo
 )
 
+
 // Shared dependencies
 
 // Library Versions
@@ -68,9 +69,8 @@ val slf4jVersion = "1.7.10"
 val logbackVersion = "1.1.2"
 val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
-val vampCommonVersion = "0.7.0.24"
-val vampPulseApiVersion = "0.7.0.23"
-val tugboatVersion = "0.2.0.1"
+val vampCommonVersion = "0.7.5"
+val vampPulseApiVersion = "0.7.5"
 
 // Note ThisBuild, this is what makes these dependencies shared
 libraryDependencies in ThisBuild ++= Seq(
@@ -89,8 +89,7 @@ libraryDependencies in ThisBuild ++= Seq(
   "org.slf4j" % "slf4j-api" % slf4jVersion,
   "ch.qos.logback" % "logback-classic" % logbackVersion,
   "junit" % "junit" % junitVersion % "test",
-  "org.scalatest" %% "scalatest" % scalatestVersion % "test",
-  "io.vamp" %% "tugboat" % tugboatVersion
+  "org.scalatest" %% "scalatest" % scalatestVersion % "test"
 )
 
 // Sub-project dependency versions
@@ -160,21 +159,8 @@ lazy val swagger = project.disablePlugins(sbtassembly.AssemblyPlugin)
 
 
 
-
-
 // Java version and encoding requirements
 scalacOptions += "-target:jvm-1.8"
-
-scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation) ++
- Seq(
-  "-feature",
-  "-unchecked",
-  "-language:implicitConversions",
-  "-language:higherKinds",
-  "-language:existentials",
-  "-language:postfixOps"
-).filter(
-    Function.const(scalaVersion.value.startsWith("2.11")))
 
 javacOptions ++= Seq("-encoding", "UTF-8")
 

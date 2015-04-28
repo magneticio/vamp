@@ -109,6 +109,6 @@ case class Port(name: String, alias: Option[String], value: Option[String]) exte
   }
 }
 
-case class EnvironmentVariable(name: String, alias: Option[String], value: Option[String], interpolated: Boolean = false) extends Trait
+case class EnvironmentVariable(name: String, alias: Option[String], value: Option[String], interpolated: Option[String] = None) extends Trait
 
 case class Constant(name: String, alias: Option[String], value: Option[String]) extends Trait

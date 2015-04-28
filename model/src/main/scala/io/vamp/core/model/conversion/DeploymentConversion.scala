@@ -26,7 +26,7 @@ class DeploymentConversion(val deployment: Deployment) {
           }
         case _ => false
       }
-    }
+    } map (_.copy(interpolated = None))
 
     DefaultBlueprint(deployment.name, clusters, deployment.endpoints, environmentVariables)
   }

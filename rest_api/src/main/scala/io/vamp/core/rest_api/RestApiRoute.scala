@@ -4,18 +4,13 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
-import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
-import io.vamp.core.model.serialization._
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
 import io.vamp.core.rest_api.swagger.SwaggerResponse
-import org.json4s.native.Serialization._
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
-import spray.http._
-import spray.httpx.marshalling.Marshaller
 
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
@@ -25,23 +20,10 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
 
   implicit def timeout: Timeout
 
-  implicit val marshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
-    implicit val formats = SerializationFormat.default
-
-    val response = value match {
-      case notification: NotificationErrorException => throw notification
-      case exception: Exception => throw new RuntimeException(exception)
-      case response: PrettyJson => writePretty(response)
-      case response: AnyRef => write(response)
-      case any => write(any.toString)
-    }
-    ctx.marshalTo(HttpEntity(contentType, response))
-  }
-
   val route = noCachingAllowed {
     allowXhrFromOtherHosts {
       pathPrefix("api" / "v1") {
-        respondWithMediaType(`application/json`) {
+        accept(`application/json`, `application/x-yaml`) {
           path("docs") {
             pathEndOrSingleSlash {
               complete(OK, swagger)
