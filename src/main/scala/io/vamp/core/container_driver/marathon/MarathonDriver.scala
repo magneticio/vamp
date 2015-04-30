@@ -1,17 +1,15 @@
 package io.vamp.core.container_driver.marathon
 
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.crypto.Hash
 import io.vamp.common.http.RestClient
-import io.vamp.core.container_driver.marathon.api._
 import io.vamp.core.container_driver._
+import io.vamp.core.container_driver.marathon.api._
 import io.vamp.core.model.artifact._
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContainerDriver {
-  protected implicit val executionContext = ec
+class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContainerDriver(ec) {
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[MarathonDriver]))
 

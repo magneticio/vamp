@@ -4,7 +4,10 @@ import io.vamp.common.crypto.Hash
 import io.vamp.core.container_driver.marathon.api.CreatePortMapping
 import io.vamp.core.model.artifact._
 
-abstract class AbstractContainerDriver extends ContainerDriver {
+import scala.concurrent.ExecutionContext
+
+abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDriver {
+  protected implicit val executionContext = ec
 
   protected val nameDelimiter = "/"
   protected val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
