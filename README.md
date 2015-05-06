@@ -1,5 +1,9 @@
 ![](http://vamp.io/img/vamp_logo_blue.svg)
 
+[Website](http://vamp.io) |
+[Documentation](http://vamp.io/documentation/) |
+[Installation Guide](http://vamp.io/documentation/getting-started/installation/) |
+
 Vamp is the Very Awesome Microservices Platform. Vamp's core features are a platform-agnostic microservices DSL, easy A-B testing/canary releasing on everything and a deep and extendable metrics engine that monitors everything and directly feeds back into your services.
 
 Vamp is open source and mostly written in Scala, with some
