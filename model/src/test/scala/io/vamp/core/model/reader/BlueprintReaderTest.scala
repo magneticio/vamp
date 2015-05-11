@@ -401,7 +401,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  it should "expand single reference filter to a list." in {
+  it should "expand single reference filter to a list" in {
     BlueprintReader.read(res("blueprint/blueprint45.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), None, Some(DefaultRouting("", None, List(FilterReference("android")))))), None))),
@@ -410,11 +410,20 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  it should "expand single filter to a list." in {
+  it should "expand single filter to a list" in {
     BlueprintReader.read(res("blueprint/blueprint46.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Some(ScaleReference("large")), Some(DefaultRouting("", None, List(DefaultFilter("", "user.agent == android")))))), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
+      'environmentVariables(Nil)
+    )
+  }
+
+  it should "parse dialects" in {
+    BlueprintReader.read(res("blueprint/blueprint47.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), None, None, Map("marathon" -> Map("a" -> "b"), "docker" -> Map("c" -> "d"))), Service(BreedReference("sava2"), None, None, Map())), None, Map("marathon" -> Map("r" -> "t"), "docker" -> Map("q" -> "w", "o" -> "p"))), Cluster("viper", List(Service(BreedReference("sava3"), None, None, Map()), Service(BreedReference("sava4"), None, None, Map())), None, Map("marathon" -> Map("u" -> "i"))))),
+      'endpoints(Nil),
       'environmentVariables(Nil)
     )
   }

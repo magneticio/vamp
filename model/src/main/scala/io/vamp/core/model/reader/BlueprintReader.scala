@@ -75,8 +75,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
           <<?[List[YamlObject]]("services") match {
-            case None => Cluster(name, List(), sla)
-            case Some(list) => Cluster(name, list.map(parseService(_)), sla)
+            case None => Cluster(name, List(), sla, dialects)
+            case Some(list) => Cluster(name, list.map(parseService(_)), sla, dialects)
           }
       }).toList
     }
@@ -96,6 +96,14 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     }
 
     DefaultBlueprint(name, clusters, endpoints, evs)
+  }
+
+  private def dialects(implicit source: YamlObject): Map[String, Any] = {
+    ("marathon" :: "docker" :: Nil).flatMap(dialect => <<?[Any](dialect) match {
+      case None => Nil
+      case Some(d) if d.isInstanceOf[collection.Map[_, _]] => (dialect -> d) :: Nil
+      case _ => Nil
+    }).toMap
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {
@@ -140,7 +148,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   }
 
   private def parseService(implicit source: YamlObject): Service =
-    Service(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReferenceOrAnonymous("scale"), RoutingReader.readOptionalReferenceOrAnonymous("routing"))
+    Service(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReferenceOrAnonymous("scale"), RoutingReader.readOptionalReferenceOrAnonymous("routing"), dialects)
 }
 
 object BlueprintReader extends AbstractBlueprintReader {
