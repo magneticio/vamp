@@ -80,8 +80,8 @@ trait BlueprintSupport {
 
     val clusters = bp.clusters.map { cluster =>
       DeploymentCluster(cluster.name, cluster.services.map { service =>
-        DeploymentService(ReadyForDeployment(), artifactFor[DefaultBreed](service.breed), artifactFor[DefaultScale](service.scale), artifactFor[DefaultRouting](service.routing), Nil)
-      }, cluster.sla)
+        DeploymentService(ReadyForDeployment(), artifactFor[DefaultBreed](service.breed), artifactFor[DefaultScale](service.scale), artifactFor[DefaultRouting](service.routing), Nil, Map(), service.dialects)
+      }, cluster.sla, Map(), cluster.dialects)
     }
 
     Deployment(uuid, clusters, bp.endpoints, Nil, bp.environmentVariables, Nil, Nil)
@@ -192,7 +192,7 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
         case None =>
           cluster.copy(services = mergeServices(stable, None, cluster))
         case Some(deploymentCluster) =>
-          deploymentCluster.copy(services = mergeServices(stable, Some(deploymentCluster), cluster), routes = cluster.routes ++ deploymentCluster.routes)
+          deploymentCluster.copy(services = mergeServices(stable, Some(deploymentCluster), cluster), routes = cluster.routes ++ deploymentCluster.routes, dialects = deploymentCluster.dialects ++ cluster.dialects)
       }
     }
 
@@ -213,7 +213,7 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
             val routing = if (bpService.routing.isDefined) bpService.routing else service.routing
             val state = if (service.scale != bpService.scale || service.routing != bpService.routing) ReadyForDeployment() else service.state
 
-            service.copy(scale = scale, routing = routing, state = state)
+            service.copy(scale = scale, routing = routing, state = state, dialects = service.dialects ++ bpService.dialects)
         }
       }
   }

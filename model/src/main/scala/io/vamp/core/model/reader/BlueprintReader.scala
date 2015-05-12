@@ -70,12 +70,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   private def expandDialect(implicit source: YamlObject) = {
     <<?[Any]("dialects") match {
       case None =>
-        >>("dialects", new YamlObject() ++=
-          Dialect.values.map(_.toString.toLowerCase).flatMap(dialect => <<?[Any](dialect) match {
-            case None => Nil
-            case Some(d) if d.isInstanceOf[collection.Map[_, _]] => (dialect -> d) :: Nil
-            case _ => Nil
-          }).toMap)
+        >>("dialects", new YamlObject() ++= dialectValues.map { case (k, v) => k.toString.toLowerCase -> v })
       case _ =>
     }
   }
@@ -118,13 +113,17 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       case None => Map()
       case Some(ds: collection.Map[_, _]) =>
         implicit val source = ds.asInstanceOf[YamlObject]
-        Dialect.values.toList.flatMap(dialect => <<?[Any](dialect.toString.toLowerCase) match {
-          case None => Nil
-          case Some(d) if d.isInstanceOf[collection.Map[_, _]] => (dialect -> d) :: Nil
-          case _ => Nil
-        }).toMap
+        dialectValues
       case _ => Map()
     }
+  }
+
+  private def dialectValues(implicit source: YamlObject): Map[Dialect.Value, Any] = {
+    Dialect.values.toList.flatMap(dialect => <<?[Any](dialect.toString.toLowerCase) match {
+      case None => if (source.contains(dialect.toString.toLowerCase)) (dialect -> new YamlObject) :: Nil else Nil
+      case Some(d) if d.isInstanceOf[collection.Map[_, _]] => (dialect -> d) :: Nil
+      case Some(d) => (dialect -> new YamlObject) :: Nil
+    }).toMap
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {
