@@ -422,7 +422,16 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "parse dialects" in {
     BlueprintReader.read(res("blueprint/blueprint47.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), None, None, Map("marathon" -> Map("a" -> "b"), "docker" -> Map("c" -> "d"))), Service(BreedReference("sava2"), None, None, Map())), None, Map("marathon" -> Map("r" -> "t"), "docker" -> Map("q" -> "w", "o" -> "p"))), Cluster("viper", List(Service(BreedReference("sava3"), None, None, Map()), Service(BreedReference("sava4"), None, None, Map())), None, Map("marathon" -> Map("u" -> "i"))))),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), None, None, Map(Dialect.Marathon -> Map("a" -> "b"), Dialect.Docker -> Map("c" -> "d"))), Service(BreedReference("sava2"), None, None, Map())), None, Map(Dialect.Marathon -> Map("r" -> "t"), Dialect.Docker -> Map("q" -> "w", "o" -> "p"))), Cluster("viper", List(Service(BreedReference("sava3"), None, None, Map()), Service(BreedReference("sava4"), None, None, Map())), None, Map(Dialect.Marathon -> Map("u" -> "i"))))),
+      'endpoints(Nil),
+      'environmentVariables(Nil)
+    )
+  }
+
+  it should "expand and parse dialects" in {
+    BlueprintReader.read(res("blueprint/blueprint48.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), None, None, Map(Dialect.Marathon -> Map("a" -> "b"), Dialect.Docker -> Map("c" -> "d"))), Service(BreedReference("sava2"), None, None, Map())), None, Map(Dialect.Marathon -> Map("r" -> "t"), Dialect.Docker -> Map("q" -> "w", "o" -> "p"))), Cluster("viper", List(Service(BreedReference("sava3"), None, None, Map()), Service(BreedReference("sava4"), None, None, Map())), None, Map(Dialect.Marathon -> Map("u" -> "i"))))),
       'endpoints(Nil),
       'environmentVariables(Nil)
     )

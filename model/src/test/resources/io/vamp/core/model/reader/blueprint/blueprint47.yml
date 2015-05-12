@@ -5,22 +5,25 @@ clusters:
     services:
       -
         breed: sava1
-        marathon:
-          a: b
-        docker:
-          c: d
-        google:
-          e: f
+        dialects:
+          marathon:
+            a: b
+          docker:
+            c: d
+          google:
+            e: f
       -
         breed: sava2
-    docker:
-      q: w
-      o: p
-    google:
-      w: e
-      e: r
-    marathon:
-      r: t
+
+    dialects:
+      docker:
+        q: w
+        o: p
+      google:
+        w: e
+        e: r
+      marathon:
+        r: t
 
   viper:
     services:
@@ -29,7 +32,8 @@ clusters:
       -
         breed: sava4
 
-    marathon:
-      u: i
+    dialects:
+      marathon:
+        u: i
 
 

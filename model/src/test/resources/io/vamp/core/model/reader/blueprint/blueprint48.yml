@@ -1,0 +1,35 @@
+name: nomadic-frostbite
+
+clusters:
+  supersonic:
+    services:
+      -
+        breed: sava1
+        marathon:
+          a: b
+        docker:
+          c: d
+        google:
+          e: f
+      -
+        breed: sava2
+    docker:
+      q: w
+      o: p
+    google:
+      w: e
+      e: r
+    marathon:
+      r: t
+
+  viper:
+    services:
+      -
+        breed: sava3
+      -
+        breed: sava4
+
+    marathon:
+      u: i
+
+
