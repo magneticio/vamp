@@ -15,16 +15,6 @@ trait FutureSupport {
       case Failure(result) => result
     }
   }
-
-  def sequentialExecution(futures: Seq[Future[Any]])(implicit ec: ExecutionContext): Future[List[Any]] = {
-    futures.foldLeft(Future(List.empty[Any])) {
-      (previousFuture, next) =>
-        for {
-          previousResults <- previousFuture
-          next <- next
-        } yield previousResults :+ next
-    }
-  }
 }
 
 trait FutureSupportNotification extends FutureSupport {
