@@ -5,6 +5,7 @@ import io.vamp.common.http.RestClient
 import io.vamp.core.container_driver._
 import io.vamp.core.container_driver.marathon.api._
 import io.vamp.core.model.artifact._
+import org.json4s.{DefaultFormats, Extraction}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -28,10 +29,12 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
 
     val app = CreateApp(id, CreateContainer(CreateDocker(service.breed.deployable.name, portMappings(deployment, cluster, service))), service.scale.get.instances, service.scale.get.cpu, service.scale.get.memory, environment(deployment, cluster, service))
 
-    if (update)
-      RestClient.request[Any](s"PUT $url/v2/apps/${app.id}", app)
-    else
-      RestClient.request[Any](s"POST $url/v2/apps", app)
+    sendApp(if (update) s"PUT $url/v2/apps/${app.id}" else s"POST $url/v2/apps", app, cluster.dialects ++ service.dialects)
+  }
+
+  private def sendApp(url: String, app: CreateApp, dialects: Map[Dialect.Value, Any]) = {
+    implicit val formats = DefaultFormats
+    RestClient.request[Any](url, Extraction.decompose(dialects.getOrElse(Dialect.Marathon, Map())) merge Extraction.decompose(app))
   }
 
   def undeploy(deployment: Deployment, service: DeploymentService) = {

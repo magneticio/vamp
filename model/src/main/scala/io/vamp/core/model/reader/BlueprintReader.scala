@@ -55,14 +55,24 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
                 case Some(s: String) =>
                 case Some(s) => expandToList("routing" :: "filters")
               }
+              expandDialect
               element
             }
           })
+          expandDialect
         case _ =>
       }
       case _ =>
     }
     super.expand
+  }
+
+  private def expandDialect(implicit source: YamlObject) = {
+    <<?[Any]("dialects") match {
+      case None =>
+        >>("dialects", new YamlObject() ++= dialectValues.map { case (k, v) => k.toString.toLowerCase -> v })
+      case _ =>
+    }
   }
 
   override def parse(implicit source: YamlObject): Blueprint = {
@@ -75,8 +85,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
           <<?[List[YamlObject]]("services") match {
-            case None => Cluster(name, List(), sla)
-            case Some(list) => Cluster(name, list.map(parseService(_)), sla)
+            case None => Cluster(name, List(), sla, dialects)
+            case Some(list) => Cluster(name, list.map(parseService(_)), sla, dialects)
           }
       }).toList
     }
@@ -96,6 +106,24 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     }
 
     DefaultBlueprint(name, clusters, endpoints, evs)
+  }
+
+  private def dialects(implicit source: YamlObject): Map[Dialect.Value, Any] = {
+    <<?[Any]("dialects") match {
+      case None => Map()
+      case Some(ds: collection.Map[_, _]) =>
+        implicit val source = ds.asInstanceOf[YamlObject]
+        dialectValues
+      case _ => Map()
+    }
+  }
+
+  private def dialectValues(implicit source: YamlObject): Map[Dialect.Value, Any] = {
+    Dialect.values.toList.flatMap(dialect => <<?[Any](dialect.toString.toLowerCase) match {
+      case None => if (source.contains(dialect.toString.toLowerCase)) (dialect -> new YamlObject) :: Nil else Nil
+      case Some(d) if d.isInstanceOf[collection.Map[_, _]] => (dialect -> d) :: Nil
+      case Some(d) => (dialect -> new YamlObject) :: Nil
+    }).toMap
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {
@@ -140,7 +168,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   }
 
   private def parseService(implicit source: YamlObject): Service =
-    Service(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReferenceOrAnonymous("scale"), RoutingReader.readOptionalReferenceOrAnonymous("routing"))
+    Service(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReferenceOrAnonymous("scale"), RoutingReader.readOptionalReferenceOrAnonymous("routing"), dialects)
 }
 
 object BlueprintReader extends AbstractBlueprintReader {
