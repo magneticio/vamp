@@ -116,7 +116,7 @@ lazy val root = project.in(file(".")).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  persistence, model, operation, bootstrap, container_driver, dictionary, pulse_driver, rest_api, router_driver, swagger
+  persistence, model, operation, bootstrap, container_driver, dictionary, pulse_driver, rest_api, router_driver, swagger, cli
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val persistence = project.settings(
@@ -157,7 +157,7 @@ lazy val router_driver = project.dependsOn(model).disablePlugins(sbtassembly.Ass
 
 lazy val swagger = project.disablePlugins(sbtassembly.AssemblyPlugin)
 
-
+lazy val cli = project.dependsOn(model, rest_api).disablePlugins(sbtassembly.AssemblyPlugin)
 
 // Java version and encoding requirements
 scalacOptions += "-target:jvm-1.8"
