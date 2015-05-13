@@ -1,7 +1,5 @@
 package io.vamp.core.model.artifact
 
-import scala.language.implicitConversions
-
 trait Artifact {
   def name: String
 }
