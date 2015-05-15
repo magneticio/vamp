@@ -45,7 +45,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
     // Log which container have been found
     for (detail <- details) logContainerDetails(detail)
 
-    val actualDetails : List[ContainerDetails] = await(Future.sequence(details))
+    val actualDetails: List[ContainerDetails] = await(Future.sequence(details))
     val containerDetails: List[ContainerService] = details2Services(for {detail <- actualDetails if processable(detail.name)} yield detail)
     logger.debug("[ALL]: " + containerDetails.toString())
     containerDetails
@@ -86,12 +86,16 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
 
   private def details2Services(details: List[ContainerDetails]): List[ContainerService] = {
     val serviceMap: Map[String, List[ContainerDetails]] = details.groupBy(x => serverNameFromContainer(x))
-    serviceMap.map(deployment =>
+    serviceMap.map({ deployment =>
+      val details = deployment._2.head
+      val scale = getScale(details.name)
+      val server = detail2Server(details)
+
       ContainerService(
-        matching = nameMatcher(deployment._2.head.name),
-        scale = getScale(deployment._2.head.name),
-        servers = for {server <- deployment._2} yield detail2Server(server))
-    ).toList
+        matching = nameMatcher(details.name),
+        scale = scale,
+        servers = (0 to scale.instances).map(_ => server).toList)
+    }).toList
   }
 
   private def detail2Server(cd: ContainerDetails): ContainerServer = {
@@ -181,7 +185,6 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    * Updates a container which is already running
    */
   private def updateContainer(id: String, deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
-    // TODO implement this functionality - need to set ports (and environment??)
     logger.debug(s"[UpdateContainer] update ports: ${portMappings(deployment, cluster, service)}")
     addScale(Future(id), service.scale)
     Future(logger.debug("Implement this method"))
