@@ -86,7 +86,7 @@ libraryDependencies in ThisBuild ++= Seq(
   "com.typesafe.akka" %% "akka-stream-experimental" % akkaStreamsVersion,
   "io.vamp" %% "common" % vampCommonVersion,
   "io.vamp" %% "pulse-api" % vampPulseApiVersion,
-  "io.vamp" %% "tugboat" % tugboatVersion,
+  "io.vamp" %% "tugboat" % tugboatVersion exclude("org.slf4j", "slf4j-log4j12"),
   "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
   "org.slf4j" % "slf4j-api" % slf4jVersion,
   "ch.qos.logback" % "logback-classic" % logbackVersion,

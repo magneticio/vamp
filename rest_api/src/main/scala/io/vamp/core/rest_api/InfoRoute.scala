@@ -30,7 +30,7 @@ trait InfoRoute extends HttpServiceBase with JmxVitalsProvider with FutureSuppor
   val infoRoute = pathPrefix("info") {
     pathEndOrSingleSlash {
       get {
-        onSuccess(info) { result =>
+        onSuccess(info) {
           complete(OK, _)
         }
       }
