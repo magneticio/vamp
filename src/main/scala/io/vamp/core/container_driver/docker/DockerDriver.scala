@@ -59,7 +59,8 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
         createAndStartContainer(containerName, deployment, cluster, service)
       case Some(found) if update =>
         logger.info(s"[DEPLOY] Container $containerName already exists, needs updating")
-        updateContainer(containerName, deployment, cluster, service)
+        addScale(Future(found), service.scale)
+        Future(None)
       case Some(found) =>
         logger.warn(s"[DEPLOY] Container $containerName already exists, no action")
         Future(None)
@@ -179,15 +180,6 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
       startPrep = startPrep.portBind(tugboat.Port.Tcp(port.containerPort), tugboat.PortBinding.local(port.hostPort))
     }
     await(startPrep())
-  }
-
-  /**
-   * Updates a container which is already running
-   */
-  private def updateContainer(id: String, deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
-    logger.debug(s"[UpdateContainer] update ports: ${portMappings(deployment, cluster, service)}")
-    addScale(Future(id), service.scale)
-    Future(logger.debug("Implement this method"))
   }
 
   /**
