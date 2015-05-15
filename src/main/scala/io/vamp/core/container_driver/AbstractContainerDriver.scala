@@ -32,7 +32,9 @@ abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDr
   }
 
   protected def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] =
-    service.breed.environmentVariables.map(ev => ev.alias.getOrElse(ev.name) -> deployment.environmentVariables.find(e => TraitReference(cluster.name, TraitReference.EnvironmentVariables, ev.name).toString == e.name).get.value.get).toMap
-
-
+    service.breed.environmentVariables.map({ ev =>
+      val name = ev.alias.getOrElse(ev.name)
+      val value = deployment.environmentVariables.find(e => TraitReference(cluster.name, TraitReference.EnvironmentVariables, ev.name).toString == e.name).get.interpolated.get
+      name -> value
+    }).toMap
 }

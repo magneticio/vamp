@@ -1,5 +1,6 @@
 package io.vamp.core.container_driver.docker
 
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import io.vamp.core.container_driver._
 import io.vamp.core.container_driver.marathon.api.CreatePortMapping
@@ -23,6 +24,8 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
   private val logger = Logger(LoggerFactory.getLogger(classOf[DockerDriver]))
 
   private val docker = tugboat.Docker()
+
+  private val defaultHost = ConfigFactory.load().getString("vamp.core.router-driver.host")
 
   def info: Future[ContainerInfo] = docker.info().map {
     logger.debug(s"docker get info :$docker")
@@ -94,7 +97,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
   private def detail2Server(cd: ContainerDetails): ContainerServer = {
     ContainerServer(
       name = serverNameFromContainer(cd),
-      host = cd.config.hostname,
+      host = if (cd.config.hostname.isEmpty) defaultHost else cd.config.hostname,
       ports = cd.networkSettings.ports.map(port => port._2.map(e => e.hostPort)).flatten.toList,
       deployed = cd.state.running
     )
