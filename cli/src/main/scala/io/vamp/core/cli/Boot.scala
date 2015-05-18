@@ -66,7 +66,7 @@ object Boot extends Parameters {
       case _: HelpCommand => showHelp(HelpCommand())
       case x: UnknownCommand => terminateWithError(s"Unknown command '${x.name}'")
     }
-
+    sys.exit(0)
   }
 
   private def mergeBreedInCluster(blueprint: DefaultBlueprint, clusterName: String, breed: DefaultBreed, routing: Option[DefaultRouting], scale: Option[DefaultScale]): DefaultBlueprint =
