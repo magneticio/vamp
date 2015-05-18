@@ -1,9 +1,13 @@
 package io.vamp.core.persistence.store.jdbc
 
+import java.nio.charset.StandardCharsets
+
 import com.typesafe.scalalogging.Logger
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
 import io.vamp.core.persistence.slick.model._
+import org.json4s.DefaultFormats
+import org.json4s.native.Serialization._
 import org.slf4j.LoggerFactory
 
 import scala.slick.jdbc.JdbcBackend
@@ -17,6 +21,23 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
 
   import io.vamp.core.persistence.slick.components.Components.instance._
   import io.vamp.core.persistence.slick.model.Implicits._
+
+  private object DialectSerializer {
+
+    implicit val formats = DefaultFormats
+
+    def serialize(dialects: Map[Dialect.Value, Any]): Array[Byte] = write(dialects.map({ case (key, value) =>
+      key.toString.toLowerCase -> value
+    })).getBytes(StandardCharsets.UTF_8)
+
+    def deserialize(blob: Array[Byte]): Map[Dialect.Value, Any] = {
+      val map = read[Any](new String(blob, StandardCharsets.UTF_8)).asInstanceOf[Map[String, Any]]
+      Dialect.values.toList.flatMap(dialect => map.get(dialect.toString.toLowerCase) match {
+        case None => Nil
+        case Some(entry) => (dialect -> entry) :: Nil
+      }).toMap
+    }
+  }
 
   protected def updateDeployment(existing: DeploymentModel, artifact: Deployment): Unit = {
     deleteChildren(existing)
@@ -89,7 +110,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
             case Some(slaReference) =>
               for (escalationReference <- slaReference.escalationReferences) {
                 GenericEscalations.findOptionByName(escalationReference.name, deploymentId) match {
-                  case Some(escalation) if escalation.isAnonymous =>  deleteEscalationModel(escalation)
+                  case Some(escalation) if escalation.isAnonymous => deleteEscalationModel(escalation)
                 }
                 EscalationReferences.deleteById(escalationReference.id.get)
               }
@@ -108,7 +129,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
   private def createDeploymentClusters(clusters: List[DeploymentCluster], deploymentId: Option[Int]): Unit = {
     for (cluster <- clusters) {
       val slaRefId = createSla(cluster.sla, deploymentId)
-      val clusterId = DeploymentClusters.add(DeploymentClusterModel(name = cluster.name, slaReference = slaRefId, deploymentId = deploymentId))
+      val clusterId = DeploymentClusters.add(DeploymentClusterModel(name = cluster.name, slaReference = slaRefId, deploymentId = deploymentId, dialects = DialectSerializer.serialize(cluster.dialects)))
       for (route <- cluster.routes) {
         ClusterRoutes.add(ClusterRouteModel(portIn = route._1, portOut = route._2, clusterId = clusterId))
       }
@@ -129,6 +150,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
             routing = createRoutingReference(service.routing, deploymentId),
             deploymentState = service.state,
             deploymentTime = service.state.startedAt,
+            dialects = DialectSerializer.serialize(service.dialects),
             message = message)
         )
         for (dep <- service.dependencies) DeploymentServiceDependencies.add(DeploymentServiceDependencyModel(name = dep._1, value = dep._2, serviceId = serviceId))
@@ -160,7 +182,8 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
         name = cluster.name,
         services = findDeploymentServiceArtifacts(cluster.services),
         routes = clusterRouteModels2Artifacts(cluster.routes),
-        sla = findOptionSlaArtifactViaReferenceId(cluster.slaReference, deploymentId)
+        sla = findOptionSlaArtifactViaReferenceId(cluster.slaReference, deploymentId),
+        dialects = DialectSerializer.deserialize(cluster.dialects)
       )
     )
 
@@ -174,7 +197,8 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
         scale = service.scale flatMap { scale => Some(defaultScaleModel2Artifact(DefaultScales.findByName(ScaleReferences.findById(scale).name, service.deploymentId))) },
         routing = service.routing flatMap { routing => Some(defaultRoutingModel2Artifact(DefaultRoutings.findByName(RoutingReferences.findById(routing).name, service.deploymentId))) },
         servers = deploymentServerModels2Artifacts(service.servers),
-        dependencies = deploymentServiceDependencies2Artifacts(service.dependencies)
+        dependencies = deploymentServiceDependencies2Artifacts(service.dependencies),
+        dialects = DialectSerializer.deserialize(service.dialects)
       )
     )
 
