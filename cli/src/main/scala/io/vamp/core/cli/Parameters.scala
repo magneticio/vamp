@@ -15,10 +15,11 @@ trait Parameters extends CommandLineBasics {
   val destination = 'destination
   val help = 'help
 
+  val VAMP_HOST ="VAMP_HOST"
+
   protected def readParameters(args: Array[String]): OptionMap = {
-    val env_host = sys.env("VAMP_HOST")
-    if (env_host.nonEmpty)
-      nextOption(Map('host -> env_host), args.toList)
+    if (sys.env.contains(VAMP_HOST))
+      nextOption(Map('host -> sys.env(VAMP_HOST)), args.toList)
     else
       nextOption(Map(), args.toList)
   }

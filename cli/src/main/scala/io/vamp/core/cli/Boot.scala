@@ -11,9 +11,9 @@ object Boot extends Parameters {
       sys.exit(0)
     }
     implicit val options = readParameters(args.tail)
-    implicit val vampHost: String = getParameter(host)
 
     if (options.contains(help)) showHelp(string2Command(args.head))
+    implicit val vampHost: String = getParameter(host)
 
     string2Command(args.head) match {
       case _: BreedsCommand =>
