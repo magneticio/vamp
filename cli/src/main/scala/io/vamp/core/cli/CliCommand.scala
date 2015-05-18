@@ -42,7 +42,7 @@ case class DeployBlueprintCommand() extends CliCommand {
   override val requiresName = true
 }
 
-case class DeployBreed() extends CliCommand {
+case class DeployBreedCommand() extends CliCommand {
   override val name = "deploy-breed"
   override val additionalParams = "--deployment --cluster"
   override val usage = "Deploys a breed into an existing deployment cluster"
@@ -52,6 +52,12 @@ case class DeployBreed() extends CliCommand {
                               |  --cluster            Name of the cluster within the deployment
                             """.stripMargin
   override val requiresName = true
+}
+
+case class DeploymentsCommand() extends CliCommand {
+  override val name = "deployments"
+  override val description = "List of deployments"
+  override val usage = "Shows a list of deployments"
 }
 
 case class HelpCommand() extends CliCommand {
@@ -71,6 +77,13 @@ case class InspectBlueprintCommand() extends CliCommand {
   override val name = "inspect-blueprint"
   override val usage = "JSON representation of a stored blueprint"
   override val description = "Return details of the specified blueprint"
+  override val requiresName = true
+}
+
+case class InspectDeploymentCommand() extends CliCommand {
+  override val name = "inspect-deployment"
+  override val usage = "JSON representation of a active deployment"
+  override val description = "Return details of the specified deployment"
   override val requiresName = true
 }
 

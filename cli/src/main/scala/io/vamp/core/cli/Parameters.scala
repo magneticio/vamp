@@ -10,6 +10,7 @@ trait Parameters extends CommandLineBasics {
   val cluster = 'cluster
   val command = 'command
   val deployable = 'deployable
+  val deployments = 'deployments
   val name = 'name
   val source = 'source
   val destination = 'destination

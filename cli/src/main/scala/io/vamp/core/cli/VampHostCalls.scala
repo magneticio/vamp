@@ -45,7 +45,16 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
 
   def getBlueprints(implicit vampHost: String): List[DefaultBlueprint] =
     sendAndWait[List[BlueprintSer]](s"GET $vampHost/api/v1/blueprints") match {
-      case Some(blueprint) => blueprint.map(blueprintSer2DefaultBlueprint)
+      case Some(blueprints) => blueprints.map(blueprintSer2DefaultBlueprint)
+      case None => List.empty
+    }
+
+  def getDeployment(deploymentName: String)(implicit vampHost: String): Option[DeploymentSer] =
+    sendAndWait[DeploymentSer](s"GET $vampHost/api/v1/deployments/$deploymentName")//.map(blueprintSer2DefaultBlueprint)
+  
+  def getDeployments(implicit vampHost: String): List[DeploymentSer] =
+    sendAndWait[List[DeploymentSer]](s"GET $vampHost/api/v1/deployments") match {
+      case Some(deployments) => deployments //blueprint.map(blueprintSer2DefaultBlueprint)
       case None => List.empty
     }
 

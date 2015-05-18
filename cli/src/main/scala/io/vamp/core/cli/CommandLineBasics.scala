@@ -13,9 +13,11 @@ trait CommandLineBasics {
     case "breeds" => BreedsCommand()
     case "clone-breed" => CloneBreedCommand()
     //case "deploy-blueprint" => DeployBlueprintCommand()   // Not yet implemented, so don't expose
-    case "deploy-breed" => DeployBreed()
+    case "deploy-breed" => DeployBreedCommand()
+    case "deployments" => DeploymentsCommand()            // Not yet implemented, so don't expose
     case "inspect-breed" => InspectBreedCommand()
     case "inspect-blueprint" => InspectBlueprintCommand()
+    case "inspect-deployment" => InspectDeploymentCommand()
     //case "remove-blueprint" => RemoveBlueprintCommand()   // Not yet implemented, so don't expose
     case "remove-breed" => RemoveBreedCommand()
     case "help" => HelpCommand()
@@ -25,7 +27,7 @@ trait CommandLineBasics {
 
   val NotImplemented = "-- NOT IMPLEMENTED --"
 
-  val appName = "vamp-cli"
+  val appName = "vamp"
 
   def showHelp(command: CliCommand): Unit = {
     command match {
@@ -37,10 +39,12 @@ trait CommandLineBasics {
         showGeneralUsage(BreedsCommand())
         showGeneralUsage(CloneBreedCommand())
         //showGeneralUsage(DeployBlueprint())    // Not yet implemented, so don't expose
-        showGeneralUsage(DeployBreed())
+        showGeneralUsage(DeployBreedCommand())
+        showGeneralUsage(DeploymentsCommand())
         showGeneralUsage(HelpCommand())
         showGeneralUsage(InspectBreedCommand())
         showGeneralUsage(InspectBlueprintCommand())
+        showGeneralUsage(InspectDeploymentCommand())
         //showGeneralUsage(RemoveBlueprint())    //Not yet implemented, so don't expose
         showGeneralUsage(RemoveBreedCommand())
         println("")

@@ -18,6 +18,8 @@ class Deserialization {
 
   case class RoutingSer(weight: Int, filters: List[String])
 
+  case class DeploymentSer(name: String, clusters: Map[String, ClusterSer], endpoints: Option[Map[String, String]], environmentVariables: Option[Map[String, String]])
+
 
   // TODO SLA & Escalation support not implemented
   case class SlaSimplified(name: String, `type`: Option[String], escalations: List[EscalationSimplified], parameters: Map[String, Any])
