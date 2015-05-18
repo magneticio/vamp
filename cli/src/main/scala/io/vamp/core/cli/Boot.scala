@@ -28,11 +28,20 @@ object Boot extends Parameters {
           println(s"${blueprint.name.padTo(40, ' ')}${blueprint.endpoints.map(e => s"${e.name} -> ${e.value.get}").mkString(", ")}")
         )
 
+      case _: DeploymentsCommand =>
+        println("NAME".padTo(40, ' ') + "CLUSTERS")
+        VampHostCalls.getDeployments.foreach(deployment =>
+          println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c._1}").mkString(", ")}")
+        )
+
       case _: InspectBreedCommand =>
         println(VampHostCalls.prettyJson(VampHostCalls.getBreed(getParameter(name))))
 
       case _: InspectBlueprintCommand =>
         println(VampHostCalls.prettyJson(VampHostCalls.getBlueprint(getParameter(name))))
+
+      case _: InspectDeploymentCommand =>
+        println(VampHostCalls.prettyJson(VampHostCalls.getDeployment(getParameter(name))))
 
       case _: CloneBreedCommand =>
         println(VampHostCalls.prettyJson(
@@ -44,7 +53,7 @@ object Boot extends Parameters {
           })
         ))
 
-      case _: DeployBreed =>
+      case _: DeployBreedCommand =>
         //TODO add support for routing & scale parameters
         val deploymentId: String = getParameter(deployment)
         VampHostCalls.getDeploymentAsBlueprint(deploymentId) match {
