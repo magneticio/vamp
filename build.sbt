@@ -157,7 +157,9 @@ lazy val router_driver = project.dependsOn(model).disablePlugins(sbtassembly.Ass
 
 lazy val swagger = project.disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val cli = project.dependsOn(model, rest_api).disablePlugins(sbtassembly.AssemblyPlugin)
+lazy val cli = project.settings(
+  assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
+).dependsOn(model, rest_api)
 
 // Java version and encoding requirements
 scalacOptions += "-target:jvm-1.8"
