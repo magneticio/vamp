@@ -74,10 +74,9 @@ object Boot extends Parameters {
       case _: RemoveBlueprintCommand => println(NotImplemented)
 
       case _: SlasCommand =>
-        println("NAME".padTo(40, ' ') + "ESCALATIONS")
+        println("NAME")
         VampHostCalls.getSlas.foreach(sla =>
-          //println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c._1}").mkString(", ")}")
-        println(sla)
+          println(s"${sla.name}")
         )
 
       case _: HelpCommand => showHelp(HelpCommand())

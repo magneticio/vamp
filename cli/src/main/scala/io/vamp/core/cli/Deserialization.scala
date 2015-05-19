@@ -74,7 +74,6 @@ class Deserialization {
           val window: Map[String, Long] = sla.getOrElse("window", Map.empty).asInstanceOf[Map[String, Long]]
           val threshold: Map[String, Long] = sla.getOrElse("threshold", Map.empty).asInstanceOf[Map[String, Long]]
           val escalations = sla.getOrElse("escalations", List.empty).asInstanceOf[List[Map[String, _]]]
-          println(escalations)
           Some(
             ResponseTimeSlidingWindowSla(name = name,
               upper = FiniteDuration(length = window.getOrElse("upper", 0L), unit = TimeUnit.SECONDS),
@@ -87,7 +86,6 @@ class Deserialization {
           val escalations = sla.getOrElse("escalations", List.empty).asInstanceOf[List[Map[String, _]]]
           Some(EscalationOnlySla(name = name, escalations = escalations.map(map2Escalation)))
         case a =>
-          println(s"Type of sla: $a")
           None
       }
     case None => None
