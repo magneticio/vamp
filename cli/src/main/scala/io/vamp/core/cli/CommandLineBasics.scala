@@ -20,6 +20,7 @@ trait CommandLineBasics {
     case "inspect-deployment" => InspectDeploymentCommand()
     //case "remove-blueprint" => RemoveBlueprintCommand()   // Not yet implemented, so don't expose
     case "remove-breed" => RemoveBreedCommand()
+    case "slas" => SlasCommand()
     case "help" => HelpCommand()
     case "--help" => HelpCommand()
     case c => UnknownCommand(c)
@@ -47,6 +48,7 @@ trait CommandLineBasics {
         showGeneralUsage(InspectDeploymentCommand())
         //showGeneralUsage(RemoveBlueprint())    //Not yet implemented, so don't expose
         showGeneralUsage(RemoveBreedCommand())
+        showGeneralUsage(SlasCommand())
         println("")
         println(s"Run '$appName COMMMAND --help' for help about the different command options")
       }

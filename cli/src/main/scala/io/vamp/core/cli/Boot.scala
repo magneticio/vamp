@@ -72,6 +72,14 @@ object Boot extends Parameters {
       case _: DeployBlueprintCommand => println(NotImplemented)
       case _: RemoveBreedCommand => VampHostCalls.deleteBreed(getParameter(name))
       case _: RemoveBlueprintCommand => println(NotImplemented)
+
+      case _: SlasCommand =>
+        println("NAME".padTo(40, ' ') + "ESCALATIONS")
+        VampHostCalls.getSlas.foreach(sla =>
+          //println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c._1}").mkString(", ")}")
+        println(sla)
+        )
+
       case _: HelpCommand => showHelp(HelpCommand())
       case x: UnknownCommand => terminateWithError(s"Unknown command '${x.name}'")
     }

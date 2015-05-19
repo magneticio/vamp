@@ -101,4 +101,10 @@ case class RemoveBreedCommand() extends CliCommand {
   override val requiresName = true
 }
 
+case class SlasCommand() extends CliCommand {
+  override val name = "slas"
+  override val description = "List of slas"
+  override val usage = "Shows a list of slas"
+}
+
 case class UnknownCommand(override val name: String) extends CliCommand

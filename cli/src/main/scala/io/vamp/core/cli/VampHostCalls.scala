@@ -1,7 +1,7 @@
 package io.vamp.core.cli
 
 import io.vamp.common.http.RestClient
-import io.vamp.core.model.artifact.{DefaultBlueprint, DefaultBreed}
+import io.vamp.core.model.artifact.{Sla, DefaultBlueprint, DefaultBreed}
 import io.vamp.core.model.serialization.SerializationFormat
 import io.vamp.core.rest_api.{RestApiContentTypes, RestApiMarshaller}
 import org.json4s.JsonAST._
@@ -55,6 +55,13 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
   def getDeployments(implicit vampHost: String): List[DeploymentSer] =
     sendAndWait[List[DeploymentSer]](s"GET $vampHost/api/v1/deployments") match {
       case Some(deployments) => deployments //blueprint.map(blueprintSer2DefaultBlueprint)
+      case None => List.empty
+    }
+
+
+  def getSlas(implicit vampHost: String): List[Sla] =
+    sendAndWait[List[Map[String,_]]](s"GET $vampHost/api/v1/slas") match {
+      case Some(slas) => slas.map(sla => mapToSla(Some(sla))).flatten
       case None => List.empty
     }
 
