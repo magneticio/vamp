@@ -37,8 +37,10 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
                   }
                 } ~ post {
                   entity(as[String]) { request =>
-                    onSuccess(createArtifact(artifact, request)) {
-                      complete(Created, _)
+                    parameters('validate_only.as[Boolean] ? false) { validateOnly =>
+                      onSuccess(createArtifact(artifact, request, validateOnly)) {
+                        complete(Created, _)
+                      }
                     }
                   }
                 }
@@ -53,8 +55,10 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
                 }
               } ~ put {
                 entity(as[String]) { request =>
-                  onSuccess(updateArtifact(artifact, name, request)) {
-                    complete(OK, _)
+                  parameters('validate_only.as[Boolean] ? false) { validateOnly =>
+                    onSuccess(updateArtifact(artifact, name, request, validateOnly)) {
+                      complete(OK, _)
+                    }
                   }
                 }
               } ~ delete {
@@ -79,8 +83,8 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     case None => error(UnexpectedArtifact(artifact))
   }
 
-  def createArtifact(artifact: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) => controller.asInstanceOf[PersistenceController[Artifact]].create(content)
+  def createArtifact(artifact: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
+    case Some(controller) => controller.asInstanceOf[PersistenceController[Artifact]].create(content, validateOnly)
     case None => error(UnexpectedArtifact(artifact))
   }
 
@@ -89,8 +93,8 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     case None => error(UnexpectedArtifact(artifact))
   }
 
-  def updateArtifact(artifact: String, name: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) => controller.asInstanceOf[PersistenceController[Artifact]].update(name, content)
+  def updateArtifact(artifact: String, name: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
+    case Some(controller) => controller.asInstanceOf[PersistenceController[Artifact]].update(name, content, validateOnly)
     case None => error(UnexpectedArtifact(artifact))
   }
 
@@ -116,18 +120,19 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
 
     def all(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.All(`type`)
 
-    def create(source: String)(implicit timeout: Timeout) = {
+    def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       val artifact = unmarshaller.read(source)
-      actorFor(PersistenceActor) ? PersistenceActor.Create(artifact, Some(source))
+      if(validateOnly) Future(artifact) else actorFor(PersistenceActor) ? PersistenceActor.Create(artifact, Some(source))
     }
 
     def read(name: String)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Read(name, `type`)
 
-    def update(name: String, source: String)(implicit timeout: Timeout) = {
+    def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       val artifact = unmarshaller.read(source)
       if (name != artifact.name)
         error(InconsistentArtifactName(name, artifact))
-      actorFor(PersistenceActor) ? PersistenceActor.Update(artifact, Some(source))
+
+      if(validateOnly) Future(artifact) else actorFor(PersistenceActor) ? PersistenceActor.Update(artifact, Some(source))
     }
 
     def delete(name: String)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)

@@ -1,7 +1,7 @@
 package io.vamp.core.model.notification
 
 import io.vamp.common.notification.Notification
-import io.vamp.core.model.artifact.{AbstractCluster, Breed, TraitReference}
+import io.vamp.core.model.artifact.{AbstractCluster, Breed}
 
 case class UnresolvedEndpointPortError(name: String, value: Any) extends Notification
 
