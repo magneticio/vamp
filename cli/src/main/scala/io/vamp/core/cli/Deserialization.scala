@@ -69,7 +69,7 @@ class Deserialization {
   implicit def mapToSla(slaOption: Option[Map[String, _]]): Option[Sla] = slaOption match {
     case Some(sla) =>
       val name = sla.getOrElse("name", "").asInstanceOf[String]
-      sla.getOrElse("type", "") match {
+      sla.getOrElse("type", "").asInstanceOf[String] match {
         case "response_time_sliding_window" =>
           val window: Map[String, Long] = sla.getOrElse("window", Map.empty).asInstanceOf[Map[String, Long]]
           val threshold: Map[String, Long] = sla.getOrElse("threshold", Map.empty).asInstanceOf[Map[String, Long]]
@@ -85,44 +85,46 @@ class Deserialization {
         case "escalation_only" =>
           val escalations = sla.getOrElse("escalations", List.empty).asInstanceOf[List[Map[String, _]]]
           Some(EscalationOnlySla(name = name, escalations = escalations.map(map2Escalation)))
-        case a =>
-          None
+        case other =>
+          val escalations = sla.getOrElse("escalations", List.empty).asInstanceOf[List[Map[String, _]]]
+          val params = sla.getOrElse("parameters", List.empty).asInstanceOf[Map[String, Any]]
+          Some(GenericSla(name = name, `type` = other, parameters = params, escalations = escalations.map(map2Escalation)))
       }
     case None => None
   }
 
-
   implicit def map2Escalation(esc: Map[String, _]): Escalation = {
     val name = esc.getOrElse("name", "").asInstanceOf[String]
-    esc.get("type") match {
-      case Some("to_all") =>
+    esc.getOrElse("type","").asInstanceOf[String] match {
+      case "to_all" =>
         val escalations = esc.getOrElse("escalations", List.empty).asInstanceOf[List[Map[String, _]]]
         ToAllEscalation(name = name, escalations = escalations.map(map2Escalation))
-      case Some("to_one") =>
+      case "to_one" =>
         val escalations = esc.getOrElse("escalations", List.empty).asInstanceOf[List[Map[String, _]]]
         ToOneEscalation(name = name, escalations = escalations.map(map2Escalation))
-      case Some("scale_instances") =>
+      case "scale_instances" =>
         ScaleInstancesEscalation(name = name,
           minimum = esc.getOrElse("minimum", 0).asInstanceOf[BigInt].toInt,
           maximum = esc.getOrElse("maximum", 0).asInstanceOf[BigInt].toInt,
           scaleBy = esc.getOrElse("scale_by", 0).asInstanceOf[BigInt].toInt,
           targetCluster = esc.get("target_cluster").asInstanceOf[Option[String]])
-      case Some("scale_cpu") =>
+      case "scale_cpu" =>
         ScaleCpuEscalation(name = name,
           minimum = esc.getOrElse("minimum", 0d).asInstanceOf[BigDecimal].toDouble,
           maximum = esc.getOrElse("maximum", 0d).asInstanceOf[BigDecimal].toDouble,
           scaleBy = esc.getOrElse("scale_by", 0d).asInstanceOf[BigDecimal].toDouble,
           targetCluster = esc.get("target_cluster").asInstanceOf[Option[String]])
-      case Some("scale_memory") =>
+      case "scale_memory" =>
         ScaleMemoryEscalation(name = name,
           minimum = esc.getOrElse("minimum", 0d).asInstanceOf[BigDecimal].toDouble,
           maximum = esc.getOrElse("maximum", 0d).asInstanceOf[BigDecimal].toDouble,
           scaleBy = esc.getOrElse("scale_by", 0d).asInstanceOf[BigDecimal].toDouble,
           targetCluster = esc.get("target_cluster").asInstanceOf[Option[String]])
-      case _ => throw new ClassCastException("Invalid escalation type")
+      case other =>
+        val params = esc.getOrElse("parameters", List.empty).asInstanceOf[Map[String, Any]]
+        GenericEscalation(name = name, `type` = other, parameters = params)
     }
   }
-
 
   implicit def blueprintSer2DefaultBlueprint(b: BlueprintSer): DefaultBlueprint =
     DefaultBlueprint(
