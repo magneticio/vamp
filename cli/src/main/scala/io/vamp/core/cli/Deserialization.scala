@@ -18,11 +18,13 @@ class Deserialization {
 
   case class ClusterSerialized(services: List[ServiceSerialized], sla: Option[Map[String, _]])
 
-  case class ServiceSerialized(breed: BreedSerialized, scale: Option[ScaleSerialized], routing: Option[RoutingSerialized])
+  case class ServiceSerialized(breed: DefaultBreedSerialized, scale: Option[ScaleSerialized], routing: Option[RoutingSerialized])
 
   case class ScaleSerialized(cpu: Double, memory: Double, instances: Int)
 
-  case class BreedSerialized(name: String, deployable: String, ports: Option[Map[String, String]], environmentVariables: Option[Map[String, String]], constants: Option[Map[String, String]], dependencies: Map[String, BreedSerialized])
+  case class DefaultBreedSerialized(name: String, deployable: String, ports: Option[Map[String, String]], environmentVariables: Option[Map[String, String]], constants: Option[Map[String, String]], dependencies: Map[String, BreedSerialized])
+
+  case class BreedSerialized(name: String)
 
   case class RoutingSerialized(weight: Int, filters: List[String])
 
@@ -30,7 +32,7 @@ class Deserialization {
 
   case class DeploymentClusterSerialized(services: List[DeploymentServiceSerialized], sla: Option[Map[String, _]])
 
-  case class DeploymentServiceSerialized(breed: BreedSerialized, scale: Option[ScaleSerialized], routing: Option[RoutingSerialized], state: Option[Map[String, String]], servers: List[Map[String, _]])
+  case class DeploymentServiceSerialized(breed: DefaultBreedSerialized, scale: Option[ScaleSerialized], routing: Option[RoutingSerialized], state: Option[Map[String, String]], servers: List[Map[String, _]])
 
   implicit def mapToHostList(m: Option[Map[String, String]]): List[Host] = m match {
     case Some(h) => h.map(host => Host(name = host._1, value = Some(host._2))).toList
@@ -57,13 +59,13 @@ class Deserialization {
     case None => Map.empty
   }
 
-  implicit def breedSerialized2DefaultBreed(b: BreedSerialized): DefaultBreed = DefaultBreed(
+  implicit def breedSerialized2DefaultBreed(b: DefaultBreedSerialized): DefaultBreed = DefaultBreed(
     name = b.name,
     deployable = Deployable(b.deployable),
     ports = b.ports,
     environmentVariables = b.environmentVariables,
     constants = b.constants,
-    dependencies = b.dependencies.map(dep => dep._1 -> breedSerialized2DefaultBreed(dep._2))
+    dependencies = b.dependencies.map(dep => dep._1 -> BreedReference(name=dep._2.name))
   )
 
   implicit def scaleSerializedToScale(s: ScaleSerialized): DefaultScale =

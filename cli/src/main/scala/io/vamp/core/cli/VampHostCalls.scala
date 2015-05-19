@@ -26,16 +26,16 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
     sendAndWait[AnyRef](s"PUT $vampHost/api/v1/deployments/$deploymentId", body = blueprint)
 
   def getBreed(breedId: String)(implicit vampHost: String): Option[DefaultBreed] =
-    sendAndWait[BreedSerialized](s"GET $vampHost/api/v1/breeds/$breedId").map(breedSerialized2DefaultBreed)
+    sendAndWait[DefaultBreedSerialized](s"GET $vampHost/api/v1/breeds/$breedId").map(breedSerialized2DefaultBreed)
 
   def getBreeds(implicit vampHost: String): List[DefaultBreed] =
-    sendAndWait[List[BreedSerialized]](s"GET $vampHost/api/v1/breeds") match {
+    sendAndWait[List[DefaultBreedSerialized]](s"GET $vampHost/api/v1/breeds") match {
       case Some(breeds) => breeds.map(breedSerialized2DefaultBreed)
       case None => List.empty
     }
 
   def createBreed(breed: DefaultBreed)(implicit vampHost: String): Option[DefaultBreed] =
-    sendAndWait[BreedSerialized](s"POST $vampHost/api/v1/breeds", breed).map(breedSerialized2DefaultBreed)
+    sendAndWait[DefaultBreedSerialized](s"POST $vampHost/api/v1/breeds", breed).map(breedSerialized2DefaultBreed)
 
   def deleteBreed(breedId: String)(implicit vampHost: String) =
     sendAndWait[Any](s"DELETE $vampHost/api/v1/breeds/$breedId", None)
@@ -57,7 +57,6 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
       case Some(deployments) => deployments.map(deploymentSerialized2Deployment)
       case None => List.empty
     }
-
 
   def info(implicit vampHost: String) =
     sendAndWait[Any](s"GET $vampHost/api/v1/info", None)
