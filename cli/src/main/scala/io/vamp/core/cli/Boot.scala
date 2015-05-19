@@ -31,7 +31,7 @@ object Boot extends Parameters {
       case _: DeploymentsCommand =>
         println("NAME".padTo(40, ' ') + "CLUSTERS")
         VampHostCalls.getDeployments.foreach(deployment =>
-          println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c._1}").mkString(", ")}")
+          println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c.name}").mkString(", ")}")
         )
 
       case _: InspectBreedCommand =>

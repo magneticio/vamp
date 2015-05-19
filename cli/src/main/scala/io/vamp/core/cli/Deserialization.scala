@@ -1,28 +1,41 @@
 package io.vamp.core.cli
 
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
+import io.vamp.core.model.artifact.DeploymentService._
 import io.vamp.core.model.artifact._
 
 import scala.concurrent.duration.FiniteDuration
 import scala.language.{implicitConversions, postfixOps}
 
+
 class Deserialization {
 
-  case class BlueprintSer(name: String, clusters: Map[String, ClusterSer], endpoints: Option[Map[String, String]], environmentVariables: Option[Map[String, String]])
 
-  case class ClusterSer(services: List[ServiceSer], sla: Option[Map[String, _]])
+  case class BlueprintSerialized(name: String, clusters: Map[String, ClusterSerialized], endpoints: Option[Map[String, String]], environmentVariables: Option[Map[String, String]])
 
-  case class ServiceSer(breed: BreedSer, scale: Option[ScaleSer], routing: Option[RoutingSer])
+  case class ClusterSerialized(services: List[ServiceSerialized], sla: Option[Map[String, _]])
 
-  case class ScaleSer(cpu: Double, memory: Double, instances: Int)
+  case class ServiceSerialized(breed: BreedSerialized, scale: Option[ScaleSerialized], routing: Option[RoutingSerialized])
 
-  case class BreedSer(name: String, deployable: String, ports: Option[Map[String, String]], environmentVariables: Option[Map[String, String]], constants: Option[Map[String, String]], dependencies: Map[String, BreedSer])
+  case class ScaleSerialized(cpu: Double, memory: Double, instances: Int)
 
-  case class RoutingSer(weight: Int, filters: List[String])
+  case class BreedSerialized(name: String, deployable: String, ports: Option[Map[String, String]], environmentVariables: Option[Map[String, String]], constants: Option[Map[String, String]], dependencies: Map[String, BreedSerialized])
 
-  case class DeploymentSer(name: String, clusters: Map[String, ClusterSer], endpoints: Option[Map[String, String]], environmentVariables: Option[Map[String, String]])
+  case class RoutingSerialized(weight: Int, filters: List[String])
 
+  case class DeploymentSerialized(name: String, clusters: Map[String, DeploymentClusterSerialized], endpoints: Option[Map[String, String]], environmentVariables: Option[Map[String, String]], hosts: Option[Map[String, String]], constants: Option[Map[String, String]], ports: Option[Map[String, String]])
+
+  case class DeploymentClusterSerialized(services: List[DeploymentServiceSerialized], sla: Option[Map[String, _]])
+
+  case class DeploymentServiceSerialized(breed: BreedSerialized, scale: Option[ScaleSerialized], routing: Option[RoutingSerialized], state: Option[Map[String, String]], servers: List[Map[String, _]])
+
+  implicit def mapToHostList(m: Option[Map[String, String]]): List[Host] = m match {
+    case Some(h) => h.map(host => Host(name = host._1, value = Some(host._2))).toList
+    case None => List.empty
+  }
 
   implicit def mapToPortList(m: Option[Map[String, String]]): List[Port] = m match {
     case Some(p) => p.map(port => Port(name = port._1, value = Some(port._2), alias = None)).toList
@@ -39,32 +52,73 @@ class Deserialization {
     case None => List.empty
   }
 
-  implicit def breedSer2DefaultBreed(b: BreedSer): DefaultBreed = DefaultBreed(
+  implicit def mapToServerPorts(m: Option[Map[String, BigInt]]): Map[Int, Int] = m match {
+    case Some(p) => p.map(port => port._1.toInt -> port._2.toInt)
+    case None => Map.empty
+  }
+
+  implicit def breedSerialized2DefaultBreed(b: BreedSerialized): DefaultBreed = DefaultBreed(
     name = b.name,
     deployable = Deployable(b.deployable),
     ports = b.ports,
     environmentVariables = b.environmentVariables,
     constants = b.constants,
-    dependencies = b.dependencies.map(dep => dep._1 -> breedSer2DefaultBreed(dep._2))
+    dependencies = b.dependencies.map(dep => dep._1 -> breedSerialized2DefaultBreed(dep._2))
   )
 
-  implicit def scaleSerToScale(s: ScaleSer): DefaultScale =
+  implicit def scaleSerializedToScale(s: ScaleSerialized): DefaultScale =
     DefaultScale(name = "", cpu = s.cpu, memory = s.memory, instances = s.instances)
 
 
-  implicit def routingSer2DefaultRouting(r: RoutingSer): DefaultRouting =
+  implicit def routingSerialized2DefaultRouting(r: RoutingSerialized): DefaultRouting =
     DefaultRouting(name = "", weight = Some(r.weight), filters = r.filters.map(c => DefaultFilter(name = "", condition = c)))
 
 
-  implicit def serviceSer2Service(s: ServiceSer): Service =
-    Service(breed = s.breed, scale = s.scale.map(scaleSerToScale), routing = s.routing.map(routingSer2DefaultRouting))
+  implicit def serviceSerialized2Service(s: ServiceSerialized): Service =
+    Service(breed = s.breed, scale = s.scale.map(scaleSerializedToScale), routing = s.routing.map(routingSerialized2DefaultRouting))
 
 
-  implicit def clusterSer2Cluster(m: Map[String, ClusterSer]): List[Cluster] =
+  implicit def clusterSerialized2Cluster(m: Map[String, ClusterSerialized]): List[Cluster] =
     m.map(c =>
-      Cluster(name = c._1, services = c._2.services.map(serviceSer2Service), sla = mapToSla(c._2.sla))
+      Cluster(name = c._1, services = c._2.services.map(serviceSerialized2Service), sla = mapToSla(c._2.sla))
     ).toList
 
+
+  implicit def deploymentServerSerialized2DeploymentServer(m: Map[String, _]): DeploymentServer =
+    DeploymentServer(name = m.getOrElse("name", "").asInstanceOf[String],
+      host = m.getOrElse("host", "").asInstanceOf[String],
+      ports = mapToServerPorts(m.get("ports").asInstanceOf[Option[Map[String, BigInt]]]),
+      deployed = m.getOrElse("deployed", false).asInstanceOf[Boolean]
+    )
+
+
+  implicit def deploymentStateSerialized2State(s: Map[String, String]): State = {
+    val timestamp = s.get("started_at").get
+    val dateTime = OffsetDateTime.parse(timestamp, DateTimeFormatter.ISO_INSTANT) //TODO this will fail
+    s.get("name") match {
+      case Some("ready_for_deployment") => ReadyForDeployment(startedAt = dateTime)
+      case Some("deployed") => Deployed(startedAt = dateTime)
+      case Some("ready_for_undeployment") => ReadyForUndeployment(startedAt = dateTime)
+      case Some("error") => Deployed()
+      case _ => Deployed()
+    }
+  }
+
+
+  implicit def deploymentServiceSerialized2DeploymentService(s: DeploymentServiceSerialized): DeploymentService =
+    DeploymentService(
+      breed = s.breed,
+      scale = s.scale.map(scaleSerializedToScale),
+      routing = s.routing.map(routingSerialized2DefaultRouting),
+      servers = s.servers.map(deploymentServerSerialized2DeploymentServer),
+      state = Deployed() //TODO add the correct state //s.state.map(deploymentStateSerialized2State).get
+    )
+
+
+  implicit def deploymentClusterSerialized2DeploymentCluster(m: Map[String, DeploymentClusterSerialized]): List[DeploymentCluster] =
+    m.map(c =>
+      DeploymentCluster(name = c._1, services = c._2.services.map(deploymentServiceSerialized2DeploymentService), sla = mapToSla(c._2.sla))
+    ).toList
 
   implicit def mapToSla(slaOption: Option[Map[String, _]]): Option[Sla] = slaOption match {
     case Some(sla) =>
@@ -95,7 +149,7 @@ class Deserialization {
 
   implicit def map2Escalation(esc: Map[String, _]): Escalation = {
     val name = esc.getOrElse("name", "").asInstanceOf[String]
-    esc.getOrElse("type","").asInstanceOf[String] match {
+    esc.getOrElse("type", "").asInstanceOf[String] match {
       case "to_all" =>
         val escalations = esc.getOrElse("escalations", List.empty).asInstanceOf[List[Map[String, _]]]
         ToAllEscalation(name = name, escalations = escalations.map(map2Escalation))
@@ -126,12 +180,23 @@ class Deserialization {
     }
   }
 
-  implicit def blueprintSer2DefaultBlueprint(b: BlueprintSer): DefaultBlueprint =
+  implicit def blueprintSerialized2DefaultBlueprint(b: BlueprintSerialized): DefaultBlueprint =
     DefaultBlueprint(
       name = b.name,
       clusters = b.clusters,
       endpoints = b.endpoints,
       environmentVariables = b.environmentVariables
+    )
+
+  implicit def deploymentSerialized2Deployment(dep: DeploymentSerialized): Deployment =
+    Deployment(
+      name = dep.name,
+      clusters = dep.clusters,
+      environmentVariables = dep.environmentVariables,
+      endpoints = dep.endpoints,
+      constants = dep.constants,
+      hosts = dep.hosts,
+      ports = dep.ports
     )
 
 }
