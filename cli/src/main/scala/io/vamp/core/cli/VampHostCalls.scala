@@ -59,6 +59,9 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
     }
 
 
+  def info(implicit vampHost: String) =
+    sendAndWait[Any](s"GET $vampHost/api/v1/info", None)
+
   def getSlas(implicit vampHost: String): List[Sla] =
     sendAndWait[List[Map[String, _]]](s"GET $vampHost/api/v1/slas") match {
       case Some(slas) => slas.map(sla => mapToSla(Some(sla))).flatten

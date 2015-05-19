@@ -14,7 +14,8 @@ trait CommandLineBasics {
     case "clone-breed" => CloneBreedCommand()
     //case "deploy-blueprint" => DeployBlueprintCommand()   // Not yet implemented, so don't expose
     case "deploy-breed" => DeployBreedCommand()
-    case "deployments" => DeploymentsCommand()            // Not yet implemented, so don't expose
+    case "deployments" => DeploymentsCommand()
+    case "info" => InfoCommand()
     case "inspect-breed" => InspectBreedCommand()
     case "inspect-blueprint" => InspectBlueprintCommand()
     case "inspect-deployment" => InspectDeploymentCommand()
@@ -43,6 +44,7 @@ trait CommandLineBasics {
         showGeneralUsage(DeployBreedCommand())
         showGeneralUsage(DeploymentsCommand())
         showGeneralUsage(HelpCommand())
+        showGeneralUsage(InfoCommand())
         showGeneralUsage(InspectBreedCommand())
         showGeneralUsage(InspectBlueprintCommand())
         showGeneralUsage(InspectDeploymentCommand())

@@ -34,6 +34,9 @@ object Boot extends Parameters {
           println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c.name}").mkString(", ")}")
         )
 
+      case _ : InfoCommand =>
+        println(VampHostCalls.prettyJson(VampHostCalls.info))
+
       case _: InspectBreedCommand =>
         println(VampHostCalls.prettyJson(VampHostCalls.getBreed(getParameter(name))))
 

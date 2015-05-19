@@ -66,6 +66,12 @@ case class HelpCommand() extends CliCommand {
   override val usage = "Displays help message"
 }
 
+case class InfoCommand() extends CliCommand {
+  override val name = "info"
+  override val description = "Information from Vamp Core"
+  override val usage = "Returns a JSON blob with information from Vamp Core"
+}
+
 case class InspectBreedCommand() extends CliCommand {
   override val name = "inspect-breed"
   override val usage = "JSON representation of a stored breed"
