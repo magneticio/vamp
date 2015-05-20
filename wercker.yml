@@ -4,6 +4,7 @@ build:
     - script:
         name: get vamp.io
         code: >
+          git version;
           cd  $WERCKER_STEP_TEMP;
           git clone -b master https://github.com/magneticio/vamp.io.git;
           cd vamp.io;
