@@ -69,7 +69,7 @@ val slf4jVersion = "1.7.10"
 val logbackVersion = "1.1.2"
 val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
-val tugboatVersion = "0.2.1"
+val tugboatVersion = "0.2.2"
 val vampCommonVersion = "0.7.5"
 val vampPulseApiVersion = "0.7.5"
 

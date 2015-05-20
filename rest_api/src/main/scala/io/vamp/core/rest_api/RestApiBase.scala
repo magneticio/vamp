@@ -51,9 +51,12 @@ trait RestApiMarshaller {
   def jsonMarshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) => ctx.marshalTo(HttpEntity(contentType, toJson(bodyFor(value)))) }
 
   def yamlMarshaller: Marshaller[Any] = Marshaller.of[Any](`application/x-yaml`) { (value, contentType, ctx) =>
-    val yaml = new Yaml()
-    val body = bodyFor(value)
-    val response = yaml.dumpAs(yaml.load(toJson(body)), if (body.isInstanceOf[List[_]]) Tag.SEQ else Tag.MAP, FlowStyle.BLOCK)
+    val response = bodyFor(value) match {
+      case None => toJson(None)
+      case some =>
+        val yaml = new Yaml()
+        new Yaml().dumpAs(yaml.load(toJson(some)), if (some.isInstanceOf[List[_]]) Tag.SEQ else Tag.MAP, FlowStyle.BLOCK)
+    }
     ctx.marshalTo(HttpEntity(contentType, response))
   }
 
