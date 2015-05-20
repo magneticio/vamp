@@ -1,3 +1,10 @@
+---
+title: Common API principles
+weight: 10
+menu:
+  main:
+    parent: rest-api
+---
 # Common API principles
 
 Each Vamp service (Core, Router and Pulse) has its own REST API. All API's stick to a set of common principles:
