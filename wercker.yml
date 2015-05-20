@@ -2,16 +2,16 @@ box: wercker/default
 build:
   steps:
     - script:
-        name: get vamp.io
+        name: Configure git
+        code: |-
+          git config --global user.email "pleasemailus@wercker.com"
+          git config --global user.name "wercker"    
+        name: Get vamp.io
         code: >
-          git version;
-          export GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
           cd  $WERCKER_STEP_TEMP;
           git clone -b master git://github.com/magneticio/vamp.io.git;
           cd vamp.io;
           echo "updated docs: "`date` >> changelog.md;
-          git config user.email "tim@magnetic.io";
-          git config user.name "werckerbot";
           git add .;
           git commit -m "updated docs";
-          git push origin master;
+          git push -f $GIT_REMOTE origin master         
