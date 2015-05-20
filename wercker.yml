@@ -1,0 +1,13 @@
+box: wercker/default
+build:
+  steps:
+    - script:
+        name: get vamp.io
+        code: >
+          cd  $WERCKER_STEP_TEMP;
+          git clone --depth=50 --quiet --no-single-branch git@github.com:magneticio/vamp.io.git;
+          ls -ltr vamp.io;
+          echo "updated docs: "`date` >> changelog.md;
+          git add .;
+          git commit -m "updated docs";
+          git push origin master;
