@@ -5,6 +5,7 @@ When working on the docs, please use the following conventions and stick to the 
 ## File names
 
 Use all lowercase, no special characters and connect words using `-` characters, i.e: `sla-and-escalations.md`
+All files that are used in the http://vamp.io site are under the `content` folder.
 
 ## Front matter
 
