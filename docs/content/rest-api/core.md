@@ -40,8 +40,8 @@ Deletes a breed.
 
     DELETE /api/v1/breeds/:name
     
+## Blueprints
 
-**Blueprints**
 ```
 - get all             : GET    /api/v1/blueprints
 - create new          : POST   /api/v1/blueprints
