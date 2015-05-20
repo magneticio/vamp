@@ -12,7 +12,7 @@ trait CliCommand {
 }
 
 case class BlueprintsCommand() extends CliCommand {
-  override val name = "blueprint"
+  override val name = "blueprints"
   override val description = "List of blueprints"
   override val usage = "Shows a list of blueprints"
 }

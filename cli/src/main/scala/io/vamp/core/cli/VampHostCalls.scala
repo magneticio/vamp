@@ -1,7 +1,8 @@
 package io.vamp.core.cli
 
 import io.vamp.common.http.RestClient
-import io.vamp.core.model.artifact.{DefaultBlueprint, DefaultBreed, Deployment, Sla}
+import io.vamp.core.model.artifact._
+import io.vamp.core.model.reader.BreedReader
 import io.vamp.core.model.serialization.SerializationFormat
 import io.vamp.core.rest_api.{RestApiContentTypes, RestApiMarshaller}
 import org.json4s.JsonAST._
@@ -22,17 +23,27 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
   def getDeploymentAsBlueprint(deploymentId: String)(implicit vampHost: String): Option[DefaultBlueprint] =
     sendAndWait[BlueprintSerialized](s"GET $vampHost/api/v1/deployments/$deploymentId?as_blueprint=true").map(blueprintSerialized2DefaultBlueprint)
 
-  def updateDeployment(deploymentId: String, blueprint: DefaultBlueprint)(implicit vampHost: String): Option[AnyRef] =
-    sendAndWait[AnyRef](s"PUT $vampHost/api/v1/deployments/$deploymentId", body = blueprint)
+  def updateDeployment(deploymentId: String, blueprint: DefaultBlueprint)(implicit vampHost: String): Option[Deployment] =
+    sendAndWait[DeploymentSerialized](s"PUT $vampHost/api/v1/deployments/$deploymentId", body = blueprint).map(deploymentSerialized2Deployment)
 
-  def getBreed(breedId: String)(implicit vampHost: String): Option[DefaultBreed] =
-    sendAndWait[DefaultBreedSerialized](s"GET $vampHost/api/v1/breeds/$breedId").map(breedSerialized2DefaultBreed)
+  def getBreed(breedId: String)(implicit vampHost: String): Breed = {
+    sendAndWaitYaml[String](s"GET $vampHost/api/v1/breeds/$breedId") match {
+      case Some(breed)  => BreedReader.read(breed)
+      case _ =>      terminateWithError("Breed not found")
+        BreedReference(name = "Breed not found")
+    }
+  }
 
-  def getBreeds(implicit vampHost: String): List[DefaultBreed] =
+  def getBreeds(implicit vampHost: String): List[Breed] =
     sendAndWait[List[DefaultBreedSerialized]](s"GET $vampHost/api/v1/breeds") match {
       case Some(breeds) => breeds.map(breedSerialized2DefaultBreed)
       case None => List.empty
     }
+//  sendAndWaitYaml(s"GET $vampHost/api/v1/breeds") match {
+//    case Some(breeds) => breeds.map(BreedReader.read(_))
+//    case  _ => List.empty
+//  }
+
 
   def createBreed(breed: DefaultBreed)(implicit vampHost: String): Option[DefaultBreed] =
     sendAndWait[DefaultBreedSerialized](s"POST $vampHost/api/v1/breeds", breed).map(breedSerialized2DefaultBreed)
@@ -49,8 +60,8 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
       case None => List.empty
     }
 
-  def getDeployment(deploymentName: String)(implicit vampHost: String): Option[DeploymentSerialized] =
-    sendAndWait[DeploymentSerialized](s"GET $vampHost/api/v1/deployments/$deploymentName") //.map(deploymentSerialized2Deployment)
+  def getDeployment(deploymentName: String)(implicit vampHost: String): Option[Deployment] =
+    sendAndWait[DeploymentSerialized](s"GET $vampHost/api/v1/deployments/$deploymentName").map(deploymentSerialized2Deployment)
 
   def getDeployments(implicit vampHost: String): List[Deployment] =
     sendAndWait[List[DeploymentSerialized]](s"GET $vampHost/api/v1/deployments") match {
@@ -59,11 +70,11 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
     }
 
   def info(implicit vampHost: String) =
-    sendAndWait[Any](s"GET $vampHost/api/v1/info", None)
+    sendAndWaitYaml[String](s"GET $vampHost/api/v1/info", None)
 
   def getSlas(implicit vampHost: String): List[Sla] =
     sendAndWait[List[Map[String, _]]](s"GET $vampHost/api/v1/slas") match {
-      case Some(slas) => slas.map(sla => mapToSla(Some(sla))).flatten
+      case Some(slas) => slas.flatMap(sla => mapToSla(Some(sla)))
       case None => List.empty
     }
 
@@ -71,6 +82,23 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
   private def sendAndWait[A](request: String, body: AnyRef = None)(implicit m: Manifest[A]): Option[A] = {
     try {
       val futureResult: Future[A] = RestClient.request[A](request, body = body, jsonFieldTransformer = nonModifyingJsonFieldTransformer)
+      // Block until response ready (nothing else to do anyway)
+      Await.result(futureResult, timeout)
+      futureResult.value.get match {
+        case Success(result) => Some(result)
+        case Failure(error) => terminateWithError(error.getMessage)
+          None
+      }
+    }
+    catch {
+      case e: Exception => terminateWithError(e.getMessage)
+        None
+    }
+  }
+
+  private def sendAndWaitYaml[A](request: String, body: AnyRef = None): Option[A] = {
+    try {
+      val futureResult: Future[A] = YamlRestClient.request(request, body = body)
       // Block until response ready (nothing else to do anyway)
       Await.result(futureResult, timeout)
       futureResult.value.get match {

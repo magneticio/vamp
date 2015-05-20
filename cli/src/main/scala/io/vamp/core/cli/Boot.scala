@@ -18,9 +18,10 @@ object Boot extends Parameters {
     string2Command(args.head) match {
       case _: BreedsCommand =>
         println("NAME".padTo(25, ' ') + "DEPLOYABLE")
-        VampHostCalls.getBreeds.foreach(breed =>
-          println(s"${breed.name.padTo(25, ' ')}${breed.deployable.name}")
-        )
+        VampHostCalls.getBreeds.foreach(breed =>  breed match {
+          case b: DefaultBreed => println(s"${b.name.padTo(25, ' ')}${b.deployable.name}")
+          case _ => println(s"${breed.name.padTo(25, ' ')}")
+        })
 
       case _: BlueprintsCommand =>
         println("NAME".padTo(40, ' ') + "ENDPOINTS")
@@ -34,11 +35,12 @@ object Boot extends Parameters {
           println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c.name}").mkString(", ")}")
         )
 
-      case _ : InfoCommand =>
-        println(VampHostCalls.prettyJson(VampHostCalls.info))
+      case _: InfoCommand =>
+        println(VampHostCalls.info)
 
       case _: InspectBreedCommand =>
         println(VampHostCalls.prettyJson(VampHostCalls.getBreed(getParameter(name))))
+      //println(VampHostCalls.getBreed(getParameter(name)))
 
       case _: InspectBlueprintCommand =>
         println(VampHostCalls.prettyJson(VampHostCalls.getBlueprint(getParameter(name))))
@@ -47,28 +49,30 @@ object Boot extends Parameters {
         println(VampHostCalls.prettyJson(VampHostCalls.getDeployment(getParameter(name))))
 
       case _: CloneBreedCommand =>
-        println(VampHostCalls.prettyJson(
-          VampHostCalls.getBreed(getParameter(name)).map(sourceBreed => {
-            VampHostCalls.createBreed(getOptionalParameter(deployable) match {
+        VampHostCalls.getBreed(getParameter(name)) match {
+          case sourceBreed: DefaultBreed =>
+            val response = VampHostCalls.createBreed(getOptionalParameter(deployable) match {
               case Some(deployableName) => sourceBreed.copy(name = getParameter(destination), deployable = Deployable(deployableName))
               case None => sourceBreed.copy(name = getParameter(destination))
             })
-          })
-        ))
+            println(response)
+          case _ => terminateWithError("Source breed not found")
+        }
 
       case _: DeployBreedCommand =>
         //TODO add support for routing & scale parameters
         val deploymentId: String = getParameter(deployment)
         VampHostCalls.getDeploymentAsBlueprint(deploymentId) match {
           case Some(bp) =>
-            val mergedBlueprint = {
-              VampHostCalls.getBreed(getParameter(name)).map(b =>
-                mergeBreedInCluster(blueprint = bp, clusterName = getParameter(cluster), breed = b, routing = None, scale = None)
-              )
+            VampHostCalls.getBreed(getParameter(name)) match {
+              case deployableBreed: DefaultBreed =>
+                val mergedBlueprint = mergeBreedInCluster(blueprint = bp, clusterName = getParameter(cluster), breed = deployableBreed, routing = None, scale = None)
+                VampHostCalls.updateDeployment(deploymentId, mergedBlueprint) match {
+                  case Some(dep) => println(dep.name)
+                  case None => terminateWithError("Updating deployment failed")
+                }
+              case undeployableBreed => terminateWithError(s"Breed '$undeployableBreed' not usable")
             }
-            //TODO Report back the name of the deployment
-            val result = VampHostCalls.updateDeployment(deploymentId, mergedBlueprint.get)
-
           case None => // Deployment not found
 
         }
