@@ -5,7 +5,7 @@ NonUniqueBreedReferenceError    : "Multiple references for breed: '{breed.name}'
 UnresolvedDependencyError       : "Unresolved dependency '{dependency.name}' for breed '{breed.name}'."
 DeploymentSynchronizationFailure: "Failure during deployment '{deployment.name}' synchronization: {exception}"
 UnresolvedVariableValueError    : "Unresolved value of variable '{name}' for breed '{breed.name}'."
-UnsupportedRoutingWeight        : "Total routing weight for deployment '{deployment.name}' and cluster '{cluster.name}' must be 100%, not {weight}%"
+UnsupportedRoutingWeight        : "Total routing weight for deployment '{deployment.name}' and cluster '{cluster.name}' must be either 100% or 0%, not {weight}%"
 UnresolvedEnvironmentValueError : "Unresolved environment value: '{key}'."
 UnsupportedSlaType              : "Unsupported SLA type {`type`} for given parameters."
 DeploymentServiceError          : "Deployment service error for deployment '{deployment.name}' and service '{service.breed.name}'."

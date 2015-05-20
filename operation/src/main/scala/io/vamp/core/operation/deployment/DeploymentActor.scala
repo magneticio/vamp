@@ -113,7 +113,13 @@ trait DeploymentValidator {
 
   def validateRoutingWeights: (Deployment => Deployment) = { (deployment: Deployment) =>
     def weight(cluster: DeploymentCluster) = cluster.services.map(_.routing).flatten.map(_.weight).flatten.sum
-    deployment.clusters.find(cluster => weight(cluster) != 100).flatMap(cluster => error(UnsupportedRoutingWeight(deployment, cluster, weight(cluster))))
+
+    deployment.clusters.map(cluster => cluster -> weight(cluster)).find({
+      case (cluster, weight) => weight != 100 && weight != 0
+    }).flatMap({
+      case (cluster, weight) => error(UnsupportedRoutingWeight(deployment, cluster, weight))
+    })
+
     deployment
   }
 
