@@ -5,11 +5,12 @@ build:
         name: get vamp.io
         code: >
           cd  $WERCKER_STEP_TEMP;
-          git clone -b master https://github.com/magneticio/vamp.io.git;
+          git clone -b master git@github.com:magneticio/vamp.io.git
           cd vamp.io;
           echo "updated docs: "`date` >> changelog.md;
           git config user.email "tim@magnetic.io";
           git config user.name "werckerbot";
           git add .;
           git commit -m "updated docs";
+          git remote -v;
           git push -f $GIT_REMOTE origin master;         
