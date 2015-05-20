@@ -7,14 +7,39 @@ menu:
 ---
 # Core API
 
-**Breeds**
-```
-- get all             : GET    /api/v1/breeds
-- create new          : POST   /api/v1/breeds
-- get by name         : GET    /api/v1/breeds/{name}
-- update by name      : PUT    /api/v1/breeds/{name}
-- delete by name      : DELETE /api/v1/breeds/{name}
-```
+## Breeds
+
+### List breeds
+
+Lists all breeds without any pagination or filtering.
+
+    GET /api/v1/breeds
+
+
+### Get a single breed
+
+Lists all details for one specific breed.
+
+    GET /api/v1/breeds/:name
+
+### Create breed
+
+Creates a new breed
+
+    POST /api/v1/breeds
+
+### Update a breed
+
+Updates the content of a specific breed.
+
+    PUT /api/v1/breeds/:name
+
+### Delete a breed
+
+Deletes a breed.        
+
+    DELETE /api/v1/breeds/:name
+    
 
 **Blueprints**
 ```
@@ -64,9 +89,20 @@ menu:
 - update by name      : PUT    /api/v1/filters/{name}
 - delete by name      : DELETE /api/v1/filters/{name}
 ```
-**Deployments**
+## Deployments
+
+### List deployments
+
 ```
-- get all             : GET    /api/v1/deployments?as_blueprint=[true|false]
+GET /api/v1/deployments
+```
+
+| parameter     | options           | description      |
+| ------------- |:-----------------:| ----------------:|
+| as_blueprint  | true or false     | exports the deployment as a valid blueprint. This can be used together with the header `Accept: application/x-yaml` to export in YAML format instead of the default JSON. |
+
+
+```
 - create new          : POST   /api/v1/deployments
 - get by name         : GET    /api/v1/deployments/{name}
 - update by blueprint : PUT    /api/v1/deployments/{name}

@@ -48,7 +48,7 @@ response will echo back the events in the time range with the original set of ta
 ]
 ```
 
-### Aggregations
+## Aggregations
 Supported aggregations are:
 average, min, max, count
 

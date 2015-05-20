@@ -7,10 +7,6 @@ build:
     - script:
         name: get vamp.io
         code: >
-          sudo add-apt-repository ppa:git-core/ppa -y;
-          sudo apt-get update;
-          sudo apt-get install git;
-          git --version;
           cd  $WERCKER_STEP_TEMP;
           git clone -b master https://github.com/magneticio/vamp.io.git;
           cd vamp.io;
