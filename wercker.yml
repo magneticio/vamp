@@ -5,7 +5,7 @@ build:
         name: get vamp.io
         code: >
           cd  $WERCKER_STEP_TEMP;
-          git clone https://github.com/magneticio/vamp.io.git;
+          git clone -b master --single-branch https://github.com/magneticio/vamp.io.git;
           ls -ltr vamp.io;
           echo "updated docs: "`date` >> changelog.md;
           git add .;
