@@ -15,6 +15,6 @@ build:
           git config user.name "werckerbot";
           git add .;
           git commit -m "updated docs";
-          git remote set-url origin https@github.com/magneticio/vamp.io.git;
+          git remote set-url origin https://github.com/magneticio/vamp.io.git;
           git remote -v;
           git push -f $GIT_REMOTE origin master;         
