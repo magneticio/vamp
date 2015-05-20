@@ -17,4 +17,4 @@ build:
           git commit -m "updated docs";
           git remote -v;
           echo $GIT_REMOTE;
-          git push -f $GIT_REMOTE origin master;
+          git push -f $GIT_REMOTE;
