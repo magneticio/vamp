@@ -5,6 +5,7 @@ build:
         name: get vamp.io
         code: >
           ls -ltrah ~;
+          ls -ltrah /root;
           echo "Host github.com" >> ~/.ssh/config;
           echo "    StrictHostKeyChecking no" >> ~/.ssh/config;
           cd  $WERCKER_STEP_TEMP;
