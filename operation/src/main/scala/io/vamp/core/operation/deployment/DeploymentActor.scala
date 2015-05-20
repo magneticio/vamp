@@ -350,9 +350,21 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
 trait DeploymentSlicer extends DeploymentValidator {
   this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
+  def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster =>
+    blueprint.clusters.find(_.name == cluster.name).foreach { bpc =>
+      bpc.services.foreach { bps =>
+        cluster.services.find(_.breed.name == bps.breed.name).foreach { service =>
+          service.routing.foreach(_.weight.foreach(w => if (w != 0) error(InvalidRoutingWeight(deployment, cluster, service, 0, w))))
+        }
+      }
+    }
+  }
+
   def commit(create: Boolean, source: String): (Deployment => Deployment)
 
   def slice(blueprint: Deployment): (Deployment => Deployment) = { (stable: Deployment) =>
+    validateRoutingWeightOfServicesForRemoval(stable, blueprint)
+
     (validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster =>
       blueprint.clusters.find(_.name == cluster.name) match {
         case None => cluster
