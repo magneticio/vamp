@@ -10,7 +10,7 @@ import shapeless.HNil
 import spray.http.CacheDirectives.`no-store`
 import spray.http.HttpHeaders.{RawHeader, `Cache-Control`, `Content-Type`}
 import spray.http.MediaTypes._
-import spray.http.{HttpEntity, MediaRange, MediaType}
+import spray.http._
 import spray.httpx.marshalling.{Marshaller, ToResponseMarshaller}
 import spray.routing._
 
@@ -48,21 +48,18 @@ trait RestApiMarshaller {
 
   implicit def marshaller: ToResponseMarshaller[Any] = ToResponseMarshaller.oneOf(`application/json`, `application/x-yaml`)(jsonMarshaller, yamlMarshaller)
 
-  def jsonMarshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) => ctx.marshalTo(HttpEntity(contentType, toJson(bodyFor(value)))) }
+  def jsonMarshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
+    ctx.marshalTo(HttpEntity(contentType, toJson(value)))
+  }
 
   def yamlMarshaller: Marshaller[Any] = Marshaller.of[Any](`application/x-yaml`) { (value, contentType, ctx) =>
-    val response = bodyFor(value) match {
+    val response = value match {
       case None => toJson(None)
       case some =>
         val yaml = new Yaml()
         new Yaml().dumpAs(yaml.load(toJson(some)), if (some.isInstanceOf[List[_]]) Tag.SEQ else Tag.MAP, FlowStyle.BLOCK)
     }
     ctx.marshalTo(HttpEntity(contentType, response))
-  }
-
-  def bodyFor(any: Any) = any match {
-    case (_1, _2) => _2
-    case v => v
   }
 
   def toJson(any: Any) = {
