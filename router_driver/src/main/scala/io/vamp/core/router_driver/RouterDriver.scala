@@ -16,7 +16,7 @@ case class ClusterRoute(matching: (Deployment, DeploymentCluster, Port) => Boole
 
 case class RouteService(name: String, weight: Int, servers: List[Server], filters: List[Filter])
 
-case class EndpointRoute(matching: (Deployment, Port) => Boolean, port: Int, services: List[RouteService]) extends DeploymentRoute
+case class EndpointRoute(matching: (Deployment, Option[Port]) => Boolean, port: Int, services: List[RouteService]) extends DeploymentRoute
 
 trait RouterDriver {
 

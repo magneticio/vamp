@@ -110,7 +110,7 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
               deployment.clusters.find(_.name == cluster) match {
                 case None => Nil
                 case Some(c) =>
-                  c.routes.map(_._2).find(_ == routePort.number) match {
+                  c.routes.values.find(_ == routePort.number) match {
                     case Some(_) => Server(string2Id(s"${deployment.name}_${port.number}"), host.value.get, routePort.number) :: Nil
                     case _ => Nil
                   }
@@ -127,7 +127,10 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
 
   private def clusterRouteNameMatcher(id: String): (Deployment, DeploymentCluster, Port) => Boolean = { (deployment: Deployment, cluster: DeploymentCluster, port: Port) => id == clusterRouteName(deployment, cluster, port) }
 
-  private def endpointRouteNameMatcher(id: String): (Deployment, Port) => Boolean = { (deployment: Deployment, port: Port) => id == endpointRouteName(deployment, port) }
+  private def endpointRouteNameMatcher(id: String): (Deployment, Option[Port]) => Boolean = (deployment: Deployment, optionalPort: Option[Port]) => optionalPort match {
+    case None => isDeploymentEndpoint(id, deployment)
+    case Some(port) => id == endpointRouteName(deployment, port)
+  }
 }
 
 trait DefaultRouterDriverNameMatcher {
@@ -140,6 +143,9 @@ trait DefaultRouterDriverNameMatcher {
 
   def endpointRouteName(deployment: Deployment, port: Port): String =
     s"${artifactName2Id(deployment)}$nameDelimiter${port.number}"
+
+  def isDeploymentEndpoint(id: String, deployment: Deployment): Boolean =
+    id.startsWith(s"${artifactName2Id(deployment)}$nameDelimiter")
 
   def artifactName2Id(artifact: Artifact) = string2Id(artifact.name)
 
