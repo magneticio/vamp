@@ -41,10 +41,10 @@ clusters:
         deployable: magneticio/sava:1.0.0
         ports:
           port: 80/http
-    scale:
-      cpu: 0.5       
-      memory: 512  
-      instances: 1
+      scale:
+        cpu: 0.5       
+        memory: 512  
+        instances: 1
 ```
 {{% /copyable %}}
 
