@@ -3,7 +3,7 @@ organization := "io.vamp"
 
 name := """common"""
 
-version := "0.7.5"
+version := "0.7.6"
 
 scalaVersion := "2.11.5"
 
@@ -77,3 +77,4 @@ bintray.Keys.repository in bintray.Keys.bintray := "vamp"
 licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html"))
 
 bintray.Keys.bintrayOrganization in bintray.Keys.bintray := Some("magnetic-io")
+
