@@ -24,6 +24,7 @@ trait CommandLineBasics {
     case "slas" => SlasCommand()
     case "help" => HelpCommand()
     case "--help" => HelpCommand()
+    case "version" => VersionCommand()
     case c => UnknownCommand(c)
   }
 
@@ -51,6 +52,7 @@ trait CommandLineBasics {
         //showGeneralUsage(RemoveBlueprint())    //Not yet implemented, so don't expose
         showGeneralUsage(RemoveBreedCommand())
         showGeneralUsage(SlasCommand())
+        showGeneralUsage(VersionCommand())
         println("")
         println(s"Run '$appName COMMMAND --help' for help about the different command options")
       }

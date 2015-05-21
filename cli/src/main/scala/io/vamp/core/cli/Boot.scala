@@ -88,6 +88,10 @@ object Boot extends Parameters {
 
       case _: HelpCommand => showHelp(HelpCommand())
       case x: UnknownCommand => terminateWithError(s"Unknown command '${x.name}'")
+
+      case _ : VersionCommand =>
+        println(s"CLI version: ${getClass.getPackage.getImplementationVersion}")
+
     }
     sys.exit(0)
   }

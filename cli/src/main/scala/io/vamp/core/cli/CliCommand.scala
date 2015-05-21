@@ -114,3 +114,9 @@ case class SlasCommand() extends CliCommand {
 }
 
 case class UnknownCommand(override val name: String) extends CliCommand
+
+case class VersionCommand() extends CliCommand {
+  override val name = "version"
+  override val description = "Show version of the VAMP CLI client"
+  override val usage = "Displays the version of the VAMP CLI client"
+}
