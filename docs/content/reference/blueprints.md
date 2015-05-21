@@ -6,7 +6,7 @@ menu:
     parent: reference
 ---
 # Blueprints
-Blueprints are execution plans - they describe how your services should be hooked up and what the topology should look like at the runtime. All dependencies and parameter values will be resolved at deployment time.
+Blueprints are execution plans - they describe how your services should be hooked up and what the topology should look like at runtime. All dependencies and parameter values will be resolved at deployment time.
 
 This example shows some of the key concepts of of blueprints:
  
