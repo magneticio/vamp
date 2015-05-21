@@ -4,18 +4,13 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
-import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
-import io.vamp.core.model.serialization._
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
 import io.vamp.core.rest_api.swagger.SwaggerResponse
-import org.json4s.native.Serialization._
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
-import spray.http._
-import spray.httpx.marshalling.Marshaller
 
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
@@ -25,38 +20,33 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
 
   implicit def timeout: Timeout
 
-  implicit val marshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) =>
-    implicit val formats = SerializationFormat.default
-
-    val response = value match {
-      case notification: NotificationErrorException => throw notification
-      case exception: Exception => throw new RuntimeException(exception)
-      case response: PrettyJson => writePretty(response)
-      case response: AnyRef => write(response)
-      case any => write(any.toString)
-    }
-    ctx.marshalTo(HttpEntity(contentType, response))
-  }
-
   val route = noCachingAllowed {
     allowXhrFromOtherHosts {
       pathPrefix("api" / "v1") {
-        respondWithMediaType(`application/json`) {
+        accept(`application/json`, `application/x-yaml`) {
           path("docs") {
             pathEndOrSingleSlash {
-              complete(OK, swagger)
+              respondWithStatus(OK) {
+                complete(swagger)
+              }
             }
           } ~ infoRoute ~ deploymentRoutes ~
             path(Segment) { artifact: String =>
               pathEndOrSingleSlash {
                 get {
-                  onSuccess(allArtifacts(artifact)) {
-                    complete(OK, _)
+                  onSuccess(allArtifacts(artifact)) { result =>
+                    respondWithStatus(OK) {
+                      complete(result)
+                    }
                   }
                 } ~ post {
                   entity(as[String]) { request =>
-                    onSuccess(createArtifact(artifact, request)) {
-                      complete(Created, _)
+                    parameters('validate_only.as[Boolean] ? false) { validateOnly =>
+                      onSuccess(createArtifact(artifact, request, validateOnly)) { result =>
+                        respondWithStatus(Created) {
+                          complete(result)
+                        }
+                      }
                     }
                   }
                 }
@@ -65,20 +55,31 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
             pathEndOrSingleSlash {
               get {
                 rejectEmptyResponse {
-                  onSuccess(readArtifact(artifact, name)) {
-                    complete(OK, _)
+                  onSuccess(readArtifact(artifact, name)) { result =>
+                    respondWithStatus(OK) {
+                      complete(result)
+                    }
                   }
                 }
               } ~ put {
                 entity(as[String]) { request =>
-                  onSuccess(updateArtifact(artifact, name, request)) {
-                    complete(OK, _)
+                  parameters('validate_only.as[Boolean] ? false) { validateOnly =>
+                    onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result =>
+                      respondWithStatus(OK) {
+                        complete(result)
+                      }
+                    }
                   }
                 }
               } ~ delete {
-                entity(as[String]) { request => onSuccess(deleteArtifact(artifact, name, request)) {
-                  _ => complete(NoContent)
-                }
+                entity(as[String]) { request =>
+                  parameters('validate_only.as[Boolean] ? false) { validateOnly =>
+                    onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result =>
+                      respondWithStatus(NoContent) {
+                        complete(None)
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -97,8 +98,8 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     case None => error(UnexpectedArtifact(artifact))
   }
 
-  def createArtifact(artifact: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) => controller.asInstanceOf[PersistenceController[Artifact]].create(content)
+  def createArtifact(artifact: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
+    case Some(controller) => controller.create(content, validateOnly)
     case None => error(UnexpectedArtifact(artifact))
   }
 
@@ -107,17 +108,13 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     case None => error(UnexpectedArtifact(artifact))
   }
 
-  def updateArtifact(artifact: String, name: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) => controller.asInstanceOf[PersistenceController[Artifact]].update(name, content)
+  def updateArtifact(artifact: String, name: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
+    case Some(controller) => controller.update(name, content, validateOnly)
     case None => error(UnexpectedArtifact(artifact))
   }
 
-  def deleteArtifact(artifact: String, name: String, content: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) =>
-      if (content.isEmpty)
-        controller.delete(name)
-      else
-        controller.asInstanceOf[PersistenceController[Artifact]].delete(name)
+  def deleteArtifact(artifact: String, name: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
+    case Some(controller) => controller.delete(name, validateOnly)
     case None => error(UnexpectedArtifact(artifact))
   }
 
@@ -134,21 +131,23 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
 
     def all(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.All(`type`)
 
-    def create(source: String)(implicit timeout: Timeout) = {
+    def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       val artifact = unmarshaller.read(source)
-      actorFor(PersistenceActor) ? PersistenceActor.Create(artifact, Some(source))
+      if (validateOnly) Future(artifact) else actorFor(PersistenceActor) ? PersistenceActor.Create(artifact, Some(source))
     }
 
     def read(name: String)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Read(name, `type`)
 
-    def update(name: String, source: String)(implicit timeout: Timeout) = {
+    def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       val artifact = unmarshaller.read(source)
       if (name != artifact.name)
         error(InconsistentArtifactName(name, artifact))
-      actorFor(PersistenceActor) ? PersistenceActor.Update(artifact, Some(source))
+
+      if (validateOnly) Future(artifact) else actorFor(PersistenceActor) ? PersistenceActor.Update(artifact, Some(source))
     }
 
-    def delete(name: String)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)
+    def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) =
+      if (validateOnly) Future(None) else actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)
   }
 
 }

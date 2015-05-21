@@ -80,8 +80,8 @@ trait BlueprintSupport {
 
     val clusters = bp.clusters.map { cluster =>
       DeploymentCluster(cluster.name, cluster.services.map { service =>
-        DeploymentService(ReadyForDeployment(), artifactFor[DefaultBreed](service.breed), artifactFor[DefaultScale](service.scale), artifactFor[DefaultRouting](service.routing), Nil)
-      }, cluster.sla)
+        DeploymentService(ReadyForDeployment(), artifactFor[DefaultBreed](service.breed), artifactFor[DefaultScale](service.scale), artifactFor[DefaultRouting](service.routing), Nil, Map(), service.dialects)
+      }, cluster.sla, Map(), cluster.dialects)
     }
 
     Deployment(uuid, clusters, bp.endpoints, Nil, bp.environmentVariables, Nil, Nil)
@@ -113,7 +113,13 @@ trait DeploymentValidator {
 
   def validateRoutingWeights: (Deployment => Deployment) = { (deployment: Deployment) =>
     def weight(cluster: DeploymentCluster) = cluster.services.map(_.routing).flatten.map(_.weight).flatten.sum
-    deployment.clusters.find(cluster => weight(cluster) != 100).flatMap(cluster => error(UnsupportedRoutingWeight(deployment, cluster, weight(cluster))))
+
+    deployment.clusters.map(cluster => cluster -> weight(cluster)).find({
+      case (cluster, weight) => weight != 100 && weight != 0
+    }).flatMap({
+      case (cluster, weight) => error(UnsupportedRoutingWeight(deployment, cluster, weight))
+    })
+
     deployment
   }
 
@@ -192,7 +198,7 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
         case None =>
           cluster.copy(services = mergeServices(stable, None, cluster))
         case Some(deploymentCluster) =>
-          deploymentCluster.copy(services = mergeServices(stable, Some(deploymentCluster), cluster), routes = cluster.routes ++ deploymentCluster.routes)
+          deploymentCluster.copy(services = mergeServices(stable, Some(deploymentCluster), cluster), routes = cluster.routes ++ deploymentCluster.routes, dialects = deploymentCluster.dialects ++ cluster.dialects)
       }
     }
 
@@ -213,7 +219,7 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
             val routing = if (bpService.routing.isDefined) bpService.routing else service.routing
             val state = if (service.scale != bpService.scale || service.routing != bpService.routing) ReadyForDeployment() else service.state
 
-            service.copy(scale = scale, routing = routing, state = state)
+            service.copy(scale = scale, routing = routing, state = state, dialects = service.dialects ++ bpService.dialects)
         }
       }
   }
@@ -344,9 +350,21 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
 trait DeploymentSlicer extends DeploymentValidator {
   this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
+  def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster =>
+    blueprint.clusters.find(_.name == cluster.name).foreach { bpc =>
+      bpc.services.foreach { bps =>
+        cluster.services.find(_.breed.name == bps.breed.name).foreach { service =>
+          service.routing.foreach(_.weight.foreach(w => if (w != 0) error(InvalidRoutingWeight(deployment, cluster, service, 0, w))))
+        }
+      }
+    }
+  }
+
   def commit(create: Boolean, source: String): (Deployment => Deployment)
 
   def slice(blueprint: Deployment): (Deployment => Deployment) = { (stable: Deployment) =>
+    validateRoutingWeightOfServicesForRemoval(stable, blueprint)
+
     (validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster =>
       blueprint.clusters.find(_.name == cluster.name) match {
         case None => cluster

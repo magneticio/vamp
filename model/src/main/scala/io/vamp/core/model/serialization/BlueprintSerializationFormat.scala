@@ -1,7 +1,6 @@
 package io.vamp.core.model.serialization
 
 import io.vamp.core.model.artifact._
-import org.json4s.FieldSerializer._
 import org.json4s.JsonAST.JString
 import org.json4s._
 
@@ -16,7 +15,8 @@ object BlueprintSerializationFormat extends io.vamp.common.json.SerializationFor
     new FilterSerializer()
 
   override def fieldSerializers = super.fieldSerializers :+
-    new ClusterFieldSerializer()
+    new ClusterFieldSerializer() :+
+    new ServiceFieldSerializer()
 }
 
 class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomposer {
@@ -32,8 +32,24 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomp
   }
 }
 
-class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] {
-  override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = ignore("name")
+trait DialectSerializer {
+  def serializeDialects(dialects: Map[Dialect.Value, Any]) = {
+    implicit val formats = DefaultFormats
+    Extraction.decompose(dialects.map({ case (k, v) => k.toString.toLowerCase -> v }))
+  }
+}
+
+class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] with DialectSerializer {
+  override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
+    case ("name", _) => None
+    case ("dialects", dialects) => Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
+  }
+}
+
+class ServiceFieldSerializer extends ArtifactFieldSerializer[AbstractService] with DialectSerializer {
+  override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
+    case ("dialects", dialects) => Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
+  }
 }
 
 class ScaleSerializer extends ArtifactSerializer[Scale] {

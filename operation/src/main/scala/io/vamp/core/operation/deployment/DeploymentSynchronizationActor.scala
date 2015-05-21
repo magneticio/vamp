@@ -186,7 +186,7 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
 
   private def hasResolvedEnvironmentVariables(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService) = {
     deploymentService.breed.environmentVariables.forall({ evBreed =>
-      !deployment.environmentVariables.exists(evDeployment => if (!evDeployment.interpolated) {
+      !deployment.environmentVariables.exists(evDeployment => if (evDeployment.interpolated.isEmpty) {
         TraitReference.referenceFor(evDeployment.name) match {
           case Some(TraitReference(cluster, group, name)) => cluster == deploymentCluster.name && evBreed.name == name && group == TraitReference.groupFor(TraitReference.EnvironmentVariables)
           case _ => false

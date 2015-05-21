@@ -123,7 +123,7 @@ case class ConstantModel(name: String, alias: Option[String], value: Option[Stri
   override def withId(id: Id): ConstantModel = copy(id = Option(id))
 }
 
-case class EnvironmentVariableModel(deploymentId: Option[Int], name: String, alias: Option[String], value: Option[String], interpolated: Boolean, id: Option[Int] = None, parentId: Option[Int], parentType: Option[EnvironmentVariableParentType]) extends VampDeployablePersistenceModel[EnvironmentVariableModel] {
+case class EnvironmentVariableModel(deploymentId: Option[Int], name: String, alias: Option[String], value: Option[String], interpolated: Option[String], id: Option[Int] = None, parentId: Option[Int], parentType: Option[EnvironmentVariableParentType]) extends VampDeployablePersistenceModel[EnvironmentVariableModel] {
   override def withId(id: Id): EnvironmentVariableModel = copy(id = Option(id))
 }
 
@@ -139,11 +139,11 @@ case class DeploymentModel(id: Option[Int] = None, name: String) extends VampNam
   override def withId(id: Id): DeploymentModel = copy(id = Option(id))
 }
 
-case class DeploymentClusterModel(deploymentId: Option[Int], id: Option[Int] = None, name: String, slaReference: Option[Int]) extends VampDeployablePersistenceModel[DeploymentClusterModel] {
+case class DeploymentClusterModel(deploymentId: Option[Int], id: Option[Int] = None, name: String, slaReference: Option[Int], dialects: Array[Byte]) extends VampDeployablePersistenceModel[DeploymentClusterModel] {
   override def withId(id: Id): DeploymentClusterModel = copy(id = Option(id))
 }
 
-case class DeploymentServiceModel(deploymentId: Option[Int], clusterId: Int, id: Option[Int] = None, name: String, breed: Int, scale: Option[Int], routing: Option[Int], deploymentState: DeploymentStateType, deploymentTime: OffsetDateTime, message: Option[String] = None)
+case class DeploymentServiceModel(deploymentId: Option[Int], clusterId: Int, id: Option[Int] = None, name: String, breed: Int, scale: Option[Int], routing: Option[Int], deploymentState: DeploymentStateType, deploymentTime: OffsetDateTime, dialects: Array[Byte], message: Option[String] = None)
   extends VampDeployablePersistenceModel[DeploymentServiceModel] {
   override def withId(id: Id): DeploymentServiceModel = copy(id = Option(id))
 }

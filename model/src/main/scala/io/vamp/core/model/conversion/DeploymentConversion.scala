@@ -12,7 +12,7 @@ class DeploymentConversion(val deployment: Deployment) {
 
   def asBlueprint: DefaultBlueprint = {
     val clusters = deployment.clusters.map(cluster => {
-      Cluster(cluster.name, cluster.services.map(service => Service(service.breed, service.scale, service.routing)), cluster.sla)
+      Cluster(cluster.name, cluster.services.map(service => Service(service.breed, service.scale, service.routing, service.dialects)), cluster.sla, cluster.dialects)
     })
 
     val environmentVariables = deployment.environmentVariables.filter { ev =>
@@ -26,7 +26,7 @@ class DeploymentConversion(val deployment: Deployment) {
           }
         case _ => false
       }
-    }
+    } map (_.copy(interpolated = None))
 
     DefaultBlueprint(deployment.name, clusters, deployment.endpoints, environmentVariables)
   }

@@ -5,7 +5,6 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ActorDescription, ActorExecutionContextProvider}
 import io.vamp.common.notification.NotificationErrorException
-import org.json4s.DefaultFormats
 import spray.http.StatusCodes._
 import spray.http.{HttpRequest, HttpResponse, StatusCode, Timedout}
 import spray.routing._
@@ -64,7 +63,8 @@ class HttpServerActor extends HttpServiceActor with ActorLogging with RestApiRou
     val base = "The request content was malformed."
     val response = if (message.isEmpty) base else s"$base $message"
 
-    implicit val json4sFormats = DefaultFormats
-    complete(code, "message" -> response)
+    respondWithStatus(code) {
+      complete("message" -> response)
+    }
   }
 }

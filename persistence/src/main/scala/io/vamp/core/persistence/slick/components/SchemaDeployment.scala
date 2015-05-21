@@ -47,7 +47,7 @@ trait SchemaDeployment extends Logging with SchemaBreed {
   }
 
   class DeploymentServiceTable(tag: Tag) extends DeployableEntityTable[DeploymentServiceModel](tag, "deployment_services") {
-    def * = (deploymentId, clusterId, id.?, name, breedId, scaleId, routingId, deploymentStateType, deploymentTime, message) <>(DeploymentServiceModel.tupled, DeploymentServiceModel.unapply)
+    def * = (deploymentId, clusterId, id.?, name, breedId, scaleId, routingId, deploymentStateType, deploymentTime, dialects, message) <>(DeploymentServiceModel.tupled, DeploymentServiceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -71,6 +71,8 @@ trait SchemaDeployment extends Logging with SchemaBreed {
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
+    def dialects = column[Array[Byte]]("dialects")
+
     def deployment = foreignKey("deployment_service_deployment_fk", deploymentId, Deployments)(_.id)
 
     def breed = foreignKey("deployment_service_breed_fk", breedId, BreedReferences)(_.id)
@@ -83,13 +85,15 @@ trait SchemaDeployment extends Logging with SchemaBreed {
   }
 
   class DeploymentClusterTable(tag: Tag) extends DeployableEntityTable[DeploymentClusterModel](tag, "deployment_clusters") {
-    def * = (deploymentId, id.?, name, slaReferenceId) <>(DeploymentClusterModel.tupled, DeploymentClusterModel.unapply)
+    def * = (deploymentId, id.?, name, slaReferenceId, dialects) <>(DeploymentClusterModel.tupled, DeploymentClusterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
     def name = column[String]("name")
 
     def slaReferenceId = column[Option[Int]]("sla_reference")
+
+    def dialects = column[Array[Byte]]("dialects")
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 

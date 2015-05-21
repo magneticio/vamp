@@ -20,14 +20,20 @@ case class DefaultBlueprint(name: String, clusters: List[Cluster], endpoints: Li
 
 case class BlueprintReference(name: String) extends Blueprint with Reference
 
+object Dialect extends Enumeration {
+
+  val Marathon, Docker = Value
+}
 
 abstract class AbstractCluster extends Artifact {
   def services: List[AbstractService]
 
   def sla: Option[Sla]
+
+  def dialects: Map[Dialect.Value, Any]
 }
 
-case class Cluster(name: String, services: List[Service], sla: Option[Sla]) extends AbstractCluster
+case class Cluster(name: String, services: List[Service], sla: Option[Sla], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
 
 
 abstract class AbstractService {
@@ -36,9 +42,11 @@ abstract class AbstractService {
   def scale: Option[Scale]
 
   def routing: Option[Routing]
+
+  def dialects: Map[Dialect.Value, Any]
 }
 
-case class Service(breed: Breed, scale: Option[Scale], routing: Option[Routing]) extends AbstractService
+case class Service(breed: Breed, scale: Option[Scale], routing: Option[Routing], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
 
 
 trait Scale extends Artifact
