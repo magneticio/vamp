@@ -1,6 +1,8 @@
-package io.vamp.core.cli
+package io.vamp.core.cli.backend
 
 import io.vamp.common.http.RestClient
+import io.vamp.core.cli.commandline.CommandLineBasics
+import io.vamp.core.cli.serializers.Deserialization
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader.BreedReader
 import io.vamp.core.model.serialization.SerializationFormat
@@ -9,16 +11,16 @@ import org.json4s.JsonAST._
 import org.json4s.native._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import scala.language.implicitConversions
+import scala.language.{implicitConversions, postfixOps}
 import scala.util.{Failure, Success}
 
 
 object VampHostCalls extends Deserialization with RestApiMarshaller with RestApiContentTypes with CommandLineBasics {
 
   implicit val formats = SerializationFormat.default
-  val timeout = Duration("30 seconds")
+  val timeout = 30 seconds
 
   def getDeploymentAsBlueprint(deploymentId: String)(implicit vampHost: String): Option[DefaultBlueprint] =
     sendAndWait[BlueprintSerialized](s"GET $vampHost/api/v1/deployments/$deploymentId?as_blueprint=true").map(blueprintSerialized2DefaultBlueprint)
@@ -28,8 +30,8 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
 
   def getBreed(breedId: String)(implicit vampHost: String): Breed = {
     sendAndWaitYaml[String](s"GET $vampHost/api/v1/breeds/$breedId") match {
-      case Some(breed)  => BreedReader.read(breed)
-      case _ =>      terminateWithError("Breed not found")
+      case Some(breed) => BreedReader.read(breed)
+      case _ => terminateWithError("Breed not found")
         BreedReference(name = "Breed not found")
     }
   }
@@ -39,10 +41,11 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
       case Some(breeds) => breeds.map(breedSerialized2DefaultBreed)
       case None => List.empty
     }
-//  sendAndWaitYaml(s"GET $vampHost/api/v1/breeds") match {
-//    case Some(breeds) => breeds.map(BreedReader.read(_))
-//    case  _ => List.empty
-//  }
+
+  //  sendAndWaitYaml(s"GET $vampHost/api/v1/breeds") match {
+  //    case Some(breeds) => breeds.map(BreedReader.read(_))
+  //    case  _ => List.empty
+  //  }
 
 
   def createBreed(breed: DefaultBreed)(implicit vampHost: String): Option[DefaultBreed] =

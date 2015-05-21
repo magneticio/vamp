@@ -1,4 +1,4 @@
-package io.vamp.core.cli
+package io.vamp.core.cli.backend
 
 import com.typesafe.scalalogging.Logger
 import dispatch._

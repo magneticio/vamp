@@ -1,4 +1,4 @@
-package io.vamp.core.cli
+package io.vamp.core.cli.serializers
 
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter

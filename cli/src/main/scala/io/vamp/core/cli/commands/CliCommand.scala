@@ -1,5 +1,4 @@
-package io.vamp.core.cli
-
+package io.vamp.core.cli.commands
 
 trait CliCommand {
 
