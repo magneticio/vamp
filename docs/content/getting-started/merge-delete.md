@@ -22,7 +22,7 @@ with the already running deployment. This might sound strange at first, but it m
 this will enable us to slowly move from the previous solution to the next solution. Once moved over, we can
 remove parts we no longer need, i.e. the former "over-engineered" topology.
 
-![](/img/services_atob.svg)
+![](http://vamp.io/img/services_atob.svg)
 
 In the diagram above, this is visualized as follows:
 
@@ -348,52 +348,127 @@ Moving from the old to the new topology is now just a question of "turning the w
 could do this in one go, or slowly adjust it. The easiest and neatest way is to just update the blueprint
 as you go and `PUT` it to the deployment. 
 
-Vamp has a convenient option for this: you can export any deployment as a blueprint! It will be in JSON format but is functionally 100% equivalent to the YAML version. By appending `?as_blueprint=true` to any deployment URI, Vamp strips all runtime info and output a perfectly valid
-blueprint of that specific deployment. You can then use that to update any values as you see fit and re-`PUT` it again for changes to take effect. 
+Vamp has a convenient option for this: you can export any deployment as a blueprint! By appending `?as_blueprint=true` to any deployment URI, Vamp strips all runtime info and output a perfectly valid blueprint of that specific deployment. The default output will be in JSON format, but you can also get a YAML format. Just set the header `Accept: application/x-yaml` and Vamp will give you a YAML format blueprint of that deployment. 
+
+You can then use that blueprint to update any values as you see fit and re-`PUT` it again for changes to take effect. 
 
 ![](/img/screencap_asblueprint.gif)
 
 {{% alert info %}}
 **Tip**: By appending `?as_blueprint=true` to any deployment URI, Vamp spits out a perfectly valid
-blueprint of that specific deployment. This way you can clone whole deployments in seconds. Pretty awesome.  
+blueprint of that specific deployment, either in JSON or YAML format. This way you can clone whole deployments in seconds. Pretty awesome.  
 {{% /alert %}}
 
-In this specific example, we could export the deployment as a blueprint and update the weight to a 95% to 
-5% split. Then we could do this again, but with a 80% to 20% split and so on. See the abbreviated example
-below:
+In this specific example, we could export the deployment as a blueprint and update the weight to a 50% to 
+50% split. Then we could do this again, but with a 80% to 20% split and so on. See the abbreviated example
+below where we set the `weight` keys to `50` in both `routing` sections.
 
-```json
- ... 
- "sava": {
-      "services": [
-        {
-          "breed": {
-            "name": "sava-frontend:1.2.0",
-            "deployable": "magneticio/sava-frontend:1.2.0"
-          },
-          "routing": {
-            "weight": 95
-          }
-        },
-        {
-          "breed": {
-            "name": "sava-frontend:1.3.0",
-            "deployable": "magneticio/sava-frontend:1.3.0"
-          },
-          "routing": {
-            "weight": 5
-          }
-        }
-      ]
-    }
-...
+```yaml
+---
+name: eb2d505e-f5cf-4aed-b4ae-326a8ca54577
+endpoints:
+  sava.port: '9060'
+clusters:
+  sava:
+    services:
+    - breed:
+        name: sava-frontend:1.3.0
+        deployable: magneticio/sava-frontend:1.3.0
+        ports:
+          port: 80/http
+        environment_variables:
+          backend[BACKEND]: http://$backend.host:$backend.ports.port/api/message
+        constants: {}
+        dependencies:
+          backend:
+            name: sava-backend:1.3.0
+      scale:
+        cpu: 0.5
+        memory: 512.0
+        instances: 1
+      routing:
+        weight: 50
+        filters: []
+      dialects: {}
+    - breed:
+        name: sava-frontend:1.2.0
+        deployable: magneticio/sava-frontend:1.2.0
+        ports:
+          port: 80/http
+        environment_variables:
+          BACKEND_1: http://$backend1.host:$backend1.ports.port/api/message
+          BACKEND_2: http://$backend2.host:$backend2.ports.port/api/message
+        constants: {}
+        dependencies:
+          backend1:
+            name: sava-backend1:1.2.0
+          backend2:
+            name: sava-backend2:1.2.0
+      scale:
+        cpu: 0.5
+        memory: 512.0
+        instances: 1
+      routing:
+        weight: 50
+        filters: []
+      dialects: {}
+    dialects: {}
+environment_variables:
+  sava.BACKEND_1: http://$backend1.host:$backend1.ports.port/api/message
+  sava.BACKEND_2: http://$backend2.host:$backend2.ports.port/api/message
+  sava.backend: http://$backend.host:$backend.ports.port/api/message
 ```
 
 ## Step 4: Deleting parts of the deployment
 
-Vamp helps you transition between states and avoid "hard" switches, so deleting parts of a deployment is somewhat different than you might expect. In essence, a delete is just another update of the deployment: you specify what you want to remove using a blueprint and send it to the deployment's URI using the `DELETE`HTTP verb: yes, it is HTTP Delete with a body, not just a URI and some id.
+Vamp helps you transition between states and avoid "hard" switches, so deleting parts of a deployment is somewhat different than you might expect. 
 
-This means you can specifically target parts of your deployment to be removed instead of deleting the whole thing. For this tutorial we are going to delete the "over-engineered" old part of our deployment by grabbing the "old" blueprint, cleaning it up a bit (see below) and sending it in the body of the `DELETE` to the deployment resource, e.g. `/api/v1/deployments/125fd95c-a756-4635-8e1a-361085037870`
+In essence, a delete is just another update of the deployment: you specify what you want to remove using a blueprint and send it to the deployment's URI using the `DELETE`HTTP verb: yes, it is HTTP Delete with a body, not just a URI and some id.
+
+This means you can specifically target parts of your deployment to be removed instead of deleting the whole thing. For this tutorial we are going to delete the "over-engineered" old part of our deployment.
+
+Currently, deleting works in two steps:
+- Set all routings to `weight: 0` of the services you want to delete with a simple update.
+- Execute the delete.
+
+{{% alert info %}}
+**Note**: You need to explicitly set the routing weight of the service you want to deploy to zero before deleting. Here is why: When you have, for example, four active services divided in a 25/25/20/30 split and you delete the one with 30%, Vamp doesn't know how you want to redistribute the "left over" 30% of traffic. For this reason the user should first explicitly divide this and then perform the delete.
+{{% /alert %}}
+
+**Setting to zero**
+
+When you grab the YAML version of the deployment, just like above, you can set all the `weight` entries for the Sava 1.2.0 versions to `0` and `PUT` it to the deployment as usual. See the cleaned up example and make sure to adjust the name to your specific situation.
+
+{{% copyable %}}
+```yaml
+---
+name: 125fd95c-a756-4635-8e1a-361085037870
+clusters:
+  backend1:
+    services:
+    - breed:
+        name: sava-backend1:1.2.0
+      routing:
+        weight: 0
+  backend2:
+    services:
+    - breed:
+        name: sava-backend2:1.2.0
+      routing:
+        weight: 0
+  sava:
+    services:
+    - breed:
+        name: sava-frontend:1.2.0
+      routing:
+        weight: 0
+```
+{{% /copyable %}}
+
+
+**Doing the delete**
+
+Now, you can take the exact same YAML blueprint or use one that's a bit cleaned up for clarity and send it in the body of the `DELETE` to the deployment resource, e.g. `/api/v1/deployments/125fd95c-a756-4635-8e1a-361085037870`
 
 {{% copyable %}}
 ```yaml
@@ -416,7 +491,7 @@ clusters:
 {{% /copyable %}}
 
 {{% alert info %}}
-**Note**: We removed the `deployable`, `environment_variables`, `ports` and some other parts of the blueprint. These are actually not necessary for deletion. Besides that, this is actually exactly the same blueprint we used to initially deploy
+**Note**: We removed the `deployable`, `environment_variables`, `ports` and some other parts of the blueprint. These are actually not necessary for updating or deletion. Besides that, this is actually exactly the same blueprint we used to initially deploy
 the "old" topology.
 {{% /alert %}}
 
