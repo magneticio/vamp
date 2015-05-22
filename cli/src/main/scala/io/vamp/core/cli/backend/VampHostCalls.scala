@@ -36,6 +36,16 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
     }
   }
 
+
+  def createBreed(breedFile: String)(implicit vampHost: String): String = {
+    sendAndWaitYaml[String](s"POST $vampHost/api/v1/breeds", Some(breedFile)) match {
+      case Some(breed) => breed //BreedReader.read(breed)
+      case _ => terminateWithError("Breed not created")
+        //BreedReference(name = "Breed not created")
+        ""
+    }
+  }
+
   def getBreeds(implicit vampHost: String): List[Breed] =
     sendAndWait[List[DefaultBreedSerialized]](s"GET $vampHost/api/v1/breeds") match {
       case Some(breeds) => breeds.map(breedSerialized2DefaultBreed)
@@ -99,7 +109,7 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
     }
   }
 
-  private def sendAndWaitYaml[A](request: String, body: AnyRef = None): Option[A] = {
+  private def sendAndWaitYaml[A](request: String, body: Option[String] = None): Option[A] = {
     try {
       val futureResult: Future[A] = YamlRestClient.request(request, body = body)
       // Block until response ready (nothing else to do anyway)

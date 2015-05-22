@@ -14,8 +14,9 @@ trait Parameters extends CommandLineBasics {
   val source = 'source
   val destination = 'destination
   val help = 'help
+  val file = 'file
 
-  val VAMP_HOST ="VAMP_HOST"
+  val VAMP_HOST = "VAMP_HOST"
 
   protected def readParameters(args: Array[String]): OptionMap = {
     if (sys.env.contains(VAMP_HOST))
@@ -43,6 +44,7 @@ trait Parameters extends CommandLineBasics {
       case "--deployable" :: value :: tail => nextOption(map ++ Map(deployable -> value), tail)
       case "--help" :: tail => nextOption(map ++ Map(help -> ""), tail)
       case "--destination" :: value :: tail => nextOption(map ++ Map(destination -> value), tail)
+      case "--file" :: value :: tail => nextOption(map ++ Map(file -> value), tail)
 
       case string :: opt2 :: tail if isSwitch(opt2) => nextOption(map ++ Map(name -> string), list.tail)
       case string :: Nil => nextOption(map ++ Map(name -> string), list.tail)

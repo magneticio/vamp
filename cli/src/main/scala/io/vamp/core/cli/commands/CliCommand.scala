@@ -34,6 +34,17 @@ case class CloneBreedCommand() extends CliCommand {
   override val requiresName = true
 }
 
+case class CreateBreedCommand() extends CliCommand {
+  override val name = "create-breed"
+  override val additionalParams = "[--file]"
+  override val usage = "Create a breed read from the specified filename. When no file name is supplied, stdin will be read."
+  override val description = "Create a breed"
+  override val parameters = """
+                              |  --file               Name of the yaml file [Optional]
+                            """.stripMargin
+  override val requiresName = true
+}
+
 case class DeployBlueprintCommand() extends CliCommand {
   override val name = "deploy-blueprint"
   override val usage = "Deploys a blueprint"

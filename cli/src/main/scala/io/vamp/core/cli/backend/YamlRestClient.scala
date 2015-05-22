@@ -4,7 +4,6 @@ import com.typesafe.scalalogging.Logger
 import dispatch._
 import io.vamp.common.http.RestClient.Method
 import org.json4s._
-import org.json4s.native.Serialization._
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -13,7 +12,7 @@ object YamlRestClient {
 
   private val logger = Logger(LoggerFactory.getLogger(YamlRestClient.getClass))
 
-  def request[A](request: String, body: AnyRef = None)
+  def request[A](request: String, body: Option[String] = None)
                 (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
 
     val method = Method.values.map(_.toString).find(method => request.startsWith(s"$method ")).getOrElse(Method.GET.toString)
@@ -28,10 +27,9 @@ object YamlRestClient {
       case None =>
         logger.trace(s"req [$request]")
         httpHeaders
-      case anyRef =>
-        val body = write(anyRef)
-        logger.trace(s"req [$request] - $body")
-        httpHeaders.setBody(body)
+      case Some(payload) =>
+        logger.debug(s"req [$request] - $payload")
+        httpHeaders.setBody(payload)
     }
 
     Http(httpRequest OK dispatch.as.String).asInstanceOf[Future[A]]

@@ -1,6 +1,5 @@
 package io.vamp.core.cli.commandline
 
-import io.vamp.core.cli._
 import io.vamp.core.cli.commands._
 
 trait CommandLineBasics {
@@ -13,6 +12,7 @@ trait CommandLineBasics {
   def string2Command(s: String): CliCommand = s match {
     case "blueprints" => BlueprintsCommand()
     case "breeds" => BreedsCommand()
+    case "create-breed" => CreateBreedCommand()
     case "clone-breed" => CloneBreedCommand()
     //case "deploy-blueprint" => DeployBlueprintCommand()   // Not yet implemented, so don't expose
     case "deploy-breed" => DeployBreedCommand()
@@ -44,7 +44,7 @@ trait CommandLineBasics {
         showGeneralUsage(BreedsCommand())
         showGeneralUsage(CloneBreedCommand())
         //showGeneralUsage(DeployBlueprint())    // Not yet implemented, so don't expose
-        showGeneralUsage(DeployBreedCommand())
+        showGeneralUsage(CreateBreedCommand())
         showGeneralUsage(DeploymentsCommand())
         showGeneralUsage(HelpCommand())
         showGeneralUsage(InfoCommand())

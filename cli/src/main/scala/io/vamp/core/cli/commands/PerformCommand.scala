@@ -4,6 +4,8 @@ import io.vamp.core.cli.backend.VampHostCalls
 import io.vamp.core.cli.commandline.Parameters
 import io.vamp.core.model.artifact._
 
+import scala.io.Source
+
 
 object PerformCommand extends Parameters {
 
@@ -50,6 +52,13 @@ object PerformCommand extends Parameters {
           println(response)
         case _ => terminateWithError("Source breed not found")
       }
+
+    case _: CreateBreedCommand =>
+      val fileContents = getOptionalParameter('file) match {
+        case Some(fileName) => Source.fromFile(fileName).getLines().mkString("\n")
+        case None => Source.stdin.getLines().mkString("\n")
+      }
+      println(VampHostCalls.createBreed(fileContents))
 
     case _: DeployBreedCommand =>
       //TODO add support for routing & scale parameters
