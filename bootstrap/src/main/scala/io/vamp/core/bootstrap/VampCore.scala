@@ -29,6 +29,7 @@ object VampCore extends App {
   Runtime.getRuntime.addShutdownHook(new Thread() {
     override def run() = {
       bootstrap.foreach(_.shutdown)
+      actorSystem.shutdown()
     }
   })
 
