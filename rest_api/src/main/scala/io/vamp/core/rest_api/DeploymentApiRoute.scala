@@ -7,6 +7,7 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.http.RestApiBase
 import io.vamp.core.model.artifact.DeploymentService.{Deployed, ReadyForDeployment, ReadyForUndeployment}
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.conversion.DeploymentConversion._
