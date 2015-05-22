@@ -12,7 +12,7 @@ object SchedulerActor {
 
 }
 
-abstract class SchedulerActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider {
+abstract class SchedulerActor extends CommonActorSupport {
 
   private var timer: Option[Cancellable] = None
 
@@ -23,7 +23,6 @@ abstract class SchedulerActor extends Actor with ActorLogging with ActorSupport 
   def schedule(period: FiniteDuration) = {
     timer.map(_.cancel())
     if (period.toNanos > 0) {
-      implicit val actorSystem = context.system
       timer = Some(context.system.scheduler.schedule(0 seconds, period, new Runnable {
         def run() = {
           tick()

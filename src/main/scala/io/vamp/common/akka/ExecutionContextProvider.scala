@@ -3,7 +3,6 @@ package io.vamp.common.akka
 import akka.actor.{Actor, ActorRefFactory}
 
 import scala.concurrent.ExecutionContext
-import scala.language.implicitConversions
 
 trait ExecutionContextProvider {
   implicit def executionContext: ExecutionContext
