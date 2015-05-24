@@ -51,19 +51,19 @@ Deletes all or parts of a deployment.
 
 Lists all details for a specific SLA that's part of a specific cluster.
 
-	GET /api/v1/deployments/:name/cluster/:name/sla
+	GET /api/v1/deployments/:name/clusters/:name/sla
 	
 ## Set a deployment SLA
 
 Creates or updates a specific deployment SLA.
 
-	POST|PUT /api/v1/deployments/:name/cluster/:name/sla
+	POST|PUT /api/v1/deployments/:name/clusters/:name/sla
 	
 ## Delete a deployment SLA
 
 Deletes as specific deployment SLA.
 
-	DELETE /api/v1/deployments/:name/cluster/:name/sla
+	DELETE /api/v1/deployments/:name/clusters/:name/sla
 
 
 # Deployment scales
@@ -74,13 +74,13 @@ Deployment scales are singular resources: you only have one scale per service. D
 
 Lists all details for a specific deployment scale that's part of a service inside a cluster.
 
-	GET /api/v1/deployments/:name/cluster/:name/services/:name/scale
+	GET /api/v1/deployments/:name/clusters/:name/services/:name/scale
 	
 ## Set a deployment scale	
 
 Updates a deployment scale.
 
-	POST|PUT /api/v1/deployments/:name/cluster/:name/services/:name/scale
+	POST|PUT /api/v1/deployments/:name/clusters/:name/services/:name/scale
 
 # Deployment routings
 
@@ -90,10 +90,10 @@ Deployment routing are singular resources: you only have one routing per service
 
 Lists all details for a specific deployment routing that's part of a service inside a cluster.
 
-	GET /api/v1/deployments/:name/cluster/:name/services/:name/routing
+	GET /api/v1/deployments/:name/clusters/:name/services/:name/routing
 	
 ## Set a deployment routing	
 
 Updates a deployment routing.
 
-	POST|PUT /api/v1/deployments/:name/cluster/:name/services/:name/routing
+	POST|PUT /api/v1/deployments/:name/clusters/:name/services/:name/routing

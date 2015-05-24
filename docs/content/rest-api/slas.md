@@ -18,7 +18,7 @@ Lists all slas without any pagination or filtering.
 
 Lists all details for one specific breed.
 
-    GET /api/v1/breeds/:name
+    GET /api/v1/slas/:name
 
 ## Create an SLA
 
@@ -34,8 +34,8 @@ Updates the content of a specific SLA.
 
 ## Delete an SLA
 
-Deletes a SLA.        
+Deletes an SLA.        
 
-    DELETE /api/v1/SLA/:name
+    DELETE /api/v1/slas/:name
 
 
