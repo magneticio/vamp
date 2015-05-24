@@ -1,6 +1,6 @@
 ---
-title: Router
-weight: 30
+title: Vamp Router
+weight: 900
 menu:
   main:
     parent: rest-api

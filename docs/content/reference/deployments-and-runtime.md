@@ -1,12 +1,12 @@
 ---
-title: Deployments
-weight: 40
+title: Deployments & Runtime
+weight: 50
 menu:
   main:
     parent: reference
 ---
 
-# Deployments
+# Deployments & Runtime
 
 A deployment is a "running" blueprint. Over time, new blueprints can be merged with existing deployments or parts of the running blueprint can be removed from it. Each deployment can be exported as a blueprint and 
 copy & pasted to another environment or even to the same environment to function as a clone.

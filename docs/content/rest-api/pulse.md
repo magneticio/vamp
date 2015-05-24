@@ -1,6 +1,6 @@
 ---
-title: Pulse
-weight: 40
+title: Vamp Pulse
+weight: 950
 menu:
   main:
     parent: rest-api
