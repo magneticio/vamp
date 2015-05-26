@@ -7,6 +7,7 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.http.RestApiBase
 import io.vamp.core.model.artifact.DeploymentService.{Deployed, ReadyForDeployment, ReadyForUndeployment}
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.conversion.DeploymentConversion._
@@ -29,29 +30,41 @@ trait DeploymentApiRoute extends DeploymentApiController {
   implicit def timeout: Timeout
 
   private val helperRoutes = pathPrefix("sync") {
-    parameters('rate.as[Int] ?) { period =>
-      complete(OK, sync(period))
+    parameters('rate.as[Int] ?) { rate =>
+      respondWithStatus(Accepted) {
+        complete(sync(rate))
+      }
     }
   } ~ path("sla") {
-    complete(OK, slaCheck())
+    respondWithStatus(Accepted) {
+      complete(slaCheck())
+    }
   } ~ path("escalation") {
-    complete(OK, slaEscalation())
+    respondWithStatus(Accepted) {
+      complete(slaEscalation())
+    }
   } ~ path("reset") {
-    complete(OK, reset())
+    respondWithStatus(Accepted) {
+      complete(reset())
+    }
   }
 
   private val deploymentRoute = pathPrefix("deployments") {
     pathEndOrSingleSlash {
       get {
         parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
-          onSuccess(deployments(asBlueprint)) {
-            complete(OK, _)
+          onSuccess(deployments(asBlueprint)) { result =>
+            respondWithStatus(OK) {
+              complete(result)
+            }
           }
         }
       } ~ post {
         entity(as[String]) { request =>
-          onSuccess(createDeployment(request)) {
-            complete(Accepted, _)
+          onSuccess(createDeployment(request)) { result =>
+            respondWithStatus(Accepted) {
+              complete(result)
+            }
           }
         }
       }
@@ -60,20 +73,26 @@ trait DeploymentApiRoute extends DeploymentApiController {
         get {
           rejectEmptyResponse {
             parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
-              onSuccess(deployment(name, asBlueprint)) {
-                complete(OK, _)
+              onSuccess(deployment(name, asBlueprint)) { result =>
+                respondWithStatus(OK) {
+                  complete(result)
+                }
               }
             }
           }
         } ~ put {
           entity(as[String]) { request =>
-            onSuccess(updateDeployment(name, request)) {
-              complete(Accepted, _)
+            onSuccess(updateDeployment(name, request)) { result =>
+              respondWithStatus(Accepted) {
+                complete(result)
+              }
             }
           }
         } ~ delete {
-          entity(as[String]) { request => onSuccess(deleteDeployment(name, request)) {
-            complete(Accepted, _)
+          entity(as[String]) { request => onSuccess(deleteDeployment(name, request)) { result =>
+            respondWithStatus(Accepted) {
+              complete(result)
+            }
           }
           }
         }
@@ -85,18 +104,24 @@ trait DeploymentApiRoute extends DeploymentApiController {
     path("deployments" / Segment / "clusters" / Segment / "sla") { (deployment: String, cluster: String) =>
       pathEndOrSingleSlash {
         get {
-          onSuccess(sla(deployment, cluster)) {
-            complete(OK, _)
+          onSuccess(sla(deployment, cluster)) { result =>
+            respondWithStatus(OK) {
+              complete(result)
+            }
           }
         } ~ (post | put) {
           entity(as[String]) { request =>
-            onSuccess(slaUpdate(deployment, cluster, request)) {
-              complete(OK, _)
+            onSuccess(slaUpdate(deployment, cluster, request)) { result =>
+              respondWithStatus(Accepted) {
+                complete(result)
+              }
             }
           }
         } ~ delete {
-          onSuccess(slaDelete(deployment, cluster)) {
-            _ => complete(NoContent)
+          onSuccess(slaDelete(deployment, cluster)) { result =>
+            respondWithStatus(NoContent) {
+              complete(None)
+            }
           }
         }
       }
@@ -106,13 +131,17 @@ trait DeploymentApiRoute extends DeploymentApiController {
     path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "scale") { (deployment: String, cluster: String, breed: String) =>
       pathEndOrSingleSlash {
         get {
-          onSuccess(scale(deployment, cluster, breed)) {
-            complete(OK, _)
+          onSuccess(scale(deployment, cluster, breed)) { result =>
+            respondWithStatus(OK) {
+              complete(result)
+            }
           }
         } ~ (post | put) {
           entity(as[String]) { request =>
-            onSuccess(scaleUpdate(deployment, cluster, breed, request)) {
-              complete(OK, _)
+            onSuccess(scaleUpdate(deployment, cluster, breed, request)) { result =>
+              respondWithStatus(Accepted) {
+                complete(result)
+              }
             }
           }
         }
@@ -123,13 +152,17 @@ trait DeploymentApiRoute extends DeploymentApiController {
     path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "routing") { (deployment: String, cluster: String, breed: String) =>
       pathEndOrSingleSlash {
         get {
-          onSuccess(routing(deployment, cluster, breed)) {
-            complete(OK, _)
+          onSuccess(routing(deployment, cluster, breed)) { result =>
+            respondWithStatus(OK) {
+              complete(result)
+            }
           }
         } ~ (post | put) {
           entity(as[String]) { request =>
-            onSuccess(routingUpdate(deployment, cluster, breed, request)) {
-              complete(OK, _)
+            onSuccess(routingUpdate(deployment, cluster, breed, request)) { result =>
+              respondWithStatus(OK) {
+                complete(result)
+              }
             }
           }
         }

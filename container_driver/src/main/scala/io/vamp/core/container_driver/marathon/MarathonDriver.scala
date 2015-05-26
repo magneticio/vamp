@@ -25,7 +25,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
     val id = appId(deployment, service.breed)
-    logger.info(s"marathon create app: $id")
+    if (update) logger.info(s"marathon update app: $id") else logger.info(s"marathon create app: $id")
 
     val app = CreateApp(id, CreateContainer(CreateDocker(service.breed.deployable.name, portMappings(deployment, cluster, service))), service.scale.get.instances, service.scale.get.cpu, service.scale.get.memory, environment(deployment, cluster, service))
 
@@ -45,6 +45,5 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
 
   private def containerService(app: App): ContainerService =
     ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task => ContainerServer(task.id, task.host, task.ports, task.startedAt.isDefined)))
-
 }
 

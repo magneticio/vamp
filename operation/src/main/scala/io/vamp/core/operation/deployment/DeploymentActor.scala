@@ -112,8 +112,12 @@ trait DeploymentValidator {
   }
 
   def validateRoutingWeights: (Deployment => Deployment) = { (deployment: Deployment) =>
-    def weight(cluster: DeploymentCluster) = cluster.services.map(_.routing).flatten.map(_.weight).flatten.sum
-    deployment.clusters.find(cluster => weight(cluster) != 100).flatMap(cluster => error(UnsupportedRoutingWeight(deployment, cluster, weight(cluster))))
+    deployment.clusters.map(cluster => cluster -> weightOf(cluster.services)).find({
+      case (cluster, weight) => weight != 100 && weight != 0
+    }).flatMap({
+      case (cluster, weight) => error(UnsupportedRoutingWeight(deployment, cluster, weight))
+    })
+
     deployment
   }
 
@@ -150,6 +154,8 @@ trait DeploymentValidator {
 
     case _ => false
   }
+
+  def weightOf(services: List[DeploymentService]) = services.flatMap(_.routing).flatMap(_.weight).sum
 }
 
 trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver {
@@ -185,7 +191,7 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
     (traits1.map(t => t.name -> t).toMap ++ traits2.map(t => t.name -> t).toMap).values.toList
 
   def mergeClusters(stable: Deployment, blueprint: Deployment): List[DeploymentCluster] = {
-    val deploymentClusters = stable.clusters.filter(cluster => blueprint.clusters.find(_.name == cluster.name).isEmpty)
+    val deploymentClusters = stable.clusters.filter(cluster => !blueprint.clusters.exists(_.name == cluster.name))
 
     val blueprintClusters = blueprint.clusters.map { cluster =>
       stable.clusters.find(_.name == cluster.name) match {
@@ -224,18 +230,18 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
       case Some(sc) => !sc.services.exists(_.breed.name == service.breed.name)
     })
 
-    if (newServices.size > 0) {
-      val oldWeight = stableCluster.flatMap(cluster => Some(cluster.services.map({ service =>
+    if (newServices.nonEmpty) {
+      val oldWeight = stableCluster.flatMap(cluster => Some(cluster.services.flatMap({ service =>
         blueprintCluster.services.find(_.breed.name == service.breed.name) match {
           case None => service.routing
           case Some(update) => update.routing
         }
-      }).flatten.map(_.weight).flatten.sum)) match {
+      }).flatMap(_.weight).sum)) match {
         case None => 0
         case Some(sum) => sum
       }
 
-      val newWeight = newServices.map(_.routing).flatten.filter(_.isInstanceOf[DefaultRouting]).map(_.weight).flatten.sum
+      val newWeight = newServices.flatMap(_.routing).filter(_.isInstanceOf[DefaultRouting]).flatMap(_.weight).sum
       val availableWeight = 100 - oldWeight - newWeight
 
       if (availableWeight < 0)
@@ -344,9 +350,18 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
 trait DeploymentSlicer extends DeploymentValidator {
   this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
+  def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster =>
+    blueprint.clusters.find(_.name == cluster.name).foreach { bpc =>
+      val weight = weightOf(cluster.services.filterNot(service => bpc.services.exists(_.breed.name == service.breed.name)))
+      if (weight != 100 && weight != 0) error(InvalidRoutingWeight(deployment, cluster, weight))
+    }
+  }
+
   def commit(create: Boolean, source: String): (Deployment => Deployment)
 
   def slice(blueprint: Deployment): (Deployment => Deployment) = { (stable: Deployment) =>
+    validateRoutingWeightOfServicesForRemoval(stable, blueprint)
+
     (validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster =>
       blueprint.clusters.find(_.name == cluster.name) match {
         case None => cluster

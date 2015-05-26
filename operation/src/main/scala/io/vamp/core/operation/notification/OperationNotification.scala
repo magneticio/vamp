@@ -26,3 +26,5 @@ case class UnresolvedDependencyError(breed: Breed, dependency: Breed) extends No
 
 case class NonUniqueBreedReferenceError(breed: Breed) extends Notification
 
+case class InvalidRoutingWeight(deployment: Deployment, cluster: DeploymentCluster, weight: Int) extends Notification
+

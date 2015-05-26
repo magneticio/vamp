@@ -4,6 +4,7 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.http.RestApiBase
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
 import io.vamp.core.persistence.actor.PersistenceActor
@@ -26,20 +27,26 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
         accept(`application/json`, `application/x-yaml`) {
           path("docs") {
             pathEndOrSingleSlash {
-              complete(OK, swagger)
+              respondWithStatus(OK) {
+                complete(swagger)
+              }
             }
           } ~ infoRoute ~ deploymentRoutes ~
             path(Segment) { artifact: String =>
               pathEndOrSingleSlash {
                 get {
-                  onSuccess(allArtifacts(artifact)) {
-                    complete(OK, _)
+                  onSuccess(allArtifacts(artifact)) { result =>
+                    respondWithStatus(OK) {
+                      complete(result)
+                    }
                   }
                 } ~ post {
                   entity(as[String]) { request =>
                     parameters('validate_only.as[Boolean] ? false) { validateOnly =>
-                      onSuccess(createArtifact(artifact, request, validateOnly)) {
-                        complete(Created, _)
+                      onSuccess(createArtifact(artifact, request, validateOnly)) { result =>
+                        respondWithStatus(Created) {
+                          complete(result)
+                        }
                       }
                     }
                   }
@@ -49,23 +56,29 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
             pathEndOrSingleSlash {
               get {
                 rejectEmptyResponse {
-                  onSuccess(readArtifact(artifact, name)) {
-                    complete(OK, _)
+                  onSuccess(readArtifact(artifact, name)) { result =>
+                    respondWithStatus(OK) {
+                      complete(result)
+                    }
                   }
                 }
               } ~ put {
                 entity(as[String]) { request =>
                   parameters('validate_only.as[Boolean] ? false) { validateOnly =>
-                    onSuccess(updateArtifact(artifact, name, request, validateOnly)) {
-                      complete(OK, _)
+                    onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result =>
+                      respondWithStatus(OK) {
+                        complete(result)
+                      }
                     }
                   }
                 }
               } ~ delete {
                 entity(as[String]) { request =>
                   parameters('validate_only.as[Boolean] ? false) { validateOnly =>
-                    onSuccess(deleteArtifact(artifact, name, request, validateOnly)) {
-                      _ => complete(NoContent, None)
+                    onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result =>
+                      respondWithStatus(NoContent) {
+                        complete(None)
+                      }
                     }
                   }
                 }

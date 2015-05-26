@@ -62,16 +62,16 @@ resolvers in ThisBuild ++= Seq(
 val sprayVersion = "1.3.2"
 val sprayJsonVersion = "1.3.1"
 val json4sVersion = "3.2.11"
-val akkaVersion = "2.3.9"
+val akkaVersion = "2.3.11"
 val akkaStreamsVersion = "1.0-M3"
 val scalaLoggingVersion = "3.1.0"
 val slf4jVersion = "1.7.10"
 val logbackVersion = "1.1.2"
 val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
-val tugboatVersion = "0.2.2"
-val vampCommonVersion = "0.7.5"
-val vampPulseApiVersion = "0.7.5"
+val tugboatVersion = "0.2.3"
+val vampCommonVersion = "0.7.6"
+val vampPulseApiVersion = "0.7.6"
 
 // Note ThisBuild, this is what makes these dependencies shared
 libraryDependencies in ThisBuild ++= Seq(
