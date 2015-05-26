@@ -1,12 +1,11 @@
 package io.vamp.core.cli.backend
 
-import io.vamp.common.http.RestClient
+import io.vamp.common.http.{RestApiContentTypes, RestApiMarshaller, RestClient}
 import io.vamp.core.cli.commandline.CommandLineBasics
 import io.vamp.core.cli.serializers.Deserialization
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.reader.BreedReader
-import io.vamp.core.model.serialization.SerializationFormat
-import io.vamp.core.rest_api.{RestApiContentTypes, RestApiMarshaller}
+import io.vamp.core.model.reader.{RoutingReader, BreedReader}
+import io.vamp.core.model.serialization.CoreSerializationFormat
 import org.json4s.JsonAST._
 import org.json4s.native._
 
@@ -19,7 +18,7 @@ import scala.util.{Failure, Success}
 
 object VampHostCalls extends Deserialization with RestApiMarshaller with RestApiContentTypes with CommandLineBasics {
 
-  implicit val formats = SerializationFormat.default
+  implicit val formats =  CoreSerializationFormat.default
   val timeout = 30 seconds
 
   def getDeploymentAsBlueprint(deploymentId: String)(implicit vampHost: String): Option[DefaultBlueprint] =
@@ -35,7 +34,6 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
         BreedReference(name = "Breed not found")
     }
   }
-
 
   def createBreed(breedFile: String)(implicit vampHost: String): String = {
     sendAndWaitYaml[String](s"POST $vampHost/api/v1/breeds", Some(breedFile)) match {
@@ -84,6 +82,23 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
 
   def info(implicit vampHost: String) =
     sendAndWaitYaml[String](s"GET $vampHost/api/v1/info", None)
+
+  def getRouting(routingId: String)(implicit vampHost: String): String = {
+    sendAndWaitYaml[String](s"GET $vampHost/api/v1/routings/$routingId") match {
+      case Some(routing) => routing
+      case _ => terminateWithError("Routing not found")
+        ""
+    }
+  }
+
+  def getScale(scaleId: String)(implicit vampHost: String): String = {
+    sendAndWaitYaml[String](s"GET $vampHost/api/v1/scales/$scaleId") match {
+      case Some(scale) => scale
+      case _ => terminateWithError("Scale not found")
+        ""
+    }
+  }
+
 
   def getSlas(implicit vampHost: String): List[Sla] =
     sendAndWait[List[Map[String, _]]](s"GET $vampHost/api/v1/slas") match {

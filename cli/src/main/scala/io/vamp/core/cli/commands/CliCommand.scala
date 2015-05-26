@@ -103,6 +103,20 @@ case class InspectDeploymentCommand() extends CliCommand {
   override val requiresName = true
 }
 
+case class InspectRoutingCommand() extends CliCommand {
+  override val name = "inspect-routing"
+  override val usage = "YAML representation of a stored routing"
+  override val description = "Return details of the specified routing"
+  override val requiresName = true
+}
+
+case class InspectScaleCommand() extends CliCommand {
+  override val name = "inspect-scale"
+  override val usage = "YAML representation of a stored scale"
+  override val description = "Return details of the specified scale"
+  override val requiresName = true
+}
+
 case class RemoveBlueprintCommand() extends CliCommand {
   override val name = "remove-blueprint"
   override val usage = "Removes a blueprint"

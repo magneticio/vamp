@@ -70,7 +70,7 @@ val logbackVersion = "1.1.2"
 val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
 val tugboatVersion = "0.2.3"
-val vampCommonVersion = "0.7.6"
+val vampCommonVersion = "0.7.6.38"
 val vampPulseApiVersion = "0.7.6"
 
 // Note ThisBuild, this is what makes these dependencies shared
