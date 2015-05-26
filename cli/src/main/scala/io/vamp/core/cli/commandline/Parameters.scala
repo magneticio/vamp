@@ -15,6 +15,9 @@ trait Parameters extends CommandLineBasics {
   val destination = 'destination
   val help = 'help
   val file = 'file
+  val json = 'json
+  val routing = 'routing
+  val scale = 'scale
 
   val VAMP_HOST = "VAMP_HOST"
 
@@ -43,8 +46,11 @@ trait Parameters extends CommandLineBasics {
       case "--cluster" :: value :: tail => nextOption(map ++ Map(cluster -> value), tail)
       case "--deployable" :: value :: tail => nextOption(map ++ Map(deployable -> value), tail)
       case "--help" :: tail => nextOption(map ++ Map(help -> ""), tail)
+      case "--routing" :: tail => nextOption(map ++ Map(routing -> ""), tail)
+      case "--scale" :: tail => nextOption(map ++ Map(scale -> ""), tail)
       case "--destination" :: value :: tail => nextOption(map ++ Map(destination -> value), tail)
       case "--file" :: value :: tail => nextOption(map ++ Map(file -> value), tail)
+      case "--json" :: tail => nextOption(map ++ Map(json -> "true"), tail)
 
       case string :: opt2 :: tail if isSwitch(opt2) => nextOption(map ++ Map(name -> string), list.tail)
       case string :: Nil => nextOption(map ++ Map(name -> string), list.tail)

@@ -161,6 +161,9 @@ lazy val router_driver = project.dependsOn(model).disablePlugins(sbtassembly.Ass
 lazy val swagger = project.disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val cli = project.settings(
+  libraryDependencies ++= Seq(
+    "org.yaml" % "snakeyaml" % snakeyamlVersion
+  ),
   assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
 ).dependsOn(model, rest_api)
 

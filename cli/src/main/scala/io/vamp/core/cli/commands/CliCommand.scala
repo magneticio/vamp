@@ -1,25 +1,34 @@
 package io.vamp.core.cli.commands
 
-trait CliCommand {
+import io.vamp.core.cli.commands.CommandType.CommandType
 
+object CommandType extends Enumeration {
+  type CommandType = Value
+  val Inspect, List, Create, Delete, Update, Deploy, Other = Value
+}
+
+trait CliCommand {
   val name = "Add Name"
   val usage = "Add usage description"
   val additionalParams = ""
   val description = ""
   val parameters = ""
   val requiresName: Boolean = false
+  val commandType : CommandType = CommandType.Other
 }
 
 case class BlueprintsCommand() extends CliCommand {
   override val name = "blueprints"
   override val description = "List of blueprints"
   override val usage = "Shows a list of blueprints"
+  override val commandType = CommandType.List
 }
 
 case class BreedsCommand() extends CliCommand {
   override val name = "breeds"
   override val description = "List of breeds"
   override val usage = "Shows a list of breeds"
+  override val commandType = CommandType.List
 }
 
 case class CloneBreedCommand() extends CliCommand {
@@ -32,6 +41,7 @@ case class CloneBreedCommand() extends CliCommand {
                               |  --deployable         Name of the deployable [Optional]
                             """.stripMargin
   override val requiresName = true
+  override val commandType = CommandType.Create
 }
 
 case class CreateBreedCommand() extends CliCommand {
@@ -43,6 +53,7 @@ case class CreateBreedCommand() extends CliCommand {
                               |  --file               Name of the yaml file [Optional]
                             """.stripMargin
   override val requiresName = true
+  override val commandType = CommandType.Create
 }
 
 case class DeployBlueprintCommand() extends CliCommand {
@@ -50,6 +61,7 @@ case class DeployBlueprintCommand() extends CliCommand {
   override val usage = "Deploys a blueprint"
   override val description = "Deploys a blueprint"
   override val requiresName = true
+  override val commandType = CommandType.Deploy
 }
 
 case class DeployBreedCommand() extends CliCommand {
@@ -62,12 +74,14 @@ case class DeployBreedCommand() extends CliCommand {
                               |  --cluster            Name of the cluster within the deployment
                             """.stripMargin
   override val requiresName = true
+  override val commandType = CommandType.Deploy
 }
 
 case class DeploymentsCommand() extends CliCommand {
   override val name = "deployments"
   override val description = "List of deployments"
   override val usage = "Shows a list of deployments"
+  override val commandType = CommandType.List
 }
 
 case class HelpCommand() extends CliCommand {
@@ -84,37 +98,66 @@ case class InfoCommand() extends CliCommand {
 
 case class InspectBreedCommand() extends CliCommand {
   override val name = "inspect-breed"
-  override val usage = "JSON representation of a stored breed"
-  override val description = "Return details of the specified  breed"
+  override val usage = "Representation of a stored breed"
+  override val description = "Return details of the specified breed"
   override val requiresName = true
+  override val commandType = CommandType.Inspect
 }
 
 case class InspectBlueprintCommand() extends CliCommand {
   override val name = "inspect-blueprint"
-  override val usage = "JSON representation of a stored blueprint"
+  override val usage = "Displays a stored blueprint"
   override val description = "Return details of the specified blueprint"
   override val requiresName = true
+  override val commandType = CommandType.Inspect
 }
 
 case class InspectDeploymentCommand() extends CliCommand {
   override val name = "inspect-deployment"
-  override val usage = "JSON representation of a active deployment"
+  override val usage = "Displays an active deployment"
   override val description = "Return details of the specified deployment"
   override val requiresName = true
+  override val commandType = CommandType.Inspect
+}
+
+case class InspectEscalationCommand() extends CliCommand {
+  override val name = "inspect-escalation"
+  override val usage = "Displays a stored escalation"
+  override val description = "Return details of the specified escalation"
+  override val requiresName = true
+  override val commandType = CommandType.Inspect
+}
+
+case class InspectFilterCommand() extends CliCommand {
+  override val name = "inspect-filter"
+  override val usage = "Displays a stored filter"
+  override val description = "Return details of the specified filter"
+  override val requiresName = true
+  override val commandType = CommandType.Inspect
 }
 
 case class InspectRoutingCommand() extends CliCommand {
   override val name = "inspect-routing"
-  override val usage = "YAML representation of a stored routing"
+  override val usage = "Displays a stored routing"
   override val description = "Return details of the specified routing"
   override val requiresName = true
+  override val commandType = CommandType.Inspect
 }
 
 case class InspectScaleCommand() extends CliCommand {
   override val name = "inspect-scale"
-  override val usage = "YAML representation of a stored scale"
+  override val usage = "Displays a stored scale"
   override val description = "Return details of the specified scale"
   override val requiresName = true
+  override val commandType = CommandType.Inspect
+}
+
+case class InspectSlaCommand() extends CliCommand {
+  override val name = "inspect-sla"
+  override val usage = "Displays a stored sla"
+  override val description = "Return details of the specified sla"
+  override val requiresName = true
+  override val commandType = CommandType.Inspect
 }
 
 case class RemoveBlueprintCommand() extends CliCommand {
@@ -122,6 +165,7 @@ case class RemoveBlueprintCommand() extends CliCommand {
   override val usage = "Removes a blueprint"
   override val description = "Removes a blueprint"
   override val requiresName = true
+  override val commandType = CommandType.Delete
 }
 
 case class RemoveBreedCommand() extends CliCommand {
@@ -129,12 +173,14 @@ case class RemoveBreedCommand() extends CliCommand {
   override val usage = "Removes a breed"
   override val description = "Removes a breed"
   override val requiresName = true
+  override val commandType = CommandType.Delete
 }
 
 case class SlasCommand() extends CliCommand {
   override val name = "slas"
   override val description = "List of slas"
   override val usage = "Shows a list of slas"
+  override val commandType = CommandType.List
 }
 
 case class UnknownCommand(override val name: String) extends CliCommand
