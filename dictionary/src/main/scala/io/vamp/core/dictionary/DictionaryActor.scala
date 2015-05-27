@@ -1,9 +1,10 @@
 package io.vamp.core.dictionary
 
-import _root_.io.vamp.common.akka._
+
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.akka._
 import io.vamp.core.dictionary.DictionaryActor.{DictionaryMessage, Get}
 import io.vamp.core.dictionary.notification.{DictionaryNotificationProvider, NoAvailablePortError, UnsupportedDictionaryRequest}
 import io.vamp.core.model.artifact.DefaultScale
