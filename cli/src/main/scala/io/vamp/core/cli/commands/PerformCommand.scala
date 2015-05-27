@@ -29,26 +29,26 @@ object PerformCommand extends Parameters {
   }
 
   private def doListCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
-    case _: BreedsCommand =>
+    case _: ListBreedsCommand =>
       println("NAME".padTo(25, ' ') + "DEPLOYABLE")
       VampHostCalls.getBreeds.foreach({
         case b: DefaultBreed => println(s"${b.name.padTo(25, ' ')}${b.deployable.name}")
         case x => println(x)
       })
 
-    case _: BlueprintsCommand =>
+    case _: ListBlueprintsCommand =>
       println("NAME".padTo(40, ' ') + "ENDPOINTS")
       VampHostCalls.getBlueprints.foreach(blueprint =>
         println(s"${blueprint.name.padTo(40, ' ')}${blueprint.endpoints.map(e => s"${e.name} -> ${e.value.get}").mkString(", ")}")
       )
 
-    case _: DeploymentsCommand =>
+    case _: ListDeploymentsCommand =>
       println("NAME".padTo(40, ' ') + "CLUSTERS")
       VampHostCalls.getDeployments.foreach(deployment =>
         println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c.name}").mkString(", ")}")
       )
 
-    case _: SlasCommand =>
+    case _: ListSlasCommand =>
       println("NAME")
       VampHostCalls.getSlas.foreach(sla => println(s"${sla.name}"))
 
@@ -77,10 +77,7 @@ object PerformCommand extends Parameters {
       case _ => unhandledCommand _
         None
     }
-    getOptionalParameter(json) match {
-      case None => artifact.foreach(a => println(artifactToYaml(a)))
-      case _ => println(VampHostCalls.prettyJson(artifact))
-    }
+    printArtifact(artifact)
   }
 
 
@@ -173,6 +170,14 @@ object PerformCommand extends Parameters {
     blueprint.copy(clusters = blueprint.clusters.filter(_.name != clusterName) ++
       blueprint.clusters.filter(_.name == clusterName).map(c => c.copy(services = c.services ++ List(Service(breed = breed, scale = scale, routing = routing))))
     )
+
+
+  private def printArtifact(artifact: Option[Artifact]) = {
+    getOptionalParameter(json) match {
+      case None => artifact.foreach(a => println(artifactToYaml(a)))
+      case _ => println(VampHostCalls.prettyJson(artifact))
+    }
+  }
 
   private def artifactToYaml(artifact: Artifact): String = {
     def toJson(any: Any) = {

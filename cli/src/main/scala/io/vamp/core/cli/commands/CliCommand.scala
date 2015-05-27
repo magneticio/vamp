@@ -14,17 +14,17 @@ trait CliCommand {
   val description = ""
   val parameters = ""
   val requiresName: Boolean = false
-  val commandType : CommandType = CommandType.Other
+  val commandType: CommandType = CommandType.Other
 }
 
-case class BlueprintsCommand() extends CliCommand {
+case class ListBlueprintsCommand() extends CliCommand {
   override val name = "blueprints"
   override val description = "List of blueprints"
   override val usage = "Shows a list of blueprints"
   override val commandType = CommandType.List
 }
 
-case class BreedsCommand() extends CliCommand {
+case class ListBreedsCommand() extends CliCommand {
   override val name = "breeds"
   override val description = "List of breeds"
   override val usage = "Shows a list of breeds"
@@ -77,7 +77,7 @@ case class DeployBreedCommand() extends CliCommand {
   override val commandType = CommandType.Deploy
 }
 
-case class DeploymentsCommand() extends CliCommand {
+case class ListDeploymentsCommand() extends CliCommand {
   override val name = "deployments"
   override val description = "List of deployments"
   override val usage = "Shows a list of deployments"
@@ -173,10 +173,10 @@ case class RemoveBreedCommand() extends CliCommand {
   override val usage = "Removes a breed"
   override val description = "Removes a breed"
   override val requiresName = true
-  override val commandType = CommandType.Delete
+  override val commandType = CommandType.Delete            Refac
 }
 
-case class SlasCommand() extends CliCommand {
+case class ListSlasCommand() extends CliCommand {
   override val name = "slas"
   override val description = "List of slas"
   override val usage = "Shows a list of slas"

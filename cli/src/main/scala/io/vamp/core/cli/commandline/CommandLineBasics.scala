@@ -10,13 +10,13 @@ trait CommandLineBasics {
   }
 
   def string2Command(s: String): CliCommand = s match {
-    case "blueprints" => BlueprintsCommand()
-    case "breeds" => BreedsCommand()
+    case "blueprints" => ListBlueprintsCommand()
+    case "breeds" => ListBreedsCommand()
     case "create-breed" => CreateBreedCommand()
     case "clone-breed" => CloneBreedCommand()
     //case "deploy-blueprint" => DeployBlueprintCommand()   // Not yet implemented, so don't expose
     case "deploy-breed" => DeployBreedCommand()
-    case "deployments" => DeploymentsCommand()
+    case "deployments" => ListDeploymentsCommand()
     case "info" => InfoCommand()
     case "inspect-breed" => InspectBreedCommand()
     case "inspect-blueprint" => InspectBlueprintCommand()
@@ -28,7 +28,7 @@ trait CommandLineBasics {
     case "inspect-sla" => InspectSlaCommand()
     //case "remove-blueprint" => RemoveBlueprintCommand()   // Not yet implemented, so don't expose
     case "remove-breed" => RemoveBreedCommand()
-    case "slas" => SlasCommand()
+    case "slas" => ListSlasCommand()
     case "help" => HelpCommand()
     case "--help" => HelpCommand()
     case "version" => VersionCommand()
@@ -45,12 +45,12 @@ trait CommandLineBasics {
         println(s"Usage: $appName COMMAND [args..]")
         println("")
         println("Commands:")
-        showGeneralUsage(BlueprintsCommand())
-        showGeneralUsage(BreedsCommand())
+        showGeneralUsage(ListBlueprintsCommand())
+        showGeneralUsage(ListBreedsCommand())
         showGeneralUsage(CloneBreedCommand())
         //showGeneralUsage(DeployBlueprint())    // Not yet implemented, so don't expose
         showGeneralUsage(CreateBreedCommand())
-        showGeneralUsage(DeploymentsCommand())
+        showGeneralUsage(ListDeploymentsCommand())
         showGeneralUsage(HelpCommand())
         showGeneralUsage(InfoCommand())
         showGeneralUsage(InspectBreedCommand())
@@ -63,7 +63,7 @@ trait CommandLineBasics {
         showGeneralUsage(InspectSlaCommand())
         //showGeneralUsage(RemoveBlueprint())    //Not yet implemented, so don't expose
         showGeneralUsage(RemoveBreedCommand())
-        showGeneralUsage(SlasCommand())
+        showGeneralUsage(ListSlasCommand())
         showGeneralUsage(VersionCommand())
         println("")
         println(s"Run '$appName COMMMAND --help' for help about the different command options")
