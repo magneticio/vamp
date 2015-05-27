@@ -62,6 +62,31 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
       case None => List.empty
     }
 
+  def getEscalations(implicit vampHost: String): List[Escalation] =
+    sendAndWait[List[Map[String, _]]](s"GET $vampHost/api/v1/escalations") match {
+      case Some(ser) => ser.map(map2Escalation)
+      case None => List.empty
+    }
+
+  def getFilters(implicit vampHost: String): List[DefaultFilter] =
+    sendAndWait[List[Map[String,String]]](s"GET $vampHost/api/v1/filters") match {
+      case Some(ser) => ser.map(filterSerialized2DefaultFilter)
+      case None => List.empty
+    }
+
+  def getRoutings(implicit vampHost: String): List[Routing] =
+    sendAndWait[List[RoutingSerialized]](s"GET $vampHost/api/v1/routings") match {
+      case Some(ser) => ser.map(routingSerialized2DefaultRouting)
+      case None => List.empty
+    }
+
+  def getScales(implicit vampHost: String): List[Scale] =
+    sendAndWait[List[ScaleSerialized]](s"GET $vampHost/api/v1/scales") match {
+      case Some(ser) => ser.map(scaleSerializedToScale)
+      case None => List.empty
+    }
+
+
   /**
    * Send a message to the vamp host
    * @deprecated  Use sendAndWaitYaml instead
@@ -144,13 +169,6 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
       case Some(slas) => slas.flatMap(sla => mapToSla(Some(sla)))
       case None => List.empty
     }
-
-
-  //  def getEscalations(implicit vampHost: String): List[Escalation] =
-  //    sendAndWait[List[Map[String, _]]](s"GET $vampHost/api/v1/escalations") match {
-  //      case Some(artifacts) => artifacts.flatMap(a => mapToEscalation(Some(a)))
-  //      case None => List.empty
-  //    }
 
 
 }

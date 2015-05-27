@@ -26,6 +26,10 @@ trait CommandLineBasics {
     case "inspect-routing" => InspectRoutingCommand()
     case "inspect-scale" => InspectScaleCommand()
     case "inspect-sla" => InspectSlaCommand()
+    case "escalations" => ListEscalationsCommand()
+    case "filters" => ListFiltersCommand()
+    case "routings" => ListRoutingsCommand()
+    case "scales" => ListScalesCommand()
     //case "remove-blueprint" => RemoveBlueprintCommand()   // Not yet implemented, so don't expose
     case "remove-breed" => RemoveBreedCommand()
     case "slas" => ListSlasCommand()
@@ -50,6 +54,8 @@ trait CommandLineBasics {
         showGeneralUsage(CloneBreedCommand())
         //showGeneralUsage(DeployBlueprint())    // Not yet implemented, so don't expose
         showGeneralUsage(CreateBreedCommand())
+        showGeneralUsage(ListEscalationsCommand())
+        showGeneralUsage(ListFiltersCommand())
         showGeneralUsage(ListDeploymentsCommand())
         showGeneralUsage(HelpCommand())
         showGeneralUsage(InfoCommand())
@@ -63,6 +69,8 @@ trait CommandLineBasics {
         showGeneralUsage(InspectSlaCommand())
         //showGeneralUsage(RemoveBlueprint())    //Not yet implemented, so don't expose
         showGeneralUsage(RemoveBreedCommand())
+        showGeneralUsage(ListRoutingsCommand())
+        showGeneralUsage(ListScalesCommand())
         showGeneralUsage(ListSlasCommand())
         showGeneralUsage(VersionCommand())
         println("")

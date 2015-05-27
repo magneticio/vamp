@@ -31,22 +31,37 @@ object PerformCommand extends Parameters {
   private def doListCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
     case _: ListBreedsCommand =>
       println("NAME".padTo(25, ' ') + "DEPLOYABLE")
-      VampHostCalls.getBreeds.foreach({
-        case b: DefaultBreed => println(s"${b.name.padTo(25, ' ')}${b.deployable.name}")
-        case x => println(x)
-      })
+      VampHostCalls.getBreeds.foreach({ case b: DefaultBreed => println(s"${b.name.padTo(25, ' ')}${b.deployable.name}") })
 
     case _: ListBlueprintsCommand =>
       println("NAME".padTo(40, ' ') + "ENDPOINTS")
-      VampHostCalls.getBlueprints.foreach(blueprint =>
-        println(s"${blueprint.name.padTo(40, ' ')}${blueprint.endpoints.map(e => s"${e.name} -> ${e.value.get}").mkString(", ")}")
-      )
+      VampHostCalls.getBlueprints.foreach(blueprint => println(s"${blueprint.name.padTo(40, ' ')}${blueprint.endpoints.map(e => s"${e.name} -> ${e.value.get}").mkString(", ")}"))
 
     case _: ListDeploymentsCommand =>
       println("NAME".padTo(40, ' ') + "CLUSTERS")
-      VampHostCalls.getDeployments.foreach(deployment =>
-        println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c.name}").mkString(", ")}")
-      )
+      VampHostCalls.getDeployments.foreach(deployment => println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c.name}").mkString(", ")}"))
+
+    case _: ListEscalationsCommand =>
+      println("NAME".padTo(25, ' ') + "TYPE".padTo(20, ' ') + "SETTINGS")
+      VampHostCalls.getEscalations.foreach({
+        case b: ScaleInstancesEscalation => println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
+        case b: ScaleCpuEscalation => println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
+        case b: ScaleMemoryEscalation => println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
+        case b: Escalation => println(s"${b.name.padTo(25, ' ')}")
+        case x => println(x)
+      })
+
+    case _: ListFiltersCommand =>
+      println("NAME".padTo(25, ' ') + "CONDITION")
+      VampHostCalls.getFilters.foreach({ case b: DefaultFilter => println(s"${b.name.padTo(25, ' ')}${b.condition}") })
+
+    case _: ListRoutingsCommand =>
+      println("NAME".padTo(25, ' ') + "FILTERS")
+      VampHostCalls.getRoutings.foreach({ case b: DefaultRouting => println(s"${b.name.padTo(25, ' ')}${b.filters.map({ case d: DefaultFilter => s"${d.condition}" }).mkString(", ")}") })
+
+    case _: ListScalesCommand =>
+      println("NAME".padTo(25, ' ') + "CPU".padTo(7, ' ') + "MEMORY".padTo(10, ' ') + "INSTANCES")
+      VampHostCalls.getScales.foreach({ case b: DefaultScale => println(s"${b.name.padTo(25, ' ')}${b.cpu.toString.padTo(7, ' ')}${b.memory.toString.padTo(10, ' ')}${b.instances}") })
 
     case _: ListSlasCommand =>
       println("NAME")
@@ -79,8 +94,6 @@ object PerformCommand extends Parameters {
     }
     printArtifact(artifact)
   }
-
-
 
 
   private def doDeployCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
@@ -172,7 +185,7 @@ object PerformCommand extends Parameters {
     )
 
 
-  private def printArtifact(artifact: Option[Artifact]) = {
+  private def printArtifact(artifact: Option[Artifact])(implicit options: OptionMap) = {
     getOptionalParameter(json) match {
       case None => artifact.foreach(a => println(artifactToYaml(a)))
       case _ => println(VampHostCalls.prettyJson(artifact))
@@ -188,7 +201,6 @@ object PerformCommand extends Parameters {
     }
     new Yaml().dumpAs(new Yaml().load(toJson(artifact)), Tag.MAP, FlowStyle.BLOCK)
   }
-
 
 
 }

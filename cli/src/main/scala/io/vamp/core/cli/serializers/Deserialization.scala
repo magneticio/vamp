@@ -13,20 +13,21 @@ import scala.language.{implicitConversions, postfixOps}
 
 class Deserialization {
 
-
   case class BlueprintSerialized(name: String, clusters: Map[String, ClusterSerialized], endpoints: Option[Map[String, String]], environmentVariables: Option[Map[String, String]])
 
   case class ClusterSerialized(services: List[ServiceSerialized], sla: Option[Map[String, _]])
 
   case class ServiceSerialized(breed: DefaultBreedSerialized, scale: Option[ScaleSerialized], routing: Option[RoutingSerialized])
 
-  case class ScaleSerialized(cpu: Double, memory: Double, instances: Int)
+  case class ScaleSerialized(name: String, cpu: Double, memory: Double, instances: Int)
 
   case class DefaultBreedSerialized(name: String, deployable: String, ports: Option[Map[String, String]], environmentVariables: Option[Map[String, String]], constants: Option[Map[String, String]], dependencies: Map[String, BreedSerialized])
 
   case class BreedSerialized(name: String)
 
-  case class RoutingSerialized(weight: Int, filters: List[String])
+  case class RoutingSerialized(name: String, weight: Int, filters: List[Map[String, String]])
+
+  case class FilterSerialized(name: String, condition: String)
 
   case class DeploymentSerialized(name: String, clusters: Map[String, DeploymentClusterSerialized], endpoints: Option[Map[String, String]], environmentVariables: Option[Map[String, String]], hosts: Option[Map[String, String]], constants: Option[Map[String, String]], ports: Option[Map[String, String]])
 
@@ -65,16 +66,17 @@ class Deserialization {
     ports = b.ports,
     environmentVariables = b.environmentVariables,
     constants = b.constants,
-    dependencies = b.dependencies.map(dep => dep._1 -> BreedReference(name=dep._2.name))
+    dependencies = b.dependencies.map(dep => dep._1 -> BreedReference(name = dep._2.name))
   )
 
   implicit def scaleSerializedToScale(s: ScaleSerialized): DefaultScale =
-    DefaultScale(name = "", cpu = s.cpu, memory = s.memory, instances = s.instances)
+    DefaultScale(name = s.name, cpu = s.cpu, memory = s.memory, instances = s.instances)
 
 
   implicit def routingSerialized2DefaultRouting(r: RoutingSerialized): DefaultRouting =
-    DefaultRouting(name = "", weight = Some(r.weight), filters = r.filters.map(c => DefaultFilter(name = "", condition = c)))
+    DefaultRouting(name = r.name, weight = Some(r.weight), filters = r.filters.map(filterSerialized2DefaultFilter))
 
+  //DefaultRouting(name = "", weight = Some(r.weight), filters = r.filters.map(c => DefaultFilter(name = "", condition = c)))
 
   implicit def serviceSerialized2Service(s: ServiceSerialized): Service =
     Service(breed = s.breed, scale = s.scale.map(scaleSerializedToScale), routing = s.routing.map(routingSerialized2DefaultRouting))
@@ -84,6 +86,10 @@ class Deserialization {
     m.map(c =>
       Cluster(name = c._1, services = c._2.services.map(serviceSerialized2Service), sla = mapToSla(c._2.sla))
     ).toList
+
+
+  implicit def filterSerialized2DefaultFilter(m: Map[String, String]): DefaultFilter =
+    DefaultFilter(name = m.getOrElse("name", ""), condition = m.getOrElse("condition", ""))
 
 
   implicit def deploymentServerSerialized2DeploymentServer(m: Map[String, _]): DeploymentServer =
