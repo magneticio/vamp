@@ -14,6 +14,7 @@ import scala.io.Source
 object PerformCommand extends Parameters {
 
   import ConsoleHelper._
+
   implicit val formats = CoreSerializationFormat.default
 
   def doCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap): Unit = {
@@ -31,19 +32,19 @@ object PerformCommand extends Parameters {
 
   private def doListCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
     case _: ListBreedsCommand =>
-      println("NAME".padTo(25, ' ').bold.cyan + "DEPLOYABLE" + "".reset)
+      println("NAME".padTo(25, ' ').bold.cyan + "DEPLOYABLE")
       VampHostCalls.getBreeds.foreach({ case b: DefaultBreed => println(s"${b.name.padTo(25, ' ')}${b.deployable.name}") })
 
     case _: ListBlueprintsCommand =>
-      println("NAME".padTo(40, ' ').bold.cyan + "ENDPOINTS" + "".reset)
+      println("NAME".padTo(40, ' ').bold.cyan + "ENDPOINTS")
       VampHostCalls.getBlueprints.foreach(blueprint => println(s"${blueprint.name.padTo(40, ' ')}${blueprint.endpoints.map(e => s"${e.name} -> ${e.value.get}").mkString(", ")}"))
 
     case _: ListDeploymentsCommand =>
-      println("NAME".padTo(40, ' ').bold.cyan + "CLUSTERS" + "".reset)
+      println("NAME".padTo(40, ' ').bold.cyan + "CLUSTERS")
       VampHostCalls.getDeployments.foreach(deployment => println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c.name}").mkString(", ")}"))
 
     case _: ListEscalationsCommand =>
-      println("NAME".padTo(25, ' ').bold.cyan + "TYPE".padTo(20, ' ') + "SETTINGS" + "".reset)
+      println("NAME".padTo(25, ' ').bold.cyan + "TYPE".padTo(20, ' ') + "SETTINGS")
       VampHostCalls.getEscalations.foreach({
         case b: ScaleInstancesEscalation => println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
         case b: ScaleCpuEscalation => println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
@@ -53,19 +54,19 @@ object PerformCommand extends Parameters {
       })
 
     case _: ListFiltersCommand =>
-      println("NAME".padTo(25, ' ').bold.cyan + "CONDITION" + "".reset)
+      println("NAME".padTo(25, ' ').bold.cyan + "CONDITION")
       VampHostCalls.getFilters.foreach({ case b: DefaultFilter => println(s"${b.name.padTo(25, ' ')}${b.condition}") })
 
     case _: ListRoutingsCommand =>
-      println("NAME".padTo(25, ' ').bold.cyan + "FILTERS" + "".reset)
+      println("NAME".padTo(25, ' ').bold.cyan + "FILTERS")
       VampHostCalls.getRoutings.foreach({ case b: DefaultRouting => println(s"${b.name.padTo(25, ' ')}${b.filters.map({ case d: DefaultFilter => s"${d.condition}" }).mkString(", ")}") })
 
     case _: ListScalesCommand =>
-      println("NAME".padTo(25, ' ').bold.cyan + "CPU".padTo(7, ' ') + "MEMORY".padTo(10, ' ') + "INSTANCES" + "".reset)
+      println("NAME".padTo(25, ' ').bold.cyan + "CPU".padTo(7, ' ') + "MEMORY".padTo(10, ' ') + "INSTANCES")
       VampHostCalls.getScales.foreach({ case b: DefaultScale => println(s"${b.name.padTo(25, ' ')}${b.cpu.toString.padTo(7, ' ')}${b.memory.toString.padTo(10, ' ')}${b.instances}") })
 
     case _: ListSlasCommand =>
-      println("NAME".bold.cyan + "".reset)
+      println("NAME".bold.cyan)
       VampHostCalls.getSlas.foreach(sla => println(s"${sla.name}"))
 
     case _ => unhandledCommand _
@@ -132,7 +133,7 @@ object PerformCommand extends Parameters {
 
     case _: HelpCommand => showHelp(HelpCommand())
 
-    case _: VersionCommand => println(s"CLI version: "+s"${getClass.getPackage.getImplementationVersion}".yellow.bold)
+    case _: VersionCommand => println(s"CLI version: " + s"${getClass.getPackage.getImplementationVersion}".yellow.bold)
 
     case x: UnknownCommand => terminateWithError(s"Unknown command '${x.name}'")
 

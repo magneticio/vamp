@@ -7,7 +7,7 @@ trait CommandLineBasics {
   import ConsoleHelper._
 
   def terminateWithError(msg: String): Unit = {
-    println(s"ERROR: ".red.bold + "".reset +  s"$msg".red)
+    println(s"ERROR: ".red.bold + "" +  s"$msg".red)
     sys.exit(1)
   }
 
@@ -48,7 +48,7 @@ trait CommandLineBasics {
   def showHelp(command: CliCommand): Unit = {
     command match {
       case _: HelpCommand => {
-        println(s"Usage: ".bold + "".reset +s"$appName COMMAND [args..]")
+        println(s"Usage: ".bold + ""+s"$appName COMMAND [args..]")
         println("")
         println("Commands:")
         showGeneralUsage(ListBlueprintsCommand())
@@ -76,11 +76,11 @@ trait CommandLineBasics {
         showGeneralUsage(ListSlasCommand())
         showGeneralUsage(VersionCommand())
         println("".reset)
-        println(s"Run "+s"$appName COMMMAND --help".bold +  "".reset + "  for additional help about the different command options")
+        println(s"Run "+s"$appName COMMMAND --help".bold +  "" + "  for additional help about the different command options")
       }
 
       case _ => {
-        println(s"Usage: ".bold + "".reset +s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
+        println(s"Usage: ".bold + "" +s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
         if (command.usage.nonEmpty) {
           println("")
           println(command.usage)
@@ -94,7 +94,7 @@ trait CommandLineBasics {
   }
 
   private def showGeneralUsage(command: CliCommand): Unit = {
-    println(s"  ${command.name.padTo(20, ' ')}".bold + "".reset + s"${command.description}".yellow +"".reset)
+    println(s"  ${command.name.padTo(20, ' ')}".bold + "" + s"${command.description}".yellow +"")
   }
 
 

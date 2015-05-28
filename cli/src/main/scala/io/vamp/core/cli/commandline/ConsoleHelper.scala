@@ -8,47 +8,47 @@ object ConsoleHelper {
 
     // Colors
 
-    def black = s"$BLACK$str"
+    def black = BLACK + str + RESET
 
-    def red = s"$RED$str"
+    def red = RED + str + RESET
 
-    def green = s"$GREEN$str"
+    def green = GREEN + str + RESET
 
-    def yellow = s"$YELLOW$str"
+    def yellow = YELLOW + str + RESET
 
-    def blue = s"$BLUE$str"
+    def blue = BLUE + str + RESET
 
-    def magenta = s"$MAGENTA$str"
+    def magenta = MAGENTA + str + RESET
 
-    def cyan = s"$CYAN$str"
+    def cyan = CYAN + str + RESET
 
-    def white = s"$WHITE$str"
+    def white = WHITE + str + RESET
 
-    def blackBg = s"$BLACK_B$str"
+    def blackBg = BLACK + str + RESET
 
-    def redBg = s"$RED_B$str"
+    def redBg = RED_B + str + RESET
 
-    def greenBg = s"$GREEN_B$str"
+    def greenBg = GREEN_B + str + RESET
 
-    def yellowBg = s"$YELLOW_B$str"
+    def yellowBg = YELLOW_B + str + RESET
 
-    def blueBg = s"$BLUE_B$str"
+    def blueBg = BLUE_B + str + RESET
 
-    def magentaBg = s"$MAGENTA_B$str"
+    def magentaBg = MAGENTA_B + str + RESET
 
-    def cyanBg = s"$CYAN_B$str"
+    def cyanBg = CYAN_B + str + RESET
 
-    def whiteBg = s"$WHITE_B$str"
+    def whiteBg = WHITE_B + str + RESET
 
     // Layout
 
-    def blink = s"$BLINK$str"
+    def blink = BLINK + str + RESET
 
-    def bold = s"$BOLD$str"
+    def bold = BOLD + str + RESET
 
-    def underlined = s"$UNDERLINED$str"
+    def underlined = UNDERLINED + str + RESET
 
-    def reset = s"$RESET$str"
+    def reset = RESET + str
   }
 
 }
