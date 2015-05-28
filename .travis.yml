@@ -9,9 +9,9 @@ script:
 - find $HOME/.sbt -name "*.lock" | xargs rm
 after_success:
 - sbt coveralls
-- test ${TRAVIS_PULL_REQUEST} == "false" && test ${TRAVIS_BRANCH} == "feature/multiple-artifacts"
-  && sh "$TRAVIS_BUILD_DIR/.travis-ci-bintray-credentials.sh" && sbt 'set version
-  := version.value + "." + System.getenv("TRAVIS_BUILD_NUMBER")' publish
+- test ${TRAVIS_PULL_REQUEST} == "false" && test ${TRAVIS_BRANCH} == "feature/multiple-artifacts" &&
+  sh "$TRAVIS_BUILD_DIR/.travis-ci-bintray-credentials.sh" && sbt 'set version :=
+  version.value + "." + System.getenv("TRAVIS_BUILD_NUMBER")' publish
 branches:
   only:
   - master
@@ -22,5 +22,5 @@ notifications:
     secure: PtU8WrGwOkhyzaSlfUC+JkSZbwkhNQYFll4gWYueSxjC2EXCSo3GyWoZs3jlCmjVIhyiA32Wh/BduuGH6CUNbjqx+DQH+WYAgsO2/u2NtRPT87wP0DY0X9c7+OBIKZfnCsfIgWlYSrW3WKjiOFAZvu40ihgV/3ZUADF0n5UyUss=
 env:
   global:
-  - secure: itbQQz+3k1/TV+up1LVwqGF01cF3SssUwtOG/Mz1nwFpsmQmMWHg1fyy0sg4Fyc3t9w0yzrGuWqO0VeckLYFNSCd0DlQ02Owqy5FqOtirT59O3BSiA5QjKir2hhwx4KC5oG2nNgnePLkFz0zuXBpZNkDZ44g95xV3mYEPH5ZGws=
-  - secure: V6/kUvWgbB2Yv4OanSd31nb88gTPGlynF0GUxFN5ZXqeAsiN2FLSR7WWRb5uI86edk3MJOINjlYET+B4s9S2mgqd6Ock4FFEMGz9IpnkE4j0U9rugMiZCbfr/nmO4L/qCVJrOpqIQGBhCJ/AZ/mPfNq2GnKPjR3KXfmHtntl4rU=
+  - secure: e6MAmhm9bnYMlJkhCgJHH5zermqHIN2rlbn+Quao2O2rCjwW2jeYATIvj912zwk0X7vZ7Cp3eBQUpRLxZW38ZkYbrPp6K84UKY8Fxz1aSUyg83GRqnEb4BbV5L5CDQC+u8P1Pb+MPU+3KQtrupQUse0xT9fa/+H0j4gi+DlFvVE=
+  - secure: iRqr3ss34y81aqvQXpMzBErjdiSLZ5ggxRC9sLl9K2CtkWcxKlyYZmHql9gwgVNgJow8khqnlW4/Asr7XcSTw+bEq0PClM5li0huLLmDlCGtwsgMDfdEDTHtwKTTk98zS5UnhcBgbKIpEcLV0t8w0c3PDXNqxiK0KHdhYLlkiaE=
