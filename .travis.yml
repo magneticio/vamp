@@ -7,7 +7,6 @@ sudo: false
 script:
 - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M clean coverage test
 - find $HOME/.sbt -name "*.lock" | xargs rm
-- find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
 after_success:
 - sbt coveralls
 - test ${TRAVIS_PULL_REQUEST} == "false" && test ${TRAVIS_BRANCH} == "feature/multiple-artifacts"
