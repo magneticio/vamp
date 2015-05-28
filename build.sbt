@@ -4,7 +4,7 @@ organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
-version in ThisBuild := "0.7.6"
+version := "0.7.6"
 
 scalaVersion := "2.11.5"
 
