@@ -154,7 +154,13 @@ javacOptions ++= Seq("-encoding", "UTF-8")
 scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation, Opts.compile.unchecked) ++
   Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint", "-feature")
 
+bintrayPublishSettings
 
+bintray.Keys.repository in bintray.Keys.bintray := "vamp"
+
+licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html"))
+
+bintray.Keys.bintrayOrganization in bintray.Keys.bintray := Some("magnetic-io")
 
 
 
