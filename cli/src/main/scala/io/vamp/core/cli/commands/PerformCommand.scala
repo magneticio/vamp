@@ -1,7 +1,7 @@
 package io.vamp.core.cli.commands
 
 import io.vamp.core.cli.backend.VampHostCalls
-import io.vamp.core.cli.commandline.Parameters
+import io.vamp.core.cli.commandline.{ConsoleHelper, Parameters}
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.serialization.CoreSerializationFormat
 import org.json4s.native.Serialization._
@@ -13,6 +13,7 @@ import scala.io.Source
 
 object PerformCommand extends Parameters {
 
+  import ConsoleHelper._
   implicit val formats = CoreSerializationFormat.default
 
   def doCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap): Unit = {
@@ -30,19 +31,19 @@ object PerformCommand extends Parameters {
 
   private def doListCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
     case _: ListBreedsCommand =>
-      println("NAME".padTo(25, ' ') + "DEPLOYABLE")
+      println("NAME".padTo(25, ' ') + "DEPLOYABLE".bold.cyan + "".reset)
       VampHostCalls.getBreeds.foreach({ case b: DefaultBreed => println(s"${b.name.padTo(25, ' ')}${b.deployable.name}") })
 
     case _: ListBlueprintsCommand =>
-      println("NAME".padTo(40, ' ') + "ENDPOINTS")
+      println("NAME".padTo(40, ' ') + "ENDPOINTS".bold.cyan + "".reset)
       VampHostCalls.getBlueprints.foreach(blueprint => println(s"${blueprint.name.padTo(40, ' ')}${blueprint.endpoints.map(e => s"${e.name} -> ${e.value.get}").mkString(", ")}"))
 
     case _: ListDeploymentsCommand =>
-      println("NAME".padTo(40, ' ') + "CLUSTERS")
+      println("NAME".padTo(40, ' ') + "CLUSTERS".bold.cyan + "".reset)
       VampHostCalls.getDeployments.foreach(deployment => println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c.name}").mkString(", ")}"))
 
     case _: ListEscalationsCommand =>
-      println("NAME".padTo(25, ' ') + "TYPE".padTo(20, ' ') + "SETTINGS")
+      println("NAME".padTo(25, ' ') + "TYPE".padTo(20, ' ') + "SETTINGS".bold.cyan + "".reset)
       VampHostCalls.getEscalations.foreach({
         case b: ScaleInstancesEscalation => println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
         case b: ScaleCpuEscalation => println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
@@ -52,19 +53,19 @@ object PerformCommand extends Parameters {
       })
 
     case _: ListFiltersCommand =>
-      println("NAME".padTo(25, ' ') + "CONDITION")
+      println("NAME".padTo(25, ' ') + "CONDITION".bold.cyan + "".reset)
       VampHostCalls.getFilters.foreach({ case b: DefaultFilter => println(s"${b.name.padTo(25, ' ')}${b.condition}") })
 
     case _: ListRoutingsCommand =>
-      println("NAME".padTo(25, ' ') + "FILTERS")
+      println("NAME".padTo(25, ' ') + "FILTERS".bold.cyan + "".reset)
       VampHostCalls.getRoutings.foreach({ case b: DefaultRouting => println(s"${b.name.padTo(25, ' ')}${b.filters.map({ case d: DefaultFilter => s"${d.condition}" }).mkString(", ")}") })
 
     case _: ListScalesCommand =>
-      println("NAME".padTo(25, ' ') + "CPU".padTo(7, ' ') + "MEMORY".padTo(10, ' ') + "INSTANCES")
+      println("NAME".padTo(25, ' ') + "CPU".padTo(7, ' ') + "MEMORY".padTo(10, ' ') + "INSTANCES".bold.cyan + "".reset)
       VampHostCalls.getScales.foreach({ case b: DefaultScale => println(s"${b.name.padTo(25, ' ')}${b.cpu.toString.padTo(7, ' ')}${b.memory.toString.padTo(10, ' ')}${b.instances}") })
 
     case _: ListSlasCommand =>
-      println("NAME")
+      println("NAME".bold.cyan + "".reset)
       VampHostCalls.getSlas.foreach(sla => println(s"${sla.name}"))
 
     case _ => unhandledCommand _
@@ -131,7 +132,7 @@ object PerformCommand extends Parameters {
 
     case _: HelpCommand => showHelp(HelpCommand())
 
-    case _: VersionCommand => println(s"CLI version: ${getClass.getPackage.getImplementationVersion}")
+    case _: VersionCommand => println(s"CLI version: "+s"${getClass.getPackage.getImplementationVersion}".yellow.bold)
 
     case x: UnknownCommand => terminateWithError(s"Unknown command '${x.name}'")
 
