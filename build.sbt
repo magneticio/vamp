@@ -1,12 +1,10 @@
-import _root_.sbt.Keys._
+import sbt.Keys._
 
-
-organization in ThisBuild := "io.vamp.core"
+organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
 version in ThisBuild := "0.7.6"
-
 
 scalaVersion := "2.11.5"
 
@@ -44,11 +42,19 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
       <url>git@github.com:magneticio/vamp-core.git</url>
     </scm>
 
+
 // Use local maven repository
 resolvers in ThisBuild ++= Seq(
   Resolver.typesafeRepo("releases"),
   Resolver.jcenterRepo
 )
+
+lazy val bintraySetting = Seq(
+  bintrayOrganization  := Some("magnetic-io"),
+    licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+    bintrayRepository  := "vamp"
+)
+
 
 // Library Versions
 val sprayVersion = "1.3.2"
@@ -76,7 +82,7 @@ dependencyOverrides in ThisBuild ++= Set(
 )
 
 // Root project and subproject definitions
-lazy val root = project.in(file(".")).settings(
+lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
   // Disable publishing root empty pom
   packagedArtifacts in file(".") := Map.empty,
   // allows running main classes from subprojects
@@ -88,7 +94,9 @@ lazy val root = project.in(file(".")).settings(
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
-lazy val bootstrap = project.settings(
+lazy val bootstrap = project.settings(bintraySetting: _*).settings(
+  description := "Bootstrap for Vamp Core",
+  name:="core-bootstrap",
   libraryDependencies ++= Seq(
     "org.json4s" %% "json4s-native" % json4sVersion,
     "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
@@ -101,7 +109,9 @@ lazy val bootstrap = project.settings(
   assemblyJarName in assembly := s"core-assembly-${version.value}.jar"
 ).dependsOn(rest_api)
 
-lazy val rest_api = project.settings(
+lazy val rest_api = project.settings(bintraySetting: _*).settings(
+  description := "REST api for Vamp Core",
+  name:="core-rest_api",
   libraryDependencies ++=Seq(
     "io.spray" %% "spray-can" % sprayVersion,
     "io.spray" %% "spray-routing" % sprayVersion,
@@ -109,20 +119,33 @@ lazy val rest_api = project.settings(
   )
 ).dependsOn(operation, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val operation = project.dependsOn(persistence, container_driver, dictionary, pulse_driver).disablePlugins(sbtassembly.AssemblyPlugin)
+lazy val operation = project.settings(bintraySetting: _*).settings(
+  description := "The control center of Vamp",
+  name:="core-operation"
+  ).dependsOn(persistence, container_driver, dictionary, pulse_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val pulse_driver = project.dependsOn(router_driver).disablePlugins(sbtassembly.AssemblyPlugin)
+lazy val pulse_driver = project.settings(bintraySetting: _*).settings(
+  description := "Enables Vamp to talk to Vamp Pulse",
+  name:="core-pulse_driver"
+).dependsOn(router_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val router_driver = project.dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
+lazy val router_driver = project.settings(bintraySetting: _*).settings(
+  description := "Enables Vamp to talk to Vamp Router",
+  name:="core-router_driver"
+).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val container_driver = project.settings(
+lazy val container_driver = project.settings(bintraySetting: _*).settings(
+  description := "Enables Vamp to talk to container managers",
+  name:="core-container_driver",
   libraryDependencies ++=Seq(
     "org.scala-lang.modules" %% "scala-async" % "0.9.2",
     "io.vamp" %% "tugboat" % tugboatVersion exclude("org.slf4j", "slf4j-log4j12")
   )
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val persistence = project.settings(
+lazy val persistence = project.settings(bintraySetting: _*).settings(
+  description:= "Stores Vamp artifacts",
+  name:="core-persistence",
   libraryDependencies ++=Seq(
     "com.h2database" % "h2" % h2Version,
     "com.typesafe.slick" %% "slick" % slickVersion,
@@ -133,9 +156,14 @@ lazy val persistence = project.settings(
   )
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val dictionary = project.dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
+lazy val dictionary = project.settings(bintraySetting: _*).settings(
+  description := "Dictionary for Vamp",
+  name:="core-dictionary"
+  ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val model = project.settings(
+lazy val model = project.settings(bintraySetting: _*).settings(
+  description := "Definitions of Vamp artifacts",
+  name:="core-model",
   libraryDependencies ++= Seq(
     "io.vamp" %% "common" % vampCommonVersion,
     "org.yaml" % "snakeyaml" % snakeyamlVersion,
@@ -144,7 +172,10 @@ lazy val model = project.settings(
   )
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val swagger = project.disablePlugins(sbtassembly.AssemblyPlugin)
+lazy val swagger = project.settings(bintraySetting: _*).settings(
+  description := "Swagger annotations",
+  name:="core-swagger"
+).disablePlugins(sbtassembly.AssemblyPlugin)
 
 // Java version and encoding requirements
 scalacOptions += "-target:jvm-1.8"
@@ -154,13 +185,6 @@ javacOptions ++= Seq("-encoding", "UTF-8")
 scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation, Opts.compile.unchecked) ++
   Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint", "-feature")
 
-bintrayPublishSettings
-
-bintray.Keys.repository in bintray.Keys.bintray := "vamp"
-
-licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html"))
-
-bintray.Keys.bintrayOrganization in bintray.Keys.bintray := Some("magnetic-io")
 
 
 
