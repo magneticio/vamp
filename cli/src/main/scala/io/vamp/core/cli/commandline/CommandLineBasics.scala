@@ -48,9 +48,9 @@ trait CommandLineBasics {
   def showHelp(command: CliCommand): Unit = {
     command match {
       case _: HelpCommand => {
-        println(s"Usage: ".white.bold + "".reset +s"$appName COMMAND [args..]")
+        println(s"Usage: ".bold + "".reset +s"$appName COMMAND [args..]")
         println("")
-        println("Commands:".white)
+        println("Commands:")
         showGeneralUsage(ListBlueprintsCommand())
         showGeneralUsage(ListBreedsCommand())
         showGeneralUsage(CloneBreedCommand())
@@ -75,12 +75,12 @@ trait CommandLineBasics {
         showGeneralUsage(ListScalesCommand())
         showGeneralUsage(ListSlasCommand())
         showGeneralUsage(VersionCommand())
-        println("".white)
-        println(s"Run '$appName COMMMAND --help' for help about the different command options")
+        println("".reset)
+        println(s"Run "+s"$appName COMMMAND --help".bold +  "".reset + "  for additional help about the different command options")
       }
 
       case _ => {
-        println(s"Usage: ".white.bold + "".reset +s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
+        println(s"Usage: ".bold + "".reset +s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
         if (command.usage.nonEmpty) {
           println("")
           println(command.usage)
@@ -94,7 +94,7 @@ trait CommandLineBasics {
   }
 
   private def showGeneralUsage(command: CliCommand): Unit = {
-    println(s"  ${command.name.padTo(20, ' ')}".white.bold + "".reset + s"${command.description}".yellow)
+    println(s"  ${command.name.padTo(20, ' ')}".bold + "".reset + s"${command.description}".yellow +"".reset)
   }
 
 
