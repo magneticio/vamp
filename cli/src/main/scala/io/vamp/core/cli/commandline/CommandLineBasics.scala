@@ -4,8 +4,10 @@ import io.vamp.core.cli.commands._
 
 trait CommandLineBasics {
 
+  import ConsoleHelper._
+
   def terminateWithError(msg: String): Unit = {
-    println(s"ERROR: $msg")
+    println(s"ERROR: ".red.bold + "".reset +  s"$msg".red)
     sys.exit(1)
   }
 
@@ -46,9 +48,9 @@ trait CommandLineBasics {
   def showHelp(command: CliCommand): Unit = {
     command match {
       case _: HelpCommand => {
-        println(s"Usage: $appName COMMAND [args..]")
+        println(s"Usage: ".white.bold + "".reset +s"$appName COMMAND [args..]")
         println("")
-        println("Commands:")
+        println("Commands:".white)
         showGeneralUsage(ListBlueprintsCommand())
         showGeneralUsage(ListBreedsCommand())
         showGeneralUsage(CloneBreedCommand())
@@ -73,12 +75,12 @@ trait CommandLineBasics {
         showGeneralUsage(ListScalesCommand())
         showGeneralUsage(ListSlasCommand())
         showGeneralUsage(VersionCommand())
-        println("")
+        println("".white)
         println(s"Run '$appName COMMMAND --help' for help about the different command options")
       }
 
       case _ => {
-        println(s"Usage: $appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
+        println(s"Usage: ".white.bold + "".reset +s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
         if (command.usage.nonEmpty) {
           println("")
           println(command.usage)
@@ -92,8 +94,9 @@ trait CommandLineBasics {
   }
 
   private def showGeneralUsage(command: CliCommand): Unit = {
-    println(s"  ${command.name.padTo(20, ' ')} ${command.description}")
+    println(s"  ${command.name.padTo(20, ' ')}".white.bold + "".reset + s"${command.description}".yellow)
   }
 
 
 }
+
