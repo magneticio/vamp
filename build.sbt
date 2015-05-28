@@ -4,7 +4,7 @@ organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
-version := "0.7.6"
+version in ThisBuild := "0.7.6." + GitHelper.headSha()
 
 scalaVersion := "2.11.5"
 
