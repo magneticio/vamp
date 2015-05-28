@@ -4,6 +4,7 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification._
 import io.vamp.core.model.validator.BlueprintTraitValidator
 
+import scala.collection.mutable.LinkedHashMap
 import scala.language.postfixOps
 
 trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader[Blueprint] with BlueprintTraitValidator {
@@ -121,7 +122,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   private def dialectValues(implicit source: YamlObject): Map[Dialect.Value, Any] = {
     Dialect.values.toList.flatMap(dialect => <<?[Any](dialect.toString.toLowerCase) match {
       case None => if (source.contains(dialect.toString.toLowerCase)) (dialect -> new YamlObject) :: Nil else Nil
-      case Some(d) if d.isInstanceOf[collection.Map[_, _]] => (dialect -> d) :: Nil
+      case Some(d: collection.Map[_, _]) => (dialect -> d.asInstanceOf[YamlObject]) :: Nil
       case Some(d) => (dialect -> new YamlObject) :: Nil
     }).toMap
   }
@@ -143,7 +144,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
   protected def validateRoutingWeights(blueprint: DefaultBlueprint): Unit = {
     blueprint.clusters.find({ cluster =>
-      val weights = cluster.services.map(_.routing).flatten.filter(_.isInstanceOf[DefaultRouting]).map(_.asInstanceOf[DefaultRouting]).map(_.weight).flatten
+      val weights = cluster.services.flatMap(_.routing).filter(_.isInstanceOf[DefaultRouting]).map(_.asInstanceOf[DefaultRouting]).flatMap(_.weight)
       weights.exists(_ < 0) || weights.sum > 100
     }).flatMap {
       case cluster => error(RoutingWeightError(cluster))
@@ -161,7 +162,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       case breed: DefaultBreed => breed.dependencies.map((breed, _))
       case _ => List()
     }).find({
-      case (breed, dependency) => breeds.find(_.name == dependency._2.name).isEmpty
+      case (breed, dependency) => !breeds.exists(_.name == dependency._2.name)
     }).flatMap {
       case (breed, dependency) => error(UnresolvedBreedDependencyError(breed, dependency))
     }
