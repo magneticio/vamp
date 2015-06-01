@@ -157,11 +157,14 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val cli = project.settings(
+  description := "Command Line Interface for Vamp",
+  name:="core-cli",
   libraryDependencies ++= Seq(
     "org.yaml" % "snakeyaml" % snakeyamlVersion
   ),
   assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
 ).dependsOn(model, rest_api)
+
 lazy val dictionary = project.settings(bintraySetting: _*).settings(
   description := "Dictionary for Vamp",
   name:="core-dictionary"
