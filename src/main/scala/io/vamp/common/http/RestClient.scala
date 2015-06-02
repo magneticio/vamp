@@ -51,6 +51,9 @@ object RestClient {
       case None =>
         logger.trace(s"req [$request]")
         httpHeaders
+      case body:String =>
+        logger.trace(s"req [$request] - $body")
+        httpHeaders.setBody(body)
       case anyRef =>
         val body = write(anyRef)
         logger.trace(s"req [$request] - $body")
