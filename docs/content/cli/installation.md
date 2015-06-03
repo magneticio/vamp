@@ -11,7 +11,6 @@ menu:
 Vamp requires Java version 8 to be installed. 
 
 To verify if the correct Java version has been installed, type 
-
 {{% copyable %}}
 ```
 java -version
@@ -32,14 +31,11 @@ For further installation steps, please check the section appropriate for your pl
 * [OSX](#osx)
 * [Windows](#windows)
 
-
 ## <a name="debian"></a>Debian / Ubuntu
 A detailed explanation on how to install Java 8 on Debian / Ubuntu can be found here: 
 http://www.webupd8.org/2014/03/how-to-install-oracle-java-8-in-debian.html
 
-
 To add the Vamp Debian repository & install the vamp-cli package:
-
 {{% copyable %}}
 ```bash
 echo "deb https://dl.bintray.com/magnetic-io/debian wheezy main" | sudo tee -a /etc/apt/sources.list
@@ -49,7 +45,6 @@ sudo apt-get install vamp-cli
 {{% /copyable %}}
 
 Now you can run the Vamp CLI, by typing 
-
 {{% copyable %}}
 ```
 vamp
