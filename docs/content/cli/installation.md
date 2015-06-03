@@ -1,6 +1,6 @@
 ---
 title: Installation
-weight: 0
+weight: 10
 ---
 menu:
   main:
@@ -13,7 +13,9 @@ Vamp requires Java version 8 to be installed.
 To verify if the correct Java version has been installed, type 
 
 {{% copyable %}}
-`java -version`. 
+```
+java -version
+``` 
 {{% /copyable %}}
 
 It should report back the version as 1.8
@@ -36,7 +38,7 @@ A detailed explanation on how to install Java 8 on Debian / Ubuntu can be found 
 http://www.webupd8.org/2014/03/how-to-install-oracle-java-8-in-debian.html
 
 
-To add the Vamp debian repo & install the vamp-cli package:
+To add the Vamp Debian repository & install the vamp-cli package:
 
 {{% copyable %}}
 ```bash
