@@ -1,10 +1,11 @@
 ---
 title: Installation
-weight: 10
+weight: 0
+---
 menu:
   main:
     parent: cli
----
+
 # Installation
 
 Vamp requires Java version 8 to be installed. 
@@ -48,7 +49,9 @@ sudo apt-get install vamp-cli
 Now you can run the Vamp CLI, by typing 
 
 {{% copyable %}}
-`vamp`
+```
+vamp
+```
 {{% /copyable %}}
 
 
