@@ -24,28 +24,28 @@ VAMP CLI support the following commands:
 
 |Command | Description |
 |--------|-------------|
-|  [blueprints]blueprints                  | List of blueprints |
-|  [breeds]breeds                          | List of breeds |
-|  [clone-breed]clone-breed                | Clone a breed |
-|  [create-breed]create-breed              | Create a breed |
-|  [escalations]escalations                | List of escalations |
-|  [filters]filters                        | List of filters |
-|  [deployments]deployments                | List of deployments |
-|  [help]help                              | Help message |
-|  [info]info                              | Information from Vamp Core |
-|  [inspect-breed]inspect-breed            | Return details of the specified breed|
-|  [inspect-blueprint]inspect-blueprint    | Return details of the specified blueprint |
-|  [inspect-deployment]inspect-deployment  | Return details of the specified deployment |
-|  [inspect-escalation]inspect-escalation  | Return details of the specified escalation |
-|  [inspect-filter]inspect-filter          | Return details of the specified filter |
-|  [inspect-routing]inspect-routing        | Return details of the specified routing |
-|  [inspect-scale]inspect-scale            | Return details of the specified scale |
-|  [inspect-sla]inspect-sla                | Return details of the specified sla |
-|  [remove-breed]remove-breed              | Removes a breed |
-|  [routings]routings                      | List of routings |
-|  [scales]scales                          | List of scales |
-|  [slas]slas                              | List of slas |
-|  [version]version                        | Show version of the VAMP CLI client |
+|  [blueprints](#blueprints)                  | List of blueprints |
+|  [breeds](#breeds)                          | List of breeds |
+|  [clone-breed](#clone-breed)                | Clone a breed |
+|  [create-breed](#create-breed)              | Create a breed |
+|  [escalations](#escalations)                | List of escalations |
+|  [filters](#filters)                        | List of filters |
+|  [deployments](#deployments)                | List of deployments |
+|  [help](#help)                              | Help message |
+|  [info](#info)                              | Information from Vamp Core |
+|  [inspect-breed](#inspect-breed)            | Return details of the specified breed|
+|  [inspect-blueprint](#inspect-blueprint)    | Return details of the specified blueprint |
+|  [inspect-deployment](#inspect-deployment)  | Return details of the specified deployment |
+|  [inspect-escalation](#inspect-escalation)  | Return details of the specified escalation |
+|  [inspect-filter](#inspect-filter)          | Return details of the specified filter |
+|  [inspect-routing](#inspect-routing)        | Return details of the specified routing |
+|  [inspect-scale](#inspect-scale)            | Return details of the specified scale |
+|  [inspect-sla](#inspect-sla)                | Return details of the specified sla |
+|  [remove-breed](#remove-breed)              | Removes a breed |
+|  [routings](#routings)                      | List of routings |
+|  [scales](#scales)                          | List of scales |
+|  [slas](#slas)                              | List of slas |
+|  [version](#version)                        | Show version of the VAMP CLI client |
 
 ## <a name="blueprints"></a>Blueprints
 Shows a list of blueprints
