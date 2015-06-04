@@ -39,7 +39,7 @@ object SlaActor extends ActorDescription {
 
 class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with PulseNotificationProvider with DefaultPackageMessageResolverProvider {
 
-  def tags = "sla" :: Nil
+  def tags = Set("sla")
 
   def receive: Receive = {
     case SlaProcessAll =>

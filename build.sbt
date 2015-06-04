@@ -57,6 +57,10 @@ lazy val bintraySetting = Seq(
 
 
 // Library Versions
+
+val vampCommonVersion = "0.7.6.42"
+val vampPulseVersion = "0.7.6.2e073f9"
+
 val sprayVersion = "1.3.2"
 //val sprayJsonVersion = "1.3.1"
 val json4sVersion = "3.2.11"
@@ -67,9 +71,8 @@ val logbackVersion = "1.1.2"
 val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
 val tugboatVersion = "0.2.3"
-val vampCommonVersion = "0.7.6.38"
 val typesafeConfigVersion = "1.2.1"
-val snakeyamlVersion = "1.14"
+val snakeYamlVersion = "1.14"
 val h2Version = "1.3.166"
 val slickVersion = "2.1.0"
 val activeSlickVersion = "0.2.2"
@@ -126,7 +129,10 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
 
 lazy val pulse_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to Vamp Pulse",
-  name:="core-pulse_driver"
+  name:="core-pulse_driver",
+  libraryDependencies ++=Seq(
+    "io.vamp" %% "pulse-client" % vampPulseVersion
+  )
 ).dependsOn(router_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val router_driver = project.settings(bintraySetting: _*).settings(
@@ -147,6 +153,7 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
   description:= "Stores Vamp artifacts",
   name:="core-persistence",
   libraryDependencies ++=Seq(
+    "io.vamp" %% "pulse-client" % vampPulseVersion,
     "com.h2database" % "h2" % h2Version,
     "com.typesafe.slick" %% "slick" % slickVersion,
     "io.strongtyped" %% "active-slick" % activeSlickVersion,
@@ -166,7 +173,8 @@ lazy val model = project.settings(bintraySetting: _*).settings(
   name:="core-model",
   libraryDependencies ++= Seq(
     "io.vamp" %% "common" % vampCommonVersion,
-    "org.yaml" % "snakeyaml" % snakeyamlVersion,
+    "io.vamp" %% "pulse-model" % vampPulseVersion,
+    "org.yaml" % "snakeyaml" % snakeYamlVersion,
     "junit" % "junit" % junitVersion % "test",
     "org.scalatest" %% "scalatest" % scalatestVersion % "test"
   )
