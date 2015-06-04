@@ -21,31 +21,28 @@ export VAMP_HOST=http://192.168.59.103:8081
 
 
 VAMP CLI support the following commands:
-
-|Command | Description |
-|--------|-------------|
-|  [blueprints](#blueprints)                  | List of blueprints |
-|  [breeds](#breeds)                          | List of breeds |
-|  [clone-breed](#clone-breed)                | Clone a breed |
-|  [create-breed](#create-breed)              | Create a breed |
-|  [escalations](#escalations)                | List of escalations |
-|  [filters](#filters)                        | List of filters |
-|  [deployments](#deployments)                | List of deployments |
-|  [help](#help)                              | Help message |
-|  [info](#info)                              | Information from Vamp Core |
-|  [inspect-breed](#inspect-breed)            | Return details of the specified breed|
-|  [inspect-blueprint](#inspect-blueprint)    | Return details of the specified blueprint |
-|  [inspect-deployment](#inspect-deployment)  | Return details of the specified deployment |
-|  [inspect-escalation](#inspect-escalation)  | Return details of the specified escalation |
-|  [inspect-filter](#inspect-filter)          | Return details of the specified filter |
-|  [inspect-routing](#inspect-routing)        | Return details of the specified routing |
-|  [inspect-scale](#inspect-scale)            | Return details of the specified scale |
-|  [inspect-sla](#inspect-sla)                | Return details of the specified sla |
-|  [remove-breed](#remove-breed)              | Removes a breed |
-|  [routings](#routings)                      | List of routings |
-|  [scales](#scales)                          | List of scales |
-|  [slas](#slas)                              | List of slas |
-|  [version](#version)                        | Show version of the VAMP CLI client |
+-  [blueprints](#blueprints)                
+-  [breeds](#breeds)                         
+-  [clone-breed](#clone-breed)               
+-  [create-breed](#create-breed)            
+-  [escalations](#escalations)               
+-  [filters](#filters)                       
+-  [deployments](#deployments)               
+-  [help](#help)                              
+-  [info](#info)                              
+-  [inspect-breed](#inspect-breed)            
+-  [inspect-blueprint](#inspect-blueprint)   
+-  [inspect-deployment](#inspect-deployment)  
+-  [inspect-escalation](#inspect-escalation)  
+-  [inspect-filter](#inspect-filter)          
+-  [inspect-routing](#inspect-routing)        
+-  [inspect-scale](#inspect-scale)            
+-  [inspect-sla](#inspect-sla)                
+-  [remove-breed](#remove-breed)             
+-  [routings](#routings)                      
+-  [scales](#scales)                         
+-  [slas](#slas)                             
+-  [version](#version)                       
 
 ## <a name="blueprints"></a>Blueprints
 Shows a list of blueprints
@@ -92,6 +89,7 @@ Shows a list of deployments
 
 **Example:**
 ```bash
+> vamp deployments
 ```
 
 ## <a name="escalations"></a>Escalations
@@ -100,6 +98,7 @@ Shows a list of escalations
 
 **Example:**
 ```bash
+> vamp escalations
 ```
 
 ## <a name="filter"></a>Filters
@@ -108,6 +107,7 @@ Shows a list of filters
 
 **Example:**
 ```bash
+> vamp filters
 ```
 
 ## <a name="help"></a>Help
@@ -150,6 +150,7 @@ Displays the Vamp Info message
 
 **Example:**
 ```bash
+> vamp info
 ```
 
 ## <a name="inspect-breed"></a>Inspect Breed
@@ -157,54 +158,63 @@ Displays the Vamp Info message
 
 **Example:**
 ```bash
+> vamp inspect-breed abc
 ```
 
 ## <a name="inspect-blueprint"></a>Inspect Blueprint
 
 **Example:**
 ```bash
+> vamp inspect-blueprint def
 ```
 
 ## <a name="inspect-deployment"></a>Inspect Deployment
 
 **Example:**
 ```bash
+> vamp inspect-deployment abc
 ```
 
 ## <a name="inspect-escalation"></a>Inspect Escalation
 
 **Example:**
 ```bash
+> vamp inspect-escalation fgh
 ```
 
 ## <a name="inspect-filter"></a>Inspect Filter
 
 **Example:**
 ```bash
+> vamp inspect-filter klm
 ```
 
 ## <a name="inspect-routing"></a>Inspect Routing
 
 **Example:**
 ```bash
+> vamp inspect-routing nip
 ```
 
 ## <a name="inspect-scale"></a>Inspect Scale
 
 **Example:**
 ```bash
+> vamp inspect-scale few
 ```
 
 ## <a name="inspect-sla"></a>Inspect SLA
 
 **Example:**
 ```bash
+> vamp inspect-sla tgb
 ```
 
 ## <a name="remove-breed"></a>Remove Breed
 
 **Example:**
 ```bash
+> vamp remove-breed fds
 ```
 
 ## <a name="routings"></a>Routings
@@ -212,6 +222,7 @@ Displays the Vamp Info message
 Shows a list of routings
 **Example:**
 ```bash
+> vamp routings
 ```
 ## <a name="scales"></a>Scales
 
@@ -219,6 +230,7 @@ Shows a list of scales
 
 **Example:**
 ```bash
+> vamp scales
 ```
 
 ## <a name="slas"></a>Slas
@@ -227,6 +239,7 @@ Shows a list of slas
 
 **Example:**
 ```bash
+> vamp slas
 ```
 
 ## <a name="version"></a>Version
@@ -235,4 +248,5 @@ Displays the Vamp CLI version information
 
 **Example:**
 ```bash
+> vamp version
 ```
