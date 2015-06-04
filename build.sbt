@@ -93,7 +93,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  persistence, model, operation, bootstrap, container_driver, dictionary, pulse_driver, rest_api, router_driver, swagger
+  persistence, model, operation, bootstrap, container_driver, dictionary, pulse_driver, rest_api, router_driver, swagger, cli
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
@@ -162,6 +162,12 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
     "org.scalatest" %% "scalatest" % scalatestVersion % "test"
   )
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
+
+lazy val cli = project.settings(bintraySetting: _*).settings(
+  description := "Command Line Interface for Vamp",
+  name:="core-cli",
+  assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
+).dependsOn(model, rest_api)
 
 lazy val dictionary = project.settings(bintraySetting: _*).settings(
   description := "Dictionary for Vamp",
