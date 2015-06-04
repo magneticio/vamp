@@ -56,6 +56,7 @@ trait CommandLineBasics {
         showGeneralUsage(CloneBreedCommand())
         //showGeneralUsage(DeployBlueprint())    // Not yet implemented, so don't expose
         showGeneralUsage(CreateBreedCommand())
+        showGeneralUsage(DeployBreedCommand())
         showGeneralUsage(ListDeploymentsCommand())
         showGeneralUsage(ListEscalationsCommand())
         showGeneralUsage(ListFiltersCommand())
