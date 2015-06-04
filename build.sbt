@@ -150,7 +150,9 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
     "com.h2database" % "h2" % h2Version,
     "com.typesafe.slick" %% "slick" % slickVersion,
     "io.strongtyped" %% "active-slick" % activeSlickVersion,
-    "postgresql" % "postgresql" % postgresVersion
+    "postgresql" % "postgresql" % postgresVersion,
+    "junit" % "junit" % junitVersion % "test",
+    "org.scalatest" %% "scalatest" % scalatestVersion % "test"
   )
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
