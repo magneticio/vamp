@@ -12,32 +12,21 @@ trait CommandLineBasics {
   }
 
   def string2Command(s: String): CliCommand = s match {
-    case "blueprints" => ListBlueprintsCommand()
-    case "breeds" => ListBreedsCommand()
-    case "create-breed" => CreateBreedCommand()
+
     case "clone-breed" => CloneBreedCommand()
     //case "deploy-blueprint" => DeployBlueprintCommand()   // Not yet implemented, so don't expose
     case "deploy-breed" => DeployBreedCommand()
-    case "deployments" => ListDeploymentsCommand()
     case "info" => InfoCommand()
-    case "inspect-breed" => InspectBreedCommand()
-    case "inspect-blueprint" => InspectBlueprintCommand()
-    case "inspect-deployment" => InspectDeploymentCommand()
-    case "inspect-escalation" => InspectEscalationCommand()
-    case "inspect-filter" => InspectFilterCommand()
-    case "inspect-routing" => InspectRoutingCommand()
-    case "inspect-scale" => InspectScaleCommand()
-    case "inspect-sla" => InspectSlaCommand()
-    case "escalations" => ListEscalationsCommand()
-    case "filters" => ListFiltersCommand()
-    case "routings" => ListRoutingsCommand()
-    case "scales" => ListScalesCommand()
-    //case "remove-blueprint" => RemoveBlueprintCommand()   // Not yet implemented, so don't expose
-    case "remove-breed" => RemoveBreedCommand()
-    case "slas" => ListSlasCommand()
     case "help" => HelpCommand()
     case "--help" => HelpCommand()
     case "version" => VersionCommand()
+
+    case "inspect"  => InspectCommand()
+    case "list"  => ListCommand()
+
+    case "create"  => CreateCommand()
+    case "remove"  => RemoveCommand()
+
     case c => UnknownCommand(c)
   }
 
@@ -51,38 +40,28 @@ trait CommandLineBasics {
         println(s"Usage: ".bold + ""+s"$appName COMMAND [args..]")
         println("")
         println("Commands:")
-        showGeneralUsage(ListBlueprintsCommand())
-        showGeneralUsage(ListBreedsCommand())
         showGeneralUsage(CloneBreedCommand())
         //showGeneralUsage(DeployBlueprint())    // Not yet implemented, so don't expose
-        showGeneralUsage(CreateBreedCommand())
+        showGeneralUsage(CreateCommand())
         showGeneralUsage(DeployBreedCommand())
-        showGeneralUsage(ListDeploymentsCommand())
-        showGeneralUsage(ListEscalationsCommand())
-        showGeneralUsage(ListFiltersCommand())
         showGeneralUsage(HelpCommand())
         showGeneralUsage(InfoCommand())
-        showGeneralUsage(InspectBreedCommand())
-        showGeneralUsage(InspectBlueprintCommand())
-        showGeneralUsage(InspectDeploymentCommand())
-        showGeneralUsage(InspectEscalationCommand())
-        showGeneralUsage(InspectFilterCommand())
-        showGeneralUsage(InspectRoutingCommand())
-        showGeneralUsage(InspectScaleCommand())
-        showGeneralUsage(InspectSlaCommand())
-        //showGeneralUsage(RemoveBlueprint())    //Not yet implemented, so don't expose
-        showGeneralUsage(RemoveBreedCommand())
-        showGeneralUsage(ListRoutingsCommand())
-        showGeneralUsage(ListScalesCommand())
-        showGeneralUsage(ListSlasCommand())
+        showGeneralUsage(InspectCommand())
+        showGeneralUsage(ListCommand())
+        showGeneralUsage(RemoveCommand())
         showGeneralUsage(VersionCommand())
         println("".reset)
         println(s"Run "+s"$appName COMMMAND --help".bold +  "" + "  for additional help about the different command options")
       }
 
       case _ => {
-        println(s"Usage: ".bold + "" +s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
-        if (command.usage.nonEmpty) {
+        if (command.allowedSubCommands.isEmpty) {
+          println(s"Usage: ".bold + "" +s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
+        } else {
+          println(s"Usage: ".bold + "" +s"$appName ${command.name} ${command.allowedSubCommands.mkString("|")} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
+        }
+
+      if (command.usage.nonEmpty) {
           println("")
           println(command.usage)
         }
