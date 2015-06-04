@@ -6,41 +6,46 @@ menu:
   main:
     parent: cli
 
+# Usage
+
 VAMP has a command line interface (CLI) which can be used to perform some basic actions.
 
 VAMP CLI can connect to any Vamp Host, by specifying either a environment variable (VAMP_HOST) or adding a command line parameter (--host). In all the examples, the enviromment variable is used. The command line parameter will overrule the environment variable
 
 Example:
-`export VAMP_HOST=http://192.168.59.103:8081`
+{{% copyable %}}
+```bash
+export VAMP_HOST=http://192.168.59.103:8081
+```
+{{% /copyable %}}
 
 
 VAMP CLI support the following commands:
+
 |Command | Description |
 |--------|-------------|
-|  [blueprints]blueprints          |List of blueprints|
-|  [breeds]breeds              |List of breeds|
-|  [clone-breed]clone-breed         |Clone a breed|
-|  [create-breed]create-breed        |Create a breed|
-|  [escalations]escalations         |List of escalations|
-|  [filters]filters             |List of filters|
-|  [deployments]deployments         |List of deployments|
-|  [help]help                |This message|
-|  [info]info                |Information from Vamp Core|
-|  [inspect-breed]inspect-breed       |Return details of the specified breed|
-|  [inspect-blueprint]inspect-blueprint   |Return details of the specified blueprint|
-|  [inspect-deployment]inspect-deployment  |Return details of the specified deployment|
-|  [inspect-escalation]inspect-escalation  |Return details of the specified escalation|
-|  [inspect-filter]inspect-filter      |Return details of the specified filter|
-|  [inspect-routing]inspect-routing     |Return details of the specified routing|
-|  [inspect-scale]inspect-scale       |Return details of the specified scale|
-|  [inspect-sla]inspect-sla         |Return details of the specified sla|
-|  [remove-breed]remove-breed        |Removes a breed|
-|  [routings]routings            |List of routings|
-|  [scales]scales              |List of scales|
-|  [slas]slas                |List of slas|
-|  [version]version             |Show version of the VAMP CLI client|
-
-
+|  [blueprints]blueprints                  | List of blueprints |
+|  [breeds]breeds                          | List of breeds |
+|  [clone-breed]clone-breed                | Clone a breed |
+|  [create-breed]create-breed              | Create a breed |
+|  [escalations]escalations                | List of escalations |
+|  [filters]filters                        | List of filters |
+|  [deployments]deployments                | List of deployments |
+|  [help]help                              | Help message |
+|  [info]info                              | Information from Vamp Core |
+|  [inspect-breed]inspect-breed            | Return details of the specified breed|
+|  [inspect-blueprint]inspect-blueprint    | Return details of the specified blueprint |
+|  [inspect-deployment]inspect-deployment  | Return details of the specified deployment |
+|  [inspect-escalation]inspect-escalation  | Return details of the specified escalation |
+|  [inspect-filter]inspect-filter          | Return details of the specified filter |
+|  [inspect-routing]inspect-routing        | Return details of the specified routing |
+|  [inspect-scale]inspect-scale            | Return details of the specified scale |
+|  [inspect-sla]inspect-sla                | Return details of the specified sla |
+|  [remove-breed]remove-breed              | Removes a breed |
+|  [routings]routings                      | List of routings |
+|  [scales]scales                          | List of scales |
+|  [slas]slas                              | List of slas |
+|  [version]version                        | Show version of the VAMP CLI client |
 
 ## <a name="blueprints"></a>Blueprints
 Shows a list of blueprints
@@ -83,17 +88,23 @@ sava-backend2:1.2.0      magneticio/sava-backend2:1.2.0
 
 ## <a name="deployments"></a>Deployments
 
+Shows a list of deployments
+
 **Example:**
 ```bash
 ```
 
-## <a name="escaltions"></a>Escalations
+## <a name="escalations"></a>Escalations
+
+Shows a list of escalations
 
 **Example:**
 ```bash
 ```
 
 ## <a name="filter"></a>Filters
+
+Shows a list of filters
 
 **Example:**
 ```bash
@@ -135,11 +146,14 @@ Run vamp COMMMAND --help  for additional help about the different command option
 
 ## <a name="info"></a>Info
 
+Displays the Vamp Info message
+
 **Example:**
 ```bash
 ```
 
 ## <a name="inspect-breed"></a>Inspect Breed
+
 
 **Example:**
 ```bash
@@ -195,10 +209,13 @@ Run vamp COMMMAND --help  for additional help about the different command option
 
 ## <a name="routings"></a>Routings
 
+Shows a list of routings
 **Example:**
 ```bash
 ```
 ## <a name="scales"></a>Scales
+
+Shows a list of scales
 
 **Example:**
 ```bash
@@ -206,11 +223,15 @@ Run vamp COMMMAND --help  for additional help about the different command option
 
 ## <a name="slas"></a>Slas
 
+Shows a list of slas
+
 **Example:**
 ```bash
 ```
 
 ## <a name="version"></a>Version
+
+Displays the Vamp CLI version information 
 
 **Example:**
 ```bash
