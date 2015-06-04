@@ -52,7 +52,7 @@ For more details about a specific command, try `vamp COMMAND --help`
 ## <a name="blueprints"></a>Blueprints
 Shows a list of blueprints
 
-**Example:**
+### Example
 ```bash
 > vamp blueprints
 NAME                                    ENDPOINTS
@@ -65,7 +65,7 @@ sava:1.2                                sava.port -> 9050
 
 Shows a list of breeds
 
-**Example:**
+### Example
 ```bash
 > vamp breeds
 NAME                     DEPLOYABLE
@@ -80,13 +80,13 @@ sava-backend2:1.2.0      magneticio/sava-backend2:1.2.0
 
 Clones an existing breed
 
-*Usage:* vamp clone-breed NAME --destination [--deployable] 
+**Usage:** vamp clone-breed NAME --destination [--deployable] 
 
 Parameter | purpose
 ----------|--------
 --destination   |   Name of the new breed
 --deployable    |   Name of the deployable [Optional]
-**Example:**
+### Example
 ```bash
 ```
 
@@ -99,7 +99,7 @@ Create a breed read from the specified filename. When no file name is supplied, 
 Parameter | purpose
 ----------|--------
   --file        |       Name of the yaml file [Optional]
-**Example:**
+### Example
 ```bash
 ```
 
@@ -108,7 +108,7 @@ Parameter | purpose
 
 Deploys a breed into an existing deployment cluster
 
-*Usage:* vamp deploy-breed NAME --deployment --cluster --routing --scale 
+**Usage:** vamp deploy-breed NAME --deployment --cluster --routing --scale 
 
 Parameter | purpose
 ----------|--------
@@ -117,7 +117,7 @@ Parameter | purpose
   --routing      |      Name of the routing to apply [Optional]
   --scale        |      Name of the scale to apply [Optional]
 
-**Example:**
+### Example
 ```bash
 ```
 
@@ -126,7 +126,7 @@ Parameter | purpose
 
 Shows a list of deployments
 
-**Example:**
+### Example
 ```bash
 > vamp deployments
 NAME                                    CLUSTERS
@@ -139,7 +139,7 @@ a1e2a68b-295f-4c9b-bec5-64158d84cd00    sava, backend1, backend2
 
 Shows a list of escalations
 
-**Example:**
+### Example
 ```bash
 > vamp escalations
 ```
@@ -148,7 +148,7 @@ Shows a list of escalations
 
 Shows a list of filters
 
-**Example:**
+### Example
 ```bash
 > vamp filters
 ```
@@ -156,7 +156,7 @@ Shows a list of filters
 ## <a name="help"></a>Help
 ```bash
 > vamp help
-Usage: vamp COMMAND [args..]
+**Usage:** vamp COMMAND [args..]
 
 Commands:
   blueprints          List of blueprints
@@ -191,7 +191,7 @@ Run vamp COMMMAND --help  for additional help about the different command option
 
 Displays the Vamp Info message
 
-**Example:**
+### Example
 ```bash
 > vamp info
 message: Hi, I'm Vamp! How are you?
@@ -215,13 +215,13 @@ jvm:
 ## <a name="inspect-breed"></a>Inspect Breed
 Representation of a stored breed
 
-*Usage:* vamp inspect-breed NAME --json 
+**Usage:** vamp inspect-breed NAME --json 
 
 | Parameter | purpose |
 |-----------|---------|
 | --json    |  Output Json instead of Yaml[Optional]|
 
-**Example:**
+### Example
 ```bash
 > vamp inspect-breed sava:1.0.0
 name: sava:1.0.0
@@ -236,19 +236,19 @@ dependencies: {}
 ## <a name="inspect-blueprint"></a>Inspect Blueprint
 Representation of a stored blueprint
 
-*Usage:* vamp inspect-blueprint NAME --json 
+**Usage:** vamp inspect-blueprint NAME --json 
 
 |Parameter | purpose
 -----------|--------
   --json   |  Output Json instead of Yaml[Optional]
-**Example:**
+### Example
 ```bash
 > vamp inspect-blueprint def
 ```
 
 ## <a name="inspect-deployment"></a>Inspect Deployment
 
-**Example:**
+### Example
 ```bash
 > vamp inspect-deployment abc
 ```
@@ -256,47 +256,47 @@ Representation of a stored blueprint
 ## <a name="inspect-escalation"></a>Inspect Escalation
 Representation of a stored escalation
 
-*Usage:* vamp inspect-escalation NAME --json 
+**Usage:** vamp inspect-escalation NAME --json 
 
 Parameter | purpose
 ----------|--------
   --json  |  Output Json instead of Yaml[Optional]
-**Example:**
+### Example
 ```bash
 > vamp inspect-escalation fgh
 ```
 
 ## <a name="inspect-filter"></a>Inspect Filter
 
-**Example:**
+### Example
 ```bash
 > vamp inspect-filter klm
 ```
 
 ## <a name="inspect-routing"></a>Inspect Routing
 
-**Example:**
+### Example
 ```bash
 > vamp inspect-routing nip
 ```
 
 ## <a name="inspect-scale"></a>Inspect Scale
 
-**Example:**
+### Example
 ```bash
 > vamp inspect-scale few
 ```
 
 ## <a name="inspect-sla"></a>Inspect SLA
 
-**Example:**
+### Example
 ```bash
 > vamp inspect-sla tgb
 ```
 
 ## <a name="remove-breed"></a>Remove Breed
 
-**Example:**
+### Example
 ```bash
 > vamp remove-breed fds
 ```
@@ -304,7 +304,7 @@ Parameter | purpose
 ## <a name="routings"></a>Routings
 
 Shows a list of routings
-**Example:**
+### Example
 ```bash
 > vamp routings
 ```
@@ -312,7 +312,7 @@ Shows a list of routings
 
 Shows a list of scales
 
-**Example:**
+### Example
 ```bash
 > vamp scales
 ```
@@ -321,7 +321,7 @@ Shows a list of scales
 
 Shows a list of slas
 
-**Example:**
+### Example
 ```bash
 > vamp slas
 ```
@@ -330,7 +330,7 @@ Shows a list of slas
 
 Displays the Vamp CLI version information 
 
-**Example:**
+### Example
 ```bash
 > vamp version
 CLI version: 0.7.7
