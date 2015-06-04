@@ -2,8 +2,6 @@ package io.vamp.common.notification
 
 import akka.actor.{AbstractLoggingActor, Actor, ActorRef}
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.pulse.PulseClientProvider
-import io.vamp.pulse.api.Event
 import org.slf4j.LoggerFactory
 
 trait NotificationProvider {
@@ -38,20 +36,6 @@ trait LoggingNotificationProvider extends NotificationProvider {
     }
 
     NotificationErrorException(notification, msg)
-  }
-}
-
-trait PulseLoggingNotificationProvider extends LoggingNotificationProvider with TagResolverProvider with PulseClientProvider with DefaultNotificationEventFormatter {
-  this: MessageResolverProvider =>
-
-  override def info(notification: Notification): Unit = {
-    client.sendEvent(formatNotification(notification, List("notification", "info")))
-    super.info(notification)
-  }
-
-  override def exception(notification: Notification): Exception = {
-    client.sendEvent(formatNotification(notification, List("notification", "error")))
-    super.exception(notification)
   }
 }
 
