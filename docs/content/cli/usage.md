@@ -83,7 +83,7 @@ Clones an existing breed
 *Usage:* vamp clone-breed NAME --destination [--deployable] 
 
 Parameter | purpose
--------------------
+----------|--------
 --destination   |   Name of the new breed
 --deployable    |   Name of the deployable [Optional]
 **Example:**
@@ -97,7 +97,7 @@ Create a breed read from the specified filename. When no file name is supplied, 
 *Usage:* vamp create-breed NAME [--file] 
 
 Parameter | purpose
--------------------
+----------|--------
   --file        |       Name of the yaml file [Optional]
 **Example:**
 ```bash
@@ -111,7 +111,7 @@ Deploys a breed into an existing deployment cluster
 *Usage:* vamp deploy-breed NAME --deployment --cluster --routing --scale 
 
 Parameter | purpose
--------------------
+----------|--------
   --deployment   |      Name of the existing deployment
   --cluster      |      Name of the cluster within the deployment
   --routing      |      Name of the routing to apply [Optional]
@@ -218,7 +218,7 @@ Representation of a stored breed
 *Usage:* vamp inspect-breed NAME --json 
 
 | Parameter | purpose |
------------------------
+|-----------|---------|
 | --json    |  Output Json instead of Yaml[Optional]|
 
 **Example:**
@@ -239,7 +239,7 @@ Representation of a stored blueprint
 *Usage:* vamp inspect-blueprint NAME --json 
 
 |Parameter | purpose
---------------------
+-----------|--------
   --json   |  Output Json instead of Yaml[Optional]
 **Example:**
 ```bash
@@ -259,7 +259,7 @@ Representation of a stored escalation
 *Usage:* vamp inspect-escalation NAME --json 
 
 Parameter | purpose
--------------------
+----------|--------
   --json  |  Output Json instead of Yaml[Optional]
 **Example:**
 ```bash
