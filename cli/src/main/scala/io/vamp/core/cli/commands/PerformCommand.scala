@@ -17,7 +17,9 @@ object PerformCommand extends Parameters {
 
   implicit val formats = CoreSerializationFormat.default
 
-  def doCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap): Unit = {
+  def doCommand(command: CliCommand)(implicit options: OptionMap): Unit = {
+
+    implicit val vampHost: String = if(command.requiresHostConnection) getParameter(host) else "Not needed"
 
     command.commandType match {
       case CommandType.Create => doCreateCommand(command)
@@ -129,7 +131,7 @@ object PerformCommand extends Parameters {
 
   private def doOtherCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
 
-    case _: InfoCommand => println(VampHostCalls.info)
+    case _: InfoCommand => println(VampHostCalls.info.getOrElse(""))
 
     case _: HelpCommand => showHelp(HelpCommand())
 

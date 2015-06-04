@@ -14,8 +14,6 @@ trait VampCli extends Parameters {
 
     if (options.contains(help)) showHelp(string2Command(args.head))
 
-    implicit val vampHost: String = getParameter(host)
-
     PerformCommand.doCommand(string2Command(args.head))
     sys.exit(0)
   }

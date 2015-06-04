@@ -15,7 +15,7 @@ trait CliCommand {
   val parameters = ""
   val requiresName: Boolean = false
   val commandType: CommandType = CommandType.Other
-
+  val requiresHostConnection : Boolean = true
   def jsonOutput = "  --json               Output Json instead of Yaml[Optional]"
 }
 
@@ -120,6 +120,7 @@ case class HelpCommand() extends CliCommand {
   override val name = "help"
   override val description = "This message"
   override val usage = "Displays help message"
+  override val requiresHostConnection = false
 }
 
 case class InfoCommand() extends CliCommand {
@@ -237,4 +238,5 @@ case class VersionCommand() extends CliCommand {
   override val name = "version"
   override val description = "Show version of the VAMP CLI client"
   override val usage = "Displays the version of the VAMP CLI client"
+  override val requiresHostConnection = false
 }
