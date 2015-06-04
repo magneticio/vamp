@@ -150,18 +150,13 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
     "com.h2database" % "h2" % h2Version,
     "com.typesafe.slick" %% "slick" % slickVersion,
     "io.strongtyped" %% "active-slick" % activeSlickVersion,
-    "postgresql" % "postgresql" % postgresVersion,
-    "junit" % "junit" % junitVersion % "test",
-    "org.scalatest" %% "scalatest" % scalatestVersion % "test"
+    "postgresql" % "postgresql" % postgresVersion
   )
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val cli = project.settings(
+lazy val cli = project.settings(bintraySetting: _*).settings(
   description := "Command Line Interface for Vamp",
   name:="core-cli",
-  libraryDependencies ++= Seq(
-    "org.yaml" % "snakeyaml" % snakeyamlVersion
-  ),
   assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
 ).dependsOn(model, rest_api)
 
