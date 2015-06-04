@@ -84,8 +84,8 @@ Clones an existing breed
 
 Parameter | purpose
 -------------------
-  --destination   |     Name of the new breed
-  --deployable    |     Name of the deployable [Optional]
+--destination   |   Name of the new breed
+--deployable    |   Name of the deployable [Optional]
 **Example:**
 ```bash
 ```
@@ -95,6 +95,7 @@ Parameter | purpose
 Create a breed read from the specified filename. When no file name is supplied, stdin will be read.
 
 *Usage:* vamp create-breed NAME [--file] 
+
 Parameter | purpose
 -------------------
   --file        |       Name of the yaml file [Optional]
@@ -216,9 +217,9 @@ Representation of a stored breed
 
 *Usage:* vamp inspect-breed NAME --json 
 
-Parameter | purpose
--------------------
-  --json  |  Output Json instead of Yaml[Optional]
+| Parameter | purpose |
+-----------------------
+| --json    |  Output Json instead of Yaml[Optional]|
 
 **Example:**
 ```bash
@@ -237,9 +238,9 @@ Representation of a stored blueprint
 
 *Usage:* vamp inspect-blueprint NAME --json 
 
-Parameter | purpose
--------------------
-  --json  |  Output Json instead of Yaml[Optional]
+|Parameter | purpose
+--------------------
+  --json   |  Output Json instead of Yaml[Optional]
 **Example:**
 ```bash
 > vamp inspect-blueprint def
