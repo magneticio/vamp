@@ -3,9 +3,9 @@ organization := "io.vamp"
 
 name := """common"""
 
-version := "0.7.6"
+version := "0.7.6" + GitHelper.headSha()
 
-scalaVersion := "2.11.5"
+scalaVersion := "2.11.6"
 
 publishMavenStyle := true
 
