@@ -44,8 +44,8 @@ Clones an existing breed
 
 Parameter | purpose
 ----------|--------
---destination   |   Name of the new breed
---deployable    |   Name of the deployable [Optional]
+`--destination`   |   Name of the new breed
+`--deployable`    |   Name of the deployable [Optional]
 ### Example
 ```bash
 ... TODO ...
@@ -74,10 +74,10 @@ Deploys a breed into an existing deployment cluster
 
 Parameter | purpose
 ----------|--------
-  --deployment   |      Name of the existing deployment
-  --cluster      |      Name of the cluster within the deployment
-  --routing      |      Name of the routing to apply [Optional]
-  --scale        |      Name of the scale to apply [Optional]
+  `--deployment`   |      Name of the existing deployment
+  `--cluster`      |      Name of the cluster within the deployment
+  `--routing`      |      Name of the routing to apply [Optional]
+  `--scale`        |      Name of the scale to apply [Optional]
 
 ### Example
 ```bash
@@ -88,7 +88,7 @@ Parameter | purpose
 
 ## <a name="help"></a>Help
 
-Explains how to use Vamp cli
+Displays the Vamp help message
 
 ### Example
 ```bash
@@ -143,7 +143,7 @@ Shows the details of the specified artifact
 
 | Parameter | purpose |
 |-----------|---------|
-| --json    |  Output Json instead of Yaml[Optional]|
+| `--json`    |  Output Json instead of Yaml[Optional]|
 
 ### Example
 ```bash
