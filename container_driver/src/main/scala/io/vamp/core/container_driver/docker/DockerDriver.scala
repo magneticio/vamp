@@ -100,10 +100,11 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
   }
 
   private def detail2Server(cd: ContainerDetails): ContainerServer = {
+    logger.trace(s"Details2Server containerDetails: $cd" )
     ContainerServer(
       name = serverNameFromContainer(cd),
       host = if (cd.config.hostname.isEmpty) defaultHost else cd.config.hostname,
-      ports = cd.networkSettings.ports.map(port => port._2.map(e => e.hostPort)).flatten.toList,
+      ports = cd.networkSettings.ports.flatMap(port => port._2.map(e => e.hostPort)).toList,
       deployed = cd.state.running
     )
   }
@@ -122,12 +123,14 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    */
   private def createAndStartContainer(containerName: String, deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Future[_] = async {
     val dockerImageName = service.breed.deployable.name
+    val allImages : List[Image] = await(docker.images.list())
+    val taggedImages =  allImages.filter(image => image.repoTags.contains(dockerImageName))
 
-    if (await(docker.images.list()).filter(image => image.id == dockerImageName).isEmpty) {
+    if (taggedImages.isEmpty) {
       pullImage(dockerImageName)
     }
 
-    val response = createDockerContainer(containerName, dockerImageName, service.scale, environment(deployment, cluster, service))
+    val response = createDockerContainer(containerName, dockerImageName, service.scale, environment(deployment, cluster, service), portMappings(deployment, cluster, service))
 
     addContainerToCache(containerName, getContainerFromResponseId(response))
     addScale(getContainerFromResponseId(response), service.scale)
@@ -155,7 +158,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    * Create a docker container (without starting it)
    * Tries to set the cpu shares & memory based on the supplied scale
    */
-  private def createDockerContainer(containerName: String, dockerImageName: String, serviceScale: Option[DefaultScale], env: Map[String, String]): Future[Response] = async {
+  private def createDockerContainer(containerName: String, dockerImageName: String, serviceScale: Option[DefaultScale], env: Map[String, String], ports: List[CreatePortMapping]): Future[Response] = async {
     val containerWithName = docker.containers.create(dockerImageName).name(containerName)
 
     var containerPrep = serviceScale match {
@@ -166,6 +169,11 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
       logger.trace(s"[CreateDockerContainer] setting env ${v._1} = ${v._2}")
       containerPrep = containerPrep.env(v)
     }
+    for (p <- ports) {
+      logger.debug(s"[CreateDockerContainer] exposed ports ${p.containerPort}")
+      containerPrep = containerPrep.exposedPorts(p.containerPort.toString)
+    }
+
     await(containerPrep())
   }
 
@@ -174,9 +182,9 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    */
   private def startDockerContainer(id: Future[String], ports: List[CreatePortMapping]): Future[_] = async {
     // Configure the container for starting
-    var startPrep = docker.containers.get(await(id)).start
+    var startPrep  = docker.containers.get(await(id)).start
     for (port <- ports) {
-      logger.trace(s"[StartContainer] setting port: 0.0.0.0:${port.hostPort} -> ${port.containerPort}/tcp")
+      logger.debug(s"[StartContainer] setting port: 0.0.0.0:${port.hostPort} -> ${port.containerPort}/tcp")
       startPrep = startPrep.portBind(tugboat.Port.Tcp(port.containerPort), tugboat.PortBinding.local(port.hostPort))
     }
     await(startPrep())
