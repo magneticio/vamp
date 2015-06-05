@@ -40,7 +40,7 @@ For more details about a specific command, try `vamp COMMAND --help`
 
 Clones an existing breed
 
-**Usage:** vamp clone-breed NAME --destination [--deployable] 
+**Usage:** `vamp clone-breed NAME --destination [--deployable]` 
 
 Parameter | purpose
 ----------|--------
@@ -48,19 +48,21 @@ Parameter | purpose
 --deployable    |   Name of the deployable [Optional]
 ### Example
 ```bash
+... TODO ...
 ```
 
 ## <a name="create"></a>Create
 
 Create an artifact read from the specified filename. When no file name is supplied, stdin will be read.
 
-**Usage:** vamp create breed NAME [--file] 
+**Usage:** `vamp create breed NAME [--file]` 
 
 Parameter | purpose
 ----------|--------
   --file        |       Name of the yaml file [Optional]
 ### Example
 ```bash
+... TODO ...
 ```
 
 
@@ -68,7 +70,7 @@ Parameter | purpose
 
 Deploys a breed into an existing deployment cluster
 
-**Usage:** vamp deploy-breed NAME --deployment --cluster --routing --scale 
+**Usage:** `vamp deploy-breed NAME --deployment --cluster --routing --scale` 
 
 Parameter | purpose
 ----------|--------
@@ -79,14 +81,19 @@ Parameter | purpose
 
 ### Example
 ```bash
+... TODO ...
 ```
 
 
 
 ## <a name="help"></a>Help
+
+Explains how to use Vamp cli
+
+### Example
 ```bash
 > vamp help
-**Usage:** vamp COMMAND [args..]
+Usage:** vamp COMMAND [args..]
 
 Commands:
   clone-breed         Clone a breed
@@ -132,7 +139,7 @@ jvm:
 ## <a name="inspect"></a>Inspect
 Shows the details of the specified artifact
 
-**Usage:** vamp inspect blueprint|breed|deployment|escalation|filter|routing|scale|sla NAME --json  
+**Usage:** `vamp inspect blueprint|breed|deployment|escalation|filter|routing|scale|sla NAME --json`  
 
 | Parameter | purpose |
 |-----------|---------|
@@ -153,7 +160,7 @@ dependencies: {}
 ## <a name="list"></a>List
 Shows a list of artifacts
 
-**Usage:** vamp list blueprints|breeds|deployments|escalations|filters|routings|scales|slas  
+**Usage:** `vamp list blueprints|breeds|deployments|escalations|filters|routings|scales|slas`  
 
 ### Example
 ```bash
@@ -168,11 +175,11 @@ a1e2a68b-295f-4c9b-bec5-64158d84cd00    sava, backend1, backend2
 
 Removes artifact
 
-**Usage:** vamp remove breed NAME 
+**Usage:** `vamp remove breed NAME` 
 
 ### Example
 ```bash
-> vamp remove breed fds
+... TODO ...
 ```
 
 ## <a name="version"></a>Version
