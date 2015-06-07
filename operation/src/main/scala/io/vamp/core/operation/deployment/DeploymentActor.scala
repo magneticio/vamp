@@ -198,7 +198,7 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
         case None =>
           cluster.copy(services = mergeServices(stable, None, cluster))
         case Some(deploymentCluster) =>
-          deploymentCluster.copy(services = mergeServices(stable, Some(deploymentCluster), cluster), routes = cluster.routes ++ deploymentCluster.routes, dialects = deploymentCluster.dialects ++ cluster.dialects)
+          deploymentCluster.copy(services = mergeServices(stable, Some(deploymentCluster), cluster), routes = cluster.routes ++ deploymentCluster.routes, dialects = deploymentCluster.dialects ++ cluster.dialects, sla = cluster.sla)
       }
     }
 
