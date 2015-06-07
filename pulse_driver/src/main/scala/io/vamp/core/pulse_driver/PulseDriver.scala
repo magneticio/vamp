@@ -38,7 +38,7 @@ class DefaultPulseDriver(ec: ExecutionContext, url: String) extends PulseAggrega
     count(SlaEvent.slaTags(deployment, cluster), Some(from), Some(OffsetDateTime.now())).map(count => count.value > 0)
 
   def responseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime) =
-    average(Set(s"route:${clusterRouteName(deployment, cluster, port)}", "metrics:rtime"), Some(from), Some(to)).map(average => Some(average.value))
+    average(Set(s"routes:${clusterRouteName(deployment, cluster, port)}", "metrics:rtime"), Some(from), Some(to)).map(average => Some(average.value))
 
   def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime) =
     pulseClient.getEvents(SlaEvent.slaTags(deployment, cluster), Some(from), Some(to)).map(_.flatMap { event =>
