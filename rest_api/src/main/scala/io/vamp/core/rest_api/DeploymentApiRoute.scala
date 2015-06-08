@@ -7,7 +7,8 @@ import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
-import io.vamp.core.model.artifact.DeploymentService.{Deployed, ReadyForDeployment, ReadyForUndeployment}
+import io.vamp.common.http.RestApiBase
+import io.vamp.core.model.artifact.DeploymentService.{Deployed, ReadyForUndeployment}
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.conversion.DeploymentConversion._
 import io.vamp.core.model.reader._
@@ -17,7 +18,7 @@ import io.vamp.core.operation.notification.InternalServerError
 import io.vamp.core.operation.sla.{EscalationActor, SlaActor}
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.persistence.actor.PersistenceActor.All
-import io.vamp.core.rest_api.notification.{RestApiNotificationProvider, UnsupportedRoutingWeightChangeError}
+import io.vamp.core.rest_api.notification.RestApiNotificationProvider
 import spray.http.StatusCodes._
 
 import scala.concurrent.Future
@@ -250,26 +251,23 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
     }
 
   def slaUpdate(deploymentName: String, clusterName: String, request: String)(implicit timeout: Timeout) =
-    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap {
-        deployment => deployment.clusters.find(_.name == clusterName).flatMap { _ =>
-          val sla = Some(SlaReader.read(request))
-          val clusters = deployment.clusters.map(cluster => if (cluster.name == clusterName) cluster.copy(sla = sla) else cluster)
-          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = clusters), Some(request))
-          sla
+    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map {
+      case Some(deployment: Deployment) =>
+        deployment.clusters.find(_.name == clusterName) match {
+          case None => None
+          case Some(cluster) => offload(actorFor(DeploymentActor) ? DeploymentActor.UpdateSla(deployment, cluster, Some(SlaReader.read(request)), request))
         }
-      }
+      case _ => None
     }
 
   def slaDelete(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
-    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap {
-        deployment => deployment.clusters.find(_.name == clusterName).flatMap { _ =>
-          val clusters = deployment.clusters.map(cluster => if (cluster.name == clusterName) cluster.copy(sla = None) else cluster)
-          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = clusters))
-          None
+    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map {
+      case Some(deployment: Deployment) =>
+        deployment.clusters.find(_.name == clusterName) match {
+          case None => None
+          case Some(cluster) => offload(actorFor(DeploymentActor) ? DeploymentActor.UpdateSla(deployment, cluster, None, ""))
         }
-      }
+      case _ => None
     }
 
   def scale(deploymentName: String, clusterName: String, breedName: String)(implicit timeout: Timeout) =
@@ -278,21 +276,21 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
     }
 
   def scaleUpdate(deploymentName: String, clusterName: String, breedName: String, request: String)(implicit timeout: Timeout) =
-    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap {
-        deployment => deployment.clusters.find(_.name == clusterName).flatMap {
-          cluster => cluster.services.find(_.breed.name == breedName).flatMap {
-            service =>
+    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map {
+      case Some(deployment: Deployment) =>
+        deployment.clusters.find(_.name == clusterName) match {
+          case None => None
+          case Some(cluster) => cluster.services.find(_.breed.name == breedName) match {
+            case None => None
+            case Some(service) =>
               val scale = ScaleReader.read(request) match {
                 case s: ScaleReference => offload(actorFor(PersistenceActor) ? PersistenceActor.Read(s.name, classOf[Scale])).asInstanceOf[DefaultScale]
                 case s: DefaultScale => s
               }
-              val clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(scale = Some(scale), state = ReadyForDeployment()))))
-              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = clusters), Some(request))
-              Some(scale)
+              offload(actorFor(DeploymentActor) ? DeploymentActor.UpdateScale(deployment, cluster, service, scale, request))
           }
         }
-      }
+      case _ => None
     }
 
   def routing(deploymentName: String, clusterName: String, breedName: String)(implicit timeout: Timeout) =
@@ -301,26 +299,20 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
     }
 
   def routingUpdate(deploymentName: String, clusterName: String, breedName: String, request: String)(implicit timeout: Timeout) =
-    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap {
-        deployment => deployment.clusters.find(_.name == clusterName).flatMap {
-          cluster => cluster.services.find(_.breed.name == breedName).flatMap {
-            service =>
+    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map {
+      case Some(deployment: Deployment) =>
+        deployment.clusters.find(_.name == clusterName) match {
+          case None => None
+          case Some(cluster) => cluster.services.find(_.breed.name == breedName) match {
+            case None => None
+            case Some(service) =>
               val routing = RoutingReader.read(request) match {
                 case r: RoutingReference => offload(actorFor(PersistenceActor) ? PersistenceActor.Read(r.name, classOf[Routing])).asInstanceOf[DefaultRouting]
                 case r: DefaultRouting => r
               }
-
-              routing.weight match {
-                case Some(w) if w != service.routing.getOrElse(DefaultRouting("", Some(0), Nil)).weight.getOrElse(0) => error(UnsupportedRoutingWeightChangeError(service.routing.getOrElse(DefaultRouting("", Some(0), Nil)).weight.getOrElse(0)))
-                case _ =>
-              }
-
-              val clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(routing = Some(routing), state = ReadyForDeployment()))))
-              actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = clusters), Some(request))
-              Some(routing)
+              offload(actorFor(DeploymentActor) ? DeploymentActor.UpdateRouting(deployment, cluster, service, routing, request))
           }
         }
-      }
+      case _ => None
     }
 }

@@ -57,7 +57,7 @@ object EscalationActor extends ActorDescription {
 
 class EscalationActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with PulseNotificationProvider with DefaultPackageMessageResolverProvider {
 
-  def tags = "escalation" :: Nil
+  def tags = Set("escalation")
 
   def receive: Receive = {
     case EscalationProcessAll(from, to) =>

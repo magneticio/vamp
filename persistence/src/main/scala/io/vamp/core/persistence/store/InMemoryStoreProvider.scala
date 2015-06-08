@@ -16,7 +16,7 @@ case class InMemoryStoreInfo(`type`: String, artifacts: Map[String, Map[String, 
 class InMemoryStoreProvider(executionContext: ExecutionContext) extends StoreProvider with PersistenceNotificationProvider {
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[InMemoryStoreProvider]))
-  implicit val formats = SerializationFormat.default
+  implicit val formats = CoreSerializationFormat.default
 
   val store: Store = new InMemoryStore()
 

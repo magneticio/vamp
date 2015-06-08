@@ -336,14 +336,14 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
 
   private def updateEndpoints(remove: List[DeploymentCluster], routes: List[EndpointRoute]): (Deployment => Deployment) = { deployment: Deployment =>
 
-    routes.foreach(route => if (!deployment.endpoints.exists(_.number == route.port)) {
+    routes.filter(_.matching(deployment, None)).foreach(route => if (!deployment.endpoints.exists(_.number == route.port)) {
       actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, Port.portFor(route.port))
     })
 
     deployment.endpoints.foreach { port =>
       TraitReference.referenceFor(port.name) match {
         case Some(TraitReference(cluster, _, _)) =>
-          (deployment.clusters.find(_.name == cluster), routes.find(_.matching(deployment, port))) match {
+          (deployment.clusters.find(_.name == cluster), routes.find(_.matching(deployment, Some(port)))) match {
 
             case (Some(_), None) =>
               actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false)

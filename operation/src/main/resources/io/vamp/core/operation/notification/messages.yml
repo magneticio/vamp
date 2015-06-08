@@ -9,4 +9,4 @@ UnsupportedRoutingWeight        : "Total routing weight for deployment '{deploym
 UnresolvedEnvironmentValueError : "Unresolved environment value: '{key}'."
 UnsupportedSlaType              : "Unsupported SLA type {`type`} for given parameters."
 DeploymentServiceError          : "Deployment service error for deployment '{deployment.name}' and service '{service.breed.name}'."
-InvalidRoutingWeight            : "Invalid routing weight for '{deployment.name}/{cluster.name}/{service.breed.name}': expected {expected}% but actual is {actual}%"
+InvalidRoutingWeight            : "Invalid routing weight for cluster '{deployment.name}/{cluster.name}': expected to be either 0% or 100% after the operation, but actually it is {weight}%"

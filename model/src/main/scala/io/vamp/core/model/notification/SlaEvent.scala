@@ -2,11 +2,12 @@ package io.vamp.core.model.notification
 
 import java.time.OffsetDateTime
 
-import io.vamp.common.notification.{Notification, PulseEvent}
+import io.vamp.common.notification.Notification
 import io.vamp.core.model.artifact.{Deployment, DeploymentCluster}
+import io.vamp.pulse.notification.PulseEvent
 
 object SlaEvent {
-  def slaTags(deployment: Deployment, cluster: DeploymentCluster) = s"deployment:${deployment.name}" :: s"cluster:${cluster.name}" :: Nil
+  def slaTags(deployment: Deployment, cluster: DeploymentCluster) = ("sla" :: s"deployment:${deployment.name}" :: s"cluster:${cluster.name}" :: Nil).toSet
 }
 
 trait SlaEvent extends PulseEvent {
@@ -16,11 +17,11 @@ trait SlaEvent extends PulseEvent {
 
   def timestamp: OffsetDateTime
 
-  override def value: AnyRef = getClass.getSimpleName.toLowerCase
+  def value: AnyRef = None
 }
 
 object Escalate {
-  def tags = "escalate" :: Nil
+  def tags: Set[String] = Set("sla:escalate")
 }
 
 case class Escalate(deployment: Deployment, cluster: DeploymentCluster, timestamp: OffsetDateTime = OffsetDateTime.now()) extends Notification with SlaEvent {
@@ -28,7 +29,7 @@ case class Escalate(deployment: Deployment, cluster: DeploymentCluster, timestam
 }
 
 object DeEscalate {
-  def tags = "deescalate" :: Nil
+  def tags: Set[String] = Set("sla:deescalate")
 }
 
 case class DeEscalate(deployment: Deployment, cluster: DeploymentCluster, timestamp: OffsetDateTime = OffsetDateTime.now()) extends Notification with SlaEvent {

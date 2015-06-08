@@ -148,7 +148,7 @@ class JdbcStoreProvider(executionContext: ExecutionContext) extends StoreProvide
         case _ if ofType == classOf[DefaultFilter] || ofType == classOf[Filter] =>
           findFilterOptionArtifact(name)
 
-        case _ if ofType == classOf[DefaultRouting] =>
+        case _ if ofType == classOf[DefaultRouting] || ofType == classOf[Routing]=>
           findRoutingOptionArtifact(name)
 
         case _ if ofType == classOf[DefaultScale] || ofType == classOf[Scale] =>
