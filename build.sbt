@@ -3,7 +3,7 @@ organization := "io.vamp"
 
 name := """common"""
 
-version := "0.7.7"
+version := "0.7.7" + GitHelper.headSha()
 
 scalaVersion := "2.11.6"
 
