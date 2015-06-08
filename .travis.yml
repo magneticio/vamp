@@ -1,6 +1,6 @@
 language: scala
 scala:
-- 2.11.5
+- 2.11.6
 jdk:
 - oraclejdk8
 sudo: false
@@ -11,7 +11,7 @@ after_success:
 - test ${TRAVIS_PULL_REQUEST} == "false" &&
   test ${TRAVIS_BRANCH} == "develop" &&
   sh "$TRAVIS_BUILD_DIR/.travis-ci-bintray-credentials.sh" &&
-  sbt 'set version := version.value + "." + System.getenv("TRAVIS_BUILD_NUMBER")' publish
+  sbt publish
 branches:
   only:
     - master
@@ -23,3 +23,4 @@ env:
   global:
   - secure: WvaI6NXJ6Rkjq8gSuAjZPTnpkCg2dtTLS8CISD4WpcxqiQaBxBJdf6zdJ+mkEcX9KAOPTljafzeSgLzyw0lpzjMifJDDdZ2YuFeK7u/fdO3/NKVoV1DQCAZ+kXAFAH3PzaAXVV6ulZRMcGsAyGXaeYMdaeHHORM8gXAOsqGv7bk=
   - secure: H3EiobBmb1e0uU3mRvDcxqg44l9hSmi9RI9mGJfHbkZx7bYVpBS7l5efOkZqLRYQwK1DBrQvY95KI8Lh5uMCiuSv+60t2u2sU1C3yF4FH2UNcFOPGLCi8WdDPr7HUfZhMcuU1OJojqL+r5+cIvOQ1D+xdPT4wcp+K0j+yjdPLbU=
+

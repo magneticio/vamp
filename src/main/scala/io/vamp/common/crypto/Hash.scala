@@ -8,7 +8,7 @@ object Hash {
 
   def hexSha1(content: String, salt: String = "0000"): String = hexHash("SHA1", content, salt)
 
-  private def hexHash(algorithm: String, content: String, salt: String = "0000"): String = {
+  private def hexHash(algorithm: String, content: String, salt: String): String = {
     val messageDigest = MessageDigest.getInstance(algorithm)
     messageDigest.update(s"$content$salt".getBytes("UTF-8"))
     val digest = messageDigest.digest()
