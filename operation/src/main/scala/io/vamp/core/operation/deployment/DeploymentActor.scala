@@ -3,9 +3,8 @@ package io.vamp.core.operation.deployment
 import java.util.UUID
 
 import _root_.io.vamp.common.akka._
-import _root_.io.vamp.core.operation.deployment.DeploymentActor.{Create, DeploymentMessages, Merge, Slice}
 import _root_.io.vamp.core.operation.deployment.DeploymentSynchronizationActor.Synchronize
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.notification.NotificationProvider
@@ -33,9 +32,17 @@ object DeploymentActor extends ActorDescription {
 
   case class Slice(name: String, blueprint: Blueprint, source: String) extends DeploymentMessages
 
+  case class UpdateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String) extends DeploymentMessages
+
+  case class UpdateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) extends DeploymentMessages
+
+  case class UpdateRouting(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, routing: DefaultRouting, source: String) extends DeploymentMessages
+
 }
 
-class DeploymentActor extends Actor with ActorLogging with ActorSupport with BlueprintSupport with DeploymentMerger with DeploymentSlicer with ReplyActor with ArtifactSupport with FutureSupport with ActorExecutionContextProvider with OperationNotificationProvider {
+class DeploymentActor extends CommonActorSupport with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ReplyActor with ArtifactSupport with OperationNotificationProvider {
+
+  import DeploymentActor._
 
   override protected def requestType: Class[_] = classOf[DeploymentMessages]
 
@@ -48,6 +55,12 @@ class DeploymentActor extends Actor with ActorLogging with ActorSupport with Blu
       case Merge(name, blueprint, source) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source))(deploymentFor(name))
 
       case Slice(name, blueprint, source) => (slice(deploymentFor(blueprint)) andThen commit(create = false, source))(deploymentFor(name))
+
+      case UpdateSla(deployment, cluster, sla, source) => updateSla(deployment, cluster, sla, source)
+
+      case UpdateScale(deployment, cluster, service, scale, source) => updateScale(deployment, cluster, service, scale, source)
+
+      case UpdateRouting(deployment, cluster, service, routing, source) => updateRouting(deployment, cluster, service, routing, source)
 
       case _ => exception(errorRequest(request))
     }
@@ -158,8 +171,8 @@ trait DeploymentValidator {
   def weightOf(services: List[DeploymentService]) = services.flatMap(_.routing).flatMap(_.weight).sum
 }
 
-trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver {
-  this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
+trait DeploymentMerger extends DeploymentTraitResolver {
+  this: DeploymentValidator with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
   def commit(create: Boolean, source: String): (Deployment => Deployment)
 
@@ -347,8 +360,8 @@ trait DeploymentMerger extends DeploymentValidator with DeploymentTraitResolver 
   }
 }
 
-trait DeploymentSlicer extends DeploymentValidator {
-  this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
+trait DeploymentSlicer {
+  this: DeploymentValidator with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
   def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster =>
     blueprint.clusters.find(_.name == cluster.name).foreach { bpc =>
@@ -368,6 +381,32 @@ trait DeploymentSlicer extends DeploymentValidator {
         case Some(bpc) => cluster.copy(services = cluster.services.map(service => service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) ReadyForUndeployment() else service.state)))
       }
     ).filter(_.services.nonEmpty)))
+  }
+}
+
+trait DeploymentUpdate {
+  this: DeploymentValidator with ActorSupport with FutureSupport =>
+
+  private implicit val timeout = PersistenceActor.timeout
+
+  def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String) = {
+    val clusters = deployment.clusters.map(c => if (cluster.name == c.name) c.copy(sla = sla) else c)
+    offload(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source)))
+    sla
+  }
+
+  def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) = {
+    lazy val services = cluster.services.map(s => if (s.breed.name == service.breed.name) service.copy(scale = Some(scale), state = ReadyForDeployment()) else s)
+    val clusters = deployment.clusters.map(c => if (c.name == cluster.name) c.copy(services = services) else c)
+    offload(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source)))
+    scale
+  }
+
+  def updateRouting(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, routing: DefaultRouting, source: String) = {
+    lazy val services = cluster.services.map(s => if (s.breed.name == service.breed.name) service.copy(routing = Some(routing), state = ReadyForDeployment()) else s)
+    val clusters = deployment.clusters.map(c => if (c.name == cluster.name) c.copy(services = services) else c)
+    offload(actorFor(PersistenceActor) ? PersistenceActor.Update(validateRoutingWeights(deployment.copy(clusters = clusters)), Some(source)))
+    routing
   }
 }
 
