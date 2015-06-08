@@ -46,8 +46,19 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
     for (detail <- details) logContainerDetails(detail)
 
     val actualDetails: List[ContainerDetails] = await(Future.sequence(details))
+
+    // Update the containerCache with missing containers (should only occur after a restart of core)
+    actualDetails.foreach { detail =>
+      if(processable(detail.name)) {
+        findContainerIdInCache(detail.name) match {
+          case None => addContainerToCache(detail.name, Future(detail.id))
+          case Some(id) => //ignore
+        }
+      }
+    }
+
     val containerDetails: List[ContainerService] = details2Services(for {detail <- actualDetails if processable(detail.name)} yield detail)
-    logger.debug("[ALL]: " + containerDetails.toString())
+    logger.trace("[ALL]: " + containerDetails.toString())
     containerDetails
   }
 
