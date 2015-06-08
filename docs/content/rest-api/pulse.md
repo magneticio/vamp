@@ -8,45 +8,73 @@ menu:
 
 # Pulse API
 
-## Query metrics & events
 
-The default page size for a set or returned metrics is 30.
+## Query metrics & events using tags
 
-- single event
+Getting specific metrics or sets of metrics out of Pulse is done using tags. You can use specific time ranges 
+designated by timestamp or use special range query operators, described [on the elastic.co site](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-range-query.html).
 
-- events in time range
+**Note:** the default page size for a set or returned metrics is 30.
+
+For example, this query gets the most recent current session metrics for the "frontend" cluster in the "d9b42796-d8f6-431b-9230-9d316defaf6d" deployment.
 
 `POST /api/v1/events/get`
 
-```json
-
+```JSON
 {
-   "tags" : ["metric_name"],
-   "time" : { 
-     "from" : "2015-02-18T04:57:56+00:00",
-     "to" : "2015-02-18T04:57:56+00:00"
-   }
+  "tags": ["routes:d9b42796-d8f6-431b-9230-9d316defaf6d_frontend_8080","metrics:rtime","route"]
+    "timestamp" : {
+      "lte" : "now"
+    }
 }
 ```
 
-response will echo back the events in the time range with the original set of tags associated with the events. 
+The response will echo back the events in the time range with the original set of tags associated with the events. 
 
-```json
+```JSON
 [
- {
-  "tags": ["metric_name","some_original_tag"],
-  "value": 123,
-  "timestamp": "2015-02-18T04:57:56+00:00",
-  "type": ""
- } ,
- {
-  "tags": ["metric_name","also_some_original_tag"],
-  "value": 421,
-  "timestamp": "2015-02-18T04:57:56+00:00",
-  "type": ""
- } 
-]
+    {
+        "tags": [
+            "routes",
+            "routes:d9b42796-d8f6-431b-9230-9d316defaf6d_frontend_8080",
+            "metrics:scur",
+            "metrics",
+            "route"
+        ],
+        "value": 0,
+        "timestamp": "2015-06-08T10:28:35.001Z",
+        "type": "router-metric"
+    },
+    {
+        "tags": [
+            "routes",
+            "routes:d9b42796-d8f6-431b-9230-9d316defaf6d_frontend_8080",
+            "metrics:scur",
+            "metrics",
+            "route"
+        ],
+        "value": 0,
+        "timestamp": "2015-06-08T10:28:32.001Z",
+        "type": "router-metric"
+    }
+]    
 ```
+
+Another example is getting the response time for a specific service, in this case the `monarch_front:0.2` service that is part
+of the `214615ec-d5e4-473e-a98e-8aa4998b16f4` deployment and lives in the `frontend` cluster.
+
+`POST /api/v1/events/get`
+
+
+```JSON
+{
+  "tags": ["routes:214615ec-d5e4-473e-a98e-8aa4998b16f4_frontend_8080","metrics:scur","services:monarch_front:0.2","service"]
+    "timestamp" : {
+      "lte" : "now"
+    }
+}
+```
+
 
 ## Aggregations
 Supported aggregations are:
@@ -58,7 +86,7 @@ Simple example of getting an average value
 
 `POST /api/v1/events/get`
 
-```json
+```JSON
 {
    "tags" : ["metric_name"],
    "aggregator" :  
@@ -74,7 +102,7 @@ Simple example of getting an average value
 
 response
 
-```json
+```JSON
 
 {
   "value" : 65.3
@@ -86,7 +114,7 @@ response
 
 Simple example of getting an average value of a custom event, where the event structure is as follows:
 
-```json
+```JSON
 {
     "tags": ["deployment"],
     "type": "io.vamp_core.notification.DeploymentNotification",
@@ -105,7 +133,7 @@ Simple example of getting an average value of a custom event, where the event st
 
 `POST /api/v1/events/get`
 
-```json
+```JSON
 {
    "tags" : ["metric_name"],
    "type" : "io.vamp_core.notification.DeploymentNotification",
@@ -122,7 +150,7 @@ Simple example of getting an average value of a custom event, where the event st
 
 response
 
-```json
+```JSON
 
 {
   "value" : 35.6
@@ -133,10 +161,10 @@ response
 
 A more complex example
 This one is still WIP, we only support simple examples now.
+
 `POST /api/v1/events/get`
 
-
-```json
+```JSON
 {
     "tags" : ["whatever.metric"],
    "aggregator" : {
@@ -152,7 +180,7 @@ This one is still WIP, we only support simple examples now.
 
 response is specific for this aggregator type:
 
-```json
+```JSON
 {    
    "95.0": 60,
    "99.0": 150,

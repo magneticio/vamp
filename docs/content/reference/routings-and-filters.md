@@ -22,7 +22,7 @@ name: red   # Custom name, can be referenced later on.
 weight: 10
             # Custom filters.
 filters:    # Anonymous with condition.
-  - condition: user-agent != ios
+  - condition: user-agent = ios
             # As a reference, shortened of "name: my_filter_1"
   - my_filter_1
 ```
@@ -49,11 +49,20 @@ Header *header name* Contains *string*
 Has Header *header name*
 Misses Header *header name*
 ```
+
+We also allow simple negation of filter statements using the `!` operator on any shortcode with an `=`, i.e:
+
+```
+User-Agent != IOS
+Host != www.google.com
+```
+
 Vamp is also quite flexible when it comes to the exact syntax. This means the following are all equivalent:
 
 ```
 hdr_sub(user-agent) Android   # straight ACL
 user-agent=Android            # lower case, no white space
+user.agent=Android            # lower case, no white space, period instead of dash
 User-Agent=Android            # upper case, no white space
 user-agent = Android          # lower case, white space
 ```
