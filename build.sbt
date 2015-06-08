@@ -167,6 +167,10 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
 lazy val cli = project.settings(bintraySetting: _*).settings(
   description := "Command Line Interface for Vamp",
   name:="core-cli",
+  libraryDependencies ++= Seq(
+    "org.slf4j" % "slf4j-api" % slf4jVersion,
+    "ch.qos.logback" % "logback-classic" % logbackVersion
+  ),
   assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
 ).dependsOn(model, rest_api)
 
