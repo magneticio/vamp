@@ -72,6 +72,7 @@ val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
 val tugboatVersion = "0.2.3"
 val typesafeConfigVersion = "1.2.1"
+val scalaAsyncVersion = "0.9.2"
 val snakeYamlVersion = "1.14"
 val h2Version = "1.3.166"
 val slickVersion = "2.1.0"
@@ -144,7 +145,7 @@ lazy val container_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to container managers",
   name:="core-container_driver",
   libraryDependencies ++=Seq(
-    "org.scala-lang.modules" %% "scala-async" % "0.9.2",
+    "org.scala-lang.modules" %% "scala-async" % scalaAsyncVersion,
     "io.vamp" %% "tugboat" % tugboatVersion exclude("org.slf4j", "slf4j-log4j12")
   )
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
