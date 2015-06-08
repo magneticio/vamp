@@ -4,7 +4,7 @@ organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
-version in ThisBuild := "0.7.6." + GitHelper.headSha()
+version in ThisBuild := "0.7.7."// + GitHelper.headSha()
 
 scalaVersion := "2.11.6"
 
@@ -58,8 +58,8 @@ lazy val bintraySetting = Seq(
 
 // Library Versions
 
-val vampCommonVersion = "0.7.6.2aaae32"
-val vampPulseVersion = "0.7.6.e27f999"
+val vampCommonVersion = "0.7.7"
+val vampPulseVersion = "0.7.7"
 
 val sprayVersion = "1.3.2"
 //val sprayJsonVersion = "1.3.1"
