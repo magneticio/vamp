@@ -106,7 +106,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
       ContainerService(
         matching = nameMatcher(details.name),
         scale = scale,
-        servers = (0 until scale.instances).map(_ => server).toList)
+        servers = (0 until scale.instances).map(i => server.copy(name = s"${server.name}[$i]")).toList)
     }).toList
   }
 
