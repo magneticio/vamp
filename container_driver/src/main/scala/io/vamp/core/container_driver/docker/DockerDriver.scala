@@ -86,7 +86,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
   }
 
   private def details2Services(details: List[ContainerDetails]): List[ContainerService] = {
-    val serviceMap: Map[String, List[ContainerDetails]] = details.groupBy(x => serverNameFromContainer(x))
+    val serviceMap: Map[String, List[ContainerDetails]] = details.groupBy(x => x.name)
     serviceMap.map({ deployment =>
       val details = deployment._2.head
       val scale = getScale(details.id)
