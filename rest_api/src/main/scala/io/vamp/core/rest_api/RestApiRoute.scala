@@ -119,27 +119,41 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     case None => error(UnexpectedArtifact(artifact))
   }
 
-  private val mapping: Map[String, PersistenceController[_ <: Artifact]] = Map() +
+  private val mapping: Map[String, Controller] = Map() +
     ("breeds" -> new PersistenceController[Breed](classOf[Breed], BreedReader)) +
     ("blueprints" -> new PersistenceController[Blueprint](classOf[Blueprint], BlueprintReader)) +
     ("slas" -> new PersistenceController[Sla](classOf[Sla], SlaReader)) +
     ("scales" -> new PersistenceController[Scale](classOf[Scale], ScaleReader)) +
     ("escalations" -> new PersistenceController[Escalation](classOf[Escalation], EscalationReader)) +
     ("routings" -> new PersistenceController[Routing](classOf[Routing], RoutingReader)) +
-    ("filters" -> new PersistenceController[Filter](classOf[Filter], FilterReader))
+    ("filters" -> new PersistenceController[Filter](classOf[Filter], FilterReader)) +
+    ("deployments" -> new Controller())
 
-  private class PersistenceController[T <: Artifact](`type`: Class[_ <: Artifact], unmarshaller: YamlReader[T]) {
+  private class Controller {
 
-    def all(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.All(`type`)
+    def all(implicit timeout: Timeout): Future[Any] = Future(Nil)
 
-    def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+    def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = Future(error(UnexpectedArtifact(source)))
+
+    def read(name: String)(implicit timeout: Timeout): Future[Any] = Future(None)
+
+    def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = Future(error(UnexpectedArtifact(source)))
+
+    def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = Future(None)
+  }
+
+  private class PersistenceController[T <: Artifact](`type`: Class[_ <: Artifact], unmarshaller: YamlReader[T]) extends Controller {
+
+    override def all(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.All(`type`)
+
+    override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       val artifact = unmarshaller.read(source)
       if (validateOnly) Future(artifact) else actorFor(PersistenceActor) ? PersistenceActor.Create(artifact, Some(source))
     }
 
-    def read(name: String)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Read(name, `type`)
+    override def read(name: String)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Read(name, `type`)
 
-    def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+    override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       val artifact = unmarshaller.read(source)
       if (name != artifact.name)
         error(InconsistentArtifactName(name, artifact))
@@ -147,7 +161,7 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
       if (validateOnly) Future(artifact) else actorFor(PersistenceActor) ? PersistenceActor.Update(artifact, Some(source))
     }
 
-    def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) =
+    override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) =
       if (validateOnly) Future(None) else actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)
   }
 
