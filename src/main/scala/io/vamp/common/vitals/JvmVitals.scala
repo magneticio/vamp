@@ -2,11 +2,6 @@ package io.vamp.common.vitals
 
 import java.lang.management.ManagementFactory
 
-import akka.util.Timeout
-import io.vamp.common.akka.ExecutionContextProvider
-
-import scala.concurrent.Future
-
 case class JvmVitals(operatingSystem: OperatingSystemVitals, runtime: RuntimeVitals, memory: MemoryVitals, threads: ThreadVitals)
 
 case class OperatingSystemVitals(name: String, architecture: String, version: String, availableProcessors: Double, systemLoadAverage: Double)
@@ -20,23 +15,19 @@ case class MemoryUsageVitals(init: Long, max: Long, committed: Long, used: Long)
 case class ThreadVitals(count: Long, peakCount: Long, daemonCount: Long, totalStartedCount: Long)
 
 trait JmxVitalsProvider {
-  this: ExecutionContextProvider =>
 
-  private lazy val operatingSystem = ManagementFactory.getOperatingSystemMXBean
-  private lazy val runtime = ManagementFactory.getRuntimeMXBean
   private lazy val memory = ManagementFactory.getMemoryMXBean
   private lazy val thread = ManagementFactory.getThreadMXBean
+  private lazy val runtime = ManagementFactory.getRuntimeMXBean
+  private lazy val operatingSystem = ManagementFactory.getOperatingSystemMXBean
 
-  def vitals()(implicit timeout: Timeout): Future[JvmVitals] = Future {
-    JvmVitals(
-      OperatingSystemVitals(operatingSystem.getName, operatingSystem.getArch, operatingSystem.getVersion, operatingSystem.getAvailableProcessors, operatingSystem.getSystemLoadAverage),
-      RuntimeVitals(runtime.getName, runtime.getVmName, runtime.getVmVendor, runtime.getVmVersion, runtime.getStartTime, runtime.getUptime),
-      MemoryVitals(
-        MemoryUsageVitals(memory.getHeapMemoryUsage.getInit, memory.getHeapMemoryUsage.getMax, memory.getHeapMemoryUsage.getCommitted, memory.getHeapMemoryUsage.getUsed),
-        MemoryUsageVitals(memory.getNonHeapMemoryUsage.getInit, memory.getNonHeapMemoryUsage.getMax, memory.getNonHeapMemoryUsage.getCommitted, memory.getNonHeapMemoryUsage.getUsed)
-      ),
-      ThreadVitals(thread.getThreadCount, thread.getPeakThreadCount, thread.getDaemonThreadCount, thread.getTotalStartedThreadCount)
-    )
-  }
+  def vitals(): JvmVitals = JvmVitals(
+    OperatingSystemVitals(operatingSystem.getName, operatingSystem.getArch, operatingSystem.getVersion, operatingSystem.getAvailableProcessors, operatingSystem.getSystemLoadAverage),
+    RuntimeVitals(runtime.getName, runtime.getVmName, runtime.getVmVendor, runtime.getVmVersion, runtime.getStartTime, runtime.getUptime),
+    MemoryVitals(
+      MemoryUsageVitals(memory.getHeapMemoryUsage.getInit, memory.getHeapMemoryUsage.getMax, memory.getHeapMemoryUsage.getCommitted, memory.getHeapMemoryUsage.getUsed),
+      MemoryUsageVitals(memory.getNonHeapMemoryUsage.getInit, memory.getNonHeapMemoryUsage.getMax, memory.getNonHeapMemoryUsage.getCommitted, memory.getNonHeapMemoryUsage.getUsed)
+    ),
+    ThreadVitals(thread.getThreadCount, thread.getPeakThreadCount, thread.getDaemonThreadCount, thread.getTotalStartedThreadCount))
 }
 
