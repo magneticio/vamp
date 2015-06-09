@@ -65,13 +65,17 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
   private case class ProcessedCluster(state: Processed.State, cluster: DeploymentCluster)
 
   def receive: Receive = {
+
     case SynchronizeAll =>
       implicit val timeout = PersistenceActor.timeout
       offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
         case deployments: List[_] => synchronize(deployments.asInstanceOf[List[Deployment]])
         case any => error(InternalServerError(any))
       }
+
     case Synchronize(deployment) => synchronize(deployment :: Nil)
+
+    case _ =>
   }
 
   private def synchronize(deployments: List[Deployment]): Unit = {
