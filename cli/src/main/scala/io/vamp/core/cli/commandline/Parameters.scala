@@ -18,6 +18,7 @@ trait Parameters extends CommandLineBasics {
   val json = 'json
   val routing = 'routing
   val scale = 'scale
+  val subcommand = 'subcommand
 
   val VAMP_HOST = "VAMP_HOST"
 
@@ -41,6 +42,7 @@ trait Parameters extends CommandLineBasics {
     def isSwitch(s: String) = s(0) == '-'
     list match {
       case Nil => map
+      //case "inspect" :: value :: tail => nextOption(map ++ Map(file -> value), tail)
       case "--host" :: value :: tail => nextOption(map ++ Map(host -> value), tail)
       case "--deployment" :: value :: tail => nextOption(map ++ Map(deployment -> value), tail)
       case "--cluster" :: value :: tail => nextOption(map ++ Map(cluster -> value), tail)
@@ -53,6 +55,8 @@ trait Parameters extends CommandLineBasics {
       case "--json" :: tail => nextOption(map ++ Map(json -> "true"), tail)
 
       case string :: opt2 :: tail if isSwitch(opt2) => nextOption(map ++ Map(name -> string), list.tail)
+      case string :: opt2 :: tail if !isSwitch(opt2) => nextOption(map ++ Map(subcommand -> string), list.tail)
+
       case string :: Nil => nextOption(map ++ Map(name -> string), list.tail)
       case option :: tail => terminateWithError("Unknown option " + option)
         Map.empty

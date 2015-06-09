@@ -16,49 +16,31 @@ trait CliCommand {
   val requiresName: Boolean = false
   val commandType: CommandType = CommandType.Other
   val requiresHostConnection : Boolean = true
+  val allowedSubCommands :List[String]= List.empty
   def jsonOutput = "  --json               Output Json instead of Yaml[Optional]"
+  val allArtifacts = List("blueprint","breed","deployment","escalation", "filter", "routing", "scale", "sla")
+  val allArtifactsPlural = List("blueprints","breeds","deployments","escalations", "filters", "routings", "scales", "slas")
 }
 
-case class ListBlueprintsCommand() extends CliCommand {
-  override val name = "blueprints"
-  override val description = "List of blueprints"
-  override val usage = "Shows a list of blueprints"
+case class ListCommand() extends CliCommand {
+  override val name = "list"
+  override val description = "Shows a list of artifacts"
+  override val usage = "Shows a list of artifacts"
   override val commandType = CommandType.List
+  override val allowedSubCommands = allArtifactsPlural
 }
 
-case class ListBreedsCommand() extends CliCommand {
-  override val name = "breeds"
-  override val description = "List of breeds"
-  override val usage = "Shows a list of breeds"
-  override val commandType = CommandType.List
-}
-
-case class ListEscalationsCommand() extends CliCommand {
-  override val name = "escalations"
-  override val description = "List of escalations"
-  override val usage = "Shows a list of escalations"
-  override val commandType = CommandType.List
-}
-
-case class ListFiltersCommand() extends CliCommand {
-  override val name = "filters"
-  override val description = "List of filters"
-  override val usage = "Shows a list of filters"
-  override val commandType = CommandType.List
-}
-
-case class ListRoutingsCommand() extends CliCommand {
-  override val name = "routings"
-  override val description = "List of routings"
-  override val usage = "Shows a list of routings"
-  override val commandType = CommandType.List
-}
-
-case class ListScalesCommand() extends CliCommand {
-  override val name = "scales"
-  override val description = "List of scales"
-  override val usage = "Shows a list of scaless"
-  override val commandType = CommandType.List
+case class InspectCommand() extends CliCommand {
+  override val name = "inspect"
+  override val description = "Shows the details of the specified artifact"
+  override val usage =
+    """Shows the details of the specified artifact.
+    """.stripMargin
+  override val additionalParams = "--json"
+  override val parameters = jsonOutput
+  override val commandType = CommandType.Inspect
+  override val requiresName = true
+  override val allowedSubCommands = allArtifacts
 }
 
 case class CloneBreedCommand() extends CliCommand {
@@ -71,19 +53,20 @@ case class CloneBreedCommand() extends CliCommand {
                               |  --deployable         Name of the deployable [Optional]
                             """.stripMargin
   override val requiresName = true
-  override val commandType = CommandType.Create
+  override val commandType = CommandType.Other
 }
 
-case class CreateBreedCommand() extends CliCommand {
-  override val name = "create-breed"
+case class CreateCommand() extends CliCommand {
+  override val name = "create"
   override val additionalParams = "[--file]"
-  override val usage = "Create a breed read from the specified filename. When no file name is supplied, stdin will be read."
-  override val description = "Create a breed"
+  override val usage = "Create an artifact read from the specified filename. When no file name is supplied, stdin will be read."
+  override val description = "Create an artifact"
   override val parameters = """
                               |  --file               Name of the yaml file [Optional]
                             """.stripMargin
   override val requiresName = true
   override val commandType = CommandType.Create
+  override val allowedSubCommands = List("breed")
 }
 
 case class DeployBlueprintCommand() extends CliCommand {
@@ -109,13 +92,6 @@ case class DeployBreedCommand() extends CliCommand {
   override val commandType = CommandType.Deploy
 }
 
-case class ListDeploymentsCommand() extends CliCommand {
-  override val name = "deployments"
-  override val description = "List of deployments"
-  override val usage = "Shows a list of deployments"
-  override val commandType = CommandType.List
-}
-
 case class HelpCommand() extends CliCommand {
   override val name = "help"
   override val description = "This message"
@@ -129,107 +105,14 @@ case class InfoCommand() extends CliCommand {
   override val usage = "Returns a JSON blob with information from Vamp Core"
 }
 
-case class InspectBreedCommand() extends CliCommand {
-  override val name = "inspect-breed"
-  override val usage = "Representation of a stored breed"
-  override val description = "Return details of the specified breed"
-  override val additionalParams = "--json"
-  override val parameters = jsonOutput
-  override val requiresName = true
-  override val commandType = CommandType.Inspect
-}
 
-case class InspectBlueprintCommand() extends CliCommand {
-  override val name = "inspect-blueprint"
-  override val usage = "Displays a stored blueprint"
-  override val description = "Return details of the specified blueprint"
-  override val additionalParams = "--json"
-  override val parameters = jsonOutput
-  override val requiresName = true
-  override val commandType = CommandType.Inspect
-}
-
-case class InspectDeploymentCommand() extends CliCommand {
-  override val name = "inspect-deployment"
-  override val usage = "Displays an active deployment"
-  override val description = "Return details of the specified deployment"
-  override val additionalParams = "--json"
-  override val parameters = jsonOutput
-  override val requiresName = true
-  override val commandType = CommandType.Inspect
-}
-
-case class InspectEscalationCommand() extends CliCommand {
-  override val name = "inspect-escalation"
-  override val usage = "Displays a stored escalation"
-  override val description = "Return details of the specified escalation"
-  override val additionalParams = "--json"
-  override val parameters = jsonOutput
-  override val requiresName = true
-  override val commandType = CommandType.Inspect
-}
-
-case class InspectFilterCommand() extends CliCommand {
-  override val name = "inspect-filter"
-  override val usage = "Displays a stored filter"
-  override val description = "Return details of the specified filter"
-  override val additionalParams = "--json"
-  override val parameters = jsonOutput
-  override val requiresName = true
-  override val commandType = CommandType.Inspect
-}
-
-case class InspectRoutingCommand() extends CliCommand {
-  override val name = "inspect-routing"
-  override val usage = "Displays a stored routing"
-  override val description = "Return details of the specified routing"
-  override val additionalParams = "--json"
-  override val parameters = jsonOutput
-  override val requiresName = true
-  override val commandType = CommandType.Inspect
-}
-
-case class InspectScaleCommand() extends CliCommand {
-  override val name = "inspect-scale"
-  override val usage = "Displays a stored scale"
-  override val description = "Return details of the specified scale"
-  override val additionalParams = "--json"
-  override val parameters = jsonOutput
-  override val requiresName = true
-  override val commandType = CommandType.Inspect
-}
-
-case class InspectSlaCommand() extends CliCommand {
-  override val name = "inspect-sla"
-  override val usage = "Displays a stored sla"
-  override val description = "Return details of the specified sla"
-  override val additionalParams = "--json"
-  override val parameters = jsonOutput
-  override val requiresName = true
-  override val commandType = CommandType.Inspect
-}
-
-case class RemoveBlueprintCommand() extends CliCommand {
-  override val name = "remove-blueprint"
-  override val usage = "Removes a blueprint"
-  override val description = "Removes a blueprint"
+case class RemoveCommand() extends CliCommand {
+  override val name = "remove"
+  override val usage = "Removes artifact"
+  override val description = "Removes an artifact"
   override val requiresName = true
   override val commandType = CommandType.Delete
-}
-
-case class RemoveBreedCommand() extends CliCommand {
-  override val name = "remove-breed"
-  override val usage = "Removes a breed"
-  override val description = "Removes a breed"
-  override val requiresName = true
-  override val commandType = CommandType.Delete
-}
-
-case class ListSlasCommand() extends CliCommand {
-  override val name = "slas"
-  override val description = "List of slas"
-  override val usage = "Shows a list of slas"
-  override val commandType = CommandType.List
+  override val allowedSubCommands= List("breed")
 }
 
 case class UnknownCommand(override val name: String) extends CliCommand

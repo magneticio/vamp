@@ -22,30 +22,30 @@ object PerformCommand extends Parameters {
     implicit val vampHost: String = if(command.requiresHostConnection) getParameter(host) else "Not needed"
 
     command.commandType match {
-      case CommandType.Create => doCreateCommand(command)
-      case CommandType.Delete => doDeleteCommand(command)
+      case CommandType.List => doListCommand
+      case CommandType.Inspect => doInspectCommand
+      case CommandType.Create => doCreateCommand
+      case CommandType.Delete => doDeleteCommand
       case CommandType.Update => doUpdateCommand(command)
       case CommandType.Deploy => doDeployCommand(command)
-      case CommandType.Inspect => doInspectCommand(command)
-      case CommandType.List => doListCommand(command)
       case CommandType.Other => doOtherCommand(command)
     }
   }
 
-  private def doListCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
-    case _: ListBreedsCommand =>
+  private def doListCommand(implicit vampHost: String, options: OptionMap) = getParameter(name) match {
+    case "breeds" =>
       println("NAME".padTo(25, ' ').bold.cyan + "DEPLOYABLE")
       VampHostCalls.getBreeds.foreach({ case b: DefaultBreed => println(s"${b.name.padTo(25, ' ')}${b.deployable.name}") })
 
-    case _: ListBlueprintsCommand =>
+    case "blueprints" =>
       println("NAME".padTo(40, ' ').bold.cyan + "ENDPOINTS")
       VampHostCalls.getBlueprints.foreach(blueprint => println(s"${blueprint.name.padTo(40, ' ')}${blueprint.endpoints.map(e => s"${e.name} -> ${e.value.get}").mkString(", ")}"))
 
-    case _: ListDeploymentsCommand =>
+    case "deployments" =>
       println("NAME".padTo(40, ' ').bold.cyan + "CLUSTERS")
       VampHostCalls.getDeployments.foreach(deployment => println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c.name}").mkString(", ")}"))
 
-    case _: ListEscalationsCommand =>
+    case "escalations" =>
       println("NAME".padTo(25, ' ').bold.cyan + "TYPE".padTo(20, ' ') + "SETTINGS")
       VampHostCalls.getEscalations.foreach({
         case b: ScaleInstancesEscalation => println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
@@ -55,46 +55,50 @@ object PerformCommand extends Parameters {
         case x => println(x)
       })
 
-    case _: ListFiltersCommand =>
+    case "filters" =>
       println("NAME".padTo(25, ' ').bold.cyan + "CONDITION")
       VampHostCalls.getFilters.foreach({ case b: DefaultFilter => println(s"${b.name.padTo(25, ' ')}${b.condition}") })
 
-    case _: ListRoutingsCommand =>
+    case "routings" =>
       println("NAME".padTo(25, ' ').bold.cyan + "FILTERS")
       VampHostCalls.getRoutings.foreach({ case b: DefaultRouting => println(s"${b.name.padTo(25, ' ')}${b.filters.map({ case d: DefaultFilter => s"${d.condition}" }).mkString(", ")}") })
 
-    case _: ListScalesCommand =>
+    case "scales" =>
       println("NAME".padTo(25, ' ').bold.cyan + "CPU".padTo(7, ' ') + "MEMORY".padTo(10, ' ') + "INSTANCES")
       VampHostCalls.getScales.foreach({ case b: DefaultScale => println(s"${b.name.padTo(25, ' ')}${b.cpu.toString.padTo(7, ' ')}${b.memory.toString.padTo(10, ' ')}${b.instances}") })
 
-    case _: ListSlasCommand =>
+    case "slas" =>
       println("NAME".bold.cyan)
       VampHostCalls.getSlas.foreach(sla => println(s"${sla.name}"))
 
-    case _ => unhandledCommand _
+    case invalid => terminateWithError(s"Artifact type unknown: '$invalid'")
 
   }
 
-  private def doInspectCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = {
-    val artifact: Option[Artifact] = command match {
-      case _: InspectBreedCommand => VampHostCalls.getBreed(getParameter(name))
+  private def doInspectCommand(implicit vampHost: String, options: OptionMap) = {
+    val artifact: Option[Artifact] = getOptionalParameter(subcommand) match {
+      case Some("breed") => VampHostCalls.getBreed(getParameter(name))
 
-      case _: InspectBlueprintCommand => VampHostCalls.getBlueprint(getParameter(name))
+      case Some("blueprint") => VampHostCalls.getBlueprint(getParameter(name))
 
-      case _: InspectDeploymentCommand => VampHostCalls.getDeployment(getParameter(name))
+      case Some("deployment") => VampHostCalls.getDeployment(getParameter(name))
 
-      case _: InspectEscalationCommand => VampHostCalls.getEscalation(getParameter(name))
+      case Some("escalation") => VampHostCalls.getEscalation(getParameter(name))
 
-      case _: InspectFilterCommand => VampHostCalls.getFilter(getParameter(name))
+      case Some("filter") => VampHostCalls.getFilter(getParameter(name))
 
-      case _: InspectRoutingCommand => VampHostCalls.getRouting(getParameter(name))
+      case Some("routing") => VampHostCalls.getRouting(getParameter(name))
 
-      case _: InspectScaleCommand => VampHostCalls.getScale(getParameter(name))
+      case Some("scale") => VampHostCalls.getScale(getParameter(name))
 
-      case _: InspectSlaCommand => VampHostCalls.getSla(getParameter(name))
+      case Some("sla") => VampHostCalls.getSla(getParameter(name))
 
-      case _ => unhandledCommand _
+      case  Some(invalid)  => terminateWithError(s"Artifact type unknown: '$invalid'")
         None
+
+      case None => terminateWithError(s"Artifact & name are required")
+        None
+
     }
     printArtifact(artifact)
   }
@@ -137,14 +141,6 @@ object PerformCommand extends Parameters {
 
     case _: VersionCommand => println(s"CLI version: " + s"${getClass.getPackage.getImplementationVersion}".yellow.bold)
 
-    case x: UnknownCommand => terminateWithError(s"Unknown command '${x.name}'")
-
-    case _ => unhandledCommand _
-  }
-
-
-  private def doCreateCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
-
     case _: CloneBreedCommand =>
       VampHostCalls.getBreed(getParameter(name)) match {
         case Some(sourceBreed: DefaultBreed) =>
@@ -156,23 +152,30 @@ object PerformCommand extends Parameters {
         case _ => terminateWithError("Source breed not found")
       }
 
-    case _: CreateBreedCommand =>
+    case x: UnknownCommand => terminateWithError(s"Unknown command '${x.name}'")
+
+    case _ => unhandledCommand _
+  }
+
+
+  private def doCreateCommand(implicit vampHost: String, options: OptionMap) = getParameter(name) match {
+    case "breed" =>
       val fileContents = getOptionalParameter('file) match {
         case Some(fileName) => Source.fromFile(fileName).getLines().mkString("\n")
         case None => Source.stdin.getLines().mkString("\n")
       }
       println(VampHostCalls.createBreed(fileContents))
 
-    case _ => unhandledCommand _
+    case invalid => terminateWithError(s"Unsupported artifact '$invalid'")
   }
 
 
-  private def doDeleteCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
-    case _: RemoveBreedCommand => VampHostCalls.deleteBreed(getParameter(name))
+  private def doDeleteCommand(implicit vampHost: String, options: OptionMap) = getParameter(name) match {
+    case "breed" => VampHostCalls.deleteBreed(getParameter(name))
 
-    case _: RemoveBlueprintCommand => println(NotImplemented)
+    case "blueprint" => println(NotImplemented)
 
-    case _ => unhandledCommand _
+    case invalid => terminateWithError(s"Unsupported artifact '$invalid'")
   }
 
   private def doUpdateCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
