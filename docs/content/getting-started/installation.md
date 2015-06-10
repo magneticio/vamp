@@ -13,7 +13,7 @@ menu:
 # Installation
 
 
-By the easiest way to get started with Vamp is by spining up one of the Docker images stored
+The easiest way to get started with Vamp is by spining up one of the Docker images stored
 in the [vamp-docker repo](https://github.com/magneticio/vamp-docker) and the [public Docker hub](https://registry.hub.docker.com/repos/magneticio/). Make sure you have the [prerequisites](#prerequisites) installed before picking one of the options below. If you have any trouble getting it working, check out [some of the background information](#some-background-info)
 
 ## Option 1: Run Vamp on Docker
@@ -21,7 +21,6 @@ in the [vamp-docker repo](https://github.com/magneticio/vamp-docker) and the [pu
 This setup will run Vamp inside a Docker container with Vamp's Docker driver. This allows you to test drive Vamp really easily.
 
 A typical command on Macbook running Boot2Docker would be:
-
 {{% copyable %}}
 ```
 docker run --net=host -v /Users/tim/.boot2docker/certs/boot2docker-vm:/certs -e "DOCKER_TLS_VERIFY=1" -e "DOCKER_HOST=tcp://`boot2docker ip`:2376" -e "DOCKER_CERT_PATH=/certs" magneticio/vamp-docker:latest
