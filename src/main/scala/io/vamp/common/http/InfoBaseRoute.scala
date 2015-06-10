@@ -65,7 +65,7 @@ object InfoActor {
 
 }
 
-class InfoActor extends FSM[InfoState, InfoData] with ActorSupport with ActorExecutionContextProvider {
+class InfoActor extends FSM[InfoState, InfoData] with ActorSupportForActors with ActorExecutionContextProvider {
 
   import InfoActor._
 

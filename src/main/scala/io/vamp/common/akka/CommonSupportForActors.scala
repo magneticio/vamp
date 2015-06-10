@@ -4,10 +4,10 @@ import akka.actor.{Actor, ActorLogging}
 import io.vamp.common.notification.NotificationProvider
 
 
-trait CommonActorSupport
+trait CommonSupportForActors
   extends Actor
   with ActorLogging
-  with ActorSupport
+  with ActorSupportForActors
   with FutureSupport
   with ActorExecutionContextProvider
   with NotificationProvider

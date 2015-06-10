@@ -12,7 +12,7 @@ object SchedulerActor {
 
 }
 
-abstract class SchedulerActor extends CommonActorSupport {
+abstract class SchedulerActor extends CommonSupportForActors {
 
   private var timer: Option[Cancellable] = None
 
