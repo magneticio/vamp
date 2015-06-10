@@ -17,16 +17,16 @@ object ActorSupport {
 
 trait ActorSupport {
 
-  implicit def actorContext: ActorContext
+  implicit def actorRefFactory: ActorRefFactory
 
   def actorOf(actorDescription: ActorDescription, args: Any*)(implicit mailbox: String = "akka.actor.default-mailbox") =
-    actorContext.actorOf(actorDescription.props(args: _*).withMailbox(mailbox), actorDescription.name)
+    actorRefFactory.actorOf(actorDescription.props(args: _*).withMailbox(mailbox), actorDescription.name)
 
-  def actorFor(actorDescription: ActorDescription) = actorContext.actorSelection(s"../${actorDescription.name}")
+  def actorFor(actorDescription: ActorDescription) = actorRefFactory.actorSelection(s"/user/${actorDescription.name}")
 }
 
 trait ActorSupportForActors extends ActorSupport {
   this: Actor =>
 
-  def actorContext = context
+  def actorRefFactory = context
 }
