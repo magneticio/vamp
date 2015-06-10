@@ -63,7 +63,7 @@ curl -v -X POST --data-binary @sava_1.0.yaml -H "Content-Type: application/x-yam
 Using `httpie`
 
 ```
-http POST http://192.168.59.103:8081/api/v1/deployments Content-Type:application/x-yaml < sava_1.0.yaml
+http POST http://192.168.59.103:8080/api/v1/deployments Content-Type:application/x-yaml < sava_1.0.yaml
 ```
 
 After POST-ing, Vamp should respond with a `202 Accepted` message and return a JSON blob similar to the blob 

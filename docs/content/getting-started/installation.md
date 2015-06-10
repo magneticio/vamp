@@ -10,50 +10,11 @@ menu:
     
 ---
 
-
-# Before you install...
-<img src="/img/vamp_services.svg" id="get_started_overview">
-
-Before we really get started, you should know that Vamp is truly modular and
-consists of three separate services: Core, Pulse and Router. Each of these services has their own
-role and purpose:
-
-- **Vamp Core**: Core is the brains of the system. It contains the REST API you send your requests to,
-it speaks to the underlying PaaS/Container Manager and ties together the other two services. 
-- **Vamp Router**: All routing duties are taken care of by Vamp Router. It is a perfectly usable component
-by itself, but really comes together when Vamp Core is in charge of what it routes and where.
-- **Vamp Pulse**: Pulse is the metrics and event store for the whole Vamp platform. Core and Router both store data in it and Core also uses it as the input for SLA management and events storage.
-
-Knowing that this is how Vamp works under the hood can maybe help you troubleshoot any teething problems and
-in general help you better understand what's going on.
+# Installation
 
 
-# Now let's install!
-
-By far the easiest way to get started with Vamp is by spining up one of the pre-baked Docker images stored
-in the [vamp-docker repo](https://github.com/magneticio/vamp-docker). This repo contains a number of 
-`Dockerfile` files and `docker-compose.yml` to help setup Vamp in different situations. 
-They should run anywhere Docker runs, but most situations will probably be on your laptop. 
-Probably a recent Macbook.
-
-## Prerequisites
-
-You should have Docker installed which, on a Macbook with OSX, also means [Boot2Docker](http://boot2docker.io/) and its dependencies. 
-
-Please make double sure Boot2Docker is installed correctly and up & running!
-
-    $ boot2docker status
-    running
-
-Please make double sure the Docker command can reach Boot2Docker. You set this by having boot2docker generate the right settings:
-
-    $ boot2docker shellinit
-    
-Export the settings boot2docker provides and check if you can run a simple `docker ps`
-
-    $ docker ps
-
-With the prerequisites sorted, pick one of the following options:
+By the easiest way to get started with Vamp is by spining up one of the Docker images stored
+in the [vamp-docker repo](https://github.com/magneticio/vamp-docker) and the [public Docker hub](https://registry.hub.docker.com/repos/magneticio/). Make sure you have the [prerequisites](#prerequisites) installed before picking one of the options below. If you have any trouble getting it working, check out [some of the background information](#some-background-info)
 
 ## Option 1: Run Vamp on Docker
 
@@ -93,7 +54,7 @@ Now check if Vamp is home on port 8080 by doing a GET on the `info` endpoint, i.
 }
 ```
 
-## Option 2: Run Vamp with an external Mesos cluster
+## Option 2: Run Vamp with a Mesosphere cluster
 
 If you want to tweak things a bit more, grab the Vamp all-in-one Docker image and provide your own Mesosphere stack.
 
@@ -189,3 +150,37 @@ docker run -d --name=vamp -p 81:80 -p 8081:8080 -p 10002:10001 -p 8084:8083 -e V
     }
   }
 ```
+
+## Prerequisites
+
+You should have Docker installed which, on a Macbook with OSX, also means [Boot2Docker](http://boot2docker.io/) and its dependencies. 
+
+Please make double sure Boot2Docker is installed correctly and up & running!
+
+    $ boot2docker status
+    running
+
+Please make double sure the Docker command can reach Boot2Docker. You set this by having boot2docker generate the right settings:
+
+    $ boot2docker shellinit
+    
+Export the settings boot2docker provides and check if you can run a simple `docker ps`
+
+    $ docker ps
+
+## Some background info
+
+<img src="/img/vamp_services.svg" id="get_started_overview">
+
+Before we really get started, you should know that Vamp is truly modular and
+consists of three separate services: Core, Pulse and Router. Each of these services has their own
+role and purpose:
+
+- **Vamp Core**: Core is the brains of the system. It contains the REST API you send your requests to,
+it speaks to the underlying PaaS/Container Manager and ties together the other two services. 
+- **Vamp Router**: All routing duties are taken care of by Vamp Router. It is a perfectly usable component
+by itself, but really comes together when Vamp Core is in charge of what it routes and where.
+- **Vamp Pulse**: Pulse is the metrics and event store for the whole Vamp platform. Core and Router both store data in it and Core also uses it as the input for SLA management and events storage.
+
+Knowing that this is how Vamp works under the hood can maybe help you troubleshoot any teething problems and
+in general help you better understand what's going on.
