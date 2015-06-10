@@ -53,6 +53,8 @@ Now check if Vamp is home on port 8080 by doing a GET on the `info` endpoint, i.
 }
 ```
 
+Things still not running? [We're here to help →](https://github.com/magneticio/vamp/issues)
+
 ## Option 2: Run Vamp with a Mesosphere cluster
 
 If you want to tweak things a bit more, grab the Vamp all-in-one Docker image and provide your own Mesosphere stack.
@@ -149,6 +151,7 @@ docker run -d --name=vamp -p 81:80 -p 8081:8080 -p 10002:10001 -p 8084:8083 -e V
     }
   }
 ```
+Things still not running? [We're here to help →](https://github.com/magneticio/vamp/issues)
 
 ## Prerequisites
 
