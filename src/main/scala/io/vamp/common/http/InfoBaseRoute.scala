@@ -1,14 +1,13 @@
 package io.vamp.common.http
 
-import akka.actor.{ActorRef, Cancellable, FSM, Props}
+import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ActorDescription, ActorExecutionContextProvider, ActorSupport, CommonActorSupport}
+import io.vamp.common.akka._
 import io.vamp.common.http.InfoActor.{InfoData, InfoState}
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.{InfoRequest, JmxVitalsProvider, JvmVitals}
 import spray.http.StatusCodes._
-import spray.routing.HttpServiceBase
 
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
@@ -17,8 +16,10 @@ trait InfoMessageBase {
   def jvm: JvmVitals
 }
 
-trait InfoBaseRoute extends HttpServiceBase with JmxVitalsProvider with CommonActorSupport {
+trait InfoBaseRoute extends JmxVitalsProvider with ExecutionContextProvider {
   this: RestApiBase =>
+
+  def actorRefFactory: ActorRefFactory
 
   implicit def timeout: Timeout
 
@@ -41,7 +42,7 @@ trait InfoBaseRoute extends HttpServiceBase with JmxVitalsProvider with CommonAc
   protected def info: Future[InfoMessageBase] = info(vitals())
 
   def info(actors: Set[ActorDescription]): Future[Map[ActorDescription, Any]] = {
-    (context.system.actorOf(InfoActor.props()) ? InfoActor.GetInfo(actors, componentInfoTimeout)).asInstanceOf[Future[Map[ActorDescription, Any]]]
+    (actorRefFactory.actorOf(InfoActor.props()) ? InfoActor.GetInfo(actors, componentInfoTimeout)).asInstanceOf[Future[Map[ActorDescription, Any]]]
   }
 }
 
