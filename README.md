@@ -18,12 +18,12 @@ Of course, Vamp is made of multiple services itself. Monolith bad, services good
 
 ## Deploy Vamp on your laptop
 
-Vamp can run on your laptop with one command. Check out our [Docker compose](https://github.com/magneticio/vamp-docker#run-vamp-with-a-mesos-and-marathon-cluster) script and get up and running. This should be enough to kick the tires.
+Vamp can run on your laptop with one command. Check out our [Docker Setup](https://github.com/magneticio/vamp-docker#option-1-run-vamp-on-docker). This should be enough to kick the tires.
 
-## Deploy Vamp with a serious backend
+## Deploy Vamp with a Mesosphere backend
 
 Vamp uses underlying PaaS and container management platforms like Mesosphere. This is how you run Vamp
-[on a Mesosphere cluster](https://github.com/magneticio/vamp-docker#build-the-all-in-one-vamp-container-run-it-with-an-external-mesosmarathon). This should work on Google Compute Engine, Digital Ocean or anywhere where Mesos runs. This setup should enable to do some serious vamping!
+[on a Mesosphere cluster](https://github.com/magneticio/vamp-docker#option-2-run-vamp-with-a-mesos-and-marathon-cluster). This should work on Google Compute Engine, Digital Ocean or anywhere where Mesos runs.
 
 ## Using Vamp and more
 

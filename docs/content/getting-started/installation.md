@@ -45,43 +45,38 @@ Please make double sure Boot2Docker is installed correctly and up & running!
     $ boot2docker status
     running
 
-Please make double sure the Docker command can reach Boot2Docker. You set this by exporting the DOCKER_HOST
-environment variable, for example:
+Please make double sure the Docker command can reach Boot2Docker. You set this by having boot2docker generate the right settings:
 
-    $ export DOCKER_HOST=tcp://192.168.59.103:2376
+    $ boot2docker shellinit
     
+Export the settings boot2docker provides and check if you can run a simple `docker ps`
 
-For Docker compositions, you should have [Docker compose](https://docs.docker.com/compose/install/) installed. 
-Luckily, that's a two-liner:
-{{% copyable %}}
-```
-curl -L https://github.com/docker/compose/releases/download/1.1.0/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose  
-chmod +x /usr/local/bin/docker-compose
-```
-{{% /copyable %}}
+    $ docker ps
 
 With the prerequisites sorted, pick one of the following options:
 
-## Option 1: Run Vamp with a Mesos cluster all-in-one
+## Option 1: Run Vamp on Docker
 
-This command will create a full Mesosphere stack on your laptop and connect Vamp to it.
+This setup will run Vamp inside a Docker container with Vamp's Docker driver. This allows you to test drive Vamp really easily.
+
+A typical command on Macbook running Boot2Docker would be:
+
 {{% copyable %}}
 ```
-git clone https://github.com/magneticio/vamp-docker.git && \
-cd vamp-docker/docker-compositions/vamp-marathon-mesos/ && \
-docker-compose up
+docker run --net=host -v /Users/tim/.boot2docker/certs/boot2docker-vm:/certs -e "DOCKER_TLS_VERIFY=1" -e "DOCKER_HOST=tcp://`boot2docker ip`:2376" -e "DOCKER_CERT_PATH=/certs" magneticio/vamp-docker:latest
 ```
 {{% /copyable %}}
 
-Now grab a coffee while everything gets installed on the first run. The containers are somewhat large due
-to Java dependencies. Luckily, you'll only have to do this once. After that it's crazy fast.
+**Please notice** the mounting (`-v /Users/tim/...`) of the boot2docker certificates. Please set this to your specific environment. You can get this info by running `boot2docker config`.
+
+If you don't use Boot2Docker, set the `DOCKER_HOST` variable to whatever is relevant to your system.
 
 {{% alert warn %}}
 **Note:** This runs all of Vamp's components in one container. This is definitely not ideal, but works fine for kicking the tires.
 You will run into cpu, memory and storage issues pretty soon though. Also, random ports are assigned by Vamp which you might not have exposed on either Docker or your Boot2Docker Vagrant box.
 {{% /alert%}}
 
-Now check if Vamp is home on port 8081 (Marathon is on port 8080) by doing a GET on the `info` endpoint, i.e.: `http://192.168.59.103:8081/api/v1/info`
+Now check if Vamp is home on port 8080 by doing a GET on the `info` endpoint, i.e.: `http://boot2docker_ip:8080/api/v1/info`
 
 ```json
 {
@@ -158,7 +153,7 @@ would have Router assigned to at least a dedicated box, IP, DNS etc.
 
 
 3. Pull the latest Vamp image.
-{{% copyable %}}<pre> docker pull magneticio/vamp:latest</pre>{{% /copyable %}}    
+{{% copyable %}}<pre> docker pull magneticio/vamp-mesosphere:latest</pre>{{% /copyable %}}    
 
 4. Start up Vamp while providing it with the necessary external inputs. Note: these are examples from our test!
 {{% copyable %}}
@@ -173,7 +168,7 @@ export VAMP_ROUTER_URL=http://$VAMP_ROUTER_HOST:10001
 {{% copyable %}}
 
 ```
-docker run -d --name=vamp -p 81:80 -p 8081:8080 -p 10002:10001 -p 8084:8083 -e VAMP_MARATHON_URL=http://$MARATHON_MASTER:8080 -e VAMP_ROUTER_URL=http://$VAMP_ROUTER_HOST:10001 -e VAMP_ROUTER_HOST=$VAMP_ROUTER_HOST magneticio/vamp:latest
+docker run -d --name=vamp -p 81:80 -p 8081:8080 -p 10002:10001 -p 8084:8083 -e VAMP_MARATHON_URL=http://$MARATHON_MASTER:8080 -e VAMP_ROUTER_URL=http://$VAMP_ROUTER_HOST:10001 -e VAMP_ROUTER_HOST=$VAMP_ROUTER_HOST magneticio/vamp-mesosphere:latest
 ```  
 {{% /copyable %}}
 

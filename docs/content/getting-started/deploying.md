@@ -57,13 +57,13 @@ strict with regard to content types, because we support JSON and YAML so we need
 Using `curl`:
 
 ```
-curl -v -X POST --data-binary @sava.yaml -H "Content-Type: application/x-yaml" http://192.168.59.103:8081/api/v1/deployments
+curl -v -X POST --data-binary @sava_1.0.yaml -H "Content-Type: application/x-yaml" http://192.168.59.103:8081/api/v1/deployments
 ```
 
 Using `httpie`
 
 ```
-http POST http://192.168.59.103:8081/api/v1/deployments Content-Type:application/x-yaml < sava.yaml
+http POST http://192.168.59.103:8081/api/v1/deployments Content-Type:application/x-yaml < sava_1.0.yaml
 ```
 
 After POST-ing, Vamp should respond with a `202 Accepted` message and return a JSON blob similar to the blob 
