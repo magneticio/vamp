@@ -31,3 +31,5 @@ trait ReplyActor {
   protected def unsupported(request: Any) = Failure(exception(errorRequest(request)))
 
 }
+
+trait CommonReplyActor extends CommonSupportForActors with ReplyActor with FutureSupportNotification
