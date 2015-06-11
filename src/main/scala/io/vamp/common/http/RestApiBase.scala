@@ -60,10 +60,13 @@ trait RestApiPagination {
         Link.Value(uri.copy(fragment = None, query = query), param)
       }
 
-      def first = link(1, Link.first)
-      def last = link(envelope.total / envelope.perPage + 1, Link.last)
-      def previous = link(if (envelope.page > 1) envelope.page - 1 else 1, Link.prev)
-      def next = link(if (envelope.page < envelope.total / envelope.perPage + 1) envelope.page + 1 else envelope.total / envelope.perPage + 1, Link.next)
+      val lastPage = envelope.total / envelope.perPage + (if (envelope.total % envelope.perPage == 0) 0 else 1)
+
+      val first = link(1, Link.first)
+      val last = link(lastPage, Link.last)
+
+      val previous = link(if (envelope.page > 1) envelope.page - 1 else 1, Link.prev)
+      val next = link(if (envelope.page < lastPage) envelope.page + 1 else lastPage, Link.next)
 
       Link(first, previous, next, last)
     }
