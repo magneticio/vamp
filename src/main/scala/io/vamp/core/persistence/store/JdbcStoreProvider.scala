@@ -1,6 +1,7 @@
 package io.vamp.core.persistence.store
 
 import com.typesafe.scalalogging.Logger
+import io.vamp.common.http.OffsetEnvelope
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, PersistenceOperationFailure, UnsupportedPersistenceRequest}
 import io.vamp.core.persistence.slick.components.Components
@@ -94,6 +95,11 @@ class JdbcStoreProvider(executionContext: ExecutionContext) extends StoreProvide
           logger.error(s"Unsupported Persistence Request - All - $ofType")
           throw exception(UnsupportedPersistenceRequest(ofType))
       }
+    }
+
+    def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
+      val response = all(`type`)
+      ArtifactResponseEnvelope(response, response.size, 1, response.size)
     }
 
     private def updateArtifact(artifact: Artifact): Artifact = {
