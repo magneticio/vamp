@@ -19,7 +19,7 @@ object PerformCommand extends Parameters {
 
   def doCommand(command: CliCommand)(implicit options: OptionMap): Unit = {
 
-    implicit val vampHost: String = if(command.requiresHostConnection) getParameter(host) else "Not needed"
+    implicit val vampHost: String = if (command.requiresHostConnection) getParameter(host) else "Not needed"
 
     command.commandType match {
       case CommandType.List => doListCommand
@@ -34,19 +34,19 @@ object PerformCommand extends Parameters {
 
   private def doListCommand(implicit vampHost: String, options: OptionMap) = getParameter(name) match {
     case "breeds" =>
-      println("NAME".padTo(25, ' ').bold.cyan + "DEPLOYABLE")
+      println("NAME".padTo(25, ' ').bold.cyan + "DEPLOYABLE".bold.cyan)
       VampHostCalls.getBreeds.foreach({ case b: DefaultBreed => println(s"${b.name.padTo(25, ' ')}${b.deployable.name}") })
 
     case "blueprints" =>
-      println("NAME".padTo(40, ' ').bold.cyan + "ENDPOINTS")
+      println("NAME".padTo(40, ' ').bold.cyan + "ENDPOINTS".bold.cyan)
       VampHostCalls.getBlueprints.foreach(blueprint => println(s"${blueprint.name.padTo(40, ' ')}${blueprint.endpoints.map(e => s"${e.name} -> ${e.value.get}").mkString(", ")}"))
 
     case "deployments" =>
-      println("NAME".padTo(40, ' ').bold.cyan + "CLUSTERS")
+      println("NAME".padTo(40, ' ').bold.cyan + "CLUSTERS".bold.cyan)
       VampHostCalls.getDeployments.foreach(deployment => println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c.name}").mkString(", ")}"))
 
     case "escalations" =>
-      println("NAME".padTo(25, ' ').bold.cyan + "TYPE".padTo(20, ' ') + "SETTINGS")
+      println("NAME".padTo(25, ' ').bold.cyan + "TYPE".padTo(20, ' ').bold.cyan + "SETTINGS".bold.cyan)
       VampHostCalls.getEscalations.foreach({
         case b: ScaleInstancesEscalation => println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
         case b: ScaleCpuEscalation => println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
@@ -56,15 +56,15 @@ object PerformCommand extends Parameters {
       })
 
     case "filters" =>
-      println("NAME".padTo(25, ' ').bold.cyan + "CONDITION")
+      println("NAME".padTo(25, ' ').bold.cyan + "CONDITION".bold.cyan)
       VampHostCalls.getFilters.foreach({ case b: DefaultFilter => println(s"${b.name.padTo(25, ' ')}${b.condition}") })
 
     case "routings" =>
-      println("NAME".padTo(25, ' ').bold.cyan + "FILTERS")
+      println("NAME".padTo(25, ' ').bold.cyan + "FILTERS".bold.cyan)
       VampHostCalls.getRoutings.foreach({ case b: DefaultRouting => println(s"${b.name.padTo(25, ' ')}${b.filters.map({ case d: DefaultFilter => s"${d.condition}" }).mkString(", ")}") })
 
     case "scales" =>
-      println("NAME".padTo(25, ' ').bold.cyan + "CPU".padTo(7, ' ') + "MEMORY".padTo(10, ' ') + "INSTANCES")
+      println("NAME".padTo(25, ' ').bold.cyan + "CPU".padTo(7, ' ').bold.cyan + "MEMORY".padTo(10, ' ').bold.cyan + "INSTANCES".bold.cyan)
       VampHostCalls.getScales.foreach({ case b: DefaultScale => println(s"${b.name.padTo(25, ' ')}${b.cpu.toString.padTo(7, ' ')}${b.memory.toString.padTo(10, ' ')}${b.instances}") })
 
     case "slas" =>
@@ -93,7 +93,7 @@ object PerformCommand extends Parameters {
 
       case Some("sla") => VampHostCalls.getSla(getParameter(name))
 
-      case  Some(invalid)  => terminateWithError(s"Artifact type unknown: '$invalid'")
+      case Some(invalid) => terminateWithError(s"Artifact type unknown: '$invalid'")
         None
 
       case None => terminateWithError(s"Artifact & name are required")
@@ -159,21 +159,31 @@ object PerformCommand extends Parameters {
 
 
   private def doCreateCommand(implicit vampHost: String, options: OptionMap) = getParameter(name) match {
-    case "breed" =>
-      val fileContents = getOptionalParameter('file) match {
-        case Some(fileName) => Source.fromFile(fileName).getLines().mkString("\n")
-        case None => Source.stdin.getLines().mkString("\n")
-      }
-      println(VampHostCalls.createBreed(fileContents))
-
+    case "breed" =>  printArtifact(VampHostCalls.createBreed(readFileContent))
+    case "blueprint" =>  printArtifact(VampHostCalls.createBlueprint(readFileContent))
+    case "escalation" =>  printArtifact(VampHostCalls.createEscalation(readFileContent))
+    case "filter" =>  printArtifact(VampHostCalls.createFilter(readFileContent))
+    case "routing" => printArtifact(VampHostCalls.createRouting(readFileContent))
+    case "scale" =>  printArtifact(VampHostCalls.createScale(readFileContent))
+    case "sla" =>  printArtifact(VampHostCalls.createSla(readFileContent))
     case invalid => terminateWithError(s"Unsupported artifact '$invalid'")
   }
 
 
-  private def doDeleteCommand(implicit vampHost: String, options: OptionMap) = getParameter(name) match {
+  private def doDeleteCommand(implicit vampHost: String, options: OptionMap) = getParameter(subcommand) match {
     case "breed" => VampHostCalls.deleteBreed(getParameter(name))
 
-    case "blueprint" => println(NotImplemented)
+    case "blueprint" => VampHostCalls.deleteBlueprint(getParameter(name))
+
+    case "escalation" => VampHostCalls.deleteEscalation(getParameter(name))
+
+    case "filter" => VampHostCalls.deleteFilter(getParameter(name))
+
+    case "routing" => VampHostCalls.deleteRouting(getParameter(name))
+
+    case "scale" => VampHostCalls.deleteScale(getParameter(name))
+
+    case "sla" => VampHostCalls.deleteSla(getParameter(name))
 
     case invalid => terminateWithError(s"Unsupported artifact '$invalid'")
   }
@@ -185,6 +195,12 @@ object PerformCommand extends Parameters {
 
 
   private def unhandledCommand(command: CliCommand) = terminateWithError(s"Unhandled command '${command.name}'")
+
+  private def readFileContent(implicit options: OptionMap): String = getOptionalParameter('file) match {
+    case Some(fileName) => Source.fromFile(fileName).getLines().mkString("\n")
+    case None => Source.stdin.getLines().mkString("\n")
+  }
+
 
   private def mergeBreedInCluster(blueprint: DefaultBlueprint, clusterName: String, breed: DefaultBreed, routing: Option[Routing], scale: Option[Scale]): DefaultBlueprint =
     blueprint.copy(clusters = blueprint.clusters.filter(_.name != clusterName) ++
