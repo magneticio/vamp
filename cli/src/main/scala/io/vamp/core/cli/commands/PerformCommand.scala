@@ -34,19 +34,19 @@ object PerformCommand extends Parameters {
 
   private def doListCommand(implicit vampHost: String, options: OptionMap) = getParameter(name) match {
     case "breeds" =>
-      println("NAME".padTo(25, ' ').bold.cyan + "DEPLOYABLE")
+      println("NAME".padTo(25, ' ').bold.cyan + "DEPLOYABLE".bold.cyan)
       VampHostCalls.getBreeds.foreach({ case b: DefaultBreed => println(s"${b.name.padTo(25, ' ')}${b.deployable.name}") })
 
     case "blueprints" =>
-      println("NAME".padTo(40, ' ').bold.cyan + "ENDPOINTS")
+      println("NAME".padTo(40, ' ').bold.cyan + "ENDPOINTS".bold.cyan)
       VampHostCalls.getBlueprints.foreach(blueprint => println(s"${blueprint.name.padTo(40, ' ')}${blueprint.endpoints.map(e => s"${e.name} -> ${e.value.get}").mkString(", ")}"))
 
     case "deployments" =>
-      println("NAME".padTo(40, ' ').bold.cyan + "CLUSTERS")
+      println("NAME".padTo(40, ' ').bold.cyan + "CLUSTERS".bold.cyan)
       VampHostCalls.getDeployments.foreach(deployment => println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c => s"${c.name}").mkString(", ")}"))
 
     case "escalations" =>
-      println("NAME".padTo(25, ' ').bold.cyan + "TYPE".padTo(20, ' ') + "SETTINGS")
+      println("NAME".padTo(25, ' ').bold.cyan + "TYPE".padTo(20, ' ').bold.cyan + "SETTINGS".bold.cyan)
       VampHostCalls.getEscalations.foreach({
         case b: ScaleInstancesEscalation => println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
         case b: ScaleCpuEscalation => println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
@@ -56,15 +56,15 @@ object PerformCommand extends Parameters {
       })
 
     case "filters" =>
-      println("NAME".padTo(25, ' ').bold.cyan + "CONDITION")
+      println("NAME".padTo(25, ' ').bold.cyan + "CONDITION".bold.cyan)
       VampHostCalls.getFilters.foreach({ case b: DefaultFilter => println(s"${b.name.padTo(25, ' ')}${b.condition}") })
 
     case "routings" =>
-      println("NAME".padTo(25, ' ').bold.cyan + "FILTERS")
+      println("NAME".padTo(25, ' ').bold.cyan + "FILTERS".bold.cyan)
       VampHostCalls.getRoutings.foreach({ case b: DefaultRouting => println(s"${b.name.padTo(25, ' ')}${b.filters.map({ case d: DefaultFilter => s"${d.condition}" }).mkString(", ")}") })
 
     case "scales" =>
-      println("NAME".padTo(25, ' ').bold.cyan + "CPU".padTo(7, ' ') + "MEMORY".padTo(10, ' ') + "INSTANCES")
+      println("NAME".padTo(25, ' ').bold.cyan + "CPU".padTo(7, ' ').bold.cyan + "MEMORY".padTo(10, ' ').bold.cyan + "INSTANCES".bold.cyan)
       VampHostCalls.getScales.foreach({ case b: DefaultScale => println(s"${b.name.padTo(25, ' ')}${b.cpu.toString.padTo(7, ' ')}${b.memory.toString.padTo(10, ' ')}${b.instances}") })
 
     case "slas" =>
