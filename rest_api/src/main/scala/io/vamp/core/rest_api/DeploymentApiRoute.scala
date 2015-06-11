@@ -31,22 +31,32 @@ trait DeploymentApiRoute extends DeploymentApiController {
 
   private val helperRoutes = pathPrefix("sync") {
     parameters('rate.as[Int] ?) { rate =>
-      respondWith(Accepted, sync(rate))
+      respondWithStatus(Accepted) {
+        complete(sync(rate))
+      }
     }
   } ~ path("sla") {
-    respondWith(Accepted, slaCheck())
+    respondWithStatus(Accepted) {
+      complete(slaCheck())
+    }
   } ~ path("escalation") {
-    respondWith(Accepted, slaEscalation())
+    respondWithStatus(Accepted) {
+      complete(slaEscalation())
+    }
   } ~ path("reset") {
-    respondWith(Accepted, reset())
+    respondWithStatus(Accepted) {
+      complete(reset())
+    }
   }
 
   private val deploymentRoute = pathPrefix("deployments") {
     pathEndOrSingleSlash {
       get {
         parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
-          onSuccess(deployments(asBlueprint)) { result =>
-            respondWith(OK, result)
+          pageAndPerPage() { (page, perPage) =>
+            onSuccess(deployments(asBlueprint, page, perPage)) { result =>
+              respondWith(OK, result)
+            }
           }
         }
       } ~ post {
@@ -73,7 +83,8 @@ trait DeploymentApiRoute extends DeploymentApiController {
             }
           }
         } ~ delete {
-          entity(as[String]) { request => onSuccess(deleteDeployment(name, request)) { result =>
+          entity(as[String]) { request =>
+            onSuccess(deleteDeployment(name, request)) { result =>
             respondWith(Accepted, result)
           }
           }
@@ -179,7 +190,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
     }
   }
 
-  def deployments(asBlueprint: Boolean)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])).map {
+  def deployments(asBlueprint: Boolean, page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(classOf[Deployment], page, perPage)).map {
     case list: List[_] => list.map {
       case deployment: Deployment => if (asBlueprint) deployment.asBlueprint else deployment
       case any => any

@@ -1,6 +1,10 @@
 package io.vamp.core.persistence.store
 
+import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.core.model.artifact.Artifact
+
+
+case class ArtifactResponseEnvelope(response: List[Artifact], total: Long, page: Int, perPage: Int) extends OffsetResponseEnvelope[Artifact]
 
 trait StoreProvider {
 
@@ -11,6 +15,8 @@ trait StoreProvider {
     def info: Any
 
     def all(`type`: Class[_ <: Artifact]): List[Artifact]
+
+    def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope
 
     def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact
 

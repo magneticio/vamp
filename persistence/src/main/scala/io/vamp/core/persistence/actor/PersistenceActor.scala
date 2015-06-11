@@ -7,7 +7,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.core.model.artifact.{Artifact, _}
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
-import io.vamp.core.persistence.store.{InMemoryStoreProvider, JdbcStoreProvider}
+import io.vamp.core.persistence.store.{ArtifactResponseEnvelope, InMemoryStoreProvider, JdbcStoreProvider}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -22,6 +22,8 @@ object PersistenceActor extends ActorDescription {
   trait PersistenceMessages
 
   case class All(`type`: Class[_ <: Artifact]) extends PersistenceMessages
+
+  case class AllPaginated(`type`: Class[_ <: Artifact], page: Int, perPage: Int) extends PersistenceMessages
 
   case class Create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = true) extends PersistenceMessages
 
@@ -60,6 +62,10 @@ class PersistenceActor extends Actor with ActorLogging with ReplyActor with Arch
         getAllDefaultArtifacts(ofType)
       }
 
+      case AllPaginated(ofType, page, perPage) => Future {
+        getAllDefaultArtifacts(ofType, page, perPage)
+      }
+
       case Create(artifact, source, ignoreIfExists) => Future {
         createDefaultArtifact(artifact, ignoreIfExists)
       } map (archiveCreate(_, source))
@@ -91,6 +97,8 @@ class PersistenceActor extends Actor with ActorLogging with ReplyActor with Arch
   def createDefaultArtifact(artifact: Artifact, ignoreIfExists: Boolean): Artifact = store.create(artifact, ignoreIfExists)
 
   def getAllDefaultArtifacts(ofType: Class[_ <: Artifact]): List[_ <: Artifact] = store.all(ofType)
+
+  def getAllDefaultArtifacts(ofType: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = store.all(ofType, page, perPage)
 
   def updateDefaultArtifact(artifact: Artifact, create: Boolean): Artifact = store.update(artifact, create)
 

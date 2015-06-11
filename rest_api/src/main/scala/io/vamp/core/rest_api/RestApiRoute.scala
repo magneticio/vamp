@@ -27,14 +27,18 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
         accept(`application/json`, `application/x-yaml`) {
           path("docs") {
             pathEndOrSingleSlash {
-              respondWith(OK, swagger)
+              respondWithStatus(OK) {
+                complete(swagger)
+              }
             }
           } ~ infoRoute ~ deploymentRoutes ~
             path(Segment) { artifact: String =>
               pathEndOrSingleSlash {
                 get {
-                  onSuccess(allArtifacts(artifact)) { result =>
-                    respondWith(OK, result)
+                  pageAndPerPage() { (page, perPage) =>
+                    onSuccess(allArtifacts(artifact, page, perPage)) { result =>
+                      respondWith(OK, result)
+                    }
                   }
                 } ~ post {
                   entity(as[String]) { request =>
@@ -82,8 +86,8 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
 trait RestApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
   this: Actor with ExecutionContextProvider =>
 
-  def allArtifacts(artifact: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) => controller.all
+  def allArtifacts(artifact: String, page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
+    case Some(controller) => controller.all(page, perPage)
     case None => error(UnexpectedArtifact(artifact))
   }
 
@@ -119,7 +123,7 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
 
   private class Controller {
 
-    def all(implicit timeout: Timeout): Future[Any] = Future(Nil)
+    def all(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = Future(Nil)
 
     def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = Future(error(UnexpectedArtifact(source)))
 
@@ -132,7 +136,7 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
 
   private class PersistenceController[T <: Artifact](`type`: Class[_ <: Artifact], unmarshaller: YamlReader[T]) extends Controller {
 
-    override def all(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.All(`type`)
+    override def all(page: Int, perPage: Int)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(`type`, page, perPage)
 
     override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       val artifact = unmarshaller.read(source)

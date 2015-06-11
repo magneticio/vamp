@@ -1,6 +1,7 @@
 package io.vamp.core.persistence.store
 
 import com.typesafe.scalalogging.Logger
+import io.vamp.common.http.OffsetEnvelope
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.serialization._
 import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
@@ -37,6 +38,14 @@ class InMemoryStoreProvider(executionContext: ExecutionContext) extends StorePro
         }
         case None => error(UnsupportedPersistenceRequest(`type`))
       }
+    }
+
+    def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
+      val artifacts = all(`type`)
+      val total = artifacts.size
+      val (p, pp) = OffsetEnvelope.normalize(total, page, perPage, 30)
+
+      ArtifactResponseEnvelope(artifacts.slice((p - 1) * pp, p * pp), total, p, pp)
     }
 
     def create(artifact: Artifact, ignoreIfExists: Boolean = true): Artifact = {
