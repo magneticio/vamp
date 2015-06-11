@@ -27,26 +27,20 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
         accept(`application/json`, `application/x-yaml`) {
           path("docs") {
             pathEndOrSingleSlash {
-              respondWithStatus(OK) {
-                complete(swagger)
-              }
+              respondWith(OK, swagger)
             }
           } ~ infoRoute ~ deploymentRoutes ~
             path(Segment) { artifact: String =>
               pathEndOrSingleSlash {
                 get {
                   onSuccess(allArtifacts(artifact)) { result =>
-                    respondWithStatus(OK) {
-                      complete(result)
-                    }
+                    respondWith(OK, result)
                   }
                 } ~ post {
                   entity(as[String]) { request =>
                     parameters('validate_only.as[Boolean] ? false) { validateOnly =>
                       onSuccess(createArtifact(artifact, request, validateOnly)) { result =>
-                        respondWithStatus(Created) {
-                          complete(result)
-                        }
+                        respondWith(Created, result)
                       }
                     }
                   }
@@ -57,18 +51,14 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
               get {
                 rejectEmptyResponse {
                   onSuccess(readArtifact(artifact, name)) { result =>
-                    respondWithStatus(OK) {
-                      complete(result)
-                    }
+                    respondWith(OK, result)
                   }
                 }
               } ~ put {
                 entity(as[String]) { request =>
                   parameters('validate_only.as[Boolean] ? false) { validateOnly =>
                     onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result =>
-                      respondWithStatus(OK) {
-                        complete(result)
-                      }
+                      respondWith(OK, result)
                     }
                   }
                 }
@@ -76,9 +66,7 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
                 entity(as[String]) { request =>
                   parameters('validate_only.as[Boolean] ? false) { validateOnly =>
                     onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result =>
-                      respondWithStatus(NoContent) {
-                        complete(None)
-                      }
+                      respondWith(NoContent, None)
                     }
                   }
                 }

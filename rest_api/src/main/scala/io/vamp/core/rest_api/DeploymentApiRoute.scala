@@ -31,22 +31,14 @@ trait DeploymentApiRoute extends DeploymentApiController {
 
   private val helperRoutes = pathPrefix("sync") {
     parameters('rate.as[Int] ?) { rate =>
-      respondWithStatus(Accepted) {
-        complete(sync(rate))
-      }
+      respondWith(Accepted, sync(rate))
     }
   } ~ path("sla") {
-    respondWithStatus(Accepted) {
-      complete(slaCheck())
-    }
+    respondWith(Accepted, slaCheck())
   } ~ path("escalation") {
-    respondWithStatus(Accepted) {
-      complete(slaEscalation())
-    }
+    respondWith(Accepted, slaEscalation())
   } ~ path("reset") {
-    respondWithStatus(Accepted) {
-      complete(reset())
-    }
+    respondWith(Accepted, reset())
   }
 
   private val deploymentRoute = pathPrefix("deployments") {
@@ -54,17 +46,13 @@ trait DeploymentApiRoute extends DeploymentApiController {
       get {
         parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
           onSuccess(deployments(asBlueprint)) { result =>
-            respondWithStatus(OK) {
-              complete(result)
-            }
+            respondWith(OK, result)
           }
         }
       } ~ post {
         entity(as[String]) { request =>
           onSuccess(createDeployment(request)) { result =>
-            respondWithStatus(Accepted) {
-              complete(result)
-            }
+            respondWith(Accepted, result)
           }
         }
       }
@@ -74,25 +62,19 @@ trait DeploymentApiRoute extends DeploymentApiController {
           rejectEmptyResponse {
             parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
               onSuccess(deployment(name, asBlueprint)) { result =>
-                respondWithStatus(OK) {
-                  complete(result)
-                }
+                respondWith(OK, result)
               }
             }
           }
         } ~ put {
           entity(as[String]) { request =>
             onSuccess(updateDeployment(name, request)) { result =>
-              respondWithStatus(Accepted) {
-                complete(result)
-              }
+              respondWith(Accepted, result)
             }
           }
         } ~ delete {
           entity(as[String]) { request => onSuccess(deleteDeployment(name, request)) { result =>
-            respondWithStatus(Accepted) {
-              complete(result)
-            }
+            respondWith(Accepted, result)
           }
           }
         }
@@ -105,23 +87,17 @@ trait DeploymentApiRoute extends DeploymentApiController {
       pathEndOrSingleSlash {
         get {
           onSuccess(sla(deployment, cluster)) { result =>
-            respondWithStatus(OK) {
-              complete(result)
-            }
+            respondWith(OK, result)
           }
         } ~ (post | put) {
           entity(as[String]) { request =>
             onSuccess(slaUpdate(deployment, cluster, request)) { result =>
-              respondWithStatus(Accepted) {
-                complete(result)
-              }
+              respondWith(Accepted, result)
             }
           }
         } ~ delete {
           onSuccess(slaDelete(deployment, cluster)) { result =>
-            respondWithStatus(NoContent) {
-              complete(None)
-            }
+            respondWith(NoContent, None)
           }
         }
       }
@@ -132,16 +108,12 @@ trait DeploymentApiRoute extends DeploymentApiController {
       pathEndOrSingleSlash {
         get {
           onSuccess(scale(deployment, cluster, breed)) { result =>
-            respondWithStatus(OK) {
-              complete(result)
-            }
+            respondWith(OK, result)
           }
         } ~ (post | put) {
           entity(as[String]) { request =>
             onSuccess(scaleUpdate(deployment, cluster, breed, request)) { result =>
-              respondWithStatus(Accepted) {
-                complete(result)
-              }
+              respondWith(Accepted, result)
             }
           }
         }
@@ -153,16 +125,12 @@ trait DeploymentApiRoute extends DeploymentApiController {
       pathEndOrSingleSlash {
         get {
           onSuccess(routing(deployment, cluster, breed)) { result =>
-            respondWithStatus(OK) {
-              complete(result)
-            }
+            respondWith(OK, result)
           }
         } ~ (post | put) {
           entity(as[String]) { request =>
             onSuccess(routingUpdate(deployment, cluster, breed, request)) { result =>
-              respondWithStatus(OK) {
-                complete(result)
-              }
+              respondWith(OK, result)
             }
           }
         }
