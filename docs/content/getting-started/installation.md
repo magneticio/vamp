@@ -21,6 +21,7 @@ in the [vamp-docker repo](https://github.com/magneticio/vamp-docker) and the [pu
 This setup will run Vamp inside a Docker container with Vamp's Docker driver.
 
 **prerequisites**
+
 - Docker 1.6.x
 - Boot2Docker 1.6.x if on Mac OSX, [see more details about the prereqs](#prerequisites)
 
