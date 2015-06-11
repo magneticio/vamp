@@ -10,15 +10,19 @@ menu:
     
 ---
 
-# Installation
+# Quick Installation
 
 
 The easiest way to get started with Vamp is by spining up one of the Docker images stored
-in the [vamp-docker repo](https://github.com/magneticio/vamp-docker) and the [public Docker hub](https://registry.hub.docker.com/repos/magneticio/). Make sure you have the [prerequisites](#prerequisites) installed before picking one of the options below. If you have any trouble getting it working, check out [some of the background information](#some-background-info)
+in the [vamp-docker repo](https://github.com/magneticio/vamp-docker) and the [public Docker hub](https://registry.hub.docker.com/repos/magneticio/). If you have any trouble getting it working, check out [some of the background information](#some-background-info)
 
 ## Option 1: Run Vamp on Docker
 
-This setup will run Vamp inside a Docker container with Vamp's Docker driver. This allows you to test drive Vamp really easily.
+This setup will run Vamp inside a Docker container with Vamp's Docker driver.
+
+**prerequisites**
+- Docker 1.6.x
+- Boot2Docker 1.6.x if on Mac OSX, [see more details about the prereqs](#prerequisites)
 
 A typical command on Macbook running Boot2Docker would be:
 {{% copyable %}}
@@ -57,7 +61,7 @@ Things still not running? [We're here to help →](https://github.com/magneticio
 
 ## Option 2: Run Vamp with a Mesosphere cluster
 
-If you want to tweak things a bit more, grab the Vamp all-in-one Docker image and provide your own Mesosphere stack.
+If you want to tweak things a bit more, grab the `vamp-mesosphere` image and provide your own Mesosphere stack.
 
 1. Set up a Mesosphere stack on Google Compute Engine or Digital
 Ocean really easily using the great wizards at [Mesosphere.com](https://mesosphere.com/downloads/).

@@ -57,7 +57,7 @@ strict with regard to content types, because we support JSON and YAML so we need
 Using `curl`:
 
 ```
-curl -v -X POST --data-binary @sava_1.0.yaml -H "Content-Type: application/x-yaml" http://192.168.59.103:8081/api/v1/deployments
+curl -v -X POST --data-binary @sava_1.0.yaml -H "Content-Type: application/x-yaml" http://192.168.59.103:8080/api/v1/deployments
 ```
 
 Using `httpie`
