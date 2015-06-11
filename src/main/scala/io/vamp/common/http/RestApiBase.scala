@@ -50,6 +50,7 @@ trait RestApiPagination {
 
   def pageAndPerPage(perPage: Int = 30) = parameters(('page.as[Long] ? 1, 'per_page.as[Long] ? perPage))
 
+  // TODO: implement as a Spray Directive
   def respondWith(status: StatusCode, response: Any): Route = {
 
     def links(uri: Uri, envelope: OffsetResponseEnvelope[_]) = {
