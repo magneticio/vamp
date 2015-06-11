@@ -3,7 +3,7 @@ package io.vamp.core.pulse_driver
 import java.time.OffsetDateTime
 
 import _root_.io.vamp.common.akka._
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.vitals.InfoRequest
@@ -31,7 +31,7 @@ object PulseDriverActor extends ActorDescription {
 
 }
 
-class PulseDriverActor(driver: PulseDriver) extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupportNotification with ActorExecutionContextProvider with PulseDriverNotificationProvider {
+class PulseDriverActor(driver: PulseDriver) extends CommonReplyActor with PulseDriverNotificationProvider {
 
   import io.vamp.core.pulse_driver.PulseDriverActor._
 

@@ -40,7 +40,7 @@ object DeploymentActor extends ActorDescription {
 
 }
 
-class DeploymentActor extends CommonActorSupport with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ReplyActor with ArtifactSupport with OperationNotificationProvider {
+class DeploymentActor extends CommonReplyActor with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ArtifactSupport with OperationNotificationProvider {
 
   import DeploymentActor._
 

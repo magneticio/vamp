@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
 import _root_.io.vamp.common.akka._
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -40,7 +40,7 @@ object DeploymentSynchronizationActor extends ActorDescription {
 
 }
 
-class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with OperationNotificationProvider {
+class DeploymentSynchronizationActor extends CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
 
   private object Processed {
 

@@ -55,7 +55,7 @@ object EscalationActor extends ActorDescription {
 
 }
 
-class EscalationActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with PulseNotificationProvider with DefaultPackageMessageResolverProvider {
+class EscalationActor extends CommonSupportForActors with PulseNotificationProvider with DefaultPackageMessageResolverProvider {
 
   def tags = Set("escalation")
 

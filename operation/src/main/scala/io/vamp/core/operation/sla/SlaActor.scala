@@ -37,7 +37,7 @@ object SlaActor extends ActorDescription {
 
 }
 
-class SlaActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with PulseNotificationProvider with DefaultPackageMessageResolverProvider {
+class SlaActor extends CommonSupportForActors with PulseNotificationProvider with DefaultPackageMessageResolverProvider {
 
   def tags = Set("sla")
 
