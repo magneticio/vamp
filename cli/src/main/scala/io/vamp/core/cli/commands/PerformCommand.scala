@@ -19,7 +19,7 @@ object PerformCommand extends Parameters {
 
   def doCommand(command: CliCommand)(implicit options: OptionMap): Unit = {
 
-    implicit val vampHost: String = if(command.requiresHostConnection) getParameter(host) else "Not needed"
+    implicit val vampHost: String = if (command.requiresHostConnection) getParameter(host) else "Not needed"
 
     command.commandType match {
       case CommandType.List => doListCommand
@@ -93,7 +93,7 @@ object PerformCommand extends Parameters {
 
       case Some("sla") => VampHostCalls.getSla(getParameter(name))
 
-      case  Some(invalid)  => terminateWithError(s"Artifact type unknown: '$invalid'")
+      case Some(invalid) => terminateWithError(s"Artifact type unknown: '$invalid'")
         None
 
       case None => terminateWithError(s"Artifact & name are required")
@@ -159,21 +159,31 @@ object PerformCommand extends Parameters {
 
 
   private def doCreateCommand(implicit vampHost: String, options: OptionMap) = getParameter(name) match {
-    case "breed" =>
-      val fileContents = getOptionalParameter('file) match {
-        case Some(fileName) => Source.fromFile(fileName).getLines().mkString("\n")
-        case None => Source.stdin.getLines().mkString("\n")
-      }
-      println(VampHostCalls.createBreed(fileContents))
-
+    case "breed" =>  printArtifact(VampHostCalls.createBreed(readFileContent))
+    case "blueprint" =>  printArtifact(VampHostCalls.createBlueprint(readFileContent))
+    case "escalation" =>  printArtifact(VampHostCalls.createEscalation(readFileContent))
+    case "filter" =>  printArtifact(VampHostCalls.createFilter(readFileContent))
+    case "routing" => printArtifact(VampHostCalls.createRouting(readFileContent))
+    case "scale" =>  printArtifact(VampHostCalls.createScale(readFileContent))
+    case "sla" =>  printArtifact(VampHostCalls.createSla(readFileContent))
     case invalid => terminateWithError(s"Unsupported artifact '$invalid'")
   }
 
 
-  private def doDeleteCommand(implicit vampHost: String, options: OptionMap) = getParameter(name) match {
+  private def doDeleteCommand(implicit vampHost: String, options: OptionMap) = getParameter(subcommand) match {
     case "breed" => VampHostCalls.deleteBreed(getParameter(name))
 
-    case "blueprint" => println(NotImplemented)
+    case "blueprint" => VampHostCalls.deleteBlueprint(getParameter(name))
+
+    case "escalation" => VampHostCalls.deleteEscalation(getParameter(name))
+
+    case "filter" => VampHostCalls.deleteFilter(getParameter(name))
+
+    case "routing" => VampHostCalls.deleteRouting(getParameter(name))
+
+    case "scale" => VampHostCalls.deleteScale(getParameter(name))
+
+    case "sla" => VampHostCalls.deleteSla(getParameter(name))
 
     case invalid => terminateWithError(s"Unsupported artifact '$invalid'")
   }
@@ -185,6 +195,12 @@ object PerformCommand extends Parameters {
 
 
   private def unhandledCommand(command: CliCommand) = terminateWithError(s"Unhandled command '${command.name}'")
+
+  private def readFileContent(implicit options: OptionMap): String = getOptionalParameter('file) match {
+    case Some(fileName) => Source.fromFile(fileName).getLines().mkString("\n")
+    case None => Source.stdin.getLines().mkString("\n")
+  }
+
 
   private def mergeBreedInCluster(blueprint: DefaultBlueprint, clusterName: String, breed: DefaultBreed, routing: Option[Routing], scale: Option[Scale]): DefaultBlueprint =
     blueprint.copy(clusters = blueprint.clusters.filter(_.name != clusterName) ++

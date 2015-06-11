@@ -46,6 +46,7 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
   def getBreed(name: String)(implicit vampHost: String): Option[Breed] =
     sendAndWaitYaml[String](s"GET $vampHost/api/v1/breeds/$name").map(BreedReader.read(_))
 
+  
   def createBreed(breedDefinition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Breed] = {
     sendAndWaitYaml[String](s"POST $vampHost/api/v1/breeds", Some(breedDefinition)) match {
       case Some(breed) => Some(BreedReader.read(breed))
@@ -53,6 +54,69 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
         None
     }
   }
+
+  def createBlueprint(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Blueprint] = {
+    sendAndWaitYaml[String](s"POST $vampHost/api/v1/blueprints", Some(definition)) match {
+      case Some(blueprint) => Some(BlueprintReader.read(blueprint))
+      case _ => terminateWithError("Blueprint not created")
+        None
+    }
+  }
+
+  def createEscalation(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Escalation] = {
+    sendAndWaitYaml[String](s"POST $vampHost/api/v1/escalations", Some(definition)) match {
+      case Some(escalation) => Some(EscalationReader.read(escalation))
+      case _ => terminateWithError("Escalation not created")
+        None
+    }
+  }
+
+  def createFilter(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Filter] = {
+    sendAndWaitYaml[String](s"POST $vampHost/api/v1/filters", Some(definition)) match {
+      case Some(filter) => Some(FilterReader.read(filter))
+      case _ => terminateWithError("Filter not created")
+        None
+    }
+  }
+
+  def createRouting(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Routing] = {
+    sendAndWaitYaml[String](s"POST $vampHost/api/v1/routings", Some(definition)) match {
+      case Some(routing) => Some(RoutingReader.read(routing))
+      case _ => terminateWithError("Routing not created")
+        None
+    }
+  }
+
+  def createScale(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Scale] = {
+    sendAndWaitYaml[String](s"POST $vampHost/api/v1/scales", Some(definition)) match {
+      case Some(scale) => Some(ScaleReader.read(scale))
+      case _ => terminateWithError("Scale not created")
+        None
+    }
+  }
+
+  def createSla(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Sla] = {
+    sendAndWaitYaml[String](s"POST $vampHost/api/v1/slas", Some(definition)) match {
+      case Some(sla) => Some(SlaReader.read(sla))
+      case _ => terminateWithError("Sla not created")
+        None
+    }
+  }
+
+  def deleteBreed(name: String)(implicit vampHost: String) = sendAndWaitYaml[Any](s"DELETE $vampHost/api/v1/breeds/$name", None)
+
+  def deleteBlueprint(name: String)(implicit vampHost: String) = sendAndWaitYaml[Any](s"DELETE $vampHost/api/v1/blueprints/$name", None)
+
+  def deleteEscalation(name: String)(implicit vampHost: String) = sendAndWaitYaml[Any](s"DELETE $vampHost/api/v1/escalations/$name", None)
+
+  def deleteFilter(name: String)(implicit vampHost: String) = sendAndWaitYaml[Any](s"DELETE $vampHost/api/v1/filters/$name", None)
+
+  def deleteRouting(name: String)(implicit vampHost: String) = sendAndWaitYaml[Any](s"DELETE $vampHost/api/v1/routings/$name", None)
+
+  def deleteScale(name: String)(implicit vampHost: String) = sendAndWaitYaml[Any](s"DELETE $vampHost/api/v1/scales/$name", None)
+
+  def deleteSla(name: String)(implicit vampHost: String) = sendAndWaitYaml[Any](s"DELETE $vampHost/api/v1/slas/$name", None)
+
 
   def prettyJson(artifact: AnyRef) = Serialization.writePretty(artifact)
 
@@ -119,9 +183,7 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
 
   def createBreed(breed: DefaultBreed)(implicit vampHost: String): Option[DefaultBreed] =
     sendAndWait[DefaultBreedSerialized](s"POST $vampHost/api/v1/breeds", breed).map(breedSerialized2DefaultBreed)
-
-  def deleteBreed(breedId: String)(implicit vampHost: String) =
-    sendAndWaitYaml[Any](s"DELETE $vampHost/api/v1/breeds/$breedId", None)
+  
 
   def getBlueprint(blueprintId: String)(implicit vampHost: String): Option[Blueprint] =
     sendAndWaitYaml[String](s"GET $vampHost/api/v1/blueprints/$blueprintId").map(BlueprintReader.read(_))

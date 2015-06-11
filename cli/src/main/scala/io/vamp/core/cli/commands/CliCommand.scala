@@ -66,7 +66,7 @@ case class CreateCommand() extends CliCommand {
                             """.stripMargin
   override val requiresName = true
   override val commandType = CommandType.Create
-  override val allowedSubCommands = List("breed")
+  override val allowedSubCommands = allArtifacts.filter(_ != "deployment")
 }
 
 case class DeployBlueprintCommand() extends CliCommand {
@@ -112,7 +112,7 @@ case class RemoveCommand() extends CliCommand {
   override val description = "Removes an artifact"
   override val requiresName = true
   override val commandType = CommandType.Delete
-  override val allowedSubCommands= List("breed")
+  override val allowedSubCommands= allArtifacts.filter(_ != "deployment")
 }
 
 case class UnknownCommand(override val name: String) extends CliCommand
