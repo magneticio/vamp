@@ -51,6 +51,12 @@ class InMemoryStoreProvider(executionContext: ExecutionContext) extends StorePro
 
     def create(artifact: Artifact, ignoreIfExists: Boolean = true): Artifact = {
       logger.trace(s"persistence create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+
+      artifact match {
+        case blueprint: DefaultBlueprint => blueprint.clusters.flatMap(_.services).map(_.breed).foreach(breed => create(breed, ignoreIfExists = true))
+        case _ =>
+      }
+
       getBranch(artifact) match {
         case Some(branch) => store.get(branch) match {
           case None =>
