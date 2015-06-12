@@ -43,9 +43,10 @@ class InMemoryStoreProvider(executionContext: ExecutionContext) extends StorePro
     def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
       val artifacts = all(`type`)
       val total = artifacts.size
-      val (p, pp) = OffsetEnvelope.normalize(total, page, perPage, 30)
+      val (p, pp) = OffsetEnvelope.normalize(page, perPage, 30)
+      val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, 30)
 
-      ArtifactResponseEnvelope(artifacts.slice((p - 1) * pp, p * pp), total, p, pp)
+      ArtifactResponseEnvelope(artifacts.slice((p - 1) * pp, p * pp), total, rp, rpp)
     }
 
     def create(artifact: Artifact, ignoreIfExists: Boolean = true): Artifact = {

@@ -58,9 +58,11 @@ trait VampTableQueries extends TableQueries with VampTables {
   class DeployableNameEntityTableQuery[M <: Nameable[M] with NamedDeployable[M], T <: DeployableEntityTable[M]](cons: Tag => T)(implicit ev1: BaseColumnType[M#Id])
     extends EntityTableQuery[M, T](cons) {
 
-    def defaultSort = this.sortBy(m => m.id.asc)
+    protected def defaultSort = this.sortBy(m => m.id.asc)
 
-    override def fetchAll(implicit sess: Session): List[M] = defaultSort.filter(_.deploymentId.getOrElse(0) === 0).list
+    protected def defaultFilter = defaultSort.filter(_.deploymentId.getOrElse(0) === 0)
+
+    override def fetchAll(implicit sess: Session): List[M] = defaultFilter.list
 
     def fetchAllFromDeployment(deploymentId: Option[Int])(implicit sess: Session): List[M] = defaultSort.list
 
@@ -90,7 +92,7 @@ trait VampTableQueries extends TableQueries with VampTables {
     def findOptionByName(name: String, deploymentId: Option[Int])(implicit sess: Session): Option[M] = filterByName(name, deploymentId).firstOption
 
     override def pagedList(pageIndex: Int, limit: Int)(implicit sess: Session): List[M] =
-      defaultSort.filter(_.deploymentId.getOrElse(0) === 0).drop(pageIndex).take(limit).run.toList
+      defaultFilter.drop(pageIndex).take(limit).run.toList
 
   }
 
@@ -102,11 +104,13 @@ trait VampTableQueries extends TableQueries with VampTables {
   class AnonymousNameableEntityTableQuery[M <: AnonymousDeployable[M], T <: AnonymousNameableEntityTable[M]](cons: Tag => T)(implicit ev1: BaseColumnType[M#Id])
     extends DeployableNameEntityTableQuery[M, T](cons) {
 
+    protected override def defaultFilter = defaultSort.filter(m => m.isAnonymous === false && m.deploymentId.getOrElse(0) === 0)
+
     // Remap the 'fetch list' methods to exclude the anonymous rows
-    override def fetchAll(implicit sess: Session): List[M] = defaultSort.filter(m => m.isAnonymous === false && m.deploymentId.getOrElse(0) === 0).list
+    override def fetchAll(implicit sess: Session): List[M] = defaultFilter.list
 
     override def pagedList(pageIndex: Int, limit: Int)(implicit sess: Session): List[M] =
-      defaultSort.filter(m => m.isAnonymous === false).drop(pageIndex).take(limit).run.toList
+      defaultFilter.drop(pageIndex).take(limit).run.toList
 
     // Map the original 'fetch list' methods to other method names. Can be used for inspecting the database contents
     def fetchAllIncludeAnonymous(implicit sess: Session): List[M] = super.fetchAll
