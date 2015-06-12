@@ -5,17 +5,19 @@ import io.vamp.common.http.OffsetEnvelope
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, PersistenceOperationFailure, UnsupportedPersistenceRequest}
 import io.vamp.core.persistence.slick.components.Components
-import io.vamp.core.persistence.slick.model._
+import io.vamp.core.persistence.slick.extension.Nameable
+import io.vamp.core.persistence.slick.model.DeploymentGenericEscalation
 import io.vamp.core.persistence.store.jdbc._
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext
+import scala.language.existentials
 import scala.slick.jdbc.JdbcBackend
 import scala.slick.jdbc.JdbcBackend._
 
 case class JdbcStoreInfo(`type`: String, url: String, database: DatabaseInfo)
 
-case class DatabaseInfo(name: String, version: String, schemaVersion : String)
+case class DatabaseInfo(name: String, version: String, schemaVersion: String)
 
 /**
  * JDBC storage of artifacts
@@ -78,28 +80,35 @@ class JdbcStoreProvider(executionContext: ExecutionContext) extends StoreProvide
       }
     }
 
-    def all(ofType: Class[_ <: Artifact]): List[_ <: Artifact] = {
+    def all(`type`: Class[_ <: Artifact]): List[_ <: Artifact] = queryAndTypeFor(`type`) match {
+      case (query, ofType) => query.fetchAll.map(artifact => read(artifact.name, ofType).get)
+    }
+
+    def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = queryAndTypeFor(`type`) match {
+      case (query, ofType) =>
+        val total = query.count
+        val (p, pp) = OffsetEnvelope.normalize(page, perPage, 30)
+        val artifacts = query.pagedList((p - 1) * pp, pp).map(artifact => read(artifact.name, ofType).get)
+        val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, 30)
+        ArtifactResponseEnvelope(artifacts, total, rp, rpp)
+    }
+
+    private def queryAndTypeFor(ofType: Class[_ <: Artifact]): (EntityTableQuery[_ <: Nameable[_], _], Class[_ <: Artifact]) = {
       ofType match {
-        case _ if ofType == classOf[Deployment] => Deployments.fetchAll.map(a => read(a.name, ofType).get)
-        case _ if ofType == classOf[DefaultBlueprint] || ofType == classOf[Blueprint] => DefaultBlueprints.fetchAll.map(a => read(a.name, classOf[DefaultBlueprint]).get)
+        case _ if ofType == classOf[Deployment] => Deployments -> ofType
+        case _ if ofType == classOf[DefaultBlueprint] || ofType == classOf[Blueprint] => DefaultBlueprints -> classOf[DefaultBlueprint]
         case _ if ofType == classOf[GenericEscalation] || ofType == classOf[Escalation] ||
           ofType == classOf[ScaleInstancesEscalation] || ofType == classOf[ScaleCpuEscalation] || ofType == classOf[ScaleMemoryEscalation] ||
-          ofType == classOf[ToOneEscalation] || ofType == classOf[ToAllEscalation] =>
-          GenericEscalations.fetchAll.map(a => read(a.name, classOf[GenericEscalation]).get)
-        case _ if ofType == classOf[DefaultFilter] || ofType == classOf[Filter] => DefaultFilters.fetchAll.map(a => read(a.name, classOf[DefaultFilter]).get)
-        case _ if ofType == classOf[DefaultRouting] || ofType == classOf[Routing] => DefaultRoutings.fetchAll.map(a => read(a.name, classOf[DefaultRouting]).get)
-        case _ if ofType == classOf[DefaultScale] || ofType == classOf[Scale] => DefaultScales.fetchAll.map(a => read(a.name, classOf[DefaultScale]).get)
-        case _ if ofType == classOf[GenericSla] || ofType == classOf[EscalationOnlySla] || ofType == classOf[ResponseTimeSlidingWindowSla] || ofType == classOf[Sla] => GenericSlas.fetchAll.map(a => read(a.name, classOf[GenericSla]).get)
-        case _ if ofType == classOf[DefaultBreed] || ofType == classOf[Breed] => DefaultBreeds.fetchAll.map(a => read(a.name, classOf[DefaultBreed]).get)
+          ofType == classOf[ToOneEscalation] || ofType == classOf[ToAllEscalation] => GenericEscalations -> classOf[GenericEscalation]
+        case _ if ofType == classOf[DefaultFilter] || ofType == classOf[Filter] => DefaultFilters -> classOf[DefaultFilter]
+        case _ if ofType == classOf[DefaultRouting] || ofType == classOf[Routing] => DefaultRoutings -> classOf[DefaultRouting]
+        case _ if ofType == classOf[DefaultScale] || ofType == classOf[Scale] => DefaultScales -> classOf[DefaultScale]
+        case _ if ofType == classOf[GenericSla] || ofType == classOf[EscalationOnlySla] || ofType == classOf[ResponseTimeSlidingWindowSla] || ofType == classOf[Sla] => GenericSlas -> classOf[GenericSla]
+        case _ if ofType == classOf[DefaultBreed] || ofType == classOf[Breed] => DefaultBreeds -> classOf[DefaultBreed]
         case _ =>
           logger.error(s"Unsupported Persistence Request - All - $ofType")
           throw exception(UnsupportedPersistenceRequest(ofType))
       }
-    }
-
-    def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
-      val response = all(`type`)
-      ArtifactResponseEnvelope(response, response.size, 1, response.size)
     }
 
     private def updateArtifact(artifact: Artifact): Artifact = {
@@ -154,7 +163,7 @@ class JdbcStoreProvider(executionContext: ExecutionContext) extends StoreProvide
         case _ if ofType == classOf[DefaultFilter] || ofType == classOf[Filter] =>
           findFilterOptionArtifact(name)
 
-        case _ if ofType == classOf[DefaultRouting] || ofType == classOf[Routing]=>
+        case _ if ofType == classOf[DefaultRouting] || ofType == classOf[Routing] =>
           findRoutingOptionArtifact(name)
 
         case _ if ofType == classOf[DefaultScale] || ofType == classOf[Scale] =>
