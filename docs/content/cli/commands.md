@@ -1,6 +1,6 @@
 ---
-title: Usage
-weight: 20
+title: Commands
+weight: 30
 ---
 menu:
   main:
@@ -20,7 +20,7 @@ export VAMP_HOST=http://192.168.59.103:8081
 
 The command line parameter will overrule the environment variable. With the exception of the `help` and the `version`, all commands require the Vamp host to be specified.
 
-VAMP CLI support the following commands:
+VAMP CLI supports the following commands:
                        
 * [clone-breed](#clone-breed)               
 * [create](#create)  
@@ -33,7 +33,7 @@ VAMP CLI support the following commands:
 * [remove](#remove)                        
 * [version](#version)  
 
-For more details about a specific command, try `vamp COMMAND --help`
+For more details about a specific command, use `vamp COMMAND --help`
                      
 
 ## <a name="clone-breed"></a>Clone Breed
