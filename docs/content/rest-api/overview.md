@@ -1,10 +1,10 @@
   ---
 title: Overview
 weight: 10
-identifier: rest-api-overview
 menu:
   main:
     parent: rest-api
+    identifier: rest-api-overview
 ---
 # Overview
 

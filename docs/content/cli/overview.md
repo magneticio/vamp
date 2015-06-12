@@ -1,11 +1,11 @@
 ---
-title: Overview
+title: CLI Overview
 weight: 10
-identifier: cli-overview
+---
 menu:
   main:
     parent: cli
----
+    identifier: cli-overview
 # Overview
 
 TBD

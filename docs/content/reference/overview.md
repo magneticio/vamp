@@ -1,10 +1,10 @@
 ---
 title: Overview
 weight: 10
-identifier: reference-overview
 menu:
   main:
     parent: reference
+    identifier: reference-overview
 ---
 # Overview
 
