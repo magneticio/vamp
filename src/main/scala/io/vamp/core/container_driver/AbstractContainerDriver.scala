@@ -1,12 +1,13 @@
 package io.vamp.core.container_driver
 
 import io.vamp.common.crypto.Hash
-import io.vamp.core.container_driver.marathon.api.CreatePortMapping
+import io.vamp.core.container_driver.docker.DockerPortMapping
+import io.vamp.core.container_driver.notification.{ContainerDriverNotificationProvider, UnsupportedDeployableSchema}
 import io.vamp.core.model.artifact._
 
 import scala.concurrent.ExecutionContext
 
-abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDriver {
+abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDriver with ContainerDriverNotificationProvider {
   protected implicit val executionContext = ec
 
   protected val nameDelimiter = "/"
@@ -23,11 +24,11 @@ abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDr
     case _ => Hash.hexSha1(artifact.name).substring(0, 20)
   }
 
-  protected def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[CreatePortMapping] = {
+  protected def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[DockerPortMapping] = {
     service.breed.ports.map(port =>
       port.value match {
-        case Some(_) => CreatePortMapping(port.number)
-        case None => CreatePortMapping(deployment.ports.find(p => TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
+        case Some(_) => DockerPortMapping(port.number)
+        case None => DockerPortMapping(deployment.ports.find(p => TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
       })
   }
 
@@ -37,4 +38,9 @@ abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDr
       val value = deployment.environmentVariables.find(e => TraitReference(cluster.name, TraitReference.EnvironmentVariables, ev.name).toString == e.name).get.interpolated.get
       name -> value
     }).toMap
+
+  protected def validateSchemaSupport(schema: String, enum: Enumeration) = {
+    if (!enum.values.exists(en => en.toString.compareToIgnoreCase(schema) == 0))
+      error(UnsupportedDeployableSchema(schema, enum.values.map(_.toString.toLowerCase).mkString(", ")))
+  }
 }
