@@ -37,7 +37,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
 
   override protected def parse(implicit source: YamlObject): Breed = {
 
-    val deployable = new Deployable(<<![String]("deployable"))
+    val deployable = Deployable(<<![String]("deployable"))
 
     val dependencies = <<?[YamlObject]("dependencies") match {
       case None => Map[String, Breed]()

@@ -59,7 +59,7 @@ class BreedSerializer extends ArtifactSerializer[DefaultBreed] with TraitDecompo
 
 class DeployableSerializer extends ArtifactSerializer[Deployable] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case Deployable(name) => JString(name)
+    case d: Deployable => JString(d.name)
   }
 }
 

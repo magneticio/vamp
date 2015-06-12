@@ -15,8 +15,23 @@ case class DefaultBreed(name: String, deployable: Deployable, ports: List[Port],
 
 case class BreedReference(name: String) extends Reference with Breed
 
-case class Deployable(name: String) extends Artifact
+case class Deployable(schema: String, definition: Option[String]) extends Artifact {
+  def name = Deployable.nameOf(this)
+}
 
+object Deployable {
+  private val delimiter = "://"
+
+  def apply(name: String): Deployable = name.indexOf(delimiter) match {
+    case -1 => Deployable(name, None)
+    case index => Deployable(name.substring(0, index).trim, Some(name.substring(index + delimiter.length).trim))
+  }
+
+  def nameOf(deployable: Deployable) = deployable match {
+    case Deployable(schema, None) => schema
+    case Deployable(schema, Some(definition)) => s"$schema$delimiter$definition"
+  }
+}
 
 trait Trait {
 

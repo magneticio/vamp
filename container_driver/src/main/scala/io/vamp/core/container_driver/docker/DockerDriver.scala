@@ -3,7 +3,7 @@ package io.vamp.core.container_driver.docker
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import io.vamp.core.container_driver._
-import io.vamp.core.container_driver.marathon.api.CreatePortMapping
+import io.vamp.core.container_driver.notification.UndefinedDockerImage
 import io.vamp.core.model.artifact._
 import org.slf4j.LoggerFactory
 import tugboat.Create.Response
@@ -12,6 +12,14 @@ import tugboat._
 import scala.async.Async.{async, await}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
+
+object DockerDriver {
+
+  object Schema extends Enumeration {
+    val Docker = Value
+  }
+
+}
 
 class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) with DummyScales with ContainerCache {
 
@@ -49,7 +57,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
 
     // Update the containerCache with missing containers (should only occur after a restart of core)
     actualDetails.foreach { detail =>
-      if(processable(detail.name)) {
+      if (processable(detail.name)) {
         findContainerIdInCache(detail.name) match {
           case None => addContainerToCache(detail.name, Future(detail.id))
           case Some(id) => //ignore
@@ -67,6 +75,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
     findContainerIdInCache(containerName) match {
       case None =>
         logger.info(s"[DEPLOY] Container $containerName does not exist, needs creating")
+        validateSchemaSupport(service.breed.deployable.schema, DockerDriver.Schema)
         createAndStartContainer(containerName, deployment, cluster, service)
       case Some(found) if update =>
         logger.info(s"[DEPLOY] Container $containerName already exists, needs updating")
@@ -111,7 +120,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
   }
 
   private def detail2Server(cd: ContainerDetails): ContainerServer = {
-    logger.trace(s"Details2Server containerDetails: $cd" )
+    logger.trace(s"Details2Server containerDetails: $cd")
     ContainerServer(
       name = serverNameFromContainer(cd),
       host = if (cd.config.hostname.isEmpty) defaultHost else cd.config.hostname,
@@ -133,9 +142,12 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    * If the image is not available, it will be pulled first
    */
   private def createAndStartContainer(containerName: String, deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Future[_] = async {
-    val dockerImageName = service.breed.deployable.name
-    val allImages : List[Image] = await(docker.images.list())
-    val taggedImages =  allImages.filter(image => image.repoTags.contains(dockerImageName))
+    val dockerImageName = service.breed.deployable match {
+      case Deployable(_, Some(definition)) => definition
+      case _ => error(UndefinedDockerImage)
+    }
+    val allImages: List[Image] = await(docker.images.list())
+    val taggedImages = allImages.filter(image => image.repoTags.contains(dockerImageName))
 
     if (taggedImages.isEmpty) {
       pullImage(dockerImageName)
@@ -169,7 +181,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    * Create a docker container (without starting it)
    * Tries to set the cpu shares & memory based on the supplied scale
    */
-  private def createDockerContainer(containerName: String, dockerImageName: String, serviceScale: Option[DefaultScale], env: Map[String, String], ports: List[CreatePortMapping]): Future[Response] = async {
+  private def createDockerContainer(containerName: String, dockerImageName: String, serviceScale: Option[DefaultScale], env: Map[String, String], ports: List[DockerPortMapping]): Future[Response] = async {
     val containerWithName = docker.containers.create(dockerImageName).name(containerName)
 
     var containerPrep = serviceScale match {
@@ -191,9 +203,9 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
   /**
    * Start the container
    */
-  private def startDockerContainer(id: Future[String], ports: List[CreatePortMapping]): Future[_] = async {
+  private def startDockerContainer(id: Future[String], ports: List[DockerPortMapping]): Future[_] = async {
     // Configure the container for starting
-    var startPrep  = docker.containers.get(await(id)).start
+    var startPrep = docker.containers.get(await(id)).start
     for (port <- ports) {
       logger.debug(s"[StartContainer] setting port: 0.0.0.0:${port.hostPort} -> ${port.containerPort}/tcp")
       startPrep = startPrep.portBind(tugboat.Port.Tcp(port.containerPort), tugboat.PortBinding.local(port.hostPort))
