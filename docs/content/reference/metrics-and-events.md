@@ -123,9 +123,9 @@ Another example is getting the current sessions for a specific service, in this 
 **Notice** we made the search more specific by specifying the "services" and then "service:<SERVICE NAME>" tag.
 Also, we are using relative timestamps: anything later or equal (lte) than "now".
 
-### Example 3: all known metrics for a servie
+### Example 3: all known metrics for a service
 
-This example gives you all the metrics we have for specific service, in this case the same service as in example 2. In this way you can get a quick "health snapshot" of service, server, cluster or deployment.
+This example gives you all the metrics we have for a specific service, in this case the same service as in example 2. In this way you can get a quick "health snapshot" of service, server, cluster or deployment.
 
 `POST /api/v1/events/get`
 

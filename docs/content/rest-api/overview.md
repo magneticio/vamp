@@ -1,11 +1,11 @@
----
-title: Overview
+  ---
+title: General API principles
 weight: 10
 menu:
   main:
     parent: rest-api
 ---
-# Overview
+# General API principles
 
 Vamp has three REST API's: **Core**, **Pulse** and **Router**. You will be interacting with Core 90% of the time and 10% with Pulse. In daily usage, there is no need to interact with the Router API as Core and Pulse take care of that. All API's stick to a common set of principles:
 

@@ -1,5 +1,5 @@
 ---
-title: Metrics & Events
+title: Events
 weight: 100
 menu:
   main:
