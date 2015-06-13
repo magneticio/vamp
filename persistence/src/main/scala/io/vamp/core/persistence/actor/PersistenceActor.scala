@@ -7,7 +7,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.core.model.artifact.{Artifact, _}
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
-import io.vamp.core.persistence.store.{ArtifactResponseEnvelope, InMemoryStoreProvider, JdbcStoreProvider}
+import io.vamp.core.persistence.store.{ElasticsearchStoreProvider, ArtifactResponseEnvelope, InMemoryStoreProvider, JdbcStoreProvider}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -49,6 +49,7 @@ class PersistenceActor extends Actor with ActorLogging with ReplyActor with Arch
 
   private lazy val store = ConfigFactory.load().getString("vamp.core.persistence.storage-type") match {
     case "in-memory" => new InMemoryStoreProvider(context.dispatcher).store
+    case "elasticsearch" => new ElasticsearchStoreProvider(context.dispatcher).store
     case _ => new JdbcStoreProvider(context.dispatcher).store
   }
 
