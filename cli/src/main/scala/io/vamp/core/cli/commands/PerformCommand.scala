@@ -19,7 +19,7 @@ object PerformCommand extends Parameters {
 
   def doCommand(command: CliCommand)(implicit options: OptionMap): Unit = {
 
-    implicit val vampHost: String = if (command.requiresHostConnection) getParameter(host) else "Not needed"
+    implicit val vampHost: String = if (command.requiresHostConnection) getVampHost.getOrElse("Host not specified") else "Not required"
 
     command.commandType match {
       case CommandType.List => doListCommand
@@ -225,5 +225,15 @@ object PerformCommand extends Parameters {
     new Yaml().dumpAs(new Yaml().load(toJson(artifact)), Tag.MAP, FlowStyle.BLOCK)
   }
 
+  private def getVampHost(implicit options: Map[Symbol, String]) : Option[String] =
+    getOptionalParameter(host)  match {
+      case Some(vampHost: String) => Some(vampHost)
+      case _=>
+        println("Sorry, I don't know to which Vamp host I should talk.".bold.red)
+        println()
+        println("Setup a host in the VAMP_HOST environment variable, or use the --host command line argument.")
+        println("Please check http://vamp.io/installation for further details")
+        sys.exit(1)
+    }
 
 }
