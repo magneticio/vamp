@@ -30,6 +30,10 @@ trait CommandLineBasics {
     case c => UnknownCommand(c)
   }
 
+
+
+
+
   val NotImplemented = "-- NOT IMPLEMENTED --"
 
   val appName = "vamp"
