@@ -170,22 +170,26 @@ object PerformCommand extends Parameters {
   }
 
 
-  private def doDeleteCommand(implicit vampHost: String, options: OptionMap) = getParameter(subcommand) match {
-    case "breed" => VampHostCalls.deleteBreed(getParameter(name))
+  private def doDeleteCommand(implicit vampHost: String, options: OptionMap) = getOptionalParameter(subcommand) match {
 
-    case "blueprint" => VampHostCalls.deleteBlueprint(getParameter(name))
+    case Some("breed") => VampHostCalls.deleteBreed(getParameter(name))
 
-    case "escalation" => VampHostCalls.deleteEscalation(getParameter(name))
+    case Some("blueprint") => VampHostCalls.deleteBlueprint(getParameter(name))
 
-    case "filter" => VampHostCalls.deleteFilter(getParameter(name))
+    case Some("escalation") => VampHostCalls.deleteEscalation(getParameter(name))
 
-    case "routing" => VampHostCalls.deleteRouting(getParameter(name))
+    case Some("filter") => VampHostCalls.deleteFilter(getParameter(name))
 
-    case "scale" => VampHostCalls.deleteScale(getParameter(name))
+    case Some("routing") => VampHostCalls.deleteRouting(getParameter(name))
 
-    case "sla" => VampHostCalls.deleteSla(getParameter(name))
+    case Some("scale") => VampHostCalls.deleteScale(getParameter(name))
 
-    case invalid => terminateWithError(s"Unsupported artifact '$invalid'")
+    case Some("sla") => VampHostCalls.deleteSla(getParameter(name))
+
+    case Some(invalid) => terminateWithError(s"Unsupported artifact '$invalid'")
+
+    case None => terminateWithError(s"Artifact & name are required")
+
   }
 
   private def doUpdateCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
