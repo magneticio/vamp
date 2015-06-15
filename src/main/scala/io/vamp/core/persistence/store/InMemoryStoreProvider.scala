@@ -30,7 +30,7 @@ class InMemoryStoreProvider(executionContext: ExecutionContext) extends StorePro
     } toMap)
 
     def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
-      logger.trace(s"persistence all [${`type`.getSimpleName}]")
+      logger.trace(s"InMemory persistence: all [${`type`.getSimpleName}]")
       getBranch(`type`) match {
         case Some(branch) => store.get(branch) match {
           case None => Nil
@@ -43,14 +43,14 @@ class InMemoryStoreProvider(executionContext: ExecutionContext) extends StorePro
     def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
       val artifacts = all(`type`)
       val total = artifacts.size
-      val (p, pp) = OffsetEnvelope.normalize(page, perPage, 30)
-      val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, 30)
+      val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
+      val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, ArtifactResponseEnvelope.maxPerPage)
 
       ArtifactResponseEnvelope(artifacts.slice((p - 1) * pp, p * pp), total, rp, rpp)
     }
 
     def create(artifact: Artifact, ignoreIfExists: Boolean = true): Artifact = {
-      logger.trace(s"persistence create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+      logger.trace(s"InMemory persistence: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
 
       artifact match {
         case blueprint: DefaultBlueprint => blueprint.clusters.flatMap(_.services).map(_.breed).foreach(breed => create(breed, ignoreIfExists = true))
@@ -76,7 +76,7 @@ class InMemoryStoreProvider(executionContext: ExecutionContext) extends StorePro
     }
 
     def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
-      logger.trace(s"persistence read [${`type`.getSimpleName}] - $name}")
+      logger.trace(s"InMemory persistence: read [${`type`.getSimpleName}] - $name}")
       getBranch(`type`) match {
         case Some(branch) => store.get(branch) match {
           case None => None
@@ -87,7 +87,7 @@ class InMemoryStoreProvider(executionContext: ExecutionContext) extends StorePro
     }
 
     def update(artifact: Artifact, create: Boolean = false): Artifact = {
-      logger.trace(s"persistence update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+      logger.trace(s"InMemory persistence: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
       getBranch(artifact) match {
         case Some(branch) => store.get(branch) match {
           case None => if (create) this.create(artifact) else error(ArtifactNotFound(artifact.name, artifact.getClass))
@@ -103,7 +103,7 @@ class InMemoryStoreProvider(executionContext: ExecutionContext) extends StorePro
     }
 
     def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = {
-      logger.trace(s"persistence delete [${`type`.getSimpleName}] - $name}")
+      logger.trace(s"InMemory persistence: delete [${`type`.getSimpleName}] - $name}")
       getBranch(`type`) match {
         case Some(branch) => store.get(branch) match {
           case None => error(ArtifactNotFound(name, `type`))
@@ -116,22 +116,23 @@ class InMemoryStoreProvider(executionContext: ExecutionContext) extends StorePro
         case None => error(UnsupportedPersistenceRequest(`type`))
       }
     }
+
+    private def getBranch(any: AnyRef): Option[String] = any match {
+      case artifact: Artifact => getBranch(artifact.getClass)
+      case _ => error(UnsupportedPersistenceRequest(any.getClass))
+    }
+
+    private def getBranch(`type`: Class[_]): Option[String] = `type` match {
+      case t if classOf[Deployment].isAssignableFrom(t) => Some("deployments")
+      case t if classOf[Breed].isAssignableFrom(t) => Some("breeds")
+      case t if classOf[Blueprint].isAssignableFrom(t) => Some("blueprints")
+      case t if classOf[Sla].isAssignableFrom(t) => Some("slas")
+      case t if classOf[Scale].isAssignableFrom(t) => Some("scales")
+      case t if classOf[Escalation].isAssignableFrom(t) => Some("escalations")
+      case t if classOf[Routing].isAssignableFrom(t) => Some("routings")
+      case t if classOf[Filter].isAssignableFrom(t) => Some("filters")
+      case request => None
+    }
   }
 
-  private def getBranch(any: AnyRef): Option[String] = any match {
-    case artifact: Artifact => getBranch(artifact.getClass)
-    case _ => error(UnsupportedPersistenceRequest(any.getClass))
-  }
-
-  private def getBranch(`type`: Class[_]): Option[String] = `type` match {
-    case t if classOf[Deployment].isAssignableFrom(t) => Some("deployments")
-    case t if classOf[Breed].isAssignableFrom(t) => Some("breeds")
-    case t if classOf[Blueprint].isAssignableFrom(t) => Some("blueprints")
-    case t if classOf[Sla].isAssignableFrom(t) => Some("slas")
-    case t if classOf[Scale].isAssignableFrom(t) => Some("scales")
-    case t if classOf[Escalation].isAssignableFrom(t) => Some("escalations")
-    case t if classOf[Routing].isAssignableFrom(t) => Some("routings")
-    case t if classOf[Filter].isAssignableFrom(t) => Some("filters")
-    case request => None
-  }
 }
