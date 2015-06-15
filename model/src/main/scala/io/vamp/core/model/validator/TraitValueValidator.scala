@@ -67,12 +67,12 @@ trait BlueprintTraitValidator extends TraitResolver {
               if (c.services.exists(_.breed match {
                 case _: DefaultBreed => true
                 case _ => false
-              }) && c.services.find({
+              }) && !c.services.exists({
                 service => service.breed match {
                   case breed: DefaultBreed => breed.traitsFor(group).exists(_.name.toString == name)
                   case _ => false
                 }
-              }).isEmpty) fail(`trait`)
+              })) fail(`trait`)
           }
 
         case _ => fail(`trait`)

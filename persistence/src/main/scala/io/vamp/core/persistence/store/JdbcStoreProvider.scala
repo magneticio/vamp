@@ -87,9 +87,9 @@ class JdbcStoreProvider(executionContext: ExecutionContext) extends StoreProvide
     def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = queryAndTypeFor(`type`) match {
       case (query, ofType) =>
         val total = query.count
-        val (p, pp) = OffsetEnvelope.normalize(page, perPage, 30)
+        val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
         val artifacts = query.pagedList((p - 1) * pp, pp).map(artifact => read(artifact.name, ofType).get)
-        val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, 30)
+        val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, ArtifactResponseEnvelope.maxPerPage)
         ArtifactResponseEnvelope(artifacts, total, rp, rpp)
     }
 

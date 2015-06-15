@@ -6,7 +6,7 @@ import io.vamp.core.model.validator.BreedTraitValueValidator
 
 import scala.language.postfixOps
 
-object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader[Breed] with BreedTraitValueValidator {
+object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader with BreedTraitValueValidator {
 
   override def readReference(any: Any): Breed = any match {
     case reference: String => BreedReference(reference)

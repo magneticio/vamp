@@ -4,10 +4,9 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification._
 import io.vamp.core.model.validator.BlueprintTraitValidator
 
-import scala.collection.mutable.LinkedHashMap
 import scala.language.postfixOps
 
-trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader[Blueprint] with BlueprintTraitValidator {
+trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader with DialectReader with BlueprintTraitValidator {
 
   override def readReference(any: Any): Blueprint = any match {
     case string: String => BlueprintReference(string)
@@ -107,24 +106,6 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     }
 
     DefaultBlueprint(name, clusters, endpoints, evs)
-  }
-
-  private def dialects(implicit source: YamlObject): Map[Dialect.Value, Any] = {
-    <<?[Any]("dialects") match {
-      case None => Map()
-      case Some(ds: collection.Map[_, _]) =>
-        implicit val source = ds.asInstanceOf[YamlObject]
-        dialectValues
-      case _ => Map()
-    }
-  }
-
-  private def dialectValues(implicit source: YamlObject): Map[Dialect.Value, Any] = {
-    Dialect.values.toList.flatMap(dialect => <<?[Any](dialect.toString.toLowerCase) match {
-      case None => if (source.contains(dialect.toString.toLowerCase)) (dialect -> new YamlObject) :: Nil else Nil
-      case Some(d: collection.Map[_, _]) => (dialect -> d.asInstanceOf[YamlObject]) :: Nil
-      case Some(d) => (dialect -> new YamlObject) :: Nil
-    }).toMap
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {

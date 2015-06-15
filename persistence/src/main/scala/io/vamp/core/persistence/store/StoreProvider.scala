@@ -3,6 +3,9 @@ package io.vamp.core.persistence.store
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.core.model.artifact.Artifact
 
+object ArtifactResponseEnvelope {
+  val maxPerPage = 30
+}
 
 case class ArtifactResponseEnvelope(response: List[Artifact], total: Long, page: Int, perPage: Int) extends OffsetResponseEnvelope[Artifact]
 

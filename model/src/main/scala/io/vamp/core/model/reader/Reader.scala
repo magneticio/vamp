@@ -3,7 +3,7 @@ package io.vamp.core.model.reader
 import java.io.{File, InputStream, Reader, StringReader}
 
 import _root_.io.vamp.common.notification.NotificationErrorException
-import _root_.io.vamp.core.model.artifact.{Constant, EnvironmentVariable, Port, Trait}
+import _root_.io.vamp.core.model.artifact._
 import _root_.io.vamp.core.model.notification._
 import _root_.io.vamp.core.model.resolver.TraitResolver
 import org.yaml.snakeyaml.Yaml
@@ -214,8 +214,8 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] {
   protected def asReferenceOf: String = getClass.getSimpleName.substring(0, getClass.getSimpleName.indexOf("Reader")).toLowerCase
 }
 
-trait TraitReader[T] extends TraitResolver {
-  this: YamlReader[T] =>
+trait TraitReader extends TraitResolver {
+  this: YamlReader[_] =>
 
   def parseTraits[A <: Trait](source: Option[YamlObject], mapper: (String, Option[String], Option[String]) => A, alias: Boolean): List[A] = {
     source match {
@@ -224,7 +224,7 @@ trait TraitReader[T] extends TraitResolver {
         case (name, value) if value.isInstanceOf[collection.Map[_, _]] || value.isInstanceOf[List[_]] => error(MalformedTraitError(name))
         case (name, value) =>
           val nameAlias = resolveNameAlias(name)
-          mapper(nameAlias._1, nameAlias._2, if (value == null) None else Some(value.toString))
+          mapper(nameAlias._1, if (alias) nameAlias._2 else None, if (value == null) None else Some(value.toString))
       } toList
     }
   }
@@ -245,6 +245,33 @@ trait TraitReader[T] extends TraitResolver {
     parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
       Constant(name, alias, value)
     }, false)
+  }
+
+  def hosts(name: String = "hosts")(implicit source: YamlObject): List[Host] = {
+    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
+      Host(TraitReference(name, TraitReference.Hosts, Host.host).reference, value)
+    }, false)
+  }
+}
+
+trait DialectReader {
+  this: YamlReader[_] =>
+
+  def dialects(implicit source: YamlObject): Map[Dialect.Value, Any] = {
+    <<?[Any]("dialects") match {
+      case Some(ds: collection.Map[_, _]) =>
+        implicit val source = ds.asInstanceOf[YamlObject]
+        dialectValues
+      case _ => Map()
+    }
+  }
+
+  def dialectValues(implicit source: YamlObject): Map[Dialect.Value, Any] = {
+    Dialect.values.toList.flatMap(dialect => <<?[Any](dialect.toString.toLowerCase) match {
+      case None => if (source.contains(dialect.toString.toLowerCase)) (dialect -> new YamlObject) :: Nil else Nil
+      case Some(d: collection.Map[_, _]) => (dialect -> d.asInstanceOf[YamlObject]) :: Nil
+      case Some(d) => (dialect -> new YamlObject) :: Nil
+    }).toMap
   }
 }
 

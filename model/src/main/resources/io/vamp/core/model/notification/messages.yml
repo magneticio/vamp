@@ -27,3 +27,7 @@ UnresolvedScaleEscalationTargetCluster: "Unresolved scale escalation target clus
 
 Escalate                              : "Escalate '{deployment.name}/{cluster.name}'."
 DeEscalate                            : "Deescalate '{deployment.name}/{cluster.name}'."
+
+# Deployment Reader
+
+NotificationMessageNotRestored        : "Deployment service error was not restored.  {message}"
