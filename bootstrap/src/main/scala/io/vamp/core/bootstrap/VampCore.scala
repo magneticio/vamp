@@ -11,7 +11,7 @@ import io.vamp.core.router_driver.RouterDriverBootstrap
 
 import scala.language.{implicitConversions, postfixOps}
 
-object VampCore extends App {
+trait VampCore extends App {
 
   implicit val actorSystem = ActorSystem("vamp-core")
 
