@@ -235,8 +235,8 @@ class BreedReaderTest extends ReaderTest {
 
   it should "resolve deployable schema" in {
     BreedReader.read(res("breed/breed25.yml")) should have(
-      'name("monarch"),
-      'deployable(Deployable("command", None))
+      'name("sava:1.0.0"),
+      'deployable(Deployable("docker", Some("magneticio/sava:1.0.0")))
     )
   }
 }
