@@ -8,7 +8,7 @@ import io.vamp.common.http.{OffsetEnvelope, RestClient}
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
 import io.vamp.core.model.serialization._
-import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
+import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider}
 import org.json4s.native.Serialization.write
 import org.slf4j.LoggerFactory
 
@@ -73,7 +73,16 @@ class ElasticsearchStore(ec: ExecutionContext) extends Store with TypeOfArtifact
       case blueprint: DefaultBlueprint => blueprint.clusters.flatMap(_.services).map(_.breed).foreach(breed => create(breed, ignoreIfExists = true))
       case _ =>
     }
-    offload(RestClient.request[Any](s"POST $elasticsearchUrl/$index/${typeOf(artifact.getClass)}", ElasticsearchArtifact(artifact.name, write(artifact))))
+    val artifacts = typeOf(artifact.getClass)
+    findHitBy(artifact.name, artifact.getClass) match {
+      case None =>
+        // TODO validate response
+        RestClient.request[Any](s"POST $elasticsearchUrl/$index/$artifacts", ElasticsearchArtifact(artifact.name, write(artifact)))
+      case Some(hit) =>
+        if (!ignoreIfExists) error(ArtifactAlreadyExists(artifact.name, artifact.getClass))
+        // TODO validate response
+        hit.get("Id").foreach(id => RestClient.request[Any](s"POST $elasticsearchUrl/$index/$artifacts/$id", ElasticsearchArtifact(artifact.name, write(artifact))))
+    }
     artifact
   }
 
