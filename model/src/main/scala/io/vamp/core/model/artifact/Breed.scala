@@ -20,16 +20,19 @@ case class Deployable(schema: String, definition: Option[String]) extends Artifa
 }
 
 object Deployable {
-  private val delimiter = "://"
 
-  def apply(name: String): Deployable = name.indexOf(delimiter) match {
-    case -1 => Deployable(name, None)
-    case index => Deployable(name.substring(0, index).trim, Some(name.substring(index + delimiter.length).trim))
+  val schemaDelimiter = "://"
+
+  val defaultSchema = "docker"
+
+  def apply(name: String): Deployable = name.indexOf(schemaDelimiter) match {
+    case -1 => Deployable(defaultSchema, Some(name))
+    case index => Deployable(name.substring(0, index).trim, Some(name.substring(index + schemaDelimiter.length).trim))
   }
 
   def nameOf(deployable: Deployable) = deployable match {
     case Deployable(schema, None) => schema
-    case Deployable(schema, Some(definition)) => s"$schema$delimiter$definition"
+    case Deployable(schema, Some(definition)) => s"$schema$schemaDelimiter$definition"
   }
 }
 
