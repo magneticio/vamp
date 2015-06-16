@@ -5,9 +5,19 @@ import org.json4s._
 
 object CoreSerializationFormat {
 
-  val default: Formats = SerializationFormat(OffsetDateTimeSerializer, SnakeCaseSerializationFormat, MapSerializer, BreedSerializationFormat, BlueprintSerializationFormat, SlaSerializationFormat, DeploymentSerializationFormat)
+  private val common = List(
+    OffsetDateTimeSerializer,
+    SnakeCaseSerializationFormat,
+    MapSerializer,
+    BreedSerializationFormat,
+    BlueprintSerializationFormat,
+    SlaSerializationFormat,
+    WorkflowSerializationFormat
+  )
 
-  val full: Formats = SerializationFormat(OffsetDateTimeSerializer, SnakeCaseSerializationFormat, MapSerializer, BreedSerializationFormat, BlueprintSerializationFormat, SlaSerializationFormat, FullDeploymentSerializationFormat)
+  val default: Formats = SerializationFormat(DeploymentSerializationFormat :: common: _*)
+
+  val full: Formats = SerializationFormat(FullDeploymentSerializationFormat :: common: _*)
 }
 
 abstract class ArtifactSerializer[A: Manifest] extends Serializer[A] {

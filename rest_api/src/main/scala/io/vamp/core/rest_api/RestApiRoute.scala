@@ -1,20 +1,22 @@
 package io.vamp.core.rest_api
 
+import _root_.io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import _root_.io.vamp.common.http.RestApiBase
+import _root_.io.vamp.core.model.artifact._
+import _root_.io.vamp.core.model.reader._
+import _root_.io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
+import _root_.io.vamp.core.persistence.actor.PersistenceActor
+import _root_.io.vamp.core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
+import _root_.io.vamp.core.rest_api.swagger.SwaggerResponse
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
-import io.vamp.common.http.RestApiBase
-import io.vamp.core.model.artifact._
-import io.vamp.core.model.reader._
-import io.vamp.core.persistence.actor.PersistenceActor
-import io.vamp.core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
-import io.vamp.core.rest_api.swagger.SwaggerResponse
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
+import scala.reflect._
 
 trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApiRoute with InfoRoute with SwaggerResponse {
   this: Actor with ExecutionContextProvider =>
@@ -112,13 +114,15 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
   }
 
   private val mapping: Map[String, Controller] = Map() +
-    ("breeds" -> new PersistenceController[Breed](classOf[Breed], BreedReader)) +
-    ("blueprints" -> new PersistenceController[Blueprint](classOf[Blueprint], BlueprintReader)) +
-    ("slas" -> new PersistenceController[Sla](classOf[Sla], SlaReader)) +
-    ("scales" -> new PersistenceController[Scale](classOf[Scale], ScaleReader)) +
-    ("escalations" -> new PersistenceController[Escalation](classOf[Escalation], EscalationReader)) +
-    ("routings" -> new PersistenceController[Routing](classOf[Routing], RoutingReader)) +
-    ("filters" -> new PersistenceController[Filter](classOf[Filter], FilterReader)) +
+    ("breeds" -> new PersistenceController[Breed](BreedReader)) +
+    ("blueprints" -> new PersistenceController[Blueprint](BlueprintReader)) +
+    ("slas" -> new PersistenceController[Sla](SlaReader)) +
+    ("scales" -> new PersistenceController[Scale](ScaleReader)) +
+    ("escalations" -> new PersistenceController[Escalation](EscalationReader)) +
+    ("routings" -> new PersistenceController[Routing](RoutingReader)) +
+    ("filters" -> new PersistenceController[Filter](FilterReader)) +
+    ("workflows" -> new PersistenceController[Workflow](WorkflowReader)) +
+    ("scheduled-workflows" -> new PersistenceController[ScheduledWorkflow](ScheduledWorkflowReader)) +
     ("deployments" -> new Controller())
 
   private class Controller {
@@ -134,9 +138,12 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = Future(None)
   }
 
-  private class PersistenceController[T <: Artifact](`type`: Class[_ <: Artifact], unmarshaller: YamlReader[T]) extends Controller {
+  private class PersistenceController[T <: Artifact : ClassTag](unmarshaller: YamlReader[T]) extends Controller {
 
-    override def all(page: Int, perPage: Int)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(`type`, page, perPage)
+    val `type` = classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]]
+
+    override def all(page: Int, perPage: Int)(implicit timeout: Timeout) =
+      actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(`type`, page, perPage)
 
     override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       val artifact = unmarshaller.read(source)
