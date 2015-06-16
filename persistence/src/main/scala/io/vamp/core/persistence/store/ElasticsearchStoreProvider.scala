@@ -36,7 +36,7 @@ class ElasticsearchStoreProvider(ec: ExecutionContext) extends StoreProvider wit
     private val elasticsearchUrl: String = ConfigFactory.load().getString("vamp.core.persistence.elasticsearch.url")
 
     implicit val executionContext = ec
-    implicit val formats = CoreSerializationFormat.default
+    implicit val formats = CoreSerializationFormat.full
     implicit val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.persistence.elasticsearch.response-timeout").seconds)
 
     private val readers: Map[String, YamlReader[_ <: Artifact]] = Map(

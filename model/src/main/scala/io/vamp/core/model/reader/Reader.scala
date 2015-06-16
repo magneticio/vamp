@@ -229,21 +229,39 @@ trait TraitReader extends TraitResolver {
     }
   }
 
-  def ports(name: String = "ports")(implicit source: YamlObject): List[Port] = {
+  def ports(name: String = "ports", addGroup: Boolean = false)(implicit source: YamlObject): List[Port] = {
     parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
-      Port(name, alias, value)
+      val reference = if (addGroup) {
+        NoGroupReference.referenceFor(name) match {
+          case Some(ref) => ref.asTraitReference(TraitReference.Ports)
+          case None => name
+        }
+      } else name
+      Port(reference, alias, value)
     }, false)
   }
 
-  def environmentVariables(name: String = "environment_variables", alias: Boolean = true)(implicit source: YamlObject): List[EnvironmentVariable] = {
+  def environmentVariables(name: String = "environment_variables", alias: Boolean = true, addGroup: Boolean = false)(implicit source: YamlObject): List[EnvironmentVariable] = {
     parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
-      EnvironmentVariable(name, alias, value)
+      val reference = if (addGroup) {
+        NoGroupReference.referenceFor(name) match {
+          case Some(ref) => ref.asTraitReference(TraitReference.EnvironmentVariables)
+          case None => name
+        }
+      } else name
+      EnvironmentVariable(reference, alias, value)
     }, alias)
   }
 
-  def constants(name: String = "constants")(implicit source: YamlObject): List[Constant] = {
+  def constants(name: String = "constants", addGroup: Boolean = false)(implicit source: YamlObject): List[Constant] = {
     parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
-      Constant(name, alias, value)
+      val reference = if (addGroup) {
+        NoGroupReference.referenceFor(name) match {
+          case Some(ref) => ref.asTraitReference(TraitReference.EnvironmentVariables)
+          case None => name
+        }
+      } else name
+      Constant(reference, alias, value)
     }, false)
   }
 

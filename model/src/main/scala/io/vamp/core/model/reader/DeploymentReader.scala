@@ -25,21 +25,15 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
       }).toList
     }
 
-    val endpoints = ports("endpoints").map { port =>
-      NoGroupReference.referenceFor(port.name) match {
-        case Some(ref) => port.copy(name = ref.asTraitReference(TraitReference.Ports))
-        case None => port
-      }
-    }
+    Deployment(name, clusters, ports("endpoints", addGroup = true), ports(addGroup = true), environmentVariables, constants(addGroup = true), hosts())
+  }
 
-    val evs = environmentVariables("environment_variables", alias = false).map { ev =>
-      NoGroupReference.referenceFor(ev.name) match {
-        case Some(ref) => ev.copy(name = ref.asTraitReference(TraitReference.EnvironmentVariables))
-        case None => ev
-      }
+  private def environmentVariables(implicit source: YamlObject): List[EnvironmentVariable] = <<?[Any]("environment_variables") match {
+    case Some(list: List[_]) => list.map { el =>
+      implicit val source = el.asInstanceOf[YamlObject]
+      EnvironmentVariable(<<![String]("name"), <<?[String]("alias"), <<?[String]("value"), <<?[String]("interpolated"))
     }
-
-    Deployment(name, clusters, endpoints, ports(), evs, constants(), hosts())
+    case _ => Nil
   }
 
   private def parseService(implicit source: YamlObject): DeploymentService = {
@@ -51,7 +45,7 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
       case Some(list) => list.map(parseServer(_))
     }
 
-    DeploymentService(state(<<![YamlObject]("state")), breed, scale, routing, servers, dependencies, dialects)
+    DeploymentService(state(<<![YamlObject]("state")), breed, scale, routing, servers, dependencies(), dialects)
   }
 
   private def parseServer(implicit source: YamlObject): DeploymentServer =
@@ -62,14 +56,15 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
       case None => Map()
       case Some(map: YamlObject) => map.flatMap {
         case (key, value: Int) => (key.toInt -> value) :: Nil
+        case (key, value: BigInt) => (key.toInt -> value.toInt) :: Nil
         case (key, value: String) => (key.toInt -> value.toInt) :: Nil
         case _ => Nil
       } toMap
     }
   }
 
-  private def dependencies(implicit source: YamlObject): Map[String, String] = {
-    <<?[YamlObject]("dependencies") match {
+  private def dependencies(name: String = "dependencies")(implicit source: YamlObject): Map[String, String] = {
+    <<?[YamlObject](name) match {
       case None => Map()
       case Some(map: YamlObject) => map.flatMap {
         case (key, value: String) => (key -> value) :: Nil

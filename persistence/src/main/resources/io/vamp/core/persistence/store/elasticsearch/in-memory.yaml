@@ -1,0 +1,73 @@
+- name: 916e9f16-678f-409e-9e6d-6bc10bed2cd1
+  endpoints:
+    sava.port: '9050'
+  clusters:
+    sava:
+      services:
+      - state:
+          name: ReadyForDeployment
+          started_at: '2015-06-16T09:55:24.366+02:00'
+        breed:
+          name: sava-frontend:1.3.0
+          deployable: docker://magneticio/sava-frontend:1.3.0
+          ports:
+            port: 80/http
+          environment_variables:
+            backend[BACKEND]: http://$backend.host:$backend.ports.port/api/message
+          constants: {}
+          dependencies:
+            backend:
+              name: sava-backend:1.3.0
+        scale:
+          cpu: 1.0
+          memory: 1024.0
+          instances: 1
+        routing:
+          weight: 100
+          filters: []
+        servers: []
+        dependencies:
+          backend: backend
+        dialects: {}
+      routes:
+        '80': 33000
+      dialects: {}
+    backend:
+      services:
+      - state:
+          name: Deployed
+          started_at: '2015-06-16T09:55:40.755+02:00'
+        breed:
+          name: sava-backend:1.3.0
+          deployable: docker://magneticio/sava-backend:1.3.0
+          ports:
+            port: 80/http
+          environment_variables: {}
+          constants: {}
+          dependencies: {}
+        scale:
+          cpu: 1.0
+          memory: 1024.0
+          instances: 1
+        routing:
+          weight: 100
+          filters: []
+        servers:
+        - name: 916e9f16-678f-409e-9e6d-6bc10bed2cd1_134f5e46292fb314ae10.0d3d8f8d-13fd-11e5-adde-56847afe9799
+          host: 10.91.49.28
+          ports:
+            '80': 31000
+          deployed: true
+        dependencies: {}
+        dialects: {}
+      routes:
+        '80': 33001
+      dialects: {}
+  ports:
+    backend.port: '33001'
+  environment_variables:
+    sava.backend: http://10.161.136.144:33001/api/message
+  constants: {}
+  hosts:
+    sava: 10.161.136.144
+    backend: 10.161.136.144
