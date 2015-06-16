@@ -8,7 +8,7 @@ import io.vamp.common.http.{OffsetEnvelope, RestClient}
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
 import io.vamp.core.model.serialization._
-import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
+import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
 import org.json4s.native.Serialization.write
 import org.slf4j.LoggerFactory
 
@@ -24,7 +24,7 @@ case class ElasticsearchSearchResponse(hits: ElasticsearchSearchHits)
 
 case class ElasticsearchSearchHits(total: Long, hits: List[Map[String, _]])
 
-class ElasticsearchStore(ec: ExecutionContext) extends Store with FutureSupport with ExecutionContextProvider with PersistenceNotificationProvider {
+class ElasticsearchStore(ec: ExecutionContext) extends Store with TypeOfArtifact with FutureSupport with ExecutionContextProvider with PersistenceNotificationProvider {
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[ElasticsearchStore]))
 
@@ -43,7 +43,9 @@ class ElasticsearchStore(ec: ExecutionContext) extends Store with FutureSupport 
     "scales" -> ScaleReader,
     "escalations" -> EscalationReader,
     "routings" -> RoutingReader,
-    "filters" -> FilterReader
+    "filters" -> FilterReader,
+    "workflows" -> WorkflowReader,
+    "scheduled-workflows" -> ScheduledWorkflowReader
   )
 
   def info = ElasticsearchStoreInfo("elasticsearch", offload(RestClient.request[Any](s"GET $elasticsearchUrl")))
@@ -135,17 +137,5 @@ class ElasticsearchStore(ec: ExecutionContext) extends Store with FutureSupport 
     hit.get("Source").flatMap(_.asInstanceOf[Map[String, _]].get("artifact")).flatMap { artifact =>
       readers.get(typeOf(`type`)).flatMap(reader => Some(reader.read(artifact.toString)))
     }
-  }
-
-  private def typeOf(`type`: Class[_ <: Artifact]): String = `type` match {
-    case t if classOf[Deployment].isAssignableFrom(t) => "deployments"
-    case t if classOf[Breed].isAssignableFrom(t) => "breeds"
-    case t if classOf[Blueprint].isAssignableFrom(t) => "blueprints"
-    case t if classOf[Sla].isAssignableFrom(t) => "slas"
-    case t if classOf[Scale].isAssignableFrom(t) => "scales"
-    case t if classOf[Escalation].isAssignableFrom(t) => "escalations"
-    case t if classOf[Routing].isAssignableFrom(t) => "routings"
-    case t if classOf[Filter].isAssignableFrom(t) => "filters"
-    case request => error(UnsupportedPersistenceRequest(`type`))
   }
 }
