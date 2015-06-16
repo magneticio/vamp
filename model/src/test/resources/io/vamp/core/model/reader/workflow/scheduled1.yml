@@ -1,0 +1,3 @@
+name: logger-schedule
+workflow: logger
+time: 15 9 5 1

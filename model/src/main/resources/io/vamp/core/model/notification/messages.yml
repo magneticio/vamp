@@ -31,3 +31,7 @@ DeEscalate                            : "Deescalate '{deployment.name}/{cluster.
 # Deployment Reader
 
 NotificationMessageNotRestored        : "Deployment service error was not restored.  {message}"
+
+# Workflows
+
+UndefinedWorkflowTriggerError$        : "Undefined workflow trigger - either deployment, time or tags must be specified."
