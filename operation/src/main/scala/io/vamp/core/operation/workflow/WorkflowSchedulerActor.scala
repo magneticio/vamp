@@ -6,7 +6,7 @@ import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
 import io.vamp.common.akka._
 import io.vamp.core.model.workflow.{ScheduledWorkflow, TimeTrigger}
 import io.vamp.core.operation.notification._
-import io.vamp.core.persistence.actor.PersistenceActor
+import io.vamp.core.persistence.actor.{ArtifactSupport, PersistenceActor}
 
 import scala.language.postfixOps
 
@@ -22,7 +22,7 @@ object WorkflowSchedulerActor extends ActorDescription {
 
 }
 
-class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecutor with CommonSupportForActors with OperationNotificationProvider {
+class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecutor with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
 
   import WorkflowSchedulerActor._
 
@@ -42,7 +42,7 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
   }
 
   private def handle(callback: (Unit => Unit)): Unit = try {
-    callback()
+    callback(())
   } catch {
     case t: Throwable => exception(InternalServerError(t))
   }
