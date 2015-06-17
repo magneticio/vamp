@@ -58,8 +58,8 @@ lazy val bintraySetting = Seq(
 
 // Library Versions
 
-val vampCommonVersion = "0.7.7.38162fd"
-val vampPulseVersion = "0.7.7.4cfe11d"
+val vampCommonVersion = "0.7.7.f6a32e5"
+val vampPulseVersion = "0.7.7.d3000b8"
 
 val sprayVersion = "1.3.2"
 //val sprayJsonVersion = "1.3.1"
@@ -78,6 +78,7 @@ val h2Version = "1.3.166"
 val slickVersion = "2.1.0"
 val activeSlickVersion = "0.2.2"
 val postgresVersion = "9.1-901.jdbc4"
+val quartzVersion = "2.2.1"
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
@@ -125,8 +126,11 @@ lazy val rest_api = project.settings(bintraySetting: _*).settings(
 
 lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
-  name:="core-operation"
-  ).dependsOn(persistence, container_driver, dictionary, pulse_driver).disablePlugins(sbtassembly.AssemblyPlugin)
+  name:="core-operation",
+  libraryDependencies ++=Seq(
+    "org.quartz-scheduler" % "quartz" % quartzVersion
+  )
+).dependsOn(persistence, container_driver, dictionary, pulse_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val pulse_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to Vamp Pulse",

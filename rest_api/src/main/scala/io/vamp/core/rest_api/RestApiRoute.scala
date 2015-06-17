@@ -5,6 +5,7 @@ import _root_.io.vamp.common.http.RestApiBase
 import _root_.io.vamp.core.model.artifact._
 import _root_.io.vamp.core.model.reader._
 import _root_.io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
+import _root_.io.vamp.core.operation.workflow.WorkflowSchedulerActor
 import _root_.io.vamp.core.persistence.actor.PersistenceActor
 import _root_.io.vamp.core.rest_api.notification.{InconsistentArtifactName, RestApiNotificationProvider, UnexpectedArtifact}
 import _root_.io.vamp.core.rest_api.swagger.SwaggerResponse
@@ -122,7 +123,7 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     ("routings" -> new PersistenceController[Routing](RoutingReader)) +
     ("filters" -> new PersistenceController[Filter](FilterReader)) +
     ("workflows" -> new PersistenceController[Workflow](WorkflowReader)) +
-    ("scheduled-workflows" -> new PersistenceController[ScheduledWorkflow](ScheduledWorkflowReader)) +
+    ("scheduled-workflows" -> new ScheduledWorkflowController()) +
     ("deployments" -> new Controller())
 
   private class Controller {
@@ -162,6 +163,30 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
 
     override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) =
       if (validateOnly) Future(None) else actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)
+  }
+
+  private class ScheduledWorkflowController extends PersistenceController[ScheduledWorkflow](ScheduledWorkflowReader) {
+
+    override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = super.create(source, validateOnly).map {
+      case workflow: ScheduledWorkflow =>
+        actorFor(WorkflowSchedulerActor) ! WorkflowSchedulerActor.Schedule(workflow)
+        workflow
+      case any => any
+    }
+
+    override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = super.update(name, source, validateOnly).map {
+      case workflow: ScheduledWorkflow =>
+        actorFor(WorkflowSchedulerActor) ! WorkflowSchedulerActor.Schedule(workflow)
+        workflow
+      case any => any
+    }
+
+    override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) = super.delete(name, validateOnly).map {
+      case workflow: ScheduledWorkflow =>
+        actorFor(WorkflowSchedulerActor) ! WorkflowSchedulerActor.Unschedule(workflow)
+        workflow
+      case any => any
+    }
   }
 
 }
