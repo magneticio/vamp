@@ -40,13 +40,7 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
     }
   }
 
-  def updateDeployment(deploymentId: String, blueprint: DefaultBlueprint)(implicit vampHost: String): Option[Deployment] =
-    sendAndWait[DeploymentSerialized](s"PUT $vampHost/api/v1/deployments/$deploymentId", body = blueprint).map(deploymentSerialized2Deployment)
 
-  def getBreed(name: String)(implicit vampHost: String): Option[Breed] =
-    sendAndWaitYaml[String](s"GET $vampHost/api/v1/breeds/$name").map(BreedReader.read(_))
-
-  
   def createBreed(breedDefinition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Breed] = {
     sendAndWaitYaml[String](s"POST $vampHost/api/v1/breeds", Some(breedDefinition)) match {
       case Some(breed) => Some(BreedReader.read(breed))
@@ -120,9 +114,38 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
 
   def prettyJson(artifact: AnyRef) = Serialization.writePretty(artifact)
 
+  /** The getXXX calls need to be refactored to use the sendAndWaitYaml call
+    * After that has been done, the sendAndWait method can be removed, as well as the Deserialization class
+    */
+
+
   def getBreeds(implicit vampHost: String): List[Breed] =
     sendAndWait[List[DefaultBreedSerialized]](s"GET $vampHost/api/v1/breeds") match {
       case Some(breeds) => breeds.map(breedSerialized2DefaultBreed)
+      case None => List.empty
+    }
+
+
+  //    def getBreeds(implicit vampHost: String): List[Breed] =
+  //      sendAndWaitYaml[String](s"GET $vampHost/api/v1/breeds") match {
+  //        case Some(breeds) =>
+  //          val yaml = new Yaml
+  //          val br :List[_] = yaml.loadAll(breeds).asScala.toList
+  //          br.map(a=> BreedReader.read(a.asInstanceOf[String]))
+  //
+  //        case None => List.empty
+  //      }
+
+
+  def getBlueprints(implicit vampHost: String): List[DefaultBlueprint] =
+    sendAndWait[List[BlueprintSerialized]](s"GET $vampHost/api/v1/blueprints") match {
+      case Some(blueprints) => blueprints.map(blueprintSerialized2DefaultBlueprint)
+      case None => List.empty
+    }
+
+  def getDeployments(implicit vampHost: String): List[Deployment] =
+    sendAndWait[List[DeploymentSerialized]](s"GET $vampHost/api/v1/deployments") match {
+      case Some(deployments) => deployments.map(deploymentSerialized2Deployment)
       case None => List.empty
     }
 
@@ -133,7 +156,7 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
     }
 
   def getFilters(implicit vampHost: String): List[DefaultFilter] =
-    sendAndWait[List[Map[String,String]]](s"GET $vampHost/api/v1/filters") match {
+    sendAndWait[List[Map[String, String]]](s"GET $vampHost/api/v1/filters") match {
       case Some(ser) => ser.map(filterSerialized2DefaultFilter)
       case None => List.empty
     }
@@ -150,16 +173,12 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
       case None => List.empty
     }
 
+  def getSlas(implicit vampHost: String): List[Sla] =
+    sendAndWait[List[Map[String, _]]](s"GET $vampHost/api/v1/slas") match {
+      case Some(slas) => slas.flatMap(sla => mapToSla(Some(sla)))
+      case None => List.empty
+    }
 
-  /**
-   * Send a message to the vamp host
-   * @deprecated  Use sendAndWaitYaml instead
-   * @param request
-   * @param body
-   * @param m
-   * @tparam A
-   * @return
-   */
   private def sendAndWait[A](request: String, body: AnyRef = None)(implicit m: Manifest[A]): Option[A] = {
     try {
       val futureResult: Future[A] = RestClient.request[A](request, body = body, jsonFieldTransformer = nonModifyingJsonFieldTransformer)
@@ -181,41 +200,29 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
     case JField(name, value) => JField(name, value)
   }
 
+
   def createBreed(breed: DefaultBreed)(implicit vampHost: String): Option[DefaultBreed] =
     sendAndWait[DefaultBreedSerialized](s"POST $vampHost/api/v1/breeds", breed).map(breedSerialized2DefaultBreed)
-  
+
+  def updateDeployment(deploymentId: String, blueprint: DefaultBlueprint)(implicit vampHost: String): Option[Deployment] =
+    sendAndWait[DeploymentSerialized](s"PUT $vampHost/api/v1/deployments/$deploymentId", body = blueprint).map(deploymentSerialized2Deployment)
+
+
+
+  def getBreed(name: String)(implicit vampHost: String): Option[Breed] =
+    sendAndWaitYaml[String](s"GET $vampHost/api/v1/breeds/$name").map(BreedReader.read(_))
 
   def getBlueprint(blueprintId: String)(implicit vampHost: String): Option[Blueprint] =
     sendAndWaitYaml[String](s"GET $vampHost/api/v1/blueprints/$blueprintId").map(BlueprintReader.read(_))
 
-  def getBlueprints(implicit vampHost: String): List[DefaultBlueprint] =
-    sendAndWait[List[BlueprintSerialized]](s"GET $vampHost/api/v1/blueprints") match {
-      case Some(blueprints) => blueprints.map(blueprintSerialized2DefaultBlueprint)
-      case None => List.empty
-    }
-
-  def getDeployment(deploymentName: String)(implicit vampHost: String): Option[Deployment] =
-    sendAndWait[DeploymentSerialized](s"GET $vampHost/api/v1/deployments/$deploymentName").map(deploymentSerialized2Deployment)
-
-  def getDeployments(implicit vampHost: String): List[Deployment] =
-    sendAndWait[List[DeploymentSerialized]](s"GET $vampHost/api/v1/deployments") match {
-      case Some(deployments) => deployments.map(deploymentSerialized2Deployment)
-      case None => List.empty
-    }
-
-  def getFilter(filterId: String)(implicit vampHost: String): Option[Filter] = {
-    sendAndWaitYaml[String](s"GET $vampHost/api/v1/filters/$filterId") match {
-      case Some(filter) => Some(FilterReader.read(filter))
-      case _ => terminateWithError("Filter not found")
-        None
-    }
-  }
+  def getDeployment(name: String)(implicit vampHost: String): Option[Deployment] =
+    sendAndWaitYaml[String](s"GET $vampHost/api/v1/deployments/$name").map(DeploymentReader.read(_))
 
   def getEscalation(name: String)(implicit vampHost: String): Option[Escalation] =
     sendAndWaitYaml[String](s"GET $vampHost/api/v1/escalations/$name").map(EscalationReader.read(_))
 
-  def info(implicit vampHost: String) =
-    sendAndWaitYaml[String](s"GET $vampHost/api/v1/info", None)
+  def getFilter(filterId: String)(implicit vampHost: String): Option[Filter] =
+    sendAndWaitYaml[String](s"GET $vampHost/api/v1/filters/$filterId").map(FilterReader.read(_))
 
   def getRouting(name: String)(implicit vampHost: String): Option[Routing] =
     sendAndWaitYaml[String](s"GET $vampHost/api/v1/routing/$name").map(RoutingReader.read(_))
@@ -226,11 +233,7 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
   def getSla(name: String)(implicit vampHost: String): Option[Sla] =
     sendAndWaitYaml[String](s"GET $vampHost/api/v1/slas/$name").map(SlaReader.read(_))
 
-  def getSlas(implicit vampHost: String): List[Sla] =
-    sendAndWait[List[Map[String, _]]](s"GET $vampHost/api/v1/slas") match {
-      case Some(slas) => slas.flatMap(sla => mapToSla(Some(sla)))
-      case None => List.empty
-    }
-
+  def info(implicit vampHost: String) =
+    sendAndWaitYaml[String](s"GET $vampHost/api/v1/info", None)
 
 }
