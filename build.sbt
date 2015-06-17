@@ -166,7 +166,7 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
     "junit" % "junit" % junitVersion % "test",
     "org.scalatest" %% "scalatest" % scalatestVersion % "test"
   )
-).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(model, pulse_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val cli = project.settings(bintraySetting: _*).settings(
   description := "Command Line Interface for Vamp",

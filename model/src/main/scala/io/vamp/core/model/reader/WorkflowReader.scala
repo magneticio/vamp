@@ -30,7 +30,7 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
 
       case (None, Some(time), _) => TimeTrigger(time)
 
-      case (None, None, Some(tags)) => EventTrigger(tags)
+      case (None, None, Some(tags)) => EventTrigger(tags.toSet)
 
       case _ => error(UndefinedWorkflowTriggerError)
     }

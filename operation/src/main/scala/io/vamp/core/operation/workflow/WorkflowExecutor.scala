@@ -16,7 +16,7 @@ trait WorkflowExecutor {
     log.info(s"Executing workflow: $scheduledWorkflow")
 
     val workflow = artifactFor[DefaultWorkflow](scheduledWorkflow.workflow)
-    val engine = new ScriptEngineManager().getEngineByName("JavaScript")
+    val engine = new ScriptEngineManager().getEngineByName("nashorn")
 
     engine.put("vamp", new ExecutionContext(scheduledWorkflow.name))
     engine.eval(workflow.script)

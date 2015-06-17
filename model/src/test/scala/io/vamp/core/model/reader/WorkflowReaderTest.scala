@@ -46,7 +46,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
     ScheduledWorkflowReader.read(res("workflow/scheduled3.yml")) should have(
       'name("logger-schedule"),
       'workflow(WorkflowReference("logger")),
-      'trigger(EventTrigger(List("deployment", "cluster")))
+      'trigger(EventTrigger(Set("deployment", "cluster")))
     )
   }
 
@@ -76,7 +76,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
     ScheduledWorkflowReader.read(res("workflow/scheduled7.yml")) should have(
       'name("logger-schedule"),
       'workflow(WorkflowReference("logger")),
-      'trigger(EventTrigger(List("deployment")))
+      'trigger(EventTrigger(Set("deployment")))
     )
   }
 
