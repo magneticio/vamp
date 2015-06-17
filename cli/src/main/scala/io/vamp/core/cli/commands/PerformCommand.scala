@@ -148,7 +148,7 @@ object PerformCommand extends Parameters {
             case Some(deployableName) => sourceBreed.copy(name = getParameter(destination), deployable = Deployable(deployableName))
             case None => sourceBreed.copy(name = getParameter(destination))
           })
-          println(response)
+          printArtifact(response)
         case _ => terminateWithError("Source breed not found")
       }
 
