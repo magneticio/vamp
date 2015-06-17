@@ -13,6 +13,9 @@ trait ActorDescription {
 object ActorSupport {
   def actorOf(actorDescription: ActorDescription, args: Any*)(implicit mailbox: String = "akka.actor.default-mailbox", actorSystem: ActorSystem) =
     actorSystem.actorOf(actorDescription.props(args: _*).withMailbox(mailbox), actorDescription.name)
+
+  def actorFor(actorDescription: ActorDescription)(implicit actorSystem: ActorSystem) =
+    actorSystem.actorSelection(s"/user/${actorDescription.name}")
 }
 
 trait ActorSupport {
