@@ -1,0 +1,5 @@
+name: logger-schedule
+workflow: logger
+tags:
+- deployment
+- cluster

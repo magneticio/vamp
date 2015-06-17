@@ -12,10 +12,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
     case reference: String => BreedReference(reference)
     case map: collection.Map[_, _] =>
       implicit val source = map.asInstanceOf[YamlObject]
-      <<?[Any]("deployable") match {
-        case None => BreedReference(name)
-        case Some(_) => read(map.asInstanceOf[YamlObject])
-      }
+      if (<<?[Any]("deployable").isEmpty) BreedReference(name) else read(map.asInstanceOf[YamlObject])
   }
 
   override protected def expand(implicit source: YamlObject) = {
