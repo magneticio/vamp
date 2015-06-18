@@ -25,7 +25,7 @@ case class TimeTrigger(time: String) extends Trigger
 
 case class DeploymentTrigger(deployment: String) extends Trigger
 
-case class EventTrigger(tags: List[String]) extends Trigger
+case class EventTrigger(tags: Set[String]) extends Trigger
 
 
 case class ScheduledWorkflow(name: String, workflow: Workflow, trigger: Trigger) extends Artifact

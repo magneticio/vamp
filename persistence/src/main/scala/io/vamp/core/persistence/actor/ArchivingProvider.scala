@@ -1,21 +1,18 @@
 package io.vamp.core.persistence.actor
 
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.ExecutionContextProvider
+import io.vamp.common.akka.ActorSupport
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
 import io.vamp.core.persistence.notification.ArtifactArchivingError
-import io.vamp.pulse.client.PulseClientProvider
+import io.vamp.core.pulse_driver.PulseDriverActor
 import io.vamp.pulse.model.Event
 
-trait ArchivingProvider extends PulseClientProvider {
-  this: NotificationProvider with ExecutionContextProvider =>
+trait ArchivingProvider {
+  this: NotificationProvider with ActorSupport =>
 
   implicit val timeout: Timeout
-
-  val pulseUrl = ConfigFactory.load().getString("vamp.core.persistence.pulse.url")
 
   def archiveCreate(artifact: Artifact, source: Option[String]): Artifact =
     if (source.isDefined) archive(artifact, source, s"archiving:create") else artifact
@@ -27,7 +24,7 @@ trait ArchivingProvider extends PulseClientProvider {
 
   protected def archive(artifact: Artifact, source: Option[String], archiveTag: String) = {
     tagFor(artifact) match {
-      case Some(artifactTag) => pulseClient.sendEvent(Event(Set(artifactTag, archiveTag), source))
+      case Some(artifactTag) => actorFor(PulseDriverActor) ! PulseDriverActor.Publish(Event(Set(artifactTag, archiveTag), source))
       case _ => exception(ArtifactArchivingError(artifact))
     }
     artifact

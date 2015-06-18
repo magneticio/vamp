@@ -1,7 +1,7 @@
 package io.vamp.core.persistence.actor
 
 import _root_.io.vamp.common.vitals.InfoRequest
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
@@ -37,7 +37,7 @@ object PersistenceActor extends ActorDescription {
 
 }
 
-class PersistenceActor extends Actor with ActorLogging with ReplyActor with ArchivingProvider with FutureSupport with ActorExecutionContextProvider with PersistenceNotificationProvider {
+class PersistenceActor extends CommonSupportForActors with ReplyActor with ArchivingProvider with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
