@@ -15,9 +15,9 @@ object CoreSerializationFormat {
     WorkflowSerializationFormat
   )
 
-  val default: Formats = SerializationFormat(DeploymentSerializationFormat :: common: _*)
+  val default: Formats = SerializationFormat(common :+ DeploymentSerializationFormat: _*)
 
-  val full: Formats = SerializationFormat(FullDeploymentSerializationFormat :: common: _*)
+  val full: Formats = SerializationFormat(common :+ FullDeploymentSerializationFormat: _*)
 }
 
 abstract class ArtifactSerializer[A: Manifest] extends Serializer[A] {
