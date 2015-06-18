@@ -1,8 +1,8 @@
 package io.vamp.core.operation.workflow
 
-import java.util.Properties
+import java.util.{Date, Properties}
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import io.vamp.core.model.workflow.{ScheduledWorkflow, TimeTrigger}
 import io.vamp.core.operation.workflow.WorkflowSchedulerActor.RunWorkflow
 import org.quartz._
@@ -10,7 +10,7 @@ import org.quartz.impl.StdSchedulerFactory
 
 
 trait WorkflowQuartzScheduler {
-  this: Actor =>
+  this: Actor with ActorLogging =>
 
   private lazy val scheduler = {
     val props = new Properties()
@@ -23,9 +23,7 @@ trait WorkflowQuartzScheduler {
 
   def quartzSchedule(scheduledWorkflow: ScheduledWorkflow) = scheduledWorkflow.trigger match {
     case TimeTrigger(pattern) =>
-
-      quartzUnschedule(scheduledWorkflow)
-
+      log.info(s"Creating a new Quartz job for workflow '${scheduledWorkflow.name}'.")
       val job = {
         val data = new JobDataMap()
         data.put("message", RunWorkflow(scheduledWorkflow))
@@ -49,7 +47,10 @@ trait WorkflowQuartzScheduler {
     case _ =>
   }
 
-  def quartzUnschedule(scheduledWorkflow: ScheduledWorkflow) = scheduler.deleteJob(new JobKey(scheduledWorkflow.name))
+  def quartzUnschedule(scheduledWorkflow: ScheduledWorkflow) = {
+    if (scheduler.deleteJob(new JobKey(scheduledWorkflow.name)))
+      log.info(s"Quartz job successfully removed for workflow '${scheduledWorkflow.name}'.")
+  }
 
   def quartzStart: (Unit => Unit) = { _ => scheduler.start() }
 
@@ -59,6 +60,6 @@ trait WorkflowQuartzScheduler {
 private class QuartzJob() extends Job {
   def execute(ctx: JobExecutionContext) {
     val data = ctx.getJobDetail.getJobDataMap
-    data.get("actor").asInstanceOf[ActorRef] ! data.get("message")
+    data.get("actor").asInstanceOf[ActorRef] ! (data.get("message") -> new Date().getTime)
   }
 }
