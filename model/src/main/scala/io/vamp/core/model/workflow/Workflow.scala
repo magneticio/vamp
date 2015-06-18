@@ -28,4 +28,4 @@ case class DeploymentTrigger(deployment: String) extends Trigger
 case class EventTrigger(tags: Set[String]) extends Trigger
 
 
-case class ScheduledWorkflow(name: String, workflow: Workflow, trigger: Trigger) extends Artifact
+case class ScheduledWorkflow(name: String, workflow: Workflow, trigger: Trigger, storage: Map[String, Any] = Map()) extends Artifact

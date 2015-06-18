@@ -11,7 +11,7 @@ object WorkflowSerializationFormat extends io.vamp.common.json.SerializationForm
     new ScheduledWorkflowSerializer()
 }
 
-class ScheduledWorkflowSerializer extends ArtifactSerializer[ScheduledWorkflow] {
+class ScheduledWorkflowSerializer() extends ArtifactSerializer[ScheduledWorkflow] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case scheduledWorkflow: ScheduledWorkflow =>
       val list = new ArrayBuffer[JField]
@@ -31,6 +31,8 @@ class ScheduledWorkflowSerializer extends ArtifactSerializer[ScheduledWorkflow] 
           list += JField("script", JString(script))
         case _ =>
       }
+
+      list += JField("storage", Extraction.decompose(scheduledWorkflow.storage))
 
       new JObject(list.toList)
   }

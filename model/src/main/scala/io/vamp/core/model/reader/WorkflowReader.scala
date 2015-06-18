@@ -48,6 +48,6 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
       case _ => DefaultWorkflow("", <<?[List[String]]("import").getOrElse(Nil), <<![String]("script"))
     }
 
-    ScheduledWorkflow(name, workflow, trigger)
+    ScheduledWorkflow(name, workflow, trigger, <<?[YamlObject]("storage").getOrElse(Map()).toMap)
   }
 }

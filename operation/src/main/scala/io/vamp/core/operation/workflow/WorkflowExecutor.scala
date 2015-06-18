@@ -4,17 +4,18 @@ import javax.script.{Bindings, ScriptEngineManager}
 
 import akka.actor.{Actor, ActorLogging}
 import com.typesafe.scalalogging.Logger
+import io.vamp.common.akka.ActorSupport
 import io.vamp.core.model.artifact.Deployment
 import io.vamp.core.model.workflow._
-import io.vamp.core.persistence.actor.ArtifactSupport
+import io.vamp.core.persistence.actor.{ArtifactSupport, PersistenceActor}
 import org.slf4j.LoggerFactory
 
-import scala.collection.Set
+import scala.collection.{Set, mutable}
 import scala.io.Source
 import scala.language.postfixOps
 
 trait WorkflowExecutor {
-  this: Actor with ActorLogging with ArtifactSupport =>
+  this: Actor with ActorLogging with ArtifactSupport with ActorSupport =>
 
   private val urlPattern = "^(https?:\\/\\/.+)$".r
 
@@ -31,24 +32,30 @@ trait WorkflowExecutor {
       case reference => artifactFor[DefaultWorkflow](reference).script
     } :+ workflow.script mkString "\n"
 
-    engine.eval(source, bindings(scheduledWorkflow, engine.createBindings, data))
+    val binding = bindings(scheduledWorkflow, engine.createBindings, data)
+
+    engine.eval(source, binding)
+
+    binding.get("storage") match {
+      case storage: StorageContext =>
+        actorFor(PersistenceActor) ! PersistenceActor.Update(scheduledWorkflow.copy(storage = storage.all()))
+      case _ =>
+    }
   }
 
   private def bindings(scheduledWorkflow: ScheduledWorkflow, bindings: Bindings, data: Any) = {
     bindings.put("log", new LoggerContext(scheduledWorkflow.name))
+    bindings.put("storage", new StorageContext(artifactFor[ScheduledWorkflow](scheduledWorkflow.name).storage))
 
     def tags() = if (data.isInstanceOf[Set[_]]) bindings.put("tags", data.asInstanceOf[Set[_]].toArray)
 
     scheduledWorkflow.trigger match {
       case TimeTrigger(_) => bindings.put("timestamp", data)
-
       case EventTrigger(_) => tags()
-
       case DeploymentTrigger(deployment) =>
         tags()
         bindings.put("deployment", artifactFor[Deployment](deployment))
-
-      case _ => log.debug(s"No execute data for: ${scheduledWorkflow.name}")
+      case _ => log.debug(s"No execution data for: ${scheduledWorkflow.name}")
     }
 
     bindings
@@ -72,5 +79,20 @@ class LoggerContext(name: String) {
   def log(any: Any) = info(any)
 
   @inline private def messageOf(any: Any) = if (any != null) any.toString else ""
+}
+
+class StorageContext(storage: Map[String, Any]) {
+
+  private val store = mutable.Map[String, Any]() ++ storage
+
+  def all() = store.toMap
+
+  def get(key: String) = store.get(key).orNull
+
+  def remove(key: String) = store.remove(key).orNull
+
+  def put(key: String, value: Any) = store.put(key, value).orNull
+
+  def clear() = store.clear()
 }
 
