@@ -26,7 +26,9 @@ class ScheduledWorkflowSerializer extends ArtifactSerializer[ScheduledWorkflow] 
 
       scheduledWorkflow.workflow match {
         case WorkflowReference(reference) => list += JField("workflow", JString(reference))
-        case DefaultWorkflow(_, script) => list += JField("script", JString(script))
+        case DefaultWorkflow(_, dependencies, script) =>
+          list += JField("import", Extraction.decompose(dependencies))
+          list += JField("script", JString(script))
         case _ =>
       }
 

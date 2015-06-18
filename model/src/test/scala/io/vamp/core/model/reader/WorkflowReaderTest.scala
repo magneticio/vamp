@@ -26,6 +26,22 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
+  it should "import dependencies" in {
+    WorkflowReader.read(res("workflow/workflow3.yml")) should have(
+      'name("logger"),
+      'import(List("http://underscorejs.org/underscore-min.js", "vamp.js")),
+      'script("vamp.log(\"hi\")")
+    )
+  }
+
+  it should "expand import" in {
+    WorkflowReader.read(res("workflow/workflow4.yml")) should have(
+      'name("logger"),
+      'import(List("vamp.js")),
+      'script("vamp.log(\"hi\")")
+    )
+  }
+
   "ScheduledWorkflowReader" should "read the scheduled workflow with time trigger" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled1.yml")) should have(
       'name("logger-schedule"),
@@ -91,7 +107,23 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read anonymous workflow specified with 'script'" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled9.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", "vamp.exit()")),
+      'workflow(DefaultWorkflow("", Nil, "vamp.exit()")),
+      'trigger(TimeTrigger("0"))
+    )
+  }
+
+  it should "read import" in {
+    ScheduledWorkflowReader.read(res("workflow/scheduled10.yml")) should have(
+      'name("kill-vamp"),
+      'workflow(DefaultWorkflow("", List("http://underscorejs.org/underscore-min.js", "vamp.js"), "vamp.exit()")),
+      'trigger(TimeTrigger("0"))
+    )
+  }
+
+  it should "expand import'" in {
+    ScheduledWorkflowReader.read(res("workflow/scheduled11.yml")) should have(
+      'name("kill-vamp"),
+      'workflow(DefaultWorkflow("", List("vamp.js"), "vamp.exit()")),
       'trigger(TimeTrigger("0"))
     )
   }
