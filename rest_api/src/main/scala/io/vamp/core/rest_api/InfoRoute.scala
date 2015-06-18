@@ -13,12 +13,14 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
 
-case class InfoMessage(message: String, jvm: JvmVitals, persistence: Any, router: Any, pulse: Any, containerDriver: Any) extends InfoMessageBase
+case class InfoMessage(message: String, jvm: JvmVitals, persistence: Any, router: Any, pulse: Any, containerDriver: Any, pulseUrl : String ) extends InfoMessageBase
 
 trait InfoRoute extends InfoBaseRoute {
   this: RestApiBase =>
 
   val infoMessage = ConfigFactory.load().getString("vamp.core.rest-api.info.message")
+
+  val pulseUrl = ConfigFactory.load().getString("vamp.core.pulse-driver.url")
 
   val componentInfoTimeout = Timeout(ConfigFactory.load().getInt("vamp.core.rest-api.info.timeout") seconds)
 
@@ -28,7 +30,8 @@ trait InfoRoute extends InfoBaseRoute {
       result.get(PersistenceActor),
       result.get(RouterDriverActor),
       result.get(PulseDriverActor),
-      result.get(ContainerDriverActor)
+      result.get(ContainerDriverActor),
+      pulseUrl
     )
   }
 }

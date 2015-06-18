@@ -60,6 +60,7 @@ lazy val bintraySetting = Seq(
 
 val vampCommonVersion = "0.7.7.f6a32e5"
 val vampPulseVersion = "0.7.7.9130037"
+val vampUiVersion = "0.0.1"
 
 val sprayVersion = "1.3.2"
 //val sprayJsonVersion = "1.3.1"
@@ -120,7 +121,8 @@ lazy val rest_api = project.settings(bintraySetting: _*).settings(
   libraryDependencies ++=Seq(
     "io.spray" %% "spray-can" % sprayVersion,
     "io.spray" %% "spray-routing" % sprayVersion,
-    "io.spray" %% "spray-httpx" % sprayVersion
+    "io.spray" %% "spray-httpx" % sprayVersion,
+    "vamp-ui" % "vamp-ui" % vampUiVersion from  s"https://bintray.com/artifact/download/magnetic-io/downloads/vamp-ui/vamp-ui-$vampUiVersion.jar"
   )
 ).dependsOn(operation, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
 

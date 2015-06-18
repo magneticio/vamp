@@ -12,8 +12,11 @@ import _root_.io.vamp.core.rest_api.swagger.SwaggerResponse
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
+import spray.http.HttpRequest
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
+import spray.routing.directives.LogEntry
+import akka.event.Logging._
 
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
@@ -81,9 +84,24 @@ trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApi
             }
           }
         }
+      } ~ path("") {
+        logRequest(showRequest _) {
+          compressResponse() {
+            // serve up static content from a JAR resource
+            getFromResource("vamp-ui/index.html")
+          }
+        }
+      } ~ pathPrefix(""){
+        logRequest(showRequest _) {
+          compressResponse() {
+              getFromResourceDirectory("vamp-ui")
+          }
+        }
       }
     }
   }
+
+  def showRequest(request: HttpRequest) = LogEntry(s"${request.uri} - Headers: [${request.headers}]", InfoLevel)
 }
 
 trait RestApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
