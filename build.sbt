@@ -119,7 +119,8 @@ lazy val rest_api = project.settings(bintraySetting: _*).settings(
   libraryDependencies ++=Seq(
     "io.spray" %% "spray-can" % sprayVersion,
     "io.spray" %% "spray-routing" % sprayVersion,
-    "io.spray" %% "spray-httpx" % sprayVersion
+    "io.spray" %% "spray-httpx" % sprayVersion,
+    "vamp-ui" % "vamp-ui" % "0.0.1" from  "https://bintray.com/artifact/download/magnetic-io/downloads/vamp-ui/vamp-ui-0.0.1.jar"
   )
 ).dependsOn(operation, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
 
