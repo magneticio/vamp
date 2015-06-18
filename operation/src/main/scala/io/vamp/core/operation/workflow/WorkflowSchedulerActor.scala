@@ -4,7 +4,7 @@ import akka.actor._
 import akka.pattern.ask
 import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
 import io.vamp.common.akka._
-import io.vamp.core.model.workflow.{EventTrigger, ScheduledWorkflow, TimeTrigger}
+import io.vamp.core.model.workflow.{DeploymentTrigger, EventTrigger, ScheduledWorkflow, TimeTrigger}
 import io.vamp.core.operation.notification._
 import io.vamp.core.persistence.actor.{ArtifactSupport, PersistenceActor}
 import io.vamp.core.pulse_driver.PulseDriverActor
@@ -67,11 +67,17 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
 
   private def schedule: (ScheduledWorkflow => Unit) = { (workflow: ScheduledWorkflow) =>
     workflow.trigger match {
-      case TimeTrigger(pattern) => quartzSchedule(workflow)
+      case TimeTrigger(pattern) =>
+        quartzSchedule(workflow)
 
-      case EventTrigger(tags) => actorFor(PulseDriverActor) ! PulseDriverActor.RegisterPercolator(workflow.name, tags, RunWorkflow(workflow))
+      case EventTrigger(tags) =>
+        actorFor(PulseDriverActor) ! PulseDriverActor.RegisterPercolator(workflow.name, tags, RunWorkflow(workflow))
 
-      case trigger => log.warning(s"Unsupported trigger: $trigger")
+      case DeploymentTrigger(name) =>
+        actorFor(PulseDriverActor) ! PulseDriverActor.RegisterPercolator(workflow.name, Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
+
+      case trigger =>
+        log.warning(s"Unsupported trigger: $trigger")
     }
   }
 
@@ -80,6 +86,8 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
       case TimeTrigger(_) => quartzUnschedule(workflow)
 
       case EventTrigger(_) => actorFor(PulseDriverActor) ! PulseDriverActor.UnregisterPercolator(workflow.name)
+
+      case DeploymentTrigger(_) => actorFor(PulseDriverActor) ! PulseDriverActor.UnregisterPercolator(workflow.name)
 
       case trigger => log.warning(s"Unsupported trigger: $trigger")
     }

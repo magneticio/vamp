@@ -105,7 +105,7 @@ trait Percolator {
   private val percolators = mutable.Map[String, PercolatorEntry]()
 
   def registerPercolator(name: String, tags: Set[String], message: Any) = {
-    log.info(s"Registering percolator '$name' for tags '${tags.mkString(" ,")}'.")
+    log.info(s"Registering percolator '$name' for tags '${tags.mkString(", ")}'.")
     percolators.put(name, PercolatorEntry(tags, sender(), message))
   }
 
