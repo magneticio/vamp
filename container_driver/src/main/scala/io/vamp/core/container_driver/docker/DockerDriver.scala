@@ -190,12 +190,14 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
     }
     for (v <- env) {
       logger.trace(s"[CreateDockerContainer] setting env ${v._1} = ${v._2}")
-      containerPrep = containerPrep.env(v)
     }
-    for (p <- ports) {
+    containerPrep = containerPrep.env(env.toSeq :_*)
+
+    val exposedPorts = ports.map(p => {
       logger.debug(s"[CreateDockerContainer] exposed ports ${p.containerPort}")
-      containerPrep = containerPrep.exposedPorts(p.containerPort.toString)
-    }
+      p.containerPort.toString
+    })
+    containerPrep = containerPrep.exposedPorts(exposedPorts.toSeq :_*)
 
     await(containerPrep())
   }
