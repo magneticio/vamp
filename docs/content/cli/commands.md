@@ -55,14 +55,18 @@ Parameter | purpose
 
 Create an artifact read from the specified filename. When no file name is supplied, stdin will be read.
 
-**Usage:** `vamp create breed NAME [--file]` 
+**Usage:** `vamp create blueprint|breed|deployment|escalation|filter|routing|scale|sla NAME [--file]` 
 
 Parameter | purpose
 ----------|--------
   --file        |       Name of the yaml file [Optional]
 ### Example
 ```bash
-... TODO ...
+> vamp create scale --file my_scale.yaml
+name: my_scale
+cpu: 2.0
+memory: 2048.0
+instances: 2
 ```
 
 
@@ -175,11 +179,11 @@ a1e2a68b-295f-4c9b-bec5-64158d84cd00    sava, backend1, backend2
 
 Removes artifact
 
-**Usage:** `vamp remove breed NAME` 
+**Usage:** `vamp remove blueprint|breed|deployment|escalation|filter|routing|scale|sla NAME` 
 
 ### Example
 ```bash
-... TODO ...
+vamp remove scale my_scale
 ```
 
 ## <a name="version"></a>Version
