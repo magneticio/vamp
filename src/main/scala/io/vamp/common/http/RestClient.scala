@@ -22,22 +22,22 @@ object RestClient {
     http(Method.DELETE, List("Accept" -> "application/json", "Content-Type" -> "application/json"), url)
 
   def http(method: Method.Value, headers: List[(String, String)], url: String, body: Any = None, asJson: Boolean = false)
-             (implicit executor: ExecutionContext, formats: Formats = DefaultFormats): Future[Option[Any]] = {
-    val httpRequest = dispatch.url(url).setMethod(method.toString)
-    headers.foreach { case (name, value) => httpRequest.setHeader(name, value) }
+          (implicit executor: ExecutionContext, formats: Formats = DefaultFormats): Future[Option[Any]] = {
 
-    body match {
-      case str: String => httpRequest.setBody(str)
-      case any: AnyRef if any != null && any != None => httpRequest.setBody(write(any))
-      case any if any != null && any != None => httpRequest.setBody(any.toString)
-      case _ =>
+    val requestWithUrl = dispatch.url(url).setMethod(method.toString)
+    val requestWithHeaders = headers.foldLeft(requestWithUrl)((http, header) => http.setHeader(header._1, header._2))
+    val requestWithBody = body match {
+      case str: String => requestWithHeaders.setBody(str)
+      case any: AnyRef if any != null && any != None => requestWithHeaders.setBody(write(any))
+      case any if any != null && any != None => requestWithHeaders.setBody(any.toString)
+      case _ => requestWithHeaders
     }
 
-    if (asJson) Http(httpRequest OK dispatch.as.json4s.Json).option.map {
+    if (asJson) Http(requestWithBody OK dispatch.as.json4s.Json).option.map {
       case None => None
       case Some(json) => Some(json.extract[Any])
     }
-    else Http(httpRequest OK as.String).option
+    else Http(requestWithBody OK as.String).option
   }
 
   /**
@@ -68,7 +68,7 @@ object RestClient {
       case None =>
         logger.trace(s"req [$request]")
         httpHeaders
-      case body:String =>
+      case body: String =>
         logger.trace(s"req [$request] - $body")
         httpHeaders.setBody(body)
       case anyRef =>
