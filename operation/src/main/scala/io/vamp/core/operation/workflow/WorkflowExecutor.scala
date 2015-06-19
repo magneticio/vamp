@@ -1,6 +1,6 @@
 package io.vamp.core.operation.workflow
 
-import javax.script.{Bindings, ScriptEngineManager}
+import javax.script.Bindings
 
 import akka.actor.{Actor, ActorLogging}
 import com.typesafe.scalalogging.Logger
@@ -8,6 +8,7 @@ import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSuppor
 import io.vamp.core.model.artifact.Deployment
 import io.vamp.core.model.workflow._
 import io.vamp.core.persistence.actor.{ArtifactSupport, PersistenceActor}
+import jdk.nashorn.api.scripting.NashornScriptEngineFactory
 import org.slf4j.LoggerFactory
 
 import scala.collection.{Set, mutable}
@@ -26,29 +27,28 @@ trait WorkflowExecutor {
   }
 
   private def eval(scheduledWorkflow: ScheduledWorkflow, workflow: DefaultWorkflow, data: Any) = Future {
-    val engine = new ScriptEngineManager().getEngineByName("nashorn")
+    val source = mergeSource(workflow)
+    val engine = new NashornScriptEngineFactory().getScriptEngine("-doe", "-strict", "--no-java", "--no-syntax-extensions")
+    val bindings = initializeBindings(scheduledWorkflow, engine.createBindings, data)
 
-    val source = workflow.`import`.map {
+    engine.eval(source, bindings)
+    postEvaluation(scheduledWorkflow, bindings)
+  }
+
+  private def mergeSource(workflow: DefaultWorkflow) = {
+    workflow.`import`.map {
       case urlPattern(url) => Source.fromURL(url).mkString
       case reference => artifactFor[DefaultWorkflow](reference).script
     } :+ workflow.script mkString "\n"
-
-    val binding = bindings(scheduledWorkflow, engine.createBindings, data)
-
-    engine.eval(source, binding)
-
-    binding.get("storage") match {
-      case storage: StorageContext =>
-        actorFor(PersistenceActor) ! PersistenceActor.Update(scheduledWorkflow.copy(storage = storage.all()))
-      case _ =>
-    }
   }
 
-  private def bindings(scheduledWorkflow: ScheduledWorkflow, bindings: Bindings, data: Any) = {
+  private def initializeBindings(scheduledWorkflow: ScheduledWorkflow, bindings: Bindings, data: Any) = {
     bindings.put("log", new LoggerContext(scheduledWorkflow.name))
     bindings.put("storage", new StorageContext(artifactFor[ScheduledWorkflow](scheduledWorkflow.name).storage))
 
-    def tags() = if (data.isInstanceOf[Set[_]]) bindings.put("tags", data.asInstanceOf[Set[_]].toArray)
+    def tags() = data match {
+      case ref: AnyRef if ref.isInstanceOf[Set[_]] => bindings.put("tags", ref.asInstanceOf[Set[String]].toArray)
+    }
 
     scheduledWorkflow.trigger match {
       case TimeTrigger(_) => bindings.put("timestamp", data)
@@ -59,7 +59,19 @@ trait WorkflowExecutor {
       case _ => log.debug(s"No execution data for: ${scheduledWorkflow.name}")
     }
 
+    List("quit", "exit", "load", "loadWithNewGlobal").foreach { attribute =>
+      bindings.remove(attribute)
+    }
+
     bindings
+  }
+
+  private def postEvaluation(scheduledWorkflow: ScheduledWorkflow, bindings: Bindings) = {
+    bindings.get("storage") match {
+      case storage: StorageContext =>
+        actorFor(PersistenceActor) ! PersistenceActor.Update(scheduledWorkflow.copy(storage = storage.all()))
+      case _ =>
+    }
   }
 }
 
