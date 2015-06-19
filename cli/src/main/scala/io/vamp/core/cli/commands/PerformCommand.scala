@@ -206,17 +206,26 @@ object PerformCommand extends Parameters {
 
   private def doGenerateCommand(implicit vampHost: String, options: OptionMap) = {
     val fileContent = readOptionalFileContent
-    //val name = getOptionalParameter(name)
     printArtifact(getParameter(name) match {
       case "breed" =>
+        //TODO implement parameters
         val startWith: Breed = fileContent match {
           case Some(content: String) => BreedReader.read(content)
           case None => emptyBreed
         }
-        Some(startWith)
 
+        startWith match {
+          case db : DefaultBreed =>
+            val deployable = getOptionalParameter(deployable) match {
+              case Some(dep: String) => Deployable(dep)
+              case None => db.deployable
+            }
+             Some(db.copy(deployable=deployable))
+          case x => Some(x)
+        }
 
       case "blueprint" =>
+        //TODO implement parameters for sla / endpoint / env
         val startWith: Blueprint = fileContent match {
           case Some(content: String) => BlueprintReader.read(content)
           case None => emptyBlueprint
@@ -224,11 +233,11 @@ object PerformCommand extends Parameters {
 
         val myScale : Option[Scale]= getOptionalParameter(scale).flatMap(s=> Some(ScaleReference(name = s)))
         val myRouting : Option[Routing]= getOptionalParameter(routing).flatMap(s=> Some(RoutingReference(name = s)))
-        //val mySla: Option[Sla]= getOptionalParameter(scale).flatMap(s=> Some(SlaReference(name = s)))
 
+
+        //val mySla: Option[Sla]= getOptionalParameter(scale).flatMap(s=> Some(SlaReference(name = s)))
         startWith match {
           case bp : DefaultBlueprint =>
-            //
             val newCluster = getOptionalParameter(cluster) flatMap (clusterName =>
               getOptionalParameter(breed) flatMap (breedName =>
                 Some(List(Cluster(name = clusterName, services = List(Service(breed = BreedReference(breedName), scale = myScale, routing = myRouting)), sla = None)) )
@@ -238,13 +247,21 @@ object PerformCommand extends Parameters {
           case x => Some(x)
         }
 
-
-
-      case "escalation" => None
-      case "filter" => None
-      case "routing" => None
-      case "scale" => Some(emptyScale)
-      case "sla" => None
+      case "escalation" =>
+        //TODO implement
+        None
+      case "filter" =>
+        //TODO implement parameters
+        Some(emptyFilter)
+      case "routing" =>
+      //TODO implement parameters
+      Some(emptyRouting)
+      case "scale" =>
+        //TODO implement parameters
+        Some(emptyScale)
+      case "sla" =>
+        //TODO implement
+        None
       case invalid => terminateWithError(s"Unsupported artifact '$invalid'")
         None
     }
@@ -257,6 +274,10 @@ object PerformCommand extends Parameters {
   private def emptyBlueprint = DefaultBlueprint(name = "", clusters = List.empty, endpoints = List.empty, environmentVariables = List.empty)
 
   private def emptyScale = DefaultScale(name = "", cpu = 0.0, memory = 0.0, instances = 0)
+
+  private def emptyRouting = DefaultRouting(name="",weight = None,filters = List.empty)
+
+  private def emptyFilter = DefaultFilter(name="",condition = "")
 
 
   private def doMergeCommand(implicit vampHost: String, options: OptionMap) = getOptionalParameter(deployment) match {
