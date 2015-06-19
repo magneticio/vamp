@@ -22,14 +22,16 @@ The command line parameter will overrule the environment variable. With the exce
 
 VAMP CLI supports the following commands:
                        
-* [clone-breed](#clone-breed)               
+* ~~[clone-breed](#clone-breed)~~ deprecated               
 * [create](#create)  
-* [deploy-breed](#deploy-breed)                 
+* [deploy](#deploy)   
+* ~~[deploy-breed](#deploy-breed)~~ deprecated 
 * [filters](#filters)                                     
 * [help](#help)                              
 * [info](#info)                              
 * [inspect](#inspect)  
 * [list](#list)                  
+* [merge](#merge)  
 * [remove](#remove)                        
 * [version](#version)  
 
@@ -68,9 +70,24 @@ cpu: 2.0
 memory: 2048.0
 instances: 2
 ```
+## <a name="deploy"></a>Deploy
+
+Deploys a blueprint
+
+**Usage:** `vamp deploy NAME --deployment  
+
+Parameter | purpose
+----------|--------
+  `--deployment`   |      Name of the existing deployment [optional]
+  '--file'         |      File from which to read the blueprint
+
+### Example
+```bash
+... TODO ...
+```
 
 
-## <a name="deploy-breed"></a>Deploy Breed
+## <a name="deploy-breed"></a>~~Deploy Breed~~
 
 Deploys a breed into an existing deployment cluster
 
@@ -173,6 +190,23 @@ NAME                                    CLUSTERS
 80b310eb-027e-44e8-b170-5bf004119ef4    sava
 06e4ace5-41ce-46d7-b32d-01ee2c48f436    sava
 a1e2a68b-295f-4c9b-bec5-64158d84cd00    sava, backend1, backend2
+```
+
+## <a name="merge"></a>Merge
+
+Merges a blueprint with an existing deployment or blueprint.
+Either specify a deployment or blueprint in which the blueprint should be merged
+The blueprint can be specified by NAME, read from the specified filename or read from stdin.
+      
+Parameters:
+  --file               Name of the yaml file [Optional]
+
+
+**Usage:** `vamp merge --deployment|--blueprint [NAME] [--file]` 
+
+### Example
+```bash
+vamp merge --blueprint my_existing_blueprint -- file add_this_blueprint.yaml
 ```
 
 ## <a name="remove"></a>Remove
