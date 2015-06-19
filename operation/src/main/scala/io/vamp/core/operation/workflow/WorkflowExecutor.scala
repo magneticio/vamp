@@ -25,11 +25,20 @@ trait WorkflowExecutor {
 
   private def eval(scheduledWorkflow: ScheduledWorkflow, workflow: DefaultWorkflow, data: Any) = Future {
     val source = mergeSource(workflow)
-    val engine = new NashornScriptEngineFactory().getScriptEngine(List("-doe", "-strict", "--no-java", "--no-syntax-extensions").toArray: _*)
+    val engine = createEngine()
     val bindings = initializeBindings(scheduledWorkflow, engine.createBindings, data)
 
     engine.eval(source, bindings)
     postEvaluation(scheduledWorkflow, bindings)
+  }
+
+  private def createEngine() = {
+    val arguments = List("-doe", "-strict", "--no-java", "--no-syntax-extensions").toArray
+    val classLoader = {
+      val ccl = Thread.currentThread().getContextClassLoader
+      if (ccl == null) classOf[NashornScriptEngineFactory].getClassLoader else ccl
+    }
+    new NashornScriptEngineFactory().getScriptEngine(arguments, classLoader)
   }
 
   private def mergeSource(workflow: DefaultWorkflow) = {
