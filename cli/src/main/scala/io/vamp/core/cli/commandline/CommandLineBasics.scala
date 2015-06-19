@@ -7,7 +7,7 @@ trait CommandLineBasics {
   import ConsoleHelper._
 
   def terminateWithError(msg: String): Unit = {
-    println(s"ERROR: ".red.bold + "" +  s"$msg".red)
+    println(s"ERROR: ".red.bold + "" + s"$msg".red)
     sys.exit(1)
   }
 
@@ -21,18 +21,14 @@ trait CommandLineBasics {
     case "--help" => HelpCommand()
     case "version" => VersionCommand()
     case "merge" => MergeCommand()
-    case "inspect"  => InspectCommand()
-    case "list"  => ListCommand()
-
-    case "create"  => CreateCommand()
-    case "remove"  => RemoveCommand()
+    case "inspect" => InspectCommand()
+    case "list" => ListCommand()
+    case "generate" => GenerateCommand()
+    case "create" => CreateCommand()
+    case "remove" => RemoveCommand()
 
     case c => UnknownCommand(c)
   }
-
-
-
-
 
   val NotImplemented = "-- NOT IMPLEMENTED --"
 
@@ -41,7 +37,7 @@ trait CommandLineBasics {
   def showHelp(command: CliCommand): Unit = {
     command match {
       case _: HelpCommand => {
-        println(s"Usage: ".bold + ""+s"$appName COMMAND [args..]")
+        println(s"Usage: ".bold + "" + s"$appName COMMAND [args..]")
         println("")
         println("Commands:")
         //showGeneralUsage(CloneBreedCommand())   // Deprecated command
@@ -49,6 +45,7 @@ trait CommandLineBasics {
         showGeneralUsage(DeployCommand())
         //showGeneralUsage(DeployBreedCommand())  // Deprecated command
         showGeneralUsage(HelpCommand())
+        showGeneralUsage(GenerateCommand())
         showGeneralUsage(InfoCommand())
         showGeneralUsage(InspectCommand())
         showGeneralUsage(ListCommand())
@@ -56,17 +53,17 @@ trait CommandLineBasics {
         showGeneralUsage(RemoveCommand())
         showGeneralUsage(VersionCommand())
         println("".reset)
-        println(s"Run "+s"$appName COMMMAND --help".bold +  "" + "  for additional help about the different command options")
+        println(s"Run " + s"$appName COMMMAND --help".bold + "" + "  for additional help about the different command options")
       }
 
       case _ => {
         if (command.allowedSubCommands.isEmpty) {
-          println(s"Usage: ".bold + "" +s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
+          println(s"Usage: ".bold + "" + s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
         } else {
-          println(s"Usage: ".bold + "" +s"$appName ${command.name} ${command.allowedSubCommands.mkString("|")} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
+          println(s"Usage: ".bold + "" + s"$appName ${command.name} ${command.allowedSubCommands.mkString("|")} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
         }
 
-      if (command.usage.nonEmpty) {
+        if (command.usage.nonEmpty) {
           println("")
           println(command.usage)
         }
@@ -80,7 +77,7 @@ trait CommandLineBasics {
   }
 
   private def showGeneralUsage(command: CliCommand): Unit = {
-    println(s"  ${command.name.padTo(20, ' ')}".bold + "" + s"${command.description}".yellow +"")
+    println(s"  ${command.name.padTo(20, ' ')}".bold + "" + s"${command.description}".yellow + "")
   }
 
 

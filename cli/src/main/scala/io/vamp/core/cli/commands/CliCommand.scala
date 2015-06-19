@@ -4,7 +4,7 @@ import io.vamp.core.cli.commands.CommandType.CommandType
 
 object CommandType extends Enumeration {
   type CommandType = Value
-  val Inspect, List, Create, Delete, Update, Deploy, Merge, Other = Value
+  val Inspect, List, Create, Delete, Generate, Update, Deploy, Merge, Other = Value
 }
 
 trait CliCommand {
@@ -61,6 +61,7 @@ case class CreateCommand() extends CliCommand {
   override val usage = "Create an artifact read from the specified filename. When no file name is supplied, stdin will be read."
   override val description = "Create an artifact"
   override val parameters = """  --file               Name of the yaml file [Optional]
+                              |  --stdin              Read file from stdin [Optional]
                             """.stripMargin
   override val requiresName = true
   override val commandType = CommandType.Create
@@ -69,10 +70,11 @@ case class CreateCommand() extends CliCommand {
 
 case class DeployCommand() extends CliCommand {
   override val name = "deploy"
-  override val additionalParams = "[NAME] [--file] [--deployment]"
+  override val additionalParams = "[NAME] [--file|--stdin] [--deployment]"
   override val usage = "Deploys a blueprint specified by NAME, read from the specified filename or read from stdin."
   override val description = "Deploys a blueprint"
   override val parameters = """  --file               Name of the yaml file [Optional]
+                              |  --stdin              Read file from stdin [Optional]
                               |  --deployment         Name of the deployment to update [Optional]
                             """.stripMargin
   override val commandType = CommandType.Deploy
@@ -92,6 +94,23 @@ case class DeployBreedCommand() extends CliCommand {
   override val commandType = CommandType.Deploy
 }
 
+case class GenerateCommand() extends CliCommand {
+  override val name = "generate"
+  override val additionalParams = "[--file|--stdin]"
+  override val usage = "Generates an artifact"
+  override val description = "Generates an artifact"
+  override val parameters = """  --file               Name of the yaml file to preload the generation [Optional]
+                              |  --stdin              Read file from stdin [Optional]
+                              |  --cluster            [blueprint] Name of the cluster
+                              |  --breed              [blueprint] Name of the breed
+                              |  --routing            [blueprint] Name of the routing
+                              |  --scale              [blueprint] Name of the scale
+                            """.stripMargin
+  override val requiresName = false
+  override val commandType = CommandType.Generate
+  override val allowedSubCommands = List("breed","blueprint")
+}
+
 case class HelpCommand() extends CliCommand {
   override val name = "help"
   override val description = "This message"
@@ -108,13 +127,13 @@ case class InfoCommand() extends CliCommand {
 
 case class MergeCommand() extends CliCommand {
   override val name = "merge"
-  override val additionalParams = "--deployment|--blueprint [--file]"
+  override val additionalParams = "--deployment|--blueprint [--file|--stdin]"
   override val usage =
     """Merges a blueprint with an existing deployment or blueprint.
       |Either specify a deployment or blueprint in which the blueprint should be merged
       |The blueprint can be specified by NAME, read from the specified filename or read from stdin.
       """.stripMargin
-  override val description = "Merge a blueprint with an existing deployment"
+  override val description = "Merge a blueprint with an existing deployment or blueprint"
   override val parameters = """  --file               Name of the yaml file [Optional]
                             """.stripMargin
   override val commandType = CommandType.Merge
