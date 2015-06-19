@@ -1,9 +1,10 @@
 package io.vamp.core.cli.commands
 
+
 import io.vamp.core.cli.backend.VampHostCalls
 import io.vamp.core.cli.commandline.{ConsoleHelper, Parameters}
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.reader.BlueprintReader
+import io.vamp.core.model.reader._
 import io.vamp.core.model.serialization.CoreSerializationFormat
 import org.json4s.native.Serialization._
 import org.yaml.snakeyaml.DumperOptions.FlowStyle
@@ -11,10 +12,13 @@ import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.nodes.Tag
 
 import scala.io.Source
+import scala.language.{implicitConversions, postfixOps}
+
 
 object PerformCommand extends Parameters {
 
   import ConsoleHelper._
+
 
   implicit val formats = CoreSerializationFormat.default
 
@@ -27,6 +31,7 @@ object PerformCommand extends Parameters {
       case CommandType.Inspect => doInspectCommand
       case CommandType.Create => doCreateCommand
       case CommandType.Delete => doDeleteCommand
+      case CommandType.Generate => doGenerateCommand
       case CommandType.Update => doUpdateCommand(command)
       case CommandType.Deploy => doDeployCommand(command)
       case CommandType.Merge => doMergeCommand
@@ -162,7 +167,6 @@ object PerformCommand extends Parameters {
     environmentVariables = sourceBlueprint.environmentVariables ++ additionalBlueprint.environmentVariables
   )
 
-
   private def doOtherCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
 
     case _: InfoCommand => println(VampHostCalls.info.getOrElse(""))
@@ -198,6 +202,62 @@ object PerformCommand extends Parameters {
     case "sla" => printArtifact(VampHostCalls.createSla(readFileContent))
     case invalid => terminateWithError(s"Unsupported artifact '$invalid'")
   }
+
+
+  private def doGenerateCommand(implicit vampHost: String, options: OptionMap) = {
+    val fileContent = readOptionalFileContent
+    //val name = getOptionalParameter(name)
+    printArtifact(getParameter(name) match {
+      case "breed" =>
+        val startWith: Breed = fileContent match {
+          case Some(content: String) => BreedReader.read(content)
+          case None => emptyBreed
+        }
+        Some(startWith)
+
+
+      case "blueprint" =>
+        val startWith: Blueprint = fileContent match {
+          case Some(content: String) => BlueprintReader.read(content)
+          case None => emptyBlueprint
+        }
+
+        val myScale : Option[Scale]= getOptionalParameter(scale).flatMap(s=> Some(ScaleReference(name = s)))
+        val myRouting : Option[Routing]= getOptionalParameter(routing).flatMap(s=> Some(RoutingReference(name = s)))
+        //val mySla: Option[Sla]= getOptionalParameter(scale).flatMap(s=> Some(SlaReference(name = s)))
+
+        startWith match {
+          case bp : DefaultBlueprint =>
+            //
+            val newCluster = getOptionalParameter(cluster) flatMap (clusterName =>
+              getOptionalParameter(breed) flatMap (breedName =>
+                Some(List(Cluster(name = clusterName, services = List(Service(breed = BreedReference(breedName), scale = myScale, routing = myRouting)), sla = None)) )
+              )
+            )
+            Some(bp.copy(clusters = bp.clusters ++ newCluster.getOrElse(List.empty)))
+          case x => Some(x)
+        }
+
+
+
+      case "escalation" => None
+      case "filter" => None
+      case "routing" => None
+      case "scale" => Some(emptyScale)
+      case "sla" => None
+      case invalid => terminateWithError(s"Unsupported artifact '$invalid'")
+        None
+    }
+    )
+  }
+
+
+  private def emptyBreed = DefaultBreed(name = "", deployable = Deployable(""), ports = List.empty, environmentVariables = List.empty, constants = List.empty, dependencies = Map.empty)
+
+  private def emptyBlueprint = DefaultBlueprint(name = "", clusters = List.empty, endpoints = List.empty, environmentVariables = List.empty)
+
+  private def emptyScale = DefaultScale(name = "", cpu = 0.0, memory = 0.0, instances = 0)
+
 
   private def doMergeCommand(implicit vampHost: String, options: OptionMap) = getOptionalParameter(deployment) match {
     case Some(deploymentId) =>
@@ -255,9 +315,19 @@ object PerformCommand extends Parameters {
 
   private def unhandledCommand(command: CliCommand) = terminateWithError(s"Unhandled command '${command.name}'")
 
-  private def readFileContent(implicit options: OptionMap): String = getOptionalParameter('file) match {
-    case Some(fileName) => Source.fromFile(fileName).getLines().mkString("\n")
-    case None => Source.stdin.getLines().mkString("\n")
+
+  private def readOptionalFileContent(implicit options: OptionMap): Option[String] = getOptionalParameter('file) match {
+    case Some(fileName) => Some(Source.fromFile(fileName).getLines().mkString("\n"))
+    case None => getOptionalParameter('stdin) match {
+      case Some(_) => Some(Source.stdin.getLines().mkString("\n"))
+      case None => None
+    }
+  }
+
+  private def readFileContent(implicit options: OptionMap): String = readOptionalFileContent match {
+    case Some(content) => content
+    case None => terminateWithError("No file specified")
+      ""
   }
 
 
