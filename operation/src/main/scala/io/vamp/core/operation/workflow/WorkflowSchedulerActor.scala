@@ -28,30 +28,27 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
   import WorkflowSchedulerActor._
 
   def receive: Receive = {
+    case Start => try start(()) catch {
+      case t: Throwable => exception(InternalServerError(t))
+    }
 
-    case Start => handle(start)
+    case Schedule(workflow) => try schedule(workflow) catch {
+      case t: Throwable => exception(WorkflowSchedulingError(t))
+    }
 
-    case Schedule(workflow) => handle(workflow, schedule)
+    case Unschedule(workflow) => try unschedule(workflow) catch {
+      case t: Throwable => exception(WorkflowSchedulingError(t))
+    }
 
-    case Unschedule(workflow) => handle(workflow, unschedule)
+    case (RunWorkflow(workflow), data) => try execute(workflow, data) catch {
+      case t: Throwable => exception(WorkflowExecutionError(t))
+    }
 
-    case RunWorkflow(workflow) => handle(workflow, execute)
-
-    case Shutdown => handle(shutdown)
+    case Shutdown => try shutdown(()) catch {
+      case t: Throwable => exception(InternalServerError(t))
+    }
 
     case _ =>
-  }
-
-  private def handle(callback: (Unit => Unit)): Unit = try {
-    callback(())
-  } catch {
-    case t: Throwable => exception(InternalServerError(t))
-  }
-
-  private def handle(scheduledWorkflow: ScheduledWorkflow, callback: ScheduledWorkflow => Unit): Unit = try {
-    callback(scheduledWorkflow)
-  } catch {
-    case t: Throwable => exception(WorkflowSchedulingError(t))
   }
 
   private def start: (Unit => Unit) = quartzStart andThen { _ =>
@@ -66,6 +63,10 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
   private def shutdown: (Unit => Unit) = quartzShutdown
 
   private def schedule: (ScheduledWorkflow => Unit) = { (workflow: ScheduledWorkflow) =>
+    unschedule(workflow)
+
+    log.debug(s"Scheduling workflow: '${workflow.name}'.")
+
     workflow.trigger match {
       case TimeTrigger(pattern) =>
         quartzSchedule(workflow)
@@ -77,20 +78,14 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
         actorFor(PulseDriverActor) ! PulseDriverActor.RegisterPercolator(workflow.name, Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
 
       case trigger =>
-        log.warning(s"Unsupported trigger: $trigger")
+        log.warning(s"Unsupported trigger: '$trigger'.")
     }
   }
 
   private def unschedule: (ScheduledWorkflow => Unit) = { (workflow: ScheduledWorkflow) =>
-    workflow.trigger match {
-      case TimeTrigger(_) => quartzUnschedule(workflow)
-
-      case EventTrigger(_) => actorFor(PulseDriverActor) ! PulseDriverActor.UnregisterPercolator(workflow.name)
-
-      case DeploymentTrigger(_) => actorFor(PulseDriverActor) ! PulseDriverActor.UnregisterPercolator(workflow.name)
-
-      case trigger => log.warning(s"Unsupported trigger: $trigger")
-    }
+    log.debug(s"Unscheduling workflow: '${workflow.name}'.")
+    actorFor(PulseDriverActor) ! PulseDriverActor.UnregisterPercolator(workflow.name)
+    quartzUnschedule(workflow)
   }
 }
 

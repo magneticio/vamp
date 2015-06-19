@@ -13,13 +13,21 @@ object WorkflowReader extends YamlReader[Workflow] with ReferenceYamlReader[Work
       if (<<?[Any]("script").isEmpty) WorkflowReference(name) else read(map.asInstanceOf[YamlObject])
   }
 
-  override protected def parse(implicit source: YamlObject): Workflow = DefaultWorkflow(name, <<![String]("script"))
+  override protected def expand(implicit source: YamlObject): YamlObject = {
+    expandToList("import")
+    source
+  }
+
+  override protected def parse(implicit source: YamlObject): Workflow = {
+    DefaultWorkflow(name, <<?[List[String]]("import").getOrElse(Nil), <<![String]("script"))
+  }
 }
 
 object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
 
   override protected def expand(implicit source: YamlObject): YamlObject = {
     expandToList("tags")
+    expandToList("import")
     source
   }
 
@@ -37,9 +45,9 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
 
     val workflow = <<?[Any]("workflow") match {
       case Some(w) => WorkflowReader.readReference(w)
-      case _ => DefaultWorkflow("", <<![String]("script"))
+      case _ => DefaultWorkflow("", <<?[List[String]]("import").getOrElse(Nil), <<![String]("script"))
     }
 
-    ScheduledWorkflow(name, workflow, trigger)
+    ScheduledWorkflow(name, workflow, trigger, <<?[YamlObject]("storage").getOrElse(Map()).toMap)
   }
 }

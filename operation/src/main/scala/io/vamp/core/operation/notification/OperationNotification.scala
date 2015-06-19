@@ -30,3 +30,4 @@ case class InvalidRoutingWeight(deployment: Deployment, cluster: DeploymentClust
 
 case class WorkflowSchedulingError(reason: Any) extends Notification with ErrorNotification
 
+case class WorkflowExecutionError(reason: Any) extends Notification with ErrorNotification

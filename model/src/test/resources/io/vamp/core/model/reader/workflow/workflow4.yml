@@ -1,0 +1,5 @@
+name: logger
+
+import: vamp.js
+
+script: vamp.log("hi")

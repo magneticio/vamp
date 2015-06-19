@@ -3,7 +3,7 @@ package io.vamp.core.pulse_driver
 import java.time.OffsetDateTime
 
 import _root_.io.vamp.common.akka._
-import akka.actor.{ActorLogging, Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.vitals.InfoRequest
@@ -110,15 +110,15 @@ trait Percolator {
   }
 
   def unregisterPercolator(name: String) = {
-    log.info(s"Unregistering percolator '$name'.")
-    percolators.remove(name)
+    if (percolators.remove(name).nonEmpty)
+      log.info(s"Percolator successfully removed for '$name'.")
   }
 
   def percolate: (Event => Event) = { (event: Event) =>
     percolators.foreach { case (name, percolator) =>
       if (percolator.tags.forall(event.tags.contains)) {
         log.debug(s"Percolate match for '$name'.")
-        percolator.actor ! percolator.message
+        percolator.actor ! (percolator.message -> event.tags)
       }
     }
     event

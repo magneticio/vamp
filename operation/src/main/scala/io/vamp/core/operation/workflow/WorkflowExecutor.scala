@@ -1,43 +1,98 @@
 package io.vamp.core.operation.workflow
 
-import javax.script.ScriptEngineManager
+import javax.script.{Bindings, ScriptEngineManager}
 
 import akka.actor.{Actor, ActorLogging}
 import com.typesafe.scalalogging.Logger
-import io.vamp.core.model.workflow.{DefaultWorkflow, ScheduledWorkflow}
-import io.vamp.core.persistence.actor.ArtifactSupport
+import io.vamp.common.akka.ActorSupport
+import io.vamp.core.model.artifact.Deployment
+import io.vamp.core.model.workflow._
+import io.vamp.core.persistence.actor.{ArtifactSupport, PersistenceActor}
 import org.slf4j.LoggerFactory
 
+import scala.collection.{Set, mutable}
+import scala.io.Source
+import scala.language.postfixOps
 
 trait WorkflowExecutor {
-  this: Actor with ActorLogging with ArtifactSupport =>
+  this: Actor with ActorLogging with ArtifactSupport with ActorSupport =>
 
-  def execute: (ScheduledWorkflow => Unit) = { (scheduledWorkflow: ScheduledWorkflow) =>
+  private val urlPattern = "^(https?:\\/\\/.+)$".r
+
+  def execute: (ScheduledWorkflow, Any) => Unit = { (scheduledWorkflow: ScheduledWorkflow, data: Any) =>
     log.info(s"Executing workflow: $scheduledWorkflow")
+    eval(scheduledWorkflow, artifactFor[DefaultWorkflow](scheduledWorkflow.workflow), data)
+  }
 
-    val workflow = artifactFor[DefaultWorkflow](scheduledWorkflow.workflow)
+  private def eval(scheduledWorkflow: ScheduledWorkflow, workflow: DefaultWorkflow, data: Any) = {
     val engine = new ScriptEngineManager().getEngineByName("nashorn")
 
-    engine.put("vamp", new ExecutionContext(scheduledWorkflow.name))
-    engine.eval(workflow.script)
+    val source = workflow.`import`.map {
+      case urlPattern(url) => Source.fromURL(url).mkString
+      case reference => artifactFor[DefaultWorkflow](reference).script
+    } :+ workflow.script mkString "\n"
+
+    val binding = bindings(scheduledWorkflow, engine.createBindings, data)
+
+    engine.eval(source, binding)
+
+    binding.get("storage") match {
+      case storage: StorageContext =>
+        actorFor(PersistenceActor) ! PersistenceActor.Update(scheduledWorkflow.copy(storage = storage.all()))
+      case _ =>
+    }
+  }
+
+  private def bindings(scheduledWorkflow: ScheduledWorkflow, bindings: Bindings, data: Any) = {
+    bindings.put("log", new LoggerContext(scheduledWorkflow.name))
+    bindings.put("storage", new StorageContext(artifactFor[ScheduledWorkflow](scheduledWorkflow.name).storage))
+
+    def tags() = if (data.isInstanceOf[Set[_]]) bindings.put("tags", data.asInstanceOf[Set[_]].toArray)
+
+    scheduledWorkflow.trigger match {
+      case TimeTrigger(_) => bindings.put("timestamp", data)
+      case EventTrigger(_) => tags()
+      case DeploymentTrigger(deployment) =>
+        tags()
+        bindings.put("deployment", artifactFor[Deployment](deployment))
+      case _ => log.debug(s"No execution data for: ${scheduledWorkflow.name}")
+    }
+
+    bindings
   }
 }
 
-class ExecutionContext(loggerName: String) extends LoggerContext {
-  protected val logger = Logger(LoggerFactory.getLogger(loggerName))
+class LoggerContext(name: String) {
+
+  private val logger = Logger(LoggerFactory.getLogger(name))
+
+  def trace(any: Any) = logger.trace(messageOf(any))
+
+  def debug(any: Any) = logger.debug(messageOf(any))
+
+  def info(any: Any) = logger.info(messageOf(any))
+
+  def warn(any: Any) = logger.warn(messageOf(any))
+
+  def error(any: Any) = logger.error(messageOf(any))
+
+  def log(any: Any) = info(any)
+
+  @inline private def messageOf(any: Any) = if (any != null) any.toString else ""
 }
 
-trait LoggerContext {
-  this: ExecutionContext =>
+class StorageContext(storage: Map[String, Any]) {
 
-  def trace(message: String) = logger.trace(message)
+  private val store = mutable.Map[String, Any]() ++ storage
 
-  def debug(message: String) = logger.debug(message)
+  def all() = store.toMap
 
-  def info(message: String) = logger.info(message)
+  def get(key: String) = store.get(key).orNull
 
-  def warn(message: String) = logger.warn(message)
+  def remove(key: String) = store.remove(key).orNull
 
-  def error(message: String) = logger.error(message)
+  def put(key: String, value: Any) = store.put(key, value).orNull
+
+  def clear() = store.clear()
 }
 
