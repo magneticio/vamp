@@ -117,13 +117,13 @@ Displays the Vamp help message
 Usage:** vamp COMMAND [args..]
 
 Commands:
-  clone-breed         Clone a breed
   create              Create an artifact
-  deploy-breed        Deploy a breed into an existing deployment cluster
+  deploy              Deploys a blueprint
   help                This message
   info                Information from Vamp Core
   inspect             Shows the details of the specified artifact
   list                Shows a list of artifacts
+  merge               Merge a blueprint with an existing deployment or blueprint
   remove              Removes an artifact
   version             Show version of the VAMP CLI client
 
