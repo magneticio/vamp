@@ -14,13 +14,13 @@ trait CommandLineBasics {
   def string2Command(s: String): CliCommand = s match {
 
     case "clone-breed" => CloneBreedCommand()
-    //case "deploy-blueprint" => DeployBlueprintCommand()   // Not yet implemented, so don't expose
+    case "deploy" => DeployCommand()
     case "deploy-breed" => DeployBreedCommand()
     case "info" => InfoCommand()
     case "help" => HelpCommand()
     case "--help" => HelpCommand()
     case "version" => VersionCommand()
-
+    case "merge" => MergeCommand()
     case "inspect"  => InspectCommand()
     case "list"  => ListCommand()
 
@@ -44,14 +44,15 @@ trait CommandLineBasics {
         println(s"Usage: ".bold + ""+s"$appName COMMAND [args..]")
         println("")
         println("Commands:")
-        showGeneralUsage(CloneBreedCommand())
-        //showGeneralUsage(DeployBlueprint())    // Not yet implemented, so don't expose
+        //showGeneralUsage(CloneBreedCommand())   // Deprecated command
         showGeneralUsage(CreateCommand())
-        showGeneralUsage(DeployBreedCommand())
+        showGeneralUsage(DeployCommand())
+        //showGeneralUsage(DeployBreedCommand())  // Deprecated command
         showGeneralUsage(HelpCommand())
         showGeneralUsage(InfoCommand())
         showGeneralUsage(InspectCommand())
         showGeneralUsage(ListCommand())
+        showGeneralUsage(MergeCommand())
         showGeneralUsage(RemoveCommand())
         showGeneralUsage(VersionCommand())
         println("".reset)
@@ -70,6 +71,7 @@ trait CommandLineBasics {
           println(command.usage)
         }
         if (command.parameters.nonEmpty) {
+          println("Parameters:")
           println(command.parameters)
         }
       }

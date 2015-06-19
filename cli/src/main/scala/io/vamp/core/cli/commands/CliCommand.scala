@@ -4,7 +4,7 @@ import io.vamp.core.cli.commands.CommandType.CommandType
 
 object CommandType extends Enumeration {
   type CommandType = Value
-  val Inspect, List, Create, Delete, Update, Deploy, Other = Value
+  val Inspect, List, Create, Delete, Update, Deploy, Merge, Other = Value
 }
 
 trait CliCommand {
@@ -46,10 +46,9 @@ case class InspectCommand() extends CliCommand {
 case class CloneBreedCommand() extends CliCommand {
   override val name = "clone-breed"
   override val additionalParams = "--destination [--deployable]"
-  override val usage = "Clones an existing breed"
-  override val description = "Clone a breed"
-  override val parameters = """
-                              |  --destination        Name of the new breed
+  override val usage = "Clones an existing breed **WARNING: deprecated command**"
+  override val description = "Clone a breed **WARNING: deprecated command**"
+  override val parameters = """  --destination        Name of the new breed
                               |  --deployable         Name of the deployable [Optional]
                             """.stripMargin
   override val requiresName = true
@@ -61,29 +60,30 @@ case class CreateCommand() extends CliCommand {
   override val additionalParams = "[--file]"
   override val usage = "Create an artifact read from the specified filename. When no file name is supplied, stdin will be read."
   override val description = "Create an artifact"
-  override val parameters = """
-                              |  --file               Name of the yaml file [Optional]
+  override val parameters = """  --file               Name of the yaml file [Optional]
                             """.stripMargin
   override val requiresName = true
   override val commandType = CommandType.Create
   override val allowedSubCommands = allArtifacts.filter(_ != "deployment")
 }
 
-case class DeployBlueprintCommand() extends CliCommand {
-  override val name = "deploy-blueprint"
-  override val usage = "Deploys a blueprint"
+case class DeployCommand() extends CliCommand {
+  override val name = "deploy"
+  override val additionalParams = "[NAME] [--file] [--deployment]"
+  override val usage = "Deploys a blueprint specified by NAME, read from the specified filename or read from stdin."
   override val description = "Deploys a blueprint"
-  override val requiresName = true
+  override val parameters = """  --file               Name of the yaml file [Optional]
+                              |  --deployment         Name of the deployment to update [Optional]
+                            """.stripMargin
   override val commandType = CommandType.Deploy
 }
 
 case class DeployBreedCommand() extends CliCommand {
   override val name = "deploy-breed"
   override val additionalParams = "--deployment --cluster --routing --scale"
-  override val usage = "Deploys a breed into an existing deployment cluster"
-  override val description = "Deploy a breed into an existing deployment cluster"
-  override val parameters = """
-                              |  --deployment         Name of the existing deployment
+  override val usage = "Deploys a breed into an existing deployment cluster **WARNING: deprecated command**"
+  override val description = "Deploy a breed into an existing deployment cluster **WARNING: deprecated command**"
+  override val parameters = """  --deployment         Name of the existing deployment
                               |  --cluster            Name of the cluster within the deployment
                               |  --routing            Name of the routing to apply [Optional]
                               |  --scale              Name of the scale to apply [Optional]
@@ -103,6 +103,21 @@ case class InfoCommand() extends CliCommand {
   override val name = "info"
   override val description = "Information from Vamp Core"
   override val usage = "Returns a JSON blob with information from Vamp Core"
+}
+
+
+case class MergeCommand() extends CliCommand {
+  override val name = "merge"
+  override val additionalParams = "--deployment|--blueprint [--file]"
+  override val usage =
+    """Merges a blueprint with an existing deployment or blueprint.
+      |Either specify a deployment or blueprint in which the blueprint should be merged
+      |The blueprint can be specified by NAME, read from the specified filename or read from stdin.
+      """.stripMargin
+  override val description = "Merge a blueprint with an existing deployment"
+  override val parameters = """  --file               Name of the yaml file [Optional]
+                            """.stripMargin
+  override val commandType = CommandType.Merge
 }
 
 

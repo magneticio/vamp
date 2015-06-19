@@ -3,6 +3,7 @@ package io.vamp.core.cli.commands
 import io.vamp.core.cli.backend.VampHostCalls
 import io.vamp.core.cli.commandline.{ConsoleHelper, Parameters}
 import io.vamp.core.model.artifact._
+import io.vamp.core.model.reader.BlueprintReader
 import io.vamp.core.model.serialization.CoreSerializationFormat
 import org.json4s.native.Serialization._
 import org.yaml.snakeyaml.DumperOptions.FlowStyle
@@ -28,6 +29,7 @@ object PerformCommand extends Parameters {
       case CommandType.Delete => doDeleteCommand
       case CommandType.Update => doUpdateCommand(command)
       case CommandType.Deploy => doDeployCommand(command)
+      case CommandType.Merge => doMergeCommand
       case CommandType.Other => doOtherCommand(command)
     }
   }
@@ -118,20 +120,48 @@ object PerformCommand extends Parameters {
                 routing = getOptionalParameter(routing).flatMap(VampHostCalls.getRouting),
                 scale = getOptionalParameter(scale).flatMap(VampHostCalls.getScale)
               )
-              VampHostCalls.updateDeployment(deploymentId, mergedBlueprint) match {
+              VampHostCalls.updateDeployment(deploymentId, artifactToYaml(mergedBlueprint)) match {
                 case Some(dep) => println(dep.name)
                 case None => terminateWithError("Updating deployment failed")
               }
             case undeployableBreed => terminateWithError(s"Breed '$undeployableBreed' not usable")
           }
         case _ => // Deployment not found
-
       }
 
-    case _: DeployBlueprintCommand => println(NotImplemented)
+    case _: DeployCommand =>
+      getBlueprint() match {
+        case Some(blueprintToDeploy: DefaultBlueprint) =>
+          getOptionalParameter(deployment) match {
+            //Existing deployment
+            case Some(nameOfDeployment) =>
+              VampHostCalls.getDeploymentAsBlueprint(nameOfDeployment) match {
+                case Some(deployedBlueprint: DefaultBlueprint) =>
+                  printArtifact(VampHostCalls.updateDeployment(nameOfDeployment, artifactToYaml(blueprintToDeploy)))
+                case _ => terminateWithError(s"Deployment not found")
+              }
+            // New deployment
+            case None =>
+              printArtifact(VampHostCalls.deploy(artifactToYaml(blueprintToDeploy)))
+          }
+        case _ => terminateWithError("No usable blueprint found.")
+      }
 
     case _ => unhandledCommand _
   }
+
+
+  def getBlueprint()(implicit vampHost: String, options: OptionMap): Option[Blueprint] = getOptionalParameter(name) match {
+    case Some(nameOfBlueprint) => VampHostCalls.getBlueprint(nameOfBlueprint)
+    case None => Some(BlueprintReader.read(readFileContent))
+  }
+
+  def mergeBlueprints(sourceBlueprint: DefaultBlueprint, additionalBlueprint: DefaultBlueprint): DefaultBlueprint = sourceBlueprint.copy(
+    clusters = sourceBlueprint.clusters ++ additionalBlueprint.clusters,
+    endpoints = sourceBlueprint.endpoints ++ additionalBlueprint.endpoints,
+    environmentVariables = sourceBlueprint.environmentVariables ++ additionalBlueprint.environmentVariables
+  )
+
 
   private def doOtherCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
 
@@ -159,14 +189,39 @@ object PerformCommand extends Parameters {
 
 
   private def doCreateCommand(implicit vampHost: String, options: OptionMap) = getParameter(name) match {
-    case "breed" =>  printArtifact(VampHostCalls.createBreed(readFileContent))
-    case "blueprint" =>  printArtifact(VampHostCalls.createBlueprint(readFileContent))
-    case "escalation" =>  printArtifact(VampHostCalls.createEscalation(readFileContent))
-    case "filter" =>  printArtifact(VampHostCalls.createFilter(readFileContent))
+    case "breed" => printArtifact(VampHostCalls.createBreed(readFileContent))
+    case "blueprint" => printArtifact(VampHostCalls.createBlueprint(readFileContent))
+    case "escalation" => printArtifact(VampHostCalls.createEscalation(readFileContent))
+    case "filter" => printArtifact(VampHostCalls.createFilter(readFileContent))
     case "routing" => printArtifact(VampHostCalls.createRouting(readFileContent))
-    case "scale" =>  printArtifact(VampHostCalls.createScale(readFileContent))
-    case "sla" =>  printArtifact(VampHostCalls.createSla(readFileContent))
+    case "scale" => printArtifact(VampHostCalls.createScale(readFileContent))
+    case "sla" => printArtifact(VampHostCalls.createSla(readFileContent))
     case invalid => terminateWithError(s"Unsupported artifact '$invalid'")
+  }
+
+  private def doMergeCommand(implicit vampHost: String, options: OptionMap) = getOptionalParameter(deployment) match {
+    case Some(deploymentId) =>
+      VampHostCalls.getDeploymentAsBlueprint(deploymentId) match {
+        case Some(deployedBlueprint: DefaultBlueprint) =>
+          getBlueprint() match {
+            case Some(bp: DefaultBlueprint) => printArtifact(Some(mergeBlueprints(deployedBlueprint, bp)))
+            case _ => terminateWithError("No usable blueprint found.")
+          }
+        case _ => terminateWithError(s"Deployment not found")
+      }
+    case None => getOptionalParameter(name) match {
+      case Some(blueprintName) =>
+        VampHostCalls.getBlueprint(blueprintName) match {
+          case Some(existingBlueprint: DefaultBlueprint) =>
+            getBlueprint() match {
+              case Some(bp: DefaultBlueprint) => printArtifact(Some(mergeBlueprints(existingBlueprint, bp)))
+              case _ => terminateWithError("No usable blueprint found.")
+            }
+          case _ => terminateWithError(s"Blueprint not found")
+        }
+      case None => terminateWithError("No blueprint name specified")
+    }
+    case _ => terminateWithError(s"No deployment or blueprint specified")
   }
 
 
@@ -229,10 +284,10 @@ object PerformCommand extends Parameters {
     new Yaml().dumpAs(new Yaml().load(toJson(artifact)), Tag.MAP, FlowStyle.BLOCK)
   }
 
-  private def getVampHost(implicit options: Map[Symbol, String]) : Option[String] =
-    getOptionalParameter(host)  match {
+  private def getVampHost(implicit options: Map[Symbol, String]): Option[String] =
+    getOptionalParameter(host) match {
       case Some(vampHost: String) => Some(vampHost)
-      case _=>
+      case _ =>
         println("Sorry, I don't know to which Vamp host I should talk.".bold.red)
         println()
         println("Setup a host in the VAMP_HOST environment variable, or use the --host command line argument.")
