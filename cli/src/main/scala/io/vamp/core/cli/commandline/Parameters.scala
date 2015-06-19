@@ -23,6 +23,8 @@ trait Parameters extends CommandLineBasics {
   val stdin = 'stdin
   val breed = 'breed
   val sla = 'sla
+  val endpoint = 'endpoint
+  val environment = 'environment
 
   val VAMP_HOST = "VAMP_HOST"
 
@@ -51,6 +53,8 @@ trait Parameters extends CommandLineBasics {
       case "--deployment" :: value :: tail => nextOption(map ++ Map(deployment -> value), tail)
       case "--cluster" :: value :: tail => nextOption(map ++ Map(cluster -> value), tail)
       case "--routing" :: value :: tail => nextOption(map ++ Map(routing -> value), tail)
+      case "--environment" :: value :: tail => nextOption(map ++ Map(environment -> value), tail)
+      case "--endpoint" :: value :: tail => nextOption(map ++ Map(endpoint -> value), tail)
       case "--scale" :: value :: tail => nextOption(map ++ Map(scale -> value), tail)
       case "--sla" :: value :: tail => nextOption(map ++ Map(sla -> value), tail)
       case "--breed" :: value :: tail => nextOption(map ++ Map(breed -> value), tail)
