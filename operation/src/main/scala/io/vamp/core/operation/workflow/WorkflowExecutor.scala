@@ -4,27 +4,28 @@ import javax.script.{Bindings, ScriptEngineManager}
 
 import akka.actor.{Actor, ActorLogging}
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.akka.ActorSupport
+import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
 import io.vamp.core.model.artifact.Deployment
 import io.vamp.core.model.workflow._
 import io.vamp.core.persistence.actor.{ArtifactSupport, PersistenceActor}
 import org.slf4j.LoggerFactory
 
 import scala.collection.{Set, mutable}
+import scala.concurrent.Future
 import scala.io.Source
 import scala.language.postfixOps
 
 trait WorkflowExecutor {
-  this: Actor with ActorLogging with ArtifactSupport with ActorSupport =>
+  this: Actor with ActorLogging with ArtifactSupport with ActorSupport with FutureSupport with ExecutionContextProvider =>
 
   private val urlPattern = "^(https?:\\/\\/.+)$".r
 
-  def execute: (ScheduledWorkflow, Any) => Unit = { (scheduledWorkflow: ScheduledWorkflow, data: Any) =>
+  def execute(scheduledWorkflow: ScheduledWorkflow, data: Any) = {
     log.info(s"Executing workflow: $scheduledWorkflow")
     eval(scheduledWorkflow, artifactFor[DefaultWorkflow](scheduledWorkflow.workflow), data)
   }
 
-  private def eval(scheduledWorkflow: ScheduledWorkflow, workflow: DefaultWorkflow, data: Any) = {
+  private def eval(scheduledWorkflow: ScheduledWorkflow, workflow: DefaultWorkflow, data: Any) = Future {
     val engine = new ScriptEngineManager().getEngineByName("nashorn")
 
     val source = workflow.`import`.map {
