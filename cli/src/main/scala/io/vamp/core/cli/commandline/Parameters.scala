@@ -19,6 +19,7 @@ trait Parameters extends CommandLineBasics {
   val routing = 'routing
   val scale = 'scale
   val subcommand = 'subcommand
+  val blueprint = 'blueprint
 
   val VAMP_HOST = "VAMP_HOST"
 
@@ -44,6 +45,7 @@ trait Parameters extends CommandLineBasics {
       case Nil => map
       //case "inspect" :: value :: tail => nextOption(map ++ Map(file -> value), tail)
       case "--host" :: value :: tail => nextOption(map ++ Map(host -> value), tail)
+      case "--blueprint" :: value :: tail => nextOption(map ++ Map(blueprint -> value), tail)
       case "--deployment" :: value :: tail => nextOption(map ++ Map(deployment -> value), tail)
       case "--cluster" :: value :: tail => nextOption(map ++ Map(cluster -> value), tail)
       case "--deployable" :: value :: tail => nextOption(map ++ Map(deployable -> value), tail)

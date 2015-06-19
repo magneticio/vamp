@@ -97,6 +97,15 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
     }
   }
 
+  def updateBlueprint(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Blueprint] = {
+    sendAndWaitYaml[String](s"PUT $vampHost/api/v1/blueprints/$name", Some(definition)) match {
+      case Some(blueprint) => Some(BlueprintReader.read(blueprint))
+      case _ => terminateWithError("Blueprint not updated")
+        None
+    }
+  }
+
+
   def deleteBreed(name: String)(implicit vampHost: String) = sendAndWaitYaml[Any](s"DELETE $vampHost/api/v1/breeds/$name", None)
 
   def deleteBlueprint(name: String)(implicit vampHost: String) = sendAndWaitYaml[Any](s"DELETE $vampHost/api/v1/blueprints/$name", None)
@@ -200,14 +209,14 @@ object VampHostCalls extends Deserialization with RestApiMarshaller with RestApi
     case JField(name, value) => JField(name, value)
   }
 
-
   def createBreed(breed: DefaultBreed)(implicit vampHost: String): Option[DefaultBreed] =
     sendAndWait[DefaultBreedSerialized](s"POST $vampHost/api/v1/breeds", breed).map(breedSerialized2DefaultBreed)
 
-  def updateDeployment(deploymentId: String, blueprint: DefaultBlueprint)(implicit vampHost: String): Option[Deployment] =
-    sendAndWait[DeploymentSerialized](s"PUT $vampHost/api/v1/deployments/$deploymentId", body = blueprint).map(deploymentSerialized2Deployment)
+  def deploy(definition: String)(implicit vampHost: String): Option[Deployment] =
+    sendAndWaitYaml[String](s"POST $vampHost/api/v1/deployments", body = Some(definition)).map(DeploymentReader.read(_))
 
-
+  def updateDeployment(deploymentId: String, definition: String)(implicit vampHost: String): Option[Deployment] =
+    sendAndWaitYaml[String](s"PUT $vampHost/api/v1/deployments/$deploymentId", body = Some(definition)).map(DeploymentReader.read(_))
 
   def getBreed(name: String)(implicit vampHost: String): Option[Breed] =
     sendAndWaitYaml[String](s"GET $vampHost/api/v1/breeds/$name").map(BreedReader.read(_))
