@@ -22,10 +22,10 @@ The command line parameter will overrule the environment variable. With the exce
 
 VAMP CLI supports the following commands:
                        
-* ~~[clone-breed](#clone-breed)~~ deprecated               
+* ~~[clone-breed](#clone-breed)~~ *(deprecated)*               
 * [create](#create)  
 * [deploy](#deploy)   
-* ~~[deploy-breed](#deploy-breed)~~ deprecated 
+* ~~[deploy-breed](#deploy-breed)~~ *(deprecated)* 
 * [filters](#filters)                                     
 * [help](#help)                              
 * [info](#info)                              
@@ -38,7 +38,7 @@ VAMP CLI supports the following commands:
 For more details about a specific command, use `vamp COMMAND --help`
                      
 
-## <a name="clone-breed"></a>Clone Breed
+## <a name="clone-breed"></a>~~Clone Breed~~*(deprecated)*
 
 Clones an existing breed
 
@@ -83,11 +83,11 @@ Parameter | purpose
 
 ### Example
 ```bash
-... TODO ...
+vamp deploy --deployment 1111-2222-3333-4444 --file my_new_blueprint.yaml
 ```
 
 
-## <a name="deploy-breed"></a>~~Deploy Breed~~
+## <a name="deploy-breed"></a>~~Deploy Breed~~*(deprecated)*
 
 Deploys a breed into an existing deployment cluster
 
