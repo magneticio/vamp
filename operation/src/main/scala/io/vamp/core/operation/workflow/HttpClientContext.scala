@@ -5,8 +5,8 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.FutureSupport
 import io.vamp.common.http.RestClient
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
 
 class HttpClientContext(ec: ExecutionContext) extends FutureSupport {
 
@@ -38,14 +38,15 @@ class HttpClientContext(ec: ExecutionContext) extends FutureSupport {
 
   def delete(url: String): HttpClientContext = methodUrl(Method.DELETE, url)
 
-  def string(): String = offload(call(asJson = false)) match {
-    case None => ""
-    case Some(response) => response.toString
-  }
+  def string() = request(asJson = false, "")
 
-  def json() = offload(call(asJson = true)) match {
-    case None => Map()
-    case Some(response) => response
+  def json() = request(asJson = true, Map())
+
+  def reset() = {
+    body = null
+    url = None
+    method = None
+    headers = Nil
   }
 
   @inline private def methodUrl(method: Method.Value, url: String): HttpClientContext = {
@@ -54,8 +55,15 @@ class HttpClientContext(ec: ExecutionContext) extends FutureSupport {
     this
   }
 
-  @inline private def call(asJson: Boolean): Future[Option[Any]] = (method, url) match {
-    case (Some(m), Some(u)) => http(m, headers, u, body, asJson = asJson)
-    case _ => throw new RuntimeException(s"HTTP: method or URL not specified.")
+  @inline private def request(asJson: Boolean, default: Any) = {
+    val response = offload((method, url) match {
+      case (Some(m), Some(u)) => http(m, headers, u, body, asJson = asJson)
+      case _ => throw new RuntimeException(s"HTTP: method or URL not specified.")
+    })
+    reset()
+    response match {
+      case None => default
+      case Some(result) => result
+    }
   }
 }

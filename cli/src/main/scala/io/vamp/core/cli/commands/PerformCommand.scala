@@ -215,12 +215,12 @@ object PerformCommand extends Parameters {
         }
 
         startWith match {
-          case db : DefaultBreed =>
-            val deployable = getOptionalParameter(deployable) match {
+          case db: DefaultBreed =>
+            val dep = getOptionalParameter(deployable) match {
               case Some(dep: String) => Deployable(dep)
               case None => db.deployable
             }
-             Some(db.copy(deployable=deployable))
+            Some(db.copy(deployable = dep))
           case x => Some(x)
         }
 
@@ -231,18 +231,18 @@ object PerformCommand extends Parameters {
           case None => emptyBlueprint
         }
 
-        val myScale : Option[Scale]= getOptionalParameter(scale).flatMap(s=> Some(ScaleReference(name = s)))
-        val myRouting : Option[Routing]= getOptionalParameter(routing).flatMap(s=> Some(RoutingReference(name = s)))
+        val myScale: Option[Scale] = getOptionalParameter(scale).flatMap(s => Some(ScaleReference(name = s)))
+        val myRouting: Option[Routing] = getOptionalParameter(routing).flatMap(s => Some(RoutingReference(name = s)))
 
 
         //val mySla: Option[Sla]= getOptionalParameter(scale).flatMap(s=> Some(SlaReference(name = s)))
         startWith match {
-          case bp : DefaultBlueprint =>
+          case bp: DefaultBlueprint =>
             val newCluster = getOptionalParameter(cluster) flatMap (clusterName =>
               getOptionalParameter(breed) flatMap (breedName =>
-                Some(List(Cluster(name = clusterName, services = List(Service(breed = BreedReference(breedName), scale = myScale, routing = myRouting)), sla = None)) )
+                Some(List(Cluster(name = clusterName, services = List(Service(breed = BreedReference(breedName), scale = myScale, routing = myRouting)), sla = None)))
+                )
               )
-            )
             Some(bp.copy(clusters = bp.clusters ++ newCluster.getOrElse(List.empty)))
           case x => Some(x)
         }
@@ -254,8 +254,8 @@ object PerformCommand extends Parameters {
         //TODO implement parameters
         Some(emptyFilter)
       case "routing" =>
-      //TODO implement parameters
-      Some(emptyRouting)
+        //TODO implement parameters
+        Some(emptyRouting)
       case "scale" =>
         //TODO implement parameters
         Some(emptyScale)
@@ -275,9 +275,9 @@ object PerformCommand extends Parameters {
 
   private def emptyScale = DefaultScale(name = "", cpu = 0.0, memory = 0.0, instances = 0)
 
-  private def emptyRouting = DefaultRouting(name="",weight = None,filters = List.empty)
+  private def emptyRouting = DefaultRouting(name = "", weight = None, filters = List.empty)
 
-  private def emptyFilter = DefaultFilter(name="",condition = "")
+  private def emptyFilter = DefaultFilter(name = "", condition = "")
 
 
   private def doMergeCommand(implicit vampHost: String, options: OptionMap) = getOptionalParameter(deployment) match {
