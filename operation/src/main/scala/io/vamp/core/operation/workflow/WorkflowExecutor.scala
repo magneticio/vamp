@@ -50,6 +50,7 @@ trait WorkflowExecutor {
 
   private def initializeBindings(scheduledWorkflow: ScheduledWorkflow, bindings: Bindings, data: Any) = {
     bindings.put("log", new LoggerContext(scheduledWorkflow.name))
+    bindings.put("time", new TimeContext())
     bindings.put("storage", new StorageContext(artifactFor[ScheduledWorkflow](scheduledWorkflow.name).storage))
     bindings.put("http", new HttpClientContext(executionContext))
     bindings.put("events", new EventApiContext(executionContext))
