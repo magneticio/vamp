@@ -1,14 +1,20 @@
 package io.vamp.core.operation.workflow
 
 import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 import io.vamp.common.akka.FutureSupport
+import io.vamp.core.model.workflow.ScheduledWorkflow
 
-class TimeContext() extends FutureSupport {
+import scala.concurrent.ExecutionContext
 
-  def now() = OffsetDateTime.now()
+class TimeContext(scheduledWorkflow: ScheduledWorkflow)(implicit executionContext: ExecutionContext) extends ScriptingContext(scheduledWorkflow) with FutureSupport {
 
-  def epoch() = OffsetDateTime.now().toEpochSecond
+  def format(pattern: String) = now().format(DateTimeFormatter.ofPattern(pattern))
+
+  @inline def now() = OffsetDateTime.now()
+
+  @inline def epoch() = now().toEpochSecond
 
   def timestamp() = epoch()
 }

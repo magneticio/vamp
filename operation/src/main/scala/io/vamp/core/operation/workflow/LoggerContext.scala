@@ -1,11 +1,10 @@
 package io.vamp.core.operation.workflow
 
-import com.typesafe.scalalogging.Logger
-import org.slf4j.LoggerFactory
+import io.vamp.core.model.workflow.ScheduledWorkflow
 
-class LoggerContext(name: String) {
+import scala.concurrent.ExecutionContext
 
-  private val logger = Logger(LoggerFactory.getLogger(name))
+class LoggerContext(scheduledWorkflow: ScheduledWorkflow)(implicit executionContext: ExecutionContext) extends ScriptingContext(scheduledWorkflow) {
 
   def trace(any: Any) = logger.trace(messageOf(any))
 

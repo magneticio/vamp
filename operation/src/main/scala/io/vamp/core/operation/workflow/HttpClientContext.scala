@@ -4,15 +4,15 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.FutureSupport
 import io.vamp.common.http.RestClient
+import io.vamp.core.model.workflow.ScheduledWorkflow
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-class HttpClientContext(ec: ExecutionContext) extends FutureSupport {
+class HttpClientContext(scheduledWorkflow: ScheduledWorkflow)(implicit executionContext: ExecutionContext) extends ScriptingContext(scheduledWorkflow) with FutureSupport {
 
   import RestClient._
 
-  implicit val executionContext = ec
   implicit lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.operation.workflow.http.timeout").seconds)
 
   private var body: Any = null

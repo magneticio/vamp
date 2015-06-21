@@ -49,11 +49,13 @@ trait WorkflowExecutor {
   }
 
   private def initializeBindings(scheduledWorkflow: ScheduledWorkflow, bindings: Bindings, data: Any) = {
-    bindings.put("log", new LoggerContext(scheduledWorkflow.name))
-    bindings.put("time", new TimeContext())
-    bindings.put("storage", new StorageContext(artifactFor[ScheduledWorkflow](scheduledWorkflow.name).storage))
-    bindings.put("http", new HttpClientContext(executionContext))
-    bindings.put("events", new EventApiContext(executionContext))
+    // reload scheduled workflow from the persistence
+    val sw = artifactFor[ScheduledWorkflow](scheduledWorkflow.name)
+    bindings.put("log", new LoggerContext(sw))
+    bindings.put("time", new TimeContext(sw))
+    bindings.put("storage", new StorageContext(sw))
+    bindings.put("http", new HttpClientContext(sw))
+    bindings.put("events", new EventApiContext(sw))
 
     def tags() = data match {
       case ref: AnyRef if ref.isInstanceOf[Set[_]] => bindings.put("tags", ref.asInstanceOf[Set[String]].toArray)
