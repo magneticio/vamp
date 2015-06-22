@@ -8,3 +8,6 @@ case class UnexpectedArtifact(artifact: String) extends Notification
 case class InconsistentArtifactName(parameter: String, artifact: Artifact) extends Notification
 case class UnsupportedRoutingWeightChangeError(weight: Int) extends Notification
 
+case class InvalidTimeTriggerError(pattern: String) extends Notification
+
+
