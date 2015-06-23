@@ -22,8 +22,10 @@ object ActorSupport {
     actorRefFactory.actorOf(description.props(args: _*).withMailbox(mailbox), description.name)
   }
 
-  def actorFor(actorDescription: ActorDescription)(implicit actorRefFactory: ActorRefFactory) =
-    actorRefFactory.actorSelection(s"/user/${actorDescription.name}")
+  def actorFor(actorDescription: ActorDescription)(implicit actorRefFactory: ActorRefFactory) = {
+    val description = aliases.getOrElse(actorDescription.name, actorDescription)
+    actorRefFactory.actorSelection(s"/user/${description.name}")
+  }
 }
 
 trait ActorSupport {
