@@ -1,4 +1,4 @@
-package io.vamp.core.persistence.store.jdbc
+package io.vamp.core.persistence.jdbc
 
 import io.vamp.core.persistence.notification.{PersistenceNotificationProvider, UnsupportedParameterToPersist}
 import io.vamp.core.persistence.slick.model.ParameterParentType._

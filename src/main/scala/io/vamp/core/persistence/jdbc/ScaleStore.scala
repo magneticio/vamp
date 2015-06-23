@@ -1,4 +1,4 @@
-package io.vamp.core.persistence.store.jdbc
+package io.vamp.core.persistence.jdbc
 
 import io.vamp.core.model.artifact.{Artifact, DefaultScale, Scale, ScaleReference}
 import io.vamp.core.persistence.slick.model.{DefaultScaleModel, DeploymentDefaultScale, ScaleReferenceModel}

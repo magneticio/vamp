@@ -1,4 +1,4 @@
-package io.vamp.core.persistence.store.jdbc
+package io.vamp.core.persistence.jdbc
 
 import java.nio.charset.StandardCharsets
 
