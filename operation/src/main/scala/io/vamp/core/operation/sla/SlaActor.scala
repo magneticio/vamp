@@ -6,14 +6,15 @@ import java.time.temporal.ChronoUnit
 import akka.actor._
 import akka.pattern.ask
 import io.vamp.common.akka._
-import io.vamp.common.notification.DefaultPackageMessageResolverProvider
+import io.vamp.common.notification.Notification
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.notification.{DeEscalate, Escalate}
+import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.core.operation.notification._
 import io.vamp.core.operation.sla.SlaActor.SlaProcessAll
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.pulse_driver.PulseDriverActor
-import io.vamp.core.pulse_driver.notification.PulseNotificationProvider
+import io.vamp.core.pulse_driver.PulseDriverActor.Publish
+import io.vamp.core.pulse_driver.model.Event
 
 import scala.language.postfixOps
 
@@ -37,9 +38,7 @@ object SlaActor extends ActorDescription {
 
 }
 
-class SlaActor extends CommonSupportForActors with PulseNotificationProvider with DefaultPackageMessageResolverProvider {
-
-  def tags = Set("sla")
+class SlaActor extends CommonSupportForActors with OperationNotificationProvider {
 
   def receive: Receive = {
     case SlaProcessAll =>
@@ -48,6 +47,14 @@ class SlaActor extends CommonSupportForActors with PulseNotificationProvider wit
         case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]])
         case any => exception(InternalServerError(any))
       }
+  }
+
+  override def info(notification: Notification): Unit = {
+    notification match {
+      case se: SlaEvent => actorFor(PulseDriverActor) ! Publish(Event(Set("sla") ++ se.tags, se.value, se.timestamp))
+      case _ =>
+    }
+    super.info(notification)
   }
 
   private def check(deployments: List[Deployment]) = {

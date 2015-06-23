@@ -9,16 +9,18 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, Port}
 import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
+import io.vamp.core.pulse_driver.elasticsearch.PulseAggregationProvider
+import io.vamp.core.pulse_driver.model.Event
 import io.vamp.core.pulse_driver.notification.{PulseDriverNotificationProvider, PulseResponseError, UnsupportedPulseDriverRequest}
 import io.vamp.core.router_driver.DefaultRouterDriverNameMatcher
-import io.vamp.pulse.client.PulseAggregationProvider
-import io.vamp.pulse.model.Event
 
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
 object PulseDriverActor extends ActorDescription {
+
+  lazy val elasticsearchUrl = ConfigFactory.load().getString("vamp.core.pulse-driver.url")
 
   lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.pulse-driver.response-timeout").seconds)
 
@@ -46,7 +48,7 @@ class PulseDriverActor extends PulseDriver with Percolator with CommonReplyActor
 
   implicit val timeout = PulseDriverActor.timeout
 
-  val pulseUrl = ConfigFactory.load().getString("vamp.core.pulse-driver.url")
+  val elasticsearchUrl = PulseDriverActor.elasticsearchUrl
 
   override protected def requestType: Class[_] = classOf[PulseDriverMessage]
 
@@ -54,7 +56,7 @@ class PulseDriverActor extends PulseDriver with Percolator with CommonReplyActor
 
   def reply(request: Any) = try {
     request match {
-      case InfoRequest => offload(pulseClient.info, classOf[PulseResponseError])
+      case InfoRequest => offload(elasticsearchClient.info, classOf[PulseResponseError])
 
       case Publish(event) => (percolate andThen publish)(Event.expandTags(event))
 
@@ -78,7 +80,7 @@ class PulseDriverActor extends PulseDriver with Percolator with CommonReplyActor
 trait PulseDriver extends PulseAggregationProvider with DefaultRouterDriverNameMatcher {
   this: ExecutionContextProvider =>
 
-  def publish: (Event => Unit) = { (event: Event) => pulseClient.sendEvent(event) }
+  def publish: (Event => Unit) = { (event: Event) => elasticsearchClient.sendEvent(event) }
 
   def eventExists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime): Future[Boolean] = {
     count(SlaEvent.slaTags(deployment, cluster), Some(from), Some(OffsetDateTime.now())).map(count => count.value > 0)
@@ -89,7 +91,7 @@ trait PulseDriver extends PulseAggregationProvider with DefaultRouterDriverNameM
   }
 
   def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime): Future[List[SlaEvent]] = {
-    pulseClient.getEvents(SlaEvent.slaTags(deployment, cluster), Some(from), Some(to)).map(_.flatMap { event =>
+    elasticsearchClient.getEvents(SlaEvent.slaTags(deployment, cluster), Some(from), Some(to)).map(_.flatMap { event =>
       if (Escalate.tags.forall(event.tags.contains)) Escalate(deployment, cluster, event.timestamp) :: Nil
       else if (DeEscalate.tags.forall(event.tags.contains)) DeEscalate(deployment, cluster, event.timestamp) :: Nil
       else Nil

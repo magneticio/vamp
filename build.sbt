@@ -59,7 +59,6 @@ lazy val bintraySetting = Seq(
 // Library Versions
 
 val vampCommonVersion = "0.7.7.357dbcf"
-val vampPulseVersion = "0.7.7.5d15516"
 val vampUiVersion = "0.0.1"
 
 val sprayVersion = "1.3.2"
@@ -135,11 +134,8 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
 ).dependsOn(persistence, container_driver, dictionary, pulse_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val pulse_driver = project.settings(bintraySetting: _*).settings(
-  description := "Enables Vamp to talk to Vamp Pulse",
-  name:="core-pulse_driver",
-  libraryDependencies ++=Seq(
-    "io.vamp" %% "pulse-client" % vampPulseVersion exclude("io.vamp", "common")
-  )
+  description := "Enables Vamp to connect to event storage - Elasticsearch",
+  name:="core-pulse_driver"
 ).dependsOn(router_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val router_driver = project.settings(bintraySetting: _*).settings(
@@ -160,7 +156,6 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
   description:= "Stores Vamp artifacts",
   name:="core-persistence",
   libraryDependencies ++=Seq(
-    "io.vamp" %% "pulse-client" % vampPulseVersion exclude("io.vamp", "common"),
     "com.h2database" % "h2" % h2Version,
     "com.typesafe.slick" %% "slick" % slickVersion,
     "io.strongtyped" %% "active-slick" % activeSlickVersion,
@@ -190,7 +185,6 @@ lazy val model = project.settings(bintraySetting: _*).settings(
   name:="core-model",
   libraryDependencies ++= Seq(
     "io.vamp" %% "common" % vampCommonVersion,
-    "io.vamp" %% "pulse-model" % vampPulseVersion exclude("io.vamp", "common"),
     "org.yaml" % "snakeyaml" % snakeYamlVersion,
     "junit" % "junit" % junitVersion % "test",
     "org.scalatest" %% "scalatest" % scalatestVersion % "test"

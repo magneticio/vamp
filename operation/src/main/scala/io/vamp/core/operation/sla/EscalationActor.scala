@@ -5,7 +5,6 @@ import java.time.OffsetDateTime
 import akka.actor._
 import akka.pattern.ask
 import io.vamp.common.akka._
-import io.vamp.common.notification.DefaultPackageMessageResolverProvider
 import io.vamp.core.model.artifact.DeploymentService.ReadyForDeployment
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification.{DeEscalate, Escalate}
@@ -13,7 +12,6 @@ import io.vamp.core.operation.notification.{InternalServerError, OperationNotifi
 import io.vamp.core.operation.sla.EscalationActor.EscalationProcessAll
 import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.pulse_driver.PulseDriverActor
-import io.vamp.core.pulse_driver.notification.PulseNotificationProvider
 
 import scala.concurrent.duration.FiniteDuration
 import scala.language.postfixOps
@@ -55,7 +53,7 @@ object EscalationActor extends ActorDescription {
 
 }
 
-class EscalationActor extends CommonSupportForActors with PulseNotificationProvider with DefaultPackageMessageResolverProvider {
+class EscalationActor extends CommonSupportForActors with OperationNotificationProvider {
 
   def tags = Set("escalation")
 
