@@ -15,6 +15,8 @@ object ActorSupport {
 
   private val aliases: mutable.Map[String, ActorDescription] = mutable.Map()
 
+  def alias(from: ActorDescription) = aliases.getOrElse(from.name, from)
+
   def alias(from: ActorDescription, to: ActorDescription) = aliases.put(from.name, to)
 
   def actorOf(actorDescription: ActorDescription, args: Any*)(implicit mailbox: String = "akka.actor.default-mailbox", actorRefFactory: ActorRefFactory) = {

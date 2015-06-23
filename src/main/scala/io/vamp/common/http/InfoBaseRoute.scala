@@ -75,13 +75,8 @@ class InfoActor extends FSM[InfoState, InfoData] with ActorSupportForActors with
 
   when(InfoIdle) {
     case Event(GetInfo(actors, timeout), _) =>
-      val selfRef = self
       actors.foreach(actor => actorFor(actor) ! InfoRequest)
-      timer = Some(context.system.scheduler.scheduleOnce(timeout.duration, new Runnable {
-        def run() = {
-          selfRef ! StateTimeout
-        }
-      }))
+      timer = Some(context.system.scheduler.scheduleOnce(timeout.duration, self, StateTimeout))
       goto(InfoActive) using InfoData(sender(), actors, Map())
 
     case Event(_, _) => stay()
