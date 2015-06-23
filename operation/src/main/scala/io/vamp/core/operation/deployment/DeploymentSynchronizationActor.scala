@@ -14,7 +14,7 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.resolver.DeploymentTraitResolver
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import io.vamp.core.operation.notification.{DeploymentServiceError, InternalServerError, OperationNotificationProvider}
-import io.vamp.core.persistence.actor.PersistenceActor
+import io.vamp.core.persistence.PersistenceActor
 import io.vamp.core.router_driver._
 
 import scala.language.postfixOps

@@ -1,4 +1,4 @@
-package io.vamp.core.persistence.actor
+package io.vamp.core.persistence
 
 import _root_.io.vamp.common.akka.{ActorSupport, FutureSupport}
 import _root_.io.vamp.common.notification.NotificationProvider

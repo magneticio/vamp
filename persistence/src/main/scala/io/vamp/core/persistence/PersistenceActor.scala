@@ -1,23 +1,32 @@
-package io.vamp.core.persistence.actor
+package io.vamp.core.persistence
 
 import _root_.io.vamp.common.vitals.InfoRequest
 import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
+import io.vamp.common.http.OffsetResponseEnvelope
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact.{Artifact, _}
-import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
-import io.vamp.core.persistence.store.{ArtifactResponseEnvelope, ElasticsearchStore, InMemoryStore, JdbcStore}
+import io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
+import io.vamp.core.persistence.notification.{ArtifactArchivingError, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
+import io.vamp.core.pulse_driver.PulseDriverActor
+import io.vamp.core.pulse_driver.model.Event
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.existentials
 
+object ArtifactResponseEnvelope {
+  val maxPerPage = 30
+}
+
+case class ArtifactResponseEnvelope(response: List[Artifact], total: Long, page: Int, perPage: Int) extends OffsetResponseEnvelope[Artifact]
+
 object PersistenceActor extends ActorDescription {
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.persistence.response-timeout").seconds)
+  def props(args: Any*): Props = Props.empty
 
-  def props(args: Any*): Props = Props[PersistenceActor]
+  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.persistence.response-timeout").seconds)
 
   trait PersistenceMessages
 
@@ -37,7 +46,7 @@ object PersistenceActor extends ActorDescription {
 
 }
 
-class PersistenceActor extends CommonSupportForActors with ReplyActor with ArchivingProvider with PersistenceNotificationProvider {
+trait PersistenceActor extends CommonSupportForActors with ReplyActor with ArchivingProvider with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
@@ -47,69 +56,42 @@ class PersistenceActor extends CommonSupportForActors with ReplyActor with Archi
 
   override protected def errorRequest(request: Any): RequestError = UnsupportedPersistenceRequest(request)
 
-  private lazy val store = ConfigFactory.load().getString("vamp.core.persistence.storage-type") match {
-    case "in-memory" => new InMemoryStore(context.dispatcher)
-    case "elasticsearch" => new ElasticsearchStore(context.dispatcher)
-    case _ => new JdbcStore(context.dispatcher)
+  def info: Any
+
+  def all(`type`: Class[_ <: Artifact]): List[Artifact]
+
+  def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope
+
+  def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact
+
+  def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
+
+  def update(artifact: Artifact, create: Boolean = false): Artifact
+
+  def delete(name: String, `type`: Class[_ <: Artifact]): Artifact
+
+  def reply(request: Any) = request match {
+    case InfoRequest => info
+
+    case All(ofType) => all(ofType)
+
+    case AllPaginated(ofType, page, perPage) => all(ofType, page, perPage)
+
+    case Create(artifact, source, ignoreIfExists) => archiveCreate(create(artifact, ignoreIfExists), source)
+
+    case Read(name, ofType) => read(name, ofType)
+
+    case ReadExpanded(name, ofType) => readExpandedArtifact(name, ofType)
+
+    case Update(artifact, source, create) => if (create) archiveCreate(update(artifact, create), source) else archiveUpdate(update(artifact, create), source)
+
+    case Delete(name, ofType) => archiveDelete(delete(name, ofType))
+
+    case _ => error(errorRequest(request))
   }
-
-  def reply(request: Any) = {
-    val future: Future[Any] = request match {
-      case InfoRequest => Future {
-        info
-      }
-
-      case All(ofType) => Future {
-        getAllDefaultArtifacts(ofType)
-      }
-
-      case AllPaginated(ofType, page, perPage) => Future {
-        getAllDefaultArtifacts(ofType, page, perPage)
-      }
-
-      case Create(artifact, source, ignoreIfExists) => Future {
-        createDefaultArtifact(artifact, ignoreIfExists)
-      } map (archiveCreate(_, source))
-
-      case Read(name, ofType) => Future {
-        readDefaultArtifact(name, ofType)
-      }
-
-      case ReadExpanded(name, ofType) => Future {
-        readExpandedArtifact(name, ofType)
-      }
-
-      case Update(artifact, source, create) => Future {
-        updateDefaultArtifact(artifact, create)
-      } map (if (create) archiveCreate(_, source) else archiveUpdate(_, source))
-
-      case Delete(name, ofType) => Future {
-        deleteDefaultArtifact(name, ofType)
-      } map archiveDelete
-
-      case _ => error(errorRequest(request))
-    }
-
-    offload(future)
-  }
-
-  def info = store.info
-
-  def createDefaultArtifact(artifact: Artifact, ignoreIfExists: Boolean): Artifact = store.create(artifact, ignoreIfExists)
-
-  def getAllDefaultArtifacts(ofType: Class[_ <: Artifact]): List[_ <: Artifact] = store.all(ofType)
-
-  def getAllDefaultArtifacts(ofType: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = store.all(ofType, page, perPage)
-
-  def updateDefaultArtifact(artifact: Artifact, create: Boolean): Artifact = store.update(artifact, create)
-
-  def deleteDefaultArtifact(name: String, ofType: Class[_ <: Artifact]): Artifact = store.delete(name, ofType)
-
-  def readDefaultArtifact(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] = store.read(name, ofType)
-
 
   private def readExpandedArtifact(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] =
-    readDefaultArtifact(name, ofType) match {
+    read(name, ofType) match {
       case Some(deployment: Deployment) => Some(deployment) // Deployments are already fully expanded
       case Some(blueprint: DefaultBlueprint) => Some(blueprint.copy(clusters = expandClusters(blueprint.clusters)))
       case Some(breed: DefaultBreed) => Some(breed.copy(dependencies = expandDependencies(breed.dependencies)))
@@ -130,7 +112,7 @@ class PersistenceActor extends CommonSupportForActors with ReplyActor with Archi
           case Some(sla: GenericSla) => Some(sla)
           case Some(sla: EscalationOnlySla) => Some(sla)
           case Some(sla: ResponseTimeSlidingWindowSla) => Some(sla)
-          case Some(sla: SlaReference) => readDefaultArtifact(sla.name, classOf[GenericSla]) match {
+          case Some(sla: SlaReference) => read(sla.name, classOf[GenericSla]) match {
             case Some(slaDefault: GenericSla) => Some(slaDefault.copy(escalations = sla.escalations)) //Copy the escalations from the reference
             case _ => throw exception(ArtifactNotFound(sla.name, classOf[GenericSla]))
           }
@@ -177,7 +159,7 @@ class PersistenceActor extends CommonSupportForActors with ReplyActor with Archi
   private def expandFilters(list: List[Filter]): List[DefaultFilter] =
     list.map {
       case referencedArtifact: FilterReference =>
-        readDefaultArtifact(referencedArtifact.name, classOf[DefaultFilter]) match {
+        read(referencedArtifact.name, classOf[DefaultFilter]) match {
           case Some(defaultArtifact: DefaultFilter) => defaultArtifact
           case _ => throw exception(ArtifactNotFound(referencedArtifact.name, classOf[DefaultFilter]))
         }
@@ -187,10 +169,46 @@ class PersistenceActor extends CommonSupportForActors with ReplyActor with Archi
   private def expandEscalations(list: List[Escalation]): List[GenericEscalation] =
     list.map {
       case referencedArtifact: EscalationReference =>
-        readDefaultArtifact(referencedArtifact.name, classOf[GenericEscalation]) match {
+        read(referencedArtifact.name, classOf[GenericEscalation]) match {
           case Some(defaultArtifact: GenericEscalation) => defaultArtifact
           case _ => throw exception(ArtifactNotFound(referencedArtifact.name, classOf[GenericEscalation]))
         }
       case defaultArtifact: GenericEscalation => defaultArtifact
     }
+}
+
+trait ArchivingProvider {
+  this: NotificationProvider with ActorSupport =>
+
+  implicit val timeout: Timeout
+
+  def archiveCreate(artifact: Artifact, source: Option[String]): Artifact =
+    if (source.isDefined) archive(artifact, source, s"archiving:create") else artifact
+
+  def archiveUpdate(artifact: Artifact, source: Option[String]): Artifact =
+    if (source.isDefined) archive(artifact, source, s"archiving:update") else artifact
+
+  def archiveDelete(artifact: Artifact): Artifact = archive(artifact, None, s"archiving:delete")
+
+  protected def archive(artifact: Artifact, source: Option[String], archiveTag: String) = {
+    tagFor(artifact) match {
+      case Some(artifactTag) => actorFor(PulseDriverActor) ! PulseDriverActor.Publish(Event(Set(artifactTag, archiveTag), source))
+      case _ => exception(ArtifactArchivingError(artifact))
+    }
+    artifact
+  }
+
+  protected def tagFor(artifact: Artifact): Option[String] = artifact.getClass match {
+    case t if classOf[Deployment].isAssignableFrom(t) => Some(s"deployments:${artifact.name}")
+    case t if classOf[Breed].isAssignableFrom(t) => Some(s"breeds:${artifact.name}")
+    case t if classOf[Blueprint].isAssignableFrom(t) => Some(s"blueprints:${artifact.name}")
+    case t if classOf[Sla].isAssignableFrom(t) => Some(s"slas:${artifact.name}")
+    case t if classOf[Scale].isAssignableFrom(t) => Some(s"scales:${artifact.name}")
+    case t if classOf[Escalation].isAssignableFrom(t) => Some(s"escalations:${artifact.name}")
+    case t if classOf[Routing].isAssignableFrom(t) => Some(s"routings:${artifact.name}")
+    case t if classOf[Filter].isAssignableFrom(t) => Some(s"filters:${artifact.name}")
+    case t if classOf[Workflow].isAssignableFrom(t) => Some(s"workflows:${artifact.name}")
+    case t if classOf[ScheduledWorkflow].isAssignableFrom(t) => Some(s"scheduled-workflows:${artifact.name}")
+    case request => None
+  }
 }

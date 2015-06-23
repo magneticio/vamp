@@ -11,7 +11,7 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.core.operation.notification._
 import io.vamp.core.operation.sla.SlaActor.SlaProcessAll
-import io.vamp.core.persistence.actor.PersistenceActor
+import io.vamp.core.persistence.PersistenceActor
 import io.vamp.core.pulse_driver.PulseDriverActor
 import io.vamp.core.pulse_driver.PulseDriverActor.Publish
 import io.vamp.core.pulse_driver.model.Event

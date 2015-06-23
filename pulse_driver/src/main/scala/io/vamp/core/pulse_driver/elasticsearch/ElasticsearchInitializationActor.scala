@@ -1,6 +1,7 @@
 package io.vamp.core.pulse_driver.elasticsearch
 
 import akka.actor.{FSM, _}
+import io.vamp.common.akka.Bootstrap.Start
 import io.vamp.common.akka._
 import io.vamp.common.http.RestClient
 import io.vamp.common.notification.NotificationProvider
@@ -13,23 +14,21 @@ object ElasticsearchInitializationActor {
 
   sealed trait InitializationEvent
 
-  object Initialize extends InitializationEvent
-
   object WaitForOne extends InitializationEvent
 
   object DoneWithOne extends InitializationEvent
 
+  sealed trait State
+
+  case object Idle extends State
+
+  case object Active extends State
+
+  case object Done extends State
+
 }
 
-sealed trait State
-
-case object Idle extends State
-
-case object Active extends State
-
-case object Done extends State
-
-trait ElasticsearchInitializationActor extends FSM[State, Int] with CommonSupportForActors with NotificationProvider {
+trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationActor.State, Int] with CommonSupportForActors with NotificationProvider {
 
   import ElasticsearchInitializationActor._
 
@@ -39,10 +38,12 @@ trait ElasticsearchInitializationActor extends FSM[State, Int] with CommonSuppor
 
   def elasticsearchUrl: String
 
+  def done() = goto(Done) using 0
+
   startWith(Idle, 0)
 
   when(Idle) {
-    case Event(Initialize, 0) =>
+    case Event(Start, 0) =>
       log.info(s"Starting with Elasticsearch initialization.")
       initializeTemplates()
       goto(Active) using 1
@@ -66,9 +67,7 @@ trait ElasticsearchInitializationActor extends FSM[State, Int] with CommonSuppor
 
   initialize()
 
-  def done() = goto(Done) using 0
-
-  private def initializeTemplates() = {
+  protected def initializeTemplates() = {
     val receiver = self
 
     def createTemplate(name: String) = templates.get(name).foreach { template =>

@@ -1,6 +1,7 @@
 package io.vamp.core.pulse_driver
 
 import akka.actor._
+import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.core.pulse_driver.elasticsearch.{ElasticsearchActor, ElasticsearchInitializationActor}
 import io.vamp.core.pulse_driver.notification.PulseDriverNotificationProvider
@@ -15,13 +16,15 @@ object PulseDriverInitializationActor extends ActorDescription {
 
 class PulseDriverInitializationActor extends ElasticsearchInitializationActor with PulseDriverNotificationProvider {
 
-  override def timeout = PulseDriverActor.timeout
+  lazy val timeout = PulseDriverActor.timeout
 
-  override def elasticsearchUrl = PulseDriverActor.elasticsearchUrl
+  lazy val elasticsearchUrl = PulseDriverActor.elasticsearchUrl
+
+  private lazy val indexPrefix = ConfigFactory.load().getString("vamp.core.pulse-driver.elasticsearch.index-prefix")
 
   lazy val templates = {
-    def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"elasticsearch/$name.json")).mkString.replace("$NAME", elasticsearchUrl)
-    List("template", "template-event").map(template => s"$elasticsearchUrl-$template" -> load(template)).toMap
+    def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"elasticsearch/$name.json")).mkString.replace("$NAME", indexPrefix)
+    List("template", "template-event").map(template => s"$indexPrefix-$template" -> load(template)).toMap
   }
 
   override def done() = {

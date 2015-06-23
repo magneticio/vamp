@@ -6,7 +6,8 @@ import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
 import io.vamp.common.akka._
 import io.vamp.core.model.workflow.{DeploymentTrigger, EventTrigger, ScheduledWorkflow, TimeTrigger}
 import io.vamp.core.operation.notification._
-import io.vamp.core.persistence.actor.{ArtifactSupport, PersistenceActor}
+import io.vamp.core.persistence.{PersistenceActor, ArtifactSupport}
+import io.vamp.core.persistence.PersistenceActor
 import io.vamp.core.pulse_driver.PulseDriverActor
 
 import scala.language.postfixOps

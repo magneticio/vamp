@@ -16,8 +16,8 @@ import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.Synchron
 import io.vamp.core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor}
 import io.vamp.core.operation.notification.InternalServerError
 import io.vamp.core.operation.sla.{EscalationActor, SlaActor}
-import io.vamp.core.persistence.actor.PersistenceActor
-import io.vamp.core.persistence.actor.PersistenceActor.All
+import io.vamp.core.persistence.PersistenceActor
+import PersistenceActor.All
 import io.vamp.core.rest_api.notification.RestApiNotificationProvider
 import spray.http.StatusCodes._
 

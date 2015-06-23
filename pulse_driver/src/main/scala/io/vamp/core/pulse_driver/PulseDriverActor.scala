@@ -20,7 +20,7 @@ import scala.concurrent.duration._
 
 object PulseDriverActor extends ActorDescription {
 
-  lazy val elasticsearchUrl = ConfigFactory.load().getString("vamp.core.pulse-driver.url")
+  lazy val elasticsearchUrl = ConfigFactory.load().getString("vamp.core.pulse-driver.elasticsearch.url")
 
   lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.pulse-driver.response-timeout").seconds)
 
@@ -80,7 +80,7 @@ class PulseDriverActor extends PulseDriver with Percolator with CommonReplyActor
 trait PulseDriver extends PulseAggregationProvider with DefaultRouterDriverNameMatcher {
   this: ExecutionContextProvider =>
 
-  def publish: (Event => Unit) = { (event: Event) => elasticsearchClient.sendEvent(event) }
+  def publish: (Event => Unit) = { (event: Event) => /*elasticsearchClient.sendEvent(event)*/ }
 
   def eventExists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime): Future[Boolean] = {
     count(SlaEvent.slaTags(deployment, cluster), Some(from), Some(OffsetDateTime.now())).map(count => count.value > 0)

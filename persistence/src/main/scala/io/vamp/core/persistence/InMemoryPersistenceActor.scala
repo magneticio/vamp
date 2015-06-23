@@ -1,34 +1,36 @@
-package io.vamp.core.persistence.store
+package io.vamp.core.persistence
 
-import com.typesafe.scalalogging.Logger
+import _root_.io.vamp.common.akka._
+import akka.actor.Props
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.serialization._
+import io.vamp.core.model.serialization.CoreSerializationFormat
 import io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
-import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
-import org.json4s.native.Serialization.write
-import org.slf4j.LoggerFactory
+import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, UnsupportedPersistenceRequest}
+import org.json4s.native.Serialization._
 
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
 
-case class InMemoryStoreInfo(`type`: String, artifacts: Map[String, Map[String, Any]])
+object InMemoryPersistenceActor extends ActorDescription {
+  def props(args: Any*): Props = Props(classOf[InMemoryPersistenceActor], args: _*)
+}
 
-class InMemoryStore(executionContext: ExecutionContext) extends Store with TypeOfArtifact with PersistenceNotificationProvider {
+case class InMemoryPersistenceInfo(`type`: String, artifacts: Map[String, Map[String, Any]])
 
-  private val logger = Logger(LoggerFactory.getLogger(classOf[InMemoryStore]))
+class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
+
   implicit val formats = CoreSerializationFormat.default
 
   val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
-  def info = InMemoryStoreInfo("in-memory", store.map {
+  def info = InMemoryPersistenceInfo("in-memory [no persistence]", store.map {
     case (key, value) => key -> Map[String, Any]("count" -> value.values.size)
   } toMap)
 
   def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
-    logger.trace(s"InMemory persistence: all [${`type`.getSimpleName}]")
+    log.debug(s"InMemory persistence: all [${`type`.getSimpleName}]")
     store.get(typeOf(`type`)) match {
       case None => Nil
       case Some(map) => map.values.toList
@@ -44,8 +46,8 @@ class InMemoryStore(executionContext: ExecutionContext) extends Store with TypeO
     ArtifactResponseEnvelope(artifacts.slice((p - 1) * pp, p * pp), total, rp, rpp)
   }
 
-  def create(artifact: Artifact, ignoreIfExists: Boolean = true): Artifact = {
-    logger.trace(s"InMemory persistence: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+  def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
+    log.debug(s"InMemory persistence: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     artifact match {
       case blueprint: DefaultBlueprint => blueprint.clusters.flatMap(_.services).map(_.breed).foreach(breed => create(breed, ignoreIfExists = true))
       case _ =>
@@ -68,7 +70,7 @@ class InMemoryStore(executionContext: ExecutionContext) extends Store with TypeO
   }
 
   def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
-    logger.trace(s"InMemory persistence: read [${`type`.getSimpleName}] - $name}")
+    log.debug(s"InMemory persistence: read [${`type`.getSimpleName}] - $name}")
     store.get(typeOf(`type`)) match {
       case None => None
       case Some(map) => map.get(name)
@@ -76,7 +78,7 @@ class InMemoryStore(executionContext: ExecutionContext) extends Store with TypeO
   }
 
   def update(artifact: Artifact, create: Boolean = false): Artifact = {
-    logger.trace(s"InMemory persistence: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+    log.debug(s"InMemory persistence: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     store.get(typeOf(artifact.getClass)) match {
       case None => if (create) this.create(artifact) else error(ArtifactNotFound(artifact.name, artifact.getClass))
       case Some(map) =>
@@ -89,7 +91,7 @@ class InMemoryStore(executionContext: ExecutionContext) extends Store with TypeO
   }
 
   def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = {
-    logger.trace(s"InMemory persistence: delete [${`type`.getSimpleName}] - $name}")
+    log.debug(s"InMemory persistence: delete [${`type`.getSimpleName}] - $name}")
     store.get(typeOf(`type`)) match {
       case None => error(ArtifactNotFound(name, `type`))
       case Some(map) =>
@@ -118,4 +120,3 @@ trait TypeOfArtifact {
     case _ => error(UnsupportedPersistenceRequest(`type`))
   }
 }
-

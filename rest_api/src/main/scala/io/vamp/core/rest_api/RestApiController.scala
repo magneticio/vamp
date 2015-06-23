@@ -1,6 +1,7 @@
 package io.vamp.core.rest_api
 
 import _root_.io.vamp.core.operation.workflow.{WorkflowConfiguration, WorkflowSchedulerActor}
+import _root_.io.vamp.core.persistence.PersistenceActor
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
@@ -8,7 +9,6 @@ import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSuppor
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
 import io.vamp.core.model.workflow.{ScheduledWorkflow, TimeTrigger, Workflow}
-import io.vamp.core.persistence.actor.PersistenceActor
 import io.vamp.core.rest_api.notification.{InconsistentArtifactName, InvalidTimeTriggerError, RestApiNotificationProvider, UnexpectedArtifact}
 import org.quartz.CronExpression
 

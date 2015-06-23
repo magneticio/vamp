@@ -10,7 +10,7 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification.{DeEscalate, Escalate}
 import io.vamp.core.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType}
 import io.vamp.core.operation.sla.EscalationActor.EscalationProcessAll
-import io.vamp.core.persistence.actor.PersistenceActor
+import io.vamp.core.persistence.PersistenceActor
 import io.vamp.core.pulse_driver.PulseDriverActor
 
 import scala.concurrent.duration.FiniteDuration
