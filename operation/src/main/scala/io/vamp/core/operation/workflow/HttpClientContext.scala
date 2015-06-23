@@ -13,7 +13,7 @@ class HttpClientContext(scheduledWorkflow: ScheduledWorkflow)(implicit execution
 
   import RestClient._
 
-  implicit lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.operation.workflow.http.timeout").seconds)
+  implicit lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.operation.workflow.http-timeout").seconds)
 
   private var body: Any = null
   private var url: Option[String] = None
