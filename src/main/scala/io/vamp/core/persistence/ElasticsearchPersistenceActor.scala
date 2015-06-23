@@ -144,7 +144,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
   private def findAllArtifactsBy(`type`: Class[_ <: Artifact], from: Int, size: Int): (Long, List[Artifact]) = {
     offload(RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${typeOf(`type`)}/_search", Map("from" -> from, "size" -> size)).map {
       case None => 0L -> Nil
-      case Some(response) => response.hits.total -> response.hits.hits.map(hit => deserialize(`type`, hit))
+      case Some(response) => response.hits.total -> response.hits.hits.flatMap(hit => deserialize(`type`, hit))
     }) match {
       case (total: Long, artifacts: List[_]) => total -> artifacts.asInstanceOf[List[Artifact]]
       case e: Exception =>
