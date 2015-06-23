@@ -1,14 +1,15 @@
 package io.vamp.common.http
 
+import _root_.io.vamp.common.text.Text
 import com.typesafe.scalalogging.Logger
 import dispatch._
-import io.vamp.common.text.Text
 import org.json4s._
 import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization._
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect._
 
 object RestClient {
 
@@ -18,11 +19,28 @@ object RestClient {
     val HEAD, GET, POST, PUT, DELETE, PATCH, TRACE, OPTIONS = Value
   }
 
-  def delete(url: String)(implicit executor: ExecutionContext) =
-    http(Method.DELETE, List("Accept" -> "application/json", "Content-Type" -> "application/json"), url)
 
-  def http(method: Method.Value, headers: List[(String, String)], url: String, body: Any = None, asJson: Boolean = false)
-          (implicit executor: ExecutionContext, formats: Formats = DefaultFormats): Future[Option[Any]] = {
+  def get[A](url: String, headers: List[(String, String)] = Nil)
+            (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[Option[A]] = {
+    http[A](Method.GET, url, None, headers)
+  }
+
+  def post[A](url: String, body: Any, headers: List[(String, String)] = Nil)
+             (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[Option[A]] = {
+    http[A](Method.POST, url, body, headers)
+  }
+
+  def put[A](url: String, body: Any, headers: List[(String, String)] = Nil)
+            (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[Option[A]] = {
+    http[A](Method.PUT, url, body, headers)
+  }
+
+  def delete(url: String)(implicit executor: ExecutionContext) = {
+    http(Method.DELETE, url, None, List("Accept" -> "application/json", "Content-Type" -> "application/json"))
+  }
+
+  def http[A](method: Method.Value, url: String, body: Any, headers: List[(String, String)])
+             (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[Option[A]] = {
 
     val requestWithUrl = dispatch.url(url).setMethod(method.toString)
     val requestWithHeaders = headers.foldLeft(requestWithUrl)((http, header) => http.setHeader(header._1, header._2))
@@ -33,11 +51,14 @@ object RestClient {
       case _ => requestWithHeaders
     }
 
-    if (asJson) Http(requestWithBody OK dispatch.as.json4s.Json).option.map {
+    if (classTag[A].runtimeClass != classOf[String]) Http(requestWithBody OK dispatch.as.json4s.Json).option.map {
       case None => None
-      case Some(json) => Some(json.extract[Any])
+      case Some(json) => Some(json.extract[A](formats, mf))
     }
-    else Http(requestWithBody OK as.String).option
+    else Http(requestWithBody OK as.String).option.map {
+      case None => None
+      case Some(s) => Some(s.asInstanceOf[A])
+    }
   }
 
   /**
