@@ -49,7 +49,7 @@ trait SchemaBlueprint extends SchemaBreed {
   }
 
   class ClusterTable(tag: Tag) extends DeployableEntityTable[ClusterModel](tag, "clusters") {
-    def * = (deploymentId, name, blueprintId, slaReferenceId, id.?) <>(ClusterModel.tupled, ClusterModel.unapply)
+    def * = (deploymentId, name, blueprintId, slaReferenceId, dialects, id.?) <>(ClusterModel.tupled, ClusterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -63,6 +63,8 @@ trait SchemaBlueprint extends SchemaBreed {
 
     def deploymentId = column[Option[Int]]("deployment_fk")
 
+    def dialects = column[Array[Byte]]("dialects")
+
     def blueprint = foreignKey("cluster_blueprintfk", blueprintId, DefaultBlueprints)(_.id)
 
     def slaRef = foreignKey("cluster_sla_reference_fk", slaReferenceId, SlaReferences)(_.id)
@@ -71,7 +73,7 @@ trait SchemaBlueprint extends SchemaBreed {
   }
 
   class ServiceTable(tag: Tag) extends EntityTable[ServiceModel](tag, "services") {
-    def * = (deploymentId, clusterId, breedReferenceId, routingReference, scaleReference, id.?) <>(ServiceModel.tupled, ServiceModel.unapply)
+    def * = (deploymentId, clusterId, breedReferenceId, routingReference, scaleReference, dialects, id.?) <>(ServiceModel.tupled, ServiceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -84,6 +86,8 @@ trait SchemaBlueprint extends SchemaBreed {
     def scaleReference = column[Option[Int]]("scale_reference_fk")
 
     def deploymentId = column[Option[Int]]("deployment_fk")
+
+    def dialects = column[Array[Byte]]("dialects")
 
     def scale = foreignKey("service_scale_reference_fk", scaleReference, ScaleReferences)(_.id)
 

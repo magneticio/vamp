@@ -1,13 +1,9 @@
 package io.vamp.core.persistence.store.jdbc
 
-import java.nio.charset.StandardCharsets
-
 import com.typesafe.scalalogging.Logger
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, PersistenceNotificationProvider}
 import io.vamp.core.persistence.slick.model._
-import org.json4s.DefaultFormats
-import org.json4s.native.Serialization._
 import org.slf4j.LoggerFactory
 
 import scala.slick.jdbc.JdbcBackend
@@ -21,23 +17,6 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
 
   import io.vamp.core.persistence.slick.components.Components.instance._
   import io.vamp.core.persistence.slick.model.Implicits._
-
-  private object DialectSerializer {
-
-    implicit val formats = DefaultFormats
-
-    def serialize(dialects: Map[Dialect.Value, Any]): Array[Byte] = write(dialects.map({ case (key, value) =>
-      key.toString.toLowerCase -> value
-    })).getBytes(StandardCharsets.UTF_8)
-
-    def deserialize(blob: Array[Byte]): Map[Dialect.Value, Any] = {
-      val map = read[Any](new String(blob, StandardCharsets.UTF_8)).asInstanceOf[Map[String, Any]]
-      Dialect.values.toList.flatMap(dialect => map.get(dialect.toString.toLowerCase) match {
-        case None => Nil
-        case Some(entry) => (dialect -> entry) :: Nil
-      }).toMap
-    }
-  }
 
   protected def updateDeployment(existing: DeploymentModel, artifact: Deployment): Unit = {
     deleteChildren(existing)
