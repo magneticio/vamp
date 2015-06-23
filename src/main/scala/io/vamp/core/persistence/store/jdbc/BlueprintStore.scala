@@ -114,14 +114,16 @@ trait BlueprintStore extends BreedStore with ScaleStore with RoutingStore with S
     clusters.map(cluster => Cluster(
       name = cluster.name,
       services = findServicesArtifacts(cluster.services, deploymentId),
-      sla = findOptionSlaArtifactViaReferenceId(cluster.slaReference, deploymentId))
+      sla = findOptionSlaArtifactViaReferenceId(cluster.slaReference, deploymentId),
+      dialects = DialectSerializer.deserialize(cluster.dialects))
     )
 
   private def findServicesArtifacts(services: List[ServiceModel], deploymentId: Option[Int]): List[Service] = services.map(service =>
     Service(
       breed = findBreedArtifactViaReferenceId(service.breedReferenceId, deploymentId),
       scale = findOptionScaleArtifactViaReferenceName(service.scaleReference, deploymentId),
-      routing = findOptionRoutingArtifactViaReference(service.routingReference, deploymentId)
+      routing = findOptionRoutingArtifactViaReference(service.routingReference, deploymentId),
+      dialects = DialectSerializer.deserialize(service.dialects)
     )
   )
 
@@ -152,7 +154,7 @@ trait BlueprintStore extends BreedStore with ScaleStore with RoutingStore with S
   private def createBlueprintClusters(clusters: List[Cluster], blueprintId: Int, deploymentId: Option[Int]): Unit = {
     for (cluster <- clusters) {
       val slaRefId: Option[Int] = createSla(cluster.sla, deploymentId)
-      val clusterId = Clusters.add(ClusterModel(deploymentId = deploymentId, name = cluster.name, blueprintId = blueprintId, slaReference = slaRefId))
+      val clusterId = Clusters.add(ClusterModel(deploymentId = deploymentId, name = cluster.name, blueprintId = blueprintId, slaReference = slaRefId, dialects = DialectSerializer.serialize(cluster.dialects)))
       createServices(cluster.services, clusterId, deploymentId)
     }
   }
@@ -164,7 +166,8 @@ trait BlueprintStore extends BreedStore with ScaleStore with RoutingStore with S
         clusterId = clusterId,
         breedReferenceId = createBreedReference(service.breed, deploymentId),
         routingReference = createRoutingReference(service.routing, deploymentId),
-        scaleReference = createScaleReference(service.scale, deploymentId))
+        scaleReference = createScaleReference(service.scale, deploymentId),
+        dialects = DialectSerializer.serialize(service.dialects))
       )
     )
   }
