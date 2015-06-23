@@ -78,12 +78,12 @@ class EventApiContext(scheduledWorkflow: ScheduledWorkflow)(implicit executionCo
     _gte = None
   }
 
-  @inline private def eventQuery(aggregator: Option[AggregatorType] = None) = {
+  private def eventQuery(aggregator: Option[AggregatorType] = None) = {
     validateTags()
     val eventQuery = EventQuery(tags, Some(TimeRange(_lt, _lte, _gt, _gte)), aggregator.flatMap(a => Some(Aggregator(Some(a)))))
     logger.info(s"Event query: $eventQuery")
     reset()
   }
 
-  @inline private def validateTags() = if (tags.isEmpty) throw new RuntimeException("Event tags must be defined.")
+  private def validateTags() = if (tags.isEmpty) throw new RuntimeException("Event tags must be defined.")
 }

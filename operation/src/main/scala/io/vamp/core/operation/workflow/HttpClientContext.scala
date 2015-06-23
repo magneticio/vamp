@@ -49,21 +49,21 @@ class HttpClientContext(scheduledWorkflow: ScheduledWorkflow)(implicit execution
     headers = Nil
   }
 
-  @inline private def methodUrl(method: Method.Value, url: String): HttpClientContext = {
+  private def methodUrl(method: Method.Value, url: String): HttpClientContext = {
     this.url = Some(url)
     this.method = Some(method)
     this
   }
 
-  @inline private def request(asJson: Boolean, default: Any) = {
+  private def request(asJson: Boolean, default: Any) = {
     val response = offload((method, url) match {
       case (Some(m), Some(u)) => if (asJson) http[Any](m, u, body, headers) else http[String](m, u, body, headers)
       case _ => throw new RuntimeException(s"HTTP: method or URL not specified.")
     })
     reset()
-    response match {
+    toJavaScript(response match {
       case None => default
       case Some(result) => result
-    }
+    })
   }
 }

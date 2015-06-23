@@ -12,9 +12,9 @@ class TimeContext(scheduledWorkflow: ScheduledWorkflow)(implicit executionContex
 
   def format(pattern: String) = now().format(DateTimeFormatter.ofPattern(pattern))
 
-  @inline def now() = OffsetDateTime.now()
+  def now() = OffsetDateTime.now()
 
-  @inline def epoch() = now().toEpochSecond
+  def epoch() = now().toEpochSecond
 
   def timestamp() = epoch()
 }

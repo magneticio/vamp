@@ -18,5 +18,5 @@ class LoggerContext(scheduledWorkflow: ScheduledWorkflow)(implicit executionCont
 
   def log(any: Any) = info(any)
 
-  @inline private def messageOf(any: Any) = if (any != null) any.toString else ""
+  private def messageOf(any: Any) = if (any != null) any.toString else ""
 }
