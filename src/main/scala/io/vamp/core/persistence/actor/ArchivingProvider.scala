@@ -7,7 +7,7 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
 import io.vamp.core.persistence.notification.ArtifactArchivingError
 import io.vamp.core.pulse_driver.PulseDriverActor
-import io.vamp.pulse.model.Event
+import io.vamp.core.pulse_driver.model.Event
 
 trait ArchivingProvider {
   this: NotificationProvider with ActorSupport =>
