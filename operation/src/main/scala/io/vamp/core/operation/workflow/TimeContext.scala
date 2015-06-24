@@ -8,7 +8,7 @@ import io.vamp.core.model.workflow.ScheduledWorkflow
 
 import scala.concurrent.ExecutionContext
 
-class TimeContext(scheduledWorkflow: ScheduledWorkflow)(implicit executionContext: ExecutionContext) extends ScriptingContext(scheduledWorkflow) with FutureSupport {
+class TimeContext(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext with FutureSupport {
 
   def format(pattern: String) = now().format(DateTimeFormatter.ofPattern(pattern))
 

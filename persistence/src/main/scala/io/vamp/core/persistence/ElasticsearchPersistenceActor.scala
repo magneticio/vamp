@@ -97,11 +97,11 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     findHitBy(artifact.name, artifact.getClass) match {
       case None =>
         // TODO validate response
-        RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts", ElasticsearchArtifact(artifact.name, write(artifact)))
+        offload(RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts", ElasticsearchArtifact(artifact.name, write(artifact))))
       case Some(hit) =>
         if (!ignoreIfExists) error(ArtifactAlreadyExists(artifact.name, artifact.getClass))
         // TODO validate response
-        hit.get("_id").foreach(id => RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts/$id", ElasticsearchArtifact(artifact.name, write(artifact))))
+        hit.get("_id").foreach(id => offload(RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts/$id", ElasticsearchArtifact(artifact.name, write(artifact)))))
     }
     artifact
   }
@@ -122,7 +122,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
       case None => if (create) this.create(artifact) else error(ArtifactNotFound(artifact.name, artifact.getClass))
       case Some(hit) =>
         // TODO validate response
-        hit.get("_id").foreach(id => RestClient.post[Any](s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id", ElasticsearchArtifact(artifact.name, write(artifact))))
+        hit.get("_id").foreach(id => offload(RestClient.post[Any](s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id", ElasticsearchArtifact(artifact.name, write(artifact)))))
     }
     artifact
   }
@@ -135,7 +135,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
         case None => error(ArtifactNotFound(name, `type`))
         case Some(artifact) =>
           // TODO validate response
-          hit.get("_id").foreach(id => RestClient.delete(s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id"))
+          hit.get("_id").foreach(id => offload(RestClient.delete(s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id")))
           artifact
       }
     }

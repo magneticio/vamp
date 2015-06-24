@@ -5,7 +5,7 @@ import io.vamp.core.model.workflow.ScheduledWorkflow
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 
-class StorageContext(scheduledWorkflow: ScheduledWorkflow)(implicit executionContext: ExecutionContext) extends ScriptingContext(scheduledWorkflow) {
+class StorageContext(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext {
 
   private val store = mutable.Map[String, Any]() ++ scheduledWorkflow.storage
 

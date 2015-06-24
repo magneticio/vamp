@@ -9,7 +9,7 @@ import io.vamp.core.model.workflow.ScheduledWorkflow
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-class HttpClientContext(scheduledWorkflow: ScheduledWorkflow)(implicit executionContext: ExecutionContext) extends ScriptingContext(scheduledWorkflow) with FutureSupport {
+class HttpClientContext(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext with FutureSupport {
 
   import RestClient._
 
@@ -55,15 +55,15 @@ class HttpClientContext(scheduledWorkflow: ScheduledWorkflow)(implicit execution
     this
   }
 
-  private def request(asJson: Boolean, default: Any) = {
+  private def request(asJson: Boolean, default: Any) = serialize {
     val response = offload((method, url) match {
       case (Some(m), Some(u)) => if (asJson) http[Any](m, u, body, headers) else http[String](m, u, body, headers)
       case _ => throw new RuntimeException(s"HTTP: method or URL not specified.")
     })
     reset()
-    toJavaScript(response match {
+    response match {
       case None => default
       case Some(result) => result
-    })
+    }
   }
 }

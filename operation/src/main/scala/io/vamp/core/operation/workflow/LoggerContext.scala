@@ -4,7 +4,7 @@ import io.vamp.core.model.workflow.ScheduledWorkflow
 
 import scala.concurrent.ExecutionContext
 
-class LoggerContext(scheduledWorkflow: ScheduledWorkflow)(implicit executionContext: ExecutionContext) extends ScriptingContext(scheduledWorkflow) {
+class LoggerContext(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext {
 
   def trace(any: Any) = logger.trace(messageOf(any))
 

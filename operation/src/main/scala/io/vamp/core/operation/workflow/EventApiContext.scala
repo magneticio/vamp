@@ -8,7 +8,7 @@ import io.vamp.core.pulse_driver.model.{Aggregator, Event, EventQuery, TimeRange
 
 import scala.concurrent.ExecutionContext
 
-class EventApiContext(scheduledWorkflow: ScheduledWorkflow)(implicit executionContext: ExecutionContext) extends ScriptingContext(scheduledWorkflow) {
+class EventApiContext(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext {
 
   private var tags: Set[String] = Set()
   private var _type: Option[String] = None

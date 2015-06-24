@@ -2,7 +2,8 @@ package io.vamp.core.operation.controller
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.CommonSupportForActors
+import io.vamp.common.akka._
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.conversion.DeploymentConversion._
 import io.vamp.core.model.reader._
@@ -13,7 +14,7 @@ import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 
 trait DeploymentApiController {
-  this: CommonSupportForActors =>
+  this: ActorSupport with FutureSupport with ExecutionContextProvider with NotificationProvider =>
 
   def deployments(asBlueprint: Boolean, page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(classOf[Deployment], page, perPage)).map {
     case list: List[_] => list.map {
