@@ -19,7 +19,7 @@ import scala.reflect._
 trait ArtifactApiController {
   this: ActorSupport with FutureSupport with ExecutionContextProvider with NotificationProvider =>
 
-  def allArtifacts(artifact: String, page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
+  def allArtifacts(artifact: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(controller) => controller.all(page, perPage)
     case None => error(UnexpectedArtifact(artifact))
   }

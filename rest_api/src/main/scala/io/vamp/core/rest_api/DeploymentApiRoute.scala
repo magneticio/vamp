@@ -52,7 +52,7 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
       get {
         parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
           pageAndPerPage() { (page, perPage) =>
-            onSuccess(deployments(asBlueprint, page, perPage)) { result =>
+            onSuccess(deployments(asBlueprint)(page, perPage)) { result =>
               respondWith(OK, result)
             }
           }

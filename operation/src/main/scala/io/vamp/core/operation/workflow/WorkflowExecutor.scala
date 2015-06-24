@@ -12,7 +12,6 @@ import jdk.nashorn.api.scripting.NashornScriptEngineFactory
 import scala.collection.Set
 import scala.concurrent.Future
 import scala.io.Source
-import scala.util.Try
 
 trait WorkflowExecutor {
   this: Actor with ActorLogging with ArtifactSupport with ActorSupport with FutureSupport with ExecutionContextProvider =>
@@ -73,6 +72,8 @@ trait WorkflowExecutor {
     List("breeds", "blueprints", "slas", "scales", "escalations", "routings", "filters", "workflows", "scheduled-workflows").map { group =>
       bindings.put(group.replace('-', '_'), new ArtifactApiContext(group))
     }
+
+    bindings.put("deployments", new DeploymentApiContext)
   }
 
   private def addScheduledWorkflowBindings(scheduledWorkflow: ScheduledWorkflow, bindings: Bindings, data: Any) = {

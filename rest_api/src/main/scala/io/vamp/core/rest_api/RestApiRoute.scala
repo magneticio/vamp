@@ -33,7 +33,7 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
               pathEndOrSingleSlash {
                 get {
                   pageAndPerPage() { (page, perPage) =>
-                    onSuccess(allArtifacts(artifact, page, perPage)) { result =>
+                    onSuccess(allArtifacts(artifact)(page, perPage)) { result =>
                       respondWith(OK, result)
                     }
                   }

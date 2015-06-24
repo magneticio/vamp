@@ -16,7 +16,7 @@ import scala.language.{existentials, postfixOps}
 trait DeploymentApiController {
   this: ActorSupport with FutureSupport with ExecutionContextProvider with NotificationProvider =>
 
-  def deployments(asBlueprint: Boolean, page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(classOf[Deployment], page, perPage)).map {
+  def deployments(asBlueprint: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(classOf[Deployment], page, perPage)).map {
     case list: List[_] => list.map {
       case deployment: Deployment => if (asBlueprint) deployment.asBlueprint else deployment
       case any => any

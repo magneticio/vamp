@@ -13,7 +13,7 @@ InvalidRoutingWeight            : "Invalid routing weight for cluster '{deployme
 WorkflowSchedulingError         : "Workflow scheduling error."
 WorkflowExecutionError          : "Workflow execution error."
 
-InconsistentArtifactName        : "Inconsistent resource name: parameter is '{expected}' but in the request body found '{body}'."
+InconsistentArtifactName        : "Inconsistent resource name: parameter is '{parameter}' but in the request body found '{artifact.name}'."
 UnexpectedArtifact              : "Unexpected resource: '{artifact}'."
 InvalidTimeTriggerError         : "Not a valid time trigger patter: '{pattern}'."
 

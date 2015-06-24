@@ -49,7 +49,7 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
   def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
     log.debug(s"InMemory persistence: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     artifact match {
-      case blueprint: DefaultBlueprint => blueprint.clusters.flatMap(_.services).map(_.breed).foreach(breed => create(breed, ignoreIfExists = true))
+      case blueprint: DefaultBlueprint => blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).foreach(breed => create(breed, ignoreIfExists = true))
       case _ =>
     }
 
