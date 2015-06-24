@@ -18,25 +18,28 @@ trait WorkflowExecutor {
 
   private val urlPattern = "^(https?:\\/\\/.+)$".r
 
-  def execute(scheduledWorkflow: ScheduledWorkflow, data: Any) = {
-    log.info(s"Executing workflow: $scheduledWorkflow")
-
-    val refreshed = artifactFor[ScheduledWorkflow](scheduledWorkflow.name)
-
-    eval(refreshed, artifactFor[DefaultWorkflow](refreshed.workflow), data)
+  def execute(scheduledWorkflow: ScheduledWorkflow, data: Any) = Future {
+    try {
+      log.info(s"Executing workflow: $scheduledWorkflow")
+      val refreshed = artifactFor[ScheduledWorkflow](scheduledWorkflow.name)
+      eval(refreshed, artifactFor[DefaultWorkflow](refreshed.workflow), data)
+    } catch {
+      case e: Exception => log.error(s"Exception during execution of '${scheduledWorkflow.name}': ${e.getMessage}", e)
+    }
   }
 
-  private def eval(scheduledWorkflow: ScheduledWorkflow, workflow: DefaultWorkflow, data: Any) = Future {
+  private def eval(scheduledWorkflow: ScheduledWorkflow, workflow: DefaultWorkflow, data: Any) = {
     val source = mergeSource(workflow)
     val engine = createEngine()
     val bindings = initializeBindings(scheduledWorkflow, engine.createBindings, data)
 
-    engine.eval(source, bindings)
+    val result = engine.eval(source, bindings)
+    log.info(s"Result of '${scheduledWorkflow.name}': $result")
     postEvaluation(scheduledWorkflow, bindings)
   }
 
   private def createEngine() = {
-    val arguments = List("-doe", "-strict", "--no-java", "--no-syntax-extensions").toArray
+    val arguments = List("-doe", "-strict", "--no-java").toArray
     val classLoader = {
       val ccl = Thread.currentThread().getContextClassLoader
       if (ccl == null) classOf[NashornScriptEngineFactory].getClassLoader else ccl
