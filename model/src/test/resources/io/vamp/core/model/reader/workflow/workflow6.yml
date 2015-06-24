@@ -1,0 +1,5 @@
+name: logger
+
+requires: deployment
+
+script: vamp.log("hi")

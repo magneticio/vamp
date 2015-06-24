@@ -42,6 +42,22 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
+  it should "read requires" in {
+    WorkflowReader.read(res("workflow/workflow5.yml")) should have(
+      'name("logger"),
+      'requires(List("deployment", "cluster")),
+      'script("vamp.log(\"hi\")")
+    )
+  }
+
+  it should "expand requires" in {
+    WorkflowReader.read(res("workflow/workflow6.yml")) should have(
+      'name("logger"),
+      'requires(List("deployment")),
+      'script("vamp.log(\"hi\")")
+    )
+  }
+
   "ScheduledWorkflowReader" should "read the scheduled workflow with time trigger" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled1.yml")) should have(
       'name("logger-schedule"),
@@ -107,7 +123,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read anonymous workflow specified with 'script'" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled9.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", Nil, "vamp.exit()")),
+      'workflow(DefaultWorkflow("", Nil, Nil, "vamp.exit()")),
       'trigger(TimeTrigger("0"))
     )
   }
@@ -115,7 +131,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read import" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled10.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", List("http://underscorejs.org/underscore-min.js", "vamp.js"), "vamp.exit()")),
+      'workflow(DefaultWorkflow("", List("http://underscorejs.org/underscore-min.js", "vamp.js"), Nil, "vamp.exit()")),
       'trigger(TimeTrigger("0"))
     )
   }
@@ -123,7 +139,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "expand import'" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled11.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", List("vamp.js"), "vamp.exit()")),
+      'workflow(DefaultWorkflow("", List("vamp.js"), Nil, "vamp.exit()")),
       'trigger(TimeTrigger("0"))
     )
   }

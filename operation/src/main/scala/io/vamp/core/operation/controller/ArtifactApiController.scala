@@ -2,21 +2,21 @@ package io.vamp.core.operation.controller
 
 import _root_.io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
 import _root_.io.vamp.common.notification.NotificationProvider
+import _root_.io.vamp.core.model.workflow.{DefaultWorkflow, ScheduledWorkflow, TimeTrigger, Workflow}
+import _root_.io.vamp.core.operation.notification.{InconsistentArtifactName, InvalidTimeTriggerError, MissingRequiredVariableError, UnexpectedArtifact}
+import _root_.io.vamp.core.persistence.{ArtifactSupport, PersistenceActor}
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
-import io.vamp.core.model.workflow.{ScheduledWorkflow, TimeTrigger, Workflow}
-import io.vamp.core.operation.notification.{InconsistentArtifactName, InvalidTimeTriggerError, UnexpectedArtifact}
 import io.vamp.core.operation.workflow.{WorkflowConfiguration, WorkflowSchedulerActor}
-import io.vamp.core.persistence.PersistenceActor
 import org.quartz.CronExpression
 
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 import scala.reflect._
 
-trait ArtifactApiController {
+trait ArtifactApiController extends ArtifactSupport {
   this: ActorSupport with FutureSupport with ExecutionContextProvider with NotificationProvider =>
 
   def allArtifacts(artifact: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
@@ -128,6 +128,11 @@ trait ArtifactApiController {
     override protected def validate: (ScheduledWorkflow => ScheduledWorkflow) = { (scheduledWorkflow: ScheduledWorkflow) =>
       scheduledWorkflow.trigger match {
         case TimeTrigger(pattern) => if (!CronExpression.isValidExpression(pattern)) error(InvalidTimeTriggerError(pattern))
+        case _ =>
+      }
+
+      artifactFor[DefaultWorkflow](scheduledWorkflow.workflow).requires.find(required => scheduledWorkflow.storage.get(required).isEmpty) match {
+        case Some(required) => error(MissingRequiredVariableError(required))
         case _ =>
       }
 
