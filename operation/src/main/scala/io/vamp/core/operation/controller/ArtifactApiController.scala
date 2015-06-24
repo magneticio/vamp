@@ -1,23 +1,22 @@
-package io.vamp.core.rest_api
+package io.vamp.core.operation.controller
 
-import _root_.io.vamp.core.operation.workflow.{WorkflowConfiguration, WorkflowSchedulerActor}
-import _root_.io.vamp.core.persistence.PersistenceActor
-import akka.actor.Actor
+import io.vamp.common.akka.CommonSupportForActors
+import io.vamp.core.operation.notification.{InconsistentArtifactName, InvalidTimeTriggerError, UnexpectedArtifact}
+import io.vamp.core.operation.workflow.{WorkflowConfiguration, WorkflowSchedulerActor}
+import io.vamp.core.persistence.PersistenceActor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
 import io.vamp.core.model.workflow.{ScheduledWorkflow, TimeTrigger, Workflow}
-import io.vamp.core.rest_api.notification.{InconsistentArtifactName, InvalidTimeTriggerError, RestApiNotificationProvider, UnexpectedArtifact}
 import org.quartz.CronExpression
 
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 import scala.reflect._
 
-trait RestApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
-  this: Actor with ExecutionContextProvider =>
+trait ArtifactApiController {
+  this: CommonSupportForActors =>
 
   def allArtifacts(artifact: String, page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(controller) => controller.all(page, perPage)
@@ -44,10 +43,6 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     case None => error(UnexpectedArtifact(artifact))
   }
 
-  private val workflowMapping: Map[String, Handler] = if (WorkflowConfiguration.enabled) {
-    Map() + ("workflows" -> new PersistenceHandler[Workflow](WorkflowReader)) + ("scheduled-workflows" -> new ScheduledWorkflowHandler())
-  } else Map()
-
   private val mapping: Map[String, Handler] = Map() +
     ("breeds" -> new PersistenceHandler[Breed](BreedReader)) +
     ("blueprints" -> new PersistenceHandler[Blueprint](BlueprintReader)) +
@@ -56,7 +51,12 @@ trait RestApiController extends RestApiNotificationProvider with ActorSupport wi
     ("escalations" -> new PersistenceHandler[Escalation](EscalationReader)) +
     ("routings" -> new PersistenceHandler[Routing](RoutingReader)) +
     ("filters" -> new PersistenceHandler[Filter](FilterReader)) +
-    ("deployments" -> new Handler()) ++ workflowMapping
+    // workaround for None response.
+    ("deployments" -> new Handler()) ++
+    // workflow handlers
+    (if (WorkflowConfiguration.enabled) {
+      Map() + ("workflows" -> new PersistenceHandler[Workflow](WorkflowReader)) + ("scheduled-workflows" -> new ScheduledWorkflowHandler())
+    } else Map())
 
   class Handler {
 

@@ -1,10 +1,10 @@
 package io.vamp.core.rest_api
 
-import akka.actor.Actor
 import akka.event.Logging._
 import akka.util.Timeout
-import io.vamp.common.akka.ExecutionContextProvider
+import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.http.RestApiBase
+import io.vamp.core.operation.controller.ArtifactApiController
 import io.vamp.core.rest_api.swagger.SwaggerResponse
 import spray.http.HttpRequest
 import spray.http.MediaTypes._
@@ -13,8 +13,8 @@ import spray.routing.directives.LogEntry
 
 import scala.language.{existentials, postfixOps}
 
-trait RestApiRoute extends RestApiBase with RestApiController with DeploymentApiRoute with InfoRoute with SwaggerResponse {
-  this: Actor with ExecutionContextProvider =>
+trait RestApiRoute extends RestApiBase with ArtifactApiController with DeploymentApiRoute with InfoRoute with SwaggerResponse {
+  this: CommonSupportForActors =>
 
   implicit def timeout: Timeout
 
