@@ -49,7 +49,7 @@ In contrast to most API's, doing a `DELETE` in Vamp takes a request body that de
 
 > Note: A `DELETE` on a deployment with an empty request body will not delete anything.
 
-The most common way to specific what you want to delete is by exporting the target deployment as a blueprint using the `?as_blueprint=true` parameter. You then either programmatically or by hand edit the resulting blueprint and specify which of the clusters or services you want to delete. You can also use the blueprint as a whole in the `DELETE` request. The result is the removal of the full deployment. 
+The most common way to specify what you want to delete is by exporting the target deployment as a blueprint using the `?as_blueprint=true` parameter. You then either programmatically or by hand edit the resulting blueprint and specify which of the services you want to delete. You can also use the blueprint as a whole in the `DELETE` request. The result is the removal of the full deployment. 
 
 **example:**
 
