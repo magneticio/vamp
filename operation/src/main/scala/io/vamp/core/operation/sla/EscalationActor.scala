@@ -35,12 +35,12 @@ class EscalationSchedulerActor extends SchedulerActor with OperationNotification
     case None =>
   }
 
-  override def schedule(period: FiniteDuration) = {
+  override def schedule(period: FiniteDuration, initialDelay: FiniteDuration) = {
     period.toNanos match {
       case interval if interval > 0 => if (windowStart.isEmpty) windowStart = Some(OffsetDateTime.now().withNano(0))
       case _ => windowStart = None
     }
-    super.schedule(period)
+    super.schedule(period, initialDelay)
   }
 
 }

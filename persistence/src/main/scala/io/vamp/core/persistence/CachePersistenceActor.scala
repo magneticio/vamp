@@ -1,13 +1,12 @@
 package io.vamp.core.persistence
 
 import akka.actor.Props
-import akka.pattern.ask
 import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
+import io.vamp.common.akka.SchedulerActor.Tick
 import io.vamp.common.akka._
-import io.vamp.common.vitals.InfoRequest
-import io.vamp.core.persistence.PersistenceActor._
-import io.vamp.core.persistence.notification.PersistenceNotificationProvider
+import io.vamp.core.model.artifact.Artifact
 
+import scala.collection.mutable
 import scala.language.postfixOps
 
 object CachePersistenceActor extends ActorDescription {
@@ -16,30 +15,46 @@ object CachePersistenceActor extends ActorDescription {
 
 case class CachePersistenceInfo(`type`: String, artifacts: Map[String, Map[String, Any]])
 
-class CachePersistenceActor(target: ActorDescription) extends PersistenceReplyActor with CommonSupportForActors with PersistenceNotificationProvider {
+class CachePersistenceActor(target: ActorDescription) extends DecoratorPersistenceActor(target) with ScheduleSupport {
 
-  protected def respond(request: Any): Any = request match {
+  private val store: mutable.Map[String, mutable.Map[String, CacheEntry]] = new mutable.HashMap()
 
-    case Start => actorFor(target) ! Start
+  override protected def respond(request: Any): Any = request match {
+    case Tick => evict()
+    case other => super.respond(other)
+  }
 
-    case Shutdown => actorFor(target) ! Shutdown
+  override protected def allowedRequestType(request: Any): Boolean = request == Tick || super.allowedRequestType(request)
 
-    case InfoRequest => offload(actorFor(target) ? InfoRequest)
+  override protected def start() = {
+    actorFor(target) ! Start
+    schedule(timeout.duration, timeout.duration)
+  }
 
-    case All(ofType) => offload(actorFor(target) ? All(ofType))
+  override protected def shutdown() = {
+    unschedule()
+    actorFor(target) ! Shutdown
+  }
 
-    case AllPaginated(ofType, page, perPage) => offload(actorFor(target) ? AllPaginated(ofType, page, perPage))
+  override protected def infoMap() = Map("cache" -> true)
 
-    case Create(artifact, source, ignoreIfExists) => offload(actorFor(target) ? Create(artifact, source, ignoreIfExists))
+  override protected def all(`type`: Class[_ <: Artifact]) = super.all(`type`)
 
-    case Read(name, ofType) => offload(actorFor(target) ? Read(name, ofType))
+  override protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int) = super.all(`type`, page, perPage)
 
-    case ReadExpanded(name, ofType) => offload(actorFor(target) ? ReadExpanded(name, ofType))
+  override protected def create(artifact: Artifact, source: Option[String], ignoreIfExists: Boolean) = super.create(artifact, source, ignoreIfExists)
 
-    case Update(artifact, source, create) => offload(actorFor(target) ? Update(artifact, source, create))
+  override protected def read(name: String, `type`: Class[_ <: Artifact]) = super.read(name, `type`)
 
-    case Delete(name, ofType) => offload(actorFor(target) ? Delete(name, ofType))
+  override protected def update(artifact: Artifact, source: Option[String], create: Boolean) = super.update(artifact, source, create)
 
-    case _ => error(errorRequest(request))
+  override protected def delete(name: String, `type`: Class[_ <: Artifact]) = super.delete(name, `type`)
+
+  override protected def readExpanded(name: String, `type`: Class[_ <: Artifact]) = super.readExpanded(name, `type`)
+
+  private def evict() = {
+    log.debug(s"${getClass.getSimpleName}: evict")
   }
 }
+
+private case class CacheEntry(artifact: Artifact, evict: Boolean = false, deleted: Boolean = false)

@@ -58,7 +58,7 @@ lazy val bintraySetting = Seq(
 
 // Library Versions
 
-val vampCommonVersion = "0.7.7.63f38b9"
+val vampCommonVersion = "0.7.7.6a2cabc"
 val vampUiVersion = "0.0.1"
 
 val sprayVersion = "1.3.2"

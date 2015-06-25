@@ -1,13 +1,13 @@
 package io.vamp.core.persistence
 
 import _root_.io.vamp.common.vitals.InfoRequest
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
-import io.vamp.common.notification.{NotificationErrorException, NotificationProvider}
+import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact.{Artifact, _}
 import io.vamp.core.persistence.notification._
 
@@ -44,9 +44,15 @@ object PersistenceActor extends ActorDescription {
 
 }
 
-trait PersistenceActor extends PersistenceReplyActor with CommonSupportForActors with PersistenceNotificationProvider {
+trait PersistenceActor extends ReplyActor with CommonSupportForActors with PersistenceNotificationProvider {
 
   import PersistenceActor._
+
+  lazy implicit val timeout = PersistenceActor.timeout
+
+  override protected def requestType: Class[_] = classOf[PersistenceMessages]
+
+  override protected def errorRequest(request: Any): RequestError = UnsupportedPersistenceRequest(request)
 
   protected def info(): Any
 
@@ -54,15 +60,23 @@ trait PersistenceActor extends PersistenceReplyActor with CommonSupportForActors
 
   protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope
 
-  protected def create(artifact: Artifact, ignoreIfExists: Boolean): Artifact
+  protected def create(artifact: Artifact, source: Option[String], ignoreIfExists: Boolean): Artifact
 
   protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
 
-  protected def update(artifact: Artifact, create: Boolean): Artifact
+  protected def update(artifact: Artifact, source: Option[String], create: Boolean): Artifact
 
   protected def delete(name: String, `type`: Class[_ <: Artifact]): Artifact
 
-  protected def respond(request: Any): Any = request match {
+  final def reply(request: Any): Any = try {
+    log.debug(s"${getClass.getSimpleName}: ${request.getClass.getSimpleName}")
+    respond(request)
+  } catch {
+    case e: NotificationErrorException => e
+    case e: Throwable => exception(PersistenceOperationFailure(e))
+  }
+
+  protected def respond(request: Any) = request match {
 
     case Start => start()
 
@@ -74,13 +88,13 @@ trait PersistenceActor extends PersistenceReplyActor with CommonSupportForActors
 
     case AllPaginated(ofType, page, perPage) => all(ofType, page, perPage)
 
-    case Create(artifact, source, ignoreIfExists) => create(artifact, ignoreIfExists)
+    case Create(artifact, source, ignoreIfExists) => create(artifact, source, ignoreIfExists)
 
     case Read(name, ofType) => read(name, ofType)
 
     case ReadExpanded(name, ofType) => readExpanded(name, ofType)
 
-    case Update(artifact, source, create) => update(artifact, create)
+    case Update(artifact, source, create) => update(artifact, source, create)
 
     case Delete(name, ofType) => delete(name, ofType)
 
@@ -178,24 +192,3 @@ trait PersistenceActor extends PersistenceReplyActor with CommonSupportForActors
     }
 }
 
-trait PersistenceReplyActor extends ReplyActor {
-  this: Actor with ActorLogging with FutureSupport with NotificationProvider =>
-
-  import PersistenceActor._
-
-  lazy implicit val timeout = PersistenceActor.timeout
-
-  override protected def requestType: Class[_] = classOf[PersistenceMessages]
-
-  override protected def errorRequest(request: Any): RequestError = UnsupportedPersistenceRequest(request)
-
-  protected def respond(request: Any): Any
-
-  final def reply(request: Any): Any = try {
-    log.debug(s"${getClass.getSimpleName}: ${request.getClass.getSimpleName}")
-    respond(request)
-  } catch {
-    case e: NotificationErrorException => e
-    case e: Throwable => exception(PersistenceOperationFailure(e))
-  }
-}

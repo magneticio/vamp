@@ -19,8 +19,6 @@ object ElasticsearchPersistenceActor extends ActorDescription {
   lazy val elasticsearchUrl: String = ConfigFactory.load().getString("vamp.core.persistence.elasticsearch.url")
 }
 
-case class ElasticsearchPersistenceInfo(`type`: String, elasticsearch: Any)
-
 case class ElasticsearchArtifact(name: String, artifact: String)
 
 case class ElasticsearchSearchResponse(hits: ElasticsearchSearchHits)
@@ -44,7 +42,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "scheduled-workflows" -> ScheduledWorkflowReader
   )
 
-  protected def info() = ElasticsearchPersistenceInfo("elasticsearch", offload(RestClient.get[Any](s"$elasticsearchUrl")))
+  protected def info() = Map[String, Any]("type" -> "elasticsearch", "elasticsearch" -> offload(RestClient.get[Any](s"$elasticsearchUrl")))
 
   protected def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
     log.debug(s"Elasticsearch persistence: all [${`type`.getSimpleName}]")
@@ -63,7 +61,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     ArtifactResponseEnvelope(artifacts, total, rp, rpp)
   }
 
-  protected def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
+  protected def create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = false): Artifact = {
     implicit val formats = CoreSerializationFormat.full
 
     log.debug(s"Elasticsearch persistence: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
@@ -92,7 +90,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     }
   }
 
-  protected def update(artifact: Artifact, create: Boolean = false): Artifact = {
+  protected def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Artifact = {
     implicit val formats = CoreSerializationFormat.full
 
     log.debug(s"Elasticsearch persistence: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
