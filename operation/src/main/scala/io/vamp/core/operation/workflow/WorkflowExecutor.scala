@@ -71,6 +71,7 @@ trait WorkflowExecutor {
     bindings.put("storage", new StorageContext)
     bindings.put("http", new HttpClientContext)
     bindings.put("events", new EventApiContext)
+    bindings.put("vamp", new InfoContext(actorRefFactory))
 
     List("breeds", "blueprints", "slas", "scales", "escalations", "routings", "filters", "workflows", "scheduled-workflows").map { group =>
       bindings.put(group.replace('-', '_'), new ArtifactApiContext(group))
