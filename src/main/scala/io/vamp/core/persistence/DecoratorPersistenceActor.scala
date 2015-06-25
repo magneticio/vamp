@@ -32,7 +32,5 @@ abstract class DecoratorPersistenceActor(target: ActorDescription) extends Persi
 
   override protected def shutdown() = actorFor(target) ! Shutdown
 
-  override protected def readExpanded(name: String, `type`: Class[_ <: Artifact]) = offload(actorFor(target) ? ReadExpanded(name, `type`)).asInstanceOf[Option[Artifact]]
-
   protected def infoMap(): Map[String, Any] = Map()
 }
