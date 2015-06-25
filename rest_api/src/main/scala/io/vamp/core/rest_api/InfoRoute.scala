@@ -14,7 +14,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.{existentials, postfixOps}
 
-case class InfoMessage(message: String, jvm: JvmVitals, persistence: Any, router: Any, pulse: Any, containerDriver: Any) extends InfoMessageBase
+case class InfoMessage(message: String, version: String, jvm: JvmVitals, persistence: Any, router: Any, pulse: Any, containerDriver: Any) extends InfoMessageBase
 
 trait InfoRoute extends InfoBaseRoute {
   this: RestApiBase =>
@@ -25,6 +25,7 @@ trait InfoRoute extends InfoBaseRoute {
 
   def info(jvm: JvmVitals): Future[InfoMessageBase] = info(Set(PersistenceActor, RouterDriverActor, PulseDriverActor, ContainerDriverActor).map(ActorSupport.alias)).map { result =>
     InfoMessage(infoMessage,
+      getClass.getPackage.getImplementationVersion,
       jvm,
       result.get(ActorSupport.alias(PersistenceActor)),
       result.get(ActorSupport.alias(RouterDriverActor)),
