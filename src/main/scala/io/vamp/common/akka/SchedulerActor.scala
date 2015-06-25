@@ -8,25 +8,31 @@ import scala.language.postfixOps
 
 object SchedulerActor {
 
-  case class Period(period: FiniteDuration)
+  case class Period(interval: FiniteDuration, initialDelay: FiniteDuration = 0 seconds)
 
   object Tick
 
 }
 
-abstract class SchedulerActor extends CommonSupportForActors {
-
-  private var timer: Option[Cancellable] = None
+abstract class SchedulerActor extends ScheduleSupport with CommonSupportForActors {
 
   def receive: Receive = {
     case Tick => tick()
-    case Period(period) => schedule(period)
-  }
-
-  def schedule(period: FiniteDuration) = {
-    timer.map(_.cancel())
-    timer = if (period.toNanos > 0) Some(context.system.scheduler.schedule(0 seconds, period, self, Tick)) else None
+    case Period(interval, initialDelay) => schedule(interval, initialDelay)
   }
 
   def tick(): Unit
+}
+
+trait ScheduleSupport {
+  this: Actor with ExecutionContextProvider =>
+
+  private var timer: Option[Cancellable] = None
+
+  def schedule(interval: FiniteDuration, initialDelay: FiniteDuration = 0 seconds) = {
+    timer.map(_.cancel())
+    timer = if (interval.toNanos > 0) Some(context.system.scheduler.schedule(initialDelay, interval, self, Tick)) else None
+  }
+
+  def unschedule() = timer.map(_.cancel())
 }
