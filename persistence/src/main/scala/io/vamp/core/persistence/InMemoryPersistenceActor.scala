@@ -23,13 +23,13 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
 
   implicit val formats = CoreSerializationFormat.default
 
-  val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
+  private val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
-  def info = InMemoryPersistenceInfo("in-memory [no persistence]", store.map {
+  protected def info() = InMemoryPersistenceInfo("in-memory [no persistence]", store.map {
     case (key, value) => key -> Map[String, Any]("count" -> value.values.size)
   } toMap)
 
-  def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
+  protected def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
     log.debug(s"InMemory persistence: all [${`type`.getSimpleName}]")
     store.get(typeOf(`type`)) match {
       case None => Nil
@@ -37,7 +37,7 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     }
   }
 
-  def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
     val artifacts = all(`type`)
     val total = artifacts.size
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
@@ -46,7 +46,7 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     ArtifactResponseEnvelope(artifacts.slice((p - 1) * pp, p * pp), total, rp, rpp)
   }
 
-  def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
+  protected def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
     log.debug(s"InMemory persistence: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     artifact match {
       case blueprint: DefaultBlueprint => blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).foreach(breed => create(breed, ignoreIfExists = true))
@@ -69,7 +69,7 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     artifact
   }
 
-  def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
+  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
     log.debug(s"InMemory persistence: read [${`type`.getSimpleName}] - $name}")
     store.get(typeOf(`type`)) match {
       case None => None
@@ -77,7 +77,7 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     }
   }
 
-  def update(artifact: Artifact, create: Boolean = false): Artifact = {
+  protected def update(artifact: Artifact, create: Boolean = false): Artifact = {
     log.debug(s"InMemory persistence: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     store.get(typeOf(artifact.getClass)) match {
       case None => if (create) this.create(artifact) else error(ArtifactNotFound(artifact.name, artifact.getClass))
@@ -90,18 +90,15 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     artifact
   }
 
-  def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = {
     log.debug(s"InMemory persistence: delete [${`type`.getSimpleName}] - $name}")
     store.get(typeOf(`type`)) match {
-      case None =>
-        exception(ArtifactNotFound(name, `type`))
-        None
+      case None => error(ArtifactNotFound(name, `type`))
       case Some(map) =>
-        if (map.get(name).isEmpty) {
-          exception(ArtifactNotFound(name, `type`))
-          None
-        }
-        else map.remove(name)
+        if (map.get(name).isEmpty)
+          error(ArtifactNotFound(name, `type`))
+        else
+          map.remove(name).get
     }
   }
 }

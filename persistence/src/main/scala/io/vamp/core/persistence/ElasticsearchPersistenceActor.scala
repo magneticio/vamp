@@ -44,9 +44,9 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "scheduled-workflows" -> ScheduledWorkflowReader
   )
 
-  def info = ElasticsearchPersistenceInfo("elasticsearch", offload(RestClient.get[Any](s"$elasticsearchUrl")))
+  protected def info() = ElasticsearchPersistenceInfo("elasticsearch", offload(RestClient.get[Any](s"$elasticsearchUrl")))
 
-  def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
+  protected def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
     log.debug(s"Elasticsearch persistence: all [${`type`.getSimpleName}]")
     // TODO iterate properly - this is related to pagination in general, we should use streams or something similar.
     val perPage = ArtifactResponseEnvelope.maxPerPage
@@ -56,14 +56,14 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     else artifacts
   }
 
-  def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
     val (total, artifacts) = findAllArtifactsBy(`type`, (p - 1) * pp, pp)
     val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, ArtifactResponseEnvelope.maxPerPage)
     ArtifactResponseEnvelope(artifacts, total, rp, rpp)
   }
 
-  def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
+  protected def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
     implicit val formats = CoreSerializationFormat.full
 
     log.debug(s"Elasticsearch persistence: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
@@ -84,7 +84,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     artifact
   }
 
-  def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
+  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
     log.debug(s"Elasticsearch persistence: read [${`type`.getSimpleName}] - $name}")
     findHitBy(name, `type`) match {
       case None => None
@@ -92,7 +92,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     }
   }
 
-  def update(artifact: Artifact, create: Boolean = false): Artifact = {
+  protected def update(artifact: Artifact, create: Boolean = false): Artifact = {
     implicit val formats = CoreSerializationFormat.full
 
     log.debug(s"Elasticsearch persistence: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
@@ -105,20 +105,16 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     artifact
   }
 
-  def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = {
     log.debug(s"Elasticsearch persistence: delete [${`type`.getSimpleName}] - $name}")
     findHitBy(name, `type`) match {
-      case None =>
-        exception(ArtifactNotFound(name, `type`))
-        None
+      case None => error(ArtifactNotFound(name, `type`))
       case Some(hit) => deserialize(`type`, hit) match {
-        case None =>
-          exception(ArtifactNotFound(name, `type`))
-          None
+        case None => error(ArtifactNotFound(name, `type`))
         case Some(artifact) =>
           // TODO validate response
           hit.get("_id").foreach(id => offload(RestClient.delete(s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id")))
-          Some(artifact)
+          artifact
       }
     }
   }
