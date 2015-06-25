@@ -17,17 +17,17 @@ object InMemoryPersistenceActor extends ActorDescription {
   def props(args: Any*): Props = Props(classOf[InMemoryPersistenceActor], args: _*)
 }
 
-case class InMemoryPersistenceInfo(`type`: String, artifacts: Map[String, Map[String, Any]])
-
 class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
 
   implicit val formats = CoreSerializationFormat.default
 
   private val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
-  protected def info() = InMemoryPersistenceInfo("in-memory [no persistence]", store.map {
-    case (key, value) => key -> Map[String, Any]("count" -> value.values.size)
-  } toMap)
+  protected def info() = Map[String, Any](
+    "type" -> "in-memory [no persistence]",
+    "artifacts" -> (store.map {
+      case (key, value) => key -> Map[String, Any]("count" -> value.values.size)
+    } toMap))
 
   protected def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
     log.debug(s"InMemory persistence: all [${`type`.getSimpleName}]")
@@ -46,7 +46,7 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     ArtifactResponseEnvelope(artifacts.slice((p - 1) * pp, p * pp), total, rp, rpp)
   }
 
-  protected def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
+  protected def create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = false): Artifact = {
     log.debug(s"InMemory persistence: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     artifact match {
       case blueprint: DefaultBlueprint => blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).foreach(breed => create(breed, ignoreIfExists = true))
@@ -77,7 +77,7 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     }
   }
 
-  protected def update(artifact: Artifact, create: Boolean = false): Artifact = {
+  protected def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Artifact = {
     log.debug(s"InMemory persistence: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     store.get(typeOf(artifact.getClass)) match {
       case None => if (create) this.create(artifact) else error(ArtifactNotFound(artifact.name, artifact.getClass))

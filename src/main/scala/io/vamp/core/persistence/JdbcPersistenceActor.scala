@@ -18,8 +18,6 @@ object JdbcPersistenceActor extends ActorDescription {
   def props(args: Any*): Props = Props(classOf[JdbcPersistenceActor], args: _*)
 }
 
-case class JdbcPersistenceInfo(`type`: String, url: String, database: DatabaseInfo)
-
 case class DatabaseInfo(name: String, version: String, schemaVersion: String)
 
 class JdbcPersistenceActor extends PersistenceActor with JdbcPersistence {
@@ -52,13 +50,13 @@ trait JdbcPersistence
 
   def debug(message: String)
 
-  def info = JdbcPersistenceInfo(
-    "jdbc",
-    sess.conn.getMetaData.getURL,
-    DatabaseInfo(sess.conn.getMetaData.getDatabaseProductName, sess.conn.getMetaData.getDatabaseProductVersion, Components.instance.schemaInfo(sess))
+  def info = Map[String, Any](
+    "type" -> "jdbc",
+    "url" -> sess.conn.getMetaData.getURL,
+    "database" -> DatabaseInfo(sess.conn.getMetaData.getDatabaseProductName, sess.conn.getMetaData.getDatabaseProductVersion, Components.instance.schemaInfo(sess))
   )
 
-  def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
+  def create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = false): Artifact = {
     debug(s"create [$ignoreIfExists] $artifact")
     read(artifact.name, artifact.getClass) match {
       case None => createArtifact(artifact)
@@ -71,7 +69,7 @@ trait JdbcPersistence
     findArtifact(name, ofType)
   }
 
-  def update(artifact: Artifact, create: Boolean = false): Artifact = {
+  def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Artifact = {
     debug(s"update [$create] $artifact")
     read(artifact.name, artifact.getClass) match {
       case None =>
