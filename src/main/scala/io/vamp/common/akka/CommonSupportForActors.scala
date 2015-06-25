@@ -8,6 +8,6 @@ trait CommonSupportForActors
   extends Actor
   with ActorLogging
   with ActorSupportForActors
-  with FutureSupport
+  with FutureSupportNotification
   with ActorExecutionContextProvider
   with NotificationProvider
