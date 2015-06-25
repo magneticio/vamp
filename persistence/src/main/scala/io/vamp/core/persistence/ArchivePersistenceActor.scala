@@ -16,8 +16,6 @@ object ArchivePersistenceActor extends ActorDescription {
   def props(args: Any*): Props = Props(classOf[ArchivePersistenceActor], args: _*)
 }
 
-case class ArchivePersistenceInfo(`type`: String, artifacts: Map[String, Map[String, Any]])
-
 class ArchivePersistenceActor(target: ActorDescription) extends DecoratorPersistenceActor(target) {
 
   override protected def infoMap() = Map("archive" -> true)
