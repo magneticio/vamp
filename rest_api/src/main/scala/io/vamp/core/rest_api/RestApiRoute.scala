@@ -21,53 +21,55 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
   val route = noCachingAllowed {
     allowXhrFromOtherHosts {
       pathPrefix("api" / "v1") {
-        accept(`application/json`, `application/x-yaml`) {
-          path("docs") {
-            pathEndOrSingleSlash {
-              respondWithStatus(OK) {
-                complete(swagger)
-              }
-            }
-          } ~ infoRoute ~ deploymentRoutes ~
-            path(Segment) { artifact: String =>
+        compressResponse() {
+          accept(`application/json`, `application/x-yaml`) {
+            path("docs") {
               pathEndOrSingleSlash {
-                get {
-                  pageAndPerPage() { (page, perPage) =>
-                    onSuccess(allArtifacts(artifact)(page, perPage)) { result =>
-                      respondWith(OK, result)
+                respondWithStatus(OK) {
+                  complete(swagger)
+                }
+              }
+            } ~ infoRoute ~ deploymentRoutes ~
+              path(Segment) { artifact: String =>
+                pathEndOrSingleSlash {
+                  get {
+                    pageAndPerPage() { (page, perPage) =>
+                      onSuccess(allArtifacts(artifact)(page, perPage)) { result =>
+                        respondWith(OK, result)
+                      }
                     }
-                  }
-                } ~ post {
-                  entity(as[String]) { request =>
-                    parameters('validate_only.as[Boolean] ? false) { validateOnly =>
-                      onSuccess(createArtifact(artifact, request, validateOnly)) { result =>
-                        respondWith(Created, result)
+                  } ~ post {
+                    entity(as[String]) { request =>
+                      parameters('validate_only.as[Boolean] ? false) { validateOnly =>
+                        onSuccess(createArtifact(artifact, request, validateOnly)) { result =>
+                          respondWith(Created, result)
+                        }
                       }
                     }
                   }
                 }
-              }
-            } ~ path(Segment / Segment) { (artifact: String, name: String) =>
-            pathEndOrSingleSlash {
-              get {
-                rejectEmptyResponse {
-                  onSuccess(readArtifact(artifact, name)) { result =>
-                    respondWith(OK, result)
-                  }
-                }
-              } ~ put {
-                entity(as[String]) { request =>
-                  parameters('validate_only.as[Boolean] ? false) { validateOnly =>
-                    onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result =>
+              } ~ path(Segment / Segment) { (artifact: String, name: String) =>
+              pathEndOrSingleSlash {
+                get {
+                  rejectEmptyResponse {
+                    onSuccess(readArtifact(artifact, name)) { result =>
                       respondWith(OK, result)
                     }
                   }
-                }
-              } ~ delete {
-                entity(as[String]) { request =>
-                  parameters('validate_only.as[Boolean] ? false) { validateOnly =>
-                    onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result =>
-                      respondWith(NoContent, None)
+                } ~ put {
+                  entity(as[String]) { request =>
+                    parameters('validate_only.as[Boolean] ? false) { validateOnly =>
+                      onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result =>
+                        respondWith(OK, result)
+                      }
+                    }
+                  }
+                } ~ delete {
+                  entity(as[String]) { request =>
+                    parameters('validate_only.as[Boolean] ? false) { validateOnly =>
+                      onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result =>
+                        respondWith(NoContent, None)
+                      }
                     }
                   }
                 }
