@@ -15,7 +15,7 @@ object PersistenceBootstrap extends Bootstrap {
       case _ => JdbcPersistenceActor
     }
 
-    ActorSupport.alias(PersistenceActor, persistence)
+    ActorSupport.alias(PersistenceActor, ArchivePersistenceActor)
 
     persistence match {
 
@@ -23,22 +23,22 @@ object PersistenceBootstrap extends Bootstrap {
         ActorSupport.actorOf(ElasticsearchPersistenceInitializationActor) ! Start
 
         ActorSupport.actorOf(ElasticsearchPersistenceActor)
-        ActorSupport.actorOf(CachePersistenceActor, ElasticsearchPersistenceActor) ! Start
+        ActorSupport.actorOf(CachePersistenceActor, ElasticsearchPersistenceActor)
 
       case _ =>
-        ActorSupport.actorOf(PersistenceActor) ! Start
+        ActorSupport.actorOf(persistence)
     }
+
+    ActorSupport.actorOf(ArchivePersistenceActor, persistence) ! Start
   }
 
-  override def shutdown(implicit actorSystem: ActorSystem): Unit = ActorSupport.alias(PersistenceActor) match {
+  override def shutdown(implicit actorSystem: ActorSystem): Unit = {
+    ActorSupport.alias(PersistenceActor) match {
+      case CachePersistenceActor => ActorSupport.actorFor(ElasticsearchPersistenceInitializationActor) ! Shutdown
+      case _ =>
+    }
 
-    case CachePersistenceActor =>
-      ActorSupport.actorFor(CachePersistenceActor) ! Shutdown
-      ActorSupport.actorFor(ElasticsearchPersistenceInitializationActor) ! Shutdown
-
-    case _ =>
-      ActorSupport.actorFor(PersistenceActor) ! Shutdown
+    ActorSupport.actorFor(PersistenceActor) ! Shutdown
   }
-
 }
 

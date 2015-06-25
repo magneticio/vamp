@@ -1,18 +1,15 @@
 package io.vamp.core.persistence
 
 import _root_.io.vamp.common.vitals.InfoRequest
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
-import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.notification.{NotificationErrorException, NotificationProvider}
 import io.vamp.core.model.artifact.{Artifact, _}
-import io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
-import io.vamp.core.persistence.notification.{ArtifactArchivingError, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
-import io.vamp.core.pulse_driver.PulseDriverActor
-import io.vamp.core.pulse_driver.model.Event
+import io.vamp.core.persistence.notification._
 
 import scala.concurrent.duration._
 import scala.language.existentials
@@ -47,61 +44,54 @@ object PersistenceActor extends ActorDescription {
 
 }
 
-trait PersistenceActor extends PersistenceReplyActor with CommonSupportForActors with ArchivingProvider with PersistenceNotificationProvider {
+trait PersistenceActor extends PersistenceReplyActor with CommonSupportForActors with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
-  override protected def requestType: Class[_] = classOf[PersistenceMessages]
+  protected def info(): Any
 
-  override protected def errorRequest(request: Any): RequestError = UnsupportedPersistenceRequest(request)
+  protected def all(`type`: Class[_ <: Artifact]): List[Artifact]
 
-  def info: Any
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope
 
-  def all(`type`: Class[_ <: Artifact]): List[Artifact]
+  protected def create(artifact: Artifact, ignoreIfExists: Boolean): Artifact
 
-  def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope
+  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
 
-  def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact
+  protected def update(artifact: Artifact, create: Boolean): Artifact
 
-  def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Artifact
 
-  def update(artifact: Artifact, create: Boolean = false): Artifact
-
-  def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
-
-  def reply(request: Any) = request match {
+  protected def respond(request: Any): Any = request match {
 
     case Start => start()
 
     case Shutdown => shutdown()
 
-    case InfoRequest => info
+    case InfoRequest => info()
 
     case All(ofType) => all(ofType)
 
     case AllPaginated(ofType, page, perPage) => all(ofType, page, perPage)
 
-    case Create(artifact, source, ignoreIfExists) => archiveCreate(create(artifact, ignoreIfExists), source)
+    case Create(artifact, source, ignoreIfExists) => create(artifact, ignoreIfExists)
 
     case Read(name, ofType) => read(name, ofType)
 
     case ReadExpanded(name, ofType) => readExpanded(name, ofType)
 
-    case Update(artifact, source, create) => if (create) archiveCreate(update(artifact, create), source) else archiveUpdate(update(artifact, create), source)
+    case Update(artifact, source, create) => update(artifact, create)
 
-    case Delete(name, ofType) => delete(name, ofType) match {
-      case Some(artifact) => archiveDelete(artifact)
-      case other => other
-    }
+    case Delete(name, ofType) => delete(name, ofType)
 
     case _ => error(errorRequest(request))
   }
 
-  def start() = {}
+  protected def start() = {}
 
-  def shutdown() = {}
+  protected def shutdown() = {}
 
-  def readExpanded(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] =
+  protected def readExpanded(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] =
     read(name, ofType) match {
       case Some(deployment: Deployment) => Some(deployment) // Deployments are already fully expanded
       case Some(blueprint: DefaultBlueprint) => Some(blueprint.copy(clusters = expandClusters(blueprint.clusters)))
@@ -189,7 +179,7 @@ trait PersistenceActor extends PersistenceReplyActor with CommonSupportForActors
 }
 
 trait PersistenceReplyActor extends ReplyActor {
-  this: Actor with NotificationProvider =>
+  this: Actor with ActorLogging with FutureSupport with NotificationProvider =>
 
   import PersistenceActor._
 
@@ -199,40 +189,13 @@ trait PersistenceReplyActor extends ReplyActor {
 
   override protected def errorRequest(request: Any): RequestError = UnsupportedPersistenceRequest(request)
 
-}
+  protected def respond(request: Any): Any
 
-trait ArchivingProvider {
-  this: NotificationProvider with ActorSupport =>
-
-  implicit val timeout: Timeout
-
-  def archiveCreate(artifact: Artifact, source: Option[String]): Artifact =
-    if (source.isDefined) archive(artifact, source, s"archiving:create") else artifact
-
-  def archiveUpdate(artifact: Artifact, source: Option[String]): Artifact =
-    if (source.isDefined) archive(artifact, source, s"archiving:update") else artifact
-
-  def archiveDelete(artifact: Artifact): Artifact = archive(artifact, None, s"archiving:delete")
-
-  protected def archive(artifact: Artifact, source: Option[String], archiveTag: String) = {
-    tagFor(artifact) match {
-      case Some(artifactTag) => actorFor(PulseDriverActor) ! PulseDriverActor.Publish(Event(Set(artifactTag, archiveTag), source))
-      case _ => exception(ArtifactArchivingError(artifact))
-    }
-    artifact
-  }
-
-  protected def tagFor(artifact: Artifact): Option[String] = artifact.getClass match {
-    case t if classOf[Deployment].isAssignableFrom(t) => Some(s"deployments:${artifact.name}")
-    case t if classOf[Breed].isAssignableFrom(t) => Some(s"breeds:${artifact.name}")
-    case t if classOf[Blueprint].isAssignableFrom(t) => Some(s"blueprints:${artifact.name}")
-    case t if classOf[Sla].isAssignableFrom(t) => Some(s"slas:${artifact.name}")
-    case t if classOf[Scale].isAssignableFrom(t) => Some(s"scales:${artifact.name}")
-    case t if classOf[Escalation].isAssignableFrom(t) => Some(s"escalations:${artifact.name}")
-    case t if classOf[Routing].isAssignableFrom(t) => Some(s"routings:${artifact.name}")
-    case t if classOf[Filter].isAssignableFrom(t) => Some(s"filters:${artifact.name}")
-    case t if classOf[Workflow].isAssignableFrom(t) => Some(s"workflows:${artifact.name}")
-    case t if classOf[ScheduledWorkflow].isAssignableFrom(t) => Some(s"scheduled-workflows:${artifact.name}")
-    case request => None
+  final def reply(request: Any): Any = try {
+    log.debug(s"${getClass.getSimpleName}: ${request.getClass.getSimpleName}")
+    respond(request)
+  } catch {
+    case e: NotificationErrorException => e
+    case e: Throwable => exception(PersistenceOperationFailure(e))
   }
 }

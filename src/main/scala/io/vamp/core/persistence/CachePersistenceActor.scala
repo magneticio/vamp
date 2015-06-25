@@ -1,9 +1,9 @@
 package io.vamp.core.persistence
 
-import _root_.io.vamp.common.akka._
 import akka.actor.Props
 import akka.pattern.ask
 import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
+import io.vamp.common.akka._
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.persistence.PersistenceActor._
 import io.vamp.core.persistence.notification.PersistenceNotificationProvider
@@ -18,7 +18,7 @@ case class CachePersistenceInfo(`type`: String, artifacts: Map[String, Map[Strin
 
 class CachePersistenceActor(target: ActorDescription) extends PersistenceReplyActor with CommonSupportForActors with PersistenceNotificationProvider {
 
-  override def reply(request: Any) = request match {
+  protected def respond(request: Any): Any = request match {
 
     case Start => actorFor(target) ! Start
 
@@ -40,6 +40,6 @@ class CachePersistenceActor(target: ActorDescription) extends PersistenceReplyAc
 
     case Delete(name, ofType) => offload(actorFor(target) ? Delete(name, ofType))
 
-    case other => offload(actorFor(target) ? other)
+    case _ => error(errorRequest(request))
   }
 }
