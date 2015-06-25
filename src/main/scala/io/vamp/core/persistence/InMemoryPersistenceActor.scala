@@ -90,15 +90,18 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     artifact
   }
 
-  def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = {
+  def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
     log.debug(s"InMemory persistence: delete [${`type`.getSimpleName}] - $name}")
     store.get(typeOf(`type`)) match {
-      case None => error(ArtifactNotFound(name, `type`))
+      case None =>
+        exception(ArtifactNotFound(name, `type`))
+        None
       case Some(map) =>
-        if (map.get(name).isEmpty)
-          error(ArtifactNotFound(name, `type`))
-        else
-          map.remove(name).get
+        if (map.get(name).isEmpty) {
+          exception(ArtifactNotFound(name, `type`))
+          None
+        }
+        else map.remove(name)
     }
   }
 }

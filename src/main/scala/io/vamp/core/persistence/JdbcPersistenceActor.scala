@@ -81,13 +81,14 @@ trait JdbcPersistence
     }
   }
 
-  def delete(name: String, ofType: Class[_ <: Artifact]): Artifact = {
+  def delete(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] = {
     findArtifact(name, ofType) match {
       case Some(artifact) =>
         deleteArtifact(artifact)
-        artifact
+        Some(artifact)
       case None =>
-        throw exception(ArtifactNotFound(name, ofType))
+        exception(ArtifactNotFound(name, ofType))
+        None
     }
   }
 

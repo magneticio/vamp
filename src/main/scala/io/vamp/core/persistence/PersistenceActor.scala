@@ -1,9 +1,10 @@
 package io.vamp.core.persistence
 
 import _root_.io.vamp.common.vitals.InfoRequest
-import akka.actor.Props
+import akka.actor.{Actor, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.NotificationProvider
@@ -46,11 +47,9 @@ object PersistenceActor extends ActorDescription {
 
 }
 
-trait PersistenceActor extends CommonSupportForActors with ReplyActor with ArchivingProvider with PersistenceNotificationProvider {
+trait PersistenceActor extends PersistenceReplyActor with CommonSupportForActors with ArchivingProvider with PersistenceNotificationProvider {
 
   import PersistenceActor._
-
-  lazy implicit val timeout = PersistenceActor.timeout
 
   override protected def requestType: Class[_] = classOf[PersistenceMessages]
 
@@ -68,9 +67,14 @@ trait PersistenceActor extends CommonSupportForActors with ReplyActor with Archi
 
   def update(artifact: Artifact, create: Boolean = false): Artifact
 
-  def delete(name: String, `type`: Class[_ <: Artifact]): Artifact
+  def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
 
   def reply(request: Any) = request match {
+
+    case Start => start()
+
+    case Shutdown => shutdown()
+
     case InfoRequest => info
 
     case All(ofType) => all(ofType)
@@ -81,16 +85,23 @@ trait PersistenceActor extends CommonSupportForActors with ReplyActor with Archi
 
     case Read(name, ofType) => read(name, ofType)
 
-    case ReadExpanded(name, ofType) => readExpandedArtifact(name, ofType)
+    case ReadExpanded(name, ofType) => readExpanded(name, ofType)
 
     case Update(artifact, source, create) => if (create) archiveCreate(update(artifact, create), source) else archiveUpdate(update(artifact, create), source)
 
-    case Delete(name, ofType) => archiveDelete(delete(name, ofType))
+    case Delete(name, ofType) => delete(name, ofType) match {
+      case Some(artifact) => archiveDelete(artifact)
+      case other => other
+    }
 
     case _ => error(errorRequest(request))
   }
 
-  private def readExpandedArtifact(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] =
+  def start() = {}
+
+  def shutdown() = {}
+
+  def readExpanded(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] =
     read(name, ofType) match {
       case Some(deployment: Deployment) => Some(deployment) // Deployments are already fully expanded
       case Some(blueprint: DefaultBlueprint) => Some(blueprint.copy(clusters = expandClusters(blueprint.clusters)))
@@ -126,7 +137,7 @@ trait PersistenceActor extends CommonSupportForActors with ReplyActor with Archi
       service.copy(
         routing = service.routing match {
           case Some(routing: DefaultRouting) => Some(routing)
-          case Some(routing: RoutingReference) => readExpandedArtifact(routing.name, classOf[DefaultRouting]) match {
+          case Some(routing: RoutingReference) => readExpanded(routing.name, classOf[DefaultRouting]) match {
             case Some(slaDefault: DefaultRouting) => Some(slaDefault)
             case _ => throw exception(ArtifactNotFound(routing.name, classOf[DefaultRouting]))
           }
@@ -134,7 +145,7 @@ trait PersistenceActor extends CommonSupportForActors with ReplyActor with Archi
         },
         scale = service.scale match {
           case Some(scale: DefaultScale) => Some(scale)
-          case Some(scale: ScaleReference) => readExpandedArtifact(scale.name, classOf[DefaultScale]) match {
+          case Some(scale: ScaleReference) => readExpanded(scale.name, classOf[DefaultScale]) match {
             case Some(scaleDefault: DefaultScale) => Some(scaleDefault)
             case _ => throw exception(ArtifactNotFound(scale.name, classOf[DefaultScale]))
           }
@@ -146,7 +157,7 @@ trait PersistenceActor extends CommonSupportForActors with ReplyActor with Archi
 
   private def replaceBreed(breed: Breed): DefaultBreed = breed match {
     case defaultBreed: DefaultBreed => defaultBreed
-    case breedReference: BreedReference => readExpandedArtifact(breedReference.name, classOf[DefaultBreed]) match {
+    case breedReference: BreedReference => readExpanded(breedReference.name, classOf[DefaultBreed]) match {
       case Some(defaultBreed: DefaultBreed) => defaultBreed
       case _ => throw exception(ArtifactNotFound(breedReference.name, classOf[DefaultBreed]))
     }
@@ -175,6 +186,19 @@ trait PersistenceActor extends CommonSupportForActors with ReplyActor with Archi
         }
       case defaultArtifact: GenericEscalation => defaultArtifact
     }
+}
+
+trait PersistenceReplyActor extends ReplyActor {
+  this: Actor with NotificationProvider =>
+
+  import PersistenceActor._
+
+  lazy implicit val timeout = PersistenceActor.timeout
+
+  override protected def requestType: Class[_] = classOf[PersistenceMessages]
+
+  override protected def errorRequest(request: Any): RequestError = UnsupportedPersistenceRequest(request)
+
 }
 
 trait ArchivingProvider {

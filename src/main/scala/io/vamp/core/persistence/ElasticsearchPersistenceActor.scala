@@ -7,30 +7,8 @@ import io.vamp.common.http.{OffsetEnvelope, RestClient}
 import io.vamp.core.model.artifact.{Artifact, DefaultBlueprint}
 import io.vamp.core.model.reader._
 import io.vamp.core.model.serialization.CoreSerializationFormat
-import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider}
-import io.vamp.core.pulse_driver.PulseDriverActor
-import io.vamp.core.pulse_driver.elasticsearch.ElasticsearchInitializationActor
+import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound}
 import org.json4s.native.Serialization._
-
-import scala.io.Source
-
-object ElasticsearchPersistenceInitializationActor extends ActorDescription {
-  def props(args: Any*): Props = Props[ElasticsearchPersistenceInitializationActor]
-}
-
-class ElasticsearchPersistenceInitializationActor extends ElasticsearchInitializationActor with PersistenceNotificationProvider {
-
-  import ElasticsearchPersistenceActor._
-
-  lazy val timeout = PulseDriverActor.timeout
-
-  lazy val elasticsearchUrl = ElasticsearchPersistenceActor.elasticsearchUrl
-
-  lazy val templates = {
-    def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"elasticsearch/$name.json")).mkString.replace("$NAME", index)
-    List("template").map(template => s"$index-$template" -> load(template)).toMap
-  }
-}
 
 object ElasticsearchPersistenceActor extends ActorDescription {
 
@@ -127,16 +105,20 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     artifact
   }
 
-  def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = {
+  def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
     log.debug(s"Elasticsearch persistence: delete [${`type`.getSimpleName}] - $name}")
     findHitBy(name, `type`) match {
-      case None => error(ArtifactNotFound(name, `type`))
+      case None =>
+        exception(ArtifactNotFound(name, `type`))
+        None
       case Some(hit) => deserialize(`type`, hit) match {
-        case None => error(ArtifactNotFound(name, `type`))
+        case None =>
+          exception(ArtifactNotFound(name, `type`))
+          None
         case Some(artifact) =>
           // TODO validate response
           hit.get("_id").foreach(id => offload(RestClient.delete(s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id")))
-          artifact
+          Some(artifact)
       }
     }
   }
