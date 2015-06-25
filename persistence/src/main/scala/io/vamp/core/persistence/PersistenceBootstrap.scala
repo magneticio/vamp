@@ -7,38 +7,27 @@ import io.vamp.common.akka.{ActorSupport, Bootstrap}
 
 object PersistenceBootstrap extends Bootstrap {
 
-  def run(implicit actorSystem: ActorSystem) = {
+  lazy val persistence = ConfigFactory.load().getString("vamp.core.persistence.storage-type") match {
+    case "in-memory" => InMemoryPersistenceActor
+    case "elasticsearch" => ElasticsearchPersistenceActor
+    case _ => JdbcPersistenceActor
+  }
 
-    val persistence = ConfigFactory.load().getString("vamp.core.persistence.storage-type") match {
-      case "in-memory" => InMemoryPersistenceActor
-      case "elasticsearch" => CachePersistenceActor
-      case _ => JdbcPersistenceActor
-    }
+  def run(implicit actorSystem: ActorSystem) = {
 
     ActorSupport.alias(PersistenceActor, ArchivePersistenceActor)
 
-    persistence match {
+    if (persistence == ElasticsearchPersistenceActor)
+      ActorSupport.actorOf(ElasticsearchPersistenceInitializationActor) ! Start
 
-      case CachePersistenceActor =>
-        ActorSupport.actorOf(ElasticsearchPersistenceInitializationActor) ! Start
-
-        ActorSupport.actorOf(ElasticsearchPersistenceActor)
-        ActorSupport.actorOf(CachePersistenceActor, ElasticsearchPersistenceActor)
-
-      case _ =>
-        ActorSupport.actorOf(persistence)
-    }
-
+    ActorSupport.actorOf(persistence)
     ActorSupport.actorOf(ArchivePersistenceActor, persistence) ! Start
   }
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {
-    ActorSupport.alias(PersistenceActor) match {
-      case CachePersistenceActor => ActorSupport.actorFor(ElasticsearchPersistenceInitializationActor) ! Shutdown
-      case _ =>
-    }
+    if (persistence == ElasticsearchPersistenceActor)
+      ActorSupport.actorFor(ElasticsearchPersistenceInitializationActor) ! Shutdown
 
     ActorSupport.actorFor(PersistenceActor) ! Shutdown
   }
 }
-

@@ -24,7 +24,7 @@ trait WorkflowExecutor {
       val refreshed = artifactFor[ScheduledWorkflow](scheduledWorkflow.name)
       eval(refreshed, artifactFor[DefaultWorkflow](refreshed.workflow), data)
     } catch {
-      case e: Exception => log.error(s"Exception during execution of '${scheduledWorkflow.name}': ${e.getMessage}", e)
+      case e: Throwable => log.error(s"Exception during execution of '${scheduledWorkflow.name}': ${e.getMessage}", e)
     }
   }
 

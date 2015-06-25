@@ -2,12 +2,13 @@ package io.vamp.core.persistence
 
 import _root_.io.vamp.common.akka._
 import akka.actor.Props
+import akka.event.LoggingAdapter
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.serialization.CoreSerializationFormat
 import io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
-import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, UnsupportedPersistenceRequest}
+import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest}
 import org.json4s.native.Serialization._
 
 import scala.collection.mutable
@@ -21,23 +22,59 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
 
   implicit val formats = CoreSerializationFormat.default
 
+  private val store = new InMemoryStore(log)
+
+  protected def info() = store.info()
+
+  protected def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
+    log.debug(s"${getClass.getSimpleName}: all [${`type`.getSimpleName}]")
+    store.all(`type`)
+  }
+
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
+    log.debug(s"${getClass.getSimpleName}: all [${`type`.getSimpleName}] of $page per $perPage")
+    store.all(`type`, page, perPage)
+  }
+
+  protected def create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = false): Artifact = {
+    log.debug(s"${getClass.getSimpleName}: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+    store.create(artifact, source, ignoreIfExists)
+  }
+
+  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
+    log.debug(s"${getClass.getSimpleName}: read [${`type`.getSimpleName}] - $name}")
+    store.read(name, `type`)
+  }
+
+  protected def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Artifact = {
+    log.debug(s"${getClass.getSimpleName}: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+    store.update(artifact, source, create)
+  }
+
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = {
+    log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
+    store.delete(name, `type`)
+  }
+}
+
+class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with PersistenceNotificationProvider {
+
   private val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
-  protected def info() = Map[String, Any](
+  def info() = Map[String, Any](
     "type" -> "in-memory [no persistence]",
     "artifacts" -> (store.map {
       case (key, value) => key -> Map[String, Any]("count" -> value.values.size)
     } toMap))
 
-  protected def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
-    log.debug(s"InMemory persistence: all [${`type`.getSimpleName}]")
+  def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
     store.get(typeOf(`type`)) match {
       case None => Nil
       case Some(map) => map.values.toList
     }
   }
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
+  def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
     val artifacts = all(`type`)
     val total = artifacts.size
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
@@ -46,8 +83,7 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     ArtifactResponseEnvelope(artifacts.slice((p - 1) * pp, p * pp), total, rp, rpp)
   }
 
-  protected def create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = false): Artifact = {
-    log.debug(s"InMemory persistence: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+  def create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = false): Artifact = {
     artifact match {
       case blueprint: DefaultBlueprint => blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).foreach(breed => create(breed, ignoreIfExists = true))
       case _ =>
@@ -69,16 +105,12 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     artifact
   }
 
-  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
-    log.debug(s"InMemory persistence: read [${`type`.getSimpleName}] - $name}")
-    store.get(typeOf(`type`)) match {
-      case None => None
-      case Some(map) => map.get(name)
-    }
+  def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = store.get(typeOf(`type`)) match {
+    case None => None
+    case Some(map) => map.get(name)
   }
 
-  protected def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Artifact = {
-    log.debug(s"InMemory persistence: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+  def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Artifact = {
     store.get(typeOf(artifact.getClass)) match {
       case None => if (create) this.create(artifact) else error(ArtifactNotFound(artifact.name, artifact.getClass))
       case Some(map) =>
@@ -90,16 +122,13 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     artifact
   }
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = {
-    log.debug(s"InMemory persistence: delete [${`type`.getSimpleName}] - $name}")
-    store.get(typeOf(`type`)) match {
-      case None => error(ArtifactNotFound(name, `type`))
-      case Some(map) =>
-        if (map.get(name).isEmpty)
-          error(ArtifactNotFound(name, `type`))
-        else
-          map.remove(name).get
-    }
+  def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = store.get(typeOf(`type`)) match {
+    case None => error(ArtifactNotFound(name, `type`))
+    case Some(map) =>
+      if (map.get(name).isEmpty)
+        error(ArtifactNotFound(name, `type`))
+      else
+        map.remove(name).get
   }
 }
 
