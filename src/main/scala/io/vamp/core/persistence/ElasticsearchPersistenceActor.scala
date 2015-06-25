@@ -3,11 +3,10 @@ package io.vamp.core.persistence
 import akka.actor.Props
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.ActorDescription
-import io.vamp.common.http.{OffsetEnvelope, RestClient}
+import io.vamp.common.http.RestClient
 import io.vamp.core.model.artifact.{Artifact, DefaultBlueprint}
 import io.vamp.core.model.reader._
 import io.vamp.core.model.serialization.CoreSerializationFormat
-import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNotFound}
 import org.json4s.native.Serialization._
 
 object ElasticsearchPersistenceActor extends ActorDescription {
@@ -29,7 +28,9 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
 
   import ElasticsearchPersistenceActor._
 
-  private val readers: Map[String, YamlReader[_ <: Artifact]] = Map(
+  private val store = new InMemoryStore(log)
+
+  private val types: Map[String, YamlReader[_ <: Artifact]] = Map(
     "deployments" -> DeploymentReader,
     "breeds" -> BreedReader,
     "blueprints" -> BlueprintReader,
@@ -45,82 +46,86 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
   protected def info() = Map[String, Any]("type" -> "elasticsearch", "elasticsearch" -> offload(RestClient.get[Any](s"$elasticsearchUrl")))
 
   protected def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
-    log.debug(s"Elasticsearch persistence: all [${`type`.getSimpleName}]")
-    // TODO iterate properly - this is related to pagination in general, we should use streams or something similar.
-    val perPage = ArtifactResponseEnvelope.maxPerPage
-    val (total, artifacts) = findAllArtifactsBy(`type`, 0, perPage)
-    if (total > artifacts.size)
-      (1 until (total / perPage + (if (total % perPage == 0) 0 else 1)).toInt).foldRight(artifacts)((i, list) => list ++ findAllArtifactsBy(`type`, i * perPage, perPage)._2)
-    else artifacts
+    log.debug(s"${getClass.getSimpleName}: all [${`type`.getSimpleName}]")
+    store.all(`type`)
   }
 
   protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
-    val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
-    val (total, artifacts) = findAllArtifactsBy(`type`, (p - 1) * pp, pp)
-    val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, ArtifactResponseEnvelope.maxPerPage)
-    ArtifactResponseEnvelope(artifacts, total, rp, rpp)
+    log.debug(s"${getClass.getSimpleName}: all [${`type`.getSimpleName}] of $page per $perPage")
+    store.all(`type`, page, perPage)
   }
 
   protected def create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = false): Artifact = {
     implicit val formats = CoreSerializationFormat.full
+    log.debug(s"${getClass.getSimpleName}: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+    val storeArtifact = store.create(artifact, source, ignoreIfExists)
 
-    log.debug(s"Elasticsearch persistence: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
-    artifact match {
+    storeArtifact match {
       case blueprint: DefaultBlueprint => blueprint.clusters.flatMap(_.services).map(_.breed).foreach(breed => create(breed, ignoreIfExists = true))
       case _ =>
     }
-    val artifacts = typeOf(artifact.getClass)
-    findHitBy(artifact.name, artifact.getClass) match {
+
+    val artifacts = typeOf(storeArtifact.getClass)
+    findHitBy(storeArtifact.name, storeArtifact.getClass) match {
       case None =>
         // TODO validate response
-        offload(RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts", ElasticsearchArtifact(artifact.name, write(artifact))))
+        RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts", ElasticsearchArtifact(storeArtifact.name, write(storeArtifact)))
       case Some(hit) =>
-        if (!ignoreIfExists) error(ArtifactAlreadyExists(artifact.name, artifact.getClass))
         // TODO validate response
-        hit.get("_id").foreach(id => offload(RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts/$id", ElasticsearchArtifact(artifact.name, write(artifact)))))
+        if (ignoreIfExists)
+          hit.get("_id").foreach(id => RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts/$id", ElasticsearchArtifact(storeArtifact.name, write(storeArtifact))))
     }
-    artifact
+    storeArtifact
   }
 
   protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
-    log.debug(s"Elasticsearch persistence: read [${`type`.getSimpleName}] - $name}")
-    findHitBy(name, `type`) match {
-      case None => None
-      case Some(hit) => deserialize(`type`, hit)
-    }
+    log.debug(s"${getClass.getSimpleName}: read [${`type`.getSimpleName}] - $name}")
+    store.read(name, `type`)
   }
 
   protected def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Artifact = {
     implicit val formats = CoreSerializationFormat.full
-
-    log.debug(s"Elasticsearch persistence: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+    log.debug(s"${getClass.getSimpleName}: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+    store.update(artifact, source, create)
     findHitBy(artifact.name, artifact.getClass) match {
-      case None => if (create) this.create(artifact) else error(ArtifactNotFound(artifact.name, artifact.getClass))
+      case None =>
       case Some(hit) =>
         // TODO validate response
-        hit.get("_id").foreach(id => offload(RestClient.post[Any](s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id", ElasticsearchArtifact(artifact.name, write(artifact)))))
+        hit.get("_id").foreach(id => RestClient.post[Any](s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id", ElasticsearchArtifact(artifact.name, write(artifact))))
     }
     artifact
   }
 
   protected def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = {
-    log.debug(s"Elasticsearch persistence: delete [${`type`.getSimpleName}] - $name}")
+    log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
+    val artifact = store.delete(name, `type`)
     findHitBy(name, `type`) match {
-      case None => error(ArtifactNotFound(name, `type`))
-      case Some(hit) => deserialize(`type`, hit) match {
-        case None => error(ArtifactNotFound(name, `type`))
-        case Some(artifact) =>
-          // TODO validate response
-          hit.get("_id").foreach(id => offload(RestClient.delete(s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id")))
-          artifact
-      }
+      case None =>
+      case Some(hit) => hit.get("_id").foreach(id => RestClient.delete(s"$elasticsearchUrl/$index/${typeOf(`type`)}/$id"))
     }
+    artifact
   }
 
-  private def findAllArtifactsBy(`type`: Class[_ <: Artifact], from: Int, size: Int): (Long, List[Artifact]) = {
-    offload(RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${typeOf(`type`)}/_search", Map("from" -> from, "size" -> size)).map {
+  override protected def start() = types.foreach {
+    case (group, reader) =>
+      val artifacts = {
+        val perPage = ArtifactResponseEnvelope.maxPerPage
+        val (total, artifacts) = findAllArtifactsBy(group, 0, perPage)
+        if (total > artifacts.size)
+          (1 until (total / perPage + (if (total % perPage == 0) 0 else 1)).toInt).foldRight(artifacts)((i, list) => list ++ findAllArtifactsBy(group, i * perPage, perPage)._2)
+        else artifacts
+      }
+      artifacts.foreach(artifact => store.create(artifact, None, ignoreIfExists = true))
+  }
+
+  private def findAllArtifactsBy(`type`: String, from: Int, size: Int): (Long, List[Artifact]) = {
+    offload(RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${`type`}/_search", Map("from" -> from, "size" -> size)).map {
       case None => 0L -> Nil
-      case Some(response) => response.hits.total -> response.hits.hits.flatMap(hit => deserialize(`type`, hit))
+      case Some(response) => response.hits.total -> response.hits.hits.flatMap { hit =>
+        hit.get("_source").flatMap(_.asInstanceOf[Map[String, _]].get("artifact")).flatMap { artifact =>
+          types.get(`type`).flatMap(reader => Some(reader.read(artifact.toString)))
+        }
+      }
     }) match {
       case (total: Long, artifacts: List[_]) => total -> artifacts.asInstanceOf[List[Artifact]]
       case e: Exception =>
@@ -139,12 +144,6 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
       case e: Exception =>
         log.error(e.getMessage, e)
         throw e
-    }
-  }
-
-  private def deserialize(`type`: Class[_ <: Artifact], hit: Map[String, _]): Option[Artifact] = {
-    hit.get("_source").flatMap(_.asInstanceOf[Map[String, _]].get("artifact")).flatMap { artifact =>
-      readers.get(typeOf(`type`)).flatMap(reader => Some(reader.read(artifact.toString)))
     }
   }
 }
