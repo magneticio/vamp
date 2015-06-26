@@ -1,0 +1,5 @@
+
+UnsupportedPulseDriverRequest           : "Unsupported pulse driver request."
+PulseResponseError                      : "Pulse response error."
+
+ElasticsearchInitializationTimeoutError$: "Elasticsearch initialization timeout."
