@@ -1,9 +1,9 @@
-package io.vamp.core.pulse_driver
+package io.vamp.core.pulse
 
 import akka.actor.ActorSystem
 import io.vamp.common.akka.{ActorSupport, Bootstrap}
-import io.vamp.core.pulse_driver.elasticsearch.ElasticsearchActor
-import io.vamp.core.pulse_driver.notification.PulseDriverNotificationProvider
+import io.vamp.core.pulse.elasticsearch.ElasticsearchActor
+import io.vamp.core.pulse.notification.PulseDriverNotificationProvider
 
 object PulseDriverBootstrap extends Bootstrap with PulseDriverNotificationProvider {
 

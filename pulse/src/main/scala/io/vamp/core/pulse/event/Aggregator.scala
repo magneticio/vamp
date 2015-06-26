@@ -1,6 +1,6 @@
-package io.vamp.core.pulse_driver.model
+package io.vamp.core.pulse.event
 
-import io.vamp.core.pulse_driver.model.Aggregator.AggregatorType
+import io.vamp.core.pulse.event.Aggregator.AggregatorType
 
 import scala.language.implicitConversions
 

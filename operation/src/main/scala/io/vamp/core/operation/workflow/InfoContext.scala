@@ -10,7 +10,7 @@ import io.vamp.common.vitals.{JmxVitalsProvider, JvmVitals}
 import io.vamp.core.container_driver.ContainerDriverActor
 import io.vamp.core.model.workflow.ScheduledWorkflow
 import io.vamp.core.persistence.PersistenceActor
-import io.vamp.core.pulse_driver.PulseDriverActor
+import io.vamp.core.pulse.PulseDriverActor
 import io.vamp.core.router_driver.RouterDriverActor
 
 import scala.concurrent.ExecutionContext

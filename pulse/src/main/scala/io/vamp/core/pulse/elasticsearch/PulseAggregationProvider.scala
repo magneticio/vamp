@@ -1,9 +1,9 @@
-package io.vamp.core.pulse_driver.elasticsearch
+package io.vamp.core.pulse.elasticsearch
 
 import java.time.OffsetDateTime
 
 import io.vamp.common.akka.ExecutionContextProvider
-import io.vamp.core.pulse_driver.model._
+import io.vamp.core.pulse.event._
 
 import scala.concurrent.Future
 import scala.reflect.ClassTag

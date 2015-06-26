@@ -1,9 +1,9 @@
-package io.vamp.core.pulse_driver.notification
+package io.vamp.core.pulse.notification
 
 import java.time.OffsetDateTime
 
 import io.vamp.common.notification._
-import io.vamp.core.pulse_driver.model.Event
+import io.vamp.core.pulse.event.Event
 
 trait PulseNotificationEventFormatter {
   def formatNotification(notification: Notification, tags: List[String] = List.empty): Event

@@ -8,8 +8,8 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
 import io.vamp.core.persistence.PersistenceActor._
 import io.vamp.core.persistence.notification.{ArtifactArchivingError, PersistenceOperationFailure}
-import io.vamp.core.pulse_driver.PulseDriverActor
-import io.vamp.core.pulse_driver.model.Event
+import io.vamp.core.pulse.PulseDriverActor
+import io.vamp.core.pulse.event.Event
 
 import scala.language.postfixOps
 

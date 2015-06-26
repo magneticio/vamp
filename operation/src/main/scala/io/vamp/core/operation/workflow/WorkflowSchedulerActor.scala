@@ -8,7 +8,7 @@ import io.vamp.core.model.workflow.{DeploymentTrigger, EventTrigger, ScheduledWo
 import io.vamp.core.operation.notification._
 import io.vamp.core.persistence.{PersistenceActor, ArtifactSupport}
 import io.vamp.core.persistence.PersistenceActor
-import io.vamp.core.pulse_driver.PulseDriverActor
+import io.vamp.core.pulse.PulseDriverActor
 
 import scala.language.postfixOps
 

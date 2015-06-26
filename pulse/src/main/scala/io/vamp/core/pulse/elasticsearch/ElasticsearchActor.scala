@@ -1,8 +1,8 @@
-package io.vamp.core.pulse_driver.elasticsearch
+package io.vamp.core.pulse.elasticsearch
 
 import akka.actor._
 import io.vamp.common.akka._
-import io.vamp.core.pulse_driver.notification.PulseDriverNotificationProvider
+import io.vamp.core.pulse.notification.PulseDriverNotificationProvider
 
 import scala.language.postfixOps
 

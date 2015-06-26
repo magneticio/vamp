@@ -95,7 +95,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  persistence, model, operation, bootstrap, container_driver, dictionary, pulse_driver, rest_api, router_driver, swagger, cli
+  persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, router_driver, swagger, cli
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
@@ -131,11 +131,11 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
   libraryDependencies ++=Seq(
     "org.quartz-scheduler" % "quartz" % quartzVersion
   )
-).dependsOn(persistence, container_driver, dictionary, pulse_driver).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(persistence, container_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val pulse_driver = project.settings(bintraySetting: _*).settings(
+lazy val pulse = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
-  name:="core-pulse_driver"
+  name:="core-pulse"
 ).dependsOn(router_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val router_driver = project.settings(bintraySetting: _*).settings(
@@ -163,7 +163,7 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
     "junit" % "junit" % junitVersion % "test",
     "org.scalatest" %% "scalatest" % scalatestVersion % "test"
   )
-).dependsOn(model, pulse_driver).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val cli = project.settings(bintraySetting: _*).settings(
   description := "Command Line Interface for Vamp",

@@ -3,8 +3,8 @@ package io.vamp.core.operation.workflow
 import java.time.OffsetDateTime
 
 import io.vamp.core.model.workflow.ScheduledWorkflow
-import io.vamp.core.pulse_driver.model.Aggregator.AggregatorType
-import io.vamp.core.pulse_driver.model.{Aggregator, Event, EventQuery, TimeRange}
+import io.vamp.core.pulse.event.Aggregator.AggregatorType
+import io.vamp.core.pulse.event.{Aggregator, Event, EventQuery, TimeRange}
 
 import scala.concurrent.ExecutionContext
 

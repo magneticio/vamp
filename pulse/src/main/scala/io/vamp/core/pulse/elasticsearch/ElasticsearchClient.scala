@@ -1,11 +1,11 @@
-package io.vamp.core.pulse_driver.elasticsearch
+package io.vamp.core.pulse.elasticsearch
 
 import java.time.OffsetDateTime
 
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.http.RestClient
 import io.vamp.common.json.OffsetDateTimeSerializer
-import io.vamp.core.pulse_driver.model.{Aggregator, Event, EventQuery, TimeRange}
+import io.vamp.core.pulse.event.{Aggregator, Event, EventQuery, TimeRange}
 import org.json4s.DefaultFormats
 import org.json4s.ext.EnumNameSerializer
 

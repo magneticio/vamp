@@ -7,7 +7,7 @@ import io.vamp.common.http.{InfoBaseRoute, InfoMessageBase, RestApiBase}
 import io.vamp.common.vitals.JvmVitals
 import io.vamp.core.container_driver.ContainerDriverActor
 import io.vamp.core.persistence.PersistenceActor
-import io.vamp.core.pulse_driver.PulseDriverActor
+import io.vamp.core.pulse.PulseDriverActor
 import io.vamp.core.router_driver.RouterDriverActor
 
 import scala.concurrent.Future

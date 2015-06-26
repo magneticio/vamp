@@ -1,4 +1,4 @@
-package io.vamp.core.pulse_driver.model
+package io.vamp.core.pulse.event
 
 import java.time.OffsetDateTime
 

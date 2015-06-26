@@ -1,4 +1,4 @@
-package io.vamp.core.pulse_driver.notification
+package io.vamp.core.pulse.notification
 
 import io.vamp.common.notification.{DefaultPackageMessageResolverProvider, LoggingNotificationProvider}
 

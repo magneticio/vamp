@@ -5,7 +5,7 @@ import io.vamp.core.container_driver.ContainerDriverBootstrap
 import io.vamp.core.dictionary.DictionaryBootstrap
 import io.vamp.core.operation.OperationBootstrap
 import io.vamp.core.persistence.PersistenceBootstrap
-import io.vamp.core.pulse_driver.PulseDriverBootstrap
+import io.vamp.core.pulse.PulseDriverBootstrap
 import io.vamp.core.rest_api.RestApiBootstrap
 import io.vamp.core.router_driver.RouterDriverBootstrap
 
