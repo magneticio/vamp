@@ -3,8 +3,8 @@ package io.vamp.core.persistence
 import akka.actor.Props
 import io.vamp.common.akka.ActorDescription
 import io.vamp.core.persistence.notification.PersistenceNotificationProvider
-import io.vamp.core.pulse_driver.PulseDriverActor
-import io.vamp.core.pulse_driver.elasticsearch.ElasticsearchInitializationActor
+import io.vamp.core.pulse.PulseDriverActor
+import io.vamp.core.pulse.elasticsearch.ElasticsearchInitializationActor
 
 import scala.io.Source
 
