@@ -20,12 +20,16 @@ abstract class ScriptingContext(implicit scheduledWorkflow: ScheduledWorkflow, e
   protected def serialize(magnet: SerializationMagnet)(implicit timeout: Timeout, formats: Formats = DefaultFormats): Any = magnet.serialize
 
   protected def load(magnet: SerializationMagnet)(implicit formats: Formats = DefaultFormats): String = magnet.load
+
+  protected def asScala(magnet: SerializationMagnet)(implicit formats: Formats = DefaultFormats): Any = magnet.asScala
 }
 
 trait SerializationMagnet {
   def serialize: Any
 
   def load: String
+
+  def asScala: Any
 }
 
 object SerializationMagnet extends FutureSupport {
@@ -33,11 +37,16 @@ object SerializationMagnet extends FutureSupport {
     def serialize = SerializationMagnet.serialize(any)
 
     def load = SerializationMagnet.load(any)
+
+    def asScala = SerializationMagnet.toScala(any)
   }
 
   protected def serialize(any: Any)(implicit timeout: Timeout, mf: Manifest[Any], formats: Formats = DefaultFormats): Any = toJavaScript(any match {
     case future: Future[_] => serialize(offload(future))
-    case anyRef: AnyRef => read[Any](write(anyRef))(DefaultFormats, mf)
+    case list: Seq[_] => list.map(serialize)
+    case anyRef: AnyRef =>
+      val string = write(anyRef)
+      if (string.startsWith("{")) read[Any](string)(DefaultFormats, mf) else anyRef
     case _ => any
   })
 
@@ -47,7 +56,7 @@ object SerializationMagnet extends FutureSupport {
   }
 
   protected def toJavaScript(any: Any): Any = any match {
-    case list: List[_] => list.map(toJavaScript).asJava.toArray
+    case list: Seq[_] => list.map(toJavaScript).asJava.toArray
     case map: Map[_, _] => map.map({
       case (key, value) => toJavaScript(key) -> toJavaScript(value)
     }).asJava
@@ -55,7 +64,7 @@ object SerializationMagnet extends FutureSupport {
   }
 
   protected def toScala(any: Any): Any = any match {
-    case l: java.util.List[_] => l.asScala.map(toScala)
+    case l: java.util.Collection[_] => l.asScala.map(toScala)
     case m: java.util.Map[_, _] =>
       val map = m.asScala.map({
         case (key, value) => toScala(key) -> toScala(value)

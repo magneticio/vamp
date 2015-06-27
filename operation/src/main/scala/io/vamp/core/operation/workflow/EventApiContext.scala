@@ -9,8 +9,8 @@ import io.vamp.core.model.workflow.ScheduledWorkflow
 import io.vamp.core.persistence.PersistenceActor
 import io.vamp.core.pulse.PulseActor.{Publish, Query}
 import io.vamp.core.pulse.event.Aggregator.AggregatorType
-import io.vamp.core.pulse.event.{Aggregator, Event, EventQuery, TimeRange}
-import io.vamp.core.pulse.{EventRequestEnvelope, PulseActor}
+import io.vamp.core.pulse.event._
+import io.vamp.core.pulse.{EventResponseEnvelope, EventRequestEnvelope, PulseActor}
 
 import scala.concurrent.ExecutionContext
 
@@ -45,7 +45,7 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
     this
   }
 
-  def publish() = {
+  def publish() = serialize {
     validateTags()
     val event = _type match {
       case None => Event(tags, _value)
@@ -119,12 +119,16 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
     this
   }
 
-  private def eventQuery(aggregator: Option[AggregatorType] = None) = {
+  private def eventQuery(aggregator: Option[AggregatorType] = None) = serialize {
     validateTags()
     val eventQuery = EventQuery(tags, Some(TimeRange(_lt, _lte, _gt, _gte)), aggregator.flatMap(a => Some(Aggregator(Some(a)))))
     logger.info(s"Event query: $eventQuery")
     reset()
-    offload(actorFor(PulseActor) ? Query(EventRequestEnvelope(eventQuery, _page, _perPage)))
+    offload(actorFor(PulseActor) ? Query(EventRequestEnvelope(eventQuery, _page, _perPage))) match {
+      case EventResponseEnvelope(list, _, _, _) => list
+      case LongValueAggregationResult(count) => count
+      case other => other
+    }
   }
 
   private def validateTags() = if (tags.isEmpty) throw new RuntimeException("Event tags must be defined.")
