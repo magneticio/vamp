@@ -2,4 +2,4 @@ package io.vamp.core.pulse.notification
 
 import io.vamp.common.notification.{DefaultPackageMessageResolverProvider, LoggingNotificationProvider}
 
-trait PulseDriverNotificationProvider extends LoggingNotificationProvider with DefaultPackageMessageResolverProvider
+trait PulseNotificationProvider extends LoggingNotificationProvider with DefaultPackageMessageResolverProvider

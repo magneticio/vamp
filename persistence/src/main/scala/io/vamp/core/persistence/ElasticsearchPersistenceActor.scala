@@ -119,31 +119,30 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
   }
 
   private def findAllArtifactsBy(`type`: String, from: Int, size: Int): (Long, List[Artifact]) = {
-    offload(RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${`type`}/_search", Map("from" -> from, "size" -> size)).map {
-      case None => 0L -> Nil
-      case Some(response) => response.hits.total -> response.hits.hits.flatMap { hit =>
+    offload(RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${`type`}/_search", Map("from" -> from, "size" -> size))) match {
+      case response: ElasticsearchSearchResponse => response.hits.total -> response.hits.hits.flatMap { hit =>
         hit.get("_source").flatMap(_.asInstanceOf[Map[String, _]].get("artifact")).flatMap { artifact =>
           types.get(`type`).flatMap(reader => Some(reader.read(artifact.toString)))
         }
       }
-    }) match {
-      case (total: Long, artifacts: List[_]) => total -> artifacts.asInstanceOf[List[Artifact]]
-      case e: Exception =>
+      case e: Throwable =>
         log.error(e.getMessage, e)
-        throw e
+        0L -> Nil
+      case other =>
+        log.error(s"unexpected: ${other.toString}")
+        0L -> Nil
     }
   }
 
   private def findHitBy(name: String, `type`: Class[_ <: Artifact]): Option[Map[String, _]] = {
-    offload(RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${typeOf(`type`)}/_search",
-      Map("from" -> 0, "size" -> 1, "query" -> ("term" -> ("name" -> name)))).map {
-      case None => None
-      case Some(response) => if (response.hits.total == 1) Some(response.hits.hits.head) else None
-    }) match {
-      case r: Option[_] => r.asInstanceOf[Option[Map[String, _]]]
-      case e: Exception =>
+    offload(RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${typeOf(`type`)}/_search", Map("from" -> 0, "size" -> 1, "query" -> ("term" -> ("name" -> name))))) match {
+      case response: ElasticsearchSearchResponse => if (response.hits.total == 1) Some(response.hits.hits.head) else None
+      case e: Throwable =>
         log.error(e.getMessage, e)
-        throw e
+        None
+      case other =>
+        log.error(s"unexpected: ${other.toString}")
+        None
     }
   }
 }

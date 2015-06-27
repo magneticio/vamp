@@ -20,9 +20,9 @@ import scala.concurrent.duration._
 
 object PulseDriverActor extends ActorDescription {
 
-  lazy val elasticsearchUrl = ConfigFactory.load().getString("vamp.core.pulse-driver.elasticsearch.url")
+  lazy val elasticsearchUrl = ConfigFactory.load().getString("vamp.core.pulse.elasticsearch.url")
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.pulse-driver.response-timeout").seconds)
+  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.pulse.response-timeout").seconds)
 
   def props(args: Any*): Props = Props(classOf[PulseDriverActor], args: _*)
 

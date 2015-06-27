@@ -4,7 +4,7 @@ import akka.actor._
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.core.pulse.elasticsearch.{ElasticsearchActor, ElasticsearchInitializationActor}
-import io.vamp.core.pulse.notification.PulseDriverNotificationProvider
+import io.vamp.core.pulse.notification.PulseNotificationProvider
 
 import scala.io.Source
 import scala.language.postfixOps
@@ -14,13 +14,13 @@ object PulseDriverInitializationActor extends ActorDescription {
   def props(args: Any*): Props = Props[PulseDriverInitializationActor]
 }
 
-class PulseDriverInitializationActor extends ElasticsearchInitializationActor with PulseDriverNotificationProvider {
+class PulseDriverInitializationActor extends ElasticsearchInitializationActor with PulseNotificationProvider {
 
   lazy val timeout = PulseDriverActor.timeout
 
   lazy val elasticsearchUrl = PulseDriverActor.elasticsearchUrl
 
-  private lazy val indexPrefix = ConfigFactory.load().getString("vamp.core.pulse-driver.elasticsearch.index-prefix")
+  private lazy val indexPrefix = ConfigFactory.load().getString("vamp.core.pulse.elasticsearch.index-prefix")
 
   lazy val templates = {
     def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"elasticsearch/$name.json")).mkString.replace("$NAME", indexPrefix)

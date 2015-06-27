@@ -47,6 +47,7 @@ class HttpClientContext(implicit scheduledWorkflow: ScheduledWorkflow, execution
     url = None
     method = None
     headers = Nil
+    this
   }
 
   private def methodUrl(method: Method.Value, url: String): HttpClientContext = {
@@ -62,8 +63,10 @@ class HttpClientContext(implicit scheduledWorkflow: ScheduledWorkflow, execution
     })
     reset()
     response match {
-      case None => default
-      case Some(result) => result
+      case e: Throwable =>
+        logger.error(e.getMessage, e)
+        None
+      case other => other
     }
   }
 }

@@ -70,7 +70,7 @@ trait WorkflowExecutor {
     bindings.put("time", new TimeContext)
     bindings.put("storage", new StorageContext)
     bindings.put("http", new HttpClientContext)
-    bindings.put("events", new EventApiContext)
+    bindings.put("events", new EventApiContext(actorRefFactory))
     bindings.put("vamp", new InfoContext(actorRefFactory))
 
     List("breeds", "blueprints", "slas", "scales", "escalations", "routings", "filters", "workflows", "scheduled-workflows").map { group =>
