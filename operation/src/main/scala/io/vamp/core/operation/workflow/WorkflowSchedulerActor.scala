@@ -6,9 +6,9 @@ import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
 import io.vamp.common.akka._
 import io.vamp.core.model.workflow.{DeploymentTrigger, EventTrigger, ScheduledWorkflow, TimeTrigger}
 import io.vamp.core.operation.notification._
-import io.vamp.core.persistence.{PersistenceActor, ArtifactSupport}
-import io.vamp.core.persistence.PersistenceActor
-import io.vamp.core.pulse.PulseDriverActor
+import io.vamp.core.persistence.{ArtifactSupport, PersistenceActor}
+import io.vamp.core.pulse.PulseActor
+import io.vamp.core.pulse.PulseActor.{UnregisterPercolator, RegisterPercolator}
 
 import scala.language.postfixOps
 
@@ -25,7 +25,7 @@ object WorkflowSchedulerActor extends ActorDescription {
 }
 
 class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecutor with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
-
+  
   import WorkflowSchedulerActor._
 
   def receive: Receive = {
@@ -73,10 +73,10 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
         quartzSchedule(workflow)
 
       case EventTrigger(tags) =>
-        actorFor(PulseDriverActor) ! PulseDriverActor.RegisterPercolator(workflow.name, tags, RunWorkflow(workflow))
+        actorFor(PulseActor) ! RegisterPercolator(workflow.name, tags, RunWorkflow(workflow))
 
       case DeploymentTrigger(name) =>
-        actorFor(PulseDriverActor) ! PulseDriverActor.RegisterPercolator(workflow.name, Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
+        actorFor(PulseActor) ! RegisterPercolator(workflow.name, Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
 
       case trigger =>
         log.warning(s"Unsupported trigger: '$trigger'.")
@@ -85,7 +85,7 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
 
   private def unschedule: (ScheduledWorkflow => Unit) = { (workflow: ScheduledWorkflow) =>
     log.debug(s"Unscheduling workflow: '${workflow.name}'.")
-    actorFor(PulseDriverActor) ! PulseDriverActor.UnregisterPercolator(workflow.name)
+    actorFor(PulseActor) ! UnregisterPercolator(workflow.name)
     quartzUnschedule(workflow)
   }
 }

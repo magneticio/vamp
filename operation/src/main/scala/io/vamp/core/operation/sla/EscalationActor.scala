@@ -7,11 +7,12 @@ import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.core.model.artifact.DeploymentService.ReadyForDeployment
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.notification.{DeEscalate, Escalate}
+import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.core.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType}
 import io.vamp.core.operation.sla.EscalationActor.EscalationProcessAll
 import io.vamp.core.persistence.PersistenceActor
-import io.vamp.core.pulse.PulseDriverActor
+import io.vamp.core.pulse.PulseActor
+import io.vamp.core.pulse.event._
 
 import scala.concurrent.duration.FiniteDuration
 import scala.language.postfixOps
@@ -73,8 +74,7 @@ class EscalationActor extends CommonSupportForActors with OperationNotificationP
           case None =>
           case Some(sla) =>
             sla.escalations.foreach { _ =>
-              implicit val timeout = PulseDriverActor.timeout
-              offload(actorFor(PulseDriverActor) ? PulseDriverActor.QuerySlaEvents(deployment, cluster, from, to)) match {
+              querySlaEvents(deployment, cluster, from, to) match {
                 case escalationEvents: List[_] => escalationEvents.foreach {
                   case Escalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = true)
                   case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = false)
@@ -88,6 +88,24 @@ class EscalationActor extends CommonSupportForActors with OperationNotificationP
         case any: Throwable => exception(InternalServerError(any))
       }
     })
+  }
+
+  private def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime): List[SlaEvent] = {
+    implicit val timeout = PulseActor.timeout
+    val eventQuery = EventQuery(SlaEvent.slaTags(deployment, cluster), Some(TimeRange(Some(from), Some(to), includeLower = false, includeUpper = true)))
+    offload(actorFor(PulseActor) ? PulseActor.QueryAll(eventQuery)) match {
+      case list: List[_] => list.asInstanceOf[List[Event]].flatMap { event =>
+        if (Escalate.tags.forall(event.tags.contains))
+          Escalate(deployment, cluster, event.timestamp) :: Nil
+        else if (DeEscalate.tags.forall(event.tags.contains))
+          DeEscalate(deployment, cluster, event.timestamp) :: Nil
+        else
+          Nil
+      }
+      case other =>
+        log.error(other.toString)
+        Nil
+    }
   }
 
   private def escalateToAll(deployment: Deployment, cluster: DeploymentCluster, escalations: List[Escalation], escalate: Boolean): Boolean = {

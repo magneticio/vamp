@@ -8,7 +8,7 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
 import io.vamp.core.persistence.PersistenceActor._
 import io.vamp.core.persistence.notification.{ArtifactArchivingError, PersistenceOperationFailure}
-import io.vamp.core.pulse.PulseDriverActor
+import io.vamp.core.pulse.PulseActor
 import io.vamp.core.pulse.event.Event
 
 import scala.language.postfixOps
@@ -52,7 +52,7 @@ class ArchivePersistenceActor(target: ActorDescription) extends DecoratorPersist
       case Some(artifactTag) =>
         val event = Event(Set(artifactTag, archiveTag), source)
         log.debug(s"Archive event with tags: ${event.tags}")
-        actorFor(PulseDriverActor) ! PulseDriverActor.Publish(event)
+        actorFor(PulseActor) ! PulseActor.Publish(event)
       case _ =>
         exception(ArtifactArchivingError(artifact))
     }

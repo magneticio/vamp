@@ -20,7 +20,7 @@ class ElasticsearchClient(val url: String)(implicit executionContext: ExecutionC
   def sendEvent(event: Event): Future[Event] = RestClient.request[Event](s"POST $url/api/v1/events", event)
 
   def getEvents(tags: Set[String], from: Option[OffsetDateTime] = None, to: Option[OffsetDateTime] = None, includeLower: Boolean = true, includeUpper: Boolean = true): Future[List[Event]] = {
-    query[List[Event]](EventQuery(tags = tags, Some(TimeRange.from(from, to, includeLower, includeUpper))))
+    query[List[Event]](EventQuery(tags = tags, Some(TimeRange(from, to, includeLower, includeUpper))))
   }
 
   def query[T <: Any : ClassTag](query: EventQuery)(implicit mf: scala.reflect.Manifest[T]): Future[T] = {

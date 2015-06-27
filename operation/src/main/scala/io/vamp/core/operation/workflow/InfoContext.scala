@@ -10,7 +10,7 @@ import io.vamp.common.vitals.{JmxVitalsProvider, JvmVitals}
 import io.vamp.core.container_driver.ContainerDriverActor
 import io.vamp.core.model.workflow.ScheduledWorkflow
 import io.vamp.core.persistence.PersistenceActor
-import io.vamp.core.pulse.PulseDriverActor
+import io.vamp.core.pulse.PulseActor
 import io.vamp.core.router_driver.RouterDriverActor
 
 import scala.concurrent.ExecutionContext
@@ -28,7 +28,7 @@ class InfoContext(actorRefFactory: ActorRefFactory)(implicit scheduledWorkflow: 
   val componentInfoTimeout = Timeout(ConfigFactory.load().getInt("vamp.core.operation.workflow.info.component-timeout") seconds)
 
   def info() = serialize {
-    val actors = Set(PersistenceActor, RouterDriverActor, PulseDriverActor, ContainerDriverActor).map(ActorSupport.alias)
+    val actors = Set(PersistenceActor, RouterDriverActor, PulseActor, ContainerDriverActor).map(ActorSupport.alias)
     offload((actorRefFactory.actorOf(InfoActor.props()) ? InfoActor.GetInfo(actors, componentInfoTimeout)).map {
       case map: Map[_, _] =>
         val result = map.asInstanceOf[Map[ActorDescription, Any]]
@@ -36,7 +36,7 @@ class InfoContext(actorRefFactory: ActorRefFactory)(implicit scheduledWorkflow: 
           vitals(),
           result.get(ActorSupport.alias(PersistenceActor)),
           result.get(ActorSupport.alias(RouterDriverActor)),
-          result.get(ActorSupport.alias(PulseDriverActor)),
+          result.get(ActorSupport.alias(PulseActor)),
           result.get(ActorSupport.alias(ContainerDriverActor))
         )
       case _ => Map()

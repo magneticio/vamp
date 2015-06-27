@@ -3,7 +3,7 @@ package io.vamp.core.persistence
 import akka.actor.Props
 import io.vamp.common.akka.ActorDescription
 import io.vamp.core.persistence.notification.PersistenceNotificationProvider
-import io.vamp.core.pulse.PulseDriverActor
+import io.vamp.core.pulse.PulseActor
 import io.vamp.core.pulse.elasticsearch.ElasticsearchInitializationActor
 
 import scala.io.Source
@@ -17,7 +17,7 @@ class ElasticsearchPersistenceInitializationActor extends ElasticsearchInitializ
 
   import ElasticsearchPersistenceActor._
 
-  lazy val timeout = PulseDriverActor.timeout
+  lazy val timeout = PulseActor.timeout
 
   lazy val elasticsearchUrl = ElasticsearchPersistenceActor.elasticsearchUrl
 

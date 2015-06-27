@@ -7,7 +7,7 @@ import io.vamp.common.http.{InfoBaseRoute, InfoMessageBase, RestApiBase}
 import io.vamp.common.vitals.JvmVitals
 import io.vamp.core.container_driver.ContainerDriverActor
 import io.vamp.core.persistence.PersistenceActor
-import io.vamp.core.pulse.PulseDriverActor
+import io.vamp.core.pulse.PulseActor
 import io.vamp.core.router_driver.RouterDriverActor
 
 import scala.concurrent.Future
@@ -23,13 +23,13 @@ trait InfoRoute extends InfoBaseRoute {
 
   val componentInfoTimeout = Timeout(ConfigFactory.load().getInt("vamp.core.rest-api.info.timeout") seconds)
 
-  def info(jvm: JvmVitals): Future[InfoMessageBase] = info(Set(PersistenceActor, RouterDriverActor, PulseDriverActor, ContainerDriverActor).map(ActorSupport.alias)).map { result =>
+  def info(jvm: JvmVitals): Future[InfoMessageBase] = info(Set(PersistenceActor, RouterDriverActor, PulseActor, ContainerDriverActor).map(ActorSupport.alias)).map { result =>
     InfoMessage(infoMessage,
       getClass.getPackage.getImplementationVersion,
       jvm,
       result.get(ActorSupport.alias(PersistenceActor)),
       result.get(ActorSupport.alias(RouterDriverActor)),
-      result.get(ActorSupport.alias(PulseDriverActor)),
+      result.get(ActorSupport.alias(PulseActor)),
       result.get(ActorSupport.alias(ContainerDriverActor))
     )
   }

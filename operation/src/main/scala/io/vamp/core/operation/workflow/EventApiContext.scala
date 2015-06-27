@@ -30,7 +30,7 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
   private var _field: Option[String] = None
 
   private var _page: Int = 1
-  private var _perPage: Int = EventRequestEnvelope.max
+  private var _perPage: Int = EventRequestEnvelope.maxPerPage
 
   def tag(t: String) = {
     tags = tags + t
@@ -125,7 +125,7 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
     _field = None
 
     _page = 1
-    _perPage = EventRequestEnvelope.max
+    _perPage = EventRequestEnvelope.maxPerPage
 
     this
   }
