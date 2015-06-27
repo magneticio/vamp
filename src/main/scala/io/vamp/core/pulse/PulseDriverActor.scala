@@ -11,7 +11,7 @@ import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, Port}
 import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.core.pulse.elasticsearch.PulseAggregationProvider
 import io.vamp.core.pulse.event.Event
-import io.vamp.core.pulse.notification.{PulseDriverNotificationProvider, PulseResponseError, UnsupportedPulseDriverRequest}
+import io.vamp.core.pulse.notification.{PulseNotificationProvider, PulseResponseError, UnsupportedPulseDriverRequest}
 import io.vamp.core.router_driver.DefaultRouterDriverNameMatcher
 
 import scala.collection.mutable
@@ -20,9 +20,9 @@ import scala.concurrent.duration._
 
 object PulseDriverActor extends ActorDescription {
 
-  lazy val elasticsearchUrl = ConfigFactory.load().getString("vamp.core.pulse-driver.elasticsearch.url")
+  lazy val elasticsearchUrl = ConfigFactory.load().getString("vamp.core.pulse.elasticsearch.url")
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.pulse-driver.response-timeout").seconds)
+  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.pulse.response-timeout").seconds)
 
   def props(args: Any*): Props = Props(classOf[PulseDriverActor], args: _*)
 
@@ -42,7 +42,7 @@ object PulseDriverActor extends ActorDescription {
 
 }
 
-class PulseDriverActor extends PulseDriver with Percolator with CommonReplyActor with PulseDriverNotificationProvider {
+class PulseDriverActor extends PulseDriver with Percolator with CommonReplyActor with PulseNotificationProvider {
 
   import io.vamp.core.pulse.PulseDriverActor._
 
