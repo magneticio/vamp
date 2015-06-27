@@ -21,17 +21,17 @@ object RestClient {
 
 
   def get[A](url: String, headers: List[(String, String)] = Nil)
-            (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[Option[A]] = {
+            (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
     http[A](Method.GET, url, None, headers)
   }
 
   def post[A](url: String, body: Any, headers: List[(String, String)] = Nil)
-             (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[Option[A]] = {
+             (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
     http[A](Method.POST, url, body, headers)
   }
 
   def put[A](url: String, body: Any, headers: List[(String, String)] = Nil)
-            (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[Option[A]] = {
+            (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
     http[A](Method.PUT, url, body, headers)
   }
 
@@ -40,40 +40,35 @@ object RestClient {
   }
 
   def http[A](method: Method.Value, url: String, body: Any, headers: List[(String, String)])
-             (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[Option[A]] = {
+             (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
 
     val requestWithUrl = dispatch.url(url).setMethod(method.toString)
     val requestWithHeaders = headers.foldLeft(requestWithUrl)((http, header) => http.setHeader(header._1, header._2))
     val requestWithBody = body match {
       case str: String =>
-        logger.trace(s"req [$url] - $body")
+        logger.trace(s"req [${method.toString} $url] - $body")
         requestWithHeaders.setBody(str)
       case any: AnyRef if any != null && any != None =>
-        logger.trace(s"req [$url] - $body")
+        logger.trace(s"req [${method.toString} $url] - $body")
         requestWithHeaders.setBody(write(any))
       case any if any != null && any != None =>
-        logger.trace(s"req [$url] - $body")
+        logger.trace(s"req [${method.toString} $url] - $body")
         requestWithHeaders.setBody(any.toString)
       case _ =>
-        logger.trace(s"req [$url]")
+        logger.trace(s"req [${method.toString} $url]")
         requestWithHeaders
     }
 
-    if (classTag[A].runtimeClass != classOf[String]) Http(requestWithBody OK dispatch.as.json4s.Json).option.map {
-      case None =>
-        logger.trace(s"rsp [$url]")
-        None
-      case Some(json) =>
-        logger.trace(s"rsp [$url] - ${compact(render(json))}")
-        Some(json.extract[A](formats, mf))
-    }
-    else Http(requestWithBody OK as.String).option.map {
-      case None =>
-        logger.trace(s"rsp [$url]")
-        None
-      case Some(s) =>
-        logger.trace(s"rsp [$url] - $s")
-        Some(s.asInstanceOf[A])
+    if (classTag[A].runtimeClass != classOf[String]) {
+      Http(requestWithBody OK dispatch.as.json4s.Json).map { json =>
+        logger.trace(s"rsp [${method.toString} $url] - ${compact(render(json))}")
+        json.extract[A](formats, mf)
+      }
+    } else {
+      Http(requestWithBody OK as.String).map { string =>
+        logger.trace(s"rsp [${method.toString} $url] - $string")
+        string.asInstanceOf[A]
+      }
     }
   }
 
