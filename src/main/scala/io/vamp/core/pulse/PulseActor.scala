@@ -22,7 +22,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object EventRequestEnvelope {
-  val max = 30
+  val maxPerPage = 30
 }
 
 case class EventRequestEnvelope(request: EventQuery, page: Int, perPage: Int) extends OffsetRequestEnvelope[EventQuery]
@@ -35,6 +35,8 @@ object PulseActor extends ActorDescription {
 
   val timeout = Timeout(configuration.getInt("response-timeout").seconds)
 
+  val elasticsearchUrl = configuration.getString("elasticsearch.url")
+
   def props(args: Any*): Props = Props(classOf[PulseActor], args: _*)
 
   trait PulseMessage
@@ -43,9 +45,17 @@ object PulseActor extends ActorDescription {
 
   case class Query(query: EventRequestEnvelope) extends PulseMessage
 
+  case class QueryFirst(query: EventQuery) extends PulseMessage
+
+  case class QueryAll(query: EventQuery) extends PulseMessage
+
+  case class RegisterPercolator(name: String, tags: Set[String], message: Any) extends PulseMessage
+
+  case class UnregisterPercolator(name: String) extends PulseMessage
+
 }
 
-class PulseActor extends CommonReplyActor with CommonSupportForActors with PulseNotificationProvider {
+class PulseActor extends Percolator with CommonReplyActor with CommonSupportForActors with PulseNotificationProvider {
 
   import PulseActor._
 
@@ -57,7 +67,7 @@ class PulseActor extends CommonReplyActor with CommonSupportForActors with Pulse
 
   private val indexName = configuration.getString("elasticsearch.index.name")
 
-  private lazy val elasticsearch = new ElasticsearchClient(configuration.getString("elasticsearch.url"))
+  private lazy val elasticsearch = new ElasticsearchClient(elasticsearchUrl)
 
   private val indexTimeFormat: Map[String, String] = configuration.getConfig("elasticsearch.index.time-format").entrySet.asScala.map { entry =>
     entry.getKey -> entry.getValue.unwrapped.toString
@@ -72,9 +82,17 @@ class PulseActor extends CommonReplyActor with CommonSupportForActors with Pulse
 
       case InfoRequest => info()
 
-      case Publish(event) => publish(event)
+      case Publish(event) => (percolate andThen publish)(Event.expandTags(event))
 
-      case Query(query) => eventQuery(query)
+      case Query(envelope) => eventQuery(envelope)
+
+      case QueryFirst(query) => eventQuery(query)
+
+      case QueryAll(query) => eventQueryAll(query)
+
+      case RegisterPercolator(name, tags, message) => registerPercolator(name, tags, message)
+
+      case UnregisterPercolator(name) => unregisterPercolator(name)
 
       case _ => unsupported(request)
     }
@@ -91,7 +109,7 @@ class PulseActor extends CommonReplyActor with CommonSupportForActors with Pulse
   private def publish(event: Event) = try {
     val (indexName, typeName) = indexTypeName(event)
     log.debug(s"Pulse publish to index '$indexName/$typeName': $event")
-    offload(elasticsearch.index(indexName, Some(typeName), Event.expandTags(event))) match {
+    offload(elasticsearch.index(indexName, Some(typeName), event)) match {
       case response: ElasticsearchIndexResponse => response
       case other =>
         log.error(s"Unexpected index result: ${other.toString}.")
@@ -108,19 +126,30 @@ class PulseActor extends CommonReplyActor with CommonSupportForActors with Pulse
     s"$indexName-$schema-$time" -> schema
   }
 
-  private def eventQuery(envelope: EventRequestEnvelope) = {
-    log.debug(s"Pulse query: $envelope")
-    val eventQuery = envelope.request
-
-    eventQuery.timestamp.foreach { time =>
-      if ((time.lt.isDefined && time.lte.isDefined) || (time.gt.isDefined && time.gte.isDefined)) error(EventQueryTimeError)
+  private def eventQueryAll(query: EventQuery) = {
+    def retrieve(page: Int, perPage: Int) = getEvents(query, page, perPage) match {
+      case EventResponseEnvelope(list, t, _, _) => t -> list
+      case _ => 0L -> Nil
     }
 
+    val perPage = EventRequestEnvelope.maxPerPage
+    val (total, events) = retrieve(1, perPage)
+    if (total > events.size)
+      (2 until (total / perPage + (if (total % perPage == 0) 0 else 1)).toInt).foldRight(events)((i, list) => list ++ retrieve(i, perPage)._2)
+    else events
+  }
+
+  private def eventQuery(envelope: EventRequestEnvelope): Any = eventQuery(envelope.request, envelope.page, envelope.perPage)
+
+  private def eventQuery(query: EventQuery, page: Int = 1, perPage: Int = EventRequestEnvelope.maxPerPage): Any = {
+    log.debug(s"Pulse query: $query")
+    validateQuery(query)
+
     try {
-      eventQuery.aggregator match {
-        case None => getEvents(envelope)
-        case Some(Aggregator(Some(Aggregator.`count`), _)) => countEvents(eventQuery)
-        case Some(Aggregator(Some(aggregator), field)) => aggregateEvents(eventQuery, aggregator, field)
+      query.aggregator match {
+        case None => getEvents(query, page, perPage)
+        case Some(Aggregator(Some(Aggregator.`count`), _)) => countEvents(query)
+        case Some(Aggregator(Some(aggregator), field)) => aggregateEvents(query, aggregator, field)
         case _ => throw new UnsupportedOperationException
       }
     } catch {
@@ -128,13 +157,19 @@ class PulseActor extends CommonReplyActor with CommonSupportForActors with Pulse
     }
   }
 
-  private def getEvents(envelope: EventRequestEnvelope) = try {
-    implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
-    val (page, perPage) = OffsetEnvelope.normalize(envelope.page, envelope.perPage, EventRequestEnvelope.max)
+  private def validateQuery(query: EventQuery) = {
+    query.timestamp.foreach { time =>
+      if ((time.lt.isDefined && time.lte.isDefined) || (time.gt.isDefined && time.gte.isDefined)) error(EventQueryTimeError)
+    }
+  }
 
-    offload(elasticsearch.search(indexName, None, constructSearch(envelope.request, page, perPage))) match {
+  private def getEvents(query: EventQuery, page: Int, perPage: Int) = try {
+    implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
+    val (p, pp) = OffsetEnvelope.normalize(page, perPage, EventRequestEnvelope.maxPerPage)
+
+    offload(elasticsearch.search(indexName, None, constructSearch(query, p, pp))) match {
       case ElasticsearchSearchResponse(hits) =>
-        EventResponseEnvelope(hits.hits.flatMap(hit => Some(read[Event](write(hit._source)))), hits.total, page, perPage)
+        EventResponseEnvelope(hits.hits.flatMap(hit => Some(read[Event](write(hit._source)))), hits.total, p, pp)
 
       case other => exception(EventQueryError(other))
     }

@@ -24,6 +24,6 @@ trait PulseAggregationProvider extends ElasticsearchClientProvider {
     aggregate[DoubleValueAggregationResult](tags, from, to, includeLower, includeUpper, Aggregator(Some(Aggregator.average), field))
 
   def aggregate[V <: AggregationResult : ClassTag](tags: Set[String], from: Option[OffsetDateTime], to: Option[OffsetDateTime], includeLower: Boolean, includeUpper: Boolean, aggregator: Aggregator)(implicit m: Manifest[V]): Future[V] =
-    elasticsearchClient.query[V](EventQuery(tags, Some(TimeRange.from(from, to, includeLower, includeUpper)), Some(aggregator)))
+    elasticsearchClient.query[V](EventQuery(tags, Some(TimeRange(from, to, includeLower, includeUpper)), Some(aggregator)))
 }
 

@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 object TimeRange {
-  def from(from: Option[OffsetDateTime], to: Option[OffsetDateTime], includeLower: Boolean, includeUpper: Boolean): TimeRange = {
+  def apply(from: Option[OffsetDateTime], to: Option[OffsetDateTime], includeLower: Boolean, includeUpper: Boolean): TimeRange = {
     def convert(time: Option[OffsetDateTime]): Option[String] = time.flatMap(t => Some(t.format(DateTimeFormatter.ISO_DATE_TIME)))
 
     val lt = if (to.isDefined && !includeUpper) convert(to) else None

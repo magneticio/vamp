@@ -16,9 +16,9 @@ object PulseDriverInitializationActor extends ActorDescription {
 
 class PulseDriverInitializationActor extends ElasticsearchInitializationActor with PulseNotificationProvider {
 
-  lazy val timeout = PulseDriverActor.timeout
+  lazy val timeout = PulseActor.timeout
 
-  lazy val elasticsearchUrl = PulseDriverActor.elasticsearchUrl
+  lazy val elasticsearchUrl = PulseActor.elasticsearchUrl
 
   private lazy val indexPrefix = ConfigFactory.load().getString("vamp.core.pulse.elasticsearch.index-prefix")
 
