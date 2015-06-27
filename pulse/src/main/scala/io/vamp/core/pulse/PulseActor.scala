@@ -8,18 +8,17 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
 import io.vamp.common.akka._
-import io.vamp.common.http.{OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope, RestClient}
+import io.vamp.common.http.{OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope}
 import io.vamp.common.json.{OffsetDateTimeSerializer, SerializationFormat}
 import io.vamp.common.vitals.InfoRequest
+import io.vamp.core.pulse.event.Aggregator.AggregatorType
 import io.vamp.core.pulse.event._
 import io.vamp.core.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
-import org.json4s.{DefaultFormats, Formats}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 object EventRequestEnvelope {
@@ -121,8 +120,8 @@ class PulseActor extends CommonReplyActor with CommonSupportForActors with Pulse
       eventQuery.aggregator match {
         case None => getEvents(envelope)
         case Some(Aggregator(Some(Aggregator.`count`), _)) => countEvents(eventQuery)
-        // TODO case Some(aggregator) => aggregateEvents(eventQuery)
-        case _ =>
+        case Some(Aggregator(Some(aggregator), field)) => aggregateEvents(eventQuery, aggregator, field)
+        case _ => throw new UnsupportedOperationException
       }
     } catch {
       case e: Throwable => exception(EventQueryError(e))
@@ -191,30 +190,27 @@ class PulseActor extends CommonReplyActor with CommonSupportForActors with Pulse
 
     case _ => None
   }
+
+  private def aggregateEvents(eventQuery: EventQuery, aggregator: AggregatorType, field: Option[String]) = try {
+    offload(elasticsearch.aggregate(indexName, None, constructAggregation(eventQuery, aggregator, field))) match {
+      case ElasticsearchAggregationResponse(ElasticsearchAggregations(ElasticsearchAggregationValue(value))) => DoubleValueAggregationResult(value)
+      case other => exception(EventQueryError(other))
+    }
+  } catch {
+    case e: Throwable => exception(EventQueryError(e))
+  }
+
+  private def constructAggregation(eventQuery: EventQuery, aggregator: AggregatorType, field: Option[String]): Map[Any, Any] = {
+    val aggregation = aggregator match {
+      case Aggregator.average => "avg"
+      case _ => aggregator.toString
+    }
+
+    val aggregationField = List("value", field.getOrElse("")).filter(_.nonEmpty).mkString(".")
+
+    constructQuery(eventQuery) +
+      ("size" -> 0) +
+      ("aggs" -> Map("aggregation" -> Map(s"$aggregation" -> Map("field" -> aggregationField))))
+  }
 }
 
-case class ElasticsearchIndexResponse(_index: String, _type: String, _id: String)
-
-case class ElasticsearchSearchResponse(hits: ElasticsearchSearchHits)
-
-case class ElasticsearchSearchHits(total: Long, hits: List[ElasticsearchSearchHit])
-
-case class ElasticsearchSearchHit(_source: Map[String, Any])
-
-case class ElasticsearchCountResponse(count: Long)
-
-class ElasticsearchClient(url: String)(implicit executor: ExecutionContext) {
-
-  def info: Future[Any] = RestClient.get[Any](s"$url/api/v1/info")
-
-  def index(index: String, `type`: Option[String], document: AnyRef)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchIndexResponse] =
-    RestClient.post[ElasticsearchIndexResponse](s"$url/${indexType(index, `type`)}", document)
-
-  def search(index: String, `type`: Option[String], query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchSearchResponse] =
-    RestClient.post[ElasticsearchSearchResponse](s"$url/${indexType(index, `type`)}/_search", query)
-
-  def count(index: String, `type`: Option[String], query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchCountResponse] =
-    RestClient.post[ElasticsearchCountResponse](s"$url/${indexType(index, `type`)}/_count", query)
-
-  private def indexType(index: String, `type`: Option[String]) = if (`type`.isDefined) s"$index/${`type`.get}" else index
-}

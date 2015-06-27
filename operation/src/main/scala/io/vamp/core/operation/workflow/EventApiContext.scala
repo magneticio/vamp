@@ -10,7 +10,7 @@ import io.vamp.core.persistence.PersistenceActor
 import io.vamp.core.pulse.PulseActor.{Publish, Query}
 import io.vamp.core.pulse.event.Aggregator.AggregatorType
 import io.vamp.core.pulse.event._
-import io.vamp.core.pulse.{EventResponseEnvelope, EventRequestEnvelope, PulseActor}
+import io.vamp.core.pulse.{EventRequestEnvelope, EventResponseEnvelope, PulseActor}
 
 import scala.concurrent.ExecutionContext
 
@@ -26,6 +26,8 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
   private var _lte: Option[String] = None
   private var _gt: Option[String] = None
   private var _gte: Option[String] = None
+
+  private var _field: Option[String] = None
 
   private var _page: Int = 1
   private var _perPage: Int = EventRequestEnvelope.max
@@ -80,6 +82,11 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
     this
   }
 
+  def field(f: String) = {
+    _field = Some(f)
+    this
+  }
+
   def page(p: Int) = {
     _page = p
     this
@@ -100,6 +107,8 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
 
   def min() = eventQuery(Some(Aggregator.min))
 
+  def sum() = eventQuery(Some(Aggregator.sum))
+
   def average() = eventQuery(Some(Aggregator.average))
 
   def reset() = {
@@ -113,6 +122,8 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
     _gt = None
     _gte = None
 
+    _field = None
+
     _page = 1
     _perPage = EventRequestEnvelope.max
 
@@ -121,12 +132,12 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
 
   private def eventQuery(aggregator: Option[AggregatorType] = None) = serialize {
     validateTags()
-    val eventQuery = EventQuery(tags, Some(TimeRange(_lt, _lte, _gt, _gte)), aggregator.flatMap(a => Some(Aggregator(Some(a)))))
+    val eventQuery = EventQuery(tags, Some(TimeRange(_lt, _lte, _gt, _gte)), aggregator.flatMap(a => Some(Aggregator(Some(a), _field))))
     logger.info(s"Event query: $eventQuery")
     reset()
     offload(actorFor(PulseActor) ? Query(EventRequestEnvelope(eventQuery, _page, _perPage))) match {
       case EventResponseEnvelope(list, _, _, _) => list
-      case LongValueAggregationResult(count) => count
+      case result: SingleValueAggregationResult[_] => result.value
       case other => other
     }
   }
