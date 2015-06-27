@@ -134,9 +134,9 @@ class PulseActor extends CommonReplyActor with CommonSupportForActors with Pulse
     val (page, perPage) = OffsetEnvelope.normalize(envelope.page, envelope.perPage, EventRequestEnvelope.max)
 
     offload(elasticsearch.search(indexName, None, constructSearch(envelope.request, page, perPage))) match {
-      case ElasticsearchSearchResponse(hits) => EventResponseEnvelope(hits.hits.flatMap({ hit =>
-        hit._source.flatMap(source => Some(read[Event](write(source))))
-      }), hits.total, page, perPage)
+      case ElasticsearchSearchResponse(hits) =>
+        EventResponseEnvelope(hits.hits.flatMap(hit => Some(read[Event](write(hit._source)))), hits.total, page, perPage)
+
       case other => exception(EventQueryError(other))
     }
   } catch {
@@ -181,16 +181,14 @@ class PulseActor extends CommonReplyActor with CommonSupportForActors with Pulse
 
   private def constructTimeRange(timeRange: Option[TimeRange]): Option[Map[Any, Any]] = timeRange match {
     case Some(tr) =>
-      Some(Map("range" ->
-        Map("timestamp" ->
-          Map(
-            "lt" -> tr.lt,
-            "lte" -> tr.lte,
-            "gt" -> tr.gt,
-            "gte" -> tr.gte
-          ).filter(_._2.isDefined).map { case (k, v) => k -> v.get }
-        )
-      ))
+      val query = Map(
+        "lt" -> tr.lt,
+        "lte" -> tr.lte,
+        "gt" -> tr.gt,
+        "gte" -> tr.gte
+      ).filter(_._2.isDefined).map { case (k, v) => k -> v.get }
+      if (query.isEmpty) None else Some(Map("range" -> Map("timestamp" -> query)))
+
     case _ => None
   }
 }
@@ -201,7 +199,7 @@ case class ElasticsearchSearchResponse(hits: ElasticsearchSearchHits)
 
 case class ElasticsearchSearchHits(total: Long, hits: List[ElasticsearchSearchHit])
 
-case class ElasticsearchSearchHit(_source: Map[Any, Any])
+case class ElasticsearchSearchHit(_source: Map[String, Any])
 
 case class ElasticsearchCountResponse(count: Long)
 
