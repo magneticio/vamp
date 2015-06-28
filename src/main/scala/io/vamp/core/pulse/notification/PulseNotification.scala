@@ -9,10 +9,7 @@ case class PulseResponseError(reason: Any) extends Notification with ErrorNotifi
 
 object ElasticsearchInitializationTimeoutError extends Notification
 
-object EmptyEventError extends Notification
-
 case class EventIndexError(reason: Any) extends Notification with ErrorNotification
 
 case class EventQueryError(reason: Any) extends Notification with ErrorNotification
 
-object EventQueryTimeError extends Notification
