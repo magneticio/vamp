@@ -1,0 +1,7 @@
+tags:
+- server
+- service
+
+timestamp:
+  gt: "now() - 10m"
+  gte: "now()"

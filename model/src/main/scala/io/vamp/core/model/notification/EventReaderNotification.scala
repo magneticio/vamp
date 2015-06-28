@@ -6,3 +6,5 @@ object NoTagEventError extends Notification
 
 object EventQueryTimeError extends Notification
 
+case class UnsupportedAggregatorError(aggregator: String) extends Notification
+

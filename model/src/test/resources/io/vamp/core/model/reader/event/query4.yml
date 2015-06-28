@@ -1,0 +1,6 @@
+tags:
+- server
+- service
+
+aggregator:
+  type: deviation
