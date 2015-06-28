@@ -13,6 +13,7 @@ import io.vamp.common.json.{OffsetDateTimeSerializer, SerializationFormat}
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.event.Aggregator.AggregatorType
 import io.vamp.core.model.event._
+import io.vamp.core.model.validator.EventValidator
 import io.vamp.core.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
@@ -57,7 +58,7 @@ object PulseActor extends ActorDescription {
 
 }
 
-class PulseActor extends Percolator with CommonReplyActor with CommonSupportForActors with PulseNotificationProvider {
+class PulseActor extends Percolator with EventValidator with CommonReplyActor with CommonSupportForActors with PulseNotificationProvider {
 
   import PulseActor._
 
@@ -82,13 +83,15 @@ class PulseActor extends Percolator with CommonReplyActor with CommonSupportForA
 
       case InfoRequest => info()
 
-      case Publish(event) => (percolate andThen publish)(Event.expandTags(event))
+      case Publish(event) => (validateEvent andThen percolate andThen publish)(Event.expandTags(event))
 
-      case Query(envelope) => eventQuery(envelope)
+      case Query(envelope) =>
+        validateEventQuery(envelope.request)
+        eventQuery(envelope)
 
-      case QueryFirst(query) => eventQuery(query)
+      case QueryFirst(query) => (validateEventQuery andThen eventQuery)(query)
 
-      case QueryAll(query) => eventQueryAll(query)
+      case QueryAll(query) => (validateEventQuery andThen eventQueryAll)(query)
 
       case RegisterPercolator(name, tags, message) => registerPercolator(name, tags, message)
 
@@ -142,10 +145,10 @@ class PulseActor extends Percolator with CommonReplyActor with CommonSupportForA
 
   private def eventQuery(envelope: EventRequestEnvelope): Any = eventQuery(envelope.request, envelope.page, envelope.perPage)
 
-  private def eventQuery(query: EventQuery, page: Int = 1, perPage: Int = EventRequestEnvelope.maxPerPage): Any = {
-    log.debug(s"Pulse query: $query")
-    validateQuery(query)
+  private def eventQuery(query: EventQuery): Any = eventQuery(query, 1, EventRequestEnvelope.maxPerPage)
 
+  private def eventQuery(query: EventQuery, page: Int, perPage: Int): Any = {
+    log.debug(s"Pulse query: $query")
     try {
       query.aggregator match {
         case None => getEvents(query, page, perPage)
@@ -155,12 +158,6 @@ class PulseActor extends Percolator with CommonReplyActor with CommonSupportForA
       }
     } catch {
       case e: Throwable => exception(EventQueryError(e))
-    }
-  }
-
-  private def validateQuery(query: EventQuery) = {
-    query.timestamp.foreach { time =>
-      if ((time.lt.isDefined && time.lte.isDefined) || (time.gt.isDefined && time.gte.isDefined)) error(EventQueryTimeError)
     }
   }
 

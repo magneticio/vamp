@@ -35,3 +35,9 @@ NotificationMessageNotRestored        : "Deployment service error was not restor
 # Workflows
 
 UndefinedWorkflowTriggerError$        : "Undefined workflow trigger - either deployment, time or tags must be specified."
+
+# Event
+
+NoTagEventError$                      : "Publishing an event without tags is not allowed."
+EventQueryTimeError$                  : "Event query time range is not valid, both 'lt' and 'lte' or 'gt' and 'gte' are not allowed."
+
