@@ -13,7 +13,7 @@ import spray.routing.directives.LogEntry
 
 import scala.language.{existentials, postfixOps}
 
-trait RestApiRoute extends RestApiBase with ArtifactApiController with DeploymentApiRoute with InfoRoute with SwaggerResponse {
+trait RestApiRoute extends RestApiBase with ArtifactApiController with DeploymentApiRoute with EventApiRoute with InfoRoute with SwaggerResponse {
   this: CommonSupportForActors =>
 
   implicit def timeout: Timeout
@@ -29,7 +29,7 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
                   complete(swagger)
                 }
               }
-            } ~ infoRoute ~ deploymentRoutes ~
+            } ~ infoRoute ~ deploymentRoutes ~ eventRoutes ~
               path(Segment) { artifact: String =>
                 pathEndOrSingleSlash {
                   get {

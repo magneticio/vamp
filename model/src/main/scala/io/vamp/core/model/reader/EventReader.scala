@@ -3,11 +3,10 @@ package io.vamp.core.model.reader
 import java.time.OffsetDateTime
 
 import io.vamp.core.model.event.{Aggregator, Event, EventQuery, TimeRange}
-import io.vamp.core.model.notification.UnsupportedAggregatorError
+import io.vamp.core.model.notification.{EventTimestampError, UnsupportedAggregatorError}
 import io.vamp.core.model.validator.EventValidator
 
 import scala.language.postfixOps
-import scala.util.Try
 
 object EventReader extends YamlReader[Event] with EventValidator {
 
@@ -19,7 +18,14 @@ object EventReader extends YamlReader[Event] with EventValidator {
   override protected def parse(implicit source: YamlObject): Event = {
     val tags = <<![List[String]]("tags").toSet
     val value = <<![AnyRef]("value")
-    val timestamp = Try(OffsetDateTime.parse(<<![String]("timestamp"))) getOrElse OffsetDateTime.now
+
+    val timestamp = <<?[String]("timestamp") match {
+      case None => OffsetDateTime.now
+      case Some(time) => try OffsetDateTime.parse(time) catch {
+        case e: Exception => error(EventTimestampError(time))
+      }
+    }
+
     val `type` = <<?[String]("type").getOrElse("event")
 
     Event(tags, value, timestamp, `type`)

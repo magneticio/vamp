@@ -39,6 +39,7 @@ UndefinedWorkflowTriggerError$        : "Undefined workflow trigger - either dep
 # Event
 
 NoTagEventError$                      : "Publishing an event without tags is not allowed."
+EventTimestampError                   : "Event timestamp cannot be parsed: '{timestamp}'."
 EventQueryTimeError$                  : "Event query time range is not valid, both 'lt' and 'lte' or 'gt' and 'gte' are not allowed."
 UnsupportedAggregatorError            : "Unsuported aggregator: {aggregator}."
 

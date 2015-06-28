@@ -3,7 +3,7 @@ package io.vamp.core.model.reader
 import java.time.OffsetDateTime
 
 import io.vamp.core.model.event.{Aggregator, TimeRange}
-import io.vamp.core.model.notification.{UnsupportedAggregatorError, EventQueryTimeError, MissingPathValueError, NoTagEventError}
+import io.vamp.core.model.notification._
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
@@ -39,6 +39,18 @@ class EventReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "fail on empty tags" in {
     expectedError[NoTagEventError.type]({
       EventReader.read(res("event/event4.yml"))
+    })
+  }
+
+  it should "fail on invalid timestamp" in {
+    expectedError[EventTimestampError]({
+      EventReader.read(res("event/event5.yml"))
+    })
+  }
+
+  it should "fail on missing value" in {
+    expectedError[MissingPathValueError]({
+      EventReader.read(res("event/event6.yml"))
     })
   }
 
