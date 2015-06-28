@@ -16,8 +16,8 @@ trait EventApiRoute extends Json4sSupport {
 
   import PulseActor._
 
-  implicit val timeput = PulseActor.timeout
-  
+  implicit val timeout = PulseActor.timeout
+
   override implicit def json4sFormats: Formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
 
   val eventRoutes = path("events" / "get") {
