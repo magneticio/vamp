@@ -8,13 +8,14 @@ import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.core.model.artifact._
+import io.vamp.core.model.event.{EventQuery, TimeRange, Aggregator, Event}
 import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.core.operation.notification._
 import io.vamp.core.operation.sla.SlaActor.SlaProcessAll
 import io.vamp.core.persistence.PersistenceActor
 import io.vamp.core.pulse.PulseActor
 import io.vamp.core.pulse.PulseActor.Publish
-import io.vamp.core.pulse.event._
+import io.vamp.core.model.event._
 import io.vamp.core.router_driver.DefaultRouterDriverNameMatcher
 
 import scala.language.postfixOps
@@ -109,7 +110,7 @@ trait SlaPulse extends DefaultRouterDriverNameMatcher {
   implicit val timeout = PulseActor.timeout
 
   def eventExists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime): Boolean = {
-    val eventQuery = EventQuery(SlaEvent.slaTags(deployment, cluster), Some(TimeRange(Some(from), Some(OffsetDateTime.now()), includeLower = true, includeUpper = true)), Some(Aggregator(Some(Aggregator.count))))
+    val eventQuery = EventQuery(SlaEvent.slaTags(deployment, cluster), Some(TimeRange(Some(from), Some(OffsetDateTime.now()), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.count)))
     offload(actorFor(PulseActor) ? PulseActor.QueryFirst(eventQuery)) match {
       case LongValueAggregationResult(count) => count > 0
       case other =>
@@ -119,7 +120,7 @@ trait SlaPulse extends DefaultRouterDriverNameMatcher {
   }
 
   def responseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime): Option[Double] = {
-    val eventQuery = EventQuery(Set(s"routes:${clusterRouteName(deployment, cluster, port)}", "metrics:rtime"), Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Some(Aggregator.average))))
+    val eventQuery = EventQuery(Set(s"routes:${clusterRouteName(deployment, cluster, port)}", "metrics:rtime"), Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average)))
     offload(actorFor(PulseActor) ? PulseActor.QueryFirst(eventQuery)) match {
       case DoubleValueAggregationResult(value) => Some(value)
       case other =>

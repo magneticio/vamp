@@ -1,11 +1,10 @@
-package io.vamp.core.pulse.event
+package io.vamp.core.model.event
 
 import java.time.OffsetDateTime
 
-
 object Event {
 
-  private val tagDelimiter = ':'
+  val tagDelimiter = ':'
 
   def expandTags: (Event => Event) = { (event: Event) => event.copy(tags = expandTags(event.tags)) }
 

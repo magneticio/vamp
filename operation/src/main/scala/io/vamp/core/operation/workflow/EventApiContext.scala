@@ -5,11 +5,11 @@ import java.time.OffsetDateTime
 import akka.actor.ActorRefFactory
 import akka.pattern.ask
 import io.vamp.common.akka.{ActorSupport, FutureSupport}
+import io.vamp.core.model.event.Aggregator.AggregatorType
+import io.vamp.core.model.event._
 import io.vamp.core.model.workflow.ScheduledWorkflow
 import io.vamp.core.persistence.PersistenceActor
 import io.vamp.core.pulse.PulseActor.{Publish, Query}
-import io.vamp.core.pulse.event.Aggregator.AggregatorType
-import io.vamp.core.pulse.event._
 import io.vamp.core.pulse.{EventRequestEnvelope, EventResponseEnvelope, PulseActor}
 
 import scala.concurrent.ExecutionContext
@@ -109,6 +109,8 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
 
   def sum() = eventQuery(Some(Aggregator.sum))
 
+  def avg() = average()
+
   def average() = eventQuery(Some(Aggregator.average))
 
   def reset() = {
@@ -132,7 +134,7 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
 
   private def eventQuery(aggregator: Option[AggregatorType] = None) = serialize {
     validateTags()
-    val eventQuery = EventQuery(tags, Some(TimeRange(_lt, _lte, _gt, _gte)), aggregator.flatMap(a => Some(Aggregator(Some(a), _field))))
+    val eventQuery = EventQuery(tags, Some(TimeRange(_lt, _lte, _gt, _gte)), aggregator.flatMap(agg => Some(Aggregator(agg, _field))))
     logger.info(s"Event query: $eventQuery")
     reset()
     offload(actorFor(PulseActor) ? Query(EventRequestEnvelope(eventQuery, _page, _perPage))) match {

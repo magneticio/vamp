@@ -1,8 +1,7 @@
-package io.vamp.core.pulse.event
+package io.vamp.core.model.event
 
-import io.vamp.core.pulse.event.Aggregator.AggregatorType
+import io.vamp.core.model.event.Aggregator.AggregatorType
 
-import scala.language.implicitConversions
 
 object Aggregator extends Enumeration {
   type AggregatorType = Aggregator.Value
@@ -10,8 +9,7 @@ object Aggregator extends Enumeration {
   val min, max, average, sum, count = Value
 }
 
-case class Aggregator(`type`: Option[AggregatorType], field: Option[String] = None)
-
+case class Aggregator(`type`: AggregatorType, field: Option[String] = None)
 
 trait AggregationResult
 

@@ -4,7 +4,7 @@ import akka.pattern.ask
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.json.{OffsetDateTimeSerializer, SerializationFormat}
-import io.vamp.core.pulse.event.{Aggregator, Event, EventQuery}
+import io.vamp.core.model.event.{Aggregator, Event, EventQuery}
 import io.vamp.core.pulse.{EventRequestEnvelope, PulseActor}
 import org.json4s.Formats
 import org.json4s.ext.EnumNameSerializer

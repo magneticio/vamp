@@ -1,7 +1,12 @@
-package io.vamp.core.pulse.event
+package io.vamp.core.model.event
 
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+
+
+case class EventQuery(tags: Set[String], timestamp: Option[TimeRange], aggregator: Option[Aggregator] = None)
+
+case class TimeRange(lt: Option[String], lte: Option[String], gt: Option[String], gte: Option[String])
 
 object TimeRange {
   def apply(from: Option[OffsetDateTime], to: Option[OffsetDateTime], includeLower: Boolean, includeUpper: Boolean): TimeRange = {
@@ -16,6 +21,3 @@ object TimeRange {
   }
 }
 
-case class TimeRange(lt: Option[String], lte: Option[String], gt: Option[String], gte: Option[String])
-
-case class EventQuery(tags: Set[String], timestamp: Option[TimeRange], aggregator: Option[Aggregator] = None)

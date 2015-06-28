@@ -5,11 +5,11 @@ import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
+import io.vamp.core.model.event.Event
 import io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
 import io.vamp.core.persistence.PersistenceActor._
 import io.vamp.core.persistence.notification.{ArtifactArchivingError, PersistenceOperationFailure}
 import io.vamp.core.pulse.PulseActor
-import io.vamp.core.pulse.event.Event
 
 import scala.language.postfixOps
 
@@ -52,7 +52,7 @@ class ArchivePersistenceActor(target: ActorDescription) extends DecoratorPersist
       case Some(artifactTag) =>
         val event = Event(Set(artifactTag, archiveTag), source)
         log.debug(s"Archive event with tags: ${event.tags}")
-        actorFor(PulseActor) ! PulseActor.Publish(event)
+        actorFor(PulseActor) ? PulseActor.Publish(event)
       case _ =>
         exception(ArtifactArchivingError(artifact))
     }
