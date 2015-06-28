@@ -11,8 +11,8 @@ import io.vamp.common.akka._
 import io.vamp.common.http.{OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope}
 import io.vamp.common.json.{OffsetDateTimeSerializer, SerializationFormat}
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.core.pulse.event.Aggregator.AggregatorType
-import io.vamp.core.pulse.event._
+import io.vamp.core.model.event.Aggregator.AggregatorType
+import io.vamp.core.model.event._
 import io.vamp.core.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
@@ -36,6 +36,8 @@ object PulseActor extends ActorDescription {
   val timeout = Timeout(configuration.getInt("response-timeout").seconds)
 
   val elasticsearchUrl = configuration.getString("elasticsearch.url")
+
+  val indexName = configuration.getString("elasticsearch.index.name")
 
   def props(args: Any*): Props = Props(classOf[PulseActor], args: _*)
 
@@ -63,9 +65,7 @@ class PulseActor extends Percolator with CommonReplyActor with CommonSupportForA
 
   override protected def requestType: Class[_] = classOf[PulseMessage]
 
-  override protected def errorRequest(request: Any): RequestError = UnsupportedPulseDriverRequest(request)
-
-  private val indexName = configuration.getString("elasticsearch.index.name")
+  override protected def errorRequest(request: Any): RequestError = UnsupportedPulseRequest(request)
 
   private lazy val elasticsearch = new ElasticsearchClient(elasticsearchUrl)
 
@@ -107,6 +107,7 @@ class PulseActor extends Percolator with CommonReplyActor with CommonSupportForA
   private def info() = offload(elasticsearch.info)
 
   private def publish(event: Event) = try {
+    implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (indexName, typeName) = indexTypeName(event)
     log.debug(s"Pulse publish to index '$indexName/$typeName': $event")
     offload(elasticsearch.index(indexName, Some(typeName), event)) match {
@@ -148,8 +149,8 @@ class PulseActor extends Percolator with CommonReplyActor with CommonSupportForA
     try {
       query.aggregator match {
         case None => getEvents(query, page, perPage)
-        case Some(Aggregator(Some(Aggregator.`count`), _)) => countEvents(query)
-        case Some(Aggregator(Some(aggregator), field)) => aggregateEvents(query, aggregator, field)
+        case Some(Aggregator(Aggregator.`count`, _)) => countEvents(query)
+        case Some(Aggregator(aggregator, field)) => aggregateEvents(query, aggregator, field)
         case _ => throw new UnsupportedOperationException
       }
     } catch {

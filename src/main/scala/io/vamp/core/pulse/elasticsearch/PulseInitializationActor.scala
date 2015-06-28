@@ -1,7 +1,6 @@
 package io.vamp.core.pulse.elasticsearch
 
 import akka.actor._
-import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.core.pulse.PulseActor
 import io.vamp.core.pulse.notification.PulseNotificationProvider
@@ -20,10 +19,8 @@ class PulseInitializationActor extends ElasticsearchInitializationActor with Pul
 
   lazy val elasticsearchUrl = PulseActor.elasticsearchUrl
 
-  private lazy val indexPrefix = ConfigFactory.load().getString("vamp.core.pulse.elasticsearch.index-prefix")
-
   lazy val templates = {
-    def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"elasticsearch/$name.json")).mkString.replace("$NAME", indexPrefix)
-    List("template", "template-event").map(template => s"$indexPrefix-$template" -> load(template)).toMap
+    def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"$name.json")).mkString.replace("$NAME", PulseActor.indexName)
+    List("template", "template-event").map(template => s"${PulseActor.indexName}-$template" -> load(template)).toMap
   }
 }

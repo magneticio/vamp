@@ -1,5 +1,5 @@
 
-UnsupportedPulseDriverRequest           : "Unsupported pulse driver request."
+UnsupportedPulseRequest                 : "Unsupported pulse request."
 PulseResponseError                      : "Pulse response error."
 
 EmptyEventError$                        : "Inserting an event without tags is not allowed."
