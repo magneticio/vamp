@@ -25,7 +25,7 @@ case class ElasticsearchAggregationValue(value: Double)
 
 class ElasticsearchClient(url: String)(implicit executor: ExecutionContext) {
 
-  def info: Future[Any] = RestClient.get[Any](s"$url/api/v1/info")
+  def get(path: String): Future[Any] = RestClient.get[Any](s"$url/$path")
 
   def index(index: String, `type`: Option[String], document: AnyRef)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchIndexResponse] =
     RestClient.post[ElasticsearchIndexResponse](s"$url/${indexType(index, `type`)}", document)
