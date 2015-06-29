@@ -107,7 +107,10 @@ class PulseActor extends Percolator with EventValidator with CommonReplyActor wi
 
   private def shutdown() = {}
 
-  private def info() = offload(elasticsearch.info)
+  private def info() = Map[String, Any](
+    "elasticsearch" -> offload(elasticsearch.get("/")),
+    "index" -> offload(elasticsearch.get(s"/$indexName/_stats/docs"))
+  )
 
   private def publish(event: Event) = try {
     implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
