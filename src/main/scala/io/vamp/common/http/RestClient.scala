@@ -59,15 +59,20 @@ object RestClient {
         requestWithHeaders
     }
 
-    if (classTag[A].runtimeClass != classOf[String]) {
-      Http(requestWithBody OK dispatch.as.json4s.Json).map { json =>
-        logger.trace(s"rsp [${method.toString} $url] - ${compact(render(json))}")
-        json.extract[A](formats, mf)
-      }
-    } else {
+    if (classTag[A].runtimeClass == classOf[Nothing]) {
       Http(requestWithBody OK as.String).map { string =>
         logger.trace(s"rsp [${method.toString} $url] - $string")
         string.asInstanceOf[A]
+      }
+    } else if (classTag[A].runtimeClass == classOf[String]) {
+      Http(requestWithBody OK as.String).map { string =>
+        logger.trace(s"rsp [${method.toString} $url] - $string")
+        string.asInstanceOf[A]
+      }
+    } else {
+      Http(requestWithBody OK dispatch.as.json4s.Json).map { json =>
+        logger.trace(s"rsp [${method.toString} $url] - ${compact(render(json))}")
+        json.extract[A](formats, mf)
       }
     }
   }
