@@ -34,7 +34,7 @@ trait ActorSupport {
 
   implicit def actorRefFactory: ActorRefFactory
 
-  def actorOf(actorDescription: ActorDescription, args: Any*)(implicit mailbox: String = "akka.actor.default-mailbox") = ActorSupport.actorOf(actorDescription, args)
+  def actorOf(actorDescription: ActorDescription, args: Any*)(implicit mailbox: String = "akka.actor.default-mailbox") = ActorSupport.actorOf(actorDescription, args: _*)
 
   def actorFor(actorDescription: ActorDescription) = ActorSupport.actorFor(actorDescription)
 }
