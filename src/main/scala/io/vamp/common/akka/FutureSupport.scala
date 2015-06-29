@@ -28,5 +28,5 @@ trait FutureSupportNotification extends FutureSupport {
     }
   }
 
-  def exceptionNotification(failure: AnyRef, `class`: Class[_ <: Notification]) = exception(`class`.getConstructors()(0).newInstance(failure).asInstanceOf[Notification])
+  def exceptionNotification(failure: AnyRef, `class`: Class[_ <: Notification]) = reportException(`class`.getConstructors()(0).newInstance(failure).asInstanceOf[Notification])
 }

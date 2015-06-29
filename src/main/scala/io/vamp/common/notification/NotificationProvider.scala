@@ -9,9 +9,9 @@ trait NotificationProvider {
 
   def info(notification: Notification)
 
-  def exception(notification: Notification): Exception
+  def reportException(notification: Notification): Exception
 
-  def error(notification: Notification) = throw exception(notification)
+  def throwException(notification: Notification) = throw reportException(notification)
 }
 
 trait LoggingNotificationProvider extends NotificationProvider {
@@ -23,7 +23,7 @@ trait LoggingNotificationProvider extends NotificationProvider {
 
   def info(notification: Notification) = logger.info(message(notification))
 
-  def exception(notification: Notification): Exception = {
+  def reportException(notification: Notification): Exception = {
     val msg = message(notification)
     logger.error(msg)
 
@@ -50,7 +50,7 @@ trait ActorNotificationProvider extends NotificationProvider {
     notificationActor ! Info(notification, message(notification))
   }
 
-  def exception(notification: Notification): Exception = {
+  def reportException(notification: Notification): Exception = {
     val msg = message(notification)
     notificationActor ! Error(notification, msg)
     NotificationErrorException(notification, msg)
@@ -70,7 +70,7 @@ trait ActorLoggingNotificationProvider extends NotificationProvider {
     notificationActor ! Info(notification, msg)
   }
 
-  def exception(notification: Notification): Exception = {
+  def reportException(notification: Notification): Exception = {
     val msg = message(notification)
     log.error(msg)
     notificationActor ! Error(notification, msg)

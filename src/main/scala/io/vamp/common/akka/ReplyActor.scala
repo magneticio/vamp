@@ -33,7 +33,7 @@ trait ReplyActor {
 
   protected def errorRequest(request: Any): RequestError
 
-  protected def unsupported(request: Any) = Failure(exception(errorRequest(request)))
+  protected def unsupported(request: Any) = Failure(reportException(errorRequest(request)))
 
 }
 
