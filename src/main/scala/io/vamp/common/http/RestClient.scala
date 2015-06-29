@@ -90,6 +90,7 @@ object RestClient {
    * @tparam A Response type
    * @return Response
    */
+  @deprecated
   def request[A](request: String, body: AnyRef = None, responsePath: String = "", jsonFieldTransformer: PartialFunction[JField, JField] = defaultJsonFieldTransformer)
                 (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
 
