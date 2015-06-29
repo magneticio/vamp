@@ -41,6 +41,6 @@ abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDr
 
   protected def validateSchemaSupport(schema: String, enum: Enumeration) = {
     if (!enum.values.exists(en => en.toString.compareToIgnoreCase(schema) == 0))
-      error(UnsupportedDeployableSchema(schema, enum.values.map(_.toString.toLowerCase).mkString(", ")))
+      throwException(UnsupportedDeployableSchema(schema, enum.values.map(_.toString.toLowerCase).mkString(", ")))
   }
 }

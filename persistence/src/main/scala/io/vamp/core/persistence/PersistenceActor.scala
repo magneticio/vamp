@@ -73,7 +73,7 @@ trait PersistenceActor extends ReplyActor with CommonSupportForActors with Persi
     respond(request)
   } catch {
     case e: NotificationErrorException => e
-    case e: Throwable => exception(PersistenceOperationFailure(e))
+    case e: Throwable => reportException(PersistenceOperationFailure(e))
   }
 
   protected def respond(request: Any) = request match {
@@ -98,7 +98,7 @@ trait PersistenceActor extends ReplyActor with CommonSupportForActors with Persi
 
     case Delete(name, ofType) => delete(name, ofType)
 
-    case _ => error(errorRequest(request))
+    case _ => throwException(errorRequest(request))
   }
 
   protected def start() = {}
@@ -117,7 +117,7 @@ trait PersistenceActor extends ReplyActor with CommonSupportForActors with Persi
       case Some(escalation: GenericEscalation) => Some(escalation)
       case Some(filter: DefaultFilter) => Some(filter)
       case Some(scale: DefaultScale) => Some(scale)
-      case _ => throw exception(UnsupportedPersistenceRequest(ofType))
+      case _ => throwException(UnsupportedPersistenceRequest(ofType))
     }
 
   private def expandClusters(clusters: List[Cluster]): List[Cluster] =
@@ -129,7 +129,7 @@ trait PersistenceActor extends ReplyActor with CommonSupportForActors with Persi
           case Some(sla: ResponseTimeSlidingWindowSla) => Some(sla)
           case Some(sla: SlaReference) => read(sla.name, classOf[GenericSla]) match {
             case Some(slaDefault: GenericSla) => Some(slaDefault.copy(escalations = sla.escalations)) //Copy the escalations from the reference
-            case _ => throw exception(ArtifactNotFound(sla.name, classOf[GenericSla]))
+            case _ => throwException(ArtifactNotFound(sla.name, classOf[GenericSla]))
           }
           case _ => None
         }
@@ -143,7 +143,7 @@ trait PersistenceActor extends ReplyActor with CommonSupportForActors with Persi
           case Some(routing: DefaultRouting) => Some(routing)
           case Some(routing: RoutingReference) => readExpanded(routing.name, classOf[DefaultRouting]) match {
             case Some(slaDefault: DefaultRouting) => Some(slaDefault)
-            case _ => throw exception(ArtifactNotFound(routing.name, classOf[DefaultRouting]))
+            case _ => throwException(ArtifactNotFound(routing.name, classOf[DefaultRouting]))
           }
           case _ => None
         },
@@ -151,7 +151,7 @@ trait PersistenceActor extends ReplyActor with CommonSupportForActors with Persi
           case Some(scale: DefaultScale) => Some(scale)
           case Some(scale: ScaleReference) => readExpanded(scale.name, classOf[DefaultScale]) match {
             case Some(scaleDefault: DefaultScale) => Some(scaleDefault)
-            case _ => throw exception(ArtifactNotFound(scale.name, classOf[DefaultScale]))
+            case _ => throwException(ArtifactNotFound(scale.name, classOf[DefaultScale]))
           }
           case _ => None
         },
@@ -163,9 +163,9 @@ trait PersistenceActor extends ReplyActor with CommonSupportForActors with Persi
     case defaultBreed: DefaultBreed => defaultBreed
     case breedReference: BreedReference => readExpanded(breedReference.name, classOf[DefaultBreed]) match {
       case Some(defaultBreed: DefaultBreed) => defaultBreed
-      case _ => throw exception(ArtifactNotFound(breedReference.name, classOf[DefaultBreed]))
+      case _ => throwException(ArtifactNotFound(breedReference.name, classOf[DefaultBreed]))
     }
-    case _ => throw exception(ArtifactNotFound(breed.name, classOf[DefaultBreed]))
+    case _ => throwException(ArtifactNotFound(breed.name, classOf[DefaultBreed]))
   }
 
   private def expandDependencies(list: Map[String, Breed]): Map[String, Breed] =
@@ -176,7 +176,7 @@ trait PersistenceActor extends ReplyActor with CommonSupportForActors with Persi
       case referencedArtifact: FilterReference =>
         read(referencedArtifact.name, classOf[DefaultFilter]) match {
           case Some(defaultArtifact: DefaultFilter) => defaultArtifact
-          case _ => throw exception(ArtifactNotFound(referencedArtifact.name, classOf[DefaultFilter]))
+          case _ => throwException(ArtifactNotFound(referencedArtifact.name, classOf[DefaultFilter]))
         }
       case defaultArtifact: DefaultFilter => defaultArtifact
     }
@@ -186,7 +186,7 @@ trait PersistenceActor extends ReplyActor with CommonSupportForActors with Persi
       case referencedArtifact: EscalationReference =>
         read(referencedArtifact.name, classOf[GenericEscalation]) match {
           case Some(defaultArtifact: GenericEscalation) => defaultArtifact
-          case _ => throw exception(ArtifactNotFound(referencedArtifact.name, classOf[GenericEscalation]))
+          case _ => throwException(ArtifactNotFound(referencedArtifact.name, classOf[GenericEscalation]))
         }
       case defaultArtifact: GenericEscalation => defaultArtifact
     }

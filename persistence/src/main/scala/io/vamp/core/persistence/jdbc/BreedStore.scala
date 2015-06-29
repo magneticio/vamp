@@ -73,7 +73,7 @@ trait BreedStore extends ParameterStore with EnvironmentVariableStore with PortS
     DefaultBreeds.findOptionByName(artifact.name, None) match {
       case Some(breed: DefaultBreedModel) =>
         deleteDefaultBreedModel(breed)
-      case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
+      case None => throwException(ArtifactNotFound(artifact.name, artifact.getClass))
     }
   }
 

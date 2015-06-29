@@ -51,6 +51,6 @@ class RouterDriverActor(driver: RouterDriver) extends CommonReplyActor with Rout
       case _ => unsupported(request)
     }
   } catch {
-    case e: Exception => exception(RouterResponseError(e))
+    case e: Throwable => reportException(RouterResponseError(e))
   }
 }

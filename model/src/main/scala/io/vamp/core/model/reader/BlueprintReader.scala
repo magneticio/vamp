@@ -16,7 +16,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
         read(source)
       else
         BlueprintReference(name)
-    case _ => error(UnexpectedInnerElementError("/", classOf[YamlObject]))
+    case _ => throwException(UnexpectedInnerElementError("/", classOf[YamlObject]))
   }
 
   override protected def expand(implicit source: YamlObject) = {
@@ -117,13 +117,13 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       val weights = cluster.services.flatMap(_.routing).filter(_.isInstanceOf[DefaultRouting]).map(_.asInstanceOf[DefaultRouting]).flatMap(_.weight)
       weights.exists(_ < 0) || weights.sum > 100
     }).flatMap {
-      case cluster => error(RoutingWeightError(cluster))
+      case cluster => throwException(RoutingWeightError(cluster))
     }
   }
 
   protected def validateBreeds(breeds: List[Breed]): Unit = {
     breeds.groupBy(_.name.toString).collect {
-      case (name, list) if list.size > 1 => error(NonUniqueBlueprintBreedReferenceError(name))
+      case (name, list) if list.size > 1 => throwException(NonUniqueBlueprintBreedReferenceError(name))
     }
   }
 
@@ -134,7 +134,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     }).find({
       case (breed, dependency) => !breeds.exists(_.name == dependency._2.name)
     }).flatMap {
-      case (breed, dependency) => error(UnresolvedBreedDependencyError(breed, dependency))
+      case (breed, dependency) => throwException(UnresolvedBreedDependencyError(breed, dependency))
     }
   }
 
@@ -161,7 +161,7 @@ object BlueprintReader extends AbstractBlueprintReader {
           case escalation: ScaleEscalation[_] => escalation.targetCluster match {
             case None =>
             case Some(clusterName) => blueprint.clusters.find(_.name == clusterName) match {
-              case None => error(UnresolvedScaleEscalationTargetCluster(cluster, clusterName))
+              case None => throwException(UnresolvedScaleEscalationTargetCluster(cluster, clusterName))
               case Some(_) =>
             }
           }

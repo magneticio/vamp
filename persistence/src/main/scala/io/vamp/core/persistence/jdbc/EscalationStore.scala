@@ -73,7 +73,7 @@ trait EscalationStore extends ParameterStore with PersistenceNotificationProvide
     GenericEscalations.findOptionByName(artifact.name, None) match {
       case Some(escalation) =>
         deleteEscalationModel(escalation)
-      case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
+      case None => throwException(ArtifactNotFound(artifact.name, artifact.getClass))
     }
   }
 

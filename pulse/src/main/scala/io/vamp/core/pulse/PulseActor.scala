@@ -100,7 +100,7 @@ class PulseActor extends Percolator with EventValidator with CommonReplyActor wi
       case _ => unsupported(request)
     }
   } catch {
-    case e: Throwable => exception(PulseResponseError(e))
+    case e: Throwable => reportException(PulseResponseError(e))
   }
 
   private def start() = {}
@@ -123,7 +123,7 @@ class PulseActor extends Percolator with EventValidator with CommonReplyActor wi
         other
     }
   } catch {
-    case e: Throwable => exception(EventIndexError(e))
+    case e: Throwable => reportException(EventIndexError(e))
   }
 
   private def indexTypeName(event: Event): (String, String) = {
@@ -160,7 +160,7 @@ class PulseActor extends Percolator with EventValidator with CommonReplyActor wi
         case _ => throw new UnsupportedOperationException
       }
     } catch {
-      case e: Throwable => exception(EventQueryError(e))
+      case e: Throwable => reportException(EventQueryError(e))
     }
   }
 
@@ -172,19 +172,20 @@ class PulseActor extends Percolator with EventValidator with CommonReplyActor wi
       case ElasticsearchSearchResponse(hits) =>
         EventResponseEnvelope(hits.hits.flatMap(hit => Some(read[Event](write(hit._source)))), hits.total, p, pp)
 
-      case other => exception(EventQueryError(other))
+      case other => reportException(EventQueryError(other))
     }
   } catch {
-    case e: Throwable => exception(EventQueryError(e))
+    case e: Throwable => reportException(EventQueryError(e))
   }
 
   private def countEvents(eventQuery: EventQuery) = try {
     offload(elasticsearch.count(indexName, None, constructQuery(eventQuery))) match {
       case ElasticsearchCountResponse(count) => LongValueAggregationResult(count)
-      case other => exception(EventQueryError(other))
+      case other => reportException(EventQueryError(other))
     }
   } catch {
-    case e: Throwable => exception(EventQueryError(e))
+    case e: Throwable => reportException(EventQueryError(e))
+    case e: Throwable => reportException(EventQueryError(e))
   }
 
   private def constructSearch(eventQuery: EventQuery, page: Int, perPage: Int): Map[Any, Any] = {
@@ -230,10 +231,10 @@ class PulseActor extends Percolator with EventValidator with CommonReplyActor wi
   private def aggregateEvents(eventQuery: EventQuery, aggregator: AggregatorType, field: Option[String]) = try {
     offload(elasticsearch.aggregate(indexName, None, constructAggregation(eventQuery, aggregator, field))) match {
       case ElasticsearchAggregationResponse(ElasticsearchAggregations(ElasticsearchAggregationValue(value))) => DoubleValueAggregationResult(value)
-      case other => exception(EventQueryError(other))
+      case other => reportException(EventQueryError(other))
     }
   } catch {
-    case e: Throwable => exception(EventQueryError(e))
+    case e: Throwable => reportException(EventQueryError(e))
   }
 
   private def constructAggregation(eventQuery: EventQuery, aggregator: AggregatorType, field: Option[String]): Map[Any, Any] = {

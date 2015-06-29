@@ -8,13 +8,13 @@ trait EventValidator {
   this: NotificationProvider =>
 
   def validateEvent: (Event => Event) = { event =>
-    if (event.tags.isEmpty) error(NoTagEventError)
+    if (event.tags.isEmpty) throwException(NoTagEventError)
     event
   }
 
   def validateEventQuery: (EventQuery => EventQuery) = { eventQuery =>
     eventQuery.timestamp.foreach { time =>
-      if ((time.lt.isDefined && time.lte.isDefined) || (time.gt.isDefined && time.gte.isDefined)) error(EventQueryTimeError)
+      if ((time.lt.isDefined && time.lte.isDefined) || (time.gt.isDefined && time.gte.isDefined)) throwException(EventQueryTimeError)
     }
     eventQuery
   }

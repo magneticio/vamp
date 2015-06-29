@@ -63,7 +63,7 @@ class EscalationActor extends CommonSupportForActors with OperationNotificationP
       implicit val timeout = PersistenceActor.timeout
       offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
         case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]], from, to)
-        case any => exception(InternalServerError(any))
+        case any => reportException(InternalServerError(any))
       }
   }
 
@@ -80,12 +80,12 @@ class EscalationActor extends CommonSupportForActors with OperationNotificationP
                   case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = false)
                   case _ =>
                 }
-                case any => exception(InternalServerError(any))
+                case any => reportException(InternalServerError(any))
               }
             }
         })
       } catch {
-        case any: Throwable => exception(InternalServerError(any))
+        case any: Throwable => reportException(InternalServerError(any))
       }
     })
   }
@@ -130,7 +130,7 @@ class EscalationActor extends CommonSupportForActors with OperationNotificationP
         false
 
       case e: Escalation =>
-        error(UnsupportedEscalationType(e.name))
+        throwException(UnsupportedEscalationType(e.name))
         false
     }))
   }

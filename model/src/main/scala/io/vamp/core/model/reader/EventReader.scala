@@ -22,7 +22,7 @@ object EventReader extends YamlReader[Event] with EventValidator {
     val timestamp = <<?[String]("timestamp") match {
       case None => OffsetDateTime.now
       case Some(time) => try OffsetDateTime.parse(time) catch {
-        case e: Exception => error(EventTimestampError(time))
+        case e: Exception => throwException(EventTimestampError(time))
       }
     }
 
@@ -53,7 +53,7 @@ object EventQueryReader extends YamlReader[EventQuery] with EventValidator {
       case Some(_) =>
         val `type` = <<![String]("aggregator" :: "type").toLowerCase
         Aggregator.values.find(agg => agg.toString.toLowerCase == `type`) match {
-          case None => error(UnsupportedAggregatorError(`type`))
+          case None => throwException(UnsupportedAggregatorError(`type`))
           case Some(agg) => Some(Aggregator(agg, <<?[String]("aggregator" :: "field")))
         }
     }

@@ -45,7 +45,7 @@ class ContainerDriverActor(driver: ContainerDriver) extends CommonReplyActor wit
       case _ => unsupported(request)
     }
   } catch {
-    case e: Exception => exception(ContainerResponseError(e))
+    case e: Throwable => reportException(ContainerResponseError(e))
   }
 }
 

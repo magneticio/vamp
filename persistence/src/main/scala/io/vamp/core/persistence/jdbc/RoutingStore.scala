@@ -78,7 +78,7 @@ trait RoutingStore extends FilterStore with PersistenceNotificationProvider {
     DefaultRoutings.findOptionByName(artifact.name, None) match {
       case Some(routing) =>
         deleteRoutingModel(routing)
-      case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
+      case None => throwException(ArtifactNotFound(artifact.name, artifact.getClass))
     }
   }
 

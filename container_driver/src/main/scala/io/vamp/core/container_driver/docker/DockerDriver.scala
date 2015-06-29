@@ -144,7 +144,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
   private def createAndStartContainer(containerName: String, deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Future[_] = async {
     val dockerImageName = service.breed.deployable match {
       case Deployable(_, Some(definition)) => definition
-      case _ => error(UndefinedDockerImage)
+      case _ => throwException(UndefinedDockerImage)
     }
     val allImages: List[Image] = await(docker.images.list())
     val taggedImages = allImages.filter(image => image.repoTags.contains(dockerImageName))

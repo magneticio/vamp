@@ -47,7 +47,7 @@ class SlaActor extends SlaPulse with CommonSupportForActors with OperationNotifi
       implicit val timeout = PersistenceActor.timeout
       offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
         case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]])
-        case any => exception(InternalServerError(any))
+        case any => reportException(InternalServerError(any))
       }
   }
 
@@ -67,11 +67,11 @@ class SlaActor extends SlaPulse with CommonSupportForActors with OperationNotifi
             case Some(sla: ResponseTimeSlidingWindowSla) => responseTimeSlidingWindow(deployment, cluster, sla)
             case Some(s: EscalationOnlySla) =>
             case Some(s: GenericSla) => info(UnsupportedSlaType(s.`type`))
-            case Some(s: Sla) => error(UnsupportedSlaType(s.name))
+            case Some(s: Sla) => throwException(UnsupportedSlaType(s.name))
             case None =>
           })
       } catch {
-        case any: Throwable => exception(InternalServerError(any))
+        case any: Throwable => reportException(InternalServerError(any))
       }
     })
   }

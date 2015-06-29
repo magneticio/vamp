@@ -25,7 +25,7 @@ trait ArtifactSupport {
     implicit val timeout = PersistenceActor.timeout
     offload(actorFor(PersistenceActor) ? PersistenceActor.Read(name, classTag[T].runtimeClass.asInstanceOf[Class[Artifact]])) match {
       case Some(artifact: T) => artifact
-      case _ => error(ArtifactNotFound(name, classTag[T].runtimeClass))
+      case _ => throwException(ArtifactNotFound(name, classTag[T].runtimeClass))
     }
   }
 }

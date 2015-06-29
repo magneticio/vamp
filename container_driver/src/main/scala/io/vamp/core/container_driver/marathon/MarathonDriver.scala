@@ -59,7 +59,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
 
     (app.container, app.cmd, dialect) match {
       case (None, None, map: Map[_, _]) if map.asInstanceOf[Map[String, _]].get("cmd").nonEmpty =>
-      case (None, None, _) => error(UndefinedMarathonApplication)
+      case (None, None, _) => throwException(UndefinedMarathonApplication)
       case _ =>
     }
 

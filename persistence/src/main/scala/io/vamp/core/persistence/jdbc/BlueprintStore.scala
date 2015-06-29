@@ -130,7 +130,7 @@ trait BlueprintStore extends BreedStore with ScaleStore with RoutingStore with S
   protected def deleteBlueprintFromDb(artifact: DefaultBlueprint): Unit = {
     DefaultBlueprints.findOptionByName(artifact.name, None) match {
       case Some(blueprint) => deleteBlueprintModel(blueprint)
-      case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
+      case None => throwException(ArtifactNotFound(artifact.name, artifact.getClass))
     }
   }
 

@@ -28,7 +28,7 @@ abstract class ApiContext(implicit scheduledWorkflow: ScheduledWorkflow, ec: Exe
     def allByPage(page: Int): (Long, List[Artifact]) = {
       offload(perPage(page, maxPerPage)) match {
         case ArtifactResponseEnvelope(list, count, _, _) => count -> list
-        case any => error(InternalServerError(any))
+        case any => throwException(InternalServerError(any))
       }
     }
 

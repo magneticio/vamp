@@ -164,7 +164,7 @@ trait DevController {
           deployments.asInstanceOf[List[Deployment]].map({ deployment =>
             deployment.clusters.filter(cluster => cluster.services.exists(!_.state.isInstanceOf[Deployed])).count(_ => true)
           }).reduceOption(_ max _).foreach(max => sync(Some(max * 3 + 1)))
-        case any => error(InternalServerError(any))
+        case any => throwException(InternalServerError(any))
       }
   }
 
@@ -184,7 +184,7 @@ trait DevController {
           actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
           deployment.clusters.count(_ => true)
         }).reduceOption(_ max _).foreach(max => sync(Some(max * 3)))
-      case any => error(InternalServerError(any))
+      case any => throwException(InternalServerError(any))
     }
   }
 }

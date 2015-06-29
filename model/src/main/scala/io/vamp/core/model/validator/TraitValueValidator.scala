@@ -13,7 +13,7 @@ trait BreedTraitValueValidator extends TraitResolver {
   def validateBreedTraitValues(breed: DefaultBreed) = {
 
     def reportError(ref: ValueReference) =
-      error(UnresolvedDependencyInTraitValueError(breed, ref.reference))
+      throwException(UnresolvedDependencyInTraitValueError(breed, ref.reference))
 
     def validateCluster(ref: ValueReference) =
       if (!breed.dependencies.keySet.contains(ref.cluster)) reportError(ref)
@@ -47,13 +47,13 @@ trait BlueprintTraitValidator extends TraitResolver {
 
   private def validateEndpoints: (DefaultBlueprint => DefaultBlueprint) = { blueprint: DefaultBlueprint =>
     validateVariables(blueprint.endpoints, TraitReference.Ports, { endpoint =>
-      error(UnresolvedEndpointPortError(TraitReference.referenceFor(endpoint.name).flatMap(r => Some(r.referenceWithoutGroup)).getOrElse(endpoint.name), endpoint.value))
+      throwException(UnresolvedEndpointPortError(TraitReference.referenceFor(endpoint.name).flatMap(r => Some(r.referenceWithoutGroup)).getOrElse(endpoint.name), endpoint.value))
     })(blueprint)
   }
 
   private def validateEnvironmentVariables: (DefaultBlueprint => DefaultBlueprint) = { blueprint: DefaultBlueprint =>
     validateVariables(blueprint.environmentVariables, TraitReference.EnvironmentVariables, { ev =>
-      error(UnresolvedEnvironmentVariableError(TraitReference.referenceFor(ev.name).flatMap(r => Some(r.referenceWithoutGroup)).getOrElse(ev.name), ev.value))
+      throwException(UnresolvedEnvironmentVariableError(TraitReference.referenceFor(ev.name).flatMap(r => Some(r.referenceWithoutGroup)).getOrElse(ev.name), ev.value))
     })(blueprint)
   }
 

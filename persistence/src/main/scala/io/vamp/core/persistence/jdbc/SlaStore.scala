@@ -49,7 +49,7 @@ trait SlaStore extends EscalationStore with PersistenceNotificationProvider {
   protected def deleteSlaFromDb(artifact: Sla): Unit = {
     GenericSlas.findOptionByName(artifact.name, None) match {
       case Some(sla) => deleteSlaModel(sla)
-      case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
+      case None => throwException(ArtifactNotFound(artifact.name, artifact.getClass))
     }
   }
 

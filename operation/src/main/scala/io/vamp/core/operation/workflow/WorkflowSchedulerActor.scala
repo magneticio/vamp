@@ -30,23 +30,23 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
 
   def receive: Receive = {
     case Start => try start(()) catch {
-      case t: Throwable => exception(InternalServerError(t))
+      case t: Throwable => reportException(InternalServerError(t))
     }
 
     case Schedule(workflow) => try schedule(workflow) catch {
-      case t: Throwable => exception(WorkflowSchedulingError(t))
+      case t: Throwable => reportException(WorkflowSchedulingError(t))
     }
 
     case Unschedule(workflow) => try unschedule(workflow) catch {
-      case t: Throwable => exception(WorkflowSchedulingError(t))
+      case t: Throwable => reportException(WorkflowSchedulingError(t))
     }
 
     case (RunWorkflow(workflow), data) => try execute(workflow, data) catch {
-      case t: Throwable => exception(WorkflowExecutionError(t))
+      case t: Throwable => reportException(WorkflowExecutionError(t))
     }
 
     case Shutdown => try shutdown(()) catch {
-      case t: Throwable => exception(InternalServerError(t))
+      case t: Throwable => reportException(InternalServerError(t))
     }
 
     case _ =>
@@ -57,7 +57,7 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
     offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[ScheduledWorkflow])) match {
       case scheduledWorkflows: List[_] =>
         scheduledWorkflows.asInstanceOf[List[ScheduledWorkflow]].foreach(scheduledWorkflow => self ! Schedule(scheduledWorkflow))
-      case any => exception(InternalServerError(any))
+      case any => reportException(InternalServerError(any))
     }
   }
 
@@ -89,5 +89,4 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
     quartzUnschedule(workflow)
   }
 }
-
 

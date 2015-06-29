@@ -70,7 +70,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
       implicit val timeout = PersistenceActor.timeout
       offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
         case deployments: List[_] => synchronize(deployments.asInstanceOf[List[Deployment]])
-        case any => error(InternalServerError(any))
+        case any => throwException(InternalServerError(any))
       }
 
     case Synchronize(deployment) => synchronize(deployment :: Nil)
@@ -95,7 +95,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
 
     def handleTimeout(service: DeploymentService) = {
       val notification = DeploymentServiceError(deployment, service)
-      exception(notification)
+      reportException(notification)
       actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map({ s =>
         if (s.breed.name == service.breed.name) {
           s.copy(state = Error(notification))

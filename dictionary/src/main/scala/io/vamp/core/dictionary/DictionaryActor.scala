@@ -65,7 +65,7 @@ class DictionaryActor extends CommonReplyActor with DictionaryNotificationProvid
   private def get(key: String) = key match {
     case portAssignment(deployment, port) =>
       if (currentPort == portRange(1))
-        exception(NoAvailablePortError(portRange(0), portRange(1)))
+        reportException(NoAvailablePortError(portRange(0), portRange(1)))
       else {
         currentPort += 1
         currentPort

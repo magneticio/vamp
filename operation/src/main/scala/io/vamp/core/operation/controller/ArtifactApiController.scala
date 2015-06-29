@@ -21,27 +21,27 @@ trait ArtifactApiController extends ArtifactSupport {
 
   def allArtifacts(artifact: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(controller) => controller.all(page, perPage)
-    case None => error(UnexpectedArtifact(artifact))
+    case None => throwException(UnexpectedArtifact(artifact))
   }
 
   def createArtifact(artifact: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(controller) => controller.create(content, validateOnly)
-    case None => error(UnexpectedArtifact(artifact))
+    case None => throwException(UnexpectedArtifact(artifact))
   }
 
   def readArtifact(artifact: String, name: String)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(controller) => controller.read(name)
-    case None => error(UnexpectedArtifact(artifact))
+    case None => throwException(UnexpectedArtifact(artifact))
   }
 
   def updateArtifact(artifact: String, name: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(controller) => controller.update(name, content, validateOnly)
-    case None => error(UnexpectedArtifact(artifact))
+    case None => throwException(UnexpectedArtifact(artifact))
   }
 
   def deleteArtifact(artifact: String, name: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(controller) => controller.delete(name, validateOnly)
-    case None => error(UnexpectedArtifact(artifact))
+    case None => throwException(UnexpectedArtifact(artifact))
   }
 
   private val mapping: Map[String, Handler] = Map() +
@@ -63,11 +63,11 @@ trait ArtifactApiController extends ArtifactSupport {
 
     def all(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = Future(Nil)
 
-    def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = Future(error(UnexpectedArtifact(source)))
+    def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = throwException(UnexpectedArtifact(source))
 
     def read(name: String)(implicit timeout: Timeout): Future[Any] = Future(None)
 
-    def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = Future(error(UnexpectedArtifact(source)))
+    def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = throwException(UnexpectedArtifact(source))
 
     def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = Future(None)
   }
@@ -89,7 +89,7 @@ trait ArtifactApiController extends ArtifactSupport {
     override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       val artifact = (unmarshal andThen validate)(source)
       if (name != artifact.name)
-        error(InconsistentArtifactName(name, artifact))
+        throwException(InconsistentArtifactName(name, artifact))
 
       if (validateOnly) Future(artifact) else actorFor(PersistenceActor) ? PersistenceActor.Update(artifact, Some(source))
     }
@@ -127,12 +127,12 @@ trait ArtifactApiController extends ArtifactSupport {
 
     override protected def validate: (ScheduledWorkflow => ScheduledWorkflow) = { (scheduledWorkflow: ScheduledWorkflow) =>
       scheduledWorkflow.trigger match {
-        case TimeTrigger(pattern) => if (!CronExpression.isValidExpression(pattern)) error(InvalidTimeTriggerError(pattern))
+        case TimeTrigger(pattern) => if (!CronExpression.isValidExpression(pattern)) throwException(InvalidTimeTriggerError(pattern))
         case _ =>
       }
 
       artifactFor[DefaultWorkflow](scheduledWorkflow.workflow).requires.find(required => scheduledWorkflow.storage.get(required).isEmpty) match {
-        case Some(required) => error(MissingRequiredVariableError(required))
+        case Some(required) => throwException(MissingRequiredVariableError(required))
         case _ =>
       }
 

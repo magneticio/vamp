@@ -52,14 +52,14 @@ trait YamlReader[T] extends ModelNotificationProvider {
 
   private def read(reader: Reader, close: Boolean = false): T = load(reader, close) match {
     case source: collection.Map[_, _] => read(source.asInstanceOf[YamlObject])
-    case source => error(UnexpectedTypeError("/", classOf[YamlObject], if (source != null) source.getClass else classOf[Object]))
+    case source => throwException(UnexpectedTypeError("/", classOf[YamlObject], if (source != null) source.getClass else classOf[Object]))
   }
 
   protected def load(reader: Reader, close: Boolean = false): Any = try {
     convert(yaml.load(reader))
   } catch {
     case e: NotificationErrorException => throw e
-    case e: YAMLException => error(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
+    case e: YAMLException => throwException(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
   }
   finally {
     if (close)
@@ -96,7 +96,7 @@ trait YamlReader[T] extends ModelNotificationProvider {
   protected def getOrError[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<![V](path)
 
   protected def <<![V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<?[V](path) match {
-    case None => error(MissingPathValueError(path mkString "/"))
+    case None => throwException(MissingPathValueError(path mkString "/"))
     case Some(v) => v
   }
 
@@ -113,14 +113,14 @@ trait YamlReader[T] extends ModelNotificationProvider {
       case Some(value: collection.Map[_, _]) if classTag[V].runtimeClass == classOf[Map[_, _]] => Some(value.asInstanceOf[V])
       // if V == List
       case Some(value: List[_]) if classTag[V].runtimeClass == classOf[List[_]] => Some(value.asInstanceOf[V])
-      case Some(failure) => error(UnexpectedTypeError(last, classTag[V].runtimeClass, failure.getClass))
+      case Some(failure) => throwException(UnexpectedTypeError(last, classTag[V].runtimeClass, failure.getClass))
     }
 
     case head :: tail => source.get(head).flatMap {
       case map: collection.Map[_, _] =>
         implicit val source = map.asInstanceOf[YamlObject]
         <<?[V](tail)
-      case failure => error(UnexpectedInnerElementError(head, failure.getClass))
+      case failure => throwException(UnexpectedInnerElementError(head, failure.getClass))
     }
 
     case Nil => None
@@ -186,7 +186,7 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] {
 
   protected def validateEitherReferenceOrAnonymous(implicit source: YamlObject): YamlObject = {
     if (!isAnonymous && !isReference)
-      error(EitherReferenceOrAnonymous(asReferenceOf, reference))
+      throwException(EitherReferenceOrAnonymous(asReferenceOf, reference))
     source
   }
 
@@ -221,7 +221,7 @@ trait TraitReader extends TraitResolver {
     source match {
       case None => List[A]()
       case Some(map: YamlObject) => map.map {
-        case (name, value) if value.isInstanceOf[collection.Map[_, _]] || value.isInstanceOf[List[_]] => error(MalformedTraitError(name))
+        case (name, value) if value.isInstanceOf[collection.Map[_, _]] || value.isInstanceOf[List[_]] => throwException(MalformedTraitError(name))
         case (name, value) =>
           val nameAlias = resolveNameAlias(name)
           mapper(nameAlias._1, if (alias) nameAlias._2 else None, if (value == null) None else Some(value.toString))

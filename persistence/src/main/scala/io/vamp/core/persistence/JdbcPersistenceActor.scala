@@ -74,7 +74,7 @@ trait JdbcPersistence
     read(artifact.name, artifact.getClass) match {
       case None =>
         if (create) this.createArtifact(artifact)
-        else throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
+        else throwException(ArtifactNotFound(artifact.name, artifact.getClass))
       case Some(existingArtifact) => updateArtifact(artifact)
     }
   }
@@ -86,7 +86,7 @@ trait JdbcPersistence
         deleteArtifact(artifact)
         artifact
       case None =>
-        error(ArtifactNotFound(name, ofType))
+        throwException(ArtifactNotFound(name, ofType))
     }
   }
 
@@ -115,7 +115,7 @@ trait JdbcPersistence
       case _ if ofType == classOf[DefaultScale] || ofType == classOf[Scale] => DefaultScales -> classOf[DefaultScale]
       case _ if ofType == classOf[GenericSla] || ofType == classOf[EscalationOnlySla] || ofType == classOf[ResponseTimeSlidingWindowSla] || ofType == classOf[Sla] => GenericSlas -> classOf[GenericSla]
       case _ if ofType == classOf[DefaultBreed] || ofType == classOf[Breed] => DefaultBreeds -> classOf[DefaultBreed]
-      case _ => error(UnsupportedPersistenceRequest(ofType))
+      case _ => throwException(UnsupportedPersistenceRequest(ofType))
     }
   }
 
@@ -147,7 +147,7 @@ trait JdbcPersistence
       case a: DefaultBreed =>
         updateBreed(DefaultBreeds.findByName(a.name, deploymentId), a)
 
-      case _ => error(UnsupportedPersistenceRequest(artifact.getClass))
+      case _ => throwException(UnsupportedPersistenceRequest(artifact.getClass))
     }
     read(artifact.name, artifact.getClass).get
   }
@@ -181,7 +181,7 @@ trait JdbcPersistence
       case _ if ofType == classOf[DefaultBreed] || ofType == classOf[Breed] =>
         findBreedOptionArtifact(name)
 
-      case _ => error(UnsupportedPersistenceRequest(ofType))
+      case _ => throwException(UnsupportedPersistenceRequest(ofType))
     }
 
 
@@ -203,11 +203,11 @@ trait JdbcPersistence
 
       case art: Breed => createBreedArtifact(art)
 
-      case _ => error(UnsupportedPersistenceRequest(artifact.getClass))
+      case _ => throwException(UnsupportedPersistenceRequest(artifact.getClass))
     }
     findArtifact(nameOfArtifact, artifact.getClass) match {
       case Some(result) => result
-      case _ => throw exception(PersistenceOperationFailure(artifact.getClass))
+      case _ => throwException(PersistenceOperationFailure(artifact.getClass))
     }
   }
 
@@ -230,7 +230,7 @@ trait JdbcPersistence
 
       case breed: DefaultBreed => deleteBreedFromDb(breed)
 
-      case _ => error(UnsupportedPersistenceRequest(artifact.getClass))
+      case _ => throwException(UnsupportedPersistenceRequest(artifact.getClass))
     }
   }
 }

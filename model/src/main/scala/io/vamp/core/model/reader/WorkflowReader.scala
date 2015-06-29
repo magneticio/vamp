@@ -41,7 +41,7 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
 
       case (None, None, Some(tags)) => EventTrigger(tags.toSet)
 
-      case _ => error(UndefinedWorkflowTriggerError)
+      case _ => throwException(UndefinedWorkflowTriggerError)
     }
 
     val workflow = <<?[Any]("workflow") match {
