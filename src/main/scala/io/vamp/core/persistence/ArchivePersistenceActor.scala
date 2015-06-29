@@ -24,19 +24,19 @@ class ArchivePersistenceActor(target: ActorDescription) extends DecoratorPersist
   override protected def create(artifact: Artifact, source: Option[String], ignoreIfExists: Boolean) = offload(actorFor(target) ? Create(artifact, source, ignoreIfExists)) match {
     case a: Artifact => archiveCreate(a, source)
     case e: NotificationErrorException => throw e
-    case other => error(PersistenceOperationFailure(other))
+    case other => throwException(PersistenceOperationFailure(other))
   }
 
   override protected def update(artifact: Artifact, source: Option[String], create: Boolean) = offload(actorFor(target) ? Update(artifact, source, create)) match {
     case a: Artifact => if (create) archiveCreate(a, source) else archiveUpdate(a, source)
     case e: NotificationErrorException => throw e
-    case other => error(PersistenceOperationFailure(other))
+    case other => throwException(PersistenceOperationFailure(other))
   }
 
   override protected def delete(name: String, `type`: Class[_ <: Artifact]) = offload(actorFor(target) ? Delete(name, `type`)) match {
     case a: Artifact => archiveDelete(a)
     case e: NotificationErrorException => throw e
-    case other => error(PersistenceOperationFailure(other))
+    case other => throwException(PersistenceOperationFailure(other))
   }
 
   private def archiveCreate(artifact: Artifact, source: Option[String]): Artifact =
@@ -54,7 +54,7 @@ class ArchivePersistenceActor(target: ActorDescription) extends DecoratorPersist
         log.debug(s"Archive event with tags: ${event.tags}")
         actorFor(PulseActor) ? PulseActor.Publish(event)
       case _ =>
-        exception(ArtifactArchivingError(artifact))
+        reportException(ArtifactArchivingError(artifact))
     }
     artifact
   }

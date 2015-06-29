@@ -26,7 +26,7 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
         createSchema
       case version if version == 1 =>
         logger.info("Your database is outdated, automatic migration not supported. Please drop and recreate your database")
-        throw exception(PersistenceOperationFailure("Your database is outdated, automatic migration not supported. Please drop and recreate your database"))
+        throwException(PersistenceOperationFailure("Your database is outdated, automatic migration not supported. Please drop and recreate your database"))
     }
   }
 

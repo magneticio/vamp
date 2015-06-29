@@ -194,7 +194,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
   protected def deleteDeploymentFromDb(artifact: Deployment): Unit = {
     Deployments.findOptionByName(artifact.name) match {
       case Some(deployment) => deleteDeploymentModel(deployment)
-      case None => throw exception(ArtifactNotFound(artifact.name, artifact.getClass))
+      case None => throwException(ArtifactNotFound(artifact.name, artifact.getClass))
     }
   }
 

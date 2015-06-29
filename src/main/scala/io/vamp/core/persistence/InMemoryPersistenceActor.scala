@@ -98,7 +98,7 @@ class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with Persistence
       case Some(map) => map.get(artifact.name) match {
         case None => map.put(artifact.name, artifact)
         case Some(_) =>
-          if (!ignoreIfExists) error(ArtifactAlreadyExists(artifact.name, artifact.getClass))
+          if (!ignoreIfExists) throwException(ArtifactAlreadyExists(artifact.name, artifact.getClass))
           map.put(artifact.name, artifact)
       }
     }
@@ -112,10 +112,10 @@ class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with Persistence
 
   def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Artifact = {
     store.get(typeOf(artifact.getClass)) match {
-      case None => if (create) this.create(artifact) else error(ArtifactNotFound(artifact.name, artifact.getClass))
+      case None => if (create) this.create(artifact) else throwException(ArtifactNotFound(artifact.name, artifact.getClass))
       case Some(map) =>
         if (map.get(artifact.name).isEmpty)
-          if (create) this.create(artifact) else error(ArtifactNotFound(artifact.name, artifact.getClass))
+          if (create) this.create(artifact) else throwException(ArtifactNotFound(artifact.name, artifact.getClass))
         else
           map.put(artifact.name, artifact)
     }
@@ -123,10 +123,10 @@ class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with Persistence
   }
 
   def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = store.get(typeOf(`type`)) match {
-    case None => error(ArtifactNotFound(name, `type`))
+    case None => throwException(ArtifactNotFound(name, `type`))
     case Some(map) =>
       if (map.get(name).isEmpty)
-        error(ArtifactNotFound(name, `type`))
+        throwException(ArtifactNotFound(name, `type`))
       else
         map.remove(name).get
   }
@@ -146,6 +146,6 @@ trait TypeOfArtifact {
     case t if classOf[Filter].isAssignableFrom(t) => "filters"
     case t if classOf[Workflow].isAssignableFrom(t) => "workflows"
     case t if classOf[ScheduledWorkflow].isAssignableFrom(t) => "scheduled-workflows"
-    case _ => error(UnsupportedPersistenceRequest(`type`))
+    case _ => throwException(UnsupportedPersistenceRequest(`type`))
   }
 }
