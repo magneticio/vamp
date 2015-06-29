@@ -98,6 +98,7 @@ class InfoActor extends FSM[InfoState, InfoData] with ActorSupportForActors with
   private def processData(actor: ActorDescription, response: Any, info: InfoData): InfoData = {
     val result = response match {
       case NotificationErrorException(_, message) => "error" -> message
+      case e: Throwable => "error" -> "Internal error."
       case _ => response
     }
     info.copy(result = info.result ++ Map(actor -> result))
