@@ -112,7 +112,7 @@ class PulseActor extends Percolator with EventValidator with CommonReplyActor wi
   private def publish(event: Event) = try {
     implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (indexName, typeName) = indexTypeName(event)
-    log.debug(s"Pulse publish to index '$indexName/$typeName': $event")
+    log.debug(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
     offload(elasticsearch.index(indexName, Some(typeName), event)) match {
       case response: ElasticsearchIndexResponse => response
       case other =>
