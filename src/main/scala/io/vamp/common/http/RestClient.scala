@@ -39,7 +39,7 @@ object RestClient {
     http(Method.DELETE, url, None, List("Accept" -> "application/json", "Content-Type" -> "application/json"))
   }
 
-  def http[A](method: Method.Value, url: String, body: Any, headers: List[(String, String)])
+  def http[A](method: Method.Value, url: String, body: Any, headers: List[(String, String)] = Nil)
              (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
 
     val requestWithUrl = dispatch.url(url).setMethod(method.toString)
@@ -90,7 +90,7 @@ object RestClient {
    * @tparam A Response type
    * @return Response
    */
-  @deprecated
+  @deprecated("use: http() or HTTP method specific calls.", "0.7.8")
   def request[A](request: String, body: AnyRef = None, responsePath: String = "", jsonFieldTransformer: PartialFunction[JField, JField] = defaultJsonFieldTransformer)
                 (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
 
