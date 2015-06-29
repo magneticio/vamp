@@ -59,7 +59,6 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     implicit val formats = CoreSerializationFormat.full
     log.debug(s"${getClass.getSimpleName}: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     val storeArtifact = store.create(artifact, source, ignoreIfExists)
-
     storeArtifact match {
       case blueprint: DefaultBlueprint => blueprint.clusters.flatMap(_.services).map(_.breed).foreach(breed => create(breed, ignoreIfExists = true))
       case _ =>
@@ -88,7 +87,10 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     log.debug(s"${getClass.getSimpleName}: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     store.update(artifact, source, create)
     findHitBy(artifact.name, artifact.getClass) match {
-      case None =>
+      case None => if(create) {
+        // TODO validate response
+        RestClient.post[Any](s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}", ElasticsearchArtifact(artifact.name, write(artifact)))
+      }
       case Some(hit) =>
         // TODO validate response
         hit.get("_id").foreach(id => RestClient.post[Any](s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id", ElasticsearchArtifact(artifact.name, write(artifact))))
@@ -126,10 +128,10 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
         }
       }
       case e: Throwable =>
-        log.error(e.getMessage, e)
+        log.debug(e.getMessage, e)
         0L -> Nil
       case other =>
-        log.error(s"unexpected: ${other.toString}")
+        log.debug(s"unexpected: ${other.toString}")
         0L -> Nil
     }
   }

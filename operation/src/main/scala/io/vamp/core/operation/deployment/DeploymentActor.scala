@@ -15,8 +15,7 @@ import io.vamp.core.model.notification._
 import io.vamp.core.model.reader.{BlueprintReader, BreedReader}
 import io.vamp.core.model.resolver.DeploymentTraitResolver
 import io.vamp.core.operation.notification._
-import io.vamp.core.persistence.{PersistenceActor, ArtifactSupport}
-import io.vamp.core.persistence.PersistenceActor
+import io.vamp.core.persistence.{ArtifactSupport, PersistenceActor}
 import io.vamp.core.persistence.notification.PersistenceOperationFailure
 
 import scala.language.{existentials, postfixOps}
