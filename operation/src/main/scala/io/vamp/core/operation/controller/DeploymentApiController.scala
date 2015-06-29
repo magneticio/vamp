@@ -8,7 +8,7 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.conversion.DeploymentConversion._
 import io.vamp.core.model.reader._
 import io.vamp.core.operation.deployment.DeploymentActor
-import io.vamp.core.persistence.PersistenceActor
+import io.vamp.core.persistence.{ArtifactResponseEnvelope, PersistenceActor}
 
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
@@ -17,7 +17,7 @@ trait DeploymentApiController {
   this: ActorSupport with FutureSupport with ExecutionContextProvider with NotificationProvider =>
 
   def deployments(asBlueprint: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(classOf[Deployment], page, perPage)).map {
-    case list: List[_] => list.map {
+    case ArtifactResponseEnvelope(list, _, _, _) => list.map {
       case deployment: Deployment => if (asBlueprint) deployment.asBlueprint else deployment
       case any => any
     }
