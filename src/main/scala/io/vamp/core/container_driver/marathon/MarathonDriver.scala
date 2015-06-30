@@ -6,7 +6,6 @@ import io.vamp.core.container_driver._
 import io.vamp.core.container_driver.marathon.api.{Docker, _}
 import io.vamp.core.container_driver.notification.UndefinedMarathonApplication
 import io.vamp.core.model.artifact._
-import org.json4s.{DefaultFormats, Extraction}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,11 +39,12 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
     if (update) logger.info(s"marathon update app: $id") else logger.info(s"marathon create app: $id")
 
     val app = MarathonApp(id, container(deployment, cluster, service), service.scale.get.instances, service.scale.get.cpu, service.scale.get.memory, environment(deployment, cluster, service), cmd(deployment, cluster, service))
+    val payload = requestPayload(deployment, cluster, app, cluster.dialects ++ service.dialects)
 
     if (update)
-      sendApp(RestClient.Method.PUT, s"$url/v2/apps/${app.id}", app, cluster.dialects ++ service.dialects)
+      RestClient.put[Any](s"$url/v2/apps/${app.id}", payload)
     else
-      sendApp(RestClient.Method.POST, s"$url/v2/apps", app, cluster.dialects ++ service.dialects)
+      RestClient.post[Any](s"$url/v2/apps", payload)
   }
 
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = service.breed.deployable match {
@@ -57,17 +57,14 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
     case _ => None
   }
 
-  private def sendApp(method: RestClient.Method.Value, url: String, app: MarathonApp, dialects: Map[Dialect.Value, Any]) = {
+  private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, app: MarathonApp, dialects: Map[Dialect.Value, Any]) = {
     val dialect = dialects.getOrElse(Dialect.Marathon, Map())
-
     (app.container, app.cmd, dialect) match {
       case (None, None, map: Map[_, _]) if map.asInstanceOf[Map[String, _]].get("cmd").nonEmpty =>
       case (None, None, _) => throwException(UndefinedMarathonApplication)
       case _ =>
     }
-
-    implicit val formats = DefaultFormats
-    RestClient.http[Any](method, url, Extraction.decompose(dialect) merge Extraction.decompose(app))
+    mergeWithDialect(deployment, cluster, app, dialect)
   }
 
   def undeploy(deployment: Deployment, service: DeploymentService) = {
