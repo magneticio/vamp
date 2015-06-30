@@ -25,6 +25,8 @@ This setup will run Vamp inside a Docker container with Vamp's Docker driver.
 - Docker 1.6.x
 - Boot2Docker 1.6.x if on Mac OSX, [see more details about the prereqs](#prerequisites)
 
+> **Note**: We currently don't support Docker 1.7 but will very soon! 
+
 A typical command on Macbook running Boot2Docker would be:
 {{% copyable %}}
 ```
