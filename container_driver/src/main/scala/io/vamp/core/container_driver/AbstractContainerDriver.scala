@@ -4,10 +4,12 @@ import io.vamp.common.crypto.Hash
 import io.vamp.core.container_driver.docker.DockerPortMapping
 import io.vamp.core.container_driver.notification.{ContainerDriverNotificationProvider, UnsupportedDeployableSchema}
 import io.vamp.core.model.artifact._
+import io.vamp.core.model.resolver.TraitResolver
+import org.json4s.{DefaultFormats, Extraction, Formats}
 
 import scala.concurrent.ExecutionContext
 
-abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDriver with ContainerDriverNotificationProvider {
+abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDriver with TraitResolver with ContainerDriverNotificationProvider {
   protected implicit val executionContext = ec
 
   protected val nameDelimiter = "/"
@@ -42,5 +44,31 @@ abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDr
   protected def validateSchemaSupport(schema: String, enum: Enumeration) = {
     if (!enum.values.exists(en => en.toString.compareToIgnoreCase(schema) == 0))
       throwException(UnsupportedDeployableSchema(schema, enum.values.map(_.toString.toLowerCase).mkString(", ")))
+  }
+
+  protected def mergeWithDialect(deployment: Deployment, cluster: DeploymentCluster, app: Any, dialect: Any)(implicit formats: Formats = DefaultFormats) = {
+    Extraction.decompose(interpolate(deployment, cluster, dialect)) merge Extraction.decompose(app)
+  }
+
+  private def interpolate(deployment: Deployment, cluster: DeploymentCluster, dialect: Any) = {
+
+    def provider(reference: ValueReference): String = (reference match {
+      case ref: TraitReference => deployment.traits.find(_.name == ref.reference).flatMap(_.value)
+      case ref: HostReference => deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value)
+      case ref: LocalReference if ref.name == s"$marker" => Some(s"$marker")
+      case ref: LocalReference =>
+        (deployment.environmentVariables ++ deployment.constants).find(tr => TraitReference.referenceFor(tr.name).exists(r => r.cluster == cluster.name && r.name == ref.name)).flatMap(_.value)
+      case ref => None
+    }) getOrElse ""
+
+    def visit(any: Any): Any = any match {
+      case value: String => resolve(value, provider)
+      case map: scala.collection.Map[_, _] => map.map {
+        case (key, value) => key -> visit(value)
+      }
+      case _ => any
+    }
+
+    visit(dialect)
   }
 }
