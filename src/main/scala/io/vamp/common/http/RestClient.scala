@@ -19,41 +19,44 @@ object RestClient {
     val HEAD, GET, POST, PUT, DELETE, PATCH, TRACE, OPTIONS = Value
   }
 
+  val jsonHeaders = List("Accept" -> "application/json", "Content-Type" -> "application/json")
 
-  def get[A](url: String, headers: List[(String, String)] = Nil)
+  def get[A](url: String, headers: List[(String, String)] = jsonHeaders)
             (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
     http[A](Method.GET, url, None, headers)
   }
 
-  def post[A](url: String, body: Any, headers: List[(String, String)] = Nil)
+  def post[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders)
              (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
     http[A](Method.POST, url, body, headers)
   }
 
-  def put[A](url: String, body: Any, headers: List[(String, String)] = Nil)
+  def put[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders)
             (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
     http[A](Method.PUT, url, body, headers)
   }
 
-  def delete(url: String)(implicit executor: ExecutionContext) = {
-    http(Method.DELETE, url, None, List("Accept" -> "application/json", "Content-Type" -> "application/json"))
+  def delete(url: String, headers: List[(String, String)] = jsonHeaders)(implicit executor: ExecutionContext) = {
+    http(Method.DELETE, url, None)
   }
 
-  def http[A](method: Method.Value, url: String, body: Any, headers: List[(String, String)] = Nil)
+  def http[A](method: Method.Value, url: String, body: Any, headers: List[(String, String)] = jsonHeaders)
              (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
 
     val requestWithUrl = dispatch.url(url).setMethod(method.toString)
     val requestWithHeaders = headers.foldLeft(requestWithUrl)((http, header) => http.setHeader(header._1, header._2))
     val requestWithBody = body match {
       case str: String =>
-        logger.trace(s"req [${method.toString} $url] - $body")
+        logger.trace(s"req [${method.toString} $url] - $str")
         requestWithHeaders.setBody(str)
       case any: AnyRef if any != null && any != None =>
-        logger.trace(s"req [${method.toString} $url] - $body")
-        requestWithHeaders.setBody(write(any))
+        val request = write(any)
+        logger.trace(s"req [${method.toString} $url] - $request")
+        requestWithHeaders.setBody(request)
       case any if any != null && any != None =>
-        logger.trace(s"req [${method.toString} $url] - $body")
-        requestWithHeaders.setBody(any.toString)
+        val request = any.toString
+        logger.trace(s"req [${method.toString} $url] - $request")
+        requestWithHeaders.setBody(request)
       case _ =>
         logger.trace(s"req [${method.toString} $url]")
         requestWithHeaders
