@@ -19,7 +19,9 @@ object RestClient {
     val HEAD, GET, POST, PUT, DELETE, PATCH, TRACE, OPTIONS = Value
   }
 
-  val jsonHeaders = List("Accept" -> "application/json", "Content-Type" -> "application/json")
+  val acceptEncodingIdentity: (String, String) = "accept-encoding" -> "identity"
+
+  val jsonHeaders: List[(String, String)] = List("Accept" -> "application/json", "Content-Type" -> "application/json")
 
   def get[A](url: String, headers: List[(String, String)] = jsonHeaders)
             (implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
