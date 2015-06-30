@@ -4,12 +4,12 @@ import io.vamp.common.crypto.Hash
 import io.vamp.core.container_driver.docker.DockerPortMapping
 import io.vamp.core.container_driver.notification.{ContainerDriverNotificationProvider, UnsupportedDeployableSchema}
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.resolver.TraitResolver
+import io.vamp.core.model.resolver.DeploymentTraitResolver
 import org.json4s.{DefaultFormats, Extraction, Formats}
 
 import scala.concurrent.ExecutionContext
 
-abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDriver with TraitResolver with ContainerDriverNotificationProvider {
+abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDriver with DeploymentTraitResolver with ContainerDriverNotificationProvider {
   protected implicit val executionContext = ec
 
   protected val nameDelimiter = "/"
@@ -51,18 +51,8 @@ abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDr
   }
 
   private def interpolate(deployment: Deployment, cluster: DeploymentCluster, dialect: Any) = {
-
-    def provider(reference: ValueReference): String = (reference match {
-      case ref: TraitReference => deployment.traits.find(_.name == ref.reference).flatMap(_.value)
-      case ref: HostReference => deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value)
-      case ref: LocalReference if ref.name == s"$marker" => Some(s"$marker")
-      case ref: LocalReference =>
-        (deployment.environmentVariables ++ deployment.constants).find(tr => TraitReference.referenceFor(tr.name).exists(r => r.cluster == cluster.name && r.name == ref.name)).flatMap(_.value)
-      case ref => None
-    }) getOrElse ""
-
     def visit(any: Any): Any = any match {
-      case value: String => resolve(value, provider)
+      case value: String => resolve(value, valueFor(deployment, cluster))
       case map: scala.collection.Map[_, _] => map.map {
         case (key, value) => key -> visit(value)
       }
