@@ -24,13 +24,13 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[MarathonDriver]))
 
-  def info: Future[ContainerInfo] = RestClient.request[Info](s"GET $url/v2/info").map {
-    ContainerInfo("marathon", _)
+  def info: Future[ContainerInfo] = RestClient.get[Any](s"$url/v2/info").map { response =>
+    ContainerInfo("marathon", response)
   }
 
   def all: Future[List[ContainerService]] = {
     logger.debug(s"marathon get all")
-    RestClient.request[Apps](s"GET $url/v2/apps?embed=apps.tasks").map(apps => apps.apps.filter(app => processable(app.id)).map(app => containerService(app)))
+    RestClient.get[Apps](s"$url/v2/apps?embed=apps.tasks").map(apps => apps.apps.filter(app => processable(app.id)).map(app => containerService(app)))
   }
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
@@ -41,7 +41,10 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
 
     val app = MarathonApp(id, container(deployment, cluster, service), service.scale.get.instances, service.scale.get.cpu, service.scale.get.memory, environment(deployment, cluster, service), cmd(deployment, cluster, service))
 
-    sendApp(if (update) s"PUT $url/v2/apps/${app.id}" else s"POST $url/v2/apps", app, cluster.dialects ++ service.dialects)
+    if (update)
+      sendApp(RestClient.Method.PUT, s"$url/v2/apps/${app.id}", app, cluster.dialects ++ service.dialects)
+    else
+      sendApp(RestClient.Method.POST, s"$url/v2/apps", app, cluster.dialects ++ service.dialects)
   }
 
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = service.breed.deployable match {
@@ -54,7 +57,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
     case _ => None
   }
 
-  private def sendApp(url: String, app: MarathonApp, dialects: Map[Dialect.Value, Any]) = {
+  private def sendApp(method: RestClient.Method.Value, url: String, app: MarathonApp, dialects: Map[Dialect.Value, Any]) = {
     val dialect = dialects.getOrElse(Dialect.Marathon, Map())
 
     (app.container, app.cmd, dialect) match {
@@ -64,7 +67,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
     }
 
     implicit val formats = DefaultFormats
-    RestClient.request[Any](url, Extraction.decompose(dialect) merge Extraction.decompose(app))
+    RestClient.http[Any](method, url, Extraction.decompose(dialect) merge Extraction.decompose(app))
   }
 
   def undeploy(deployment: Deployment, service: DeploymentService) = {

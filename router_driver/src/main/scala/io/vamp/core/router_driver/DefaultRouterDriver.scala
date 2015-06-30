@@ -17,12 +17,12 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
 
   def info: Future[Any] = {
     logger.debug(s"router info")
-    RestClient.request[Any](s"GET $url/v1/info")
+    RestClient.get[Any](s"$url/v1/info")
   }
 
   def all: Future[DeploymentRoutes] = {
     logger.debug(s"router get all")
-    RestClient.request[List[Route]](s"GET $url/v1/routes").map(deploymentRoutes)
+    RestClient.get[List[Route]](s"$url/v1/routes").map(deploymentRoutes)
   }
 
   def deploymentRoutes(routes: List[Route]): DeploymentRoutes = {
@@ -45,10 +45,10 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   private def create(name: String, route: Route, update: Boolean) = {
     if (update) {
       logger.info(s"router update: $name")
-      RestClient.request[Any](s"PUT $url/v1/routes/$name", route)
+      RestClient.put[Any](s"$url/v1/routes/$name", route)
     } else {
       logger.info(s"router create: $name")
-      RestClient.request[Any](s"POST $url/v1/routes", route)
+      RestClient.post[Any](s"$url/v1/routes", route)
     }
   }
 

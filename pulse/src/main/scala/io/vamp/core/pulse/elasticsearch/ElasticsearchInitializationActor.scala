@@ -72,12 +72,12 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
     def createTemplate(name: String) = templates.get(name).foreach { template =>
       receiver ! WaitForOne
-      RestClient.request[Any](s"PUT $elasticsearchUrl/_template/$name", template) onComplete {
+      RestClient.put[Any](s"$elasticsearchUrl/_template/$name", template) onComplete {
         case _ => receiver ! DoneWithOne
       }
     }
 
-    RestClient.request[Any](s"GET $elasticsearchUrl/_template", None, "", { case field => field }) onComplete {
+    RestClient.get[Any](s"$elasticsearchUrl/_template") onComplete {
       case Success(response) =>
         response match {
           case map: Map[_, _] => templates.keys.filterNot(name => map.asInstanceOf[Map[String, Any]].contains(name)).foreach(createTemplate)

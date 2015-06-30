@@ -6,6 +6,7 @@ import org.json4s._
 object CoreSerializationFormat {
 
   private val common = List(
+    ThrowableSerializer(Some("Internal error.")),
     OffsetDateTimeSerializer,
     SnakeCaseSerializationFormat,
     MapSerializer,
