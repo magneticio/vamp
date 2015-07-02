@@ -10,6 +10,10 @@ menu:
 Breeds are applications and services available for deployment. Each breed is described by the DSL in YAML notation or JSON, whatever you like. This description includes name, version, available parameters, dependencies etc.
 To a certain degree, you could compare a breed to a Maven artefact.
 
+> **Note:** Breeds can be referenced by name. This means you can describe a breed in detail just once, and then use its name in a blueprint.
+
+
+
 Let's start with a some examples. First a simple one, with no dependencies. Please read the inline comments carefully.
 
 ```yaml
@@ -53,7 +57,15 @@ constants:
 
 ```
 
-Now, let's look at a breed with dependencies:
+## Dependencies & environment variables
+
+
+Breeds can have dependencies on other breeds. These dependencies should be stated
+explicitly, similar to how you would do in a Maven pom.xml, a Ruby Gemfile or similar
+packaged dependency systems. 
+
+In a lot of cases, dependencies coexist with interpolated
+environment variables or constants because exact values are not known untill deploy time. Have a look at the following breed and read the comments carefully.
 
 ```yaml
 ---
@@ -85,11 +97,8 @@ environment_variables:
   # at runtime either by Vamp or the user.
 
   URL: jdbc://$db.host:$db.ports.port/schema/foo
-    
-  # Example of a value that will be interpolated before deployment.
-      
+          
 dependencies:
-
   db: mysql 
 
   # This is shortened for db: name: mysql. 
@@ -100,7 +109,6 @@ dependencies:
   # someone could use db1 & db2, or XX & XY etc.
 ```
 
-## Environment variables
 
 The above examples should give you an example of what is possible using breeds. Here are some more use cases for the way Vamp handles environment variables and interpolation of those variables
 
@@ -126,7 +134,7 @@ You might want to resolve a reference and set it as the value for an environment
 
 You would use this to hook up services at runtime based on host/port combinations or to use a hard dependency that never changes but should be provided by another breed. 
 
-**Notice**: you use the `$` sign to reference other statements in a blueprint and you use the `constants` keyword
+>**Note:**:you use the `$` sign to reference other statements in a blueprint and you use the `constants` keyword
 to create a list of constant values.
 
 Have a look at this example blueprint. We are describing a frontend service that has a dependency on a backend service. We pick up the actual address of the backend service using references to variables in the blueprint that are filled in at runtime. However, we also want to pick up a value that is set by "us humans": the api path, in this case "/v2/api/customers".
@@ -153,65 +161,124 @@ clusters:
       uri_path: /v2/api/customers   
 ```
 
+We could even extend this further. What if the backend is configured thru some environment variable, but the frontend also needs that information? Let's say the encoding type for some database.
+We just reference that environment variable using the exact same syntax:
+
+```yaml
+---
+name: my_blueprint
+clusters:
+
+  frontend:
+    breed:
+      name: frontend_service
+    environment_variables:
+        # resolves to a host and port at runtime
+        BACKEND_URL: http://$backend.host:$backend.ports.port
+        # resolves to the "published" constant value
+        BACKEND_URI_PATH: $backend.constants.uri_path
+        #resolves to the environment variable in the dependency
+        BACKEND_ENCODING: $backend.environment_variables.ENCODING_TYPE        
+      dependencies:
+        backend: my_other_breed
+  backend:
+    breed:
+      name: my_other_breed
+    environment_variables:
+      ENCODING_TYPE: 'UTF8'  
+    constants:
+      uri_path: /v2/api/customers
+         
+```
+
+
 # Blueprints
-Blueprints are execution plans - they describe how your services should be hooked up and what the topology should look like at runtime. All dependencies and parameter values will be resolved at deployment time.
+Blueprints are execution plans - they describe how your services should be hooked up and what the topology should look like at runtime. This means you reference your breeds (or define them inline) and add runtime configuration to them, i.e:
+
+- **endpoint:** a stable port where the service can be reached.
+- **scale:** the CPU and memory and the amount of instance allocate to a service.
+- **routing:** how much and which traffic the service should receive.
+- **sla:** and SLA definition that controls autoscaling.
+
 
 This example shows some of the key concepts of of blueprints:
  
 ```yaml
 ---
-name: nomadic-frostbite
-
-# Endpoints are stable ports mapped to concrete breed ports.
-# Breed ports are resolved to port values available during runtime.
- 
+name: my_cool_blueprint # custom blueprint name
 endpoints:
-  notorious.port: 8080
-
-# A blueprint defines collection of clusters.
-# A cluster is a group of different services which 
-# will appear as a single service. Common use cases 
-# are service A and B in A/B testing - usually just different 
-# versions of the same service (e.g. canary release).
+  my_frontend.port: 8080
 
 clusters:
-  notorious: # Custom cluster name.
-    services: # List of service, at least a breed reference.
+  my_frontend: # Custom cluster name.
+    services: # List of services
       -
         breed:
-          name: nocturnal-viper
+          name: some_cool_breed
         # Scale for this service.
         scale:
           cpu: 2        # Number of CPUs per instance.
           memory: 2048  # Memory in MB per instance.
           instances: 2  # Number of instances.
         # Routing for this service.
-        # This Makes sense only with multiple services per cluster.
+        # This makes sense only with multiple services per cluster.
         routing:
           weight: 95
           filters:
             - condition: ua = android
       -
-        # Another service (breed) in the same cluster.
-        breed: remote-venus
+        # Another service in the same cluster.
+        breed: some_other_breed
         scale: large # Notice we used a reference to a "scale". More on this later
 
     # SLA (reference) defined on cluster level. 
-    sla: strong-mountain 
-              
-# List of parameters.
-# Actual values will be resolved at the runtime.
-# "thorium" in this example is just a key to get a 
-# concrete parameter value.
-# By default dictionary will resolve value as being the 
-# same as key provided. 
-environment_variables:
-  notorious.aspect: thorium
+    sla: some_really_good_sla
 ```
+
+## Endpoints
+
+An endpoint is a "stable" port that almost never changes. It points to the "first" service in your blueprint. This service can of course be changed, but the endpoint port normally doesnt. Under the hood, we do a fairly simple port mapping.
+
+> **Note:** endpoints are not strictly optional. You can just deploy services and have a home grown method to connect them to some stable, exposable endpoint.
+
+## Clusters & Services
+
+In essence, blueprints define a collection of clusters.
+In turn, a cluster is a group of different services which 
+will appear as a single service serve a single purposes.
+
+Common use cases are service A and B in an A/B testing scenario - usually just different 
+versions of the same service (e.g. canary release or blue/green deployment).
+
+As said, clusters are configured by defining an array of services. A cluster can be 
+given an arbitrary name. Services are just lists or arrays of breeds.
+
+```yaml
+---
+my_cool_cluster
+  services
+   - breed: my_cool_service_A  	# reference to an existing breed
+   -
+     breed:						# shortened inline breed
+       name: my_cool_service_B	
+       deployable: some_container
+       ...
+```
+Clusters and services are just organisational items. Vamp uses them to order, reference and control the actual containers and routing and traffic.
+
+{{% alert info %}} 
+This all seems redundant, right? We have a reference chain of blueprints -> endpoints -> clusters -> services -> breeds -> containers.
+
+
+However, you need this level of control and granularity in any serious environment where DRY principles are taken seriously and where "one size fits all" doesn't fly.
+{{% alert %}}
+
 
 ## Scale
 
-Scale is the "size" of a deployed service. Usually that means the number of instances (servers) and allocated cpu and memory. Scales can be defined inline in a blueprint or they can defined separately and given a unique name. The following example is a scale named "small". `POST`-ing this scale to the `/scales` REST API endpoint will store it under that name so it can be referenced from other blueprints.
+Scale is the "size" of a deployed service. Usually that means the number of instances (servers) and allocated cpu and memory.
+
+Scales can be defined inline in a blueprint or they can defined separately and given a unique name. The following example is a scale named "small". `POST`-ing this scale to the `/scales` REST API endpoint will store it under that name so it can be referenced from other blueprints.
 
 ```yaml
 ---
