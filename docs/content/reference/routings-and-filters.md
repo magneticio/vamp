@@ -13,21 +13,28 @@ Vamp allows you to determine this in two ways:
 1. by setting a **weight** in the percentage of traffic.
 2. by setting a **filter** condition to target specific traffic.
 
-You can define routings inline in a blueprint or store them separately under a unique name and just use that name to reference them from a blueprint. Just `POST` them to the `/routings` endpoint. For instance:
+You can define routings inline in a blueprint or store them separately under a unique name and just use that name to reference them from a blueprint. 
+
+Let's have a look at a simple, inline, routing. This would be used directly inside a blueprint. 
 
 ```yaml
----
-name: red   # Custom name, can be referenced later on.
-            # Amount of traffic for this service in percents.
-weight: 10
-            # Custom filters.
-filters:    # Anonymous with condition.
-  - condition: user-agent = ios
-            # As a reference, shortened of "name: my_filter_1"
-  - my_filter_1
+---           
+weight: 10  # Amount of traffic for this service in percents.
+filters:    
+  - condition: User-Agent = IOS
 ```
 
-*Notice* we referenced a filter named `my_filter_1` here. This filter is actually a reference to a separately stored filter definition we stored under a unique name on the `/filters` endpoint.
+The example above could be reused by just giving it a name and storing it by using a `POST` request to the `/routings` endpoint.
+
+```yaml
+name: cool_routing   # Custom name, can be referenced later on.
+weight: 10
+filters: 
+  - condition: user-agent = ios
+  - really_cool_filter
+```
+
+> **Notice:** we added a filter named `really_cool_filter` here. This filter is actually a reference to a separately stored filter definition we stored under a unique name on the `/filters` endpoint.
 
 ## Defining weights
 
