@@ -271,7 +271,7 @@ This all seems redundant, right? We have a reference chain of blueprints -> endp
 
 
 However, you need this level of control and granularity in any serious environment where DRY principles are taken seriously and where "one size fits all" doesn't fly.
-{{% alert %}}
+{{% /alert %}}
 
 
 ## Scale
