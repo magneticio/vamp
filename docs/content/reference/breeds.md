@@ -134,7 +134,7 @@ You might want to resolve a reference and set it as the value for an environment
 
 You would use this to hook up services at runtime based on host/port combinations or to use a hard dependency that never changes but should be provided by another breed. 
 
->**Note:**:you use the `$` sign to reference other statements in a blueprint and you use the `constants` keyword
+>**Note:** use the `$` sign to reference other statements in a blueprint and you use the `constants` keyword
 to create a list of constant values.
 
 Have a look at this example blueprint. We are describing a frontend service that has a dependency on a backend service. We pick up the actual address of the backend service using references to variables in the blueprint that are filled in at runtime. However, we also want to pick up a value that is set by "us humans": the api path, in this case "/v2/api/customers".
@@ -239,7 +239,7 @@ clusters:
 
 An endpoint is a "stable" port that almost never changes. It points to the "first" service in your blueprint. This service can of course be changed, but the endpoint port normally doesnt. Under the hood, we do a fairly simple port mapping.
 
-> **Note:** endpoints are not strictly optional. You can just deploy services and have a home grown method to connect them to some stable, exposable endpoint.
+> **Note:** endpoints are optional. You can just deploy services and have a home grown method to connect them to some stable, exposable endpoint.
 
 ## Clusters & Services
 
