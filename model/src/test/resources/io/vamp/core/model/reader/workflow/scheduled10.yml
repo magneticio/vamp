@@ -1,0 +1,6 @@
+name: kill-vamp
+time: 0
+import:
+- http://underscorejs.org/underscore-min.js
+- vamp.js
+script: vamp.exit()

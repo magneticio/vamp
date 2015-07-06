@@ -4,7 +4,21 @@ import io.vamp.common.json._
 import org.json4s._
 
 object CoreSerializationFormat {
-  val default: Formats = SerializationFormat(OffsetDateTimeSerializer, SnakeCaseSerializationFormat, MapSerializer, BreedSerializationFormat, BlueprintSerializationFormat, SlaSerializationFormat, DeploymentSerializationFormat)
+
+  private val common = List(
+    ThrowableSerializer(Some("Internal error.")),
+    OffsetDateTimeSerializer,
+    SnakeCaseSerializationFormat,
+    MapSerializer,
+    BreedSerializationFormat,
+    BlueprintSerializationFormat,
+    SlaSerializationFormat,
+    WorkflowSerializationFormat
+  )
+
+  val default: Formats = SerializationFormat(common :+ DeploymentSerializationFormat: _*)
+
+  val full: Formats = SerializationFormat(common :+ FullDeploymentSerializationFormat: _*)
 }
 
 abstract class ArtifactSerializer[A: Manifest] extends Serializer[A] {

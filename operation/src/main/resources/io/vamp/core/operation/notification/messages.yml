@@ -10,3 +10,11 @@ UnresolvedEnvironmentValueError : "Unresolved environment value: '{key}'."
 UnsupportedSlaType              : "Unsupported SLA type {`type`} for given parameters."
 DeploymentServiceError          : "Deployment service error for deployment '{deployment.name}' and service '{service.breed.name}'."
 InvalidRoutingWeight            : "Invalid routing weight for cluster '{deployment.name}/{cluster.name}': expected to be either 0% or 100% after the operation, but actually it is {weight}%"
+WorkflowSchedulingError         : "Workflow scheduling error."
+WorkflowExecutionError          : "Workflow execution error."
+
+InconsistentArtifactName        : "Inconsistent resource name: parameter is '{parameter}' but in the request body found '{artifact.name}'."
+UnexpectedArtifact              : "Unexpected resource: '{artifact}'."
+InvalidTimeTriggerError         : "Not a valid time trigger patter: '{pattern}'."
+MissingRequiredVariableError    : "Required variable '{required}' not found in the storage."
+

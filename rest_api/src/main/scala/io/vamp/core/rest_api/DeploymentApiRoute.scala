@@ -6,26 +6,24 @@ import java.time.temporal.ChronoUnit
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.akka.{CommonSupportForActors, ActorSupport, ExecutionContextProvider, FutureSupport}
 import io.vamp.common.http.RestApiBase
+import io.vamp.common.notification.NotificationProvider
+import io.vamp.core.model.artifact.Deployment
 import io.vamp.core.model.artifact.DeploymentService.{Deployed, ReadyForUndeployment}
-import io.vamp.core.model.artifact._
-import io.vamp.core.model.conversion.DeploymentConversion._
-import io.vamp.core.model.reader._
+import io.vamp.core.operation.controller.DeploymentApiController
+import io.vamp.core.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
-import io.vamp.core.operation.deployment.{DeploymentActor, DeploymentSynchronizationActor}
 import io.vamp.core.operation.notification.InternalServerError
 import io.vamp.core.operation.sla.{EscalationActor, SlaActor}
-import io.vamp.core.persistence.actor.PersistenceActor
-import io.vamp.core.persistence.actor.PersistenceActor.All
-import io.vamp.core.rest_api.notification.RestApiNotificationProvider
+import io.vamp.core.persistence.PersistenceActor
+import io.vamp.core.persistence.PersistenceActor.All
 import spray.http.StatusCodes._
 
-import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 
-trait DeploymentApiRoute extends DeploymentApiController {
-  this: Actor with RestApiBase with ExecutionContextProvider =>
+trait DeploymentApiRoute extends DeploymentApiController with DevController {
+  this: CommonSupportForActors with RestApiBase =>
 
   implicit def timeout: Timeout
 
@@ -53,18 +51,16 @@ trait DeploymentApiRoute extends DeploymentApiController {
     pathEndOrSingleSlash {
       get {
         parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
-          onSuccess(deployments(asBlueprint)) { result =>
-            respondWithStatus(OK) {
-              complete(result)
+          pageAndPerPage() { (page, perPage) =>
+            onSuccess(deployments(asBlueprint)(page, perPage)) { result =>
+              respondWith(OK, result)
             }
           }
         }
       } ~ post {
         entity(as[String]) { request =>
           onSuccess(createDeployment(request)) { result =>
-            respondWithStatus(Accepted) {
-              complete(result)
-            }
+            respondWith(Accepted, result)
           }
         }
       }
@@ -74,26 +70,21 @@ trait DeploymentApiRoute extends DeploymentApiController {
           rejectEmptyResponse {
             parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
               onSuccess(deployment(name, asBlueprint)) { result =>
-                respondWithStatus(OK) {
-                  complete(result)
-                }
+                respondWith(OK, result)
               }
             }
           }
         } ~ put {
           entity(as[String]) { request =>
             onSuccess(updateDeployment(name, request)) { result =>
-              respondWithStatus(Accepted) {
-                complete(result)
-              }
+              respondWith(Accepted, result)
             }
           }
         } ~ delete {
-          entity(as[String]) { request => onSuccess(deleteDeployment(name, request)) { result =>
-            respondWithStatus(Accepted) {
-              complete(result)
+          entity(as[String]) { request =>
+            onSuccess(deleteDeployment(name, request)) { result =>
+              respondWith(Accepted, result)
             }
-          }
           }
         }
       }
@@ -105,23 +96,17 @@ trait DeploymentApiRoute extends DeploymentApiController {
       pathEndOrSingleSlash {
         get {
           onSuccess(sla(deployment, cluster)) { result =>
-            respondWithStatus(OK) {
-              complete(result)
-            }
+            respondWith(OK, result)
           }
         } ~ (post | put) {
           entity(as[String]) { request =>
             onSuccess(slaUpdate(deployment, cluster, request)) { result =>
-              respondWithStatus(Accepted) {
-                complete(result)
-              }
+              respondWith(Accepted, result)
             }
           }
         } ~ delete {
           onSuccess(slaDelete(deployment, cluster)) { result =>
-            respondWithStatus(NoContent) {
-              complete(None)
-            }
+            respondWith(NoContent, None)
           }
         }
       }
@@ -132,16 +117,12 @@ trait DeploymentApiRoute extends DeploymentApiController {
       pathEndOrSingleSlash {
         get {
           onSuccess(scale(deployment, cluster, breed)) { result =>
-            respondWithStatus(OK) {
-              complete(result)
-            }
+            respondWith(OK, result)
           }
         } ~ (post | put) {
           entity(as[String]) { request =>
             onSuccess(scaleUpdate(deployment, cluster, breed, request)) { result =>
-              respondWithStatus(Accepted) {
-                complete(result)
-              }
+              respondWith(Accepted, result)
             }
           }
         }
@@ -153,16 +134,12 @@ trait DeploymentApiRoute extends DeploymentApiController {
       pathEndOrSingleSlash {
         get {
           onSuccess(routing(deployment, cluster, breed)) { result =>
-            respondWithStatus(OK) {
-              complete(result)
-            }
+            respondWith(OK, result)
           }
         } ~ (post | put) {
           entity(as[String]) { request =>
             onSuccess(routingUpdate(deployment, cluster, breed, request)) { result =>
-              respondWithStatus(OK) {
-                complete(result)
-              }
+              respondWith(OK, result)
             }
           }
         }
@@ -172,8 +149,8 @@ trait DeploymentApiRoute extends DeploymentApiController {
   val deploymentRoutes = helperRoutes ~ deploymentRoute ~ slaRoute ~ scaleRoute ~ routingRoute
 }
 
-trait DeploymentApiController extends RestApiNotificationProvider with ActorSupport with FutureSupport {
-  this: Actor with ExecutionContextProvider =>
+trait DevController {
+  this: NotificationProvider with ActorSupport with FutureSupport with ExecutionContextProvider =>
 
   def sync(rate: Option[Int])(implicit timeout: Timeout): Unit = rate match {
     case Some(r) =>
@@ -187,7 +164,7 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
           deployments.asInstanceOf[List[Deployment]].map({ deployment =>
             deployment.clusters.filter(cluster => cluster.services.exists(!_.state.isInstanceOf[Deployed])).count(_ => true)
           }).reduceOption(_ max _).foreach(max => sync(Some(max * 3 + 1)))
-        case any => error(InternalServerError(any))
+        case any => throwException(InternalServerError(any))
       }
   }
 
@@ -207,112 +184,8 @@ trait DeploymentApiController extends RestApiNotificationProvider with ActorSupp
           actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
           deployment.clusters.count(_ => true)
         }).reduceOption(_ max _).foreach(max => sync(Some(max * 3)))
-      case any => error(InternalServerError(any))
+      case any => throwException(InternalServerError(any))
     }
   }
-
-  def deployments(asBlueprint: Boolean)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])).map {
-    case list: List[_] => list.map {
-      case deployment: Deployment => if (asBlueprint) deployment.asBlueprint else deployment
-      case any => any
-    }
-    case any => any
-  }
-
-  def deployment(name: String, asBlueprint: Boolean)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])).map {
-    case Some(deployment: Deployment) => if (asBlueprint) deployment.asBlueprint else deployment
-    case any => any
-  }
-
-  def createDeployment(request: String)(implicit timeout: Timeout) = DeploymentBlueprintReader.readReferenceFromSource(request) match {
-    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint, request)
-    case blueprint: DefaultBlueprint =>
-      actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, Some(request), ignoreIfExists = true)
-      actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint, request)
-  }
-
-  def updateDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] = DeploymentBlueprintReader.readReferenceFromSource(request) match {
-    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint, request)
-    case blueprint: DefaultBlueprint =>
-      actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, Some(request), ignoreIfExists = true)
-      actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint, request)
-  }
-
-  def deleteDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] = {
-    if (request.nonEmpty)
-      actorFor(DeploymentActor) ? DeploymentActor.Slice(name, DeploymentBlueprintReader.readReferenceFromSource(request), request)
-    else
-      actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])
-  }
-
-  def sla(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
-    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(_.sla))
-    }
-
-  def slaUpdate(deploymentName: String, clusterName: String, request: String)(implicit timeout: Timeout) =
-    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map {
-      case Some(deployment: Deployment) =>
-        deployment.clusters.find(_.name == clusterName) match {
-          case None => None
-          case Some(cluster) => offload(actorFor(DeploymentActor) ? DeploymentActor.UpdateSla(deployment, cluster, Some(SlaReader.read(request)), request))
-        }
-      case _ => None
-    }
-
-  def slaDelete(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
-    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map {
-      case Some(deployment: Deployment) =>
-        deployment.clusters.find(_.name == clusterName) match {
-          case None => None
-          case Some(cluster) => offload(actorFor(DeploymentActor) ? DeploymentActor.UpdateSla(deployment, cluster, None, ""))
-        }
-      case _ => None
-    }
-
-  def scale(deploymentName: String, clusterName: String, breedName: String)(implicit timeout: Timeout) =
-    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(cluster => cluster.services.find(_.breed.name == breedName)).flatMap(service => Some(service.scale)))
-    }
-
-  def scaleUpdate(deploymentName: String, clusterName: String, breedName: String, request: String)(implicit timeout: Timeout) =
-    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map {
-      case Some(deployment: Deployment) =>
-        deployment.clusters.find(_.name == clusterName) match {
-          case None => None
-          case Some(cluster) => cluster.services.find(_.breed.name == breedName) match {
-            case None => None
-            case Some(service) =>
-              val scale = ScaleReader.read(request) match {
-                case s: ScaleReference => offload(actorFor(PersistenceActor) ? PersistenceActor.Read(s.name, classOf[Scale])).asInstanceOf[DefaultScale]
-                case s: DefaultScale => s
-              }
-              offload(actorFor(DeploymentActor) ? DeploymentActor.UpdateScale(deployment, cluster, service, scale, request))
-          }
-        }
-      case _ => None
-    }
-
-  def routing(deploymentName: String, clusterName: String, breedName: String)(implicit timeout: Timeout) =
-    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(cluster => cluster.services.find(_.breed.name == breedName)).flatMap(service => Some(service.routing)))
-    }
-
-  def routingUpdate(deploymentName: String, clusterName: String, breedName: String, request: String)(implicit timeout: Timeout) =
-    (actorFor(PersistenceActor) ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map {
-      case Some(deployment: Deployment) =>
-        deployment.clusters.find(_.name == clusterName) match {
-          case None => None
-          case Some(cluster) => cluster.services.find(_.breed.name == breedName) match {
-            case None => None
-            case Some(service) =>
-              val routing = RoutingReader.read(request) match {
-                case r: RoutingReference => offload(actorFor(PersistenceActor) ? PersistenceActor.Read(r.name, classOf[Routing])).asInstanceOf[DefaultRouting]
-                case r: DefaultRouting => r
-              }
-              offload(actorFor(DeploymentActor) ? DeploymentActor.UpdateRouting(deployment, cluster, service, routing, request))
-          }
-        }
-      case _ => None
-    }
 }
+

@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
 import _root_.io.vamp.common.akka._
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -14,7 +14,7 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.resolver.DeploymentTraitResolver
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import io.vamp.core.operation.notification.{DeploymentServiceError, InternalServerError, OperationNotificationProvider}
-import io.vamp.core.persistence.actor.PersistenceActor
+import io.vamp.core.persistence.PersistenceActor
 import io.vamp.core.router_driver._
 
 import scala.language.postfixOps
@@ -40,7 +40,7 @@ object DeploymentSynchronizationActor extends ActorDescription {
 
 }
 
-class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with OperationNotificationProvider {
+class DeploymentSynchronizationActor extends CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
 
   private object Processed {
 
@@ -65,13 +65,17 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
   private case class ProcessedCluster(state: Processed.State, cluster: DeploymentCluster)
 
   def receive: Receive = {
+
     case SynchronizeAll =>
       implicit val timeout = PersistenceActor.timeout
       offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
         case deployments: List[_] => synchronize(deployments.asInstanceOf[List[Deployment]])
-        case any => error(InternalServerError(any))
+        case any => throwException(InternalServerError(any))
       }
+
     case Synchronize(deployment) => synchronize(deployment :: Nil)
+
+    case _ =>
   }
 
   private def synchronize(deployments: List[Deployment]): Unit = {
@@ -91,7 +95,7 @@ class DeploymentSynchronizationActor extends Actor with DeploymentTraitResolver 
 
     def handleTimeout(service: DeploymentService) = {
       val notification = DeploymentServiceError(deployment, service)
-      exception(notification)
+      reportException(notification)
       actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map({ s =>
         if (s.breed.name == service.breed.name) {
           s.copy(state = Error(notification))

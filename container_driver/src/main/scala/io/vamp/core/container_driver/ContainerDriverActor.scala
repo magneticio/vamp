@@ -1,7 +1,7 @@
 package io.vamp.core.container_driver
 
 import _root_.io.vamp.common.akka._
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.vitals.InfoRequest
@@ -26,7 +26,7 @@ object ContainerDriverActor extends ActorDescription {
 
 }
 
-class ContainerDriverActor(driver: ContainerDriver) extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupportNotification with ActorExecutionContextProvider with ContainerDriverNotificationProvider {
+class ContainerDriverActor(driver: ContainerDriver) extends CommonReplyActor with ContainerDriverNotificationProvider {
 
   import io.vamp.core.container_driver.ContainerDriverActor._
 
@@ -45,7 +45,7 @@ class ContainerDriverActor(driver: ContainerDriver) extends Actor with ActorLogg
       case _ => unsupported(request)
     }
   } catch {
-    case e: Exception => exception(ContainerResponseError(e))
+    case e: Throwable => reportException(ContainerResponseError(e))
   }
 }
 

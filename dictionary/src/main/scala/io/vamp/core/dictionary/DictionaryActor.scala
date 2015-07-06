@@ -1,7 +1,7 @@
 package io.vamp.core.dictionary
 
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
@@ -30,7 +30,7 @@ object DictionaryActor extends ActorDescription {
 
 case class DictionaryEntry(key: String, value: String)
 
-class DictionaryActor extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupportNotification with ActorExecutionContextProvider with DictionaryNotificationProvider {
+class DictionaryActor extends CommonReplyActor with DictionaryNotificationProvider {
 
   implicit val timeout = DictionaryActor.timeout
 
@@ -65,7 +65,7 @@ class DictionaryActor extends Actor with ActorLogging with ActorSupport with Rep
   private def get(key: String) = key match {
     case portAssignment(deployment, port) =>
       if (currentPort == portRange(1))
-        exception(NoAvailablePortError(portRange(0), portRange(1)))
+        reportException(NoAvailablePortError(portRange(0), portRange(1)))
       else {
         currentPort += 1
         currentPort

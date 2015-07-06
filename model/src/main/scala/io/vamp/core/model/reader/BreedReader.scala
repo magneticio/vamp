@@ -6,16 +6,13 @@ import io.vamp.core.model.validator.BreedTraitValueValidator
 
 import scala.language.postfixOps
 
-object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader[Breed] with BreedTraitValueValidator {
+object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader with BreedTraitValueValidator {
 
   override def readReference(any: Any): Breed = any match {
     case reference: String => BreedReference(reference)
     case map: collection.Map[_, _] =>
       implicit val source = map.asInstanceOf[YamlObject]
-      <<?[Any]("deployable") match {
-        case None => BreedReference(name)
-        case Some(_) => read(map.asInstanceOf[YamlObject])
-      }
+      if (<<?[Any]("deployable").isEmpty) BreedReference(name) else read(map.asInstanceOf[YamlObject])
   }
 
   override protected def expand(implicit source: YamlObject) = {
@@ -37,7 +34,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
 
   override protected def parse(implicit source: YamlObject): Breed = {
 
-    val deployable = new Deployable(<<![String]("deployable"))
+    val deployable = Deployable(<<![String]("deployable"))
 
     val dependencies = <<?[YamlObject]("dependencies") match {
       case None => Map[String, Breed]()
@@ -54,8 +51,8 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
     case breed: BreedReference => breed
     case breed: DefaultBreed =>
 
-      breed.ports.find(_.value.isEmpty).flatMap(port => error(MissingPortValueError(breed, port)))
-      breed.constants.find(_.value.isEmpty).flatMap(constant => error(MissingConstantValueError(breed, constant)))
+      breed.ports.find(_.value.isEmpty).flatMap(port => throwException(MissingPortValueError(breed, port)))
+      breed.constants.find(_.value.isEmpty).flatMap(constant => throwException(MissingConstantValueError(breed, constant)))
 
       validateBreedTraitValues(breed)
       validateNonRecursiveDependencies(breed)
@@ -70,7 +67,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
     def recursive(breed: Breed, visited: Set[String]): Unit = breed match {
       case db: DefaultBreed => db.dependencies.foreach { dependency =>
         if (visited.contains(dependency._2.name))
-          error(RecursiveDependenciesError(breed))
+          throwException(RecursiveDependenciesError(breed))
         else
           recursive(dependency._2, visited + dependency._2.name)
       }

@@ -1,9 +1,9 @@
 package io.vamp.core.router_driver
 
-import _root_.io.vamp.common.akka._
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.akka._
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.artifact._
 import io.vamp.core.router_driver.notification.{RouterDriverNotificationProvider, RouterResponseError, UnsupportedRouterDriverRequest}
@@ -30,7 +30,7 @@ object RouterDriverActor extends ActorDescription {
 
 }
 
-class RouterDriverActor(driver: RouterDriver) extends Actor with ActorLogging with ActorSupport with ReplyActor with FutureSupportNotification with ActorExecutionContextProvider with RouterDriverNotificationProvider {
+class RouterDriverActor(driver: RouterDriver) extends CommonReplyActor with RouterDriverNotificationProvider {
 
   import io.vamp.core.router_driver.RouterDriverActor._
 
@@ -51,6 +51,6 @@ class RouterDriverActor(driver: RouterDriver) extends Actor with ActorLogging wi
       case _ => unsupported(request)
     }
   } catch {
-    case e: Exception => exception(RouterResponseError(e))
+    case e: Throwable => reportException(RouterResponseError(e))
   }
 }

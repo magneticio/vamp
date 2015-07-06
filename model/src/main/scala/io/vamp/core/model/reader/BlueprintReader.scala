@@ -4,10 +4,9 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification._
 import io.vamp.core.model.validator.BlueprintTraitValidator
 
-import scala.collection.mutable.LinkedHashMap
 import scala.language.postfixOps
 
-trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader[Blueprint] with BlueprintTraitValidator {
+trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader with DialectReader with BlueprintTraitValidator {
 
   override def readReference(any: Any): Blueprint = any match {
     case string: String => BlueprintReference(string)
@@ -17,7 +16,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
         read(source)
       else
         BlueprintReference(name)
-    case _ => error(UnexpectedInnerElementError("/", classOf[YamlObject]))
+    case _ => throwException(UnexpectedInnerElementError("/", classOf[YamlObject]))
   }
 
   override protected def expand(implicit source: YamlObject) = {
@@ -92,39 +91,10 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       }).toList
     }
 
-    val endpoints = ports("endpoints").map { port =>
-      NoGroupReference.referenceFor(port.name) match {
-        case Some(ref) => port.copy(name = ref.asTraitReference(TraitReference.Ports))
-        case None => port
-      }
-    }
-
-    val evs = environmentVariables("environment_variables", alias = false).map { ev =>
-      NoGroupReference.referenceFor(ev.name) match {
-        case Some(ref) => ev.copy(name = ref.asTraitReference(TraitReference.EnvironmentVariables))
-        case None => ev
-      }
-    }
+    val endpoints = ports("endpoints", addGroup = true)
+    val evs = environmentVariables("environment_variables", alias = false, addGroup = true)
 
     DefaultBlueprint(name, clusters, endpoints, evs)
-  }
-
-  private def dialects(implicit source: YamlObject): Map[Dialect.Value, Any] = {
-    <<?[Any]("dialects") match {
-      case None => Map()
-      case Some(ds: collection.Map[_, _]) =>
-        implicit val source = ds.asInstanceOf[YamlObject]
-        dialectValues
-      case _ => Map()
-    }
-  }
-
-  private def dialectValues(implicit source: YamlObject): Map[Dialect.Value, Any] = {
-    Dialect.values.toList.flatMap(dialect => <<?[Any](dialect.toString.toLowerCase) match {
-      case None => if (source.contains(dialect.toString.toLowerCase)) (dialect -> new YamlObject) :: Nil else Nil
-      case Some(d: collection.Map[_, _]) => (dialect -> d.asInstanceOf[YamlObject]) :: Nil
-      case Some(d) => (dialect -> new YamlObject) :: Nil
-    }).toMap
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {
@@ -147,13 +117,13 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       val weights = cluster.services.flatMap(_.routing).filter(_.isInstanceOf[DefaultRouting]).map(_.asInstanceOf[DefaultRouting]).flatMap(_.weight)
       weights.exists(_ < 0) || weights.sum > 100
     }).flatMap {
-      case cluster => error(RoutingWeightError(cluster))
+      case cluster => throwException(RoutingWeightError(cluster))
     }
   }
 
   protected def validateBreeds(breeds: List[Breed]): Unit = {
     breeds.groupBy(_.name.toString).collect {
-      case (name, list) if list.size > 1 => error(NonUniqueBlueprintBreedReferenceError(name))
+      case (name, list) if list.size > 1 => throwException(NonUniqueBlueprintBreedReferenceError(name))
     }
   }
 
@@ -164,7 +134,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     }).find({
       case (breed, dependency) => !breeds.exists(_.name == dependency._2.name)
     }).flatMap {
-      case (breed, dependency) => error(UnresolvedBreedDependencyError(breed, dependency))
+      case (breed, dependency) => throwException(UnresolvedBreedDependencyError(breed, dependency))
     }
   }
 
@@ -191,7 +161,7 @@ object BlueprintReader extends AbstractBlueprintReader {
           case escalation: ScaleEscalation[_] => escalation.targetCluster match {
             case None =>
             case Some(clusterName) => blueprint.clusters.find(_.name == clusterName) match {
-              case None => error(UnresolvedScaleEscalationTargetCluster(cluster, clusterName))
+              case None => throwException(UnresolvedScaleEscalationTargetCluster(cluster, clusterName))
               case Some(_) =>
             }
           }

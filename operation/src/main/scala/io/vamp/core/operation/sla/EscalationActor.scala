@@ -5,15 +5,14 @@ import java.time.OffsetDateTime
 import akka.actor._
 import akka.pattern.ask
 import io.vamp.common.akka._
-import io.vamp.common.notification.DefaultPackageMessageResolverProvider
 import io.vamp.core.model.artifact.DeploymentService.ReadyForDeployment
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.notification.{DeEscalate, Escalate}
+import io.vamp.core.model.event.{Event, EventQuery, TimeRange}
+import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.core.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType}
 import io.vamp.core.operation.sla.EscalationActor.EscalationProcessAll
-import io.vamp.core.persistence.actor.PersistenceActor
-import io.vamp.core.pulse_driver.PulseDriverActor
-import io.vamp.core.pulse_driver.notification.PulseNotificationProvider
+import io.vamp.core.persistence.PersistenceActor
+import io.vamp.core.pulse.PulseActor
 
 import scala.concurrent.duration.FiniteDuration
 import scala.language.postfixOps
@@ -37,12 +36,12 @@ class EscalationSchedulerActor extends SchedulerActor with OperationNotification
     case None =>
   }
 
-  override def schedule(period: FiniteDuration) = {
+  override def schedule(period: FiniteDuration, initialDelay: FiniteDuration) = {
     period.toNanos match {
       case interval if interval > 0 => if (windowStart.isEmpty) windowStart = Some(OffsetDateTime.now().withNano(0))
       case _ => windowStart = None
     }
-    super.schedule(period)
+    super.schedule(period, initialDelay)
   }
 
 }
@@ -55,7 +54,7 @@ object EscalationActor extends ActorDescription {
 
 }
 
-class EscalationActor extends Actor with ActorLogging with ActorSupport with FutureSupport with ActorExecutionContextProvider with PulseNotificationProvider with DefaultPackageMessageResolverProvider {
+class EscalationActor extends CommonSupportForActors with OperationNotificationProvider {
 
   def tags = Set("escalation")
 
@@ -64,7 +63,7 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
       implicit val timeout = PersistenceActor.timeout
       offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
         case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]], from, to)
-        case any => exception(InternalServerError(any))
+        case any => reportException(InternalServerError(any))
       }
   }
 
@@ -75,21 +74,38 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
           case None =>
           case Some(sla) =>
             sla.escalations.foreach { _ =>
-              implicit val timeout = PulseDriverActor.timeout
-              offload(actorFor(PulseDriverActor) ? PulseDriverActor.QuerySlaEvents(deployment, cluster, from, to)) match {
+              querySlaEvents(deployment, cluster, from, to) match {
                 case escalationEvents: List[_] => escalationEvents.foreach {
                   case Escalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = true)
                   case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = false)
                   case _ =>
                 }
-                case any => exception(InternalServerError(any))
+                case any => reportException(InternalServerError(any))
               }
             }
         })
       } catch {
-        case any: Throwable => exception(InternalServerError(any))
+        case any: Throwable => reportException(InternalServerError(any))
       }
     })
+  }
+
+  private def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime): List[SlaEvent] = {
+    implicit val timeout = PulseActor.timeout
+    val eventQuery = EventQuery(SlaEvent.slaTags(deployment, cluster), Some(TimeRange(Some(from), Some(to), includeLower = false, includeUpper = true)))
+    offload(actorFor(PulseActor) ? PulseActor.QueryAll(eventQuery)) match {
+      case list: List[_] => list.asInstanceOf[List[Event]].flatMap { event =>
+        if (Escalate.tags.forall(event.tags.contains))
+          Escalate(deployment, cluster, event.timestamp) :: Nil
+        else if (DeEscalate.tags.forall(event.tags.contains))
+          DeEscalate(deployment, cluster, event.timestamp) :: Nil
+        else
+          Nil
+      }
+      case other =>
+        log.error(other.toString)
+        Nil
+    }
   }
 
   private def escalateToAll(deployment: Deployment, cluster: DeploymentCluster, escalations: List[Escalation], escalate: Boolean): Boolean = {
@@ -114,7 +130,7 @@ class EscalationActor extends Actor with ActorLogging with ActorSupport with Fut
         false
 
       case e: Escalation =>
-        error(UnsupportedEscalationType(e.name))
+        throwException(UnsupportedEscalationType(e.name))
         false
     }))
   }

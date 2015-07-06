@@ -7,7 +7,7 @@ import _root_.io.vamp.core.operation.deployment.DeploymentSynchronizationActor.S
 import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.notification.{NotificationErrorException, NotificationProvider}
 import io.vamp.core.dictionary.DictionaryActor
 import io.vamp.core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import io.vamp.core.model.artifact._
@@ -15,8 +15,8 @@ import io.vamp.core.model.notification._
 import io.vamp.core.model.reader.{BlueprintReader, BreedReader}
 import io.vamp.core.model.resolver.DeploymentTraitResolver
 import io.vamp.core.operation.notification._
-import io.vamp.core.persistence.actor.{ArtifactSupport, PersistenceActor}
 import io.vamp.core.persistence.notification.PersistenceOperationFailure
+import io.vamp.core.persistence.{ArtifactSupport, PersistenceActor}
 
 import scala.language.{existentials, postfixOps}
 
@@ -40,7 +40,7 @@ object DeploymentActor extends ActorDescription {
 
 }
 
-class DeploymentActor extends CommonActorSupport with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ReplyActor with ArtifactSupport with OperationNotificationProvider {
+class DeploymentActor extends CommonReplyActor with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ArtifactSupport with OperationNotificationProvider {
 
   import DeploymentActor._
 
@@ -62,10 +62,11 @@ class DeploymentActor extends CommonActorSupport with BlueprintSupport with Depl
 
       case UpdateRouting(deployment, cluster, service, routing, source) => updateRouting(deployment, cluster, service, routing, source)
 
-      case _ => exception(errorRequest(request))
+      case _ => reportException(errorRequest(request))
     }
   } catch {
-    case e: Exception => e
+    case e: NotificationErrorException => e
+    case e: Throwable => reportException(InternalServerError(e))
   }
 
   def commit(create: Boolean, source: String): (Deployment => Deployment) = { (deployment: Deployment) =>
@@ -74,7 +75,7 @@ class DeploymentActor extends CommonActorSupport with BlueprintSupport with Depl
       case persisted: Deployment =>
         actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
         persisted
-      case any => error(errorRequest(PersistenceOperationFailure(any)))
+      case any => throwException(errorRequest(PersistenceOperationFailure(any)))
     }
   }
 }
@@ -109,13 +110,13 @@ trait DeploymentValidator {
     val breeds = deployment.clusters.flatMap(_.services).filterNot(_.state.isInstanceOf[ReadyForUndeployment]).map(_.breed)
 
     breeds.groupBy(_.name.toString).collect {
-      case (name, list) if list.size > 1 => error(NonUniqueBreedReferenceError(list.head))
+      case (name, list) if list.size > 1 => throwException(NonUniqueBreedReferenceError(list.head))
     }
 
     val breedNames = breeds.map(_.name.toString).toSet
     breeds.foreach {
       breed => breed.dependencies.values.find(dependency => !breedNames.contains(dependency.name)).flatMap {
-        dependency => error(UnresolvedDependencyError(breed, dependency))
+        dependency => throwException(UnresolvedDependencyError(breed, dependency))
       }
     }
 
@@ -128,7 +129,7 @@ trait DeploymentValidator {
     deployment.clusters.map(cluster => cluster -> weightOf(cluster.services)).find({
       case (cluster, weight) => weight != 100 && weight != 0
     }).flatMap({
-      case (cluster, weight) => error(UnsupportedRoutingWeight(deployment, cluster, weight))
+      case (cluster, weight) => throwException(UnsupportedRoutingWeight(deployment, cluster, weight))
     })
 
     deployment
@@ -141,14 +142,14 @@ trait DeploymentValidator {
 
   def validateEnvironmentVariables(blueprint: Blueprint, strictBreeds: Boolean) = blueprint match {
     case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds)).flatMap {
-      case t => error(UnresolvedEnvironmentVariableError(t.name, t.value))
+      case t => throwException(UnresolvedEnvironmentVariableError(t.name, t.value))
     }
     case _ =>
   }
 
   def validateEndpoints(blueprint: Blueprint, strictBreeds: Boolean) = blueprint match {
     case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds)).flatMap {
-      case t => error(UnresolvedEndpointPortError(t.name, t.value))
+      case t => throwException(UnresolvedEndpointPortError(t.name, t.value))
     }
     case _ =>
   }
@@ -258,7 +259,7 @@ trait DeploymentMerger extends DeploymentTraitResolver {
       val availableWeight = 100 - oldWeight - newWeight
 
       if (availableWeight < 0)
-        error(RoutingWeightError(blueprintCluster))
+        throwException(RoutingWeightError(blueprintCluster))
 
       val weight = Math.round(availableWeight / newServices.size)
 
@@ -269,7 +270,7 @@ trait DeploymentMerger extends DeploymentTraitResolver {
             val key = DictionaryActor.containerScale.format(deployment.name, blueprintCluster.name, service.breed.name)
             offload(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
               case scale: DefaultScale => scale
-              case e => error(UnresolvedEnvironmentValueError(key, e))
+              case e => throwException(UnresolvedEnvironmentValueError(key, e))
             }
           case Some(scale: DefaultScale) => scale
         }
@@ -289,7 +290,7 @@ trait DeploymentMerger extends DeploymentTraitResolver {
     implicit val timeout = DictionaryActor.timeout
     val host = offload(actorFor(DictionaryActor) ? DictionaryActor.Get(DictionaryActor.hostResolver)) match {
       case h: String => h
-      case e => error(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
+      case e => throwException(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
     }
 
     val environmentVariables = deployment.clusters.flatMap({ cluster =>
@@ -319,7 +320,7 @@ trait DeploymentMerger extends DeploymentTraitResolver {
           val key = DictionaryActor.portAssignment.format(deployment.name, port)
           port -> (offload(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
             case number: Int => number
-            case e => error(UnresolvedEnvironmentValueError(key, e))
+            case e => throwException(UnresolvedEnvironmentValueError(key, e))
           })
         case Some(number) => port -> number
       }).toMap)
@@ -332,12 +333,12 @@ trait DeploymentMerger extends DeploymentTraitResolver {
       cluster.services.flatMap(service => {
         service.breed.ports.filter(_.value.isEmpty).map(port => {
           val name = TraitReference(cluster.name, TraitReference.Ports, port.name).toString
-          deployment.environmentVariables.find(_.name == name).getOrElse(error(UnresolvedVariableValueError(service.breed, port.name)))
+          deployment.environmentVariables.find(_.name == name).getOrElse(throwException(UnresolvedVariableValueError(service.breed, port.name)))
         })
 
         service.breed.environmentVariables.filter(_.value.isEmpty).map(environmentVariable => {
           val name = TraitReference(cluster.name, TraitReference.Ports, environmentVariable.name).toString
-          deployment.environmentVariables.find(_.name == name).getOrElse(error(UnresolvedVariableValueError(service.breed, environmentVariable.name)))
+          deployment.environmentVariables.find(_.name == name).getOrElse(throwException(UnresolvedVariableValueError(service.breed, environmentVariable.name)))
         })
       })
     })
@@ -366,7 +367,7 @@ trait DeploymentSlicer {
   def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster =>
     blueprint.clusters.find(_.name == cluster.name).foreach { bpc =>
       val weight = weightOf(cluster.services.filterNot(service => bpc.services.exists(_.breed.name == service.breed.name)))
-      if (weight != 100 && weight != 0) error(InvalidRoutingWeight(deployment, cluster, weight))
+      if (weight != 100 && weight != 0) throwException(InvalidRoutingWeight(deployment, cluster, weight))
     }
   }
 

@@ -225,4 +225,18 @@ class BreedReaderTest extends ReaderTest {
       'dependencies(Map())
     )
   }
+
+  it should "resolve deployable schema and definition" in {
+    BreedReader.read(res("breed/breed24.yml")) should have(
+      'name("monarch"),
+      'deployable(Deployable("docker", Some("magneticio/vamp:latest")))
+    )
+  }
+
+  it should "resolve deployable schema" in {
+    BreedReader.read(res("breed/breed25.yml")) should have(
+      'name("sava:1.0.0"),
+      'deployable(Deployable("docker", Some("magneticio/sava:1.0.0")))
+    )
+  }
 }

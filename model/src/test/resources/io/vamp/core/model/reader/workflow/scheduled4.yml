@@ -1,0 +1,7 @@
+name: logger-schedule
+workflow: logger
+time: 15 9 5 1
+deployment: deployment/cluster?create|update|delete
+tags:
+- deployment
+- cluster

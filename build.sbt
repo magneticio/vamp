@@ -4,7 +4,7 @@ organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
-version in ThisBuild := "0.7.7"// + GitHelper.headSha()
+version in ThisBuild := "0.7.8" //+ "." + GitHelper.headSha()
 
 scalaVersion := "2.11.6"
 
@@ -16,31 +16,31 @@ publishMavenStyle := true
 description in ThisBuild:= """Core is the brain of Vamp."""
 
 pomExtra in ThisBuild := <url>http://vamp.io</url>
-    <licenses>
-      <license>
-        <name>The Apache License, Version 2.0</name>
-        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      </license>
-    </licenses>
-    <developers>
-      <developer>
-        <name>Dragoslav Pavkovic</name>
-        <email>drago@magnetic.io</email>
-        <organization>VAMP</organization>
-        <organizationUrl>http://vamp.io</organizationUrl>
-      </developer>
-      <developer>
-        <name>Matthijs Dekker</name>
-        <email>matthijs@magnetic.io</email>
-        <organization>VAMP</organization>
-        <organizationUrl>http://vamp.io</organizationUrl>
-      </developer>
-    </developers>
-    <scm>
-      <connection>scm:git:git@github.com:magneticio/vamp-core.git</connection>
-      <developerConnection>scm:git:git@github.com:magneticio/vamp-core.git</developerConnection>
-      <url>git@github.com:magneticio/vamp-core.git</url>
-    </scm>
+  <licenses>
+    <license>
+      <name>The Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <name>Dragoslav Pavkovic</name>
+      <email>drago@magnetic.io</email>
+      <organization>VAMP</organization>
+      <organizationUrl>http://vamp.io</organizationUrl>
+    </developer>
+    <developer>
+      <name>Matthijs Dekker</name>
+      <email>matthijs@magnetic.io</email>
+      <organization>VAMP</organization>
+      <organizationUrl>http://vamp.io</organizationUrl>
+    </developer>
+  </developers>
+  <scm>
+    <connection>scm:git:git@github.com:magneticio/vamp-core.git</connection>
+    <developerConnection>scm:git:git@github.com:magneticio/vamp-core.git</developerConnection>
+    <url>git@github.com:magneticio/vamp-core.git</url>
+  </scm>
 
 
 // Use local maven repository
@@ -51,15 +51,15 @@ resolvers in ThisBuild ++= Seq(
 
 lazy val bintraySetting = Seq(
   bintrayOrganization  := Some("magnetic-io"),
-    licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
-    bintrayRepository  := "vamp"
+  licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+  bintrayRepository  := "vamp"
 )
 
 
 // Library Versions
 
-val vampCommonVersion = "0.7.7"
-val vampPulseVersion = "0.7.7"
+val vampCommonVersion = "0.7.8"
+val vampUiVersion = "0.0.1"
 
 val sprayVersion = "1.3.2"
 //val sprayJsonVersion = "1.3.1"
@@ -78,6 +78,7 @@ val h2Version = "1.3.166"
 val slickVersion = "2.1.0"
 val activeSlickVersion = "0.2.2"
 val postgresVersion = "9.1-901.jdbc4"
+val quartzVersion = "2.2.1"
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
@@ -94,8 +95,8 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  persistence, model, operation, bootstrap, container_driver, dictionary, pulse_driver, rest_api, router_driver, swagger, cli
-).disablePlugins(sbtassembly.AssemblyPlugin)
+    persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, router_driver, swagger, cli
+  ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
 lazy val bootstrap = project.settings(bintraySetting: _*).settings(
@@ -107,7 +108,7 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
     "org.slf4j" % "slf4j-api" % slf4jVersion,
     "ch.qos.logback" % "logback-classic" % logbackVersion,
     "com.typesafe" % "config" % typesafeConfigVersion
-   ),
+  ),
   // Runnable assembly jar lives in bootstrap/target/scala_2.11/ and is renamed to core assembly for consistent filename for
   // downloading
   assemblyJarName in assembly := s"core-assembly-${version.value}.jar"
@@ -119,21 +120,22 @@ lazy val rest_api = project.settings(bintraySetting: _*).settings(
   libraryDependencies ++=Seq(
     "io.spray" %% "spray-can" % sprayVersion,
     "io.spray" %% "spray-routing" % sprayVersion,
-    "io.spray" %% "spray-httpx" % sprayVersion
+    "io.spray" %% "spray-httpx" % sprayVersion,
+    "vamp-ui" % "vamp-ui" % vampUiVersion from  s"https://bintray.com/artifact/download/magnetic-io/downloads/vamp-ui/vamp-ui-$vampUiVersion.jar"
   )
 ).dependsOn(operation, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
-  name:="core-operation"
-  ).dependsOn(persistence, container_driver, dictionary, pulse_driver).disablePlugins(sbtassembly.AssemblyPlugin)
-
-lazy val pulse_driver = project.settings(bintraySetting: _*).settings(
-  description := "Enables Vamp to talk to Vamp Pulse",
-  name:="core-pulse_driver",
+  name:="core-operation",
   libraryDependencies ++=Seq(
-    "io.vamp" %% "pulse-client" % vampPulseVersion
+    "org.quartz-scheduler" % "quartz" % quartzVersion
   )
+).dependsOn(persistence, container_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
+
+lazy val pulse = project.settings(bintraySetting: _*).settings(
+  description := "Enables Vamp to connect to event storage - Elasticsearch",
+  name:="core-pulse"
 ).dependsOn(router_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val router_driver = project.settings(bintraySetting: _*).settings(
@@ -154,7 +156,6 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
   description:= "Stores Vamp artifacts",
   name:="core-persistence",
   libraryDependencies ++=Seq(
-    "io.vamp" %% "pulse-client" % vampPulseVersion,
     "com.h2database" % "h2" % h2Version,
     "com.typesafe.slick" %% "slick" % slickVersion,
     "io.strongtyped" %% "active-slick" % activeSlickVersion,
@@ -162,7 +163,7 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
     "junit" % "junit" % junitVersion % "test",
     "org.scalatest" %% "scalatest" % scalatestVersion % "test"
   )
-).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val cli = project.settings(bintraySetting: _*).settings(
   description := "Command Line Interface for Vamp",
@@ -177,14 +178,13 @@ lazy val cli = project.settings(bintraySetting: _*).settings(
 lazy val dictionary = project.settings(bintraySetting: _*).settings(
   description := "Dictionary for Vamp",
   name:="core-dictionary"
-  ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val model = project.settings(bintraySetting: _*).settings(
   description := "Definitions of Vamp artifacts",
   name:="core-model",
   libraryDependencies ++= Seq(
     "io.vamp" %% "common" % vampCommonVersion,
-    "io.vamp" %% "pulse-model" % vampPulseVersion,
     "org.yaml" % "snakeyaml" % snakeYamlVersion,
     "junit" % "junit" % junitVersion % "test",
     "org.scalatest" %% "scalatest" % scalatestVersion % "test"

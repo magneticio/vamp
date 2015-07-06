@@ -15,8 +15,26 @@ case class DefaultBreed(name: String, deployable: Deployable, ports: List[Port],
 
 case class BreedReference(name: String) extends Reference with Breed
 
-case class Deployable(name: String) extends Artifact
+case class Deployable(schema: String, definition: Option[String]) extends Artifact {
+  def name = Deployable.nameOf(this)
+}
 
+object Deployable {
+
+  val schemaDelimiter = "://"
+
+  val defaultSchema = "docker"
+
+  def apply(name: String): Deployable = name.indexOf(schemaDelimiter) match {
+    case -1 => Deployable(defaultSchema, Some(name))
+    case index => Deployable(name.substring(0, index).trim, Some(name.substring(index + schemaDelimiter.length).trim))
+  }
+
+  def nameOf(deployable: Deployable) = deployable match {
+    case Deployable(schema, None) => schema
+    case Deployable(schema, Some(definition)) => s"$schema$schemaDelimiter$definition"
+  }
+}
 
 trait Trait {
 

@@ -1,0 +1,10 @@
+tags:
+- server
+- service
+
+timestamp:
+  gt: "now() - 10m"
+
+aggregator:
+  type: average
+  field: response.time

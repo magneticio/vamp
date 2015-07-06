@@ -4,7 +4,6 @@ import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, NotificationMessageNotRestored}
 import io.vamp.core.persistence.slick.components.Components.instance._
-import io.vamp.core.persistence.store.JdbcStoreProvider
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, Matchers}
@@ -14,10 +13,13 @@ import scala.concurrent.ExecutionContext
 @RunWith(classOf[JUnitRunner])
 class JdbcCrudTest extends FlatSpec with Matchers {
 
-  val jdbcStoreProvider = new JdbcStoreProvider(ExecutionContext.global)
-  val jdbcStore = jdbcStoreProvider.store
+  val jdbcStore = new JdbcPersistence {
+    def debug(message: String) = {}
 
-  implicit val sess = jdbcStoreProvider.sess
+    implicit def executionContext: ExecutionContext = ExecutionContext.global
+  }
+
+  implicit val sess = jdbcStore.sess
 
   destroySchema
   upgradeSchema

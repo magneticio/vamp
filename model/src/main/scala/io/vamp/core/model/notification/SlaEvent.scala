@@ -4,13 +4,12 @@ import java.time.OffsetDateTime
 
 import io.vamp.common.notification.Notification
 import io.vamp.core.model.artifact.{Deployment, DeploymentCluster}
-import io.vamp.pulse.notification.PulseEvent
 
 object SlaEvent {
   def slaTags(deployment: Deployment, cluster: DeploymentCluster) = ("sla" :: s"deployment:${deployment.name}" :: s"cluster:${cluster.name}" :: Nil).toSet
 }
 
-trait SlaEvent extends PulseEvent {
+trait SlaEvent {
   def deployment: Deployment
 
   def cluster: DeploymentCluster
@@ -18,6 +17,8 @@ trait SlaEvent extends PulseEvent {
   def timestamp: OffsetDateTime
 
   def value: AnyRef = None
+
+  def tags: Set[String] = Set()
 }
 
 object Escalate {

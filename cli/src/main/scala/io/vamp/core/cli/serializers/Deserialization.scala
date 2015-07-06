@@ -102,7 +102,7 @@ class Deserialization {
 
   implicit def deploymentStateSerialized2State(s: Map[String, String]): State = {
     val timestamp = s.get("started_at").get
-    val dateTime = OffsetDateTime.parse(timestamp, DateTimeFormatter.ISO_INSTANT) //TODO this will fail
+    val dateTime = OffsetDateTime.parse(timestamp, DateTimeFormatter.ISO_DATE_TIME) //TODO this will fail
     s.get("name") match {
       case Some("ready_for_deployment") => ReadyForDeployment(startedAt = dateTime)
       case Some("deployed") => Deployed(startedAt = dateTime)

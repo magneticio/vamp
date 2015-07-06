@@ -72,28 +72,23 @@ trait TraitResolver {
 trait DeploymentTraitResolver extends TraitResolver {
 
   def resolveEnvironmentVariables(deployment: Deployment, clusters: List[DeploymentCluster]): List[EnvironmentVariable] = {
-
-    def valueFor(cluster: DeploymentCluster)(reference: ValueReference): String = {
-      val value = reference match {
-        case ref: TraitReference => deployment.traits.find(_.name == ref.reference).flatMap(_.value)
-        case ref: HostReference => deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value)
-        case ref: LocalReference if ref.name == s"$marker" => Some(s"$marker")
-        case ref: LocalReference =>
-          (deployment.environmentVariables ++ deployment.constants).find(tr => TraitReference.referenceFor(tr.name).exists(r => r.cluster == cluster.name && r.name == ref.name)).flatMap(_.value)
-        case ref => None
-      }
-
-      value.getOrElse("")
-    }
-
     deployment.environmentVariables.map(ev => TraitReference.referenceFor(ev.name) match {
       case Some(TraitReference(c, g, n)) if g == TraitReference.groupFor(TraitReference.EnvironmentVariables) && ev.interpolated.isEmpty && ev.value.isDefined =>
         clusters.find(_.name == c) match {
-          case Some(cluster) => ev.copy(alias = None, interpolated = Some(resolve(ev.value.get, valueFor(cluster))))
+          case Some(cluster) => ev.copy(alias = None, interpolated = Some(resolve(ev.value.get, valueFor(deployment, cluster))))
           case _ => ev
         }
       case _ => ev
     })
   }
+
+  def valueFor(deployment: Deployment, cluster: DeploymentCluster)(reference: ValueReference): String = (reference match {
+    case ref: TraitReference => deployment.traits.find(_.name == ref.reference).flatMap(_.value)
+    case ref: HostReference => deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value)
+    case ref: LocalReference if ref.name == s"$marker" => Some(s"$marker")
+    case ref: LocalReference =>
+      (deployment.environmentVariables ++ deployment.constants).find(tr => TraitReference.referenceFor(tr.name).exists(r => r.cluster == cluster.name && r.name == ref.name)).flatMap(_.value)
+    case ref => None
+  }) getOrElse ""
 }
 

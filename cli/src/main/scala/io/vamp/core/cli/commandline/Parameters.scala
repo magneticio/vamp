@@ -18,6 +18,13 @@ trait Parameters extends CommandLineBasics {
   val json = 'json
   val routing = 'routing
   val scale = 'scale
+  val subcommand = 'subcommand
+  val blueprint = 'blueprint
+  val stdin = 'stdin
+  val breed = 'breed
+  val sla = 'sla
+  val endpoint = 'endpoint
+  val environment = 'environment
 
   val VAMP_HOST = "VAMP_HOST"
 
@@ -42,8 +49,15 @@ trait Parameters extends CommandLineBasics {
     list match {
       case Nil => map
       case "--host" :: value :: tail => nextOption(map ++ Map(host -> value), tail)
+      case "--blueprint" :: value :: tail => nextOption(map ++ Map(blueprint -> value), tail)
       case "--deployment" :: value :: tail => nextOption(map ++ Map(deployment -> value), tail)
       case "--cluster" :: value :: tail => nextOption(map ++ Map(cluster -> value), tail)
+      case "--routing" :: value :: tail => nextOption(map ++ Map(routing -> value), tail)
+      case "--environment" :: value :: tail => nextOption(map ++ Map(environment -> value), tail)
+      case "--endpoint" :: value :: tail => nextOption(map ++ Map(endpoint -> value), tail)
+      case "--scale" :: value :: tail => nextOption(map ++ Map(scale -> value), tail)
+      case "--sla" :: value :: tail => nextOption(map ++ Map(sla -> value), tail)
+      case "--breed" :: value :: tail => nextOption(map ++ Map(breed -> value), tail)
       case "--deployable" :: value :: tail => nextOption(map ++ Map(deployable -> value), tail)
       case "--help" :: tail => nextOption(map ++ Map(help -> ""), tail)
       case "--routing" :: tail => nextOption(map ++ Map(routing -> ""), tail)
@@ -51,8 +65,11 @@ trait Parameters extends CommandLineBasics {
       case "--destination" :: value :: tail => nextOption(map ++ Map(destination -> value), tail)
       case "--file" :: value :: tail => nextOption(map ++ Map(file -> value), tail)
       case "--json" :: tail => nextOption(map ++ Map(json -> "true"), tail)
+      case "--stdin" :: tail => nextOption(map ++ Map(stdin -> "true"), tail)
 
       case string :: opt2 :: tail if isSwitch(opt2) => nextOption(map ++ Map(name -> string), list.tail)
+      case string :: opt2 :: tail if !isSwitch(opt2) => nextOption(map ++ Map(subcommand -> string), list.tail)
+
       case string :: Nil => nextOption(map ++ Map(name -> string), list.tail)
       case option :: tail => terminateWithError("Unknown option " + option)
         Map.empty
