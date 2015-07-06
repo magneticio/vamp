@@ -173,7 +173,7 @@ lazy val cli = project.settings(bintraySetting: _*).settings(
     "ch.qos.logback" % "logback-classic" % logbackVersion
   ),
   assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
-).dependsOn(model, rest_api)
+).dependsOn(model)
 
 lazy val dictionary = project.settings(bintraySetting: _*).settings(
   description := "Dictionary for Vamp",
