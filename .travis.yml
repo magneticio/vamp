@@ -9,7 +9,7 @@ script:
 - find $HOME/.sbt -name "*.lock" | xargs rm
 after_success:
 - sbt coveralls
-- test ${TRAVIS_PULL_REQUEST} == "false" && test ${TRAVIS_BRANCH} == "develop" &&
+- test ${TRAVIS_PULL_REQUEST} == "false" && test ${TRAVIS_BRANCH} == "master" &&
   sh "$TRAVIS_BUILD_DIR/.travis-ci-bintray-credentials.sh" && sbt publish
 notifications:
   slack:
