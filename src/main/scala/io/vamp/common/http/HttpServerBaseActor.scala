@@ -1,6 +1,6 @@
 package io.vamp.common.http
 
-import io.vamp.common.akka.CommonActorSupport
+import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.notification.NotificationErrorException
 import spray.http.StatusCodes._
 import spray.http.{HttpRequest, HttpResponse, StatusCode, Timedout}
@@ -8,7 +8,9 @@ import spray.httpx.marshalling.ToResponseMarshaller
 import spray.routing._
 import spray.util.LoggingContext
 
-trait HttpServerBaseActor extends HttpServiceActor with CommonActorSupport {
+trait HttpServerBaseActor extends HttpServiceActor with CommonSupportForActors {
+
+  override def actorRefFactory = super[CommonSupportForActors].actorRefFactory
 
   def route: Route
 

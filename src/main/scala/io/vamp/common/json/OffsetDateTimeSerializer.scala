@@ -13,5 +13,5 @@ object OffsetDateTimeSerializer extends SerializationFormat {
 class OffsetDateTimeSerializer extends CustomSerializer[OffsetDateTime](format => ( {
   case JString(string) => OffsetDateTime.parse(string)
 }, {
-  case dateTime: OffsetDateTime => JString(dateTime.format(ISO_INSTANT))
+  case dateTime: OffsetDateTime => JString(dateTime.format(ISO_OFFSET_DATE_TIME))
 }))
