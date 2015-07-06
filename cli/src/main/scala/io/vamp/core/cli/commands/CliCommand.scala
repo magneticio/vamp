@@ -101,14 +101,19 @@ case class GenerateCommand() extends CliCommand {
   override val description = "Generates an artifact"
   override val parameters = """  --file               Name of the yaml file to preload the generation [Optional]
                               |  --stdin              Read file from stdin [Optional]
-                              |  --cluster            [blueprint] Name of the cluster
-                              |  --breed              [blueprint] Name of the breed
-                              |  --routing            [blueprint] Name of the routing
-                              |  --scale              [blueprint] Name of the scale
+                              |
+                              |For 'generate breed':
+                              |  --deployable         Deployable specification [Optional]
+                              |
+                              |For 'generate blueprint':
+                              |  --cluster            Name of the cluster
+                              |  --breed              Name of the breed   [Optional, requires --cluster]
+                              |  --routing            Name of the routing [Optional, requires --breed]
+                              |  --scale              Name of the scale   [Optional, requires --breed]
                             """.stripMargin
   override val requiresName = false
   override val commandType = CommandType.Generate
-  override val allowedSubCommands = List("breed","blueprint")
+  override val allowedSubCommands = List("breed","blueprint", "filter", "routing", "scale")
 }
 
 case class HelpCommand() extends CliCommand {
