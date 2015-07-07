@@ -114,7 +114,7 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"DELETE $vampHost/api/v1/slas/$name", None)
 
 
-  def undeploy(name: String)(implicit vampHost: String) =
+  def undeploy(name: String)(implicit vampHost: String) : Option[String] =
     sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", None)
 
 

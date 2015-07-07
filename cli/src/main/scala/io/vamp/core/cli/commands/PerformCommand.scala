@@ -299,7 +299,7 @@ object PerformCommand extends Parameters {
     case None => terminateWithError(s"Artifact & name are required")
   }
 
-  private def doUndeployCommand(implicit vampHost: String, options: OptionMap) = printArtifact(VampHostCalls.undeploy(getParameter(name)))
+  private def doUndeployCommand(implicit vampHost: String, options: OptionMap) = println(VampHostCalls.undeploy(getParameter(name)).getOrElse(""))
 
 
   private def unhandledCommand(command: CliCommand) = terminateWithError(s"Unhandled command '${command.name}'")
