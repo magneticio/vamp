@@ -24,7 +24,8 @@ VAMP CLI supports the following commands:
                        
 * [create](#create)  
 * [deploy](#deploy)   
-* [filters](#filters)                                     
+* [filters](#filters)  
+* [generate](#generate)  
 * [help](#help)                              
 * [info](#info)                              
 * [inspect](#inspect)  
@@ -45,6 +46,7 @@ Create an artifact read from the specified filename. When no file name is suppli
 Parameter | purpose
 ----------|--------
   --file        |       Name of the yaml file [Optional]
+  
 ### Example
 ```bash
 > vamp create scale --file my_scale.yaml
@@ -57,17 +59,65 @@ instances: 2
 
 Deploys a blueprint
 
-**Usage:** `vamp deploy NAME --deployment  
+**Usage:** `vamp deploy NAME --deployment --file 
 
 Parameter | purpose
 ----------|--------
-  `--deployment`   |      Name of the existing deployment [optional]
-  `--file`         |      File from which to read the blueprint
+  --file      |         Name of the yaml file [Optional]
+  --stdin     |         Read file from stdin [Optional]
+  --deployment|         Name of the deployment to update [Optional]
 
 ### Example
 ```bash
 vamp deploy --deployment 1111-2222-3333-4444 --file my_new_blueprint.yaml
 ```
+## <a name="generate"></a>generate
+
+Generates an artifact
+
+**Usage:** vamp generate breed|blueprint|filter|routing|scale [--file|--stdin] 
+
+| Parameter | purpose |
+|-----------|---------|
+  --file    |           Name of the yaml file to preload the generation [Optional]
+  --stdin   |           Read file from stdin [Optional]
+
+For 'generate breed':
+
+| Parameter | purpose |
+|-----------|---------|
+  --deployable  |       Deployable specification [Optional]
+
+For 'generate blueprint':
+
+| Parameter | purpose |
+|-----------|---------|
+  --cluster   |         Name of the cluster
+  --breed     |         Name of the breed   [Optional, requires --cluster]
+  --routing   |         Name of the routing [Optional, requires --breed]
+  --scale     |         Name of the scale   [Optional, requires --breed]
+
+### Example
+```bash
+> vamp generate breed --json
+{
+  "name":"",
+  "deployable":"docker://",
+  "ports":{
+    
+  },
+  "environment_variables":{
+    
+  },
+  "constants":{
+    
+  },
+  "dependencies":{
+    
+  }
+}
+```
+
 ## <a name="help"></a>Help
 
 Displays the Vamp help message
@@ -75,19 +125,20 @@ Displays the Vamp help message
 ### Example
 ```bash
 > vamp help
-Usage:** vamp COMMAND [args..]
+Usage: vamp COMMAND [args..]
 
 Commands:
   create              Create an artifact
   deploy              Deploys a blueprint
   help                This message
+  generate            Generates an artifact
   info                Information from Vamp Core
   inspect             Shows the details of the specified artifact
   list                Shows a list of artifacts
   merge               Merge a blueprint with an existing deployment or blueprint
   remove              Removes an artifact
   version             Show version of the VAMP CLI client
-
+  
 Run vamp COMMMAND --help  for additional help about the different command options
 ```
 
@@ -125,7 +176,7 @@ Shows the details of the specified artifact
 
 | Parameter | purpose |
 |-----------|---------|
-| `--json`    |  Output Json instead of Yaml[Optional]|
+| --json    |  Output Json instead of Yaml[Optional]|
 
 ### Example
 ```bash
@@ -159,8 +210,9 @@ Merges a blueprint with an existing deployment or blueprint.
 Either specify a deployment or blueprint in which the blueprint should be merged
 The blueprint can be specified by NAME, read from the specified filename or read from stdin.
       
-Parameters:
-  --file               Name of the yaml file [Optional]
+| Parameter | purpose |
+|-----------|---------|
+  --file    | Name of the yaml file [Optional]
 
 
 **Usage:** `vamp merge --deployment|--blueprint [NAME] [--file]` 
@@ -188,5 +240,5 @@ Displays the Vamp CLI version information
 ### Example
 ```bash
 > vamp version
-CLI version: 0.7.7
+CLI version: 0.7.8
 ```
