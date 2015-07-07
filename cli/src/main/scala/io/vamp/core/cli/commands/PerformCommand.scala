@@ -219,14 +219,20 @@ object PerformCommand extends Parameters {
         //TODO implement
         None
       case "filter" =>
-        //TODO implement parameters
-        Some(emptyFilter)
+        fileContent match {
+          case Some(content: String) => Some(FilterReader.read(content))
+          case None => Some(emptyFilter)
+        }
       case "routing" =>
-        //TODO implement parameters
-        Some(emptyRouting)
+        fileContent match {
+          case Some(content: String) => Some(RoutingReader.read(content))
+          case None => Some(emptyRouting)
+        }
       case "scale" =>
-        //TODO implement parameters
-        Some(emptyScale)
+        fileContent match {
+          case Some(content: String) => Some(ScaleReader.read(content))
+          case None => Some(emptyScale)
+        }
       case "sla" =>
         //TODO implement
         None
@@ -235,7 +241,6 @@ object PerformCommand extends Parameters {
     }
     )
   }
-
 
   private def emptyBreed = DefaultBreed(name = "", deployable = Deployable(""), ports = List.empty, environmentVariables = List.empty, constants = List.empty, dependencies = Map.empty)
 
@@ -246,7 +251,6 @@ object PerformCommand extends Parameters {
   private def emptyRouting = DefaultRouting(name = "", weight = None, filters = List.empty)
 
   private def emptyFilter = DefaultFilter(name = "", condition = "")
-
 
   private def doMergeCommand(implicit vampHost: String, options: OptionMap) = getOptionalParameter(deployment) match {
     case Some(deploymentId) =>
