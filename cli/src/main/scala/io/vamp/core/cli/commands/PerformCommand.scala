@@ -46,7 +46,7 @@ object PerformCommand extends Parameters {
 
     case "blueprints" =>
       println("NAME".padTo(40, ' ').bold.cyan + "ENDPOINTS".bold.cyan)
-      VampHostCalls.getBlueprints.foreach(blueprint => println(s"${blueprint.name.padTo(40, ' ')}${blueprint.endpoints.map(e => s"${e.name} -> ${e.value.get}").mkString(", ")}"))
+      VampHostCalls.getBlueprints.foreach({ case blueprint: DefaultBlueprint => println(s"${blueprint.name.padTo(40, ' ')}${blueprint.endpoints.map(e => s"${e.name} -> ${e.value.get}").mkString(", ")}") })
 
     case "deployments" =>
       println("NAME".padTo(40, ' ').bold.cyan + "CLUSTERS".bold.cyan)
@@ -112,27 +112,6 @@ object PerformCommand extends Parameters {
 
 
   private def doDeployCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
-    case _: DeployBreedCommand =>
-      val deploymentId: String = getParameter(deployment)
-      VampHostCalls.getDeploymentAsBlueprint(deploymentId) match {
-        case Some(bp: DefaultBlueprint) =>
-          VampHostCalls.getBreed(getParameter(name)) match {
-            case Some(deployableBreed: DefaultBreed) =>
-              val mergedBlueprint = mergeBreedInCluster(
-                blueprint = bp,
-                clusterName = getParameter(cluster),
-                breed = deployableBreed,
-                routing = getOptionalParameter(routing).flatMap(VampHostCalls.getRouting),
-                scale = getOptionalParameter(scale).flatMap(VampHostCalls.getScale)
-              )
-              VampHostCalls.updateDeployment(deploymentId, artifactToYaml(mergedBlueprint)) match {
-                case Some(dep) => println(dep.name)
-                case None => terminateWithError("Updating deployment failed")
-              }
-            case undeployableBreed => terminateWithError(s"Breed '$undeployableBreed' not usable")
-          }
-        case _ => // Deployment not found
-      }
 
     case _: DeployCommand =>
       getBlueprint() match {
@@ -174,17 +153,6 @@ object PerformCommand extends Parameters {
     case _: HelpCommand => showHelp(HelpCommand())
 
     case _: VersionCommand => println(s"CLI version: " + s"${getClass.getPackage.getImplementationVersion}".yellow.bold)
-
-    case _: CloneBreedCommand =>
-      VampHostCalls.getBreed(getParameter(name)) match {
-        case Some(sourceBreed: DefaultBreed) =>
-          val response = VampHostCalls.createBreed(getOptionalParameter(deployable) match {
-            case Some(deployableName) => sourceBreed.copy(name = getParameter(destination), deployable = Deployable(deployableName))
-            case None => sourceBreed.copy(name = getParameter(destination))
-          })
-          printArtifact(response)
-        case _ => terminateWithError("Source breed not found")
-      }
 
     case x: UnknownCommand => terminateWithError(s"Unknown command '${x.name}'")
 
@@ -350,13 +318,6 @@ object PerformCommand extends Parameters {
     case None => terminateWithError("No file specified")
       ""
   }
-
-
-  private def mergeBreedInCluster(blueprint: DefaultBlueprint, clusterName: String, breed: DefaultBreed, routing: Option[Routing], scale: Option[Scale]): DefaultBlueprint =
-    blueprint.copy(clusters = blueprint.clusters.filter(_.name != clusterName) ++
-      blueprint.clusters.filter(_.name == clusterName).map(c => c.copy(services = c.services ++ List(Service(breed = breed, scale = scale, routing = routing))))
-    )
-
 
   private def printArtifact(artifact: Option[Artifact])(implicit options: OptionMap) = {
     getOptionalParameter(json) match {

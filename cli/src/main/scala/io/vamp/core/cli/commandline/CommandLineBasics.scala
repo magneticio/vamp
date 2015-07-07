@@ -12,10 +12,7 @@ trait CommandLineBasics {
   }
 
   def string2Command(s: String): CliCommand = s match {
-
-    case "clone-breed" => CloneBreedCommand()
     case "deploy" => DeployCommand()
-    case "deploy-breed" => DeployBreedCommand()
     case "info" => InfoCommand()
     case "help" => HelpCommand()
     case "--help" => HelpCommand()
@@ -26,11 +23,8 @@ trait CommandLineBasics {
     case "generate" => GenerateCommand()
     case "create" => CreateCommand()
     case "remove" => RemoveCommand()
-
     case c => UnknownCommand(c)
   }
-
-  val NotImplemented = "-- NOT IMPLEMENTED --"
 
   val appName = "vamp"
 
@@ -40,10 +34,8 @@ trait CommandLineBasics {
         println(s"Usage: ".bold + "" + s"$appName COMMAND [args..]")
         println("")
         println("Commands:")
-        //showGeneralUsage(CloneBreedCommand())   // Deprecated command
         showGeneralUsage(CreateCommand())
         showGeneralUsage(DeployCommand())
-        //showGeneralUsage(DeployBreedCommand())  // Deprecated command
         showGeneralUsage(HelpCommand())
         showGeneralUsage(GenerateCommand())
         showGeneralUsage(InfoCommand())

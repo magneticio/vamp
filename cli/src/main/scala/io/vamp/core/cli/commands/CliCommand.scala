@@ -43,18 +43,6 @@ case class InspectCommand() extends CliCommand {
   override val allowedSubCommands = allArtifacts
 }
 
-case class CloneBreedCommand() extends CliCommand {
-  override val name = "clone-breed"
-  override val additionalParams = "--destination [--deployable]"
-  override val usage = "Clones an existing breed **WARNING: deprecated command**"
-  override val description = "Clone a breed **WARNING: deprecated command**"
-  override val parameters = """  --destination        Name of the new breed
-                              |  --deployable         Name of the deployable [Optional]
-                            """.stripMargin
-  override val requiresName = true
-  override val commandType = CommandType.Other
-}
-
 case class CreateCommand() extends CliCommand {
   override val name = "create"
   override val additionalParams = "[--file]"
@@ -77,20 +65,6 @@ case class DeployCommand() extends CliCommand {
                               |  --stdin              Read file from stdin [Optional]
                               |  --deployment         Name of the deployment to update [Optional]
                             """.stripMargin
-  override val commandType = CommandType.Deploy
-}
-
-case class DeployBreedCommand() extends CliCommand {
-  override val name = "deploy-breed"
-  override val additionalParams = "--deployment --cluster --routing --scale"
-  override val usage = "Deploys a breed into an existing deployment cluster **WARNING: deprecated command**"
-  override val description = "Deploy a breed into an existing deployment cluster **WARNING: deprecated command**"
-  override val parameters = """  --deployment         Name of the existing deployment
-                              |  --cluster            Name of the cluster within the deployment
-                              |  --routing            Name of the routing to apply [Optional]
-                              |  --scale              Name of the scale to apply [Optional]
-                            """.stripMargin
-  override val requiresName = true
   override val commandType = CommandType.Deploy
 }
 
