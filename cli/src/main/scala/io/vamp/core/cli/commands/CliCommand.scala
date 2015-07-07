@@ -4,7 +4,7 @@ import io.vamp.core.cli.commands.CommandType.CommandType
 
 object CommandType extends Enumeration {
   type CommandType = Value
-  val Inspect, List, Create, Delete, Generate, Update, Deploy, Merge, Other = Value
+  val Inspect, List, Create, Delete, Generate, Deploy, Merge, Other, Undeploy = Value
 }
 
 trait CliCommand {
@@ -36,7 +36,7 @@ case class InspectCommand() extends CliCommand {
   override val usage =
     """Shows the details of the specified artifact.
     """.stripMargin
-  override val additionalParams = "--json"
+  override val additionalParams = "[--json]"
   override val parameters = jsonOutput
   override val commandType = CommandType.Inspect
   override val requiresName = true
@@ -70,7 +70,7 @@ case class DeployCommand() extends CliCommand {
 
 case class GenerateCommand() extends CliCommand {
   override val name = "generate"
-  override val additionalParams = "[--file|--stdin]"
+  override val additionalParams = "[--file|--stdin] [--json]"
   override val usage = "Generates an artifact"
   override val description = "Generates an artifact"
   override val parameters = """  --file               Name of the yaml file to preload the generation [Optional]
@@ -88,6 +88,7 @@ case class GenerateCommand() extends CliCommand {
   override val requiresName = false
   override val commandType = CommandType.Generate
   override val allowedSubCommands = List("breed","blueprint", "filter", "routing", "scale")
+  override val requiresHostConnection : Boolean = false
 }
 
 case class HelpCommand() extends CliCommand {
@@ -118,7 +119,6 @@ case class MergeCommand() extends CliCommand {
   override val commandType = CommandType.Merge
 }
 
-
 case class RemoveCommand() extends CliCommand {
   override val name = "remove"
   override val usage = "Removes artifact"
@@ -126,6 +126,14 @@ case class RemoveCommand() extends CliCommand {
   override val requiresName = true
   override val commandType = CommandType.Delete
   override val allowedSubCommands= allArtifacts.filter(_ != "deployment")
+}
+
+case class UndeployCommand() extends CliCommand {
+  override val name = "undeploy"
+  override val usage = "Removes a deployment. The routing weigth of the services needs to be set to 0"
+  override val description = "Removes an deployment"
+  override val requiresName = true
+  override val commandType = CommandType.Undeploy
 }
 
 case class UnknownCommand(override val name: String) extends CliCommand

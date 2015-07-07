@@ -32,9 +32,9 @@ object PerformCommand extends Parameters {
       case CommandType.Create => doCreateCommand
       case CommandType.Delete => doDeleteCommand
       case CommandType.Generate => doGenerateCommand
-      case CommandType.Update => doUpdateCommand(command)
       case CommandType.Deploy => doDeployCommand(command)
       case CommandType.Merge => doMergeCommand
+      case CommandType.Undeploy => doUndeployCommand
       case CommandType.Other => doOtherCommand(command)
     }
   }
@@ -297,13 +297,9 @@ object PerformCommand extends Parameters {
     case Some(invalid) => terminateWithError(s"Unsupported artifact '$invalid'")
 
     case None => terminateWithError(s"Artifact & name are required")
-
   }
 
-  private def doUpdateCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
-
-    case _ => unhandledCommand _
-  }
+  private def doUndeployCommand(implicit vampHost: String, options: OptionMap) = printArtifact(VampHostCalls.undeploy(getParameter(name)))
 
 
   private def unhandledCommand(command: CliCommand) = terminateWithError(s"Unhandled command '${command.name}'")

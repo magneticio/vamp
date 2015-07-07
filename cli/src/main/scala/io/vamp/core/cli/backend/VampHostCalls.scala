@@ -92,19 +92,30 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     }
   }
 
-  def deleteBreed(name: String)(implicit vampHost: String) = sendAndWaitYaml(s"DELETE $vampHost/api/v1/breeds/$name", None)
+  def deleteBreed(name: String)(implicit vampHost: String) =
+    sendAndWaitYaml(s"DELETE $vampHost/api/v1/breeds/$name", None)
 
-  def deleteBlueprint(name: String)(implicit vampHost: String) = sendAndWaitYaml(s"DELETE $vampHost/api/v1/blueprints/$name", None)
+  def deleteBlueprint(name: String)(implicit vampHost: String) =
+    sendAndWaitYaml(s"DELETE $vampHost/api/v1/blueprints/$name", None)
 
-  def deleteEscalation(name: String)(implicit vampHost: String) = sendAndWaitYaml(s"DELETE $vampHost/api/v1/escalations/$name", None)
+  def deleteEscalation(name: String)(implicit vampHost: String) =
+    sendAndWaitYaml(s"DELETE $vampHost/api/v1/escalations/$name", None)
 
-  def deleteFilter(name: String)(implicit vampHost: String) = sendAndWaitYaml(s"DELETE $vampHost/api/v1/filters/$name", None)
+  def deleteFilter(name: String)(implicit vampHost: String) =
+    sendAndWaitYaml(s"DELETE $vampHost/api/v1/filters/$name", None)
 
-  def deleteRouting(name: String)(implicit vampHost: String) = sendAndWaitYaml(s"DELETE $vampHost/api/v1/routings/$name", None)
+  def deleteRouting(name: String)(implicit vampHost: String) =
+    sendAndWaitYaml(s"DELETE $vampHost/api/v1/routings/$name", None)
 
-  def deleteScale(name: String)(implicit vampHost: String) = sendAndWaitYaml(s"DELETE $vampHost/api/v1/scales/$name", None)
+  def deleteScale(name: String)(implicit vampHost: String) =
+    sendAndWaitYaml(s"DELETE $vampHost/api/v1/scales/$name", None)
 
-  def deleteSla(name: String)(implicit vampHost: String) = sendAndWaitYaml(s"DELETE $vampHost/api/v1/slas/$name", None)
+  def deleteSla(name: String)(implicit vampHost: String) =
+    sendAndWaitYaml(s"DELETE $vampHost/api/v1/slas/$name", None)
+
+
+  def undeploy(name: String)(implicit vampHost: String) =
+    sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", None)
 
 
   def prettyJson(artifact: AnyRef) = Serialization.writePretty(artifact)
@@ -115,7 +126,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
       case Some(breeds) => yamArrayListToList(breeds).map(a => BreedReader.read(a))
       case None => List.empty
     }
-
 
   def getBlueprints(implicit vampHost: String): List[Blueprint] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/blueprints") match {
@@ -200,15 +210,16 @@ trait RestSupport {
   def timeout: Duration
 
   def sendAndWaitYaml(request: String, body: Option[String] = None)(implicit m: Manifest[String]): Option[String] =
-    sendAndWait[String](request, body, List("Accept" -> "application/x-yaml", "Content-Type" -> "application/x-yaml", RestClient.acceptEncodingIdentity))
+    sendAndWait(request, body, List("Accept" -> "application/x-yaml", "Content-Type" -> "application/x-yaml", RestClient.acceptEncodingIdentity))
 
-  private def sendAndWait[A](request: String, body: AnyRef, headers: List[(String, String)])(implicit m: Manifest[A]): Option[A] = {
+  private def sendAndWait(request: String, body: AnyRef, headers: List[(String, String)])(implicit m: Manifest[String]): Option[String] = {
     try {
       val upper = request.toUpperCase
       val method = Method.values.find(method => upper.startsWith(s"${method.toString} ")).getOrElse(Method.GET)
       val url = if (upper.startsWith(s"${method.toString} ")) request.substring(s"${method.toString} ".length) else request
 
-      val futureResult: Future[A] = RestClient.http[A](method, url, body, headers)
+      val futureResult: Future[String] = RestClient.http[String](method, url, body, headers)
+
       // Block until response ready (nothing else to do anyway)
       Await.result(futureResult, timeout)
       futureResult.value.get match {
