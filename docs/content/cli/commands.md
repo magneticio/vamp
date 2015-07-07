@@ -62,7 +62,7 @@ Deploys a blueprint
 Parameter | purpose
 ----------|--------
   `--deployment`   |      Name of the existing deployment [optional]
-  '--file'         |      File from which to read the blueprint
+  `--file`         |      File from which to read the blueprint
 
 ### Example
 ```bash
