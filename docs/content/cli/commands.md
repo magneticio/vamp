@@ -22,10 +22,8 @@ The command line parameter will overrule the environment variable. With the exce
 
 VAMP CLI supports the following commands:
                        
-* ~~[clone-breed](#clone-breed)~~ *(deprecated)*               
 * [create](#create)  
 * [deploy](#deploy)   
-* ~~[deploy-breed](#deploy-breed)~~ *(deprecated)* 
 * [filters](#filters)                                     
 * [help](#help)                              
 * [info](#info)                              
@@ -38,26 +36,11 @@ VAMP CLI supports the following commands:
 For more details about a specific command, use `vamp COMMAND --help`
                      
 
-## <a name="clone-breed"></a>~~Clone Breed~~*(deprecated)*
-
-Clones an existing breed
-
-**Usage:** `vamp clone-breed NAME --destination [--deployable]` 
-
-Parameter | purpose
-----------|--------
-`--destination`   |   Name of the new breed
-`--deployable`    |   Name of the deployable [Optional]
-### Example
-```bash
-... TODO ...
-```
-
 ## <a name="create"></a>Create
 
 Create an artifact read from the specified filename. When no file name is supplied, stdin will be read.
 
-**Usage:** `vamp create blueprint|breed|deployment|escalation|filter|routing|scale|sla NAME [--file]` 
+**Usage:** `vamp create blueprint|breed|deployment|escalation|filter|routing|scale|sla [--file]` 
 
 Parameter | purpose
 ----------|--------
@@ -85,28 +68,6 @@ Parameter | purpose
 ```bash
 vamp deploy --deployment 1111-2222-3333-4444 --file my_new_blueprint.yaml
 ```
-
-
-## <a name="deploy-breed"></a>~~Deploy Breed~~*(deprecated)*
-
-Deploys a breed into an existing deployment cluster
-
-**Usage:** `vamp deploy-breed NAME --deployment --cluster --routing --scale` 
-
-Parameter | purpose
-----------|--------
-  `--deployment`   |      Name of the existing deployment
-  `--cluster`      |      Name of the cluster within the deployment
-  `--routing`      |      Name of the routing to apply [Optional]
-  `--scale`        |      Name of the scale to apply [Optional]
-
-### Example
-```bash
-... TODO ...
-```
-
-
-
 ## <a name="help"></a>Help
 
 Displays the Vamp help message
