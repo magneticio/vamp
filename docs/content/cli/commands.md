@@ -31,7 +31,8 @@ VAMP CLI supports the following commands:
 * [inspect](#inspect)  
 * [list](#list)                  
 * [merge](#merge)  
-* [remove](#remove)                        
+* [remove](#remove)
+* [undeploy](#undeploy)
 * [version](#version)  
 
 For more details about a specific command, use `vamp COMMAND --help`
@@ -69,7 +70,7 @@ Parameter | purpose
 
 ### Example
 ```bash
-vamp deploy --deployment 1111-2222-3333-4444 --file my_new_blueprint.yaml
+> vamp deploy --deployment 1111-2222-3333-4444 --file my_new_blueprint.yaml
 ```
 ## <a name="generate"></a>generate
 
@@ -230,7 +231,18 @@ Removes artifact
 
 ### Example
 ```bash
-vamp remove scale my_scale
+> vamp remove scale my_scale
+```
+
+## <a name="undeploy"></a>Undeploy
+
+Undeploys a deployment
+
+**Usage:** `vamp undeploy NAME` 
+
+### Example
+```bash
+> vamp undeploy 9ec50a2a-33d7-4dd3-a027-9eeaeaf925c1
 ```
 
 ## <a name="version"></a>Version
