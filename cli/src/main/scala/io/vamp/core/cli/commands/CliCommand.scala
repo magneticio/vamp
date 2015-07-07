@@ -51,7 +51,7 @@ case class CreateCommand() extends CliCommand {
   override val parameters = """  --file               Name of the yaml file [Optional]
                               |  --stdin              Read file from stdin [Optional]
                             """.stripMargin
-  override val requiresName = true
+  override val requiresName  = false
   override val commandType = CommandType.Create
   override val allowedSubCommands = allArtifacts.filter(_ != "deployment")
 }
