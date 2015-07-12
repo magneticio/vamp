@@ -6,12 +6,14 @@ import io.vamp.core.container_driver._
 import io.vamp.core.container_driver.notification.UndefinedDockerImage
 import io.vamp.core.model.artifact._
 import org.slf4j.LoggerFactory
-import tugboat.Create.Response
-import tugboat._
+import wrapper.Create.Response
+import wrapper._
+import wrapper.model._
 
 import scala.async.Async.{async, await}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 object DockerDriver {
 
@@ -31,7 +33,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[DockerDriver]))
 
-  private val docker = tugboat.Docker()
+  private val docker = wrapper.Docker()
 
   private val defaultHost = ConfigFactory.load().getString("vamp.core.router-driver.host")
 
@@ -123,7 +125,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
     logger.trace(s"Details2Server containerDetails: $cd")
     ContainerServer(
       name = serverNameFromContainer(cd),
-      host = if (cd.config.hostname.isEmpty) defaultHost else cd.config.hostname,
+      host = if (cd.config.hostName.isEmpty) defaultHost else cd.config.hostName,
       ports = cd.networkSettings.ports.flatMap(port => port._2.map(e => e.hostPort)).toList,
       deployed = cd.state.running
     )
@@ -153,12 +155,12 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
       pullImage(dockerImageName)
     }
 
-    val response = createDockerContainer(containerName, dockerImageName, service.scale, environment(deployment, cluster, service), portMappings(deployment, cluster, service))
+    val response = createDockerContainer(containerName, dockerImageName, environment(deployment, cluster, service), portMappings(deployment, cluster, service))
 
     addContainerToCache(containerName, getContainerFromResponseId(response))
     addScale(getContainerFromResponseId(response), service.scale)
 
-    startDockerContainer(getContainerFromResponseId(response), portMappings(deployment, cluster, service))
+    startDockerContainer(getContainerFromResponseId(response), portMappings(deployment, cluster, service),service.scale)
   }
 
   /**
@@ -181,13 +183,11 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    * Create a docker container (without starting it)
    * Tries to set the cpu shares & memory based on the supplied scale
    */
-  private def createDockerContainer(containerName: String, dockerImageName: String, serviceScale: Option[DefaultScale], env: Map[String, String], ports: List[DockerPortMapping]): Future[Response] = async {
-    val containerWithName = docker.containers.create(dockerImageName).name(containerName)
+  private def createDockerContainer(containerName: String, dockerImageName: String, env: Map[String, String], ports: List[DockerPortMapping]): Future[Response] = async {
+    logger.debug(s"createDockerContainer :$containerName")
 
-    var containerPrep = serviceScale match {
-      case Some(scale) => containerWithName.cpuShares(scale.cpu.toInt).memory(if (scale.memory.toLong < dockerMinimumMemory) dockerMinimumMemory else scale.memory.toLong)
-      case None => containerWithName
-    }
+    var containerPrep = docker.containers.create(dockerImageName).name(containerName)
+
     for (v <- env) {
       logger.trace(s"[CreateDockerContainer] setting env ${v._1} = ${v._2}")
     }
@@ -205,14 +205,28 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
   /**
    * Start the container
    */
-  private def startDockerContainer(id: Future[String], ports: List[DockerPortMapping]): Future[_] = async {
+  private def startDockerContainer(id: Future[String], ports: List[DockerPortMapping], serviceScale: Option[DefaultScale]): Future[_] = async {
     // Configure the container for starting
+
+    id.onFailure { case ex =>
+      logger.debug(s"Failed to create docker container: $ex")
+      logger.trace(s"${ex.getStackTrace}")
+    }
+
     var startPrep = docker.containers.get(await(id)).start
+
+
     for (port <- ports) {
       logger.debug(s"[StartContainer] setting port: 0.0.0.0:${port.hostPort} -> ${port.containerPort}/tcp")
-      startPrep = startPrep.portBind(tugboat.Port.Tcp(port.containerPort), tugboat.PortBinding.local(port.hostPort))
+      startPrep = startPrep.portBind(wrapper.model.Port.Tcp(port.containerPort), PortBinding.local(port.hostPort))
     }
+    startPrep = serviceScale match {
+      case Some(scale) => startPrep.cpuShares(scale.cpu.toInt).memory(if (scale.memory.toLong < dockerMinimumMemory) dockerMinimumMemory else scale.memory.toLong)
+      case None => startPrep
+    }
+
     await(startPrep())
+
   }
 
   /**
