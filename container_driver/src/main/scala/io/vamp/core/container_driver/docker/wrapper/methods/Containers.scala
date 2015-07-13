@@ -36,8 +36,6 @@ trait Containers extends Util {
       def apply[T](handler: Docker.Handler[T]) =
         request(addContentType(base.POST) / "create" <<? _name.map("name" -> _) << body)(handler)
 
-      //def query = Map.empty[String, String] ++ _name.map("name" -> _)
-
       def body = new RequestBody().requestCreate(_config, _name)
 
     }
@@ -48,8 +46,7 @@ trait Containers extends Util {
 
         def config(cfg: HostConfig) = copy(_config = cfg)
 
-        def withConfig(f: HostConfig => HostConfig) =
-          config(f(_config))
+        def withConfig(f: HostConfig => HostConfig) = config(f(_config))
 
         def publishAllPorts(pub: Boolean) =
           withConfig(_.copy(publishAllPorts = pub))

@@ -1,10 +1,12 @@
 package io.vamp.core.container_driver.docker.wrapper
 
 import com.ning.http.client.Response
+import com.typesafe.scalalogging.Logger
 import dispatch.as
 import io.vamp.core.container_driver.docker.wrapper.model._
 import org.json4s.JsonAST.JObject
 import org.json4s._
+import org.slf4j.LoggerFactory
 
 object Create {
 
@@ -12,16 +14,28 @@ object Create {
 
 }
 
-
-/** type class for default representations */
 sealed trait Representation[T] {
   def map: Response => T
 }
 
 object Representation {
 
-  implicit val formats = DefaultFormats
+  private[Representation] trait Common {
+    def strs(v: JValue) = for {
+      JArray(xs) <- v
+      JString(str) <- xs
+    } yield str
 
+    def optStr(name: String, fields: List[JField]) = (for {
+      (`name`, JString(value)) <- fields
+    } yield value).headOption
+
+    def optLong(name: String, fields: List[JField]) = (for {
+      (`name`, JInt(value)) <- fields
+    } yield value.toLong).headOption
+  }
+
+  implicit val formats = DefaultFormats
 
   implicit val CreateResponse: Representation[Create.Response] = new Representation[Create.Response] {
 
@@ -37,12 +51,15 @@ object Representation {
       ).head
     }
   }
+
   implicit val Identity: Representation[Response] = new Representation[Response] {
     def map = identity(_)
   }
+
   implicit val Nothing: Representation[Unit] = new Representation[Unit] {
     def map = _ => ()
   }
+
   implicit val Infos: Representation[Info] = new Representation[Info] {
 
     def map = { r =>
@@ -118,24 +135,10 @@ object Representation {
 
   }
 
-  private[Representation] trait Common {
-    def strs(v: JValue) = for {
-      JArray(xs) <- v
-      JString(str) <- xs
-    } yield str
-
-    def optStr(name: String, fields: List[JField]) = (for {
-      (`name`, JString(value)) <- fields
-    } yield value).headOption
-
-    def optLong(name: String, fields: List[JField]) = (for {
-      (`name`, JInt(value)) <- fields
-    } yield value.toLong).headOption
-  }
-
-
   implicit object ContainerDetail extends Representation[ContainerDetails] with Common {
-    //private[this] val KeyVal = """(.+)=(.+)""".r
+    private[this] val KeyVal = """(.+)=(.+)""".r
+
+    private val logger = Logger(LoggerFactory.getLogger(classOf[Representation[ContainerDetails]]))
 
     def map = { r =>
       (for {
@@ -153,61 +156,74 @@ object Representation {
           image = img,
           config = containerConfig(config),
           hostConfig = containerHostConfig(hostConfig),
-          //TODO Add this
-          //containerHostConfig(cont)
           networkSettings = containerNetworkSettings(networkSettings)
         )
-        ).head
+        ).headOption.getOrElse(failedToParseContainerDetails(r))
     }
+
+
+    def failedToParseContainerDetails(r: Response): ContainerDetails = {
+      logger.error(s"Failed to parse container details: ${r.getResponseBody}")
+      new ContainerDetails(
+        id = "Error",
+        name = "Error",
+        state = new ContainerState(),
+        image = "Error",
+        config = new ContainerConfig(image = "Error"),
+        networkSettings = new NetworkSettings(bridge = "ERROR", gateway = "ERROR", ipAddress = "ERROR", ports = Map.empty),
+        hostConfig = new HostConfig()
+      )
+    }
+
 
     private def containerHostConfig(config: List[JField]) =
       (for {
-      //("Binds", binds) <- config
+        ("Binds", binds) <- config
         ("Memory", JInt(memory)) <- config
         ("MemorySwap", JInt(memorySwap)) <- config
         ("CpuShares", JInt(cpuShares)) <- config
-        ("CpuPeriod", JInt(cpuPeriod)) <- config
-        ("CpusetCpus", JString(cpusetCpus)) <- config
-        ("CpusetMems", JString(cpusetMems)) <- config
-        ("CpuQuota", JInt(cpuQuota)) <- config
-        //("PortBindings", JObject(portBindings)) <- config
+        ("PortBindings", JObject(portBindings)) <- config
         ("Links", links) <- config
         ("PublishAllPorts", JBool(publishAllPorts)) <- config
         ("Dns", dns) <- config
         ("DnsSearch", dnsSearch) <- config
-      //("VolumesFrom", volumesFrom) <- config
-      //"Devices"
-      //("NetworkMode", JString(NetworkMode(netMode))) <- config
+        ("VolumesFrom", volumesFrom) <- config
+        ("NetworkMode", JString(NetworkMode(netMode))) <- config
       } yield HostConfig(
-          //binds = strs(binds).map(VolumeBinding.parse(_)),
+          binds = strs(binds).map(VolumeBinding.parse(_)),
           memory = memory.toInt,
           memorySwap = memorySwap.toInt,
           cpuShares = cpuShares.toInt,
-          cpuPeriod = cpuPeriod.toInt,
-          cpusetCpu = cpusetCpus,
-          cpusetMem = cpusetMems,
-          cpuQuota = cpuQuota.toInt,
-          //          portBindings = (for {(Port(port), bindings) <- portBindings} yield (
-          //            port, (for {
-          //            JArray(xs) <- bindings
-          //            JObject(binding) <- xs
-          //            ("HostIp", JString(hostIp)) <- binding
-          //            ("HostPort", JString(hostPort)) <- binding
-          //          } yield PortBinding(hostIp = hostIp, hostPort = hostPort.toInt))
-          //            )
-          //            ).toMap,
 
-          //links = strs(links),
-          publishAllPorts = publishAllPorts
-          //dns    = strs(dns),
-          //dnsSearch = strs(dnsSearch),
-          //volumesFrom =strs(volumesFrom).map(VolumeFromBinding.parse(_)),
-          //devices
-          //networkMode =(for {
-          //            ("NetworkMode", JString(NetworkMode(netMode))) <- config
-          //          } yield netMode).headOption.getOrElse(NetworkMode.Bridge),
+          portBindings = (
+            for {(Port(port), bindings) <- portBindings} yield (port, portBinding(bindings))
+            ).toMap,
+
+          links = strs(links),
+          publishAllPorts = publishAllPorts,
+          dns = strs(dns),
+          dnsSearch = strs(dnsSearch),
+          volumesFrom = strs(volumesFrom).map(VolumeFromBinding.parse(_)),
+          networkMode = (for {
+            ("NetworkMode", JString(NetworkMode(netMode))) <- config
+          } yield netMode).headOption.getOrElse(NetworkMode.Bridge)
         )
-        ).head
+        ).headOption.getOrElse(failedToParseHostConfig)
+
+    def failedToParseHostConfig: HostConfig = {
+      logger.error(s"Failed to parse host Config")
+      new HostConfig()
+    }
+
+
+    def portBinding(bindings: JValue): List[PortBinding] = {
+      for {
+        JArray(xs) <- bindings
+        JObject(binding) <- xs
+        ("HostIp", JString(hostIp)) <- binding
+        ("HostPort", JString(hostPort)) <- binding
+      } yield PortBinding(hostIp = hostIp, hostPort = hostPort.toInt)
+    }
 
 
     private def containerNetworkSettings(settings: List[JField]) =
@@ -215,21 +231,24 @@ object Representation {
         ("Bridge", JString(bridge)) <- settings
         ("Gateway", JString(gateway)) <- settings
         ("IPAddress", JString(ip)) <- settings
-        ("Ports", JObject(ports)) <- settings
       } yield NetworkSettings(
           bridge = bridge,
           gateway = gateway,
           ipAddress = ip,
-          ports = (for {(Port(port), mappings) <- ports} yield {
-            (port, (for {
-              JArray(confs) <- mappings
-              JObject(conf) <- confs
-              ("HostIp", JString(hostIp)) <- conf
-              ("HostPort", JString(hostPort)) <- conf
-            } yield PortBinding(hostIp, hostPort.toInt)))
-          }).toMap
+          ports = (for {
+            ("Ports", JObject(ports)) <- settings
+            (Port(port), mappings) <- ports
+          } yield {
+              (port, portBinding(mappings))
+            }).toMap
         )
-        ).head
+        ).headOption.getOrElse(failedToParseNetworkSettings(settings))
+
+
+    def failedToParseNetworkSettings(settings: List[JField]): NetworkSettings = {
+      logger.error(s"Failed to parse container network settings: $settings")
+      new NetworkSettings(bridge = "ERROR", gateway = "ERROR", ipAddress = "ERROR", ports = Map.empty)
+    }
 
 
     private def containerState(cont: List[JField]) =
@@ -262,28 +281,31 @@ object Representation {
     def containerConfig(cfg: List[JField]) =
       (for {
         ("Hostname", JString(hostName)) <- cfg
-        //("Domainname", JString(domainName)) <- cfg
-        //ExposedPorts         //TODO Add
-        //("Env",              //TODO Add
-        //Cmd                  //TODO Add
+        ("Domainname", JString(domainName)) <- cfg
+        ("Env", JArray(env)) <- cfg
         ("Image", JString(image)) <- cfg
-        //Volumes              //TODO Add
-        ("VolumeDriver", JString(volumeDriver)) <- cfg
+        ("Volumes", volumes) <- cfg
         ("WorkingDir", JString(workingDir)) <- cfg
       } yield ContainerConfig(
           hostName = hostName,
-          //domainName = domainName,
-          //exposedPorts = Seq.empty,
-          //env = Map.empty,
-          //          (for {
-          //            JString(KeyVal(k, v)) <- env
-          //          } yield (k, v)).toMap
-          //cmd = Seq.empty,
+          domainName = domainName,
+          exposedPorts = for {
+            ("ExposedPorts", JArray(ep)) <- cfg
+            JString(p) <- ep
+          } yield p,
+          env = (for {JString(KeyVal(k, v)) <- env} yield (k, v)).toMap,
           image = image,
-          //volumes = Seq.empty,
-          volumeDriver = volumeDriver,
+          volumes = strs(volumes),
           workingDir = workingDir
-        )).head
+        )).headOption.getOrElse(failedToParseContainerConfig(cfg))
+
+
+    def failedToParseContainerConfig(cfg: List[JField]): ContainerConfig = {
+      logger.error(s"Failed to parse container config: $cfg")
+      new ContainerConfig(image = "ERROR")
+    }
+
+
   }
 
 }
