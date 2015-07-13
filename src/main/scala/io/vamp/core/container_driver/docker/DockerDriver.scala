@@ -3,17 +3,16 @@ package io.vamp.core.container_driver.docker
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import io.vamp.core.container_driver._
+import io.vamp.core.container_driver.docker.wrapper.Create.Response
+import io.vamp.core.container_driver.docker.wrapper._
+import io.vamp.core.container_driver.docker.wrapper.model._
 import io.vamp.core.container_driver.notification.UndefinedDockerImage
 import io.vamp.core.model.artifact._
 import org.slf4j.LoggerFactory
-import wrapper.Create.Response
-import wrapper._
-import wrapper.model._
 
 import scala.async.Async.{async, await}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
 
 object DockerDriver {
 
@@ -79,6 +78,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
         logger.info(s"[DEPLOY] Container $containerName does not exist, needs creating")
         validateSchemaSupport(service.breed.deployable.schema, DockerDriver.Schema)
         createAndStartContainer(containerName, deployment, cluster, service)
+
       case Some(found) if update =>
         logger.info(s"[DEPLOY] Container $containerName already exists, needs updating")
         addScale(Future(found), service.scale)
@@ -160,7 +160,11 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
     addContainerToCache(containerName, getContainerFromResponseId(response))
     addScale(getContainerFromResponseId(response), service.scale)
 
-    startDockerContainer(getContainerFromResponseId(response), portMappings(deployment, cluster, service),service.scale)
+    startDockerContainer(getContainerFromResponseId(response), portMappings(deployment, cluster, service), service.scale).onFailure { case ex =>
+      logger.debug(s"Failed to start docker container: $ex")
+      logger.trace(s"${ex.getStackTrace.mkString("\n")}")
+    }
+
   }
 
   /**
@@ -191,13 +195,13 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
     for (v <- env) {
       logger.trace(s"[CreateDockerContainer] setting env ${v._1} = ${v._2}")
     }
-    containerPrep = containerPrep.env(env.toSeq :_*)
+    containerPrep = containerPrep.env(env.toSeq: _*)
 
     val exposedPorts = ports.map(p => {
       logger.debug(s"[CreateDockerContainer] exposed ports ${p.containerPort}")
       p.containerPort.toString
     })
-    containerPrep = containerPrep.exposedPorts(exposedPorts.toSeq :_*)
+    containerPrep = containerPrep.exposedPorts(exposedPorts.toSeq: _*)
 
     await(containerPrep())
   }
@@ -210,7 +214,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
 
     id.onFailure { case ex =>
       logger.debug(s"Failed to create docker container: $ex")
-      logger.trace(s"${ex.getStackTrace}")
+      logger.trace(s"${ex.getStackTrace.mkString("\n")}")
     }
 
     var startPrep = docker.containers.get(await(id)).start
