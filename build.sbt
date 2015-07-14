@@ -4,7 +4,18 @@ organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
-version in ThisBuild := "0.7.8" + "." + GitHelper.headSha()
+val currentBranch = GitHelper.abbrevRefProcess.lines.head
+
+val versionSuffix = currentBranch match {
+  case "master" =>    ""
+  case "develop" =>   s"-dev.${GitHelper.headSha()}"
+  case b if b.startsWith("release/") => s"-rc.${GitHelper.headSha()}"
+  case _ =>           s"-experimental.${GitHelper.headSha()}"
+}
+
+
+version in ThisBuild := "0.7.8"+ versionSuffix
+
 
 scalaVersion := "2.11.6"
 
@@ -59,7 +70,7 @@ lazy val bintraySetting = Seq(
 // Library Versions
 
 val vampCommonVersion = "0.7.8"
-val vampUiVersion = "0.0.2-19-dev"
+val vampUiVersion = "0.0.2-24-dev"
 
 val sprayVersion = "1.3.2"
 val json4sVersion = "3.2.11"
@@ -205,7 +216,6 @@ javacOptions ++= Seq("-encoding", "UTF-8")
 
 scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation, Opts.compile.unchecked) ++
   Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint", "-feature")
-
 
 
 
