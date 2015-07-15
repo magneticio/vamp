@@ -115,11 +115,12 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
 
 
   def undeploy(name: String)(implicit vampHost: String) : Option[String] =
-    sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", None)
-
+  getDeployment(name) match {
+    case Some(deployment) =>  sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some("name: sava:1.0"))
+    case None => None
+  }
 
   def prettyJson(artifact: AnyRef) = Serialization.writePretty(artifact)
-
 
   def getBreeds(implicit vampHost: String): List[Breed] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/breeds") match {
