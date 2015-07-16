@@ -29,5 +29,6 @@ rest_api/lib/vamp-ui*
 bootstrap/src/main/resources/application.conf
 bootstrap/src/main/resources/logback.xml
 vamp-core-db.h2.db
+vamp-core-db.lock.db
 vamp-core-db.trace.db
 
