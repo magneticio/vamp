@@ -4,7 +4,7 @@ import io.vamp.core.cli.commands.CommandType.CommandType
 
 object CommandType extends Enumeration {
   type CommandType = Value
-  val Inspect, List, Create, Delete, Generate, Deploy, Merge, Other, Undeploy = Value
+  val Inspect, List, Create, Delete, Generate, Deploy, Merge, Other, Undeploy, Update = Value
 }
 
 trait CliCommand {
@@ -46,13 +46,26 @@ case class InspectCommand() extends CliCommand {
 case class CreateCommand() extends CliCommand {
   override val name = "create"
   override val additionalParams = "[--file]"
-  override val usage = "Create an artifact read from the specified filename. When no file name is supplied, stdin will be read."
+  override val usage = "Create an artifact read from the specified filename or read from stdin."
   override val description = "Create an artifact"
   override val parameters = """  --file               Name of the yaml file [Optional]
                               |  --stdin              Read file from stdin [Optional]
                             """.stripMargin
   override val requiresName  = false
   override val commandType = CommandType.Create
+  override val allowedSubCommands = allArtifacts.filter(_ != "deployment")
+}
+
+case class UpdateCommand() extends CliCommand {
+  override val name = "update"
+  override val additionalParams = "[--file]"
+  override val usage = "Updates an existing artifact read from the specified filename or read from stdin."
+  override val description = "Update an artifact"
+  override val parameters = """  --file               Name of the yaml file [Optional]
+                              |  --stdin              Read file from stdin [Optional]
+                            """.stripMargin
+  override val requiresName  = true
+  override val commandType = CommandType.Update
   override val allowedSubCommands = allArtifacts.filter(_ != "deployment")
 }
 

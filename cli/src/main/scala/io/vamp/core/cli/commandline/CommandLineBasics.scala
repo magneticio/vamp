@@ -24,7 +24,7 @@ trait CommandLineBasics {
     case "create" => CreateCommand()
     case "remove" => RemoveCommand()
     case "undeploy" => UndeployCommand()
-
+    case "update" => UpdateCommand()
     case c => UnknownCommand(c)
   }
 
@@ -46,6 +46,7 @@ trait CommandLineBasics {
         showGeneralUsage(MergeCommand())
         showGeneralUsage(RemoveCommand())
         showGeneralUsage(UndeployCommand())
+        showGeneralUsage(UpdateCommand())
         showGeneralUsage(VersionCommand())
         println("".reset)
         println(s"Run " + s"$appName COMMMAND --help".bold + "" + "  for additional help about the different command options")

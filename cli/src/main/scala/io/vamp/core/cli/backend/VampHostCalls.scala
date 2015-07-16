@@ -28,8 +28,8 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
   def getDeploymentAsBlueprint(deploymentId: String)(implicit vampHost: String): Option[Blueprint] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/deployments/$deploymentId?as_blueprint=true").map(BlueprintReader.read(_))
 
-  def createBreed(breedDefinition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Breed] = {
-    sendAndWaitYaml(s"POST $vampHost/api/v1/breeds", Some(breedDefinition)) match {
+  def createBreed(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Breed] = {
+    sendAndWaitYaml(s"POST $vampHost/api/v1/breeds", Some(definition)) match {
       case Some(breed) => Some(BreedReader.read(breed))
       case _ => terminateWithError("Breed not created")
         None
@@ -84,10 +84,58 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     }
   }
 
+  def updateBreed(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Breed] = {
+    sendAndWaitYaml(s"PUT $vampHost/api/v1/breeds/$name", Some(definition)) match {
+      case Some(breed) => Some(BreedReader.read(breed))
+      case _ => terminateWithError("Breed not updated")
+        None
+    }
+  }
+
   def updateBlueprint(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Blueprint] = {
     sendAndWaitYaml(s"PUT $vampHost/api/v1/blueprints/$name", Some(definition)) match {
       case Some(blueprint) => Some(BlueprintReader.read(blueprint))
       case _ => terminateWithError("Blueprint not updated")
+        None
+    }
+  }
+
+  def updateEscalation(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Escalation] = {
+    sendAndWaitYaml(s"PUT $vampHost/api/v1/escalations/$name", Some(definition)) match {
+      case Some(escalation) => Some(EscalationReader.read(escalation))
+      case _ => terminateWithError("Escalation not updated")
+        None
+    }
+  }
+
+  def updateFilter(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Filter] = {
+    sendAndWaitYaml(s"PUT $vampHost/api/v1/filters/$name", Some(definition)) match {
+      case Some(filter) => Some(FilterReader.read(filter))
+      case _ => terminateWithError("Filter not updated")
+        None
+    }
+  }
+
+  def updateRouting(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Routing] = {
+    sendAndWaitYaml(s"PUT $vampHost/api/v1/routings/$name", Some(definition)) match {
+      case Some(routing) => Some(RoutingReader.read(routing))
+      case _ => terminateWithError("Routing not updated")
+        None
+    }
+  }
+
+  def updateScale(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Scale] = {
+    sendAndWaitYaml(s"PUT $vampHost/api/v1/scales/$name", Some(definition)) match {
+      case Some(scale) => Some(ScaleReader.read(scale))
+      case _ => terminateWithError("Scale not updated")
+        None
+    }
+  }
+
+  def updateSla(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Sla] = {
+    sendAndWaitYaml(s"PUT $vampHost/api/v1/slas/$name", Some(definition)) match {
+      case Some(sla) => Some(SlaReader.read(sla))
+      case _ => terminateWithError("Sla not updated")
         None
     }
   }
@@ -114,11 +162,11 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"DELETE $vampHost/api/v1/slas/$name", None)
 
 
-  def undeploy(name: String)(implicit vampHost: String) : Option[String] =
-  getDeployment(name) match {
-    case Some(deployment) =>  sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some("name: sava:1.0"))
-    case None => None
-  }
+  def undeploy(name: String)(implicit vampHost: String): Option[String] =
+    getDeployment(name) match {
+      case Some(deployment) => sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some("name: sava:1.0"))
+      case None => None
+    }
 
   def prettyJson(artifact: AnyRef) = Serialization.writePretty(artifact)
 

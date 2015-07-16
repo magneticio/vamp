@@ -35,6 +35,7 @@ object PerformCommand extends Parameters {
       case CommandType.Deploy => doDeployCommand(command)
       case CommandType.Merge => doMergeCommand
       case CommandType.Undeploy => doUndeployCommand
+      case CommandType.Update => doUpdateCommand
       case CommandType.Other => doOtherCommand(command)
     }
   }
@@ -169,6 +170,19 @@ object PerformCommand extends Parameters {
     case "scale" => printArtifact(VampHostCalls.createScale(readFileContent))
     case "sla" => printArtifact(VampHostCalls.createSla(readFileContent))
     case invalid => terminateWithError(s"Unsupported artifact '$invalid'")
+  }
+
+  private def doUpdateCommand(implicit vampHost: String, options: OptionMap) = getOptionalParameter(subcommand) match {
+    case Some("breed") => printArtifact(VampHostCalls.updateBreed(getParameter(name), readFileContent))
+    case Some("blueprint") => printArtifact(VampHostCalls.updateBlueprint(getParameter(name), readFileContent))
+    case Some("escalation") => printArtifact(VampHostCalls.updateEscalation(getParameter(name), readFileContent))
+    case Some("filter") => printArtifact(VampHostCalls.updateFilter(getParameter(name), readFileContent))
+    case Some("routing") => printArtifact(VampHostCalls.updateRouting(getParameter(name), readFileContent))
+    case Some("scale") => printArtifact(VampHostCalls.updateScale(getParameter(name), readFileContent))
+    case Some("sla") => printArtifact(VampHostCalls.updateSla(getParameter(name), readFileContent))
+    case Some(invalid) => terminateWithError(s"Artifact type unknown: '$invalid'")
+      None
+    case None => terminateWithError("Artifact & name are required")
   }
 
 
