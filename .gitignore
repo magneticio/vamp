@@ -21,3 +21,13 @@ project/plugins/project/
 *.iml
 
 conf/application.conf
+
+# build artifacts
+rest_api/lib/vamp-ui*
+
+# run artifacts
+bootstrap/src/main/resources/application.conf
+bootstrap/src/main/resources/logback.xml
+vamp-core-db.h2.db
+vamp-core-db.trace.db
+
