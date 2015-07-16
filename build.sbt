@@ -13,9 +13,7 @@ val versionSuffix = currentBranch match {
   case _ =>           s"-experimental.${GitHelper.headSha()}"
 }
 
-
 version in ThisBuild := "0.7.8"+ versionSuffix
-
 
 scalaVersion := "2.11.6"
 
@@ -70,7 +68,7 @@ lazy val bintraySetting = Seq(
 // Library Versions
 
 val vampCommonVersion = "0.7.8"
-val vampUiVersion = "0.0.2-24-dev"
+val vampUiVersion = "0.0.2-27-dev"
 
 val sprayVersion = "1.3.2"
 val json4sVersion = "3.2.11"
@@ -126,16 +124,33 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   assemblyJarName in assembly := s"core-assembly-${version.value}.jar"
 ).dependsOn(rest_api)
 
+val downloadUI = taskKey[Unit]("Download vamp-ui to the rest_api lib directory")
+
 lazy val rest_api = project.settings(bintraySetting: _*).settings(
   description := "REST api for Vamp Core",
   name:="core-rest_api",
   libraryDependencies ++=Seq(
     "io.spray" %% "spray-can" % sprayVersion,
     "io.spray" %% "spray-routing" % sprayVersion,
-    "io.spray" %% "spray-httpx" % sprayVersion,
-    "vamp-ui" % "vamp-ui" % vampUiVersion from  s"https://bintray.com/artifact/download/magnetic-io/downloads/vamp-ui/vamp-ui-$vampUiVersion.jar"
+    "io.spray" %% "spray-httpx" % sprayVersion
+  ))
+ .settings(
+    downloadUI := {
+      val libDir = "rest_api/lib"
+      val targetFile = s"vamp-ui-$vampUiVersion.jar"
+      // Only perform this if the file not already exists.
+      if(java.nio.file.Files.notExists(new File(s"$libDir/$targetFile").toPath)) {
+        // Remove old versions of the vamp-ui jar & download the new one
+        IO.delete(IO.listFiles(new File(libDir)) filter ( _.getName.startsWith("vamp-ui")))
+        IO.download(new URL(s"https://bintray.com/artifact/download/magnetic-io/downloads/vamp-ui/vamp-ui-$vampUiVersion.jar"), new File(s"$libDir/$targetFile"))
+      }
+    }
   )
-).dependsOn(operation, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
+  .settings((compile in Compile)<<= (compile in Compile) dependsOn downloadUI)
+  //.settings(unmanagedJars in Compile += file(s"lib/vamp-ui-$vampUiVersion.jar"))
+  //.settings(mappings in (Compile, packageBin) += {(baseDirectory.value / "lib" / s"vamp-ui-$vampUiVersion.jar") -> s"vamp-ui-$vampUiVersion.jar"})
+  .dependsOn(operation, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
+
 
 lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
