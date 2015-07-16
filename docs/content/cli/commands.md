@@ -43,7 +43,7 @@ For more details about a specific command, use `vamp COMMAND --help`
 
 Create an artifact read from the specified filename or read from stdin.
 
-**Usage:** `vamp create blueprint|breed|deployment|escalation|filter|routing|scale|sla [--file] [--stdin]` 
+**Usage:** `vamp create blueprint|breed|deployment|escalation|filter|routing|scale|sla [--file|--stdin]` 
 
 Parameter | purpose
 ----------|--------
@@ -62,7 +62,7 @@ instances: 2
 
 Deploys a blueprint
 
-**Usage:** `vamp deploy NAME --deployment --file 
+**Usage:** `vamp deploy NAME --deployment [--file|--stdin] 
 
 Parameter | purpose
 ----------|--------
@@ -215,10 +215,11 @@ The blueprint can be specified by NAME, read from the specified filename or read
       
 | Parameter | purpose |
 |-----------|---------|
-  --file    | Name of the yaml file [Optional]
+ --file     | Name of the yaml file [Optional]
+ --stdin    | Read file from stdin [Optional]
 
 
-**Usage:** `vamp merge --deployment|--blueprint [NAME] [--file]` 
+**Usage:** `vamp merge --deployment|--blueprint [NAME] [--file|--stdin]` 
 
 ### Example
 ```bash
@@ -255,8 +256,8 @@ Updates an existing artifact read from the specified filename or read from stdin
 
 Parameter | purpose
 ----------|--------
-  --file        |       Name of the yaml file [Optional]
- --stdin        |      Read file from stdin [Optional]
+ --file   |       Name of the yaml file [Optional]
+ --stdin  |      Read file from stdin [Optional]
 
 ## <a name="version"></a>Version
 
