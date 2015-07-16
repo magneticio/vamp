@@ -33,6 +33,7 @@ VAMP CLI supports the following commands:
 * [merge](#merge)  
 * [remove](#remove)
 * [undeploy](#undeploy)
+* [update](#update)
 * [version](#version)  
 
 For more details about a specific command, use `vamp COMMAND --help`
@@ -40,13 +41,14 @@ For more details about a specific command, use `vamp COMMAND --help`
 
 ## <a name="create"></a>Create
 
-Create an artifact read from the specified filename. When no file name is supplied, stdin will be read.
+Create an artifact read from the specified filename or read from stdin.
 
-**Usage:** `vamp create blueprint|breed|deployment|escalation|filter|routing|scale|sla [--file]` 
+**Usage:** `vamp create blueprint|breed|deployment|escalation|filter|routing|scale|sla [--file] [--stdin]` 
 
 Parameter | purpose
 ----------|--------
   --file        |       Name of the yaml file [Optional]
+ --stdin        |      Read file from stdin [Optional]
   
 ### Example
 ```bash
@@ -244,6 +246,17 @@ Undeploys a deployment
 ```bash
 > vamp undeploy 9ec50a2a-33d7-4dd3-a027-9eeaeaf925c1
 ```
+
+## <a name="update"></a>Update
+
+Updates an existing artifact read from the specified filename or read from stdin.
+
+**Usage:** `vamp update blueprint|breed|deployment|escalation|filter|routing|scale|sla NAME [--file] [--stdin]` 
+
+Parameter | purpose
+----------|--------
+  --file        |       Name of the yaml file [Optional]
+ --stdin        |      Read file from stdin [Optional]
 
 ## <a name="version"></a>Version
 
