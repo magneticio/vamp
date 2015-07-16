@@ -45,7 +45,7 @@ case class InspectCommand() extends CliCommand {
 
 case class CreateCommand() extends CliCommand {
   override val name = "create"
-  override val additionalParams = "[--file]"
+  override val additionalParams = "[--file|--stdin]"
   override val usage = "Create an artifact read from the specified filename or read from stdin."
   override val description = "Create an artifact"
   override val parameters = """  --file               Name of the yaml file [Optional]
@@ -58,7 +58,7 @@ case class CreateCommand() extends CliCommand {
 
 case class UpdateCommand() extends CliCommand {
   override val name = "update"
-  override val additionalParams = "[--file]"
+  override val additionalParams = "[--file|--stdin]"
   override val usage = "Updates an existing artifact read from the specified filename or read from stdin."
   override val description = "Update an artifact"
   override val parameters = """  --file               Name of the yaml file [Optional]
@@ -114,7 +114,7 @@ case class HelpCommand() extends CliCommand {
 case class InfoCommand() extends CliCommand {
   override val name = "info"
   override val description = "Information from Vamp Core"
-  override val usage = "Returns a JSON blob with information from Vamp Core"
+  override val usage = "Returns a blob with information from Vamp Core"
 }
 
 
@@ -143,8 +143,8 @@ case class RemoveCommand() extends CliCommand {
 
 case class UndeployCommand() extends CliCommand {
   override val name = "undeploy"
-  override val usage = "Removes a deployment. The routing weigth of the services needs to be set to 0"
-  override val description = "Removes an deployment"
+  override val usage = "Removes a deployment. The routing weight of the services needs to be set to 0"
+  override val description = "Removes a deployment"
   override val requiresName = true
   override val commandType = CommandType.Undeploy
 }
