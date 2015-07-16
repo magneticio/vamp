@@ -12,6 +12,8 @@ object GitHelper {
 
   def headSha(): String = headShaProcess.!!.stripLineEnd
 
+  def currentBranch = Process("git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \\(.*\\)/\\1/'")
+
   def commitRangeCount(start: String, end: String): Int =
     Process(s"git rev-list ${start}..${end}").lines.size
 

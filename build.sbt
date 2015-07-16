@@ -4,7 +4,7 @@ organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
-val currentBranch = GitHelper.abbrevRefProcess.lines.head
+val currentBranch = GitHelper.currentBranch.lines.head
 
 val versionSuffix = currentBranch match {
   case "master" =>    ""
