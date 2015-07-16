@@ -7,7 +7,6 @@ sudo: false
 install:
 - sh "$TRAVIS_BUILD_DIR/.travis-ci-bintray-credentials.sh"
 script:
-- git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'
 - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M clean coverage test
 - find $HOME/.sbt -name "*.lock" | xargs rm
 after_success:

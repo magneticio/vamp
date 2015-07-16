@@ -4,16 +4,7 @@ organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
-val currentBranch = GitHelper.currentBranch.lines.head
-
-val versionSuffix = currentBranch match {
-  case "master" =>    ""
-  case "develop" =>   s"-dev.${GitHelper.headSha()}"
-  case b if b.startsWith("release/") => s"-rc.${GitHelper.headSha()}"
-  case _ =>           s"-experimental.${GitHelper.headSha()}"
-}
-
-version in ThisBuild := "0.7.8"+ versionSuffix
+version in ThisBuild := "0.7.8"+ VersionHelper.versionSuffix
 
 scalaVersion := "2.11.6"
 
@@ -147,8 +138,6 @@ lazy val rest_api = project.settings(bintraySetting: _*).settings(
     }
   )
   .settings((compile in Compile)<<= (compile in Compile) dependsOn downloadUI)
-  //.settings(unmanagedJars in Compile += file(s"lib/vamp-ui-$vampUiVersion.jar"))
-  //.settings(mappings in (Compile, packageBin) += {(baseDirectory.value / "lib" / s"vamp-ui-$vampUiVersion.jar") -> s"vamp-ui-$vampUiVersion.jar"})
   .dependsOn(operation, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
