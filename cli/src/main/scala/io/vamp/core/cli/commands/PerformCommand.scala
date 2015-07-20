@@ -191,11 +191,6 @@ object PerformCommand extends Parameters {
   }
 
 
-  def readArtifactStartingPoint[A](fileContent: Option[String], reader: YamlReader[A], alternative: A) = fileContent match {
-    case Some(content: String) => reader.read(content)
-    case None => alternative
-  }
-
 
   private def doGenerateCommand(subCommand: Option[String])(implicit vampHost: String, options: OptionMap) = {
     val fileContent = readOptionalFileContent
@@ -205,11 +200,12 @@ object PerformCommand extends Parameters {
         readArtifactStartingPoint[Breed](fileContent, BreedReader, emptyBreed) match {
           case db: DefaultBreed =>
             Some(db
-              .copy(name = getOptionalParameter(name).getOrElse(db.name))
-              .copy(deployable = getOptionalParameter(deployable) match {
-              case Some(dep: String) => Deployable(dep)
-              case None => db.deployable
-            })
+              .copy(
+                name = replaceValueString(name,db.name),
+                deployable = getOptionalParameter(deployable) match {
+                  case Some(dep: String) => Deployable(dep)
+                  case None => db.deployable
+                })
             )
           case other => Some(other)
         }
@@ -221,33 +217,76 @@ object PerformCommand extends Parameters {
         val myRouting: Option[Routing] = getOptionalParameter(routing).flatMap(s => Some(RoutingReference(name = s)))
 
         //val mySla: Option[Sla]= getOptionalParameter(scale).flatMap(s=> Some(SlaReference(name = s)))
-        readArtifactStartingPoint[Blueprint](fileContent, BlueprintReader, emptyBlueprint)match {
+        readArtifactStartingPoint[Blueprint](fileContent, BlueprintReader, emptyBlueprint) match {
           case bp: DefaultBlueprint =>
             val newCluster = getOptionalParameter(cluster) flatMap (clusterName =>
               getOptionalParameter(breed) flatMap (breedName =>
                 Some(List(Cluster(name = clusterName, services = List(Service(breed = BreedReference(breedName), scale = myScale, routing = myRouting)), sla = None)))
                 )
               )
-            Some(bp.copy(name = getOptionalParameter(name).getOrElse(bp.name), clusters = bp.clusters ++ newCluster.getOrElse(List.empty)))
+            Some(bp.copy(name = replaceValueString(name,bp.name), clusters = bp.clusters ++ newCluster.getOrElse(List.empty)))
           case other => Some(other)
         }
 
-      case Some("escalation") =>
-        //TODO implement
-        None
+      case Some("escalation-cpu") =>
+        readArtifactStartingPoint[Escalation](fileContent, EscalationReader, emptyScaleCpuEscalation) match {
+          case df: ScaleCpuEscalation =>
+            Some(
+              df.copy(
+                name = replaceValueString(name,df.name),
+                minimum = replaceValueDouble(minimum, df.minimum),
+                maximum = replaceValueDouble(maximum, df.maximum),
+                scaleBy = replaceValueDouble(scale_by, df.scaleBy),
+                targetCluster = replaceValueOptionalString(target_cluster, df.targetCluster)
+              )
+            )
+          case other => Some(other)
+        }
+
+
+      case Some("escalation-memory") =>
+        readArtifactStartingPoint[Escalation](fileContent, EscalationReader, emptyScaleMemoryEscalation) match {
+          case df: ScaleMemoryEscalation =>
+            Some(
+              df.copy(
+                name = replaceValueString(name,df.name),
+                minimum = replaceValueDouble(minimum, df.minimum),
+                maximum = replaceValueDouble(maximum, df.maximum),
+                scaleBy = replaceValueDouble(scale_by, df.scaleBy),
+                targetCluster = replaceValueOptionalString(target_cluster, df.targetCluster)
+              )
+            )
+          case other => Some(other)
+        }
+
+      case Some("escalation_instance") =>
+        readArtifactStartingPoint[Escalation](fileContent, EscalationReader, emptyScaleInstanceEscalation) match {
+          case df: ScaleInstancesEscalation =>
+            Some(
+              df.copy(
+                name = replaceValueString(name,df.name),
+                minimum = replaceValueInt(minimum, df.minimum),
+                maximum = replaceValueInt(maximum, df.maximum),
+                scaleBy = replaceValueInt(scale_by, df.scaleBy),
+                targetCluster = replaceValueOptionalString(target_cluster, df.targetCluster)
+              )
+            )
+          case other => Some(other)
+        }
+
       case Some("filter") =>
         readArtifactStartingPoint[Filter](fileContent, FilterReader, emptyFilter) match {
-          case df : DefaultFilter => Some(df.copy(name = getOptionalParameter(name).getOrElse(df.name)))
+          case df: DefaultFilter => Some(df.copy(name = replaceValueString(name,df.name)))
           case other => Some(other)
         }
       case Some("routing") =>
         readArtifactStartingPoint[Routing](fileContent, RoutingReader, emptyRouting) match {
-          case dr : DefaultRouting => Some(dr.copy(name = getOptionalParameter(name).getOrElse(dr.name)))
+          case dr: DefaultRouting => Some(dr.copy(name = replaceValueString(name,dr.name)))
           case other => Some(other)
         }
       case Some("scale") =>
         readArtifactStartingPoint[Scale](fileContent, ScaleReader, emptyScale) match {
-          case ds : DefaultScale => Some(ds.copy(name = getOptionalParameter(name).getOrElse(ds.name)))
+          case ds: DefaultScale => Some(ds.copy(name = replaceValueString(name,ds.name)))
           case other => Some(other)
         }
       case Some("sla") =>
@@ -270,6 +309,13 @@ object PerformCommand extends Parameters {
   private def emptyRouting = DefaultRouting(name = "", weight = None, filters = List.empty)
 
   private def emptyFilter = DefaultFilter(name = "", condition = "")
+
+  private def emptyScaleCpuEscalation = ScaleCpuEscalation(name = "", minimum = 0, maximum = 0, scaleBy = 0, targetCluster = None)
+
+  private def emptyScaleMemoryEscalation = ScaleMemoryEscalation(name = "", minimum = 0, maximum = 0, scaleBy = 0, targetCluster = None)
+
+  private def emptyScaleInstanceEscalation = ScaleInstancesEscalation(name = "", minimum = 0, maximum = 0, scaleBy = 0, targetCluster = None)
+
 
   private def doMergeCommand(implicit vampHost: String, options: OptionMap) = getOptionalParameter(deployment) match {
     case Some(deploymentId) =>
@@ -359,6 +405,47 @@ object PerformCommand extends Parameters {
     }
     new Yaml().dumpAs(new Yaml().load(toJson(artifact)), Tag.MAP, FlowStyle.BLOCK)
   }
+
+
+  private def readArtifactStartingPoint[A](fileContent: Option[String], reader: YamlReader[A], alternative: A) = fileContent match {
+    case Some(content: String) => reader.read(content)
+    case None => alternative
+  }
+
+
+  private def replaceValueDouble(parameterName: Symbol, originalValue: Double)(implicit options: OptionMap): Double =
+    getOptionalParameter(parameterName) match {
+      case Some(v) => try {
+        v.toDouble
+      } catch {
+        case e: Exception => terminateWithError(s"Invalid value $v for ${parameterName.name}")
+          0
+      }
+      case None => originalValue
+    }
+
+  private def replaceValueInt(parameterName: Symbol, originalValue: Int)(implicit options: OptionMap): Int =
+    getOptionalParameter(parameterName) match {
+      case Some(v) => try {
+        v.toInt
+      } catch {
+        case e: Exception => terminateWithError(s"Invalid value $v for ${parameterName.name}")
+          0
+      }
+      case None => originalValue
+    }
+
+  private def replaceValueOptionalString(parameterName: Symbol, originalValue: Option[String])(implicit options: OptionMap): Option[String] =
+    getOptionalParameter(parameterName) match {
+      case Some(v) => Some(v)
+      case None => originalValue
+    }
+
+  private def replaceValueString(parameterName: Symbol, originalValue: String)(implicit options: OptionMap): String =
+    getOptionalParameter(parameterName) match {
+      case Some(v) => v
+      case None => originalValue
+    }
 
   private def getVampHost(implicit options: Map[Symbol, String]): Option[String] =
     getOptionalParameter(host) match {

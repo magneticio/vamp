@@ -24,6 +24,10 @@ trait Parameters extends CommandLineBasics {
   val sla = 'sla
   val endpoint = 'endpoint
   val environment = 'environment
+  val minimum = 'minimum
+  val maximum = 'maximum
+  val scale_by = 'scaleBy
+  val target_cluster = 'targetCluster
 
   val VAMP_HOST = "VAMP_HOST"
 
@@ -66,6 +70,10 @@ trait Parameters extends CommandLineBasics {
       case "--json" :: tail => nextOption(map ++ Map(json -> "true"), tail)
       case "--stdin" :: tail => nextOption(map ++ Map(stdin -> "true"), tail)
       case "--name" :: value :: tail => nextOption(map ++ Map(name -> value), tail)
+      case "--minimum"   :: value :: tail => nextOption(map ++ Map(minimum -> value), tail)
+      case "--maximum"   :: value :: tail => nextOption(map ++ Map(maximum -> value), tail)
+      case "--scale_by"   :: value :: tail => nextOption(map ++ Map(scale_by -> value), tail)
+      case "--target_cluster"   :: value :: tail => nextOption(map ++ Map(target_cluster -> value), tail)
 
       case option :: tail if isSwitch(option) =>
         terminateWithError("Unknown option " + option)
