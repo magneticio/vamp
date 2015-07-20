@@ -15,11 +15,14 @@ trait CliCommand {
   val parameters = ""
   val requiresName: Boolean = false
   val commandType: CommandType = CommandType.Other
-  val requiresHostConnection : Boolean = true
-  val allowedSubCommands :List[String]= List.empty
+  val requiresHostConnection: Boolean = true
+  val allowedSubCommands: List[String] = List.empty
+  val requiresSubCommand: Boolean = false
+
   def jsonOutput = "  --json               Output Json instead of Yaml[Optional]"
-  val allArtifacts = List("blueprint","breed","deployment","escalation", "filter", "routing", "scale", "sla")
-  val allArtifactsPlural = List("blueprints","breeds","deployments","escalations", "filters", "routings", "scales", "slas")
+
+  val allArtifacts = List("blueprint", "breed", "deployment", "escalation", "filter", "routing", "scale", "sla")
+  val allArtifactsPlural = List("blueprints", "breeds", "deployments", "escalations", "filters", "routings", "scales", "slas")
 }
 
 case class ListCommand() extends CliCommand {
@@ -28,6 +31,7 @@ case class ListCommand() extends CliCommand {
   override val usage = "Shows a list of artifacts"
   override val commandType = CommandType.List
   override val allowedSubCommands = allArtifactsPlural
+  override val requiresSubCommand = true
 }
 
 case class InspectCommand() extends CliCommand {
@@ -41,6 +45,7 @@ case class InspectCommand() extends CliCommand {
   override val commandType = CommandType.Inspect
   override val requiresName = true
   override val allowedSubCommands = allArtifacts
+  override val requiresSubCommand = true
 }
 
 case class CreateCommand() extends CliCommand {
@@ -51,9 +56,10 @@ case class CreateCommand() extends CliCommand {
   override val parameters = """  --file               Name of the yaml file [Optional]
                               |  --stdin              Read file from stdin [Optional]
                             """.stripMargin
-  override val requiresName  = false
+  override val requiresName = false
   override val commandType = CommandType.Create
   override val allowedSubCommands = allArtifacts.filter(_ != "deployment")
+  override val requiresSubCommand = true
 }
 
 case class UpdateCommand() extends CliCommand {
@@ -64,9 +70,10 @@ case class UpdateCommand() extends CliCommand {
   override val parameters = """  --file               Name of the yaml file [Optional]
                               |  --stdin              Read file from stdin [Optional]
                             """.stripMargin
-  override val requiresName  = true
+  override val requiresName = true
   override val commandType = CommandType.Update
   override val allowedSubCommands = allArtifacts.filter(_ != "deployment")
+  override val requiresSubCommand = true
 }
 
 case class DeployCommand() extends CliCommand {
@@ -100,8 +107,9 @@ case class GenerateCommand() extends CliCommand {
                             """.stripMargin
   override val requiresName = false
   override val commandType = CommandType.Generate
-  override val allowedSubCommands = List("breed","blueprint", "filter", "routing", "scale")
-  override val requiresHostConnection : Boolean = false
+  override val allowedSubCommands = List("breed", "blueprint", "filter", "routing", "scale")
+  override val requiresSubCommand = true
+  override val requiresHostConnection: Boolean = false
 }
 
 case class HelpCommand() extends CliCommand {
@@ -125,7 +133,7 @@ case class MergeCommand() extends CliCommand {
     """Merges a blueprint with an existing deployment or blueprint.
       |Either specify a deployment or blueprint in which the blueprint should be merged
       |The blueprint can be specified by NAME, read from the specified filename or read from stdin.
-      """.stripMargin
+    """.stripMargin
   override val description = "Merge a blueprint with an existing deployment or blueprint"
   override val parameters = """  --file               Name of the yaml file [Optional]
                             """.stripMargin
@@ -138,7 +146,8 @@ case class RemoveCommand() extends CliCommand {
   override val description = "Removes an artifact"
   override val requiresName = true
   override val commandType = CommandType.Delete
-  override val allowedSubCommands= allArtifacts.filter(_ != "deployment")
+  override val allowedSubCommands = allArtifacts.filter(_ != "deployment")
+  override val requiresSubCommand = true
 }
 
 case class UndeployCommand() extends CliCommand {

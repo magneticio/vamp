@@ -18,7 +18,6 @@ trait Parameters extends CommandLineBasics {
   val json = 'json
   val routing = 'routing
   val scale = 'scale
-  val subcommand = 'subcommand
   val blueprint = 'blueprint
   val stdin = 'stdin
   val breed = 'breed
@@ -66,13 +65,18 @@ trait Parameters extends CommandLineBasics {
       case "--file" :: value :: tail => nextOption(map ++ Map(file -> value), tail)
       case "--json" :: tail => nextOption(map ++ Map(json -> "true"), tail)
       case "--stdin" :: tail => nextOption(map ++ Map(stdin -> "true"), tail)
+      case "--name" :: value :: tail => nextOption(map ++ Map(name -> value), tail)
 
-      case string :: opt2 :: tail if isSwitch(opt2) => nextOption(map ++ Map(name -> string), list.tail)
-      case string :: opt2 :: tail if !isSwitch(opt2) => nextOption(map ++ Map(subcommand -> string), list.tail)
-
-      case string :: Nil => nextOption(map ++ Map(name -> string), list.tail)
-      case option :: tail => terminateWithError("Unknown option " + option)
+      case option :: tail if isSwitch(option) =>
+        terminateWithError("Unknown option " + option)
         Map.empty
+      case string :: tail =>
+        if (!map.contains(name)) {
+          nextOption(map ++ Map(name -> string), list.tail)
+        } else {
+          terminateWithError(s"Second name found with value '$string'; already had value '${map.getOrElse(name,"")}'")
+          Map.empty
+        }
     }
   }
 
