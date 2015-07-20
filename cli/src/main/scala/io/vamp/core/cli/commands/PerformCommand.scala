@@ -1,6 +1,8 @@
 package io.vamp.core.cli.commands
 
 
+import java.io.File
+
 import io.vamp.core.cli.backend.VampHostCalls
 import io.vamp.core.cli.commandline.{ConsoleHelper, Parameters}
 import io.vamp.core.model.artifact._
@@ -320,7 +322,12 @@ object PerformCommand extends Parameters {
 
 
   private def readOptionalFileContent(implicit options: OptionMap): Option[String] = getOptionalParameter('file) match {
-    case Some(fileName) => Some(Source.fromFile(fileName).getLines().mkString("\n"))
+    case Some(fileName) => if (java.nio.file.Files.exists(new File(fileName).toPath)) {
+      Some(Source.fromFile(fileName).getLines().mkString("\n"))
+    } else {
+      terminateWithError(s"File '$fileName' not found")
+      None
+    }
     case None => getOptionalParameter('stdin) match {
       case Some(value) => Some(Source.stdin.getLines().mkString("\n"))
       case None => None
