@@ -190,7 +190,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
   private def createDockerContainer(containerName: String, dockerImageName: String, env: Map[String, String], ports: List[DockerPortMapping]): Future[Response] = async {
     logger.debug(s"createDockerContainer :$containerName")
 
-    var containerPrep = docker.containers.create(dockerImageName).name(containerName)
+    var containerPrep = docker.containers.create(dockerImageName).name(containerName).hostName(defaultHost)
 
     for (v <- env) {
       logger.trace(s"[CreateDockerContainer] setting env ${v._1} = ${v._2}")
