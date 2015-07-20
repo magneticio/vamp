@@ -191,66 +191,64 @@ object PerformCommand extends Parameters {
   }
 
 
+  def readArtifactStartingPoint[A](fileContent: Option[String], reader: YamlReader[A], alternative: A) = fileContent match {
+    case Some(content: String) => reader.read(content)
+    case None => alternative
+  }
+
+
   private def doGenerateCommand(subCommand: Option[String])(implicit vampHost: String, options: OptionMap) = {
     val fileContent = readOptionalFileContent
     printArtifact(subCommand match {
       case Some("breed") =>
-        //TODO implement parameters
-        val startWith: Breed = fileContent match {
-          case Some(content: String) => BreedReader.read(content)
-          case None => emptyBreed
-        }
-
-        startWith match {
+        //TODO implement parameters for env / constants
+        readArtifactStartingPoint[Breed](fileContent, BreedReader, emptyBreed) match {
           case db: DefaultBreed =>
-            val dep = getOptionalParameter(deployable) match {
+            Some(db
+              .copy(name = getOptionalParameter(name).getOrElse(db.name))
+              .copy(deployable = getOptionalParameter(deployable) match {
               case Some(dep: String) => Deployable(dep)
               case None => db.deployable
-            }
-            Some(db.copy(deployable = dep))
-          case x => Some(x)
+            })
+            )
+          case other => Some(other)
         }
 
       case Some("blueprint") =>
         //TODO implement parameters for sla / endpoint / env
-        val startWith: Blueprint = fileContent match {
-          case Some(content: String) => BlueprintReader.read(content)
-          case None => emptyBlueprint
-        }
 
         val myScale: Option[Scale] = getOptionalParameter(scale).flatMap(s => Some(ScaleReference(name = s)))
         val myRouting: Option[Routing] = getOptionalParameter(routing).flatMap(s => Some(RoutingReference(name = s)))
 
-
         //val mySla: Option[Sla]= getOptionalParameter(scale).flatMap(s=> Some(SlaReference(name = s)))
-        startWith match {
+        readArtifactStartingPoint[Blueprint](fileContent, BlueprintReader, emptyBlueprint)match {
           case bp: DefaultBlueprint =>
             val newCluster = getOptionalParameter(cluster) flatMap (clusterName =>
               getOptionalParameter(breed) flatMap (breedName =>
                 Some(List(Cluster(name = clusterName, services = List(Service(breed = BreedReference(breedName), scale = myScale, routing = myRouting)), sla = None)))
                 )
               )
-            Some(bp.copy(clusters = bp.clusters ++ newCluster.getOrElse(List.empty)))
-          case x => Some(x)
+            Some(bp.copy(name = getOptionalParameter(name).getOrElse(bp.name), clusters = bp.clusters ++ newCluster.getOrElse(List.empty)))
+          case other => Some(other)
         }
 
       case Some("escalation") =>
         //TODO implement
         None
       case Some("filter") =>
-        fileContent match {
-          case Some(content: String) => Some(FilterReader.read(content))
-          case None => Some(emptyFilter)
+        readArtifactStartingPoint[Filter](fileContent, FilterReader, emptyFilter) match {
+          case df : DefaultFilter => Some(df.copy(name = getOptionalParameter(name).getOrElse(df.name)))
+          case other => Some(other)
         }
       case Some("routing") =>
-        fileContent match {
-          case Some(content: String) => Some(RoutingReader.read(content))
-          case None => Some(emptyRouting)
+        readArtifactStartingPoint[Routing](fileContent, RoutingReader, emptyRouting) match {
+          case dr : DefaultRouting => Some(dr.copy(name = getOptionalParameter(name).getOrElse(dr.name)))
+          case other => Some(other)
         }
       case Some("scale") =>
-        fileContent match {
-          case Some(content: String) => Some(ScaleReader.read(content))
-          case None => Some(emptyScale)
+        readArtifactStartingPoint[Scale](fileContent, ScaleReader, emptyScale) match {
+          case ds : DefaultScale => Some(ds.copy(name = getOptionalParameter(name).getOrElse(ds.name)))
+          case other => Some(other)
         }
       case Some("sla") =>
         //TODO implement

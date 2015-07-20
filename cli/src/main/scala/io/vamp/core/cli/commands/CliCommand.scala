@@ -90,7 +90,7 @@ case class DeployCommand() extends CliCommand {
 
 case class GenerateCommand() extends CliCommand {
   override val name = "generate"
-  override val additionalParams = "[--file|--stdin] [--json]"
+  override val additionalParams = "[--file|--stdin] [--json] [--name]"
   override val usage = "Generates an artifact"
   override val description = "Generates an artifact"
   override val parameters = """  --file               Name of the yaml file to preload the generation [Optional]
