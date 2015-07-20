@@ -25,6 +25,8 @@ trait Containers extends Util {
 
       def image(img: String) = withConfig(_.copy(image = img))
 
+      def hostName(host: String) = withConfig(_.copy(hostName = host))
+
       def env(vars: (String, String)*) = withConfig(_.copy(env = vars.toMap))
 
       def exposedPorts(ports: String*) = withConfig(_.copy(exposedPorts = ports.toSeq))
