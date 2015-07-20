@@ -208,11 +208,11 @@ class PulseActor extends Percolator with EventValidator with CommonReplyActor wi
     )
   }
 
-  private def constructTagQuery(tags: Set[String]): Option[Map[Any, Any]] = tags.isEmpty match {
+  private def constructTagQuery(tags: Set[String]): Option[List[Map[String,Any]]] = tags.isEmpty match {
     case true => None
-    case _ => Some(Map("term" ->
-      Map("tags" -> tags.toList)
-    ))
+    case _ => Some(
+      (for (tag <- tags) yield Map("term" -> Map("tags" -> tag))).toList
+    )
   }
 
   private def constructTimeRange(timeRange: Option[TimeRange]): Option[Map[Any, Any]] = timeRange match {
