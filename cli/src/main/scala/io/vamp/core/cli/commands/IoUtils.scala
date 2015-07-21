@@ -26,7 +26,6 @@ trait IoUtils extends Parameters {
       Some(Source.fromFile(fileName).getLines().mkString("\n"))
     } else {
       terminateWithError(s"File '$fileName' not found")
-      None
     }
     case None => getOptionalParameter('stdin) match {
       case Some(value) => Some(Source.stdin.getLines().mkString("\n"))
@@ -36,8 +35,7 @@ trait IoUtils extends Parameters {
 
   protected def readFileContent(implicit options: OptionMap): String = readOptionalFileContent match {
     case Some(content) => content
-    case None => terminateWithError("No file specified")
-      ""
+    case None => terminateWithError("No file specified", "")
   }
 
   protected def printArtifact(artifact: Option[Artifact])(implicit options: OptionMap) = {

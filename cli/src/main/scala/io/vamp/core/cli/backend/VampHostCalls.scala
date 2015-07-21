@@ -32,7 +32,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"POST $vampHost/api/v1/breeds", Some(definition)) match {
       case Some(breed) => Some(BreedReader.read(breed))
       case _ => terminateWithError("Breed not created")
-        None
     }
   }
 
@@ -40,7 +39,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"POST $vampHost/api/v1/blueprints", Some(definition)) match {
       case Some(blueprint) => Some(BlueprintReader.read(blueprint))
       case _ => terminateWithError("Blueprint not created")
-        None
     }
   }
 
@@ -48,7 +46,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"POST $vampHost/api/v1/escalations", Some(definition)) match {
       case Some(escalation) => Some(EscalationReader.read(escalation))
       case _ => terminateWithError("Escalation not created")
-        None
     }
   }
 
@@ -56,7 +53,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"POST $vampHost/api/v1/filters", Some(definition)) match {
       case Some(filter) => Some(FilterReader.read(filter))
       case _ => terminateWithError("Filter not created")
-        None
     }
   }
 
@@ -64,7 +60,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"POST $vampHost/api/v1/routings", Some(definition)) match {
       case Some(routing) => Some(RoutingReader.read(routing))
       case _ => terminateWithError("Routing not created")
-        None
     }
   }
 
@@ -72,7 +67,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"POST $vampHost/api/v1/scales", Some(definition)) match {
       case Some(scale) => Some(ScaleReader.read(scale))
       case _ => terminateWithError("Scale not created")
-        None
     }
   }
 
@@ -80,7 +74,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"POST $vampHost/api/v1/slas", Some(definition)) match {
       case Some(sla) => Some(SlaReader.read(sla))
       case _ => terminateWithError("Sla not created")
-        None
     }
   }
 
@@ -88,7 +81,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"PUT $vampHost/api/v1/breeds/$name", Some(definition)) match {
       case Some(breed) => Some(BreedReader.read(breed))
       case _ => terminateWithError("Breed not updated")
-        None
     }
   }
 
@@ -96,7 +88,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"PUT $vampHost/api/v1/blueprints/$name", Some(definition)) match {
       case Some(blueprint) => Some(BlueprintReader.read(blueprint))
       case _ => terminateWithError("Blueprint not updated")
-        None
     }
   }
 
@@ -104,7 +95,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"PUT $vampHost/api/v1/escalations/$name", Some(definition)) match {
       case Some(escalation) => Some(EscalationReader.read(escalation))
       case _ => terminateWithError("Escalation not updated")
-        None
     }
   }
 
@@ -112,7 +102,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"PUT $vampHost/api/v1/filters/$name", Some(definition)) match {
       case Some(filter) => Some(FilterReader.read(filter))
       case _ => terminateWithError("Filter not updated")
-        None
     }
   }
 
@@ -120,7 +109,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"PUT $vampHost/api/v1/routings/$name", Some(definition)) match {
       case Some(routing) => Some(RoutingReader.read(routing))
       case _ => terminateWithError("Routing not updated")
-        None
     }
   }
 
@@ -128,7 +116,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"PUT $vampHost/api/v1/scales/$name", Some(definition)) match {
       case Some(scale) => Some(ScaleReader.read(scale))
       case _ => terminateWithError("Scale not updated")
-        None
     }
   }
 
@@ -136,7 +123,6 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"PUT $vampHost/api/v1/slas/$name", Some(definition)) match {
       case Some(sla) => Some(SlaReader.read(sla))
       case _ => terminateWithError("Sla not updated")
-        None
     }
   }
 
