@@ -5,6 +5,7 @@ import java.util
 import io.vamp.common.http.RestClient.Method
 import io.vamp.common.http.{RestApiContentTypes, RestApiMarshaller, RestClient}
 import io.vamp.core.cli.commandline.CommandLineBasics
+import io.vamp.core.cli.commands.IoUtils
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
 import io.vamp.core.model.serialization.CoreSerializationFormat
@@ -20,9 +21,8 @@ import scala.concurrent.{Await, Future}
 import scala.language.{implicitConversions, postfixOps}
 import scala.util.{Failure, Success}
 
-object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiContentTypes with CommandLineBasics {
+object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiContentTypes with CommandLineBasics with IoUtils {
 
-  implicit val formats = CoreSerializationFormat.default
   val timeout = 30 seconds
 
   def getDeploymentAsBlueprint(deploymentId: String)(implicit vampHost: String): Option[Blueprint] =
@@ -150,7 +150,7 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
 
   def undeploy(name: String)(implicit vampHost: String): Option[String] =
     getDeployment(name) match {
-      case Some(deployment) => sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some("name: sava:1.0"))
+      case Some(deployment) => sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some(artifactToYaml(deployment)))
       case None => None
     }
 
