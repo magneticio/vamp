@@ -104,23 +104,30 @@ case class GenerateCommand() extends CliCommand {
                               |  --breed              Name of the breed   [Optional, requires --cluster]
                               |  --routing            Name of the routing [Optional, requires --breed]
                               |  --scale              Name of the scale   [Optional, requires --breed]
+                              |  --sla                Name of the sla   [Optional, requires --breed]
                               |
-                              |  For 'escalation-cpu / escalation-memory':
+                              |For 'escalation-cpu / escalation-memory':
                               |  --minimum            Minimum # of cpu / amount of memory, double [Optional]
                               |  --maximum            Maximum # of cpu / amount of memory, double [Optional]
                               |  --scale_by           Scale up / down by # of cpu / amount of memory, double [Optional]
                               |  --target_cluster     Name of the cluster to scale
                               |
-                              |  For 'escalation-instance':
+                              |For 'escalation-instance':
                               |  --minimum            Minimum # of instances, int [Optional]
                               |  --maximum            Maximum # of instances, int [Optional]
                               |  --scale_by           Scale up / down by # of instances, int [Optional]
-                              |  --target_cluster     Name of the cluster to scale
-                              |                                |
+                              |  --target_cluster     Name of the cluster to scale   [Optional]
+                              |
+                              |For 'sla-response-time-sliding-window':
+                              |  --upper               Upper threshold in milliseconds [Optional]
+                              |  --lower               Lower threshold in milliseconds [Optional]
+                              |  --interval            Time period in seconds used for average response time aggregation [Optional]
+                              |  --cooldown            Time period in seconds [Optional]
+                              |
                             """.stripMargin
   override val requiresName = false
   override val commandType = CommandType.Generate
-  override val allowedSubCommands = List("breed", "blueprint", "filter", "routing","scale", "escalation-cpu", "escalation-instance", "escalation-memory")
+  override val allowedSubCommands = List("breed", "blueprint", "escalation-cpu", "escalation-instance", "escalation-memory", "filter", "routing","scale", "sla-response-time-sliding-window")
   override val requiresSubCommand = true
   override val requiresHostConnection: Boolean = false
 }
@@ -137,7 +144,6 @@ case class InfoCommand() extends CliCommand {
   override val description = "Information from Vamp Core"
   override val usage = "Returns a blob with information from Vamp Core"
 }
-
 
 case class MergeCommand() extends CliCommand {
   override val name = "merge"

@@ -17,7 +17,7 @@ trait VampCli extends Parameters {
     }
 
 
-    val subCmd = {
+    val subCmd : Option[String] = {
       if (cmd.requiresSubCommand) {
           Some(args.tail.head)
       }
@@ -30,7 +30,7 @@ trait VampCli extends Parameters {
 
     implicit val options = readParameters(argsToProcess)
 
-    if (options.contains(help)) showHelp(cmd)
+    if ((cmd.requiresSubCommand && subCmd.contains("--help")) || options.contains(help)) showHelp(cmd)
 
     PerformCommand.doCommand(cmd, subCmd)(options = if (cmd.requiresSubCommand) options else options)
     sys.exit(0)

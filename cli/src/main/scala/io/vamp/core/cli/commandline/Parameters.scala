@@ -28,6 +28,10 @@ trait Parameters extends CommandLineBasics {
   val maximum = 'maximum
   val scale_by = 'scaleBy
   val target_cluster = 'targetCluster
+  val upper = 'upper
+  val lower = 'lower
+  val interval = 'interval
+  val cooldown = 'cooldown
 
   val VAMP_HOST = "VAMP_HOST"
 
@@ -74,6 +78,10 @@ trait Parameters extends CommandLineBasics {
       case "--maximum"   :: value :: tail => nextOption(map ++ Map(maximum -> value), tail)
       case "--scale_by"   :: value :: tail => nextOption(map ++ Map(scale_by -> value), tail)
       case "--target_cluster"   :: value :: tail => nextOption(map ++ Map(target_cluster -> value), tail)
+      case "--upper"   :: value :: tail => nextOption(map ++ Map(upper -> value), tail)
+      case "--lower"   :: value :: tail => nextOption(map ++ Map(lower -> value), tail)
+      case "--interval"   :: value :: tail => nextOption(map ++ Map(interval -> value), tail)
+      case "--cooldown"   :: value :: tail => nextOption(map ++ Map(cooldown -> value), tail)
 
       case option :: tail if isSwitch(option) =>
         terminateWithError("Unknown option " + option)

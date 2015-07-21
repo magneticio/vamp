@@ -6,9 +6,10 @@ trait CommandLineBasics {
 
   import ConsoleHelper._
 
-  def terminateWithError(msg: String): Unit = {
+  def terminateWithError[A](msg: String, returnValue : A = None): A = {
     println(s"ERROR: ".red.bold + "" + s"$msg".red)
     sys.exit(1)
+    returnValue
   }
 
   def string2Command(s: String): CliCommand = s match {
