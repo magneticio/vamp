@@ -3,7 +3,7 @@ title: Vamp Router
 weight: 900
 menu:
   main:
-    parent: rest-api
+    parent: api-reference
 ---
 # Router API
 

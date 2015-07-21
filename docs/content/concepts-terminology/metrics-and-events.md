@@ -3,7 +3,7 @@ title: Metrics & Events
 weight: 60
 menu:
   main:
-    parent: reference
+    parent: concepts-terminology
 ---
 # Metrics & Events
 
@@ -56,7 +56,7 @@ This schema allows querying per group and per specific name. Getting all events 
 
 Using the tags schema and timestamps, you can do some powerful queries. Either use an exact timestamp or use special range query operators, described [on the elastic.co site](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-range-query.html).
 
-**Note:** the default page size for a set or returned metrics is 30. From Vamp 0.7.8 onwards, we support pagination.
+> **Note:** the default page size for a set or returned metrics is 30. From Vamp 0.7.8 onwards, we support pagination.
 
 
 ### Example 1: response time for a cluster
@@ -65,7 +65,7 @@ This query gets the most recent response time metrics for the "frontend" cluster
 
 `POST /api/v1/events/get`
 
-```JSON
+```json
 {
   "tags": ["routes:d9b42796-d8f6-431b-9230-9d316defaf6d_frontend_8080","metrics:rtime","route"]
     "timestamp" : {
@@ -76,7 +76,7 @@ This query gets the most recent response time metrics for the "frontend" cluster
 
 **Notice** the "route:<UUID>", "metrics:rtime" and "routes" tags. This means "give me the response time of this specific route at the route level". The response will echo back the events in the time range with the original set of tags associated with the events. 
 
-```JSON
+```json
 [
     {
         "tags": [
@@ -111,7 +111,7 @@ Another example is getting the current sessions for a specific service, in this 
 
 `POST /api/v1/events/get`
 
-```JSON
+```json
 {
   "tags": ["routes:214615ec-d5e4-473e-a98e-8aa4998b16f4_frontend_8080","metrics:scur","services:monarch_front:0.2","service"]
     "timestamp" : {
@@ -129,7 +129,7 @@ This example gives you all the metrics we have for a specific service, in this c
 
 `POST /api/v1/events/get`
 
-```JSON
+```json
 {
   "tags": ["routes:214615ec-d5e4-473e-a98e-8aa4998b16f4_frontend_8080","metrics","services:monarch_front:0.2","service"]
     "timestamp" : {
@@ -145,7 +145,7 @@ All changes in artifacts (creation, update or deletion) triggered by REST API ca
 
 Here is an example event:
 
-```JSON
+```json
 {
   "tags": [
     "deployments",
@@ -165,7 +165,7 @@ The following query gives back the last set of delete actions executed in the Va
 `POST /api/v1/events/get`
 
 
-```JSON
+```json
 {
   "tags": ["archiving","archiving:delete"],
     "timestamp" : {

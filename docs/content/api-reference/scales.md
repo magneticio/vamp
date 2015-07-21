@@ -3,7 +3,7 @@ title: Scales
 weight: 50
 menu:
   main:
-    parent: rest-api
+    parent: api-reference
 ---
 
 # Scales

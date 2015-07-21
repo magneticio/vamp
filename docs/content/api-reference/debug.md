@@ -3,7 +3,7 @@ title: Debug
 weight: 1000
 menu:
   main:
-    parent: rest-api
+    parent: api-reference
 ---
 
 # Debug endpoints

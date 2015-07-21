@@ -3,7 +3,7 @@ title: Blueprints
 weight: 30
 menu:
   main:
-    parent: rest-api
+    parent: api-reference
 ---
 
 # Blueprints

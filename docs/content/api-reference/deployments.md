@@ -3,7 +3,7 @@ title: Deployments
 weight: 40
 menu:
   main:
-    parent: rest-api
+    parent: api-reference
 ---
 
 # Deployments

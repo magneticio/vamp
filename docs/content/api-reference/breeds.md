@@ -3,7 +3,7 @@ title: Breeds
 weight: 20
 menu:
   main:
-    parent: rest-api
+    parent: api-reference
 ---
 
 # Breeds

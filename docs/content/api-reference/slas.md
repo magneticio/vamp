@@ -3,7 +3,7 @@ title: Slas
 weight: 80
 menu:
   main:
-    parent: rest-api
+    parent: api-reference
 ---
 
 # SLA's

@@ -1,10 +1,14 @@
 ---
-title: Documentation
+title: What is Vamp?
 type: documentation
+weight: 10
 url: /documentation
+menu:
+  main:
+    parent: about-vamp
 ---
 
-# What is Vamp ?
+# What is Vamp?
 
 Vamp, the _Very Awesome Microservices Platform_, is aimed at anyone who wants to adopt a microservices model for 
 developing their online services, with some awesome features thrown in for free.  
@@ -52,4 +56,4 @@ feeling the extra complexity and pain.
 4. Automatic deployment of containers is going to be a commodity: this is not our focus.
 5. Basic health monitoring of containers is going to be a commodity: this is not our focus.
 
-Please check our [Getting Started](/getting-started/) to get up to speed on how to use Vamp
+Please check our [quick start](/quick-start/) to get up to speed on how to use Vamp

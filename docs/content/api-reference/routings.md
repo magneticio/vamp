@@ -3,7 +3,7 @@ title: Routings
 weight: 60
 menu:
   main:
-    parent: rest-api
+    parent: api-reference
 ---
 
 # Routings

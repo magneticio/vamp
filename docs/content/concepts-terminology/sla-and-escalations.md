@@ -3,7 +3,7 @@ title: SLA & escalations
 weight: 40
 menu:
   main:
-    parent: reference
+    parent: concepts-terminology
 ---
 # SLA & Escalations
 

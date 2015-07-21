@@ -3,7 +3,7 @@ title: Deployments
 weight: 50
 menu:
   main:
-    parent: reference
+    parent: concepts-terminology
 ---
 
 # Deployments
@@ -33,9 +33,8 @@ clusters:
 
 The name of the deployment is automatically assigned as a UUID (e.g. `123e4567-e89b-12d3-a456-426655440000`).
 Here is an example with two versions of the same service within the one cluster. 
-{{% alert info %}}
-Notice that we have distributed the weight between the two services.
-{{% /alert%}}
+
+> Notice that we have distributed the weight between the two services.
 
 Example with multiple service version (within the same cluster):
 

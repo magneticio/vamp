@@ -3,7 +3,7 @@ title: Events
 weight: 100
 menu:
   main:
-    parent: rest-api
+    parent: api-reference
 ---
 
 # Metrics & Events

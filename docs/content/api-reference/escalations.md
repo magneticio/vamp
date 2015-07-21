@@ -3,7 +3,7 @@ title: Escalations
 weight: 90
 menu:
   main:
-    parent: rest-api
+    parent: api-reference
 ---
 
 # Escalations

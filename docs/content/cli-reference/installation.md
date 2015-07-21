@@ -1,21 +1,21 @@
 ---
 title: Installation
 weight: 20
----
 menu:
   main:
-    parent: cli
+    parent: cli-reference
+    identifier: cli-installation
+---
+
 
 # Installation
 
 Vamp requires Java version 8 to be installed. 
 
 To verify if the correct Java version has been installed, type 
-{{% copyable %}}
 ```
 java -version
 ``` 
-{{% /copyable %}}
 
 It should report back the version as 1.8
 ```bash
@@ -45,21 +45,18 @@ sudo apt-get install vamp-cli
 {{% /copyable %}}
 
 Now you can run the Vamp CLI, by typing 
-{{% copyable %}}
 ```
 vamp
 ```
-{{% /copyable %}}
 
-
-## <a name="redhat"></a>RedHat / CentOS
+## RedHat / CentOS
 
 TBD
 
-## <a name="osx"></a>OSX
+## OSX
 
 TBD
 
-## <a name="windows"></a>Windows
+## Windows
 
 TBD

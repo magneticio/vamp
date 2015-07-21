@@ -3,7 +3,7 @@ title: Breeds & Blueprints
 weight: 20
 menu:
   main:
-    parent: reference
+    parent: concepts-terminology
 ---
 # Breeds
 
@@ -266,12 +266,7 @@ my_cool_cluster
 ```
 Clusters and services are just organisational items. Vamp uses them to order, reference and control the actual containers and routing and traffic.
 
-{{% alert info %}} 
-This all seems redundant, right? We have a reference chain of blueprints -> endpoints -> clusters -> services -> breeds -> containers.
-
-
-However, you need this level of control and granularity in any serious environment where DRY principles are taken seriously and where "one size fits all" doesn't fly.
-{{% /alert %}}
+> **This all seems redundant, right?** We have a reference chain of blueprints -> endpoints -> clusters -> services -> breeds -> containers. However, you need this level of control and granularity in any serious environment where DRY principles are taken seriously and where "one size fits all" doesn't fly.
 
 
 ## Scale

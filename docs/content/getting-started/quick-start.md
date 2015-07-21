@@ -1,8 +1,9 @@
 ---
-title: Installation
+title: Quick start
 type: documentation
 weight: 10
 aliases:
+  - /quick-start/
   - /getting-started/
 menu:
     main:
@@ -10,7 +11,7 @@ menu:
     
 ---
 
-# Quick Installation
+# Quick start
 
 
 The easiest way to get started with Vamp is by spining up one of the Docker images stored

@@ -3,7 +3,7 @@ title: Filters
 weight: 70
 menu:
   main:
-    parent: rest-api
+    parent: api-reference
 ---
 
 # Filters

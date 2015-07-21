@@ -3,10 +3,10 @@ title: Overview
 weight: 10
 menu:
   main:
-    parent: reference
-    identifier: reference-overview
+    parent: concepts-terminology
+    identifier: concepts-terminology-overview
 ---
-# Overview
+# Terminology & Concepts
 
 Vamp has three basic entities you can work with:
 

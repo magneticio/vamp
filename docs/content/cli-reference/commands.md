@@ -1,16 +1,17 @@
 ---
 title: Commands
 weight: 30
----
 menu:
   main:
-    parent: cli
+    parent: cli-reference
+---
 
-# Usage
+
+# Commands
 
 VAMP has a command line interface (CLI) which can be used to perform some basic actions.
 
-VAMP CLI needs to know where the VAMP Host is locate. The host can be specified as a command line option (--host) or via an environment variable (VAMP_HOST) 
+VAMP CLI needs to know where the VAMP Host is locate. The host can be specified as a command line option (`--host`) or via an environment variable (`$VAMP_HOST`) 
 Example:
 {{% copyable %}}
 ```bash
@@ -58,7 +59,7 @@ cpu: 2.0
 memory: 2048.0
 instances: 2
 ```
-## <a name="deploy"></a>Deploy
+## Deploy
 
 Deploys a blueprint
 
@@ -74,7 +75,7 @@ Parameter | purpose
 ```bash
 > vamp deploy --deployment 1111-2222-3333-4444 --file my_new_blueprint.yaml
 ```
-## <a name="generate"></a>generate
+## Generate
 
 Generates an artifact
 
@@ -121,7 +122,7 @@ For 'generate blueprint':
 }
 ```
 
-## <a name="help"></a>Help
+## Help
 
 Displays the Vamp help message
 
@@ -147,7 +148,7 @@ Run vamp COMMMAND --help  for additional help about the different command option
 
 
 
-## <a name="info"></a>Info
+## Info
 
 Displays the Vamp Info message
 
@@ -172,7 +173,7 @@ jvm:
 ...    
 ```
 
-## <a name="inspect"></a>Inspect
+## Inspect
 Shows the details of the specified artifact
 
 **Usage:** `vamp inspect blueprint|breed|deployment|escalation|filter|routing|scale|sla NAME --json`  
@@ -193,7 +194,7 @@ constants: {}
 dependencies: {}
 ```
 
-## <a name="list"></a>List
+## List
 Shows a list of artifacts
 
 **Usage:** `vamp list blueprints|breeds|deployments|escalations|filters|routings|scales|slas`  
@@ -207,7 +208,7 @@ NAME                                    CLUSTERS
 a1e2a68b-295f-4c9b-bec5-64158d84cd00    sava, backend1, backend2
 ```
 
-## <a name="merge"></a>Merge
+## Merge
 
 Merges a blueprint with an existing deployment or blueprint.
 Either specify a deployment or blueprint in which the blueprint should be merged
@@ -226,7 +227,7 @@ The blueprint can be specified by NAME, read from the specified filename or read
 vamp merge --blueprint my_existing_blueprint -- file add_this_blueprint.yaml
 ```
 
-## <a name="remove"></a>Remove
+## Remove
 
 Removes artifact
 
@@ -237,7 +238,7 @@ Removes artifact
 > vamp remove scale my_scale
 ```
 
-## <a name="undeploy"></a>Undeploy
+## Undeploy
 
 Undeploys a deployment
 
@@ -248,7 +249,7 @@ Undeploys a deployment
 > vamp undeploy 9ec50a2a-33d7-4dd3-a027-9eeaeaf925c1
 ```
 
-## <a name="update"></a>Update
+## Update
 
 Updates an existing artifact read from the specified filename or read from stdin.
 
