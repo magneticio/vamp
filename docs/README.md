@@ -33,23 +33,10 @@ menu:
 Use links, like this one to [YAML](http://en.wikipedia.org/wiki/YAML).  
 
 To alert people to stuff, or show exceptions or other things that deviate from the ordinary use the
-alert classes. Use the following syntax in your markdown files, where the "bla" is left out: 
-
+standard `blockquote`:
 ```
-{{bla% alert info %}}
-my important message
-{{bla% /alert %}}
+> my important message
 ```
-{{% alert info %}}
-This is a "info" alert
-{{% /alert %}}
-
-{{% alert warn %}}
-This is a "warn" alert
-{{% /alert %}}
-
-
-
 
 ## Header 2
 
