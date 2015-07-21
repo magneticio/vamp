@@ -16,8 +16,8 @@ trait CliCommand {
   val requiresName: Boolean = false
   val commandType: CommandType = CommandType.Other
   val requiresHostConnection: Boolean = true
-  val allowedSubCommands: List[String] = List.empty
-  val requiresSubCommand: Boolean = false
+  val allowedArtifacts: List[String] = List.empty
+  val requiresArtifact: Boolean = false
 
   def jsonOutput = "  --json               Output Json instead of Yaml[Optional]"
 
@@ -30,8 +30,8 @@ case class ListCommand() extends CliCommand {
   override val description = "Shows a list of artifacts"
   override val usage = "Shows a list of artifacts"
   override val commandType = CommandType.List
-  override val allowedSubCommands = allArtifactsPlural
-  override val requiresSubCommand = true
+  override val allowedArtifacts = allArtifactsPlural
+  override val requiresArtifact = true
 }
 
 case class InspectCommand() extends CliCommand {
@@ -44,8 +44,8 @@ case class InspectCommand() extends CliCommand {
   override val parameters = jsonOutput
   override val commandType = CommandType.Inspect
   override val requiresName = true
-  override val allowedSubCommands = allArtifacts
-  override val requiresSubCommand = true
+  override val allowedArtifacts = allArtifacts
+  override val requiresArtifact = true
 }
 
 case class CreateCommand() extends CliCommand {
@@ -58,8 +58,8 @@ case class CreateCommand() extends CliCommand {
                             """.stripMargin
   override val requiresName = false
   override val commandType = CommandType.Create
-  override val allowedSubCommands = allArtifacts.filter(_ != "deployment")
-  override val requiresSubCommand = true
+  override val allowedArtifacts = allArtifacts.filter(_ != "deployment")
+  override val requiresArtifact = true
 }
 
 case class UpdateCommand() extends CliCommand {
@@ -72,8 +72,8 @@ case class UpdateCommand() extends CliCommand {
                             """.stripMargin
   override val requiresName = true
   override val commandType = CommandType.Update
-  override val allowedSubCommands = allArtifacts.filter(_ != "deployment")
-  override val requiresSubCommand = true
+  override val allowedArtifacts = allArtifacts.filter(_ != "deployment")
+  override val requiresArtifact = true
 }
 
 case class DeployCommand() extends CliCommand {
@@ -127,8 +127,8 @@ case class GenerateCommand() extends CliCommand {
                             """.stripMargin
   override val requiresName = false
   override val commandType = CommandType.Generate
-  override val allowedSubCommands = List("breed", "blueprint", "escalation-cpu", "escalation-instance", "escalation-memory", "filter", "routing","scale", "sla-response-time-sliding-window")
-  override val requiresSubCommand = true
+  override val allowedArtifacts = List("breed", "blueprint", "escalation-cpu", "escalation-instance", "escalation-memory", "filter", "routing","scale", "sla-response-time-sliding-window")
+  override val requiresArtifact = true
   override val requiresHostConnection: Boolean = false
 }
 
@@ -165,13 +165,13 @@ case class RemoveCommand() extends CliCommand {
   override val description = "Removes an artifact"
   override val requiresName = true
   override val commandType = CommandType.Delete
-  override val allowedSubCommands = allArtifacts.filter(_ != "deployment")
-  override val requiresSubCommand = true
+  override val allowedArtifacts = allArtifacts.filter(_ != "deployment")
+  override val requiresArtifact = true
 }
 
 case class UndeployCommand() extends CliCommand {
   override val name = "undeploy"
-  override val usage = "Removes a deployment. The routing weight of the services needs to be set to 0"
+  override val usage = "Removes a deployment."
   override val description = "Removes a deployment"
   override val requiresName = true
   override val commandType = CommandType.Undeploy
@@ -181,7 +181,7 @@ case class UnknownCommand(override val name: String) extends CliCommand
 
 case class VersionCommand() extends CliCommand {
   override val name = "version"
-  override val description = "Show version of the VAMP CLI client"
+  override val description = "Shows the version of the VAMP CLI client"
   override val usage = "Displays the version of the VAMP CLI client"
   override val requiresHostConnection = false
 }

@@ -12,13 +12,13 @@ trait VampCli extends Parameters {
     }
 
     val cmd = string2Command(args.head)
-    if (cmd.requiresSubCommand && args.tail.isEmpty) {
+    if (cmd.requiresArtifact && args.tail.isEmpty) {
       terminateWithError("Missing artifact type")
     }
 
 
     val subCmd : Option[String] = {
-      if (cmd.requiresSubCommand) {
+      if (cmd.requiresArtifact) {
           Some(args.tail.head)
       }
       else {
@@ -26,13 +26,13 @@ trait VampCli extends Parameters {
       }
     }
 
-    val argsToProcess = if (cmd.requiresSubCommand) args.tail.tail else args.tail
+    val argsToProcess = if (cmd.requiresArtifact) args.tail.tail else args.tail
 
     implicit val options = readParameters(argsToProcess)
 
-    if ((cmd.requiresSubCommand && subCmd.contains("--help")) || options.contains(help)) showHelp(cmd)
+    if ((cmd.requiresArtifact && subCmd.contains("--help")) || options.contains(help)) showHelp(cmd)
 
-    PerformCommand.doCommand(cmd, subCmd)(options = if (cmd.requiresSubCommand) options else options)
+    PerformCommand.doCommand(cmd, subCmd)(options = if (cmd.requiresArtifact) options else options)
     sys.exit(0)
   }
 

@@ -267,9 +267,8 @@ trait RestSupport {
     }
   }
 
-
   private def prettyError(error : Throwable): String = error match {
-    case e: Exception if e.getMessage.startsWith("dispatch.StatusCode:" ) =>
+    case e: Exception if e.getMessage.startsWith("dispatch.StatusCode: ") =>
       val parts = e.getMessage.split(": ")
       if (parts.length == 3) {
         parts(2) match {

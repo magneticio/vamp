@@ -54,10 +54,10 @@ trait CommandLineBasics {
       }
 
       case _ => {
-        if (command.allowedSubCommands.isEmpty) {
+        if (command.allowedArtifacts.isEmpty) {
           println(s"Usage: ".bold + "" + s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
         } else {
-          println(s"Usage: ".bold + "" + s"$appName ${command.name} ${command.allowedSubCommands.mkString("|")} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
+          println(s"Usage: ".bold + "" + s"$appName ${command.name} ${command.allowedArtifacts.mkString("|")} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
         }
 
         if (command.usage.nonEmpty) {
