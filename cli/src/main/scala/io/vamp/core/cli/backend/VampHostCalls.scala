@@ -273,15 +273,29 @@ trait RestSupport {
       Await.result(futureResult, timeout)
       futureResult.value.get match {
         case Success(result) => Some(result)
-        case Failure(error) => terminateWithError(error.getMessage)
-          None
+        case Failure(error) => terminateWithError(prettyError(error))
       }
     }
     catch {
-      case e: Exception => terminateWithError(e.getMessage)
-        None
+      case e: Exception => terminateWithError(prettyError(e))
     }
   }
+
+
+  private def prettyError(error : Throwable): String = error match {
+    case e: Exception if e.getMessage.startsWith("dispatch.StatusCode:" ) =>
+      val parts = e.getMessage.split(": ")
+      if (parts.length == 3) {
+        parts(2) match {
+          case "404" => "404 - Not found"
+          case other => s"$other - ${parts(1)}"
+        }
+      } else {
+        e.getMessage
+      }
+    case e:  Exception => e.getMessage
+  }
+
 
   protected def yamArrayListToList(ls: String): List[String] = {
     new Yaml().load(ls).asInstanceOf[util.ArrayList[java.util.Map[String, Any]]].asScala.toList.map(a => new Yaml().dumpAs(a, Tag.MAP, FlowStyle.BLOCK))
