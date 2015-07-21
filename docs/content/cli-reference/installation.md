@@ -55,7 +55,19 @@ TBD
 
 ## OSX
 
-TBD
+To install the Vamp CLI, simple add a brew tap and install:
+
+```bash
+brew tap magneticio/vamp
+brew install vamp
+vamp
+```
+
+Updating are just two commands:
+```bash
+brew update
+brew upgrade vamp
+```
 
 ## Windows
 
