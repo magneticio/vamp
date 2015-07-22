@@ -1,16 +1,12 @@
 ---
 title: 2. Doing a canary release
 type: documentation
-weight: 30
-menu:
-    main:
-      parent: getting-started
-    
+slug: /getting-started-tutorial/2-canary-release/
 ---
     
 # 2. Doing a canary release
 
-In the [previous part](/documentation/getting-started/deploying/) of our tutorial we deployed our app sava 1.0. If you haven't
+In the [previous part](/documentation/guides/getting-started-tutorial/1-deploying/) of our tutorial we deployed our app sava 1.0. If you haven't
 walked through that part, please do so first. Now let's say we have a new version of this great application that we want to canary release into production. We have it containerised as `magneticio/sava:1.1.0` and ready to go.
 
 ## Step 1: Prepping our blueprint
@@ -200,4 +196,4 @@ Using a tool like [httpie](https://github.com/jakubroztocil/httpie) makes testin
 
 ![](/img/screenshots/screencap_canary2.gif)    
 
-Cool stuff. But we are dealing here with single, monolithic applications. Where are the microservices? We will be chopping up this monolith into services and deploy them with Vamp in [the third part of our tutorial →](/documentation/getting-started/splitting-services/)
+Cool stuff. But we are dealing here with single, monolithic applications. Where are the microservices? We will be chopping up this monolith into services and deploy them with Vamp in [the third part of our tutorial →](/documentation/guides/getting-started-tutorial/3-splitting-services/)

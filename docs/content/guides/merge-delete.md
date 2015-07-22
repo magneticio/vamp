@@ -1,16 +1,12 @@
 ---
 title: 4. Merging and deleting services
 type: documentation
-weight: 50
-menu:
-    main:
-      parent: getting-started
-    
+slug: /getting-started-tutorial/4-merge-delete/
 ---
 
 # 4. Merging a changed topology
 
-In the [previous part](/documentation/getting-started/splitting-services/) we "over-engineered" our
+In the [previous part](/documentation/guides/getting-started-tutorial/3-splitting-services/) we "over-engineered" our
 service based solution a bit: on purpose of course. We don't really need two backends services.
 So in this part we will introduce our newly engineered solution and transition to it using Vamp's
 blueprints and canary releasing methods.

@@ -1,16 +1,12 @@
 ---
 title: 3. Splitting into services
 type: documentation
-weight: 40
-menu:
-    main:
-      parent: getting-started
-    
+slug: /getting-started-tutorial/3-splitting-services/
 ---
 
 # 3. Splitting the monolith into services
 
-In the [previous part](/documentation/getting-started/canary-release/) of this getting started we
+In the [previous part](/documentation/guides/getting-started-tutorial/2-canary-release/) of this getting started we
 did some basic canary releasing on two versions of a monolithic application. Very nice, but Vamp isn't
 called the *Very Awesome Microservices Platform* for nothing. For that reason, we will be splitting
 our Sava application into separate services.
@@ -106,4 +102,4 @@ Basiscally, this a simple form of service discovery without the need to change y
 **Note**: Vamp Router is the central hub for service discovery. For testing this is fine, but for serious production work you would want a multi-node setup. Currently, we are putting all things in place to handle this like Zookeeper support and probably support for other technologies like ETCD  and Consul.
 {{% /alert %}}
 
-Great! We just demonstrated that Vamp can handle dependencies between services and configuring these services with host and port information at runtime. Now let's do a [more complex migration to a new service based topology →](/documentation/getting-started/merge-delete/).
+Great! We just demonstrated that Vamp can handle dependencies between services and configuring these services with host and port information at runtime. Now let's do a [more complex migration to a new service based topology →](/documentation/guides/getting-started-tutorial/4-merge-delete/).

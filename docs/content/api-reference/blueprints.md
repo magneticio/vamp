@@ -32,7 +32,7 @@ Accepts JSON or YAML formatted blueprints. Set the `Content-Type` request header
 | ------------- |:-----------------:| ----------------:|
 | validate_only | true or false     | validates the blueprint and returns a `201` if the blueprint is valid.This can be used together with the header `Accept: application/x-yaml` to return the result in YAML format instead of the default JSON.     
 
-### Update a blueprint
+## Update a blueprint
 
 Updates the content of a specific blueprint.
 

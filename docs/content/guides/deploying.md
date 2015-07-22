@@ -1,21 +1,13 @@
 ---
 title: 1. Deploying a blueprint
 type: documentation
-weight: 20
-aliases:
-  - /getting-started/deploying/
-menu:
-    main:
-      parent: getting-started
-    
+slug: /getting-started-tutorial/1-deploying/
 ---
 
 # 1. Deploying your first blueprint
 
 If everything went to plan, you should have your Vamp installation up & running. If not, please check [how to install
 Vamp](/getting-started/)
-
-To quickly show of some of Vamp's core features, we've created a set of showcase applications, services and corresponding blueprints, together called Sava. Sava is a mythical vampire from Serbia ([wiki](http://en.wikipedia.org/wiki/Sava_Savanovi%C4%87)) but in our case it is a [Github repo](https://github.com/magneticio/sava) full of examples to help us demonstrate Vamp.
 
 ## Step 1: Deploying a monolith
 
@@ -128,6 +120,6 @@ When the application is fully deployed you can check it out at Vamp Router's add
 
 ![](/img/screenshots/monolith1.png)
 
-Ok, that's great, but not very exciting. Let's do a canary release in [the second part of this getting started tutorial →](/documentation/getting-started/canary-release/)
+Ok, that's great, but not very exciting. Let's do a canary release in [the second part of this getting started tutorial →](/documentation/guides/getting-started-tutorial/2-canary-release/)
 
 
