@@ -12,6 +12,8 @@ cache:
 sudo: false
 before_script:
 - curl -o $HOME/.sbt/launchers/0.13.8/sbt-launch.jar http://dl.bintray.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.8/sbt-launch.jar
+- ls $HOME/.sbt/launchers/
+- ls $HOME/.sbt/launchers/0.13.8/
 script:
 - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M clean coverage test
 # Trick to avoid unnecessary cache updates
