@@ -27,7 +27,7 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.45-b02, mixed mode)
 For further installation steps, please check the section appropriate for your platform:
 
 * [Debian](#Debian)
-* [Red Hat](#Redhat)
+* [Red Hat](#RedHat)
 * [OSX](#OSX)
 * [Windows](#Windows)
 

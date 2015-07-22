@@ -9,9 +9,8 @@ menu:
 
 # Commands
 
-VAMP has a command line interface (CLI) which can be used to perform some basic actions.
-
-VAMP CLI needs to know where the VAMP Host is locate. The host can be specified as a command line option (`--host`) or via an environment variable (`$VAMP_HOST`) 
+With the exception of `help`, `generate` and `version` , all commands require the Vamp host to be specified.
+The host can be specified as a command line option (`--host`) or via an environment variable (`$VAMP_HOST`) 
 Example:
 {{% copyable %}}
 ```bash
@@ -19,7 +18,7 @@ export VAMP_HOST=http://192.168.59.103:8081
 ```
 {{% /copyable %}}
 
-The command line parameter will overrule the environment variable. With the exception of the `help` and the `version`, all commands require the Vamp host to be specified.
+The command line parameter will overrule the environment variable. 
 
 VAMP CLI supports the following commands:
                        
@@ -40,7 +39,7 @@ VAMP CLI supports the following commands:
 For more details about a specific command, use `vamp COMMAND --help`
                      
 
-## <a name="create"></a>Create
+## Create
 
 Create an artifact read from the specified filename or read from stdin.
 
@@ -79,7 +78,7 @@ Parameter | purpose
 
 Generates an artifact
 
-**Usage:** vamp generate breed|blueprint|filter|routing|scale [--file|--stdin] 
+**Usage:** vamp generate breed|blueprint|filter|routing|scale [NAME] [--file|--stdin] 
 
 | Parameter | purpose |
 |-----------|---------|
@@ -103,9 +102,9 @@ For 'generate blueprint':
 
 ### Example
 ```bash
-> vamp generate breed --json
+> vamp generate breed my_new_breed --json
 {
-  "name":"",
+  "name":"my_new_breed",
   "deployable":"docker://",
   "ports":{
     
@@ -180,7 +179,7 @@ Shows the details of the specified artifact
 
 | Parameter | purpose |
 |-----------|---------|
-| --json    |  Output Json instead of Yaml[Optional]|
+| --json    |  Output Json instead of Yaml [Optional]|
 
 ### Example
 ```bash
@@ -260,12 +259,12 @@ Parameter | purpose
  --file   |       Name of the yaml file [Optional]
  --stdin  |      Read file from stdin [Optional]
 
-## <a name="version"></a>Version
+## Version
 
 Displays the Vamp CLI version information 
 
 ### Example
 ```bash
 > vamp version
-CLI version: 0.7.8
+CLI version: 0.7.9
 ```

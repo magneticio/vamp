@@ -9,4 +9,7 @@ menu:
 
 # CLI Reference Overview
 
-TBD
+VAMP has a command line interface (CLI) which can be used to perform some basic actions. It is ideally suited for automation, e.g. continues delivery setups. 
+
+
+**TBD**
