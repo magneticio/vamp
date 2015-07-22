@@ -3,7 +3,7 @@ organization := "io.vamp"
 
 name := """common"""
 
-version := "0.7.9." + VersionHelper.versionSuffix
+version := "0.7.9" + VersionHelper.versionSuffix
 
 scalaVersion := "2.11.6"
 
