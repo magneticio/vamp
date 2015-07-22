@@ -26,13 +26,13 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.45-b02, mixed mode)
 
 For further installation steps, please check the section appropriate for your platform:
 
-* [Debian](#debian)
-* [Red Hat](#redhat)
-* [OSX](#osx)
-* [Windows](#windows)
+* [Debian](#Debian)
+* [Red Hat](#Redhat)
+* [OSX](#OSX)
+* [Windows](#Windows)
 
-## <a name="debian"></a>Debian / Ubuntu
-A detailed explanation on how to install Java 8 on Debian / Ubuntu can be found here: 
+##Debian
+A detailed explanation on how to install Java 8 on Debian can be found here: 
 http://www.webupd8.org/2014/03/how-to-install-oracle-java-8-in-debian.html
 
 To add the Vamp Debian repository & install the vamp-cli package:
@@ -49,26 +49,63 @@ Now you can run the Vamp CLI, by typing
 vamp
 ```
 
-## RedHat / CentOS
+## RedHat
 
-TBD
+To resolve RPM artifacts, get the generated .repo file from Bintray:
+
+{{% copyable %}}
+```bash
+wget https://bintray.com/magnetic-io/rpm/rpm -O bintray-magnetic-io-rpm.repo
+```
+{{% copyable %}}
+
+Next, install Vamp CLI via yum:
+{{% copyable %}}
+```bash
+yum update
+yum install vamp
+```
+{{% copyable %}}
+
+Now you can run the Vamp CLI, by typing 
+```
+vamp
+```
 
 ## OSX
 
 To install the Vamp CLI, simple add a brew tap and install:
 
+{{% /copyable %}}
 ```bash
 brew tap magneticio/vamp
 brew install vamp
+```
+{{% /copyable %}}
+
+Now you can run the Vamp CLI, by typing 
+```
 vamp
 ```
 
 Updating Vamp CLI to the latest version can be done using these two commands:
+
+{{% /copyable %}}
 ```bash
 brew update
 brew upgrade vamp
 ```
+{{% /copyable %}}
 
 ## Windows
 
-TBD
+We currently don't have a installer specifically for Windows, but the manual install is pretty easy.
+
+After confirming you've got the correct Java version installed, head over to our Bintray download section to get the latest Vamp CLI release.
+It is located at https://dl.bintray.com/magnetic-io/downloads/vamp-cli/
+
+* Download the release zip file
+* Unzip it anywhere you'd like, e.g. `C:\Program Files\` 
+* Inside the extracted Vamp CLI package is a `bin` directory. Add it to your PATH statement
+* Open een CMD window and type `vamp`
+
