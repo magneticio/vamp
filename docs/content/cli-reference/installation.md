@@ -63,7 +63,7 @@ brew install vamp
 vamp
 ```
 
-Updating are just two commands:
+Updating Vamp CLI to the latest version can be done using these two commands:
 ```bash
 brew update
 brew upgrade vamp
