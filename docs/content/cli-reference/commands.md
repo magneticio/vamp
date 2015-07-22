@@ -62,7 +62,7 @@ instances: 2
 
 Deploys a blueprint
 
-**Usage:** `vamp deploy NAME --deployment [--file|--stdin] 
+**Usage:** `vamp deploy NAME --deployment [--file|--stdin]` 
 
 Parameter | purpose
 ----------|--------
@@ -78,7 +78,7 @@ Parameter | purpose
 
 Generates an artifact
 
-**Usage:** vamp generate breed|blueprint|filter|routing|scale [NAME] [--file|--stdin] 
+**Usage:** `vamp generate breed|blueprint|filter|routing|scale [NAME] [--file|--stdin]` 
 
 | Parameter | purpose |
 |-----------|---------|

@@ -10,7 +10,7 @@ menu:
 
 # Installation
 
-Vamp requires Java version 8 to be installed. 
+The Vamp CLI requires Java version 8 to be installed. 
 
 To verify if the correct Java version has been installed, type 
 ```
@@ -26,12 +26,12 @@ Java HotSpot(TM) 64-Bit Server VM (build 25.45-b02, mixed mode)
 
 For further installation steps, please check the section appropriate for your platform:
 
-* [Debian](#Debian)
-* [Red Hat](#RedHat)
-* [OSX](#OSX)
-* [Windows](#Windows)
+* [Debian](#debian)
+* [Red Hat](#red-hat)
+* [OSX](#osx)
+* [Windows](#windows)
 
-##Debian
+## Debian
 A detailed explanation on how to install Java 8 on Debian can be found here: 
 http://www.webupd8.org/2014/03/how-to-install-oracle-java-8-in-debian.html
 
@@ -49,15 +49,15 @@ Now you can run the Vamp CLI, by typing
 vamp
 ```
 
-## RedHat
+## Red Hat
 
 To resolve RPM artifacts, get the generated .repo file from Bintray:
 
 {{% copyable %}}
 ```bash
-wget https://bintray.com/magnetic-io/rpm/rpm -O bintray-magnetic-io-rpm.repo
+curl -OL https://bintray.com/magnetic-io/rpm/rpm -O bintray-magnetic-io-rpm.repo
 ```
-{{% copyable %}}
+{{% /copyable %}}
 
 Next, install Vamp CLI via yum:
 {{% copyable %}}
@@ -65,7 +65,7 @@ Next, install Vamp CLI via yum:
 yum update
 yum install vamp
 ```
-{{% copyable %}}
+{{% /copyable %}}
 
 Now you can run the Vamp CLI, by typing 
 ```
@@ -76,7 +76,7 @@ vamp
 
 To install the Vamp CLI, simple add a brew tap and install:
 
-{{% /copyable %}}
+{{% copyable %}}
 ```bash
 brew tap magneticio/vamp
 brew install vamp
@@ -90,7 +90,7 @@ vamp
 
 Updating Vamp CLI to the latest version can be done using these two commands:
 
-{{% /copyable %}}
+{{% copyable %}}
 ```bash
 brew update
 brew upgrade vamp
