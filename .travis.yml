@@ -17,8 +17,8 @@ before_script:
 - curl -L -o $HOME/.sbt/launchers/0.13.8/sbt-launch.jar http://dl.bintray.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.8/sbt-launch.jar
 script:
 - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M clean coverage test
+# Trick to avoid unnecessary cache updates
 - find $HOME/.sbt -name "*.lock" | xargs rm
-- find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
 after_success:
 - sbt coveralls
 - test ${TRAVIS_PULL_REQUEST} == "false" && sbt publish
