@@ -9,13 +9,8 @@ script:
 after_success:
 - sbt coveralls
 - test ${TRAVIS_PULL_REQUEST} == "false" &&
-  test ${TRAVIS_BRANCH} == "master" &&
   sh "$TRAVIS_BUILD_DIR/.travis-ci-bintray-credentials.sh" &&
   sbt publish
-branches:
-  only:
-    - master
-    - develop
 notifications:
   slack:
     secure: PKQe6hKY8yWhrDQTp/p4EZpVe8MOn+bo7iRaDbOX70lYtLGikHUsOn93ko1B+TQdhqt48P/ITu6I49QPDLZewqTPPJtpROnC8vLxSlAeinT2KGpdt5qds7G9MpNUuMUeehsLWGO0R6gJ4qW2EwOXx2ww0rMIMFbjxWNbyxsm1Lc=
