@@ -4,7 +4,7 @@ organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
-version in ThisBuild := "0.7.8"+ VersionHelper.versionSuffix
+version in ThisBuild := "0.7.9"+ VersionHelper.versionSuffix
 
 scalaVersion := "2.11.6"
 
@@ -58,8 +58,8 @@ lazy val bintraySetting = Seq(
 
 // Library Versions
 
-val vampCommonVersion = "0.7.8"
-val vampUiVersion = "0.0.2-27-dev"
+val vampCommonVersion = "0.7.9-rc.c50454f"
+val vampUiVersion = "0.0.2-50-dev"
 
 val sprayVersion = "1.3.2"
 val json4sVersion = "3.2.11"
