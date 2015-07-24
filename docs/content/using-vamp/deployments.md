@@ -1,9 +1,10 @@
 ---
-title: Deployments & runtime
+title: Deployments
 weight: 50
+identifier: concepts-deployments
 menu:
   main:
-    parent: concepts-terminology
+    parent: using-vamp
 ---
 
 # Deployments

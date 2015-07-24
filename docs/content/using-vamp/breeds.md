@@ -3,7 +3,7 @@ title: Breeds & Blueprints
 weight: 20
 menu:
   main:
-    parent: concepts-terminology
+    parent: using-vamp
 ---
 # Breeds
 

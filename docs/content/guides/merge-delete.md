@@ -51,7 +51,7 @@ clusters:
         name: sava-frontend:1.3.0
         deployable: magneticio/sava-frontend:1.3.0
         ports:
-          port: 80/http        
+          port: 8080/http        
         environment_variables:
           # using alias feature, instead of only "BACKEND: http://..."
           backend[BACKEND]: http://$backend.host:$backend.ports.port/api/message
@@ -59,8 +59,8 @@ clusters:
         dependencies:
           backend: sava-backend:1.3.0
       scale:
-        cpu: 0.5       
-        memory: 512  
+        cpu: 0.2      
+        memory: 256  
         instances: 1            
 
   backend:
@@ -69,270 +69,191 @@ clusters:
         name: sava-backend:1.3.0
         deployable: magneticio/sava-backend:1.3.0         
         ports:
-          port: 80/http
+          port: 8080/http
       scale:
-        cpu: 0.5       
-        memory: 512  
+        cpu: 0.2      
+        memory: 256  
         instances: 1            
 ```
 {{% /copyable %}}
 
-A `PUT` to our deployment (e.g. `/api/v1/deployments/1abf809e-dbbd-42a6-87a2-e25ddede67cb`) that was based on [the blueprint from the previous part of the tutorial](/documentation/getting-started/splitting-services/) should yield a deployment with the following properties (we left some irrelevant
+A `PUT` to our deployment (e.g. `/api/v1/deployments/1abf809e-dbbd-42a6-87a2-e25ddede67cb`) that was based on [the blueprint from the previous part of the tutorial](/documentation/guides/getting-started-tutorial/3-splitting-services/) should yield a deployment with the following properties (we left some irrelevant
 parts out):
 
 1. Two `services` in the sava `cluster`: the old one at 100% and the new one at 0% weight.
 2. Three backends in the `cluster` list: two old ones and one new one.
 
-```json
-{
-    "name": "1abf809e-dbbd-42a6-87a2-e25ddede67cb",
-    "endpoints": {
-        "sava.port": "9060"
-    },
-    "clusters": {
-        "backend1": {
-            "services": [
-                {
-                    "state": {
-                        "name": "Deployed",
-                        "started_at": "2015-04-23T09:57:20.794Z"
-                    },
-                    "breed": {
-                        "name": "sava-backend1:1.2.0",
-                        "deployable": "magneticio/sava-backend1:1.2.0",
-                        "ports": {
-                            "port": "80/http"
-                        },
-                        "environment_variables": {},
-                        "constants": {},
-                        "dependencies": {}
-                    },
-                    "scale": {
-                        "cpu": 0.5,
-                        "memory": 512,
-                        "instances": 1
-                    },
-                    "routing": {
-                        "weight": 100,
-                        "filters": []
-                    },
-                    "servers": [
-                        {
-                            "name": "1abf809e-dbbd-42a6-87a2-e25ddede67cb_2c8fb1128ab9a09fda8f.18c590cc-e99f-11e4-b3c2-56847afe9799",
-                            "host": "10.26.184.254",
-                            "ports": {
-                                "80": 31983
-                            },
-                            "deployed": true
-                        }
-                    ],
-                    "dependencies": {}
-                }
-            ],
-            "routes": {
-                "80": 33019
-            }
-        },
-        "backend2": {
-            "services": [
-                {
-                    "state": {
-                        "name": "Deployed",
-                        "started_at": "2015-04-23T09:57:20.794Z"
-                    },
-                    "breed": {
-                        "name": "sava-backend2:1.2.0",
-                        "deployable": "magneticio/sava-backend2:1.2.0",
-                        "ports": {
-                            "port": "80/http"
-                        },
-                        "environment_variables": {},
-                        "constants": {},
-                        "dependencies": {}
-                    },
-                    "scale": {
-                        "cpu": 0.5,
-                        "memory": 512,
-                        "instances": 1
-                    },
-                    "routing": {
-                        "weight": 100,
-                        "filters": []
-                    },
-                    "servers": [
-                        {
-                            "name": "1abf809e-dbbd-42a6-87a2-e25ddede67cb_43f71c7977ba711c70f4.19615b9d-e99f-11e4-b3c2-56847afe9799",
-                            "host": "10.16.107.232",
-                            "ports": {
-                                "80": 31000
-                            },
-                            "deployed": true
-                        }
-                    ],
-                    "dependencies": {}
-                }
-            ],
-            "routes": {
-                "80": 33020
-            }
-        },
-        "sava": {
-            "services": [
-                {
-                    "state": {
-                        "name": "Deployed",
-                        "started_at": "2015-04-23T09:57:43.282Z"
-                    },
-                    "breed": {
-                        "name": "sava-frontend:1.2.0",
-                        "deployable": "magneticio/sava-frontend:1.2.0",
-                        "ports": {
-                            "port": "80/http"
-                        },
-                        "environment_variables": {
-                            "BACKEND_1": "http://$backend1.host:$backend1.ports.port/api/message",
-                            "BACKEND_2": "http://$backend2.host:$backend2.ports.port/api/message"
-                        },
-                        "constants": {},
-                        "dependencies": {
-                            "backend1": {
-                                "name": "sava-backend1:1.2.0"
-                            },
-                            "backend2": {
-                                "name": "sava-backend2:1.2.0"
-                            }
-                        }
-                    },
-                    "scale": {
-                        "cpu": 0.5,
-                        "memory": 512,
-                        "instances": 1
-                    },
-                    "routing": {
-                        "weight": 100,
-                        "filters": []
-                    },
-                    "servers": [
-                        {
-                            "name": "1abf809e-dbbd-42a6-87a2-e25ddede67cb_ae785ad2bf8eace4bbb7.24b375ae-e99f-11e4-b3c2-56847afe9799",
-                            "host": "10.16.107.232",
-                            "ports": {
-                                "80": 31001
-                            },
-                            "deployed": true
-                        }
-                    ],
-                    "dependencies": {
-                        "backend1": "backend1",
-                        "backend2": "backend2"
-                    }
-                },
-                {
-                    "state": {
-                        "name": "Deployed",
-                        "started_at": "2015-04-23T10:10:56.714Z"
-                    },
-                    "breed": {
-                        "name": "sava-frontend:1.3.0",
-                        "deployable": "magneticio/sava-frontend:1.3.0",
-                        "ports": {
-                            "port": "80/http"
-                        },
-                        "environment_variables": {
-                            "backend[BACKEND]": "http://$backend.host:$backend.ports.port/api/message"
-                        },
-                        "constants": {},
-                        "dependencies": {
-                            "backend": {
-                                "name": "sava-backend:1.3.0"
-                            }
-                        }
-                    },
-                    "scale": {
-                        "cpu": 0.5,
-                        "memory": 512,
-                        "instances": 1
-                    },
-                    "routing": {
-                        "weight": 0,
-                        "filters": []
-                    },
-                    "servers": [
-                        {
-                            "name": "1abf809e-dbbd-42a6-87a2-e25ddede67cb_ba4b1d252493eea2c068.3ee68070-e9a0-11e4-b3c2-56847afe9799",
-                            "host": "10.155.196.225",
-                            "ports": {
-                                "80": 31000
-                            },
-                            "deployed": true
-                        }
-                    ],
-                    "dependencies": {
-                        "backend": "backend"
-                    }
-                }
-            ],
-            "routes": {
-                "80": 33018
-            }
-        },
-        "backend": {
-            "services": [
-                {
-                    "state": {
-                        "name": "Deployed",
-                        "started_at": "2015-04-23T10:10:56.714Z"
-                    },
-                    "breed": {
-                        "name": "sava-backend:1.3.0",
-                        "deployable": "magneticio/sava-backend:1.3.0",
-                        "ports": {
-                            "port": "80/http"
-                        },
-                        "environment_variables": {},
-                        "constants": {},
-                        "dependencies": {}
-                    },
-                    "scale": {
-                        "cpu": 0.5,
-                        "memory": 512,
-                        "instances": 1
-                    },
-                    "routing": {
-                        "weight": 100,
-                        "filters": []
-                    },
-                    "servers": [
-                        {
-                            "name": "1abf809e-dbbd-42a6-87a2-e25ddede67cb_134f5e46292fb314ae10.32f73bff-e9a0-11e4-b3c2-56847afe9799",
-                            "host": "10.16.107.232",
-                            "ports": {
-                                "80": 31002
-                            },
-                            "deployed": true
-                        }
-                    ],
-                    "dependencies": {}
-                }
-            ],
-            "routes": {
-                "80": 33022
-            }
-        }
-    },
-    "ports": {
-        "sava.port": "33018",
-        "backend.port": "33022"
-    },
-    "environment_variables": {
-        "sava.BACKEND": "http://$backend.host:$backend.ports.port/api/message"
-    },
-    "constants": {},
-    "hosts": {
-        "sava": "10.26.184.254",
-        "backend": "10.26.184.254"
-    }
-}
+```yaml
+name: 80dd2383-7485-4f87-a639-3180fef28e03
+endpoints:
+  sava.port: '9060'
+clusters:
+  backend1:
+    services:
+    - state:
+        name: Deployed
+        started_at: '2015-07-22T16:42:07.696Z'
+      breed:
+        name: sava-backend1:1.2.0
+        deployable: docker://magneticio/sava-backend1:1.2.0
+        ports:
+          port: 8080/http
+        environment_variables: {}
+        constants: {}
+        dependencies: {}
+      scale:
+        cpu: 0.2
+        memory: 256.0
+        instances: 1
+      routing:
+        weight: 100
+        filters: []
+      servers:
+      - name: 2c8fb1128ab9a09fda8f[0]
+        host: 172.17.42.1
+        ports:
+          '8080': 32829
+        deployed: true
+      dependencies: {}
+      dialects: {}
+    routes:
+      '8080': 33021
+    dialects: {}
+  backend2:
+    services:
+    - state:
+        name: Deployed
+        started_at: '2015-07-22T16:42:08.771Z'
+      breed:
+        name: sava-backend2:1.2.0
+        deployable: docker://magneticio/sava-backend2:1.2.0
+        ports:
+          port: 8080/http
+        environment_variables: {}
+        constants: {}
+        dependencies: {}
+      scale:
+        cpu: 0.2
+        memory: 256.0
+        instances: 1
+      routing:
+        weight: 100
+        filters: []
+      servers:
+      - name: 43f71c7977ba711c70f4[0]
+        host: 172.17.42.1
+        ports:
+          '8080': 32830
+        deployed: true
+      dependencies: {}
+      dialects: {}
+    routes:
+      '8080': 33022
+    dialects: {}
+  sava:
+    services:
+    - state:
+        name: Deployed
+        started_at: '2015-07-22T16:42:14.007Z'
+      breed:
+        name: sava-frontend:1.2.0
+        deployable: docker://magneticio/sava-frontend:1.2.0
+        ports:
+          port: 8080/http
+        environment_variables:
+          BACKEND_1: http://$backend1.host:$backend1.ports.port/api/message
+          BACKEND_2: http://$backend2.host:$backend2.ports.port/api/message
+        constants: {}
+        dependencies:
+          backend1:
+            name: sava-backend1:1.2.0
+          backend2:
+            name: sava-backend2:1.2.0
+      scale:
+        cpu: 0.2
+        memory: 256.0
+        instances: 1
+      routing:
+        weight: 100
+        filters: []
+      servers:
+      - name: ae785ad2bf8eace4bbb7[0]
+        host: 172.17.42.1
+        ports:
+          '8080': 32831
+        deployed: true
+      dependencies:
+        backend1: backend1
+        backend2: backend2
+      dialects: {}
+    - state:
+        name: ReadyForDeployment
+        started_at: '2015-07-22T16:51:12.347Z'
+      breed:
+        name: sava-frontend:1.3.0
+        deployable: docker://magneticio/sava-frontend:1.3.0
+        ports:
+          port: 8080/http
+        environment_variables:
+          backend[BACKEND]: http://$backend.host:$backend.ports.port/api/message
+        constants: {}
+        dependencies:
+          backend:
+            name: sava-backend:1.3.0
+      scale:
+        cpu: 0.2
+        memory: 256.0
+        instances: 1
+      routing:
+        weight: 0
+        filters: []
+      servers: []
+      dependencies:
+        backend: backend
+      dialects: {}
+    routes:
+      '8080': 33020
+    dialects: {}
+  backend:
+    services:
+    - state:
+        name: ReadyForDeployment
+        started_at: '2015-07-22T16:51:12.347Z'
+      breed:
+        name: sava-backend:1.3.0
+        deployable: docker://magneticio/sava-backend:1.3.0
+        ports:
+          port: 8080/http
+        environment_variables: {}
+        constants: {}
+        dependencies: {}
+      scale:
+        cpu: 0.2
+        memory: 256.0
+        instances: 1
+      routing:
+        weight: 100
+        filters: []
+      servers: []
+      dependencies: {}
+      dialects: {}
+    routes:
+      '8080': 33024
+    dialects: {}
+ports:
+  sava.port: '33020'
+  backend2.port: '33022'
+  backend1.port: '33021'
+environment_variables:
+  sava.backend: http://$backend.host:$backend.ports.port/api/message
+  sava.BACKEND_1: http://172.17.42.1:33021/api/message
+  sava.BACKEND_2: http://172.17.42.1:33022/api/message
+constants: {}
+hosts:
+  sava: 172.17.42.1
+  backend: 172.17.42.1
+  backend1: 172.17.42.1
+  backend2: 172.17.42.1
 ```
 
 So what happened here? Vamp has worked out what parts were already there and what parts should be merged or added. This is done based on naming, i.e. the sava cluster already existed, so Vamp added a service to it at 0% weight. A cluster named "backend" didn't exist yet, so it was created. Effectively, we have merged
@@ -344,16 +265,16 @@ Moving from the old to the new topology is now just a question of "turning the w
 could do this in one go, or slowly adjust it. The easiest and neatest way is to just update the blueprint
 as you go and `PUT` it to the deployment. 
 
-Vamp has a convenient option for this: you can export any deployment as a blueprint! By appending `?as_blueprint=true` to any deployment URI, Vamp strips all runtime info and output a perfectly valid blueprint of that specific deployment. The default output will be in JSON format, but you can also get a YAML format. Just set the header `Accept: application/x-yaml` and Vamp will give you a YAML format blueprint of that deployment. 
+Vamp has a convenient option for this: you can export any deployment as a blueprint! By appending `?as_blueprint=true` to any deployment URI, Vamp strips all runtime info and outputs a perfectly valid blueprint of that specific deployment. 
+
+The default output will be in JSON format, but you can also get a YAML format. Just set the header `Accept: application/x-yaml` and Vamp will give you a YAML format blueprint of that deployment. 
 
 You can then use that blueprint to update any values as you see fit and re-`PUT` it again for changes to take effect. 
 
 ![](/img/screencap_asblueprint.gif)
 
-{{% alert info %}}
-**Tip**: By appending `?as_blueprint=true` to any deployment URI, Vamp spits out a perfectly valid
+> **Tip**: By appending `?as_blueprint=true` to any deployment URI, Vamp spits out a perfectly valid
 blueprint of that specific deployment, either in JSON or YAML format. This way you can clone whole deployments in seconds. Pretty awesome.  
-{{% /alert %}}
 
 In this specific example, we could export the deployment as a blueprint and update the weight to a 50% to 
 50% split. Then we could do this again, but with a 80% to 20% split and so on. See the abbreviated example
@@ -371,7 +292,7 @@ clusters:
         name: sava-frontend:1.3.0
         deployable: magneticio/sava-frontend:1.3.0
         ports:
-          port: 80/http
+          port: 8080/http
         environment_variables:
           backend[BACKEND]: http://$backend.host:$backend.ports.port/api/message
         constants: {}
@@ -379,8 +300,8 @@ clusters:
           backend:
             name: sava-backend:1.3.0
       scale:
-        cpu: 0.5
-        memory: 512.0
+        cpu: 0.2
+        memory: 256.0
         instances: 1
       routing:
         weight: 50
@@ -390,7 +311,7 @@ clusters:
         name: sava-frontend:1.2.0
         deployable: magneticio/sava-frontend:1.2.0
         ports:
-          port: 80/http
+          port: 8080/http
         environment_variables:
           BACKEND_1: http://$backend1.host:$backend1.ports.port/api/message
           BACKEND_2: http://$backend2.host:$backend2.ports.port/api/message
@@ -401,8 +322,8 @@ clusters:
           backend2:
             name: sava-backend2:1.2.0
       scale:
-        cpu: 0.5
-        memory: 512.0
+        cpu: 0.2
+        memory: 256.0
         instances: 1
       routing:
         weight: 50

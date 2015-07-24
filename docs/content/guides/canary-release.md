@@ -35,10 +35,10 @@ clusters:
           name: sava:1.0.0
           deployable: magneticio/sava:1.0.0
           ports:
-            port: 80/http
+            port: 8080/http
         scale:
-          cpu: 0.5       
-          memory: 512  
+          cpu: 0.2       
+          memory: 256  
           instances: 1          
         routing: 
           weight: 50  # weight in percentage           
@@ -47,20 +47,17 @@ clusters:
           name: sava:1.1.0 # a new version of our service
           deployable: magneticio/sava:1.1.0
           ports:
-            port: 80/http
+            port: 8080/http
         scale:
-          cpu: 0.5       
-          memory: 512  
+          cpu: 0.2      
+          memory: 256  
           instances: 1  
         routing: 
           weight: 50            
 ```{{% /copyable %}}
 
-{{% alert info %}}
-**Note**: There is nothing stopping you from deploying three or more versions and distributing the weight
+> **Note**: There is nothing stopping you from deploying three or more versions and distributing the weight
 among them. Just make sure that when doing a straight threeway split you give one service 34% as 33+33+34=100.
-{{% /alert %}}
-
 
 ## Step 2: Deploying the new version next to the old one
 
@@ -73,7 +70,10 @@ Vamp should respond with a `202 Accepted` and start executing your command. When
 start refreshing your browser at the correct endpoint, e.g. `http://10.26.184.254:9050/`.  
 
 ![](/img/screenshots/monolith_canary1.png)
-The application should switch between responding with a 1.0 page and a 1.1 page. This actually works best in the "Incognito" or "Anonymous" mode of your browser because of html/css/js cache busting issues.
+
+The application should switch between responding with a 1.0 page and a 1.1 page. 
+
+> **Note** This works best "Incognito" or "Anonymous" mode of your browser because of the caching of static assets.
 
 ## Step 3: Using filters to target specific groups
 
@@ -117,10 +117,10 @@ clusters:
           name: sava:1.0.0
           deployable: magneticio/sava:1.0.0
           ports:
-            port: 80/http
+            port: 8080/http
         scale:
-          cpu: 0.5       
-          memory: 512  
+          cpu: 0.2       
+          memory: 256  
           instances: 1              
         routing: 
           weight: 100
@@ -129,10 +129,10 @@ clusters:
           name: sava:1.1.0
           deployable: magneticio/sava:1.1.0
           ports:
-            port: 80/http
+            port: 8080/http
         scale:
-          cpu: 0.5       
-          memory: 512  
+          cpu: 0.2       
+          memory: 256  
           instances: 1              
         routing: 
           weight: 0

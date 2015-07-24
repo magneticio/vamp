@@ -1,12 +1,14 @@
 ---
 title: Overview
 weight: 10
+url: /documentation/using-vamp/
 menu:
   main:
-    parent: concepts-terminology
-    identifier: concepts-terminology-overview
+    parent: using-vamp
+    identifier: using-vamp-overview
 ---
-# Terminology & Concepts
+
+# Using Vamp
 
 Vamp has three basic entities you can work with:
 

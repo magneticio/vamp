@@ -3,6 +3,9 @@ title: What is Vamp?
 type: documentation
 weight: 10
 url: /documentation
+aliases:
+  - /what-is-vamp?
+  - /documentation
 menu:
   main:
     parent: about-vamp

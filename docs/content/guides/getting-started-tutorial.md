@@ -1,6 +1,7 @@
 ---
 title: Getting started tutorial
 type: documentation
+url: /documentation/guides/
 weight: 10
 menu:
     main:
@@ -13,9 +14,9 @@ To quickly show of some of Vamp's core features, we've created a set of showcase
 
 Sava is a mythical vampire from Serbia ([wiki](http://en.wikipedia.org/wiki/Sava_Savanovi%C4%87)) but in our case it is a [Github repo](https://github.com/magneticio/sava) full of examples to help us demonstrate Vamp.
 
-Make sure you have Vamp installed. The quickes way to do this is to check out the [quick start](/quick-start/)
+Make sure you have Vamp installed. The quickest way to do this is to check out the [quick start](/quick-start/)
 
-Please follow the tutorial in the predecribed steps:
+Please follow the tutorial in the predescribed steps:
 
 [1. Deploying your first blueprint](/documentation/guides/getting-started-tutorial/1-deploying/)
 

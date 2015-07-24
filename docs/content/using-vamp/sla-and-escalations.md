@@ -3,7 +3,7 @@ title: SLA & escalations
 weight: 40
 menu:
   main:
-    parent: concepts-terminology
+    parent: using-vamp
 ---
 # SLA & Escalations
 

@@ -1,10 +1,10 @@
 ---
-title: Vamp vs. other Software
+title: Vamp vs. other software
 type: documentation
-weight: 30
+weight: 40
 menu:
   main:
     parent: about-vamp
 ---
 
-# Vamp vs. other Software
+# Vamp vs. other software

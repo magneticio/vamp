@@ -3,7 +3,7 @@ title: Metrics & Events
 weight: 60
 menu:
   main:
-    parent: concepts-terminology
+    parent: using-vamp
 ---
 # Metrics & Events
 

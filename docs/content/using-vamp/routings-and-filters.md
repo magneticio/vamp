@@ -3,7 +3,7 @@ title: Routing & filters
 weight: 30
 menu:
   main:
-    parent: concepts-terminology
+    parent: using-vamp
 ---
 # Routing & Filters
 

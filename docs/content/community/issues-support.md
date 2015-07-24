@@ -2,6 +2,7 @@
 title: Issues & Support
 type: documentation
 weight: 10
+url: /documentation/community/
 aliases:
   - /support/
 menu:

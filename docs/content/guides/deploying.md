@@ -11,7 +11,7 @@ Vamp](/getting-started/)
 
 ## Step 1: Deploying a monolith
 
-Imagine you or the company you work for still use monolithic applications. I know, it sounds far fetched..
+Imagine you or the company you work for still use monolithic applications. I know, it sounds far fetched...
 This application is conveniently called *Sava monolith* and is at version 1.0.  
 
 You've managed to wrap your monolith in a Docker container, which lives in the Docker hub under `magneticio/sava:1.0.0`. Your app normaly runs on port `80` but you want to expose it under port `9050` in this case. Let's deploy this to Vamp using the following simple blueprint. Don't worry too much about what means what: we'll get there.
@@ -32,19 +32,18 @@ clusters:
         name: sava:1.0.0
         deployable: magneticio/sava:1.0.0
         ports:
-          port: 80/http
+          port: 8080/http
       scale:
-        cpu: 0.5       
-        memory: 512  
+        cpu: 0.2       
+        memory: 256  
         instances: 1
 ```
 {{% /copyable %}}
 
 Use your favorite tools like [Postman](https://www.getpostman.com/), [HTTPie](https://github.com/jakubroztocil/httpie) or Curl to post this to the `api/v1/deployments` endpoint of Vamp. 
-{{% alert info %}}
-**Note**: Take care to set the correct `Content-Type: application/x-yaml` header on the POST request. Vamp is kinda
+
+>**Note**: Take care to set the correct `Content-Type: application/x-yaml` header on the POST request. Vamp is kinda
 strict with regard to content types, because we support JSON and YAML so we need to know what you are sending. 
-{{% /alert %}} 
 
 Using `curl`:
 
@@ -80,15 +79,15 @@ like a default scale, a default routing and of course a UUID as a name.
                         "name": "sava:1.0.0",
                         "deployable": "magneticio/sava:1.0.0",
                         "ports": {
-                            "port": "80/http"
+                            "port": "8080/http"
                         },
                         "environment_variables": {},
                         "constants": {},
                         "dependencies": {}
                     },
                     "scale": {
-                        "cpu": 0.5,
-                        "memory": 512,
+                        "cpu": 0.2,
+                        "memory": 256,
                         "instances": 1
                     },
                     "routing": {
