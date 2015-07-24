@@ -179,6 +179,7 @@ Shows the details of the specified artifact
 
 | Parameter | purpose |
 |-----------|---------|
+| --as_blueprint | Returns a blueprint (only for inspect deployment) [Optional]|
 | --json    |  Output Json instead of Yaml [Optional]|
 
 ### Example
