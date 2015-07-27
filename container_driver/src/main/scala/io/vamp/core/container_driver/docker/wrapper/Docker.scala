@@ -15,6 +15,8 @@ import unisockets.netty.ClientUdsSocketChannelFactory
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.Exception.allCatch
 import scala.util.control.NoStackTrace
+import scala.language.existentials
+
 
 case class Docker(
                    hostStr: String = Docker.DefaultHost,
