@@ -181,7 +181,8 @@ object Docker {
           )
         val http0 = new Http().configure { builder =>
           val config = builder.build()
-          val updatedProvider = config.getAsyncHttpProviderConfig match {
+          val currentProvider = Option(config.getAsyncHttpProviderConfig).getOrElse(new NettyAsyncHttpProviderConfig())
+          val updatedProvider = currentProvider match {
             case netty: NettyAsyncHttpProviderConfig =>
               netty.addProperty(
                 NettyAsyncHttpProviderConfig.SOCKET_CHANNEL_FACTORY,
