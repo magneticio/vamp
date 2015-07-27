@@ -7,110 +7,89 @@ menu:
 ---
 # Breeds
 
-Breeds are applications and services available for deployment. Each breed is described by the DSL in YAML notation or JSON, whatever you like. This description includes name, version, available parameters, dependencies etc.
-To a certain degree, you could compare a breed to a Maven artefact.
+Breeds are static descriptions of applications and services available for deployment. Each breed is described by the DSL in YAML notation or JSON, whatever you like. This description includes name, version, available parameters, dependencies etc.
+To a certain degree, you could compare a breed to a Maven artefact or a Ruby Gem description.
 
 > **Note:** Breeds can be referenced by name. This means you can describe a breed in detail just once, and then use its name in a blueprint.
 
+## Deployables
 
-
-Let's start with a some examples. First a simple one, with no dependencies. Please read the inline comments carefully.
+Deployables are pointers to the actual artefacts that get deployed. Vamp supports Docker containers or can support any other artefacts supported by your container manager. Let's start with an example breed that deploys a Docker container:
 
 ```yaml
 ---
-name: monarch                         # Unique designator (name).
-deployable: magneticio/monarch:latest # Deployable, by default a Docker image.
-                                      
-# Map of available ports.
+name: my_breed:0.1
+deployable: company/my_frontend_service:0.1
+
 ports:
-  web: 8080/http    
-
-  # Notice the custom port name "web"
-  # Number together with type http or tcp. 
-  # If not specified, tcp is the default.
-
-# Map of environment variables.
-environment_variables:
-  password[DB_HOST]: ~  
-
-  # An alias is defined between brackets.
-  # This alias is used when it's passed to a deployable  
-  # (e.g. Docker).
-  # Aliases are optional.
-  # ~ means no value (null, as per YAML spec).
-
-  MY_VAR: "any"         
-
-  # This is just basic key/value pair. 
-  # It gets passed into a container's environment as is.
-
-# Map of constants.
-constants:
-  username: SA          
-
-  # Constants are traits which may be required
-  # by other breeds but are not configurable.
-  # In other words, a constant may be used
-  # inside the container as a hard-coded value 
-  # and it's exposed to any other breed as is.
-  # This will come in handy when we start composing breeds in blueprints.
-
+  web: 8080/http   
 ```
+
+This breed, with a unique name, describes a deployable and the port it works on. By default, the deployable is a Docker container. We could make this also explicit by adding `docker://`. The following statements are equivalent.
+
+```yaml
+deployable: company/my_frontend_service:0.1
+```
+
+```yaml
+deployable: docker://company/my_frontend_service:0.1
+```
+Docker images are pulled by your container manager from any of the repositories configured. This can be private repo's but by default are the public Docker hub.
+
+> **Note:** running "other" artefacts such as zips or jars heavily depend on the underlying container manager, configuration of these deployables are explained in the [blueprints](#blueprints) section.
+
+## Ports
+
+The `ports` property is an array of named ports together with their protocol. It describes on what ports the deployables is offering services to the outside world. Let's look at the following breed:
+
+```yaml
+---
+name: my_breed:0.1
+deployable: company/my_frontend_service:0.1
+
+ports:
+  web: 8080/http
+  admin: 8081/http
+  redis: 9023/tcp   
+```
+
+Notice we can give the ports sensible names. This specific deployable has `web` port for customer traffic, an `admin` port for admin access and a `redis` port for some caching probably. These names come in handy when we later compose different breeds in blueprints.
 
 ## Dependencies & environment variables
 
 
 Breeds can have dependencies on other breeds. These dependencies should be stated
 explicitly, similar to how you would do in a Maven pom.xml, a Ruby Gemfile or similar
-packaged dependency systems. 
+package dependency systems. 
 
 In a lot of cases, dependencies coexist with interpolated
 environment variables or constants because exact values are not known untill deploy time. Have a look at the following breed and read the comments carefully.
 
 ```yaml
 ---
-name: monarch
-deployable: magneticio/monarch:latest
+name: my_breed:0.1
+deployable: company/my_frontend_service:0.1
 
 ports:
-  port: 8080/http
+  web: 8080/http
 
 environment_variables:
   DB_HOST: $db.host 
-
-  # Any value starting with $ will be interpolated  
-  # to a specific value at runtime. 
-  # In general, the notation is:
-  # 1) $cluster.[ports|environment_variables|constants].name
-  # 2) $local (environment variable or constant)
-  # 3) $cluster.host
-  # In this example "host" is provided by the system and 
-  # is not specified by a user.
-  # $ value is escaped by $$
-  # More strict notation is ${some_reference}
-
   DB_PORT: $db.ports.port 
-
-  # References to the "db" dependency 
-  # and its port with the name "port". 
-  # The variable will get the provided value automatically 
-  # at runtime either by Vamp or the user.
-
   URL: jdbc://$db.host:$db.ports.port/schema/foo
-          
+
 dependencies:
   db: mysql 
-
-  # This is shortened for db: name: mysql. 
-  # Here we could have an inline dependency definition. 
-  # "mysql" needs to exist during deployment. 
-  # "db" is a custom name just in this scope. 
-  # For instance if there is a need for 2 databases 
-  # someone could use db1 & db2, or XX & XY etc.
 ```
+Any value starting with $ will be interpolated to a specific value at runtime. The `$` value is escaped by `$$`. A more strict notation is `${some_reference}`.
 
+In general, the notation is:
 
-The above examples should give you an example of what is possible using breeds. Here are some more use cases for the way Vamp handles environment variables and interpolation of those variables
+1. `$cluster.[ports|environment_variables|constants].name`
+2. `$local` (environment variable or constant)
+3. `$cluster.host`
+
+The name `db` here is a reference to a "mysql" breed that needs to exist during deployment. "db" is a custom name just in this scope. For instance if there is a need for 2 databases someone could use db1 & db2, or XX & XY etc.
 
 ### 'Hard' set a variable
 
@@ -193,11 +172,15 @@ clusters:
 
 
 # Blueprints
-Blueprints are execution plans - they describe how your services should be hooked up and what the topology should look like at runtime. This means you reference your breeds (or define them inline) and add runtime configuration to them, i.e:
+Blueprints are execution plans - they describe how your services should be hooked up and what the topology should look like at runtime. This means you reference your breeds (or define them inline) and add runtime configuration to them.
+
+Blueprints allow you to add the following extra properties:
 
 - **endpoint:** a stable port where the service can be reached.
+- **cluster:** a grouping of services with one purpose, i.e. two versions (a/b) of one service.
 - **scale:** the CPU and memory and the amount of instance allocate to a service.
 - **routing:** how much and which traffic the service should receive.
+- **filter:** how traffic should be directed based on HTTP and/or TCP properties.
 - **sla:** and SLA definition that controls autoscaling.
 
 

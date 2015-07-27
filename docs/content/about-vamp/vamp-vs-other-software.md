@@ -1,7 +1,7 @@
 ---
 title: Vamp vs. other software
 type: documentation
-weight: 40
+weight: 30
 menu:
   main:
     parent: about-vamp

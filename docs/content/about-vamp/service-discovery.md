@@ -1,6 +1,6 @@
 ---
 title: Service discovery
-weight: 30
+weight: 40
 menu:
   main:
     parent: about-vamp
@@ -26,16 +26,16 @@ The general workflow for creating and publishing a service is as follows.
 
 1. The user describes a service and its desired endpoint port in the Vamp DSL.
 2. The service is deployed to the configured container manager by Vamp Core.
-3. Vamp Core instruct Vamp Router to setup service endpoints.
+3. Vamp Core instruct Vamp Router to set up service endpoints.
 4. Vamp Router takes care of configuring HAproxy, making the services available.
 
 > **Note:** services do not register themselves. They are explicitly created, registered in the Vamp database
-and provisioned on the loadbalancer.
+and provisioned on the load balancer.
 
 After this, the user is free to scale up/down or in/out the service either by hand or using Vamp's
-autoscaling functionality. The endpoint is stable.
+auto scaling functionality. The endpoint is stable.
 
-## Referencing a service
+## Discovering a service
 
 So, how does one service find a dependent service? Services are found by just referencing them in the DSL.
 Take a look at the following example:

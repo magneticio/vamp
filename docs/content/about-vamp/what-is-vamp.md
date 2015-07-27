@@ -13,6 +13,10 @@ menu:
 
 # What is Vamp?
 
+
+
+# Old
+
 Vamp, the _Very Awesome Microservices Platform_, is aimed at anyone who wants to adopt a microservices model for 
 developing their online services, with some awesome features thrown in for free.  
 Vamp's core features are a platform-agnostic microservices DSL, A-B testing/canary releasing on everything
@@ -21,7 +25,7 @@ and a deep and extendable metrics engine that monitors everything and directly f
 * Vamp is not a PaaS, but uses the power of PaaS systems under the hood.
 * Vamp is functionality agnostic, but functions well in an API centric, event driven and stateless environment. 
 * Vamp is inspired by [Netflix OSS](http://netflix.github.io/) but also by Reactive programming patterns. Vamp comes in an open source flavour and an Enterprise™ flavour.
-* Vamp strongly focusses on giving you the benefit of microservices, without the downsides.
+* Vamp strongly focuses on giving you the benefit of microservices, without the downsides.
 
 The following links give a general background on why Vamp exists and what problems it is trying to solve: 
 
@@ -34,7 +38,7 @@ The following links give a general background on why Vamp exists and what proble
 * Provide a model for describing microservices and their dependencies in blueprints.
 * Provide a runtime/execution engine for deploying these blueprints, similar to [AWS Cloudformation](http://aws.amazon.com/cloudformation/)
 * Allow full A/B testing and [canary releasing](http://martinfowler.com/bliki/CanaryRelease.html) on all microservices.
-* Allow "Big Data" type analysis- and prediction patterns on service behaviour, performance and lifecycle.
+* Allow "Big Data" type analysis- and prediction patterns on service behavior, performance and life-cycle.
 * Provide clear SLA management and service level enforcement on services.
 
 ## Problem Definition

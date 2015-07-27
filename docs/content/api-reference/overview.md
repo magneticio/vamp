@@ -24,16 +24,17 @@ From release 0.7.8 onwards Core and Pulse API endpoints support pagination with 
 * Request parameters `page` (starting from 1, not 0) and `per_page` (by default 30) e.g:
 
 ```
-GET http://vamp-pulse:8083/api/v1/events/get?page=5&per_page=20
+GET http://vamp:8080/api/v1/events/get?page=5&per_page=20
 ```
 
 * Response headers `X-Total-Count` giving the total amount of items (e.g. 349673) and a `Link` header for easy traversing, e.g.
 ```
-Link → 
-  <http://localhost:8083/api/v1/events/get?page=1&per_page=5>; rel=first, 
-  <http://localhost:8083/api/v1/events/get?page=1&per_page=5>; rel=prev, 
-  <http://localhost:8083/api/v1/events/get?page=2&per_page=5>; rel=next, 
-  <http://localhost:8083/api/v1/events/get?page=19&per_page=5>; rel=last
+X-Total-Count: 5522
+Link: 
+  <http://vamp:8080/api/v1/events/get?page=1&per_page=5>; rel=first, 
+  <http://vamp:8080/api/v1/events/get?page=1&per_page=5>; rel=prev, 
+  <http://vamp:8080/api/v1/events/get?page=2&per_page=5>; rel=next, 
+  <http://vamp:8080/api/v1/events/get?page=19&per_page=5>; rel=last
 ``` 
 
 See [Github's implementation](https://developer.github.com/guides/traversing-with-pagination/) for more info.
