@@ -13,25 +13,12 @@ menu:
 
 # What is Vamp?
 
+Vamp is an open source and self-hosted platform for managing (micro)service oriented architectures that rely on container technology. Vamp takes care of complex, multi-step actions like canary releases, router updates, metrics collection and service discovery.
 
+Vamp is functionality agnostic, but functions well in an API centric, event driven and stateless environment. 
+Vamp is not a strict container platform, but uses the power of container platforms under the hood.
 
-# Old
-
-Vamp, the _Very Awesome Microservices Platform_, is aimed at anyone who wants to adopt a microservices model for 
-developing their online services, with some awesome features thrown in for free.  
-Vamp's core features are a platform-agnostic microservices DSL, A-B testing/canary releasing on everything
-and a deep and extendable metrics engine that monitors everything and directly feeds back into your services.
-
-* Vamp is not a PaaS, but uses the power of PaaS systems under the hood.
-* Vamp is functionality agnostic, but functions well in an API centric, event driven and stateless environment. 
-* Vamp is inspired by [Netflix OSS](http://netflix.github.io/) but also by Reactive programming patterns. Vamp comes in an open source flavour and an Enterprise™ flavour.
-* Vamp strongly focuses on giving you the benefit of microservices, without the downsides.
-
-The following links give a general background on why Vamp exists and what problems it is trying to solve: 
-
-* [Making Netflix API More Resilient](http://techblog.netflix.com/2011/12/making-netflix-api-more-resilient.html)
-* [Netflix Canary Releasing](http://techblog.netflix.com/2013/08/deploying-netflix-api.html)
-* [Linkedin real time monitoring data](http://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying)
+Vamp is written in Scala, Go and ReactJS and comes with a server installation, a command line interface, a graphical UI and a RESTful API.
 
 ## Purpose of Vamp
 

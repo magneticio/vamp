@@ -1,6 +1,6 @@
 ---
 title: SLA & escalations
-weight: 40
+weight: 70
 menu:
   main:
     parent: using-vamp
@@ -35,7 +35,7 @@ The `response_time_sliding_window` SLA triggers events based on response times. 
 name: monarch
 
 endpoints:
-  monarch.port: 80
+  monarch.port: 80/http
 
 clusters:
 

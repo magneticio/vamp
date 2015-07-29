@@ -1,10 +1,11 @@
 ---
 title: Deployments
-weight: 50
+weight: 40
 identifier: concepts-deployments
 menu:
   main:
     parent: using-vamp
+    identifier: using-deployments
 ---
 
 # Deployments
@@ -12,52 +13,43 @@ menu:
 A deployment is a "running" blueprint. Over time, new blueprints can be merged with existing deployments or parts of the running blueprint can be removed from it. Each deployment can be exported as a blueprint and 
 copy & pasted to another environment or even to the same environment to function as a clone.
 
-Creating a deployment is done by sending a POST request to the `/deployments` endpoint.
-Here is an example of a blueprint:
+You can create a deployment is many ways:
 
-```yaml
----
-name: my_monarch_blueprint
-
-endpoints:
-  crown.ports.port: 80
-
-clusters:
-  a_bunch_of_monarchs:
-    # This blueprint has a reference to breed "crown" 
-    # This breed needs to exist in your collection of breeds at deployment time otherwise
-    # an error (4xx) will be reported back.
-    breed: crown
-    # Scale and routing are not specified: a default
-    # environment configuration will be used.
-```
+- Send a `POST` request to the `/deployments` endpoint.
+- Use the UI to deploy a blueprint using the "deploy" button on the "blueprints" tab.
+- Use the CLI `vamp deploy` command, i.e: `$ vamp deploy my_blueprint`.
 
 The name of the deployment is automatically assigned as a UUID (e.g. `123e4567-e89b-12d3-a456-426655440000`).
-Here is an example with two versions of the same service within the one cluster. 
 
-> **Notice** that we have distributed the weight between the two services.
-
-Example with multiple service version (within the same cluster):
+Here is an example of a simple blueprint:
 
 ```yaml
 ---
-name: my_monarch_blueprint
-
+name: my_cool_blueprint
 endpoints:
-  monarch.ports.port: 80/http
+  my_frontend.port: 8080/http
 
 clusters:
-  a_bunch_of_monarchs:
+  my_frontend:
     services:
       -
-        breed: crown1
-        routing:
-          weight: 80        # 80% of traffic is handled by this service.
-      -
-        breed: crown2
-        routing:                    
-          weight: 20        # 20% of traffic handled by this service.
+        breed:
+          name: some_cool_breed:2.1
+        scale:
+          cpu: 2
+          memory: 2048
+          instances: 2
 ```
+
+Once we have issued the deployment, Vamp will do the following:
+
+1. Update Vamps internal model.
+2. Issue and monitor deployment commands to the container platform.
+3. Update the router.
+4. Start collecting metrics.
+5. Monitor the container platform for changes.
+
+Vamp will add runtime information to the deployment model, like start times, resolved ports etc.
 
 ## Canary Releases & A/B Testing
 
@@ -65,7 +57,11 @@ A common scenario is to introduce a new version of the service to an existing cl
 
 ### Merge
 
-Merging of new services is performed as a deployment update. Using the REST API `PUT` request together with the new blueprint as a request body will trigger the merge.
+Merging of new services is performed as a deployment update. You can merge in many ways:
+
+- Send a `PUT` request to the `/deployments/:id` endpoint.
+- Use the UI to update a deployment using the "Edit deployment" button. 
+- Use the CLI with a combination of the `vamp merge` and `vamp deploy` commands.
 
 If a service already exists then only the routing and scale will be updated. Otherwise a new service will be added. If a new cluster doesn't exist in the deployment, it will be added.
 

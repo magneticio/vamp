@@ -19,14 +19,6 @@ Vamp has three basic entities you can work with:
 
 > **Note**: Breeds and blueprints are static artefacts, deployment are not. This means any API actions on static artefacts are mostly synchronous. Actions on deployments are largely asychronous.
 
-Of these three, the **blueprint** is the center of attention. Why?
- 
--   Because you can inline breeds into blueprints.
--   Because you create deployments by `POST`-ing a blueprint.
--   Because they have information on scale, filters and SLA's.
-
-This means you will probably start out just using blueprints.
-
 ## Inline or reference?
 
 Vamp allows you to either inline or reference artefacts. This has a big impact on how complex or simple you can make any blueprint, breed or deployment. As an example, this is a totally valid blueprint:

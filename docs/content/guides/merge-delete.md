@@ -42,9 +42,7 @@ topology. Notice the following:
 ```yaml
 ---
 name: sava:1.3
-
 clusters:
-
   sava:
     services:
       breed:
@@ -77,184 +75,12 @@ clusters:
 ```
 {{% /copyable %}}
 
-A `PUT` to our deployment (e.g. `/api/v1/deployments/1abf809e-dbbd-42a6-87a2-e25ddede67cb`) that was based on [the blueprint from the previous part of the tutorial](/documentation/guides/getting-started-tutorial/3-splitting-services/) should yield a deployment with the following properties (we left some irrelevant
+Updating our deployment using the UI or a `PUT` to the `/api/v1/deployments/:deployment_id` should yield a deployment with the following properties (we left some irrelevant
 parts out):
 
 1. Two `services` in the sava `cluster`: the old one at 100% and the new one at 0% weight.
 2. Three backends in the `cluster` list: two old ones and one new one.
 
-```yaml
-name: 80dd2383-7485-4f87-a639-3180fef28e03
-endpoints:
-  sava.port: '9060'
-clusters:
-  backend1:
-    services:
-    - state:
-        name: Deployed
-        started_at: '2015-07-22T16:42:07.696Z'
-      breed:
-        name: sava-backend1:1.2.0
-        deployable: docker://magneticio/sava-backend1:1.2.0
-        ports:
-          port: 8080/http
-        environment_variables: {}
-        constants: {}
-        dependencies: {}
-      scale:
-        cpu: 0.2
-        memory: 256.0
-        instances: 1
-      routing:
-        weight: 100
-        filters: []
-      servers:
-      - name: 2c8fb1128ab9a09fda8f[0]
-        host: 172.17.42.1
-        ports:
-          '8080': 32829
-        deployed: true
-      dependencies: {}
-      dialects: {}
-    routes:
-      '8080': 33021
-    dialects: {}
-  backend2:
-    services:
-    - state:
-        name: Deployed
-        started_at: '2015-07-22T16:42:08.771Z'
-      breed:
-        name: sava-backend2:1.2.0
-        deployable: docker://magneticio/sava-backend2:1.2.0
-        ports:
-          port: 8080/http
-        environment_variables: {}
-        constants: {}
-        dependencies: {}
-      scale:
-        cpu: 0.2
-        memory: 256.0
-        instances: 1
-      routing:
-        weight: 100
-        filters: []
-      servers:
-      - name: 43f71c7977ba711c70f4[0]
-        host: 172.17.42.1
-        ports:
-          '8080': 32830
-        deployed: true
-      dependencies: {}
-      dialects: {}
-    routes:
-      '8080': 33022
-    dialects: {}
-  sava:
-    services:
-    - state:
-        name: Deployed
-        started_at: '2015-07-22T16:42:14.007Z'
-      breed:
-        name: sava-frontend:1.2.0
-        deployable: docker://magneticio/sava-frontend:1.2.0
-        ports:
-          port: 8080/http
-        environment_variables:
-          BACKEND_1: http://$backend1.host:$backend1.ports.port/api/message
-          BACKEND_2: http://$backend2.host:$backend2.ports.port/api/message
-        constants: {}
-        dependencies:
-          backend1:
-            name: sava-backend1:1.2.0
-          backend2:
-            name: sava-backend2:1.2.0
-      scale:
-        cpu: 0.2
-        memory: 256.0
-        instances: 1
-      routing:
-        weight: 100
-        filters: []
-      servers:
-      - name: ae785ad2bf8eace4bbb7[0]
-        host: 172.17.42.1
-        ports:
-          '8080': 32831
-        deployed: true
-      dependencies:
-        backend1: backend1
-        backend2: backend2
-      dialects: {}
-    - state:
-        name: ReadyForDeployment
-        started_at: '2015-07-22T16:51:12.347Z'
-      breed:
-        name: sava-frontend:1.3.0
-        deployable: docker://magneticio/sava-frontend:1.3.0
-        ports:
-          port: 8080/http
-        environment_variables:
-          backend[BACKEND]: http://$backend.host:$backend.ports.port/api/message
-        constants: {}
-        dependencies:
-          backend:
-            name: sava-backend:1.3.0
-      scale:
-        cpu: 0.2
-        memory: 256.0
-        instances: 1
-      routing:
-        weight: 0
-        filters: []
-      servers: []
-      dependencies:
-        backend: backend
-      dialects: {}
-    routes:
-      '8080': 33020
-    dialects: {}
-  backend:
-    services:
-    - state:
-        name: ReadyForDeployment
-        started_at: '2015-07-22T16:51:12.347Z'
-      breed:
-        name: sava-backend:1.3.0
-        deployable: docker://magneticio/sava-backend:1.3.0
-        ports:
-          port: 8080/http
-        environment_variables: {}
-        constants: {}
-        dependencies: {}
-      scale:
-        cpu: 0.2
-        memory: 256.0
-        instances: 1
-      routing:
-        weight: 100
-        filters: []
-      servers: []
-      dependencies: {}
-      dialects: {}
-    routes:
-      '8080': 33024
-    dialects: {}
-ports:
-  sava.port: '33020'
-  backend2.port: '33022'
-  backend1.port: '33021'
-environment_variables:
-  sava.backend: http://$backend.host:$backend.ports.port/api/message
-  sava.BACKEND_1: http://172.17.42.1:33021/api/message
-  sava.BACKEND_2: http://172.17.42.1:33022/api/message
-constants: {}
-hosts:
-  sava: 172.17.42.1
-  backend: 172.17.42.1
-  backend1: 172.17.42.1
-  backend2: 172.17.42.1
-```
 
 So what happened here? Vamp has worked out what parts were already there and what parts should be merged or added. This is done based on naming, i.e. the sava cluster already existed, so Vamp added a service to it at 0% weight. A cluster named "backend" didn't exist yet, so it was created. Effectively, we have merged
 the running deployment with a new blueprint.
@@ -262,19 +88,16 @@ the running deployment with a new blueprint.
 ## Step 3: Transitioning from blueprints to deployments and back
 
 Moving from the old to the new topology is now just a question of "turning the weight dial". You 
-could do this in one go, or slowly adjust it. The easiest and neatest way is to just update the blueprint
-as you go and `PUT` it to the deployment. 
+could do this in one go, or slowly adjust it. The easiest and neatest way is to just update the deployment as you go. 
 
-Vamp has a convenient option for this: you can export any deployment as a blueprint! By appending `?as_blueprint=true` to any deployment URI, Vamp strips all runtime info and outputs a perfectly valid blueprint of that specific deployment. 
+Vamp's API has a convenient option for this: you can export any deployment as a blueprint! By appending `?as_blueprint=true` to any deployment URI, Vamp strips all runtime info and outputs a perfectly valid blueprint of that specific deployment. 
 
-The default output will be in JSON format, but you can also get a YAML format. Just set the header `Accept: application/x-yaml` and Vamp will give you a YAML format blueprint of that deployment. 
+The default output will be in JSON format, but you can also get a YAML format. Just set the header `Accept: application/x-yaml` and Vamp will give you a YAML format blueprint of that deployment.
 
-You can then use that blueprint to update any values as you see fit and re-`PUT` it again for changes to take effect. 
+> **Note**: When using the graphical UI, this is all taken care of.
 
-![](/img/screencap_asblueprint.gif)
 
-> **Tip**: By appending `?as_blueprint=true` to any deployment URI, Vamp spits out a perfectly valid
-blueprint of that specific deployment, either in JSON or YAML format. This way you can clone whole deployments in seconds. Pretty awesome.  
+
 
 In this specific example, we could export the deployment as a blueprint and update the weight to a 50% to 
 50% split. Then we could do this again, but with a 80% to 20% split and so on. See the abbreviated example
@@ -284,7 +107,7 @@ below where we set the `weight` keys to `50` in both `routing` sections.
 ---
 name: eb2d505e-f5cf-4aed-b4ae-326a8ca54577
 endpoints:
-  sava.port: '9060'
+  sava.port: '9060/http'
 clusters:
   sava:
     services:
@@ -348,13 +171,12 @@ Currently, deleting works in two steps:
 - Set all routings to `weight: 0` of the services you want to delete with a simple update.
 - Execute the delete.
 
-{{% alert info %}}
-**Note**: You need to explicitly set the routing weight of the service you want to deploy to zero before deleting. Here is why: When you have, for example, four active services divided in a 25/25/20/30 split and you delete the one with 30%, Vamp doesn't know how you want to redistribute the "left over" 30% of traffic. For this reason the user should first explicitly divide this and then perform the delete.
-{{% /alert %}}
+
+> **Note**: You need to explicitly set the routing weight of the service you want to deploy to zero before deleting. Here is why: When you have, for example, four active services divided in a 25/25/20/30 split and you delete the one with 30%, Vamp doesn't know how you want to redistribute the "left over" 30% of traffic. For this reason the user should first explicitly divide this and then perform the delete.
 
 **Setting to zero**
 
-When you grab the YAML version of the deployment, just like above, you can set all the `weight` entries for the Sava 1.2.0 versions to `0` and `PUT` it to the deployment as usual. See the cleaned up example and make sure to adjust the name to your specific situation.
+When you grab the YAML version of the deployment, just like above, you can set all the `weight` entries for the Sava 1.2.0 versions to `0` and update the deployment as usual. See the cleaned up example and make sure to adjust the name to your specific situation.
 
 {{% copyable %}}
 ```yaml
@@ -376,6 +198,10 @@ clusters:
   sava:
     services:
     - breed:
+        name: sava-frontend:1.3.0
+      routing:
+        weight: 100    
+    - breed:
         name: sava-frontend:1.2.0
       routing:
         weight: 0
@@ -385,7 +211,9 @@ clusters:
 
 **Doing the delete**
 
-Now, you can take the exact same YAML blueprint or use one that's a bit cleaned up for clarity and send it in the body of the `DELETE` to the deployment resource, e.g. `/api/v1/deployments/125fd95c-a756-4635-8e1a-361085037870`
+Now, you can take the exact same YAML blueprint or use one that's a bit cleaned up for clarity and send it in the body of the `DELETE` to the deployment resource, e.g. `/api/v1/deployments/125fd95c-a756-4635-8e1a-361085037870`.
+
+> **Note:** The UI does not have DELETE function yet for parts of deployments, just for full deployments. This will be added later.
 
 {{% copyable %}}
 ```yaml
@@ -407,10 +235,11 @@ clusters:
 ```
 {{% /copyable %}}
 
-{{% alert info %}}
-**Note**: We removed the `deployable`, `environment_variables`, `ports` and some other parts of the blueprint. These are actually not necessary for updating or deletion. Besides that, this is actually exactly the same blueprint we used to initially deploy
-the "old" topology.
-{{% /alert %}}
+> **Note**: We removed the `deployable`, `environment_variables`, `ports` and some other parts of the blueprint. These are actually not necessary for updating or deletion. Besides that, this is actually exactly the same blueprint we used to initially deploy the "old" topology.
+
+You can check the result in the UI: you should be left with just one backend and one frontend:
+
+![](/img/screenshots/tut4_after_delete.png)
 
 ## Step 5: When would I use this?
 

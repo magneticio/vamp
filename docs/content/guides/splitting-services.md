@@ -33,7 +33,7 @@ services to the "customer facing" `sava` service.
 ---
 name: sava:1.2
 endpoints:
-  sava.port: 9060
+  sava.port: 9060/http
 
 clusters:
 
@@ -82,9 +82,7 @@ clusters:
 ```
 {{% /copyable %}}
 
-Deploy this blueprint to the `/api/v1/deployments` endpoint with a `POST` request. Again, don't forget to set the header `Content-Type: application/x-yaml`.
-
-Checking out the new topology in your browser (on port 9060 this time) should yield something similar to:
+Deploy this blueprint using either the UI or a REST call and when deployed check out the new topology in your browser (on port 9060 this time) should yield something similar to:
 
 ![](/img/screenshots/services_2backends.png)
 
@@ -107,7 +105,7 @@ Host names and ports are configured at runtime and injected in the right parts o
 
 Good to know is that there is no "point-to-point" wiring: the exposed host and port are actually service
 endpoints. The location, amount and version of containers running behind that service endpoint can vary.
-Basiscally, this is an implementation of [server-side service discovery](http://microservices.io/patterns/server-side-discovery.html) pattern. This pattern allows service discovery without the need to change your code or run any other daemon or agent.
+Learn more about [how Vamp does service discovery →](/documentation/about-vamp/service-discovery/)
 
 {{% alert warn %}}
 **Note**: Vamp Router is the central hub for service discovery. For testing this is fine, but for serious production work you would want a multi-node setup. Currently, we are putting all things in place to handle this like Zookeeper support and probably support for other technologies like ETCD  and Consul.

@@ -24,7 +24,7 @@ Notice we assigned 50% to our current version 1.0.0 and 50% to the new version 1
 name: sava:1.0
 
 endpoints:
-  sava.port: 9050
+  sava.port: 9050/http/http
 
 clusters:
 
@@ -64,16 +64,17 @@ among them. Just make sure that when doing a straight threeway split you give on
 It is our goal to update the already running deployment with the new blueprint. Vamp will figure out that v1.0.0
 is already there and just add v1.1.0 while setting the correct routing between these services.
 
-We update a running deployment getting its name (the UUID) from `/api/v1/deployments` and `PUT`-ing the blueprint to that resource, e.g: `/api/v1/deployments/e1c99ca3-dc1f-4577-aa1b-27f37dba0325`
+Using the UI, go to the deployment detail screen and press the **Edit deployment** button. Copy the above deployment and paste over the the deployment that is there. Press **Save** and Vamp will start working out the differences and update the deployment accordingly.
 
-Vamp should respond with a `202 Accepted` and start executing your command. When finished deploying, you can
-start refreshing your browser at the correct endpoint, e.g. `http://10.26.184.254:9050/`.  
+![](/img/screenshots/tut2_canary.gif)
+
+When finished deploying, you can start refreshing your browser at the correct endpoint, e.g. `http://10.26.184.254:9050/`. The application should switch between responding with a 1.0 page and a 1.1 page. 
 
 ![](/img/screenshots/monolith_canary1.png)
 
-The application should switch between responding with a 1.0 page and a 1.1 page. 
-
 > **Note** This works best "Incognito" or "Anonymous" mode of your browser because of the caching of static assets.
+
+If you want to use the RESTful API, you can update a running deployment by getting its name (the UUID) from `/api/v1/deployments` and `PUT`-ing the blueprint to that resource, e.g: `/api/v1/deployments/e1c99ca3-dc1f-4577-aa1b-27f37dba0325`
 
 ## Step 3: Using filters to target specific groups
 
@@ -106,7 +107,7 @@ Our full blueprint now looks as follows:
 name: sava:1.0
 
 endpoints:
-  sava.port: 9050
+  sava.port: 9050/http
 
 clusters:
 
@@ -141,9 +142,12 @@ clusters:
 ```
 {{% /copyable %}}
 
-Again, use a `PUT` request to the right deployment. As we are not actually deploying anything but just reconfiguring routes, the update should be almost instantaneous. You can fire up a Chrome browser and
-a Safari browser and check the results. A hard refresh might be necessary because of your browser's 
-caching routine.
+Using the UI, you can either use the **Edit deployment** button again and completely paste in this blueprint or just
+find the right place in the blueprint and edit it by hand. The result should be as follows:
+
+![](/img/screenshots/tut2_filter.png)
+
+As we are not actually deploying anything but just reconfiguring routes, the update should be almost instantaneous. You can fire up a Chrome browser and a Safari browser and check the results. A hard refresh might be necessary because of your browser's caching routine.
 
 ![](/img/screenshots/screencap_canary1.gif)
 

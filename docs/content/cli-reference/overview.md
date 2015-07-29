@@ -2,6 +2,8 @@
 title: Overview
 weight: 10
 url: /documentation/cli-reference/
+aliases:
+  - /cli
 menu:
   main:
     parent: cli-reference
