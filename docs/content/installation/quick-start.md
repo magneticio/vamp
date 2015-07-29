@@ -1,5 +1,5 @@
 ---
-title: Quick start
+title: Quick start Docker
 type: documentation
 weight: 20
 aliases:
@@ -11,7 +11,7 @@ menu:
     
 ---
 
-# Quick start
+# Quick start with Docker
 
 The easiest way to get started with Vamp is by spinning up one of the Docker images stored
 in the [vamp-docker repo](https://github.com/magneticio/vamp-docker) and the [public Docker hub](https://registry.hub.docker.com/repos/magneticio/).This setup will run Vamp inside a Docker container with Vamp's Docker driver.

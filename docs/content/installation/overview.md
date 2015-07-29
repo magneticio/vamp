@@ -1,14 +1,13 @@
 ---
-title: Before you install
+title: Overview
 weight: 10
 type: documentation
 url: /installation
 menu:
   main:
     parent: installation
+    identifier: installation-overview
 ---
 
-# Before you install
-
-
+# Component overview
 

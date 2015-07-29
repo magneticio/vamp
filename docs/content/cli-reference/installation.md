@@ -1,5 +1,5 @@
 ---
-title: Installation
+title: Installation & config
 weight: 20
 menu:
   main:
@@ -8,94 +8,25 @@ menu:
 ---
 
 
-# Installation
+# Installation & configuration
 
-The Vamp CLI requires Java version 8 to be installed. 
+Please check the appropriate [installation section](/installation) for your platform for details on how to install the Vamp CLI. 
 
-To verify if the correct Java version has been installed, type 
-```
-java -version
-``` 
+* [Centos/RHEL](/installation/centos_rhel/#install-cli)
+* [Debian](/installation/debian/#install-cli)
+* [Ubuntu](/installation/ubuntu/#install-cli)
+* [OSX](/installation/osx#/#install-cli)
 
-It should report back the version as 1.8
+After installation, set Vamp Core's host location. This location can be specified as a command line option (`--host`)
+
 ```bash
-java version "1.8.0_45"
-Java(TM) SE Runtime Environment (build 1.8.0_45-b14)
-Java HotSpot(TM) 64-Bit Server VM (build 25.45-b02, mixed mode)
+vamp list breeds --host=http://192.168.59.103:8080
 ```
 
-For further installation steps, please check the section appropriate for your platform:
-
-* [Debian](#debian)
-* [Red Hat](#red-hat)
-* [OSX](#osx)
-* [Windows](#windows)
-
-## Debian
-A detailed explanation on how to install Java 8 on Debian can be found here: 
-http://www.webupd8.org/2014/03/how-to-install-oracle-java-8-in-debian.html
-
-To add the Vamp Debian repository & install the vamp-cli package:
-{{% copyable %}}
+...or via the environment variable `VAMP_HOST`
 ```bash
-echo "deb https://dl.bintray.com/magnetic-io/debian wheezy main" | sudo tee -a /etc/apt/sources.list
-sudo apt-get update
-sudo apt-get install vamp-cli
+export VAMP_HOST=http://192.168.59.103:8080
 ```
-{{% /copyable %}}
-
-Now you can run the Vamp CLI, by typing 
-```
-vamp
-```
-
-## Red Hat
-
-To resolve RPM artifacts, get the generated .repo file from Bintray:
-
-{{% copyable %}}
-```bash
-curl -OL https://bintray.com/magnetic-io/rpm/rpm -O bintray-magnetic-io-rpm.repo
-```
-{{% /copyable %}}
-
-Next, install Vamp CLI via yum:
-{{% copyable %}}
-```bash
-yum update
-yum install vamp
-```
-{{% /copyable %}}
-
-Now you can run the Vamp CLI, by typing 
-```
-vamp
-```
-
-## OSX
-
-To install the Vamp CLI, simple add a brew tap and install:
-
-{{% copyable %}}
-```bash
-brew tap magneticio/vamp
-brew install vamp
-```
-{{% /copyable %}}
-
-Now you can run the Vamp CLI, by typing 
-```
-vamp
-```
-
-Updating Vamp CLI to the latest version can be done using these two commands:
-
-{{% copyable %}}
-```bash
-brew update
-brew upgrade vamp
-```
-{{% /copyable %}}
 
 ## Windows
 

@@ -6,19 +6,7 @@ menu:
     parent: cli-reference
 ---
 
-
 # Commands
-
-With the exception of `help`, `generate` and `version` , all commands require the Vamp host to be specified.
-The host can be specified as a command line option (`--host`) or via an environment variable (`$VAMP_HOST`) 
-Example:
-{{% copyable %}}
-```bash
-export VAMP_HOST=http://192.168.59.103:8081
-```
-{{% /copyable %}}
-
-The command line parameter will overrule the environment variable. 
 
 VAMP CLI supports the following commands:
                        

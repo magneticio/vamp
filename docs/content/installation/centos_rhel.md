@@ -12,7 +12,7 @@ menu:
 
 ## Prerequisites
 
-Before installing Vamp, make sure your system has the required software installed.
+Before installing, make sure your system has the required software installed.
 
 ### Java 8
 
@@ -24,7 +24,7 @@ Vamp needs an OpenJDK or Oracle Java version of 1.8.0_40 or higher. Check the ve
 sudo yum install -y java-1.8.0-openjdk
 ```
 
-**installing Oracle manually**
+**Installing Oracle manually**
 
 For detail on how to install Java 8, check the following page: http://tecadmin.net/install-java-8-on-centos-rhel-and-fedora/
 
@@ -64,7 +64,6 @@ Start the application with the command:
 ```bash
 sudo service vamp-pulse start
 ```
-
 
 ## Install CLI
 
