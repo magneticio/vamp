@@ -1,12 +1,11 @@
 ---
-title: Container driver
-weight: 11
+title: Container drivers
+weight: 12
 type: documentation
 menu:
   main:
     parent: installation
 ---
-
 # Configuring a container driver
 
 Vamp supports multiple container platforms and will expand this selection in the future. When installing Vamp, you choose your container platform and configure the appropriate driver. Think of how ORM's work: a single DSL/language with support for multiple databases through a driver system.
@@ -16,7 +15,7 @@ Currently supported:
 - [Docker](#docker)
 - [Mesosphere Marathon](#mesosphere-marathon)
 
-> **Note:** As mentioned in the overview, Vamp Router **should always** be able to find and route traffic to addresses of any of the containers deployed, regardless of the container driver.
+> **Note:** As mentioned in the [components overview](/documentation/installation/components/), Vamp Router **should always** be able to find and route traffic to addresses of any of the containers deployed, regardless of the container driver.
 
 ## Docker
 
@@ -53,7 +52,8 @@ Vamp can even run inside Docker while deploying to Docker: check out our [quick 
 
 ## Mesosphere Marathon
 
-Vamp can use the full power of Marathon running on either a DCOS cluster or custom Mesos cluster.
+Vamp can use the full power of Marathon running on either a DCOS cluster or custom Mesos cluster. You can use Vamp's DLS
+but also pass native Marathon options by [using a dialect in a blueprint.](/documentation/using-vamp/blueprints/dialects)
 
 1. Set up a DCOS cluster using Mesosphere's [assisted install](https://mesosphere.com/product/) on AWS.
 

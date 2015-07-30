@@ -8,8 +8,6 @@ menu:
 
 # Metrics & Events
 
-All metrics and event interactions are done on the API exposed by Vamp Pulse.
-
 ## List metrics & events
 
 Lists metrics and/or events without any pagination or filtering.

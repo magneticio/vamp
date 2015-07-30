@@ -13,6 +13,7 @@ Blueprints allow you to add the following extra properties:
 
 - **endpoint:** a stable port where the service can be reached.
 - **cluster:** a grouping of services with one purpose, i.e. two versions (a/b) of one service.
+- **dialect:** a set of native commands for the underlying container platform.
 - **scale:** the CPU and memory and the amount of instance allocate to a service.
 - **routing:** how much and which traffic the service should receive.
 - **filter:** how traffic should be directed based on HTTP and/or TCP properties.
@@ -87,6 +88,52 @@ my_cool_cluster
 Clusters and services are just organisational items. Vamp uses them to order, reference and control the actual containers and routing and traffic.
 
 > **This all seems redundant, right?** We have a reference chain of blueprints -> endpoints -> clusters -> services -> breeds -> containers. However, you need this level of control and granularity in any serious environment where DRY principles are taken seriously and where "one size fits all" doesn't fly.
+
+
+## Dialects
+
+Vamp allows you to use container driver specific tags inside blueprints. We call this a “dialect”. This effectively enables you to make full use of, for instance, the underlying Marathon features like mounting disks, settings commands and providing access to private Docker registries.
+
+Let’s look at an example blueprint that pulls an image from private repo, mounts some volumes, sets some labels and gets run with an ad hoc command: all taken care of by Marathon.
+
+```yaml
+---
+name: busy-top:1.0
+clusters:
+  busyboxes:
+    services:
+      breed:
+        name: busybox
+        deployable: registry.magnetic.io/busybox:latest
+      marathon:
+       cmd: "top"      
+       uris:
+         -
+           "https://some_host/some_path/some_file_with_docker_credentials"
+       labels:
+         environment: "staging"
+         owner: "buffy the vamp slayer"
+       container:  
+         volumes:
+           -
+             containerPath: "/tmp/"
+             hostPath: "/tmp/"
+             mode: "RW"
+      scale:
+        cpu: 0.1       
+        memory: 256  
+        instances: 1
+
+```
+**Notice the following**:
+
+1. Under the `marathon:` tag, we provide the command to run in the container by setting the `cmd:` tag.
+2. We provide a url to some credentials file in the `uri` array. As described [in the Marathon docs](https://mesosphere.github.io/marathon/docs/native-docker.html#using-a-private-docker-repository) this enables Mesos
+to pull from a private registry, in this case registry.magnetic.io where these credentials are set up.
+3. We set some labels with some arbitrary metadata.
+4. We mount the `/tmp` to in Read/Write mode.
+
+We can provide the `marathon:` tag either on the service level, or the cluster level. Any `marathon:` tag set on the service level will override the cluster level as it is more specific. However, in 9 out of 10 cases the cluster level makes the most sense. Later, you can also mix dialects so you can prep your blueprint for multiple environments and run times within one description.
 
 
 ## Scale
