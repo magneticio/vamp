@@ -7,7 +7,7 @@ version := "0.7.9" + VersionHelper.versionSuffix
 
 scalaVersion := "2.11.6"
 
-publishMavenStyle := true
+publishMavenStyle := false
 
 description := """This is a common set of libraries for vamp products, such as helpers, case class generators, various traits and such."""
 
