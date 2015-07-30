@@ -10,7 +10,7 @@ scalaVersion := "2.11.6"
 
 scalaVersion in ThisBuild := scalaVersion.value
 
-publishMavenStyle := false
+publishMavenStyle in ThisBuild := false
 
 // This has to be overridden for sub-modules to have different description
 description in ThisBuild:= """Core is the brain of Vamp."""
@@ -44,7 +44,7 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
 
 
 //
-resolvers += Resolver.url("magnetic-io ivy resolver", url("http://dl.bintray.com/magnetic-io/vamp"))(Resolver.ivyStylePatterns)
+resolvers in ThisBuild += Resolver.url("magnetic-io ivy resolver", url("http://dl.bintray.com/magnetic-io/vamp"))(Resolver.ivyStylePatterns)
 
 resolvers in ThisBuild ++= Seq(
   Resolver.typesafeRepo("releases"),
