@@ -3,7 +3,7 @@ organization := "io.vamp"
 
 name := """common"""
 
-version := "0.7.8" // + "." + GitHelper.headSha()
+version := "0.7.9" + VersionHelper.versionSuffix
 
 scalaVersion := "2.11.6"
 
@@ -22,8 +22,8 @@ pomExtra := (<url>http://vamp.io</url>
       <organizationUrl>http://vamp.io</organizationUrl>
     </developer>
     <developer>
-      <name>Roman Useinov</name>
-      <email>roman@magnetic.io</email>
+      <name>Matthijs Dekker</name>
+      <email>matthijs@magnetic.io</email>
       <organization>VAMP</organization>
       <organizationUrl>http://vamp.io</organizationUrl>
     </developer>
