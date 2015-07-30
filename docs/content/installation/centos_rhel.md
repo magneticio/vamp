@@ -65,6 +65,18 @@ Start the application with the command:
 sudo service vamp-pulse start
 ```
 
+## Install Router
+
+```bash
+sudo yum install -y vamp-router
+```
+
+Start the application with the command:
+
+```bash
+sudo service vamp-router start
+```
+
 ## Install CLI
 
 ```bash
