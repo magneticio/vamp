@@ -10,7 +10,7 @@ scalaVersion := "2.11.6"
 
 scalaVersion in ThisBuild := scalaVersion.value
 
-publishMavenStyle := true
+publishMavenStyle := false
 
 // This has to be overridden for sub-modules to have different description
 description in ThisBuild:= """Core is the brain of Vamp."""
@@ -43,7 +43,9 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
   </scm>
 
 
-// Use local maven repository
+//
+resolvers += Resolver.url("magnetic-io ivy resolver", url("http://dl.bintray.com/magnetic-io/vamp"))(Resolver.ivyStylePatterns)
+
 resolvers in ThisBuild ++= Seq(
   Resolver.typesafeRepo("releases"),
   Resolver.jcenterRepo
@@ -58,8 +60,8 @@ lazy val bintraySetting = Seq(
 
 // Library Versions
 
-val vampCommonVersion = "0.7.9-rc.c50454f"
-val vampUiVersion = "0.0.2-50-dev"
+val vampCommonVersion = "0.7.9"
+val vampUiVersion = "0.7.9-87-dev"
 
 val sprayVersion = "1.3.2"
 val json4sVersion = "3.2.11"
