@@ -1,7 +1,7 @@
 package io.vamp.core.cli
 
 import io.vamp.core.cli.commandline.Parameters
-import io.vamp.core.cli.commands.{PerformCommand, HelpCommand}
+import io.vamp.core.cli.commands.{HelpCommand, PerformCommand}
 
 trait VampCli extends Parameters {
 
@@ -10,11 +10,29 @@ trait VampCli extends Parameters {
       showHelp(HelpCommand())
       sys.exit(0)
     }
-    implicit val options = readParameters(args.tail)
 
-    if (options.contains(help)) showHelp(string2Command(args.head))
+    val cmd = string2Command(args.head)
+    if (cmd.requiresArtifact && args.tail.isEmpty) {
+      terminateWithError("Missing artifact type")
+    }
 
-    PerformCommand.doCommand(string2Command(args.head))
+
+    val subCmd : Option[String] = {
+      if (cmd.requiresArtifact) {
+          Some(args.tail.head)
+      }
+      else {
+        None
+      }
+    }
+
+    val argsToProcess = if (cmd.requiresArtifact) args.tail.tail else args.tail
+
+    implicit val options = readParameters(argsToProcess)
+
+    if ((cmd.requiresArtifact && subCmd.contains("--help")) || options.contains(help)) showHelp(cmd)
+
+    PerformCommand.doCommand(cmd, subCmd)(options = if (cmd.requiresArtifact) options else options)
     sys.exit(0)
   }
 

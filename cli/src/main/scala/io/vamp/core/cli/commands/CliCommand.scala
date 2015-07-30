@@ -4,7 +4,7 @@ import io.vamp.core.cli.commands.CommandType.CommandType
 
 object CommandType extends Enumeration {
   type CommandType = Value
-  val Inspect, List, Create, Delete, Generate, Update, Deploy, Merge, Other = Value
+  val Inspect, List, Create, Delete, Generate, Deploy, Merge, Other, Undeploy, Update = Value
 }
 
 trait CliCommand {
@@ -15,11 +15,14 @@ trait CliCommand {
   val parameters = ""
   val requiresName: Boolean = false
   val commandType: CommandType = CommandType.Other
-  val requiresHostConnection : Boolean = true
-  val allowedSubCommands :List[String]= List.empty
+  val requiresHostConnection: Boolean = true
+  val allowedArtifacts: List[String] = List.empty
+  val requiresArtifact: Boolean = false
+
   def jsonOutput = "  --json               Output Json instead of Yaml[Optional]"
-  val allArtifacts = List("blueprint","breed","deployment","escalation", "filter", "routing", "scale", "sla")
-  val allArtifactsPlural = List("blueprints","breeds","deployments","escalations", "filters", "routings", "scales", "slas")
+
+  val allArtifacts = List("blueprint", "breed", "deployment", "escalation", "filter", "routing", "scale", "sla")
+  val allArtifactsPlural = List("blueprints", "breeds", "deployments", "escalations", "filters", "routings", "scales", "slas")
 }
 
 case class ListCommand() extends CliCommand {
@@ -27,7 +30,8 @@ case class ListCommand() extends CliCommand {
   override val description = "Shows a list of artifacts"
   override val usage = "Shows a list of artifacts"
   override val commandType = CommandType.List
-  override val allowedSubCommands = allArtifactsPlural
+  override val allowedArtifacts = allArtifactsPlural
+  override val requiresArtifact = true
 }
 
 case class InspectCommand() extends CliCommand {
@@ -36,36 +40,43 @@ case class InspectCommand() extends CliCommand {
   override val usage =
     """Shows the details of the specified artifact.
     """.stripMargin
-  override val additionalParams = "--json"
-  override val parameters = jsonOutput
+  override val additionalParams = "[--as_blueprint][--json]"
+  override val parameters = jsonOutput +
+                            """
+                              |  --as_blueprint       Returns a blueprint (only for inspect deployment) [Optional]
+                            """.stripMargin
   override val commandType = CommandType.Inspect
   override val requiresName = true
-  override val allowedSubCommands = allArtifacts
-}
-
-case class CloneBreedCommand() extends CliCommand {
-  override val name = "clone-breed"
-  override val additionalParams = "--destination [--deployable]"
-  override val usage = "Clones an existing breed **WARNING: deprecated command**"
-  override val description = "Clone a breed **WARNING: deprecated command**"
-  override val parameters = """  --destination        Name of the new breed
-                              |  --deployable         Name of the deployable [Optional]
-                            """.stripMargin
-  override val requiresName = true
-  override val commandType = CommandType.Other
+  override val allowedArtifacts = allArtifacts
+  override val requiresArtifact = true
 }
 
 case class CreateCommand() extends CliCommand {
   override val name = "create"
-  override val additionalParams = "[--file]"
-  override val usage = "Create an artifact read from the specified filename. When no file name is supplied, stdin will be read."
+  override val additionalParams = "[--file|--stdin]"
+  override val usage = "Create an artifact read from the specified filename or read from stdin."
   override val description = "Create an artifact"
   override val parameters = """  --file               Name of the yaml file [Optional]
                               |  --stdin              Read file from stdin [Optional]
                             """.stripMargin
-  override val requiresName = true
+  override val requiresName = false
   override val commandType = CommandType.Create
-  override val allowedSubCommands = allArtifacts.filter(_ != "deployment")
+  override val allowedArtifacts = allArtifacts.filter(_ != "deployment")
+  override val requiresArtifact = true
+}
+
+case class UpdateCommand() extends CliCommand {
+  override val name = "update"
+  override val additionalParams = "[--file|--stdin]"
+  override val usage = "Updates an existing artifact read from the specified filename or read from stdin."
+  override val description = "Update an artifact"
+  override val parameters = """  --file               Name of the yaml file [Optional]
+                              |  --stdin              Read file from stdin [Optional]
+                            """.stripMargin
+  override val requiresName = true
+  override val commandType = CommandType.Update
+  override val allowedArtifacts = allArtifacts.filter(_ != "deployment")
+  override val requiresArtifact = true
 }
 
 case class DeployCommand() extends CliCommand {
@@ -80,23 +91,9 @@ case class DeployCommand() extends CliCommand {
   override val commandType = CommandType.Deploy
 }
 
-case class DeployBreedCommand() extends CliCommand {
-  override val name = "deploy-breed"
-  override val additionalParams = "--deployment --cluster --routing --scale"
-  override val usage = "Deploys a breed into an existing deployment cluster **WARNING: deprecated command**"
-  override val description = "Deploy a breed into an existing deployment cluster **WARNING: deprecated command**"
-  override val parameters = """  --deployment         Name of the existing deployment
-                              |  --cluster            Name of the cluster within the deployment
-                              |  --routing            Name of the routing to apply [Optional]
-                              |  --scale              Name of the scale to apply [Optional]
-                            """.stripMargin
-  override val requiresName = true
-  override val commandType = CommandType.Deploy
-}
-
 case class GenerateCommand() extends CliCommand {
   override val name = "generate"
-  override val additionalParams = "[--file|--stdin]"
+  override val additionalParams = "[--file|--stdin] [--json] [--name]"
   override val usage = "Generates an artifact"
   override val description = "Generates an artifact"
   override val parameters = """  --file               Name of the yaml file to preload the generation [Optional]
@@ -110,10 +107,32 @@ case class GenerateCommand() extends CliCommand {
                               |  --breed              Name of the breed   [Optional, requires --cluster]
                               |  --routing            Name of the routing [Optional, requires --breed]
                               |  --scale              Name of the scale   [Optional, requires --breed]
+                              |  --sla                Name of the sla   [Optional, requires --breed]
+                              |
+                              |For 'escalation-cpu / escalation-memory':
+                              |  --minimum            Minimum # of cpu / amount of memory, double [Optional]
+                              |  --maximum            Maximum # of cpu / amount of memory, double [Optional]
+                              |  --scale_by           Scale up / down by # of cpu / amount of memory, double [Optional]
+                              |  --target_cluster     Name of the cluster to scale
+                              |
+                              |For 'escalation-instance':
+                              |  --minimum            Minimum # of instances, int [Optional]
+                              |  --maximum            Maximum # of instances, int [Optional]
+                              |  --scale_by           Scale up / down by # of instances, int [Optional]
+                              |  --target_cluster     Name of the cluster to scale   [Optional]
+                              |
+                              |For 'sla-response-time-sliding-window':
+                              |  --upper               Upper threshold in milliseconds [Optional]
+                              |  --lower               Lower threshold in milliseconds [Optional]
+                              |  --interval            Time period in seconds used for average response time aggregation [Optional]
+                              |  --cooldown            Time period in seconds [Optional]
+                              |
                             """.stripMargin
   override val requiresName = false
   override val commandType = CommandType.Generate
-  override val allowedSubCommands = List("breed","blueprint", "filter", "routing", "scale")
+  override val allowedArtifacts = List("breed", "blueprint", "escalation-cpu", "escalation-instance", "escalation-memory", "filter", "routing","scale", "sla-response-time-sliding-window")
+  override val requiresArtifact = true
+  override val requiresHostConnection: Boolean = false
 }
 
 case class HelpCommand() extends CliCommand {
@@ -126,9 +145,8 @@ case class HelpCommand() extends CliCommand {
 case class InfoCommand() extends CliCommand {
   override val name = "info"
   override val description = "Information from Vamp Core"
-  override val usage = "Returns a JSON blob with information from Vamp Core"
+  override val usage = "Returns a blob with information from Vamp Core"
 }
-
 
 case class MergeCommand() extends CliCommand {
   override val name = "merge"
@@ -137,13 +155,12 @@ case class MergeCommand() extends CliCommand {
     """Merges a blueprint with an existing deployment or blueprint.
       |Either specify a deployment or blueprint in which the blueprint should be merged
       |The blueprint can be specified by NAME, read from the specified filename or read from stdin.
-      """.stripMargin
+    """.stripMargin
   override val description = "Merge a blueprint with an existing deployment or blueprint"
   override val parameters = """  --file               Name of the yaml file [Optional]
                             """.stripMargin
   override val commandType = CommandType.Merge
 }
-
 
 case class RemoveCommand() extends CliCommand {
   override val name = "remove"
@@ -151,14 +168,23 @@ case class RemoveCommand() extends CliCommand {
   override val description = "Removes an artifact"
   override val requiresName = true
   override val commandType = CommandType.Delete
-  override val allowedSubCommands= allArtifacts.filter(_ != "deployment")
+  override val allowedArtifacts = allArtifacts.filter(_ != "deployment")
+  override val requiresArtifact = true
+}
+
+case class UndeployCommand() extends CliCommand {
+  override val name = "undeploy"
+  override val usage = "Removes a deployment."
+  override val description = "Removes a deployment"
+  override val requiresName = true
+  override val commandType = CommandType.Undeploy
 }
 
 case class UnknownCommand(override val name: String) extends CliCommand
 
 case class VersionCommand() extends CliCommand {
   override val name = "version"
-  override val description = "Show version of the VAMP CLI client"
+  override val description = "Shows the version of the VAMP CLI client"
   override val usage = "Displays the version of the VAMP CLI client"
   override val requiresHostConnection = false
 }

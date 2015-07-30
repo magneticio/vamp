@@ -6,16 +6,14 @@ trait CommandLineBasics {
 
   import ConsoleHelper._
 
-  def terminateWithError(msg: String): Unit = {
+  def terminateWithError[A](msg: String, returnValue : A = None): A = {
     println(s"ERROR: ".red.bold + "" + s"$msg".red)
     sys.exit(1)
+    returnValue
   }
 
   def string2Command(s: String): CliCommand = s match {
-
-    case "clone-breed" => CloneBreedCommand()
     case "deploy" => DeployCommand()
-    case "deploy-breed" => DeployBreedCommand()
     case "info" => InfoCommand()
     case "help" => HelpCommand()
     case "--help" => HelpCommand()
@@ -26,11 +24,10 @@ trait CommandLineBasics {
     case "generate" => GenerateCommand()
     case "create" => CreateCommand()
     case "remove" => RemoveCommand()
-
+    case "undeploy" => UndeployCommand()
+    case "update" => UpdateCommand()
     case c => UnknownCommand(c)
   }
-
-  val NotImplemented = "-- NOT IMPLEMENTED --"
 
   val appName = "vamp"
 
@@ -40,10 +37,8 @@ trait CommandLineBasics {
         println(s"Usage: ".bold + "" + s"$appName COMMAND [args..]")
         println("")
         println("Commands:")
-        //showGeneralUsage(CloneBreedCommand())   // Deprecated command
         showGeneralUsage(CreateCommand())
         showGeneralUsage(DeployCommand())
-        //showGeneralUsage(DeployBreedCommand())  // Deprecated command
         showGeneralUsage(HelpCommand())
         showGeneralUsage(GenerateCommand())
         showGeneralUsage(InfoCommand())
@@ -51,16 +46,18 @@ trait CommandLineBasics {
         showGeneralUsage(ListCommand())
         showGeneralUsage(MergeCommand())
         showGeneralUsage(RemoveCommand())
+        showGeneralUsage(UndeployCommand())
+        showGeneralUsage(UpdateCommand())
         showGeneralUsage(VersionCommand())
         println("".reset)
         println(s"Run " + s"$appName COMMMAND --help".bold + "" + "  for additional help about the different command options")
       }
 
       case _ => {
-        if (command.allowedSubCommands.isEmpty) {
+        if (command.allowedArtifacts.isEmpty) {
           println(s"Usage: ".bold + "" + s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
         } else {
-          println(s"Usage: ".bold + "" + s"$appName ${command.name} ${command.allowedSubCommands.mkString("|")} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
+          println(s"Usage: ".bold + "" + s"$appName ${command.name} ${command.allowedArtifacts.mkString("|")} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
         }
 
         if (command.usage.nonEmpty) {

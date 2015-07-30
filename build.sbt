@@ -4,13 +4,13 @@ organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
-version in ThisBuild := "0.7.8" //+ "." + GitHelper.headSha()
+version in ThisBuild := "0.7.9"+ VersionHelper.versionSuffix
 
 scalaVersion := "2.11.6"
 
 scalaVersion in ThisBuild := scalaVersion.value
 
-publishMavenStyle := true
+publishMavenStyle := false
 
 // This has to be overridden for sub-modules to have different description
 description in ThisBuild:= """Core is the brain of Vamp."""
@@ -43,7 +43,9 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
   </scm>
 
 
-// Use local maven repository
+//
+resolvers += Resolver.url("magnetic-io ivy resolver", url("http://dl.bintray.com/magnetic-io/vamp"))(Resolver.ivyStylePatterns)
+
 resolvers in ThisBuild ++= Seq(
   Resolver.typesafeRepo("releases"),
   Resolver.jcenterRepo
@@ -58,11 +60,10 @@ lazy val bintraySetting = Seq(
 
 // Library Versions
 
-val vampCommonVersion = "0.7.8"
-val vampUiVersion = "0.0.1"
+val vampCommonVersion = "0.7.9"
+val vampUiVersion = "0.7.9-87"
 
 val sprayVersion = "1.3.2"
-//val sprayJsonVersion = "1.3.1"
 val json4sVersion = "3.2.11"
 val akkaVersion = "2.3.11"
 val scalaLoggingVersion = "3.1.0"
@@ -70,7 +71,6 @@ val slf4jVersion = "1.7.10"
 val logbackVersion = "1.1.2"
 val junitVersion = "4.11"
 val scalatestVersion = "2.2.4"
-val tugboatVersion = "0.2.3"
 val typesafeConfigVersion = "1.2.1"
 val scalaAsyncVersion = "0.9.2"
 val snakeYamlVersion = "1.14"
@@ -79,6 +79,9 @@ val slickVersion = "2.1.0"
 val activeSlickVersion = "0.2.2"
 val postgresVersion = "9.1-901.jdbc4"
 val quartzVersion = "2.2.1"
+val bcprovVersion= "1.46"
+val unisocketsNettyVersion = "0.1.0"
+
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
@@ -114,16 +117,31 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   assemblyJarName in assembly := s"core-assembly-${version.value}.jar"
 ).dependsOn(rest_api)
 
+val downloadUI = taskKey[Unit]("Download vamp-ui to the rest_api lib directory")
+
 lazy val rest_api = project.settings(bintraySetting: _*).settings(
   description := "REST api for Vamp Core",
   name:="core-rest_api",
   libraryDependencies ++=Seq(
     "io.spray" %% "spray-can" % sprayVersion,
     "io.spray" %% "spray-routing" % sprayVersion,
-    "io.spray" %% "spray-httpx" % sprayVersion,
-    "vamp-ui" % "vamp-ui" % vampUiVersion from  s"https://bintray.com/artifact/download/magnetic-io/downloads/vamp-ui/vamp-ui-$vampUiVersion.jar"
+    "io.spray" %% "spray-httpx" % sprayVersion
+  ))
+ .settings(
+    downloadUI := {
+      val libDir = "rest_api/lib"
+      val targetFile = s"vamp-ui-$vampUiVersion.jar"
+      // Only perform this if the file not already exists.
+      if(java.nio.file.Files.notExists(new File(s"$libDir/$targetFile").toPath)) {
+        // Remove old versions of the vamp-ui jar & download the new one
+        IO.delete(IO.listFiles(new File(libDir)) filter ( _.getName.startsWith("vamp-ui")))
+        IO.download(new URL(s"https://bintray.com/artifact/download/magnetic-io/downloads/vamp-ui/vamp-ui-$vampUiVersion.jar"), new File(s"$libDir/$targetFile"))
+      }
+    }
   )
-).dependsOn(operation, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
+  .settings((compile in Compile)<<= (compile in Compile) dependsOn downloadUI)
+  .dependsOn(operation, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
+
 
 lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
@@ -148,8 +166,9 @@ lazy val container_driver = project.settings(bintraySetting: _*).settings(
   name:="core-container_driver",
   libraryDependencies ++=Seq(
     "org.scala-lang.modules" %% "scala-async" % scalaAsyncVersion,
-    "io.vamp" %% "tugboat" % tugboatVersion exclude("org.slf4j", "slf4j-log4j12")
-  )
+    "org.bouncycastle" % "bcprov-jdk16" % bcprovVersion,
+    "me.lessis" %% "unisockets-netty" % unisocketsNettyVersion
+)
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val persistence = project.settings(bintraySetting: _*).settings(
@@ -173,7 +192,7 @@ lazy val cli = project.settings(bintraySetting: _*).settings(
     "ch.qos.logback" % "logback-classic" % logbackVersion
   ),
   assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
-).dependsOn(model, rest_api)
+).dependsOn(model)
 
 lazy val dictionary = project.settings(bintraySetting: _*).settings(
   description := "Dictionary for Vamp",
@@ -203,7 +222,6 @@ javacOptions ++= Seq("-encoding", "UTF-8")
 
 scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation, Opts.compile.unchecked) ++
   Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint", "-feature")
-
 
 
 

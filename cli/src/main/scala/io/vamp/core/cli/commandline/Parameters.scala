@@ -18,13 +18,21 @@ trait Parameters extends CommandLineBasics {
   val json = 'json
   val routing = 'routing
   val scale = 'scale
-  val subcommand = 'subcommand
   val blueprint = 'blueprint
   val stdin = 'stdin
   val breed = 'breed
   val sla = 'sla
   val endpoint = 'endpoint
   val environment = 'environment
+  val minimum = 'minimum
+  val maximum = 'maximum
+  val scale_by = 'scaleBy
+  val target_cluster = 'targetCluster
+  val upper = 'upper
+  val lower = 'lower
+  val interval = 'interval
+  val cooldown = 'cooldown
+  val as_blueprint = 'as_blueprint
 
   val VAMP_HOST = "VAMP_HOST"
 
@@ -65,14 +73,26 @@ trait Parameters extends CommandLineBasics {
       case "--destination" :: value :: tail => nextOption(map ++ Map(destination -> value), tail)
       case "--file" :: value :: tail => nextOption(map ++ Map(file -> value), tail)
       case "--json" :: tail => nextOption(map ++ Map(json -> "true"), tail)
+      case "--as_blueprint" :: tail => nextOption(map ++ Map(as_blueprint -> "true"), tail)
       case "--stdin" :: tail => nextOption(map ++ Map(stdin -> "true"), tail)
+      case "--name" :: value :: tail => nextOption(map ++ Map(name -> value), tail)
+      case "--minimum"   :: value :: tail => nextOption(map ++ Map(minimum -> value), tail)
+      case "--maximum"   :: value :: tail => nextOption(map ++ Map(maximum -> value), tail)
+      case "--scale_by"   :: value :: tail => nextOption(map ++ Map(scale_by -> value), tail)
+      case "--target_cluster"   :: value :: tail => nextOption(map ++ Map(target_cluster -> value), tail)
+      case "--upper"   :: value :: tail => nextOption(map ++ Map(upper -> value), tail)
+      case "--lower"   :: value :: tail => nextOption(map ++ Map(lower -> value), tail)
+      case "--interval"   :: value :: tail => nextOption(map ++ Map(interval -> value), tail)
+      case "--cooldown"   :: value :: tail => nextOption(map ++ Map(cooldown -> value), tail)
 
-      case string :: opt2 :: tail if isSwitch(opt2) => nextOption(map ++ Map(name -> string), list.tail)
-      case string :: opt2 :: tail if !isSwitch(opt2) => nextOption(map ++ Map(subcommand -> string), list.tail)
-
-      case string :: Nil => nextOption(map ++ Map(name -> string), list.tail)
-      case option :: tail => terminateWithError("Unknown option " + option)
-        Map.empty
+      case option :: tail if isSwitch(option) =>
+        terminateWithError("Unknown option " + option, Map.empty)
+      case string :: tail =>
+        if (!map.contains(name)) {
+          nextOption(map ++ Map(name -> string), list.tail)
+        } else {
+          terminateWithError(s"Second name found with value '$string'; already had value '${map.getOrElse(name,"")}'", Map.empty)
+        }
     }
   }
 
