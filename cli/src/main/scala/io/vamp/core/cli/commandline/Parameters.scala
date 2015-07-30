@@ -32,6 +32,7 @@ trait Parameters extends CommandLineBasics {
   val lower = 'lower
   val interval = 'interval
   val cooldown = 'cooldown
+  val as_blueprint = 'as_blueprint
 
   val VAMP_HOST = "VAMP_HOST"
 
@@ -72,6 +73,7 @@ trait Parameters extends CommandLineBasics {
       case "--destination" :: value :: tail => nextOption(map ++ Map(destination -> value), tail)
       case "--file" :: value :: tail => nextOption(map ++ Map(file -> value), tail)
       case "--json" :: tail => nextOption(map ++ Map(json -> "true"), tail)
+      case "--as_blueprint" :: tail => nextOption(map ++ Map(as_blueprint -> "true"), tail)
       case "--stdin" :: tail => nextOption(map ++ Map(stdin -> "true"), tail)
       case "--name" :: value :: tail => nextOption(map ++ Map(name -> value), tail)
       case "--minimum"   :: value :: tail => nextOption(map ++ Map(minimum -> value), tail)

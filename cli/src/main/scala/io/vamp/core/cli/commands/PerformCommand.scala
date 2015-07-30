@@ -78,7 +78,10 @@ object PerformCommand extends Generate {
     val artifact: Option[Artifact] = subCommand match {
       case Some("breed") => VampHostCalls.getBreed(getParameter(name))
       case Some("blueprint") => VampHostCalls.getBlueprint(getParameter(name))
-      case Some("deployment") => VampHostCalls.getDeployment(getParameter(name))
+      case Some("deployment") =>   getOptionalParameter(as_blueprint) match {
+        case Some(_) =>  VampHostCalls.getDeploymentAsBlueprint(getParameter(name))
+        case None => VampHostCalls.getDeployment(getParameter(name))
+      }
       case Some("escalation") => VampHostCalls.getEscalation(getParameter(name))
       case Some("filter") => VampHostCalls.getFilter(getParameter(name))
       case Some("routing") => VampHostCalls.getRouting(getParameter(name))
