@@ -47,6 +47,7 @@ For Debian 8 (Jessie), use the following commands:
 {{% copyable %}}
 ```bash
 echo "deb https://dl.bintray.com/magnetic-io/systemd jessie main" | sudo tee -a /etc/apt/sources.list
+curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | sudo apt-key add -
 sudo apt-get update
 ```
 {{% /copyable %}}
@@ -57,6 +58,7 @@ For Debian 7 (Wheezy), use the following commands:
 {{% copyable %}}
 ```bash
 echo "deb https://dl.bintray.com/magnetic-io/systemv wheezy main" | sudo tee -a /etc/apt/sources.list
+curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | sudo apt-key add -
 sudo apt-get update
 ```
 {{% /copyable %}}

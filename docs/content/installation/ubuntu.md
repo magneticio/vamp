@@ -54,6 +54,7 @@ For Ubuntu 15.04 (Vivid), use the following commands:
 
 ```bash
 echo "deb https://dl.bintray.com/magnetic-io/systemd jessie main" | sudo tee -a /etc/apt/sources.list
+curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | sudo apt-key add -
 sudo apt-get update
 ```
 
@@ -64,6 +65,7 @@ For Ubuntu 14.04 (Trusty), use the following commands:
 
 ```bash
 echo "deb https://dl.bintray.com/magnetic-io/upstart trusty main" | sudo tee -a /etc/apt/sources.list
+curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | sudo apt-key add -
 sudo apt-get update
 ```
 
