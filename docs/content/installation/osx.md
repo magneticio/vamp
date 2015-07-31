@@ -24,19 +24,19 @@ Vamp needs an OpenJDK or Oracle Java version of 1.8.0_40 or higher. Check the ve
 
 Use Homebrew to install the Vamp CLI. Simply add a brew tap and install:
 
-{{% copyable %}}
+
 ```bash
 brew tap magneticio/vamp
 brew install vamp
 ```
-{{% /copyable %}}
+
 
 Type `vamp version` to check if Vamp Cli has been properly installed. 
 Now export the location of the Vamp Core host and check if the CLI can talk to Vamp Core, i.e:
  
-{{% /copyable %}}
+
 ```bash
 export VAMP_HOST=http://localhost:8080
 vamp info
 ```
-{{% /copyable %}}
+

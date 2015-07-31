@@ -53,14 +53,12 @@ clusters:
         environment_variables:
           # using alias feature, instead of only "BACKEND: http://..."
           backend[BACKEND]: http://$backend.host:$backend.ports.port/api/message
-
         dependencies:
           backend: sava-backend:1.3.0
       scale:
         cpu: 0.2      
         memory: 256  
         instances: 1            
-
   backend:
     services:
       breed:

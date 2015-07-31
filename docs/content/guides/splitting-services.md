@@ -34,9 +34,7 @@ services to the "customer facing" `sava` service.
 name: sava:1.2
 endpoints:
   sava.port: 9060/http
-
 clusters:
-
   sava:
     services:
       breed:
@@ -47,7 +45,6 @@ clusters:
         environment_variables:
           BACKEND_1: http://$backend1.host:$backend1.ports.port/api/message
           BACKEND_2: http://$backend2.host:$backend2.ports.port/api/message
-
         dependencies:
           backend1: sava-backend1:1.2.0
           backend2: sava-backend2:1.2.0
@@ -55,7 +52,6 @@ clusters:
         cpu: 0.2      
         memory: 256  
         instances: 1               
-
   backend1:
     services:
       breed:
@@ -67,7 +63,6 @@ clusters:
         cpu: 0.2       
         memory: 256  
         instances: 1              
-
   backend2:
     services:
       breed:

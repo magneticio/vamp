@@ -20,12 +20,9 @@ You've managed to wrap your monolith in a Docker container, which lives in the D
 ```yaml
 ---
 name: sava:1.0
-
 endpoints:
   sava.port: 9050/http
-
 clusters:
-
   sava:
     services:
       breed:

@@ -20,7 +20,7 @@ Vamp needs an OpenJDK or Oracle Java version of 1.8.0_45 or higher. Check the ve
 
 **installing OpenJDK with apt**
 
-{{% /copyable %}}
+{{% copyable %}}
 ```bash
 sudo apt-get install -y openjdk-8
 ```
@@ -30,12 +30,21 @@ sudo apt-get install -y openjdk-8
 
 For detail on how to install Java 8, check the following page: http://www.webupd8.org/2014/03/how-to-install-oracle-java-8-in-debian.html
 
+### HAproxy 1.5.x
+
+Only Vamp Router needs HAProxy 1.5.x or higher.
+
+{{% copyable %}}
+```bash
+sudo apt-get install -y haproxy
+```
+{{% /copyable %}}
 
 ## Add the Vamp RPM Repository
 
 For Debian 8 (Jessie), use the following commands:
 
-{{% /copyable %}}
+{{% copyable %}}
 ```bash
 echo "deb https://dl.bintray.com/magnetic-io/systemd jessie main" | sudo tee -a /etc/apt/sources.list
 sudo apt-get update
@@ -45,7 +54,7 @@ sudo apt-get update
 
 For Debian 7 (Wheezy), use the following commands:
 
-{{% /copyable %}}
+{{% copyable %}}
 ```bash
 echo "deb https://dl.bintray.com/magnetic-io/systemv wheezy main" | sudo tee -a /etc/apt/sources.list
 sudo apt-get update
@@ -55,7 +64,7 @@ sudo apt-get update
 
 ## Install Core
 
-{{% /copyable %}}
+{{% copyable %}}
 ```bash
 sudo apt-get install -y vamp-core
 ```
@@ -65,7 +74,7 @@ Check the `application.conf` file at `/usr/share/vamp-core/conf/` and change whe
 
 Start the application with the command:
 
-{{% /copyable %}}
+{{% copyable %}}
 ```bash
 sudo service vamp-core start
 ```
@@ -73,7 +82,7 @@ sudo service vamp-core start
 
 ## Install Pulse
 
-{{% /copyable %}}
+{{% copyable %}}
 ```bash
 sudo apt-getinstall -y vamp-pulse
 ```
@@ -89,9 +98,9 @@ sudo service vamp-pulse start
 
 ## Install Router
 
-{{% /copyable %}}
+{{% copyable %}}
 ```bash
-sudo yum install -y vamp-router haproxy
+sudo apt-get install -y vamp-router haproxy
 ```
 {{% /copyable %}}
 
@@ -103,7 +112,7 @@ sudo service vamp-router start
 
 ## Install CLI
 
-{{% /copyable %}}
+{{% copyable %}}
 ```bash
 sudo apt-get install -y vamp-cli
 ```

@@ -38,22 +38,22 @@ component   | purpose
 ## Configuring Vamp Router
 
 Vamp Router does three things:
+
 - Accept API requests on its API endpoint (default port: 10001)
 - Instruct HAproxy how/what/where to route
 - Stream feeds to Vamp Pulse
 
 This means that Vamp Router and HAproxy should be installed on the same (V)LAN as the containers, or at least be able to transparently find the containers IP addresses. This can also be done through setting the correct gateways or setting up a local DNS.
 
-You need to tell Vamp Core where it can find Vamp Router's API and what Vamp Router's / HAproxy's internal IP address is.
-You configure this in the `router-driver` section in `application.conf` file. See the below example:
+**You need to tell Vamp Core where it can find Vamp Router's API and what Vamp Router's / HAproxy's internal IP address is**. You configure this in the `router-driver` section in `application.conf` file. See the below example:
 
 ```
 # /usr/share/vamp-core/conf/application.conf
 ...
   router-driver {
     url = "http://104.155.30.171:10001" # Vamp Router API endpoint, external IP.
-    host = "10.193.238.26" # Rhe address where the container can find Vamp Router / Haproxy, internal IP.
-    response-timeout = 30 # seconds, timeout for container operations
+    host = "10.193.238.26"              # Vamp Router / Haproxy, internal IP.
+    response-timeout = 30               # seconds
   }
 ...  
 ```  
@@ -62,7 +62,7 @@ Vamp Pulse just needs access to the API. This is configured in the `event-stream
 
 ```
 # /usr/share/vamp-puls/conf/application.conf
-
+...
   event-stream {
     driver = "sse"
     sse {
@@ -72,6 +72,7 @@ Vamp Pulse just needs access to the API. This is configured in the `event-stream
         sse.connection.checkup = 3000
       }
     }
+...    
 ```    
 
 ## Configuring Vamp Core and Vamp Pulse
