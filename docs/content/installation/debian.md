@@ -100,7 +100,7 @@ sudo service vamp-pulse start
 
 {{% copyable %}}
 ```bash
-sudo apt-get install -y vamp-router haproxy
+sudo apt-get install -y vamp-router
 ```
 {{% /copyable %}}
 
