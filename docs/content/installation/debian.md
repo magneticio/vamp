@@ -20,11 +20,9 @@ Vamp needs an OpenJDK or Oracle Java version of 1.8.0_45 or higher. Check the ve
 
 **installing OpenJDK with apt**
 
-{{% copyable %}}
 ```bash
 sudo apt-get install -y openjdk-8
 ```
-{{% /copyable %}}
 
 **installing Oracle manually**
 
@@ -34,61 +32,49 @@ For detail on how to install Java 8, check the following page: http://www.webupd
 
 Only Vamp Router needs HAProxy 1.5.x or higher.
 
-{{% copyable %}}
 ```bash
 sudo apt-get install -y haproxy
 ```
-{{% /copyable %}}
 
 ## Add the Vamp RPM Repository
 
 For Debian 8 (Jessie), use the following commands:
 
-{{% copyable %}}
 ```bash
 echo "deb https://dl.bintray.com/magnetic-io/systemd jessie main" | sudo tee -a /etc/apt/sources.list
 curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | sudo apt-key add -
 sudo apt-get update
 ```
-{{% /copyable %}}
 
 
 For Debian 7 (Wheezy), use the following commands:
 
-{{% copyable %}}
 ```bash
 echo "deb https://dl.bintray.com/magnetic-io/systemv wheezy main" | sudo tee -a /etc/apt/sources.list
 curl https://bintray.com/user/downloadSubjectPublicKey?username=bintray | sudo apt-key add -
 sudo apt-get update
 ```
-{{% /copyable %}}
 
 
 ## Install Core
 
-{{% copyable %}}
 ```bash
 sudo apt-get install -y vamp-core
 ```
-{{% /copyable %}}
 
 Check the `application.conf` file at `/usr/share/vamp-core/conf/` and change when needed.
 
 Start the application with the command:
 
-{{% copyable %}}
 ```bash
 sudo service vamp-core start
 ```
-{{% /copyable %}}
 
 ## Install Pulse
 
-{{% copyable %}}
 ```bash
 sudo apt-getinstall -y vamp-pulse
 ```
-{{% /copyable %}}
 
 Check the `application.conf` file at `/usr/share/vamp-pulse/conf/` and change when needed.
 
@@ -100,11 +86,9 @@ sudo service vamp-pulse start
 
 ## Install Router
 
-{{% copyable %}}
 ```bash
 sudo apt-get install -y vamp-router
 ```
-{{% /copyable %}}
 
 Start the application with the command:
 
@@ -112,13 +96,19 @@ Start the application with the command:
 sudo service vamp-router start
 ```
 
+Vamp Router has some issues with Systemd and needs to have haproxy at `/usr/sbin/haproxy`. To fix any issues for now,
+you can just start Vamp Router directly and provide it with the correct haproxy path, i.e:
+
+```bash
+/usr/share/vamp-router/vamp-router --binary=/usr/local/sbin/haproxy
+```
+
+
 ## Install CLI
 
-{{% copyable %}}
 ```bash
 sudo apt-get install -y vamp-cli
 ```
-{{% /copyable %}}
 
 Type `vamp version` to check if Vamp Cli has been properly installed. 
 Now export the location of the Vamp Core host and check if the CLI can talk to Vamp Core, i.e:

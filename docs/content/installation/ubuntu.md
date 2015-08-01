@@ -119,6 +119,13 @@ Start the application with the command:
 sudo service vamp-router start
 ```
 
+Vamp Router has some issues with Systemd and needs to have haproxy at `/usr/sbin/haproxy`. To fix any issues for now,
+you can just start Vamp Router directly and provide it with the correct haproxy path, i.e:
+
+```bash
+/usr/share/vamp-router/vamp-router --binary=/usr/local/sbin/haproxy
+```
+
 ## Install CLI
 
 

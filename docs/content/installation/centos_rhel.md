@@ -31,14 +31,22 @@ For detail on how to install Java 8, check the following page: http://tecadmin.n
 
 ### HAproxy 1.5.x
 
-Only Vamp Router needs HAProxy 1.5.x or higher. Either install it using your package manager or build it from source:
+> **Note:** Only Vamp Router needs HAProxy 1.5.x or higher.  
+
+Either install it using your package manager or build it from source:
 
 ```bash
 curl -OL http://www.haproxy.org/download/1.5/src/haproxy-1.5.12.tar.gz
 tar -xzvf haproxy-1.5.12.tar.gz
 cd haproxy-1.5.12
 sudo yum -y install gcc
-make install
+sudo make install
+```
+
+Vamp Router expect the binary executable to be at in `/usr/sbin/haproxy`. If this is not the case, you can either make a symlink to it, or just start Vamp Router with the `--binary` flag and point to it, i.e:
+
+```bash
+/usr/share/vamp-router/vamp-router --binary=/usr/local/sbin/haproxy
 ```
 
 ## Add the Vamp RPM Repository
@@ -95,6 +103,12 @@ Start the application with the command:
 sudo service vamp-router start
 ```
 
+Vamp Router has some issues with Systemd and needs to have haproxy at `/usr/sbin/haproxy`. To fix any issues for now,
+you can just start Vamp Router directly and provide it with the correct haproxy path, i.e:
+
+```bash
+/usr/share/vamp-router/vamp-router --binary=/usr/local/sbin/haproxy
+```
 
 ## Install CLI
 
