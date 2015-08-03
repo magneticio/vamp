@@ -355,19 +355,19 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
     })
 
     deployment.endpoints.foreach { port =>
-      TraitReference.referenceFor(port.name) match {
-        case Some(TraitReference(cluster, _, _)) =>
-          (deployment.clusters.find(_.name == cluster), routes.find(_.matching(deployment, Some(port)))) match {
+      TraitReference.referenceFor(port.name).map(_.cluster).foreach { clusterName =>
+        deployment.clusters.find(_.name == clusterName).foreach { cluster =>
+          if (cluster.services.forall(_.state.isInstanceOf[Deployed])) routes.find(_.matching(deployment, Some(port))) match {
 
-            case (Some(_), None) =>
+            case None =>
               actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false)
 
-            case (Some(_), Some(route)) if route.services.flatMap(_.servers).count(_ => true) == 0 =>
+            case Some(route) if route.services.flatMap(_.servers).count(_ => true) == 0 =>
               actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = true)
 
             case _ =>
           }
-        case _ =>
+        }
       }
     }
 
