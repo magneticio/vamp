@@ -5,7 +5,9 @@ import scala.language.implicitConversions
 trait Breed extends Artifact
 
 case class DefaultBreed(name: String, deployable: Deployable, ports: List[Port], environmentVariables: List[EnvironmentVariable], constants: List[Constant], dependencies: Map[String, Breed]) extends Breed {
-  def traitsFor(group: String): List[Trait] = TraitReference.groupFor(group) match {
+  def traitsFor(group: String): List[Trait] = traitsFor(TraitReference.groupFor(group))
+
+  def traitsFor(group: Option[TraitReference.Value]): List[Trait] = group match {
     case Some(TraitReference.Ports) => ports
     case Some(TraitReference.EnvironmentVariables) => environmentVariables
     case Some(TraitReference.Constants) => constants

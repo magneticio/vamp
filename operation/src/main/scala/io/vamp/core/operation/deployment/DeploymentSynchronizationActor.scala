@@ -314,7 +314,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
     val persist = processedClusters.filter(_.state == Processed.Persist).map(_.cluster)
     val remove = processedClusters.filter(_.state == Processed.RemoveFromPersistence).map(_.cluster)
 
-    (updateTraits(persist, resolveEnvironmentVariables) andThen purgeTraits(remove) andThen updateEndpoints(remove, routes) andThen persistDeployment(persist ++ resolveEnvironmentVariables, remove))(deployment)
+    (updateTraits(persist, resolveEnvironmentVariables) andThen purgeTraits(persist, remove) andThen updateEndpoints(remove, routes) andThen persistDeployment(persist ++ resolveEnvironmentVariables, remove))(deployment)
   }
 
   private def updateTraits(persist: List[DeploymentCluster], resolve: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
@@ -329,9 +329,19 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
     deployment.copy(ports = ports.values.toList, environmentVariables = environmentVariables)
   }
 
-  private def purgeTraits(remove: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
+  private def purgeTraits(persist: List[DeploymentCluster], remove: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
     def purge[A <: Trait](traits: List[A]): List[A] = traits.filterNot(t => TraitReference.referenceFor(t.name) match {
-      case Some(TraitReference(cluster, _, _)) => remove.exists(_.name == cluster)
+      case Some(TraitReference(cluster, group, name)) =>
+        if (remove.exists(_.name == cluster)) true
+        else persist.find(_.name == cluster) match {
+          case None => false
+          case Some(c) => TraitReference.groupFor(group) match {
+            case Some(TraitReference.Hosts) => false
+            case Some(g) => !c.services.flatMap(_.breed.traitsFor(g)).exists(_.name == name)
+            case None => true
+          }
+        }
+
       case _ => true
     })
 
