@@ -57,6 +57,7 @@ lazy val bintraySetting = Seq(
   bintrayRepository  := "vamp"
 )
 
+val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4" % "test"
 
 // Library Versions
 
@@ -206,7 +207,8 @@ lazy val model = project.settings(bintraySetting: _*).settings(
     "io.vamp" %% "common" % vampCommonVersion,
     "org.yaml" % "snakeyaml" % snakeYamlVersion,
     "junit" % "junit" % junitVersion % "test",
-    "org.scalatest" %% "scalatest" % scalatestVersion % "test"
+    "org.scalatest" %% "scalatest" % scalatestVersion % "test",
+    scalaCheck
   )
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
