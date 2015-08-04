@@ -93,7 +93,7 @@ sudo service vamp-core start
 
 
 ```bash
-sudo apt-getinstall -y vamp-pulse
+sudo apt-get install -y vamp-pulse
 ```
 
 
