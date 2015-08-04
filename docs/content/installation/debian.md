@@ -73,7 +73,7 @@ sudo service vamp-core start
 ## Install Pulse
 
 ```bash
-sudo apt-getinstall -y vamp-pulse
+sudo apt-get install -y vamp-pulse
 ```
 
 Check the `application.conf` file at `/usr/share/vamp-pulse/conf/` and change when needed.
