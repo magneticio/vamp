@@ -36,7 +36,7 @@ Only Vamp Router needs HAProxy 1.5.x or higher.
 sudo apt-get install -y haproxy
 ```
 
-## Add the Vamp RPM Repository
+## Add the Vamp APT Repository
 
 For Debian 8 (Jessie), use the following commands:
 
