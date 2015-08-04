@@ -81,11 +81,11 @@ sudo apt-get install -y vamp-core
 
 Check the `application.conf` file at `/usr/share/vamp-core/conf/` and change when needed.
 
-Start the application with the command:
+After making changes, restart the application with the command:
 
 
 ```bash
-sudo service vamp-core start
+sudo service vamp-core restart
 ```
 
 
@@ -99,10 +99,10 @@ sudo apt-get install -y vamp-pulse
 
 Check the `application.conf` file at `/usr/share/vamp-pulse/conf/` and change when needed.
 
-Start the application with the command:
+After making changes, restart the application with the command:
 
 ```bash
-sudo service vamp-pulse start
+sudo service vamp-pulse restart
 ```
 
 ## Install Router
@@ -110,13 +110,6 @@ sudo service vamp-pulse start
 
 ```bash
 sudo apt-get install -y vamp-router
-```
-
-
-Start the application with the command:
-
-```bash
-sudo service vamp-router start
 ```
 
 Vamp Router has some issues with Systemd and needs to have haproxy at `/usr/sbin/haproxy`. To fix any issues for now,
