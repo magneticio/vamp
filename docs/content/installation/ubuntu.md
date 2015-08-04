@@ -47,7 +47,7 @@ sudo apt-get install -y haproxy
 
 
 
-## Add the Vamp RPM Repository
+## Add the Vamp APT Repository
 
 For Ubuntu 15.04 (Vivid), use the following commands:
 
