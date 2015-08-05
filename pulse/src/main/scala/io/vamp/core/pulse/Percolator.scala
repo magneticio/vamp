@@ -27,7 +27,7 @@ trait Percolator {
     percolators.foreach { case (name, percolator) =>
       if (percolator.tags.forall(event.tags.contains)) {
         log.debug(s"Percolate match for '$name'.")
-        percolator.actor ! (percolator.message -> event.tags)
+        percolator.actor ! (percolator.message -> event)
       }
     }
     event
