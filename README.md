@@ -40,3 +40,5 @@ take some time to walk through the [getting started](http://vamp.io/documentatio
 ## Contributing
 
 Vamp is open source. Any contribtions are welcome. Please check [our contribution guidelines](https://github.com/magneticio/vamp/blob/master/CONTRIBUTING.md)
+
+[![Join the chat at https://gitter.im/magneticio/vamp](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/magneticio/vamp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
