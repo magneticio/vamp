@@ -5,7 +5,6 @@ import akka.util.Timeout
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.http.SseDirectives._
-import io.vamp.core.model.event.EventQuery
 import io.vamp.core.model.reader.EventQueryReader
 import io.vamp.core.operation.controller.EventApiController
 import spray.http.StatusCodes._
@@ -41,24 +40,29 @@ trait EventApiRoute extends EventApiController {
           }
         }
       }
-    } ~ path("stream") {
-      pathEndOrSingleSlash {
-        get {
-          parameterMultiMap { parameters =>
-            sse { channel => openStream(channel, EventQuery(parameters.getOrElse("tags", Nil).toSet, None)) }
-          }
-        } ~ post {
-          entity(as[String]) { request =>
-            sse { channel => openStream(channel, if (request.isEmpty) EventQuery(Set(), None) else EventQueryReader.read(request)) }
-          }
+    }
+  }
+
+  val sseRoutes = path("events" / "stream") {
+    pathEndOrSingleSlash {
+      get {
+        parameterMultiMap { parameters =>
+          sse { channel => openStream(channel, parameters.getOrElse("tags", Nil).toSet) }
+        }
+      } ~ post {
+        entity(as[String]) { request =>
+          sse { channel => openStream(channel, if (request.isEmpty) Set[String]() else EventQueryReader.read(request).tags) }
         }
       }
     }
   }
 
-  def openStream(channel: ActorRef, query: EventQuery) = {
+  override def openStream(channel: ActorRef, tags: Set[String]) = {
     log.debug("SSE connection open.")
-    registerClosedHandler(channel, () => log.debug("SSE connection closed."))
-    stream(channel, query)
+    registerClosedHandler(channel, { () =>
+      closeStream(channel)
+      log.debug("SSE connection closed.")
+    })
+    super.openStream(channel, tags)
   }
 }

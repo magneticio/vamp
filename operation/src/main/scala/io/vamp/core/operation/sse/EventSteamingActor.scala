@@ -1,38 +1,36 @@
 package io.vamp.core.operation.sse
 
 import akka.actor.{ActorRef, Props}
-import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
 import io.vamp.common.akka.{ActorDescription, CommonSupportForActors}
-import io.vamp.core.model.event.EventQuery
 import io.vamp.core.operation.notification.OperationNotificationProvider
-import io.vamp.core.operation.sse.EventSteamingActor.OpenStream
-
+import io.vamp.core.operation.sse.EventSteamingActor.{Channel, CloseStream, OpenStream}
+import io.vamp.core.pulse.PulseActor
+import io.vamp.core.pulse.PulseActor.{RegisterPercolator, UnregisterPercolator}
+import org.json4s.DefaultFormats
+import org.json4s.native.Serialization._
 
 object EventSteamingActor extends ActorDescription {
   def props(args: Any*): Props = Props[EventSteamingActor]
 
-  case class OpenStream(channel: ActorRef, query: EventQuery)
+  case class OpenStream(channel: ActorRef, tags: Set[String])
+
+  case class CloseStream(channel: ActorRef)
+
+  case class Channel(channel: ActorRef)
+
 }
 
 class EventSteamingActor extends CommonSupportForActors with OperationNotificationProvider {
 
+  private val percolator = "stream://"
+
   def receive: Receive = {
 
-    case OpenStream(channel, query) =>
+    case OpenStream(channel, tags) => actorFor(PulseActor) ! RegisterPercolator(s"$percolator$channel", tags, Channel(channel))
 
-      channel ! "test 1"
+    case CloseStream(channel) => actorFor(PulseActor) ! UnregisterPercolator(s"$percolator$channel")
 
-      Thread.sleep(1000)
-
-      channel ! "test 2"
-
-      Thread.sleep(1000)
-
-      channel ! "test 3"
-
-    case Start =>
-
-    case Shutdown =>
+    case (Channel(channel), event) => channel ! write(event.asInstanceOf[AnyRef])(DefaultFormats)
 
     case _ =>
   }

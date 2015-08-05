@@ -18,9 +18,13 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
 
   implicit def timeout: Timeout
 
-  val route = noCachingAllowed {
-    allowXhrFromOtherHosts {
+  val route = allowXhrFromOtherHosts {
+    noCachingAllowed {
       pathPrefix("api" / "v1") {
+        compressResponse() {
+          sseRoutes
+        }
+      } ~ pathPrefix("api" / "v1") {
         compressResponse() {
           accept(`application/json`, `application/x-yaml`) {
             path("docs") {
