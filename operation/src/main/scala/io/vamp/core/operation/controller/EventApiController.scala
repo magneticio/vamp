@@ -1,10 +1,14 @@
 package io.vamp.core.operation.controller
 
+import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
+import io.vamp.core.model.event.EventQuery
 import io.vamp.core.model.reader._
+import io.vamp.core.operation.sse.EventSteamingActor
+import io.vamp.core.operation.sse.EventSteamingActor.OpenStream
 import io.vamp.core.pulse.PulseActor.{Publish, Query}
 import io.vamp.core.pulse.{EventRequestEnvelope, PulseActor}
 
@@ -22,4 +26,6 @@ trait EventApiController {
   def query(request: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = {
     actorFor(PulseActor) ? Query(EventRequestEnvelope(EventQueryReader.read(request), page, perPage))
   }
+
+  def stream(to: ActorRef, query: EventQuery) = actorFor(EventSteamingActor) ! OpenStream(to, query)
 }

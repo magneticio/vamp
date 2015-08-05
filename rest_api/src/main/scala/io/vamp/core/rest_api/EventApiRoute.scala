@@ -1,29 +1,26 @@
 package io.vamp.core.rest_api
 
+import akka.actor.ActorRef
 import akka.util.Timeout
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.http.RestApiBase
+import io.vamp.common.http.SseDirectives._
+import io.vamp.core.model.event.EventQuery
+import io.vamp.core.model.reader.EventQueryReader
 import io.vamp.core.operation.controller.EventApiController
 import spray.http.StatusCodes._
+
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 trait EventApiRoute extends EventApiController {
   this: CommonSupportForActors with RestApiBase =>
 
   implicit def timeout: Timeout
 
-  val eventRoutes = path("events" / "get") {
-    pathEndOrSingleSlash {
-      post {
-        pageAndPerPage() { (page, perPage) =>
-          entity(as[String]) { request =>
-            onSuccess(query(request)(page, perPage)) { response =>
-              respondWith(OK, response)
-            }
-          }
-        }
-      }
-    }
-  } ~ path("events") {
+  val sseKeepAliveTimeout = context.system.settings.config.getInt("vamp.core.rest-api.sse.keep-alive-timeout") seconds
+
+  val eventRoutes = pathPrefix("events") {
     pathEndOrSingleSlash {
       post {
         entity(as[String]) { request =>
@@ -32,7 +29,36 @@ trait EventApiRoute extends EventApiController {
           }
         }
       }
+    } ~ path("get") {
+      pathEndOrSingleSlash {
+        post {
+          pageAndPerPage() { (page, perPage) =>
+            entity(as[String]) { request =>
+              onSuccess(query(request)(page, perPage)) { response =>
+                respondWith(OK, response)
+              }
+            }
+          }
+        }
+      }
+    } ~ path("stream") {
+      pathEndOrSingleSlash {
+        get {
+          parameterMultiMap { parameters =>
+            sse { channel => openStream(channel, EventQuery(parameters.getOrElse("tags", Nil).toSet, None)) }
+          }
+        } ~ post {
+          entity(as[String]) { request =>
+            sse { channel => openStream(channel, if (request.isEmpty) EventQuery(Set(), None) else EventQueryReader.read(request)) }
+          }
+        }
+      }
     }
   }
-}
 
+  def openStream(channel: ActorRef, query: EventQuery) = {
+    log.debug("SSE connection open.")
+    registerClosedHandler(channel, () => log.debug("SSE connection closed."))
+    stream(channel, query)
+  }
+}

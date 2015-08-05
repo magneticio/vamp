@@ -6,7 +6,7 @@ name := """core"""
 
 version in ThisBuild := "0.7.9"+ VersionHelper.versionSuffix
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.7"
 
 scalaVersion in ThisBuild := scalaVersion.value
 
@@ -61,7 +61,7 @@ val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4" % "test"
 
 // Library Versions
 
-val vampCommonVersion = "0.7.9"
+val vampCommonVersion = "0.7.9-dev.4fe1600"
 val vampUiVersion = "0.7.9-87"
 
 val sprayVersion = "1.3.2"
