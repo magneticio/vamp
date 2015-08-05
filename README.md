@@ -14,6 +14,8 @@ Of course, Vamp is made of multiple services itself. Monolith bad, services good
 
 component   | purpose
 ------------|--------
+
+[![Join the chat at https://gitter.im/magneticio/vamp](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/magneticio/vamp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [Vamp-core](https://github.com/magneticio/vamp-core)   | Main API endpoint, business logic and service coordinator. Talks to the configured container manager (Docker, Marathon etc.) and synchronizes it with Vamp Router. Reads metrics from Vamp Pulse and archives life cycle events to Vamp Pulse. Uses a standard JDBC database for persistence (H2 and MySQL are tested).      
 [Vamp-pulse](https://github.com/magneticio/vamp-pulse) | Consumes metrics from Vamp Router (using SSE or Kafka feeds) and consumes events from Vamp Core through REST. Makes everything searchable and actionable. Runs on Elasticsearch.
 [Vamp-router](https://github.com/magneticio/vamp-router)| Controls HAproxy, creates data feeds from routing information. Gets instructions from Vamp Core through REST and offers SSE and/or Kafka feeds of metric data to Vamp Pulse.
