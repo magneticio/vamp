@@ -2,8 +2,6 @@ package io.vamp.common.http
 
 import akka.actor._
 import spray.can.Http
-import spray.http.CacheDirectives.`no-store`
-import spray.http.HttpHeaders._
 import spray.http.MediaTypes._
 import spray.http._
 import spray.routing.Directives._
@@ -23,10 +21,7 @@ trait SseDirectives {
 
   val `text/event-stream` = register(MediaType.custom(mainType = "text", subType = "event-stream", compressible = true, binary = true))
 
-  val responseStart = HttpResponse(
-    headers = `Cache-Control`(`no-store`) :: RawHeader("Pragma", "no-cache") :: Nil,
-    entity = "\n"
-  )
+  def responseStart = HttpResponse(headers = Nil, entity = "\n")
 
   def sseKeepAliveTimeout = 15 seconds
 
