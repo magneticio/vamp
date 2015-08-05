@@ -86,7 +86,8 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
       c.services.map { service => router_driver.Service(s"${service.breed.name}", service.routing.getOrElse(DefaultRouting("", Some(100), Nil)).weight.getOrElse(100), service.servers.map(server(service, _, port))) }
 
     case None =>
-      router_driver.Service(s"${port.name}", 100, servers(deployment, port)) :: Nil
+      val name = TraitReference.referenceFor(port.name).map(_.referenceWithoutGroup).getOrElse(port.name)
+      router_driver.Service(s"$name", 100, servers(deployment, port)) :: Nil
   }
 
   private def services(route: Route, services: List[Service]): List[RouteService] = services.map { service =>
