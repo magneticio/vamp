@@ -6,12 +6,22 @@ import io.vamp.core.model.event.Event
 import scala.collection.mutable
 
 
-case class PercolatorEntry(tags: Set[String], actor: ActorRef, message: Any)
+object Percolator {
+
+  case class RegisterPercolator(name: String, tags: Set[String], message: Any)
+
+  case class UnregisterPercolator(name: String)
+
+}
 
 trait Percolator {
   this: Actor with ActorLogging =>
 
-  private val percolators = mutable.Map[String, PercolatorEntry]()
+  case class PercolatorEntry(tags: Set[String], actor: ActorRef, message: Any)
+
+  protected val percolators = mutable.Map[String, PercolatorEntry]()
+
+  protected val logMatch = true
 
   def registerPercolator(name: String, tags: Set[String], message: Any) = {
     log.info(s"Registering percolator '$name' for tags '${tags.mkString(", ")}'.")
@@ -26,7 +36,7 @@ trait Percolator {
   def percolate: (Event => Event) = { (event: Event) =>
     percolators.foreach { case (name, percolator) =>
       if (percolator.tags.forall(event.tags.contains)) {
-        log.debug(s"Percolate match for '$name'.")
+        if (logMatch) log.debug(s"Percolate match for '$name'.")
         percolator.actor ! (percolator.message -> event)
       }
     }
