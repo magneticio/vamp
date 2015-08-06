@@ -8,8 +8,8 @@ import io.vamp.core.model.event.Event
 import io.vamp.core.model.workflow.{DeploymentTrigger, EventTrigger, ScheduledWorkflow, TimeTrigger}
 import io.vamp.core.operation.notification._
 import io.vamp.core.persistence.{ArtifactSupport, PersistenceActor}
+import io.vamp.core.pulse.Percolator.{UnregisterPercolator, RegisterPercolator}
 import io.vamp.core.pulse.PulseActor
-import io.vamp.core.pulse.PulseActor.{RegisterPercolator, UnregisterPercolator}
 
 import scala.language.postfixOps
 
