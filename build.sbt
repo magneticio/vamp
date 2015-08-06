@@ -82,7 +82,7 @@ val postgresVersion = "9.1-901.jdbc4"
 val quartzVersion = "2.2.1"
 val bcprovVersion= "1.46"
 val unisocketsNettyVersion = "0.1.0"
-
+val jerseyVersion = "2.15"
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
@@ -148,7 +148,9 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
   name:="core-operation",
   libraryDependencies ++=Seq(
-    "org.quartz-scheduler" % "quartz" % quartzVersion
+    "org.quartz-scheduler" % "quartz" % quartzVersion,
+    "org.glassfish.jersey.core" % "jersey-client" % jerseyVersion,
+    "org.glassfish.jersey.media" % "jersey-media-sse" % jerseyVersion
   )
 ).dependsOn(persistence, container_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
