@@ -8,6 +8,7 @@ import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.container_driver.{ContainerDriverActor, ContainerServer, ContainerService}
 import io.vamp.core.model.artifact.DeploymentService._
 import io.vamp.core.model.artifact._
@@ -80,11 +81,13 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
 
   private def synchronize(deployments: List[Deployment]): Unit = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
-
-    val deploymentRoutes = offload(actorFor(RouterDriverActor) ? RouterDriverActor.All).asInstanceOf[DeploymentRoutes]
-    val containerServices = offload(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
-
-    deployments.filterNot(withError).foreach(synchronize(containerServices, deploymentRoutes))
+    offload(actorFor(RouterDriverActor) ? RouterDriverActor.All) match {
+      case error : NotificationErrorException =>  log.error("Synchronisation not possible")
+      case success =>
+        val deploymentRoutes = success.asInstanceOf[DeploymentRoutes]
+        val containerServices = offload(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
+        deployments.filterNot(withError).foreach(synchronize(containerServices, deploymentRoutes))
+    }
   }
 
   private def withError(deployment: Deployment): Boolean = {
