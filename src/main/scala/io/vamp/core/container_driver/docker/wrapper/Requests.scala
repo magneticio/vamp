@@ -7,7 +7,7 @@ import io.vamp.core.container_driver.docker.wrapper.model.AuthConfig
 import scala.concurrent.{ExecutionContext, Future}
 
 abstract class Requests(val host: Req, http: (Http, Docker.Closer), protected val authConfig: Option[AuthConfig])
-                       (protected implicit val ec: ExecutionContext) extends Util with Containers with Images with Auth with Generic {
+                       (protected implicit val ec: ExecutionContext) extends Util with Containers with Images with Generic {
 
   protected val (client, closer) = http
 

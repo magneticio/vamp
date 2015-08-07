@@ -144,6 +144,11 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    * If the image is not available, it will be pulled first
    */
   private def createAndStartContainer(containerName: String, deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Future[_] = async {
+    val dialect: Map[Any, Any] = (cluster.dialects ++ service.dialects).get(Dialect.Docker) match {
+      case Some(entry: AnyRef) if entry.isInstanceOf[collection.Map[_, _]] => entry.asInstanceOf[collection.Map[Any, Any]].toMap
+      case _ => Map[Any, Any]()
+    }
+
     val dockerImageName = service.breed.deployable match {
       case Deployable(_, Some(definition)) => definition
       case _ => throwException(UndefinedDockerImage)
@@ -152,26 +157,25 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
     val taggedImages = allImages.filter(image => image.repoTags.contains(dockerImageName))
 
     if (taggedImages.isEmpty) {
-      pullImage(dockerImageName)
+      pullImage(dockerImageName, dialect)
     }
 
-    val response = createDockerContainer(containerName, dockerImageName, environment(deployment, cluster, service), portMappings(deployment, cluster, service))
+    val response = createDockerContainer(dialect, containerName, dockerImageName, environment(deployment, cluster, service), portMappings(deployment, cluster, service))
 
     addContainerToCache(containerName, getContainerFromResponseId(response))
     addScale(getContainerFromResponseId(response), service.scale)
 
-    startDockerContainer(getContainerFromResponseId(response), portMappings(deployment, cluster, service), service.scale).onFailure { case ex =>
+    startDockerContainer(dialect, getContainerFromResponseId(response), portMappings(deployment, cluster, service), service.scale).onFailure { case ex =>
       logger.debug(s"Failed to start docker container: $ex")
       logger.trace(s"${ex.getStackTrace.mkString("\n")}")
     }
-
   }
 
   /**
    * Pull images from the repo
    */
-  private def pullImage(name: String): Unit = {
-    docker.images.pull(name).stream {
+  private def pullImage(name: String, dialect: Map[Any, Any]): Unit = {
+    docker.images.pull(name, dialect).stream {
       case Pull.Status(msg) => logger.debug(s"[DEPLOY] pulling image $name: $msg")
       case Pull.Progress(msg, _, details) =>
         logger.debug(s"[DEPLOY] pulling image $name: $msg")
@@ -187,10 +191,10 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    * Create a docker container (without starting it)
    * Tries to set the cpu shares & memory based on the supplied scale
    */
-  private def createDockerContainer(containerName: String, dockerImageName: String, env: Map[String, String], ports: List[DockerPortMapping]): Future[Response] = async {
+  private def createDockerContainer(dialect: Map[Any, Any], containerName: String, dockerImageName: String, env: Map[String, String], ports: List[DockerPortMapping]): Future[Response] = async {
     logger.debug(s"createDockerContainer :$containerName")
 
-    var containerPrep = docker.containers.create(dockerImageName).name(containerName).hostName(defaultHost)
+    var containerPrep = docker.containers.create(dockerImageName, dialect).name(containerName).hostName(defaultHost)
 
     for (v <- env) {
       logger.trace(s"[CreateDockerContainer] setting env ${v._1} = ${v._2}")
@@ -209,7 +213,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
   /**
    * Start the container
    */
-  private def startDockerContainer(id: Future[String], ports: List[DockerPortMapping], serviceScale: Option[DefaultScale]): Future[_] = async {
+  private def startDockerContainer(dialect: Map[Any, Any], id: Future[String], ports: List[DockerPortMapping], serviceScale: Option[DefaultScale]): Future[_] = async {
     // Configure the container for starting
 
     id.onFailure { case ex =>
@@ -217,7 +221,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
       logger.trace(s"${ex.getStackTrace.mkString("\n")}")
     }
 
-    var startPrep = docker.containers.get(await(id)).start
+    var startPrep = docker.containers.get(await(id)).start(dialect)
 
 
     for (port <- ports) {
