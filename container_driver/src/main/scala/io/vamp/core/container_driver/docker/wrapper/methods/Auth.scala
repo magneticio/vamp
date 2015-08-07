@@ -13,8 +13,6 @@ trait Auth extends Util {
   case class Auth(authConfig: AuthConfig) extends Docker.Completion[Unit] {
 
     def apply[T](handler: Docker.Handler[T]) =
-      request(addContentType(host / "auth") << authConfig.json)(handler)
+      request(addContentType(host / "auth") << authConfig.json())(handler)
   }
-
-
 }
