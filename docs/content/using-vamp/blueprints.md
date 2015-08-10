@@ -21,7 +21,7 @@ Blueprints allow you to add the following extra properties:
 
 
 This example shows some of the key concepts of of blueprints:
- 
+
 ```yaml
 ---
 name: my_cool_blueprint # custom blueprint name
@@ -50,7 +50,7 @@ clusters:
         breed: some_other_breed
         scale: large # Notice we used a reference to a "scale". More on this later
 
-    # SLA (reference) defined on cluster level. 
+    # SLA (reference) defined on cluster level.
     sla: some_really_good_sla
 ```
 
@@ -65,13 +65,13 @@ Please take care of setting the `/tcp` (default) or `/http` type for the port. U
 ## Clusters & Services
 
 In essence, blueprints define a collection of clusters.
-In turn, a cluster is a group of different services which 
+In turn, a cluster is a group of different services which
 will appear as a single service serve a single purposes.
 
-Common use cases are service A and B in an A/B testing scenario - usually just different 
+Common use cases are service A and B in an A/B testing scenario - usually just different
 versions of the same service (e.g. canary release or blue/green deployment).
 
-As said, clusters are configured by defining an array of services. A cluster can be 
+As said, clusters are configured by defining an array of services. A cluster can be
 given an arbitrary name. Services are just lists or arrays of breeds.
 
 ```yaml
@@ -81,13 +81,13 @@ my_cool_cluster
    - breed: my_cool_service_A   # reference to an existing breed
    -
      breed:           # shortened inline breed
-       name: my_cool_service_B  
+       name: my_cool_service_B
        deployable: some_container
        ...
 ```
 Clusters and services are just organisational items. Vamp uses them to order, reference and control the actual containers and routing and traffic.
 
-> **This all seems redundant, right?** We have a reference chain of blueprints -> endpoints -> clusters -> services -> breeds -> containers. However, you need this level of control and granularity in any serious environment where DRY principles are taken seriously and where "one size fits all" doesn't fly.
+> **This all seems redundant, right?** We have a reference chain of blueprints -> endpoints -> clusters -> services -> breeds -> deployable. However, you need this level of control and granularity in any serious environment where DRY principles are taken seriously and where "one size fits all" doesn't fly.
 
 
 ## Dialects
@@ -106,22 +106,22 @@ clusters:
         name: busybox
         deployable: registry.magnetic.io/busybox:latest
       marathon:
-       cmd: "top"      
+       cmd: "top"
        uris:
          -
            "https://some_host/some_path/some_file_with_docker_credentials"
        labels:
          environment: "staging"
          owner: "buffy the vamp slayer"
-       container:  
+       container:
          volumes:
            -
              containerPath: "/tmp/"
              hostPath: "/tmp/"
              mode: "RW"
       scale:
-        cpu: 0.1       
-        memory: 256  
+        cpu: 0.1
+        memory: 256
         instances: 1
 
 ```
