@@ -17,7 +17,7 @@ Blueprints allow you to add the following extra properties:
 - **scale:** the CPU and memory and the amount of instance allocate to a service.
 - **routing:** how much and which traffic the service should receive.
 - **filter:** how traffic should be directed based on HTTP and/or TCP properties.
-- **sla:** and SLA definition that controls autoscaling.
+- **sla:** SLA definition that controls autoscaling.
 
 
 This example shows some of the key concepts of of blueprints:
