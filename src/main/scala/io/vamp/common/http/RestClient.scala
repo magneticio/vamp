@@ -1,5 +1,6 @@
 package io.vamp.common.http
 
+import com.ning.http.client.{AsyncCompletionHandler, Response}
 import com.typesafe.scalalogging.Logger
 import dispatch._
 import org.json4s._
@@ -55,22 +56,23 @@ object RestClient {
         requestWithHeaders
     }
 
-    if (classTag[A].runtimeClass == classOf[Nothing]) {
-      Http(requestWithBody OK as.String).map { string =>
-        logger.trace(s"rsp [${method.toString} $url] - $string")
-        string.asInstanceOf[A]
+    Http(requestWithBody.toRequest -> new AsyncCompletionHandler[A] {
+      def onCompleted(response: Response) = response.getStatusCode match {
+        case status if status / 100 == 2 && classTag[A].runtimeClass == classOf[String] =>
+          val body = response.getResponseBody
+          logger.trace(s"rsp [${method.toString} $url] - $body")
+          body.asInstanceOf[A]
+
+        case status if status / 100 == 2 =>
+          val json = dispatch.as.json4s.Json(response)
+          logger.trace(s"rsp [${method.toString} $url] - ${compact(render(json))}")
+          json.extract[A](formats, mf)
+
+        case status =>
+          logger.trace(s"Unexpected status code: $status, for response: ${response.getResponseBody}")
+          throw StatusCode(status)
       }
-    } else if (classTag[A].runtimeClass == classOf[String]) {
-      Http(requestWithBody OK as.String).map { string =>
-        logger.trace(s"rsp [${method.toString} $url] - $string")
-        string.asInstanceOf[A]
-      }
-    } else {
-      Http(requestWithBody OK dispatch.as.json4s.Json).map { json =>
-        logger.trace(s"rsp [${method.toString} $url] - ${compact(render(json))}")
-        json.extract[A](formats, mf)
-      }
-    }
+    })
   }
 
   private def bodyAsString(body: Any)(implicit formats: Formats): Option[String] = body match {
