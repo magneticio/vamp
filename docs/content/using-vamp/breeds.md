@@ -150,7 +150,7 @@ clusters:
       uri_path: /v2/api/customers   
 ```
 
-We could even extend this further. What if the backend is configured thru some environment variable, but the frontend also needs that information? Let's say the encoding type for some database.
+We could even extend this further. What if the backend is configured through some environment variable, but the frontend also needs that information? Let's say the encoding type for some database.
 We just reference that environment variable using the exact same syntax:
 
 ```yaml
