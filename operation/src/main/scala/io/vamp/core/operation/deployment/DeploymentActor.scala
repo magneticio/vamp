@@ -26,11 +26,11 @@ object DeploymentActor extends ActorDescription {
 
   trait DeploymentMessages
 
-  case class Create(blueprint: Blueprint, source: String) extends DeploymentMessages
+  case class Create(blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessages
 
-  case class Merge(name: String, blueprint: Blueprint, source: String) extends DeploymentMessages
+  case class Merge(name: String, blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessages
 
-  case class Slice(name: String, blueprint: Blueprint, source: String) extends DeploymentMessages
+  case class Slice(name: String, blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessages
 
   case class UpdateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String) extends DeploymentMessages
 
@@ -50,11 +50,11 @@ class DeploymentActor extends CommonReplyActor with BlueprintSupport with Deploy
 
   def reply(request: Any) = try {
     request match {
-      case Create(blueprint, source) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source))(deploymentFor())
+      case Create(blueprint, source, validateOnly) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source, validateOnly))(deploymentFor())
 
-      case Merge(name, blueprint, source) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source))(deploymentFor(name))
+      case Merge(name, blueprint, source, validateOnly) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source, validateOnly))(deploymentFor(name))
 
-      case Slice(name, blueprint, source) => (slice(deploymentFor(blueprint)) andThen commit(create = false, source))(deploymentFor(name))
+      case Slice(name, blueprint, source, validateOnly) => (slice(deploymentFor(blueprint)) andThen commit(create = false, source, validateOnly))(deploymentFor(name))
 
       case UpdateSla(deployment, cluster, sla, source) => updateSla(deployment, cluster, sla, source)
 
@@ -69,13 +69,16 @@ class DeploymentActor extends CommonReplyActor with BlueprintSupport with Deploy
     case e: Throwable => reportException(InternalServerError(e))
   }
 
-  def commit(create: Boolean, source: String): (Deployment => Deployment) = { (deployment: Deployment) =>
-    implicit val timeout: Timeout = PersistenceActor.timeout
-    offload(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, Some(source), create = create)) match {
-      case persisted: Deployment =>
-        actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
-        persisted
-      case any => throwException(errorRequest(PersistenceOperationFailure(any)))
+  def commit(create: Boolean, source: String, validateOnly: Boolean): (Deployment => Deployment) = { (deployment: Deployment) =>
+    if (validateOnly) deployment
+    else {
+      implicit val timeout: Timeout = PersistenceActor.timeout
+      offload(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, Some(source), create = create)) match {
+        case persisted: Deployment =>
+          actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
+          persisted
+        case any => throwException(errorRequest(PersistenceOperationFailure(any)))
+      }
     }
   }
 }
@@ -172,10 +175,12 @@ trait DeploymentValidator {
   def weightOf(services: List[DeploymentService]) = services.flatMap(_.routing).flatMap(_.weight).sum
 }
 
-trait DeploymentMerger extends DeploymentTraitResolver {
-  this: DeploymentValidator with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
+trait DeploymentOperation {
+  def commit(create: Boolean, source: String, validateOnly: Boolean): (Deployment => Deployment)
+}
 
-  def commit(create: Boolean, source: String): (Deployment => Deployment)
+trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver {
+  this: DeploymentValidator with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
   def validate = { (deployment: Deployment) =>
     validateEnvironmentVariables(deployment, strictBreeds = true)
@@ -361,7 +366,7 @@ trait DeploymentMerger extends DeploymentTraitResolver {
   }
 }
 
-trait DeploymentSlicer {
+trait DeploymentSlicer extends DeploymentOperation {
   this: DeploymentValidator with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
   def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster =>
@@ -370,8 +375,6 @@ trait DeploymentSlicer {
       if (weight != 100 && weight != 0) throwException(InvalidRoutingWeight(deployment, cluster, weight))
     }
   }
-
-  def commit(create: Boolean, source: String): (Deployment => Deployment)
 
   def slice(blueprint: Deployment): (Deployment => Deployment) = { (stable: Deployment) =>
     validateRoutingWeightOfServicesForRemoval(stable, blueprint)

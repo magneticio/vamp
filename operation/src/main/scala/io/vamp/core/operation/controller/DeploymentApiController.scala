@@ -29,23 +29,23 @@ trait DeploymentApiController {
     case any => any
   }
 
-  def createDeployment(request: String)(implicit timeout: Timeout) = DeploymentBlueprintReader.readReferenceFromSource(request) match {
-    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint, request)
+  def createDeployment(request: String, validateOnly: Boolean)(implicit timeout: Timeout) = DeploymentBlueprintReader.readReferenceFromSource(request) match {
+    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint, request, validateOnly)
     case blueprint: DefaultBlueprint =>
-      actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, Some(request), ignoreIfExists = true)
-      actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint, request)
+      if (!validateOnly) actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, Some(request), ignoreIfExists = true)
+      actorFor(DeploymentActor) ? DeploymentActor.Create(blueprint, request, validateOnly)
   }
 
-  def updateDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] = DeploymentBlueprintReader.readReferenceFromSource(request) match {
-    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint, request)
+  def updateDeployment(name: String, request: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = DeploymentBlueprintReader.readReferenceFromSource(request) match {
+    case blueprint: BlueprintReference => actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
     case blueprint: DefaultBlueprint =>
-      actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, Some(request), ignoreIfExists = true)
-      actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint, request)
+      if (!validateOnly) actorFor(PersistenceActor) ? PersistenceActor.Create(blueprint, Some(request), ignoreIfExists = true)
+      actorFor(DeploymentActor) ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
   }
 
-  def deleteDeployment(name: String, request: String)(implicit timeout: Timeout): Future[Any] = {
+  def deleteDeployment(name: String, request: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = {
     if (request.nonEmpty)
-      actorFor(DeploymentActor) ? DeploymentActor.Slice(name, DeploymentBlueprintReader.readReferenceFromSource(request), request)
+      actorFor(DeploymentActor) ? DeploymentActor.Slice(name, DeploymentBlueprintReader.readReferenceFromSource(request), request, validateOnly)
     else
       actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment])
   }

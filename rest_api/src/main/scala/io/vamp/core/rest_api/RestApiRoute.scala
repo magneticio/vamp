@@ -44,7 +44,7 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
                     }
                   } ~ post {
                     entity(as[String]) { request =>
-                      parameters('validate_only.as[Boolean] ? false) { validateOnly =>
+                      validateOnly { validateOnly =>
                         onSuccess(createArtifact(artifact, request, validateOnly)) { result =>
                           respondWith(Created, result)
                         }
@@ -62,7 +62,7 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
                   }
                 } ~ put {
                   entity(as[String]) { request =>
-                    parameters('validate_only.as[Boolean] ? false) { validateOnly =>
+                    validateOnly { validateOnly =>
                       onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result =>
                         respondWith(OK, result)
                       }
@@ -70,7 +70,7 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
                   }
                 } ~ delete {
                   entity(as[String]) { request =>
-                    parameters('validate_only.as[Boolean] ? false) { validateOnly =>
+                    validateOnly { validateOnly =>
                       onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result =>
                         respondWith(NoContent, None)
                       }

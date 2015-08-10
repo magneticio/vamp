@@ -3,10 +3,9 @@ package io.vamp.core.rest_api
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
-import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{CommonSupportForActors, ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.akka.{ActorSupport, CommonSupportForActors, ExecutionContextProvider, FutureSupport}
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact.Deployment
@@ -26,6 +25,8 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
   this: CommonSupportForActors with RestApiBase =>
 
   implicit def timeout: Timeout
+
+  private def asBlueprint = parameters('as_blueprint.as[Boolean] ? false)
 
   private val helperRoutes = pathPrefix("sync") {
     parameters('rate.as[Int] ?) { rate =>
@@ -50,7 +51,7 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
   private val deploymentRoute = pathPrefix("deployments") {
     pathEndOrSingleSlash {
       get {
-        parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
+        asBlueprint { asBlueprint =>
           pageAndPerPage() { (page, perPage) =>
             onSuccess(deployments(asBlueprint)(page, perPage)) { result =>
               respondWith(OK, result)
@@ -59,8 +60,10 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
         }
       } ~ post {
         entity(as[String]) { request =>
-          onSuccess(createDeployment(request)) { result =>
-            respondWith(Accepted, result)
+          validateOnly { validateOnly =>
+            onSuccess(createDeployment(request, validateOnly)) { result =>
+              respondWith(Accepted, result)
+            }
           }
         }
       }
@@ -68,7 +71,7 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
       pathEndOrSingleSlash {
         get {
           rejectEmptyResponse {
-            parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
+            asBlueprint { asBlueprint =>
               onSuccess(deployment(name, asBlueprint)) { result =>
                 respondWith(OK, result)
               }
@@ -76,14 +79,18 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
           }
         } ~ put {
           entity(as[String]) { request =>
-            onSuccess(updateDeployment(name, request)) { result =>
-              respondWith(Accepted, result)
+            validateOnly { validateOnly =>
+              onSuccess(updateDeployment(name, request, validateOnly)) { result =>
+                respondWith(Accepted, result)
+              }
             }
           }
         } ~ delete {
           entity(as[String]) { request =>
-            onSuccess(deleteDeployment(name, request)) { result =>
-              respondWith(Accepted, result)
+            validateOnly { validateOnly =>
+              onSuccess(deleteDeployment(name, request, validateOnly)) { result =>
+                respondWith(Accepted, result)
+              }
             }
           }
         }

@@ -17,14 +17,14 @@ class DeploymentApiContext(implicit scheduledWorkflow: ScheduledWorkflow, ec: Ex
   }
 
   def create(source: Any) = serialize {
-    createDeployment(load(source))
+    createDeployment(load(source), validateOnly = false)
   }
 
   def update(name: String, source: Any) = serialize {
-    updateDeployment(name, load(source))
+    updateDeployment(name, load(source), validateOnly = false)
   }
 
   def delete(name: String, source: Any) = serialize {
-    deleteDeployment(name, load(source))
+    deleteDeployment(name, load(source), validateOnly = false)
   }
 }
