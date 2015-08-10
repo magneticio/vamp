@@ -143,18 +143,53 @@ trait DeploymentValidator {
     deployment
   }
 
-  def validateEnvironmentVariables(blueprint: Blueprint, strictBreeds: Boolean) = blueprint match {
-    case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds)).flatMap {
-      case t => throwException(UnresolvedEnvironmentVariableError(t.name, t.value))
+  def validateBlueprintEnvironmentVariables: (Deployment => Deployment) = { (blueprint: Deployment) =>
+    blueprint match {
+      case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap {
+        case t => throwException(UnresolvedEnvironmentVariableError(t.name, t.value))
+      }
+      case _ =>
     }
-    case _ =>
+    blueprint
   }
 
-  def validateEndpoints(blueprint: Blueprint, strictBreeds: Boolean) = blueprint match {
-    case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds)).flatMap {
-      case t => throwException(UnresolvedEndpointPortError(t.name, t.value))
+  /**
+   * Reference check.
+   *
+   * @return
+   */
+  def validateBlueprintEndpoints: (Deployment => Deployment) = { (blueprint: Deployment) =>
+    blueprint match {
+      case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap {
+        case t => throwException(UnresolvedEndpointPortError(t.name, t.value))
+      }
+      case _ =>
     }
-    case _ =>
+    blueprint
+  }
+
+  /**
+   * Availability check.
+   *
+   * @return
+   */
+  def validateEndpoints: (Deployment => Deployment) = { (deployment: Deployment) =>
+    implicit val timeout = PersistenceActor.timeout
+    offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
+      case deployments: List[_] =>
+        val ports = deployments.asInstanceOf[List[Deployment]].filterNot(_.name == deployment.name).flatMap { d =>
+          d.endpoints.map(_.number -> d)
+        }.toMap
+
+        deployment.endpoints.foreach { port =>
+          ports.get(port.number) match {
+            case Some(d) => throwException(UnavailableEndpointPortError(port, d))
+            case _ =>
+          }
+        }
+      case any => throwException(InternalServerError(any))
+    }
+    deployment
   }
 
   def traitExists(blueprint: AbstractBlueprint, reference: Option[TraitReference], strictBreeds: Boolean): Boolean = reference match {
@@ -182,19 +217,15 @@ trait DeploymentOperation {
 trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver {
   this: DeploymentValidator with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
-  def validate = { (deployment: Deployment) =>
-    validateEnvironmentVariables(deployment, strictBreeds = true)
-    validateEndpoints(deployment, strictBreeds = true)
-    deployment
-  }
+  def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintEndpoints
 
   def resolveProperties = resolveParameters andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
 
-  def validateMerge = validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations
+  def validateMerge = validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations andThen validateEndpoints
 
   def merge(blueprint: Deployment): (Deployment => Deployment) = { (deployment: Deployment) =>
 
-    val attachment = (validate andThen resolveProperties)(blueprint)
+    val attachment = (validateBlueprint andThen resolveProperties)(blueprint)
 
     val clusters = mergeClusters(deployment, attachment)
     val endpoints = mergeTrait(attachment.endpoints, deployment.endpoints)
