@@ -114,7 +114,7 @@ deployable: repo/container:version
 
 environment_variables:
     MY_ENV_VAR1: some_string_value  # hard set
-    MY_ENV_VAR1: ~                  # placeholder
+    MY_ENV_VAR2: ~                  # placeholder
 ```
 
 ### Resolve a reference at deploy time
