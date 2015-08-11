@@ -24,6 +24,8 @@ trait RestApiBase extends HttpServiceBase with RestApiPagination with RestApiMar
 
   protected def validateOnly = parameters('validate_only.as[Boolean] ? false)
 
+  protected def expandShrink = parameters(('expand.as[Boolean] ? false, 'shrink.as[Boolean] ? false))
+
   protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
 
   protected def allowXhrFromOtherHosts = respondWithHeader(RawHeader("Access-Control-Allow-Origin", "*"))
