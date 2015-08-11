@@ -56,7 +56,7 @@ clusters:
 
 ## Endpoints
 
-An endpoint is a "stable" port that almost never changes. It points to the "first" service in your blueprint. This service can of course be changed, but the endpoint port normally doesn't. Under the hood, we do a fairly simple port mapping.
+An endpoint is a "stable" port that almost never changes. When creating the mapping, it uses the definition (my_frontend.port in this case) from the "first" service in the cluster definition you reference. This service can of course be changed, but the endpoint port normally doesn't. Under the hood, we do a fairly simple port mapping.
 
 Please take care of setting the `/tcp` (default) or `/http` type for the port. Using `/http` allows Vamp to records more relevant metrics like response times and metrics.
 
