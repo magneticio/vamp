@@ -58,7 +58,7 @@ object RestClient {
 
     Http(requestWithBody.toRequest -> new AsyncCompletionHandler[A] {
       def onCompleted(response: Response) = response.getStatusCode match {
-        case status if status / 100 == 2 && classTag[A].runtimeClass == classOf[String] =>
+        case status if status / 100 == 2 && (classTag[A].runtimeClass == classOf[Nothing] || classTag[A].runtimeClass == classOf[String]) =>
           val body = response.getResponseBody
           logger.trace(s"rsp [${method.toString} $url] - $body")
           body.asInstanceOf[A]
