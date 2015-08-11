@@ -20,18 +20,21 @@ Vamp needs an OpenJDK or Oracle Java version of 1.8.0_45 or higher. Check the ve
 
 **installing OpenJDK with apt**
 
+This package is generally available on Ubuntu version 14.10 or higher.
+
 ```bash
 sudo apt-get install -y openjdk-8
 ```
 
 **installing Oracle JDK via apt**
 
+If you are using Ubuntu 14.04 or earlier, please use the Oracle installer. You will be prompted to accept the Oracle license agreement.
 
 ```bash
-sudo apt-get install python-software-properties
-sudo add-apt-repository ppa:webupd8team/java
-sudo apt-get update
-sudo apt-get install oracle-java8-installer
+sudo apt-get install -y python-software-properties
+sudo add-apt-repository -y ppa:webupd8team/java
+sudo apt-get -y update
+sudo apt-get install -y oracle-java8-installer
 ```
 
 ### HAproxy 1.5.x
@@ -44,8 +47,6 @@ sudo add-apt-repository -y ppa:vbernat/haproxy-1.5
 sudo apt-get update
 sudo apt-get install -y haproxy
 ```
-
-
 
 ## Add the Vamp APT Repository
 
