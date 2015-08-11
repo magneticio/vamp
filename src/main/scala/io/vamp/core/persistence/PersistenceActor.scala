@@ -8,7 +8,7 @@ import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.NotificationErrorException
-import io.vamp.core.model.artifact.{Artifact, _}
+import io.vamp.core.model.artifact.Artifact
 import io.vamp.core.persistence.notification._
 
 import scala.concurrent.duration._
@@ -30,21 +30,19 @@ object PersistenceActor extends ActorDescription {
 
   case class All(`type`: Class[_ <: Artifact]) extends PersistenceMessages
 
-  case class AllPaginated(`type`: Class[_ <: Artifact], page: Int, perPage: Int) extends PersistenceMessages
+  case class AllPaginated(`type`: Class[_ <: Artifact], page: Int, perPage: Int, expanded: Boolean = false, shrink: Boolean = false) extends PersistenceMessages
 
   case class Create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = true) extends PersistenceMessages
 
-  case class Read(name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
+  case class Read(name: String, `type`: Class[_ <: Artifact], expanded: Boolean = false, shrink: Boolean = false) extends PersistenceMessages
 
   case class Update(artifact: Artifact, source: Option[String] = None, create: Boolean = false) extends PersistenceMessages
 
   case class Delete(name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
 
-  case class ReadExpanded(name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
-
 }
 
-trait PersistenceActor extends ReplyActor with CommonSupportForActors with PersistenceNotificationProvider {
+trait PersistenceActor extends ArtifactExpansion with ReplyActor with CommonSupportForActors with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
@@ -86,13 +84,15 @@ trait PersistenceActor extends ReplyActor with CommonSupportForActors with Persi
 
     case All(ofType) => all(ofType)
 
-    case AllPaginated(ofType, page, perPage) => all(ofType, page, perPage)
+    case AllPaginated(ofType, page, perPage, expanded, shrink) =>
+      val artifacts = all(ofType, page, perPage)
+      if (expanded) artifacts.copy(response = artifacts.response.map(expand)) else artifacts
 
     case Create(artifact, source, ignoreIfExists) => create(artifact, source, ignoreIfExists)
 
-    case Read(name, ofType) => read(name, ofType)
-
-    case ReadExpanded(name, ofType) => readExpanded(name, ofType)
+    case Read(name, ofType, expanded, shrink) =>
+      val artifact = read(name, ofType)
+      if (expanded) expand(artifact) else artifact
 
     case Update(artifact, source, create) => update(artifact, source, create)
 
@@ -104,91 +104,5 @@ trait PersistenceActor extends ReplyActor with CommonSupportForActors with Persi
   protected def start() = {}
 
   protected def shutdown() = {}
-
-  protected def readExpanded(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] =
-    read(name, ofType) match {
-      case Some(deployment: Deployment) => Some(deployment) // Deployments are already fully expanded
-      case Some(blueprint: DefaultBlueprint) => Some(blueprint.copy(clusters = expandClusters(blueprint.clusters)))
-      case Some(breed: DefaultBreed) => Some(breed.copy(dependencies = expandDependencies(breed.dependencies)))
-      case Some(sla: GenericSla) => Some(sla.copy(escalations = expandEscalations(sla.escalations)))
-      case Some(sla: EscalationOnlySla) => Some(sla.copy(escalations = expandEscalations(sla.escalations)))
-      case Some(sla: ResponseTimeSlidingWindowSla) => Some(sla.copy(escalations = expandEscalations(sla.escalations)))
-      case Some(routing: DefaultRouting) => Some(routing.copy(filters = expandFilters(routing.filters)))
-      case Some(escalation: GenericEscalation) => Some(escalation)
-      case Some(filter: DefaultFilter) => Some(filter)
-      case Some(scale: DefaultScale) => Some(scale)
-      case _ => throwException(UnsupportedPersistenceRequest(ofType))
-    }
-
-  private def expandClusters(clusters: List[Cluster]): List[Cluster] =
-    clusters.map(cluster =>
-      cluster.copy(services = expandServices(cluster.services),
-        sla = cluster.sla match {
-          case Some(sla: GenericSla) => Some(sla)
-          case Some(sla: EscalationOnlySla) => Some(sla)
-          case Some(sla: ResponseTimeSlidingWindowSla) => Some(sla)
-          case Some(sla: SlaReference) => read(sla.name, classOf[GenericSla]) match {
-            case Some(slaDefault: GenericSla) => Some(slaDefault.copy(escalations = sla.escalations)) //Copy the escalations from the reference
-            case _ => throwException(ArtifactNotFound(sla.name, classOf[GenericSla]))
-          }
-          case _ => None
-        }
-      )
-    )
-
-  private def expandServices(services: List[Service]): List[Service] =
-    services.map(service =>
-      service.copy(
-        routing = service.routing match {
-          case Some(routing: DefaultRouting) => Some(routing)
-          case Some(routing: RoutingReference) => readExpanded(routing.name, classOf[DefaultRouting]) match {
-            case Some(slaDefault: DefaultRouting) => Some(slaDefault)
-            case _ => throwException(ArtifactNotFound(routing.name, classOf[DefaultRouting]))
-          }
-          case _ => None
-        },
-        scale = service.scale match {
-          case Some(scale: DefaultScale) => Some(scale)
-          case Some(scale: ScaleReference) => readExpanded(scale.name, classOf[DefaultScale]) match {
-            case Some(scaleDefault: DefaultScale) => Some(scaleDefault)
-            case _ => throwException(ArtifactNotFound(scale.name, classOf[DefaultScale]))
-          }
-          case _ => None
-        },
-        breed = replaceBreed(service.breed)
-      )
-    )
-
-  private def replaceBreed(breed: Breed): DefaultBreed = breed match {
-    case defaultBreed: DefaultBreed => defaultBreed
-    case breedReference: BreedReference => readExpanded(breedReference.name, classOf[DefaultBreed]) match {
-      case Some(defaultBreed: DefaultBreed) => defaultBreed
-      case _ => throwException(ArtifactNotFound(breedReference.name, classOf[DefaultBreed]))
-    }
-    case _ => throwException(ArtifactNotFound(breed.name, classOf[DefaultBreed]))
-  }
-
-  private def expandDependencies(list: Map[String, Breed]): Map[String, Breed] =
-    list.map(item => item._1 -> replaceBreed(item._2))
-
-  private def expandFilters(list: List[Filter]): List[DefaultFilter] =
-    list.map {
-      case referencedArtifact: FilterReference =>
-        read(referencedArtifact.name, classOf[DefaultFilter]) match {
-          case Some(defaultArtifact: DefaultFilter) => defaultArtifact
-          case _ => throwException(ArtifactNotFound(referencedArtifact.name, classOf[DefaultFilter]))
-        }
-      case defaultArtifact: DefaultFilter => defaultArtifact
-    }
-
-  private def expandEscalations(list: List[Escalation]): List[GenericEscalation] =
-    list.map {
-      case referencedArtifact: EscalationReference =>
-        read(referencedArtifact.name, classOf[GenericEscalation]) match {
-          case Some(defaultArtifact: GenericEscalation) => defaultArtifact
-          case _ => throwException(ArtifactNotFound(referencedArtifact.name, classOf[GenericEscalation]))
-        }
-      case defaultArtifact: GenericEscalation => defaultArtifact
-    }
 }
 
