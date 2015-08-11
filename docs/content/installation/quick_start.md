@@ -43,7 +43,7 @@ After some downloading and booting, your Docker log should say something like:
 ...Bound to /0.0.0.0:8080
 ```
 
-Now check if Vamp is home on `http://boot2docker_ip:8080/` and proceed to our [getting started tutorial](/documentation/guides/getting-started-tutorial/)
+Now check if Vamp is home on `http://boot2docker_ip:8080/` and proceed to our [getting started tutorial](/documentation/guides/)
 
 ![](/img/screenshots/vamp_ui_home.gif)
 
