@@ -3,12 +3,12 @@ package io.vamp.core.operation.sse
 import akka.actor.{ActorRef, Props}
 import io.vamp.common.akka.{ActorDescription, CommonSupportForActors}
 import io.vamp.common.http.SseDirectives.SseMessage
+import io.vamp.common.json.{OffsetDateTimeSerializer, SerializationFormat}
 import io.vamp.core.model.event.Event
 import io.vamp.core.operation.notification.OperationNotificationProvider
 import io.vamp.core.operation.sse.EventSteamingActor.{Channel, CloseStream, OpenStream}
 import io.vamp.core.pulse.Percolator.{RegisterPercolator, UnregisterPercolator}
 import io.vamp.core.pulse.PulseActor
-import org.json4s.DefaultFormats
 import org.json4s.native.Serialization._
 
 object EventSteamingActor extends ActorDescription {
@@ -42,7 +42,7 @@ class EventSteamingActor extends CommonSupportForActors with OperationNotificati
       actorFor(SseConsumerActor) ! action
 
     case (Channel(channel), event: Event) =>
-      channel ! SseMessage(Some(event.`type`), write(event)(DefaultFormats))
+      channel ! SseMessage(Some(event.`type`), write(event)(SerializationFormat(OffsetDateTimeSerializer)))
 
     case _ =>
   }
