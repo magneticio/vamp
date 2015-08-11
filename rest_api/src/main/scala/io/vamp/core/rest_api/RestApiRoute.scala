@@ -38,8 +38,10 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
                 pathEndOrSingleSlash {
                   get {
                     pageAndPerPage() { (page, perPage) =>
-                      onSuccess(allArtifacts(artifact)(page, perPage)) { result =>
-                        respondWith(OK, result)
+                      expandShrink { (expand, shrink) =>
+                        onSuccess(allArtifacts(artifact, expand, shrink)(page, perPage)) { result =>
+                          respondWith(OK, result)
+                        }
                       }
                     }
                   } ~ post {
@@ -56,8 +58,10 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
               pathEndOrSingleSlash {
                 get {
                   rejectEmptyResponse {
-                    onSuccess(readArtifact(artifact, name)) { result =>
-                      respondWith(OK, result)
+                    expandShrink { (expand, shrink) =>
+                      onSuccess(readArtifact(artifact, name, expand, shrink)) { result =>
+                        respondWith(OK, result)
+                      }
                     }
                   }
                 } ~ put {
