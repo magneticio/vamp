@@ -436,4 +436,10 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'environmentVariables(Nil)
     )
   }
+
+  it should "not allow blueprint with no service" in {
+    expectedError[NoServiceError.type]({
+      BlueprintReader.read(res("blueprint/blueprint49.yml"))
+    })
+  }
 }

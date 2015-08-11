@@ -104,6 +104,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       validateBlueprintTraitValues(blueprint)
       validateRoutingWeights(blueprint)
 
+      if (blueprint.clusters.flatMap(_.services).count(_ => true) == 0) throwException(NoServiceError)
+
       val breeds = blueprint.clusters.flatMap(_.services.map(_.breed))
       validateBreeds(breeds)
       validateDependencies(breeds)

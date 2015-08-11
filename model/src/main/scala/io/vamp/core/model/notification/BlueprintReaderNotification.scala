@@ -16,3 +16,5 @@ case class RoutingWeightError(cluster: AbstractCluster) extends Notification
 case class UnresolvedScaleEscalationTargetCluster(cluster: AbstractCluster, target: String) extends Notification
 
 case class NotificationMessageNotRestored(message: String) extends Notification
+
+object NoServiceError extends Notification
