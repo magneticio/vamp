@@ -61,3 +61,14 @@ trait ArtifactExpansion {
     case defaultArtifact if defaultArtifact.getClass == classTag[D].runtimeClass => defaultArtifact.asInstanceOf[D]
   }
 }
+
+trait ArtifactShrinkage {
+  this: NotificationProvider =>
+
+  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
+
+  protected def shrink(artifact: Option[Artifact]): Option[Artifact] = artifact.flatMap(a => Some(shrink(a)))
+
+  // TODO
+  protected def shrink(artifact: Artifact): Artifact = artifact
+}

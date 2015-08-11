@@ -30,11 +30,11 @@ object PersistenceActor extends ActorDescription {
 
   case class All(`type`: Class[_ <: Artifact]) extends PersistenceMessages
 
-  case class AllPaginated(`type`: Class[_ <: Artifact], page: Int, perPage: Int, expanded: Boolean = false, shrink: Boolean = false) extends PersistenceMessages
+  case class AllPaginated(`type`: Class[_ <: Artifact], page: Int, perPage: Int, expanded: Boolean = false, shrank: Boolean = false) extends PersistenceMessages
 
   case class Create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = true) extends PersistenceMessages
 
-  case class Read(name: String, `type`: Class[_ <: Artifact], expanded: Boolean = false, shrink: Boolean = false) extends PersistenceMessages
+  case class Read(name: String, `type`: Class[_ <: Artifact], expanded: Boolean = false, shrank: Boolean = false) extends PersistenceMessages
 
   case class Update(artifact: Artifact, source: Option[String] = None, create: Boolean = false) extends PersistenceMessages
 
@@ -42,7 +42,7 @@ object PersistenceActor extends ActorDescription {
 
 }
 
-trait PersistenceActor extends ArtifactExpansion with ReplyActor with CommonSupportForActors with PersistenceNotificationProvider {
+trait PersistenceActor extends ArtifactExpansion with ArtifactShrinkage with ReplyActor with CommonSupportForActors with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
@@ -84,15 +84,25 @@ trait PersistenceActor extends ArtifactExpansion with ReplyActor with CommonSupp
 
     case All(ofType) => all(ofType)
 
-    case AllPaginated(ofType, page, perPage, expanded, shrink) =>
-      val artifacts = all(ofType, page, perPage)
-      if (expanded) artifacts.copy(response = artifacts.response.map(expand)) else artifacts
+    case AllPaginated(ofType, page, perPage, expanded, shrank) => (expanded, shrank) match {
+      case (true, false) =>
+        val artifacts = all(ofType, page, perPage)
+        artifacts.copy(response = artifacts.response.map(expand))
+
+      case (false, true) =>
+        val artifacts = all(ofType, page, perPage)
+        artifacts.copy(response = artifacts.response.map(shrink))
+
+      case _ => all(ofType, page, perPage)
+    }
 
     case Create(artifact, source, ignoreIfExists) => create(artifact, source, ignoreIfExists)
 
-    case Read(name, ofType, expanded, shrink) =>
-      val artifact = read(name, ofType)
-      if (expanded) expand(artifact) else artifact
+    case Read(name, ofType, expanded, shrank) => (expanded, shrank) match {
+      case (true, false) => expand(read(name, ofType))
+      case (false, true) => shrink(read(name, ofType))
+      case _ => read(name, ofType)
+    }
 
     case Update(artifact, source, create) => update(artifact, source, create)
 
