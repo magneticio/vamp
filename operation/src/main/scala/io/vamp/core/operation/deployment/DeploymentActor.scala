@@ -146,7 +146,7 @@ trait DeploymentValidator {
   def validateBlueprintEnvironmentVariables: (Deployment => Deployment) = { (blueprint: Deployment) =>
     blueprint match {
       case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap {
-        case t => throwException(UnresolvedEnvironmentVariableError(t.name, t.value))
+        case t => throwException(UnresolvedEnvironmentVariableError(t.name, t.value.getOrElse("")))
       }
       case _ =>
     }
@@ -373,7 +373,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
         })
 
         service.breed.environmentVariables.filter(_.value.isEmpty).map(environmentVariable => {
-          val name = TraitReference(cluster.name, TraitReference.Ports, environmentVariable.name).toString
+          val name = TraitReference(cluster.name, TraitReference.EnvironmentVariables, environmentVariable.name).toString
           deployment.environmentVariables.find(_.name == name).getOrElse(throwException(UnresolvedVariableValueError(service.breed, environmentVariable.name)))
         })
       })
