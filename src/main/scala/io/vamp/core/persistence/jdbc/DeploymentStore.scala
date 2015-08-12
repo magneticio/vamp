@@ -172,6 +172,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
     services.map(service =>
       DeploymentService(state = deploymentService2deploymentState(service),
         breed = defaultBreedModel2DefaultBreedArtifact(DefaultBreeds.findByName(BreedReferences.findById(service.breed).name, service.deploymentId)),
+        environmentVariables = Nil,
         scale = service.scale flatMap { scale => Some(defaultScaleModel2Artifact(DefaultScales.findByName(ScaleReferences.findById(scale).name, service.deploymentId))) },
         routing = service.routing flatMap { routing => Some(defaultRoutingModel2Artifact(DefaultRoutings.findByName(RoutingReferences.findById(routing).name, service.deploymentId))) },
         servers = deploymentServerModels2Artifacts(service.servers),
