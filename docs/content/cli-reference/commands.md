@@ -167,8 +167,8 @@ Shows the details of the specified artifact
 
 | Parameter | purpose |
 |-----------|---------|
-| --as_blueprint | Returns a blueprint (only for inspect deployment) [Optional]|
-| --json    |  Output Json instead of Yaml [Optional]|
+`--as_blueprint` | Returns a blueprint (only for inspect deployment) [Optional]|
+`--json`    |  Output Json instead of Yaml [Optional]|
 
 ### Example
 ```bash
@@ -201,14 +201,13 @@ a1e2a68b-295f-4c9b-bec5-64158d84cd00    sava, backend1, backend2
 Merges a blueprint with an existing deployment or blueprint.
 Either specify a deployment or blueprint in which the blueprint should be merged
 The blueprint can be specified by NAME, read from the specified filename or read from stdin.
+
+**Usage:** `vamp merge --deployment|--blueprint [NAME] [--file|--stdin]` 
       
 | Parameter | purpose |
 |-----------|---------|
 `--file`     | Name of the yaml file [Optional]
 `--stdin`    | Read file from stdin [Optional]
-
-
-**Usage:** `vamp merge --deployment|--blueprint [NAME] [--file|--stdin]` 
 
 ### Example
 ```bash
