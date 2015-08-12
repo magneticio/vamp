@@ -25,7 +25,7 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
       }).toList
     }
 
-    Deployment(name, clusters, ports("endpoints", addGroup = true), ports(addGroup = true), environmentVariables, constants(addGroup = true), hosts())
+    Deployment(name, clusters, ports("endpoints", addGroup = true), ports(addGroup = true), environmentVariables, hosts())
   }
 
   private def environmentVariables(implicit source: YamlObject): List[EnvironmentVariable] = <<?[Any]("environment_variables") match {

@@ -348,7 +348,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
       case _ => true
     })
 
-    deployment.copy(endpoints = purge(deployment.endpoints), ports = purge(deployment.ports), environmentVariables = purge(deployment.environmentVariables), constants = purge(deployment.constants), hosts = purge(deployment.hosts))
+    deployment.copy(endpoints = purge(deployment.endpoints), ports = purge(deployment.ports), environmentVariables = purge(deployment.environmentVariables), hosts = purge(deployment.hosts))
   }
 
   private def updateEndpoints(remove: List[DeploymentCluster], routes: List[EndpointRoute]): (Deployment => Deployment) = { deployment: Deployment =>

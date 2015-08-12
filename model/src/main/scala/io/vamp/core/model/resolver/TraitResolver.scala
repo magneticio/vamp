@@ -87,7 +87,7 @@ trait DeploymentTraitResolver extends TraitResolver {
     case ref: HostReference => deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value)
     case ref: LocalReference if ref.name == s"$marker" => Some(s"$marker")
     case ref: LocalReference =>
-      (deployment.environmentVariables ++ deployment.constants).find(tr => TraitReference.referenceFor(tr.name).exists(r => r.cluster == cluster.name && r.name == ref.name)).flatMap(_.value)
+      deployment.environmentVariables.find(tr => TraitReference.referenceFor(tr.name).exists(r => r.cluster == cluster.name && r.name == ref.name)).flatMap(_.value)
     case ref => None
   }) getOrElse ""
 }

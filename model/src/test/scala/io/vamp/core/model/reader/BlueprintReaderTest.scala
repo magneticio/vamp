@@ -248,7 +248,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       BlueprintReader.read(res("blueprint/blueprint27.yml"))
     }) should have(
       'name("omega.port"),
-      'value(Some("8080"))
+      'value("8080")
     )
   }
 
@@ -257,7 +257,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       BlueprintReader.read(res("blueprint/blueprint28.yml"))
     }) should have(
       'name("supersonic.port"),
-      'value(Some("8080"))
+      'value("8080")
     )
   }
 
@@ -266,7 +266,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       BlueprintReader.read(res("blueprint/blueprint29.yml"))
     }) should have(
       'name("supersonic.http"),
-      'value(Some("8080"))
+      'value("8080")
     )
   }
 
@@ -275,7 +275,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       BlueprintReader.read(res("blueprint/blueprint30.yml"))
     }) should have(
       'name("supersonic.port"),
-      'value(Some("8080"))
+      'value("8080")
     )
   }
 
