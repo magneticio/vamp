@@ -137,10 +137,14 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
 trait DefaultRouterDriverNameMatcher {
 
   val nameDelimiter = "_"
-  val idMatcher = """^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]{3,64}$""".r
+  val idMatcher = """^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]{3,63}$""".r
 
-  def clusterRouteName(deployment: Deployment, cluster: DeploymentCluster, port: Port): String =
-    s"${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(cluster)}$nameDelimiter${port.number}"
+  def clusterRouteName(deployment: Deployment, cluster: DeploymentCluster, port: Port): String = {
+    val id = s"${deployment.name}$nameDelimiter${cluster.name}$nameDelimiter${port.number}"
+    val hashId = string2Id(id)
+
+    if (hashId == id) id else s"${id.substring(0, 8)}$nameDelimiter$hashId"
+  }
 
   def endpointRouteName(deployment: Deployment, port: Port): String =
     s"${artifactName2Id(deployment)}$nameDelimiter${port.number}"
