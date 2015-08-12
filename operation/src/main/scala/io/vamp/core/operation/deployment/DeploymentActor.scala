@@ -227,7 +227,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
   def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintEndpoints
 
-  def resolveProperties = resolveHosts andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
+  def resolveProperties = resolveParameters andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
 
   def validateMerge = validateServices andThen validateRoutingWeights andThen validateScaleEscalations andThen validateEndpoints
 
@@ -329,14 +329,21 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     else Nil
   }
 
-  def resolveHosts: (Deployment => Deployment) = { (deployment: Deployment) =>
+  def resolveParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
+    val clusters = deployment.clusters.map { cluster =>
+      cluster.copy(services = cluster.services.map { service =>
+        service.copy(environmentVariables = (service.breed.environmentVariables ++ service.environmentVariables).map(ev => ev.name -> ev).toMap.values.map(ev => ev.copy(alias = None)).toList)
+      })
+    }
+
     implicit val timeout = DictionaryActor.timeout
     val host = offload(actorFor(DictionaryActor) ? DictionaryActor.Get(DictionaryActor.hostResolver)) match {
       case h: String => h
       case e => throwException(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
     }
+    val hosts = deployment.clusters.map(cluster => Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(host)))
 
-    deployment.copy(hosts = deployment.clusters.map(cluster => Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(host))))
+    deployment.copy(clusters = clusters, hosts = hosts)
   }
 
   def resolveRouteMapping: (Deployment => Deployment) = { (deployment: Deployment) =>

@@ -11,8 +11,14 @@ object DeploymentConversion {
 class DeploymentConversion(val deployment: Deployment) {
 
   def asBlueprint: DefaultBlueprint = {
+    def purgeEnvironmentVariables(cluster: DeploymentCluster, service: DeploymentService) = service.environmentVariables.filter { ev =>
+      val dev = deployment.environmentVariables.find(v => v.name == TraitReference(cluster.name, TraitReference.EnvironmentVariables, ev.name).reference).getOrElse(ev)
+      val bev = service.breed.environmentVariables.find(v => v.name == ev.name).getOrElse(ev)
+      dev.value != ev.value && bev.value != ev.value
+    }
+
     val clusters = deployment.clusters.map(cluster => {
-      Cluster(cluster.name, cluster.services.map(service => Service(service.breed, service.environmentVariables, service.scale, service.routing, service.dialects)), cluster.sla, cluster.dialects)
+      Cluster(cluster.name, cluster.services.map(service => Service(service.breed, purgeEnvironmentVariables(cluster, service), service.scale, service.routing, service.dialects)), cluster.sla, cluster.dialects)
     })
 
     val environmentVariables = deployment.environmentVariables.filter { ev =>
