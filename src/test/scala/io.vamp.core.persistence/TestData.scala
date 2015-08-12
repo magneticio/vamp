@@ -208,7 +208,6 @@ object TestData {
     endpoints = List.empty,
     environmentVariables = List(myParameter5, myParameter6),
     ports = List.empty,
-    constants = List.empty,
     hosts = List.empty
   )
 
@@ -239,10 +238,6 @@ object TestData {
     endpoints = List(myEndpointPort5, myEndpointPort6),
     environmentVariables = List.empty,
     ports = List(myEndpointPort5, myEndpointPort6),
-    constants = List(
-      Constant(name = "MY_CONST", alias = None, value = Some("DNC")),
-      Constant(name = "Some", alias = None, value = Some("other"))
-    ),
     hosts = List(
       Host(name = "abc", value = Some("alpha.bravo.charlie")),
       Host(name = "def", value = Some("delta.echo.foxtrot"))
@@ -263,7 +258,6 @@ object TestData {
     endpoints = List.empty,
     environmentVariables = List.empty,
     ports = List.empty,
-    constants = List.empty,
     hosts = List.empty
   )
 
@@ -282,10 +276,6 @@ object TestData {
     ports = List(
       Port(name = "some port", alias = Option("HTTP"), value = Option("INVALID/http")),
       Port(name = "port21", alias = Option("FTP"), value = Option("21/tcp"))
-    ),
-    constants = List(
-      Constant(name = "Not changed", alias = None, value = Some("in a while")),
-      Constant(name = "Still the same", alias = None, value = Some("value"))
     ),
     hosts = List(
       Host(name = "ghi", value = Some("golf.hotel.lima")),

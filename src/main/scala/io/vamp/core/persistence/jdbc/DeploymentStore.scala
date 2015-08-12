@@ -149,7 +149,6 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
         endpoints = readPortsToArtifactList(deployment.endpoints),
         environmentVariables = deployment.environmentVariables.map(e => environmentVariableModel2Artifact(e)),
         hosts = deployment.hosts.map(h => hostModel2Artifact(h)),
-        constants = deployment.constants.map(c => modelConstants2Artifact(c)),
         ports = readPortsToArtifactList(deployment.ports)
       )
     )
@@ -223,7 +222,6 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
     createDeploymentClusters(deployment.clusters, Some(deploymentId))
     createPorts(deployment.endpoints, Some(deploymentId), Some(PortParentType.DeploymentEndPoint))
     createEnvironmentVariables(deployment.environmentVariables, EnvironmentVariableParentType.Deployment, deploymentId, Some(deploymentId))
-    createConstants(deployment.constants, parentId = Some(deploymentId), parentType = ConstantParentType.Deployment)
     for (host <- deployment.hosts) DeploymentHosts.add(HostModel(name = host.name, value = host.value, deploymentId = Some(deploymentId)))
     createPorts(deployment.ports, Some(deploymentId), Some(PortParentType.DeploymentPort))
   }
