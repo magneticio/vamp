@@ -57,6 +57,7 @@ vamp deploy --deployment $DEPLOYMENT --stdin
 ```
 
 Or even shorter, just use the target deployment as the basis for your new deployment. There is no need for the merge in this situation:
+
 * get a blueprint from a running deployment with `inspect` and `--as-blueprint`
 * generate a new blueprint with `generate` while inserting a new breed
 * deploying the result with `deploy`
