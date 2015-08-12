@@ -35,8 +35,8 @@ Create an artifact read from the specified filename or read from stdin.
 
 Parameter | purpose
 ----------|--------
-  --file        |       Name of the yaml file [Optional]
- --stdin        |      Read file from stdin [Optional]
+`--file`        |       Name of the yaml file [Optional]
+`--stdin`        |      Read file from stdin [Optional]
   
 ### Example
 ```bash
@@ -54,9 +54,9 @@ Deploys a blueprint
 
 Parameter | purpose
 ----------|--------
-  --file      |         Name of the yaml file [Optional]
-  --stdin     |         Read file from stdin [Optional]
-  --deployment|         Name of the deployment to update [Optional]
+`--file`      |         Name of the yaml file [Optional]
+`--stdin`     |         Read file from stdin [Optional]
+`--deployment`|         Name of the deployment to update [Optional]
 
 ### Example
 ```bash
@@ -70,23 +70,23 @@ Generates an artifact
 
 | Parameter | purpose |
 |-----------|---------|
-  --file    |           Name of the yaml file to preload the generation [Optional]
-  --stdin   |           Read file from stdin [Optional]
+`--file`    |           Name of the yaml file to preload the generation [Optional]
+`--stdin`   |           Read file from stdin [Optional]
 
 For 'generate breed':
 
 | Parameter | purpose |
 |-----------|---------|
-  --deployable  |       Deployable specification [Optional]
+`--deployable`  |       Deployable specification [Optional]
 
 For 'generate blueprint':
 
 | Parameter | purpose |
 |-----------|---------|
-  --cluster   |         Name of the cluster
-  --breed     |         Name of the breed   [Optional, requires --cluster]
-  --routing   |         Name of the routing [Optional, requires --breed]
-  --scale     |         Name of the scale   [Optional, requires --breed]
+`--cluster`   |         Name of the cluster
+`--breed`     |         Name of the breed   [Optional, requires --cluster]
+`--routing`   |         Name of the routing [Optional, requires --breed]
+`--scale`     |         Name of the scale   [Optional, requires --breed]
 
 ### Example
 ```bash
@@ -204,8 +204,8 @@ The blueprint can be specified by NAME, read from the specified filename or read
       
 | Parameter | purpose |
 |-----------|---------|
- --file     | Name of the yaml file [Optional]
- --stdin    | Read file from stdin [Optional]
+`--file`     | Name of the yaml file [Optional]
+`--stdin`    | Read file from stdin [Optional]
 
 
 **Usage:** `vamp merge --deployment|--blueprint [NAME] [--file|--stdin]` 
@@ -245,8 +245,8 @@ Updates an existing artifact read from the specified filename or read from stdin
 
 Parameter | purpose
 ----------|--------
- --file   |       Name of the yaml file [Optional]
- --stdin  |      Read file from stdin [Optional]
+`--file`   |       Name of the yaml file [Optional]
+`--stdin`  |      Read file from stdin [Optional]
 
 ## Version
 
