@@ -121,6 +121,7 @@ trait BlueprintStore extends BreedStore with ScaleStore with RoutingStore with S
   private def findServicesArtifacts(services: List[ServiceModel], deploymentId: Option[Int]): List[Service] = services.map(service =>
     Service(
       breed = findBreedArtifactViaReferenceId(service.breedReferenceId, deploymentId),
+      environmentVariables = Nil,
       scale = findOptionScaleArtifactViaReferenceName(service.scaleReference, deploymentId),
       routing = findOptionRoutingArtifactViaReference(service.routingReference, deploymentId),
       dialects = DialectSerializer.deserialize(service.dialects)

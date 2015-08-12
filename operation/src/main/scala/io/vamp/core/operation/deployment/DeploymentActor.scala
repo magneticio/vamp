@@ -97,7 +97,7 @@ trait BlueprintSupport {
 
     val clusters = bp.clusters.map { cluster =>
       DeploymentCluster(cluster.name, cluster.services.map { service =>
-        DeploymentService(ReadyForDeployment(), artifactFor[DefaultBreed](service.breed), artifactFor[DefaultScale](service.scale), artifactFor[DefaultRouting](service.routing), Nil, Map(), service.dialects)
+        DeploymentService(ReadyForDeployment(), artifactFor[DefaultBreed](service.breed), service.environmentVariables, artifactFor[DefaultScale](service.scale), artifactFor[DefaultRouting](service.routing), Nil, Map(), service.dialects)
       }, cluster.sla, Map(), cluster.dialects)
     }
 
@@ -109,8 +109,10 @@ trait DeploymentValidator {
 
   this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
-  def validateBreeds: (Deployment => Deployment) = { (deployment: Deployment) =>
-    val breeds = deployment.clusters.flatMap(_.services).filterNot(_.state.isInstanceOf[ReadyForUndeployment]).map(_.breed)
+  def validateServices: (Deployment => Deployment) = { (deployment: Deployment) =>
+    val services = deployment.clusters.flatMap(_.services).filterNot(_.state.isInstanceOf[ReadyForUndeployment])
+
+    val breeds = services.map(_.breed)
 
     breeds.groupBy(_.name.toString).collect {
       case (name, list) if list.size > 1 => throwException(NonUniqueBreedReferenceError(list.head))
@@ -124,6 +126,12 @@ trait DeploymentValidator {
     }
 
     breeds.foreach(BreedReader.validateNonRecursiveDependencies)
+
+    services.foreach { service =>
+      service.environmentVariables.foreach { environmentVariable =>
+        if (!service.breed.environmentVariables.exists(_.name == environmentVariable.name)) throwException(UnresolvedDependencyInTraitValueError(service.breed, environmentVariable.name))
+      }
+    }
 
     deployment
   }
@@ -221,7 +229,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
   def resolveProperties = resolveHosts andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
 
-  def validateMerge = validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations andThen validateEndpoints
+  def validateMerge = validateServices andThen validateRoutingWeights andThen validateScaleEscalations andThen validateEndpoints
 
   def merge(blueprint: Deployment): (Deployment => Deployment) = { (deployment: Deployment) =>
 
@@ -327,7 +335,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
       case h: String => h
       case e => throwException(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
     }
-    
+
     deployment.copy(hosts = deployment.clusters.map(cluster => Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(host))))
   }
 
@@ -393,7 +401,7 @@ trait DeploymentSlicer extends DeploymentOperation {
   def slice(blueprint: Deployment): (Deployment => Deployment) = { (stable: Deployment) =>
     validateRoutingWeightOfServicesForRemoval(stable, blueprint)
 
-    (validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster =>
+    (validateServices andThen validateRoutingWeights andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster =>
       blueprint.clusters.find(_.name == cluster.name) match {
         case None => cluster
         case Some(bpc) => cluster.copy(services = cluster.services.map(service => service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) ReadyForUndeployment() else service.state)))

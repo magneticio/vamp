@@ -46,8 +46,9 @@ class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] wi
   }
 }
 
-class ServiceFieldSerializer extends ArtifactFieldSerializer[AbstractService] with DialectSerializer {
+class ServiceFieldSerializer extends ArtifactFieldSerializer[AbstractService] with DialectSerializer with TraitDecomposer {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
+    case ("environmentVariables", environmentVariables) => Some(("environment_variables", traits(environmentVariables.asInstanceOf[List[Trait]])))
     case ("dialects", dialects) => Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
   }
 }

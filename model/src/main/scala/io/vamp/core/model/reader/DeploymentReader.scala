@@ -45,7 +45,7 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
       case Some(list) => list.map(parseServer(_))
     }
 
-    DeploymentService(state(<<![YamlObject]("state")), breed, scale, routing, servers, dependencies(), dialects)
+    DeploymentService(state(<<![YamlObject]("state")), breed, environmentVariables("environment_variables"), scale, routing, servers, dependencies(), dialects)
   }
 
   private def parseServer(implicit source: YamlObject): DeploymentServer =
