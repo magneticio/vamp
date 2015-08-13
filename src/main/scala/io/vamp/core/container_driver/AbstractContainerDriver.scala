@@ -35,7 +35,7 @@ abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDr
   }
 
   protected def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] =
-    service.environmentVariables.map(ev => ev.name -> ev.interpolated.getOrElse("")).toMap
+    service.environmentVariables.map(ev => ev.alias.getOrElse(ev.name) -> ev.interpolated.getOrElse("")).toMap
 
   protected def validateSchemaSupport(schema: String, enum: Enumeration) = {
     if (!enum.values.exists(en => en.toString.compareToIgnoreCase(schema) == 0))
