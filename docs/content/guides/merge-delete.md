@@ -32,11 +32,11 @@ Is this the same as a blue/green release? Yes, but we like pink better ;o)
 ## Step 2: Prepping our blueprint
 
 The following blueprint describes our more reasonable service topology. Again, this blueprint is completely
-valid by itself. You could just deploy it somewhere separately and not merge it with our over-engineered 
-topology. Notice the following: 
+valid by itself. You could just deploy it somewhere separately and not merge it with our over-engineered
+topology. Notice the following:
 
 - The blueprint only has one backend cluster with one service.
-- The blueprint does not specify and endpoint using the `endpoints` key because we are going to use the endpoint already present and configured in the running deployment.
+- The blueprint does not specify an endpoint using the `endpoints` key because we are going to use the endpoint already present and configured in the running deployment.
 
 {{% copyable %}}
 ```yaml
@@ -49,27 +49,27 @@ clusters:
         name: sava-frontend:1.3.0
         deployable: magneticio/sava-frontend:1.3.0
         ports:
-          port: 8080/http        
+          port: 8080/http
         environment_variables:
           # using alias feature, instead of only "BACKEND: http://..."
           backend[BACKEND]: http://$backend.host:$backend.ports.port/api/message
         dependencies:
           backend: sava-backend:1.3.0
       scale:
-        cpu: 0.2      
-        memory: 256  
-        instances: 1            
+        cpu: 0.2
+        memory: 256
+        instances: 1
   backend:
     services:
       breed:
         name: sava-backend:1.3.0
-        deployable: magneticio/sava-backend:1.3.0         
+        deployable: magneticio/sava-backend:1.3.0
         ports:
           port: 8080/http
       scale:
-        cpu: 0.2      
-        memory: 256  
-        instances: 1            
+        cpu: 0.2
+        memory: 256
+        instances: 1
 ```
 {{% /copyable %}}
 
@@ -85,10 +85,10 @@ the running deployment with a new blueprint.
 
 ## Step 3: Transitioning from blueprints to deployments and back
 
-Moving from the old to the new topology is now just a question of "turning the weight dial". You 
-could do this in one go, or slowly adjust it. The easiest and neatest way is to just update the deployment as you go. 
+Moving from the old to the new topology is now just a question of "turning the weight dial". You
+could do this in one go, or slowly adjust it. The easiest and neatest way is to just update the deployment as you go.
 
-Vamp's API has a convenient option for this: you can export any deployment as a blueprint! By appending `?as_blueprint=true` to any deployment URI, Vamp strips all runtime info and outputs a perfectly valid blueprint of that specific deployment. 
+Vamp's API has a convenient option for this: you can export any deployment as a blueprint! By appending `?as_blueprint=true` to any deployment URI, Vamp strips all runtime info and outputs a perfectly valid blueprint of that specific deployment.
 
 The default output will be in JSON format, but you can also get a YAML format. Just set the header `Accept: application/x-yaml` and Vamp will give you a YAML format blueprint of that deployment.
 
@@ -97,7 +97,7 @@ The default output will be in JSON format, but you can also get a YAML format. J
 
 
 
-In this specific example, we could export the deployment as a blueprint and update the weight to a 50% to 
+In this specific example, we could export the deployment as a blueprint and update the weight to a 50% to
 50% split. Then we could do this again, but with a 80% to 20% split and so on. See the abbreviated example
 below where we set the `weight` keys to `50` in both `routing` sections.
 
@@ -159,7 +159,7 @@ environment_variables:
 
 ## Step 4: Deleting parts of the deployment
 
-Vamp helps you transition between states and avoid "hard" switches, so deleting parts of a deployment is somewhat different than you might expect. 
+Vamp helps you transition between states and avoid "hard" switches, so deleting parts of a deployment is somewhat different than you might expect.
 
 In essence, a delete is just another update of the deployment: you specify what you want to remove using a blueprint and send it to the deployment's URI using the `DELETE`HTTP verb: yes, it is HTTP Delete with a body, not just a URI and some id.
 
@@ -198,7 +198,7 @@ clusters:
     - breed:
         name: sava-frontend:1.3.0
       routing:
-        weight: 100    
+        weight: 100
     - breed:
         name: sava-frontend:1.2.0
       routing:
@@ -250,8 +250,3 @@ New major release of your customer facing app? You probably also have some new d
 release. You create some containers and write up a blueprint that describes this new situation, run it in acceptance and test and what have you. Later, you merge it into your production setup, effectively putting it next to it and then slowly move from the old situation to the new situation, including dependencies.
 
 This is the end of this initial getting started tutorial. We haven't done anything with Vamp's SLA's yet, scaling or dictionary system, so there is much more to come!
-
-
-
-
-
