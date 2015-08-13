@@ -35,24 +35,20 @@ abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDr
   }
 
   protected def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] =
-    service.breed.environmentVariables.map({ ev =>
-      val name = ev.alias.getOrElse(ev.name)
-      val value = deployment.environmentVariables.find(e => TraitReference(cluster.name, TraitReference.EnvironmentVariables, ev.name).toString == e.name).get.interpolated.get
-      name -> value
-    }).toMap
+    service.environmentVariables.map(ev => ev.name -> ev.interpolated.getOrElse("")).toMap
 
   protected def validateSchemaSupport(schema: String, enum: Enumeration) = {
     if (!enum.values.exists(en => en.toString.compareToIgnoreCase(schema) == 0))
       throwException(UnsupportedDeployableSchema(schema, enum.values.map(_.toString.toLowerCase).mkString(", ")))
   }
 
-  protected def mergeWithDialect(deployment: Deployment, cluster: DeploymentCluster, app: Any, dialect: Any)(implicit formats: Formats = DefaultFormats) = {
-    Extraction.decompose(interpolate(deployment, cluster, dialect)) merge Extraction.decompose(app)
+  protected def mergeWithDialect(deployment: Deployment, service: Option[DeploymentService], app: Any, dialect: Any)(implicit formats: Formats = DefaultFormats) = {
+    Extraction.decompose(interpolate(deployment, service, dialect)) merge Extraction.decompose(app)
   }
 
-  private def interpolate(deployment: Deployment, cluster: DeploymentCluster, dialect: Any) = {
+  private def interpolate(deployment: Deployment, service: Option[DeploymentService], dialect: Any) = {
     def visit(any: Any): Any = any match {
-      case value: String => resolve(value, valueFor(deployment, cluster))
+      case value: String => resolve(value, valueFor(deployment, service))
       case map: scala.collection.Map[_, _] => map.map {
         case (key, value) => key -> visit(value)
       }
