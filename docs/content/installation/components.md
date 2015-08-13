@@ -23,7 +23,7 @@ If that sounds to much like work, then just use our [Docker quickstart](/quick-s
 
 Vamp consists of multiple server and client side components that together create the Vamp platform. Before installing, it is necessary to understand the role of each component and its preferred location in typical architecture. 
 
-Take special care to read the [configuring Vamp Router instructions](#configuring-vamp-router) as it is critical to the correct functioning of Vamp is a little bit different than all other components.
+Take special care to read the [configuring Vamp Router instructions](/documentation/installation/configuration/#vamp-router) as it is critical to the correct functioning of Vamp is a little bit different than all other components.
 
 ![](/img/vamp_arch.svg)
 
@@ -35,49 +35,6 @@ component   | purpose
 **Vamp UI**     | Graphical web interface for managing Vamp. Packaged with Vamp Core. 
 **Vamp CLI**    | Command line interface for managing Vamp and integration with (shell) scripts.
 
-## Configuring Vamp Router
-
-Vamp Router does three things:
-
-- Accept API requests on its API endpoint (default port: 10001)
-- Instruct HAproxy how/what/where to route
-- Stream feeds to Vamp Pulse
-
-This means that Vamp Router and HAproxy should be installed on the same (V)LAN as the containers, or at least be able to transparently find the containers IP addresses. This can also be done through setting the correct gateways or setting up a local DNS.
-
-**You need to tell Vamp Core where it can find Vamp Router's API and what Vamp Router's / HAproxy's internal IP address is**. You configure this in the `router-driver` section in `application.conf` file. See the below example:
-
-```
-# /usr/share/vamp-core/conf/application.conf
-...
-  router-driver {
-    url = "http://104.155.30.171:10001" # Vamp Router API endpoint, external IP.
-    host = "10.193.238.26"              # Vamp Router / Haproxy, internal IP.
-    response-timeout = 30               # seconds
-  }
-...  
-```  
-
-Vamp Pulse just needs access to the API. This is configured in the `event-stream` section of Vamp Pulse's `application.conf`. See the example below:
-
-```
-# /usr/share/vamp-puls/conf/application.conf
-...
-  event-stream {
-    driver = "sse"
-    sse {
-      url = "http://104.155.30.171:10001/v1/stats/stream"
-      timeout {
-        http.connect = 2000
-        sse.connection.checkup = 3000
-      }
-    }
-...    
-```    
-
-## Configuring Vamp Core and Vamp Pulse
-
-Vamp Core and Vamp Pulse each ship with an `application.conf` file. This file contains all the configurable settings for both components. When installing Vamp through a package manager (yum, apt-get) you can find this file in `/usr/share/vamp-core/conf` and `/usr/share/vamp-pulse/conf` respectively.
-
+Please see our [configuration documentation](/documentation/configuration) on how to configure all Vamp components.
 
   
