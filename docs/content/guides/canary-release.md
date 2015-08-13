@@ -3,7 +3,7 @@ title: 2. Doing a canary release
 type: documentation
 slug: /getting-started-tutorial/2-canary-release/
 ---
-    
+
 # 2. Doing a canary release
 
 In the [previous part](/documentation/guides/getting-started-tutorial/1-deploying/) of our tutorial we deployed our app sava 1.0. If you haven't
@@ -14,7 +14,7 @@ walked through that part, please do so first. Now let's say we have a new versio
 Vamp allows you to do canary releases using blueprints. Take a look at the YAML example below. It is quite similar to the blueprint we initially used to deploy sava 1.0.0. However, there are two big differences.
 
 1. The `services` key holds a list of breeds: one for v1.0.0 and one for v1.1.0 of our app. [Breeds](/documentation/reference/breeds/) are Vamp's way of describing static artifacts that can be used in blueprints.
-2. We've added the `routing` key which holds the weight of each service as a percentage of all requests. 
+2. We've added the `routing` key which holds the weight of each service as a percentage of all requests.
 
 Notice we assigned 50% to our current version 1.0.0 and 50% to the new version 1.1.0 We could also start with a 100% to 0% split, a 99% to 1% split or whatever combination you want as long as all percentages add up to 100% in total.
 {{% copyable %}}
@@ -34,11 +34,11 @@ clusters:
           ports:
             port: 8080/http
         scale:
-          cpu: 0.2       
-          memory: 256  
-          instances: 1          
-        routing: 
-          weight: 50  # weight in percentage           
+          cpu: 0.2
+          memory: 256
+          instances: 1
+        routing:
+          weight: 50  # weight in percentage
       -
         breed:
           name: sava:1.1.0 # a new version of our service
@@ -46,11 +46,11 @@ clusters:
           ports:
             port: 8080/http
         scale:
-          cpu: 0.2      
-          memory: 256  
-          instances: 1  
-        routing: 
-          weight: 50            
+          cpu: 0.2
+          memory: 256
+          instances: 1
+        routing:
+          weight: 50
 ```{{% /copyable %}}
 
 > **Note**: There is nothing stopping you from deploying three or more versions and distributing the weight
@@ -65,7 +65,7 @@ Using the UI, go to the deployment detail screen and press the **Edit deployment
 
 ![](/img/screenshots/tut2_canary.gif)
 
-When finished deploying, you can start refreshing your browser at the correct endpoint, e.g. `http://10.26.184.254:9050/`. The application should switch between responding with a 1.0 page and a 1.1 page. 
+When finished deploying, you can start refreshing your browser at the correct endpoint, e.g. `http://10.26.184.254:9050/`. The application should switch between responding with a 1.0 page and a 1.1 page.
 
 ![](/img/screenshots/monolith_canary1.png)
 
@@ -77,7 +77,7 @@ If you want to use the RESTful API, you can update a running deployment by getti
 
 Using percentages to divide traffic between versions is already quite powerful, but also very simplistic.
 What if, for instance, you want to specifically target a group of users? Or a specific channel of requests
-from an internal service? Vamp allows you to do this right from the blueprint DSL. 
+from an internal service? Vamp allows you to do this right from the blueprint DSL.
 
 Let's start simple: We will allow only Chrome users to access v1.1.0 of our application by inserting this routing scheme:
 
@@ -91,11 +91,12 @@ routing:
 
 Notice two things:
 
-1. We dialed back the weight to 0%. This is important and might feel counter intuitive, but Vamp first
-checks filters and then weight. This means we explicitly do not send 'just some percentage of traffic' to this service but only traffic that matches the filter.
-2. We inserted a list of conditions (with only one condition for now)
+1. We inserted a list of conditions (with only one condition for now). All traffic matching the filter will hit this service, no matter what the weight is.
+2. We dialed back the weight to 0%. This is important because we want to exclude all other traffic from this service.
 
-Our full blueprint now looks as follows:  
+Filters and weight distribution are evaluated two seperate phases. The filters are processed first. The first service where the filter matches the request will be used to handle the request. Weight is only evaluated if during the filtering no service was picked. All services in the cluster with a weight >0 will be used when the traffic is distributed according to the weight.
+
+Our full blueprint now looks as follows:
 
 {{% copyable %}}
 
@@ -115,25 +116,25 @@ clusters:
           ports:
             port: 8080/http
         scale:
-          cpu: 0.2       
-          memory: 256  
-          instances: 1              
-        routing: 
+          cpu: 0.2
+          memory: 256
+          instances: 1
+        routing:
           weight: 100
-      -    
+      -
         breed:
           name: sava:1.1.0
           deployable: magneticio/sava:1.1.0
           ports:
             port: 8080/http
         scale:
-          cpu: 0.2       
-          memory: 256  
-          instances: 1              
-        routing: 
+          cpu: 0.2
+          memory: 256
+          instances: 1
+        routing:
           weight: 0
           filters:
-            - condition: User-Agent = Chrome                   
+            - condition: User-Agent = Chrome
 ```
 {{% /copyable %}}
 
@@ -148,7 +149,7 @@ As we are not actually deploying anything but just reconfiguring routes, the upd
 
 ## Step 4: Learning a bit more about filters.
 
-Our browser example is easily testable on a laptop, but of course a bit contrived. Luckily you can 
+Our browser example is easily testable on a laptop, but of course a bit contrived. Luckily you can
 create much more powerful filters quite easily. Checking Headers, Cookies, Hosts etc. is all possible.
 Under the hood, Vamp uses [Haproxy's ACL's](http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#7.1) and you can use the exact ACL definition right in the blueprint in the `condition` field of a filter.
 
@@ -177,7 +178,7 @@ user-agent = Android          # lower case, white space
 
 Having multiple conditions in a filter is perfectly possible. In this case all filters are implicitly
 "OR"-ed together, as in "if the first filter doesn't match, proceed to the next". For example, the following filter would first check whether the string "Chrome" exists in the User-Agent header of a
-request. If that doesn't result in a match, it would check whether the request has the header 
+request. If that doesn't result in a match, it would check whether the request has the header
 "X-VAMP-TUTORIAL". So any request matching either condition would go to this service.
 
 ```yaml
@@ -193,6 +194,6 @@ Using a tool like [httpie](https://github.com/jakubroztocil/httpie) makes testin
 
     http GET http://10.26.184.254:9050/ X-VAMP-TUTORIAL:stuff
 
-![](/img/screenshots/screencap_canary2.gif)    
+![](/img/screenshots/screencap_canary2.gif)
 
 Cool stuff. But we are dealing here with single, monolithic applications. Where are the microservices? We will be chopping up this monolith into services and deploy them with Vamp in [the third part of our tutorial →](/documentation/guides/getting-started-tutorial/3-splitting-services/)
