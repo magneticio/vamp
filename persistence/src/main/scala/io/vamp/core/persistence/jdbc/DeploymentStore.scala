@@ -30,6 +30,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
         ClusterRoutes.deleteById(route.id.get)
       }
       for (service <- cluster.services) {
+        deleteEnvironmentVariables(service.environmentVariables)
         for (dependency <- service.dependencies) {
           DeploymentServiceDependencies.deleteById(dependency.id.get)
         }
@@ -113,7 +114,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
         ClusterRoutes.add(ClusterRouteModel(portIn = route._1, portOut = route._2, clusterId = clusterId))
       }
       for (service <- cluster.services) {
-        val breedRefId = createBreedReference(service.breed, deploymentId)
+       val breedRefId = createBreedReference(service.breed, deploymentId)
         val message = service.state match {
           case error: DeploymentService.Error =>
             Some(s"Problem in cluster ${cluster.name}, with a service containing breed ${BreedReferences.findById(breedRefId).name}.")
@@ -132,6 +133,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
             dialects = DialectSerializer.serialize(service.dialects),
             message = message)
         )
+        createEnvironmentVariables(service.environmentVariables, EnvironmentVariableParentType.Service, serviceId, deploymentId)
         for (dep <- service.dependencies) DeploymentServiceDependencies.add(DeploymentServiceDependencyModel(name = dep._1, value = dep._2, serviceId = serviceId))
         for (server <- service.servers) {
           val serverId = DeploymentServers.add(DeploymentServerModel(serviceId = serviceId, name = server.name, host = server.host, deployed = server.deployed, deploymentId = deploymentId))
@@ -172,7 +174,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
     services.map(service =>
       DeploymentService(state = deploymentService2deploymentState(service),
         breed = defaultBreedModel2DefaultBreedArtifact(DefaultBreeds.findByName(BreedReferences.findById(service.breed).name, service.deploymentId)),
-        environmentVariables = Nil,
+        environmentVariables = service.environmentVariables.map(e => environmentVariableModel2Artifact(e)),
         scale = service.scale flatMap { scale => Some(defaultScaleModel2Artifact(DefaultScales.findByName(ScaleReferences.findById(scale).name, service.deploymentId))) },
         routing = service.routing flatMap { routing => Some(defaultRoutingModel2Artifact(DefaultRoutings.findByName(RoutingReferences.findById(routing).name, service.deploymentId))) },
         servers = deploymentServerModels2Artifacts(service.servers),

@@ -80,6 +80,7 @@ object Implicits {
   val environmentVariableParentTypeMap = Map(
     EnvironmentVariableParentType.Breed -> "breed",
     EnvironmentVariableParentType.Blueprint -> "blueprint",
+    EnvironmentVariableParentType.Service -> "service",
     EnvironmentVariableParentType.Deployment -> "deployment"
   )
   implicit val environmentVariableParentTypeMapper = MappedColumnType.base[EnvironmentVariableParentType, String](
