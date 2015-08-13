@@ -23,7 +23,7 @@ Notice we assigned 50% to our current version 1.0.0 and 50% to the new version 1
 ---
 name: sava:1.0
 endpoints:
-  sava.port: 9050/http/http
+  sava.port: 9050/http
 clusters:
   sava:
     services: # services is now a list of breeds
