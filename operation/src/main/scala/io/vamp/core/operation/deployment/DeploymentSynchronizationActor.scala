@@ -63,7 +63,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
 
   private case class ProcessedService(state: Processed.State, service: DeploymentService)
 
-  private case class ProcessedCluster(state: Processed.State, cluster: DeploymentCluster)
+  private case class ProcessedCluster(state: Processed.State, cluster: DeploymentCluster, processedServices: List[ProcessedService])
 
   def receive: Receive = {
 
@@ -82,7 +82,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
   private def synchronize(deployments: List[Deployment]): Unit = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
     offload(actorFor(RouterDriverActor) ? RouterDriverActor.All) match {
-      case error : NotificationErrorException =>  log.error("Synchronisation not possible")
+      case error: NotificationErrorException => log.error("Synchronisation not possible")
       case success =>
         val deploymentRoutes = success.asInstanceOf[DeploymentRoutes]
         val containerServices = offload(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
@@ -192,14 +192,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
   }
 
   private def hasResolvedEnvironmentVariables(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService) = {
-    deploymentService.breed.environmentVariables.forall({ evBreed =>
-      !deployment.environmentVariables.exists(evDeployment => if (evDeployment.interpolated.isEmpty) {
-        TraitReference.referenceFor(evDeployment.name) match {
-          case Some(TraitReference(cluster, group, name)) => cluster == deploymentCluster.name && evBreed.name == name && group == TraitReference.groupFor(TraitReference.EnvironmentVariables)
-          case _ => false
-        }
-      } else false)
-    })
+    deploymentService.breed.environmentVariables.count(_ => true) == deploymentService.environmentVariables.count(_ => true) && deploymentService.environmentVariables.forall(_.interpolated.isDefined)
   }
 
   private def deployed(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
@@ -290,9 +283,9 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
       else {
         if (processedServices.exists(s => s.state == Processed.ResolveEnvironmentVariables)) Processed.ResolveEnvironmentVariables else Processed.Persist
       }
-      ProcessedCluster(state, dc)
+      ProcessedCluster(state, dc, processedServices)
     } else {
-      ProcessedCluster(Processed.Ignore, deploymentCluster)
+      ProcessedCluster(Processed.Ignore, deploymentCluster, processedServices)
     }
 
     val ports: Set[Port] = processedServices.flatMap(processed => processed.state match {
@@ -313,23 +306,44 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
   }
 
   private def processClusterResults(deployment: Deployment, processedClusters: List[ProcessedCluster], routes: List[EndpointRoute]) = {
-    val resolveEnvironmentVariables = processedClusters.filter(_.state == Processed.ResolveEnvironmentVariables).map(_.cluster)
+    val resolve = updateEnvironmentVariables(deployment, processedClusters.filter(_.state == Processed.ResolveEnvironmentVariables))
     val persist = processedClusters.filter(_.state == Processed.Persist).map(_.cluster)
     val remove = processedClusters.filter(_.state == Processed.RemoveFromPersistence).map(_.cluster)
 
-    (updateTraits(persist, resolveEnvironmentVariables) andThen purgeTraits(persist, remove) andThen updateEndpoints(remove, routes) andThen persistDeployment(persist ++ resolveEnvironmentVariables, remove))(deployment)
+    (updatePorts(persist) andThen purgeTraits(persist, remove) andThen updateEndpoints(remove, routes) andThen persistDeployment(persist ++ resolve, remove))(deployment)
   }
 
-  private def updateTraits(persist: List[DeploymentCluster], resolve: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
+  private def updatePorts(persist: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
     val ports = persist.flatMap({ cluster =>
       cluster.services.map(_.breed).flatMap(_.ports).map({ port =>
         Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.routes.get(port.number).flatMap(n => Some(n.toString)))
       })
     }).map(p => p.name -> p).toMap ++ deployment.ports.map(p => p.name -> p).toMap
 
-    val environmentVariables = if (resolve.nonEmpty) resolveEnvironmentVariables(deployment, resolve) else deployment.environmentVariables
+    deployment.copy(ports = ports.values.toList)
+  }
 
-    deployment.copy(ports = ports.values.toList, environmentVariables = environmentVariables)
+  private def updateEnvironmentVariables(deployment: Deployment, processedClusters: List[ProcessedCluster]): List[DeploymentCluster] = {
+    val resolveClusters = processedClusters.map(_.cluster)
+    val environmentVariables = if (resolveClusters.nonEmpty) resolveEnvironmentVariables(deployment, resolveClusters) else deployment.environmentVariables
+
+    processedClusters.map { pc =>
+      pc.cluster.copy(services = pc.processedServices.map { ps =>
+        if (ps.state == Processed.ResolveEnvironmentVariables) {
+          val local = (ps.service.breed.environmentVariables.filter(_.value.isDefined) ++
+            environmentVariables.flatMap(ev => TraitReference.referenceFor(ev.name) match {
+              case Some(TraitReference(c, g, n)) if g == TraitReference.groupFor(TraitReference.EnvironmentVariables) && ev.interpolated.isDefined && pc.cluster.name == c =>
+                List(ev.copy(name = n, alias = None))
+              case _ => Nil
+            }) ++
+            ps.service.environmentVariables).map(ev => ev.name -> ev).toMap.values.toList
+
+          ps.service.copy(environmentVariables = local.map { ev =>
+            ev.copy(interpolated = if (ev.interpolated.isEmpty) Some(resolve(ev.value.getOrElse(""), valueFor(deployment, Some(ps.service)))) else ev.interpolated)
+          })
+        } else ps.service
+      })
+    }
   }
 
   private def purgeTraits(persist: List[DeploymentCluster], remove: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>

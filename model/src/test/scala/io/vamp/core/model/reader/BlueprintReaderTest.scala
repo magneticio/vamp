@@ -467,4 +467,13 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'reference("HEAP")
     )
   }
+
+  it should "not allow an empty service level environment variable" in {
+    expectedError[MissingEnvironmentVariableError]({
+      BlueprintReader.read(res("blueprint/blueprint53.yml"))
+    }) should have(
+      'breed(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), Nil, List(EnvironmentVariable("HEAP", None, Some("1024MB"))), Nil, Map())),
+      'name("HEAP")
+    )
+  }
 }

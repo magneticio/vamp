@@ -23,6 +23,7 @@ UnresolvedBreedDependencyError        : "Unresolved breed dependency for breed '
 RoutingWeightError                    : "Total routing weight cannot exceed 100 or be a negative value. Check cluster: '{cluster.name}'."
 UnresolvedScaleEscalationTargetCluster: "Unresolved scale escalation target cluster '{target}' for cluster '{cluster.name}'"
 NoServiceError$                       : "Expected at least one service."
+MissingEnvironmentVariableError       : "Missing environment variable value for '{name}' in service '{breed.name}.'"
 
 # SLA
 

@@ -133,6 +133,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   protected def validateServiceEnvironmentVariables(services: List[Service]) = services.foreach { service =>
     service.breed match {
       case breed: DefaultBreed => service.environmentVariables.foreach { environmentVariable =>
+        if (environmentVariable.value.isEmpty) throwException(MissingEnvironmentVariableError(breed, environmentVariable.name))
         if (!breed.environmentVariables.exists(_.name == environmentVariable.name)) throwException(UnresolvedDependencyInTraitValueError(breed, environmentVariable.name))
       }
       case _ =>

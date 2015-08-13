@@ -161,12 +161,8 @@ trait DeploymentValidator {
     blueprint
   }
 
-  /**
-   * Reference check.
-   *
-   * @return
-   */
   def validateBlueprintEndpoints: (Deployment => Deployment) = { (blueprint: Deployment) =>
+    // Reference check.
     blueprint match {
       case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap {
         case t => throwException(UnresolvedEndpointPortError(t.name, t.value))
@@ -176,12 +172,8 @@ trait DeploymentValidator {
     blueprint
   }
 
-  /**
-   * Availability check.
-   *
-   * @return
-   */
   def validateEndpoints: (Deployment => Deployment) = { (deployment: Deployment) =>
+    // Availability check.
     implicit val timeout = PersistenceActor.timeout
     offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
       case deployments: List[_] =>
@@ -227,7 +219,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
   def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintEndpoints
 
-  def resolveProperties = resolveParameters andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
+  def resolveProperties = resolveHosts andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
 
   def validateMerge = validateServices andThen validateRoutingWeights andThen validateScaleEscalations andThen validateEndpoints
 
@@ -329,21 +321,14 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     else Nil
   }
 
-  def resolveParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
-    val clusters = deployment.clusters.map { cluster =>
-      cluster.copy(services = cluster.services.map { service =>
-        service.copy(environmentVariables = (service.breed.environmentVariables ++ service.environmentVariables).map(ev => ev.name -> ev).toMap.values.map(ev => ev.copy(alias = None)).toList)
-      })
-    }
-
+  def resolveHosts: (Deployment => Deployment) = { (deployment: Deployment) =>
     implicit val timeout = DictionaryActor.timeout
     val host = offload(actorFor(DictionaryActor) ? DictionaryActor.Get(DictionaryActor.hostResolver)) match {
       case h: String => h
       case e => throwException(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
     }
-    val hosts = deployment.clusters.map(cluster => Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(host)))
 
-    deployment.copy(clusters = clusters, hosts = hosts)
+    deployment.copy(hosts = deployment.clusters.map(cluster => Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(host))))
   }
 
   def resolveRouteMapping: (Deployment => Deployment) = { (deployment: Deployment) =>

@@ -17,4 +17,6 @@ case class UnresolvedScaleEscalationTargetCluster(cluster: AbstractCluster, targ
 
 case class NotificationMessageNotRestored(message: String) extends Notification
 
+case class MissingEnvironmentVariableError(breed: Breed, name: String) extends Notification
+
 object NoServiceError extends Notification
