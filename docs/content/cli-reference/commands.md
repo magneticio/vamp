@@ -12,7 +12,6 @@ VAMP CLI supports the following commands:
                        
 * [create](#create)  
 * [deploy](#deploy)   
-* [filters](#filters)  
 * [generate](#generate)  
 * [help](#help)                              
 * [info](#info)                              
