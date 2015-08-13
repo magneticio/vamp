@@ -4,13 +4,12 @@ import java.util.concurrent.TimeUnit
 
 import io.vamp.core.model.artifact.DeploymentService.Deployed
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.reader.BlueprintReader
 import io.vamp.core.persistence.notification.UnsupportedPersistenceRequest
 
 import scala.concurrent.duration.FiniteDuration
 
 /**
- * Testdata
+ * Test data
  */
 object TestData {
 
@@ -196,7 +195,9 @@ object TestData {
     state = Deployed(),
     servers = List(deploymentServer1),
     breed = deploymentServiceBreed1,
-    environmentVariables = Nil,
+    environmentVariables = List(
+      EnvironmentVariable(name = "UPPER_MEM", alias = None, value = Some("256K"))
+    ),
     scale = Some(DefaultScale(name = "my-scale2", cpu = 2, memory = 4096, instances = 4)),
     routing = Some(DefaultRouting(name = "route5", weight = None, filters = List.empty)),
     dependencies = Map("abc" -> "def")

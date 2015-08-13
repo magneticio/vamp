@@ -65,7 +65,8 @@ trait DeploymentServiceExtensions {
     def dependencies(implicit session: JdbcBackend#Session): List[DeploymentServiceDependencyModel] =
       for {r <- DeploymentServiceDependencies.fetchAll if r.serviceId == model.id.get} yield r
 
-
+    def environmentVariables(implicit session: JdbcBackend#Session): List[EnvironmentVariableModel] =
+      for {r <- EnvironmentVariables.fetchAllFromDeployment(model.deploymentId) if r.parentId == model.id && r.parentType.contains(EnvironmentVariableParentType.Service)} yield r
   }
 
 }
