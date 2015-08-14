@@ -35,6 +35,6 @@ component   | purpose
 **Vamp UI**     | Graphical web interface for managing Vamp. Packaged with Vamp Core. 
 **Vamp CLI**    | Command line interface for managing Vamp and integration with (shell) scripts.
 
-Please see our [configuration documentation](/documentation/configuration) on how to configure all Vamp components.
+Please see our [configuration documentation](/documentation/installation/configuration) on how to configure all Vamp components.
 
   
