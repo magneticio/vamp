@@ -53,8 +53,8 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
       get {
         asBlueprint { asBlueprint =>
           pageAndPerPage() { (page, perPage) =>
-            expandShrink { (expand, shrink) =>
-              onSuccess(deployments(asBlueprint, expand, shrink)(page, perPage)) { result =>
+            expandAndOnlyReferences { (expandReferences, onlyReferences) =>
+              onSuccess(deployments(asBlueprint, expandReferences, onlyReferences)(page, perPage)) { result =>
                 respondWith(OK, result)
               }
             }
@@ -74,8 +74,8 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
         get {
           rejectEmptyResponse {
             asBlueprint { asBlueprint =>
-              expandShrink { (expand, shrink) =>
-                onSuccess(deployment(name, asBlueprint, expand, shrink)) { result =>
+              expandAndOnlyReferences { (expandReferences, onlyReferences) =>
+                onSuccess(deployment(name, asBlueprint, expandReferences, onlyReferences)) { result =>
                   respondWith(OK, result)
                 }
               }

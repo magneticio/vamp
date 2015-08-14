@@ -16,23 +16,23 @@ import scala.language.{existentials, postfixOps}
 trait DeploymentApiController extends ArtifactShrinkage {
   this: ActorSupport with FutureSupport with ExecutionContextProvider with NotificationProvider =>
 
-  def deployments(asBlueprint: Boolean, expand: Boolean, shrink: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(classOf[Deployment], page, perPage, expand, shrink)).map {
+  def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(classOf[Deployment], page, perPage, expandReferences, onlyReferences)).map {
     case ArtifactResponseEnvelope(list, _, _, _) => list.map {
-      case deployment: Deployment => transform(deployment, asBlueprint, shrink)
+      case deployment: Deployment => transform(deployment, asBlueprint, onlyReferences)
       case any => any
     }
     case any => any
   }
 
-  def deployment(name: String, asBlueprint: Boolean, expand: Boolean, shrink: Boolean)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment], expand, shrink)).map {
-    case Some(deployment: Deployment) => transform(deployment, asBlueprint, shrink)
+  def deployment(name: String, asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.Read(name, classOf[Deployment], expandReferences, onlyReferences)).map {
+    case Some(deployment: Deployment) => transform(deployment, asBlueprint, onlyReferences)
     case any => any
   }
 
-  private def transform(deployment: Deployment, asBlueprint: Boolean, shrinkIt: Boolean) = {
+  private def transform(deployment: Deployment, asBlueprint: Boolean, onlyRef: Boolean) = {
     if (asBlueprint) {
       val blueprint = deployment.asBlueprint
-      if (shrinkIt) shrink(blueprint) else blueprint
+      if (onlyRef) onlyReferences(blueprint) else blueprint
     } else deployment
   }
 

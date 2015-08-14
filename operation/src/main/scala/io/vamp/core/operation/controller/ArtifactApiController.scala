@@ -19,8 +19,8 @@ import scala.reflect._
 trait ArtifactApiController extends ArtifactSupport {
   this: ActorSupport with FutureSupport with ExecutionContextProvider with NotificationProvider =>
 
-  def allArtifacts(artifact: String, expand: Boolean, shrink: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) => controller.all(page, perPage, expand, shrink)
+  def allArtifacts(artifact: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
+    case Some(controller) => controller.all(page, perPage, expandReferences, onlyReferences)
     case None => throwException(UnexpectedArtifact(artifact))
   }
 
@@ -29,8 +29,8 @@ trait ArtifactApiController extends ArtifactSupport {
     case None => throwException(UnexpectedArtifact(artifact))
   }
 
-  def readArtifact(artifact: String, name: String, expand: Boolean, shrink: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) => controller.read(name, expand, shrink)
+  def readArtifact(artifact: String, name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
+    case Some(controller) => controller.read(name, expandReferences, onlyReferences)
     case None => throwException(UnexpectedArtifact(artifact))
   }
 
@@ -61,11 +61,11 @@ trait ArtifactApiController extends ArtifactSupport {
 
   class Handler {
 
-    def all(page: Int, perPage: Int, expand: Boolean, shrink: Boolean)(implicit timeout: Timeout): Future[Any] = Future(Nil)
+    def all(page: Int, perPage: Int, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[Any] = Future(Nil)
 
     def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = throwException(UnexpectedArtifact(source))
 
-    def read(name: String, expand: Boolean, shrink: Boolean)(implicit timeout: Timeout): Future[Any] = Future(None)
+    def read(name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[Any] = Future(None)
 
     def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = throwException(UnexpectedArtifact(source))
 
@@ -76,15 +76,15 @@ trait ArtifactApiController extends ArtifactSupport {
 
     val `type` = classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]]
 
-    override def all(page: Int, perPage: Int, expand: Boolean, shrink: Boolean)(implicit timeout: Timeout) =
-      actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(`type`, page, perPage, expand, shrink)
+    override def all(page: Int, perPage: Int, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) =
+      actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(`type`, page, perPage, expandReferences, onlyReferences)
 
     override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       val artifact = (unmarshal andThen validate)(source)
       if (validateOnly) Future(artifact) else actorFor(PersistenceActor) ? PersistenceActor.Create(artifact, Some(source))
     }
 
-    override def read(name: String, expand: Boolean, shrink: Boolean)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Read(name, `type`, expand, shrink)
+    override def read(name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Read(name, `type`, expandReferences, onlyReferences)
 
     override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       val artifact = (unmarshal andThen validate)(source)

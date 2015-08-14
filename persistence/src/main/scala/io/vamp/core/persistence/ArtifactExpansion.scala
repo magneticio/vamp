@@ -12,9 +12,9 @@ trait ArtifactExpansion {
 
   protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
 
-  protected def expand(artifact: Option[Artifact]): Option[Artifact] = artifact.flatMap(a => Some(expand(a)))
+  protected def expandReferences(artifact: Option[Artifact]): Option[Artifact] = artifact.flatMap(a => Some(expandReferences(a)))
 
-  protected def expand(artifact: Artifact): Artifact = artifact match {
+  protected def expandReferences(artifact: Artifact): Artifact = artifact match {
     case deployment: Deployment => deployment // Deployments are already fully expanded
     case blueprint: DefaultBlueprint => blueprint.copy(clusters = expandClusters(blueprint.clusters))
     case breed: DefaultBreed => breed.copy(dependencies = breed.dependencies.map(item => item._1 -> expandIfReference[DefaultBreed, BreedReference](item._2)))
@@ -65,9 +65,9 @@ trait ArtifactExpansion {
 trait ArtifactShrinkage {
   this: NotificationProvider =>
 
-  protected def shrink(artifact: Option[Artifact]): Option[Artifact] = artifact.flatMap(a => Some(shrink(a)))
+  protected def onlyReferences(artifact: Option[Artifact]): Option[Artifact] = artifact.flatMap(a => Some(onlyReferences(a)))
 
-  protected def shrink(artifact: Artifact): Artifact = artifact match {
+  protected def onlyReferences(artifact: Artifact): Artifact = artifact match {
     case blueprint: DefaultBlueprint => blueprint.copy(clusters = blueprint.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(breed = BreedReference(service.breed.name))))))
     case breed: DefaultBreed => breed.copy(dependencies = breed.dependencies.map(item => item._1 -> BreedReference(item._2.name)))
     case _ => artifact

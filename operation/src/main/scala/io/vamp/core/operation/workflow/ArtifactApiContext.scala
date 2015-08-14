@@ -9,11 +9,11 @@ import scala.concurrent.ExecutionContext
 class ArtifactApiContext(group: String)(implicit scheduledWorkflow: ScheduledWorkflow, ec: ExecutionContext, arf: ActorRefFactory) extends ApiContext with ArtifactApiController {
 
   def all() = serialize {
-    allPages(allArtifacts(group, expand = true, shrink = false))
+    allPages(allArtifacts(group, expandReferences = true, onlyReferences = false))
   }
 
   def get(name: String) = serialize {
-    readArtifact(group, name, expand = true, shrink = false)
+    readArtifact(group, name, expandReferences = true, onlyReferences = false)
   }
 
   def create(source: Any) = serialize {

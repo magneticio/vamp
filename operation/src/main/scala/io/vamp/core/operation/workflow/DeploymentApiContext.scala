@@ -9,11 +9,11 @@ import scala.concurrent.ExecutionContext
 class DeploymentApiContext(implicit scheduledWorkflow: ScheduledWorkflow, ec: ExecutionContext, arf: ActorRefFactory) extends ApiContext with DeploymentApiController {
 
   def all() = serialize {
-    allPages(deployments(asBlueprint = false, expand = true, shrink = false))
+    allPages(deployments(asBlueprint = false, expandReferences = true, onlyReferences = false))
   }
 
   def get(name: String) = serialize {
-    deployment(name, asBlueprint = false, expand = true, shrink = false)
+    deployment(name, asBlueprint = false, expandReferences = true, onlyReferences = false)
   }
 
   def create(source: Any) = serialize {

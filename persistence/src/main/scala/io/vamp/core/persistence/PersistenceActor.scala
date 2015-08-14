@@ -30,11 +30,11 @@ object PersistenceActor extends ActorDescription {
 
   case class All(`type`: Class[_ <: Artifact]) extends PersistenceMessages
 
-  case class AllPaginated(`type`: Class[_ <: Artifact], page: Int, perPage: Int, expanded: Boolean = false, shrank: Boolean = false) extends PersistenceMessages
+  case class AllPaginated(`type`: Class[_ <: Artifact], page: Int, perPage: Int, expandReferences: Boolean = false, onlyReferences: Boolean = false) extends PersistenceMessages
 
   case class Create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = true) extends PersistenceMessages
 
-  case class Read(name: String, `type`: Class[_ <: Artifact], expanded: Boolean = false, shrank: Boolean = false) extends PersistenceMessages
+  case class Read(name: String, `type`: Class[_ <: Artifact], expandReferences: Boolean = false, onlyReferences: Boolean = false) extends PersistenceMessages
 
   case class Update(artifact: Artifact, source: Option[String] = None, create: Boolean = false) extends PersistenceMessages
 
@@ -84,23 +84,23 @@ trait PersistenceActor extends ArtifactExpansion with ArtifactShrinkage with Rep
 
     case All(ofType) => all(ofType)
 
-    case AllPaginated(ofType, page, perPage, expanded, shrank) => (expanded, shrank) match {
+    case AllPaginated(ofType, page, perPage, expandRef, onlyRef) => (expandRef, onlyRef) match {
       case (true, false) =>
         val artifacts = all(ofType, page, perPage)
-        artifacts.copy(response = artifacts.response.map(expand))
+        artifacts.copy(response = artifacts.response.map(expandReferences))
 
       case (false, true) =>
         val artifacts = all(ofType, page, perPage)
-        artifacts.copy(response = artifacts.response.map(shrink))
+        artifacts.copy(response = artifacts.response.map(onlyReferences))
 
       case _ => all(ofType, page, perPage)
     }
 
     case Create(artifact, source, ignoreIfExists) => create(artifact, source, ignoreIfExists)
 
-    case Read(name, ofType, expanded, shrank) => (expanded, shrank) match {
-      case (true, false) => expand(read(name, ofType))
-      case (false, true) => shrink(read(name, ofType))
+    case Read(name, ofType, expandRef, onlyRef) => (expandRef, onlyRef) match {
+      case (true, false) => expandReferences(read(name, ofType))
+      case (false, true) => onlyReferences(read(name, ofType))
       case _ => read(name, ofType)
     }
 
