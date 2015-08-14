@@ -144,10 +144,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    * If the image is not available, it will be pulled first
    */
   private def createAndStartContainer(containerName: String, deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Future[_] = async {
-    val dialect: Map[Any, Any] = (cluster.dialects ++ service.dialects).get(Dialect.Docker) match {
-      case Some(entry: AnyRef) if entry.isInstanceOf[collection.Map[_, _]] => entry.asInstanceOf[collection.Map[Any, Any]].toMap
-      case _ => Map[Any, Any]()
-    }
+    val dialect: Map[Any, Any] = resolveDialect(deployment, cluster, service)
 
     val dockerImageName = service.breed.deployable match {
       case Deployable(_, Some(definition)) => definition
@@ -171,6 +168,16 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
     }
   }
 
+  private def resolveDialect(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[Any, Any] = {
+    val (local, dialect) = (cluster.dialects.get(Dialect.Docker), service.dialects.get(Dialect.Docker)) match {
+      case (_, Some(d)) => Some(service) -> d
+      case (Some(d), None) => None -> d
+      case _ => None -> Map()
+    }
+
+    interpolate(deployment, local, dialect.asInstanceOf[Map[Any, Any]])
+  }
+
   /**
    * Pull images from the repo
    */
@@ -179,8 +186,8 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
       case Pull.Status(msg) => logger.debug(s"[DEPLOY] pulling image $name: $msg")
       case Pull.Progress(msg, _, details) =>
         logger.debug(s"[DEPLOY] pulling image $name: $msg")
-        details.foreach { dets =>
-          logger.debug(s"[DEPLOY] pulling image $name: ${dets.bar}")
+        details.foreach { detail =>
+          logger.debug(s"[DEPLOY] pulling image $name: ${detail.bar}")
         }
       case Pull.Error(msg, _) => logger.error(s"[DEPLOY] pulling image $name failed: $msg")
     }
