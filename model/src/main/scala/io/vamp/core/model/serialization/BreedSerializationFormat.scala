@@ -43,8 +43,9 @@ trait TraitDecomposer extends TraitResolver {
   }
 }
 
-class BreedSerializer extends ArtifactSerializer[DefaultBreed] with TraitDecomposer {
+class BreedSerializer extends ArtifactSerializer[Breed] with TraitDecomposer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case breed: BreedReference => new JObject(JField("reference", JString(breed.name)) :: Nil)
     case breed: DefaultBreed =>
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(breed.name))

@@ -65,10 +65,11 @@ trait ArtifactExpansion {
 trait ArtifactShrinkage {
   this: NotificationProvider =>
 
-  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
-
   protected def shrink(artifact: Option[Artifact]): Option[Artifact] = artifact.flatMap(a => Some(shrink(a)))
 
-  // TODO
-  protected def shrink(artifact: Artifact): Artifact = artifact
+  protected def shrink(artifact: Artifact): Artifact = artifact match {
+    case blueprint: DefaultBlueprint => blueprint.copy(clusters = blueprint.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(breed = BreedReference(service.breed.name))))))
+    case breed: DefaultBreed => breed.copy(dependencies = breed.dependencies.map(item => item._1 -> BreedReference(item._2.name)))
+    case _ => artifact
+  }
 }
