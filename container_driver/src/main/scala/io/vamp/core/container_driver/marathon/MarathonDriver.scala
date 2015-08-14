@@ -6,6 +6,7 @@ import io.vamp.core.container_driver._
 import io.vamp.core.container_driver.marathon.api.{Docker, _}
 import io.vamp.core.container_driver.notification.UndefinedMarathonApplication
 import io.vamp.core.model.artifact._
+import org.json4s.{Extraction, DefaultFormats, Formats}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -70,7 +71,8 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
       case _ =>
     }
 
-    mergeWithDialect(deployment, local, app, dialect)
+    implicit val formats: Formats = DefaultFormats
+    Extraction.decompose(interpolate(deployment, local, dialect)) merge Extraction.decompose(app)
   }
 
   def undeploy(deployment: Deployment, service: DeploymentService) = {

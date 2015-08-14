@@ -5,7 +5,6 @@ import io.vamp.core.container_driver.docker.DockerPortMapping
 import io.vamp.core.container_driver.notification.{ContainerDriverNotificationProvider, UnsupportedDeployableSchema}
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.resolver.DeploymentTraitResolver
-import org.json4s.{DefaultFormats, Extraction, Formats}
 
 import scala.concurrent.ExecutionContext
 
@@ -42,19 +41,16 @@ abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDr
       throwException(UnsupportedDeployableSchema(schema, enum.values.map(_.toString.toLowerCase).mkString(", ")))
   }
 
-  protected def mergeWithDialect(deployment: Deployment, service: Option[DeploymentService], app: Any, dialect: Any)(implicit formats: Formats = DefaultFormats) = {
-    Extraction.decompose(interpolate(deployment, service, dialect)) merge Extraction.decompose(app)
-  }
-
-  private def interpolate(deployment: Deployment, service: Option[DeploymentService], dialect: Any) = {
+  protected def interpolate[T](deployment: Deployment, service: Option[DeploymentService], dialect: T): T = {
     def visit(any: Any): Any = any match {
       case value: String => resolve(value, valueFor(deployment, service))
+      case list: List[_] => list.map(visit)
       case map: scala.collection.Map[_, _] => map.map {
         case (key, value) => key -> visit(value)
       }
       case _ => any
     }
 
-    visit(dialect)
+    visit(dialect).asInstanceOf[T]
   }
 }
