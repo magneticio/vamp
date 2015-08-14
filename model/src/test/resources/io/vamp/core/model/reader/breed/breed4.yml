@@ -4,7 +4,7 @@ deployable: magneticio/monarch:latest
 ports:
   port: 8080/http
 
-environment_variables:
+env:
   DB_HOST: $db.host
 
 dependencies:

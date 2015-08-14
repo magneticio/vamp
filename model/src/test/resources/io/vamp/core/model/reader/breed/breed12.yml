@@ -1,6 +1,6 @@
 name: monarch
 deployable: magneticio/monarch:latest
 
-environment_variables:
+env:
   port: ~
 

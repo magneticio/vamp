@@ -8,9 +8,9 @@ clusters:
           name: solid-barbershop
           deployable: vamp/solid-barbershop
 
-          environment_variables:
+          env:
             HEAP: 1024MB
 
-        environment_variables:
+        env:
           HEAP[test]: 2GB
 

@@ -28,7 +28,7 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
     Deployment(name, clusters, ports("endpoints", addGroup = true), ports(addGroup = true), environmentVariables, hosts())
   }
 
-  private def environmentVariables(implicit source: YamlObject): List[EnvironmentVariable] = <<?[Any]("environment_variables") match {
+  private def environmentVariables(implicit source: YamlObject): List[EnvironmentVariable] = first[Any]("environment_variables", "env") match {
     case Some(list: List[_]) => list.map { el =>
       implicit val source = el.asInstanceOf[YamlObject]
       EnvironmentVariable(<<![String]("name"), <<?[String]("alias"), <<?[String]("value"), <<?[String]("interpolated"))
@@ -45,7 +45,7 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
       case Some(list) => list.map(parseServer(_))
     }
 
-    DeploymentService(state(<<![YamlObject]("state")), breed, environmentVariables("environment_variables"), scale, routing, servers, dependencies(), dialects)
+    DeploymentService(state(<<![YamlObject]("state")), breed, environmentVariables(), scale, routing, servers, dependencies(), dialects)
   }
 
   private def parseServer(implicit source: YamlObject): DeploymentServer =

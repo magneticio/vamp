@@ -156,6 +156,10 @@ trait YamlReader[T] extends ModelNotificationProvider {
     }
   }
 
+  protected def first[V <: Any : ClassTag](paths: List[String])(implicit source: YamlObject): Option[V] = first[V](paths.map(string2Path): _*)
+
+  protected def first[V <: Any : ClassTag](paths: YamlPath*)(implicit source: YamlObject): Option[V] = paths.flatMap(<<?[V](_)).headOption
+
   protected def name(implicit source: YamlObject): String = <<![String]("name")
 
   protected def reference(implicit source: YamlObject): String = <<?[String]("reference").getOrElse(<<![String]("ref"))
@@ -243,8 +247,8 @@ trait TraitReader extends TraitResolver {
     }, false)
   }
 
-  def environmentVariables(name: String = "environment_variables", alias: Boolean = true, addGroup: Boolean = false)(implicit source: YamlObject): List[EnvironmentVariable] = {
-    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
+  def environmentVariables(names: List[String] = List("environment_variables", "env"), alias: Boolean = true, addGroup: Boolean = false)(implicit source: YamlObject): List[EnvironmentVariable] = {
+    parseTraits(first[YamlObject](names), { (name: String, alias: Option[String], value: Option[String]) =>
       val reference = if (addGroup) {
         NoGroupReference.referenceFor(name) match {
           case Some(ref) => ref.asTraitReference(TraitReference.EnvironmentVariables)

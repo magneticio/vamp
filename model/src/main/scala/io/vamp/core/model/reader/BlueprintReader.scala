@@ -96,7 +96,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     }
 
     val endpoints = ports("endpoints", addGroup = true)
-    val evs = environmentVariables("environment_variables", alias = false, addGroup = true)
+    val evs = environmentVariables(alias = false, addGroup = true)
 
     DefaultBlueprint(name, clusters, endpoints, evs)
   }
