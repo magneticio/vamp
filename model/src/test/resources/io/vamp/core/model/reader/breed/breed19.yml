@@ -7,4 +7,4 @@ dependencies:
     deployable: magneticio/monarch2:latest
     dependencies:
       es:
-        name: monarch1
+        reference: monarch1

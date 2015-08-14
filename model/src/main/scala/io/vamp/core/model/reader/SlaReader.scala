@@ -48,10 +48,6 @@ object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
   }
 
   override protected def parameters(implicit source: YamlObject): Map[String, Any] = super.parameters.filterKeys(_ != "escalations")
-
-  override protected def isReference(implicit source: YamlObject): Boolean = {
-    <<?[String]("name").nonEmpty && (source.size == 1 || source.size == 2 && <<?[YamlList]("escalations").nonEmpty)
-  }
 }
 
 object EscalationReader extends YamlReader[Escalation] with WeakReferenceYamlReader[Escalation] {

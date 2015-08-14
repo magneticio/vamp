@@ -4,8 +4,7 @@ clusters:
   notorious:
     services:
       -
-        breed:
-          name: nocturnal-viper
+        breed: nocturnal-viper
           
     sla: 
       type: vital-cloud

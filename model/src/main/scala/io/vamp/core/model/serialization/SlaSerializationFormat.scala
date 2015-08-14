@@ -15,7 +15,7 @@ object SlaSerializationFormat extends io.vamp.common.json.SerializationFormat {
 
 class SlaSerializer extends ArtifactSerializer[Sla] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case sla: SlaReference => new JObject(JField("name", JString(sla.name)) :: JField("escalations", Extraction.decompose(sla.escalations)) :: Nil)
+    case sla: SlaReference => new JObject(JField("reference", JString(sla.name)) :: JField("escalations", Extraction.decompose(sla.escalations)) :: Nil)
 
     case sla: ResponseTimeSlidingWindowSla =>
       val list = new ArrayBuffer[JField]
@@ -49,7 +49,7 @@ class SlaSerializer extends ArtifactSerializer[Sla] {
 class EscalationSerializer extends ArtifactSerializer[Escalation] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case escalation: EscalationReference =>
-      new JObject(JField("name", JString(escalation.name)) :: Nil)
+      new JObject(JField("reference", JString(escalation.name)) :: Nil)
 
     case escalation: GroupEscalation =>
       val list = new ArrayBuffer[JField]

@@ -12,7 +12,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
     case reference: String => BreedReference(reference)
     case map: collection.Map[_, _] =>
       implicit val source = map.asInstanceOf[YamlObject]
-      if (<<?[Any]("deployable").isEmpty) BreedReference(name) else read(map.asInstanceOf[YamlObject])
+      if (isReference) BreedReference(reference) else read(map.asInstanceOf[YamlObject])
   }
 
   override protected def expand(implicit source: YamlObject) = {
@@ -20,7 +20,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
       case None =>
       case Some(map) => map.map {
         case (alias: String, dependency: Any) => dependency match {
-          case reference: String => >>("dependencies" :: alias :: "breed" :: "name", dependency)
+          case reference: String => >>("dependencies" :: alias :: "breed" :: "reference", dependency)
           case map: collection.Map[_, _] => map.asInstanceOf[YamlObject].get("breed") match {
             case None => >>("dependencies" :: alias :: "breed", dependency)
             case Some(breed) =>

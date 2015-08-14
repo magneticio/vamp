@@ -40,14 +40,18 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
           }
           >>("services", <<![List[_]]("services").map { element =>
             if (element.isInstanceOf[String]) {
-              new YamlObject() += ("breed" -> (new YamlObject() += ("name" -> element)))
+              new YamlObject() += ("breed" -> (new YamlObject() += ("reference" -> element)))
             } else {
               implicit val source = element.asInstanceOf[YamlObject]
               <<?[Any]("breed") match {
-                case None => <<?[Any]("name") match {
-                  case None =>
-                  case Some(_) => >>("breed", source)
-                }
+                case None =>
+                  <<?[Any]("name") match {
+                    case None => hasReference match {
+                      case None =>
+                      case Some(ref) => >>("breed", ref)
+                    }
+                    case Some(_) => >>("breed", source)
+                  }
                 case _ =>
               }
               <<?[Any]("routing") match {

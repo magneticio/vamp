@@ -14,5 +14,5 @@ clusters:
           deployable: magneticio/monarch2:latest
           dependencies:
             db:
-              name: monarch1
+              reference: monarch1
 

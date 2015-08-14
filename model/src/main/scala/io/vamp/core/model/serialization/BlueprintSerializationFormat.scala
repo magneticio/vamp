@@ -21,7 +21,7 @@ object BlueprintSerializationFormat extends io.vamp.common.json.SerializationFor
 
 class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomposer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case blueprint: BlueprintReference => new JObject(JField("name", JString(blueprint.name)) :: Nil)
+    case blueprint: BlueprintReference => new JObject(JField("reference", JString(blueprint.name)) :: Nil)
     case blueprint: AbstractBlueprint =>
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(blueprint.name))
@@ -55,7 +55,7 @@ class ServiceFieldSerializer extends ArtifactFieldSerializer[AbstractService] wi
 
 class ScaleSerializer extends ArtifactSerializer[Scale] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case scale: ScaleReference => new JObject(JField("name", JString(scale.name)) :: Nil)
+    case scale: ScaleReference => new JObject(JField("reference", JString(scale.name)) :: Nil)
     case scale: DefaultScale =>
       val list = new ArrayBuffer[JField]
       if (scale.name.nonEmpty)
@@ -69,7 +69,7 @@ class ScaleSerializer extends ArtifactSerializer[Scale] {
 
 class RoutingSerializer extends ArtifactSerializer[Routing] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case routing: RoutingReference => new JObject(JField("name", JString(routing.name)) :: Nil)
+    case routing: RoutingReference => new JObject(JField("reference", JString(routing.name)) :: Nil)
     case routing: DefaultRouting =>
       val list = new ArrayBuffer[JField]
       if (routing.name.nonEmpty)
@@ -83,7 +83,7 @@ class RoutingSerializer extends ArtifactSerializer[Routing] {
 
 class FilterSerializer extends ArtifactSerializer[Filter] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case filter: FilterReference => new JObject(JField("name", JString(filter.name)) :: Nil)
+    case filter: FilterReference => new JObject(JField("reference", JString(filter.name)) :: Nil)
     case filter: DefaultFilter =>
       val list = new ArrayBuffer[JField]
       if (filter.name.nonEmpty)

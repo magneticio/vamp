@@ -5,7 +5,7 @@ clusters:
     services:
       -
         breed:
-          name: nocturnal-viper
+          ref: nocturnal-viper
           
     sla: strong-mountain
     

@@ -5,7 +5,7 @@ clusters:
     services:
       -
         breed:
-          name: solid-barbershop
+          reference: solid-barbershop
 
         environment_variables:
           HEAP: 2GB

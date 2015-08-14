@@ -5,4 +5,4 @@ clusters:
     services:
       -
         breed: 
-          name: nocturnal-viper
+          ref: nocturnal-viper
