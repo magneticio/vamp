@@ -272,7 +272,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
   private def clusterRouteService(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, port: Port, clusterRoutes: List[ClusterRoute]): Option[RouteService] =
     clusterRoutes.find(_.matching(deployment, deploymentCluster, port)) match {
       case None => None
-      case Some(route) => route.services.find(_.name == deploymentService.breed.name)
+      case Some(route) => route.services.find(_.matching(deploymentService))
     }
 
   private def processServiceResults(deployment: Deployment, deploymentCluster: DeploymentCluster, clusterRoutes: List[ClusterRoute], processedServices: List[ProcessedService]): ProcessedCluster = {

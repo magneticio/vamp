@@ -9,9 +9,12 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
+import scala.util.matching.Regex
 
 class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDriver with DefaultRouterDriverNameMatcher {
   protected implicit val executionContext = ec
+
+  private val serviceIdMatcher = """^[a-zA-Z0-9]+[a-zA-Z0-9.\-_:]{1,63}$""".r
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[DefaultRouterDriver]))
 
@@ -71,7 +74,7 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
       case None => None
       case Some(c) => c.services.flatMap { service =>
         service.routing.getOrElse(DefaultRouting("", None, Nil)).filters.flatMap({
-          case filter: DefaultFilter => Filter(filter.name, filter.condition, s"${service.breed.name}") :: Nil
+          case filter: DefaultFilter => Filter(filter.name, filter.condition, s"${artifactName2Id(service.breed, serviceIdMatcher)}") :: Nil
           case _ => Nil
         })
       }
@@ -83,15 +86,15 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
 
   private def services(deployment: Deployment, cluster: Option[DeploymentCluster], port: Port): List[Service] = cluster match {
     case Some(c) =>
-      c.services.map { service => router_driver.Service(s"${service.breed.name}", service.routing.getOrElse(DefaultRouting("", Some(100), Nil)).weight.getOrElse(100), service.servers.map(server(service, _, port))) }
+      c.services.map { service => router_driver.Service(s"${artifactName2Id(service.breed, serviceIdMatcher)}", service.routing.getOrElse(DefaultRouting("", Some(100), Nil)).weight.getOrElse(100), service.servers.map(server(service, _, port))) }
 
     case None =>
       val name = TraitReference.referenceFor(port.name).map(_.referenceWithoutGroup).getOrElse(port.name)
-      router_driver.Service(s"$name", 100, servers(deployment, port)) :: Nil
+      router_driver.Service(s"${string2Id(name, serviceIdMatcher)}", 100, servers(deployment, port)) :: Nil
   }
 
   private def services(route: Route, services: List[Service]): List[RouteService] = services.map { service =>
-    RouteService(service.name, service.weight, service.servers, route.filters.filter(_.destination == service.name))
+    RouteService(serviceRouteNameMatcher(service.name), service.weight, service.servers, route.filters.filter(_.destination == service.name))
   }
 
   private def server(service: DeploymentService, server: DeploymentServer, port: Port) =
@@ -128,6 +131,8 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
 
   private def clusterRouteNameMatcher(id: String): (Deployment, DeploymentCluster, Port) => Boolean = { (deployment: Deployment, cluster: DeploymentCluster, port: Port) => id == clusterRouteName(deployment, cluster, port) }
 
+  private def serviceRouteNameMatcher(id: String): (DeploymentService) => Boolean = { (deploymentService: DeploymentService) => id == artifactName2Id(deploymentService.breed, serviceIdMatcher) }
+
   private def endpointRouteNameMatcher(id: String): (Deployment, Option[Port]) => Boolean = (deployment: Deployment, optionalPort: Option[Port]) => optionalPort match {
     case None => isDeploymentEndpoint(id, deployment)
     case Some(port) => id == endpointRouteName(deployment, port)
@@ -152,10 +157,10 @@ trait DefaultRouterDriverNameMatcher {
   def isDeploymentEndpoint(id: String, deployment: Deployment): Boolean =
     id.startsWith(s"${artifactName2Id(deployment)}$nameDelimiter")
 
-  def artifactName2Id(artifact: Artifact) = string2Id(artifact.name)
+  def artifactName2Id(artifact: Artifact, matcher: Regex = idMatcher) = string2Id(artifact.name, matcher)
 
-  def string2Id(string: String) = string match {
-    case idMatcher(_*) => string
+  def string2Id(string: String, matcher: Regex = idMatcher) = string match {
+    case matcher(_*) => string
     case _ => Hash.hexSha1(string)
   }
 }
