@@ -2,39 +2,25 @@ package io.vamp.common.akka
 
 import akka.actor.Actor
 import akka.actor.Status.Failure
-import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
+import akka.pattern.pipe
 import io.vamp.common.notification.{Notification, NotificationProvider}
-import io.vamp.common.vitals.InfoRequest
 
-import scala.runtime.BoxedUnit
+import scala.concurrent.Future
 
 trait RequestError extends Notification {
   def request: Any
 }
 
 trait ReplyActor {
-  this: Actor with NotificationProvider =>
+  this: Actor with ExecutionContextProvider with NotificationProvider =>
 
-  final override def receive: Receive = {
-    case request if allowedRequestType(request) => reply(request) match {
-      case response: BoxedUnit =>
-      case response => sender ! response
-    }
-    case request => sender ! unsupported(request)
-  }
+  protected def reply[A](future: Future[A]): Unit =
+    pipe(future.recover { case failure => asFailure(failure) }) to sender()
 
-  protected def allowedRequestType(request: Any) = {
-    requestType.isAssignableFrom(request.getClass) || (request == InfoRequest) || (request == Start) || (request == Shutdown)
-  }
+  protected def asFailure(request: Any) =
+    Failure(reportException(asRequestError(request)))
 
-  protected def requestType: Class[_]
-
-  protected def reply(request: Any): Any
-
-  protected def errorRequest(request: Any): RequestError
-
-  protected def unsupported(request: Any) = Failure(reportException(errorRequest(request)))
-
+  protected def asRequestError(request: Any): RequestError
 }
 
-trait CommonReplyActor extends CommonSupportForActors with ReplyActor with FutureSupportNotification
+trait CommonReplyActor extends CommonSupportForActors with ReplyActor
