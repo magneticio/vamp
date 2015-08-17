@@ -1,10 +1,10 @@
 package io.vamp.core.operation.controller
 
-import _root_.io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
-import _root_.io.vamp.common.notification.NotificationProvider
-import _root_.io.vamp.core.model.workflow.{DefaultWorkflow, ScheduledWorkflow, TimeTrigger, Workflow}
-import _root_.io.vamp.core.operation.notification.{InconsistentArtifactName, InvalidTimeTriggerError, MissingRequiredVariableError, UnexpectedArtifact}
-import _root_.io.vamp.core.persistence.{ArtifactSupport, PersistenceActor}
+import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.notification.NotificationProvider
+import io.vamp.core.model.workflow.{DefaultWorkflow, ScheduledWorkflow, TimeTrigger, Workflow}
+import io.vamp.core.operation.notification.{InconsistentArtifactName, InvalidTimeTriggerError, MissingRequiredVariableError, UnexpectedArtifact}
+import io.vamp.core.persistence.{ArtifactSupport, PersistenceActor}
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.core.model.artifact._

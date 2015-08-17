@@ -1,6 +1,6 @@
 package io.vamp.core.persistence
 
-import _root_.io.vamp.common.akka._
+import io.vamp.common.akka._
 import akka.actor.Props
 import akka.event.LoggingAdapter
 import io.vamp.common.http.OffsetEnvelope

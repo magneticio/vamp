@@ -1,6 +1,6 @@
 package io.vamp.core.container_driver
 
-import _root_.io.vamp.common.akka._
+import io.vamp.common.akka._
 import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory

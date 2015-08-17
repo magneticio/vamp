@@ -2,10 +2,10 @@ package io.vamp.core.model.reader
 
 import java.io.{File, InputStream, Reader, StringReader}
 
-import _root_.io.vamp.common.notification.NotificationErrorException
-import _root_.io.vamp.core.model.artifact._
-import _root_.io.vamp.core.model.notification._
-import _root_.io.vamp.core.model.resolver.TraitResolver
+import io.vamp.common.notification.NotificationErrorException
+import io.vamp.core.model.artifact._
+import io.vamp.core.model.notification._
+import io.vamp.core.model.resolver.TraitResolver
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.constructor.Constructor
 import org.yaml.snakeyaml.error.YAMLException

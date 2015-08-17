@@ -1,9 +1,9 @@
 package io.vamp.core.persistence
 
-import _root_.io.vamp.common.akka.{ActorSupport, FutureSupport}
-import _root_.io.vamp.common.notification.NotificationProvider
-import _root_.io.vamp.core.model.artifact.Artifact
-import _root_.io.vamp.core.persistence.notification.ArtifactNotFound
+import io.vamp.common.akka.{ActorSupport, FutureSupport}
+import io.vamp.common.notification.NotificationProvider
+import io.vamp.core.model.artifact.Artifact
+import io.vamp.core.persistence.notification.ArtifactNotFound
 import akka.pattern.ask
 
 import scala.reflect._

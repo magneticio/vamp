@@ -2,8 +2,8 @@ package io.vamp.core.operation.deployment
 
 import java.util.UUID
 
-import _root_.io.vamp.common.akka._
-import _root_.io.vamp.core.operation.deployment.DeploymentSynchronizationActor.Synchronize
+import io.vamp.common.akka._
+import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout

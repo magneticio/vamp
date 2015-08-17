@@ -3,7 +3,7 @@ package io.vamp.core.operation.deployment
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
-import _root_.io.vamp.common.akka._
+import io.vamp.common.akka._
 import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout

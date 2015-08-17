@@ -1,6 +1,6 @@
 package io.vamp.core.persistence
 
-import _root_.io.vamp.common.vitals.InfoRequest
+import io.vamp.common.vitals.InfoRequest
 import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory

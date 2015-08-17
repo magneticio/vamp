@@ -14,7 +14,7 @@ import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.event.Aggregator.AggregatorType
 import io.vamp.core.model.event._
 import io.vamp.core.model.validator.EventValidator
-import io.vamp.core.pulse.Percolator.{UnregisterPercolator, RegisterPercolator}
+import io.vamp.core.pulse.Percolator.{RegisterPercolator, UnregisterPercolator}
 import io.vamp.core.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
@@ -57,6 +57,7 @@ object PulseActor extends ActorDescription {
 
 class PulseActor extends Percolator with EventValidator with CommonReplyActor with CommonSupportForActors with PulseNotificationProvider {
 
+  import ElasticsearchClient._
   import PulseActor._
 
   implicit val timeout = PulseActor.timeout
