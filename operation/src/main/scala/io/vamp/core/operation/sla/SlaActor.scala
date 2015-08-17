@@ -8,14 +8,13 @@ import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.event.{EventQuery, TimeRange, Aggregator, Event}
+import io.vamp.core.model.event.{Aggregator, Event, EventQuery, TimeRange, _}
 import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.core.operation.notification._
 import io.vamp.core.operation.sla.SlaActor.SlaProcessAll
-import io.vamp.core.persistence.PersistenceActor
+import io.vamp.core.persistence.{PaginationSupport, PersistenceActor}
 import io.vamp.core.pulse.PulseActor
 import io.vamp.core.pulse.PulseActor.Publish
-import io.vamp.core.model.event._
 import io.vamp.core.router_driver.DefaultRouterDriverNameMatcher
 
 import scala.language.postfixOps
@@ -40,12 +39,12 @@ object SlaActor extends ActorDescription {
 
 }
 
-class SlaActor extends SlaPulse with CommonSupportForActors with OperationNotificationProvider {
+class SlaActor extends SlaPulse with PaginationSupport with CommonSupportForActors with OperationNotificationProvider {
 
   def receive: Receive = {
     case SlaProcessAll =>
       implicit val timeout = PersistenceActor.timeout
-      offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
+      allArtifacts(classOf[Deployment]) match {
         case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]])
         case any => reportException(InternalServerError(any))
       }

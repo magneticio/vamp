@@ -3,7 +3,6 @@ package io.vamp.core.rest_api
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
-import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ActorSupport, CommonSupportForActors, ExecutionContextProvider, FutureSupport}
 import io.vamp.common.http.RestApiBase
@@ -15,14 +14,13 @@ import io.vamp.core.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.vamp.core.operation.notification.InternalServerError
 import io.vamp.core.operation.sla.{EscalationActor, SlaActor}
-import io.vamp.core.persistence.PersistenceActor
-import io.vamp.core.persistence.PersistenceActor.All
+import io.vamp.core.persistence.{PaginationSupport, PersistenceActor}
 import spray.http.StatusCodes._
 
 import scala.language.{existentials, postfixOps}
 
 trait DeploymentApiRoute extends DeploymentApiController with DevController {
-  this: CommonSupportForActors with RestApiBase =>
+  this: PaginationSupport with CommonSupportForActors with RestApiBase =>
 
   implicit def timeout: Timeout
 
@@ -161,7 +159,7 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
 }
 
 trait DevController {
-  this: NotificationProvider with ActorSupport with FutureSupport with ExecutionContextProvider =>
+  this: PaginationSupport with NotificationProvider with ActorSupport with FutureSupport with ExecutionContextProvider =>
 
   def sync(rate: Option[Int])(implicit timeout: Timeout): Unit = rate match {
     case Some(r) =>
@@ -169,14 +167,13 @@ trait DevController {
         actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
       }
 
-    case None =>
-      offload(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
-        case deployments: List[_] =>
-          deployments.asInstanceOf[List[Deployment]].map({ deployment =>
-            deployment.clusters.filter(cluster => cluster.services.exists(!_.state.isInstanceOf[Deployed])).count(_ => true)
-          }).reduceOption(_ max _).foreach(max => sync(Some(max * 3 + 1)))
-        case any => throwException(InternalServerError(any))
-      }
+    case None => allArtifacts(classOf[Deployment]) match {
+      case deployments: List[_] =>
+        deployments.asInstanceOf[List[Deployment]].map({ deployment =>
+          deployment.clusters.filter(cluster => cluster.services.exists(!_.state.isInstanceOf[Deployed])).count(_ => true)
+        }).reduceOption(_ max _).foreach(max => sync(Some(max * 3 + 1)))
+      case any => throwException(InternalServerError(any))
+    }
   }
 
   def slaCheck() = {
@@ -188,15 +185,13 @@ trait DevController {
     actorFor(EscalationActor) ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }
 
-  def reset()(implicit timeout: Timeout): Unit = {
-    offload(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
-      case deployments: List[_] =>
-        deployments.asInstanceOf[List[Deployment]].map({ deployment =>
-          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
-          deployment.clusters.count(_ => true)
-        }).reduceOption(_ max _).foreach(max => sync(Some(max * 3)))
-      case any => throwException(InternalServerError(any))
-    }
+  def reset()(implicit timeout: Timeout): Unit = allArtifacts(classOf[Deployment]) match {
+    case deployments: List[_] =>
+      deployments.asInstanceOf[List[Deployment]].map({ deployment =>
+        actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
+        deployment.clusters.count(_ => true)
+      }).reduceOption(_ max _).foreach(max => sync(Some(max * 3)))
+    case any => throwException(InternalServerError(any))
   }
 }
 

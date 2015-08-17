@@ -16,7 +16,7 @@ import scala.language.{existentials, postfixOps}
 trait DeploymentApiController extends ArtifactShrinkage {
   this: ActorSupport with FutureSupport with ExecutionContextProvider with NotificationProvider =>
 
-  def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(classOf[Deployment], page, perPage, expandReferences, onlyReferences)).map {
+  def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = (actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment], page, perPage, expandReferences, onlyReferences)).map {
     case ArtifactResponseEnvelope(list, _, _, _) => list.map {
       case deployment: Deployment => transform(deployment, asBlueprint, onlyReferences)
       case any => any

@@ -16,7 +16,7 @@ import io.vamp.core.model.reader.{BlueprintReader, BreedReader}
 import io.vamp.core.model.resolver.DeploymentTraitResolver
 import io.vamp.core.operation.notification._
 import io.vamp.core.persistence.notification.PersistenceOperationFailure
-import io.vamp.core.persistence.{ArtifactSupport, PersistenceActor}
+import io.vamp.core.persistence.{ArtifactSupport, PaginationSupport, PersistenceActor}
 
 import scala.language.{existentials, postfixOps}
 
@@ -40,7 +40,7 @@ object DeploymentActor extends ActorDescription {
 
 }
 
-class DeploymentActor extends CommonReplyActor with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ArtifactSupport with OperationNotificationProvider {
+class DeploymentActor extends CommonReplyActor with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ArtifactSupport with PaginationSupport with OperationNotificationProvider {
 
   import DeploymentActor._
 
@@ -107,7 +107,7 @@ trait BlueprintSupport {
 
 trait DeploymentValidator {
 
-  this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
+  this: PaginationSupport with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
   def validateServices: (Deployment => Deployment) = { (deployment: Deployment) =>
     val services = deployment.clusters.flatMap(_.services).filterNot(_.state.isInstanceOf[ReadyForUndeployment])
@@ -175,7 +175,7 @@ trait DeploymentValidator {
   def validateEndpoints: (Deployment => Deployment) = { (deployment: Deployment) =>
     // Availability check.
     implicit val timeout = PersistenceActor.timeout
-    offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
+    allArtifacts(classOf[Deployment]) match {
       case deployments: List[_] =>
         val ports = deployments.asInstanceOf[List[Deployment]].filterNot(_.name == deployment.name).flatMap { d =>
           d.endpoints.map(_.number -> d)

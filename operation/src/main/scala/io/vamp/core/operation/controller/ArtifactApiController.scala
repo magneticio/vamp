@@ -77,7 +77,7 @@ trait ArtifactApiController extends ArtifactSupport {
     val `type` = classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]]
 
     override def all(page: Int, perPage: Int, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) =
-      actorFor(PersistenceActor) ? PersistenceActor.AllPaginated(`type`, page, perPage, expandReferences, onlyReferences)
+      actorFor(PersistenceActor) ? PersistenceActor.All(`type`, page, perPage, expandReferences, onlyReferences)
 
     override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       val artifact = (unmarshal andThen validate)(source)

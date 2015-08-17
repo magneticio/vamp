@@ -28,9 +28,7 @@ object PersistenceActor extends ActorDescription {
 
   trait PersistenceMessages
 
-  case class All(`type`: Class[_ <: Artifact]) extends PersistenceMessages
-
-  case class AllPaginated(`type`: Class[_ <: Artifact], page: Int, perPage: Int, expandReferences: Boolean = false, onlyReferences: Boolean = false) extends PersistenceMessages
+  case class All(`type`: Class[_ <: Artifact], page: Int, perPage: Int, expandReferences: Boolean = false, onlyReferences: Boolean = false) extends PersistenceMessages
 
   case class Create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = true) extends PersistenceMessages
 
@@ -53,8 +51,6 @@ trait PersistenceActor extends ArtifactExpansion with ArtifactShrinkage with Rep
   override protected def errorRequest(request: Any): RequestError = UnsupportedPersistenceRequest(request)
 
   protected def info(): Any
-
-  protected def all(`type`: Class[_ <: Artifact]): List[Artifact]
 
   protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope
 
@@ -82,9 +78,7 @@ trait PersistenceActor extends ArtifactExpansion with ArtifactShrinkage with Rep
 
     case InfoRequest => info()
 
-    case All(ofType) => all(ofType)
-
-    case AllPaginated(ofType, page, perPage, expandRef, onlyRef) => (expandRef, onlyRef) match {
+    case All(ofType, page, perPage, expandRef, onlyRef) => (expandRef, onlyRef) match {
       case (true, false) =>
         val artifacts = all(ofType, page, perPage)
         artifacts.copy(response = artifacts.response.map(expandReferences))

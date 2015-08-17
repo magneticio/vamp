@@ -15,7 +15,7 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.resolver.DeploymentTraitResolver
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import io.vamp.core.operation.notification.{DeploymentServiceError, InternalServerError, OperationNotificationProvider}
-import io.vamp.core.persistence.PersistenceActor
+import io.vamp.core.persistence.{PaginationSupport, PersistenceActor}
 import io.vamp.core.router_driver._
 
 import scala.language.postfixOps
@@ -41,7 +41,7 @@ object DeploymentSynchronizationActor extends ActorDescription {
 
 }
 
-class DeploymentSynchronizationActor extends CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
+class DeploymentSynchronizationActor extends PaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
 
   private object Processed {
 
@@ -69,7 +69,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
 
     case SynchronizeAll =>
       implicit val timeout = PersistenceActor.timeout
-      offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
+      allArtifacts(classOf[Deployment]) match {
         case deployments: List[_] => synchronize(deployments.asInstanceOf[List[Deployment]])
         case any => throwException(InternalServerError(any))
       }

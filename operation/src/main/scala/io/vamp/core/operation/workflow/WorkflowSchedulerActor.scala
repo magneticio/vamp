@@ -1,14 +1,13 @@
 package io.vamp.core.operation.workflow
 
 import akka.actor._
-import akka.pattern.ask
 import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
 import io.vamp.common.akka._
 import io.vamp.core.model.event.Event
 import io.vamp.core.model.workflow.{DeploymentTrigger, EventTrigger, ScheduledWorkflow, TimeTrigger}
 import io.vamp.core.operation.notification._
-import io.vamp.core.persistence.{ArtifactSupport, PersistenceActor}
-import io.vamp.core.pulse.Percolator.{UnregisterPercolator, RegisterPercolator}
+import io.vamp.core.persistence.{ArtifactSupport, PaginationSupport, PersistenceActor}
+import io.vamp.core.pulse.Percolator.{RegisterPercolator, UnregisterPercolator}
 import io.vamp.core.pulse.PulseActor
 
 import scala.language.postfixOps
@@ -25,7 +24,7 @@ object WorkflowSchedulerActor extends ActorDescription {
 
 }
 
-class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecutor with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
+class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecutor with PaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
 
   import WorkflowSchedulerActor._
 
@@ -57,7 +56,7 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
 
   private def start: (Unit => Unit) = quartzStart andThen { _ =>
     implicit val timeout = PersistenceActor.timeout
-    offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[ScheduledWorkflow])) match {
+    allArtifacts(classOf[ScheduledWorkflow]) match {
       case scheduledWorkflows: List[_] =>
         scheduledWorkflows.asInstanceOf[List[ScheduledWorkflow]].foreach(scheduledWorkflow => self ! Schedule(scheduledWorkflow))
       case any => reportException(InternalServerError(any))
