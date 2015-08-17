@@ -99,7 +99,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-    persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, router_driver, swagger, cli
+    persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, router_driver, cli
   ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
@@ -141,7 +141,7 @@ lazy val rest_api = project.settings(bintraySetting: _*).settings(
     }
   )
   .settings((compile in Compile)<<= (compile in Compile) dependsOn downloadUI)
-  .dependsOn(operation, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
+  .dependsOn(operation).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
 lazy val operation = project.settings(bintraySetting: _*).settings(
@@ -212,11 +212,6 @@ lazy val model = project.settings(bintraySetting: _*).settings(
     "org.scalatest" %% "scalatest" % scalatestVersion % "test",
     scalaCheck
   )
-).disablePlugins(sbtassembly.AssemblyPlugin)
-
-lazy val swagger = project.settings(bintraySetting: _*).settings(
-  description := "Swagger annotations",
-  name:="core-swagger"
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 // Java version and encoding requirements
