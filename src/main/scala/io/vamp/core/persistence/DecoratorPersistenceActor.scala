@@ -16,9 +16,7 @@ abstract class DecoratorPersistenceActor(target: ActorDescription) extends Persi
     case other => other
   }
 
-  protected def all(`type`: Class[_ <: Artifact]) = offload(actorFor(target) ? All(`type`)).asInstanceOf[List[Artifact]]
-
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int) = offload(actorFor(target) ? AllPaginated(`type`, page, perPage)).asInstanceOf[ArtifactResponseEnvelope]
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int) = offload(actorFor(target) ? All(`type`, page, perPage)).asInstanceOf[ArtifactResponseEnvelope]
 
   protected def create(artifact: Artifact, source: Option[String], ignoreIfExists: Boolean) = offload(actorFor(target) ? Create(artifact, source, ignoreIfExists)).asInstanceOf[Artifact]
 
