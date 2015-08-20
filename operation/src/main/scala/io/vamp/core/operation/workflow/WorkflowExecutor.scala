@@ -3,7 +3,7 @@ package io.vamp.core.operation.workflow
 import javax.script.Bindings
 
 import akka.actor.{Actor, ActorLogging}
-import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider}
 import io.vamp.core.model.artifact.Deployment
 import io.vamp.core.model.workflow._
 import io.vamp.core.persistence.{ArtifactSupport, PersistenceActor}
@@ -14,28 +14,30 @@ import scala.concurrent.Future
 import scala.io.Source
 
 trait WorkflowExecutor {
-  this: Actor with ActorLogging with ArtifactSupport with ActorSupport with FutureSupport with ExecutionContextProvider =>
+  this: Actor with ActorLogging with ArtifactSupport with ActorSupport with ExecutionContextProvider =>
 
   private val urlPattern = "^(https?:\\/\\/.+)$".r
 
-  def execute(scheduledWorkflow: ScheduledWorkflow, data: Any) = Future {
-    try {
-      log.info(s"Executing workflow: $scheduledWorkflow")
-      val refreshed = artifactFor[ScheduledWorkflow](scheduledWorkflow.name)
-      eval(refreshed, artifactFor[DefaultWorkflow](refreshed.workflow), data)
-    } catch {
-      case e: Throwable => log.error(s"Exception during execution of '${scheduledWorkflow.name}': ${e.getMessage}", e)
-    }
+  def execute(scheduledWorkflow: ScheduledWorkflow, data: Any): Future[_] = {
+    log.info(s"Executing workflow: $scheduledWorkflow")
+    for {
+      refreshed <- artifactFor[ScheduledWorkflow](scheduledWorkflow.name)
+      workflow <- artifactFor[DefaultWorkflow](refreshed.workflow)
+    } yield eval(refreshed, workflow, data)
   }
 
-  private def eval(scheduledWorkflow: ScheduledWorkflow, workflow: DefaultWorkflow, data: Any) = {
-    val source = mergeSource(workflow)
-    val engine = createEngine()
-    val bindings = initializeBindings(scheduledWorkflow, engine.createBindings, data)
+  private def eval(scheduledWorkflow: ScheduledWorkflow, workflow: DefaultWorkflow, data: Any) = mergeSource(workflow) map {
+    case source =>
+      try {
+        val engine = createEngine()
+        val bindings = initializeBindings(scheduledWorkflow, engine.createBindings, data)
 
-    val result = engine.eval(source, bindings)
-    log.info(s"Result of '${scheduledWorkflow.name}': $result")
-    postEvaluation(scheduledWorkflow, bindings)
+        val result = engine.eval(source, bindings)
+        log.info(s"Result of '${scheduledWorkflow.name}': $result")
+        postEvaluation(scheduledWorkflow, bindings)
+      } catch {
+        case e: Throwable => log.error(s"Exception during execution of '${scheduledWorkflow.name}': ${e.getMessage}", e)
+      }
   }
 
   private def createEngine() = {
@@ -47,16 +49,14 @@ trait WorkflowExecutor {
     new NashornScriptEngineFactory().getScriptEngine(arguments, classLoader)
   }
 
-  private def mergeSource(workflow: DefaultWorkflow) = {
-    workflow.`import`.map {
-      case urlPattern(url) =>
-        log.debug(s"Importing the external script: $url")
-        Source.fromURL(url).mkString
-      case reference =>
-        log.debug(s"Importing the internal script: $reference")
-        artifactFor[DefaultWorkflow](reference).script
-    } :+ workflow.script mkString "\n"
-  }
+  private def mergeSource(workflow: DefaultWorkflow): Future[String] = Future.sequence(workflow.`import`.map {
+    case urlPattern(url) =>
+      log.debug(s"Importing the external script: $url")
+      Future(Source.fromURL(url).mkString)
+    case reference =>
+      log.debug(s"Importing the internal script: $reference")
+      artifactFor[DefaultWorkflow](reference).map(_.script)
+  } :+ Future(workflow.script)).map(_.mkString("\n"))
 
   private def initializeBindings(scheduledWorkflow: ScheduledWorkflow, bindings: Bindings, data: Any) = {
     addContextBindings(scheduledWorkflow, bindings)

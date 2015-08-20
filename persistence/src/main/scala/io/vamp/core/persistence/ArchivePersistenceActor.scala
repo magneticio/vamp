@@ -3,7 +3,6 @@ package io.vamp.core.persistence
 import akka.actor.Props
 import akka.pattern.ask
 import io.vamp.common.akka._
-import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.event.Event
 import io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
@@ -21,21 +20,18 @@ class ArchivePersistenceActor(target: ActorDescription) extends DecoratorPersist
 
   override protected def infoMap() = Map("archive" -> true)
 
-  override protected def create(artifact: Artifact, source: Option[String], ignoreIfExists: Boolean) = offload(actorFor(target) ? Create(artifact, source, ignoreIfExists)) match {
+  override protected def create(artifact: Artifact, source: Option[String], ignoreIfExists: Boolean) = actorFor(target) ? Create(artifact, source, ignoreIfExists) map {
     case a: Artifact => archiveCreate(a, source)
-    case e: NotificationErrorException => throw e
     case other => throwException(PersistenceOperationFailure(other))
   }
 
-  override protected def update(artifact: Artifact, source: Option[String], create: Boolean) = offload(actorFor(target) ? Update(artifact, source, create)) match {
+  override protected def update(artifact: Artifact, source: Option[String], create: Boolean) = actorFor(target) ? Update(artifact, source, create) map {
     case a: Artifact => if (create) archiveCreate(a, source) else archiveUpdate(a, source)
-    case e: NotificationErrorException => throw e
     case other => throwException(PersistenceOperationFailure(other))
   }
 
-  override protected def delete(name: String, `type`: Class[_ <: Artifact]) = offload(actorFor(target) ? Delete(name, `type`)) match {
+  override protected def delete(name: String, `type`: Class[_ <: Artifact]) = actorFor(target) ? Delete(name, `type`) map {
     case a: Artifact => archiveDelete(a)
-    case e: NotificationErrorException => throw e
     case other => throwException(PersistenceOperationFailure(other))
   }
 

@@ -3,11 +3,11 @@ package io.vamp.core.operation.deployment
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
-import io.vamp.common.akka._
 import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.container_driver.{ContainerDriverActor, ContainerServer, ContainerService}
 import io.vamp.core.model.artifact.DeploymentService._
@@ -15,7 +15,7 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.model.resolver.DeploymentTraitResolver
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import io.vamp.core.operation.notification.{DeploymentServiceError, InternalServerError, OperationNotificationProvider}
-import io.vamp.core.persistence.{PaginationSupport, PersistenceActor}
+import io.vamp.core.persistence.{ArtifactPaginationSupport, PersistenceActor}
 import io.vamp.core.router_driver._
 
 import scala.language.postfixOps
@@ -41,7 +41,7 @@ object DeploymentSynchronizationActor extends ActorDescription {
 
 }
 
-class DeploymentSynchronizationActor extends PaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
+class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
 
   private object Processed {
 
@@ -69,10 +69,7 @@ class DeploymentSynchronizationActor extends PaginationSupport with CommonSuppor
 
     case SynchronizeAll =>
       implicit val timeout = PersistenceActor.timeout
-      allArtifacts(classOf[Deployment]) match {
-        case deployments: List[_] => synchronize(deployments.asInstanceOf[List[Deployment]])
-        case any => throwException(InternalServerError(any))
-      }
+      allArtifacts(classOf[Deployment]) map synchronize
 
     case Synchronize(deployment) => synchronize(deployment :: Nil)
 
@@ -81,12 +78,14 @@ class DeploymentSynchronizationActor extends PaginationSupport with CommonSuppor
 
   private def synchronize(deployments: List[Deployment]): Unit = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
-    offload(actorFor(RouterDriverActor) ? RouterDriverActor.All) match {
+    actorFor(RouterDriverActor) ? RouterDriverActor.All map {
       case error: NotificationErrorException => log.error("Synchronisation not possible")
-      case success =>
-        val deploymentRoutes = success.asInstanceOf[DeploymentRoutes]
-        val containerServices = offload(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
-        deployments.filterNot(withError).foreach(synchronize(containerServices, deploymentRoutes))
+      case deploymentRoutes: DeploymentRoutes =>
+        actorFor(ContainerDriverActor) ? ContainerDriverActor.All map {
+          case containerServices: List[_] => deployments.filterNot(withError).foreach(synchronize(containerServices.asInstanceOf[List[ContainerService]], deploymentRoutes))
+          case any => throwException(InternalServerError(any))
+        }
+      case other => throwException(InternalServerError(other))
     }
   }
 

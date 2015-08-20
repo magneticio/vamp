@@ -61,7 +61,7 @@ val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4" % "test"
 
 // Library Versions
 
-val vampCommonVersion = "0.7.9-dev.7dcadf5"
+val vampCommonVersion = "0.7.9-dev.ebb27a1"
 val vampUiVersion = "0.7.9-87"
 
 val sprayVersion = "1.3.2"
@@ -83,6 +83,11 @@ val quartzVersion = "2.2.1"
 val bcprovVersion= "1.46"
 val unisocketsNettyVersion = "0.1.0"
 val jerseyVersion = "2.15"
+
+
+val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
+val scalaTest = "org.scalatest" %% "scalatest" % scalatestVersion
+
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
@@ -161,7 +166,11 @@ lazy val pulse = project.settings(bintraySetting: _*).settings(
 
 lazy val router_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to Vamp Router",
-  name:="core-router_driver"
+  name:="core-router_driver",
+  libraryDependencies ++= Seq(
+    scalaTest % "test",
+    akkaTestkit % "test"
+  )
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val container_driver = project.settings(bintraySetting: _*).settings(

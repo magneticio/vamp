@@ -5,7 +5,7 @@ import akka.util.Timeout
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.http.RestApiBase
 import io.vamp.core.operation.controller.ArtifactApiController
-import io.vamp.core.persistence.PaginationSupport
+import io.vamp.core.persistence.ArtifactPaginationSupport
 import spray.http.HttpRequest
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
@@ -13,7 +13,7 @@ import spray.routing.directives.LogEntry
 
 import scala.language.{existentials, postfixOps}
 
-trait RestApiRoute extends RestApiBase with ArtifactApiController with DeploymentApiRoute with EventApiRoute with InfoRoute with PaginationSupport {
+trait RestApiRoute extends RestApiBase with ArtifactApiController with DeploymentApiRoute with EventApiRoute with InfoRoute with ArtifactPaginationSupport {
   this: CommonSupportForActors =>
 
   implicit def timeout: Timeout

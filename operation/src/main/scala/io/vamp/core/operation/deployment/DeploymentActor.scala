@@ -2,22 +2,22 @@ package io.vamp.core.operation.deployment
 
 import java.util.UUID
 
-import io.vamp.common.akka._
-import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.notification.{NotificationErrorException, NotificationProvider}
+import io.vamp.common.akka.{ActorDescription, ActorSupport, CommonSupportForActors, ExecutionContextProvider}
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.dictionary.DictionaryActor
 import io.vamp.core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification._
 import io.vamp.core.model.reader.{BlueprintReader, BreedReader}
 import io.vamp.core.model.resolver.DeploymentTraitResolver
+import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.core.operation.notification._
-import io.vamp.core.persistence.notification.PersistenceOperationFailure
-import io.vamp.core.persistence.{ArtifactSupport, PaginationSupport, PersistenceActor}
+import io.vamp.core.persistence.{ArtifactPaginationSupport, ArtifactSupport, PersistenceActor}
 
+import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 
 object DeploymentActor extends ActorDescription {
@@ -40,74 +40,83 @@ object DeploymentActor extends ActorDescription {
 
 }
 
-class DeploymentActor extends CommonReplyActor with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ArtifactSupport with PaginationSupport with OperationNotificationProvider {
+class DeploymentActor extends CommonSupportForActors with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
 
   import DeploymentActor._
 
-  override protected def requestType: Class[_] = classOf[DeploymentMessages]
-
-  override protected def errorRequest(request: Any): RequestError = UnsupportedDeploymentRequest(request)
-
-  def reply(request: Any) = try {
-    request match {
-      case Create(blueprint, source, validateOnly) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source, validateOnly))(deploymentFor())
-
-      case Merge(name, blueprint, source, validateOnly) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source, validateOnly))(deploymentFor(name))
-
-      case Slice(name, blueprint, source, validateOnly) => (slice(deploymentFor(blueprint)) andThen commit(create = false, source, validateOnly))(deploymentFor(name))
-
-      case UpdateSla(deployment, cluster, sla, source) => updateSla(deployment, cluster, sla, source)
-
-      case UpdateScale(deployment, cluster, service, scale, source) => updateScale(deployment, cluster, service, scale, source)
-
-      case UpdateRouting(deployment, cluster, service, routing, source) => updateRouting(deployment, cluster, service, routing, source)
-
-      case _ => reportException(errorRequest(request))
+  def receive = {
+    case Create(blueprint, source, validateOnly) => reply {
+      (merge(deploymentFor(blueprint)) andThen commit(create = true, source, validateOnly))(deploymentFor())
     }
-  } catch {
-    case e: NotificationErrorException => e
-    case e: Throwable => reportException(InternalServerError(e))
+
+    case Merge(name, blueprint, source, validateOnly) => reply {
+      (merge(deploymentFor(blueprint)) andThen commit(create = true, source, validateOnly))(deploymentFor(name))
+    }
+
+    case Slice(name, blueprint, source, validateOnly) => reply {
+      (slice(deploymentFor(blueprint)) andThen commit(create = false, source, validateOnly))(deploymentFor(name))
+    }
+
+    case UpdateSla(deployment, cluster, sla, source) => reply {
+      updateSla(deployment, cluster, sla, source)
+    }
+
+    case UpdateScale(deployment, cluster, service, scale, source) => reply {
+      updateScale(deployment, cluster, service, scale, source)
+    }
+
+    case UpdateRouting(deployment, cluster, service, routing, source) => reply {
+      updateRouting(deployment, cluster, service, routing, source)
+    }
+
+    case any => unsupported(UnsupportedDeploymentRequest(any))
   }
 
-  def commit(create: Boolean, source: String, validateOnly: Boolean): (Deployment => Deployment) = { (deployment: Deployment) =>
-    if (validateOnly) deployment
+  def commit(create: Boolean, source: String, validateOnly: Boolean): (Future[Deployment] => Future[Deployment]) = { (future: Future[Deployment]) =>
+    if (validateOnly) future
     else {
-      implicit val timeout: Timeout = PersistenceActor.timeout
-      offload(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, Some(source), create = create)) match {
-        case persisted: Deployment =>
+      future.flatMap { case deployment =>
+        implicit val timeout: Timeout = PersistenceActor.timeout
+        checked[Deployment](actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, Some(source), create = create)) map { case persisted =>
           actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
           persisted
-        case any => throwException(errorRequest(PersistenceOperationFailure(any)))
+        }
       }
     }
   }
 }
 
 trait BlueprintSupport {
-  this: ArtifactSupport =>
+  this: ArtifactSupport with ExecutionContextProvider =>
 
   private def uuid = UUID.randomUUID.toString
 
-  def deploymentFor(): Deployment = Deployment(uuid, Nil, Nil, Nil, Nil, Nil)
+  def deploymentFor(): Future[Deployment] = Future(Deployment(uuid, Nil, Nil, Nil, Nil, Nil))
 
-  def deploymentFor(name: String): Deployment = artifactFor[Deployment](name)
+  def deploymentFor(name: String): Future[Deployment] = artifactFor[Deployment](name)
 
-  def deploymentFor(blueprint: Blueprint): Deployment = {
-    val bp = artifactFor[DefaultBlueprint](blueprint)
-
-    val clusters = bp.clusters.map { cluster =>
-      DeploymentCluster(cluster.name, cluster.services.map { service =>
-        DeploymentService(ReadyForDeployment(), artifactFor[DefaultBreed](service.breed), service.environmentVariables, artifactFor[DefaultScale](service.scale), artifactFor[DefaultRouting](service.routing), Nil, Map(), service.dialects)
-      }, cluster.sla, Map(), cluster.dialects)
+  def deploymentFor(blueprint: Blueprint): Future[Deployment] = {
+    artifactFor[DefaultBlueprint](blueprint) flatMap {
+      case bp =>
+        val clusters = bp.clusters.map { cluster =>
+          Future.traverse(cluster.services)({ service =>
+            for {
+              breed <- artifactFor[DefaultBreed](service.breed)
+              scale <- artifactFor[DefaultScale](service.scale)
+              routing <- artifactFor[DefaultRouting](service.routing)
+            } yield {
+              DeploymentService(ReadyForDeployment(), breed, service.environmentVariables, scale, routing, Nil, Map(), service.dialects)
+            }
+          }).map(DeploymentCluster(cluster.name, _, cluster.sla, Map(), cluster.dialects))
+        }
+        Future.sequence(clusters).map(Deployment(uuid, _, bp.endpoints, Nil, bp.environmentVariables, Nil))
     }
-
-    Deployment(uuid, clusters, bp.endpoints, Nil, bp.environmentVariables, Nil)
   }
 }
 
 trait DeploymentValidator {
 
-  this: PaginationSupport with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
+  this: ArtifactPaginationSupport with ArtifactSupport with ActorSupport with ExecutionContextProvider with NotificationProvider =>
 
   def validateServices: (Deployment => Deployment) = { (deployment: Deployment) =>
     val services = deployment.clusters.flatMap(_.services).filterNot(_.state.isInstanceOf[ReadyForUndeployment])
@@ -151,33 +160,32 @@ trait DeploymentValidator {
     deployment
   }
 
-  def validateBlueprintEnvironmentVariables: (Deployment => Deployment) = { (blueprint: Deployment) =>
-    blueprint match {
-      case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap {
-        case t => throwException(UnresolvedEnvironmentVariableError(t.name, t.value.getOrElse("")))
-      }
-      case _ =>
+  def validateBlueprintEnvironmentVariables: (Future[Deployment] => Future[Deployment]) = { (futureBlueprint: Future[Deployment]) =>
+    futureBlueprint.map {
+      case bp: AbstractBlueprint =>
+        bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap {
+          case t => throwException(UnresolvedEnvironmentVariableError(t.name, t.value.getOrElse("")))
+        }.getOrElse(bp)
+      case blueprint => blueprint
     }
-    blueprint
   }
 
-  def validateBlueprintEndpoints: (Deployment => Deployment) = { (blueprint: Deployment) =>
+  def validateBlueprintEndpoints: (Future[Deployment] => Future[Deployment]) = { (futureBlueprint: Future[Deployment]) =>
     // Reference check.
-    blueprint match {
+    futureBlueprint.map {
       case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap {
         case t => throwException(UnresolvedEndpointPortError(t.name, t.value))
-      }
-      case _ =>
+      }.getOrElse(bp)
+      case blueprint => blueprint
     }
-    blueprint
   }
 
-  def validateEndpoints: (Deployment => Deployment) = { (deployment: Deployment) =>
+  def validateEndpoints: (Deployment => Future[Deployment]) = { (deployment: Deployment) =>
     // Availability check.
     implicit val timeout = PersistenceActor.timeout
-    allArtifacts(classOf[Deployment]) match {
-      case deployments: List[_] =>
-        val ports = deployments.asInstanceOf[List[Deployment]].filterNot(_.name == deployment.name).flatMap { d =>
+    allArtifacts(classOf[Deployment]) map {
+      case deployments =>
+        val ports = deployments.filterNot(_.name == deployment.name).flatMap { d =>
           d.endpoints.map(_.number -> d)
         }.toMap
 
@@ -187,9 +195,8 @@ trait DeploymentValidator {
             case _ =>
           }
         }
-      case any => throwException(InternalServerError(any))
+        deployment
     }
-    deployment
   }
 
   def traitExists(blueprint: AbstractBlueprint, reference: Option[TraitReference], strictBreeds: Boolean): Boolean = reference match {
@@ -211,11 +218,11 @@ trait DeploymentValidator {
 }
 
 trait DeploymentOperation {
-  def commit(create: Boolean, source: String, validateOnly: Boolean): (Deployment => Deployment)
+  def commit(create: Boolean, source: String, validateOnly: Boolean): (Future[Deployment] => Future[Deployment])
 }
 
 trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver {
-  this: DeploymentValidator with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
+  this: DeploymentValidator with ArtifactSupport with ActorSupport with ExecutionContextProvider with NotificationProvider =>
 
   def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintEndpoints
 
@@ -223,57 +230,66 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
   def validateMerge = validateServices andThen validateRoutingWeights andThen validateScaleEscalations andThen validateEndpoints
 
-  def merge(blueprint: Deployment): (Deployment => Deployment) = { (deployment: Deployment) =>
+  def merge(blueprint: Future[Deployment]): (Future[Deployment] => Future[Deployment]) = { (futureDeployment: Future[Deployment]) =>
+    futureDeployment.flatMap {
+      case deployment =>
+        (validateBlueprint andThen resolveProperties)(blueprint) flatMap {
+          case attachment =>
+            mergeClusters(futureDeployment, attachment) flatMap {
+              case clusters =>
+                val endpoints = mergeTrait(attachment.endpoints, deployment.endpoints)
+                val ports = mergeTrait(attachment.ports, deployment.ports)
+                val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
+                val hosts = mergeTrait(attachment.hosts, deployment.hosts)
 
-    val attachment = (validateBlueprint andThen resolveProperties)(blueprint)
-
-    val clusters = mergeClusters(deployment, attachment)
-    val endpoints = mergeTrait(attachment.endpoints, deployment.endpoints)
-    val ports = mergeTrait(attachment.ports, deployment.ports)
-    val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
-    val hosts = mergeTrait(attachment.hosts, deployment.hosts)
-
-    validateMerge(Deployment(deployment.name, clusters, endpoints, ports, environmentVariables, hosts))
+                validateMerge(Deployment(deployment.name, clusters, endpoints, ports, environmentVariables, hosts))
+            }
+        }
+    }
   }
 
   def mergeTrait[A <: Trait](traits1: List[A], traits2: List[A]): List[A] =
     (traits1.map(t => t.name -> t).toMap ++ traits2.map(t => t.name -> t).toMap).values.toList
 
-  def mergeClusters(stable: Deployment, blueprint: Deployment): List[DeploymentCluster] = {
-    val deploymentClusters = stable.clusters.filter(cluster => !blueprint.clusters.exists(_.name == cluster.name))
+  def mergeClusters(futureStable: Future[Deployment], blueprint: Deployment): Future[List[DeploymentCluster]] = {
+    futureStable.flatMap {
+      case stable =>
+        val deploymentClusters = stable.clusters.filter(cluster => !blueprint.clusters.exists(_.name == cluster.name)).map(Future(_))
 
-    val blueprintClusters = blueprint.clusters.map { cluster =>
-      stable.clusters.find(_.name == cluster.name) match {
-        case None =>
-          cluster.copy(services = mergeServices(stable, None, cluster))
-        case Some(deploymentCluster) =>
-          deploymentCluster.copy(services = mergeServices(stable, Some(deploymentCluster), cluster), routes = cluster.routes ++ deploymentCluster.routes, dialects = deploymentCluster.dialects ++ cluster.dialects, sla = cluster.sla)
+        val blueprintClusters = blueprint.clusters.map { cluster =>
+          stable.clusters.find(_.name == cluster.name) match {
+            case None => mergeServices(stable, None, cluster).map {
+              case services => cluster.copy(services = services)
+            }
+            case Some(deploymentCluster) => mergeServices(stable, Some(deploymentCluster), cluster).map {
+              case services => deploymentCluster.copy(services = services, routes = cluster.routes ++ deploymentCluster.routes, dialects = deploymentCluster.dialects ++ cluster.dialects, sla = cluster.sla)
+            }
+          }
+        }
+        Future.sequence(deploymentClusters ++ blueprintClusters)
+    }
+  }
+
+  def mergeServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): Future[List[DeploymentService]] =
+    Future.sequence(mergeOldServices(deployment, stableCluster, blueprintCluster) ++ mergeNewServices(deployment, stableCluster, blueprintCluster))
+
+  def mergeOldServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[Future[DeploymentService]] = stableCluster match {
+    case None => Nil
+    case Some(sc) => sc.services.map { service => Future {
+      blueprintCluster.services.find(_.breed.name == service.breed.name) match {
+        case None => service
+        case Some(bpService) =>
+          val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
+          val routing = if (bpService.routing.isDefined) bpService.routing else service.routing
+          val state = if (service.scale != bpService.scale || service.routing != bpService.routing) ReadyForDeployment() else service.state
+
+          service.copy(scale = scale, routing = routing, state = state, dialects = service.dialects ++ bpService.dialects)
       }
     }
-
-    deploymentClusters ++ blueprintClusters
+    }
   }
 
-  def mergeServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[DeploymentService] =
-    mergeOldServices(deployment, stableCluster, blueprintCluster) ++ mergeNewServices(deployment, stableCluster, blueprintCluster)
-
-  def mergeOldServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[DeploymentService] = stableCluster match {
-    case None => Nil
-    case Some(sc) =>
-      sc.services.map { service =>
-        blueprintCluster.services.find(_.breed.name == service.breed.name) match {
-          case None => service
-          case Some(bpService) =>
-            val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
-            val routing = if (bpService.routing.isDefined) bpService.routing else service.routing
-            val state = if (service.scale != bpService.scale || service.routing != bpService.routing) ReadyForDeployment() else service.state
-
-            service.copy(scale = scale, routing = routing, state = state, dialects = service.dialects ++ bpService.dialects)
-        }
-      }
-  }
-
-  def mergeNewServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[DeploymentService] = {
+  def mergeNewServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[Future[DeploymentService]] = {
     val newServices = blueprintCluster.services.filter(service => stableCluster match {
       case None => true
       case Some(sc) => !sc.services.exists(_.breed.name == service.breed.name)
@@ -298,90 +314,100 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
       val weight = Math.round(availableWeight / newServices.size)
 
-      newServices.view.zipWithIndex.map({ case (service, index) =>
-        val scale = service.scale match {
-          case None =>
-            implicit val timeout = DictionaryActor.timeout
-            val key = DictionaryActor.containerScale.format(deployment.name, blueprintCluster.name, service.breed.name)
-            offload(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
-              case scale: DefaultScale => scale
-              case e => throwException(UnresolvedEnvironmentValueError(key, e))
-            }
-          case Some(scale: DefaultScale) => scale
-        }
-
-        val defaultWeight = if (index == newServices.size - 1) availableWeight - index * weight else weight
-        val routing = service.routing match {
-          case None => Some(DefaultRouting("", Some(defaultWeight), Nil))
-          case Some(r: DefaultRouting) => Some(r.copy(weight = Some(r.weight.getOrElse(defaultWeight))))
-        }
-        service.copy(scale = Some(scale), routing = routing)
-      }).toList
-    }
-    else Nil
-  }
-
-  def resolveHosts: (Deployment => Deployment) = { (deployment: Deployment) =>
-    implicit val timeout = DictionaryActor.timeout
-    val host = offload(actorFor(DictionaryActor) ? DictionaryActor.Get(DictionaryActor.hostResolver)) match {
-      case h: String => h
-      case e => throwException(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
-    }
-
-    deployment.copy(hosts = deployment.clusters.map(cluster => Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(host))))
-  }
-
-  def resolveRouteMapping: (Deployment => Deployment) = { (deployment: Deployment) =>
-    deployment.copy(clusters = deployment.clusters.map({ cluster =>
-      cluster.copy(routes = cluster.services.map(_.breed).flatMap(_.ports).map(_.number).map(port => cluster.routes.get(port) match {
-        case None =>
-          implicit val timeout = DictionaryActor.timeout
-          val key = DictionaryActor.portAssignment.format(deployment.name, port)
-          port -> (offload(actorFor(DictionaryActor) ? DictionaryActor.Get(key)) match {
-            case number: Int => number
-            case e => throwException(UnresolvedEnvironmentValueError(key, e))
-          })
-        case Some(number) => port -> number
-      }).toMap)
-    }))
-  }
-
-  def validateEmptyVariables: (Deployment => Deployment) = { (deployment: Deployment) =>
-
-    deployment.clusters.flatMap({ cluster =>
-      cluster.services.flatMap(service => {
-        service.breed.ports.filter(_.value.isEmpty).map(port => {
-          val name = TraitReference(cluster.name, TraitReference.Ports, port.name).toString
-          deployment.environmentVariables.find(_.name == name).getOrElse(throwException(UnresolvedVariableValueError(service.breed, port.name)))
-        })
-
-        service.breed.environmentVariables.filter(_.value.isEmpty).map(environmentVariable => {
-          val name = TraitReference(cluster.name, TraitReference.EnvironmentVariables, environmentVariable.name).toString
-          deployment.environmentVariables.find(_.name == name).getOrElse(throwException(UnresolvedVariableValueError(service.breed, environmentVariable.name)))
-        })
-      })
-    })
-
-    deployment
-  }
-
-  def resolveDependencyMapping: (Deployment => Deployment) = { (deployment: Deployment) =>
-    val dependencies = deployment.clusters.flatMap(cluster => cluster.services.map(service => (service.breed.name, cluster.name))).toMap
-    deployment.copy(clusters = deployment.clusters.map({ cluster =>
-      cluster.copy(services = cluster.services.map({ service =>
-        service.copy(dependencies = service.breed.dependencies.flatMap({ case (name, breed) =>
-          dependencies.get(breed.name) match {
-            case Some(d) => (name, d) :: Nil
-            case None => Nil
+      newServices.view.zipWithIndex.toList.map {
+        case (service, index) =>
+          (service.scale match {
+            case None =>
+              implicit val timeout = DictionaryActor.timeout
+              val key = DictionaryActor.containerScale.format(deployment.name, blueprintCluster.name, service.breed.name)
+              actorFor(DictionaryActor) ? DictionaryActor.Get(key) map {
+                case scale: DefaultScale => scale
+                case e => throwException(UnresolvedEnvironmentValueError(key, e))
+              }
+            case Some(scale: DefaultScale) => Future(scale)
+          }).map {
+            case scale =>
+              val defaultWeight = if (index == newServices.size - 1) availableWeight - index * weight else weight
+              val routing = service.routing match {
+                case None => Some(DefaultRouting("", Some(defaultWeight), Nil))
+                case Some(r: DefaultRouting) => Some(r.copy(weight = Some(r.weight.getOrElse(defaultWeight))))
+              }
+              service.copy(scale = Some(scale), routing = routing)
           }
+      }
+    } else Nil
+  }
+
+  def resolveHosts: (Future[Deployment] => Future[Deployment]) = { (futureDeployment: Future[Deployment]) =>
+    futureDeployment.flatMap {
+      case deployment => implicit val timeout = DictionaryActor.timeout
+        actorFor(DictionaryActor) ? DictionaryActor.Get(DictionaryActor.hostResolver) map {
+          case host: String => deployment.copy(hosts = deployment.clusters.map(cluster => Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(host))))
+          case e => throwException(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
+        }
+    }
+  }
+
+  def resolveRouteMapping: (Future[Deployment] => Future[Deployment]) = { (futureDeployment: Future[Deployment]) =>
+    futureDeployment.flatMap {
+      case deployment =>
+        Future.sequence(deployment.clusters.map({ cluster =>
+          Future.sequence(cluster.services.map(_.breed).flatMap(_.ports).map(_.number).map(port => cluster.routes.get(port) match {
+            case None =>
+              implicit val timeout = DictionaryActor.timeout
+              val key = DictionaryActor.portAssignment.format(deployment.name, port)
+              actorFor(DictionaryActor) ? DictionaryActor.Get(key) map {
+                case number: Int => port -> number
+                case e => throwException(UnresolvedEnvironmentValueError(key, e))
+              }
+            case Some(number) => Future(port -> number)
+          })).map(routes => cluster.copy(routes = routes.toMap))
+        })).map {
+          case clusters => deployment.copy(clusters = clusters)
+        }
+    }
+  }
+
+  def validateEmptyVariables: (Future[Deployment] => Future[Deployment]) = { (futureDeployment: Future[Deployment]) =>
+    futureDeployment.map {
+      case deployment =>
+        deployment.clusters.flatMap({ cluster =>
+          cluster.services.flatMap(service => {
+            service.breed.ports.filter(_.value.isEmpty).map(port => {
+              val name = TraitReference(cluster.name, TraitReference.Ports, port.name).toString
+              deployment.environmentVariables.find(_.name == name).getOrElse(throwException(UnresolvedVariableValueError(service.breed, port.name)))
+            })
+
+            service.breed.environmentVariables.filter(_.value.isEmpty).map(environmentVariable => {
+              val name = TraitReference(cluster.name, TraitReference.EnvironmentVariables, environmentVariable.name).toString
+              deployment.environmentVariables.find(_.name == name).getOrElse(throwException(UnresolvedVariableValueError(service.breed, environmentVariable.name)))
+            })
+          })
+        })
+        deployment
+    }
+  }
+
+  def resolveDependencyMapping: (Future[Deployment] => Future[Deployment]) = { (futureDeployment: Future[Deployment]) =>
+    futureDeployment.map {
+      case deployment =>
+        val dependencies = deployment.clusters.flatMap(cluster => cluster.services.map(service => (service.breed.name, cluster.name))).toMap
+        deployment.copy(clusters = deployment.clusters.map({ cluster =>
+          cluster.copy(services = cluster.services.map({ service =>
+            service.copy(dependencies = service.breed.dependencies.flatMap({ case (name, breed) =>
+              dependencies.get(breed.name) match {
+                case Some(d) => (name, d) :: Nil
+                case None => Nil
+              }
+            }))
+          }))
         }))
-      }))
-    }))
+    }
   }
 }
 
 trait DeploymentSlicer extends DeploymentOperation {
-  this: DeploymentValidator with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
+  this: DeploymentValidator with ArtifactSupport with ActorSupport with ExecutionContextProvider with NotificationProvider =>
 
   def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster =>
     blueprint.clusters.find(_.name == cluster.name).foreach { bpc =>
@@ -390,41 +416,42 @@ trait DeploymentSlicer extends DeploymentOperation {
     }
   }
 
-  def slice(blueprint: Deployment): (Deployment => Deployment) = { (stable: Deployment) =>
-    validateRoutingWeightOfServicesForRemoval(stable, blueprint)
+  def slice(futureBlueprint: Future[Deployment]): (Future[Deployment] => Future[Deployment]) = { (stableFuture: Future[Deployment]) =>
+    for {
+      blueprint <- futureBlueprint
+      stable <- stableFuture
+    } yield {
+      validateRoutingWeightOfServicesForRemoval(stable, blueprint)
 
-    (validateServices andThen validateRoutingWeights andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster =>
-      blueprint.clusters.find(_.name == cluster.name) match {
-        case None => cluster
-        case Some(bpc) => cluster.copy(services = cluster.services.map(service => service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) ReadyForUndeployment() else service.state)))
-      }
-    ).filter(_.services.nonEmpty)))
+      (validateServices andThen validateRoutingWeights andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster =>
+        blueprint.clusters.find(_.name == cluster.name) match {
+          case None => cluster
+          case Some(bpc) => cluster.copy(services = cluster.services.map(service => service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) ReadyForUndeployment() else service.state)))
+        }
+      ).filter(_.services.nonEmpty)))
+    }
   }
 }
 
 trait DeploymentUpdate {
-  this: DeploymentValidator with ActorSupport with FutureSupport =>
+  this: DeploymentValidator with ActorSupport =>
 
   private implicit val timeout = PersistenceActor.timeout
 
   def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String) = {
     val clusters = deployment.clusters.map(c => if (cluster.name == c.name) c.copy(sla = sla) else c)
-    offload(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source)))
-    sla
+    actorFor(PersistenceActor) ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
   }
 
   def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) = {
     lazy val services = cluster.services.map(s => if (s.breed.name == service.breed.name) service.copy(scale = Some(scale), state = ReadyForDeployment()) else s)
     val clusters = deployment.clusters.map(c => if (c.name == cluster.name) c.copy(services = services) else c)
-    offload(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source)))
-    scale
+    actorFor(PersistenceActor) ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
   }
 
   def updateRouting(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, routing: DefaultRouting, source: String) = {
     lazy val services = cluster.services.map(s => if (s.breed.name == service.breed.name) service.copy(routing = Some(routing), state = ReadyForDeployment()) else s)
     val clusters = deployment.clusters.map(c => if (c.name == cluster.name) c.copy(services = services) else c)
-    offload(actorFor(PersistenceActor) ? PersistenceActor.Update(validateRoutingWeights(deployment.copy(clusters = clusters)), Some(source)))
-    routing
+    actorFor(PersistenceActor) ? PersistenceActor.Update(validateRoutingWeights(deployment.copy(clusters = clusters)), Some(source))
   }
 }
-

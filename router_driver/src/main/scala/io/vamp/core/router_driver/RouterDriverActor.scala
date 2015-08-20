@@ -1,18 +1,12 @@
 package io.vamp.core.router_driver
 
 import akka.actor.Props
-import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.artifact._
 import io.vamp.core.router_driver.notification.{RouterDriverNotificationProvider, RouterResponseError, UnsupportedRouterDriverRequest}
 
-import scala.concurrent.duration._
-
 object RouterDriverActor extends ActorDescription {
-
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.router-driver.response-timeout").seconds)
 
   def props(args: Any*): Props = Props(classOf[RouterDriverActor], args: _*)
 
@@ -30,27 +24,19 @@ object RouterDriverActor extends ActorDescription {
 
 }
 
-class RouterDriverActor(driver: RouterDriver) extends CommonReplyActor with RouterDriverNotificationProvider {
+class RouterDriverActor(driver: RouterDriver) extends CommonSupportForActors with ReplyActor with RouterDriverNotificationProvider {
 
   import io.vamp.core.router_driver.RouterDriverActor._
 
-  implicit val timeout = RouterDriverActor.timeout
-
-  override protected def requestType: Class[_] = classOf[RouterDriverMessage]
-
-  override protected def errorRequest(request: Any): RequestError = UnsupportedRouterDriverRequest(request)
-
-  def reply(request: Any) = try {
-    request match {
-      case InfoRequest => offload(driver.info, classOf[RouterResponseError])
-      case All => offload(driver.all, classOf[RouterResponseError])
-      case Create(deployment, cluster, port, update) => offload(driver.create(deployment, cluster, port, update), classOf[RouterResponseError])
-      case Remove(deployment, cluster, port) => offload(driver.remove(deployment, cluster, port), classOf[RouterResponseError])
-      case CreateEndpoint(deployment, port, update) => offload(driver.create(deployment, port, update), classOf[RouterResponseError])
-      case RemoveEndpoint(deployment, port) => offload(driver.remove(deployment, port), classOf[RouterResponseError])
-      case _ => unsupported(request)
-    }
-  } catch {
-    case e: Throwable => reportException(RouterResponseError(e))
+  def receive = {
+    case InfoRequest => reply(driver.info)
+    case All => reply(driver.all)
+    case Create(deployment, cluster, port, update) => reply(driver.create(deployment, cluster, port, update))
+    case Remove(deployment, cluster, port) => reply(driver.remove(deployment, cluster, port))
+    case CreateEndpoint(deployment, port, update) => reply(driver.create(deployment, port, update))
+    case RemoveEndpoint(deployment, port) => reply(driver.remove(deployment, port))
+    case other => unsupported(UnsupportedRouterDriverRequest(other))
   }
+
+  override def errorNotificationClass = classOf[RouterResponseError]
 }

@@ -2,12 +2,12 @@ package io.vamp.core.operation.workflow
 
 import akka.util.Timeout
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.akka.FutureSupport
 import io.vamp.core.model.workflow.ScheduledWorkflow
 import org.json4s.native.Serialization._
 import org.json4s.{DefaultFormats, Formats}
 import org.slf4j.LoggerFactory
 
+import scala.async.Async.{async, await}
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
@@ -32,8 +32,8 @@ trait SerializationMagnet {
   def asScala: Any
 }
 
-object SerializationMagnet extends FutureSupport {
-  implicit def apply(any: => Any)(implicit timeout: Timeout, mf: Manifest[Any], formats: Formats = DefaultFormats) = new SerializationMagnet {
+object SerializationMagnet {
+  implicit def apply(any: => Any)(implicit executionContext: ExecutionContext, mf: Manifest[Any], formats: Formats = DefaultFormats) = new SerializationMagnet {
     def serialize = SerializationMagnet.serialize(any)
 
     def load = SerializationMagnet.load(any)
@@ -41,8 +41,8 @@ object SerializationMagnet extends FutureSupport {
     def asScala = SerializationMagnet.toScala(any)
   }
 
-  protected def serialize(any: Any)(implicit timeout: Timeout, mf: Manifest[Any], formats: Formats = DefaultFormats): Any = toJavaScript(any match {
-    case future: Future[_] => serialize(offload(future))
+  protected def serialize(any: Any)(implicit executionContext: ExecutionContext, mf: Manifest[Any], formats: Formats = DefaultFormats): Any = toJavaScript(any match {
+    case future: Future[_] => serialize(async(await(future)))
     case list: Seq[_] => list.map(serialize)
     case anyRef: AnyRef =>
       val string = write(anyRef)

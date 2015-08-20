@@ -3,17 +3,17 @@ package io.vamp.core.operation.sla
 import java.time.OffsetDateTime
 
 import akka.actor._
-import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.core.model.artifact.DeploymentService.ReadyForDeployment
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.event.{Event, EventQuery, TimeRange}
+import io.vamp.core.model.event.{EventQuery, TimeRange}
 import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.core.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType}
 import io.vamp.core.operation.sla.EscalationActor.EscalationProcessAll
-import io.vamp.core.persistence.{PaginationSupport, PersistenceActor}
+import io.vamp.core.persistence.{ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor}
 import io.vamp.core.pulse.PulseActor
 
+import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.language.postfixOps
 
@@ -54,17 +54,14 @@ object EscalationActor extends ActorDescription {
 
 }
 
-class EscalationActor extends PaginationSupport with CommonSupportForActors with OperationNotificationProvider {
+class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupport with CommonSupportForActors with OperationNotificationProvider {
 
   def tags = Set("escalation")
 
   def receive: Receive = {
     case EscalationProcessAll(from, to) =>
       implicit val timeout = PersistenceActor.timeout
-      allArtifacts(classOf[Deployment]) match {
-        case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]], from, to)
-        case any => reportException(InternalServerError(any))
-      }
+      allArtifacts(classOf[Deployment]) map (check(_, from, to))
   }
 
   private def check(deployments: List[Deployment], from: OffsetDateTime, to: OffsetDateTime) = {
@@ -74,13 +71,12 @@ class EscalationActor extends PaginationSupport with CommonSupportForActors with
           case None =>
           case Some(sla) =>
             sla.escalations.foreach { _ =>
-              querySlaEvents(deployment, cluster, from, to) match {
-                case escalationEvents: List[_] => escalationEvents.foreach {
+              querySlaEvents(deployment, cluster, from, to) map {
+                case escalationEvents => escalationEvents.foreach {
                   case Escalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = true)
                   case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name => escalateToAll(deployment, cluster, sla.escalations, escalate = false)
                   case _ =>
                 }
-                case any => reportException(InternalServerError(any))
               }
             }
         })
@@ -90,21 +86,20 @@ class EscalationActor extends PaginationSupport with CommonSupportForActors with
     })
   }
 
-  private def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime): List[SlaEvent] = {
+  private def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime): Future[List[SlaEvent]] = {
     implicit val timeout = PulseActor.timeout
     val eventQuery = EventQuery(SlaEvent.slaTags(deployment, cluster), Some(TimeRange(Some(from), Some(to), includeLower = false, includeUpper = true)))
-    offload(actorFor(PulseActor) ? PulseActor.QueryAll(eventQuery)) match {
-      case list: List[_] => list.asInstanceOf[List[Event]].flatMap { event =>
-        if (Escalate.tags.forall(event.tags.contains))
-          Escalate(deployment, cluster, event.timestamp) :: Nil
-        else if (DeEscalate.tags.forall(event.tags.contains))
-          DeEscalate(deployment, cluster, event.timestamp) :: Nil
-        else
-          Nil
-      }
-      case other =>
-        log.error(other.toString)
-        Nil
+
+    allEvents(eventQuery) map {
+      case events =>
+        events.flatMap { event =>
+          if (Escalate.tags.forall(event.tags.contains))
+            Escalate(deployment, cluster, event.timestamp) :: Nil
+          else if (DeEscalate.tags.forall(event.tags.contains))
+            DeEscalate(deployment, cluster, event.timestamp) :: Nil
+          else
+            Nil
+        }
     }
   }
 

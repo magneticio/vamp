@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 
 import akka.actor.ActorRefFactory
 import akka.pattern.ask
-import io.vamp.common.akka.{ActorSupport, FutureSupport}
+import io.vamp.common.akka.ActorSupport
 import io.vamp.core.model.event.Aggregator.AggregatorType
 import io.vamp.core.model.event._
 import io.vamp.core.model.workflow.ScheduledWorkflow
@@ -12,9 +12,10 @@ import io.vamp.core.persistence.PersistenceActor
 import io.vamp.core.pulse.PulseActor.{Publish, Query}
 import io.vamp.core.pulse.{EventRequestEnvelope, EventResponseEnvelope, PulseActor}
 
+import scala.async.Async.{async, await}
 import scala.concurrent.ExecutionContext
 
-class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext with ActorSupport with FutureSupport {
+class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext with ActorSupport {
 
   implicit lazy val timeout = PersistenceActor.timeout
 
@@ -55,7 +56,7 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
     }
     logger.debug(s"Publishing event: $event")
     reset()
-    offload(actorFor(PulseActor) ? Publish(event))
+    async(await(actorFor(PulseActor) ? Publish(event)))
   }
 
   def lt(time: String) = {
@@ -137,10 +138,14 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
     val eventQuery = EventQuery(tags, Some(TimeRange(_lt, _lte, _gt, _gte)), aggregator.flatMap(agg => Some(Aggregator(agg, _field))))
     logger.info(s"Event query: $eventQuery")
     reset()
-    offload(actorFor(PulseActor) ? Query(EventRequestEnvelope(eventQuery, _page, _perPage))) match {
-      case EventResponseEnvelope(list, _, _, _) => list
-      case result: SingleValueAggregationResult[_] => result.value
-      case other => other
+    async {
+      await {
+        actorFor(PulseActor) ? Query(EventRequestEnvelope(eventQuery, _page, _perPage)) map {
+          case EventResponseEnvelope(list, _, _, _) => list
+          case result: SingleValueAggregationResult[_] => result.value
+          case other => other
+        }
+      }
     }
   }
 

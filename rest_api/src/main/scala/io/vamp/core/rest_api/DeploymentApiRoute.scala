@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
 import akka.util.Timeout
-import io.vamp.common.akka.{ActorSupport, CommonSupportForActors, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.akka.{ActorSupport, CommonSupportForActors, ExecutionContextProvider}
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact.Deployment
@@ -14,13 +14,13 @@ import io.vamp.core.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.vamp.core.operation.notification.InternalServerError
 import io.vamp.core.operation.sla.{EscalationActor, SlaActor}
-import io.vamp.core.persistence.{PaginationSupport, PersistenceActor}
+import io.vamp.core.persistence.{ArtifactPaginationSupport, PersistenceActor}
 import spray.http.StatusCodes._
 
 import scala.language.{existentials, postfixOps}
 
 trait DeploymentApiRoute extends DeploymentApiController with DevController {
-  this: PaginationSupport with CommonSupportForActors with RestApiBase =>
+  this: ArtifactPaginationSupport with CommonSupportForActors with RestApiBase =>
 
   implicit def timeout: Timeout
 
@@ -159,7 +159,7 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
 }
 
 trait DevController {
-  this: PaginationSupport with NotificationProvider with ActorSupport with FutureSupport with ExecutionContextProvider =>
+  this: ArtifactPaginationSupport with NotificationProvider with ActorSupport with ExecutionContextProvider =>
 
   def sync(rate: Option[Int])(implicit timeout: Timeout): Unit = rate match {
     case Some(r) =>
@@ -167,7 +167,7 @@ trait DevController {
         actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
       }
 
-    case None => allArtifacts(classOf[Deployment]) match {
+    case None => allArtifacts(classOf[Deployment]) map {
       case deployments: List[_] =>
         deployments.asInstanceOf[List[Deployment]].map({ deployment =>
           deployment.clusters.filter(cluster => cluster.services.exists(!_.state.isInstanceOf[Deployed])).count(_ => true)
@@ -185,7 +185,7 @@ trait DevController {
     actorFor(EscalationActor) ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }
 
-  def reset()(implicit timeout: Timeout): Unit = allArtifacts(classOf[Deployment]) match {
+  def reset()(implicit timeout: Timeout): Unit = allArtifacts(classOf[Deployment]) map {
     case deployments: List[_] =>
       deployments.asInstanceOf[List[Deployment]].map({ deployment =>
         actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
