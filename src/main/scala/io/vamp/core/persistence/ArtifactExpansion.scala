@@ -10,7 +10,7 @@ import scala.reflect._
 trait ArtifactExpansion {
   this: NotificationProvider =>
 
-  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
+  protected def readExpanded(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
 
   protected def expandReferences(artifact: Option[Artifact]): Option[Artifact] = artifact.flatMap(a => Some(expandReferences(a)))
 
@@ -35,7 +35,7 @@ trait ArtifactExpansion {
         case Some(sla: GenericSla) => Some(sla)
         case Some(sla: EscalationOnlySla) => Some(sla)
         case Some(sla: ResponseTimeSlidingWindowSla) => Some(sla)
-        case Some(sla: SlaReference) => read(sla.name, classOf[GenericSla]) match {
+        case Some(sla: SlaReference) => readExpanded(sla.name, classOf[GenericSla]) match {
           case Some(slaDefault: GenericSla) => Some(slaDefault.copy(escalations = sla.escalations))
           case _ => throwException(ArtifactNotFound(sla.name, classOf[GenericSla]))
         }
@@ -54,7 +54,7 @@ trait ArtifactExpansion {
 
   private def expandIfReference[D <: Artifact : ClassTag, R <: Reference : ClassTag](artifact: Artifact): D = artifact match {
     case referencedArtifact if referencedArtifact.getClass == classTag[R].runtimeClass =>
-      read(referencedArtifact.name, classTag[D].runtimeClass.asInstanceOf[Class[_ <: Artifact]]) match {
+      readExpanded(referencedArtifact.name, classTag[D].runtimeClass.asInstanceOf[Class[_ <: Artifact]]) match {
         case Some(defaultArtifact) if defaultArtifact.getClass == classTag[D].runtimeClass => defaultArtifact.asInstanceOf[D]
         case _ => throwException(ArtifactNotFound(referencedArtifact.name, classTag[D].runtimeClass))
       }

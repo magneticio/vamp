@@ -1,16 +1,16 @@
 package io.vamp.core.persistence
 
-import io.vamp.common.vitals.InfoRequest
 import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
-import io.vamp.common.notification.NotificationErrorException
+import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.artifact.Artifact
 import io.vamp.core.persistence.notification._
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.existentials
 
@@ -46,67 +46,69 @@ trait PersistenceActor extends ArtifactExpansion with ArtifactShrinkage with Rep
 
   lazy implicit val timeout = PersistenceActor.timeout
 
-  override protected def requestType: Class[_] = classOf[PersistenceMessages]
+  protected def info(): Future[Any]
 
-  override protected def errorRequest(request: Any): RequestError = UnsupportedPersistenceRequest(request)
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope]
 
-  protected def info(): Any
+  protected def create(artifact: Artifact, source: Option[String], ignoreIfExists: Boolean): Future[Artifact]
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope
+  protected def read(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]]
 
-  protected def create(artifact: Artifact, source: Option[String], ignoreIfExists: Boolean): Artifact
+  protected def update(artifact: Artifact, source: Option[String], create: Boolean): Future[Artifact]
 
-  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Artifact]
 
-  protected def update(artifact: Artifact, source: Option[String], create: Boolean): Artifact
+  override def errorNotificationClass = classOf[PersistenceOperationFailure]
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Artifact
-
-  final def reply(request: Any): Any = try {
-    log.debug(s"${getClass.getSimpleName}: ${request.getClass.getSimpleName}")
-    respond(request)
-  } catch {
-    case e: NotificationErrorException => e
-    case e: Throwable => reportException(PersistenceOperationFailure(e))
-  }
-
-  protected def respond(request: Any) = request match {
+  def receive = {
 
     case Start => start()
 
     case Shutdown => shutdown()
 
-    case InfoRequest => info()
-
-    case All(ofType, page, perPage, expandRef, onlyRef) => (expandRef, onlyRef) match {
-      case (true, false) =>
-        val artifacts = all(ofType, page, perPage)
-        artifacts.copy(response = artifacts.response.map(expandReferences))
-
-      case (false, true) =>
-        val artifacts = all(ofType, page, perPage)
-        artifacts.copy(response = artifacts.response.map(onlyReferences))
-
-      case _ => all(ofType, page, perPage)
+    case InfoRequest => reply {
+      info()
     }
 
-    case Create(artifact, source, ignoreIfExists) => create(artifact, source, ignoreIfExists)
-
-    case Read(name, ofType, expandRef, onlyRef) => (expandRef, onlyRef) match {
-      case (true, false) => expandReferences(read(name, ofType))
-      case (false, true) => onlyReferences(read(name, ofType))
-      case _ => read(name, ofType)
+    case All(ofType, page, perPage, expandRef, onlyRef) => reply {
+      all(ofType, page, perPage) map { case artifacts =>
+        (expandRef, onlyRef) match {
+          case (true, false) => artifacts.copy(response = artifacts.response.map(expandReferences))
+          case (false, true) => artifacts.copy(response = artifacts.response.map(onlyReferences))
+          case _ => artifacts
+        }
+      }
     }
 
-    case Update(artifact, source, create) => update(artifact, source, create)
+    case Create(artifact, source, ignoreIfExists) => reply {
+      create(artifact, source, ignoreIfExists)
+    }
 
-    case Delete(name, ofType) => delete(name, ofType)
+    case Read(name, ofType, expandRef, onlyRef) => reply {
+      read(name, ofType) map { case artifact =>
+        (expandRef, onlyRef) match {
+          case (true, false) => expandReferences(artifact)
+          case (false, true) => onlyReferences(artifact)
+          case _ => read(name, ofType)
+        }
+      }
+    }
 
-    case _ => throwException(errorRequest(request))
+    case Update(artifact, source, create) => reply {
+      update(artifact, source, create)
+    }
+
+    case Delete(name, ofType) => reply {
+      delete(name, ofType)
+    }
+
+    case any => unsupported(UnsupportedPersistenceRequest(any))
   }
 
   protected def start() = {}
 
   protected def shutdown() = {}
+
+  protected def readExpanded(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = None
 }
 

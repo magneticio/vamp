@@ -5,21 +5,25 @@ import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.{ArtifactNotFound, NotificationMessageNotRestored}
 import io.vamp.core.persistence.slick.components.Components.instance._
 import org.junit.runner.RunWith
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.junit.JUnitRunner
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{FlatSpec, Matchers}
 
 import scala.concurrent.ExecutionContext
 
 @RunWith(classOf[JUnitRunner])
-class JdbcCrudTest extends FlatSpec with Matchers {
+class JdbcCrudTest extends FlatSpec with Matchers with ScalaFutures {
 
   val jdbcStore = new JdbcPersistence {
     def debug(message: String) = {}
 
-    implicit def executionContext: ExecutionContext = ExecutionContext.global
+    implicit def executionContext = ExecutionContext.global
   }
 
   implicit val sess = jdbcStore.sess
+  implicit val defaultPatience = PatienceConfig(timeout = Span(3, Seconds), interval = Span(100, Millis))
+
 
   destroySchema
   upgradeSchema
@@ -131,8 +135,8 @@ class JdbcCrudTest extends FlatSpec with Matchers {
   }
 
   it should "Store a deployment state error" in {
-    jdbcStore.create(TestData.deployment5Deployed)
-    jdbcStore.create(TestData.deployment4WithErrorService) match {
+    whenReady(jdbcStore.create(TestData.deployment5Deployed))(_ shouldBe TestData.deployment5Deployed)
+    whenReady(jdbcStore.create(TestData.deployment4WithErrorService)) {
       case storedDeployment: Deployment =>
         for (cluster <- storedDeployment.clusters) {
           for (service <- cluster.services) {
@@ -145,37 +149,37 @@ class JdbcCrudTest extends FlatSpec with Matchers {
         }
       case _ => fail("Deployment not created")
     }
-    jdbcStore.update(TestData.deployment4WithErrorService)
-    jdbcStore.read(TestData.deployment5Deployed.name, classOf[Deployment]) shouldBe Some(TestData.deployment5Deployed)
-    jdbcStore.delete(TestData.deployment4WithErrorService.name, TestData.deployment4WithErrorService.getClass)
-    jdbcStore.delete(TestData.deployment5Deployed.name, TestData.deployment5Deployed.getClass)
+    jdbcStore.update(TestData.deployment4WithErrorService).futureValue
+    whenReady(jdbcStore.read(TestData.deployment5Deployed.name, classOf[Deployment]))(_ shouldBe Some(TestData.deployment5Deployed))
+    jdbcStore.delete(TestData.deployment4WithErrorService.name, TestData.deployment4WithErrorService.getClass).futureValue
+    jdbcStore.delete(TestData.deployment5Deployed.name, TestData.deployment5Deployed.getClass).futureValue
   }
 
   it should "Clean up left over definitions" in {
-    jdbcStore.delete("my-escalation", classOf[GenericEscalation])
-    jdbcStore.delete("sla4-escalation1", classOf[GenericEscalation])
-    jdbcStore.delete("sla4-escalation2", classOf[GenericEscalation])
-    jdbcStore.delete("full-service-breed", classOf[DefaultBreed])
-    jdbcStore.delete("full-service-breed2", classOf[DefaultBreed])
-    jdbcStore.delete("filter1", classOf[DefaultFilter])
-    jdbcStore.delete("filter2", classOf[DefaultFilter])
-    jdbcStore.delete("my-filter", classOf[DefaultFilter])
-    jdbcStore.delete("my-route", classOf[DefaultRouting])
-    jdbcStore.delete("route4", classOf[DefaultRouting])
-    jdbcStore.delete("my-scale", classOf[DefaultScale])
-    jdbcStore.delete("my-scale2", classOf[DefaultScale])
-    jdbcStore.delete("sla7-escalation", classOf[GenericEscalation])
+    jdbcStore.delete("my-escalation", classOf[GenericEscalation]).futureValue
+    jdbcStore.delete("sla4-escalation1", classOf[GenericEscalation]).futureValue
+    jdbcStore.delete("sla4-escalation2", classOf[GenericEscalation]).futureValue
+    jdbcStore.delete("full-service-breed", classOf[DefaultBreed]).futureValue
+    jdbcStore.delete("full-service-breed2", classOf[DefaultBreed]).futureValue
+    jdbcStore.delete("filter1", classOf[DefaultFilter]).futureValue
+    jdbcStore.delete("filter2", classOf[DefaultFilter]).futureValue
+    jdbcStore.delete("my-filter", classOf[DefaultFilter]).futureValue
+    jdbcStore.delete("my-route", classOf[DefaultRouting]).futureValue
+    jdbcStore.delete("route4", classOf[DefaultRouting]).futureValue
+    jdbcStore.delete("my-scale", classOf[DefaultScale]).futureValue
+    jdbcStore.delete("my-scale2", classOf[DefaultScale]).futureValue
+    jdbcStore.delete("sla7-escalation", classOf[GenericEscalation]).futureValue
   }
 
   it should "prove all tables are empty" in {
-    jdbcStore.all(classOf[DefaultBlueprint]) shouldBe List.empty
-    jdbcStore.all(classOf[DefaultBreed]) shouldBe List.empty
-    jdbcStore.all(classOf[GenericEscalation]) shouldBe List.empty
-    jdbcStore.all(classOf[DefaultFilter]) shouldBe List.empty
-    jdbcStore.all(classOf[DefaultRouting]) shouldBe List.empty
-    jdbcStore.all(classOf[DefaultScale]) shouldBe List.empty
-    jdbcStore.all(classOf[GenericSla]) shouldBe List.empty
-    jdbcStore.all(classOf[Deployment]) shouldBe List.empty
+    jdbcStore.all(classOf[DefaultBlueprint], 1, 1).futureValue.response shouldBe List.empty
+    jdbcStore.all(classOf[DefaultBreed], 1, 1).futureValue.response shouldBe List.empty
+    jdbcStore.all(classOf[GenericEscalation], 1, 1).futureValue.response shouldBe List.empty
+    jdbcStore.all(classOf[DefaultFilter], 1, 1).futureValue.response shouldBe List.empty
+    jdbcStore.all(classOf[DefaultRouting], 1, 1).futureValue.response shouldBe List.empty
+    jdbcStore.all(classOf[DefaultScale], 1, 1).futureValue.response shouldBe List.empty
+    jdbcStore.all(classOf[GenericSla], 1, 1).futureValue.response shouldBe List.empty
+    jdbcStore.all(classOf[Deployment], 1, 1).futureValue.response shouldBe List.empty
 
     totalNumberOfRowsInDB shouldBe 1 // There is always a row in the vamp meta data table
   }
@@ -183,32 +187,34 @@ class JdbcCrudTest extends FlatSpec with Matchers {
 
   def performCrudTest(firstArtifact: Artifact, updatedFirstArtifact: Artifact, secondArtifact: Artifact): Unit = {
     // Create & read artifact
-    jdbcStore.create(firstArtifact, ignoreIfExists = false) shouldBe firstArtifact
-    jdbcStore.read(firstArtifact.name, firstArtifact.getClass) shouldBe Some(firstArtifact)
+    whenReady(jdbcStore.create(firstArtifact, ignoreIfExists = false))(_ shouldBe firstArtifact)
+    whenReady(jdbcStore.read(firstArtifact.name, firstArtifact.getClass))(_ shouldBe Some(firstArtifact))
 
     // update existing artifact
-    jdbcStore.update(updatedFirstArtifact, create = false) shouldBe updatedFirstArtifact
-    jdbcStore.read(firstArtifact.name, firstArtifact.getClass) shouldBe Some(updatedFirstArtifact)
+    whenReady(jdbcStore.update(updatedFirstArtifact, create = false))(_ shouldBe updatedFirstArtifact)
+    whenReady(jdbcStore.read(firstArtifact.name, firstArtifact.getClass))(_ shouldBe Some(updatedFirstArtifact))
 
     // Read non-existing artifact
-    jdbcStore.read(secondArtifact.name, secondArtifact.getClass) shouldBe None
+    whenReady(jdbcStore.read(secondArtifact.name, secondArtifact.getClass))(_ shouldBe None)
 
     // Update non-existing artifact
-    jdbcStore.update(secondArtifact, create = true) shouldBe secondArtifact
+    whenReady(jdbcStore.update(secondArtifact, create = true))(_ shouldBe secondArtifact)
 
     // create existing artifact
-    jdbcStore.create(firstArtifact, ignoreIfExists = true) shouldBe updatedFirstArtifact
+    whenReady(jdbcStore.create(firstArtifact, ignoreIfExists = true))(_ shouldBe updatedFirstArtifact)
 
-    jdbcStore.all(firstArtifact.getClass) should contain theSameElementsAs List(updatedFirstArtifact, secondArtifact)
-    jdbcStore.delete(firstArtifact.name, firstArtifact.getClass) shouldBe updatedFirstArtifact
+    whenReady(jdbcStore.all(firstArtifact.getClass, 1, 2))(_.response should contain theSameElementsAs List(updatedFirstArtifact, secondArtifact))
+    whenReady(jdbcStore.delete(firstArtifact.name, firstArtifact.getClass))(_ shouldBe updatedFirstArtifact)
 
     // second delete of the artifact throws an exception
-    val thrown = the[NotificationErrorException] thrownBy jdbcStore.delete(firstArtifact.name, firstArtifact.getClass)
-    thrown.notification should equal(ArtifactNotFound(firstArtifact.name, firstArtifact.getClass))
+    whenReady(jdbcStore.delete(firstArtifact.name, firstArtifact.getClass).failed) { ex =>
+      ex shouldBe an[NotificationErrorException]
+      ex.asInstanceOf[NotificationErrorException].notification should equal(ArtifactNotFound(firstArtifact.name, firstArtifact.getClass))
+    }
 
-    jdbcStore.delete(secondArtifact.name, secondArtifact.getClass) shouldBe secondArtifact
+    whenReady(jdbcStore.delete(secondArtifact.name, secondArtifact.getClass))(_ shouldBe secondArtifact)
     // All artifacts should now be removed
-    jdbcStore.all(firstArtifact.getClass) shouldBe List.empty
+    whenReady(jdbcStore.all(firstArtifact.getClass, 1, 1))(_.response shouldBe List.empty)
   }
 
 }

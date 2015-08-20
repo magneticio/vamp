@@ -1,8 +1,8 @@
 package io.vamp.core.persistence
 
-import io.vamp.common.akka._
 import akka.actor.Props
 import akka.event.LoggingAdapter
+import io.vamp.common.akka._
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact._
@@ -12,6 +12,7 @@ import io.vamp.core.persistence.notification.{ArtifactAlreadyExists, ArtifactNot
 import org.json4s.native.Serialization._
 
 import scala.collection.mutable
+import scala.concurrent.Future
 import scala.language.postfixOps
 
 object InMemoryPersistenceActor extends ActorDescription {
@@ -24,29 +25,31 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
 
   private val store = new InMemoryStore(log)
 
-  protected def info() = store.info()
+  protected def info() = Future {
+    store.info()
+  }
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] = Future {
     log.debug(s"${getClass.getSimpleName}: all [${`type`.getSimpleName}] of $page per $perPage")
     store.all(`type`, page, perPage)
   }
 
-  protected def create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = false): Artifact = {
+  protected def create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = false): Future[Artifact] = Future {
     log.debug(s"${getClass.getSimpleName}: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     store.create(artifact, source, ignoreIfExists)
   }
 
-  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
+  protected def read(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future {
     log.debug(s"${getClass.getSimpleName}: read [${`type`.getSimpleName}] - $name}")
     store.read(name, `type`)
   }
 
-  protected def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Artifact = {
+  protected def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Future[Artifact] = Future {
     log.debug(s"${getClass.getSimpleName}: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     store.update(artifact, source, create)
   }
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = {
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Artifact] = Future {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
     store.delete(name, `type`)
   }

@@ -11,6 +11,7 @@ import io.vamp.core.persistence.slick.components.Components
 import io.vamp.core.persistence.slick.extension.Nameable
 import io.vamp.core.persistence.slick.model.DeploymentGenericEscalation
 
+import scala.concurrent.Future
 import scala.slick.jdbc.JdbcBackend._
 
 
@@ -50,28 +51,30 @@ trait JdbcPersistence
 
   def debug(message: String)
 
-  def info = Map[String, Any](
-    "type" -> "jdbc",
-    "url" -> sess.conn.getMetaData.getURL,
-    "database" -> DatabaseInfo(sess.conn.getMetaData.getDatabaseProductName, sess.conn.getMetaData.getDatabaseProductVersion, Components.instance.schemaInfo(sess))
-  )
+  def info: Future[Any] = Future {
+    Map[String, Any](
+      "type" -> "jdbc",
+      "url" -> sess.conn.getMetaData.getURL,
+      "database" -> DatabaseInfo(sess.conn.getMetaData.getDatabaseProductName, sess.conn.getMetaData.getDatabaseProductVersion, Components.instance.schemaInfo(sess))
+    )
+  }
 
-  def create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = false): Artifact = {
+  def create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = false): Future[Artifact] = {
     debug(s"create [$ignoreIfExists] $artifact")
-    read(artifact.name, artifact.getClass) match {
-      case None => createArtifact(artifact)
+    read(artifact.name, artifact.getClass) flatMap {
+      case None => Future(createArtifact(artifact))
       case Some(storedArtifact) if !ignoreIfExists => update(artifact, create = false)
-      case Some(storedArtifact) if ignoreIfExists => storedArtifact
+      case Some(storedArtifact) if ignoreIfExists => Future(storedArtifact)
     }
   }
 
-  def read(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] = {
+  def read(name: String, ofType: Class[_ <: Artifact]): Future[Option[Artifact]] = Future {
     findArtifact(name, ofType)
   }
 
-  def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Artifact = {
+  def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Future[Artifact] = {
     debug(s"update [$create] $artifact")
-    read(artifact.name, artifact.getClass) match {
+    read(artifact.name, artifact.getClass) map {
       case None =>
         if (create) this.createArtifact(artifact)
         else throwException(ArtifactNotFound(artifact.name, artifact.getClass))
@@ -79,7 +82,7 @@ trait JdbcPersistence
     }
   }
 
-  def delete(name: String, ofType: Class[_ <: Artifact]): Artifact = {
+  def delete(name: String, ofType: Class[_ <: Artifact]): Future[Artifact] = Future {
     debug(s"delete [${ofType.getSimpleName}] $name")
     findArtifact(name, ofType) match {
       case Some(artifact) =>
@@ -90,17 +93,15 @@ trait JdbcPersistence
     }
   }
 
-  def all(`type`: Class[_ <: Artifact]): List[_ <: Artifact] = queryAndTypeFor(`type`) match {
-    case (query, ofType) => query.fetchAll.map(artifact => read(artifact.name, ofType).get)
-  }
-
-  def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = queryAndTypeFor(`type`) match {
-    case (query, ofType) =>
-      val total = query.count
-      val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
-      val artifacts = query.pagedList((p - 1) * pp, pp).map(artifact => read(artifact.name, ofType).get)
-      val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, ArtifactResponseEnvelope.maxPerPage)
-      ArtifactResponseEnvelope(artifacts, total, rp, rpp)
+  def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] = Future {
+    queryAndTypeFor(`type`) match {
+      case (query, ofType) =>
+        val total = query.count
+        val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
+        val artifacts = query.pagedList((p - 1) * pp, pp).map(artifact => findArtifact(artifact.name, ofType).get)
+        val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, ArtifactResponseEnvelope.maxPerPage)
+        ArtifactResponseEnvelope(artifacts, total, rp, rpp)
+    }
   }
 
   private def queryAndTypeFor(ofType: Class[_ <: Artifact]): (EntityTableQuery[_ <: Nameable[_], _], Class[_ <: Artifact]) = {
@@ -149,7 +150,7 @@ trait JdbcPersistence
 
       case _ => throwException(UnsupportedPersistenceRequest(artifact.getClass))
     }
-    read(artifact.name, artifact.getClass).get
+    findArtifact(artifact.name, artifact.getClass).get
   }
 
   private def findArtifact(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] =
