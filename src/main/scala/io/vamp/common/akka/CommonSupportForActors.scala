@@ -9,4 +9,5 @@ trait CommonSupportForActors
   with ActorLogging
   with ActorSupportForActors
   with ActorExecutionContextProvider
+  with ReplyActor
   with NotificationProvider
