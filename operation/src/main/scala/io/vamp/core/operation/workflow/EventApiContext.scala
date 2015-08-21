@@ -2,7 +2,7 @@ package io.vamp.core.operation.workflow
 
 import java.time.OffsetDateTime
 
-import akka.actor.ActorRefFactory
+import akka.actor.{ActorContext, ActorRefFactory}
 import akka.pattern.ask
 import io.vamp.common.akka.ActorSupport
 import io.vamp.core.model.event.Aggregator.AggregatorType
@@ -15,7 +15,7 @@ import io.vamp.core.pulse.{EventRequestEnvelope, EventResponseEnvelope, PulseAct
 import scala.async.Async.{async, await}
 import scala.concurrent.ExecutionContext
 
-class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext with ActorSupport {
+class EventApiContext(actorContext: ActorContext)(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext with ActorSupport {
 
   implicit lazy val timeout = PersistenceActor.timeout
 
@@ -151,5 +151,5 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
 
   private def validateTags() = if (tags.isEmpty) throw new RuntimeException("Event tags must be defined.")
 
-  override implicit def actorRefFactory: ActorRefFactory = arf
+  override implicit def actorRefFactory: ActorRefFactory = actorContext
 }

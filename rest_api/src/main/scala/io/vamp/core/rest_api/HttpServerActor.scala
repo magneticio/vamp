@@ -20,6 +20,8 @@ object HttpServerActor extends ActorDescription {
 
 class HttpServerActor extends HttpServerBaseActor with RestApiRoute with RestApiNotificationProvider {
 
+  override def actorRefFactory = super[HttpServerBaseActor].actorRefFactory
+
   implicit val timeout = HttpServerActor.timeout
 
   implicit val formats: Formats = CoreSerializationFormat.default
