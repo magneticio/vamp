@@ -40,7 +40,7 @@ object PersistenceActor extends ActorDescription {
 
 }
 
-trait PersistenceActor extends ArtifactExpansion with ArtifactShrinkage with ReplyActor with CommonSupportForActors with PersistenceNotificationProvider {
+trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with ArtifactShrinkage with CommonSupportForActors with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
@@ -48,15 +48,15 @@ trait PersistenceActor extends ArtifactExpansion with ArtifactShrinkage with Rep
 
   protected def info(): Future[Any]
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope]
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope
 
-  protected def create(artifact: Artifact, source: Option[String], ignoreIfExists: Boolean): Future[Artifact]
+  protected def create(artifact: Artifact, ignoreIfExists: Boolean): Artifact
 
-  protected def read(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]]
+  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
 
-  protected def update(artifact: Artifact, source: Option[String], create: Boolean): Future[Artifact]
+  protected def update(artifact: Artifact, create: Boolean): Artifact
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]]
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
 
   override def errorNotificationClass = classOf[PersistenceOperationFailure]
 
@@ -67,47 +67,60 @@ trait PersistenceActor extends ArtifactExpansion with ArtifactShrinkage with Rep
     case Shutdown => shutdown()
 
     case InfoRequest => reply {
-      info()
-    }
-
-    case All(ofType, page, perPage, expandRef, onlyRef) => reply {
-      all(ofType, page, perPage) map { case artifacts =>
-        (expandRef, onlyRef) match {
-          case (true, false) => artifacts.copy(response = artifacts.response.map(expandReferences))
-          case (false, true) => artifacts.copy(response = artifacts.response.map(onlyReferences))
-          case _ => artifacts
-        }
+      info() map {
+        case map: Map[_, _] => map.asInstanceOf[Map[Any, Any]] ++ Map("archive" -> true)
+        case other => other
       }
     }
 
-    case Create(artifact, source, ignoreIfExists) => reply {
-      create(artifact, source, ignoreIfExists)
+    case All(ofType, page, perPage, expandRef, onlyRef) => try {
+      val artifacts = all(ofType, page, perPage)
+      sender() ! ((expandRef, onlyRef) match {
+        case (true, false) => artifacts.copy(response = artifacts.response.map(expandReferences))
+        case (false, true) => artifacts.copy(response = artifacts.response.map(onlyReferences))
+        case _ => artifacts
+      })
+    } catch {
+      case e: Throwable => sender() ! failure(e)
     }
 
-    case Read(name, ofType, expandRef, onlyRef) => reply {
-      read(name, ofType) map { case artifact =>
-        (expandRef, onlyRef) match {
-          case (true, false) => expandReferences(artifact)
-          case (false, true) => onlyReferences(artifact)
-          case _ => artifact
-        }
-      }
+    case Create(artifact, source, ignoreIfExists) => try {
+      sender() ! archiveCreate(create(artifact, ignoreIfExists), source)
+    } catch {
+      case e: Throwable => sender() ! failure(e)
     }
 
-    case Update(artifact, source, create) => reply {
-      update(artifact, source, create)
+    case Read(name, ofType, expandRef, onlyRef) => try {
+      val artifact = read(name, ofType)
+      sender() ! ((expandRef, onlyRef) match {
+        case (true, false) => expandReferences(artifact)
+        case (false, true) => onlyReferences(artifact)
+        case _ => artifact
+      })
+    } catch {
+      case e: Throwable => sender() ! failure(e)
     }
 
-    case Delete(name, ofType) => reply {
-      delete(name, ofType)
+    case Update(artifact, source, create) => try {
+      sender() ! archiveUpdate(update(artifact, create), source)
+    } catch {
+      case e: Throwable => sender() ! failure(e)
+    }
+
+    case Delete(name, ofType) => try {
+      sender() ! archiveDelete(delete(name, ofType))
+    } catch {
+      case e: Throwable => sender() ! failure(e)
     }
 
     case any => unsupported(UnsupportedPersistenceRequest(any))
   }
 
-  protected def start() = {}
+  protected def start() = {
+  }
 
-  protected def shutdown() = {}
+  protected def shutdown() = {
+  }
 
   protected def readExpanded(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = None
 }

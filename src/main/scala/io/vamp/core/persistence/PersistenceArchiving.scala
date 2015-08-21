@@ -1,47 +1,30 @@
 package io.vamp.core.persistence
 
-import akka.actor.Props
+import akka.actor.{Actor, ActorLogging}
 import akka.pattern.ask
+import akka.util.Timeout
 import io.vamp.common.akka._
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.event.Event
 import io.vamp.core.model.workflow.{ScheduledWorkflow, Workflow}
-import io.vamp.core.persistence.PersistenceActor._
-import io.vamp.core.persistence.notification.{ArtifactArchivingError, PersistenceOperationFailure}
+import io.vamp.core.persistence.notification.ArtifactArchivingError
 import io.vamp.core.pulse.PulseActor
 
 import scala.language.postfixOps
 
-object ArchivePersistenceActor extends ActorDescription {
-  def props(args: Any*): Props = Props(classOf[ArchivePersistenceActor], args: _*)
-}
+trait PersistenceArchiving {
+  this: Actor with ActorLogging with ActorSupport with NotificationProvider =>
 
-class ArchivePersistenceActor(target: ActorDescription) extends DecoratorPersistenceActor(target) {
+  implicit def timeout: Timeout
 
-  override protected def infoMap() = Map("archive" -> true)
-
-  override protected def create(artifact: Artifact, source: Option[String], ignoreIfExists: Boolean) = actorFor(target) ? Create(artifact, source, ignoreIfExists) map {
-    case a: Artifact => archiveCreate(a, source)
-    case other => throwException(PersistenceOperationFailure(other))
-  }
-
-  override protected def update(artifact: Artifact, source: Option[String], create: Boolean) = actorFor(target) ? Update(artifact, source, create) map {
-    case a: Artifact => if (create) archiveCreate(a, source) else archiveUpdate(a, source)
-    case other => throwException(PersistenceOperationFailure(other))
-  }
-
-  override protected def delete(name: String, `type`: Class[_ <: Artifact]) = checked[Option[Artifact]](actorFor(target) ? Delete(name, `type`)) map {
-    case Some(a) => Some(archiveDelete(a))
-    case _ => None
-  }
-
-  private def archiveCreate(artifact: Artifact, source: Option[String]): Artifact =
+  def archiveCreate(artifact: Artifact, source: Option[String]): Artifact =
     if (source.isDefined) archive(artifact, source, s"archiving:create") else artifact
 
-  private def archiveUpdate(artifact: Artifact, source: Option[String]): Artifact =
+  def archiveUpdate(artifact: Artifact, source: Option[String]): Artifact =
     if (source.isDefined) archive(artifact, source, s"archiving:update") else artifact
 
-  private def archiveDelete(artifact: Artifact): Artifact = archive(artifact, None, s"archiving:delete")
+  def archiveDelete(artifact: Option[Artifact]): Option[Artifact] = artifact.flatMap(a => Some(archive(a, None, s"archiving:delete")))
 
   private def archive(artifact: Artifact, source: Option[String], archiveTag: String) = {
     tagFor(artifact) match {
