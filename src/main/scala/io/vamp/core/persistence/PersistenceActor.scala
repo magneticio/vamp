@@ -89,7 +89,7 @@ trait PersistenceActor extends ArtifactExpansion with ArtifactShrinkage with Rep
         (expandRef, onlyRef) match {
           case (true, false) => expandReferences(artifact)
           case (false, true) => onlyReferences(artifact)
-          case _ => read(name, ofType)
+          case _ => artifact
         }
       }
     }
