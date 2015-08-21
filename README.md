@@ -1,9 +1,9 @@
-# vamp-core
+# Vamp Core
 
 [![Travis build badge](https://travis-ci.org/magneticio/vamp-core.svg?branch=master)](https://travis-ci.org/magneticio/vamp-core)
 
 
-Vamp-core is the brains of the whole Vamp system. It contains the REST API you send your requests to, it speaks to the underlying PaaS/Container Manager and ties together Vamp's other two services [Vamp Router](https://github.com/magneticio/vamp-router) and [Vamp Pulse](https://github.com/magneticio/vamp-pulse)
+Vamp Core is the brains of the whole Vamp system. It contains the REST API you send your requests to, it speaks to the underlying PaaS/Container Manager and ties together Vamp's other two services [Vamp Router](https://github.com/magneticio/vamp-router) and [Vamp Pulse](https://github.com/magneticio/vamp-pulse)
 
 ## building and running
 
