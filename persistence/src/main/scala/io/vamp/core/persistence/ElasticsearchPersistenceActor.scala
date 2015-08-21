@@ -99,7 +99,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     }
   }
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Artifact] = {
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
     val artifact = store.delete(name, `type`)
     findHitBy(name, `type`) map {

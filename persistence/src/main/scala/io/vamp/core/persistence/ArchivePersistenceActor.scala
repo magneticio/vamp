@@ -30,9 +30,9 @@ class ArchivePersistenceActor(target: ActorDescription) extends DecoratorPersist
     case other => throwException(PersistenceOperationFailure(other))
   }
 
-  override protected def delete(name: String, `type`: Class[_ <: Artifact]) = actorFor(target) ? Delete(name, `type`) map {
-    case a: Artifact => archiveDelete(a)
-    case other => throwException(PersistenceOperationFailure(other))
+  override protected def delete(name: String, `type`: Class[_ <: Artifact]) = checked[Option[Artifact]](actorFor(target) ? Delete(name, `type`)) map {
+    case Some(a) => Some(archiveDelete(a))
+    case _ => None
   }
 
   private def archiveCreate(artifact: Artifact, source: Option[String]): Artifact =

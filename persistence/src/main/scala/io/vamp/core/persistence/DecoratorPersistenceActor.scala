@@ -24,7 +24,7 @@ abstract class DecoratorPersistenceActor(target: ActorDescription) extends Persi
 
   protected def update(artifact: Artifact, source: Option[String], create: Boolean) = checked[Artifact](actorFor(target) ? Update(artifact, source, create))
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]) = checked[Artifact](actorFor(target) ? Delete(name, `type`))
+  protected def delete(name: String, `type`: Class[_ <: Artifact]) = checked[Option[Artifact]](actorFor(target) ? Delete(name, `type`))
 
   override protected def start() = actorFor(target) ! Start
 

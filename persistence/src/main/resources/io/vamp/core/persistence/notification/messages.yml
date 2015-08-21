@@ -1,7 +1,7 @@
 
 UnsupportedPersistenceRequest  : "Unsupported request. Request: {request}"
 ArtifactNotFound               : "Artifact cannot be found: '{name}'."
-PersistenceOperationFailure    : "Persistence operation failure.  Reason: {exception}"
+PersistenceOperationFailure    : "Persistence operation failure. Reason: {reason}"
 ArtifactAlreadyExists          : "Artifact already exists: '{name}'."
 NotificationMessageNotRestored : "Deployment service error was not restored.  {message}"
 UnsupportedParameterToPersist  : "Unsupported parameter {name} of type {parameterType} in {parent}"

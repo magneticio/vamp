@@ -82,14 +82,11 @@ trait JdbcPersistence
     }
   }
 
-  def delete(name: String, ofType: Class[_ <: Artifact]): Future[Artifact] = Future {
+  def delete(name: String, ofType: Class[_ <: Artifact]): Future[Option[Artifact]] = Future {
     debug(s"delete [${ofType.getSimpleName}] $name")
-    findArtifact(name, ofType) match {
-      case Some(artifact) =>
-        deleteArtifact(artifact)
-        artifact
-      case None =>
-        throwException(ArtifactNotFound(name, ofType))
+    findArtifact(name, ofType).flatMap { artifact =>
+      deleteArtifact(artifact)
+      Some(artifact)
     }
   }
 

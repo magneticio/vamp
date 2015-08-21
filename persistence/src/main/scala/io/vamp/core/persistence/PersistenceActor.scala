@@ -56,7 +56,7 @@ trait PersistenceActor extends ArtifactExpansion with ArtifactShrinkage with Rep
 
   protected def update(artifact: Artifact, source: Option[String], create: Boolean): Future[Artifact]
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Artifact]
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]]
 
   override def errorNotificationClass = classOf[PersistenceOperationFailure]
 

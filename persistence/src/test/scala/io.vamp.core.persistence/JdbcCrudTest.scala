@@ -1,8 +1,7 @@
 package io.vamp.core.persistence
 
-import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
-import io.vamp.core.persistence.notification.{ArtifactNotFound, NotificationMessageNotRestored}
+import io.vamp.core.persistence.notification.NotificationMessageNotRestored
 import io.vamp.core.persistence.slick.components.Components.instance._
 import org.junit.runner.RunWith
 import org.scalatest.concurrent.ScalaFutures
@@ -204,15 +203,12 @@ class JdbcCrudTest extends FlatSpec with Matchers with ScalaFutures {
     whenReady(jdbcStore.create(firstArtifact, ignoreIfExists = true))(_ shouldBe updatedFirstArtifact)
 
     whenReady(jdbcStore.all(firstArtifact.getClass, 1, 2))(_.response should contain theSameElementsAs List(updatedFirstArtifact, secondArtifact))
-    whenReady(jdbcStore.delete(firstArtifact.name, firstArtifact.getClass))(_ shouldBe updatedFirstArtifact)
+    whenReady(jdbcStore.delete(firstArtifact.name, firstArtifact.getClass))(_ shouldBe Some(updatedFirstArtifact))
 
-    // second delete of the artifact throws an exception
-    whenReady(jdbcStore.delete(firstArtifact.name, firstArtifact.getClass).failed) { ex =>
-      ex shouldBe an[NotificationErrorException]
-      ex.asInstanceOf[NotificationErrorException].notification should equal(ArtifactNotFound(firstArtifact.name, firstArtifact.getClass))
-    }
+    // second delete of the artifact returns None
+    whenReady(jdbcStore.delete(firstArtifact.name, firstArtifact.getClass))(_ shouldBe None)
 
-    whenReady(jdbcStore.delete(secondArtifact.name, secondArtifact.getClass))(_ shouldBe secondArtifact)
+    whenReady(jdbcStore.delete(secondArtifact.name, secondArtifact.getClass))(_ shouldBe Some(secondArtifact))
     // All artifacts should now be removed
     whenReady(jdbcStore.all(firstArtifact.getClass, 1, 1))(_.response shouldBe List.empty)
   }
