@@ -31,7 +31,7 @@ trait ReplyActor {
   }
 
   def checked[T <: Any : ClassTag](future: Future[_], `class`: Class[_ <: Notification] = errorNotificationClass): Future[T] = future map {
-    case result if classTag[T].runtimeClass == result.getClass => result.asInstanceOf[T]
+    case result if classTag[T].runtimeClass.isAssignableFrom(result.getClass) => result.asInstanceOf[T]
     case any => throw failure(any, `class`)
   }
 
