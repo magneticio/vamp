@@ -15,13 +15,12 @@ object PersistenceBootstrap extends Bootstrap {
 
   def run(implicit actorSystem: ActorSystem) = {
 
-    ActorSupport.alias(PersistenceActor, ArchivePersistenceActor)
+    ActorSupport.alias(PersistenceActor, persistence)
 
     if (persistence == ElasticsearchPersistenceActor)
       ActorSupport.actorOf(ElasticsearchPersistenceInitializationActor) ! Start
 
-    ActorSupport.actorOf(persistence)
-    ActorSupport.actorOf(ArchivePersistenceActor, persistence) ! Start
+    ActorSupport.actorOf(persistence) ! Start
   }
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {

@@ -59,22 +59,20 @@ trait JdbcPersistence
     )
   }
 
-  def create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = false): Future[Artifact] = {
+  def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
     debug(s"create [$ignoreIfExists] $artifact")
-    read(artifact.name, artifact.getClass) flatMap {
-      case None => Future(createArtifact(artifact))
+    read(artifact.name, artifact.getClass) match {
+      case None => createArtifact(artifact)
       case Some(storedArtifact) if !ignoreIfExists => update(artifact, create = false)
-      case Some(storedArtifact) if ignoreIfExists => Future(storedArtifact)
+      case Some(storedArtifact) if ignoreIfExists => storedArtifact
     }
   }
 
-  def read(name: String, ofType: Class[_ <: Artifact]): Future[Option[Artifact]] = Future {
-    findArtifact(name, ofType)
-  }
+  def read(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] = findArtifact(name, ofType)
 
-  def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Future[Artifact] = {
+  def update(artifact: Artifact, create: Boolean = false): Artifact = {
     debug(s"update [$create] $artifact")
-    read(artifact.name, artifact.getClass) map {
+    read(artifact.name, artifact.getClass) match {
       case None =>
         if (create) this.createArtifact(artifact)
         else throwException(ArtifactNotFound(artifact.name, artifact.getClass))
@@ -82,7 +80,7 @@ trait JdbcPersistence
     }
   }
 
-  def delete(name: String, ofType: Class[_ <: Artifact]): Future[Option[Artifact]] = Future {
+  def delete(name: String, ofType: Class[_ <: Artifact]): Option[Artifact] = {
     debug(s"delete [${ofType.getSimpleName}] $name")
     findArtifact(name, ofType).flatMap { artifact =>
       deleteArtifact(artifact)
@@ -90,7 +88,7 @@ trait JdbcPersistence
     }
   }
 
-  def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] = Future {
+  def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
     queryAndTypeFor(`type`) match {
       case (query, ofType) =>
         val total = query.count
