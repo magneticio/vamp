@@ -21,7 +21,7 @@ trait JmxVitalsProvider {
   private lazy val runtime = ManagementFactory.getRuntimeMXBean
   private lazy val operatingSystem = ManagementFactory.getOperatingSystemMXBean
 
-  def vitals(): JvmVitals = JvmVitals(
+  def jvmVitals(): JvmVitals = JvmVitals(
     OperatingSystemVitals(operatingSystem.getName, operatingSystem.getArch, operatingSystem.getVersion, operatingSystem.getAvailableProcessors, operatingSystem.getSystemLoadAverage),
     RuntimeVitals(runtime.getName, runtime.getVmName, runtime.getVmVendor, runtime.getVmVersion, runtime.getStartTime, runtime.getUptime),
     MemoryVitals(

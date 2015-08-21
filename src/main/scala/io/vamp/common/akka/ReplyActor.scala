@@ -1,8 +1,8 @@
 package io.vamp.common.akka
 
-import _root_.io.vamp.common.notification.{ErrorNotification, Notification, NotificationProvider}
 import akka.actor.Actor
 import akka.pattern.pipe
+import io.vamp.common.notification.{ErrorNotification, Notification, NotificationProvider}
 
 import scala.concurrent.Future
 import scala.language.implicitConversions
