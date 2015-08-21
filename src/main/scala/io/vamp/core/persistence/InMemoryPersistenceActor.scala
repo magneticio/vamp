@@ -49,7 +49,7 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     store.update(artifact, source, create)
   }
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Artifact] = Future {
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
     store.delete(name, `type`)
   }
@@ -65,15 +65,11 @@ class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with Persistence
       case (key, value) => key -> Map[String, Any]("count" -> value.values.size)
     } toMap))
 
-  def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
-    store.get(typeOf(`type`)) match {
+  def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
+    val artifacts = store.get(typeOf(`type`)) match {
       case None => Nil
       case Some(map) => map.values.toList
     }
-  }
-
-  def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
-    val artifacts = all(`type`)
     val total = artifacts.size
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
     val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, ArtifactResponseEnvelope.maxPerPage)
@@ -103,10 +99,7 @@ class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with Persistence
     artifact
   }
 
-  def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = store.get(typeOf(`type`)) match {
-    case None => None
-    case Some(map) => map.get(name)
-  }
+  def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = store.get(typeOf(`type`)).flatMap(_.get(name))
 
   def update(artifact: Artifact, source: Option[String] = None, create: Boolean = false): Artifact = {
     store.get(typeOf(artifact.getClass)) match {
@@ -120,13 +113,14 @@ class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with Persistence
     artifact
   }
 
-  def delete(name: String, `type`: Class[_ <: Artifact]): Artifact = store.get(typeOf(`type`)) match {
-    case None => throwException(ArtifactNotFound(name, `type`))
-    case Some(map) =>
-      if (map.get(name).isEmpty)
-        throwException(ArtifactNotFound(name, `type`))
-      else
-        map.remove(name).get
+  def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
+    val group = typeOf(`type`)
+    store.get(group) flatMap {
+      case map =>
+        val artifact = map.remove(name)
+        if (artifact.isEmpty) log.debug(s"Artifact not found for deletion: $group:$name")
+        artifact
+    }
   }
 }
 
