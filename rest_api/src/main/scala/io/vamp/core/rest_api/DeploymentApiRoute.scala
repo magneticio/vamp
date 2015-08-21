@@ -8,11 +8,10 @@ import io.vamp.common.akka.{ActorSupport, CommonSupportForActors, ExecutionConte
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact.Deployment
-import io.vamp.core.model.artifact.DeploymentService.{Deployed, ReadyForUndeployment}
+import io.vamp.core.model.artifact.DeploymentService.ReadyForUndeployment
 import io.vamp.core.operation.controller.DeploymentApiController
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
-import io.vamp.core.operation.notification.InternalServerError
 import io.vamp.core.operation.sla.{EscalationActor, SlaActor}
 import io.vamp.core.persistence.{ArtifactPaginationSupport, PersistenceActor}
 import spray.http.StatusCodes._
@@ -27,10 +26,8 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
   private def asBlueprint = parameters('as_blueprint.as[Boolean] ? false)
 
   private val helperRoutes = pathPrefix("sync") {
-    parameters('rate.as[Int] ?) { rate =>
-      respondWithStatus(Accepted) {
-        complete(sync(rate))
-      }
+    respondWithStatus(Accepted) {
+      complete(sync())
     }
   } ~ path("sla") {
     respondWithStatus(Accepted) {
@@ -161,37 +158,20 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
 trait DevController {
   this: ArtifactPaginationSupport with NotificationProvider with ActorSupport with ExecutionContextProvider =>
 
-  def sync(rate: Option[Int])(implicit timeout: Timeout): Unit = rate match {
-    case Some(r) =>
-      for (i <- 0 until r) {
-        actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
-      }
+  def sync(): Unit = actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
 
-    case None => allArtifacts(classOf[Deployment]) map {
-      case deployments: List[_] =>
-        deployments.asInstanceOf[List[Deployment]].map({ deployment =>
-          deployment.clusters.filter(cluster => cluster.services.exists(!_.state.isInstanceOf[Deployed])).count(_ => true)
-        }).reduceOption(_ max _).foreach(max => sync(Some(max * 3 + 1)))
-      case any => throwException(InternalServerError(any))
-    }
-  }
-
-  def slaCheck() = {
-    actorFor(SlaActor) ! SlaActor.SlaProcessAll
-  }
+  def slaCheck() = actorFor(SlaActor) ! SlaActor.SlaProcessAll
 
   def slaEscalation() = {
     val now = OffsetDateTime.now()
     actorFor(EscalationActor) ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }
 
-  def reset()(implicit timeout: Timeout): Unit = allArtifacts(classOf[Deployment]) map {
-    case deployments: List[_] =>
-      deployments.asInstanceOf[List[Deployment]].map({ deployment =>
-        actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
-        deployment.clusters.count(_ => true)
-      }).reduceOption(_ max _).foreach(max => sync(Some(max * 3)))
-    case any => throwException(InternalServerError(any))
+  def reset()(implicit timeout: Timeout): Unit = allArtifacts(classOf[Deployment]) map { deployments =>
+    deployments.foreach { deployment =>
+      actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
+    }
+    sync()
   }
 }
 
