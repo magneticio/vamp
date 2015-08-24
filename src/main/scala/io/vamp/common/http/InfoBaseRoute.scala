@@ -1,6 +1,5 @@
 package io.vamp.common.http
 
-import akka.actor._
 import akka.pattern.{after, ask}
 import akka.util.Timeout
 import io.vamp.common.akka._
@@ -16,7 +15,7 @@ trait InfoMessageBase {
 }
 
 trait InfoBaseRoute extends InfoRetrieval with JmxVitalsProvider with ExecutionContextProvider {
-  this: RestApiBase =>
+  this: RestApiBase with ActorContextProvider =>
 
   implicit def timeout: Timeout
 
@@ -38,18 +37,16 @@ trait InfoBaseRoute extends InfoRetrieval with JmxVitalsProvider with ExecutionC
 }
 
 trait InfoRetrieval {
-  this: ExecutionContextProvider =>
+  this: ExecutionContextProvider with ActorContextProvider =>
 
   implicit def timeout: Timeout
-
-  implicit def actorSystem: ActorSystem
 
   def componentInfoTimeout: Timeout
 
   def retrieve(actorDescriptions: List[ActorDescription]): Future[Map[ActorDescription, Any]] = {
     val futures: Map[ActorDescription, Future[Any]] = actorDescriptions.map(actorDescription => actorDescription -> IoC.actorFor(actorDescription) ? InfoRequest).toMap
 
-    Future.firstCompletedOf(List(Future.sequence(futures.values.toList.map(_.recover { case x => Failure(x) })), after(componentInfoTimeout.duration, using = actorSystem.scheduler) {
+    Future.firstCompletedOf(List(Future.sequence(futures.values.toList.map(_.recover { case x => Failure(x) })), after(componentInfoTimeout.duration, using = context.system.scheduler) {
       Future.successful(new TimeoutException("Component timeout."))
     })) map { _ =>
       futures.map { case (actorDescription, future) =>

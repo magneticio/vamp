@@ -1,12 +1,12 @@
 package io.vamp.common.akka
 
-import akka.actor.{ActorRef, ActorSystem, PoisonPill}
+import akka.actor.{ActorContext, ActorRef, PoisonPill}
 import io.vamp.common.akka.Bootstrap._
 
 trait Bootstrap {
-  def run(implicit actorSystem: ActorSystem)
+  def run(implicit context: ActorContext)
 
-  def shutdown(implicit actorSystem: ActorSystem) = {}
+  def shutdown(implicit context: ActorContext) = {}
 }
 
 object Bootstrap {
@@ -21,9 +21,9 @@ trait ActorBootstrap extends Bootstrap {
 
   def actors: List[ActorRef]
 
-  def run(implicit actorSystem: ActorSystem) = actors.foreach(actor => actor ! Start)
+  def run(implicit context: ActorContext) = actors.foreach(actor => actor ! Start)
 
-  override def shutdown(implicit actorSystem: ActorSystem) = {
+  override def shutdown(implicit context: ActorContext) = {
     actors.reverse.foreach { actor =>
       actor ! Shutdown
       actor ! PoisonPill

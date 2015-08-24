@@ -6,6 +6,7 @@ import io.vamp.common.notification.NotificationProvider
 trait CommonSupportForActors
   extends Actor
   with ActorLogging
+  with ActorContextProvider
   with ActorExecutionContextProvider
   with ReplyActor
   with NotificationProvider
