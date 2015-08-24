@@ -2,9 +2,9 @@ package io.vamp.core.operation.workflow
 
 import java.time.OffsetDateTime
 
-import akka.actor.{ActorContext, ActorRefFactory}
+import akka.actor.ActorSystem
 import akka.pattern.ask
-import io.vamp.common.akka.ActorSupport
+import io.vamp.common.akka.IoC
 import io.vamp.core.model.event.Aggregator.AggregatorType
 import io.vamp.core.model.event._
 import io.vamp.core.model.workflow.ScheduledWorkflow
@@ -15,7 +15,7 @@ import io.vamp.core.pulse.{EventRequestEnvelope, EventResponseEnvelope, PulseAct
 import scala.async.Async.{async, await}
 import scala.concurrent.ExecutionContext
 
-class EventApiContext(actorContext: ActorContext)(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext with ActorSupport {
+class EventApiContext(actorSystem: ActorSystem)(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext {
 
   implicit lazy val timeout = PersistenceActor.timeout
 
@@ -56,7 +56,7 @@ class EventApiContext(actorContext: ActorContext)(implicit scheduledWorkflow: Sc
     }
     logger.debug(s"Publishing event: $event")
     reset()
-    async(await(actorFor(PulseActor) ? Publish(event)))
+    async(await(IoC.actorFor(PulseActor)(actorSystem) ? Publish(event)))
   }
 
   def lt(time: String) = {
@@ -140,7 +140,7 @@ class EventApiContext(actorContext: ActorContext)(implicit scheduledWorkflow: Sc
     reset()
     async {
       await {
-        actorFor(PulseActor) ? Query(EventRequestEnvelope(eventQuery, _page, _perPage)) map {
+        IoC.actorFor(PulseActor)(actorSystem) ? Query(EventRequestEnvelope(eventQuery, _page, _perPage)) map {
           case EventResponseEnvelope(list, _, _, _) => list
           case result: SingleValueAggregationResult[_] => result.value
           case other => other
@@ -150,6 +150,4 @@ class EventApiContext(actorContext: ActorContext)(implicit scheduledWorkflow: Sc
   }
 
   private def validateTags() = if (tags.isEmpty) throw new RuntimeException("Event tags must be defined.")
-
-  override implicit def actorRefFactory: ActorRefFactory = actorContext
 }

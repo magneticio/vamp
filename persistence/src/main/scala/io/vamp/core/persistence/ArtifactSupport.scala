@@ -1,7 +1,7 @@
 package io.vamp.core.persistence
 
-import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider}
 import akka.pattern.ask
+import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider, IoC}
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact.Artifact
 import io.vamp.core.persistence.notification.ArtifactNotFound
@@ -10,7 +10,7 @@ import scala.concurrent.Future
 import scala.reflect._
 
 trait ArtifactSupport {
-  this: ActorSupport with ExecutionContextProvider with NotificationProvider =>
+  this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider =>
 
   def artifactFor[T <: Artifact : ClassTag](artifact: Option[Artifact]): Future[Option[T]] = artifact match {
     case None => Future(None)
@@ -24,7 +24,7 @@ trait ArtifactSupport {
 
   def artifactFor[T <: Artifact : ClassTag](name: String): Future[T] = {
     implicit val timeout = PersistenceActor.timeout
-    actorFor(PersistenceActor) ? PersistenceActor.Read(name, classTag[T].runtimeClass.asInstanceOf[Class[Artifact]]) map {
+    IoC.actorFor(PersistenceActor) ? PersistenceActor.Read(name, classTag[T].runtimeClass.asInstanceOf[Class[Artifact]]) map {
       case Some(artifact: T) => artifact
       case _ => throwException(ArtifactNotFound(name, classTag[T].runtimeClass))
     }

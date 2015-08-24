@@ -28,7 +28,7 @@ object SlaSchedulerActor extends ActorDescription {
 
 class SlaSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
-  def tick() = actorFor(SlaActor) ! SlaProcessAll
+  def tick() = IoC.actorFor(SlaActor) ! SlaProcessAll
 
 }
 
@@ -41,6 +41,8 @@ object SlaActor extends ActorDescription {
 }
 
 class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginationSupport with CommonSupportForActors with OperationNotificationProvider {
+
+  import IoC._
 
   def receive: Receive = {
     case SlaProcessAll =>
@@ -106,6 +108,8 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
 
 trait SlaPulse extends DefaultRouterDriverNameMatcher {
   this: CommonSupportForActors =>
+
+  import IoC._
 
   implicit val timeout = PulseActor.timeout
 

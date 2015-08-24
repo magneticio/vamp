@@ -2,7 +2,7 @@ package io.vamp.core.persistence
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider}
+import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider, IoC}
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact.Artifact
@@ -31,10 +31,10 @@ trait PaginationSupport {
 }
 
 trait ArtifactPaginationSupport extends PaginationSupport {
-  this: ActorSupport with ExecutionContextProvider with NotificationProvider =>
+  this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider =>
 
   def allArtifacts[T <: Artifact](`type`: Class[T])(implicit timeout: Timeout): Future[List[T]] = allPages[T]((page: Int, perPage: Int) => {
-    actorFor(PersistenceActor) ? PersistenceActor.All(`type`, page, perPage) map {
+    IoC.actorFor(PersistenceActor) ? PersistenceActor.All(`type`, page, perPage) map {
       case envelope: OffsetResponseEnvelope[_] => envelope.asInstanceOf[OffsetResponseEnvelope[T]]
       case other => throwException(PersistenceOperationFailure(other))
     }
@@ -42,10 +42,10 @@ trait ArtifactPaginationSupport extends PaginationSupport {
 }
 
 trait EventPaginationSupport extends PaginationSupport {
-  this: ActorSupport with ExecutionContextProvider with NotificationProvider =>
+  this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider =>
 
   def allEvents(eventQuery: EventQuery)(implicit timeout: Timeout): Future[List[Event]] = allPages[Event]((page: Int, perPage: Int) => {
-    actorFor(PulseActor) ? PulseActor.Query(EventRequestEnvelope(eventQuery, page, perPage)) map {
+    IoC.actorFor(PulseActor) ? PulseActor.Query(EventRequestEnvelope(eventQuery, page, perPage)) map {
       case envelope: OffsetResponseEnvelope[_] => envelope.asInstanceOf[OffsetResponseEnvelope[Event]]
       case other => throwException(PersistenceOperationFailure(other))
     }

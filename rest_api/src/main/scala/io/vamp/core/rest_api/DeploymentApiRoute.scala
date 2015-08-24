@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
 import akka.util.Timeout
-import io.vamp.common.akka.{ActorSupport, CommonSupportForActors, ExecutionContextProvider}
+import io.vamp.common.akka.{ActorSystemProvider, CommonSupportForActors, ExecutionContextProvider, IoC}
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact.Deployment
@@ -156,20 +156,20 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
 }
 
 trait DevController {
-  this: ArtifactPaginationSupport with NotificationProvider with ActorSupport with ExecutionContextProvider =>
+  this: ArtifactPaginationSupport with NotificationProvider with ExecutionContextProvider with ActorSystemProvider =>
 
-  def sync(): Unit = actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
+  def sync(): Unit = IoC.actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
 
-  def slaCheck() = actorFor(SlaActor) ! SlaActor.SlaProcessAll
+  def slaCheck() = IoC.actorFor(SlaActor) ! SlaActor.SlaProcessAll
 
   def slaEscalation() = {
     val now = OffsetDateTime.now()
-    actorFor(EscalationActor) ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
+    IoC.actorFor(EscalationActor) ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }
 
   def reset()(implicit timeout: Timeout): Unit = allArtifacts(classOf[Deployment]) map { deployments =>
     deployments.foreach { deployment =>
-      actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
+      IoC.actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
     }
     sync()
   }

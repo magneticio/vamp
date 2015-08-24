@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ActorDescription, ActorSupport, CommonSupportForActors, ExecutionContextProvider}
+import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.dictionary.DictionaryActor
 import io.vamp.core.model.artifact.DeploymentService.{ReadyForDeployment, ReadyForUndeployment}
@@ -77,8 +77,8 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
     else {
       future.flatMap { case deployment =>
         implicit val timeout: Timeout = PersistenceActor.timeout
-        checked[Deployment](actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, Some(source), create = create)) map { case persisted =>
-          actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
+        checked[Deployment](IoC.actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, Some(source), create = create)) map { case persisted =>
+          IoC.actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
           persisted
         }
       }
@@ -116,7 +116,7 @@ trait BlueprintSupport {
 
 trait DeploymentValidator {
 
-  this: ArtifactPaginationSupport with ArtifactSupport with ActorSupport with ExecutionContextProvider with NotificationProvider =>
+  this: ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider =>
 
   def validateServices: (Deployment => Deployment) = { (deployment: Deployment) =>
     val services = deployment.clusters.flatMap(_.services).filterNot(_.state.isInstanceOf[ReadyForUndeployment])
@@ -222,7 +222,9 @@ trait DeploymentOperation {
 }
 
 trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver {
-  this: DeploymentValidator with ArtifactSupport with ActorSupport with ExecutionContextProvider with NotificationProvider =>
+  this: DeploymentValidator with ArtifactSupport with ActorSystemProvider with ExecutionContextProvider with NotificationProvider =>
+
+  import IoC._
 
   def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintEndpoints
 
@@ -407,7 +409,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 }
 
 trait DeploymentSlicer extends DeploymentOperation {
-  this: DeploymentValidator with ArtifactSupport with ActorSupport with ExecutionContextProvider with NotificationProvider =>
+  this: DeploymentValidator with ArtifactSupport with ExecutionContextProvider with NotificationProvider =>
 
   def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster =>
     blueprint.clusters.find(_.name == cluster.name).foreach { bpc =>
@@ -434,7 +436,9 @@ trait DeploymentSlicer extends DeploymentOperation {
 }
 
 trait DeploymentUpdate {
-  this: DeploymentValidator with ActorSupport =>
+  this: DeploymentValidator with ActorSystemProvider =>
+
+  import IoC._
 
   private implicit val timeout = PersistenceActor.timeout
 

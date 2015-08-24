@@ -15,7 +15,9 @@ import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 
 trait DeploymentApiController extends ArtifactShrinkage {
-  this: ActorSupport with ExecutionContextProvider with NotificationProvider =>
+  this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider =>
+
+  import IoC._
 
   def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[ArtifactResponseEnvelope] = {
     (actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment], page, perPage, expandReferences, onlyReferences)) map {

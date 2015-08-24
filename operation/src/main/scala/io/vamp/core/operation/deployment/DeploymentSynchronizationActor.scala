@@ -28,7 +28,7 @@ object DeploymentSynchronizationSchedulerActor extends ActorDescription {
 
 class DeploymentSynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
-  def tick() = actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
+  def tick() = IoC.actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
 }
 
 object DeploymentSynchronizationActor extends ActorDescription {
@@ -42,6 +42,8 @@ object DeploymentSynchronizationActor extends ActorDescription {
 }
 
 class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
+
+  import IoC._
 
   private object Processed {
 

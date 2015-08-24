@@ -26,12 +26,10 @@ trait VampCore extends App {
       RestApiBootstrap
   }
 
-  Runtime.getRuntime.addShutdownHook(new Thread() {
-    override def run() = {
-      bootstrap.foreach(_.shutdown)
-      actorSystem.shutdown()
-    }
-  })
+  sys.addShutdownHook {
+    bootstrap.foreach(_.shutdown)
+    actorSystem.shutdown()
+  }
 
   bootstrap.foreach(_.run)
 }

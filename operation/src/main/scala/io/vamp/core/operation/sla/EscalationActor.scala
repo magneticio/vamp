@@ -25,6 +25,8 @@ object EscalationSchedulerActor extends ActorDescription {
 
 class EscalationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
+  import IoC._
+
   private var windowStart: Option[OffsetDateTime] = None
 
   def tick() = windowStart match {
@@ -55,6 +57,8 @@ object EscalationActor extends ActorDescription {
 }
 
 class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupport with CommonSupportForActors with OperationNotificationProvider {
+
+  import IoC._
 
   def tags = Set("escalation")
 

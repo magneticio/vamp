@@ -1,13 +1,13 @@
 package io.vamp.core.operation.workflow
 
-import akka.actor.ActorRefFactory
+import akka.actor.{ActorSystem, ActorContext}
 import io.vamp.core.model.artifact.Artifact
 import io.vamp.core.model.workflow.ScheduledWorkflow
 import io.vamp.core.operation.controller.ArtifactApiController
 
 import scala.concurrent.ExecutionContext
 
-class ArtifactApiContext(group: String)(implicit scheduledWorkflow: ScheduledWorkflow, ec: ExecutionContext, arf: ActorRefFactory) extends ApiContext with ArtifactApiController {
+class ArtifactApiContext(group: String)(implicit scheduledWorkflow: ScheduledWorkflow, ec: ExecutionContext, actorSystem: ActorSystem) extends ApiContext with ArtifactApiController {
 
   def all() = serialize {
     allPages[Artifact](allArtifacts(group, expandReferences = true, onlyReferences = false))

@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.{ActorSupport, Bootstrap}
+import io.vamp.common.akka.{Bootstrap, IoC}
 import spray.can.Http
 
 object RestApiBootstrap extends Bootstrap {
@@ -15,7 +15,7 @@ object RestApiBootstrap extends Bootstrap {
     val interface = config.getString("interface")
     val port = config.getInt("port")
 
-    val server = ActorSupport.actorOf(HttpServerActor)
+    val server = IoC.createActor(HttpServerActor)
 
     implicit val timeout = HttpServerActor.timeout
 

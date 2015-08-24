@@ -75,10 +75,10 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
         quartzSchedule(workflow)
 
       case EventTrigger(tags) =>
-        actorFor(PulseActor) ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
+        IoC.actorFor(PulseActor) ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
 
       case DeploymentTrigger(name) =>
-        actorFor(PulseActor) ! RegisterPercolator(s"$percolator${workflow.name}", Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
+        IoC.actorFor(PulseActor) ! RegisterPercolator(s"$percolator${workflow.name}", Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
 
       case trigger =>
         log.warning(s"Unsupported trigger: '$trigger'.")
@@ -87,8 +87,7 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
 
   private def unschedule: (ScheduledWorkflow => Unit) = { (workflow: ScheduledWorkflow) =>
     log.debug(s"Unscheduling workflow: '${workflow.name}'.")
-    actorFor(PulseActor) ! UnregisterPercolator(s"$percolator${workflow.name}")
+    IoC.actorFor(PulseActor) ! UnregisterPercolator(s"$percolator${workflow.name}")
     quartzUnschedule(workflow)
   }
 }
-

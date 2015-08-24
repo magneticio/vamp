@@ -1,16 +1,16 @@
 package io.vamp.core.operation.controller
 
-import io.vamp.core.persistence.notification.PersistenceOperationFailure
-import io.vamp.core.persistence.{ArtifactResponseEnvelope, ArtifactSupport, PersistenceActor}
+import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider, IoC}
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider}
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
 import io.vamp.core.model.workflow.{DefaultWorkflow, ScheduledWorkflow, TimeTrigger, Workflow}
 import io.vamp.core.operation.notification.{InconsistentArtifactName, InvalidTimeTriggerError, MissingRequiredVariableError, UnexpectedArtifact}
 import io.vamp.core.operation.workflow.{WorkflowConfiguration, WorkflowSchedulerActor}
+import io.vamp.core.persistence.notification.PersistenceOperationFailure
+import io.vamp.core.persistence.{ArtifactResponseEnvelope, ArtifactSupport, PersistenceActor}
 import org.quartz.CronExpression
 
 import scala.concurrent.Future
@@ -18,7 +18,9 @@ import scala.language.{existentials, postfixOps}
 import scala.reflect._
 
 trait ArtifactApiController extends ArtifactSupport {
-  this: ActorSupport with ExecutionContextProvider with NotificationProvider =>
+  this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider =>
+
+  import IoC._
 
   def allArtifacts(artifact: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[ArtifactResponseEnvelope] = mapping.get(artifact) match {
     case Some(controller) => controller.all(page, perPage, expandReferences, onlyReferences)

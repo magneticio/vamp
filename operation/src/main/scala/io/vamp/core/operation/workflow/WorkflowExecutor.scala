@@ -3,7 +3,7 @@ package io.vamp.core.operation.workflow
 import javax.script.Bindings
 
 import akka.actor.{Actor, ActorLogging}
-import io.vamp.common.akka.{ActorSupport, ExecutionContextProvider}
+import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider, IoC}
 import io.vamp.core.model.artifact.Deployment
 import io.vamp.core.model.workflow._
 import io.vamp.core.persistence.{ArtifactSupport, PersistenceActor}
@@ -14,7 +14,7 @@ import scala.concurrent.Future
 import scala.io.Source
 
 trait WorkflowExecutor {
-  this: Actor with ActorLogging with ArtifactSupport with ActorSupport with ExecutionContextProvider =>
+  this: Actor with ActorLogging with ActorSystemProvider with ArtifactSupport with ExecutionContextProvider =>
 
   private val urlPattern = "^(https?:\\/\\/.+)$".r
 
@@ -70,8 +70,8 @@ trait WorkflowExecutor {
     bindings.put("time", new TimeContext)
     bindings.put("storage", new StorageContext)
     bindings.put("http", new HttpClientContext)
-    bindings.put("events", new EventApiContext(context))
-    bindings.put("vamp", new InfoContext(context))
+    bindings.put("events", new EventApiContext(actorSystem))
+    bindings.put("vamp", new InfoContext(actorSystem))
 
     List("breeds", "blueprints", "slas", "scales", "escalations", "routings", "filters", "workflows", "scheduled-workflows").map { group =>
       bindings.put(group.replace('-', '_'), new ArtifactApiContext(group))
@@ -102,7 +102,7 @@ trait WorkflowExecutor {
   private def postEvaluation(scheduledWorkflow: ScheduledWorkflow, bindings: Bindings) = {
     bindings.get("storage") match {
       case storage: StorageContext =>
-        actorFor(PersistenceActor) ! PersistenceActor.Update(scheduledWorkflow.copy(storage = storage.all()))
+        IoC.actorFor(PersistenceActor) ! PersistenceActor.Update(scheduledWorkflow.copy(storage = storage.all()))
       case _ =>
     }
   }

@@ -15,11 +15,13 @@ import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 
 trait EventApiController {
-  this: ActorSupport with ExecutionContextProvider with NotificationProvider =>
+  this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider =>
+
+  import IoC._
 
   def publish(request: String)(implicit timeout: Timeout) = {
     val event = EventReader.read(request)
-    actorFor(PulseActor) ? Publish(event) map(_ => event)
+    actorFor(PulseActor) ? Publish(event) map (_ => event)
   }
 
   def query(request: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = {
