@@ -145,10 +145,7 @@ class DeploymentSynchronizationActor extends PaginationSupport with CommonSuppor
 
   private def readyForDeployment(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], clusterRoutes: List[ClusterRoute]): ProcessedService = {
     def convert(server: ContainerServer): DeploymentServer = {
-      val ports = for {
-        dp <- deploymentService.breed.ports.map(_.number)
-        sp <- server.ports
-      } yield (dp, sp)
+      val ports = deploymentService.breed.ports.map(_.number) zip server.ports
       DeploymentServer(server.name, server.host, ports.toMap, server.deployed)
     }
 
