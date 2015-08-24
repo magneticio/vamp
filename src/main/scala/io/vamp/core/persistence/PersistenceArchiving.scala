@@ -14,7 +14,7 @@ import io.vamp.core.pulse.PulseActor
 import scala.language.postfixOps
 
 trait PersistenceArchiving {
-  this: Actor with ActorLogging with ActorSupport with NotificationProvider =>
+  this: ActorSystemProvider with ActorLogging with NotificationProvider =>
 
   implicit def timeout: Timeout
 
@@ -31,7 +31,7 @@ trait PersistenceArchiving {
       case Some(artifactTag) =>
         val event = Event(Set(artifactTag, archiveTag), source)
         log.debug(s"Archive event with tags: ${event.tags}")
-        actorFor(PulseActor) ? PulseActor.Publish(event)
+        IoC.actorFor(PulseActor) ? PulseActor.Publish(event)
       case _ =>
         reportException(ArtifactArchivingError(artifact))
     }

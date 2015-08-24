@@ -3,7 +3,7 @@ package io.vamp.core.persistence
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
-import io.vamp.common.akka.{ActorSupport, Bootstrap}
+import io.vamp.common.akka.{Bootstrap, IoC}
 
 object PersistenceBootstrap extends Bootstrap {
 
@@ -15,18 +15,18 @@ object PersistenceBootstrap extends Bootstrap {
 
   def run(implicit actorSystem: ActorSystem) = {
 
-    ActorSupport.alias(PersistenceActor, persistence)
+    IoC.alias(PersistenceActor, persistence)
 
     if (persistence == ElasticsearchPersistenceActor)
-      ActorSupport.actorOf(ElasticsearchPersistenceInitializationActor) ! Start
+      IoC.createActor(ElasticsearchPersistenceInitializationActor) ! Start
 
-    ActorSupport.actorOf(persistence) ! Start
+    IoC.createActor(persistence) ! Start
   }
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {
     if (persistence == ElasticsearchPersistenceActor)
-      ActorSupport.actorFor(ElasticsearchPersistenceInitializationActor) ! Shutdown
+      IoC.actorFor(ElasticsearchPersistenceInitializationActor) ! Shutdown
 
-    ActorSupport.actorFor(PersistenceActor) ! Shutdown
+    IoC.actorFor(PersistenceActor) ! Shutdown
   }
 }
