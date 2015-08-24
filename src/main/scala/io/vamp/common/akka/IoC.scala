@@ -12,12 +12,12 @@ object IoC {
 
   def alias(from: ActorDescription, to: ActorDescription) = aliases.put(from.name, to)
 
-  def createActor(actorDescription: ActorDescription, args: Any*)(implicit mailbox: String = "akka.actor.default-mailbox", actorContext: ActorContext) = {
+  def createActor(actorDescription: ActorDescription, args: Any*)(implicit mailbox: String = "akka.actor.default-mailbox", actorSystem: ActorSystem) = {
     val description = alias(actorDescription)
-    actorContext.actorOf(description.props(args: _*).withMailbox(mailbox), description.name)
+    actorSystem.actorOf(description.props(args: _*).withMailbox(mailbox), description.name)
   }
 
-  def actorFor(actorDescription: ActorDescription)(implicit actorContext: ActorContext) = {
-    actorContext.actorSelection(s"/user/${alias(actorDescription).name}")
+  def actorFor(actorDescription: ActorDescription)(implicit actorSystem: ActorSystem) = {
+    actorSystem.actorSelection(s"/user/${alias(actorDescription).name}")
   }
 }
