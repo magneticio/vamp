@@ -18,8 +18,6 @@ trait InfoMessageBase {
 trait InfoBaseRoute extends InfoRetrieval with JmxVitalsProvider with ExecutionContextProvider {
   this: RestApiBase =>
 
-  def actorRefFactory: ActorRefFactory
-
   implicit def timeout: Timeout
 
   def componentInfoTimeout: Timeout
@@ -42,18 +40,16 @@ trait InfoBaseRoute extends InfoRetrieval with JmxVitalsProvider with ExecutionC
 trait InfoRetrieval {
   this: ExecutionContextProvider =>
 
-  def actorContext: ActorContext
-
   implicit def timeout: Timeout
 
-  implicit def actorRefFactory: ActorRefFactory = actorContext
+  implicit def actorSystem: ActorSystem
 
   def componentInfoTimeout: Timeout
 
   def retrieve(actorDescriptions: List[ActorDescription]): Future[Map[ActorDescription, Any]] = {
-    val futures: Map[ActorDescription, Future[Any]] = actorDescriptions.map(actorDescription => actorDescription -> ActorSupport.actorFor(ActorSupport.alias(actorDescription)) ? InfoRequest).toMap
+    val futures: Map[ActorDescription, Future[Any]] = actorDescriptions.map(actorDescription => actorDescription -> IoC.actorFor(actorDescription) ? InfoRequest).toMap
 
-    Future.firstCompletedOf(List(Future.sequence(futures.values.toList.map(_.recover { case x => Failure(x) })), after(componentInfoTimeout.duration, using = actorContext.system.scheduler) {
+    Future.firstCompletedOf(List(Future.sequence(futures.values.toList.map(_.recover { case x => Failure(x) })), after(componentInfoTimeout.duration, using = actorSystem.scheduler) {
       Future.successful(new TimeoutException("Component timeout."))
     })) map { _ =>
       futures.map { case (actorDescription, future) =>

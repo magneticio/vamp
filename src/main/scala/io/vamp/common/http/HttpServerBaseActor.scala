@@ -10,8 +10,6 @@ import spray.util.LoggingContext
 
 trait HttpServerBaseActor extends HttpServiceActor with CommonSupportForActors {
 
-  override def actorRefFactory = super[CommonSupportForActors].actorRefFactory
-
   def route: Route
 
   implicit def marshaller: ToResponseMarshaller[Any]
