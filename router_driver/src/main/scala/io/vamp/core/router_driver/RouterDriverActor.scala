@@ -70,7 +70,7 @@ object SyncReplyMagnet {
   }
 }
 
-// FIXME remove all above and scala-async dependency from build.sbt
+// FIXME remove all above, scala-async dependency from build.sbt and enable RouterDriverActorSpec
 
 /*
  * Asynchronous implementation

@@ -7,11 +7,11 @@ import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, DeploymentService, Port}
 import io.vamp.core.router_driver.notification.{RouterResponseError, UnsupportedRouterDriverRequest}
 import org.scalatest.concurrent.{Futures, ScalaFutures}
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpecLike}
+import org.scalatest.{Ignore, BeforeAndAfterEach, Matchers, WordSpecLike}
 
 import scala.concurrent.Future
 
-
+@Ignore
 class RouterDriverActorSpec extends TestKit(ActorSystem("RouterDriverActor")) with ImplicitSender with WordSpecLike with Matchers with Futures with ScalaFutures with BeforeAndAfterEach {
 
   val services = List(RouteService((service: DeploymentService) => {
