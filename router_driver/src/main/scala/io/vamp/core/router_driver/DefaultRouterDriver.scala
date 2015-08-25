@@ -14,7 +14,7 @@ import scala.util.matching.Regex
 class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDriver with DefaultRouterDriverNameMatcher {
   protected implicit val executionContext = ec
 
-  private val serviceIdMatcher = """^[a-zA-Z0-9]+[a-zA-Z0-9.\-_:]{1,63}$""".r
+  private val serviceIdMatcher = """^[a-zA-Z0-9][a-zA-Z0-9.\-_:]{1,63}$""".r
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[DefaultRouterDriver]))
 
@@ -142,13 +142,13 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
 trait DefaultRouterDriverNameMatcher {
 
   val nameDelimiter = "_"
-  val idMatcher = """^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]{3,63}$""".r
+  val idMatcher = """^[a-zA-Z0-9][a-zA-Z0-9.\-_]{3,63}$""".r
 
   def clusterRouteName(deployment: Deployment, cluster: DeploymentCluster, port: Port): String = {
     val id = s"${deployment.name}$nameDelimiter${cluster.name}$nameDelimiter${port.number}"
     val hashId = string2Id(id)
 
-    if (hashId == id) id else s"${id.substring(0, 8)}$nameDelimiter$hashId"
+    if (hashId == id) id else s"${id.substring(0, 8)}$nameDelimiter${id.substring(9, 13)}$nameDelimiter$hashId"
   }
 
   def endpointRouteName(deployment: Deployment, port: Port): String =
