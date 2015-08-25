@@ -44,19 +44,18 @@ NAME                                    CLUSTERS
 ## CI & Chaining
 
 In more complex continuous integration situations you can use the CLI with the `--stdin` flag to chain a bunch of commands together. You could for instance:
-* get a blueprint with `inspect`
-* generate a new blueprint with `generate` while inserting a new breed
-* merging it with an existing deployment with `merge`
-* deploying the result with `deploy`
+
+* get an "old" version of a breed with `inspect`
+* generate a new breed based on the previous one, while inserting a new deployable
+* create the breed in the backend
 
 ```
-vamp inspect blueprint monarchs:1.0 | \
-vamp generate blueprint --cluster frontend --breed frontend:0.2 --stdin | \
-vamp merge --deployment $DEPLOYMENT --stdin | \
-vamp deploy --deployment $DEPLOYMENT --stdin
+vamp inspect breed frontend:${OLD} | \
+vamp generate breed --deployable mycompany/frontend:${NEW} frontend:${NEW} --stdin | \
+vamp create breed --stdin
 ```
 
-Or even shorter, just use the target deployment as the basis for your new deployment. There is no need for the merge in this situation:
+Once you have the new breed stored, you can insert it into a running deployment at the right position, i.e:
 
 * get a blueprint from a running deployment with `inspect` and `--as_blueprint`
 * generate a new blueprint with `generate` while inserting a new breed
@@ -64,7 +63,7 @@ Or even shorter, just use the target deployment as the basis for your new deploy
 
 ```
 vamp inspect deployment $DEPLOYMENT --as_blueprint | \
-vamp generate blueprint --cluster frontend --breed frontend:0.2 --stdin | \
+vamp generate blueprint --cluster frontend --breed frontend:${NEW} --stdin | \
 vamp deploy --deployment $DEPLOYMENT --stdin
 ```
 
