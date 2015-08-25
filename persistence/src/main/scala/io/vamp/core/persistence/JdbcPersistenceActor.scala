@@ -1,7 +1,6 @@
 package io.vamp.core.persistence
 
-import akka.actor.Props
-import io.vamp.common.akka.{ActorDescription, ExecutionContextProvider}
+import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact._
@@ -14,10 +13,6 @@ import io.vamp.core.persistence.slick.model.DeploymentGenericEscalation
 import scala.concurrent.Future
 import scala.slick.jdbc.JdbcBackend._
 
-
-object JdbcPersistenceActor extends ActorDescription {
-  def props(args: Any*): Props = Props(classOf[JdbcPersistenceActor], args: _*)
-}
 
 case class DatabaseInfo(name: String, version: String, schemaVersion: String)
 

@@ -1,8 +1,8 @@
 package io.vamp.core.operation.controller
 
-import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider, IoC}
 import akka.pattern.ask
 import akka.util.Timeout
+import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider, IoC}
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
@@ -80,18 +80,18 @@ trait ArtifactApiController extends ArtifactSupport {
     val `type` = classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]]
 
     override def all(page: Int, perPage: Int, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) =
-      actorFor(PersistenceActor) ? PersistenceActor.All(`type`, page, perPage, expandReferences, onlyReferences) map {
+      actorFor[PersistenceActor] ? PersistenceActor.All(`type`, page, perPage, expandReferences, onlyReferences) map {
         case envelope: ArtifactResponseEnvelope => envelope
         case other => throwException(PersistenceOperationFailure(other))
       }
 
     override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       (unmarshal andThen validate)(source) flatMap {
-        case artifact => if (validateOnly) Future(artifact) else actorFor(PersistenceActor) ? PersistenceActor.Create(artifact, Some(source))
+        case artifact => if (validateOnly) Future(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Create(artifact, Some(source))
       }
     }
 
-    override def read(name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = actorFor(PersistenceActor) ? PersistenceActor.Read(name, `type`, expandReferences, onlyReferences)
+    override def read(name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = actorFor[PersistenceActor] ? PersistenceActor.Read(name, `type`, expandReferences, onlyReferences)
 
     override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       (unmarshal andThen validate)(source) flatMap {
@@ -99,12 +99,12 @@ trait ArtifactApiController extends ArtifactSupport {
           if (name != artifact.name)
             throwException(InconsistentArtifactName(name, artifact))
 
-          if (validateOnly) Future(artifact) else actorFor(PersistenceActor) ? PersistenceActor.Update(artifact, Some(source))
+          if (validateOnly) Future(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Update(artifact, Some(source))
       }
     }
 
     override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) =
-      if (validateOnly) Future(None) else actorFor(PersistenceActor) ? PersistenceActor.Delete(name, `type`)
+      if (validateOnly) Future(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, `type`)
 
     protected def unmarshal: (String => T) = { (source: String) => unmarshaller.read(source) }
 
@@ -115,21 +115,21 @@ trait ArtifactApiController extends ArtifactSupport {
 
     override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = super.create(source, validateOnly).map {
       case workflow: ScheduledWorkflow =>
-        actorFor(WorkflowSchedulerActor) ! WorkflowSchedulerActor.Schedule(workflow)
+        actorFor[WorkflowSchedulerActor] ! WorkflowSchedulerActor.Schedule(workflow)
         workflow
       case any => any
     }
 
     override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = super.update(name, source, validateOnly).map {
       case workflow: ScheduledWorkflow =>
-        actorFor(WorkflowSchedulerActor) ! WorkflowSchedulerActor.Schedule(workflow)
+        actorFor[WorkflowSchedulerActor] ! WorkflowSchedulerActor.Schedule(workflow)
         workflow
       case any => any
     }
 
     override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) = super.delete(name, validateOnly).map {
       case workflow: ScheduledWorkflow =>
-        actorFor(WorkflowSchedulerActor) ! WorkflowSchedulerActor.Unschedule(workflow)
+        actorFor[WorkflowSchedulerActor] ! WorkflowSchedulerActor.Unschedule(workflow)
         workflow
       case any => any
     }

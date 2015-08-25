@@ -1,6 +1,5 @@
 package io.vamp.core.persistence
 
-import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
@@ -20,9 +19,7 @@ object ArtifactResponseEnvelope {
 
 case class ArtifactResponseEnvelope(response: List[Artifact], total: Long, page: Int, perPage: Int) extends OffsetResponseEnvelope[Artifact]
 
-object PersistenceActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props.empty
+object PersistenceActor {
 
   lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.persistence.response-timeout").seconds)
 

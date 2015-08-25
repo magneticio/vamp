@@ -17,11 +17,6 @@ import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.language.postfixOps
 
-object EscalationSchedulerActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props[SlaSchedulerActor]
-
-}
 
 class EscalationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
@@ -32,7 +27,7 @@ class EscalationSchedulerActor extends SchedulerActor with OperationNotification
   def tick() = windowStart match {
     case Some(from) =>
       val to = OffsetDateTime.now().withNano(0)
-      actorFor(SlaActor) ! EscalationProcessAll(from, to)
+      actorFor[SlaActor] ! EscalationProcessAll(from, to)
       windowStart = Some(to)
 
     case None =>
@@ -48,9 +43,7 @@ class EscalationSchedulerActor extends SchedulerActor with OperationNotification
 
 }
 
-object EscalationActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props[EscalationActor]
+object EscalationActor {
 
   case class EscalationProcessAll(from: OffsetDateTime, to: OffsetDateTime)
 
@@ -137,7 +130,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
   private def scaleEscalation(deployment: Deployment, cluster: DeploymentCluster, escalation: ScaleEscalation[_], escalate: Boolean): Boolean = {
     def commit(targetCluster: DeploymentCluster, scale: DefaultScale) = {
       // Scale only the first service.
-      actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(c => {
+      actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(c => {
         if (c.name == targetCluster.name)
           c.copy(services = c.services match {
             case head :: tail => head.copy(scale = Some(scale), state = ReadyForDeployment()) :: tail

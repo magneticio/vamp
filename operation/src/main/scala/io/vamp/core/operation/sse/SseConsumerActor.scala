@@ -2,9 +2,8 @@ package io.vamp.core.operation.sse
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.Props
 import io.vamp.common.akka.Bootstrap.Shutdown
-import io.vamp.common.akka.{ActorDescription, CommonSupportForActors}
+import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.core.model.event.Event._
 import io.vamp.core.model.reader.EventReader
 import io.vamp.core.operation.notification.OperationNotificationProvider
@@ -13,10 +12,6 @@ import io.vamp.core.pulse.Percolator.{RegisterPercolator, UnregisterPercolator}
 import org.glassfish.jersey.client.JerseyClientBuilder
 import org.glassfish.jersey.media.sse.{EventListener, EventSource, InboundEvent}
 
-object SseConsumerActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props[SseConsumerActor]
-}
 
 class SseConsumerActor extends Percolator with CommonSupportForActors with OperationNotificationProvider {
 

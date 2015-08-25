@@ -102,7 +102,7 @@ trait WorkflowExecutor {
   private def postEvaluation(scheduledWorkflow: ScheduledWorkflow, bindings: Bindings) = {
     bindings.get("storage") match {
       case storage: StorageContext =>
-        IoC.actorFor(PersistenceActor) ! PersistenceActor.Update(scheduledWorkflow.copy(storage = storage.all()))
+        IoC.actorFor[PersistenceActor] ! PersistenceActor.Update(scheduledWorkflow.copy(storage = storage.all()))
       case _ =>
     }
   }

@@ -1,8 +1,6 @@
 package io.vamp.core.persistence
 
-import akka.actor.Props
 import akka.event.LoggingAdapter
-import io.vamp.common.akka._
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact._
@@ -15,9 +13,6 @@ import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-object InMemoryPersistenceActor extends ActorDescription {
-  def props(args: Any*): Props = Props(classOf[InMemoryPersistenceActor], args: _*)
-}
 
 class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
 

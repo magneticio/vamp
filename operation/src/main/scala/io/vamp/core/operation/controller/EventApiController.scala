@@ -21,14 +21,14 @@ trait EventApiController {
 
   def publish(request: String)(implicit timeout: Timeout) = {
     val event = EventReader.read(request)
-    actorFor(PulseActor) ? Publish(event) map (_ => event)
+    actorFor[PulseActor] ? Publish(event) map (_ => event)
   }
 
   def query(request: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = {
-    actorFor(PulseActor) ? Query(EventRequestEnvelope(EventQueryReader.read(request), page, perPage))
+    actorFor[PulseActor] ? Query(EventRequestEnvelope(EventQueryReader.read(request), page, perPage))
   }
 
-  def openStream(to: ActorRef, tags: Set[String]) = actorFor(EventSteamingActor) ! OpenStream(to, tags)
+  def openStream(to: ActorRef, tags: Set[String]) = actorFor[EventSteamingActor] ! OpenStream(to, tags)
 
-  def closeStream(to: ActorRef) = actorFor(EventSteamingActor) ! CloseStream(to)
+  def closeStream(to: ActorRef) = actorFor[EventSteamingActor] ! CloseStream(to)
 }

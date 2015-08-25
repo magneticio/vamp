@@ -1,7 +1,6 @@
 package io.vamp.core.dictionary
 
 
-import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
@@ -12,11 +11,9 @@ import io.vamp.core.model.artifact.DefaultScale
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-object DictionaryActor extends ActorDescription {
+object DictionaryActor {
 
   lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.dictionary.response-timeout").seconds)
-
-  def props(args: Any*): Props = Props(classOf[DictionaryActor])
 
   trait DictionaryMessage
 

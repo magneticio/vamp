@@ -3,7 +3,6 @@ package io.vamp.core.operation.deployment
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
-import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -21,20 +20,13 @@ import io.vamp.core.router_driver._
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-object DeploymentSynchronizationSchedulerActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props[DeploymentSynchronizationSchedulerActor]
-
-}
 
 class DeploymentSynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
-  def tick() = IoC.actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
+  def tick() = IoC.actorFor[DeploymentSynchronizationActor] ! SynchronizeAll
 }
 
-object DeploymentSynchronizationActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props[DeploymentSynchronizationActor]
+object DeploymentSynchronizationActor {
 
   object SynchronizeAll
 
@@ -81,10 +73,10 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
   private def synchronize(deployments: List[Deployment]): Future[_] = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
-    actorFor(RouterDriverActor) ? RouterDriverActor.All map {
+    actorFor[RouterDriverActor] ? RouterDriverActor.All map {
       case error: NotificationErrorException => log.error("Synchronisation not possible.")
       case deploymentRoutes: DeploymentRoutes =>
-        actorFor(ContainerDriverActor) ? ContainerDriverActor.All map {
+        actorFor[ContainerDriverActor] ? ContainerDriverActor.All map {
           case containerServices: List[_] => deployments.filterNot(withError).foreach(synchronize(containerServices.asInstanceOf[List[ContainerService]], deploymentRoutes))
           case any => throwException(InternalServerError(any))
         }
@@ -101,7 +93,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
     def handleTimeout(service: DeploymentService) = {
       val notification = DeploymentServiceError(deployment, service)
       reportException(notification)
-      actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map({ s =>
+      actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map({ s =>
         if (s.breed.name == service.breed.name) {
           s.copy(state = Error(notification))
         } else s
@@ -155,7 +147,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
       case None =>
         if (hasDependenciesDeployed(deployment, deploymentCluster, deploymentService)) {
           if (hasResolvedEnvironmentVariables(deployment, deploymentCluster, deploymentService)) {
-            actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = false)
+            actorFor[ContainerDriverActor] ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = false)
             ProcessedService(Processed.Ignore, deploymentService)
           } else {
             ProcessedService(Processed.ResolveEnvironmentVariables, deploymentService)
@@ -166,7 +158,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
       case Some(cs) =>
         if (!matchingScale(deploymentService, cs)) {
-          actorFor(ContainerDriverActor) ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = true)
+          actorFor[ContainerDriverActor] ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = true)
           ProcessedService(Processed.Ignore, deploymentService)
         } else if (!matchingServers(deploymentService, cs)) {
           ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers.map(convert)))
@@ -223,7 +215,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
         case None =>
           ProcessedService(Processed.RemoveFromPersistence, deploymentService)
         case Some(cs) =>
-          actorFor(ContainerDriverActor) ! ContainerDriverActor.Undeploy(deployment, deploymentService)
+          actorFor[ContainerDriverActor] ! ContainerDriverActor.Undeploy(deployment, deploymentService)
           ProcessedService(Processed.Ignore, deploymentService)
       }
     } else {
@@ -296,9 +288,9 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
     if (ports.nonEmpty) {
       val cluster = processedCluster.cluster.copy(services = processedServices.filter(_.state != Processed.RemoveFromRoute).map(_.service))
       if (cluster.services.nonEmpty)
-        ports.foreach(port => actorFor(RouterDriverActor) ! RouterDriverActor.Create(deployment, cluster, port, update = clusterRoutes.exists(_.matching(deployment, deploymentCluster, port))))
+        ports.foreach(port => actorFor[RouterDriverActor] ! RouterDriverActor.Create(deployment, cluster, port, update = clusterRoutes.exists(_.matching(deployment, deploymentCluster, port))))
       else
-        ports.foreach(port => actorFor(RouterDriverActor) ! RouterDriverActor.Remove(deployment, cluster, port))
+        ports.foreach(port => actorFor[RouterDriverActor] ! RouterDriverActor.Remove(deployment, cluster, port))
     }
 
     processedCluster
@@ -367,7 +359,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   private def updateEndpoints(remove: List[DeploymentCluster], routes: List[EndpointRoute]): (Deployment => Deployment) = { deployment: Deployment =>
 
     routes.filter(_.matching(deployment, None)).foreach(route => if (!deployment.endpoints.exists(_.number == route.port)) {
-      actorFor(RouterDriverActor) ! RouterDriverActor.RemoveEndpoint(deployment, Port.portFor(route.port))
+      actorFor[RouterDriverActor] ! RouterDriverActor.RemoveEndpoint(deployment, Port.portFor(route.port))
     })
 
     deployment.endpoints.foreach { port =>
@@ -376,10 +368,10 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
           if (cluster.services.forall(_.state.isInstanceOf[Deployed])) routes.find(_.matching(deployment, Some(port))) match {
 
             case None =>
-              actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false)
+              actorFor[RouterDriverActor] ! RouterDriverActor.CreateEndpoint(deployment, port, update = false)
 
             case Some(route) if route.services.flatMap(_.servers).count(_ => true) == 0 =>
-              actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = true)
+              actorFor[RouterDriverActor] ! RouterDriverActor.CreateEndpoint(deployment, port, update = true)
 
             case _ =>
           }
@@ -395,9 +387,9 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
       val clusters = deployment.clusters.filterNot(cluster => remove.exists(_.name == cluster.name)).map(cluster => persist.find(_.name == cluster.name).getOrElse(cluster))
 
       if (clusters.isEmpty)
-        actorFor(PersistenceActor) ! PersistenceActor.Delete(deployment.name, classOf[Deployment])
+        actorFor[PersistenceActor] ! PersistenceActor.Delete(deployment.name, classOf[Deployment])
       else
-        actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = clusters))
+        actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = clusters))
     }
   }
 }

@@ -158,18 +158,18 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
 trait DevController {
   this: ArtifactPaginationSupport with NotificationProvider with ExecutionContextProvider with ActorSystemProvider =>
 
-  def sync(): Unit = IoC.actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
+  def sync(): Unit = IoC.actorFor[DeploymentSynchronizationActor] ! SynchronizeAll
 
-  def slaCheck() = IoC.actorFor(SlaActor) ! SlaActor.SlaProcessAll
+  def slaCheck() = IoC.actorFor[SlaActor] ! SlaActor.SlaProcessAll
 
   def slaEscalation() = {
     val now = OffsetDateTime.now()
-    IoC.actorFor(EscalationActor) ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
+    IoC.actorFor[EscalationActor] ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }
 
   def reset()(implicit timeout: Timeout): Unit = allArtifacts[Deployment] map { deployments =>
     deployments.foreach { deployment =>
-      IoC.actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
+      IoC.actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
     }
     sync()
   }

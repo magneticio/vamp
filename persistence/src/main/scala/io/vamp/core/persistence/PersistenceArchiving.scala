@@ -31,7 +31,7 @@ trait PersistenceArchiving {
       case Some(artifactTag) =>
         val event = Event(Set(artifactTag, archiveTag), source)
         log.debug(s"Archive event with tags: ${event.tags}")
-        IoC.actorFor(PulseActor) ? PulseActor.Publish(event)
+        IoC.actorFor[PulseActor] ? PulseActor.Publish(event)
       case _ =>
         reportException(ArtifactArchivingError(artifact))
     }

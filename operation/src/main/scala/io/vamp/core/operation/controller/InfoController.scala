@@ -1,5 +1,6 @@
 package io.vamp.core.operation.controller
 
+import akka.actor.Actor
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider}
@@ -24,14 +25,16 @@ trait InfoController extends InfoRetrieval with JmxVitalsProvider {
   val componentInfoTimeout = Timeout(ConfigFactory.load().getInt("vamp.core.info.timeout") seconds)
 
   def info: Future[InfoMessageBase] = {
-    retrieve(PersistenceActor :: RouterDriverActor :: PulseActor :: ContainerDriverActor :: Nil).map { result =>
+    val actors = List(classOf[PersistenceActor], classOf[RouterDriverActor], classOf[PulseActor], classOf[ContainerDriverActor])
+
+    retrieve(actors.map(_.asInstanceOf[Class[Actor]])).map { result =>
       InfoMessage(infoMessage,
         getClass.getPackage.getImplementationVersion,
         jvmVitals(),
-        result.get(PersistenceActor),
-        result.get(RouterDriverActor),
-        result.get(PulseActor),
-        result.get(ContainerDriverActor)
+        result.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
+        result.get(classOf[RouterDriverActor].asInstanceOf[Class[Actor]]),
+        result.get(classOf[PulseActor].asInstanceOf[Class[Actor]]),
+        result.get(classOf[ContainerDriverActor].asInstanceOf[Class[Actor]])
       )
     }
   }

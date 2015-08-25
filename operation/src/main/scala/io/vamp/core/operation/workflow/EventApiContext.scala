@@ -56,7 +56,12 @@ class EventApiContext(actorSystem: ActorSystem)(implicit scheduledWorkflow: Sche
     }
     logger.debug(s"Publishing event: $event")
     reset()
-    async(await(IoC.actorFor(PulseActor)(actorSystem) ? Publish(event)))
+    async {
+      await {
+        implicit val as = actorSystem
+        IoC.actorFor[PulseActor] ? Publish(event)
+      }
+    }
   }
 
   def lt(time: String) = {
@@ -140,7 +145,8 @@ class EventApiContext(actorSystem: ActorSystem)(implicit scheduledWorkflow: Sche
     reset()
     async {
       await {
-        IoC.actorFor(PulseActor)(actorSystem) ? Query(EventRequestEnvelope(eventQuery, _page, _perPage)) map {
+        implicit val as = actorSystem
+        IoC.actorFor[PulseActor] ? Query(EventRequestEnvelope(eventQuery, _page, _perPage)) map {
           case EventResponseEnvelope(list, _, _, _) => list
           case result: SingleValueAggregationResult[_] => result.value
           case other => other

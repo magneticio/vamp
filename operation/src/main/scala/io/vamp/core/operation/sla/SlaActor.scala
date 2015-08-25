@@ -20,21 +20,14 @@ import io.vamp.core.router_driver.DefaultRouterDriverNameMatcher
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-object SlaSchedulerActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props[SlaSchedulerActor]
-
-}
 
 class SlaSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
-  def tick() = IoC.actorFor(SlaActor) ! SlaProcessAll
+  def tick() = IoC.actorFor[SlaActor] ! SlaProcessAll
 
 }
 
-object SlaActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props[SlaActor]
+object SlaActor {
 
   object SlaProcessAll
 
@@ -52,7 +45,7 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
 
   override def info(notification: Notification): Unit = {
     notification match {
-      case se: SlaEvent => actorFor(PulseActor) ! Publish(Event(Set("sla") ++ se.tags, se.value, se.timestamp))
+      case se: SlaEvent => actorFor[PulseActor] ! Publish(Event(Set("sla") ++ se.tags, se.value, se.timestamp))
       case _ =>
     }
     super.info(notification)
@@ -115,7 +108,7 @@ trait SlaPulse extends DefaultRouterDriverNameMatcher {
 
   def eventExists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime): Future[Boolean] = {
     val eventQuery = EventQuery(SlaEvent.slaTags(deployment, cluster), Some(TimeRange(Some(from), Some(OffsetDateTime.now()), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.count)))
-    actorFor(PulseActor) ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
+    actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
       case LongValueAggregationResult(count) => count > 0
       case other =>
         log.error(other.toString)
@@ -125,7 +118,7 @@ trait SlaPulse extends DefaultRouterDriverNameMatcher {
 
   def responseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime): Future[Option[Double]] = {
     val eventQuery = EventQuery(Set(s"routes:${clusterRouteName(deployment, cluster, port)}", "metrics:rtime"), Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average)))
-    actorFor(PulseActor) ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
+    actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
       case DoubleValueAggregationResult(value) => Some(value)
       case other =>
         log.error(other.toString)

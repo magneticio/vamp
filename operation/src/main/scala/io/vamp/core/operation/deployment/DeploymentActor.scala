@@ -2,7 +2,6 @@ package io.vamp.core.operation.deployment
 
 import java.util.UUID
 
-import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka._
@@ -20,9 +19,7 @@ import io.vamp.core.persistence.{ArtifactPaginationSupport, ArtifactSupport, Per
 import scala.concurrent.Future
 import scala.language.{existentials, postfixOps}
 
-object DeploymentActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props[DeploymentActor]
+object DeploymentActor {
 
   trait DeploymentMessages
 
@@ -77,8 +74,8 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
     else {
       future.flatMap { case deployment =>
         implicit val timeout: Timeout = PersistenceActor.timeout
-        checked[Deployment](IoC.actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, Some(source), create = create)) map { case persisted =>
-          IoC.actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
+        checked[Deployment](IoC.actorFor[PersistenceActor] ? PersistenceActor.Update(deployment, Some(source), create = create)) map { case persisted =>
+          IoC.actorFor[DeploymentSynchronizationActor] ! Synchronize(persisted)
           persisted
         }
       }
@@ -322,7 +319,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
             case None =>
               implicit val timeout = DictionaryActor.timeout
               val key = DictionaryActor.containerScale.format(deployment.name, blueprintCluster.name, service.breed.name)
-              actorFor(DictionaryActor) ? DictionaryActor.Get(key) map {
+              actorFor[DictionaryActor] ? DictionaryActor.Get(key) map {
                 case scale: DefaultScale => scale
                 case e => throwException(UnresolvedEnvironmentValueError(key, e))
               }
@@ -343,7 +340,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
   def resolveHosts: (Future[Deployment] => Future[Deployment]) = { (futureDeployment: Future[Deployment]) =>
     futureDeployment.flatMap {
       case deployment => implicit val timeout = DictionaryActor.timeout
-        actorFor(DictionaryActor) ? DictionaryActor.Get(DictionaryActor.hostResolver) map {
+        actorFor[DictionaryActor] ? DictionaryActor.Get(DictionaryActor.hostResolver) map {
           case host: String => deployment.copy(hosts = deployment.clusters.map(cluster => Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(host))))
           case e => throwException(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
         }
@@ -358,7 +355,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
             case None =>
               implicit val timeout = DictionaryActor.timeout
               val key = DictionaryActor.portAssignment.format(deployment.name, port)
-              actorFor(DictionaryActor) ? DictionaryActor.Get(key) map {
+              actorFor[DictionaryActor] ? DictionaryActor.Get(key) map {
                 case number: Int => port -> number
                 case e => throwException(UnresolvedEnvironmentValueError(key, e))
               }
@@ -444,18 +441,18 @@ trait DeploymentUpdate {
 
   def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String) = {
     val clusters = deployment.clusters.map(c => if (cluster.name == c.name) c.copy(sla = sla) else c)
-    actorFor(PersistenceActor) ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
+    actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
   }
 
   def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) = {
     lazy val services = cluster.services.map(s => if (s.breed.name == service.breed.name) service.copy(scale = Some(scale), state = ReadyForDeployment()) else s)
     val clusters = deployment.clusters.map(c => if (c.name == cluster.name) c.copy(services = services) else c)
-    actorFor(PersistenceActor) ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
+    actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
   }
 
   def updateRouting(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, routing: DefaultRouting, source: String) = {
     lazy val services = cluster.services.map(s => if (s.breed.name == service.breed.name) service.copy(routing = Some(routing), state = ReadyForDeployment()) else s)
     val clusters = deployment.clusters.map(c => if (c.name == cluster.name) c.copy(services = services) else c)
-    actorFor(PersistenceActor) ? PersistenceActor.Update(validateRoutingWeights(deployment.copy(clusters = clusters)), Some(source))
+    actorFor[PersistenceActor] ? PersistenceActor.Update(validateRoutingWeights(deployment.copy(clusters = clusters)), Some(source))
   }
 }

@@ -1,6 +1,6 @@
 package io.vamp.core.container_driver
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{Bootstrap, IoC}
 import io.vamp.core.container_driver.docker.DockerDriver
@@ -17,6 +17,6 @@ object ContainerDriverBootstrap extends Bootstrap with ContainerDriverNotificati
       case value => throwException(UnsupportedContainerDriverError(value))
     }
 
-    IoC.createActor(ContainerDriverActor, driver)
+    IoC.createActor(Props(classOf[ContainerDriverActor], driver))
   }
 }

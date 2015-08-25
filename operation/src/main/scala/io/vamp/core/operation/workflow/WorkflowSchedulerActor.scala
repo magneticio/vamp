@@ -12,9 +12,7 @@ import io.vamp.core.pulse.PulseActor
 
 import scala.language.postfixOps
 
-object WorkflowSchedulerActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props[WorkflowSchedulerActor]
+object WorkflowSchedulerActor {
 
   case class Schedule(scheduledWorkflow: ScheduledWorkflow)
 
@@ -75,10 +73,10 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
         quartzSchedule(workflow)
 
       case EventTrigger(tags) =>
-        IoC.actorFor(PulseActor) ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
+        IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
 
       case DeploymentTrigger(name) =>
-        IoC.actorFor(PulseActor) ! RegisterPercolator(s"$percolator${workflow.name}", Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
+        IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
 
       case trigger =>
         log.warning(s"Unsupported trigger: '$trigger'.")
@@ -87,7 +85,7 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
 
   private def unschedule: (ScheduledWorkflow => Unit) = { (workflow: ScheduledWorkflow) =>
     log.debug(s"Unscheduling workflow: '${workflow.name}'.")
-    IoC.actorFor(PulseActor) ! UnregisterPercolator(s"$percolator${workflow.name}")
+    IoC.actorFor[PulseActor] ! UnregisterPercolator(s"$percolator${workflow.name}")
     quartzUnschedule(workflow)
   }
 }

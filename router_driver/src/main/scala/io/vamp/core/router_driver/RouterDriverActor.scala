@@ -1,6 +1,5 @@
 package io.vamp.core.router_driver
 
-import akka.actor.Props
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
@@ -12,9 +11,7 @@ import scala.concurrent.Future
 import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
-object RouterDriverActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props(classOf[RouterDriverActor], args: _*)
+object RouterDriverActor {
 
   trait RouterDriverMessage
 
