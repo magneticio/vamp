@@ -29,7 +29,6 @@ trait LoggingNotificationProvider extends NotificationProvider {
 
     notification match {
       case error: ErrorNotification => error.reason match {
-        case reason : Throwable if reason.toString.contains("Connection refused") => logger.error(reason.getMessage)
         case reason: Throwable => logger.error(reason.getMessage, reason)
         case reason => logger.error(reason.toString)
       }

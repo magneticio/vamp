@@ -2,7 +2,7 @@ package io.vamp.common.akka
 
 import akka.actor.Actor
 import akka.pattern.pipe
-import io.vamp.common.notification.{ErrorNotification, Notification, NotificationProvider}
+import _root_.io.vamp.common.notification.{GenericErrorNotification, ErrorNotification, Notification, NotificationProvider}
 
 import scala.concurrent.Future
 import scala.language.implicitConversions
@@ -14,9 +14,6 @@ trait RequestError extends ErrorNotification {
 
   def reason = request
 }
-
-case class GenericErrorNotification(reason: Any) extends ErrorNotification
-
 
 trait ReplyActor {
   this: Actor with ExecutionContextProvider with NotificationProvider =>
