@@ -1,6 +1,5 @@
 package io.vamp.core.container_driver
 
-import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
@@ -10,11 +9,9 @@ import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, DeploymentSer
 
 import scala.concurrent.duration._
 
-object ContainerDriverActor extends ActorDescription {
+object ContainerDriverActor {
 
   lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.container-driver.response-timeout").seconds)
-
-  def props(args: Any*): Props = Props(classOf[ContainerDriverActor], args: _*)
 
   trait ContainerDriveMessage
 
