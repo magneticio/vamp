@@ -8,6 +8,8 @@ menu:
 
 # Filters
 
+Please check the notes on using [pagination](/documentation/api-reference/#pagination) and [json and yaml content types](/documentation/api-reference/#content-types) on how to effectively use the REST api.
+
 ## List filters
 
 Lists all filters without any pagination or filtering.

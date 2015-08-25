@@ -12,6 +12,8 @@ Deployments are non-static entities in the Vamp eco-system. They represent runti
 
 Deployments have a set of sub resources: **SLA's**, **scales** and **routings**. These are instantiations of their static counterparts.
 
+Please check the notes on using [pagination](/documentation/api-reference/#pagination) and [json and yaml content types](/documentation/api-reference/#content-types) on how to effectively use the REST api.
+
 ## List deployments
 
 
