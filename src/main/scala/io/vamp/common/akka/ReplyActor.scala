@@ -2,7 +2,7 @@ package io.vamp.common.akka
 
 import akka.actor.Actor
 import akka.pattern.pipe
-import _root_.io.vamp.common.notification.{GenericErrorNotification, ErrorNotification, Notification, NotificationProvider}
+import io.vamp.common.notification._
 
 import scala.concurrent.Future
 import scala.language.implicitConversions
@@ -21,10 +21,16 @@ trait ReplyActor {
   def reply[T](magnet: ReplyMagnet[T], `class`: Class[_ <: Notification] = errorNotificationClass): Try[Future[T]] = {
     magnet.get.transform({ case future =>
       pipe {
-        future.recover { case f => failure(f, `class`) }
+        future.recover {
+          case n: NotificationErrorException => n
+          case f => failure(f, `class`)
+        }
       } to sender()
       Success(future)
-    }, { case f => Failure(failure(f, `class`)) })
+    }, {
+      case n: NotificationErrorException => Failure(n)
+      case f => Failure(failure(f, `class`))
+    })
   }
 
   def checked[T <: Any : ClassTag](future: Future[_], `class`: Class[_ <: Notification] = errorNotificationClass): Future[T] = future map {
