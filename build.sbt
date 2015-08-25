@@ -168,6 +168,7 @@ lazy val router_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to Vamp Router",
   name:="core-router_driver",
   libraryDependencies ++= Seq(
+    "org.scala-lang.modules" %% "scala-async" % scalaAsyncVersion,
     scalaTest % "test",
     akkaTestkit % "test"
   )
