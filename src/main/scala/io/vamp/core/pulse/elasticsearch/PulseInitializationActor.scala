@@ -1,17 +1,9 @@
 package io.vamp.core.pulse.elasticsearch
 
-import akka.actor._
-import io.vamp.common.akka._
 import io.vamp.core.pulse.PulseActor
 import io.vamp.core.pulse.notification.PulseNotificationProvider
 
 import scala.io.Source
-import scala.language.postfixOps
-
-object PulseInitializationActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props[PulseInitializationActor]
-}
 
 class PulseInitializationActor extends ElasticsearchInitializationActor with PulseNotificationProvider {
 

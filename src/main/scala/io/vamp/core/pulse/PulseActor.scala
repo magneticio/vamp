@@ -3,7 +3,6 @@ package io.vamp.core.pulse
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
-import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
@@ -32,7 +31,7 @@ case class EventRequestEnvelope(request: EventQuery, page: Int, perPage: Int) ex
 
 case class EventResponseEnvelope(response: List[Event], total: Long, page: Int, perPage: Int) extends OffsetResponseEnvelope[Event]
 
-object PulseActor extends ActorDescription {
+object PulseActor {
 
   val configuration = ConfigFactory.load().getConfig("vamp.core.pulse")
 
@@ -41,8 +40,6 @@ object PulseActor extends ActorDescription {
   val elasticsearchUrl = configuration.getString("elasticsearch.url")
 
   val indexName = configuration.getString("elasticsearch.index.name")
-
-  def props(args: Any*): Props = Props(classOf[PulseActor], args: _*)
 
   trait PulseMessage
 
