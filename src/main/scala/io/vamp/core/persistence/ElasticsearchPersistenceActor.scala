@@ -1,8 +1,6 @@
 package io.vamp.core.persistence
 
-import akka.actor.Props
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.ActorDescription
 import io.vamp.common.http.RestClient
 import io.vamp.core.model.artifact.{Artifact, DefaultBlueprint}
 import io.vamp.core.model.reader._
@@ -12,9 +10,7 @@ import org.json4s.native.Serialization._
 import scala.concurrent.Future
 import scala.util.Failure
 
-object ElasticsearchPersistenceActor extends ActorDescription {
-
-  def props(args: Any*): Props = Props(classOf[ElasticsearchPersistenceActor], args: _*)
+object ElasticsearchPersistenceActor {
 
   lazy val index = ConfigFactory.load().getString("vamp.core.persistence.elasticsearch.index")
 
@@ -141,7 +137,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
 
   private def findHitBy(name: String, `type`: Class[_ <: Artifact]): Future[Option[Map[String, _]]] = {
     val request = RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${typeOf(`type`)}/_search", Map("from" -> 0, "size" -> 1, "query" -> ("term" -> ("name" -> name))))
-    request.recover({case f => Failure(f)}) map {
+    request.recover({ case f => Failure(f) }) map {
       case response: ElasticsearchSearchResponse => if (response.hits.total == 1) Some(response.hits.hits.head) else None
       case other =>
         log.error(s"unexpected: ${other.toString}")

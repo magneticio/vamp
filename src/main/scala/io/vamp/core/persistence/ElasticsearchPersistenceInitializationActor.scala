@@ -1,17 +1,11 @@
 package io.vamp.core.persistence
 
-import akka.actor.Props
-import io.vamp.common.akka.ActorDescription
 import io.vamp.core.persistence.notification.PersistenceNotificationProvider
 import io.vamp.core.pulse.PulseActor
 import io.vamp.core.pulse.elasticsearch.ElasticsearchInitializationActor
 
 import scala.io.Source
 
-
-object ElasticsearchPersistenceInitializationActor extends ActorDescription {
-  def props(args: Any*): Props = Props[ElasticsearchPersistenceInitializationActor]
-}
 
 class ElasticsearchPersistenceInitializationActor extends ElasticsearchInitializationActor with PersistenceNotificationProvider {
 

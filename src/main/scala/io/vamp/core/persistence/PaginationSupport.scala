@@ -35,7 +35,7 @@ trait ArtifactPaginationSupport extends PaginationSupport {
   this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider =>
 
   def allArtifacts[T <: Artifact : ClassTag](implicit timeout: Timeout): Future[List[T]] = allPages[T]((page: Int, perPage: Int) => {
-    IoC.actorFor(PersistenceActor) ? PersistenceActor.All(classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]], page, perPage) map {
+    IoC.actorFor[PersistenceActor] ? PersistenceActor.All(classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]], page, perPage) map {
       case envelope: OffsetResponseEnvelope[_] => envelope.asInstanceOf[OffsetResponseEnvelope[T]]
       case other => throwException(PersistenceOperationFailure(other))
     }
@@ -46,7 +46,7 @@ trait EventPaginationSupport extends PaginationSupport {
   this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider =>
 
   def allEvents(eventQuery: EventQuery)(implicit timeout: Timeout): Future[List[Event]] = allPages[Event]((page: Int, perPage: Int) => {
-    IoC.actorFor(PulseActor) ? PulseActor.Query(EventRequestEnvelope(eventQuery, page, perPage)) map {
+    IoC.actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, page, perPage)) map {
       case envelope: OffsetResponseEnvelope[_] => envelope.asInstanceOf[OffsetResponseEnvelope[Event]]
       case other => throwException(PersistenceOperationFailure(other))
     }
