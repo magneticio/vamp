@@ -1,5 +1,6 @@
 package io.vamp.common.http
 
+import akka.actor.Actor
 import akka.pattern.{after, ask}
 import akka.util.Timeout
 import io.vamp.common.akka._
@@ -43,14 +44,14 @@ trait InfoRetrieval {
 
   def componentInfoTimeout: Timeout
 
-  def retrieve(actorDescriptions: List[ActorDescription]): Future[Map[ActorDescription, Any]] = {
-    val futures: Map[ActorDescription, Future[Any]] = actorDescriptions.map(actorDescription => actorDescription -> IoC.actorFor(actorDescription) ? InfoRequest).toMap
+  def retrieve(actors: List[Class[Actor]]): Future[Map[Class[Actor], Any]] = {
+    val futures: Map[Class[Actor], Future[Any]] = actors.map(actor => actor -> IoC.actorFor[actor.type] ? InfoRequest).toMap
 
     Future.firstCompletedOf(List(Future.sequence(futures.values.toList.map(_.recover { case x => Failure(x) })), after(componentInfoTimeout.duration, using = actorSystem.scheduler) {
       Future.successful(new TimeoutException("Component timeout."))
     })) map { _ =>
-      futures.map { case (actorDescription, future) =>
-        actorDescription -> (if (future.isCompleted) future.value.map {
+      futures.map { case (actor, future) =>
+        actor -> (if (future.isCompleted) future.value.map {
           case Success(data) => data
           case _ => noData
         } else noData)

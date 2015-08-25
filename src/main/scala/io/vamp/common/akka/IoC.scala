@@ -1,35 +1,40 @@
 package io.vamp.common.akka
 
 import akka.actor._
+import io.vamp.common.text.Text
 
 import scala.collection.mutable
+import scala.reflect._
 
 object IoC {
 
-  private val aliases: mutable.Map[String, ActorDescription] = mutable.Map()
+  private val aliases: mutable.Map[Class[_], Class[_]] = mutable.Map()
 
-  private val actorRefs: mutable.Map[String, ActorRef] = mutable.Map()
+  private val actorRefs: mutable.Map[Class[_], ActorRef] = mutable.Map()
 
-  def alias(from: ActorDescription) = aliases.getOrElse(from.name, from)
 
-  def alias(from: ActorDescription, to: ActorDescription) = aliases.put(from.name, to)
+  def alias[FROM: ClassTag] = aliases.getOrElse(classTag[FROM].runtimeClass, classTag[FROM].runtimeClass)
 
-  def createActor(actorDescription: ActorDescription, args: Any*)(implicit mailbox: String = "akka.actor.default-mailbox", actorSystem: ActorSystem): ActorRef = {
+  def alias[FROM: ClassTag, TO: ClassTag] = aliases.put(classTag[FROM].runtimeClass, classTag[TO].runtimeClass)
 
-    val description = alias(actorDescription)
-    val actorRef = actorSystem.actorOf(description.props(args: _*).withMailbox(mailbox), description.name)
 
-    actorRefs.put(description.name, actorRef)
+  def createActor(props: Props)(implicit actorSystem: ActorSystem): ActorRef = {
+
+    val actorRef = actorSystem.actorOf(props, Text.toSnakeCase(props.clazz.getSimpleName))
+
+    actorRefs.put(props.clazz, actorRef)
+
+    aliases.foreach {
+      case (from, to) if to == props.clazz => actorRefs.put(from, actorRef)
+      case _ =>
+    }
+
     actorRef
   }
 
-  def actorFor(actorDescription: ActorDescription)(implicit actorSystem: ActorSystem): ActorRef = {
-
-    val description = alias(actorDescription)
-
-    actorRefs.get(description.name) match {
-      case Some(actorRef) => actorRef
-      case _ => throw new RuntimeException(s"No actor reference for: ${actorDescription.name}")
-    }
+  def actorFor[T: ClassTag](implicit actorSystem: ActorSystem): ActorRef = actorRefs.get(alias[T]) match {
+    case Some(actorRef) => actorRef
+    case _ => throw new RuntimeException(s"No actor reference for: ${classTag[T].runtimeClass}")
   }
 }
+
