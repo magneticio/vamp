@@ -18,6 +18,7 @@ import io.vamp.core.operation.notification.{DeploymentServiceError, InternalServ
 import io.vamp.core.persistence.{ArtifactPaginationSupport, PersistenceActor}
 import io.vamp.core.router_driver._
 
+import scala.concurrent.Future
 import scala.language.postfixOps
 
 object DeploymentSynchronizationSchedulerActor extends ActorDescription {
@@ -71,14 +72,14 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
     case SynchronizeAll =>
       implicit val timeout = PersistenceActor.timeout
-      allArtifacts(classOf[Deployment]) map synchronize
+      allArtifacts[Deployment] map synchronize
 
     case Synchronize(deployment) => synchronize(deployment :: Nil)
 
     case _ =>
   }
 
-  private def synchronize(deployments: List[Deployment]): Unit = {
+  private def synchronize(deployments: List[Deployment]): Future[_] = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
     actorFor(RouterDriverActor) ? RouterDriverActor.All map {
       case error: NotificationErrorException => log.error("Synchronisation not possible")

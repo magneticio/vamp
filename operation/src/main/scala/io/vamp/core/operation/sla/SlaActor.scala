@@ -47,7 +47,7 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
   def receive: Receive = {
     case SlaProcessAll =>
       implicit val timeout = PersistenceActor.timeout
-      allArtifacts(classOf[Deployment]) map check
+      allArtifacts[Deployment] map check
   }
 
   override def info(notification: Notification): Unit = {

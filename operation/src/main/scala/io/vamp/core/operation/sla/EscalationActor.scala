@@ -65,7 +65,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
   def receive: Receive = {
     case EscalationProcessAll(from, to) =>
       implicit val timeout = PersistenceActor.timeout
-      allArtifacts(classOf[Deployment]) map (check(_, from, to))
+      allArtifacts[Deployment] map (check(_, from, to))
   }
 
   private def check(deployments: List[Deployment], from: OffsetDateTime, to: OffsetDateTime) = {

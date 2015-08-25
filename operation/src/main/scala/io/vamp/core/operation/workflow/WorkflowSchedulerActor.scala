@@ -56,7 +56,7 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
 
   private def start: (Unit => Unit) = quartzStart andThen { _ =>
     implicit val timeout = PersistenceActor.timeout
-    allArtifacts(classOf[ScheduledWorkflow]) map {
+    allArtifacts[ScheduledWorkflow] map {
       case scheduledWorkflows: List[_] =>
         scheduledWorkflows.asInstanceOf[List[ScheduledWorkflow]].foreach(scheduledWorkflow => self ! Schedule(scheduledWorkflow))
       case any => reportException(InternalServerError(any))

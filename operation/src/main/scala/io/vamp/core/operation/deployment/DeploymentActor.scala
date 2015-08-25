@@ -183,7 +183,7 @@ trait DeploymentValidator {
   def validateEndpoints: (Deployment => Future[Deployment]) = { (deployment: Deployment) =>
     // Availability check.
     implicit val timeout = PersistenceActor.timeout
-    allArtifacts(classOf[Deployment]) map {
+    allArtifacts[Deployment] map {
       case deployments =>
         val ports = deployments.filterNot(_.name == deployment.name).flatMap { d =>
           d.endpoints.map(_.number -> d)
