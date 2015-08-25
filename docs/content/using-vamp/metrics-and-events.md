@@ -59,7 +59,22 @@ Using the tags schema and timestamps, you can do some powerful queries. Either u
 > **Note:** the default page size for a set or returned metrics is 30. From Vamp 0.7.8 onwards, we support pagination.
 
 
-### Example 1: response time for a cluster
+### Example 1: get all metrics
+
+This query just gets ALL metrics up till now, taking into regard the pagination.
+
+`POST /api/v1/events/get`
+
+```json
+{
+  "tags": ["metrics"],
+    "timestamp" : {
+      "lte" : "now"
+    }
+}
+```
+
+### Example 2: response time for a cluster
 
 This query gets the most recent response time metrics for the "frontend" cluster in the "d9b42796-d8f6-431b-9230-9d316defaf6d" deployment. 
 
@@ -67,9 +82,9 @@ This query gets the most recent response time metrics for the "frontend" cluster
 
 ```json
 {
-  "tags": ["routes:d9b42796-d8f6-431b-9230-9d316defaf6d_frontend_8080","metrics:rtime","route"]
+  "tags": ["routes:d9b42796-d8f6-431b-9230-9d316defaf6d_frontend_8080","metrics:rtime","route"],
     "timestamp" : {
-      "gte" : "2015-06-03T08:00:00.987Z"
+      "lte" : "now"
     }
 }
 ```
@@ -105,7 +120,7 @@ This query gets the most recent response time metrics for the "frontend" cluster
 ]    
 ```
 
-### Example 2: current sessions for a service
+### Example 3: current sessions for a service
 
 Another example is getting the current sessions for a specific service, in this case the `monarch_front:0.2` service that is part of the `214615ec-d5e4-473e-a98e-8aa4998b16f4` deployment and lives in the `frontend` cluster.
 
@@ -113,7 +128,7 @@ Another example is getting the current sessions for a specific service, in this 
 
 ```json
 {
-  "tags": ["routes:214615ec-d5e4-473e-a98e-8aa4998b16f4_frontend_8080","metrics:scur","services:monarch_front:0.2","service"]
+  "tags": ["routes:214615ec-d5e4-473e-a98e-8aa4998b16f4_frontend_8080","metrics:scur","services:monarch_front:0.2","service"],
     "timestamp" : {
       "lte" : "now"
     }
@@ -123,7 +138,7 @@ Another example is getting the current sessions for a specific service, in this 
 **Notice** we made the search more specific by specifying the "services" and then "service:<SERVICE NAME>" tag.
 Also, we are using relative timestamps: anything later or equal (lte) than "now".
 
-### Example 3: all known metrics for a service
+### Example 4: all known metrics for a service
 
 This example gives you all the metrics we have for a specific service, in this case the same service as in example 2. In this way you can get a quick "health snapshot" of service, server, cluster or deployment.
 
@@ -131,7 +146,7 @@ This example gives you all the metrics we have for a specific service, in this c
 
 ```json
 {
-  "tags": ["routes:214615ec-d5e4-473e-a98e-8aa4998b16f4_frontend_8080","metrics","services:monarch_front:0.2","service"]
+  "tags": ["routes:214615ec-d5e4-473e-a98e-8aa4998b16f4_frontend_8080","metrics","services:monarch_front:0.2","service"],
     "timestamp" : {
       "lte" : "now"
     }
