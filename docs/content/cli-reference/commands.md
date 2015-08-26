@@ -217,7 +217,7 @@ vamp merge --blueprint my_existing_blueprint -- file add_this_blueprint.yaml
 
 Removes artifact
 
-**Usage:** `vamp remove blueprint|breed|deployment|escalation|filter|routing|scale|sla NAME` 
+**Usage:** `vamp remove blueprint|breed|escalation|filter|routing|scale|sla NAME` 
 
 ### Example
 ```bash
