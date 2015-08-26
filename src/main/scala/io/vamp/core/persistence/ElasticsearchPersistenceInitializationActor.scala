@@ -6,7 +6,6 @@ import io.vamp.core.pulse.elasticsearch.ElasticsearchInitializationActor
 
 import scala.io.Source
 
-
 class ElasticsearchPersistenceInitializationActor extends ElasticsearchInitializationActor with PersistenceNotificationProvider {
 
   import ElasticsearchPersistenceActor._
@@ -17,6 +16,6 @@ class ElasticsearchPersistenceInitializationActor extends ElasticsearchInitializ
 
   lazy val templates = {
     def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"elasticsearch/$name.json")).mkString.replace("$NAME", index)
-    List("template").map(template => s"$index-$template" -> load(template)).toMap
+    List("template").map(template ⇒ s"$index-$template" -> load(template)).toMap
   }
 }

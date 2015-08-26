@@ -13,7 +13,6 @@ import scala.concurrent.duration.FiniteDuration
  */
 object TestData {
 
-
   val envVar1 = EnvironmentVariable(name = "JAVA_HOME", alias = Some("JAVAHOME"), value = Some("/opt/java/bin"))
   val envVar1Updated = EnvironmentVariable(name = "JAVA_HOME", alias = Some("JAVA_HOME"), value = Some("/usr/lib/java/bin"))
   val envVar2 = EnvironmentVariable(name = "HI_MEM", alias = None, value = Some("64K"))
@@ -226,7 +225,6 @@ object TestData {
     endpoints = List(myEndpointPort5, myEndpointPort6),
     environmentVariables = List(myParameter5, myParameter6, myParameter7)
   )
-
 
   val deployment2 = Deployment(
     name = "deployment-2",

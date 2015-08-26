@@ -2,7 +2,7 @@ package io.vamp.core.persistence
 
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
+import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.vitals.InfoRequest
@@ -59,58 +59,58 @@ trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with 
 
   def receive = {
 
-    case Start => start()
+    case Start    ⇒ start()
 
-    case Shutdown => shutdown()
+    case Shutdown ⇒ shutdown()
 
-    case InfoRequest => reply {
+    case InfoRequest ⇒ reply {
       info() map {
-        case map: Map[_, _] => map.asInstanceOf[Map[Any, Any]] ++ Map("archive" -> true)
-        case other => other
+        case map: Map[_, _] ⇒ map.asInstanceOf[Map[Any, Any]] ++ Map("archive" -> true)
+        case other          ⇒ other
       }
     }
 
-    case All(ofType, page, perPage, expandRef, onlyRef) => try {
+    case All(ofType, page, perPage, expandRef, onlyRef) ⇒ try {
       val artifacts = all(ofType, page, perPage)
       sender() ! ((expandRef, onlyRef) match {
-        case (true, false) => artifacts.copy(response = artifacts.response.map(expandReferences))
-        case (false, true) => artifacts.copy(response = artifacts.response.map(onlyReferences))
-        case _ => artifacts
+        case (true, false) ⇒ artifacts.copy(response = artifacts.response.map(expandReferences))
+        case (false, true) ⇒ artifacts.copy(response = artifacts.response.map(onlyReferences))
+        case _             ⇒ artifacts
       })
     } catch {
-      case e: Throwable => sender() ! failure(e)
+      case e: Throwable ⇒ sender() ! failure(e)
     }
 
-    case Create(artifact, source, ignoreIfExists) => try {
+    case Create(artifact, source, ignoreIfExists) ⇒ try {
       sender() ! archiveCreate(create(artifact, ignoreIfExists), source)
     } catch {
-      case e: Throwable => sender() ! failure(e)
+      case e: Throwable ⇒ sender() ! failure(e)
     }
 
-    case Read(name, ofType, expandRef, onlyRef) => try {
+    case Read(name, ofType, expandRef, onlyRef) ⇒ try {
       val artifact = read(name, ofType)
       sender() ! ((expandRef, onlyRef) match {
-        case (true, false) => expandReferences(artifact)
-        case (false, true) => onlyReferences(artifact)
-        case _ => artifact
+        case (true, false) ⇒ expandReferences(artifact)
+        case (false, true) ⇒ onlyReferences(artifact)
+        case _             ⇒ artifact
       })
     } catch {
-      case e: Throwable => sender() ! failure(e)
+      case e: Throwable ⇒ sender() ! failure(e)
     }
 
-    case Update(artifact, source, create) => try {
+    case Update(artifact, source, create) ⇒ try {
       sender() ! archiveUpdate(update(artifact, create), source)
     } catch {
-      case e: Throwable => sender() ! failure(e)
+      case e: Throwable ⇒ sender() ! failure(e)
     }
 
-    case Delete(name, ofType) => try {
+    case Delete(name, ofType) ⇒ try {
       sender() ! archiveDelete(delete(name, ofType))
     } catch {
-      case e: Throwable => sender() ! failure(e)
+      case e: Throwable ⇒ sender() ! failure(e)
     }
 
-    case any => unsupported(UnsupportedPersistenceRequest(any))
+    case any ⇒ unsupported(UnsupportedPersistenceRequest(any))
   }
 
   protected def start() = {

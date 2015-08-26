@@ -3,7 +3,7 @@ package io.vamp.core.persistence.slick.components
 import java.time.OffsetDateTime
 
 import io.strongtyped.active.slick.Profile
-import io.vamp.core.persistence.slick.extension.{VampTableQueries, VampTables}
+import io.vamp.core.persistence.slick.extension.{ VampTableQueries, VampTables }
 import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
 import io.vamp.core.persistence.slick.model._
 
@@ -11,21 +11,21 @@ import scala.language.implicitConversions
 import scala.slick.util.Logging
 
 trait SchemaDeployment extends Logging with SchemaBreed {
-  this: VampTables with VampTableQueries with Profile =>
+  this: VampTables with VampTableQueries with Profile ⇒
 
   import Implicits._
   import jdbcDriver.simple._
 
-  val DeploymentServers = DeployableNameEntityTableQuery[DeploymentServerModel, DeploymentServerTable](tag => new DeploymentServerTable(tag))
-  val DeploymentServices = DeployableNameEntityTableQuery[DeploymentServiceModel, DeploymentServiceTable](tag => new DeploymentServiceTable(tag))
-  val DeploymentClusters = DeployableNameEntityTableQuery[DeploymentClusterModel, DeploymentClusterTable](tag => new DeploymentClusterTable(tag))
-  val ServerPorts = EntityTableQuery[ServerPortModel, ServerPortTable](tag => new ServerPortTable(tag))
-  val DeploymentServiceDependencies = EntityTableQuery[DeploymentServiceDependencyModel, DeploymentServiceDependencyTable](tag => new DeploymentServiceDependencyTable(tag))
-  val ClusterRoutes = EntityTableQuery[ClusterRouteModel, ClusterRouteTable](tag => new ClusterRouteTable(tag))
-  val DeploymentHosts = NameableEntityTableQuery[HostModel, HostTable](tag => new HostTable(tag))
+  val DeploymentServers = DeployableNameEntityTableQuery[DeploymentServerModel, DeploymentServerTable](tag ⇒ new DeploymentServerTable(tag))
+  val DeploymentServices = DeployableNameEntityTableQuery[DeploymentServiceModel, DeploymentServiceTable](tag ⇒ new DeploymentServiceTable(tag))
+  val DeploymentClusters = DeployableNameEntityTableQuery[DeploymentClusterModel, DeploymentClusterTable](tag ⇒ new DeploymentClusterTable(tag))
+  val ServerPorts = EntityTableQuery[ServerPortModel, ServerPortTable](tag ⇒ new ServerPortTable(tag))
+  val DeploymentServiceDependencies = EntityTableQuery[DeploymentServiceDependencyModel, DeploymentServiceDependencyTable](tag ⇒ new DeploymentServiceDependencyTable(tag))
+  val ClusterRoutes = EntityTableQuery[ClusterRouteModel, ClusterRouteTable](tag ⇒ new ClusterRouteTable(tag))
+  val DeploymentHosts = NameableEntityTableQuery[HostModel, HostTable](tag ⇒ new HostTable(tag))
 
   class DeploymentServerTable(tag: Tag) extends DeployableEntityTable[DeploymentServerModel](tag, "deployment_servers") {
-    def * = (deploymentId, serviceId, id.?, name, host, deployed) <>(DeploymentServerModel.tupled, DeploymentServerModel.unapply)
+    def * = (deploymentId, serviceId, id.?, name, host, deployed) <> (DeploymentServerModel.tupled, DeploymentServerModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -47,7 +47,7 @@ trait SchemaDeployment extends Logging with SchemaBreed {
   }
 
   class DeploymentServiceTable(tag: Tag) extends DeployableEntityTable[DeploymentServiceModel](tag, "deployment_services") {
-    def * = (deploymentId, clusterId, id.?, name, breedId, scaleId, routingId, deploymentStateType, deploymentTime, dialects, message) <>(DeploymentServiceModel.tupled, DeploymentServiceModel.unapply)
+    def * = (deploymentId, clusterId, id.?, name, breedId, scaleId, routingId, deploymentStateType, deploymentTime, dialects, message) <> (DeploymentServiceModel.tupled, DeploymentServiceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -85,7 +85,7 @@ trait SchemaDeployment extends Logging with SchemaBreed {
   }
 
   class DeploymentClusterTable(tag: Tag) extends DeployableEntityTable[DeploymentClusterModel](tag, "deployment_clusters") {
-    def * = (deploymentId, id.?, name, slaReferenceId, dialects) <>(DeploymentClusterModel.tupled, DeploymentClusterModel.unapply)
+    def * = (deploymentId, id.?, name, slaReferenceId, dialects) <> (DeploymentClusterModel.tupled, DeploymentClusterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -105,7 +105,7 @@ trait SchemaDeployment extends Logging with SchemaBreed {
   }
 
   class ServerPortTable(tag: Tag) extends EntityTable[ServerPortModel](tag, "server_ports") {
-    def * = (id.?, portIn, portOut, serverId) <>(ServerPortModel.tupled, ServerPortModel.unapply)
+    def * = (id.?, portIn, portOut, serverId) <> (ServerPortModel.tupled, ServerPortModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -118,9 +118,8 @@ trait SchemaDeployment extends Logging with SchemaBreed {
     def server = foreignKey("server_port_server_fk", serverId, DeploymentServers)(_.id)
   }
 
-
   class DeploymentServiceDependencyTable(tag: Tag) extends EntityTable[DeploymentServiceDependencyModel](tag, "deployment_services_dependencies") {
-    def * = (id.?, name, value, serviceId) <>(DeploymentServiceDependencyModel.tupled, DeploymentServiceDependencyModel.unapply)
+    def * = (id.?, name, value, serviceId) <> (DeploymentServiceDependencyModel.tupled, DeploymentServiceDependencyModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -134,7 +133,7 @@ trait SchemaDeployment extends Logging with SchemaBreed {
   }
 
   class ClusterRouteTable(tag: Tag) extends EntityTable[ClusterRouteModel](tag, "cluster_routes") {
-    def * = (id.?, portIn, portOut, clusterId) <>(ClusterRouteModel.tupled, ClusterRouteModel.unapply)
+    def * = (id.?, portIn, portOut, clusterId) <> (ClusterRouteModel.tupled, ClusterRouteModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -150,7 +149,7 @@ trait SchemaDeployment extends Logging with SchemaBreed {
   }
 
   class HostTable(tag: Tag) extends NameableEntityTable[HostModel](tag, "deployment_hosts") {
-    def * = (id.?, name, value, deploymentId) <>(HostModel.tupled, HostModel.unapply)
+    def * = (id.?, name, value, deploymentId) <> (HostModel.tupled, HostModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 

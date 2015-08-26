@@ -13,7 +13,7 @@ import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.Enviro
 import io.vamp.core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.vamp.core.persistence.slick.model.ParameterType.ParameterType
 import io.vamp.core.persistence.slick.model.PortParentType.PortParentType
-import io.vamp.core.persistence.slick.util.{Constants, VampPersistenceUtil}
+import io.vamp.core.persistence.slick.util.{ Constants, VampPersistenceUtil }
 
 import scala.concurrent.duration.FiniteDuration
 import scala.language.implicitConversions
@@ -54,18 +54,18 @@ object Implicits {
   )
 
   implicit def deploymentServiceState2DeploymentStateType(state: DeploymentService.State): DeploymentStateType = state match {
-    case _ : ReadyForDeployment => DeploymentStateType.ReadyForDeployment
-    case _ : Deployed => DeploymentStateType.Deployed
-    case _ : ReadyForUndeployment => DeploymentStateType.ReadyForUndeployment
-    case _ : Error => DeploymentStateType.Error
+    case _: ReadyForDeployment   ⇒ DeploymentStateType.ReadyForDeployment
+    case _: Deployed             ⇒ DeploymentStateType.Deployed
+    case _: ReadyForUndeployment ⇒ DeploymentStateType.ReadyForUndeployment
+    case _: Error                ⇒ DeploymentStateType.Error
   }
 
   implicit def deploymentService2deploymentState(deploymentService: DeploymentServiceModel): State =
     deploymentService.deploymentState match {
-      case DeploymentStateType.ReadyForDeployment => ReadyForDeployment(startedAt = deploymentService.deploymentTime)
-      case DeploymentStateType.Deployed => Deployed(startedAt = deploymentService.deploymentTime)
-      case DeploymentStateType.ReadyForUndeployment => ReadyForUndeployment(startedAt = deploymentService.deploymentTime)
-      case DeploymentStateType.Error => Error(startedAt = deploymentService.deploymentTime, notification = NotificationMessageNotRestored(deploymentService.message.getOrElse("")))
+      case DeploymentStateType.ReadyForDeployment   ⇒ ReadyForDeployment(startedAt = deploymentService.deploymentTime)
+      case DeploymentStateType.Deployed             ⇒ Deployed(startedAt = deploymentService.deploymentTime)
+      case DeploymentStateType.ReadyForUndeployment ⇒ ReadyForUndeployment(startedAt = deploymentService.deploymentTime)
+      case DeploymentStateType.Error                ⇒ Error(startedAt = deploymentService.deploymentTime, notification = NotificationMessageNotRestored(deploymentService.message.getOrElse("")))
     }
 
   val parameterTypeMap = Map(
@@ -102,29 +102,29 @@ object Implicits {
     DefaultBlueprintModel(deploymentId = a.deploymentId, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def genericEscalation2Model(a: DeploymentGenericEscalation): GenericEscalationModel = a.artifact match {
-    case artifact: GenericEscalation =>
+    case artifact: GenericEscalation ⇒
       GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-    case artifact: ScaleInstancesEscalation =>
+    case artifact: ScaleInstancesEscalation ⇒
       GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = Constants.Escalation_Scale_Instances,
         minimumInt = Some(artifact.minimum), maximumInt = Some(artifact.maximum), scaleByInt = Some(artifact.scaleBy), targetCluster = artifact.targetCluster,
         isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-    case artifact: ScaleCpuEscalation =>
+    case artifact: ScaleCpuEscalation ⇒
       GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = Constants.Escalation_Scale_Cpu,
         minimumDouble = Some(artifact.minimum), maximumDouble = Some(artifact.maximum), scaleByDouble = Some(artifact.scaleBy), targetCluster = artifact.targetCluster,
         isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-    case artifact: ScaleMemoryEscalation =>
+    case artifact: ScaleMemoryEscalation ⇒
       GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = Constants.Escalation_Scale_Memory,
         minimumDouble = Some(artifact.minimum), maximumDouble = Some(artifact.maximum), scaleByDouble = Some(artifact.scaleBy), targetCluster = artifact.targetCluster,
         isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-    case artifact: ToAllEscalation =>
+    case artifact: ToAllEscalation ⇒
       GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = Constants.Escalation_To_all, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
-    case artifact: ToOneEscalation =>
-      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = Constants.Escalation_To_One , isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
+    case artifact: ToOneEscalation ⇒
+      GenericEscalationModel(deploymentId = a.deploymentId, name = artifact.name, escalationType = Constants.Escalation_To_One, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
   }
 
   implicit def defaultFilterModel2Artifact(m: DefaultFilterModel): DefaultFilter =
@@ -143,14 +143,14 @@ object Implicits {
     DefaultScaleModel(deploymentId = a.deploymentId, cpu = a.artifact.cpu, memory = a.artifact.memory, instances = a.artifact.instances, name = a.artifact.name, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
 
   implicit def genericSla2Model(a: DeploymentGenericSla): GenericSlaModel = a.artifact match {
-    case artifact: EscalationOnlySla =>
+    case artifact: EscalationOnlySla ⇒
       GenericSlaModel(deploymentId = a.deploymentId, name = artifact.name, slaType = Constants.Sla_Escalation_Only, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
-    case artifact: ResponseTimeSlidingWindowSla =>
+    case artifact: ResponseTimeSlidingWindowSla ⇒
       GenericSlaModel(
         deploymentId = a.deploymentId, name = a.artifact.name, slaType = Constants.Sla_Response_Time_Sliding_Window,
         upper = Some(artifact.upper), lower = Some(artifact.lower), interval = Some(artifact.interval), cooldown = Some(artifact.cooldown),
         isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
-    case artifact: GenericSla =>
+    case artifact: GenericSla ⇒
       GenericSlaModel(deploymentId = a.deploymentId, name = artifact.name, slaType = artifact.`type`, isAnonymous = VampPersistenceUtil.matchesCriteriaForAnonymous(a.artifact.name))
   }
 
@@ -161,24 +161,23 @@ object Implicits {
     EnvironmentVariable(name = m.name, alias = m.alias, value = m.value, interpolated = m.interpolated)
 
   implicit def hostModel2Artifact(m: HostModel): Host =
-   Host(name = m.name, value = m.value)
+    Host(name = m.name, value = m.value)
 
-  implicit def modelConstants2Artifact(c: ConstantModel) : Constant =
+  implicit def modelConstants2Artifact(c: ConstantModel): Constant =
     Constant(name = c.name, alias = c.alias, value = c.value)
 
   implicit def portModel2Port(model: PortModel): Port =
-    Port(name = model.name, alias= model.alias, model.value)
-
+    Port(name = model.name, alias = model.alias, model.value)
 
   implicit def port2PortModel(port: Port): PortModel =
     PortModel(name = port.name, alias = port.alias, value = port.value)
 
   implicit val offsetDateTimeColumnTypeMapper = MappedColumnType.base[OffsetDateTime, String](
-  { s => s.toString }, { c => OffsetDateTime.parse(c) }
+    { s ⇒ s.toString }, { c ⇒ OffsetDateTime.parse(c) }
   )
 
   implicit val finiteDurationColumnTypeMapper = MappedColumnType.base[FiniteDuration, String](
-  { fd => s"${fd.length}~${timeUnit2String(fd.unit)}" }, { s => new FiniteDuration(length = s.split("~")(0).toLong, unit = string2TimeUnit(s.split("~")(1))) }
+    { fd ⇒ s"${fd.length}~${timeUnit2String(fd.unit)}" }, { s ⇒ new FiniteDuration(length = s.split("~")(0).toLong, unit = string2TimeUnit(s.split("~")(1))) }
   )
 
   implicit def timeUnit2String(tu: TimeUnit): String = tu.name()
