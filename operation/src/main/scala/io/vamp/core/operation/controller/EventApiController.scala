@@ -3,6 +3,7 @@ package io.vamp.core.operation.controller
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
+import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.reader._
@@ -16,8 +17,6 @@ import scala.language.{ existentials, postfixOps }
 
 trait EventApiController {
   this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
-
-  import IoC._
 
   def publish(request: String)(implicit timeout: Timeout) = {
     val event = EventReader.read(request)

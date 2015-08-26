@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit
 
 import akka.actor._
 import akka.pattern.ask
+import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.core.model.artifact._
@@ -21,9 +22,7 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 
 class SlaSchedulerActor extends SchedulerActor with OperationNotificationProvider {
-
   def tick() = IoC.actorFor[SlaActor] ! SlaProcessAll
-
 }
 
 object SlaActor {
@@ -33,8 +32,6 @@ object SlaActor {
 }
 
 class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginationSupport with CommonSupportForActors with OperationNotificationProvider {
-
-  import IoC._
 
   def receive: Receive = {
     case SlaProcessAll ⇒
@@ -100,8 +97,6 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
 
 trait SlaPulse extends DefaultRouterDriverNameMatcher {
   this: CommonSupportForActors ⇒
-
-  import IoC._
 
   implicit val timeout = PulseActor.timeout
 

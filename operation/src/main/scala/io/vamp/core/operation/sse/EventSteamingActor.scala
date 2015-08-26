@@ -1,7 +1,8 @@
 package io.vamp.core.operation.sse
 
 import akka.actor.ActorRef
-import io.vamp.common.akka.{ CommonSupportForActors, IoC }
+import io.vamp.common.akka.CommonSupportForActors
+import io.vamp.common.akka.IoC._
 import io.vamp.common.http.SseDirectives.SseMessage
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.core.model.event.Event
@@ -22,8 +23,6 @@ object EventSteamingActor {
 }
 
 class EventSteamingActor extends CommonSupportForActors with OperationNotificationProvider {
-
-  import IoC._
 
   private val percolator = "stream://"
 

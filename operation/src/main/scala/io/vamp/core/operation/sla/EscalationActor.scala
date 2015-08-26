@@ -3,6 +3,7 @@ package io.vamp.core.operation.sla
 import java.time.OffsetDateTime
 
 import akka.actor._
+import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.core.model.artifact.DeploymentService.ReadyForDeployment
 import io.vamp.core.model.artifact._
@@ -18,8 +19,6 @@ import scala.concurrent.duration.FiniteDuration
 import scala.language.postfixOps
 
 class EscalationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
-
-  import IoC._
 
   private var windowStart: Option[OffsetDateTime] = None
 
@@ -49,8 +48,6 @@ object EscalationActor {
 }
 
 class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupport with CommonSupportForActors with OperationNotificationProvider {
-
-  import IoC._
 
   def tags = Set("escalation")
 

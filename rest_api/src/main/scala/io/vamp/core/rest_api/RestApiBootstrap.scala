@@ -1,6 +1,6 @@
 package io.vamp.core.rest_api
 
-import akka.actor.{ ActorSystem, Props }
+import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
@@ -15,7 +15,7 @@ object RestApiBootstrap extends Bootstrap {
     val interface = config.getString("interface")
     val port = config.getInt("port")
 
-    val server = IoC.createActor(Props(classOf[HttpServerActor]))
+    val server = IoC.createActor[HttpServerActor]
 
     implicit val timeout = HttpServerActor.timeout
 

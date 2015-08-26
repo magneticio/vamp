@@ -4,6 +4,7 @@ import java.util.UUID
 
 import akka.pattern.ask
 import akka.util.Timeout
+import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.dictionary.DictionaryActor
@@ -225,8 +226,6 @@ trait DeploymentOperation {
 trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver {
   this: DeploymentValidator with ArtifactSupport with ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
 
-  import IoC._
-
   def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintEndpoints
 
   def resolveProperties = resolveHosts andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
@@ -441,8 +440,6 @@ trait DeploymentSlicer extends DeploymentOperation {
 
 trait DeploymentUpdate {
   this: DeploymentValidator with ActorSystemProvider ⇒
-
-  import IoC._
 
   private implicit val timeout = PersistenceActor.timeout
 

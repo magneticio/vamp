@@ -6,6 +6,7 @@ import java.time.temporal.ChronoUnit
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.container_driver.{ ContainerDriverActor, ContainerServer, ContainerService }
@@ -34,8 +35,6 @@ object DeploymentSynchronizationActor {
 }
 
 class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
-
-  import IoC._
 
   private object Processed {
 

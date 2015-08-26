@@ -16,21 +16,21 @@ object OperationBootstrap extends Bootstrap {
 
   def run(implicit actorSystem: ActorSystem) = {
 
-    IoC.createActor(Props(classOf[DeploymentActor]))
+    IoC.createActor[DeploymentActor]
 
     IoC.createActor(Props(classOf[DeploymentSynchronizationActor]).withMailbox("vamp.core.operation.synchronization.mailbox"))
-    IoC.createActor(Props(classOf[DeploymentSynchronizationSchedulerActor])) ! SchedulerActor.Period(ConfigFactory.load().getInt("vamp.core.operation.synchronization.period") seconds)
+    IoC.createActor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(ConfigFactory.load().getInt("vamp.core.operation.synchronization.period") seconds)
 
-    IoC.createActor(Props(classOf[SlaActor]))
-    IoC.createActor(Props(classOf[SlaSchedulerActor])) ! SchedulerActor.Period(ConfigFactory.load().getInt("vamp.core.operation.sla.period") seconds)
+    IoC.createActor[SlaActor]
+    IoC.createActor[SlaSchedulerActor] ! SchedulerActor.Period(ConfigFactory.load().getInt("vamp.core.operation.sla.period") seconds)
 
-    IoC.createActor(Props(classOf[EscalationActor]))
-    IoC.createActor(Props(classOf[EscalationSchedulerActor])) ! SchedulerActor.Period(ConfigFactory.load().getInt("vamp.core.operation.escalation.period") seconds)
+    IoC.createActor[EscalationActor]
+    IoC.createActor[EscalationSchedulerActor] ! SchedulerActor.Period(ConfigFactory.load().getInt("vamp.core.operation.escalation.period") seconds)
 
-    if (WorkflowConfiguration.enabled) IoC.createActor(Props(classOf[WorkflowSchedulerActor])) ! Start
+    if (WorkflowConfiguration.enabled) IoC.createActor[WorkflowSchedulerActor] ! Start
 
-    IoC.createActor(Props(classOf[SseConsumerActor])) ! Start
-    IoC.createActor(Props(classOf[EventSteamingActor])) ! Start
+    IoC.createActor[SseConsumerActor] ! Start
+    IoC.createActor[EventSteamingActor] ! Start
   }
 
   override def shutdown(implicit actorSystem: ActorSystem) = {
