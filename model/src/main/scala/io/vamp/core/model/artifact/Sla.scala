@@ -14,7 +14,6 @@ case class EscalationOnlySla(name: String, escalations: List[Escalation]) extend
   def `type` = "escalation_only"
 }
 
-
 trait SlidingWindowSla[T] extends Sla {
   def upper: T
 
@@ -27,13 +26,11 @@ trait SlidingWindowSla[T] extends Sla {
 
 case class ResponseTimeSlidingWindowSla(name: String, upper: FiniteDuration, lower: FiniteDuration, interval: FiniteDuration, cooldown: FiniteDuration, escalations: List[Escalation]) extends SlidingWindowSla[FiniteDuration]
 
-
 trait Escalation extends Artifact
 
 case class EscalationReference(name: String) extends Reference with Escalation
 
 case class GenericEscalation(name: String, `type`: String, parameters: Map[String, Any]) extends Escalation with Type
-
 
 trait GroupEscalation extends Escalation with Type {
   def escalations: List[Escalation]
@@ -46,7 +43,6 @@ case class ToAllEscalation(name: String, escalations: List[Escalation]) extends 
 case class ToOneEscalation(name: String, escalations: List[Escalation]) extends GroupEscalation {
   def `type` = "to_one"
 }
-
 
 trait ScaleEscalation[T] extends Escalation with Type {
   def minimum: T
@@ -69,5 +65,4 @@ case class ScaleCpuEscalation(name: String, minimum: Double, maximum: Double, sc
 case class ScaleMemoryEscalation(name: String, minimum: Double, maximum: Double, scaleBy: Double, targetCluster: Option[String]) extends ScaleEscalation[Double] {
   def `type` = "scale_memory"
 }
-
 

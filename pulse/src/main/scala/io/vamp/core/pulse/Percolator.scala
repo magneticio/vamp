@@ -1,10 +1,9 @@
 package io.vamp.core.pulse
 
-import akka.actor.{Actor, ActorLogging, ActorRef}
+import akka.actor.{ Actor, ActorLogging, ActorRef }
 import io.vamp.core.model.event.Event
 
 import scala.collection.mutable
-
 
 object Percolator {
 
@@ -15,7 +14,7 @@ object Percolator {
 }
 
 trait Percolator {
-  this: Actor with ActorLogging =>
+  this: Actor with ActorLogging ⇒
 
   case class PercolatorEntry(tags: Set[String], actor: ActorRef, message: Any)
 
@@ -33,12 +32,13 @@ trait Percolator {
       log.info(s"Percolator successfully removed for '$name'.")
   }
 
-  def percolate: (Event => Event) = { (event: Event) =>
-    percolators.foreach { case (name, percolator) =>
-      if (percolator.tags.forall(event.tags.contains)) {
-        if (logMatch) log.debug(s"Percolate match for '$name'.")
-        percolator.actor ! (percolator.message -> event)
-      }
+  def percolate: (Event ⇒ Event) = { (event: Event) ⇒
+    percolators.foreach {
+      case (name, percolator) ⇒
+        if (percolator.tags.forall(event.tags.contains)) {
+          if (logMatch) log.debug(s"Percolate match for '$name'.")
+          percolator.actor ! (percolator.message -> event)
+        }
     }
     event
   }

@@ -3,14 +3,12 @@ package io.vamp.core.container_driver.docker.wrapper.methods
 import io.vamp.core.container_driver.docker.wrapper.Create.Response
 import io.vamp.core.container_driver.docker.wrapper.json.RequestBody
 import io.vamp.core.container_driver.docker.wrapper.model._
-import io.vamp.core.container_driver.docker.wrapper.{Dialect, Docker, Requests, model}
+import io.vamp.core.container_driver.docker.wrapper.{ Dialect, Docker, Requests, model }
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization._
 
-
 trait Containers extends Util {
-  self: Requests =>
-
+  self: Requests ⇒
 
   object containers {
     private[this] def base = host / "containers"
@@ -24,7 +22,7 @@ trait Containers extends Util {
 
       def config(cfg: ContainerConfig) = copy(_config = cfg)
 
-      def withConfig(f: ContainerConfig => ContainerConfig) = config(f(_config))
+      def withConfig(f: ContainerConfig ⇒ ContainerConfig) = config(f(_config))
 
       def image(img: String) = withConfig(_.copy(image = img))
 
@@ -57,7 +55,7 @@ trait Containers extends Util {
 
         def config(cfg: HostConfig) = copy(_config = cfg)
 
-        def withConfig(f: HostConfig => HostConfig) = config(f(_config))
+        def withConfig(f: HostConfig ⇒ HostConfig) = config(f(_config))
 
         def publishAllPorts(pub: Boolean) =
           withConfig(_.copy(publishAllPorts = pub))
@@ -87,7 +85,6 @@ trait Containers extends Util {
           )
         )(DefaultFormats)
       }
-
 
       case class Kill() extends Docker.Completion[Unit] {
 

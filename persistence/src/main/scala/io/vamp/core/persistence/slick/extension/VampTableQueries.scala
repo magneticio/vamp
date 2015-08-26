@@ -1,22 +1,21 @@
 package io.vamp.core.persistence.slick.extension
 
-import io.strongtyped.active.slick.exceptions.{NoRowsAffectedException, RowNotFoundException}
+import io.strongtyped.active.slick.exceptions.{ NoRowsAffectedException, RowNotFoundException }
 import io.strongtyped.active.slick.models.Identifiable
-import io.strongtyped.active.slick.{Profile, TableQueries, Tables}
+import io.strongtyped.active.slick.{ Profile, TableQueries, Tables }
 
 import scala.language.implicitConversions
-import scala.util.{Failure, Success, Try}
-
+import scala.util.{ Failure, Success, Try }
 
 trait VampTableQueries extends TableQueries with VampTables {
-  this: Profile with Tables =>
+  this: Profile with Tables ⇒
 
   import jdbcDriver.simple._
 
-  class NameableEntityTableQuery[M <: Nameable[M], T <: NameableEntityTable[M]](cons: Tag => T)(implicit ev1: BaseColumnType[M#Id])
-    extends EntityTableQuery[M, T](cons) {
+  class NameableEntityTableQuery[M <: Nameable[M], T <: NameableEntityTable[M]](cons: Tag ⇒ T)(implicit ev1: BaseColumnType[M#Id])
+      extends EntityTableQuery[M, T](cons) {
 
-    def defaultSort = this.sortBy(m => m.id.asc)
+    def defaultSort = this.sortBy(m ⇒ m.id.asc)
 
     override def fetchAll(implicit sess: Session): List[M] = defaultSort.list
 
@@ -29,15 +28,15 @@ trait VampTableQueries extends TableQueries with VampTables {
         mustAffectOneSingleRow {
           filterByName(name).delete
         }.recoverWith {
-          case NoRowsAffectedException => Failure(RowNotFoundException(name))
+          case NoRowsAffectedException ⇒ Failure(RowNotFoundException(name))
         }
       }
     }
 
     def tryFindByName(name: String)(implicit sess: Session): Try[M] = {
       findOptionByName(name) match {
-        case Some(model) => Success(model)
-        case None => Failure(RowNotFoundException(name))
+        case Some(model) ⇒ Success(model)
+        case None        ⇒ Failure(RowNotFoundException(name))
       }
     }
 
@@ -51,14 +50,14 @@ trait VampTableQueries extends TableQueries with VampTables {
   }
 
   object NameableEntityTableQuery {
-    def apply[M <: Nameable[M] with Identifiable[M], T <: NameableEntityTable[M]](cons: Tag => T)(implicit ev1: BaseColumnType[M#Id]) =
+    def apply[M <: Nameable[M] with Identifiable[M], T <: NameableEntityTable[M]](cons: Tag ⇒ T)(implicit ev1: BaseColumnType[M#Id]) =
       new NameableEntityTableQuery[M, T](cons)
   }
 
-  class DeployableNameEntityTableQuery[M <: Nameable[M] with NamedDeployable[M], T <: DeployableEntityTable[M]](cons: Tag => T)(implicit ev1: BaseColumnType[M#Id])
-    extends EntityTableQuery[M, T](cons) {
+  class DeployableNameEntityTableQuery[M <: Nameable[M] with NamedDeployable[M], T <: DeployableEntityTable[M]](cons: Tag ⇒ T)(implicit ev1: BaseColumnType[M#Id])
+      extends EntityTableQuery[M, T](cons) {
 
-    protected def defaultSort = this.sortBy(m => m.id.asc)
+    protected def defaultSort = this.sortBy(m ⇒ m.id.asc)
 
     protected def defaultFilter = defaultSort.filter(_.deploymentId.getOrElse(0) === 0)
 
@@ -66,7 +65,7 @@ trait VampTableQueries extends TableQueries with VampTables {
 
     def fetchAllFromDeployment(deploymentId: Option[Int])(implicit sess: Session): List[M] = defaultSort.list
 
-    def filterByName(name: String, deploymentId: Option[Int])(implicit sess: Session) = filter(attrib => attrib.name === name) filter (attrib => attrib.deploymentId.getOrElse(0) === deploymentId.getOrElse(0))
+    def filterByName(name: String, deploymentId: Option[Int])(implicit sess: Session) = filter(attrib ⇒ attrib.name === name) filter (attrib ⇒ attrib.deploymentId.getOrElse(0) === deploymentId.getOrElse(0))
 
     def deleteByName(name: String, deploymentId: Option[Int])(implicit sess: Session): Unit = tryDeleteByName(name, deploymentId)
 
@@ -75,15 +74,15 @@ trait VampTableQueries extends TableQueries with VampTables {
         mustAffectOneSingleRow {
           filterByName(name, deploymentId).delete
         }.recoverWith {
-          case NoRowsAffectedException => Failure(RowNotFoundException(name))
+          case NoRowsAffectedException ⇒ Failure(RowNotFoundException(name))
         }
       }
     }
 
     def tryFindByName(name: String, deploymentId: Option[Int])(implicit sess: Session): Try[M] = {
       findOptionByName(name, deploymentId) match {
-        case Some(model) => Success(model)
-        case None => Failure(RowNotFoundException(name))
+        case Some(model) ⇒ Success(model)
+        case None        ⇒ Failure(RowNotFoundException(name))
       }
     }
 
@@ -97,14 +96,14 @@ trait VampTableQueries extends TableQueries with VampTables {
   }
 
   object DeployableNameEntityTableQuery {
-    def apply[M <: Nameable[M] with NamedDeployable[M], T <: DeployableEntityTable[M]](cons: Tag => T)(implicit ev1: BaseColumnType[M#Id]) =
+    def apply[M <: Nameable[M] with NamedDeployable[M], T <: DeployableEntityTable[M]](cons: Tag ⇒ T)(implicit ev1: BaseColumnType[M#Id]) =
       new DeployableNameEntityTableQuery[M, T](cons)
   }
 
-  class AnonymousNameableEntityTableQuery[M <: AnonymousDeployable[M], T <: AnonymousNameableEntityTable[M]](cons: Tag => T)(implicit ev1: BaseColumnType[M#Id])
-    extends DeployableNameEntityTableQuery[M, T](cons) {
+  class AnonymousNameableEntityTableQuery[M <: AnonymousDeployable[M], T <: AnonymousNameableEntityTable[M]](cons: Tag ⇒ T)(implicit ev1: BaseColumnType[M#Id])
+      extends DeployableNameEntityTableQuery[M, T](cons) {
 
-    protected override def defaultFilter = defaultSort.filter(m => m.isAnonymous === false && m.deploymentId.getOrElse(0) === 0)
+    protected override def defaultFilter = defaultSort.filter(m ⇒ m.isAnonymous === false && m.deploymentId.getOrElse(0) === 0)
 
     // Remap the 'fetch list' methods to exclude the anonymous rows
     override def fetchAll(implicit sess: Session): List[M] = defaultFilter.list
@@ -129,7 +128,7 @@ trait VampTableQueries extends TableQueries with VampTables {
   }
 
   object AnonymousNameableEntityTableQuery {
-    def apply[M <: AnonymousDeployable[M] with NamedDeployable[M], T <: AnonymousNameableEntityTable[M]](cons: Tag => T)(implicit ev1: BaseColumnType[M#Id]) =
+    def apply[M <: AnonymousDeployable[M] with NamedDeployable[M], T <: AnonymousNameableEntityTable[M]](cons: Tag ⇒ T)(implicit ev1: BaseColumnType[M#Id]) =
       new AnonymousNameableEntityTableQuery[M, T](cons)
   }
 

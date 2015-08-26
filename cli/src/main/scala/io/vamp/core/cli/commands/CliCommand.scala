@@ -42,7 +42,7 @@ case class InspectCommand() extends CliCommand {
     """.stripMargin
   override val additionalParams = "[--as_blueprint][--json]"
   override val parameters = jsonOutput +
-                            """
+    """
                               |  --as_blueprint       Returns a blueprint (only for inspect deployment) [Optional]
                             """.stripMargin
   override val commandType = CommandType.Inspect
@@ -130,7 +130,7 @@ case class GenerateCommand() extends CliCommand {
                             """.stripMargin
   override val requiresName = false
   override val commandType = CommandType.Generate
-  override val allowedArtifacts = List("breed", "blueprint", "escalation-cpu", "escalation-instance", "escalation-memory", "filter", "routing","scale", "sla-response-time-sliding-window")
+  override val allowedArtifacts = List("breed", "blueprint", "escalation-cpu", "escalation-instance", "escalation-memory", "filter", "routing", "scale", "sla-response-time-sliding-window")
   override val requiresArtifact = true
   override val requiresHostConnection: Boolean = false
 }

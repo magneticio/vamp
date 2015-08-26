@@ -1,24 +1,24 @@
 package io.vamp.core.router_driver
 
-import akka.actor.{ActorSystem, Props}
-import akka.testkit.{ImplicitSender, TestKit}
+import akka.actor.{ ActorSystem, Props }
+import akka.testkit.{ ImplicitSender, TestKit }
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, DeploymentService, Port}
-import io.vamp.core.router_driver.notification.{RouterResponseError, UnsupportedRouterDriverRequest}
-import org.scalatest.concurrent.{Futures, ScalaFutures}
-import org.scalatest.{Ignore, BeforeAndAfterEach, Matchers, WordSpecLike}
+import io.vamp.core.model.artifact.{ Deployment, DeploymentCluster, DeploymentService, Port }
+import io.vamp.core.router_driver.notification.{ RouterResponseError, UnsupportedRouterDriverRequest }
+import org.scalatest.concurrent.{ Futures, ScalaFutures }
+import org.scalatest.{ Ignore, BeforeAndAfterEach, Matchers, WordSpecLike }
 
 import scala.concurrent.Future
 
 @Ignore
 class RouterDriverActorSpec extends TestKit(ActorSystem("RouterDriverActor")) with ImplicitSender with WordSpecLike with Matchers with Futures with ScalaFutures with BeforeAndAfterEach {
 
-  val services = List(RouteService((service: DeploymentService) => {
+  val services = List(RouteService((service: DeploymentService) ⇒ {
     service.breed.name == "foo"
   }, 100, List(Server("name", "host", 123)), Nil))
-  val clusterRoutes = List(ClusterRoute({ (x, y, z) => true }, 1243, services))
-  val endpointRoutes: List[EndpointRoute] = List(EndpointRoute({ (a, b) => true }, 23323, services))
+  val clusterRoutes = List(ClusterRoute({ (x, y, z) ⇒ true }, 1243, services))
+  val endpointRoutes: List[EndpointRoute] = List(EndpointRoute({ (a, b) ⇒ true }, 23323, services))
   val deploymentRoutes = DeploymentRoutes(clusterRoutes, endpointRoutes)
   val exception = new scala.IllegalArgumentException("wrong")
 
@@ -112,6 +112,4 @@ class RouterDriverActorSpec extends TestKit(ActorSystem("RouterDriverActor")) wi
     }
   }
 }
-
-
 

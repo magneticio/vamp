@@ -1,7 +1,7 @@
 package io.vamp.core.persistence.slick.components
 
 import io.strongtyped.active.slick.Profile
-import io.vamp.core.persistence.slick.extension.{VampTableQueries, VampTables}
+import io.vamp.core.persistence.slick.extension.{ VampTableQueries, VampTables }
 import io.vamp.core.persistence.slick.model.ConstantParentType.ConstantParentType
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.vamp.core.persistence.slick.model.ParameterParentType.ParameterParentType
@@ -14,31 +14,31 @@ import scala.language.implicitConversions
 import scala.slick.util.Logging
 
 trait SchemaBreed extends Logging with VampSchema {
-  this: VampTables with VampTableQueries with Profile =>
+  this: VampTables with VampTableQueries with Profile ⇒
 
   import Implicits._
   import jdbcDriver.simple._
 
-  val SlaReferences = DeployableNameEntityTableQuery[SlaReferenceModel, SlaReferenceTable](tag => new SlaReferenceTable(tag))
-  val GenericSlas = AnonymousNameableEntityTableQuery[GenericSlaModel, GenericSlaTable](tag => new GenericSlaTable(tag))
-  val EscalationReferences = DeployableNameEntityTableQuery[EscalationReferenceModel, EscalationReferenceTable](tag => new EscalationReferenceTable(tag))
-  val GenericEscalations = AnonymousNameableEntityTableQuery[GenericEscalationModel, GenericEscalationTable](tag => new GenericEscalationTable(tag))
-  val ScaleReferences = DeployableNameEntityTableQuery[ScaleReferenceModel, ScaleReferenceTable](tag => new ScaleReferenceTable(tag))
-  val DefaultScales = AnonymousNameableEntityTableQuery[DefaultScaleModel, DefaultScaleTable](tag => new DefaultScaleTable(tag))
-  val RoutingReferences = DeployableNameEntityTableQuery[RoutingReferenceModel, RoutingReferenceTable](tag => new RoutingReferenceTable(tag))
-  val DefaultRoutings = AnonymousNameableEntityTableQuery[DefaultRoutingModel, DefaultRoutingTable](tag => new DefaultRoutingTable(tag))
-  val FilterReferences = DeployableNameEntityTableQuery[FilterReferenceModel, FilterReferenceTable](tag => new FilterReferenceTable(tag))
-  val DefaultFilters = AnonymousNameableEntityTableQuery[DefaultFilterModel, DefaultFilterTable](tag => new DefaultFilterTable(tag))
-  val BreedReferences = DeployableNameEntityTableQuery[BreedReferenceModel, BreedReferenceTable](tag => new BreedReferenceTable(tag))
-  val DefaultBreeds = AnonymousNameableEntityTableQuery[DefaultBreedModel, DefaultBreedTable](tag => new DefaultBreedTable(tag))
-  val EnvironmentVariables = DeployableNameEntityTableQuery[EnvironmentVariableModel, EnvironmentVariableTable](tag => new EnvironmentVariableTable(tag))
-  val Ports = NameableEntityTableQuery[PortModel, PortTable](tag => new PortTable(tag))
-  val Dependencies = DeployableNameEntityTableQuery[DependencyModel, DependencyTable](tag => new DependencyTable(tag))
-  val Parameters = DeployableNameEntityTableQuery[ParameterModel, ParameterTable](tag => new ParameterTable(tag))
-  val ModelConstants = NameableEntityTableQuery[ConstantModel, ModelConstantTable](tag => new ModelConstantTable(tag))
+  val SlaReferences = DeployableNameEntityTableQuery[SlaReferenceModel, SlaReferenceTable](tag ⇒ new SlaReferenceTable(tag))
+  val GenericSlas = AnonymousNameableEntityTableQuery[GenericSlaModel, GenericSlaTable](tag ⇒ new GenericSlaTable(tag))
+  val EscalationReferences = DeployableNameEntityTableQuery[EscalationReferenceModel, EscalationReferenceTable](tag ⇒ new EscalationReferenceTable(tag))
+  val GenericEscalations = AnonymousNameableEntityTableQuery[GenericEscalationModel, GenericEscalationTable](tag ⇒ new GenericEscalationTable(tag))
+  val ScaleReferences = DeployableNameEntityTableQuery[ScaleReferenceModel, ScaleReferenceTable](tag ⇒ new ScaleReferenceTable(tag))
+  val DefaultScales = AnonymousNameableEntityTableQuery[DefaultScaleModel, DefaultScaleTable](tag ⇒ new DefaultScaleTable(tag))
+  val RoutingReferences = DeployableNameEntityTableQuery[RoutingReferenceModel, RoutingReferenceTable](tag ⇒ new RoutingReferenceTable(tag))
+  val DefaultRoutings = AnonymousNameableEntityTableQuery[DefaultRoutingModel, DefaultRoutingTable](tag ⇒ new DefaultRoutingTable(tag))
+  val FilterReferences = DeployableNameEntityTableQuery[FilterReferenceModel, FilterReferenceTable](tag ⇒ new FilterReferenceTable(tag))
+  val DefaultFilters = AnonymousNameableEntityTableQuery[DefaultFilterModel, DefaultFilterTable](tag ⇒ new DefaultFilterTable(tag))
+  val BreedReferences = DeployableNameEntityTableQuery[BreedReferenceModel, BreedReferenceTable](tag ⇒ new BreedReferenceTable(tag))
+  val DefaultBreeds = AnonymousNameableEntityTableQuery[DefaultBreedModel, DefaultBreedTable](tag ⇒ new DefaultBreedTable(tag))
+  val EnvironmentVariables = DeployableNameEntityTableQuery[EnvironmentVariableModel, EnvironmentVariableTable](tag ⇒ new EnvironmentVariableTable(tag))
+  val Ports = NameableEntityTableQuery[PortModel, PortTable](tag ⇒ new PortTable(tag))
+  val Dependencies = DeployableNameEntityTableQuery[DependencyModel, DependencyTable](tag ⇒ new DependencyTable(tag))
+  val Parameters = DeployableNameEntityTableQuery[ParameterModel, ParameterTable](tag ⇒ new ParameterTable(tag))
+  val ModelConstants = NameableEntityTableQuery[ConstantModel, ModelConstantTable](tag ⇒ new ModelConstantTable(tag))
 
   class SlaReferenceTable(tag: Tag) extends DeployableEntityTable[SlaReferenceModel](tag, "sla_references") {
-    def * = (deploymentId, name, id.?, isDefinedInline) <>(SlaReferenceModel.tupled, SlaReferenceModel.unapply)
+    def * = (deploymentId, name, id.?, isDefinedInline) <> (SlaReferenceModel.tupled, SlaReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -52,7 +52,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class GenericSlaTable(tag: Tag) extends AnonymousNameableEntityTable[GenericSlaModel](tag, "generic_slas") {
-    def * = (deploymentId, name, slaType, id.?, upper, lower, interval, cooldown, isAnonymous) <>(GenericSlaModel.tupled, GenericSlaModel.unapply)
+    def * = (deploymentId, name, slaType, id.?, upper, lower, interval, cooldown, isAnonymous) <> (GenericSlaModel.tupled, GenericSlaModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -78,7 +78,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class EscalationReferenceTable(tag: Tag) extends DeployableEntityTable[EscalationReferenceModel](tag, "escalation_references") {
-    def * = (deploymentId, name, slaId, slaRefId, parentEscalationId, id.?, isDefinedInline) <>(EscalationReferenceModel.tupled, EscalationReferenceModel.unapply)
+    def * = (deploymentId, name, slaId, slaRefId, parentEscalationId, id.?, isDefinedInline) <> (EscalationReferenceModel.tupled, EscalationReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -106,7 +106,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class GenericEscalationTable(tag: Tag) extends AnonymousNameableEntityTable[GenericEscalationModel](tag, "generic_escalations") {
-    def * = (deploymentId, name, escalationType, minimumInt, maximumInt, scaleByInt, minimumDouble, maximumDouble, scaleByDouble, targetCluster, id.?, isAnonymous) <>(GenericEscalationModel.tupled, GenericEscalationModel.unapply)
+    def * = (deploymentId, name, escalationType, minimumInt, maximumInt, scaleByInt, minimumDouble, maximumDouble, scaleByDouble, targetCluster, id.?, isAnonymous) <> (GenericEscalationModel.tupled, GenericEscalationModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -138,7 +138,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class ScaleReferenceTable(tag: Tag) extends DeployableEntityTable[ScaleReferenceModel](tag, "scale_references") {
-    def * = (deploymentId, name, id.?, isDefinedInline) <>(ScaleReferenceModel.tupled, ScaleReferenceModel.unapply)
+    def * = (deploymentId, name, id.?, isDefinedInline) <> (ScaleReferenceModel.tupled, ScaleReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -152,7 +152,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class DefaultScaleTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultScaleModel](tag, "default_scales") {
-    def * = (deploymentId, name, cpu, memory, instances, id.?, isAnonymous) <>(DefaultScaleModel.tupled, DefaultScaleModel.unapply)
+    def * = (deploymentId, name, cpu, memory, instances, id.?, isAnonymous) <> (DefaultScaleModel.tupled, DefaultScaleModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -174,7 +174,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class RoutingReferenceTable(tag: Tag) extends DeployableEntityTable[RoutingReferenceModel](tag, "routing_references") {
-    def * = (deploymentId, name, id.?, isDefinedInline) <>(RoutingReferenceModel.tupled, RoutingReferenceModel.unapply)
+    def * = (deploymentId, name, id.?, isDefinedInline) <> (RoutingReferenceModel.tupled, RoutingReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -188,7 +188,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class DefaultRoutingTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultRoutingModel](tag, "default_routings") {
-    def * = (deploymentId, name, weight, id.?, isAnonymous) <>(DefaultRoutingModel.tupled, DefaultRoutingModel.unapply)
+    def * = (deploymentId, name, weight, id.?, isAnonymous) <> (DefaultRoutingModel.tupled, DefaultRoutingModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -206,7 +206,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class FilterReferenceTable(tag: Tag) extends DeployableEntityTable[FilterReferenceModel](tag, "filter_references") {
-    def * = (deploymentId, name, id.?, routingId, isDefinedInline) <>(FilterReferenceModel.tupled, FilterReferenceModel.unapply)
+    def * = (deploymentId, name, id.?, routingId, isDefinedInline) <> (FilterReferenceModel.tupled, FilterReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -226,7 +226,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class DefaultFilterTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultFilterModel](tag, "default_filters") {
-    def * = (deploymentId, name, condition, id.?, isAnonymous) <>(DefaultFilterModel.tupled, DefaultFilterModel.unapply)
+    def * = (deploymentId, name, condition, id.?, isAnonymous) <> (DefaultFilterModel.tupled, DefaultFilterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -244,7 +244,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class BreedReferenceTable(tag: Tag) extends DeployableEntityTable[BreedReferenceModel](tag, "breed_references") {
-    def * = (deploymentId, name, id.?, isDefinedInline) <>(BreedReferenceModel.tupled, BreedReferenceModel.unapply)
+    def * = (deploymentId, name, id.?, isDefinedInline) <> (BreedReferenceModel.tupled, BreedReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -258,7 +258,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class DefaultBreedTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultBreedModel](tag, "default_breeds") {
-    def * = (deploymentId, name, deployable, id.?, isAnonymous) <>(DefaultBreedModel.tupled, DefaultBreedModel.unapply)
+    def * = (deploymentId, name, deployable, id.?, isAnonymous) <> (DefaultBreedModel.tupled, DefaultBreedModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -276,7 +276,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class EnvironmentVariableTable(tag: Tag) extends DeployableEntityTable[EnvironmentVariableModel](tag, "environment_variables") {
-    def * = (deploymentId, name, alias, value, interpolated, id.?, parentId, parentType) <>(EnvironmentVariableModel.tupled, EnvironmentVariableModel.unapply)
+    def * = (deploymentId, name, alias, value, interpolated, id.?, parentId, parentType) <> (EnvironmentVariableModel.tupled, EnvironmentVariableModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -300,7 +300,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class PortTable(tag: Tag) extends NameableEntityTable[PortModel](tag, "ports") {
-    def * = (name, alias, value, id.?, parentId, parentType) <>(PortModel.tupled, PortModel.unapply)
+    def * = (name, alias, value, id.?, parentId, parentType) <> (PortModel.tupled, PortModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -318,7 +318,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class ModelConstantTable(tag: Tag) extends NameableEntityTable[ConstantModel](tag, "model_constants") {
-    def * = (name, alias, value, id.?, parentId, parentType) <>(ConstantModel.tupled, ConstantModel.unapply)
+    def * = (name, alias, value, id.?, parentId, parentType) <> (ConstantModel.tupled, ConstantModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -337,7 +337,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class DependencyTable(tag: Tag) extends DeployableEntityTable[DependencyModel](tag, "breed_dependencies") {
-    def * = (deploymentId, name, breedName, id.?, isDefinedInline, breedId) <>(DependencyModel.tupled, DependencyModel.unapply)
+    def * = (deploymentId, name, breedName, id.?, isDefinedInline, breedId) <> (DependencyModel.tupled, DependencyModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -359,7 +359,7 @@ trait SchemaBreed extends Logging with VampSchema {
   }
 
   class ParameterTable(tag: Tag) extends DeployableEntityTable[ParameterModel](tag, "parameters") {
-    def * = (deploymentId, name, stringValue, intValue, doubleValue, parameterType, id.?, parentType, parentId) <>(ParameterModel.tupled, ParameterModel.unapply)
+    def * = (deploymentId, name, stringValue, intValue, doubleValue, parameterType, id.?, parentType, parentId) <> (ParameterModel.tupled, ParameterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -383,6 +383,5 @@ trait SchemaBreed extends Logging with VampSchema {
 
     def deployment = foreignKey("parameter_deployment_fk", deploymentId, Deployments)(_.id)
   }
-
 
 }

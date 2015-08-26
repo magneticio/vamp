@@ -1,16 +1,15 @@
 package io.vamp.core.operation.workflow
 
-import java.util.{Date, Properties}
+import java.util.{ Date, Properties }
 
-import akka.actor.{Actor, ActorLogging, ActorRef}
-import io.vamp.core.model.workflow.{ScheduledWorkflow, TimeTrigger}
+import akka.actor.{ Actor, ActorLogging, ActorRef }
+import io.vamp.core.model.workflow.{ ScheduledWorkflow, TimeTrigger }
 import io.vamp.core.operation.workflow.WorkflowSchedulerActor.RunWorkflow
 import org.quartz._
 import org.quartz.impl.StdSchedulerFactory
 
-
 trait WorkflowQuartzScheduler {
-  this: Actor with ActorLogging =>
+  this: Actor with ActorLogging ⇒
 
   private lazy val scheduler = {
     val props = new Properties()
@@ -22,7 +21,7 @@ trait WorkflowQuartzScheduler {
   }
 
   def quartzSchedule(scheduledWorkflow: ScheduledWorkflow) = scheduledWorkflow.trigger match {
-    case TimeTrigger(pattern) =>
+    case TimeTrigger(pattern) ⇒
       log.info(s"Creating a new Quartz job for workflow '${scheduledWorkflow.name}'.")
       val job = {
         val data = new JobDataMap()
@@ -44,7 +43,7 @@ trait WorkflowQuartzScheduler {
 
       scheduler.scheduleJob(job, trigger)
 
-    case _ =>
+    case _ ⇒
   }
 
   def quartzUnschedule(scheduledWorkflow: ScheduledWorkflow) = {
@@ -52,9 +51,9 @@ trait WorkflowQuartzScheduler {
       log.info(s"Quartz job successfully removed for workflow '${scheduledWorkflow.name}'.")
   }
 
-  def quartzStart: (Unit => Unit) = { _ => scheduler.start() }
+  def quartzStart: (Unit ⇒ Unit) = { _ ⇒ scheduler.start() }
 
-  def quartzShutdown: (Unit => Unit) = { _ => scheduler.shutdown() }
+  def quartzShutdown: (Unit ⇒ Unit) = { _ ⇒ scheduler.shutdown() }
 }
 
 private class QuartzJob() extends Job {

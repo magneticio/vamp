@@ -3,7 +3,7 @@ package io.vamp.core.cli.backend
 import java.util
 
 import io.vamp.common.http.RestClient.Method
-import io.vamp.common.http.{RestApiContentTypes, RestApiMarshaller, RestClient}
+import io.vamp.common.http.{ RestApiContentTypes, RestApiMarshaller, RestClient }
 import io.vamp.core.cli.commandline.CommandLineBasics
 import io.vamp.core.cli.commands.IoUtils
 import io.vamp.core.model.artifact._
@@ -17,9 +17,9 @@ import org.yaml.snakeyaml.nodes.Tag
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.language.{implicitConversions, postfixOps}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ Await, Future }
+import scala.language.{ implicitConversions, postfixOps }
+import scala.util.{ Failure, Success }
 
 object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiContentTypes with CommandLineBasics with IoUtils {
 
@@ -30,99 +30,99 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
 
   def createBreed(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Breed] = {
     sendAndWaitYaml(s"POST $vampHost/api/v1/breeds", Some(definition)) match {
-      case Some(breed) => Some(BreedReader.read(breed))
-      case _ => terminateWithError("Breed not created")
+      case Some(breed) ⇒ Some(BreedReader.read(breed))
+      case _           ⇒ terminateWithError("Breed not created")
     }
   }
 
   def createBlueprint(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Blueprint] = {
     sendAndWaitYaml(s"POST $vampHost/api/v1/blueprints", Some(definition)) match {
-      case Some(blueprint) => Some(BlueprintReader.read(blueprint))
-      case _ => terminateWithError("Blueprint not created")
+      case Some(blueprint) ⇒ Some(BlueprintReader.read(blueprint))
+      case _               ⇒ terminateWithError("Blueprint not created")
     }
   }
 
   def createEscalation(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Escalation] = {
     sendAndWaitYaml(s"POST $vampHost/api/v1/escalations", Some(definition)) match {
-      case Some(escalation) => Some(EscalationReader.read(escalation))
-      case _ => terminateWithError("Escalation not created")
+      case Some(escalation) ⇒ Some(EscalationReader.read(escalation))
+      case _                ⇒ terminateWithError("Escalation not created")
     }
   }
 
   def createFilter(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Filter] = {
     sendAndWaitYaml(s"POST $vampHost/api/v1/filters", Some(definition)) match {
-      case Some(filter) => Some(FilterReader.read(filter))
-      case _ => terminateWithError("Filter not created")
+      case Some(filter) ⇒ Some(FilterReader.read(filter))
+      case _            ⇒ terminateWithError("Filter not created")
     }
   }
 
   def createRouting(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Routing] = {
     sendAndWaitYaml(s"POST $vampHost/api/v1/routings", Some(definition)) match {
-      case Some(routing) => Some(RoutingReader.read(routing))
-      case _ => terminateWithError("Routing not created")
+      case Some(routing) ⇒ Some(RoutingReader.read(routing))
+      case _             ⇒ terminateWithError("Routing not created")
     }
   }
 
   def createScale(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Scale] = {
     sendAndWaitYaml(s"POST $vampHost/api/v1/scales", Some(definition)) match {
-      case Some(scale) => Some(ScaleReader.read(scale))
-      case _ => terminateWithError("Scale not created")
+      case Some(scale) ⇒ Some(ScaleReader.read(scale))
+      case _           ⇒ terminateWithError("Scale not created")
     }
   }
 
   def createSla(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Sla] = {
     sendAndWaitYaml(s"POST $vampHost/api/v1/slas", Some(definition)) match {
-      case Some(sla) => Some(SlaReader.read(sla))
-      case _ => terminateWithError("Sla not created")
+      case Some(sla) ⇒ Some(SlaReader.read(sla))
+      case _         ⇒ terminateWithError("Sla not created")
     }
   }
 
   def updateBreed(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Breed] = {
     sendAndWaitYaml(s"PUT $vampHost/api/v1/breeds/$name", Some(definition)) match {
-      case Some(breed) => Some(BreedReader.read(breed))
-      case _ => terminateWithError("Breed not updated")
+      case Some(breed) ⇒ Some(BreedReader.read(breed))
+      case _           ⇒ terminateWithError("Breed not updated")
     }
   }
 
   def updateBlueprint(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Blueprint] = {
     sendAndWaitYaml(s"PUT $vampHost/api/v1/blueprints/$name", Some(definition)) match {
-      case Some(blueprint) => Some(BlueprintReader.read(blueprint))
-      case _ => terminateWithError("Blueprint not updated")
+      case Some(blueprint) ⇒ Some(BlueprintReader.read(blueprint))
+      case _               ⇒ terminateWithError("Blueprint not updated")
     }
   }
 
   def updateEscalation(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Escalation] = {
     sendAndWaitYaml(s"PUT $vampHost/api/v1/escalations/$name", Some(definition)) match {
-      case Some(escalation) => Some(EscalationReader.read(escalation))
-      case _ => terminateWithError("Escalation not updated")
+      case Some(escalation) ⇒ Some(EscalationReader.read(escalation))
+      case _                ⇒ terminateWithError("Escalation not updated")
     }
   }
 
   def updateFilter(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Filter] = {
     sendAndWaitYaml(s"PUT $vampHost/api/v1/filters/$name", Some(definition)) match {
-      case Some(filter) => Some(FilterReader.read(filter))
-      case _ => terminateWithError("Filter not updated")
+      case Some(filter) ⇒ Some(FilterReader.read(filter))
+      case _            ⇒ terminateWithError("Filter not updated")
     }
   }
 
   def updateRouting(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Routing] = {
     sendAndWaitYaml(s"PUT $vampHost/api/v1/routings/$name", Some(definition)) match {
-      case Some(routing) => Some(RoutingReader.read(routing))
-      case _ => terminateWithError("Routing not updated")
+      case Some(routing) ⇒ Some(RoutingReader.read(routing))
+      case _             ⇒ terminateWithError("Routing not updated")
     }
   }
 
   def updateScale(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Scale] = {
     sendAndWaitYaml(s"PUT $vampHost/api/v1/scales/$name", Some(definition)) match {
-      case Some(scale) => Some(ScaleReader.read(scale))
-      case _ => terminateWithError("Scale not updated")
+      case Some(scale) ⇒ Some(ScaleReader.read(scale))
+      case _           ⇒ terminateWithError("Scale not updated")
     }
   }
 
   def updateSla(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Sla] = {
     sendAndWaitYaml(s"PUT $vampHost/api/v1/slas/$name", Some(definition)) match {
-      case Some(sla) => Some(SlaReader.read(sla))
-      case _ => terminateWithError("Sla not updated")
+      case Some(sla) ⇒ Some(SlaReader.read(sla))
+      case _         ⇒ terminateWithError("Sla not updated")
     }
   }
 
@@ -147,61 +147,60 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
   def deleteSla(name: String)(implicit vampHost: String) =
     sendAndWaitYaml(s"DELETE $vampHost/api/v1/slas/$name", None)
 
-
   def undeploy(name: String)(implicit vampHost: String): Option[String] =
     getDeployment(name) match {
-      case Some(existingDeployment) => sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some(artifactToYaml(existingDeployment)))
-      case None => None
+      case Some(existingDeployment) ⇒ sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some(artifactToYaml(existingDeployment)))
+      case None                     ⇒ None
     }
 
   def prettyJson(artifact: AnyRef) = Serialization.writePretty(artifact)
 
   def getBreeds(implicit vampHost: String): List[Breed] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/breeds") match {
-      case Some(breeds) => yamArrayListToList(breeds).map(a => BreedReader.read(a))
-      case None => List.empty
+      case Some(breeds) ⇒ yamArrayListToList(breeds).map(a ⇒ BreedReader.read(a))
+      case None         ⇒ List.empty
     }
 
   def getBlueprints(implicit vampHost: String): List[Blueprint] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/blueprints") match {
-      case Some(blueprints) => yamArrayListToList(blueprints).map(a => BlueprintReader.read(a))
-      case None => List.empty
+      case Some(blueprints) ⇒ yamArrayListToList(blueprints).map(a ⇒ BlueprintReader.read(a))
+      case None             ⇒ List.empty
     }
 
   def getDeployments(implicit vampHost: String): List[Deployment] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/deployments") match {
-      case Some(deployments) => yamArrayListToList(deployments).map(a => DeploymentReader.read(a))
-      case None => List.empty
+      case Some(deployments) ⇒ yamArrayListToList(deployments).map(a ⇒ DeploymentReader.read(a))
+      case None              ⇒ List.empty
     }
 
   def getEscalations(implicit vampHost: String): List[Escalation] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/escalations") match {
-      case Some(ser) => yamArrayListToList(ser).map(a => EscalationReader.read(a))
-      case None => List.empty
+      case Some(ser) ⇒ yamArrayListToList(ser).map(a ⇒ EscalationReader.read(a))
+      case None      ⇒ List.empty
     }
 
   def getFilters(implicit vampHost: String): List[Filter] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/filters") match {
-      case Some(ser) => yamArrayListToList(ser).map(a => FilterReader.read(a))
-      case None => List.empty
+      case Some(ser) ⇒ yamArrayListToList(ser).map(a ⇒ FilterReader.read(a))
+      case None      ⇒ List.empty
     }
 
   def getRoutings(implicit vampHost: String): List[Routing] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/routings") match {
-      case Some(ser) => yamArrayListToList(ser).map(a => RoutingReader.read(a))
-      case None => List.empty
+      case Some(ser) ⇒ yamArrayListToList(ser).map(a ⇒ RoutingReader.read(a))
+      case None      ⇒ List.empty
     }
 
   def getScales(implicit vampHost: String): List[Scale] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/scales") match {
-      case Some(ser) => yamArrayListToList(ser).map(a => ScaleReader.read(a))
-      case None => List.empty
+      case Some(ser) ⇒ yamArrayListToList(ser).map(a ⇒ ScaleReader.read(a))
+      case None      ⇒ List.empty
     }
 
   def getSlas(implicit vampHost: String): List[Sla] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/slas") match {
-      case Some(slas) => yamArrayListToList(slas).map(a => SlaReader.read(a))
-      case None => List.empty
+      case Some(slas) ⇒ yamArrayListToList(slas).map(a ⇒ SlaReader.read(a))
+      case None       ⇒ List.empty
     }
 
   def deploy(definition: String)(implicit vampHost: String): Option[Deployment] =
@@ -240,7 +239,7 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
 }
 
 trait RestSupport {
-  this: CommandLineBasics =>
+  this: CommandLineBasics ⇒
 
   def timeout: Duration
 
@@ -250,7 +249,7 @@ trait RestSupport {
   private def sendAndWait(request: String, body: AnyRef, headers: List[(String, String)])(implicit m: Manifest[String]): Option[String] = {
     try {
       val upper = request.toUpperCase
-      val method = Method.values.find(method => upper.startsWith(s"${method.toString} ")).getOrElse(Method.GET)
+      val method = Method.values.find(method ⇒ upper.startsWith(s"${method.toString} ")).getOrElse(Method.GET)
       val url = if (upper.startsWith(s"${method.toString} ")) request.substring(s"${method.toString} ".length) else request
 
       val futureResult: Future[String] = RestClient.http[String](method, url, body, headers)
@@ -258,32 +257,30 @@ trait RestSupport {
       // Block until response ready (nothing else to do anyway)
       Await.result(futureResult, timeout)
       futureResult.value.get match {
-        case Success(result) => Some(result)
-        case Failure(error) => terminateWithError(prettyError(error))
+        case Success(result) ⇒ Some(result)
+        case Failure(error)  ⇒ terminateWithError(prettyError(error))
       }
-    }
-    catch {
-      case e: Exception => terminateWithError(prettyError(e))
+    } catch {
+      case e: Exception ⇒ terminateWithError(prettyError(e))
     }
   }
 
-  private def prettyError(error : Throwable): String = error match {
-    case e: Exception if e.getMessage.startsWith("dispatch.StatusCode: ") =>
+  private def prettyError(error: Throwable): String = error match {
+    case e: Exception if e.getMessage.startsWith("dispatch.StatusCode: ") ⇒
       val parts = e.getMessage.split(": ")
       if (parts.length == 3) {
         parts(2) match {
-          case "404" => "404 - Not found"
-          case other => s"$other - ${parts(1)}"
+          case "404" ⇒ "404 - Not found"
+          case other ⇒ s"$other - ${parts(1)}"
         }
       } else {
         e.getMessage
       }
-    case e:  Exception => e.getMessage
+    case e: Exception ⇒ e.getMessage
   }
 
-
   protected def yamArrayListToList(ls: String): List[String] = {
-    new Yaml().load(ls).asInstanceOf[util.ArrayList[java.util.Map[String, Any]]].asScala.toList.map(a => new Yaml().dumpAs(a, Tag.MAP, FlowStyle.BLOCK))
+    new Yaml().load(ls).asInstanceOf[util.ArrayList[java.util.Map[String, Any]]].asScala.toList.map(a ⇒ new Yaml().dumpAs(a, Tag.MAP, FlowStyle.BLOCK))
   }
 
 }

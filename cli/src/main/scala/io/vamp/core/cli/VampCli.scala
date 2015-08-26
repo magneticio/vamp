@@ -1,7 +1,7 @@
 package io.vamp.core.cli
 
 import io.vamp.core.cli.commandline.Parameters
-import io.vamp.core.cli.commands.{HelpCommand, PerformCommand}
+import io.vamp.core.cli.commands.{ HelpCommand, PerformCommand }
 
 trait VampCli extends Parameters {
 
@@ -16,12 +16,10 @@ trait VampCli extends Parameters {
       terminateWithError("Missing artifact type")
     }
 
-
-    val subCmd : Option[String] = {
+    val subCmd: Option[String] = {
       if (cmd.requiresArtifact) {
-          Some(args.tail.head)
-      }
-      else {
+        Some(args.tail.head)
+      } else {
         None
       }
     }
@@ -35,6 +33,5 @@ trait VampCli extends Parameters {
     PerformCommand.doCommand(cmd, subCmd)(options = if (cmd.requiresArtifact) options else options)
     sys.exit(0)
   }
-
 
 }

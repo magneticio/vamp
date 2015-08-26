@@ -2,10 +2,10 @@ package io.vamp.core.container_driver.docker.wrapper.methods
 
 import io.vamp.core.container_driver.docker.wrapper.Pull.Output
 import io.vamp.core.container_driver.docker.wrapper.model.AuthConfig
-import io.vamp.core.container_driver.docker.wrapper.{Dialect, Docker, Requests, model}
+import io.vamp.core.container_driver.docker.wrapper.{ Dialect, Docker, Requests, model }
 
 trait Images extends Util {
-  self: Requests =>
+  self: Requests ⇒
 
   object images {
     private[this] def base = host / "images"
@@ -19,13 +19,13 @@ trait Images extends Util {
     def list = Images()
 
     case class Pull(
-                     private val _fromImage: String,
-                     private val _dialect: Map[Any, Any],
-                     private val _fromSrc: Option[String] = None,
-                     private val _repo: Option[String] = None,
-                     private val _tag: Option[String] = None,
-                     private val _registry: Option[String] = None)
-      extends Docker.Stream[Output] with Dialect {
+      private val _fromImage: String,
+      private val _dialect: Map[Any, Any],
+      private val _fromSrc: Option[String] = None,
+      private val _repo: Option[String] = None,
+      private val _tag: Option[String] = None,
+      private val _registry: Option[String] = None)
+        extends Docker.Stream[Output] with Dialect {
 
       override protected def streamer = Docker.Stream.chunk[Output]
 
@@ -47,14 +47,14 @@ trait Images extends Util {
       private def auth: Traversable[(String, String)] = {
         def header(config: AuthConfig): Traversable[(String, String)] = {
           val source = withDialect(config.parameters, _dialect)
-          if (source.exists({ case (key, value) => value.isInstanceOf[String] && value.asInstanceOf[String].nonEmpty}))
+          if (source.exists({ case (key, value) ⇒ value.isInstanceOf[String] && value.asInstanceOf[String].nonEmpty }))
             Map("X-Registry-Auth" -> config.json(source))
           else None
         }
 
         authConfig match {
-          case Some(config) => header(config)
-          case None => header(AuthConfig("", "", "", ""))
+          case Some(config) ⇒ header(config)
+          case None         ⇒ header(AuthConfig("", "", "", ""))
         }
       }
 
@@ -64,8 +64,8 @@ trait Images extends Util {
           ++ _repo.map("repo" -> _)
           ++ _tag.map("tag" -> _)
           ++ _registry.map("registry" -> _), _dialect).map {
-        case (key, value) => key -> value.toString
-      }
+          case (key, value) ⇒ key -> value.toString
+        }
     }
 
     def pull(image: String, dialect: Map[Any, Any]) = Pull(image, dialect)

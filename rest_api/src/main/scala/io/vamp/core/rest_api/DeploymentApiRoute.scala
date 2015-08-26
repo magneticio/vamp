@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
 import akka.util.Timeout
-import io.vamp.common.akka.{ActorSystemProvider, CommonSupportForActors, ExecutionContextProvider, IoC}
+import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, ExecutionContextProvider, IoC }
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact.Deployment
@@ -12,14 +12,14 @@ import io.vamp.core.model.artifact.DeploymentService.ReadyForUndeployment
 import io.vamp.core.operation.controller.DeploymentApiController
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
-import io.vamp.core.operation.sla.{EscalationActor, SlaActor}
-import io.vamp.core.persistence.{ArtifactPaginationSupport, PersistenceActor}
+import io.vamp.core.operation.sla.{ EscalationActor, SlaActor }
+import io.vamp.core.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 import spray.http.StatusCodes._
 
-import scala.language.{existentials, postfixOps}
+import scala.language.{ existentials, postfixOps }
 
 trait DeploymentApiRoute extends DeploymentApiController with DevController {
-  this: ArtifactPaginationSupport with CommonSupportForActors with RestApiBase =>
+  this: ArtifactPaginationSupport with CommonSupportForActors with RestApiBase ⇒
 
   implicit def timeout: Timeout
 
@@ -46,48 +46,48 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
   private val deploymentRoute = pathPrefix("deployments") {
     pathEndOrSingleSlash {
       get {
-        asBlueprint { asBlueprint =>
-          pageAndPerPage() { (page, perPage) =>
-            expandAndOnlyReferences { (expandReferences, onlyReferences) =>
-              onSuccess(deployments(asBlueprint, expandReferences, onlyReferences)(page, perPage)) { result =>
+        asBlueprint { asBlueprint ⇒
+          pageAndPerPage() { (page, perPage) ⇒
+            expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
+              onSuccess(deployments(asBlueprint, expandReferences, onlyReferences)(page, perPage)) { result ⇒
                 respondWith(OK, result)
               }
             }
           }
         }
       } ~ post {
-        entity(as[String]) { request =>
-          validateOnly { validateOnly =>
-            onSuccess(createDeployment(request, validateOnly)) { result =>
+        entity(as[String]) { request ⇒
+          validateOnly { validateOnly ⇒
+            onSuccess(createDeployment(request, validateOnly)) { result ⇒
               respondWith(Accepted, result)
             }
           }
         }
       }
-    } ~ path(Segment) { name: String =>
+    } ~ path(Segment) { name: String ⇒
       pathEndOrSingleSlash {
         get {
           rejectEmptyResponse {
-            asBlueprint { asBlueprint =>
-              expandAndOnlyReferences { (expandReferences, onlyReferences) =>
-                onSuccess(deployment(name, asBlueprint, expandReferences, onlyReferences)) { result =>
+            asBlueprint { asBlueprint ⇒
+              expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
+                onSuccess(deployment(name, asBlueprint, expandReferences, onlyReferences)) { result ⇒
                   respondWith(OK, result)
                 }
               }
             }
           }
         } ~ put {
-          entity(as[String]) { request =>
-            validateOnly { validateOnly =>
-              onSuccess(updateDeployment(name, request, validateOnly)) { result =>
+          entity(as[String]) { request ⇒
+            validateOnly { validateOnly ⇒
+              onSuccess(updateDeployment(name, request, validateOnly)) { result ⇒
                 respondWith(Accepted, result)
               }
             }
           }
         } ~ delete {
-          entity(as[String]) { request =>
-            validateOnly { validateOnly =>
-              onSuccess(deleteDeployment(name, request, validateOnly)) { result =>
+          entity(as[String]) { request ⇒
+            validateOnly { validateOnly ⇒
+              onSuccess(deleteDeployment(name, request, validateOnly)) { result ⇒
                 respondWith(Accepted, result)
               }
             }
@@ -98,20 +98,20 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
   }
 
   private val slaRoute =
-    path("deployments" / Segment / "clusters" / Segment / "sla") { (deployment: String, cluster: String) =>
+    path("deployments" / Segment / "clusters" / Segment / "sla") { (deployment: String, cluster: String) ⇒
       pathEndOrSingleSlash {
         get {
-          onSuccess(sla(deployment, cluster)) { result =>
+          onSuccess(sla(deployment, cluster)) { result ⇒
             respondWith(OK, result)
           }
         } ~ (post | put) {
-          entity(as[String]) { request =>
-            onSuccess(slaUpdate(deployment, cluster, request)) { result =>
+          entity(as[String]) { request ⇒
+            onSuccess(slaUpdate(deployment, cluster, request)) { result ⇒
               respondWith(Accepted, result)
             }
           }
         } ~ delete {
-          onSuccess(slaDelete(deployment, cluster)) { result =>
+          onSuccess(slaDelete(deployment, cluster)) { result ⇒
             respondWith(NoContent, None)
           }
         }
@@ -119,15 +119,15 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
     }
 
   private val scaleRoute =
-    path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "scale") { (deployment: String, cluster: String, breed: String) =>
+    path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "scale") { (deployment: String, cluster: String, breed: String) ⇒
       pathEndOrSingleSlash {
         get {
-          onSuccess(scale(deployment, cluster, breed)) { result =>
+          onSuccess(scale(deployment, cluster, breed)) { result ⇒
             respondWith(OK, result)
           }
         } ~ (post | put) {
-          entity(as[String]) { request =>
-            onSuccess(scaleUpdate(deployment, cluster, breed, request)) { result =>
+          entity(as[String]) { request ⇒
+            onSuccess(scaleUpdate(deployment, cluster, breed, request)) { result ⇒
               respondWith(Accepted, result)
             }
           }
@@ -136,15 +136,15 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
     }
 
   private val routingRoute =
-    path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "routing") { (deployment: String, cluster: String, breed: String) =>
+    path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "routing") { (deployment: String, cluster: String, breed: String) ⇒
       pathEndOrSingleSlash {
         get {
-          onSuccess(routing(deployment, cluster, breed)) { result =>
+          onSuccess(routing(deployment, cluster, breed)) { result ⇒
             respondWith(OK, result)
           }
         } ~ (post | put) {
-          entity(as[String]) { request =>
-            onSuccess(routingUpdate(deployment, cluster, breed, request)) { result =>
+          entity(as[String]) { request ⇒
+            onSuccess(routingUpdate(deployment, cluster, breed, request)) { result ⇒
               respondWith(OK, result)
             }
           }
@@ -156,7 +156,7 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
 }
 
 trait DevController {
-  this: ArtifactPaginationSupport with NotificationProvider with ExecutionContextProvider with ActorSystemProvider =>
+  this: ArtifactPaginationSupport with NotificationProvider with ExecutionContextProvider with ActorSystemProvider ⇒
 
   def sync(): Unit = IoC.actorFor[DeploymentSynchronizationActor] ! SynchronizeAll
 
@@ -167,9 +167,9 @@ trait DevController {
     IoC.actorFor[EscalationActor] ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }
 
-  def reset()(implicit timeout: Timeout): Unit = allArtifacts[Deployment] map { deployments =>
-    deployments.foreach { deployment =>
-      IoC.actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
+  def reset()(implicit timeout: Timeout): Unit = allArtifacts[Deployment] map { deployments ⇒
+    deployments.foreach { deployment ⇒
+      IoC.actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster ⇒ cluster.copy(services = cluster.services.map(service ⇒ service.copy(state = ReadyForUndeployment()))))))
     }
     sync()
   }

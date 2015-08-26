@@ -9,29 +9,29 @@ import io.vamp.core.model.conversion.DeploymentConversion._
 import io.vamp.core.model.reader._
 import io.vamp.core.operation.deployment.DeploymentActor
 import io.vamp.core.persistence.notification.PersistenceOperationFailure
-import io.vamp.core.persistence.{ArtifactResponseEnvelope, ArtifactShrinkage, PersistenceActor}
+import io.vamp.core.persistence.{ ArtifactResponseEnvelope, ArtifactShrinkage, PersistenceActor }
 
 import scala.concurrent.Future
-import scala.language.{existentials, postfixOps}
+import scala.language.{ existentials, postfixOps }
 
 trait DeploymentApiController extends ArtifactShrinkage {
-  this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider =>
+  this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
 
   import IoC._
 
   def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[ArtifactResponseEnvelope] = {
     (actorFor[PersistenceActor] ? PersistenceActor.All(classOf[Deployment], page, perPage, expandReferences, onlyReferences)) map {
-      case envelope: ArtifactResponseEnvelope => envelope.copy(response = envelope.response.map {
-        case deployment: Deployment => transform(deployment, asBlueprint, onlyReferences)
-        case any => any
+      case envelope: ArtifactResponseEnvelope ⇒ envelope.copy(response = envelope.response.map {
+        case deployment: Deployment ⇒ transform(deployment, asBlueprint, onlyReferences)
+        case any                    ⇒ any
       })
-      case other => throwException(PersistenceOperationFailure(other))
+      case other ⇒ throwException(PersistenceOperationFailure(other))
     }
   }
 
   def deployment(name: String, asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[Any] = (actorFor[PersistenceActor] ? PersistenceActor.Read(name, classOf[Deployment], expandReferences, onlyReferences)).map {
-    case Some(deployment: Deployment) => transform(deployment, asBlueprint, onlyReferences)
-    case any => any
+    case Some(deployment: Deployment) ⇒ transform(deployment, asBlueprint, onlyReferences)
+    case any                          ⇒ any
   }
 
   private def transform(deployment: Deployment, asBlueprint: Boolean, onlyRef: Boolean) = {
@@ -42,15 +42,15 @@ trait DeploymentApiController extends ArtifactShrinkage {
   }
 
   def createDeployment(request: String, validateOnly: Boolean)(implicit timeout: Timeout) = DeploymentBlueprintReader.readReferenceFromSource(request) match {
-    case blueprint: BlueprintReference => actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, request, validateOnly)
-    case blueprint: DefaultBlueprint =>
+    case blueprint: BlueprintReference ⇒ actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, request, validateOnly)
+    case blueprint: DefaultBlueprint ⇒
       if (!validateOnly) actorFor[PersistenceActor] ? PersistenceActor.Create(blueprint, Some(request), ignoreIfExists = true)
       actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, request, validateOnly)
   }
 
   def updateDeployment(name: String, request: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = DeploymentBlueprintReader.readReferenceFromSource(request) match {
-    case blueprint: BlueprintReference => actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
-    case blueprint: DefaultBlueprint =>
+    case blueprint: BlueprintReference ⇒ actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
+    case blueprint: DefaultBlueprint ⇒
       if (!validateOnly) actorFor[PersistenceActor] ? PersistenceActor.Create(blueprint, Some(request), ignoreIfExists = true)
       actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
   }
@@ -63,77 +63,77 @@ trait DeploymentApiController extends ArtifactShrinkage {
   }
 
   def sla(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
-    (actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(_.sla))
+    (actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result ⇒
+      result.asInstanceOf[Option[Deployment]].flatMap(deployment ⇒ deployment.clusters.find(_.name == clusterName).flatMap(_.sla))
     }
 
   def slaUpdate(deploymentName: String, clusterName: String, request: String)(implicit timeout: Timeout) =
     actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment]) flatMap {
-      case Some(deployment: Deployment) =>
+      case Some(deployment: Deployment) ⇒
         deployment.clusters.find(_.name == clusterName) match {
-          case None => Future(None)
-          case Some(cluster) => actorFor[DeploymentActor] ? DeploymentActor.UpdateSla(deployment, cluster, Some(SlaReader.read(request)), request)
+          case None          ⇒ Future(None)
+          case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateSla(deployment, cluster, Some(SlaReader.read(request)), request)
         }
-      case _ => Future(None)
+      case _ ⇒ Future(None)
     }
 
   def slaDelete(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
     actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment]) flatMap {
-      case Some(deployment: Deployment) =>
+      case Some(deployment: Deployment) ⇒
         deployment.clusters.find(_.name == clusterName) match {
-          case None => Future(None)
-          case Some(cluster) => actorFor[DeploymentActor] ? DeploymentActor.UpdateSla(deployment, cluster, None, "")
+          case None          ⇒ Future(None)
+          case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateSla(deployment, cluster, None, "")
         }
-      case _ => Future(None)
+      case _ ⇒ Future(None)
     }
 
   def scale(deploymentName: String, clusterName: String, breedName: String)(implicit timeout: Timeout) =
-    (actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(cluster => cluster.services.find(_.breed.name == breedName)).flatMap(service => Some(service.scale)))
+    (actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result ⇒
+      result.asInstanceOf[Option[Deployment]].flatMap(deployment ⇒ deployment.clusters.find(_.name == clusterName).flatMap(cluster ⇒ cluster.services.find(_.breed.name == breedName)).flatMap(service ⇒ Some(service.scale)))
     }
 
   def scaleUpdate(deploymentName: String, clusterName: String, breedName: String, request: String)(implicit timeout: Timeout) =
     actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment]) flatMap {
-      case Some(deployment: Deployment) =>
+      case Some(deployment: Deployment) ⇒
         deployment.clusters.find(_.name == clusterName) match {
-          case None => Future(None)
-          case Some(cluster) => cluster.services.find(_.breed.name == breedName) match {
-            case None => Future(None)
-            case Some(service) =>
+          case None ⇒ Future(None)
+          case Some(cluster) ⇒ cluster.services.find(_.breed.name == breedName) match {
+            case None ⇒ Future(None)
+            case Some(service) ⇒
               (ScaleReader.read(request) match {
-                case s: ScaleReference => actorFor[PersistenceActor] ? PersistenceActor.Read(s.name, classOf[Scale])
-                case s: DefaultScale => Future(s)
+                case s: ScaleReference ⇒ actorFor[PersistenceActor] ? PersistenceActor.Read(s.name, classOf[Scale])
+                case s: DefaultScale   ⇒ Future(s)
               }).map {
-                case scale: DefaultScale => actorFor[DeploymentActor] ? DeploymentActor.UpdateScale(deployment, cluster, service, scale, request)
-                case _ => Future(None)
+                case scale: DefaultScale ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateScale(deployment, cluster, service, scale, request)
+                case _                   ⇒ Future(None)
               }
           }
         }
-      case _ => Future(None)
+      case _ ⇒ Future(None)
     }
 
   def routing(deploymentName: String, clusterName: String, breedName: String)(implicit timeout: Timeout) =
-    (actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result =>
-      result.asInstanceOf[Option[Deployment]].flatMap(deployment => deployment.clusters.find(_.name == clusterName).flatMap(cluster => cluster.services.find(_.breed.name == breedName)).flatMap(service => Some(service.routing)))
+    (actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result ⇒
+      result.asInstanceOf[Option[Deployment]].flatMap(deployment ⇒ deployment.clusters.find(_.name == clusterName).flatMap(cluster ⇒ cluster.services.find(_.breed.name == breedName)).flatMap(service ⇒ Some(service.routing)))
     }
 
   def routingUpdate(deploymentName: String, clusterName: String, breedName: String, request: String)(implicit timeout: Timeout) =
     actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment]) flatMap {
-      case Some(deployment: Deployment) =>
+      case Some(deployment: Deployment) ⇒
         deployment.clusters.find(_.name == clusterName) match {
-          case None => Future(None)
-          case Some(cluster) => cluster.services.find(_.breed.name == breedName) match {
-            case None => Future(None)
-            case Some(service) =>
+          case None ⇒ Future(None)
+          case Some(cluster) ⇒ cluster.services.find(_.breed.name == breedName) match {
+            case None ⇒ Future(None)
+            case Some(service) ⇒
               (RoutingReader.read(request) match {
-                case r: RoutingReference => actorFor[PersistenceActor] ? PersistenceActor.Read(r.name, classOf[Routing])
-                case r: DefaultRouting => Future(r)
+                case r: RoutingReference ⇒ actorFor[PersistenceActor] ? PersistenceActor.Read(r.name, classOf[Routing])
+                case r: DefaultRouting   ⇒ Future(r)
               }).map {
-                case routing: DefaultRouting => actorFor[DeploymentActor] ? DeploymentActor.UpdateRouting(deployment, cluster, service, routing, request)
-                case _ => Future(None)
+                case routing: DefaultRouting ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateRouting(deployment, cluster, service, routing, request)
+                case _                       ⇒ Future(None)
               }
           }
         }
-      case _ => Future(None)
+      case _ ⇒ Future(None)
     }
 }

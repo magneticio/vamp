@@ -19,7 +19,7 @@ object Pull {
 }
 
 sealed trait StreamRepresentation[T] {
-  def map: String => T
+  def map: String ⇒ T
 }
 
 object StreamRepresentation {
@@ -30,35 +30,35 @@ object StreamRepresentation {
 
   implicit val Nothing: StreamRepresentation[Unit] =
     new StreamRepresentation[Unit] {
-      def map = _ => ()
+      def map = _ ⇒ ()
     }
 
   implicit object PullOutputs extends StreamRepresentation[Pull.Output] {
-    def map = { str =>
+    def map = { str ⇒
       val JObject(obj) = parse(str)
 
       def progress = (for {
-        ("status", JString(message)) <- obj
-        ("id", JString(id)) <- obj
-        ("progressDetail", JObject(details)) <- obj
+        ("status", JString(message)) ← obj
+        ("id", JString(id)) ← obj
+        ("progressDetail", JObject(details)) ← obj
       } yield Pull.Progress(message, id, (for {
-          ("current", JInt(current)) <- details
-          ("total", JInt(total)) <- details
-          ("start", JInt(start)) <- details
-          ("progress", JString(bar)) <- obj
-        } yield Pull.ProgressDetail(
-            current.toLong, total.toLong, start.toLong, bar)).headOption)).headOption
+        ("current", JInt(current)) ← details
+        ("total", JInt(total)) ← details
+        ("start", JInt(start)) ← details
+        ("progress", JString(bar)) ← obj
+      } yield Pull.ProgressDetail(
+        current.toLong, total.toLong, start.toLong, bar)).headOption)).headOption
 
       def status = (for {
-        ("status", JString(msg)) <- obj
+        ("status", JString(msg)) ← obj
       } yield Pull.Status(msg)).headOption
 
       def err = (for {
-        ("error", JString(msg)) <- obj
-        ("errorDetail", JObject(detail)) <- obj
-        ("message", JString(details)) <- detail
+        ("error", JString(msg)) ← obj
+        ("errorDetail", JObject(detail)) ← obj
+        ("message", JString(details)) ← detail
       } yield Pull.Error(
-          msg, details)).headOption
+        msg, details)).headOption
 
       progress.orElse(status).orElse(err).get
     }

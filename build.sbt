@@ -1,3 +1,5 @@
+import com.typesafe.sbt.SbtScalariform._
+import scalariform.formatter.preferences._
 import sbt.Keys._
 
 organization in ThisBuild := "io.vamp"
@@ -108,9 +110,18 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
   ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
+lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.preferences.value
+  .setPreference(AlignParameters, true)
+  .setPreference(AlignSingleLineCaseStatements, true)
+  .setPreference(DoubleIndentClassDeclaration, true)
+  .setPreference(PreserveDanglingCloseParenthesis, true)
+  .setPreference(RewriteArrowSymbols, true))
+
+
 lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   description := "Bootstrap for Vamp Core",
   name:="core-bootstrap",
+  formatting,
   libraryDependencies ++= Seq(
     "org.json4s" %% "json4s-native" % json4sVersion,
     "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
@@ -128,6 +139,7 @@ val downloadUI = taskKey[Unit]("Download vamp-ui to the rest_api lib directory")
 lazy val rest_api = project.settings(bintraySetting: _*).settings(
   description := "REST api for Vamp Core",
   name:="core-rest_api",
+  formatting,
   libraryDependencies ++=Seq(
     "io.spray" %% "spray-can" % sprayVersion,
     "io.spray" %% "spray-routing" % sprayVersion,
@@ -152,6 +164,7 @@ lazy val rest_api = project.settings(bintraySetting: _*).settings(
 lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
   name:="core-operation",
+  formatting,
   libraryDependencies ++=Seq(
     "org.quartz-scheduler" % "quartz" % quartzVersion,
     "org.glassfish.jersey.core" % "jersey-client" % jerseyVersion,
@@ -161,12 +174,14 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
 
 lazy val pulse = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
-  name:="core-pulse"
+  name:="core-pulse",
+  formatting
 ).dependsOn(router_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val router_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to Vamp Router",
   name:="core-router_driver",
+  formatting,
   libraryDependencies ++= Seq(
     "org.scala-lang.modules" %% "scala-async" % scalaAsyncVersion,
     scalaTest % "test",
@@ -177,6 +192,7 @@ lazy val router_driver = project.settings(bintraySetting: _*).settings(
 lazy val container_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to container managers",
   name:="core-container_driver",
+  formatting,
   libraryDependencies ++=Seq(
     "org.scala-lang.modules" %% "scala-async" % scalaAsyncVersion,
     "org.bouncycastle" % "bcprov-jdk16" % bcprovVersion,
@@ -187,6 +203,7 @@ lazy val container_driver = project.settings(bintraySetting: _*).settings(
 lazy val persistence = project.settings(bintraySetting: _*).settings(
   description:= "Stores Vamp artifacts",
   name:="core-persistence",
+  formatting,
   libraryDependencies ++=Seq(
     "com.h2database" % "h2" % h2Version,
     "com.typesafe.slick" %% "slick" % slickVersion,
@@ -200,6 +217,7 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
 lazy val cli = project.settings(bintraySetting: _*).settings(
   description := "Command Line Interface for Vamp",
   name:="core-cli",
+  formatting,
   libraryDependencies ++= Seq(
     "org.slf4j" % "slf4j-api" % slf4jVersion,
     "ch.qos.logback" % "logback-classic" % logbackVersion
@@ -209,12 +227,14 @@ lazy val cli = project.settings(bintraySetting: _*).settings(
 
 lazy val dictionary = project.settings(bintraySetting: _*).settings(
   description := "Dictionary for Vamp",
-  name:="core-dictionary"
+  name:="core-dictionary",
+  formatting
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val model = project.settings(bintraySetting: _*).settings(
   description := "Definitions of Vamp artifacts",
   name:="core-model",
+  formatting,
   libraryDependencies ++= Seq(
     "io.vamp" %% "common" % vampCommonVersion,
     "org.yaml" % "snakeyaml" % snakeYamlVersion,

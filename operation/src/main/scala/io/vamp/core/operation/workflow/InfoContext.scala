@@ -3,13 +3,13 @@ package io.vamp.core.operation.workflow
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider}
+import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.http.InfoMessageBase
 import io.vamp.common.vitals.JvmVitals
 import io.vamp.core.model.workflow.ScheduledWorkflow
 import io.vamp.core.operation.controller.InfoController
 
-import scala.async.Async.{async, await}
+import scala.async.Async.{ async, await }
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps

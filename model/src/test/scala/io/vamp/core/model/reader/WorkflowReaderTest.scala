@@ -1,6 +1,6 @@
 package io.vamp.core.model.reader
 
-import io.vamp.core.model.notification.{MissingPathValueError, UndefinedWorkflowTriggerError}
+import io.vamp.core.model.notification.{ MissingPathValueError, UndefinedWorkflowTriggerError }
 import io.vamp.core.model.workflow._
 import org.junit.runner.RunWith
 import org.scalatest._

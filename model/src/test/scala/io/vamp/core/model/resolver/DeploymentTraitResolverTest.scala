@@ -17,7 +17,7 @@ class DeploymentTraitResolverTest extends FlatSpec with Matchers with Deployment
 
     val filter = environmentVariables.map(_.name).toSet
 
-    resolveEnvironmentVariables(deployment(environmentVariables), Nil).filter(ev => filter.contains(ev.name)) should equal(
+    resolveEnvironmentVariables(deployment(environmentVariables), Nil).filter(ev ⇒ filter.contains(ev.name)) should equal(
       environmentVariables
     )
   }
@@ -29,7 +29,7 @@ class DeploymentTraitResolverTest extends FlatSpec with Matchers with Deployment
 
     val filter = environmentVariables.map(_.name).toSet
 
-    resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", Nil, None) :: Nil).filter(ev => filter.contains(ev.name)) should equal(
+    resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", Nil, None) :: Nil).filter(ev ⇒ filter.contains(ev.name)) should equal(
       environmentVariables
     )
   }
@@ -42,7 +42,7 @@ class DeploymentTraitResolverTest extends FlatSpec with Matchers with Deployment
 
     val filter = environmentVariables.map(_.name).toSet
 
-    resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", Nil, None) :: Nil).filter(ev => filter.contains(ev.name)) should equal(
+    resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", Nil, None) :: Nil).filter(ev ⇒ filter.contains(ev.name)) should equal(
       EnvironmentVariable("backend.environment_variables.port", None, Some(s"$$frontend.constants.const1"), interpolated = Some("9050")) ::
         EnvironmentVariable("backend.environment_variables.timeout", None, Some(s"$${backend1.constants.const2}"), interpolated = Some(s"$$backend1.host")) ::
         EnvironmentVariable("backend1.environment_variables.timeout", None, Some(s"$${frontend.constants.const1}"), interpolated = None) :: Nil
@@ -56,7 +56,7 @@ class DeploymentTraitResolverTest extends FlatSpec with Matchers with Deployment
 
     val filter = environmentVariables.map(_.name).toSet
 
-    resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", Nil, None) :: Nil).filter(ev => filter.contains(ev.name)) should equal(
+    resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", Nil, None) :: Nil).filter(ev ⇒ filter.contains(ev.name)) should equal(
       EnvironmentVariable("backend.environment_variables.url", None, Some("http://$backend1.host:$frontend.constants.const1/api/$$/$backend1.environment_variables.timeout"), interpolated = Some("http://vamp.io:9050/api/$/4000")) ::
         EnvironmentVariable("backend1.environment_variables.timeout", None, Some("4000"), interpolated = None) :: Nil
     )

@@ -5,7 +5,7 @@ import io.vamp.core.persistence.notification.NotificationMessageNotRestored
 import io.vamp.core.persistence.slick.components.Components.instance._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{ FlatSpec, Matchers }
 
 import scala.concurrent.ExecutionContext
 
@@ -132,17 +132,17 @@ class JdbcCrudTest extends FlatSpec with Matchers {
   it should "Store a deployment state error" in {
     jdbcStore.create(TestData.deployment5Deployed)
     jdbcStore.create(TestData.deployment4WithErrorService) match {
-      case storedDeployment: Deployment =>
-        for (cluster <- storedDeployment.clusters) {
-          for (service <- cluster.services) {
+      case storedDeployment: Deployment ⇒
+        for (cluster ← storedDeployment.clusters) {
+          for (service ← cluster.services) {
             service.state match {
-              case state: io.vamp.core.model.artifact.DeploymentService.Error =>
+              case state: io.vamp.core.model.artifact.DeploymentService.Error ⇒
                 state.notification.getClass shouldBe classOf[NotificationMessageNotRestored]
                 state.notification shouldBe NotificationMessageNotRestored("Problem in cluster deployment-cluster-2, with a service containing breed wp4.")
             }
           }
         }
-      case _ => fail("Deployment not created")
+      case _ ⇒ fail("Deployment not created")
     }
     jdbcStore.update(TestData.deployment4WithErrorService)
     jdbcStore.read(TestData.deployment5Deployed.name, classOf[Deployment]) shouldBe Some(TestData.deployment5Deployed)

@@ -2,7 +2,7 @@ package io.vamp.core.persistence
 
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.http.RestClient
-import io.vamp.core.model.artifact.{Artifact, DefaultBlueprint}
+import io.vamp.core.model.artifact.{ Artifact, DefaultBlueprint }
 import io.vamp.core.model.reader._
 import io.vamp.core.model.serialization.CoreSerializationFormat
 import org.json4s.native.Serialization._
@@ -43,7 +43,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
   )
 
   protected def info(): Future[Any] = RestClient.get[Any](s"$elasticsearchUrl") map {
-    case info => Map[String, Any]("type" -> "elasticsearch", "elasticsearch" -> info)
+    case info ⇒ Map[String, Any]("type" -> "elasticsearch", "elasticsearch" -> info)
   }
 
   protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
@@ -56,21 +56,21 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     log.debug(s"${getClass.getSimpleName}: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     val storeArtifact = store.create(artifact, ignoreIfExists)
     storeArtifact match {
-      case blueprint: DefaultBlueprint => blueprint.clusters.flatMap(_.services).map(_.breed).foreach(breed => create(breed, ignoreIfExists = true))
-      case _ =>
+      case blueprint: DefaultBlueprint ⇒ blueprint.clusters.flatMap(_.services).map(_.breed).foreach(breed ⇒ create(breed, ignoreIfExists = true))
+      case _                           ⇒
     }
 
     val artifacts = typeOf(storeArtifact.getClass)
 
     // asynchronously create
     findHitBy(storeArtifact.name, storeArtifact.getClass) map {
-      case None =>
+      case None ⇒
         // TODO validate response
         RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts", ElasticsearchArtifact(storeArtifact.name, write(storeArtifact)))
-      case Some(hit) =>
+      case Some(hit) ⇒
         // TODO validate response
         if (ignoreIfExists)
-          hit.get("_id").foreach(id => RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts/$id", ElasticsearchArtifact(storeArtifact.name, write(storeArtifact))))
+          hit.get("_id").foreach(id ⇒ RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts/$id", ElasticsearchArtifact(storeArtifact.name, write(storeArtifact))))
     }
 
     storeArtifact
@@ -88,13 +88,13 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
 
     // asynchronously update
     findHitBy(artifact.name, artifact.getClass) map {
-      case None => if (create) {
+      case None ⇒ if (create) {
         // TODO validate response
         RestClient.post[Any](s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}", ElasticsearchArtifact(artifact.name, write(artifact)))
       }
-      case Some(hit) =>
+      case Some(hit) ⇒
         // TODO validate response
-        hit.get("_id").foreach(id => RestClient.post[Any](s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id", ElasticsearchArtifact(artifact.name, write(artifact))))
+        hit.get("_id").foreach(id ⇒ RestClient.post[Any](s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id", ElasticsearchArtifact(artifact.name, write(artifact))))
     }
 
     artifact
@@ -106,30 +106,30 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
 
     // asynchronously delete
     findHitBy(name, `type`) map {
-      case None =>
-      case Some(hit) => hit.get("_id").foreach(id => RestClient.delete(s"$elasticsearchUrl/$index/${typeOf(`type`)}/$id"))
+      case None      ⇒
+      case Some(hit) ⇒ hit.get("_id").foreach(id ⇒ RestClient.delete(s"$elasticsearchUrl/$index/${typeOf(`type`)}/$id"))
     }
 
     artifact
   }
 
   override protected def start() = types.foreach {
-    case (group, _) =>
+    case (group, _) ⇒
       allPages[Artifact](findAllArtifactsBy(group)) map {
-        case artifacts => artifacts.foreach(artifact => store.create(artifact, ignoreIfExists = true))
+        case artifacts ⇒ artifacts.foreach(artifact ⇒ store.create(artifact, ignoreIfExists = true))
       }
   }
 
   private def findAllArtifactsBy(`type`: String)(from: Int, size: Int): Future[ArtifactResponseEnvelope] = {
     RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${`type`}/_search", Map("from" -> from, "size" -> size)) map {
-      case response: ElasticsearchSearchResponse =>
-        val list = response.hits.hits.flatMap { hit =>
-          hit.get("_source").flatMap(_.asInstanceOf[Map[String, _]].get("artifact")).flatMap { artifact =>
-            types.get(`type`).flatMap(reader => Some(reader.read(artifact.toString)))
+      case response: ElasticsearchSearchResponse ⇒
+        val list = response.hits.hits.flatMap { hit ⇒
+          hit.get("_source").flatMap(_.asInstanceOf[Map[String, _]].get("artifact")).flatMap { artifact ⇒
+            types.get(`type`).flatMap(reader ⇒ Some(reader.read(artifact.toString)))
           }
         }
         ArtifactResponseEnvelope(list, response.hits.total, from, size)
-      case other =>
+      case other ⇒
         log.debug(s"unexpected: ${other.toString}")
         ArtifactResponseEnvelope(Nil, 0L, from, size)
     }
@@ -137,9 +137,9 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
 
   private def findHitBy(name: String, `type`: Class[_ <: Artifact]): Future[Option[Map[String, _]]] = {
     val request = RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${typeOf(`type`)}/_search", Map("from" -> 0, "size" -> 1, "query" -> ("term" -> ("name" -> name))))
-    request.recover({ case f => Failure(f) }) map {
-      case response: ElasticsearchSearchResponse => if (response.hits.total == 1) Some(response.hits.hits.head) else None
-      case other =>
+    request.recover({ case f ⇒ Failure(f) }) map {
+      case response: ElasticsearchSearchResponse ⇒ if (response.hits.total == 1) Some(response.hits.hits.head) else None
+      case other ⇒
         log.error(s"unexpected: ${other.toString}")
         None
     }

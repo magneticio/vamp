@@ -1,10 +1,10 @@
 package io.vamp.core.rest_api
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ ActorSystem, Props }
 import akka.io.IO
 import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.{Bootstrap, IoC}
+import io.vamp.common.akka.{ Bootstrap, IoC }
 import spray.can.Http
 
 object RestApiBootstrap extends Bootstrap {

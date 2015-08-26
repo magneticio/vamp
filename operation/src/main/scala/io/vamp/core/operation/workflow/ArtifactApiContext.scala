@@ -1,6 +1,6 @@
 package io.vamp.core.operation.workflow
 
-import akka.actor.{ActorSystem, ActorContext}
+import akka.actor.{ ActorSystem, ActorContext }
 import io.vamp.core.model.artifact.Artifact
 import io.vamp.core.model.workflow.ScheduledWorkflow
 import io.vamp.core.operation.controller.ArtifactApiController

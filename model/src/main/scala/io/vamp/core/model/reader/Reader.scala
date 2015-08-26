@@ -1,6 +1,6 @@
 package io.vamp.core.model.reader
 
-import java.io.{File, InputStream, Reader, StringReader}
+import java.io.{ File, InputStream, Reader, StringReader }
 
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
@@ -13,7 +13,7 @@ import org.yaml.snakeyaml.error.YAMLException
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.io.Source
-import scala.language.{implicitConversions, postfixOps}
+import scala.language.{ implicitConversions, postfixOps }
 import scala.reflect._
 
 sealed trait YamlSource
@@ -44,24 +44,23 @@ trait YamlReader[T] extends ModelNotificationProvider {
   implicit def string2Path(path: String): YamlPath = path.split('/').toList
 
   def read(input: YamlSource): T = input match {
-    case ReaderSource(reader) => read(reader)
-    case StreamSource(stream) => read(Source.fromInputStream(stream).bufferedReader())
-    case StringSource(string) => read(new StringReader(string), close = true)
-    case FileSource(file) => read(Source.fromFile(file).bufferedReader(), close = true)
+    case ReaderSource(reader) ⇒ read(reader)
+    case StreamSource(stream) ⇒ read(Source.fromInputStream(stream).bufferedReader())
+    case StringSource(string) ⇒ read(new StringReader(string), close = true)
+    case FileSource(file)     ⇒ read(Source.fromFile(file).bufferedReader(), close = true)
   }
 
   private def read(reader: Reader, close: Boolean = false): T = load(reader, close) match {
-    case source: collection.Map[_, _] => read(source.asInstanceOf[YamlObject])
-    case source => throwException(UnexpectedTypeError("/", classOf[YamlObject], if (source != null) source.getClass else classOf[Object]))
+    case source: collection.Map[_, _] ⇒ read(source.asInstanceOf[YamlObject])
+    case source                       ⇒ throwException(UnexpectedTypeError("/", classOf[YamlObject], if (source != null) source.getClass else classOf[Object]))
   }
 
   protected def load(reader: Reader, close: Boolean = false): Any = try {
     convert(yaml.load(reader))
   } catch {
-    case e: NotificationErrorException => throw e
-    case e: YAMLException => throwException(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
-  }
-  finally {
+    case e: NotificationErrorException ⇒ throw e
+    case e: YAMLException              ⇒ throwException(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
+  } finally {
     if (close)
       reader.close()
   }
@@ -73,12 +72,12 @@ trait YamlReader[T] extends ModelNotificationProvider {
   }
 
   private def convert(any: Any): Any = any match {
-    case source: java.util.Map[_, _] =>
+    case source: java.util.Map[_, _] ⇒
       val map = new YamlObject()
-      source.entrySet().asScala.foreach(entry => map += entry.getKey.toString -> convert(entry.getValue))
+      source.entrySet().asScala.foreach(entry ⇒ map += entry.getKey.toString -> convert(entry.getValue))
       map
-    case source: java.util.List[_] => source.asScala.map(convert).toList
-    case source => source
+    case source: java.util.List[_] ⇒ source.asScala.map(convert).toList
+    case source                    ⇒ source
   }
 
   def read(implicit source: YamlObject): T = validate(parse(validate(expand(source))))
@@ -91,39 +90,39 @@ trait YamlReader[T] extends ModelNotificationProvider {
 
   protected def validate(any: T): T = any
 
-  protected def get[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): Option[V] = <<?[V](path)
+  protected def get[V <: Any: ClassTag](path: YamlPath)(implicit source: YamlObject): Option[V] = <<?[V](path)
 
-  protected def getOrError[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<![V](path)
+  protected def getOrError[V <: Any: ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<![V](path)
 
-  protected def <<![V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<?[V](path) match {
-    case None => throwException(MissingPathValueError(path mkString "/"))
-    case Some(v) => v
+  protected def <<![V <: Any: ClassTag](path: YamlPath)(implicit source: YamlObject): V = <<?[V](path) match {
+    case None    ⇒ throwException(MissingPathValueError(path mkString "/"))
+    case Some(v) ⇒ v
   }
 
-  protected def <<?[V <: Any : ClassTag](path: YamlPath)(implicit source: YamlObject): Option[V] = path match {
-    case last :: Nil => source.get(last) match {
-      case None => None
-      case Some(null) => None
-      case Some(value: V) => Some(value.asInstanceOf[V])
+  protected def <<?[V <: Any: ClassTag](path: YamlPath)(implicit source: YamlObject): Option[V] = path match {
+    case last :: Nil ⇒ source.get(last) match {
+      case None ⇒ None
+      case Some(null) ⇒ None
+      case Some(value: V) ⇒ Some(value.asInstanceOf[V])
       // if V == Double, conversion from Int to Double if Double is expected and Int provided.
-      case Some(value: Int) if classTag[V].runtimeClass == classOf[Double] => Some(value.toDouble.asInstanceOf[V])
+      case Some(value: Int) if classTag[V].runtimeClass == classOf[Double] ⇒ Some(value.toDouble.asInstanceOf[V])
       // if V == String
-      case Some(value) if classTag[V].runtimeClass == classOf[String] => Some(value.toString.asInstanceOf[V])
+      case Some(value) if classTag[V].runtimeClass == classOf[String] ⇒ Some(value.toString.asInstanceOf[V])
       // if V == Map
-      case Some(value: collection.Map[_, _]) if classTag[V].runtimeClass == classOf[Map[_, _]] => Some(value.asInstanceOf[V])
+      case Some(value: collection.Map[_, _]) if classTag[V].runtimeClass == classOf[Map[_, _]] ⇒ Some(value.asInstanceOf[V])
       // if V == List
-      case Some(value: List[_]) if classTag[V].runtimeClass == classOf[List[_]] => Some(value.asInstanceOf[V])
-      case Some(failure) => throwException(UnexpectedTypeError(last, classTag[V].runtimeClass, failure.getClass))
+      case Some(value: List[_]) if classTag[V].runtimeClass == classOf[List[_]] ⇒ Some(value.asInstanceOf[V])
+      case Some(failure) ⇒ throwException(UnexpectedTypeError(last, classTag[V].runtimeClass, failure.getClass))
     }
 
-    case head :: tail => source.get(head).flatMap {
-      case map: collection.Map[_, _] =>
+    case head :: tail ⇒ source.get(head).flatMap {
+      case map: collection.Map[_, _] ⇒
         implicit val source = map.asInstanceOf[YamlObject]
         <<?[V](tail)
-      case failure => throwException(UnexpectedInnerElementError(head, failure.getClass))
+      case failure ⇒ throwException(UnexpectedInnerElementError(head, failure.getClass))
     }
 
-    case Nil => None
+    case Nil ⇒ None
   }
 
   protected def remove(path: YamlPath)(implicit source: YamlObject): Option[Any] = >>(path)
@@ -143,22 +142,22 @@ trait YamlReader[T] extends ModelNotificationProvider {
     }
 
     path match {
-      case Nil => None
-      case last :: Nil => value match {
-        case None => source.remove(last)
-        case Some(v) => source.put(last, v)
+      case Nil ⇒ None
+      case last :: Nil ⇒ value match {
+        case None    ⇒ source.remove(last)
+        case Some(v) ⇒ source.put(last, v)
       }
-      case head :: tail => source.get(head) match {
-        case None => insert(head, tail, value)
-        case Some(map: collection.Map[_, _]) => >>(tail, value)(map.asInstanceOf[YamlObject])
-        case Some(_) => insert(head, tail, value)
+      case head :: tail ⇒ source.get(head) match {
+        case None                            ⇒ insert(head, tail, value)
+        case Some(map: collection.Map[_, _]) ⇒ >>(tail, value)(map.asInstanceOf[YamlObject])
+        case Some(_)                         ⇒ insert(head, tail, value)
       }
     }
   }
 
-  protected def first[V <: Any : ClassTag](paths: List[String])(implicit source: YamlObject): Option[V] = first[V](paths.map(string2Path): _*)
+  protected def first[V <: Any: ClassTag](paths: List[String])(implicit source: YamlObject): Option[V] = first[V](paths.map(string2Path): _*)
 
-  protected def first[V <: Any : ClassTag](paths: YamlPath*)(implicit source: YamlObject): Option[V] = paths.flatMap(<<?[V](_)).headOption
+  protected def first[V <: Any: ClassTag](paths: YamlPath*)(implicit source: YamlObject): Option[V] = paths.flatMap(<<?[V](_)).headOption
 
   protected def name(implicit source: YamlObject): String = <<![String]("name")
 
@@ -170,9 +169,9 @@ trait YamlReader[T] extends ModelNotificationProvider {
 
   protected def expandToList(path: YamlPath)(implicit source: YamlObject) = {
     <<?[Any](path) match {
-      case None =>
-      case Some(value: List[_]) =>
-      case Some(value) => >>(path, List(value))
+      case None                 ⇒
+      case Some(value: List[_]) ⇒
+      case Some(value)          ⇒ >>(path, List(value))
     }
   }
 }
@@ -186,12 +185,12 @@ trait ReferenceYamlReader[T] extends YamlReader[T] {
 trait WeakReferenceYamlReader[T] extends YamlReader[T] {
 
   def readReferenceOrAnonymous(any: Any): T = any match {
-    case string: String => createReference(new YamlObject() += ("reference" -> string))
-    case map: collection.Map[_, _] => read(validateEitherReferenceOrAnonymous(map.asInstanceOf[YamlObject]))
+    case string: String            ⇒ createReference(new YamlObject() += ("reference" -> string))
+    case map: collection.Map[_, _] ⇒ read(validateEitherReferenceOrAnonymous(map.asInstanceOf[YamlObject]))
   }
 
   def readOptionalReferenceOrAnonymous(path: YamlPath)(implicit source: YamlObject): Option[T] = <<?[Any](path).flatMap {
-    reference => Some(readReferenceOrAnonymous(reference))
+    reference ⇒ Some(readReferenceOrAnonymous(reference))
   }
 
   protected def validateEitherReferenceOrAnonymous(implicit source: YamlObject): YamlObject = {
@@ -201,8 +200,8 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] {
   }
 
   protected override def name(implicit source: YamlObject): String = <<?[String]("name") match {
-    case None => ""
-    case Some(value) => value
+    case None        ⇒ ""
+    case Some(value) ⇒ value
   }
 
   override protected def parse(implicit source: YamlObject): T = if (isReference) createReference else createDefault
@@ -221,14 +220,14 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] {
 }
 
 trait TraitReader extends TraitResolver {
-  this: YamlReader[_] =>
+  this: YamlReader[_] ⇒
 
-  def parseTraits[A <: Trait](source: Option[YamlObject], mapper: (String, Option[String], Option[String]) => A, alias: Boolean): List[A] = {
+  def parseTraits[A <: Trait](source: Option[YamlObject], mapper: (String, Option[String], Option[String]) ⇒ A, alias: Boolean): List[A] = {
     source match {
-      case None => List[A]()
-      case Some(map: YamlObject) => map.map {
-        case (name, value: AnyRef) if value.isInstanceOf[collection.Map[_, _]] || value.isInstanceOf[List[_]] => throwException(MalformedTraitError(name))
-        case (name, value) =>
+      case None ⇒ List[A]()
+      case Some(map: YamlObject) ⇒ map.map {
+        case (name, value: AnyRef) if value.isInstanceOf[collection.Map[_, _]] || value.isInstanceOf[List[_]] ⇒ throwException(MalformedTraitError(name))
+        case (name, value) ⇒
           val nameAlias = resolveNameAlias(name)
           mapper(nameAlias._1, if (alias) nameAlias._2 else None, if (value == null) None else Some(value.toString))
       } toList
@@ -236,11 +235,11 @@ trait TraitReader extends TraitResolver {
   }
 
   def ports(name: String = "ports", addGroup: Boolean = false)(implicit source: YamlObject): List[Port] = {
-    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
+    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) ⇒
       val reference = if (addGroup) {
         NoGroupReference.referenceFor(name) match {
-          case Some(ref) => ref.asTraitReference(TraitReference.Ports)
-          case None => name
+          case Some(ref) ⇒ ref.asTraitReference(TraitReference.Ports)
+          case None      ⇒ name
         }
       } else name
       Port(reference, alias, value)
@@ -248,11 +247,11 @@ trait TraitReader extends TraitResolver {
   }
 
   def environmentVariables(names: List[String] = List("environment_variables", "env"), alias: Boolean = true, addGroup: Boolean = false)(implicit source: YamlObject): List[EnvironmentVariable] = {
-    parseTraits(first[YamlObject](names), { (name: String, alias: Option[String], value: Option[String]) =>
+    parseTraits(first[YamlObject](names), { (name: String, alias: Option[String], value: Option[String]) ⇒
       val reference = if (addGroup) {
         NoGroupReference.referenceFor(name) match {
-          case Some(ref) => ref.asTraitReference(TraitReference.EnvironmentVariables)
-          case None => name
+          case Some(ref) ⇒ ref.asTraitReference(TraitReference.EnvironmentVariables)
+          case None      ⇒ name
         }
       } else name
       EnvironmentVariable(reference, alias, value)
@@ -260,11 +259,11 @@ trait TraitReader extends TraitResolver {
   }
 
   def constants(name: String = "constants", addGroup: Boolean = false)(implicit source: YamlObject): List[Constant] = {
-    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
+    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) ⇒
       val reference = if (addGroup) {
         NoGroupReference.referenceFor(name) match {
-          case Some(ref) => ref.asTraitReference(TraitReference.EnvironmentVariables)
-          case None => name
+          case Some(ref) ⇒ ref.asTraitReference(TraitReference.EnvironmentVariables)
+          case None      ⇒ name
         }
       } else name
       Constant(reference, alias, value)
@@ -272,29 +271,29 @@ trait TraitReader extends TraitResolver {
   }
 
   def hosts(name: String = "hosts")(implicit source: YamlObject): List[Host] = {
-    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
+    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) ⇒
       Host(TraitReference(name, TraitReference.Hosts, Host.host).reference, value)
     }, false)
   }
 }
 
 trait DialectReader {
-  this: YamlReader[_] =>
+  this: YamlReader[_] ⇒
 
   def dialects(implicit source: YamlObject): Map[Dialect.Value, Any] = {
     <<?[Any]("dialects") match {
-      case Some(ds: collection.Map[_, _]) =>
+      case Some(ds: collection.Map[_, _]) ⇒
         implicit val source = ds.asInstanceOf[YamlObject]
         dialectValues
-      case _ => Map()
+      case _ ⇒ Map()
     }
   }
 
   def dialectValues(implicit source: YamlObject): Map[Dialect.Value, Any] = {
-    Dialect.values.toList.flatMap(dialect => <<?[Any](dialect.toString.toLowerCase) match {
-      case None => if (source.contains(dialect.toString.toLowerCase)) (dialect -> new YamlObject) :: Nil else Nil
-      case Some(d: collection.Map[_, _]) => (dialect -> d.asInstanceOf[YamlObject]) :: Nil
-      case Some(d) => (dialect -> new YamlObject) :: Nil
+    Dialect.values.toList.flatMap(dialect ⇒ <<?[Any](dialect.toString.toLowerCase) match {
+      case None                          ⇒ if (source.contains(dialect.toString.toLowerCase)) (dialect -> new YamlObject) :: Nil else Nil
+      case Some(d: collection.Map[_, _]) ⇒ (dialect -> d.asInstanceOf[YamlObject]) :: Nil
+      case Some(d)                       ⇒ (dialect -> new YamlObject) :: Nil
     }).toMap
   }
 }

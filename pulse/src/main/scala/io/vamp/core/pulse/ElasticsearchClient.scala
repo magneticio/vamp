@@ -1,10 +1,9 @@
 package io.vamp.core.pulse
 
 import io.vamp.common.http.RestClient
-import org.json4s.{DefaultFormats, Formats}
+import org.json4s.{ DefaultFormats, Formats }
 
-import scala.concurrent.{ExecutionContext, Future}
-
+import scala.concurrent.{ ExecutionContext, Future }
 
 object ElasticsearchClient {
 

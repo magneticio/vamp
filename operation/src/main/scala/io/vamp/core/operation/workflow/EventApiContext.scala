@@ -9,10 +9,10 @@ import io.vamp.core.model.event.Aggregator.AggregatorType
 import io.vamp.core.model.event._
 import io.vamp.core.model.workflow.ScheduledWorkflow
 import io.vamp.core.persistence.PersistenceActor
-import io.vamp.core.pulse.PulseActor.{Publish, Query}
-import io.vamp.core.pulse.{EventRequestEnvelope, EventResponseEnvelope, PulseActor}
+import io.vamp.core.pulse.PulseActor.{ Publish, Query }
+import io.vamp.core.pulse.{ EventRequestEnvelope, EventResponseEnvelope, PulseActor }
 
-import scala.async.Async.{async, await}
+import scala.async.Async.{ async, await }
 import scala.concurrent.ExecutionContext
 
 class EventApiContext(actorSystem: ActorSystem)(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext {
@@ -51,8 +51,8 @@ class EventApiContext(actorSystem: ActorSystem)(implicit scheduledWorkflow: Sche
   def publish() = serialize {
     validateTags()
     val event = _type match {
-      case None => Event(tags, _value)
-      case Some(t) => Event(tags, _value, OffsetDateTime.now(), t)
+      case None    ⇒ Event(tags, _value)
+      case Some(t) ⇒ Event(tags, _value, OffsetDateTime.now(), t)
     }
     logger.debug(s"Publishing event: $event")
     reset()
@@ -140,16 +140,16 @@ class EventApiContext(actorSystem: ActorSystem)(implicit scheduledWorkflow: Sche
 
   private def eventQuery(aggregator: Option[AggregatorType] = None) = serialize {
     validateTags()
-    val eventQuery = EventQuery(tags, Some(TimeRange(_lt, _lte, _gt, _gte)), aggregator.flatMap(agg => Some(Aggregator(agg, _field))))
+    val eventQuery = EventQuery(tags, Some(TimeRange(_lt, _lte, _gt, _gte)), aggregator.flatMap(agg ⇒ Some(Aggregator(agg, _field))))
     logger.info(s"Event query: $eventQuery")
     reset()
     async {
       await {
         implicit val as = actorSystem
         IoC.actorFor[PulseActor] ? Query(EventRequestEnvelope(eventQuery, _page, _perPage)) map {
-          case EventResponseEnvelope(list, _, _, _) => list
-          case result: SingleValueAggregationResult[_] => result.value
-          case other => other
+          case EventResponseEnvelope(list, _, _, _)    ⇒ list
+          case result: SingleValueAggregationResult[_] ⇒ result.value
+          case other                                   ⇒ other
         }
       }
     }

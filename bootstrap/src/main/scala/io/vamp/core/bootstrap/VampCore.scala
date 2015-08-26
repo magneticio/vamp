@@ -9,7 +9,7 @@ import io.vamp.core.pulse.PulseBootstrap
 import io.vamp.core.rest_api.RestApiBootstrap
 import io.vamp.core.router_driver.RouterDriverBootstrap
 
-import scala.language.{implicitConversions, postfixOps}
+import scala.language.{ implicitConversions, postfixOps }
 
 trait VampCore extends App {
 

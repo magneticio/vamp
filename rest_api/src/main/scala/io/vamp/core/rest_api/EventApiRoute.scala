@@ -13,7 +13,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 trait EventApiRoute extends EventApiController {
-  this: CommonSupportForActors with RestApiBase =>
+  this: CommonSupportForActors with RestApiBase ⇒
 
   implicit def timeout: Timeout
 
@@ -22,8 +22,8 @@ trait EventApiRoute extends EventApiController {
   val eventRoutes = pathPrefix("events") {
     pathEndOrSingleSlash {
       post {
-        entity(as[String]) { request =>
-          onSuccess(publish(request)) { result =>
+        entity(as[String]) { request ⇒
+          onSuccess(publish(request)) { result ⇒
             respondWith(Created, result)
           }
         }
@@ -31,9 +31,9 @@ trait EventApiRoute extends EventApiController {
     } ~ path("get") {
       pathEndOrSingleSlash {
         post {
-          pageAndPerPage() { (page, perPage) =>
-            entity(as[String]) { request =>
-              onSuccess(query(request)(page, perPage)) { response =>
+          pageAndPerPage() { (page, perPage) ⇒
+            entity(as[String]) { request ⇒
+              onSuccess(query(request)(page, perPage)) { response ⇒
                 respondWith(OK, response)
               }
             }
@@ -46,12 +46,12 @@ trait EventApiRoute extends EventApiController {
   val sseRoutes = path("events" / "stream") {
     pathEndOrSingleSlash {
       get {
-        parameterMultiMap { parameters =>
-          sse { channel => openStream(channel, parameters.getOrElse("tags", Nil).toSet) }
+        parameterMultiMap { parameters ⇒
+          sse { channel ⇒ openStream(channel, parameters.getOrElse("tags", Nil).toSet) }
         }
       } ~ post {
-        entity(as[String]) { request =>
-          sse { channel => openStream(channel, if (request.isEmpty) Set[String]() else EventQueryReader.read(request).tags) }
+        entity(as[String]) { request ⇒
+          sse { channel ⇒ openStream(channel, if (request.isEmpty) Set[String]() else EventQueryReader.read(request).tags) }
         }
       }
     }
@@ -59,7 +59,7 @@ trait EventApiRoute extends EventApiController {
 
   override def openStream(channel: ActorRef, tags: Set[String]) = {
     log.debug("SSE connection open.")
-    registerClosedHandler(channel, { () =>
+    registerClosedHandler(channel, { () ⇒
       closeStream(channel)
       log.debug("SSE connection closed.")
     })

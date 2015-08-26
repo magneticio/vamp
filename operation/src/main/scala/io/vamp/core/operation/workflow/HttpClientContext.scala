@@ -5,7 +5,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.http.RestClient
 import io.vamp.core.model.workflow.ScheduledWorkflow
 
-import scala.async.Async.{async, await}
+import scala.async.Async.{ async, await }
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
@@ -59,16 +59,16 @@ class HttpClientContext(implicit scheduledWorkflow: ScheduledWorkflow, execution
   private def request(asJson: Boolean, default: Any) = serialize {
     val response = async {
       await((method, url) match {
-        case (Some(m), Some(u)) => if (asJson) http[Any](m, u, body, headers) else http[String](m, u, body, headers)
-        case _ => throw new RuntimeException(s"HTTP: method or URL not specified.")
+        case (Some(m), Some(u)) ⇒ if (asJson) http[Any](m, u, body, headers) else http[String](m, u, body, headers)
+        case _                  ⇒ throw new RuntimeException(s"HTTP: method or URL not specified.")
       })
     }
     reset()
     response match {
-      case e: Throwable =>
+      case e: Throwable ⇒
         logger.error(e.getMessage, e)
         None
-      case other => other
+      case other ⇒ other
     }
   }
 }

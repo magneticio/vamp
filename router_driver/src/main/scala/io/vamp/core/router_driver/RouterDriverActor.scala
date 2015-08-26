@@ -4,12 +4,12 @@ import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.artifact._
-import io.vamp.core.router_driver.notification.{RouterDriverNotificationProvider, RouterResponseError, UnsupportedRouterDriverRequest}
+import io.vamp.core.router_driver.notification.{ RouterDriverNotificationProvider, RouterResponseError, UnsupportedRouterDriverRequest }
 
 import scala.async.Async._
 import scala.concurrent.Future
 import scala.language.implicitConversions
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 object RouterDriverActor {
 
@@ -40,23 +40,23 @@ class RouterDriverActor(driver: RouterDriver) extends CommonSupportForActors wit
   import io.vamp.core.router_driver.RouterDriverActor._
 
   def receive = {
-    case InfoRequest => syncReply(driver.info)
-    case All => syncReply(driver.all)
-    case Create(deployment, cluster, port, update) => syncReply(driver.create(deployment, cluster, port, update))
-    case Remove(deployment, cluster, port) => syncReply(driver.remove(deployment, cluster, port))
-    case CreateEndpoint(deployment, port, update) => syncReply(driver.create(deployment, port, update))
-    case RemoveEndpoint(deployment, port) => syncReply(driver.remove(deployment, port))
+    case InfoRequest                               ⇒ syncReply(driver.info)
+    case All                                       ⇒ syncReply(driver.all)
+    case Create(deployment, cluster, port, update) ⇒ syncReply(driver.create(deployment, cluster, port, update))
+    case Remove(deployment, cluster, port)         ⇒ syncReply(driver.remove(deployment, cluster, port))
+    case CreateEndpoint(deployment, port, update)  ⇒ syncReply(driver.create(deployment, port, update))
+    case RemoveEndpoint(deployment, port)          ⇒ syncReply(driver.remove(deployment, port))
 
-    case other => unsupported(UnsupportedRouterDriverRequest(other))
+    case other                                     ⇒ unsupported(UnsupportedRouterDriverRequest(other))
   }
 
   override def errorNotificationClass = classOf[RouterResponseError]
 
   def syncReply[T](magnet: SyncReplyMagnet[T], `class`: Class[_ <: Notification] = errorNotificationClass): Unit = magnet.get match {
-    case Success(future) =>
+    case Success(future) ⇒
       val receiver = sender()
       async(receiver ! await(future))
-    case Failure(failure) => sender() ! failure
+    case Failure(failure) ⇒ sender() ! failure
   }
 }
 
@@ -65,7 +65,7 @@ sealed abstract class SyncReplyMagnet[+T] {
 }
 
 object SyncReplyMagnet {
-  implicit def apply[T](any: => Future[T]): SyncReplyMagnet[T] = new SyncReplyMagnet[T] {
+  implicit def apply[T](any: ⇒ Future[T]): SyncReplyMagnet[T] = new SyncReplyMagnet[T] {
     override def get = Try(any)
   }
 }
@@ -91,4 +91,4 @@ class RouterDriverActor(driver: RouterDriver) extends CommonSupportForActors wit
 
   override def errorNotificationClass = classOf[RouterResponseError]
 }
-*/
+*/ 

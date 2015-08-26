@@ -13,6 +13,6 @@ class PulseInitializationActor extends ElasticsearchInitializationActor with Pul
 
   lazy val templates = {
     def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"$name.json")).mkString.replace("$NAME", PulseActor.indexName)
-    List("template", "template-event").map(template => s"${PulseActor.indexName}-$template" -> load(template)).toMap
+    List("template", "template-event").map(template ⇒ s"${PulseActor.indexName}-$template" -> load(template)).toMap
   }
 }

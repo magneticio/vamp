@@ -3,8 +3,8 @@ package io.vamp.core.persistence.slick.components
 import java.sql.Timestamp
 
 import io.strongtyped.active.slick.Profile
-import io.vamp.core.persistence.notification.{PersistenceNotificationProvider, PersistenceOperationFailure}
-import io.vamp.core.persistence.slick.extension.{VampTableQueries, VampTables}
+import io.vamp.core.persistence.notification.{ PersistenceNotificationProvider, PersistenceOperationFailure }
+import io.vamp.core.persistence.slick.extension.{ VampTableQueries, VampTables }
 import io.vamp.core.persistence.slick.model.VampPersistenceMetaDataModel
 
 import scala.language.implicitConversions
@@ -12,19 +12,19 @@ import scala.slick.jdbc.meta.MTable
 import scala.slick.util.Logging
 
 trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDeployment with PersistenceNotificationProvider {
-  this: VampTables with VampTableQueries with Profile =>
+  this: VampTables with VampTableQueries with Profile ⇒
 
   import jdbcDriver.simple._
 
-  val VampPersistenceMetaDatas = EntityTableQuery[VampPersistenceMetaDataModel, VampPersistenceMetaDataTable](tag => new VampPersistenceMetaDataTable(tag))
+  val VampPersistenceMetaDatas = EntityTableQuery[VampPersistenceMetaDataModel, VampPersistenceMetaDataTable](tag ⇒ new VampPersistenceMetaDataTable(tag))
 
   def upgradeSchema(implicit sess: Session) = {
     getCurrentSchemaVersion match {
-      case version if version == schemaVersion =>
+      case version if version == schemaVersion ⇒
       // Schema is up-to-date
-      case version if version == 0 =>
+      case version if version == 0 ⇒
         createSchema
-      case version if version == 1 =>
+      case version if version == 1 ⇒
         logger.info("Your database is outdated, automatic migration not supported. Please drop and recreate your database")
         throwException(PersistenceOperationFailure("Your database is outdated, automatic migration not supported. Please drop and recreate your database"))
     }
@@ -32,15 +32,14 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
 
   def schemaInfo(implicit sess: Session): String =
     geSchemaData match {
-      case Some(meta) if meta.schemaVersion == schemaVersion => s"V${meta.schemaVersion} / ${meta.created} [Up to date]"
-      case Some(meta)  => s"V${meta.schemaVersion} / ${meta.created} [Outdated]"
-      case None=> "Not present"
+      case Some(meta) if meta.schemaVersion == schemaVersion ⇒ s"V${meta.schemaVersion} / ${meta.created} [Up to date]"
+      case Some(meta) ⇒ s"V${meta.schemaVersion} / ${meta.created} [Outdated]"
+      case None ⇒ "Not present"
     }
-
 
   private def createSchema(implicit sess: Session) = {
     logger.info("Creating schema ...")
-    for (tableQuery <- tableQueries) {
+    for (tableQuery ← tableQueries) {
       logger.debug(tableQuery.ddl.createStatements.mkString)
       tableQuery.ddl.create
     }
@@ -51,7 +50,7 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
   def destroySchema(implicit sess: Session) = {
     if (getCurrentSchemaVersion == schemaVersion) {
       logger.info("Removing everything from the schema ...")
-      for (tableQuery <- tableQueries.reverse) {
+      for (tableQuery ← tableQueries.reverse) {
         logger.debug(tableQuery.ddl.dropStatements.mkString)
         tableQuery.ddl.drop
       }
@@ -98,23 +97,21 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
 
   private def getCurrentSchemaVersion(implicit sess: Session): Int =
     geSchemaData match {
-      case Some(metaData) => metaData.schemaVersion
-      case None => 0
+      case Some(metaData) ⇒ metaData.schemaVersion
+      case None           ⇒ 0
     }
 
   private def geSchemaData(implicit sess: Session): Option[VampPersistenceMetaDataModel] =
     MTable.getTables(metaDataTableName).firstOption match {
-      case Some(_) => VampPersistenceMetaDatas.sortBy(_.id.desc).firstOption
-      case None => None
+      case Some(_) ⇒ VampPersistenceMetaDatas.sortBy(_.id.desc).firstOption
+      case None    ⇒ None
     }
 
-
   def totalNumberOfRowsInDB(implicit sess: Session): Int =
-    tableQueries.map(query => query.fetchAll.length).sum
-
+    tableQueries.map(query ⇒ query.fetchAll.length).sum
 
   class VampPersistenceMetaDataTable(tag: Tag) extends EntityTable[VampPersistenceMetaDataModel](tag, metaDataTableName) {
-    def * = (id.?, schemaVersion, created) <>(VampPersistenceMetaDataModel.tupled, VampPersistenceMetaDataModel.unapply)
+    def * = (id.?, schemaVersion, created) <> (VampPersistenceMetaDataModel.tupled, VampPersistenceMetaDataModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -122,6 +119,5 @@ trait Schema extends Logging with SchemaBreed with SchemaBlueprint with SchemaDe
 
     def created = column[Timestamp]("created")
   }
-
 
 }

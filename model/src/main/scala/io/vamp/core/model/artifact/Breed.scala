@@ -10,10 +10,10 @@ case class DefaultBreed(name: String, deployable: Deployable, ports: List[Port],
   def traitsFor(group: String): List[Trait] = traitsFor(TraitReference.groupFor(group))
 
   def traitsFor(group: Option[TraitReference.Value]): List[Trait] = group match {
-    case Some(TraitReference.Ports) => ports
-    case Some(TraitReference.EnvironmentVariables) => environmentVariables
-    case Some(TraitReference.Constants) => constants
-    case _ => Nil
+    case Some(TraitReference.Ports)                ⇒ ports
+    case Some(TraitReference.EnvironmentVariables) ⇒ environmentVariables
+    case Some(TraitReference.Constants)            ⇒ constants
+    case _                                         ⇒ Nil
   }
 }
 
@@ -30,13 +30,13 @@ object Deployable {
   val defaultSchema = "docker"
 
   def apply(name: String): Deployable = name.indexOf(schemaDelimiter) match {
-    case -1 => Deployable(defaultSchema, Some(name))
-    case index => Deployable(name.substring(0, index).trim, Some(name.substring(index + schemaDelimiter.length).trim))
+    case -1    ⇒ Deployable(defaultSchema, Some(name))
+    case index ⇒ Deployable(name.substring(0, index).trim, Some(name.substring(index + schemaDelimiter.length).trim))
   }
 
   def nameOf(deployable: Deployable) = deployable match {
-    case Deployable(schema, None) => schema
-    case Deployable(schema, Some(definition)) => s"$schema$schemaDelimiter$definition"
+    case Deployable(schema, None)             ⇒ schema
+    case Deployable(schema, Some(definition)) ⇒ s"$schema$schemaDelimiter$definition"
   }
 }
 
@@ -56,23 +56,23 @@ object TraitReference extends Enumeration {
   val delimiter = "."
 
   def groupFor(group: String): Option[TraitReference.Value] = group match {
-    case "ports" => Some(Ports)
-    case "environment_variables" => Some(EnvironmentVariables)
-    case "constants" => Some(Constants)
-    case "hosts" => Some(Hosts)
-    case _ => None
+    case "ports"                 ⇒ Some(Ports)
+    case "environment_variables" ⇒ Some(EnvironmentVariables)
+    case "constants"             ⇒ Some(Constants)
+    case "hosts"                 ⇒ Some(Hosts)
+    case _                       ⇒ None
   }
 
   implicit def groupFor(group: TraitReference.Value): String = group match {
-    case Ports => "ports"
-    case EnvironmentVariables => "environment_variables"
-    case Constants => "constants"
-    case Hosts => "hosts"
+    case Ports                ⇒ "ports"
+    case EnvironmentVariables ⇒ "environment_variables"
+    case Constants            ⇒ "constants"
+    case Hosts                ⇒ "hosts"
   }
 
   def referenceFor(reference: String): Option[TraitReference] = reference.split(Pattern.quote(delimiter), -1) match {
-    case Array(cluster, group, value) => Some(TraitReference(cluster, group, value))
-    case _ => None
+    case Array(cluster, group, value) ⇒ Some(TraitReference(cluster, group, value))
+    case _                            ⇒ None
   }
 }
 
@@ -108,8 +108,8 @@ case class Port(name: String, alias: Option[String], value: Option[String]) exte
   private val http = "/http"
 
   lazy val number: Int = value match {
-    case None => 0
-    case Some(v) =>
+    case None ⇒ 0
+    case Some(v) ⇒
       if (v.toLowerCase.endsWith(http))
         v.substring(0, v.length - http.length).toInt
       else if (v.toLowerCase.endsWith(tcp))
@@ -119,8 +119,8 @@ case class Port(name: String, alias: Option[String], value: Option[String]) exte
   }
 
   lazy val `type`: Port.Value = value match {
-    case None => Port.Tcp
-    case Some(v) => if (v.toLowerCase.endsWith(http)) Port.Http else Port.Tcp
+    case None    ⇒ Port.Tcp
+    case Some(v) ⇒ if (v.toLowerCase.endsWith(http)) Port.Http else Port.Tcp
   }
 }
 

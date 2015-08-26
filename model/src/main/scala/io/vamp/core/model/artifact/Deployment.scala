@@ -47,8 +47,8 @@ object HostReference {
   val delimiter = TraitReference.delimiter
 
   def referenceFor(reference: String): Option[HostReference] = reference.indexOf(delimiter) match {
-    case -1 => None
-    case clusterIndex =>
+    case -1 ⇒ None
+    case clusterIndex ⇒
       val cluster = reference.substring(0, clusterIndex)
       val name = reference.substring(clusterIndex + 1)
       if (name == Host.host) Some(HostReference(cluster)) else None
@@ -66,8 +66,8 @@ object NoGroupReference {
   val delimiter = TraitReference.delimiter
 
   def referenceFor(reference: String): Option[NoGroupReference] = reference.indexOf(delimiter) match {
-    case -1 => None
-    case clusterIndex =>
+    case -1 ⇒ None
+    case clusterIndex ⇒
       val cluster = reference.substring(0, clusterIndex)
       val name = reference.substring(clusterIndex + 1)
       Some(NoGroupReference(cluster, name))

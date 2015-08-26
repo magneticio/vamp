@@ -15,9 +15,9 @@ object SlaSerializationFormat extends io.vamp.common.json.SerializationFormat {
 
 class SlaSerializer extends ArtifactSerializer[Sla] with ReferenceSerialization {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case sla: SlaReference => new JObject(serializeReferenceAsField(sla) :: JField("escalations", Extraction.decompose(sla.escalations)) :: Nil)
+    case sla: SlaReference ⇒ new JObject(serializeReferenceAsField(sla) :: JField("escalations", Extraction.decompose(sla.escalations)) :: Nil)
 
-    case sla: ResponseTimeSlidingWindowSla =>
+    case sla: ResponseTimeSlidingWindowSla ⇒
       val list = new ArrayBuffer[JField]
       if (sla.name.nonEmpty)
         list += JField("name", JString(sla.name))
@@ -27,7 +27,7 @@ class SlaSerializer extends ArtifactSerializer[Sla] with ReferenceSerialization 
       list += JField("escalations", Extraction.decompose(sla.escalations))
       new JObject(list.toList)
 
-    case sla: GenericSla =>
+    case sla: GenericSla ⇒
       val list = new ArrayBuffer[JField]
       if (sla.name.nonEmpty)
         list += JField("name", JString(sla.name))
@@ -36,7 +36,7 @@ class SlaSerializer extends ArtifactSerializer[Sla] with ReferenceSerialization 
       list += JField("escalations", Extraction.decompose(sla.escalations))
       new JObject(list.toList)
 
-    case sla: EscalationOnlySla =>
+    case sla: EscalationOnlySla ⇒
       val list = new ArrayBuffer[JField]
       if (sla.name.nonEmpty)
         list += JField("name", JString(sla.name))
@@ -48,9 +48,9 @@ class SlaSerializer extends ArtifactSerializer[Sla] with ReferenceSerialization 
 
 class EscalationSerializer extends ArtifactSerializer[Escalation] with ReferenceSerialization {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case escalation: EscalationReference => serializeReference(escalation)
+    case escalation: EscalationReference ⇒ serializeReference(escalation)
 
-    case escalation: GroupEscalation =>
+    case escalation: GroupEscalation ⇒
       val list = new ArrayBuffer[JField]
       if (escalation.name.nonEmpty)
         list += JField("name", JString(escalation.name))
@@ -58,7 +58,7 @@ class EscalationSerializer extends ArtifactSerializer[Escalation] with Reference
       list += JField("escalations", Extraction.decompose(escalation.escalations))
       new JObject(list.toList)
 
-    case escalation: ScaleEscalation[_] =>
+    case escalation: ScaleEscalation[_] ⇒
       val list = new ArrayBuffer[JField]
       if (escalation.name.nonEmpty)
         list += JField("name", JString(escalation.name))
@@ -73,17 +73,17 @@ class EscalationSerializer extends ArtifactSerializer[Escalation] with Reference
       list += JField("scale_by", Extraction.decompose(escalation.scaleBy))
       new JObject(list.toList)
 
-    case escalation: Escalation =>
+    case escalation: Escalation ⇒
       val list = new ArrayBuffer[JField]
       if (escalation.name.nonEmpty)
         list += JField("name", JString(escalation.name))
       escalation match {
-        case g: GenericEscalation =>
+        case g: GenericEscalation ⇒
           list += JField("type", JString(g.`type`))
           list += JField("parameters", Extraction.decompose(g.parameters))
-        case t: Type =>
+        case t: Type ⇒
           list += JField("type", JString(t.`type`))
-        case _ =>
+        case _ ⇒
       }
       new JObject(list.toList)
   }

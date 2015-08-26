@@ -11,55 +11,55 @@ import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 import spray.routing.directives.LogEntry
 
-import scala.language.{existentials, postfixOps}
+import scala.language.{ existentials, postfixOps }
 
 trait RestApiRoute extends RestApiBase with ArtifactApiController with DeploymentApiRoute with EventApiRoute with InfoRoute with ArtifactPaginationSupport {
-  this: CommonSupportForActors =>
+  this: CommonSupportForActors ⇒
 
   implicit def timeout: Timeout
 
-  val crudRoutes = path(Segment) { artifact: String =>
+  val crudRoutes = path(Segment) { artifact: String ⇒
     pathEndOrSingleSlash {
       get {
-        pageAndPerPage() { (page, perPage) =>
-          expandAndOnlyReferences { (expandReferences, onlyReferences) =>
-            onSuccess(allArtifacts(artifact, expandReferences, onlyReferences)(page, perPage)) { result =>
+        pageAndPerPage() { (page, perPage) ⇒
+          expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
+            onSuccess(allArtifacts(artifact, expandReferences, onlyReferences)(page, perPage)) { result ⇒
               respondWith(OK, result)
             }
           }
         }
       } ~ post {
-        entity(as[String]) { request =>
-          validateOnly { validateOnly =>
-            onSuccess(createArtifact(artifact, request, validateOnly)) { result =>
+        entity(as[String]) { request ⇒
+          validateOnly { validateOnly ⇒
+            onSuccess(createArtifact(artifact, request, validateOnly)) { result ⇒
               respondWith(Created, result)
             }
           }
         }
       }
     }
-  } ~ path(Segment / Segment) { (artifact: String, name: String) =>
+  } ~ path(Segment / Segment) { (artifact: String, name: String) ⇒
     pathEndOrSingleSlash {
       get {
         rejectEmptyResponse {
-          expandAndOnlyReferences { (expandReferences, onlyReferences) =>
-            onSuccess(readArtifact(artifact, name, expandReferences, onlyReferences)) { result =>
+          expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
+            onSuccess(readArtifact(artifact, name, expandReferences, onlyReferences)) { result ⇒
               respondWith(OK, result)
             }
           }
         }
       } ~ put {
-        entity(as[String]) { request =>
-          validateOnly { validateOnly =>
-            onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result =>
+        entity(as[String]) { request ⇒
+          validateOnly { validateOnly ⇒
+            onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result ⇒
               respondWith(OK, result)
             }
           }
         }
       } ~ delete {
-        entity(as[String]) { request =>
-          validateOnly { validateOnly =>
-            onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result =>
+        entity(as[String]) { request ⇒
+          validateOnly { validateOnly ⇒
+            onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result ⇒
               respondWith(NoContent, None)
             }
           }

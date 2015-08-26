@@ -1,11 +1,10 @@
 package io.vamp.core.dictionary
 
-
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.core.dictionary.DictionaryActor.Get
-import io.vamp.core.dictionary.notification.{DictionaryNotificationProvider, NoAvailablePortError, UnsupportedDictionaryRequest}
+import io.vamp.core.dictionary.notification.{ DictionaryNotificationProvider, NoAvailablePortError, UnsupportedDictionaryRequest }
 import io.vamp.core.model.artifact.DefaultScale
 
 import scala.concurrent.Future
@@ -48,14 +47,14 @@ class DictionaryActor extends CommonSupportForActors with DictionaryNotification
   }
 
   def receive = {
-    case Get(key) => reply {
+    case Get(key) ⇒ reply {
       Future(get(key))
     }
-    case any => unsupported(UnsupportedDictionaryRequest(any))
+    case any ⇒ unsupported(UnsupportedDictionaryRequest(any))
   }
 
   private def get(key: String) = key match {
-    case portAssignment(deployment, port) =>
+    case portAssignment(deployment, port) ⇒
       if (currentPort == portRange(1))
         reportException(NoAvailablePortError(portRange(0), portRange(1)))
       else {
@@ -63,16 +62,16 @@ class DictionaryActor extends CommonSupportForActors with DictionaryNotification
         currentPort
       }
 
-    case hostResolver(_*) =>
+    case hostResolver(_*) ⇒
       ConfigFactory.load().getString("vamp.core.router-driver.host")
 
-    case containerScale(deployment, cluster, service) =>
+    case containerScale(deployment, cluster, service) ⇒
       val config = ConfigFactory.load()
       val cpu = config.getDouble("vamp.core.dictionary.default-scale.cpu")
       val memory = config.getDouble("vamp.core.dictionary.default-scale.memory")
       val instances = config.getInt("vamp.core.dictionary.default-scale.instances")
       DefaultScale("", cpu, memory, instances)
 
-    case value => value
+    case value ⇒ value
   }
 }
