@@ -41,14 +41,16 @@ object RestClient {
 
   def http[A](method: Method.Value, url: String, body: Any, headers: List[(String, String)] = jsonHeaders)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
 
+    val requestLog = s"[${method.toString} $url]"
+
     val requestWithUrl = dispatch.url(url).setMethod(method.toString)
     val requestWithHeaders = headers.foldLeft(requestWithUrl)((http, header) ⇒ http.setHeader(header._1, header._2))
     val requestWithBody = bodyAsString(body) match {
       case Some(some) ⇒
-        logger.trace(s"req [${method.toString} $url] - $some")
+        logger.trace(s"req $requestLog - $some")
         requestWithHeaders.setBody(some)
       case None ⇒
-        logger.trace(s"req [${method.toString} $url]")
+        logger.trace(s"req $requestLog")
         requestWithHeaders
     }
 
@@ -56,19 +58,27 @@ object RestClient {
       def onCompleted(response: Response) = response.getStatusCode match {
         case status if status / 100 == 2 && (classTag[A].runtimeClass == classOf[Nothing] || classTag[A].runtimeClass == classOf[String]) ⇒
           val body = response.getResponseBody
-          logger.trace(s"rsp [${method.toString} $url] - $body")
+          logger.trace(s"rsp $requestLog - $body")
           body.asInstanceOf[A]
 
         case status if status / 100 == 2 ⇒
           val json = dispatch.as.json4s.Json(response)
-          logger.trace(s"rsp [${method.toString} $url] - ${compact(render(json))}")
+          logger.trace(s"rsp $requestLog - ${compact(render(json))}")
           json.extract[A](formats, mf)
 
         case status ⇒
-          logger.trace(s"Unexpected status code: $status, for response: ${response.getResponseBody}")
+          val message = s"rsp $requestLog - unexpected status code: $status"
+          logger.error(message)
+          logger.trace(s"$message, for response: ${response.getResponseBody}")
           throw StatusCode(status)
       }
-    })
+    }).recover {
+      case failure ⇒
+        val message = s"rsp $requestLog - exception: ${failure.getMessage}"
+        logger.error(message)
+        logger.trace(message, failure)
+        throw failure
+    }
   }
 
   private def bodyAsString(body: Any)(implicit formats: Formats): Option[String] = body match {
