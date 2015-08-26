@@ -1,5 +1,5 @@
 package io.vamp.core.pulse.notification
 
-import io.vamp.common.notification.{DefaultPackageMessageResolverProvider, LoggingNotificationProvider}
+import io.vamp.common.notification.{ DefaultPackageMessageResolverProvider, LoggingNotificationProvider }
 
 trait PulseNotificationProvider extends LoggingNotificationProvider with DefaultPackageMessageResolverProvider

@@ -1,7 +1,7 @@
 package io.vamp.core.pulse
 
-import akka.actor.{ActorSystem, Props}
-import io.vamp.common.akka.{Bootstrap, IoC}
+import akka.actor.{ ActorSystem, Props }
+import io.vamp.common.akka.{ Bootstrap, IoC }
 import io.vamp.core.pulse.elasticsearch.PulseInitializationActor
 import io.vamp.core.pulse.notification.PulseNotificationProvider
 

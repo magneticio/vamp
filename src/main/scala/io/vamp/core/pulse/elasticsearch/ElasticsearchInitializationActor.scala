@@ -1,6 +1,6 @@
 package io.vamp.core.pulse.elasticsearch
 
-import akka.actor.{FSM, _}
+import akka.actor.{ FSM, _ }
 import io.vamp.common.akka.Bootstrap.Start
 import io.vamp.common.akka._
 import io.vamp.common.http.RestClient
@@ -8,7 +8,7 @@ import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.pulse.notification.ElasticsearchInitializationTimeoutError
 
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 object ElasticsearchInitializationActor {
 
@@ -43,26 +43,26 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
   startWith(Idle, 0)
 
   when(Idle) {
-    case Event(Start, 0) =>
+    case Event(Start, 0) ⇒
       log.info(s"Starting with Elasticsearch initialization.")
       initializeTemplates()
       goto(Active) using 1
 
-    case Event(_, _) => stay()
+    case Event(_, _) ⇒ stay()
   }
 
   when(Active, stateTimeout = timeout.duration) {
-    case Event(WaitForOne, count) => stay() using count + 1
+    case Event(WaitForOne, count)  ⇒ stay() using count + 1
 
-    case Event(DoneWithOne, count) => if (count > 1) stay() using count - 1 else done()
+    case Event(DoneWithOne, count) ⇒ if (count > 1) stay() using count - 1 else done()
 
-    case Event(StateTimeout, _) =>
+    case Event(StateTimeout, _) ⇒
       reportException(ElasticsearchInitializationTimeoutError)
       done()
   }
 
   when(Done) {
-    case _ => stay()
+    case _ ⇒ stay()
   }
 
   initialize()
@@ -70,22 +70,22 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
   protected def initializeTemplates() = {
     val receiver = self
 
-    def createTemplate(name: String) = templates.get(name).foreach { template =>
+    def createTemplate(name: String) = templates.get(name).foreach { template ⇒
       receiver ! WaitForOne
       RestClient.put[Any](s"$elasticsearchUrl/_template/$name", template) onComplete {
-        case _ => receiver ! DoneWithOne
+        case _ ⇒ receiver ! DoneWithOne
       }
     }
 
     RestClient.get[Any](s"$elasticsearchUrl/_template") onComplete {
-      case Success(response) =>
+      case Success(response) ⇒
         response match {
-          case map: Map[_, _] => templates.keys.filterNot(name => map.asInstanceOf[Map[String, Any]].contains(name)).foreach(createTemplate)
-          case _ => templates.keys.foreach(createTemplate)
+          case map: Map[_, _] ⇒ templates.keys.filterNot(name ⇒ map.asInstanceOf[Map[String, Any]].contains(name)).foreach(createTemplate)
+          case _              ⇒ templates.keys.foreach(createTemplate)
         }
         receiver ! DoneWithOne
 
-      case Failure(t) =>
+      case Failure(t) ⇒
         log.warning(s"Failed to do part of Elasticsearch initialization: $t")
         receiver ! DoneWithOne
     }
