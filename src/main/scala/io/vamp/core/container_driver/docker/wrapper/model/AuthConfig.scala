@@ -1,13 +1,11 @@
 package io.vamp.core.container_driver.docker.wrapper.model
 
-
 import java.nio.charset.Charset
 
 import org.jboss.netty.buffer.ChannelBuffers
-import org.jboss.netty.handler.codec.base64.{Base64 => Encoder}
+import org.jboss.netty.handler.codec.base64.{ Base64 ⇒ Encoder }
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization._
-
 
 case class AuthConfig(user: String, password: String, email: String, server: String = "https://index.docker.io/v1/") {
 

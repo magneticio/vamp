@@ -3,10 +3,9 @@ package io.vamp.core.container_driver.docker
 import com.typesafe.config.ConfigFactory
 import io.vamp.core.model.artifact.DefaultScale
 
-import scala.async.Async.{async, await}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.async.Async.{ async, await }
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
-
 
 /**
  * Container managers which don't support scaling, need to report back the scale they received during creation / updating a deployment
@@ -33,8 +32,8 @@ trait DummyScales {
   protected def addScale(containerId: Future[String], scale: Option[DefaultScale])(implicit executionContext: ExecutionContext) = async {
     val id = await(containerId)
     scale match {
-      case Some(sc) => scales = scales.filter(_._1 != id) + (id -> sc)
-      case _ => scales = scales.filter(_._1 != id)
+      case Some(sc) ⇒ scales = scales.filter(_._1 != id) + (id -> sc)
+      case _        ⇒ scales = scales.filter(_._1 != id)
     }
   }
 

@@ -1,10 +1,10 @@
 package io.vamp.core.container_driver.docker.wrapper.methods
 
 import io.vamp.core.container_driver.docker.wrapper.model.AuthConfig
-import io.vamp.core.container_driver.docker.wrapper.{Docker, Requests}
+import io.vamp.core.container_driver.docker.wrapper.{ Docker, Requests }
 
 trait Auth extends Util {
-  self: Requests =>
+  self: Requests ⇒
 
   def auth(user: String, password: String, email: String): Auth = auth(AuthConfig(user, password, email))
 

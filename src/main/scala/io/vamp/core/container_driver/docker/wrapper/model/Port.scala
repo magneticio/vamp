@@ -16,8 +16,8 @@ object Port {
   case class Udp(value: Int) extends Port
 
   def unapply(spec: String): Option[Port] = spec match {
-    case Spec(value, "tcp") => Some(Tcp(value.toInt))
-    case Spec(value, "udp") => Some(Udp(value.toInt))
-    case _ => None
+    case Spec(value, "tcp") ⇒ Some(Tcp(value.toInt))
+    case Spec(value, "udp") ⇒ Some(Udp(value.toInt))
+    case _                  ⇒ None
   }
 }

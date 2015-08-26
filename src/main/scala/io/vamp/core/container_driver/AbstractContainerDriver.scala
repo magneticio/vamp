@@ -2,7 +2,7 @@ package io.vamp.core.container_driver
 
 import io.vamp.common.crypto.Hash
 import io.vamp.core.container_driver.docker.DockerPortMapping
-import io.vamp.core.container_driver.notification.{ContainerDriverNotificationProvider, UnsupportedDeployableSchema}
+import io.vamp.core.container_driver.notification.{ ContainerDriverNotificationProvider, UnsupportedDeployableSchema }
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.resolver.DeploymentTraitResolver
 
@@ -18,37 +18,37 @@ abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDr
 
   protected def processable(id: String): Boolean = id.split(nameDelimiter).size == 3
 
-  protected def nameMatcher(id: String): (Deployment, Breed) => Boolean = { (deployment: Deployment, breed: Breed) => id == appId(deployment, breed) }
+  protected def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
 
   protected def artifactName2Id(artifact: Artifact) = artifact.name match {
-    case idMatcher(_*) => artifact.name
-    case _ => Hash.hexSha1(artifact.name).substring(0, 20)
+    case idMatcher(_*) ⇒ artifact.name
+    case _             ⇒ Hash.hexSha1(artifact.name).substring(0, 20)
   }
 
   protected def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[DockerPortMapping] = {
-    service.breed.ports.map(port =>
+    service.breed.ports.map(port ⇒
       port.value match {
-        case Some(_) => DockerPortMapping(port.number)
-        case None => DockerPortMapping(deployment.ports.find(p => TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
+        case Some(_) ⇒ DockerPortMapping(port.number)
+        case None    ⇒ DockerPortMapping(deployment.ports.find(p ⇒ TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
       })
   }
 
   protected def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] =
-    service.environmentVariables.map(ev => ev.alias.getOrElse(ev.name) -> ev.interpolated.getOrElse("")).toMap
+    service.environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) -> ev.interpolated.getOrElse("")).toMap
 
   protected def validateSchemaSupport(schema: String, enum: Enumeration) = {
-    if (!enum.values.exists(en => en.toString.compareToIgnoreCase(schema) == 0))
+    if (!enum.values.exists(en ⇒ en.toString.compareToIgnoreCase(schema) == 0))
       throwException(UnsupportedDeployableSchema(schema, enum.values.map(_.toString.toLowerCase).mkString(", ")))
   }
 
   protected def interpolate[T](deployment: Deployment, service: Option[DeploymentService], dialect: T): T = {
     def visit(any: Any): Any = any match {
-      case value: String => resolve(value, valueFor(deployment, service))
-      case list: List[_] => list.map(visit)
-      case map: scala.collection.Map[_, _] => map.map {
-        case (key, value) => key -> visit(value)
+      case value: String ⇒ resolve(value, valueFor(deployment, service))
+      case list: List[_] ⇒ list.map(visit)
+      case map: scala.collection.Map[_, _] ⇒ map.map {
+        case (key, value) ⇒ key -> visit(value)
       }
-      case _ => any
+      case _ ⇒ any
     }
 
     visit(dialect).asInstanceOf[T]

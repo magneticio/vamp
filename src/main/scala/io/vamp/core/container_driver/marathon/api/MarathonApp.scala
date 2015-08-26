@@ -2,7 +2,6 @@ package io.vamp.core.container_driver.marathon.api
 
 import io.vamp.core.container_driver.docker.DockerPortMapping
 
-
 case class Docker(image: String, portMappings: List[DockerPortMapping], network: String = "BRIDGE")
 
 case class Container(docker: Docker, `type`: String = "DOCKER")
