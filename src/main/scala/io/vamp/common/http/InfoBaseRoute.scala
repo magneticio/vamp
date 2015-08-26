@@ -17,7 +17,7 @@ trait InfoMessageBase {
 }
 
 trait InfoBaseRoute extends InfoRetrieval with JmxVitalsProvider with ExecutionContextProvider {
-  this: RestApiBase with ActorSystemProvider =>
+  this: RestApiBase with ActorSystemProvider ⇒
 
   implicit def timeout: Timeout
 
@@ -26,7 +26,7 @@ trait InfoBaseRoute extends InfoRetrieval with JmxVitalsProvider with ExecutionC
   val infoRoute = pathPrefix("info") {
     pathEndOrSingleSlash {
       get {
-        onSuccess(info) { result =>
+        onSuccess(info) { result ⇒
           respondWithStatus(OK) {
             complete(result)
           }
@@ -39,23 +39,25 @@ trait InfoBaseRoute extends InfoRetrieval with JmxVitalsProvider with ExecutionC
 }
 
 trait InfoRetrieval {
-  this: ExecutionContextProvider with ActorSystemProvider =>
+  this: ExecutionContextProvider with ActorSystemProvider ⇒
 
   implicit def timeout: Timeout
 
   def componentInfoTimeout: Timeout
 
   def retrieve(actors: List[Class[Actor]]): Future[Map[Class[Actor], Any]] = {
-    val futures: Map[Class[Actor], Future[Any]] = actors.map(actor => actor -> actorFor(actor) ? InfoRequest).toMap
+    val futures: Map[Class[Actor], Future[Any]] = actors.map(actor ⇒ actor -> actorFor(actor) ? InfoRequest).toMap
 
-    Future.firstCompletedOf(List(Future.sequence(futures.values.toList.map(_.recover { case x => Failure(x) })), after(componentInfoTimeout.duration, using = actorSystem.scheduler) {
+    Future.firstCompletedOf(List(Future.sequence(futures.values.toList.map(_.recover { case x ⇒ Failure(x) })), after(componentInfoTimeout.duration, using = actorSystem.scheduler) {
       Future.successful(new TimeoutException("Component timeout."))
-    })) map { _ =>
-      futures.map { case (actor, future) =>
-        actor -> (if (future.isCompleted) future.value.map {
-          case Success(data) => data
-          case _ => noData
-        } else noData)
+    })) map { _ ⇒
+      futures.map {
+        case (actor, future) ⇒
+          actor -> (if (future.isCompleted) future.value.map {
+            case Success(data) ⇒ data
+            case _             ⇒ noData
+          }
+          else noData)
       }
     }
   }

@@ -2,7 +2,7 @@ package io.vamp.common.json
 
 import java.io.File
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Paths}
+import java.nio.file.{ Files, Paths }
 
 import com.typesafe.scalalogging.Logger
 import io.vamp.common.text.Text
@@ -49,14 +49,13 @@ object Json2CaseClass {
       val optional = if (line.hasOption("optional")) line.getOptionValues("optional").toSet else Set[String]()
 
       generate(packageName, sourceDirectory, destinationDirectory, exclude, optional)
-    }
-    else printHelp(options)
+    } else printHelp(options)
   }
 
   private def printHelp(options: Options) = new HelpFormatter().printHelp("Json2CaseClass", options)
 
   def generate(`package`: String, sourceDirectory: String, destinationDirectory: String, exclude: Set[String] = Set(), optional: Set[String] = Set()) = {
-    for (file <- new java.io.File(sourceDirectory).listFiles if file.getName endsWith ".json") {
+    for (file ← new java.io.File(sourceDirectory).listFiles if file.getName endsWith ".json") {
 
       val fileName = file.getName
       logger.info(s"Processing file: $fileName")
@@ -82,15 +81,15 @@ object Json2CaseClass {
   private def addCaseClass(stack: mutable.Queue[CaseClass], path: String, className: String, template: JObject, exclude: Set[String], optional: Set[String]): Unit = {
 
     stack += new CaseClass(className, template.obj.map {
-      case JField(name, value) =>
+      case JField(name, value) ⇒
         val field = fieldPath(path, name)
         value match {
-          case JNull => new CaseClassField(name, "AnyRef", optional = optional.contains(field))
-          case JNothing => new CaseClassField(name, "AnyRef", optional = optional.contains(field))
-          case v: JArray => processJArray(v, path, name, exclude, optional, stack)
-          case v: JObject => processJObject(v, path, name, exclude, optional, stack)
-          case v: JValue => new CaseClassField(name, jValue2ClassName(v), optional = optional.contains(field))
-          case _ => new CaseClassField(name, "AnyRef", optional = optional.contains(field))
+          case JNull      ⇒ new CaseClassField(name, "AnyRef", optional = optional.contains(field))
+          case JNothing   ⇒ new CaseClassField(name, "AnyRef", optional = optional.contains(field))
+          case v: JArray  ⇒ processJArray(v, path, name, exclude, optional, stack)
+          case v: JObject ⇒ processJObject(v, path, name, exclude, optional, stack)
+          case v: JValue  ⇒ new CaseClassField(name, jValue2ClassName(v), optional = optional.contains(field))
+          case _          ⇒ new CaseClassField(name, "AnyRef", optional = optional.contains(field))
         }
     }.toList)
   }
@@ -99,8 +98,8 @@ object Json2CaseClass {
     val field = fieldPath(path, name)
     if (jArray.arr.map(_.getClass).toSet.size == 1) {
       jArray.arr.head match {
-        case v: JObject => processJObject(v, path, name, exclude, optional, stack, list = true)
-        case v => new CaseClassField(name, s"List[${jValue2ClassName(v)}]", optional = optional.contains(field))
+        case v: JObject ⇒ processJObject(v, path, name, exclude, optional, stack, list = true)
+        case v          ⇒ new CaseClassField(name, s"List[${jValue2ClassName(v)}]", optional = optional.contains(field))
       }
     } else new CaseClassField(name, s"List[Any]", optional = optional.contains(field))
   }
@@ -117,8 +116,8 @@ object Json2CaseClass {
   }
 
   private def jValue2ClassName(jValue: JValue): String = jValue.values.getClass.getSimpleName match {
-    case "BigInt" => "Int"
-    case s => s
+    case "BigInt" ⇒ "Int"
+    case s        ⇒ s
   }
 
   private def fieldPath(path: String, name: String) = if (path.isEmpty) name else s"$path/$name"
@@ -137,7 +136,7 @@ private case class CaseClassField(name: String, `class`: String, optional: Boole
   private def handleInvalidCharacters(s: String): String = {
     val chars = s.toList
     val startWith = if (!Character.isUnicodeIdentifierStart(chars.head)) '_' else chars.head
-    chars.tail.foldLeft(startWith.toString)((s1, s2) => {
+    chars.tail.foldLeft(startWith.toString)((s1, s2) ⇒ {
       val next = if (!Character.isUnicodeIdentifierPart(s2)) '_' else s2
       s1 + next
     })

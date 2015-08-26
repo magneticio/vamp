@@ -3,7 +3,6 @@ package io.vamp.common.crypto
 import java.math.BigInteger
 import java.security.MessageDigest
 
-
 object Hash {
 
   def hexSha1(content: String, salt: String = "0000"): String = hexHash("SHA1", content, salt)

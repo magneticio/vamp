@@ -1,3 +1,6 @@
+import com.typesafe.sbt.SbtScalariform._
+import scalariform.formatter.preferences._
+
 organization := "io.vamp"
 
 
@@ -71,6 +74,13 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
   "junit" % "junit" % "4.11" % "test"
 )
+
+scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.preferences.value
+  .setPreference(AlignParameters, true)
+  .setPreference(AlignSingleLineCaseStatements, true)
+  .setPreference(DoubleIndentClassDeclaration, true)
+  .setPreference(PreserveDanglingCloseParenthesis, true)
+  .setPreference(RewriteArrowSymbols, true))
 
 bintrayPublishSettings
 

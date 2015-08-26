@@ -33,21 +33,21 @@ trait DefaultPackageMessageResolverProvider extends MessageResolverProvider {
         val messageSource = resolveMessageSource
 
         messageSource.get(name) match {
-          case None =>
+          case None ⇒
             logger.warn(s"No mapping for ${notification.getClass}")
             defaultMapping(error = false)
-          case Some(value: Message) => resolveMessageValue(value)
-          case Some(value: Any) =>
+          case Some(value: Message) ⇒ resolveMessageValue(value)
+          case Some(value: Any) ⇒
             val message = parseMessage(value.toString)
             messageSource.put(name, message)
             resolveMessageValue(message)
         }
       } catch {
-        case e: NoSuchMethodException =>
+        case e: NoSuchMethodException ⇒
           val field = e.getMessage.substring(e.getMessage.lastIndexOf('.') + 1, e.getMessage.length - 2)
           logger.error(s"Message mapping error: field '$field' not defined for ${notification.getClass}")
           defaultMapping()
-        case e: Exception =>
+        case e: Exception ⇒
           logger.error(e.getMessage, e)
           defaultMapping()
       }
@@ -58,7 +58,7 @@ trait DefaultPackageMessageResolverProvider extends MessageResolverProvider {
     protected def resolveMessageSource(implicit notification: Notification): mutable.Map[String, Any] = {
       val packageName = notification.getClass.getPackage.toString
       messages.get(packageName) match {
-        case None =>
+        case None ⇒
           val reader = Source.fromURL(notification.getClass.getResource("messages.yml")).bufferedReader()
           try {
             val input = new Yaml().load(reader).asInstanceOf[java.util.Map[String, Any]].asScala
@@ -67,14 +67,14 @@ trait DefaultPackageMessageResolverProvider extends MessageResolverProvider {
           } finally {
             reader.close()
           }
-        case Some(map) => map
+        case Some(map) ⇒ map
       }
     }
 
     protected def parseMessage(message: String)(implicit notification: Notification): Message = {
       val pattern = "\\{[^}]+\\}" r
       val parts = pattern split message
-      val args = (pattern findAllIn message).map(s => s.substring(1, s.length - 1)).toList
+      val args = (pattern findAllIn message).map(s ⇒ s.substring(1, s.length - 1)).toList
       Message(parts, args)
     }
 
@@ -84,7 +84,7 @@ trait DefaultPackageMessageResolverProvider extends MessageResolverProvider {
       val sb = new StringBuilder()
       while (ai.hasNext) {
         sb append pi.next
-        sb append ai.next().split('.').foldLeft(notification.asInstanceOf[AnyRef])((arg1, arg2) => arg1.getClass.getDeclaredMethod(arg2).invoke(arg1)).toString
+        sb append ai.next().split('.').foldLeft(notification.asInstanceOf[AnyRef])((arg1, arg2) ⇒ arg1.getClass.getDeclaredMethod(arg2).invoke(arg1)).toString
       }
       if (pi.hasNext) sb append pi.next
       sb.toString()

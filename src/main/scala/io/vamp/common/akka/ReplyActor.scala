@@ -7,7 +7,7 @@ import io.vamp.common.notification._
 import scala.concurrent.Future
 import scala.language.implicitConversions
 import scala.reflect._
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 trait RequestError extends ErrorNotification {
   def request: Any
@@ -16,26 +16,27 @@ trait RequestError extends ErrorNotification {
 }
 
 trait ReplyActor {
-  this: Actor with ExecutionContextProvider with NotificationProvider =>
+  this: Actor with ExecutionContextProvider with NotificationProvider ⇒
 
   def reply[T](magnet: ReplyMagnet[T], `class`: Class[_ <: Notification] = errorNotificationClass): Try[Future[T]] = {
-    magnet.get.transform({ case future =>
-      pipe {
-        future.recover {
-          case n: NotificationErrorException => n
-          case f => failure(f, `class`)
-        }
-      } to sender()
-      Success(future)
+    magnet.get.transform({
+      case future ⇒
+        pipe {
+          future.recover {
+            case n: NotificationErrorException ⇒ n
+            case f                             ⇒ failure(f, `class`)
+          }
+        } to sender()
+        Success(future)
     }, {
-      case n: NotificationErrorException => Failure(n)
-      case f => Failure(failure(f, `class`))
+      case n: NotificationErrorException ⇒ Failure(n)
+      case f                             ⇒ Failure(failure(f, `class`))
     })
   }
 
-  def checked[T <: Any : ClassTag](future: Future[_], `class`: Class[_ <: Notification] = errorNotificationClass): Future[T] = future map {
-    case result if classTag[T].runtimeClass.isAssignableFrom(result.getClass) => result.asInstanceOf[T]
-    case any => throw failure(any, `class`)
+  def checked[T <: Any: ClassTag](future: Future[_], `class`: Class[_ <: Notification] = errorNotificationClass): Future[T] = future map {
+    case result if classTag[T].runtimeClass.isAssignableFrom(result.getClass) ⇒ result.asInstanceOf[T]
+    case any ⇒ throw failure(any, `class`)
   }
 
   def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception =
@@ -51,7 +52,7 @@ sealed abstract class ReplyMagnet[+T] {
 }
 
 object ReplyMagnet {
-  implicit def apply[T](any: => Future[T]): ReplyMagnet[T] = new ReplyMagnet[T] {
+  implicit def apply[T](any: ⇒ Future[T]): ReplyMagnet[T] = new ReplyMagnet[T] {
     override def get = Try(any)
   }
 }
