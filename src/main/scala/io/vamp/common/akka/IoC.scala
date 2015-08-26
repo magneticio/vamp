@@ -13,9 +13,13 @@ object IoC {
   private val actorRefs: mutable.Map[Class[_], ActorRef] = mutable.Map()
 
 
-  def alias[FROM: ClassTag] = aliases.getOrElse(classTag[FROM].runtimeClass, classTag[FROM].runtimeClass)
+  def alias(from: Class[_]): Class[_] = aliases.getOrElse(from, from)
 
-  def alias[FROM: ClassTag, TO: ClassTag] = aliases.put(classTag[FROM].runtimeClass, classTag[TO].runtimeClass)
+  def alias[FROM: ClassTag]: Class[_] = alias(classTag[FROM].runtimeClass)
+
+  def alias(from: Class[_], to: Class[_]): Option[Class[_]] = aliases.put(from, to)
+
+  def alias[FROM: ClassTag, TO: ClassTag]: Option[Class[_]] = alias(classTag[FROM].runtimeClass, classTag[TO].runtimeClass)
 
 
   def createActor(props: Props)(implicit actorSystem: ActorSystem): ActorRef = {
@@ -32,9 +36,12 @@ object IoC {
     actorRef
   }
 
-  def actorFor[T: ClassTag](implicit actorSystem: ActorSystem): ActorRef = actorRefs.get(alias[T]) match {
+
+  def actorFor(clazz: Class[_])(implicit actorSystem: ActorSystem): ActorRef = actorRefs.get(alias(clazz)) match {
     case Some(actorRef) => actorRef
-    case _ => throw new RuntimeException(s"No actor reference for: ${classTag[T].runtimeClass}")
+    case _ => throw new RuntimeException(s"No actor reference for: $clazz")
   }
+
+  def actorFor[T: ClassTag](implicit actorSystem: ActorSystem): ActorRef = actorFor(classTag[T].runtimeClass)
 }
 

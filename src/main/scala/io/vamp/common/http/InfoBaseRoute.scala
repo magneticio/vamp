@@ -1,15 +1,16 @@
 package io.vamp.common.http
 
 import akka.actor.Actor
-import akka.pattern.{after, ask}
+import akka.pattern.{ after, ask }
 import akka.util.Timeout
+import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.vitals.{InfoRequest, JmxVitalsProvider, JvmVitals}
+import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmVitals }
 import spray.http.StatusCodes.OK
 
-import scala.concurrent.{Future, TimeoutException}
-import scala.language.{existentials, postfixOps}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ Future, TimeoutException }
+import scala.language.{ existentials, postfixOps }
+import scala.util.{ Failure, Success }
 
 trait InfoMessageBase {
   def jvm: JvmVitals
@@ -45,7 +46,7 @@ trait InfoRetrieval {
   def componentInfoTimeout: Timeout
 
   def retrieve(actors: List[Class[Actor]]): Future[Map[Class[Actor], Any]] = {
-    val futures: Map[Class[Actor], Future[Any]] = actors.map(actor => actor -> IoC.actorFor[actor.type] ? InfoRequest).toMap
+    val futures: Map[Class[Actor], Future[Any]] = actors.map(actor => actor -> actorFor(actor) ? InfoRequest).toMap
 
     Future.firstCompletedOf(List(Future.sequence(futures.values.toList.map(_.recover { case x => Failure(x) })), after(componentInfoTimeout.duration, using = actorSystem.scheduler) {
       Future.successful(new TimeoutException("Component timeout."))
