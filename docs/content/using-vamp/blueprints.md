@@ -6,52 +6,46 @@ menu:
     parent: using-vamp
     identifier: using-blueprints
 ---
+
 # Blueprints
-Blueprints are execution plans - they describe how your services should be hooked up and what the topology should look like at runtime. This means you reference your breeds (or define them inline) and add runtime configuration to them.
+
+Blueprints are execution plans - they describe how your services should be hooked up and what their topology should look like at runtime. This means you reference your breeds (or define them inline) and add runtime configuration to them.
 
 Blueprints allow you to add the following extra properties:
 
-- **endpoint:** a stable port where the service can be reached.
-- **cluster:** a grouping of services with one purpose, i.e. two versions (a/b) of one service.
-- **dialect:** a set of native commands for the underlying container platform.
-- **scale:** the CPU and memory and the amount of instance allocate to a service.
-- **routing:** how much and which traffic the service should receive.
-- **filter:** how traffic should be directed based on HTTP and/or TCP properties.
-- **sla:** SLA definition that controls autoscaling.
-
+- [endpoints](#endpoints): a stable port where the service can be reached.
+- [clusters & services](#clusters-services): a cluster is agrouping of services with one purpose, i.e. two versions (a/b) of one service.
+- [dialects](#dialects): a dialect is a set of native commands for the underlying container platform, i.e. Docker or Mesosphere Marathon.
+- [scale](#scale): the CPU and memory and the amount of instance allocate to a service.
+- [routing](/documentation/using-vamp/routings-and-filters/): how much and which traffic the service should receive.
+- [filters](/documentation/using-vamp/routings-and-filters/): how traffic should be directed based on HTTP and/or TCP properties.
+- [sla & escalations](/documentation/using-vamp/sla-and-escalations/): SLA definition that controls autoscaling.
 
 This example shows some of the key concepts of of blueprints:
 
 ```yaml
 ---
-name: my_cool_blueprint # custom blueprint name
+name: my_blueprint                        # Custom blueprint name
 endpoints:
   my_frontend.port: 8080/http
-
 clusters:
-  my_frontend: # Custom cluster name.
-    services: # List of services
+  my_frontend:                            # Custom cluster name.
+    services:                             # List of services
       -
         breed:
           name: some_cool_breed
-        # Scale for this service.
-        scale:
-          cpu: 2        # Number of CPUs per instance.
-          memory: 2048  # Memory in MB per instance.
-          instances: 2  # Number of instances.
-        # Routing for this service.
-        # This makes sense only with multiple services per cluster.
-        routing:
-          weight: 95
+        scale:                            # Scale for this service.
+          cpu: 2                          # Number of CPUs per instance.
+          memory: 2048                    # Memory in MB per instance.
+          instances: 2                    # Number of instances
+        routing:                          # Routing for this service.  
+          weight: 95                      # This makes sense only with multiple services per cluster.
           filters:
-            - condition: ua = android
-      -
-        # Another service in the same cluster.
-        breed: some_other_breed
-        scale: large # Notice we used a reference to a "scale". More on this later
-
-    # SLA (reference) defined on cluster level.
-    sla: some_really_good_sla
+            - condition: User-Agent = Chrome
+      -                                          
+        breed: 
+          ref: some_other_breed           # Another service in the same cluster.  
+        scale: large                      # Notice we used a reference to a "scale". More on this later
 ```
 
 ## Endpoints
@@ -78,13 +72,15 @@ given an arbitrary name. Services are just lists or arrays of breeds.
 ---
 my_cool_cluster
   services
-   - breed: my_cool_service_A   # reference to an existing breed
+   - breed: 
+      ref: my_cool_service_A      # reference to an existing breed
    -
-     breed:           # shortened inline breed
+     breed:                       # shortened inline breed
        name: my_cool_service_B
        deployable: some_container
        ...
 ```
+
 Clusters and services are just organisational items. Vamp uses them to order, reference and control the actual containers and routing and traffic.
 
 > **This all seems redundant, right?** We have a reference chain of blueprints -> endpoints -> clusters -> services -> breeds -> deployable. However, you need this level of control and granularity in any serious environment where DRY principles are taken seriously and where "one size fits all" doesn't fly.
@@ -92,9 +88,44 @@ Clusters and services are just organisational items. Vamp uses them to order, re
 
 ## Dialects
 
-Vamp allows you to use container driver specific tags inside blueprints. We call this a “dialect”. This effectively enables you to make full use of, for instance, the underlying Marathon features like mounting disks, settings commands and providing access to private Docker registries.
+Vamp allows you to use container driver specific tags inside blueprints. We call this a “dialect”. We currently support:
 
-Let’s look at an example blueprint that pulls an image from private repo, mounts some volumes, sets some labels and gets run with an ad hoc command: all taken care of by Marathon.
+- `docker:`
+- `marathon:`
+
+This effectively enables you to make full use of, for instance, the underlying features like mounting disks, settings commands and providing access to private Docker registries.
+
+### Docker dialect
+
+The following example show how you can mount a volume to a Docker container using the Docker dialect:
+
+```yaml
+---
+name: busybox
+clusters:
+  busyboxes:
+    services:
+      breed:
+        name: busybox-breed
+        deployable: busybox:latest
+      docker:
+        Volumes:
+          "/tmp": ~
+```
+
+Vamp will translate this into the proper API call. Inspecting the container after its deployed should show something similar to this:
+
+```json
+...
+"Volumes": {
+      "/tmp": "/mnt/sda1/var/lib/docker/volumes/1a3923fa6108cc3e19a7fe0eeaa2a6c0454688ca6165d1919bf647f5f370d4d5/_data"
+  },
+...    
+```    
+
+### Marathon dialect
+
+This is an example with Marathon that pulls an image from private repo, mounts some volumes, sets some labels and gets run with an ad hoc command: all taken care of by Marathon.
 
 ```yaml
 ---
@@ -119,11 +150,6 @@ clusters:
              containerPath: "/tmp/"
              hostPath: "/tmp/"
              mode: "RW"
-      scale:
-        cpu: 0.1
-        memory: 256
-        instances: 1
-
 ```
 **Notice the following**:
 

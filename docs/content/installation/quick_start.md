@@ -24,7 +24,7 @@ Please install one of the following for your platform/architecture
 - Docker 1.7.x
 - Boot2Docker 1.7.x if on Mac OSX
 
-> **Note 2**: As of Vamp 0.7.9, we don't support Docker 1.6 anymore when using the Docker driver.
+> **Note**: As of Vamp 0.7.9, we don't support Docker 1.6 anymore when using the Docker driver.
 
 ## Step 2: Run Vamp
 

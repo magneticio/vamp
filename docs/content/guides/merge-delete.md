@@ -114,8 +114,7 @@ clusters:
         ports:
           port: 8080/http
         environment_variables:
-          backend[BACKEND]: http://$backend.host:$backend.ports.port/api/message
-        constants: {}
+          BACKEND: http://$backend.host:$backend.ports.port/api/message
         dependencies:
           backend:
             name: sava-backend:1.3.0
@@ -126,7 +125,6 @@ clusters:
       routing:
         weight: 50
         filters: []
-      dialects: {}
     - breed:
         name: sava-frontend:1.2.0
         deployable: magneticio/sava-frontend:1.2.0
@@ -135,7 +133,6 @@ clusters:
         environment_variables:
           BACKEND_1: http://$backend1.host:$backend1.ports.port/api/message
           BACKEND_2: http://$backend2.host:$backend2.ports.port/api/message
-        constants: {}
         dependencies:
           backend1:
             name: sava-backend1:1.2.0
@@ -148,8 +145,6 @@ clusters:
       routing:
         weight: 50
         filters: []
-      dialects: {}
-    dialects: {}
 environment_variables:
   sava.BACKEND_1: http://$backend1.host:$backend1.ports.port/api/message
   sava.BACKEND_2: http://$backend2.host:$backend2.ports.port/api/message
@@ -183,23 +178,23 @@ clusters:
   backend1:
     services:
     - breed:
-        name: sava-backend1:1.2.0
+        ref: sava-backend1:1.2.0
       routing:
         weight: 0
   backend2:
     services:
     - breed:
-        name: sava-backend2:1.2.0
+        ref: sava-backend2:1.2.0
       routing:
         weight: 0
   sava:
     services:
     - breed:
-        name: sava-frontend:1.3.0
+        ref: sava-frontend:1.3.0
       routing:
         weight: 100
     - breed:
-        name: sava-frontend:1.2.0
+        ref: sava-frontend:1.2.0
       routing:
         weight: 0
 ```
@@ -220,15 +215,15 @@ clusters:
   sava:
     services:
       breed:
-        name: sava-frontend:1.2.0
+        ref: sava-frontend:1.2.0
   backend1:
     services:
       breed:
-        name: sava-backend1:1.2.0
+        ref: sava-backend1:1.2.0
   backend2:
     services:
       breed:
-        name: sava-backend2:1.2.0
+        ref: sava-backend2:1.2.0
 ```
 {{% /copyable %}}
 

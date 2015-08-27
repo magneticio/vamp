@@ -1,5 +1,5 @@
 ---
-title: Overview
+title: Using Vamp
 weight: 10
 url: /documentation/using-vamp/
 menu:
@@ -10,7 +10,7 @@ menu:
 
 # Using Vamp
 
-Vamp has three basic entities you can work with:
+Vamp has three basic entities or artefacts you can work with:
 
 -   **Breeds**: static artifacts that describe single services and their dependencies.  
 -   **Blueprints**: blueprints are, well, blueprints! They describe how breeds work in runtime and what properties they should have.  
@@ -18,32 +18,6 @@ Vamp has three basic entities you can work with:
 
 
 > **Note**: Breeds and blueprints are static artefacts, deployment are not. This means any API actions on static artefacts are mostly synchronous. Actions on deployments are largely asychronous.
-
-## Inline or reference?
-
-Vamp allows you to either inline or reference artefacts. This has a big impact on how complex or simple you can make any blueprint, breed or deployment. As an example, this is a totally valid blueprint:
-
-```yaml
-name: my_blueprint
-  clusters:
-    my_cluster:
-      services:
-        - my_breed
-```
-
-The breed is just **referenced** here. Vamp assumes that the breed called `my_breed` is available to load from its datastore at deploy time. This goes for all basic artefacts in Vamp: SLA's, routings, filters, escalations, etc.
-
-But we could also define the whole breed **inline**. This means we store all details of the breed in the blueprint. Vamp will actually pick this up and create a separate breed for you once you have posted the blueprint to Vamp.
-
-```yaml
-name: my_blueprint
-  clusters:
-    my_cluster:
-      services:
-        - name: my_breed
-            deployable: redis:0.1
-            ...
-```
 
 ## Eventual consistency
 

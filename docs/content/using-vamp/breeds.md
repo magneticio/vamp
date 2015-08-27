@@ -6,14 +6,21 @@ menu:
     parent: using-vamp
     identifier: using-breeds    
 ---
+
 # Breeds
 
 Breeds are static descriptions of applications and services available for deployment. Each breed is described by the DSL in YAML notation or JSON, whatever you like. This description includes name, version, available parameters, dependencies etc.
 To a certain degree, you could compare a breed to a Maven artefact or a Ruby Gem description.
 
-> **Note:** Breeds can be referenced by name. This means you can describe a breed in detail just once, and then use its name in a blueprint.
+Breeds allow you to set the following properties:
 
-## Deployables
+- [deployable](#deployable): the name of actual container or command that should be run.
+- [ports](#ports): a map of ports your container exposes.
+- [environment variables](#environment-variables-dependencies): a list of variables (interpolated or not) to be made available at runtime.
+- [dependencies](#environment-variables-dependencies): a list of other breeds this breed depends on.
+
+
+## Deployable
 
 Deployables are pointers to the actual artefacts that get deployed. Vamp supports Docker containers or can support any other artefacts supported by your container manager. Let's start with an example breed that deploys a Docker container:
 
@@ -54,7 +61,7 @@ ports:
   redis: 9023/tcp   
 ```
 
-Ports come in two flavor
+Ports come in two flavors:
 
 - `/tcp` this is the default type if none is specified. Use it for things like Redis, MySQL etc.
 
@@ -65,117 +72,265 @@ interesting metrics like response times, errors etc. Of course, using `/tcp` wil
 
 Notice we can give the ports sensible names. This specific deployable has `web` port for customer traffic, an `admin` port for admin access and a `redis` port for some caching probably. These names come in handy when we later compose different breeds in blueprints.
 
-## Dependencies & environment variables
+## Environment variables & dependencies
 
 
-Breeds can have dependencies on other breeds. These dependencies should be stated
-explicitly, similar to how you would do in a Maven pom.xml, a Ruby Gemfile or similar
-package dependency systems. 
-
-In a lot of cases, dependencies coexist with interpolated
-environment variables or constants because exact values are not known untill deploy time. Have a look at the following breed and read the comments carefully.
+A breed can have a list of environment variables that will be injected into the container at runtime. You set environment variables with the `environment_variables` keyword or its shorter version `env`, e.g. both examples below are equivalent.
 
 ```yaml
 ---
-name: my_breed:0.1
-deployable: company/my_frontend_service:0.1
-
-ports:
-  web: 8080/http
-
 environment_variables:
-  DB_HOST: $db.host 
-  DB_PORT: $db.ports.port 
-  URL: jdbc://$db.host:$db.ports.port/schema/foo
+  PORT: 8080
+```
 
+```yaml
+---
+env:
+  PORT: 8080
+```
+
+Breeds can also have dependencies on other breeds. These dependencies should be stated explicitly, similar to how you would do in a Maven pom.xml, a Ruby Gemfile or similar package dependency systems, i.e:
+
+```yaml
+---
 dependencies:
-  db: mysql 
-```
-Any value starting with $ will be interpolated to a specific value at runtime. The `$` value is escaped by `$$`. A more strict notation is `${some_reference}`.
+  cache: redis:1.1
+``` 
 
-In general, the notation is:
+In a lot of cases, dependencies coexist with interpolated environment variables or constants because exact values are not known untill deploy time.
 
-1. `$cluster.[ports|environment_variables|constants].name`
-2. `$local` (environment variable or constant)
-3. `$cluster.host`
+### 'Hard' setting a variable
 
-The name `db` here is a reference to a "mysql" breed that needs to exist during deployment. "db" is a custom name just in this scope. For instance if there is a need for 2 databases someone could use db1 & db2, or XX & XY etc.
-
-### 'Hard' set a variable
-
-You want to "hard set" an environment variable, just like doing an `export MY_VAR=some_value` in a shell. This  variable could be some external dependency you have no direct control over: the endpoint of some service you use that is out of your control. 
-
-You may also want to define a placeholder for a variable of which you do not know the actual value yet, but should be filled in when this breed is used in a blueprint: the following deployment will not run without it and you want Vamp to check that dependency. This placeholder is designated with a `~` character.
+You want to "hard set" an environment variable, just like doing an `export MY_VAR=some_value` in a shell. This  variable could be some external dependency you have no direct control over: the endpoint of some service you use that is out of your control. It can also be some setting you want to tweak, like `JVM_HEAP_SIZE` or `AWS_REGION`.
 
 ```yaml
 ---
-name: my_breed
-deployable: repo/container:version
+name: java_aws_app:1.2.1
+deployable: acmecorp/tomcat:1.2.1
 
 environment_variables:
-    MY_ENV_VAR1: some_string_value  # hard set
-    MY_ENV_VAR2: ~                  # placeholder
+    JVM_HEAP_SIZE: 1200
+    AWS_REGION: 'eu-west-1'     
 ```
 
-### Resolve a reference at deploy time
+### Using place holders
 
-You might want to resolve a reference and set it as the value for an environment variable. This reference can either be dynamically resolved at deploy-time, like ports and hosts names we don't know till a deployment is done, or be a reference to a hardcoded and published constant from some other part of the blueprint or breed, typically a dependency.
+You may also want to define a place holder for a variable of which you do not know the actual value yet, but it should be filled in at runtime, i.e. when this breed actually gets deployed. This place holder is designated with a `~` character.
 
-You would use this to hook up services at runtime based on host/port combinations or to use a hard dependency that never changes but should be provided by another breed. 
-
->**Note:** use the `$` sign to reference other statements in a blueprint and you use the `constants` keyword
-to create a list of constant values.
-
-Have a look at this example blueprint. We are describing a frontend service that has a dependency on a backend service. We pick up the actual address of the backend service using references to variables in the blueprint that are filled in at runtime. However, we also want to pick up a value that is set by "us humans": the api path, in this case "/v2/api/customers".
+In the below example we designated the `ORACLE_PASSWORD` as a place holder. We require this variable to provided later.
 
 ```yaml
 ---
-name: my_blueprint
-clusters:
-
-  frontend:
-    breed:
-      name: frontend_service
-    environment_variables:
-        # resolves to a host and port at runtime
-        BACKEND_URL: http://$backend.host:$backend.ports.port
-        # resolves to the "published" constant value
-        BACKEND_URI_PATH: $backend.constants.uri_path        
-      dependencies:
-        backend: my_other_breed
-  backend:
-    breed:
-      name: my_other_breed
-    constants:
-      uri_path: /v2/api/customers   
+name: java_aws_app:1.2.1
+deployable: acmecorp/tomcat:1.2.1
+environment_variables:
+    JVM_HEAP_SIZE: 1200
+    AWS_REGION: 'eu-west-1' 
+    ORACLE_PASSWORD: ~    
 ```
 
-We could even extend this further. What if the backend is configured through some environment variable, but the frontend also needs that information? Let's say the encoding type for some database.
-We just reference that environment variable using the exact same syntax:
+> **Note**: A typical use case for this would be when different roles in a company work on the same project. Developers can create place holders for variables that operations should fill in: it helps with separating responsibilities.
+
+### Resolving variables
+
+Using the `$` character, you can reference other statements in a breed/blueprint. This allows you to dynamically resolve ports and hosts names we don't know till a deployment is done. You can also resolve to hard coded and published constants from some other part of the blueprint or breed, typically a dependency, i.e.:
 
 ```yaml
 ---
-name: my_blueprint
-clusters:
-
-  frontend:
     breed:
-      name: frontend_service
+      name: frontend_app:1.0
+      deployable: acmecorp/tomcat:1.2.1      
     environment_variables:
-        # resolves to a host and port at runtime
-        BACKEND_URL: http://$backend.host:$backend.ports.port
-        # resolves to the "published" constant value
-        BACKEND_URI_PATH: $backend.constants.uri_path
-        #resolves to the environment variable in the dependency
-        BACKEND_ENCODING: $backend.environment_variables.ENCODING_TYPE        
+        MYSQL_HOST: $backend.host        # resolves to a host at runtime
+        MYSQL_PORT: $backend.ports.port  # resolves to a port at runtime
       dependencies:
-        backend: my_other_breed
+        backend: mysql:1.0
   backend:
     breed:
-      name: my_other_breed
-    environment_variables:
-      ENCODING_TYPE: 'UTF8'  
-    constants:
-      uri_path: /v2/api/customers
-         
+      name: mysql:1.0
 ```
+
+Vamp provides just one *magic** variable: the `host`. This resolves to the host or ip address of the referenced service. Strictly speaking the `host` reference resolves to the router endpoint, but users do need to concern themselves with this. Users can think of *one-on-one* connections where Vamp actually does server-side service discovery to decouple services.
+
+> **Note**: The `$` value is escaped by `$$`. A more strict notation is `${some_reference}`
+
+We could even extend this further. What if the backend is configured through some environment variable, but the frontend also needs that information? Let's say the encoding type for our database. We just reference that environment variable using the exact same syntax:
+
+```yaml
+---
+    breed:
+      name: frontend_app:1.0
+      deployable: acmecorp/tomcat:1.2.1      
+    environment_variables:
+        MYSQL_HOST: $backend.host       
+        MYSQL_PORT: $backend.ports.port 
+        BACKEND_ENCODING: $backend.environment_variables.ENCODING_TYPE
+      dependencies:
+        backend: mysql:1.0
+  backend:
+    breed:
+      name: mysql:1.0
+    environment_variables:
+      ENCODING_TYPE: 'UTF8'   # injected into the backend MySQL container
+```
+
+You can do everything with `environment_variables` but `constants` allow you to just be a little bit cleaner with regard to what you want to expose and what not.
+
+### Environment variable scope
+
+Environment variables can live on different scopes and can be overridden by scopes higher in the scope hierarchy.
+A scope is an area of your breed or blueprint definition that limits the visibility of variables and references inside that scope.
+
+1. **Breed scope**: The scope we used in all the above examples is the default scope. If you never define any `environment_variables` in any other place, this will be used.
+
+2. **Service scope**: This scope can override breed scope and is part of the blueprint artefact. Use this to override environment variables in a breed when using references to breeds.
+
+3. **Cluster scope**: This scope can override the service scope and breed scope and is part of the blueprint artefact. Use this to override all environment variables in all services that belong to a cluster.
+
+> **Note:** Using scopes effectively is completely up to your use case. The various scopes help to separate
+concerns when multiple people and/or teams work on Vamp artefacts and deployments and need to decouple their effor
+
+
+Let's look at some examples:
+
+**Example 1: Running two the same services with a different configuration**
+
+As a dev/ops-er you want to test one service configured in two different ways at the same time. Your service is configurable using environment variables. In this case we are testing a connection pool setting. The blueprint would look like:
+
+```yaml
+---
+name: production_deployment:1.0
+endpoints:
+  frontend.port: 9050/http
+clusters:
+  frontend:
+    services:
+      -
+        breed:
+          name: frontend_app:1.0-a
+          deployable: acmecorp/tomcat:1.2.1
+          ports:
+            port: 8080/http
+          environment_variables:           
+            CONNECTION_POOL: 30
+        routing:
+          weight: 50                 
+      -
+        breed:
+          name: frontend_app:1.0-b              # different breed name, same deployable
+          deployable: acmecorp/tomcat:1.2.1
+          ports:
+            port: 8080/http
+          environment_variables:           
+            CONNECTION_POOL: 60                 # different pool size
+        routing:
+          weight: 50               
+```  
+
+> **Note:** we just use the breed level environment variables. We also split the traffic into a 50/50 divide between both services.
+
+**Example 2: Overriding the JVM_HEAP_SIZE in production**
+
+As a developer, you created your service with a default heap size you use on your development laptop and maybe on a test environment. Once your service goes "live", an ops guy/gall should be able to override this setting.
+
+```yaml
+---
+name: production_deployment:1.0
+endpoints:
+  frontend.port: 9050/http
+environment_variables:                  # cluster level variable 
+  frontend.JVM_HEAP_SIZE: 2800          # overrides the breed level
+clusters:
+  frontend:
+    services:
+      -
+        breed:
+          name: frontend_app:1.0
+          deployable: acmecorp/tomcat:1.2.1
+          ports:
+            port: 8080/http
+          environment_variables:           
+            JVM_HEAP_SIZE: 1200         # will be overridden by deployment level: 2800
+```            
+
+> **Note:** we override the variable `JVM_HEAP_SIZE` for the whole `frontend` cluster by specifically marking it with .dot-notation `cluster.variable` 
+
+**Example 3: Using a place holder**
+
+As a developer, you might not know some value your service needs at runtime, say the Google Anaytics ID your company uses. However, your Node.js frontend needs it! You can make this explicit by demanding that a variable is to be set by a higher scope by using the `~` place holder. When this variable is NOT provided, Vamp will report an error at deploy time.
+
+```yaml
+---
+name: production_deployment:1.0
+endpoints:
+  frontend.port: 9050/http
+environment_variables:                            # cluster level variable 
+  frontend.GOOGLE_ANALYTICS_KEY: 'UA-53758816-1'  # overrides the breed level
+clusters:
+  frontend:
+    services:
+      -
+        breed:
+          name: frontend_app:1.0
+          deployable: acmecorp/node_express:1.0
+          ports:
+            port: 8080/http
+          environment_variables:           
+            GOOGLE_ANALYTICS_KEY: ~               # If not provided at higher scope, Vamp reports error
+``` 
+
+**Example 4: Combining all scopes and references**
+
+As a final example, let's combine some of the examples above and include referenced breeds. In this case, a we have two breed artefacts already stored in Vamp and include them by using the `ref` keyword.
+
+We override all `JVM_HEAP_SIZE` variables at the top scope. However, we just want to tweak the `JVM_HEAP_SIZE` for service `frontend_app:1.0-b`. We do this by adding a `environment_variables` at the service level.
+
+```yaml
+---
+name: production_deployment:1.0
+endpoints:
+  frontend.port: 9050/http
+environment_variables:                            # cluster level variable 
+  frontend.JVM_HEAP_SIZE: 2400                    # overrides the breed level
+clusters:
+  frontend:
+    services:
+      - breed:
+          ref: frontend_app:1.0-a
+        routing:
+          weight: 50  
+      - breed:
+          ref: frontend_app:1.0-b
+        routing:
+          weight: 50          
+        environment_variables:           
+          JVM_HEAP_SIZE: 1800               # overrides the breed level AND cluster level
+``` 
+
+
+
+### Constants
+
+Sometimes you just want configuration information to be available in a breed or blueprint. You don't need that information to be directly exposed as an environment variable. As a convenience, Vamp allows you to set `constants`.
+These are values that cannot be changed during deploy time.
+
+```yaml
+---
+breed:
+  name: frontend_app:1.0
+environment_variables:
+    MYSQL_HOST: $backend.host       
+    MYSQL_PORT: $backend.ports.port 
+    BACKEND_ENCODING: $backend.environment_variables.ENCODING_TYPE
+    SCHEMA: $backend.constants.SCHEMA_NAME
+  dependencies:
+    backend: mysql:1.0
+backend:
+breed:
+  name: mysql:1.0
+environment_variables:
+  ENCODING_TYPE: 'UTF8'
+constants:
+  SCHEMA_NAME: 'customers'    # NOT injected into the backend MySQL container
+```
+

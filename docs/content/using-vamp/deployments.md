@@ -1,7 +1,6 @@
 ---
 title: Deployments
 weight: 40
-identifier: concepts-deployments
 menu:
   main:
     parent: using-vamp
