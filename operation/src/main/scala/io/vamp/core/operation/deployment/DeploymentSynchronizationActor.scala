@@ -189,7 +189,7 @@ class DeploymentSynchronizationActor extends PaginationSupport with CommonSuppor
   }
 
   private def hasResolvedEnvironmentVariables(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService) = {
-    deploymentService.breed.environmentVariables.count(_ => true) == deploymentService.environmentVariables.count(_ => true) && deploymentService.environmentVariables.forall(_.interpolated.isDefined)
+    deploymentService.breed.environmentVariables.count(_ => true) <= deploymentService.environmentVariables.count(_ => true) && deploymentService.environmentVariables.forall(_.interpolated.isDefined)
   }
 
   private def deployed(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
