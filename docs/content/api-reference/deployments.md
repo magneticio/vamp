@@ -94,7 +94,7 @@ clusters:
         constants: {}
         dependencies:
           backend:
-            name: monarch_backend:0.3
+            ref: monarch_backend:0.3
     - breed:
         name: monarch_front:0.2
         deployable: magneticio/monarch:0.2
@@ -102,7 +102,7 @@ clusters:
           port: 8080/http
         dependencies:
           backend:
-            name: monarch_backend:0.3
+            ref: monarch_backend:0.3
   backend:
     services:
     - breed:
@@ -123,7 +123,7 @@ clusters:
   frontend:
     services:
     - breed:
-        name: monarch_front:0.1
+        ref: monarch_front:0.1
 ```        		
 
 If we want to delete the whole deployment, we just specify all the clusters and services.
@@ -136,13 +136,13 @@ clusters:
   frontend:
     services:
     - breed:
-        name: monarch_front:0.1
+        ref: monarch_front:0.1
     - breed:
-        name: monarch_front:0.2
+        ref: monarch_front:0.2
   backend:
     services:
     - breed:
-        name: monarch_backend:0.3
+        ref: monarch_backend:0.3
 ```        		    
 
 # Deployment SLA's
