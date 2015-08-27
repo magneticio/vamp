@@ -33,17 +33,29 @@ Creates a new deployment
 
 	POST /api/v1/deployments
 
+| parameter     | options           | default          | description      |
+| ------------- |:-----------------:|:----------------:| ----------------:|
+| validate_only | true or false     | false            | validates the blueprint and returns a `202 Accepted` if the blueprint is valid for deployment. This can be used together with the header `Accept: application/x-yaml` to return the result in YAML format instead of the default JSON.     
+
 ## Update a deployment using a blueprint
 
 Updates the settings of a specific deployment.
 
     PUT /api/v1/deployments/:id
 
+| parameter     | options           | default          | description      |
+| ------------- |:-----------------:|:----------------:| ----------------:|
+| validate_only | true or false     | false            | validates the blueprint and returns a `202 Accepted` if the deployment after the update would be still valid. This can be used together with the header `Accept: application/x-yaml` to return the result in YAML format instead of the default JSON. 
+
 ## Delete a deployment using a blueprint
 
 Deletes all or parts of a deployment.        
 
     DELETE /api/v1/deployments/:id
+
+| parameter     | options           | default          | description      |
+| ------------- |:-----------------:|:----------------:| ----------------:|
+| validate_only | true or false     | false            | validates the blueprint and returns a `202 Accepted` if the deployment after the (partial) deletion would be still valid. Actual delete is not performed.
 
 In contrast to most API's, doing a `DELETE` in Vamp takes a request body that designates what part of the deployment should be deleted. This allows you to remove specific services, clusters of the whole deployment.
 
