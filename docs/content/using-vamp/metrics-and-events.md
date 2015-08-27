@@ -139,6 +139,28 @@ This example gives you all the metrics we have for a specific service, in this c
 ```
 **Notice** we made the search less specific by just providing the "metrics" tag and not telling the API which specific one we want.
 
+## Server-sent events (SSE)
+
+Events and metrics can be streamed back directly from Vamp. 
+
+`POST /api/v1/events/stream`
+
+In order to narrow down (filter) events, list of tags could be provided in the request body.
+
+```json
+{
+  "tags": ["routes:214615ec-d5e4-473e-a98e-8aa4998b16f4_frontend_8080","metrics"]
+}
+```
+
+GET method can be also used (may be more convenient):
+
+`GET /api/v1/events/stream`
+
+Using tags:
+
+`GET /api/v1/events/stream?tags=archiving&tags=breeds`
+
 ## Archiving
 
 All changes in artifacts (creation, update or deletion) triggered by REST API calls are archived. We store the type of event and the original representation of the artefact. It's a bit like a Git log. 

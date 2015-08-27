@@ -16,5 +16,10 @@ Lists metrics and/or events without any pagination or filtering.
 
 ## Create metrics & events
 
+    POST /api/v1/events    
+    
+## Server-sent events (SSE)
 
-    POST /api/v1/events
+    GET  /api/v1/events/stream
+    
+    POST /api/v1/events/stream
