@@ -28,14 +28,26 @@ Creates a new scale.
 
 Accepts JSON or YAML formatted scales. Set the `Content-Type` request header to `application/json` or `application/x-yaml` accordingly.    
 
+| parameter     | options           | default          | description      |
+| ------------- |:-----------------:|:----------------:| -----------------:|
+| validate_only | true or false     | false            | validates the scale and returns a `201 Created` if the scale is valid. This can be used together with the header `Accept: application/x-yaml` to return the result in YAML format instead of the default JSON. 
+
 ## Update a scale
 
 Updates the content of a specific scale.
 
     PUT /api/v1/scales/:name
 
+| parameter     | options           | default          | description      |
+| ------------- |:-----------------:|:----------------:| ----------------:|
+| validate_only | true or false     | false            | validates the scale and returns a `200 OK` if the scale is valid. This can be used together with the header `Accept: application/x-yaml` to return the result in YAML format instead of the default JSON. 
+
 ## Delete a scale
 
 Deletes a scale.        
 
     DELETE /api/v1/scales/:name
+
+| parameter     | options           | default          | description      |
+| ------------- |:-----------------:|:----------------:| ----------------:|
+| validate_only | true or false     | false            | returns a `204 No Content` without actual delete of the scale.

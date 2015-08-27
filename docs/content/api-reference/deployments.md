@@ -17,9 +17,9 @@ Deployments have a set of sub resources: **SLA's**, **scales** and **routings**.
 
 	GET /api/v1/deployments
 
-| parameter     | options           | description      |
-| ------------- |:-----------------:| ----------------:|
-| as_blueprint  | true or false     | exports the deployment as a valid blueprint. This can be used together with the header `Accept: application/x-yaml` to export in YAML format instead of the default JSON. |
+| parameter     | options           | default          | description      |
+| ------------- |:-----------------:|:----------------:| ----------------:|
+| as_blueprint  | true or false     | false            | exports the deployment as a valid blueprint. This can be used together with the header `Accept: application/x-yaml` to export in YAML format instead of the default JSON. |
 
 ## Get a single deployment
 

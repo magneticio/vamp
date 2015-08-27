@@ -28,9 +28,9 @@ Creates a new breed
 
 Accepts JSON or YAML formatted breeds. Set the `Content-Type` request header to `application/json` or `application/x-yaml` accordingly.    
 
-| parameter     | options           | description      |
-| ------------- |:-----------------:| ----------------:|
-| validate_only | true or false     | validates the breed and returns a `201` if the breed is valid.This can be used together with the header `Accept: application/x-yaml` to return the result in YAML format instead of the default JSON. 
+| parameter     | options           | default          | description       |
+| ------------- |:-----------------:|:----------------:| -----------------:|
+| validate_only | true or false     | false            | validates the breed and returns a `201 Created` if the breed is valid. This can be used together with the header `Accept: application/x-yaml` to return the result in YAML format instead of the default JSON. 
 
 ## Update a breed
 
@@ -38,8 +38,16 @@ Updates the content of a specific breed.
 
     PUT /api/v1/breeds/:name
 
+| parameter     | options           | default          | description      |
+| ------------- |:-----------------:|:----------------:| ----------------:|
+| validate_only | true or false     | false            | validates the breed and returns a `200 OK` if the breed is valid. This can be used together with the header `Accept: application/x-yaml` to return the result in YAML format instead of the default JSON. 
+
 ## Delete a breed
 
 Deletes a breed.        
 
     DELETE /api/v1/breeds/:name
+    
+| parameter     | options           | default          | description      |
+| ------------- |:-----------------:|:----------------:| ----------------:|
+| validate_only | true or false     | false            | returns a `204 No Content` without actual delete of the breed.
