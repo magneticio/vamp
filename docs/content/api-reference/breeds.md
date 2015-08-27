@@ -14,11 +14,21 @@ Lists all breeds without any pagination or filtering.
 
     GET /api/v1/breeds
 
+| parameter         | options           | default          | description       |
+| ----------------- |:-----------------:|:----------------:| -----------------:|
+| expand_references | true or false     | false            | all breed dependencies will be replaced (recursively) with full breed definitions. `400 Bad Request` in case some dependencies are not yet fully defined.
+| only_references   | true or false     | false            | all full breed dependencies will be replaced with their references.
+
 ## Get a single breed
 
 Lists all details for one specific breed.
 
     GET /api/v1/breeds/:name
+
+| parameter         | options           | default          | description       |
+| ----------------- |:-----------------:|:----------------:| -----------------:|
+| expand_references | true or false     | false            | all breed dependencies will be replaced (recursively) with full breed definitions. `400 Bad Request` in case some dependencies are not yet fully defined.
+| only_references   | true or false     | false            | all full breed dependencies will be replaced with their references.
 
 ## Create breed
 

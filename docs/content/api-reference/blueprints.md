@@ -14,11 +14,21 @@ Lists all blueprints without any pagination or filtering.
 
     GET /api/v1/blueprints
 
+| parameter         | options           | default          | description       |
+| ----------------- |:-----------------:|:----------------:| -----------------:|
+| expand_references | true or false     | false            | all breed references will be replaced (recursively) with full breed definitions. `400 Bad Request` in case some breeds are not yet fully defined.
+| only_references   | true or false     | false            | all breeds will be replaced with their references.
+
 ## Get a single blueprint
 
 Lists all details for one specific blueprint.
 
     GET /api/v1/blueprint/:name
+
+| parameter         | options           | default          | description       |
+| ----------------- |:-----------------:|:----------------:| -----------------:|
+| expand_references | true or false     | false            | all breed references will be replaced (recursively) with full breed definitions. `400 Bad Request` in case some breeds are not yet fully defined.
+| only_references   | true or false     | false            | all breeds will be replaced with their references.
 
 ## Create blueprint
 

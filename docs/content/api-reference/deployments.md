@@ -14,18 +14,25 @@ Deployments have a set of sub resources: **SLA's**, **scales** and **routings**.
 
 ## List deployments
 
-
 	GET /api/v1/deployments
 
-| parameter     | options           | default          | description      |
-| ------------- |:-----------------:|:----------------:| ----------------:|
-| as_blueprint  | true or false     | false            | exports the deployment as a valid blueprint. This can be used together with the header `Accept: application/x-yaml` to export in YAML format instead of the default JSON. |
+| parameter         | options           | default          | description      |
+| ----------------- |:-----------------:|:----------------:| ----------------:|
+| as_blueprint      | true or false     | false            | exports each deployment as a valid blueprint. This can be used together with the header `Accept: application/x-yaml` to export in YAML format instead of the default JSON. |
+| expand_references | true or false     | false            | all breed references will be replaced (recursively) with full breed definitions. It will be applied only if `?as_blueprint=true`.
+| only_references   | true or false     | false            | all breeds will be replaced with their references. It will be applied only if `?as_blueprint=true`.
 
 ## Get a single deployment
 
-Lists all details for one specific deployment. You can also use the `?as_blueprint` parameter here.
+Lists all details for one specific deployment.
 
     GET /api/v1/deployments/:id
+
+| parameter         | options           | default          | description      |
+| ----------------- |:-----------------:|:----------------:| ----------------:|
+| as_blueprint      | true or false     | false            | exports the deployment as a valid blueprint. This can be used together with the header `Accept: application/x-yaml` to export in YAML format instead of the default JSON. |
+| expand_references | true or false     | false            | all breed references will be replaced (recursively) with full breed definitions. It will be applied only if `?as_blueprint=true`.
+| only_references   | true or false     | false            | all breeds will be replaced with their references. It will be applied only if `?as_blueprint=true`.
 
 ## Create deployment using a blueprint
 
