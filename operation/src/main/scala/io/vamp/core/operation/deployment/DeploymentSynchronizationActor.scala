@@ -240,7 +240,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
         case Some(routeService) ⇒
 
           val matchingServers = deploymentService.servers.size == routeService.servers.size && deploymentService.servers.forall { deploymentServer ⇒
-            routeService.servers.exists(routerServer => routerServer.host == deploymentServer.host && routerServer.port == deploymentServer.ports.getOrElse(port.number, 0))
+            routeService.servers.exists(routerServer ⇒ routerServer.host == deploymentServer.host && routerServer.port == deploymentServer.ports.getOrElse(port.number, 0))
           }
 
           val matchingServersWeight = deploymentService.routing.flatMap(_.weight.flatMap(w ⇒ Some(w == routeService.weight))) match {
