@@ -6,7 +6,7 @@ organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
-version in ThisBuild := "0.7.9"+ VersionHelper.versionSuffix
+version in ThisBuild := "0.7.10"+ VersionHelper.versionSuffix
 
 scalaVersion := "2.11.7"
 
@@ -63,8 +63,8 @@ val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4" % "test"
 
 // Library Versions
 
-val vampCommonVersion = "0.7.9-experimental.8f99772"
-val vampUiVersion = "0.7.9-87"
+val vampCommonVersion = "0.7.10-dev.c3dfe09"
+val vampUiVersion = "0.7.10-128"
 
 val sprayVersion = "1.3.2"
 val json4sVersion = "3.2.11"
