@@ -17,6 +17,11 @@ Vamp allows you to do canary releases using blueprints. Take a look at the YAML 
 2. We've added the `routing` key which holds the weight of each service as a percentage of all requests.
 
 Notice we assigned 50% to our current version 1.0.0 and 50% to the new version 1.1.0 We could also start with a 100% to 0% split, a 99% to 1% split or whatever combination you want as long as all percentages add up to 100% in total.
+
+
+You could also just leave out the whole `routing` sections and use the UI to change the weights after we've done the deployment.
+
+![](/img/screenshots/weight_sliders.png)
 {{% copyable %}}
 
 ```yaml
