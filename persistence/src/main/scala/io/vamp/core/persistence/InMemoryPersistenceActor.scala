@@ -26,11 +26,6 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
 
   protected def info() = store.info()
 
-  protected def all(`type`: Class[_ <: Artifact]): List[Artifact] = {
-    log.debug(s"${getClass.getSimpleName}: all [${`type`.getSimpleName}]")
-    store.all(`type`)
-  }
-
   protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
     log.debug(s"${getClass.getSimpleName}: all [${`type`.getSimpleName}] of $page per $perPage")
     store.all(`type`, page, perPage)

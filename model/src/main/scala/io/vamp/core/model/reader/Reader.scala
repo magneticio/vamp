@@ -156,7 +156,17 @@ trait YamlReader[T] extends ModelNotificationProvider {
     }
   }
 
+  protected def first[V <: Any : ClassTag](paths: List[String])(implicit source: YamlObject): Option[V] = first[V](paths.map(string2Path): _*)
+
+  protected def first[V <: Any : ClassTag](paths: YamlPath*)(implicit source: YamlObject): Option[V] = paths.flatMap(<<?[V](_)).headOption
+
   protected def name(implicit source: YamlObject): String = <<![String]("name")
+
+  protected def reference(implicit source: YamlObject): String = <<?[String]("reference").getOrElse(<<![String]("ref"))
+
+  protected def hasReference(implicit source: YamlObject): Option[String] = <<?[String]("reference").orElse(<<?[String]("ref"))
+
+  protected def isReference(implicit source: YamlObject): Boolean = hasReference.nonEmpty
 
   protected def expandToList(path: YamlPath)(implicit source: YamlObject) = {
     <<?[Any](path) match {
@@ -176,7 +186,7 @@ trait ReferenceYamlReader[T] extends YamlReader[T] {
 trait WeakReferenceYamlReader[T] extends YamlReader[T] {
 
   def readReferenceOrAnonymous(any: Any): T = any match {
-    case string: String => createReference(new YamlObject() += ("name" -> string))
+    case string: String => createReference(new YamlObject() += ("reference" -> string))
     case map: collection.Map[_, _] => read(validateEitherReferenceOrAnonymous(map.asInstanceOf[YamlObject]))
   }
 
@@ -186,7 +196,7 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] {
 
   protected def validateEitherReferenceOrAnonymous(implicit source: YamlObject): YamlObject = {
     if (!isAnonymous && !isReference)
-      throwException(EitherReferenceOrAnonymous(asReferenceOf, reference))
+      throwException(EitherReferenceOrAnonymous(asReferenceOf, name))
     source
   }
 
@@ -197,11 +207,7 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] {
 
   override protected def parse(implicit source: YamlObject): T = if (isReference) createReference else createDefault
 
-  protected def isReference(implicit source: YamlObject): Boolean = <<?[String]("name").nonEmpty && source.size == 1
-
   protected def isAnonymous(implicit source: YamlObject): Boolean = <<?[String]("name").isEmpty
-
-  protected def reference(implicit source: YamlObject): String = <<![String]("name")
 
   protected def `type`(implicit source: YamlObject): String = <<![String]("type")
 
@@ -221,7 +227,7 @@ trait TraitReader extends TraitResolver {
     source match {
       case None => List[A]()
       case Some(map: YamlObject) => map.map {
-        case (name, value) if value.isInstanceOf[collection.Map[_, _]] || value.isInstanceOf[List[_]] => throwException(MalformedTraitError(name))
+        case (name, value: AnyRef) if value.isInstanceOf[collection.Map[_, _]] || value.isInstanceOf[List[_]] => throwException(MalformedTraitError(name))
         case (name, value) =>
           val nameAlias = resolveNameAlias(name)
           mapper(nameAlias._1, if (alias) nameAlias._2 else None, if (value == null) None else Some(value.toString))
@@ -241,8 +247,8 @@ trait TraitReader extends TraitResolver {
     }, false)
   }
 
-  def environmentVariables(name: String = "environment_variables", alias: Boolean = true, addGroup: Boolean = false)(implicit source: YamlObject): List[EnvironmentVariable] = {
-    parseTraits(<<?[YamlObject](name), { (name: String, alias: Option[String], value: Option[String]) =>
+  def environmentVariables(names: List[String] = List("environment_variables", "env"), alias: Boolean = true, addGroup: Boolean = false)(implicit source: YamlObject): List[EnvironmentVariable] = {
+    parseTraits(first[YamlObject](names), { (name: String, alias: Option[String], value: Option[String]) =>
       val reference = if (addGroup) {
         NoGroupReference.referenceFor(name) match {
           case Some(ref) => ref.asTraitReference(TraitReference.EnvironmentVariables)

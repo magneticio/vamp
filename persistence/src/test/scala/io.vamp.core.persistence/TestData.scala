@@ -9,7 +9,7 @@ import io.vamp.core.persistence.notification.UnsupportedPersistenceRequest
 import scala.concurrent.duration.FiniteDuration
 
 /**
- * Testdata
+ * Test data
  */
 object TestData {
 
@@ -110,8 +110,8 @@ object TestData {
 
   private val minimalBreedReference = BreedReference("minimal-breed")
   private val myRoute = DefaultRouting(name = "my-route", weight = Some(1), filters = List(DefaultFilter(name = "my-filter", condition = "my-condition")))
-  private val myService1 = Service(breed = minimalBreedReference, scale = Some(myScale1), routing = None)
-  private val myService2 = Service(breed = minimalBreedReference, scale = Some(myScale2), routing = Some(myRoute))
+  private val myService1 = Service(breed = minimalBreedReference, Nil, scale = Some(myScale1), routing = None)
+  private val myService2 = Service(breed = minimalBreedReference, Nil, scale = Some(myScale2), routing = Some(myRoute))
   private val myEscalation = GenericEscalation(name = "my-escalation", `type` = "my-type", parameters = Map("param1" -> 1, "param2" -> "Hello"))
   private val mySlaReference = SlaReference(name = "my-sla", escalations = List(myEscalation))
   private val mySlidingWindowSla = ResponseTimeSlidingWindowSla("",
@@ -158,12 +158,12 @@ object TestData {
       myCluster_db.copy(
         name = "cluster-without-sla",
         sla = None,
-        services = List(Service(breed = breed1Updated.copy(name = "full-service-breed"), routing = Some(route4), scale = Some(myScale2)))
+        services = List(Service(breed = breed1Updated.copy(name = "full-service-breed"), Nil, routing = Some(route4), scale = Some(myScale2)))
       ),
       myCluster_db.copy(
         name = "cluster-without-sla-2",
         sla = None,
-        services = List(Service(breed = breed1Updated.copy(name = "full-service-breed2"), routing = Some(route4), scale = Some(myScale2)))
+        services = List(Service(breed = breed1Updated.copy(name = "full-service-breed2"), Nil, routing = Some(route4), scale = Some(myScale2)))
       )
     ),
     endpoints = List.empty,
@@ -195,6 +195,9 @@ object TestData {
     state = Deployed(),
     servers = List(deploymentServer1),
     breed = deploymentServiceBreed1,
+    environmentVariables = List(
+      EnvironmentVariable(name = "UPPER_MEM", alias = None, value = Some("256K"))
+    ),
     scale = Some(DefaultScale(name = "my-scale2", cpu = 2, memory = 4096, instances = 4)),
     routing = Some(DefaultRouting(name = "route5", weight = None, filters = List.empty)),
     dependencies = Map("abc" -> "def")
@@ -208,7 +211,6 @@ object TestData {
     endpoints = List.empty,
     environmentVariables = List(myParameter5, myParameter6),
     ports = List.empty,
-    constants = List.empty,
     hosts = List.empty
   )
 
@@ -239,10 +241,6 @@ object TestData {
     endpoints = List(myEndpointPort5, myEndpointPort6),
     environmentVariables = List.empty,
     ports = List(myEndpointPort5, myEndpointPort6),
-    constants = List(
-      Constant(name = "MY_CONST", alias = None, value = Some("DNC")),
-      Constant(name = "Some", alias = None, value = Some("other"))
-    ),
     hosts = List(
       Host(name = "abc", value = Some("alpha.bravo.charlie")),
       Host(name = "def", value = Some("delta.echo.foxtrot"))
@@ -263,7 +261,6 @@ object TestData {
     endpoints = List.empty,
     environmentVariables = List.empty,
     ports = List.empty,
-    constants = List.empty,
     hosts = List.empty
   )
 
@@ -282,10 +279,6 @@ object TestData {
     ports = List(
       Port(name = "some port", alias = Option("HTTP"), value = Option("INVALID/http")),
       Port(name = "port21", alias = Option("FTP"), value = Option("21/tcp"))
-    ),
-    constants = List(
-      Constant(name = "Not changed", alias = None, value = Some("in a while")),
-      Constant(name = "Still the same", alias = None, value = Some("value"))
     ),
     hosts = List(
       Host(name = "ghi", value = Some("golf.hotel.lima")),

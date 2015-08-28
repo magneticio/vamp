@@ -1,11 +1,15 @@
 package io.vamp.core.model.artifact
 
+import java.util.regex.Pattern
+
 import scala.language.implicitConversions
 
 trait Breed extends Artifact
 
 case class DefaultBreed(name: String, deployable: Deployable, ports: List[Port], environmentVariables: List[EnvironmentVariable], constants: List[Constant], dependencies: Map[String, Breed]) extends Breed {
-  def traitsFor(group: String): List[Trait] = TraitReference.groupFor(group) match {
+  def traitsFor(group: String): List[Trait] = traitsFor(TraitReference.groupFor(group))
+
+  def traitsFor(group: Option[TraitReference.Value]): List[Trait] = group match {
     case Some(TraitReference.Ports) => ports
     case Some(TraitReference.EnvironmentVariables) => environmentVariables
     case Some(TraitReference.Constants) => constants
@@ -66,16 +70,9 @@ object TraitReference extends Enumeration {
     case Hosts => "hosts"
   }
 
-  def referenceFor(reference: String): Option[TraitReference] = reference.indexOf(delimiter) match {
-    case -1 => None
-    case clusterIndex => reference.substring(clusterIndex + 1).indexOf(delimiter) match {
-      case -1 => None
-      case groupIndex =>
-        val cluster = reference.substring(0, clusterIndex)
-        val group = reference.substring(clusterIndex + 1, clusterIndex + groupIndex + 1)
-        val value = reference.substring(clusterIndex + groupIndex + 2)
-        Some(TraitReference(cluster, group, value))
-    }
+  def referenceFor(reference: String): Option[TraitReference] = reference.split(Pattern.quote(delimiter), -1) match {
+    case Array(cluster, group, value) => Some(TraitReference(cluster, group, value))
+    case _ => None
   }
 }
 

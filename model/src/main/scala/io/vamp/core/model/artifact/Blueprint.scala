@@ -39,6 +39,8 @@ case class Cluster(name: String, services: List[Service], sla: Option[Sla], dial
 abstract class AbstractService {
   def breed: Breed
 
+  def environmentVariables: List[EnvironmentVariable]
+
   def scale: Option[Scale]
 
   def routing: Option[Routing]
@@ -46,7 +48,7 @@ abstract class AbstractService {
   def dialects: Map[Dialect.Value, Any]
 }
 
-case class Service(breed: Breed, scale: Option[Scale], routing: Option[Routing], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
+case class Service(breed: Breed, environmentVariables: List[EnvironmentVariable], scale: Option[Scale], routing: Option[Routing], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
 
 
 trait Scale extends Artifact

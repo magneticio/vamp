@@ -8,13 +8,14 @@ import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.container_driver.{ContainerDriverActor, ContainerServer, ContainerService}
 import io.vamp.core.model.artifact.DeploymentService._
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.resolver.DeploymentTraitResolver
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.{Synchronize, SynchronizeAll}
 import io.vamp.core.operation.notification.{DeploymentServiceError, InternalServerError, OperationNotificationProvider}
-import io.vamp.core.persistence.PersistenceActor
+import io.vamp.core.persistence.{PaginationSupport, PersistenceActor}
 import io.vamp.core.router_driver._
 
 import scala.language.postfixOps
@@ -40,7 +41,7 @@ object DeploymentSynchronizationActor extends ActorDescription {
 
 }
 
-class DeploymentSynchronizationActor extends CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
+class DeploymentSynchronizationActor extends PaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
 
   private object Processed {
 
@@ -62,13 +63,13 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
 
   private case class ProcessedService(state: Processed.State, service: DeploymentService)
 
-  private case class ProcessedCluster(state: Processed.State, cluster: DeploymentCluster)
+  private case class ProcessedCluster(state: Processed.State, cluster: DeploymentCluster, processedServices: List[ProcessedService])
 
   def receive: Receive = {
 
     case SynchronizeAll =>
       implicit val timeout = PersistenceActor.timeout
-      offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
+      allArtifacts(classOf[Deployment]) match {
         case deployments: List[_] => synchronize(deployments.asInstanceOf[List[Deployment]])
         case any => throwException(InternalServerError(any))
       }
@@ -80,11 +81,13 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
 
   private def synchronize(deployments: List[Deployment]): Unit = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
-
-    val deploymentRoutes = offload(actorFor(RouterDriverActor) ? RouterDriverActor.All).asInstanceOf[DeploymentRoutes]
-    val containerServices = offload(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
-
-    deployments.filterNot(withError).foreach(synchronize(containerServices, deploymentRoutes))
+    offload(actorFor(RouterDriverActor) ? RouterDriverActor.All) match {
+      case error: NotificationErrorException => log.error("Synchronisation not possible")
+      case success =>
+        val deploymentRoutes = success.asInstanceOf[DeploymentRoutes]
+        val containerServices = offload(actorFor(ContainerDriverActor) ? ContainerDriverActor.All).asInstanceOf[List[ContainerService]]
+        deployments.filterNot(withError).foreach(synchronize(containerServices, deploymentRoutes))
+    }
   }
 
   private def withError(deployment: Deployment): Boolean = {
@@ -142,10 +145,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
 
   private def readyForDeployment(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], clusterRoutes: List[ClusterRoute]): ProcessedService = {
     def convert(server: ContainerServer): DeploymentServer = {
-      val ports = for {
-        dp <- deploymentService.breed.ports.map(_.number)
-        sp <- server.ports
-      } yield (dp, sp)
+      val ports = deploymentService.breed.ports.map(_.number) zip server.ports
       DeploymentServer(server.name, server.host, ports.toMap, server.deployed)
     }
 
@@ -189,14 +189,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
   }
 
   private def hasResolvedEnvironmentVariables(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService) = {
-    deploymentService.breed.environmentVariables.forall({ evBreed =>
-      !deployment.environmentVariables.exists(evDeployment => if (evDeployment.interpolated.isEmpty) {
-        TraitReference.referenceFor(evDeployment.name) match {
-          case Some(TraitReference(cluster, group, name)) => cluster == deploymentCluster.name && evBreed.name == name && group == TraitReference.groupFor(TraitReference.EnvironmentVariables)
-          case _ => false
-        }
-      } else false)
-    })
+    deploymentService.breed.environmentVariables.count(_ => true) <= deploymentService.environmentVariables.count(_ => true) && deploymentService.environmentVariables.forall(_.interpolated.isDefined)
   }
 
   private def deployed(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
@@ -276,7 +269,7 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
   private def clusterRouteService(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, port: Port, clusterRoutes: List[ClusterRoute]): Option[RouteService] =
     clusterRoutes.find(_.matching(deployment, deploymentCluster, port)) match {
       case None => None
-      case Some(route) => route.services.find(_.name == deploymentService.breed.name)
+      case Some(route) => route.services.find(_.matching(deploymentService))
     }
 
   private def processServiceResults(deployment: Deployment, deploymentCluster: DeploymentCluster, clusterRoutes: List[ClusterRoute], processedServices: List[ProcessedService]): ProcessedCluster = {
@@ -287,9 +280,9 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
       else {
         if (processedServices.exists(s => s.state == Processed.ResolveEnvironmentVariables)) Processed.ResolveEnvironmentVariables else Processed.Persist
       }
-      ProcessedCluster(state, dc)
+      ProcessedCluster(state, dc, processedServices)
     } else {
-      ProcessedCluster(Processed.Ignore, deploymentCluster)
+      ProcessedCluster(Processed.Ignore, deploymentCluster, processedServices)
     }
 
     val ports: Set[Port] = processedServices.flatMap(processed => processed.state match {
@@ -310,32 +303,63 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
   }
 
   private def processClusterResults(deployment: Deployment, processedClusters: List[ProcessedCluster], routes: List[EndpointRoute]) = {
-    val resolveEnvironmentVariables = processedClusters.filter(_.state == Processed.ResolveEnvironmentVariables).map(_.cluster)
+    val resolve = updateEnvironmentVariables(deployment, processedClusters.filter(_.state == Processed.ResolveEnvironmentVariables))
     val persist = processedClusters.filter(_.state == Processed.Persist).map(_.cluster)
     val remove = processedClusters.filter(_.state == Processed.RemoveFromPersistence).map(_.cluster)
 
-    (updateTraits(persist, resolveEnvironmentVariables) andThen purgeTraits(remove) andThen updateEndpoints(remove, routes) andThen persistDeployment(persist ++ resolveEnvironmentVariables, remove))(deployment)
+    (updatePorts(persist) andThen purgeTraits(persist, remove) andThen updateEndpoints(remove, routes) andThen persistDeployment(persist ++ resolve, remove))(deployment)
   }
 
-  private def updateTraits(persist: List[DeploymentCluster], resolve: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
+  private def updatePorts(persist: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
     val ports = persist.flatMap({ cluster =>
       cluster.services.map(_.breed).flatMap(_.ports).map({ port =>
         Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.routes.get(port.number).flatMap(n => Some(n.toString)))
       })
     }).map(p => p.name -> p).toMap ++ deployment.ports.map(p => p.name -> p).toMap
 
-    val environmentVariables = if (resolve.nonEmpty) resolveEnvironmentVariables(deployment, resolve) else deployment.environmentVariables
-
-    deployment.copy(ports = ports.values.toList, environmentVariables = environmentVariables)
+    deployment.copy(ports = ports.values.toList)
   }
 
-  private def purgeTraits(remove: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
+  private def updateEnvironmentVariables(deployment: Deployment, processedClusters: List[ProcessedCluster]): List[DeploymentCluster] = {
+    val resolveClusters = processedClusters.map(_.cluster)
+    val environmentVariables = if (resolveClusters.nonEmpty) resolveEnvironmentVariables(deployment, resolveClusters) else deployment.environmentVariables
+
+    processedClusters.map { pc =>
+      pc.cluster.copy(services = pc.processedServices.map { ps =>
+        if (ps.state == Processed.ResolveEnvironmentVariables) {
+          val local = (ps.service.breed.environmentVariables.filter(_.value.isDefined) ++
+            environmentVariables.flatMap(ev => TraitReference.referenceFor(ev.name) match {
+              case Some(TraitReference(c, g, n)) if g == TraitReference.groupFor(TraitReference.EnvironmentVariables) && ev.interpolated.isDefined && pc.cluster.name == c =>
+                List(ev.copy(name = n, alias = None))
+              case _ => Nil
+            }) ++
+            ps.service.environmentVariables).map(ev => ev.name -> ev).toMap.values.toList
+
+          ps.service.copy(environmentVariables = local.map { ev =>
+            ev.copy(interpolated = if (ev.interpolated.isEmpty) Some(resolve(ev.value.getOrElse(""), valueFor(deployment, Some(ps.service)))) else ev.interpolated)
+          })
+        } else ps.service
+      })
+    }
+  }
+
+  private def purgeTraits(persist: List[DeploymentCluster], remove: List[DeploymentCluster]): (Deployment => Deployment) = { deployment: Deployment =>
     def purge[A <: Trait](traits: List[A]): List[A] = traits.filterNot(t => TraitReference.referenceFor(t.name) match {
-      case Some(TraitReference(cluster, _, _)) => remove.exists(_.name == cluster)
+      case Some(TraitReference(cluster, group, name)) =>
+        if (remove.exists(_.name == cluster)) true
+        else persist.find(_.name == cluster) match {
+          case None => false
+          case Some(c) => TraitReference.groupFor(group) match {
+            case Some(TraitReference.Hosts) => false
+            case Some(g) => !c.services.flatMap(_.breed.traitsFor(g)).exists(_.name == name)
+            case None => true
+          }
+        }
+
       case _ => true
     })
 
-    deployment.copy(endpoints = purge(deployment.endpoints), ports = purge(deployment.ports), environmentVariables = purge(deployment.environmentVariables), constants = purge(deployment.constants), hosts = purge(deployment.hosts))
+    deployment.copy(endpoints = purge(deployment.endpoints), ports = purge(deployment.ports), environmentVariables = purge(deployment.environmentVariables), hosts = purge(deployment.hosts))
   }
 
   private def updateEndpoints(remove: List[DeploymentCluster], routes: List[EndpointRoute]): (Deployment => Deployment) = { deployment: Deployment =>
@@ -345,19 +369,19 @@ class DeploymentSynchronizationActor extends CommonSupportForActors with Deploym
     })
 
     deployment.endpoints.foreach { port =>
-      TraitReference.referenceFor(port.name) match {
-        case Some(TraitReference(cluster, _, _)) =>
-          (deployment.clusters.find(_.name == cluster), routes.find(_.matching(deployment, Some(port)))) match {
+      TraitReference.referenceFor(port.name).map(_.cluster).foreach { clusterName =>
+        deployment.clusters.find(_.name == clusterName).foreach { cluster =>
+          if (cluster.services.forall(_.state.isInstanceOf[Deployed])) routes.find(_.matching(deployment, Some(port))) match {
 
-            case (Some(_), None) =>
+            case None =>
               actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = false)
 
-            case (Some(_), Some(route)) if route.services.flatMap(_.servers).count(_ => true) == 0 =>
+            case Some(route) if route.services.flatMap(_.servers).count(_ => true) == 0 =>
               actorFor(RouterDriverActor) ! RouterDriverActor.CreateEndpoint(deployment, port, update = true)
 
             case _ =>
           }
-        case _ =>
+        }
       }
     }
 

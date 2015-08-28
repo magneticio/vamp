@@ -3,7 +3,10 @@ package io.vamp.core.container_driver.docker.wrapper.methods
 import io.vamp.core.container_driver.docker.wrapper.Create.Response
 import io.vamp.core.container_driver.docker.wrapper.json.RequestBody
 import io.vamp.core.container_driver.docker.wrapper.model._
-import io.vamp.core.container_driver.docker.wrapper.{Docker, Requests, model}
+import io.vamp.core.container_driver.docker.wrapper.{Dialect, Docker, Requests, model}
+import org.json4s.DefaultFormats
+import org.json4s.native.Serialization._
+
 
 trait Containers extends Util {
   self: Requests =>
@@ -17,7 +20,7 @@ trait Containers extends Util {
       def apply[T](handler: Docker.Handler[T]) = request(base / "json")(handler)
     }
 
-    case class Create(private val _config: ContainerConfig, private val _name: Option[String] = None) extends Docker.Completion[Response] {
+    case class Create(private val _config: ContainerConfig, private val _dialect: Map[Any, Any], private val _name: Option[String] = None) extends Docker.Completion[Response] with Dialect {
 
       def config(cfg: ContainerConfig) = copy(_config = cfg)
 
@@ -35,16 +38,22 @@ trait Containers extends Util {
 
       def volumes(vx: String*) = withConfig(_.copy(volumes = vx.toSeq))
 
+      def dialect(d: Map[Any, Any]) = copy(_dialect = d)
+
       def apply[T](handler: Docker.Handler[T]) =
         request(addContentType(base.POST) / "create" <<? _name.map("name" -> _) << body)(handler)
 
-      def body = new RequestBody().requestCreate(_config, _name)
-
+      private def body: String = write(
+        withDialect(
+          new RequestBody().requestCreate(_config, _name),
+          _dialect
+        )
+      )(DefaultFormats)
     }
 
-    case class Container(id: String) extends Docker.Completion[ContainerDetails] {
+    case class Container(id: String) extends Docker.Completion[ContainerDetails] with Dialect {
 
-      case class Start(_config: HostConfig) extends Docker.Completion[Unit] {
+      case class Start(_config: HostConfig, private val _dialect: Map[Any, Any]) extends Docker.Completion[Unit] {
 
         def config(cfg: HostConfig) = copy(_config = cfg)
 
@@ -66,10 +75,17 @@ trait Containers extends Util {
 
         def memorySwap(swap: Long) = withConfig(_.copy(memorySwap = swap))
 
+        def dialect(d: Map[Any, Any]) = copy(_dialect = d)
+
         def apply[T](handler: Docker.Handler[T]) =
           request(addContentType(base.POST) / id / "start" << body)(handler)
 
-        def body = new RequestBody().requestStart(_config)
+        private def body: String = write(
+          withDialect(
+            new RequestBody().requestStart(_config),
+            _dialect
+          )
+        )(DefaultFormats)
       }
 
 
@@ -87,7 +103,7 @@ trait Containers extends Util {
       def apply[T](handler: Docker.Handler[T]) =
         request(base / id / "json")(handler)
 
-      def start = Start(HostConfig())
+      def start(dialect: Map[Any, Any]) = Start(HostConfig(), dialect)
 
       def kill = Kill()
 
@@ -97,7 +113,7 @@ trait Containers extends Util {
 
     def list = Containers()
 
-    def create(image: String) = Create(ContainerConfig(image = image))
+    def create(image: String, dialect: Map[Any, Any]) = Create(ContainerConfig(image = image), dialect)
 
     def get(id: String) = Container(id)
   }

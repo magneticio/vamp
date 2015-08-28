@@ -9,22 +9,22 @@ import scala.concurrent.ExecutionContext
 class DeploymentApiContext(implicit scheduledWorkflow: ScheduledWorkflow, ec: ExecutionContext, arf: ActorRefFactory) extends ApiContext with DeploymentApiController {
 
   def all() = serialize {
-    allPages(deployments(asBlueprint = false))
+    allPages(deployments(asBlueprint = false, expandReferences = true, onlyReferences = false))
   }
 
   def get(name: String) = serialize {
-    deployment(name, asBlueprint = false)
+    deployment(name, asBlueprint = false, expandReferences = true, onlyReferences = false)
   }
 
   def create(source: Any) = serialize {
-    createDeployment(load(source))
+    createDeployment(load(source), validateOnly = false)
   }
 
   def update(name: String, source: Any) = serialize {
-    updateDeployment(name, load(source))
+    updateDeployment(name, load(source), validateOnly = false)
   }
 
   def delete(name: String, source: Any) = serialize {
-    deleteDeployment(name, load(source))
+    deleteDeployment(name, load(source), validateOnly = false)
   }
 }

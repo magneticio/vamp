@@ -14,7 +14,7 @@ trait DeploymentRoute {
 
 case class ClusterRoute(matching: (Deployment, DeploymentCluster, Port) => Boolean, port: Int, services: List[RouteService]) extends DeploymentRoute
 
-case class RouteService(name: String, weight: Int, servers: List[Server], filters: List[Filter])
+case class RouteService(matching: (DeploymentService) => Boolean, weight: Int, servers: List[Server], filters: List[Filter])
 
 case class EndpointRoute(matching: (Deployment, Option[Port]) => Boolean, port: Int, services: List[RouteService]) extends DeploymentRoute
 

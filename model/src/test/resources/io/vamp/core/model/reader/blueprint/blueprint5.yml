@@ -5,14 +5,14 @@ clusters:
     services:
       -
         breed:
-          name: nocturnal-viper
+          ref: nocturnal-viper
           
     sla: 
-      name: strong-mountain
+      ref: strong-mountain
       escalations:
         - red-flag
         -
-          name: hideous-screaming
+          ref: hideous-screaming
         -
           type: cloud-beam
           sound: furious

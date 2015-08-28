@@ -34,7 +34,6 @@ class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment]
       if (full) list += JField("environment_variables", Extraction.decompose(deployment.environmentVariables))
       else list += JField("environment_variables", traits(deployment.environmentVariables, alias = false))
 
-      list += JField("constants", traits(deployment.constants))
       list += JField("hosts", traits(deployment.hosts))
       new JObject(list.toList)
   }

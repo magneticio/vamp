@@ -6,5 +6,5 @@ ports:
 
 dependencies:
   db: 
-    name: monarch
+    ref: monarch
 

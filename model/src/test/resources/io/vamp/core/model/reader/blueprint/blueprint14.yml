@@ -5,9 +5,9 @@ clusters:
     services:
       -
         breed: 
-          name: nocturnal-viper
+          ref: nocturnal-viper
           
         routing:
           filters:
             - android
-            - name: ios
+            - reference: ios

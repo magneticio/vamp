@@ -3,10 +3,8 @@ package io.vamp.core.rest_api
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
-import akka.actor.Actor
-import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{CommonSupportForActors, ActorSupport, ExecutionContextProvider, FutureSupport}
+import io.vamp.common.akka.{ActorSupport, CommonSupportForActors, ExecutionContextProvider, FutureSupport}
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact.Deployment
@@ -16,16 +14,17 @@ import io.vamp.core.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.vamp.core.operation.notification.InternalServerError
 import io.vamp.core.operation.sla.{EscalationActor, SlaActor}
-import io.vamp.core.persistence.PersistenceActor
-import io.vamp.core.persistence.PersistenceActor.All
+import io.vamp.core.persistence.{PaginationSupport, PersistenceActor}
 import spray.http.StatusCodes._
 
 import scala.language.{existentials, postfixOps}
 
 trait DeploymentApiRoute extends DeploymentApiController with DevController {
-  this: CommonSupportForActors with RestApiBase =>
+  this: PaginationSupport with CommonSupportForActors with RestApiBase =>
 
   implicit def timeout: Timeout
+
+  private def asBlueprint = parameters('as_blueprint.as[Boolean] ? false)
 
   private val helperRoutes = pathPrefix("sync") {
     parameters('rate.as[Int] ?) { rate =>
@@ -50,17 +49,21 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
   private val deploymentRoute = pathPrefix("deployments") {
     pathEndOrSingleSlash {
       get {
-        parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
+        asBlueprint { asBlueprint =>
           pageAndPerPage() { (page, perPage) =>
-            onSuccess(deployments(asBlueprint)(page, perPage)) { result =>
-              respondWith(OK, result)
+            expandAndOnlyReferences { (expandReferences, onlyReferences) =>
+              onSuccess(deployments(asBlueprint, expandReferences, onlyReferences)(page, perPage)) { result =>
+                respondWith(OK, result)
+              }
             }
           }
         }
       } ~ post {
         entity(as[String]) { request =>
-          onSuccess(createDeployment(request)) { result =>
-            respondWith(Accepted, result)
+          validateOnly { validateOnly =>
+            onSuccess(createDeployment(request, validateOnly)) { result =>
+              respondWith(Accepted, result)
+            }
           }
         }
       }
@@ -68,22 +71,28 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
       pathEndOrSingleSlash {
         get {
           rejectEmptyResponse {
-            parameters('as_blueprint.as[Boolean] ? false) { asBlueprint =>
-              onSuccess(deployment(name, asBlueprint)) { result =>
-                respondWith(OK, result)
+            asBlueprint { asBlueprint =>
+              expandAndOnlyReferences { (expandReferences, onlyReferences) =>
+                onSuccess(deployment(name, asBlueprint, expandReferences, onlyReferences)) { result =>
+                  respondWith(OK, result)
+                }
               }
             }
           }
         } ~ put {
           entity(as[String]) { request =>
-            onSuccess(updateDeployment(name, request)) { result =>
-              respondWith(Accepted, result)
+            validateOnly { validateOnly =>
+              onSuccess(updateDeployment(name, request, validateOnly)) { result =>
+                respondWith(Accepted, result)
+              }
             }
           }
         } ~ delete {
           entity(as[String]) { request =>
-            onSuccess(deleteDeployment(name, request)) { result =>
-              respondWith(Accepted, result)
+            validateOnly { validateOnly =>
+              onSuccess(deleteDeployment(name, request, validateOnly)) { result =>
+                respondWith(Accepted, result)
+              }
             }
           }
         }
@@ -150,7 +159,7 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
 }
 
 trait DevController {
-  this: NotificationProvider with ActorSupport with FutureSupport with ExecutionContextProvider =>
+  this: PaginationSupport with NotificationProvider with ActorSupport with FutureSupport with ExecutionContextProvider =>
 
   def sync(rate: Option[Int])(implicit timeout: Timeout): Unit = rate match {
     case Some(r) =>
@@ -158,14 +167,13 @@ trait DevController {
         actorFor(DeploymentSynchronizationActor) ! SynchronizeAll
       }
 
-    case None =>
-      offload(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
-        case deployments: List[_] =>
-          deployments.asInstanceOf[List[Deployment]].map({ deployment =>
-            deployment.clusters.filter(cluster => cluster.services.exists(!_.state.isInstanceOf[Deployed])).count(_ => true)
-          }).reduceOption(_ max _).foreach(max => sync(Some(max * 3 + 1)))
-        case any => throwException(InternalServerError(any))
-      }
+    case None => allArtifacts(classOf[Deployment]) match {
+      case deployments: List[_] =>
+        deployments.asInstanceOf[List[Deployment]].map({ deployment =>
+          deployment.clusters.filter(cluster => cluster.services.exists(!_.state.isInstanceOf[Deployed])).count(_ => true)
+        }).reduceOption(_ max _).foreach(max => sync(Some(max * 3 + 1)))
+      case any => throwException(InternalServerError(any))
+    }
   }
 
   def slaCheck() = {
@@ -177,15 +185,13 @@ trait DevController {
     actorFor(EscalationActor) ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }
 
-  def reset()(implicit timeout: Timeout): Unit = {
-    offload(actorFor(PersistenceActor) ? All(classOf[Deployment])) match {
-      case deployments: List[_] =>
-        deployments.asInstanceOf[List[Deployment]].map({ deployment =>
-          actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
-          deployment.clusters.count(_ => true)
-        }).reduceOption(_ max _).foreach(max => sync(Some(max * 3)))
-      case any => throwException(InternalServerError(any))
-    }
+  def reset()(implicit timeout: Timeout): Unit = allArtifacts(classOf[Deployment]) match {
+    case deployments: List[_] =>
+      deployments.asInstanceOf[List[Deployment]].map({ deployment =>
+        actorFor(PersistenceActor) ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster => cluster.copy(services = cluster.services.map(service => service.copy(state = ReadyForUndeployment()))))))
+        deployment.clusters.count(_ => true)
+      }).reduceOption(_ max _).foreach(max => sync(Some(max * 3)))
+    case any => throwException(InternalServerError(any))
   }
 }
 

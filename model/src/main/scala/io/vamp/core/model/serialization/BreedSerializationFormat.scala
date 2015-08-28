@@ -43,8 +43,9 @@ trait TraitDecomposer extends TraitResolver {
   }
 }
 
-class BreedSerializer extends ArtifactSerializer[DefaultBreed] with TraitDecomposer {
+class BreedSerializer extends ArtifactSerializer[Breed] with TraitDecomposer with ReferenceSerialization {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case breed: BreedReference =>serializeReference(breed)
     case breed: DefaultBreed =>
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(breed.name))
@@ -52,7 +53,14 @@ class BreedSerializer extends ArtifactSerializer[DefaultBreed] with TraitDecompo
       list += JField("ports", traits(breed.ports))
       list += JField("environment_variables", traits(breed.environmentVariables))
       list += JField("constants", traits(breed.constants))
-      list += JField("dependencies", Extraction.decompose(breed.dependencies))
+
+      val dependencies = breed.dependencies.map {
+        case (name, reference: Reference) => JField(name, JString(reference.name))
+        case (name, dependency) => JField(name, Extraction.decompose(dependency))
+      } toList
+
+      list += JField("dependencies", new JObject(dependencies))
+
       new JObject(list.toList)
   }
 }

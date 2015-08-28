@@ -6,6 +6,7 @@ import io.vamp.core.container_driver._
 import io.vamp.core.container_driver.marathon.api.{Docker, _}
 import io.vamp.core.container_driver.notification.UndefinedMarathonApplication
 import io.vamp.core.model.artifact._
+import org.json4s.{Extraction, DefaultFormats, Formats}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -39,7 +40,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
     if (update) logger.info(s"marathon update app: $id") else logger.info(s"marathon create app: $id")
 
     val app = MarathonApp(id, container(deployment, cluster, service), service.scale.get.instances, service.scale.get.cpu, service.scale.get.memory, environment(deployment, cluster, service), cmd(deployment, cluster, service))
-    val payload = requestPayload(deployment, cluster, app, cluster.dialects ++ service.dialects)
+    val payload = requestPayload(deployment, cluster, service, app)
 
     if (update)
       RestClient.put[Any](s"$url/v2/apps/${app.id}", payload)
@@ -57,14 +58,21 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
     case _ => None
   }
 
-  private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, app: MarathonApp, dialects: Map[Dialect.Value, Any]) = {
-    val dialect = dialects.getOrElse(Dialect.Marathon, Map())
+  private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, app: MarathonApp) = {
+    val (local, dialect) = (cluster.dialects.get(Dialect.Marathon), service.dialects.get(Dialect.Marathon)) match {
+      case (_, Some(d)) => Some(service) -> d
+      case (Some(d), None) => None -> d
+      case _ => None -> Map()
+    }
+
     (app.container, app.cmd, dialect) match {
       case (None, None, map: Map[_, _]) if map.asInstanceOf[Map[String, _]].get("cmd").nonEmpty =>
       case (None, None, _) => throwException(UndefinedMarathonApplication)
       case _ =>
     }
-    mergeWithDialect(deployment, cluster, app, dialect)
+
+    implicit val formats: Formats = DefaultFormats
+    Extraction.decompose(interpolate(deployment, local, dialect)) merge Extraction.decompose(app)
   }
 
   def undeploy(deployment: Deployment, service: DeploymentService) = {
@@ -76,4 +84,3 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
   private def containerService(app: App): ContainerService =
     ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task => ContainerServer(task.id, task.host, task.ports, task.startedAt.isDefined)))
 }
-

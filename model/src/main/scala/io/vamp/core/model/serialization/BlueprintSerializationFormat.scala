@@ -19,9 +19,9 @@ object BlueprintSerializationFormat extends io.vamp.common.json.SerializationFor
     new ServiceFieldSerializer()
 }
 
-class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomposer {
+class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomposer with ReferenceSerialization {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case blueprint: BlueprintReference => new JObject(JField("name", JString(blueprint.name)) :: Nil)
+    case blueprint: BlueprintReference => serializeReference(blueprint)
     case blueprint: AbstractBlueprint =>
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(blueprint.name))
@@ -46,15 +46,16 @@ class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] wi
   }
 }
 
-class ServiceFieldSerializer extends ArtifactFieldSerializer[AbstractService] with DialectSerializer {
+class ServiceFieldSerializer extends ArtifactFieldSerializer[AbstractService] with DialectSerializer with TraitDecomposer {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
+    case ("environmentVariables", environmentVariables) => Some(("environment_variables", traits(environmentVariables.asInstanceOf[List[Trait]])))
     case ("dialects", dialects) => Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
   }
 }
 
-class ScaleSerializer extends ArtifactSerializer[Scale] {
+class ScaleSerializer extends ArtifactSerializer[Scale] with ReferenceSerialization {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case scale: ScaleReference => new JObject(JField("name", JString(scale.name)) :: Nil)
+    case scale: ScaleReference => serializeReference(scale)
     case scale: DefaultScale =>
       val list = new ArrayBuffer[JField]
       if (scale.name.nonEmpty)
@@ -66,9 +67,9 @@ class ScaleSerializer extends ArtifactSerializer[Scale] {
   }
 }
 
-class RoutingSerializer extends ArtifactSerializer[Routing] {
+class RoutingSerializer extends ArtifactSerializer[Routing] with ReferenceSerialization {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case routing: RoutingReference => new JObject(JField("name", JString(routing.name)) :: Nil)
+    case routing: RoutingReference => serializeReference(routing)
     case routing: DefaultRouting =>
       val list = new ArrayBuffer[JField]
       if (routing.name.nonEmpty)
@@ -80,9 +81,9 @@ class RoutingSerializer extends ArtifactSerializer[Routing] {
   }
 }
 
-class FilterSerializer extends ArtifactSerializer[Filter] {
+class FilterSerializer extends ArtifactSerializer[Filter] with ReferenceSerialization {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case filter: FilterReference => new JObject(JField("name", JString(filter.name)) :: Nil)
+    case filter: FilterReference => serializeReference(filter)
     case filter: DefaultFilter =>
       val list = new ArrayBuffer[JField]
       if (filter.name.nonEmpty)

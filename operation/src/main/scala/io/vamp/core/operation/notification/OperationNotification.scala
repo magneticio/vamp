@@ -28,6 +28,8 @@ case class NonUniqueBreedReferenceError(breed: Breed) extends Notification
 
 case class InvalidRoutingWeight(deployment: Deployment, cluster: DeploymentCluster, weight: Int) extends Notification
 
+case class UnavailableEndpointPortError(endpoint: Port, deployment:Deployment) extends Notification
+
 case class WorkflowSchedulingError(reason: Any) extends Notification with ErrorNotification
 
 case class WorkflowExecutionError(reason: Any) extends Notification with ErrorNotification

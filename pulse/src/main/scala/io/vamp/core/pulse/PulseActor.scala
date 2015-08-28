@@ -14,6 +14,7 @@ import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.event.Aggregator.AggregatorType
 import io.vamp.core.model.event._
 import io.vamp.core.model.validator.EventValidator
+import io.vamp.core.pulse.Percolator.{UnregisterPercolator, RegisterPercolator}
 import io.vamp.core.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
@@ -52,10 +53,6 @@ object PulseActor extends ActorDescription {
 
   case class QueryAll(query: EventQuery) extends PulseMessage
 
-  case class RegisterPercolator(name: String, tags: Set[String], message: Any) extends PulseMessage
-
-  case class UnregisterPercolator(name: String) extends PulseMessage
-
 }
 
 class PulseActor extends Percolator with EventValidator with CommonReplyActor with CommonSupportForActors with PulseNotificationProvider {
@@ -65,6 +62,10 @@ class PulseActor extends Percolator with EventValidator with CommonReplyActor wi
   implicit val timeout = PulseActor.timeout
 
   override protected def requestType: Class[_] = classOf[PulseMessage]
+
+  override protected def allowedRequestType(request: Any) = {
+    super.allowedRequestType(request) || request.isInstanceOf[RegisterPercolator] || request.isInstanceOf[UnregisterPercolator]
+  }
 
   override protected def errorRequest(request: Any): RequestError = UnsupportedPulseRequest(request)
 
@@ -208,7 +209,7 @@ class PulseActor extends Percolator with EventValidator with CommonReplyActor wi
     )
   }
 
-  private def constructTagQuery(tags: Set[String]): Option[List[Map[String,Any]]] = tags.isEmpty match {
+  private def constructTagQuery(tags: Set[String]): Option[List[Map[String, Any]]] = tags.isEmpty match {
     case true => None
     case _ => Some(
       (for (tag <- tags) yield Map("term" -> Map("tags" -> tag))).toList

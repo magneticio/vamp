@@ -39,35 +39,35 @@ class TraitResolverTest extends FlatSpec with Matchers with TraitResolver {
   }
 
   it should "split into parts value with simple reference, prefix and postfix" in {
-    partsFor("http://${host}/") should have(
+    partsFor(s"http://$${host}/") should have(
       '_1(List("http://", "/")),
       '_2(List(LocalReference("host")))
     )
   }
 
   it should "split into parts value with trait reference" in {
-    partsFor("${port}") should have(
+    partsFor(s"$${port}") should have(
       '_1(List("", "")),
       '_2(List(LocalReference("port")))
     )
   }
 
   it should "split into parts value with trait reference and prefix" in {
-    partsFor("a${db.host}") should have(
+    partsFor(s"a$${db.host}") should have(
       '_1(List("a", "")),
       '_2(List(HostReference("db")))
     )
   }
 
   it should "split into parts value with trait reference and postfix" in {
-    partsFor("${port}/") should have(
+    partsFor(s"$${port}/") should have(
       '_1(List("", "/")),
       '_2(List(LocalReference("port")))
     )
   }
 
   it should "split into parts value with trait reference, prefix and postfix" in {
-    partsFor("{${es.constants.port}}") should have(
+    partsFor(s"{$${es.constants.port}}") should have(
       '_1(List("{", "}")),
       '_2(List(TraitReference("es", "constants", "port")))
     )
@@ -110,7 +110,7 @@ class TraitResolverTest extends FlatSpec with Matchers with TraitResolver {
   }
 
   it should "split multiple references" in {
-    partsFor("http://${api.host}:$port/api/${api.constants.version}/${resource}/$id") should have(
+    partsFor(s"http://$${api.host}:$$port/api/$${api.constants.version}/$${resource}/$$id") should have(
       '_1(List("http://", ":", "/api/", "/", "/", "")),
       '_2(List(HostReference("api"), LocalReference("port"), TraitReference("api", "constants", "version"), LocalReference("resource"), LocalReference("id")))
     )

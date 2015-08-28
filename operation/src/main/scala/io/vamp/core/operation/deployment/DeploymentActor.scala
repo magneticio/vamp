@@ -16,7 +16,7 @@ import io.vamp.core.model.reader.{BlueprintReader, BreedReader}
 import io.vamp.core.model.resolver.DeploymentTraitResolver
 import io.vamp.core.operation.notification._
 import io.vamp.core.persistence.notification.PersistenceOperationFailure
-import io.vamp.core.persistence.{ArtifactSupport, PersistenceActor}
+import io.vamp.core.persistence.{ArtifactSupport, PaginationSupport, PersistenceActor}
 
 import scala.language.{existentials, postfixOps}
 
@@ -26,11 +26,11 @@ object DeploymentActor extends ActorDescription {
 
   trait DeploymentMessages
 
-  case class Create(blueprint: Blueprint, source: String) extends DeploymentMessages
+  case class Create(blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessages
 
-  case class Merge(name: String, blueprint: Blueprint, source: String) extends DeploymentMessages
+  case class Merge(name: String, blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessages
 
-  case class Slice(name: String, blueprint: Blueprint, source: String) extends DeploymentMessages
+  case class Slice(name: String, blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessages
 
   case class UpdateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String) extends DeploymentMessages
 
@@ -40,7 +40,7 @@ object DeploymentActor extends ActorDescription {
 
 }
 
-class DeploymentActor extends CommonReplyActor with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ArtifactSupport with OperationNotificationProvider {
+class DeploymentActor extends CommonReplyActor with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ArtifactSupport with PaginationSupport with OperationNotificationProvider {
 
   import DeploymentActor._
 
@@ -50,11 +50,11 @@ class DeploymentActor extends CommonReplyActor with BlueprintSupport with Deploy
 
   def reply(request: Any) = try {
     request match {
-      case Create(blueprint, source) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source))(deploymentFor())
+      case Create(blueprint, source, validateOnly) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source, validateOnly))(deploymentFor())
 
-      case Merge(name, blueprint, source) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source))(deploymentFor(name))
+      case Merge(name, blueprint, source, validateOnly) => (merge(deploymentFor(blueprint)) andThen commit(create = true, source, validateOnly))(deploymentFor(name))
 
-      case Slice(name, blueprint, source) => (slice(deploymentFor(blueprint)) andThen commit(create = false, source))(deploymentFor(name))
+      case Slice(name, blueprint, source, validateOnly) => (slice(deploymentFor(blueprint)) andThen commit(create = false, source, validateOnly))(deploymentFor(name))
 
       case UpdateSla(deployment, cluster, sla, source) => updateSla(deployment, cluster, sla, source)
 
@@ -69,13 +69,16 @@ class DeploymentActor extends CommonReplyActor with BlueprintSupport with Deploy
     case e: Throwable => reportException(InternalServerError(e))
   }
 
-  def commit(create: Boolean, source: String): (Deployment => Deployment) = { (deployment: Deployment) =>
-    implicit val timeout: Timeout = PersistenceActor.timeout
-    offload(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, Some(source), create = create)) match {
-      case persisted: Deployment =>
-        actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
-        persisted
-      case any => throwException(errorRequest(PersistenceOperationFailure(any)))
+  def commit(create: Boolean, source: String, validateOnly: Boolean): (Deployment => Deployment) = { (deployment: Deployment) =>
+    if (validateOnly) deployment
+    else {
+      implicit val timeout: Timeout = PersistenceActor.timeout
+      offload(actorFor(PersistenceActor) ? PersistenceActor.Update(deployment, Some(source), create = create)) match {
+        case persisted: Deployment =>
+          actorFor(DeploymentSynchronizationActor) ! Synchronize(persisted)
+          persisted
+        case any => throwException(errorRequest(PersistenceOperationFailure(any)))
+      }
     }
   }
 }
@@ -85,7 +88,7 @@ trait BlueprintSupport {
 
   private def uuid = UUID.randomUUID.toString
 
-  def deploymentFor(): Deployment = Deployment(uuid, Nil, Nil, Nil, Nil, Nil, Nil)
+  def deploymentFor(): Deployment = Deployment(uuid, Nil, Nil, Nil, Nil, Nil)
 
   def deploymentFor(name: String): Deployment = artifactFor[Deployment](name)
 
@@ -94,20 +97,22 @@ trait BlueprintSupport {
 
     val clusters = bp.clusters.map { cluster =>
       DeploymentCluster(cluster.name, cluster.services.map { service =>
-        DeploymentService(ReadyForDeployment(), artifactFor[DefaultBreed](service.breed), artifactFor[DefaultScale](service.scale), artifactFor[DefaultRouting](service.routing), Nil, Map(), service.dialects)
+        DeploymentService(ReadyForDeployment(), artifactFor[DefaultBreed](service.breed), service.environmentVariables, artifactFor[DefaultScale](service.scale), artifactFor[DefaultRouting](service.routing), Nil, Map(), service.dialects)
       }, cluster.sla, Map(), cluster.dialects)
     }
 
-    Deployment(uuid, clusters, bp.endpoints, Nil, bp.environmentVariables, Nil, Nil)
+    Deployment(uuid, clusters, bp.endpoints, Nil, bp.environmentVariables, Nil)
   }
 }
 
 trait DeploymentValidator {
 
-  this: ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
+  this: PaginationSupport with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
-  def validateBreeds: (Deployment => Deployment) = { (deployment: Deployment) =>
-    val breeds = deployment.clusters.flatMap(_.services).filterNot(_.state.isInstanceOf[ReadyForUndeployment]).map(_.breed)
+  def validateServices: (Deployment => Deployment) = { (deployment: Deployment) =>
+    val services = deployment.clusters.flatMap(_.services).filterNot(_.state.isInstanceOf[ReadyForUndeployment])
+
+    val breeds = services.map(_.breed)
 
     breeds.groupBy(_.name.toString).collect {
       case (name, list) if list.size > 1 => throwException(NonUniqueBreedReferenceError(list.head))
@@ -121,6 +126,12 @@ trait DeploymentValidator {
     }
 
     breeds.foreach(BreedReader.validateNonRecursiveDependencies)
+
+    services.foreach { service =>
+      service.environmentVariables.foreach { environmentVariable =>
+        if (!service.breed.environmentVariables.exists(_.name == environmentVariable.name)) throwException(UnresolvedDependencyInTraitValueError(service.breed, environmentVariable.name))
+      }
+    }
 
     deployment
   }
@@ -140,18 +151,45 @@ trait DeploymentValidator {
     deployment
   }
 
-  def validateEnvironmentVariables(blueprint: Blueprint, strictBreeds: Boolean) = blueprint match {
-    case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds)).flatMap {
-      case t => throwException(UnresolvedEnvironmentVariableError(t.name, t.value))
+  def validateBlueprintEnvironmentVariables: (Deployment => Deployment) = { (blueprint: Deployment) =>
+    blueprint match {
+      case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap {
+        case t => throwException(UnresolvedEnvironmentVariableError(t.name, t.value.getOrElse("")))
+      }
+      case _ =>
     }
-    case _ =>
+    blueprint
   }
 
-  def validateEndpoints(blueprint: Blueprint, strictBreeds: Boolean) = blueprint match {
-    case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds)).flatMap {
-      case t => throwException(UnresolvedEndpointPortError(t.name, t.value))
+  def validateBlueprintEndpoints: (Deployment => Deployment) = { (blueprint: Deployment) =>
+    // Reference check.
+    blueprint match {
+      case bp: AbstractBlueprint => bp.environmentVariables.find(ev => !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap {
+        case t => throwException(UnresolvedEndpointPortError(t.name, t.value))
+      }
+      case _ =>
     }
-    case _ =>
+    blueprint
+  }
+
+  def validateEndpoints: (Deployment => Deployment) = { (deployment: Deployment) =>
+    // Availability check.
+    implicit val timeout = PersistenceActor.timeout
+    allArtifacts(classOf[Deployment]) match {
+      case deployments: List[_] =>
+        val ports = deployments.asInstanceOf[List[Deployment]].filterNot(_.name == deployment.name).flatMap { d =>
+          d.endpoints.map(_.number -> d)
+        }.toMap
+
+        deployment.endpoints.foreach { port =>
+          ports.get(port.number) match {
+            case Some(d) => throwException(UnavailableEndpointPortError(port, d))
+            case _ =>
+          }
+        }
+      case any => throwException(InternalServerError(any))
+    }
+    deployment
   }
 
   def traitExists(blueprint: AbstractBlueprint, reference: Option[TraitReference], strictBreeds: Boolean): Boolean = reference match {
@@ -172,33 +210,30 @@ trait DeploymentValidator {
   def weightOf(services: List[DeploymentService]) = services.flatMap(_.routing).flatMap(_.weight).sum
 }
 
-trait DeploymentMerger extends DeploymentTraitResolver {
+trait DeploymentOperation {
+  def commit(create: Boolean, source: String, validateOnly: Boolean): (Deployment => Deployment)
+}
+
+trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver {
   this: DeploymentValidator with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
-  def commit(create: Boolean, source: String): (Deployment => Deployment)
+  def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintEndpoints
 
-  def validate = { (deployment: Deployment) =>
-    validateEnvironmentVariables(deployment, strictBreeds = true)
-    validateEndpoints(deployment, strictBreeds = true)
-    deployment
-  }
+  def resolveProperties = resolveHosts andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
 
-  def resolveProperties = resolveParameters andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
-
-  def validateMerge = validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations
+  def validateMerge = validateServices andThen validateRoutingWeights andThen validateScaleEscalations andThen validateEndpoints
 
   def merge(blueprint: Deployment): (Deployment => Deployment) = { (deployment: Deployment) =>
 
-    val attachment = (validate andThen resolveProperties)(blueprint)
+    val attachment = (validateBlueprint andThen resolveProperties)(blueprint)
 
     val clusters = mergeClusters(deployment, attachment)
     val endpoints = mergeTrait(attachment.endpoints, deployment.endpoints)
     val ports = mergeTrait(attachment.ports, deployment.ports)
     val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
-    val constants = mergeTrait(attachment.constants, deployment.constants)
     val hosts = mergeTrait(attachment.hosts, deployment.hosts)
 
-    validateMerge(Deployment(deployment.name, clusters, endpoints, ports, environmentVariables, constants, hosts))
+    validateMerge(Deployment(deployment.name, clusters, endpoints, ports, environmentVariables, hosts))
   }
 
   def mergeTrait[A <: Trait](traits1: List[A], traits2: List[A]): List[A] =
@@ -286,30 +321,14 @@ trait DeploymentMerger extends DeploymentTraitResolver {
     else Nil
   }
 
-  def resolveParameters: (Deployment => Deployment) = { (deployment: Deployment) =>
+  def resolveHosts: (Deployment => Deployment) = { (deployment: Deployment) =>
     implicit val timeout = DictionaryActor.timeout
     val host = offload(actorFor(DictionaryActor) ? DictionaryActor.Get(DictionaryActor.hostResolver)) match {
       case h: String => h
       case e => throwException(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
     }
 
-    val environmentVariables = deployment.clusters.flatMap({ cluster =>
-      cluster.services.flatMap(service => service.breed.environmentVariables.filter(_.value.isDefined)).map(ev => {
-        val name = TraitReference(cluster.name, TraitReference.EnvironmentVariables, ev.name).toString
-        name -> ev.copy(name = name)
-      })
-    }).toMap ++ deployment.environmentVariables.map(ev => ev.name -> ev).toMap
-
-    val constants = deployment.clusters.flatMap({ cluster =>
-      cluster.services.flatMap(service => service.breed.constants.filter(_.value.isDefined)).map(constant => {
-        val name = TraitReference(cluster.name, TraitReference.Constants, constant.name).toString
-        name -> constant.copy(name = name)
-      })
-    }).toMap ++ deployment.constants.map(constant => constant.name -> constant).toMap
-
-    val hosts = deployment.clusters.map(cluster => Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(host)))
-
-    deployment.copy(environmentVariables = environmentVariables.values.toList, constants = constants.values.toList, hosts = hosts)
+    deployment.copy(hosts = deployment.clusters.map(cluster => Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(host))))
   }
 
   def resolveRouteMapping: (Deployment => Deployment) = { (deployment: Deployment) =>
@@ -337,7 +356,7 @@ trait DeploymentMerger extends DeploymentTraitResolver {
         })
 
         service.breed.environmentVariables.filter(_.value.isEmpty).map(environmentVariable => {
-          val name = TraitReference(cluster.name, TraitReference.Ports, environmentVariable.name).toString
+          val name = TraitReference(cluster.name, TraitReference.EnvironmentVariables, environmentVariable.name).toString
           deployment.environmentVariables.find(_.name == name).getOrElse(throwException(UnresolvedVariableValueError(service.breed, environmentVariable.name)))
         })
       })
@@ -361,7 +380,7 @@ trait DeploymentMerger extends DeploymentTraitResolver {
   }
 }
 
-trait DeploymentSlicer {
+trait DeploymentSlicer extends DeploymentOperation {
   this: DeploymentValidator with ArtifactSupport with FutureSupport with ActorSupport with NotificationProvider =>
 
   def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster =>
@@ -371,12 +390,10 @@ trait DeploymentSlicer {
     }
   }
 
-  def commit(create: Boolean, source: String): (Deployment => Deployment)
-
   def slice(blueprint: Deployment): (Deployment => Deployment) = { (stable: Deployment) =>
     validateRoutingWeightOfServicesForRemoval(stable, blueprint)
 
-    (validateBreeds andThen validateRoutingWeights andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster =>
+    (validateServices andThen validateRoutingWeights andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster =>
       blueprint.clusters.find(_.name == cluster.name) match {
         case None => cluster
         case Some(bpc) => cluster.copy(services = cluster.services.map(service => service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) ReadyForUndeployment() else service.state)))

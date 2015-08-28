@@ -8,45 +8,45 @@ clusters:
   supersonic:
     services:
       -
-        breed: solid-barbershop
+        reference: solid-barbershop
         scale:
           cpu: 0.2
           memory: 120
           instances: 2
-          
+
         routing:
           weight: 95
           filters:
             - condition: ua = android
       -
-        breed: remote-venus
+        ref: remote-venus
         scale: worthy
-        
+
     sla:
        type: vital-cloud
        reborn: red-swallow
        escalations:
          - red-flag
-         - 
-           name: hideous-screaming
-         - 
+         -
+           ref: hideous-screaming
+         -
            type: cloud-beam
            sound: furious
-         
-  notorious: 
-    breed: 
+
+  notorious:
+    breed:
       name: nocturnal-viper
       deployable: anaconda
-      
+
     sla: strong-mountain
-  
-  needless: 
+
+  needless:
     name: hideous-canal
     deployable: old/crystal
-                  
+
     sla: fish-steamy
-  
+
   omega: scary-lion
-          
+
 environment_variables:
   omega.aspect: thorium

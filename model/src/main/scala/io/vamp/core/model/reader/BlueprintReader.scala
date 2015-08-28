@@ -40,14 +40,18 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
           }
           >>("services", <<![List[_]]("services").map { element =>
             if (element.isInstanceOf[String]) {
-              new YamlObject() += ("breed" -> (new YamlObject() += ("name" -> element)))
+              new YamlObject() += ("breed" -> (new YamlObject() += ("reference" -> element)))
             } else {
               implicit val source = element.asInstanceOf[YamlObject]
               <<?[Any]("breed") match {
-                case None => <<?[Any]("name") match {
-                  case None =>
-                  case Some(_) => >>("breed", source)
-                }
+                case None =>
+                  <<?[Any]("name") match {
+                    case None => hasReference match {
+                      case None =>
+                      case Some(ref) => >>("breed", ref)
+                    }
+                    case Some(_) => >>("breed", source)
+                  }
                 case _ =>
               }
               <<?[Any]("routing") match {
@@ -92,7 +96,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     }
 
     val endpoints = ports("endpoints", addGroup = true)
-    val evs = environmentVariables("environment_variables", alias = false, addGroup = true)
+    val evs = environmentVariables(alias = false, addGroup = true)
 
     DefaultBlueprint(name, clusters, endpoints, evs)
   }
@@ -104,8 +108,11 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       validateBlueprintTraitValues(blueprint)
       validateRoutingWeights(blueprint)
 
+      if (blueprint.clusters.flatMap(_.services).count(_ => true) == 0) throwException(NoServiceError)
+
       val breeds = blueprint.clusters.flatMap(_.services.map(_.breed))
       validateBreeds(breeds)
+      validateServiceEnvironmentVariables(blueprint.clusters.flatMap(_.services))
       validateDependencies(breeds)
       breeds.foreach(BreedReader.validateNonRecursiveDependencies)
 
@@ -127,6 +134,16 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     }
   }
 
+  protected def validateServiceEnvironmentVariables(services: List[Service]) = services.foreach { service =>
+    service.breed match {
+      case breed: DefaultBreed => service.environmentVariables.foreach { environmentVariable =>
+        if (environmentVariable.value.isEmpty) throwException(MissingEnvironmentVariableError(breed, environmentVariable.name))
+        if (!breed.environmentVariables.exists(_.name == environmentVariable.name)) throwException(UnresolvedDependencyInTraitValueError(breed, environmentVariable.name))
+      }
+      case _ =>
+    }
+  }
+
   protected def validateDependencies(breeds: List[Breed]): Unit = {
     breeds.flatMap({
       case breed: DefaultBreed => breed.dependencies.map((breed, _))
@@ -139,7 +156,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   }
 
   private def parseService(implicit source: YamlObject): Service =
-    Service(BreedReader.readReference(<<![Any]("breed")), ScaleReader.readOptionalReferenceOrAnonymous("scale"), RoutingReader.readOptionalReferenceOrAnonymous("routing"), dialects)
+    Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), RoutingReader.readOptionalReferenceOrAnonymous("routing"), dialects)
 }
 
 object BlueprintReader extends AbstractBlueprintReader {

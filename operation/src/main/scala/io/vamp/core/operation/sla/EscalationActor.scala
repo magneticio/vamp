@@ -11,7 +11,7 @@ import io.vamp.core.model.event.{Event, EventQuery, TimeRange}
 import io.vamp.core.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.core.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType}
 import io.vamp.core.operation.sla.EscalationActor.EscalationProcessAll
-import io.vamp.core.persistence.PersistenceActor
+import io.vamp.core.persistence.{PaginationSupport, PersistenceActor}
 import io.vamp.core.pulse.PulseActor
 
 import scala.concurrent.duration.FiniteDuration
@@ -54,14 +54,14 @@ object EscalationActor extends ActorDescription {
 
 }
 
-class EscalationActor extends CommonSupportForActors with OperationNotificationProvider {
+class EscalationActor extends PaginationSupport with CommonSupportForActors with OperationNotificationProvider {
 
   def tags = Set("escalation")
 
   def receive: Receive = {
     case EscalationProcessAll(from, to) =>
       implicit val timeout = PersistenceActor.timeout
-      offload(actorFor(PersistenceActor) ? PersistenceActor.All(classOf[Deployment])) match {
+      allArtifacts(classOf[Deployment]) match {
         case deployments: List[_] => check(deployments.asInstanceOf[List[Deployment]], from, to)
         case any => reportException(InternalServerError(any))
       }

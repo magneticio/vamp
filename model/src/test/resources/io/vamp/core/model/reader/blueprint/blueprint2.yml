@@ -8,7 +8,7 @@ clusters:
     services:
       -
         breed:
-          name: nocturnal-viper
+          reference: nocturnal-viper
           
-environment_variables:
+env:
   notorious.aspect: thorium

@@ -53,7 +53,7 @@ trait BlueprintTraitValidator extends TraitResolver {
 
   private def validateEnvironmentVariables: (DefaultBlueprint => DefaultBlueprint) = { blueprint: DefaultBlueprint =>
     validateVariables(blueprint.environmentVariables, TraitReference.EnvironmentVariables, { ev =>
-      throwException(UnresolvedEnvironmentVariableError(TraitReference.referenceFor(ev.name).flatMap(r => Some(r.referenceWithoutGroup)).getOrElse(ev.name), ev.value))
+      throwException(UnresolvedEnvironmentVariableError(TraitReference.referenceFor(ev.name).flatMap(r => Some(r.referenceWithoutGroup)).getOrElse(ev.name), ev.value.getOrElse("")))
     })(blueprint)
   }
 

@@ -4,9 +4,9 @@ organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
-version in ThisBuild := "0.7.9"+ VersionHelper.versionSuffix
+version in ThisBuild := "0.7.10"+ VersionHelper.versionSuffix
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.7"
 
 scalaVersion in ThisBuild := scalaVersion.value
 
@@ -57,11 +57,12 @@ lazy val bintraySetting = Seq(
   bintrayRepository  := "vamp"
 )
 
+val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4" % "test"
 
 // Library Versions
 
-val vampCommonVersion = "0.7.9"
-val vampUiVersion = "0.7.9-87"
+val vampCommonVersion = "0.7.10"
+val vampUiVersion = "0.7.10-128"
 
 val sprayVersion = "1.3.2"
 val json4sVersion = "3.2.11"
@@ -81,7 +82,7 @@ val postgresVersion = "9.1-901.jdbc4"
 val quartzVersion = "2.2.1"
 val bcprovVersion= "1.46"
 val unisocketsNettyVersion = "0.1.0"
-
+val jerseyVersion = "2.15"
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
@@ -98,7 +99,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-    persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, router_driver, swagger, cli
+    persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, router_driver, cli
   ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
@@ -140,14 +141,16 @@ lazy val rest_api = project.settings(bintraySetting: _*).settings(
     }
   )
   .settings((compile in Compile)<<= (compile in Compile) dependsOn downloadUI)
-  .dependsOn(operation, swagger).disablePlugins(sbtassembly.AssemblyPlugin)
+  .dependsOn(operation).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
 lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
   name:="core-operation",
   libraryDependencies ++=Seq(
-    "org.quartz-scheduler" % "quartz" % quartzVersion
+    "org.quartz-scheduler" % "quartz" % quartzVersion,
+    "org.glassfish.jersey.core" % "jersey-client" % jerseyVersion,
+    "org.glassfish.jersey.media" % "jersey-media-sse" % jerseyVersion
   )
 ).dependsOn(persistence, container_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
@@ -206,13 +209,9 @@ lazy val model = project.settings(bintraySetting: _*).settings(
     "io.vamp" %% "common" % vampCommonVersion,
     "org.yaml" % "snakeyaml" % snakeYamlVersion,
     "junit" % "junit" % junitVersion % "test",
-    "org.scalatest" %% "scalatest" % scalatestVersion % "test"
+    "org.scalatest" %% "scalatest" % scalatestVersion % "test",
+    scalaCheck
   )
-).disablePlugins(sbtassembly.AssemblyPlugin)
-
-lazy val swagger = project.settings(bintraySetting: _*).settings(
-  description := "Swagger annotations",
-  name:="core-swagger"
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 // Java version and encoding requirements
