@@ -148,9 +148,8 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"DELETE $vampHost/api/v1/slas/$name", None)
 
 
-  def undeploy(name: String)(implicit vampHost: String): Option[String] =
-    getDeployment(name) match {
-      case Some(existingDeployment) => sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some(artifactToYaml(existingDeployment)))
+  def undeploy(name: String, payload: Option[String])(implicit vampHost: String): Option[String] = payload match {
+      case Some(artifact) => sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some(artifact))
       case None => None
     }
 

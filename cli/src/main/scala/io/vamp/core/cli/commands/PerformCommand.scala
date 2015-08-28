@@ -152,7 +152,25 @@ object PerformCommand extends Generate {
     case _ => unhandledCommand _
   }
 
-  private def doUndeployCommand(implicit vampHost: String, options: OptionMap) = println(VampHostCalls.undeploy(getParameter(name)).getOrElse(""))
+  private def doUndeployCommand(implicit vampHost: String, options: OptionMap) = {
+    val stuffToRemove :Option[String] = getOptionalParameter(blueprint) match {
+      case Some(nameOfBlueprint) => VampHostCalls.getBlueprint(nameOfBlueprint) match {
+        case Some(storedBlueprint) => Some(artifactToYaml(storedBlueprint))
+        case None => terminateWithError(s"Blueprint $nameOfBlueprint not found")
+          None
+      }
+      case None =>
+        readOptionalFileContent match {
+          case Some(fileContent) => Some(fileContent) // get supplied blueprint from file or stdin
+          case None => VampHostCalls.getDeployment(name) match {
+            case Some(existingDeployment) => Some(artifactToYaml(existingDeployment)) // get running deployment
+            case None => terminateWithError("Deployment not found")
+              None
+          }
+        }
+    }
+    println(VampHostCalls.undeploy(getParameter(name), stuffToRemove).getOrElse(""))
+  }
 
   private def getBlueprint()(implicit vampHost: String, options: OptionMap): Option[Blueprint] = getOptionalParameter(name) match {
     case Some(nameOfBlueprint) => VampHostCalls.getBlueprint(nameOfBlueprint)
