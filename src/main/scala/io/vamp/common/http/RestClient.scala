@@ -70,7 +70,7 @@ object RestClient {
 
         case status =>
           logger.trace(s"Unexpected status code: $status, for response: ${response.getResponseBody}")
-          throw StatusCode(status)
+          throw RestClientException(status, response.getResponseBody)
       }
     })
   }
