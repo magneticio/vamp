@@ -75,11 +75,11 @@ object RestClient {
           throw RestClientException(Some(status), response.getResponseBody)
       }
     }).recover {
-      case failure ⇒
-        val message = s"rsp $requestLog - exception: ${failure.getMessage}"
+      case exception ⇒
+        val message = s"rsp $requestLog - exception: ${exception.getMessage}"
         logger.error(message)
-        logger.trace(message, failure)
-        throw RestClientException(None, failure.getMessage)
+        logger.trace(message, exception)
+        throw RestClientException(None, exception.getMessage).initCause(if (exception.getCause != null) exception.getCause else exception)
     }
   }
 

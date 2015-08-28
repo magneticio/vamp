@@ -22,9 +22,10 @@ trait ReplyActor {
     magnet.get.transform({
       case future ⇒
         pipe {
-          future.recover {
-            case n: NotificationErrorException ⇒ n
-            case f                             ⇒ failure(f, `class`)
+          future andThen {
+            case Success(s)                             ⇒ s
+            case Failure(n: NotificationErrorException) ⇒ n
+            case Failure(f)                             ⇒ failure(f)
           }
         } to sender()
         Success(future)
