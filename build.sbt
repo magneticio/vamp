@@ -3,9 +3,9 @@ organization := "io.vamp"
 
 name := """common"""
 
-version := "0.7.9" + VersionHelper.versionSuffix
+version := "0.7.10" + VersionHelper.versionSuffix
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.7"
 
 publishMavenStyle := false
 
@@ -58,6 +58,7 @@ libraryDependencies ++= Seq(
   "io.spray" %% "spray-routing" % sprayVersion,
   "io.spray" %% "spray-httpx" % sprayVersion,
   "io.spray" %% "spray-json" % sprayJsonVersion,
+  "io.spray" %% "spray-can" % sprayJsonVersion,
   "commons-cli" % "commons-cli" % commonCliVersion,
   "net.databinder.dispatch" %% "dispatch-core" % dispatchVersion,
   "net.databinder.dispatch" %% "dispatch-json4s-native" % dispatchVersion,

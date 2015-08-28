@@ -22,6 +22,10 @@ trait RestApiContentTypes {
 
 trait RestApiBase extends HttpServiceBase with RestApiPagination with RestApiMarshaller with RestApiContentTypes {
 
+  protected def validateOnly = parameters('validate_only.as[Boolean] ? false)
+
+  protected def expandAndOnlyReferences = parameters(('expand_references.as[Boolean] ? false, 'only_references.as[Boolean] ? false))
+
   protected def noCachingAllowed = respondWithHeaders(`Cache-Control`(`no-store`), RawHeader("Pragma", "no-cache"))
 
   protected def allowXhrFromOtherHosts = respondWithHeader(RawHeader("Access-Control-Allow-Origin", "*"))
