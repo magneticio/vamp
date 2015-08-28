@@ -127,7 +127,9 @@ Commands:
   list                Shows a list of artifacts
   merge               Merge a blueprint with an existing deployment or blueprint
   remove              Removes an artifact
-  version             Show version of the VAMP CLI client
+  undeploy            Removes a deployment
+  update              Update an artifact
+  version             Shows the version of the VAMP CLI client
   
 Run vamp COMMMAND --help  for additional help about the different command options
 ```
