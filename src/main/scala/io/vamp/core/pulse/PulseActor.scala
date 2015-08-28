@@ -9,6 +9,7 @@ import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka._
 import io.vamp.common.http.{ OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope }
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
+import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.event.Aggregator.AggregatorType
 import io.vamp.core.model.event._
@@ -49,7 +50,7 @@ object PulseActor {
 
 }
 
-class PulseActor extends Percolator with EventValidator with CommonSupportForActors with PulseNotificationProvider {
+class PulseActor extends PulseFailureNotifier with Percolator with EventValidator with CommonSupportForActors with PulseNotificationProvider {
 
   import ElasticsearchClient._
   import PulseActor._
@@ -202,5 +203,9 @@ class PulseActor extends Percolator with EventValidator with CommonSupportForAct
       ("size" -> 0) +
       ("aggs" -> Map("aggregation" -> Map(s"$aggregation" -> Map("field" -> aggregationField))))
   }
-}
 
+  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = {
+    percolate(failureNotificationEvent(failure))
+    reportException(`class`.getConstructors()(0).newInstance(failure.asInstanceOf[AnyRef]).asInstanceOf[Notification])
+  }
+}
