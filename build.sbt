@@ -63,7 +63,7 @@ val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4" % "test"
 
 // Library Versions
 
-val vampCommonVersion = "0.7.10-dev.c3dfe09"
+val vampCommonVersion = "0.7.10-dev.78c70bc"
 val vampUiVersion = "0.7.10-128"
 
 val sprayVersion = "1.3.2"
@@ -170,13 +170,13 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
     "org.glassfish.jersey.core" % "jersey-client" % jerseyVersion,
     "org.glassfish.jersey.media" % "jersey-media-sse" % jerseyVersion
   )
-).dependsOn(persistence, container_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(persistence, container_driver, router_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val pulse = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
   name:="core-pulse",
   formatting
-).dependsOn(router_driver).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val router_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to Vamp Router",
@@ -187,7 +187,7 @@ lazy val router_driver = project.settings(bintraySetting: _*).settings(
     scalaTest % "test",
     akkaTestkit % "test"
   )
-).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val container_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to container managers",
@@ -198,7 +198,7 @@ lazy val container_driver = project.settings(bintraySetting: _*).settings(
     "org.bouncycastle" % "bcprov-jdk16" % bcprovVersion,
     "me.lessis" %% "unisockets-netty" % unisocketsNettyVersion
 )
-).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val persistence = project.settings(bintraySetting: _*).settings(
   description:= "Stores Vamp artifacts",

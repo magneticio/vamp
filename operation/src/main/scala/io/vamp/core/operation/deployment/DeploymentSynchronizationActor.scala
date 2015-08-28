@@ -71,10 +71,13 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
   private def synchronize(deployments: List[Deployment]): Future[_] = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
-    actorFor[RouterDriverActor] ? RouterDriverActor.All map {
+    val router = actorFor[RouterDriverActor] ? RouterDriverActor.All
+    val container = actorFor[ContainerDriverActor] ? ContainerDriverActor.All
+
+    router map {
       case error: NotificationErrorException ⇒ log.error("Synchronisation not possible.")
       case deploymentRoutes: DeploymentRoutes ⇒
-        actorFor[ContainerDriverActor] ? ContainerDriverActor.All map {
+        container map {
           case containerServices: List[_] ⇒ deployments.filterNot(withError).foreach(synchronize(containerServices.asInstanceOf[List[ContainerService]], deploymentRoutes))
           case any                        ⇒ throwException(InternalServerError(any))
         }

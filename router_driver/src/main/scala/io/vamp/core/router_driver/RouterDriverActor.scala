@@ -4,6 +4,7 @@ import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.artifact._
+import io.vamp.core.pulse.notification.PulseFailureNotifier
 import io.vamp.core.router_driver.notification.{ RouterDriverNotificationProvider, RouterResponseError, UnsupportedRouterDriverRequest }
 
 import scala.async.Async._
@@ -35,7 +36,7 @@ object RouterDriverActor {
  * by asynchronous implementation (code below).
  *
  */
-class RouterDriverActor(driver: RouterDriver) extends CommonSupportForActors with RouterDriverNotificationProvider {
+class RouterDriverActor(driver: RouterDriver) extends PulseFailureNotifier with CommonSupportForActors with RouterDriverNotificationProvider {
 
   import io.vamp.core.router_driver.RouterDriverActor._
 
@@ -55,9 +56,18 @@ class RouterDriverActor(driver: RouterDriver) extends CommonSupportForActors wit
   def syncReply[T](magnet: SyncReplyMagnet[T], `class`: Class[_ <: Notification] = errorNotificationClass): Unit = magnet.get match {
     case Success(future) ⇒
       val receiver = sender()
-      async(receiver ! await(future))
-    case Failure(failure) ⇒ sender() ! failure
+      async {
+        receiver ! await {
+          future.andThen {
+            case Success(s) ⇒ s
+            case Failure(f) ⇒ failure(f)
+          }
+        }
+      }
+    case Failure(f) ⇒ sender() ! failure(f)
   }
+
+  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 }
 
 sealed abstract class SyncReplyMagnet[+T] {
@@ -70,12 +80,12 @@ object SyncReplyMagnet {
   }
 }
 
-// FIXME remove all above, scala-async dependency from build.sbt and enable RouterDriverActorSpec
+// FIXME replace above RouterDriverActor with async version (below), scala-async dependency from build.sbt and enable RouterDriverActorSpec
 
 /*
  * Asynchronous implementation
  *
-class RouterDriverActor(driver: RouterDriver) extends CommonSupportForActors with RouterDriverNotificationProvider {
+class RouterDriverActor(driver: RouterDriver) extends PulseFailureNotifier with CommonSupportForActors with RouterDriverNotificationProvider {
 
   import io.vamp.core.router_driver.RouterDriverActor._
 
@@ -90,5 +100,7 @@ class RouterDriverActor(driver: RouterDriver) extends CommonSupportForActors wit
   }
 
   override def errorNotificationClass = classOf[RouterResponseError]
+
+  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 }
 */ 
