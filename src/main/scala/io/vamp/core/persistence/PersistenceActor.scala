@@ -5,9 +5,11 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
+import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.core.model.artifact.Artifact
 import io.vamp.core.persistence.notification._
+import io.vamp.core.pulse.notification.PulseFailureNotifier
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -37,7 +39,7 @@ object PersistenceActor {
 
 }
 
-trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with ArtifactShrinkage with CommonSupportForActors with PersistenceNotificationProvider {
+trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with ArtifactShrinkage with PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
@@ -119,6 +121,10 @@ trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with 
   protected def shutdown() = {
   }
 
-  protected def readExpanded(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = None
+  protected def readExpanded(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = read(name, `type`)
+
+  override def typeName = "persistence"
+
+  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 }
 
