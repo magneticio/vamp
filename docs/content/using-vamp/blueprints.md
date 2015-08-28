@@ -15,6 +15,7 @@ Blueprints allow you to add the following extra properties:
 
 - [endpoints](#endpoints): a stable port where the service can be reached.
 - [clusters & services](#clusters-services): a cluster is agrouping of services with one purpose, i.e. two versions (a/b) of one service.
+- [environment variables](/documentation/using-vamp/environment_variables/): a list of variables (interpolated or not) to be made available at runtime.
 - [dialects](#dialects): a dialect is a set of native commands for the underlying container platform, i.e. Docker or Mesosphere Marathon.
 - [scale](#scale): the CPU and memory and the amount of instance allocate to a service.
 - [routing](/documentation/using-vamp/routings-and-filters/): how much and which traffic the service should receive.

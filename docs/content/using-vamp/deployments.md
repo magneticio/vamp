@@ -1,6 +1,6 @@
 ---
 title: Deployments
-weight: 40
+weight: 30
 menu:
   main:
     parent: using-vamp
