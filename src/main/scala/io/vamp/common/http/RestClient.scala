@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.reflect._
 
+case class RestClientException(statusCode: Option[Int], message: String) extends RuntimeException(message) {}
+
 object RestClient {
 
   private val logger = Logger(LoggerFactory.getLogger(RestClient.getClass))
@@ -70,14 +72,14 @@ object RestClient {
           val message = s"rsp $requestLog - unexpected status code: $status"
           logger.error(message)
           logger.trace(s"$message, for response: ${response.getResponseBody}")
-          throw StatusCode(status)
+          throw RestClientException(Some(status), response.getResponseBody)
       }
     }).recover {
       case failure ⇒
         val message = s"rsp $requestLog - exception: ${failure.getMessage}"
         logger.error(message)
         logger.trace(message, failure)
-        throw failure
+        throw RestClientException(None, failure.getMessage)
     }
   }
 
