@@ -3,12 +3,11 @@ package io.vamp.core.cli.backend
 import java.util
 
 import io.vamp.common.http.RestClient.Method
-import io.vamp.common.http.{RestApiContentTypes, RestApiMarshaller, RestClient}
+import io.vamp.common.http.{RestApiContentTypes, RestApiMarshaller, RestClient, RestClientException}
 import io.vamp.core.cli.commandline.CommandLineBasics
 import io.vamp.core.cli.commands.IoUtils
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.reader._
-import io.vamp.core.model.serialization.CoreSerializationFormat
 import org.json4s.native._
 import org.yaml.snakeyaml.DumperOptions.FlowStyle
 import org.yaml.snakeyaml.Yaml
@@ -149,9 +148,9 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
 
 
   def undeploy(name: String, payload: Option[String])(implicit vampHost: String): Option[String] = payload match {
-      case Some(artifact) => sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some(artifact))
-      case None => None
-    }
+    case Some(artifact) => sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some(artifact))
+    case None => None
+  }
 
   def prettyJson(artifact: AnyRef) = Serialization.writePretty(artifact)
 
@@ -266,20 +265,21 @@ trait RestSupport {
     }
   }
 
-  private def prettyError(error : Throwable): String = error match {
-    case e: Exception if e.getMessage.startsWith("dispatch.StatusCode: ") =>
-      val parts = e.getMessage.split(": ")
-      if (parts.length == 3) {
-        parts(2) match {
-          case "404" => "404 - Not found"
-          case other => s"$other - ${parts(1)}"
-        }
-      } else {
-        e.getMessage
+  private def prettyError(error: Throwable): String = error match {
+    case e: RestClientException =>
+      e.statusCode match {
+        case Some(code) => s"$code - ${extractExceptionMessage(e)}"
+        case None => s"${extractExceptionMessage(e)}"
       }
-    case e:  Exception => e.getMessage
+    case e: Exception => e.getMessage
   }
 
+  private def extractExceptionMessage(e: RestClientException): String = {
+    """\{\"message\":\"(.*)\"\}""".r findFirstMatchIn e.message match {
+      case Some(extracted) if extracted.groupCount == 1 => extracted.group(1)
+      case _ => e.getMessage
+    }
+  }
 
   protected def yamArrayListToList(ls: String): List[String] = {
     new Yaml().load(ls).asInstanceOf[util.ArrayList[java.util.Map[String, Any]]].asScala.toList.map(a => new Yaml().dumpAs(a, Tag.MAP, FlowStyle.BLOCK))
