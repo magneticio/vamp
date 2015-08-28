@@ -3,7 +3,7 @@ package io.vamp.core.cli.backend
 import java.util
 
 import io.vamp.common.http.RestClient.Method
-import io.vamp.common.http.{RestApiContentTypes, RestApiMarshaller, RestClient, RestClientException}
+import io.vamp.common.http.{ RestApiContentTypes, RestApiMarshaller, RestClient, RestClientException }
 import io.vamp.common.http.{ RestApiContentTypes, RestApiMarshaller, RestClient }
 import io.vamp.core.cli.commandline.CommandLineBasics
 import io.vamp.core.cli.commands.IoUtils
@@ -147,10 +147,9 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
   def deleteSla(name: String)(implicit vampHost: String) =
     sendAndWaitYaml(s"DELETE $vampHost/api/v1/slas/$name", None)
 
-
   def undeploy(name: String, payload: Option[String])(implicit vampHost: String): Option[String] = payload match {
-    case Some(artifact) => sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some(artifact))
-    case None => None
+    case Some(artifact) ⇒ sendAndWaitYaml(s"DELETE $vampHost/api/v1/deployments/$name", Some(artifact))
+    case None           ⇒ None
   }
 
   def prettyJson(artifact: AnyRef) = Serialization.writePretty(artifact)
@@ -266,18 +265,18 @@ trait RestSupport {
   }
 
   private def prettyError(error: Throwable): String = error match {
-    case e: RestClientException =>
+    case e: RestClientException ⇒
       e.statusCode match {
-        case Some(code) => s"$code - ${extractExceptionMessage(e)}"
-        case None => s"${extractExceptionMessage(e)}"
+        case Some(code) ⇒ s"$code - ${extractExceptionMessage(e)}"
+        case None       ⇒ s"${extractExceptionMessage(e)}"
       }
-    case e: Exception => e.getMessage
+    case e: Exception ⇒ e.getMessage
   }
 
   private def extractExceptionMessage(e: RestClientException): String = {
     """\{\"message\":\"(.*)\"\}""".r findFirstMatchIn e.message match {
-      case Some(extracted) if extracted.groupCount == 1 => extracted.group(1)
-      case _ => e.getMessage
+      case Some(extracted) if extracted.groupCount == 1 ⇒ extracted.group(1)
+      case _ ⇒ e.getMessage
     }
   }
 
