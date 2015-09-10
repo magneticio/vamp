@@ -13,7 +13,7 @@ Vamp currently uses a type of service discovery commonly called "server-side ser
 
 ## Why is Vamp Router not starting?
 
-This is commonly due to the fact that Vamp Router tries to read/write to files and sockets owned by the `root` user. In a default installation using a package manager, Vamp Router runs as its own user `vamp-router`. It will also start HAproxy under that users.
+This is commonly due to the fact that Vamp Router tries to read/write to files and sockets owned by the `root` user. In a default installation using a package manager, Vamp Router runs as its own user `vamp-router`. It will also start HAproxy under that user.
 
 However, if you at some moment run either Vamp Router or HAproxy as root directly, the file/socket ownership changes to `root`. If you then later return to using the default user `vamp-router`, it will fail. Please see [this issue](https://github.com/magneticio/vamp-router/issues/22#issuecomment-138900317) and its solution for more details.
 
