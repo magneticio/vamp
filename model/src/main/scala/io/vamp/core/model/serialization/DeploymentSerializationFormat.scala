@@ -2,7 +2,7 @@ package io.vamp.core.model.serialization
 
 import java.time.format.DateTimeFormatter
 
-import io.vamp.core.model.artifact.DeploymentService._
+import io.vamp.core.model.artifact.DeploymentService.State.Step.Failure
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification.ModelNotificationProvider
 import org.json4s.JsonAST.JString
@@ -13,13 +13,15 @@ import scala.collection.mutable.ArrayBuffer
 object DeploymentSerializationFormat extends io.vamp.common.json.SerializationFormat {
   override def customSerializers = super.customSerializers :+
     new DeploymentSerializer(full = false) :+
-    new DeploymentServiceStateSerializer()
+    new DeploymentServiceStateSerializer() :+
+    new DeploymentServiceStateStepSerializer()
 }
 
 object FullDeploymentSerializationFormat extends io.vamp.common.json.SerializationFormat {
   override def customSerializers = super.customSerializers :+
     new DeploymentSerializer(full = true) :+
-    new DeploymentServiceStateSerializer()
+    new DeploymentServiceStateSerializer() :+
+    new DeploymentServiceStateStepSerializer()
 }
 
 class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment] with TraitDecomposer {
@@ -39,13 +41,33 @@ class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment]
   }
 }
 
-class DeploymentServiceStateSerializer extends ArtifactSerializer[DeploymentService.State] with ModelNotificationProvider {
+class DeploymentServiceStateSerializer extends ArtifactSerializer[DeploymentService.State] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case state: Error ⇒
-      JObject(JField("name", JString(state.getClass.getSimpleName)), JField("started_at", JString(state.startedAt.format(DateTimeFormatter.ISO_DATE_TIME))), JField("notification", JString(message(state.notification))))
-
     case state: DeploymentService.State ⇒
-      JObject(JField("name", JString(state.getClass.getSimpleName)), JField("started_at", JString(state.startedAt.format(DateTimeFormatter.ISO_DATE_TIME))))
+      val list = new ArrayBuffer[JField]
+
+      list += JField("intention", JString(state.intention.toString))
+      list += JField("since", JString(state.since.format(DateTimeFormatter.ISO_DATE_TIME)))
+      list += JField("step", Extraction.decompose(state.step))
+
+      new JObject(list.toList)
   }
 }
 
+class DeploymentServiceStateStepSerializer extends ArtifactSerializer[DeploymentService.State.Step] with ModelNotificationProvider {
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case step: DeploymentService.State.Step ⇒
+
+      val list = new ArrayBuffer[JField]
+
+      list += JField("name", JString(step.getClass.getSimpleName))
+      list += JField("since", JString(step.since.format(DateTimeFormatter.ISO_DATE_TIME)))
+
+      step match {
+        case failure: Failure ⇒ list += JField("notification", JString(message(failure.notification)))
+        case _                ⇒
+      }
+
+      new JObject(list.toList)
+  }
+}

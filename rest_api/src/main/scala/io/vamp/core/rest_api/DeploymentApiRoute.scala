@@ -8,7 +8,7 @@ import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, Execut
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.model.artifact.Deployment
-import io.vamp.core.model.artifact.DeploymentService.ReadyForUndeployment
+import io.vamp.core.model.artifact.DeploymentService.State
 import io.vamp.core.operation.controller.DeploymentApiController
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.core.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
@@ -169,7 +169,7 @@ trait DevController {
 
   def reset()(implicit timeout: Timeout): Unit = allArtifacts[Deployment] map { deployments ⇒
     deployments.foreach { deployment ⇒
-      IoC.actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster ⇒ cluster.copy(services = cluster.services.map(service ⇒ service.copy(state = ReadyForUndeployment()))))))
+      IoC.actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster ⇒ cluster.copy(services = cluster.services.map(service ⇒ service.copy(state = State(State.Intention.Undeploy)))))))
     }
     sync()
   }

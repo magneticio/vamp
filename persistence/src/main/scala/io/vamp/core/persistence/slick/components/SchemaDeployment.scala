@@ -4,7 +4,8 @@ import java.time.OffsetDateTime
 
 import io.strongtyped.active.slick.Profile
 import io.vamp.core.persistence.slick.extension.{ VampTableQueries, VampTables }
-import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
+import io.vamp.core.persistence.slick.model.DeploymentIntention.DeploymentIntentionType
+import io.vamp.core.persistence.slick.model.DeploymentStep.DeploymentStepType
 import io.vamp.core.persistence.slick.model._
 
 import scala.language.implicitConversions
@@ -47,7 +48,7 @@ trait SchemaDeployment extends Logging with SchemaBreed {
   }
 
   class DeploymentServiceTable(tag: Tag) extends DeployableEntityTable[DeploymentServiceModel](tag, "deployment_services") {
-    def * = (deploymentId, clusterId, id.?, name, breedId, scaleId, routingId, deploymentStateType, deploymentTime, dialects, message) <> (DeploymentServiceModel.tupled, DeploymentServiceModel.unapply)
+    def * = (deploymentId, clusterId, id.?, name, breedId, scaleId, routingId, deploymentIntention, deploymentStep, deploymentTime, deploymentStepTime, dialects, message) <> (DeploymentServiceModel.tupled, DeploymentServiceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -59,9 +60,13 @@ trait SchemaDeployment extends Logging with SchemaBreed {
 
     def routingId = column[Option[Int]]("routing_id")
 
-    def deploymentStateType = column[DeploymentStateType]("deployment_state")
+    def deploymentIntention = column[DeploymentIntentionType]("deployment_intention")
+
+    def deploymentStep = column[DeploymentStepType]("deployment_step")
 
     def deploymentTime = column[OffsetDateTime]("deployment_time")
+
+    def deploymentStepTime = column[OffsetDateTime]("deployment_step_time")
 
     def message = column[Option[String]]("message")
 

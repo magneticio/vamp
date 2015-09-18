@@ -3,8 +3,9 @@ package io.vamp.core.model.reader
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
+import io.vamp.core.model.artifact.DeploymentService.State.Step
 import io.vamp.core.model.artifact._
-import io.vamp.core.model.notification.NotificationMessageNotRestored
+import io.vamp.core.model.notification.{ NotificationMessageNotRestored, UndefinedStateIntentionError, UndefinedStateStepError }
 
 import scala.language.postfixOps
 
@@ -74,12 +75,21 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
   }
 
   private def state(implicit source: YamlObject): DeploymentService.State = {
-    def startedAt = OffsetDateTime.parse(<<![String]("started_at"), DateTimeFormatter.ISO_DATE_TIME)
-    name match {
-      case n if DeploymentService.Error.getClass.getSimpleName.indexOf(n) == 0                ⇒ DeploymentService.Error(startedAt = startedAt, notification = NotificationMessageNotRestored(<<?[String]("message").getOrElse("")))
-      case n if DeploymentService.ReadyForDeployment.getClass.getSimpleName.indexOf(n) == 0   ⇒ DeploymentService.ReadyForDeployment(startedAt)
-      case n if DeploymentService.Deployed.getClass.getSimpleName.indexOf(n) == 0             ⇒ DeploymentService.Deployed(startedAt)
-      case n if DeploymentService.ReadyForUndeployment.getClass.getSimpleName.indexOf(n) == 0 ⇒ DeploymentService.ReadyForUndeployment(startedAt)
+    def since(string: String) = OffsetDateTime.parse(string, DateTimeFormatter.ISO_DATE_TIME)
+
+    val intentionName = <<![String]("intention")
+    val intention = DeploymentService.State.Intention.values.find(_.toString == intentionName).getOrElse(
+      throwException(UndefinedStateIntentionError(intentionName)))
+
+    val step = <<![String]("step" :: "name") match {
+      case n if Step.Failure.getClass.getSimpleName.indexOf(n) == 0 ⇒ Step.Failure(since = since(<<![String]("step" :: "since")), notification = NotificationMessageNotRestored(<<?[String]("step" :: "message").getOrElse("")))
+      case n if Step.ContainerUpdate.getClass.getSimpleName.indexOf(n) == 0 ⇒ Step.ContainerUpdate(since(<<![String]("step" :: "since")))
+      case n if Step.RouteUpdate.getClass.getSimpleName.indexOf(n) == 0 ⇒ Step.RouteUpdate(since(<<![String]("step" :: "since")))
+      case n if Step.Initiated.getClass.getSimpleName.indexOf(n) == 0 ⇒ Step.Initiated(since(<<![String]("step" :: "since")))
+      case n if Step.Done.getClass.getSimpleName.indexOf(n) == 0 ⇒ Step.Done(since(<<![String]("step" :: "since")))
+      case n ⇒ throwException(UndefinedStateStepError(n))
     }
+
+    DeploymentService.State(intention, step, since(<<![String]("since")))
   }
 }

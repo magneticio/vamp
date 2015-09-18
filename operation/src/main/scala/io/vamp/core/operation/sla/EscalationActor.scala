@@ -5,7 +5,7 @@ import java.time.OffsetDateTime
 import akka.actor._
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.core.model.artifact.DeploymentService.ReadyForDeployment
+import io.vamp.core.model.artifact.DeploymentService.State.Step.Initiated
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.event.{ EventQuery, TimeRange }
 import io.vamp.core.model.notification.{ DeEscalate, Escalate, SlaEvent }
@@ -129,7 +129,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
       actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(c ⇒ {
         if (c.name == targetCluster.name)
           c.copy(services = c.services match {
-            case head :: tail ⇒ head.copy(scale = Some(scale), state = ReadyForDeployment()) :: tail
+            case head :: tail ⇒ head.copy(scale = Some(scale), state = head.state.copy(step = Initiated())) :: tail
             case Nil          ⇒ Nil
           })
         else

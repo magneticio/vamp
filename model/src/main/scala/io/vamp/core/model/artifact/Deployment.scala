@@ -3,21 +3,47 @@ package io.vamp.core.model.artifact
 import java.time.OffsetDateTime
 
 import io.vamp.common.notification.Notification
+import io.vamp.core.model.artifact.DeploymentService.State.Intention.StateIntentionType
+import io.vamp.core.model.artifact.DeploymentService.State.Step.{ Done, Initiated }
+
+import scala.language.implicitConversions
 
 object DeploymentService {
 
-  trait State {
-    def startedAt: OffsetDateTime
+  object State {
+
+    object Intention extends Enumeration {
+      type StateIntentionType = Value
+      val Deploy, Undeploy = Value
+    }
+
+    sealed trait Step {
+      def since: OffsetDateTime
+    }
+
+    object Step {
+
+      case class Initiated(since: OffsetDateTime = OffsetDateTime.now()) extends Step
+
+      case class ContainerUpdate(since: OffsetDateTime = OffsetDateTime.now()) extends Step
+
+      case class RouteUpdate(since: OffsetDateTime = OffsetDateTime.now()) extends Step
+
+      case class Done(since: OffsetDateTime = OffsetDateTime.now()) extends Step
+
+      case class Failure(notification: Notification, since: OffsetDateTime = OffsetDateTime.now()) extends Step
+
+    }
+
   }
 
-  case class ReadyForDeployment(startedAt: OffsetDateTime = OffsetDateTime.now()) extends State
+  case class State(intention: StateIntentionType, step: State.Step = Initiated(), since: OffsetDateTime = OffsetDateTime.now()) {
+    def isDone = step.isInstanceOf[Done]
 
-  case class Deployed(startedAt: OffsetDateTime = OffsetDateTime.now()) extends State
+    def isDeployed = intention == State.Intention.Deploy && isDone
+  }
 
-  case class ReadyForUndeployment(startedAt: OffsetDateTime = OffsetDateTime.now()) extends State
-
-  case class Error(notification: Notification, startedAt: OffsetDateTime = OffsetDateTime.now()) extends State
-
+  implicit def step2state(intention: StateIntentionType): State = State(intention)
 }
 
 trait DeploymentState {

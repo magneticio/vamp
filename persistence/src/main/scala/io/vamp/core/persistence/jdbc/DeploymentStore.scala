@@ -114,8 +114,8 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
       }
       for (service ← cluster.services) {
         val breedRefId = createBreedReference(service.breed, deploymentId)
-        val message = service.state match {
-          case error: DeploymentService.Error ⇒
+        val message = service.state.step match {
+          case failure: DeploymentService.State.Step.Failure ⇒
             Some(s"Problem in cluster ${cluster.name}, with a service containing breed ${BreedReferences.findById(breedRefId).name}.")
           case _ ⇒ None
         }
@@ -127,8 +127,10 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
             breed = breedRefId,
             scale = createScaleReference(service.scale, deploymentId),
             routing = createRoutingReference(service.routing, deploymentId),
-            deploymentState = service.state,
-            deploymentTime = service.state.startedAt,
+            deploymentIntention = service.state.intention,
+            deploymentStep = service.state.step,
+            deploymentTime = service.state.since,
+            deploymentStepTime = service.state.step.since,
             dialects = DialectSerializer.serialize(service.dialects),
             message = message)
         )

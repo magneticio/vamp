@@ -32,7 +32,9 @@ DeEscalate                            : "Deescalate '{deployment.name}/{cluster.
 
 # Deployment Reader
 
-NotificationMessageNotRestored        : "Deployment service error was not restored.  {message}"
+NotificationMessageNotRestored        : "Deployment service error was not restored. {message}"
+UndefinedStateIntentionError          : "Undefined state intention: {name}."
+UndefinedStateStepError               : "Undefined state step: {name}."
 
 # Workflows
 

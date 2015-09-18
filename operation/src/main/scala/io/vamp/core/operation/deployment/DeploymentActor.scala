@@ -8,7 +8,8 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.core.dictionary.DictionaryActor
-import io.vamp.core.model.artifact.DeploymentService.{ ReadyForDeployment, ReadyForUndeployment }
+import io.vamp.core.model.artifact.DeploymentService.State
+import io.vamp.core.model.artifact.DeploymentService.State.Intention._
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.notification._
 import io.vamp.core.model.reader.{ BlueprintReader, BreedReader }
@@ -105,7 +106,7 @@ trait BlueprintSupport {
               scale ← artifactFor[DefaultScale](service.scale)
               routing ← artifactFor[DefaultRouting](service.routing)
             } yield {
-              DeploymentService(ReadyForDeployment(), breed, service.environmentVariables, scale, routing, Nil, Map(), service.dialects)
+              DeploymentService(Deploy, breed, service.environmentVariables, scale, routing, Nil, Map(), service.dialects)
             }
           }).map(DeploymentCluster(cluster.name, _, cluster.sla, Map(), cluster.dialects))
         }
@@ -119,7 +120,7 @@ trait DeploymentValidator {
   this: ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   def validateServices: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
-    val services = deployment.clusters.flatMap(_.services).filterNot(_.state.isInstanceOf[ReadyForUndeployment])
+    val services = deployment.clusters.flatMap(_.services).filterNot(_.state.intention == Undeploy)
 
     val breeds = services.map(_.breed)
 
@@ -284,7 +285,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
           case Some(bpService) ⇒
             val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
             val routing = if (bpService.routing.isDefined) bpService.routing else service.routing
-            val state = if (service.scale != bpService.scale || service.routing != bpService.routing) ReadyForDeployment() else service.state
+            val state: State = if (service.scale != bpService.scale || service.routing != bpService.routing) Deploy else service.state
 
             service.copy(scale = scale, routing = routing, state = state, dialects = service.dialects ++ bpService.dialects)
         }
@@ -431,7 +432,7 @@ trait DeploymentSlicer extends DeploymentOperation {
       (validateServices andThen validateRoutingWeights andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster ⇒
         blueprint.clusters.find(_.name == cluster.name) match {
           case None      ⇒ cluster
-          case Some(bpc) ⇒ cluster.copy(services = cluster.services.map(service ⇒ service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) ReadyForUndeployment() else service.state)))
+          case Some(bpc) ⇒ cluster.copy(services = cluster.services.map(service ⇒ service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) Undeploy else service.state)))
         }
       ).filter(_.services.nonEmpty)))
     }
@@ -449,13 +450,13 @@ trait DeploymentUpdate {
   }
 
   def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) = {
-    lazy val services = cluster.services.map(s ⇒ if (s.breed.name == service.breed.name) service.copy(scale = Some(scale), state = ReadyForDeployment()) else s)
+    lazy val services = cluster.services.map(s ⇒ if (s.breed.name == service.breed.name) service.copy(scale = Some(scale), state = Deploy) else s)
     val clusters = deployment.clusters.map(c ⇒ if (c.name == cluster.name) c.copy(services = services) else c)
     actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
   }
 
   def updateRouting(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, routing: DefaultRouting, source: String) = {
-    lazy val services = cluster.services.map(s ⇒ if (s.breed.name == service.breed.name) service.copy(routing = Some(routing), state = ReadyForDeployment()) else s)
+    lazy val services = cluster.services.map(s ⇒ if (s.breed.name == service.breed.name) service.copy(routing = Some(routing), state = Deploy) else s)
     val clusters = deployment.clusters.map(c ⇒ if (c.name == cluster.name) c.copy(services = services) else c)
     actorFor[PersistenceActor] ? PersistenceActor.Update(validateRoutingWeights(deployment.copy(clusters = clusters)), Some(source))
   }
