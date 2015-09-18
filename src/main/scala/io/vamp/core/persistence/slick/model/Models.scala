@@ -7,7 +7,8 @@ import io.strongtyped.active.slick.models.Identifiable
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.slick.extension.{ AnonymousDeployable, Nameable, NamedDeployable }
 import io.vamp.core.persistence.slick.model.ConstantParentType.ConstantParentType
-import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
+import io.vamp.core.persistence.slick.model.DeploymentIntention.DeploymentIntentionType
+import io.vamp.core.persistence.slick.model.DeploymentStep.DeploymentStepType
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.vamp.core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.vamp.core.persistence.slick.model.ParameterType.ParameterType
@@ -143,7 +144,7 @@ case class DeploymentClusterModel(deploymentId: Option[Int], id: Option[Int] = N
   override def withId(id: Id): DeploymentClusterModel = copy(id = Option(id))
 }
 
-case class DeploymentServiceModel(deploymentId: Option[Int], clusterId: Int, id: Option[Int] = None, name: String, breed: Int, scale: Option[Int], routing: Option[Int], deploymentState: DeploymentStateType, deploymentTime: OffsetDateTime, dialects: Array[Byte], message: Option[String] = None)
+case class DeploymentServiceModel(deploymentId: Option[Int], clusterId: Int, id: Option[Int] = None, name: String, breed: Int, scale: Option[Int], routing: Option[Int], deploymentIntention: DeploymentIntentionType, deploymentStep: DeploymentStepType, deploymentTime: OffsetDateTime, deploymentStepTime: OffsetDateTime, dialects: Array[Byte], message: Option[String] = None)
     extends VampDeployablePersistenceModel[DeploymentServiceModel] {
   override def withId(id: Id): DeploymentServiceModel = copy(id = Option(id))
 }

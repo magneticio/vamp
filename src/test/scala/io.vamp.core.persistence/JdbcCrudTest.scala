@@ -135,10 +135,11 @@ class JdbcCrudTest extends FlatSpec with Matchers {
       case storedDeployment: Deployment ⇒
         for (cluster ← storedDeployment.clusters) {
           for (service ← cluster.services) {
-            service.state match {
-              case state: io.vamp.core.model.artifact.DeploymentService.Error ⇒
-                state.notification.getClass shouldBe classOf[NotificationMessageNotRestored]
-                state.notification shouldBe NotificationMessageNotRestored("Problem in cluster deployment-cluster-2, with a service containing breed wp4.")
+            service.state.step match {
+              case step: io.vamp.core.model.artifact.DeploymentService.State.Step.Failure ⇒
+                step.notification.getClass shouldBe classOf[NotificationMessageNotRestored]
+                step.notification shouldBe NotificationMessageNotRestored("Problem in cluster deployment-cluster-2, with a service containing breed wp4.")
+              case _ ⇒
             }
           }
         }

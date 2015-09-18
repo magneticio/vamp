@@ -3,12 +3,15 @@ package io.vamp.core.persistence.slick.model
 import java.time.OffsetDateTime
 import java.util.concurrent.TimeUnit
 
-import io.vamp.core.model.artifact.Deployment
-import io.vamp.core.model.artifact._
+import io.vamp.core.model.artifact.DeploymentService.State.Intention.StateIntentionType
+import io.vamp.core.model.artifact.DeploymentService.State.Step.{ ContainerUpdate, Done, Failure, RouteUpdate, _ }
+import io.vamp.core.model.artifact.DeploymentService.State.{ Intention, Step }
 import io.vamp.core.model.artifact.DeploymentService._
+import io.vamp.core.model.artifact.{ Deployment, _ }
 import io.vamp.core.persistence.notification.NotificationMessageNotRestored
 import io.vamp.core.persistence.slick.model.ConstantParentType._
-import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
+import io.vamp.core.persistence.slick.model.DeploymentIntention.DeploymentIntentionType
+import io.vamp.core.persistence.slick.model.DeploymentStep._
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.vamp.core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.vamp.core.persistence.slick.model.ParameterType.ParameterType
@@ -42,31 +45,56 @@ object Implicits {
     portParentTypeMap, portParentTypeMap.map(_.swap)
   )
 
-  val deploymentStateTypeMap = Map(
-    DeploymentStateType.ReadyForDeployment -> "ReadyForDeployment",
-    DeploymentStateType.Deployed -> "Deployed",
-    DeploymentStateType.ReadyForUndeployment -> "ReadyForUndeployment",
-    DeploymentStateType.Error -> "Error"
+  val deploymentIntentionTypeMap = Map(
+    DeploymentIntention.Deploy -> "Deploy",
+    DeploymentIntention.Undeploy -> "Undeploy"
   )
 
-  implicit val deploymentStateTypeColumnTypeMapper = MappedColumnType.base[DeploymentStateType, String](
-    deploymentStateTypeMap, deploymentStateTypeMap.map(_.swap)
+  implicit val deploymentIntentionTypeColumnTypeMapper = MappedColumnType.base[DeploymentIntentionType, String](
+    deploymentIntentionTypeMap, deploymentIntentionTypeMap.map(_.swap)
   )
 
-  implicit def deploymentServiceState2DeploymentStateType(state: DeploymentService.State): DeploymentStateType = state match {
-    case _: ReadyForDeployment   ⇒ DeploymentStateType.ReadyForDeployment
-    case _: Deployed             ⇒ DeploymentStateType.Deployed
-    case _: ReadyForUndeployment ⇒ DeploymentStateType.ReadyForUndeployment
-    case _: Error                ⇒ DeploymentStateType.Error
+  val deploymentStepTypeMap = Map(
+    DeploymentStep.Initiated -> "Initiated",
+    DeploymentStep.ContainerUpdate -> "ContainerUpdate",
+    DeploymentStep.RouteUpdate -> "RouteUpdate",
+    DeploymentStep.Done -> "Done",
+    DeploymentStep.Failure -> "Failure"
+  )
+
+  implicit val deploymentStepTypeColumnTypeMapper = MappedColumnType.base[DeploymentStepType, String](
+    deploymentStepTypeMap, deploymentStepTypeMap.map(_.swap)
+  )
+
+  implicit def deploymentServiceState2DeploymentStateType(intention: StateIntentionType): DeploymentIntentionType = intention match {
+    case Intention.Deploy   ⇒ DeploymentIntention.Deploy
+    case Intention.Undeploy ⇒ DeploymentIntention.Undeploy
   }
 
-  implicit def deploymentService2deploymentState(deploymentService: DeploymentServiceModel): State =
-    deploymentService.deploymentState match {
-      case DeploymentStateType.ReadyForDeployment   ⇒ ReadyForDeployment(startedAt = deploymentService.deploymentTime)
-      case DeploymentStateType.Deployed             ⇒ Deployed(startedAt = deploymentService.deploymentTime)
-      case DeploymentStateType.ReadyForUndeployment ⇒ ReadyForUndeployment(startedAt = deploymentService.deploymentTime)
-      case DeploymentStateType.Error                ⇒ Error(startedAt = deploymentService.deploymentTime, notification = NotificationMessageNotRestored(deploymentService.message.getOrElse("")))
+  implicit def deploymentServiceStep2DeploymentStepType(step: Step): DeploymentStepType = step match {
+    case _: Initiated       ⇒ DeploymentStep.Initiated
+    case _: ContainerUpdate ⇒ DeploymentStep.ContainerUpdate
+    case _: RouteUpdate     ⇒ DeploymentStep.RouteUpdate
+    case _: Done            ⇒ DeploymentStep.Done
+    case _: Failure         ⇒ DeploymentStep.Failure
+  }
+
+  implicit def deploymentService2deploymentState(deploymentService: DeploymentServiceModel): State = {
+    val intention = deploymentService.deploymentIntention match {
+      case DeploymentIntention.Deploy   ⇒ Intention.Deploy
+      case DeploymentIntention.Undeploy ⇒ Intention.Undeploy
     }
+
+    val step = deploymentService.deploymentStep match {
+      case DeploymentStep.Initiated       ⇒ Step.Initiated(since = deploymentService.deploymentStepTime)
+      case DeploymentStep.ContainerUpdate ⇒ Step.ContainerUpdate(since = deploymentService.deploymentStepTime)
+      case DeploymentStep.RouteUpdate     ⇒ Step.RouteUpdate(since = deploymentService.deploymentStepTime)
+      case DeploymentStep.Done            ⇒ Step.Done(since = deploymentService.deploymentStepTime)
+      case DeploymentStep.Failure         ⇒ Step.Failure(since = deploymentService.deploymentStepTime, notification = NotificationMessageNotRestored(deploymentService.message.getOrElse("")))
+    }
+
+    State(intention, step, deploymentService.deploymentTime)
+  }
 
   val parameterTypeMap = Map(
     ParameterType.String -> "String",
