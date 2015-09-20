@@ -11,7 +11,7 @@ import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.container_driver.{ ContainerDriverActor, ContainerServer, ContainerService }
 import io.vamp.core.model.artifact.DeploymentService.State.Intention
-import io.vamp.core.model.artifact.DeploymentService.State.Step.{ Initiated, Done, Failure }
+import io.vamp.core.model.artifact.DeploymentService.State.Step._
 import io.vamp.core.model.artifact.DeploymentService._
 import io.vamp.core.model.artifact._
 import io.vamp.core.model.resolver.DeploymentTraitResolver
@@ -124,11 +124,16 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
           case Intention.Deploy ⇒
             if (deploymentService.state.isDone)
               redeployIfNeeded(deployment, deploymentCluster, deploymentService, containerServices, deploymentRoutes.clusterRoutes)
+            else if (deploymentService.state.step.isInstanceOf[Initiated])
+              ProcessedService(Processed.Persist, deploymentService.copy(state = deploymentService.state.copy(step = ContainerUpdate())))
             else
               deploy(deployment, deploymentCluster, deploymentService, containerServices, deploymentRoutes.clusterRoutes)
 
           case Intention.Undeploy ⇒
-            undeploy(deployment, deploymentCluster, deploymentService, containerServices, deploymentRoutes.clusterRoutes)
+            if (deploymentService.state.step.isInstanceOf[Initiated])
+              ProcessedService(Processed.Persist, deploymentService.copy(state = deploymentService.state.copy(step = RouteUpdate())))
+            else
+              undeploy(deployment, deploymentCluster, deploymentService, containerServices, deploymentRoutes.clusterRoutes)
 
           case _ ⇒
             ProcessedService(Processed.Ignore, deploymentService)
@@ -163,7 +168,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
           actorFor[ContainerDriverActor] ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = true)
           ProcessedService(Processed.Ignore, deploymentService)
         } else if (!matchingServers(deploymentService, cs)) {
-          ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers.map(convert)))
+          ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers.map(convert), state = deploymentService.state.copy(step = RouteUpdate())))
         } else {
           val ports = outOfSyncPorts(deployment, deploymentCluster, deploymentService, clusterRoutes)
           if (ports.isEmpty) {
@@ -191,7 +196,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
   private def redeployIfNeeded(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService], routes: List[ClusterRoute]): ProcessedService = {
     def redeploy() = {
-      val ds = deploymentService.copy(state = deploymentService.state.copy(step = Initiated()))
+      val ds = deploymentService.copy(state = deploymentService.state.copy(step = ContainerUpdate()))
       deploy(deployment, deploymentCluster, ds, containerServices, routes)
       ProcessedService(Processed.Persist, ds)
     }
@@ -219,7 +224,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
           ProcessedService(Processed.RemoveFromPersistence, deploymentService)
         case Some(cs) ⇒
           actorFor[ContainerDriverActor] ! ContainerDriverActor.Undeploy(deployment, deploymentService)
-          ProcessedService(Processed.Ignore, deploymentService)
+          ProcessedService(Processed.Persist, deploymentService.copy(state = deploymentService.state.copy(step = ContainerUpdate())))
       }
     } else {
       ProcessedService(Processed.RemoveFromRoute, deploymentService)

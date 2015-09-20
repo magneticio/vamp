@@ -60,7 +60,7 @@ class DeploymentServiceStateStepSerializer extends ArtifactSerializer[Deployment
 
       val list = new ArrayBuffer[JField]
 
-      list += JField("name", JString(step.getClass.getSimpleName))
+      list += JField("name", JString(step.name))
       list += JField("since", JString(step.since.format(DateTimeFormatter.ISO_DATE_TIME)))
 
       step match {

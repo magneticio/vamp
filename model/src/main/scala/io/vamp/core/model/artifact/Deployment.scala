@@ -19,6 +19,11 @@ object DeploymentService {
 
     sealed trait Step {
       def since: OffsetDateTime
+
+      def name: String = {
+        val clazz = getClass.toString
+        clazz.substring(clazz.lastIndexOf('$') + 1)
+      }
     }
 
     object Step {
