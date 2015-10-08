@@ -22,7 +22,7 @@ object DockerDriver {
 
 }
 
-class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) with DummyScales with ContainerCache {
+class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) with DummyScales {
 
   override protected val nameDelimiter = "_"
 
@@ -56,16 +56,6 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
 
     val actualDetails: List[ContainerDetails] = await(Future.sequence(details))
 
-    // Update the containerCache with missing containers (should only occur after a restart of core)
-    actualDetails.foreach { detail ⇒
-      if (processable(detail.name)) {
-        findContainerIdInCache(detail.name) match {
-          case None     ⇒ addContainerToCache(detail.name, Future(detail.id))
-          case Some(id) ⇒ //ignore
-        }
-      }
-    }
-
     val containerDetails: List[ContainerService] = details2Services(for { detail ← actualDetails if processable(detail.name) } yield detail)
     logger.trace("[ALL]: " + containerDetails.toString())
     containerDetails
@@ -73,7 +63,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
     val containerName = appId(deployment, service.breed)
-    findContainerIdInCache(containerName) match {
+    findContainerIdByName(containerName).map {
       case None ⇒
         logger.info(s"[DEPLOY] Container $containerName does not exist, needs creating")
         validateSchemaSupport(service.breed.deployable.schema, DockerDriver.Schema)
@@ -82,29 +72,32 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
       case Some(found) if update ⇒
         logger.info(s"[DEPLOY] Container $containerName already exists, needs updating")
         addScale(Future(found), service.scale)
-        Future(None)
+
       case Some(found) ⇒
         logger.warn(s"[DEPLOY] Container $containerName already exists, no action")
-        Future(None)
+        None
     }
   }
 
   def undeploy(deployment: Deployment, service: DeploymentService) = {
     val containerName = appId(deployment, service.breed)
     logger.info(s"docker delete app: $containerName")
-    Future(
-      findContainerIdInCache(containerName) match {
-        case Some(found) ⇒
-          logger.debug(s"[UNDEPLOY] Container $containerName found, trying to kill it")
-          removeScale(containerName)
-          val container = docker.containers.get(found)
-          container.kill()
-          container.delete()
-          removeContainerIdFromCache(found)
-        case None ⇒
-          logger.debug(s"[UNDEPLOY] Container $containerName does not exist")
-      }
-    )
+    findContainerIdByName(containerName).map {
+      case Some(found) ⇒
+        logger.debug(s"[UNDEPLOY] Container $containerName found, trying to kill it")
+        removeScale(containerName)
+        val container = docker.containers.get(found)
+        container.kill()
+        container.delete()
+      case None ⇒
+        logger.debug(s"[UNDEPLOY] Container $containerName does not exist")
+    }
+  }
+
+  private def findContainerIdByName(name: String): Future[Option[String]] = docker.containers.list().flatMap({
+    containers ⇒ Future.sequence(containers.map(container ⇒ getContainerDetails(container.id)))
+  }).map { details ⇒
+    details.find(detail ⇒ processable(detail.name) && detail.name == name).flatMap(detail ⇒ Some(detail.id))
   }
 
   private def details2Services(details: List[ContainerDetails]): List[ContainerService] = {
@@ -159,7 +152,6 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
 
     val response = createDockerContainer(dialect, containerName, dockerImageName, environment(deployment, cluster, service), portMappings(deployment, cluster, service))
 
-    addContainerToCache(containerName, getContainerFromResponseId(response))
     addScale(getContainerFromResponseId(response), service.scale)
 
     startDockerContainer(dialect, getContainerFromResponseId(response), portMappings(deployment, cluster, service), service.scale).onFailure {
