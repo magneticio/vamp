@@ -170,7 +170,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
         } else if (!matchingServers(deploymentService, cs)) {
           ProcessedService(Processed.Persist, deploymentService.copy(servers = cs.servers.map(convert), state = deploymentService.state.copy(step = RouteUpdate())))
         } else {
-          val ports = outOfSyncPorts(deployment, deploymentCluster, deploymentService, clusterRoutes)
+          val ports = outOfSyncPorts(deployment, deploymentCluster, deploymentService, cs, clusterRoutes)
           if (ports.isEmpty) {
             ProcessedService(Processed.Persist, deploymentService.copy(state = deploymentService.state.copy(step = Done())))
           } else {
@@ -207,7 +207,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
         if (!matchingServers(deploymentService, cs) || !matchingScale(deploymentService, cs)) {
           redeploy()
         } else {
-          val ports = outOfSyncPorts(deployment, deploymentCluster, deploymentService, routes)
+          val ports = outOfSyncPorts(deployment, deploymentCluster, deploymentService, cs, routes)
           if (ports.isEmpty) {
             ProcessedService(Processed.Ignore, deploymentService)
           } else {
@@ -234,30 +234,38 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   private def containerService(deployment: Deployment, deploymentService: DeploymentService, containerServices: List[ContainerService]): Option[ContainerService] =
     containerServices.find(_.matching(deployment, deploymentService.breed))
 
-  private def matchingServers(deploymentService: DeploymentService, containerService: ContainerService) =
-    deploymentService.servers.size == containerService.servers.size && deploymentService.servers.forall(server ⇒ containerService.servers.exists(_.name == server.name) && server.deployed)
+  private def matchingServers(deploymentService: DeploymentService, containerService: ContainerService) = {
+    deploymentService.servers.size == containerService.servers.size &&
+      deploymentService.servers.forall { server ⇒
+        server.deployed && (containerService.servers.find(_.name == server.name) match {
+          case None                  ⇒ false
+          case Some(containerServer) ⇒ server.ports.size == containerServer.ports.size && server.ports.values.forall(port ⇒ containerServer.ports.contains(port))
+        })
+      }
+  }
 
   private def matchingScale(deploymentService: DeploymentService, containerService: ContainerService) =
     containerService.servers.size == deploymentService.scale.get.instances && containerService.scale.cpu == deploymentService.scale.get.cpu && containerService.scale.memory == deploymentService.scale.get.memory
 
-  private def outOfSyncPorts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, clusterRoutes: List[ClusterRoute]): List[Port] = {
-    deploymentService.breed.ports.filter({ port ⇒
+  private def outOfSyncPorts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerService: ContainerService, clusterRoutes: List[ClusterRoute]): List[Port] = {
+    deploymentService.breed.ports.filter { port ⇒
+
       clusterRouteService(deployment, deploymentCluster, deploymentService, port, clusterRoutes) match {
 
         case None ⇒ true
 
         case Some(routeService) ⇒
 
-          val matchingServers = deploymentService.servers.size == routeService.servers.size && deploymentService.servers.forall { deploymentServer ⇒
+          lazy val matchingServers = deploymentService.servers.size == routeService.servers.size && deploymentService.servers.forall { deploymentServer ⇒
             routeService.servers.exists(routerServer ⇒ routerServer.host == deploymentServer.host && routerServer.port == deploymentServer.ports.getOrElse(port.number, 0))
           }
 
-          val matchingServersWeight = deploymentService.routing.flatMap(_.weight.flatMap(w ⇒ Some(w == routeService.weight))) match {
+          lazy val matchingServersWeight = deploymentService.routing.flatMap(_.weight.flatMap(w ⇒ Some(w == routeService.weight))) match {
             case None    ⇒ false
             case Some(m) ⇒ m
           }
 
-          val matchingFilters = (deploymentService.routing match {
+          lazy val matchingFilters = (deploymentService.routing match {
             case None ⇒ Nil
             case Some(r) ⇒ r.filters.flatMap {
               case d: DefaultFilter ⇒ d.condition :: Nil
@@ -267,7 +275,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
           !(matchingServers && matchingServersWeight && matchingFilters)
       }
-    })
+    }
   }
 
   private def clusterRouteService(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, port: Port, clusterRoutes: List[ClusterRoute]): Option[RouteService] =
