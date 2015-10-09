@@ -127,7 +127,7 @@ Commands:
   list                Shows a list of artifacts
   merge               Merge a blueprint with an existing deployment or blueprint
   remove              Removes an artifact
-  undeploy            Removes a deployment
+  undeploy            Removes (part of) a deployment
   update              Update an artifact
   version             Shows the version of the VAMP CLI client
   
@@ -228,13 +228,20 @@ Removes artifact
 
 ## Undeploy
 
-Undeploys a deployment
+Removes (part of) a deployment.
+By only specifying the name, the whole deployment will be removed. To remove part of a deployment, specify a blueprint. The contents of the blueprint will be subtracted from the active deployment.
 
-**Usage:** `vamp undeploy NAME` 
+**Usage:** `vamp undeploy NAME [--blueprint|--file|--stdin]` 
+
+Parameter | purpose
+----------|--------
+`--blueprint`|    Name of the stored blueprint to subtract from the deployment
+`--file`   |       Name of the yaml file [Optional]
+`--stdin`  |      Read file from stdin [Optional]
 
 ### Example
 ```bash
-> vamp undeploy 9ec50a2a-33d7-4dd3-a027-9eeaeaf925c1
+> vamp undeploy 9ec50a2a-33d7-4dd3-a027-9eeaeaf925c1 --blueprint sava:1.0
 ```
 
 ## Update
@@ -245,7 +252,7 @@ Updates an existing artifact read from the specified filename or read from stdin
 
 Parameter | purpose
 ----------|--------
-`--file`   |       Name of the yaml file [Optional]
+`--file`   |      Name of the yaml file [Optional]
 `--stdin`  |      Read file from stdin [Optional]
 
 ## Version
