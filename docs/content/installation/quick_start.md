@@ -24,8 +24,6 @@ Please install one of the following for your platform/architecture
 - Docker 1.7.x
 - Boot2Docker 1.7.x if on Mac OSX
 
-> **Note**: As of Vamp 0.7.9, we don't support Docker 1.6 anymore when using the Docker driver.
-
 ## Step 2: Run Vamp
 
 Start the `magneticio/vamp-docker:latest` container, taking care to pass in the right parameters. A typical command on Macbook running Boot2Docker would be:
@@ -37,7 +35,7 @@ docker run --net=host -v ~/.boot2docker/certs/boot2docker-vm:/certs -e "DOCKER_T
 
 Please notice the mounting of the boot2docker certificates. Please set this to your specific environment. You can get this info by running `boot2docker config`. If you don't use Boot2Docker, set the `DOCKER_HOST` variable to whatever is relevant to your system.
 
-> **Note**: When using Docker 1.8 or Docker Toolbox on OS X use the following command:
+> **Note 1:** When using Docker 1.8 or Docker Toolbox on OS X use the following command:
 {{% copyable %}}
 ```
 docker run --net=host -v ~/.docker/machine/machines/default:/certs -e "DOCKER_TLS_VERIFY=1" -e "DOCKER_HOST=`docker-machine url default`" -e "DOCKER_CERT_PATH=/certs" magneticio/vamp-docker:0.7.10
@@ -50,12 +48,12 @@ After some downloading and booting, your Docker log should say something like:
 ...Bound to /0.0.0.0:8080
 ```
 
-Now check if Vamp is home on `http://boot2docker_ip:8080/` and proceed to our [getting started tutorial](/documentation/guides/getting-started-tutorial/)
+Now check if Vamp is home on `http://boot2docker_ip:8080/` and proceed to our [getting started tutorial](/documentation/guides/)
 
 ![](/img/screenshots/vamp_ui_home.gif)
 
 
-> **Note:** This runs all of Vamp's components in one container. This is definitely not ideal, but works fine for kicking the tires.
+> **Note 2:** This runs all of Vamp's components in one container. This is definitely not ideal, but works fine for kicking the tires.
 You will run into cpu, memory and storage issues pretty soon though. Also, random ports are assigned by Vamp which you might not have exposed on either Docker or your Boot2Docker Vagrant box.  
 
 Things still not running? [We're here to help →](https://github.com/magneticio/vamp/issues)
