@@ -26,7 +26,9 @@ Please install one of the following for your platform/architecture
 
 ## Step 2: Run Vamp
 
-Start the `magneticio/vamp-docker:latest` (or currently `magneticio/vamp-docker:0.7.10`) container, taking care to pass in the right parameters. NB If you installed Docker Toolbox please use "Docker Quickstart Terminal". At this moment we don't support Kitematic yet.
+Start the `magneticio/vamp-docker:latest` (or currently `magneticio/vamp-docker:0.7.10`) container, taking care to pass in the right parameters. 
+
+NB If you installed Docker Toolbox please use "Docker Quickstart Terminal". At this moment we don't support Kitematic yet.
 
 A typical command on Mac OS X running Docker Toolbox would be:
 {{% copyable %}}
