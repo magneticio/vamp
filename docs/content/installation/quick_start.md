@@ -21,26 +21,30 @@ in the [vamp-docker repo](https://github.com/magneticio/vamp-docker) and the [pu
 
 Please install one of the following for your platform/architecture
 
-- Docker 1.7.x
-- Boot2Docker 1.7.x if on Mac OSX
+- Docker 1.8.x
+- Docker Toolbox if on Mac OS X
 
 ## Step 2: Run Vamp
 
-Start the `magneticio/vamp-docker:latest` container, taking care to pass in the right parameters. A typical command on Macbook running Boot2Docker would be:
+Start the `magneticio/vamp-docker:latest` (or currently `magneticio/vamp-docker:0.7.10`) container, taking care to pass in the right parameters. 
+A typical command on Mac OS X running Docker Toolbox would be:
+{{% copyable %}}
+```
+docker run --net=host -v ~/.docker/machine/machines/default:/certs -e "DOCKER_TLS_VERIFY=1" -e "DOCKER_HOST=`docker-machine url default`" -e "DOCKER_CERT_PATH=/certs" magneticio/vamp-docker:0.7.10
+```
+{{% /copyable %}}
+
+Please notice the mounting of the docker machine certificates. Please set this to your specific environment. 
+You can get this info by running for instance `docker-machine config default`. 
+If you don't use Docker Toolbox (or Boot2Docker), set the `DOCKER_HOST` variable to whatever is relevant to your system.
+
+> **Note 1:** When using Boot2Docker on OS X use the following command:
 {{% copyable %}}
 ```
 docker run --net=host -v ~/.boot2docker/certs/boot2docker-vm:/certs -e "DOCKER_TLS_VERIFY=1" -e "DOCKER_HOST=tcp://`boot2docker ip`:2376" -e "DOCKER_CERT_PATH=/certs" magneticio/vamp-docker:latest
 ```
 {{% /copyable %}}
 
-Please notice the mounting of the boot2docker certificates. Please set this to your specific environment. You can get this info by running `boot2docker config`. If you don't use Boot2Docker, set the `DOCKER_HOST` variable to whatever is relevant to your system.
-
-> **Note 1:** When using Docker 1.8 or Docker Toolbox on OS X use the following command:
-{{% copyable %}}
-```
-docker run --net=host -v ~/.docker/machine/machines/default:/certs -e "DOCKER_TLS_VERIFY=1" -e "DOCKER_HOST=`docker-machine url default`" -e "DOCKER_CERT_PATH=/certs" magneticio/vamp-docker:0.7.10
-```
-{{% /copyable %}}
 
 After some downloading and booting, your Docker log should say something like:
 
@@ -48,12 +52,12 @@ After some downloading and booting, your Docker log should say something like:
 ...Bound to /0.0.0.0:8080
 ```
 
-Now check if Vamp is home on `http://boot2docker_ip:8080/` and proceed to our [getting started tutorial](/documentation/guides/)
+Now check if Vamp is home on `http://{docker-machine ip default}:8080/` and proceed to our [getting started tutorial](/documentation/guides/)
 
 ![](/img/screenshots/vamp_ui_home.gif)
 
 
 > **Note 2:** This runs all of Vamp's components in one container. This is definitely not ideal, but works fine for kicking the tires.
-You will run into cpu, memory and storage issues pretty soon though. Also, random ports are assigned by Vamp which you might not have exposed on either Docker or your Boot2Docker Vagrant box.  
+You will run into cpu, memory and storage issues pretty soon though. Also, random ports are assigned by Vamp which you might not have exposed on either Docker or your Docker Toolbox Vagrant box.  
 
 Things still not running? [We're here to help →](https://github.com/magneticio/vamp/issues)
