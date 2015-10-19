@@ -68,15 +68,11 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
     }
   }
 
-  val route = pathPrefix("api" / "v1") {
-    compressResponse() {
-      sseRoutes
-    }
-  } ~ allowXhrFromOtherHosts {
+  val route = allowXhrFromOtherHosts {
     noCachingAllowed {
       pathPrefix("api" / "v1") {
         compressResponse() {
-          accept(`application/json`, `application/x-yaml`) {
+          sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
             infoRoute ~ deploymentRoutes ~ eventRoutes ~ crudRoutes
           }
         }
