@@ -97,8 +97,10 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
     RouteService(serviceRouteNameMatcher(service.name), service.weight, service.servers, route.filters.filter(_.destination == service.name))
   }
 
-  private def server(service: DeploymentService, server: DeploymentServer, port: Port) =
-    Server(artifactName2Id(server), server.host, server.ports.get(port.number).get)
+  private def server(service: DeploymentService, server: DeploymentServer, port: Port) = server.ports.get(port.number) match {
+    case Some(p) => Server(artifactName2Id(server), server.host, p)
+    case _ => Server(artifactName2Id(server), server.host, 0)
+  }
 
   private def servers(deployment: Deployment, port: Port): List[Server] = {
     TraitReference.referenceFor(port.name) match {
