@@ -1,0 +1,128 @@
+@import io.vamp.router_driver.HAProxyConfiguration
+@import io.vamp.router_driver.HAProxyInterface.Mode
+@(conf: HAProxyConfiguration)
+global
+  pidfile @conf.pid
+  daemon
+  maxconn 4096
+  stats socket @conf.statsSocket level admin
+  log /var/run/vamp.log.sock local0
+
+  defaults
+    log global
+    mode http
+    option dontlognull
+    option redispatch
+    option clitcpka
+    option srvtcpka
+    option http-keep-alive
+    retries 3
+    maxconn 500000
+
+    # slowloris protection: clients should send their full http request in the configured time
+    timeout http-request 5s
+    timeout connect 5000ms
+    timeout client 50000ms
+    timeout server 50000ms
+
+  listen stats :1988
+    mode http
+    stats enable
+    stats uri /
+    stats refresh 2s
+    stats realm Haproxy\ Stats
+    stats auth haproxy:haproxy
+
+@for(frontend <- conf.frontends) {
+frontend @frontend.name
+  mode @frontend.mode
+  @if(frontend.bindIp.isDefined && frontend.bindPort.isDefined)       {bind @frontend.bindIp.get:@frontend.bindPort.get             }
+  @if(frontend.mode == Mode.http)                                     {option httplog                                               }
+  @if(frontend.mode == Mode.tcp)                                      {option tcplog                                                }
+  @if(frontend.unixSock.isDefined && frontend.sockProtocol.isDefined) {bind unix@@@frontend.unixSock.get @frontend.sockProtocol.get }
+  @if(frontend.options.httpClose)                                     {option http-server-close                                     }
+
+  log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+
+  ###
+  #
+  # Spike/Rate Limiting & Quota Management
+  #
+  # We use a stick table to keep track of TCP connections rates and bytes send out.
+  # On these metrics we set rules to designate upper limits. When limits are hit
+  # we reroute the traffic to a specific abusers backend.
+  #
+  ###
+  @if(frontend.httpQuota.isDefined) {
+  # Start HTTP spike limit generation
+  stick-table type ip size 200k expire @frontend.httpQuota.get.expiryTime store http_req_rate(@frontend.httpQuota.get.sampleWindow)
+  # Values below are specific to the backend.
+  # Track the request and set ACL's.
+  tcp-request content track-sc1 src
+  acl marked_as_abuser sc1_http_req_rate gt @frontend.httpQuota.get.rate
+  use_backend abusers if marked_as_abuser
+  # End HTTP spike limit generation.
+  }
+  @if(frontend.tcpQuota.isDefined) {
+  # Start TCP spike limit generation
+  stick-table type ip size 200k expire @frontend.tcpQuota.get.expiryTime store conn_rate(@frontend.tcpQuota.get.sampleWindow)
+  # Values below are specific to the backend.
+  # Track the request and set ACL's.
+  tcp-request content track-sc2 src
+  acl marked_as_abuser sc2_conn_rate gt @frontend.tcpQuota.get.rate
+  use_backend abusers if marked_as_abuser
+  # End TCP spike limit generation.
+  }
+
+  ###
+  #
+  # Filter Management
+  #
+  # Set filters with optional negation.
+  #
+  ###
+  @for(filter <- frontend.filters) {
+  acl @filter.name @filter.condition
+  use_backend @filter.destination if @if(filter.negate) {!}@filter.name
+  }
+  default_backend @frontend.defaultBackend
+}
+
+@for(backend <- conf.backends) {
+backend @backend.name
+  mode @backend.mode
+  @if(backend.mode == Mode.http)        {balance roundrobin       }
+  @if(backend.mode == Mode.tcp)         {balance leastconn        }
+
+  @for(server <- backend.proxyServers) {
+  server @server.name unix@@@server.unixSock send-proxy weight @server.weight
+  }
+  @if(backend.servers.nonEmpty) {
+
+  option forwardfor
+  @if(backend.mode == Mode.http) {
+  http-response set-header X-Vamp-Server-Name %s
+  http-response set-header X-Vamp-Server-ResponseTime %t
+  cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h
+  }
+
+  @for(server <- backend.servers) {
+  server @server.name @server.host:@server.port @if(backend.mode == Mode.http) {cookie @server.name} weight @server.weight maxconn @server.maxConn @if(server.checkInterval.isDefined) {check inter @server.checkInterval.get}
+  }
+
+  @if(backend.options.abortOnClose)     {option abortonclose      }
+  @if(backend.options.allBackups)       {option allbackups        }
+  @if(backend.options.checkCache)       {option checkcache        }
+  @if(backend.options.forwardFor)       {option forwardfor        }
+  @if(backend.options.httpClose)        {option http-server-close }
+  @if(backend.options.httpCheck)        {option httpchk           }
+  @if(backend.options.sslHelloCheck)    {option ssl-hello-chk     }
+  @if(backend.options.tcpKeepAlive)     {option tcpka             }
+  @if(backend.options.tcpSmartAccept)   {option tcp-smart-accept  }
+  @if(backend.options.tcpSmartConnect)  {option tcp-smart-connect }
+  @if(backend.options.tcpLog)           {option tcplog            }
+  }
+}
+backend abusers
+  mode http
+  errorfile 409 @conf.errorDir/500rate.http
