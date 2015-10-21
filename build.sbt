@@ -59,12 +59,10 @@ lazy val bintraySetting = Seq(
   bintrayRepository  := "vamp"
 )
 
-val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4" % "test"
-
 // Library Versions
 
-val vampCommonVersion = "0.7.10-dev.78c70bc"
-val vampUiVersion = "0.7.10-128"
+val vampCommonVersion = "0.7.11"
+val vampUiVersion = "0.7.11-145"
 
 val sprayVersion = "1.3.2"
 val json4sVersion = "3.2.11"
@@ -85,6 +83,7 @@ val quartzVersion = "2.2.1"
 val bcprovVersion= "1.46"
 val unisocketsNettyVersion = "0.1.0"
 val jerseyVersion = "2.15"
+val scalaCheckVersion = "1.12.4"
 
 
 val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
@@ -240,7 +239,7 @@ lazy val model = project.settings(bintraySetting: _*).settings(
     "org.yaml" % "snakeyaml" % snakeYamlVersion,
     "junit" % "junit" % junitVersion % "test",
     "org.scalatest" %% "scalatest" % scalatestVersion % "test",
-    scalaCheck
+    "org.scalacheck" %% "scalacheck" % scalaCheckVersion % "test"
   )
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
