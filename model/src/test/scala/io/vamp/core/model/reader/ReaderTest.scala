@@ -1,10 +1,10 @@
 package io.vamp.core.model.reader
 
-import _root_.io.vamp.core.model.notification.{UnexpectedInnerElementError, UnexpectedTypeError, YamlParsingError}
-import _root_.io.vamp.common.notification.NotificationErrorException
+import io.vamp.core.model.notification.{ UnexpectedInnerElementError, UnexpectedTypeError, YamlParsingError }
+import io.vamp.common.notification.NotificationErrorException
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{ FlatSpec, Matchers }
 
 import scala.io.Source
 import scala.reflect._
@@ -12,10 +12,10 @@ import scala.reflect._
 trait ReaderTest extends FlatSpec with Matchers {
   protected def res(path: String): String = Source.fromURL(getClass.getResource(path)).mkString
 
-  protected def expectedError[A <: Any : ClassTag](f: => Any): A = {
+  protected def expectedError[A <: Any: ClassTag](f: ⇒ Any): A = {
     the[NotificationErrorException] thrownBy f match {
-      case NotificationErrorException(error: A, _) => error
-      case unexpected => throw new IllegalArgumentException(s"Expected ${classTag[A].runtimeClass}, actual ${unexpected.notification.getClass}", unexpected)
+      case NotificationErrorException(error: A, _) ⇒ error
+      case unexpected                              ⇒ throw new IllegalArgumentException(s"Expected ${classTag[A].runtimeClass}, actual ${unexpected.notification.getClass}", unexpected)
     }
   }
 }

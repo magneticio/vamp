@@ -9,7 +9,7 @@ import io.vamp.core.pulse.PulseBootstrap
 import io.vamp.core.rest_api.RestApiBootstrap
 import io.vamp.core.router_driver.RouterDriverBootstrap
 
-import scala.language.{implicitConversions, postfixOps}
+import scala.language.{ implicitConversions, postfixOps }
 
 trait VampCore extends App {
 
@@ -26,12 +26,10 @@ trait VampCore extends App {
       RestApiBootstrap
   }
 
-  Runtime.getRuntime.addShutdownHook(new Thread() {
-    override def run() = {
-      bootstrap.foreach(_.shutdown)
-      actorSystem.shutdown()
-    }
-  })
+  sys.addShutdownHook {
+    bootstrap.foreach(_.shutdown)
+    actorSystem.shutdown()
+  }
 
   bootstrap.foreach(_.run)
 }

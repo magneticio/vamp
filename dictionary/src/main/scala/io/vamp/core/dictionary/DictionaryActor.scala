@@ -1,21 +1,18 @@
 package io.vamp.core.dictionary
 
-
-import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
-import io.vamp.core.dictionary.DictionaryActor.{DictionaryMessage, Get}
-import io.vamp.core.dictionary.notification.{DictionaryNotificationProvider, NoAvailablePortError, UnsupportedDictionaryRequest}
+import io.vamp.core.dictionary.DictionaryActor.Get
+import io.vamp.core.dictionary.notification.{ DictionaryNotificationProvider, NoAvailablePortError, UnsupportedDictionaryRequest }
 import io.vamp.core.model.artifact.DefaultScale
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
-object DictionaryActor extends ActorDescription {
+object DictionaryActor {
 
   lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.dictionary.response-timeout").seconds)
-
-  def props(args: Any*): Props = Props(classOf[DictionaryActor])
 
   trait DictionaryMessage
 
@@ -30,7 +27,7 @@ object DictionaryActor extends ActorDescription {
 
 case class DictionaryEntry(key: String, value: String)
 
-class DictionaryActor extends CommonReplyActor with DictionaryNotificationProvider {
+class DictionaryActor extends CommonSupportForActors with DictionaryNotificationProvider {
 
   implicit val timeout = DictionaryActor.timeout
 
@@ -49,21 +46,15 @@ class DictionaryActor extends CommonReplyActor with DictionaryNotificationProvid
     s"^$value$$".r
   }
 
-  override protected def requestType: Class[_] = classOf[DictionaryMessage]
-
-  override protected def errorRequest(request: Any): RequestError = UnsupportedDictionaryRequest(request)
-
-  def reply(request: Any) = try {
-    request match {
-      case Get(key) => get(key)
-      case _ => unsupported(request)
+  def receive = {
+    case Get(key) ⇒ reply {
+      Future(get(key))
     }
-  } catch {
-    case e: Exception => e
+    case any ⇒ unsupported(UnsupportedDictionaryRequest(any))
   }
 
   private def get(key: String) = key match {
-    case portAssignment(deployment, port) =>
+    case portAssignment(deployment, port) ⇒
       if (currentPort == portRange(1))
         reportException(NoAvailablePortError(portRange(0), portRange(1)))
       else {
@@ -71,17 +62,16 @@ class DictionaryActor extends CommonReplyActor with DictionaryNotificationProvid
         currentPort
       }
 
-    case hostResolver(_*) =>
+    case hostResolver(_*) ⇒
       ConfigFactory.load().getString("vamp.core.router-driver.host")
 
-    case containerScale(deployment, cluster, service) =>
+    case containerScale(deployment, cluster, service) ⇒
       val config = ConfigFactory.load()
       val cpu = config.getDouble("vamp.core.dictionary.default-scale.cpu")
       val memory = config.getDouble("vamp.core.dictionary.default-scale.memory")
       val instances = config.getInt("vamp.core.dictionary.default-scale.instances")
       DefaultScale("", cpu, memory, instances)
 
-    case value => value
+    case value ⇒ value
   }
-
 }

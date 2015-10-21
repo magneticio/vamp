@@ -35,7 +35,6 @@ abstract class AbstractCluster extends Artifact {
 
 case class Cluster(name: String, services: List[Service], sla: Option[Sla], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
 
-
 abstract class AbstractService {
   def breed: Breed
 
@@ -50,20 +49,17 @@ abstract class AbstractService {
 
 case class Service(breed: Breed, environmentVariables: List[EnvironmentVariable], scale: Option[Scale], routing: Option[Routing], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
 
-
 trait Scale extends Artifact
 
 case class ScaleReference(name: String) extends Reference with Scale
 
 case class DefaultScale(name: String, cpu: Double, memory: Double, instances: Int) extends Scale
 
-
 trait Routing extends Artifact
 
 case class RoutingReference(name: String) extends Reference with Routing
 
 case class DefaultRouting(name: String, weight: Option[Int], filters: List[Filter]) extends Routing
-
 
 trait Filter extends Artifact
 

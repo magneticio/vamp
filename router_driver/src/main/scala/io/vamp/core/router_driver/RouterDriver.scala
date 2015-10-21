@@ -12,11 +12,11 @@ trait DeploymentRoute {
   def services: List[RouteService]
 }
 
-case class ClusterRoute(matching: (Deployment, DeploymentCluster, Port) => Boolean, port: Int, services: List[RouteService]) extends DeploymentRoute
+case class ClusterRoute(matching: (Deployment, DeploymentCluster, Port) ⇒ Boolean, port: Int, services: List[RouteService]) extends DeploymentRoute
 
-case class RouteService(matching: (DeploymentService) => Boolean, weight: Int, servers: List[Server], filters: List[Filter])
+case class RouteService(matching: (DeploymentService) ⇒ Boolean, weight: Int, servers: List[Server], filters: List[Filter])
 
-case class EndpointRoute(matching: (Deployment, Option[Port]) => Boolean, port: Int, services: List[RouteService]) extends DeploymentRoute
+case class EndpointRoute(matching: (Deployment, Option[Port]) ⇒ Boolean, port: Int, services: List[RouteService]) extends DeploymentRoute
 
 trait RouterDriver {
 

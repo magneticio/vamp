@@ -1,13 +1,14 @@
 package io.vamp.core.persistence.slick.model
 
 import java.sql.Timestamp
-import java.time.{LocalDateTime, OffsetDateTime}
+import java.time.{ LocalDateTime, OffsetDateTime }
 
 import io.strongtyped.active.slick.models.Identifiable
 import io.vamp.core.model.artifact._
-import io.vamp.core.persistence.slick.extension.{AnonymousDeployable, Nameable, NamedDeployable}
+import io.vamp.core.persistence.slick.extension.{ AnonymousDeployable, Nameable, NamedDeployable }
 import io.vamp.core.persistence.slick.model.ConstantParentType.ConstantParentType
-import io.vamp.core.persistence.slick.model.DeploymentStateType.DeploymentStateType
+import io.vamp.core.persistence.slick.model.DeploymentIntention.DeploymentIntentionType
+import io.vamp.core.persistence.slick.model.DeploymentStep.DeploymentStepType
 import io.vamp.core.persistence.slick.model.EnvironmentVariableParentType.EnvironmentVariableParentType
 import io.vamp.core.persistence.slick.model.ParameterParentType.ParameterParentType
 import io.vamp.core.persistence.slick.model.ParameterType.ParameterType
@@ -40,7 +41,7 @@ case class BlueprintReferenceModel(deploymentId: Option[Int], name: String, id: 
   override def withId(id: Id): BlueprintReferenceModel = copy(id = Option(id))
 }
 
-case class ClusterModel(deploymentId: Option[Int], name: String, blueprintId: Int,  slaReference: Option[Int], dialects: Array[Byte], id: Option[Int] = None) extends VampDeployablePersistenceModel[ClusterModel] {
+case class ClusterModel(deploymentId: Option[Int], name: String, blueprintId: Int, slaReference: Option[Int], dialects: Array[Byte], id: Option[Int] = None) extends VampDeployablePersistenceModel[ClusterModel] {
   override def withId(id: Id): ClusterModel = copy(id = Option(id))
 }
 
@@ -143,8 +144,8 @@ case class DeploymentClusterModel(deploymentId: Option[Int], id: Option[Int] = N
   override def withId(id: Id): DeploymentClusterModel = copy(id = Option(id))
 }
 
-case class DeploymentServiceModel(deploymentId: Option[Int], clusterId: Int, id: Option[Int] = None, name: String, breed: Int, scale: Option[Int], routing: Option[Int], deploymentState: DeploymentStateType, deploymentTime: OffsetDateTime, dialects: Array[Byte], message: Option[String] = None)
-  extends VampDeployablePersistenceModel[DeploymentServiceModel] {
+case class DeploymentServiceModel(deploymentId: Option[Int], clusterId: Int, id: Option[Int] = None, name: String, breed: Int, scale: Option[Int], routing: Option[Int], deploymentIntention: DeploymentIntentionType, deploymentStep: DeploymentStepType, deploymentTime: OffsetDateTime, deploymentStepTime: OffsetDateTime, dialects: Array[Byte], message: Option[String] = None)
+    extends VampDeployablePersistenceModel[DeploymentServiceModel] {
   override def withId(id: Id): DeploymentServiceModel = copy(id = Option(id))
 }
 
@@ -156,7 +157,7 @@ case class ServerPortModel(id: Option[Int] = None, portIn: Int, portOut: Int, se
   override def withId(id: Id): ServerPortModel = copy(id = Option(id))
 }
 
-case class HostModel(id: Option[Int] = None, name: String, value : Option[String], deploymentId: Option[Int]) extends VampNameablePersistenceModel[HostModel] {
+case class HostModel(id: Option[Int] = None, name: String, value: Option[String], deploymentId: Option[Int]) extends VampNameablePersistenceModel[HostModel] {
   override def withId(id: Id): HostModel = copy(id = Option(id))
 }
 

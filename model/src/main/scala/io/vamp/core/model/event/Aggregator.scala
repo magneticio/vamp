@@ -2,7 +2,6 @@ package io.vamp.core.model.event
 
 import io.vamp.core.model.event.Aggregator.AggregatorType
 
-
 object Aggregator extends Enumeration {
   type AggregatorType = Aggregator.Value
 

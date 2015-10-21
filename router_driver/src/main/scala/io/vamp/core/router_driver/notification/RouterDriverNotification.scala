@@ -1,7 +1,7 @@
 package io.vamp.core.router_driver.notification
 
 import io.vamp.common.akka.RequestError
-import io.vamp.common.notification.{ErrorNotification, Notification}
+import io.vamp.common.notification.{ ErrorNotification, Notification }
 
 case class UnsupportedRouterDriverRequest(request: Any) extends Notification with RequestError
 

@@ -2,7 +2,7 @@ package io.vamp.core.persistence
 
 import java.util.concurrent.TimeUnit
 
-import io.vamp.core.model.artifact.DeploymentService.Deployed
+import io.vamp.core.model.artifact.DeploymentService.State
 import io.vamp.core.model.artifact._
 import io.vamp.core.persistence.notification.UnsupportedPersistenceRequest
 
@@ -12,7 +12,6 @@ import scala.concurrent.duration.FiniteDuration
  * Test data
  */
 object TestData {
-
 
   val envVar1 = EnvironmentVariable(name = "JAVA_HOME", alias = Some("JAVAHOME"), value = Some("/opt/java/bin"))
   val envVar1Updated = EnvironmentVariable(name = "JAVA_HOME", alias = Some("JAVA_HOME"), value = Some("/usr/lib/java/bin"))
@@ -192,7 +191,7 @@ object TestData {
   )
 
   val deploymentService1 = DeploymentService(
-    state = Deployed(),
+    state = State(State.Intention.Deploy, State.Step.Done()),
     servers = List(deploymentServer1),
     breed = deploymentServiceBreed1,
     environmentVariables = List(
@@ -218,7 +217,7 @@ object TestData {
     clusters = List(
       DeploymentCluster(
         name = "deployment-cluster-1",
-        services = List(deploymentService1.copy(state = DeploymentService.ReadyForUndeployment()), deploymentService2),
+        services = List(deploymentService1.copy(state = State(State.Intention.Undeploy, State.Step.RouteUpdate())), deploymentService2),
         sla = Some(SlaReference("sla-ref-deployment1", escalations = List.empty)),
         routes = Map(80 -> 23890, 8080 -> 45720)
       )
@@ -226,7 +225,6 @@ object TestData {
     endpoints = List(myEndpointPort5, myEndpointPort6),
     environmentVariables = List(myParameter5, myParameter6, myParameter7)
   )
-
 
   val deployment2 = Deployment(
     name = "deployment-2",
@@ -247,7 +245,7 @@ object TestData {
     )
   )
 
-  val deploymentServiceWithError = deploymentService1.copy(state = DeploymentService.Error(UnsupportedPersistenceRequest("ERROR")))
+  val deploymentServiceWithError = deploymentService1.copy(state = State(State.Intention.Undeploy, State.Step.Failure(UnsupportedPersistenceRequest("ERROR"))))
   val deployment4WithErrorService = Deployment(
     name = "deployment-4",
     clusters = List(

@@ -1,29 +1,33 @@
 package io.vamp.core.pulse
 
 import io.vamp.common.http.RestClient
-import org.json4s.{DefaultFormats, Formats}
+import org.json4s.{ DefaultFormats, Formats }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
+object ElasticsearchClient {
 
-case class ElasticsearchIndexResponse(_index: String, _type: String, _id: String)
+  case class ElasticsearchIndexResponse(_index: String, _type: String, _id: String)
 
-case class ElasticsearchSearchResponse(hits: ElasticsearchSearchHits)
+  case class ElasticsearchSearchResponse(hits: ElasticsearchSearchHits)
 
-case class ElasticsearchSearchHits(total: Long, hits: List[ElasticsearchSearchHit])
+  case class ElasticsearchSearchHits(total: Long, hits: List[ElasticsearchSearchHit])
 
-case class ElasticsearchSearchHit(_source: Map[String, Any])
+  case class ElasticsearchSearchHit(_source: Map[String, Any])
 
-case class ElasticsearchCountResponse(count: Long)
+  case class ElasticsearchCountResponse(count: Long)
 
-case class ElasticsearchAggregationResponse(aggregations: ElasticsearchAggregations)
+  case class ElasticsearchAggregationResponse(aggregations: ElasticsearchAggregations)
 
-case class ElasticsearchAggregations(aggregation: ElasticsearchAggregationValue)
+  case class ElasticsearchAggregations(aggregation: ElasticsearchAggregationValue)
 
-case class ElasticsearchAggregationValue(value: Double)
+  case class ElasticsearchAggregationValue(value: Double)
 
+}
 
 class ElasticsearchClient(url: String)(implicit executor: ExecutionContext) {
+
+  import ElasticsearchClient._
 
   def get(path: String): Future[Any] = RestClient.get[Any](s"$url/$path")
 

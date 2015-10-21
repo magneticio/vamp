@@ -1,9 +1,9 @@
 package io.vamp.core.container_driver.docker.wrapper.model
 
 case class VolumeBinding(
-                          hostPath: String, containerPath: String,
-                          mode: Option[VolumeBinding.Mode] = None) {
-  lazy val spec = s"$hostPath:$containerPath${mode.map(m => ":" + m.value).getOrElse("")}"
+    hostPath: String, containerPath: String,
+    mode: Option[VolumeBinding.Mode] = None) {
+  lazy val spec = s"$hostPath:$containerPath${mode.map(m ⇒ ":" + m.value).getOrElse("")}"
 }
 
 object VolumeBinding {
@@ -19,13 +19,13 @@ object VolumeBinding {
   case object RW extends Mode
 
   def parse(str: String) = str match {
-    case Spec(host, container) =>
+    case Spec(host, container) ⇒
       VolumeBinding(host, container)
-    case Restricted(host, container, mode) =>
+    case Restricted(host, container, mode) ⇒
       VolumeBinding(host, container, mode match {
-        case "ro" => Some(RO)
-        case "rw" => Some(RW)
-        case _ => None
+        case "ro" ⇒ Some(RO)
+        case "rw" ⇒ Some(RW)
+        case _    ⇒ None
       })
   }
 }

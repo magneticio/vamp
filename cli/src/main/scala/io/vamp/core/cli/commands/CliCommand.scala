@@ -42,7 +42,7 @@ case class InspectCommand() extends CliCommand {
     """.stripMargin
   override val additionalParams = "[--as_blueprint][--json]"
   override val parameters = jsonOutput +
-                            """
+    """
                               |  --as_blueprint       Returns a blueprint (only for inspect deployment) [Optional]
                             """.stripMargin
   override val commandType = CommandType.Inspect
@@ -130,7 +130,7 @@ case class GenerateCommand() extends CliCommand {
                             """.stripMargin
   override val requiresName = false
   override val commandType = CommandType.Generate
-  override val allowedArtifacts = List("breed", "blueprint", "escalation-cpu", "escalation-instance", "escalation-memory", "filter", "routing","scale", "sla-response-time-sliding-window")
+  override val allowedArtifacts = List("breed", "blueprint", "escalation-cpu", "escalation-instance", "escalation-memory", "filter", "routing", "scale", "sla-response-time-sliding-window")
   override val requiresArtifact = true
   override val requiresHostConnection: Boolean = false
 }
@@ -174,8 +174,16 @@ case class RemoveCommand() extends CliCommand {
 
 case class UndeployCommand() extends CliCommand {
   override val name = "undeploy"
-  override val usage = "Removes a deployment."
-  override val description = "Removes a deployment"
+  override val additionalParams = "[--blueprint|--file|--stdin]"
+  override val usage =
+    """Removes (part of) a deployment.
+       |By only specifying the name, the whole deployment will be removed.
+       |To remove part of a deployment, specify a blueprint. The contents of the blueprint will be subtracted from the active deployment.
+    """.stripMargin
+  override val description = "Removes (part of) a deployment"
+  override val parameters = """  --file               Name of the yaml file [Optional]
+                              |  --blueprint          Name of the stored blueprint to subtract from the deployment
+                            """.stripMargin
   override val requiresName = true
   override val commandType = CommandType.Undeploy
 }

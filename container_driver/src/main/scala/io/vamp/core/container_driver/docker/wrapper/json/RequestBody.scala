@@ -2,7 +2,6 @@ package io.vamp.core.container_driver.docker.wrapper.json
 
 import io.vamp.core.container_driver.docker.wrapper.model._
 
-
 class RequestBody {
 
   /**
@@ -11,7 +10,7 @@ class RequestBody {
   def requestCreate(config: ContainerConfig, name: Option[String] = None): Map[String, Any] = Map(
     "Hostname" -> config.hostName,
     "Domainname" -> config.domainName,
-    "Env" -> config.env.map { case (k, v) => s"$k=$v" },
+    "Env" -> config.env.map { case (k, v) ⇒ s"$k=$v" },
     "ExposedPorts" -> config.exposedPorts.map(_ -> Map()).toMap,
     "Image" -> config.image,
     "Volumes" -> config.volumes.map(_ -> Map()).toMap,
@@ -29,7 +28,7 @@ class RequestBody {
     //      "MemorySwap" -> hostConfig.memorySwap,
     //      "CpuShares" -> hostConfig.cpuShare,
     "PortBindings" -> hostConfig.portBindings.map {
-      case (port, bindings) => port.spec -> bindings.map(binding => Map("HostIp" -> binding.hostIp, "HostPort" -> binding.hostPort.toString))
+      case (port, bindings) ⇒ port.spec -> bindings.map(binding ⇒ Map("HostIp" -> binding.hostIp, "HostPort" -> binding.hostPort.toString))
     },
     "PublishAllPorts" -> hostConfig.publishAllPorts,
     "Dns" -> Option(hostConfig.dns).filter(_.nonEmpty),

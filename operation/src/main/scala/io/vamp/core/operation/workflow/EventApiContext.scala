@@ -2,19 +2,20 @@ package io.vamp.core.operation.workflow
 
 import java.time.OffsetDateTime
 
-import akka.actor.ActorRefFactory
+import akka.actor.ActorSystem
 import akka.pattern.ask
-import io.vamp.common.akka.{ActorSupport, FutureSupport}
+import io.vamp.common.akka.IoC
 import io.vamp.core.model.event.Aggregator.AggregatorType
 import io.vamp.core.model.event._
 import io.vamp.core.model.workflow.ScheduledWorkflow
 import io.vamp.core.persistence.PersistenceActor
-import io.vamp.core.pulse.PulseActor.{Publish, Query}
-import io.vamp.core.pulse.{EventRequestEnvelope, EventResponseEnvelope, PulseActor}
+import io.vamp.core.pulse.PulseActor.{ Publish, Query }
+import io.vamp.core.pulse.{ EventRequestEnvelope, EventResponseEnvelope, PulseActor }
 
+import scala.async.Async.{ async, await }
 import scala.concurrent.ExecutionContext
 
-class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext with ActorSupport with FutureSupport {
+class EventApiContext(actorSystem: ActorSystem)(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext {
 
   implicit lazy val timeout = PersistenceActor.timeout
 
@@ -50,12 +51,17 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
   def publish() = serialize {
     validateTags()
     val event = _type match {
-      case None => Event(tags, _value)
-      case Some(t) => Event(tags, _value, OffsetDateTime.now(), t)
+      case None    ⇒ Event(tags, _value)
+      case Some(t) ⇒ Event(tags, _value, OffsetDateTime.now(), t)
     }
     logger.debug(s"Publishing event: $event")
     reset()
-    offload(actorFor(PulseActor) ? Publish(event))
+    async {
+      await {
+        implicit val as = actorSystem
+        IoC.actorFor[PulseActor] ? Publish(event)
+      }
+    }
   }
 
   def lt(time: String) = {
@@ -134,17 +140,20 @@ class EventApiContext(arf: ActorRefFactory)(implicit scheduledWorkflow: Schedule
 
   private def eventQuery(aggregator: Option[AggregatorType] = None) = serialize {
     validateTags()
-    val eventQuery = EventQuery(tags, Some(TimeRange(_lt, _lte, _gt, _gte)), aggregator.flatMap(agg => Some(Aggregator(agg, _field))))
+    val eventQuery = EventQuery(tags, Some(TimeRange(_lt, _lte, _gt, _gte)), aggregator.flatMap(agg ⇒ Some(Aggregator(agg, _field))))
     logger.info(s"Event query: $eventQuery")
     reset()
-    offload(actorFor(PulseActor) ? Query(EventRequestEnvelope(eventQuery, _page, _perPage))) match {
-      case EventResponseEnvelope(list, _, _, _) => list
-      case result: SingleValueAggregationResult[_] => result.value
-      case other => other
+    async {
+      await {
+        implicit val as = actorSystem
+        IoC.actorFor[PulseActor] ? Query(EventRequestEnvelope(eventQuery, _page, _perPage)) map {
+          case EventResponseEnvelope(list, _, _, _)    ⇒ list
+          case result: SingleValueAggregationResult[_] ⇒ result.value
+          case other                                   ⇒ other
+        }
+      }
     }
   }
 
   private def validateTags() = if (tags.isEmpty) throw new RuntimeException("Event tags must be defined.")
-
-  override implicit def actorRefFactory: ActorRefFactory = arf
 }

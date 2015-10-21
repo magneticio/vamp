@@ -1,20 +1,19 @@
 package io.vamp.core.container_driver
 
-import _root_.io.vamp.common.akka._
-import akka.actor.Props
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.akka._
+import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.core.container_driver.notification.{ContainerDriverNotificationProvider, ContainerResponseError, UnsupportedContainerDriverRequest}
-import io.vamp.core.model.artifact.{Deployment, DeploymentCluster, DeploymentService}
+import io.vamp.core.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError, UnsupportedContainerDriverRequest }
+import io.vamp.core.model.artifact.{ Deployment, DeploymentCluster, DeploymentService }
+import io.vamp.core.pulse.notification.PulseFailureNotifier
 
 import scala.concurrent.duration._
 
-object ContainerDriverActor extends ActorDescription {
+object ContainerDriverActor {
 
   lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.core.container-driver.response-timeout").seconds)
-
-  def props(args: Any*): Props = Props(classOf[ContainerDriverActor], args: _*)
 
   trait ContainerDriveMessage
 
@@ -26,26 +25,22 @@ object ContainerDriverActor extends ActorDescription {
 
 }
 
-class ContainerDriverActor(driver: ContainerDriver) extends CommonReplyActor with ContainerDriverNotificationProvider {
+class ContainerDriverActor(driver: ContainerDriver) extends PulseFailureNotifier with CommonSupportForActors with ContainerDriverNotificationProvider {
 
   import io.vamp.core.container_driver.ContainerDriverActor._
 
   implicit val timeout = ContainerDriverActor.timeout
 
-  override protected def requestType: Class[_] = classOf[ContainerDriveMessage]
+  override def errorNotificationClass = classOf[ContainerResponseError]
 
-  override protected def errorRequest(request: Any): RequestError = UnsupportedContainerDriverRequest(request)
-
-  def reply(request: Any) = try {
-    request match {
-      case InfoRequest => offload(driver.info, classOf[ContainerResponseError])
-      case All => offload(driver.all, classOf[ContainerResponseError])
-      case Deploy(deployment, cluster, service, update) => offload(driver.deploy(deployment, cluster, service, update), classOf[ContainerResponseError])
-      case Undeploy(deployment, service) => offload(driver.undeploy(deployment, service), classOf[ContainerResponseError])
-      case _ => unsupported(request)
-    }
-  } catch {
-    case e: Throwable => reportException(ContainerResponseError(e))
+  def receive = {
+    case InfoRequest ⇒ reply(driver.info)
+    case All ⇒ reply(driver.all)
+    case Deploy(deployment, cluster, service, update) ⇒ reply(driver.deploy(deployment, cluster, service, update))
+    case Undeploy(deployment, service) ⇒ reply(driver.undeploy(deployment, service))
+    case any ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
+
+  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 }
 

@@ -1,6 +1,6 @@
 package io.vamp.core.model.resolver
 
-import io.vamp.core.model.artifact.{HostReference, LocalReference, TraitReference}
+import io.vamp.core.model.artifact.{ HostReference, LocalReference, TraitReference }
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner

@@ -1,12 +1,11 @@
 package io.vamp.core.persistence
 
-import io.vamp.common.notification.NotificationErrorException
 import io.vamp.core.model.artifact._
-import io.vamp.core.persistence.notification.{ArtifactNotFound, NotificationMessageNotRestored}
+import io.vamp.core.persistence.notification.NotificationMessageNotRestored
 import io.vamp.core.persistence.slick.components.Components.instance._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{ FlatSpec, Matchers }
 
 import scala.concurrent.ExecutionContext
 
@@ -133,17 +132,18 @@ class JdbcCrudTest extends FlatSpec with Matchers {
   it should "Store a deployment state error" in {
     jdbcStore.create(TestData.deployment5Deployed)
     jdbcStore.create(TestData.deployment4WithErrorService) match {
-      case storedDeployment: Deployment =>
-        for (cluster <- storedDeployment.clusters) {
-          for (service <- cluster.services) {
-            service.state match {
-              case state: io.vamp.core.model.artifact.DeploymentService.Error =>
-                state.notification.getClass shouldBe classOf[NotificationMessageNotRestored]
-                state.notification shouldBe NotificationMessageNotRestored("Problem in cluster deployment-cluster-2, with a service containing breed wp4.")
+      case storedDeployment: Deployment ⇒
+        for (cluster ← storedDeployment.clusters) {
+          for (service ← cluster.services) {
+            service.state.step match {
+              case step: io.vamp.core.model.artifact.DeploymentService.State.Step.Failure ⇒
+                step.notification.getClass shouldBe classOf[NotificationMessageNotRestored]
+                step.notification shouldBe NotificationMessageNotRestored("Problem in cluster deployment-cluster-2, with a service containing breed wp4.")
+              case _ ⇒
             }
           }
         }
-      case _ => fail("Deployment not created")
+      case _ ⇒ fail("Deployment not created")
     }
     jdbcStore.update(TestData.deployment4WithErrorService)
     jdbcStore.read(TestData.deployment5Deployed.name, classOf[Deployment]) shouldBe Some(TestData.deployment5Deployed)
@@ -168,18 +168,17 @@ class JdbcCrudTest extends FlatSpec with Matchers {
   }
 
   it should "prove all tables are empty" in {
-    jdbcStore.all(classOf[DefaultBlueprint]) shouldBe List.empty
-    jdbcStore.all(classOf[DefaultBreed]) shouldBe List.empty
-    jdbcStore.all(classOf[GenericEscalation]) shouldBe List.empty
-    jdbcStore.all(classOf[DefaultFilter]) shouldBe List.empty
-    jdbcStore.all(classOf[DefaultRouting]) shouldBe List.empty
-    jdbcStore.all(classOf[DefaultScale]) shouldBe List.empty
-    jdbcStore.all(classOf[GenericSla]) shouldBe List.empty
-    jdbcStore.all(classOf[Deployment]) shouldBe List.empty
+    jdbcStore.all(classOf[DefaultBlueprint], 1, 1).response shouldBe List.empty
+    jdbcStore.all(classOf[DefaultBreed], 1, 1).response shouldBe List.empty
+    jdbcStore.all(classOf[GenericEscalation], 1, 1).response shouldBe List.empty
+    jdbcStore.all(classOf[DefaultFilter], 1, 1).response shouldBe List.empty
+    jdbcStore.all(classOf[DefaultRouting], 1, 1).response shouldBe List.empty
+    jdbcStore.all(classOf[DefaultScale], 1, 1).response shouldBe List.empty
+    jdbcStore.all(classOf[GenericSla], 1, 1).response shouldBe List.empty
+    jdbcStore.all(classOf[Deployment], 1, 1).response shouldBe List.empty
 
     totalNumberOfRowsInDB shouldBe 1 // There is always a row in the vamp meta data table
   }
-
 
   def performCrudTest(firstArtifact: Artifact, updatedFirstArtifact: Artifact, secondArtifact: Artifact): Unit = {
     // Create & read artifact
@@ -199,16 +198,15 @@ class JdbcCrudTest extends FlatSpec with Matchers {
     // create existing artifact
     jdbcStore.create(firstArtifact, ignoreIfExists = true) shouldBe updatedFirstArtifact
 
-    jdbcStore.all(firstArtifact.getClass) should contain theSameElementsAs List(updatedFirstArtifact, secondArtifact)
-    jdbcStore.delete(firstArtifact.name, firstArtifact.getClass) shouldBe updatedFirstArtifact
+    jdbcStore.all(firstArtifact.getClass, 1, 2).response should contain theSameElementsAs List(updatedFirstArtifact, secondArtifact)
+    jdbcStore.delete(firstArtifact.name, firstArtifact.getClass) shouldBe Some(updatedFirstArtifact)
 
-    // second delete of the artifact throws an exception
-    val thrown = the[NotificationErrorException] thrownBy jdbcStore.delete(firstArtifact.name, firstArtifact.getClass)
-    thrown.notification should equal(ArtifactNotFound(firstArtifact.name, firstArtifact.getClass))
+    // second delete of the artifact returns None
+    jdbcStore.delete(firstArtifact.name, firstArtifact.getClass) shouldBe None
 
-    jdbcStore.delete(secondArtifact.name, secondArtifact.getClass) shouldBe secondArtifact
+    jdbcStore.delete(secondArtifact.name, secondArtifact.getClass) shouldBe Some(secondArtifact)
     // All artifacts should now be removed
-    jdbcStore.all(firstArtifact.getClass) shouldBe List.empty
+    jdbcStore.all(firstArtifact.getClass, 1, 1).response shouldBe List.empty
   }
 
 }

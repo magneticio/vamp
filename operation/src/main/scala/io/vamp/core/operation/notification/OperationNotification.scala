@@ -1,7 +1,7 @@
 package io.vamp.core.operation.notification
 
 import io.vamp.common.akka.RequestError
-import io.vamp.common.notification.{ErrorNotification, Notification}
+import io.vamp.common.notification.{ ErrorNotification, Notification }
 import io.vamp.core.model.artifact._
 
 case class InternalServerError(reason: Any) extends Notification with ErrorNotification
@@ -28,7 +28,7 @@ case class NonUniqueBreedReferenceError(breed: Breed) extends Notification
 
 case class InvalidRoutingWeight(deployment: Deployment, cluster: DeploymentCluster, weight: Int) extends Notification
 
-case class UnavailableEndpointPortError(endpoint: Port, deployment:Deployment) extends Notification
+case class UnavailableEndpointPortError(endpoint: Port, deployment: Deployment) extends Notification
 
 case class WorkflowSchedulingError(reason: Any) extends Notification with ErrorNotification
 

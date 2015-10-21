@@ -2,7 +2,7 @@ package io.vamp.core.model.reader
 
 import java.time.OffsetDateTime
 
-import io.vamp.core.model.event.{Aggregator, TimeRange}
+import io.vamp.core.model.event.{ Aggregator, TimeRange }
 import io.vamp.core.model.notification._
 import org.junit.runner.RunWith
 import org.scalatest._

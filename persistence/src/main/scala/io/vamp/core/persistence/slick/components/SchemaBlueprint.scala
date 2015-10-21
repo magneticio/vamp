@@ -1,23 +1,23 @@
 package io.vamp.core.persistence.slick.components
 
 import io.strongtyped.active.slick.Profile
-import io.vamp.core.persistence.slick.extension.{VampTableQueries, VampTables}
+import io.vamp.core.persistence.slick.extension.{ VampTableQueries, VampTables }
 import io.vamp.core.persistence.slick.model._
 
 import scala.language.implicitConversions
 
 trait SchemaBlueprint extends SchemaBreed {
-  this: VampTables with VampTableQueries with Profile =>
+  this: VampTables with VampTableQueries with Profile ⇒
 
   import jdbcDriver.simple._
 
-  val DefaultBlueprints = AnonymousNameableEntityTableQuery[DefaultBlueprintModel, DefaultBlueprintTable](tag => new DefaultBlueprintTable(tag))
-  val BlueprintReferences = DeployableNameEntityTableQuery[BlueprintReferenceModel, BlueprintReferenceTable](tag => new BlueprintReferenceTable(tag))
-  val Clusters = DeployableNameEntityTableQuery[ClusterModel, ClusterTable](tag => new ClusterTable(tag))
-  val Services = EntityTableQuery[ServiceModel, ServiceTable](tag => new ServiceTable(tag))
+  val DefaultBlueprints = AnonymousNameableEntityTableQuery[DefaultBlueprintModel, DefaultBlueprintTable](tag ⇒ new DefaultBlueprintTable(tag))
+  val BlueprintReferences = DeployableNameEntityTableQuery[BlueprintReferenceModel, BlueprintReferenceTable](tag ⇒ new BlueprintReferenceTable(tag))
+  val Clusters = DeployableNameEntityTableQuery[ClusterModel, ClusterTable](tag ⇒ new ClusterTable(tag))
+  val Services = EntityTableQuery[ServiceModel, ServiceTable](tag ⇒ new ServiceTable(tag))
 
   class DefaultBlueprintTable(tag: Tag) extends AnonymousNameableEntityTable[DefaultBlueprintModel](tag, "default_blueprints") {
-    def * = (deploymentId, name, id.?, isAnonymous) <>(DefaultBlueprintModel.tupled, DefaultBlueprintModel.unapply)
+    def * = (deploymentId, name, id.?, isAnonymous) <> (DefaultBlueprintModel.tupled, DefaultBlueprintModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -33,7 +33,7 @@ trait SchemaBlueprint extends SchemaBreed {
   }
 
   class BlueprintReferenceTable(tag: Tag) extends DeployableEntityTable[BlueprintReferenceModel](tag, "blueprint_references") {
-    def * = (deploymentId, name, id.?, isDefinedInline) <>(BlueprintReferenceModel.tupled, BlueprintReferenceModel.unapply)
+    def * = (deploymentId, name, id.?, isDefinedInline) <> (BlueprintReferenceModel.tupled, BlueprintReferenceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -49,7 +49,7 @@ trait SchemaBlueprint extends SchemaBreed {
   }
 
   class ClusterTable(tag: Tag) extends DeployableEntityTable[ClusterModel](tag, "clusters") {
-    def * = (deploymentId, name, blueprintId, slaReferenceId, dialects, id.?) <>(ClusterModel.tupled, ClusterModel.unapply)
+    def * = (deploymentId, name, blueprintId, slaReferenceId, dialects, id.?) <> (ClusterModel.tupled, ClusterModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 
@@ -73,7 +73,7 @@ trait SchemaBlueprint extends SchemaBreed {
   }
 
   class ServiceTable(tag: Tag) extends EntityTable[ServiceModel](tag, "services") {
-    def * = (deploymentId, clusterId, breedReferenceId, routingReference, scaleReference, dialects, id.?) <>(ServiceModel.tupled, ServiceModel.unapply)
+    def * = (deploymentId, clusterId, breedReferenceId, routingReference, scaleReference, dialects, id.?) <> (ServiceModel.tupled, ServiceModel.unapply)
 
     def id = column[Int]("id", O.AutoInc, O.PrimaryKey)
 

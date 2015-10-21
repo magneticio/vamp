@@ -3,7 +3,7 @@ package io.vamp.core.model.notification
 import java.time.OffsetDateTime
 
 import io.vamp.common.notification.Notification
-import io.vamp.core.model.artifact.{Deployment, DeploymentCluster}
+import io.vamp.core.model.artifact.{ Deployment, DeploymentCluster }
 
 object SlaEvent {
   def slaTags(deployment: Deployment, cluster: DeploymentCluster) = ("sla" :: s"deployment:${deployment.name}" :: s"cluster:${cluster.name}" :: Nil).toSet
