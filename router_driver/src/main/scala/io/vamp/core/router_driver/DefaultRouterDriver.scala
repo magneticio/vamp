@@ -98,8 +98,8 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   }
 
   private def server(service: DeploymentService, server: DeploymentServer, port: Port) = server.ports.get(port.number) match {
-    case Some(p) => Server(artifactName2Id(server), server.host, p)
-    case _ => Server(artifactName2Id(server), server.host, 0)
+    case Some(p) ⇒ Server(artifactName2Id(server), server.host, p)
+    case _       ⇒ Server(artifactName2Id(server), server.host, 0)
   }
 
   private def servers(deployment: Deployment, port: Port): List[Server] = {
