@@ -27,9 +27,10 @@ Vamp can even run inside Docker while deploying to Docker: check out our [quick 
 2. Check the `DOCKER_*` environment variables Vamp uses to connect to Docker, i.e.
 
     ```
-    DOCKER_HOST=tcp://192.168.59.103:2376
+    DOCKER_HOST=tcp://192.168.99.100:2376
+    export DOCKER_MACHINE_NAME=default
     DOCKER_TLS_VERIFY=1
-    DOCKER_CERT_PATH=/Users/tim/.boot2docker/certs/boot2docker-vm
+    DOCKER_CERT_PATH=/Users/tim/.docker/machine/machines/default
     ```
 
 3. If Vamp can't find these environment variables, it falls back to using the `unix:///var/run/docker.sock` Unix socket for communicating with Docker.

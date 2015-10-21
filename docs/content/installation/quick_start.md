@@ -21,16 +21,19 @@ in the [vamp-docker repo](https://github.com/magneticio/vamp-docker) and the [pu
 
 Please install one of the following for your platform/architecture
 
+- Docker Toolbox if on Mac OS X 10.8+ or Windows 7+, OR
 - Docker 1.8.x
-- Docker Toolbox if on Mac OS X
 
 ## Step 2: Run Vamp
 
-Start the `magneticio/vamp-docker:latest` (or currently `magneticio/vamp-docker:0.7.10`) container, taking care to pass in the right parameters. 
+Start the `magneticio/vamp-docker:latest` (or currently `magneticio/vamp-docker:0.7.11`) container, taking care to pass in the right parameters. 
+
+NB If you installed Docker Toolbox please use "Docker Quickstart Terminal". At this moment we don't support Kitematic yet.
+
 A typical command on Mac OS X running Docker Toolbox would be:
 {{% copyable %}}
 ```
-docker run --net=host -v ~/.docker/machine/machines/default:/certs -e "DOCKER_TLS_VERIFY=1" -e "DOCKER_HOST=`docker-machine url default`" -e "DOCKER_CERT_PATH=/certs" magneticio/vamp-docker:0.7.10
+docker run --net=host -v ~/.docker/machine/machines/default:/certs -e "DOCKER_TLS_VERIFY=1" -e "DOCKER_HOST=`docker-machine url default`" -e "DOCKER_CERT_PATH=/certs" magneticio/vamp-docker:0.7.11
 ```
 {{% /copyable %}}
 
@@ -41,7 +44,7 @@ If you don't use Docker Toolbox (or Boot2Docker), set the `DOCKER_HOST` variable
 > **Note 1:** When using Boot2Docker on OS X use the following command:
 {{% copyable %}}
 ```
-docker run --net=host -v ~/.boot2docker/certs/boot2docker-vm:/certs -e "DOCKER_TLS_VERIFY=1" -e "DOCKER_HOST=tcp://`boot2docker ip`:2376" -e "DOCKER_CERT_PATH=/certs" magneticio/vamp-docker:latest
+docker run --net=host -v ~/.boot2docker/certs/boot2docker-vm:/certs -e "DOCKER_TLS_VERIFY=1" -e "DOCKER_HOST=tcp://`boot2docker ip`:2376" -e "DOCKER_CERT_PATH=/certs" magneticio/vamp-docker:0.7.11
 ```
 {{% /copyable %}}
 
