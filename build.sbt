@@ -63,8 +63,8 @@ val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4" % "test"
 
 // Library Versions
 
-val vampCommonVersion = "0.7.10-dev.78c70bc"
-val vampUiVersion = "0.7.10-128"
+val vampCommonVersion = "0.7.11"
+val vampUiVersion = "0.7.11-145"
 
 val sprayVersion = "1.3.2"
 val json4sVersion = "3.2.11"
