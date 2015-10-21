@@ -10,8 +10,8 @@ object OffsetDateTimeSerializer extends SerializationFormat {
   override def customSerializers = super.customSerializers :+ new OffsetDateTimeSerializer()
 }
 
-class OffsetDateTimeSerializer extends CustomSerializer[OffsetDateTime](format => ( {
-  case JString(string) => OffsetDateTime.parse(string)
+class OffsetDateTimeSerializer extends CustomSerializer[OffsetDateTime](format ⇒ ({
+  case JString(string) ⇒ OffsetDateTime.parse(string)
 }, {
-  case dateTime: OffsetDateTime => JString(dateTime.format(ISO_OFFSET_DATE_TIME))
+  case dateTime: OffsetDateTime ⇒ JString(dateTime.format(ISO_OFFSET_DATE_TIME))
 }))

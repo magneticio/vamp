@@ -1,25 +1,23 @@
 package io.vamp.common.http
 
-import akka.actor._
-import akka.pattern.ask
+import akka.actor.Actor
+import akka.pattern.{ after, ask }
 import akka.util.Timeout
+import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.http.InfoActor.{InfoData, InfoState}
-import io.vamp.common.notification.NotificationErrorException
-import io.vamp.common.vitals.{InfoRequest, JmxVitalsProvider, JvmVitals}
-import spray.http.StatusCodes._
+import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmVitals }
+import spray.http.StatusCodes.OK
 
-import scala.concurrent.Future
-import scala.language.{existentials, postfixOps}
+import scala.concurrent.{ Future, TimeoutException }
+import scala.language.{ existentials, postfixOps }
+import scala.util.{ Failure, Success }
 
 trait InfoMessageBase {
   def jvm: JvmVitals
 }
 
-trait InfoBaseRoute extends JmxVitalsProvider with ExecutionContextProvider {
-  this: RestApiBase =>
-
-  def actorRefFactory: ActorRefFactory
+trait InfoBaseRoute extends InfoRetrieval with JmxVitalsProvider with ExecutionContextProvider {
+  this: RestApiBase with ActorSystemProvider ⇒
 
   implicit def timeout: Timeout
 
@@ -28,7 +26,7 @@ trait InfoBaseRoute extends JmxVitalsProvider with ExecutionContextProvider {
   val infoRoute = pathPrefix("info") {
     pathEndOrSingleSlash {
       get {
-        onSuccess(info) { result =>
+        onSuccess(info) { result ⇒
           respondWithStatus(OK) {
             complete(result)
           }
@@ -37,80 +35,32 @@ trait InfoBaseRoute extends JmxVitalsProvider with ExecutionContextProvider {
     }
   }
 
-  def info(jvm: JvmVitals): Future[InfoMessageBase]
-
-  protected def info: Future[InfoMessageBase] = info(vitals())
-
-  def info(actors: Set[ActorDescription]): Future[Map[ActorDescription, Any]] = {
-    (actorRefFactory.actorOf(InfoActor.props()) ? InfoActor.GetInfo(actors, componentInfoTimeout)).asInstanceOf[Future[Map[ActorDescription, Any]]]
-  }
+  def info: Future[InfoMessageBase]
 }
 
-object InfoActor {
+trait InfoRetrieval {
+  this: ExecutionContextProvider with ActorSystemProvider ⇒
 
-  def props(args: Any*): Props = Props[InfoActor]
+  implicit def timeout: Timeout
 
-  sealed trait InfoEvent
+  def componentInfoTimeout: Timeout
 
-  case class GetInfo(actors: Set[ActorDescription], timeout: Timeout) extends InfoEvent
+  def retrieve(actors: List[Class[Actor]]): Future[Map[Class[Actor], Any]] = {
+    val futures: Map[Class[Actor], Future[Any]] = actors.map(actor ⇒ actor -> actorFor(actor) ? InfoRequest).toMap
 
-
-  sealed trait InfoState
-
-  case object InfoIdle extends InfoState
-
-  case object InfoActive extends InfoState
-
-  case class InfoData(receiver: ActorRef, actors: Set[ActorDescription], result: Map[ActorDescription, Any])
-
-}
-
-class InfoActor extends FSM[InfoState, InfoData] with ActorSupportForActors with ActorExecutionContextProvider {
-
-  import InfoActor._
-
-  private var timer: Option[Cancellable] = None
-
-  startWith(InfoIdle, InfoData(ActorRef.noSender, Set(), Map()))
-
-  when(InfoIdle) {
-    case Event(GetInfo(actors, timeout), _) =>
-      actors.foreach(actor => actorFor(actor) ! InfoRequest)
-      timer = Some(context.system.scheduler.scheduleOnce(timeout.duration, self, StateTimeout))
-      goto(InfoActive) using InfoData(sender(), actors, Map())
-
-    case Event(_, _) => stay()
-  }
-
-  when(InfoActive) {
-    case Event(StateTimeout, info) => done(info)
-
-    case Event(response, info) => info.actors.find(actor => sender().path.toString.endsWith(s"/${actor.name}")) match {
-      case None => stay()
-      case Some(actor) =>
-        val data = processData(actor, response, info)
-        if (data.result.size == info.actors.size) done(data) else stay() using data
+    Future.firstCompletedOf(List(Future.sequence(futures.values.toList.map(_.recover { case x ⇒ Failure(x) })), after(componentInfoTimeout.duration, using = actorSystem.scheduler) {
+      Future.successful(new TimeoutException("Component timeout."))
+    })) map { _ ⇒
+      futures.map {
+        case (actor, future) ⇒
+          actor -> (if (future.isCompleted) future.value.map {
+            case Success(data) ⇒ data
+            case _             ⇒ noData
+          }
+          else noData)
+      }
     }
   }
 
-  initialize()
-
-  private def processData(actor: ActorDescription, response: Any, info: InfoData): InfoData = {
-    val result = response match {
-      case NotificationErrorException(_, message) => "error" -> message
-      case e: Throwable => "error" -> "Internal error."
-      case _ => response
-    }
-    info.copy(result = info.result ++ Map(actor -> result))
-  }
-
-  private def done(info: InfoData) = {
-    val result = info.actors.foldLeft(info.result)((map, actor) => map.get(actor) match {
-      case None => map ++ Map(actor -> ("error" -> "No response."))
-      case _ => map
-    })
-    info.receiver ! result
-    timer.map(_.cancel())
-    stop()
-  }
+  def noData = Map("error" -> "No response.")
 }

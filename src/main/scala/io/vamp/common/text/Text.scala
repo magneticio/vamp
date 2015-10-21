@@ -12,7 +12,7 @@ object Text {
    */
   def toLowerCamelCase(s: String): String = {
     val chars = s.replace('-', '_').split('_')
-    chars.tail.foldLeft(chars.head)((s1, s2) => s1 + s2.capitalize)
+    chars.tail.foldLeft(chars.head)((s1, s2) ⇒ s1 + s2.capitalize)
   }
 
   /**
@@ -35,7 +35,7 @@ object Text {
     var lower = false
     val snake = new StringBuilder
 
-    for (c <- s.toCharArray) {
+    for (c ← s.toCharArray) {
       val previous = lower
       lower = !Character.isUpperCase(c)
       if (previous && !lower)

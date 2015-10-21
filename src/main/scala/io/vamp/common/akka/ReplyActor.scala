@@ -1,40 +1,59 @@
 package io.vamp.common.akka
 
 import akka.actor.Actor
-import akka.actor.Status.Failure
-import io.vamp.common.akka.Bootstrap.{Shutdown, Start}
-import io.vamp.common.notification.{Notification, NotificationProvider}
-import io.vamp.common.vitals.InfoRequest
+import akka.pattern.pipe
+import io.vamp.common.notification._
 
-import scala.runtime.BoxedUnit
+import scala.concurrent.Future
+import scala.language.implicitConversions
+import scala.reflect._
+import scala.util.{ Failure, Success, Try }
 
-trait RequestError extends Notification {
+trait RequestError extends ErrorNotification {
   def request: Any
+
+  def reason = request
 }
 
 trait ReplyActor {
-  this: Actor with NotificationProvider =>
+  this: Actor with ExecutionContextProvider with NotificationProvider ⇒
 
-  final override def receive: Receive = {
-    case request if allowedRequestType(request) => reply(request) match {
-      case response: BoxedUnit =>
-      case response => sender ! response
-    }
-    case request => sender ! unsupported(request)
+  def reply[T](magnet: ReplyMagnet[T], `class`: Class[_ <: Notification] = errorNotificationClass): Try[Future[T]] = {
+    magnet.get.transform({
+      case future ⇒
+        pipe {
+          future andThen {
+            case Success(s)                             ⇒ s
+            case Failure(n: NotificationErrorException) ⇒ n
+            case Failure(f)                             ⇒ failure(f)
+          }
+        } to sender()
+        Success(future)
+    }, {
+      case n: NotificationErrorException ⇒ Failure(n)
+      case f                             ⇒ Failure(failure(f, `class`))
+    })
   }
 
-  protected def allowedRequestType(request: Any) = {
-    requestType.isAssignableFrom(request.getClass) || (request == InfoRequest) || (request == Start) || (request == Shutdown)
+  def checked[T <: Any: ClassTag](future: Future[_], `class`: Class[_ <: Notification] = errorNotificationClass): Future[T] = future map {
+    case result if classTag[T].runtimeClass.isAssignableFrom(result.getClass) ⇒ result.asInstanceOf[T]
+    case any ⇒ throw failure(any, `class`)
   }
 
-  protected def requestType: Class[_]
+  def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception =
+    reportException(`class`.getConstructors()(0).newInstance(failure.asInstanceOf[AnyRef]).asInstanceOf[Notification])
 
-  protected def reply(request: Any): Any
+  def errorNotificationClass: Class[_ <: ErrorNotification] = classOf[GenericErrorNotification]
 
-  protected def errorRequest(request: Any): RequestError
-
-  protected def unsupported(request: Any) = Failure(reportException(errorRequest(request)))
-
+  def unsupported(requestError: RequestError) = reply(Future(reportException(requestError)))
 }
 
-trait CommonReplyActor extends CommonSupportForActors with ReplyActor with FutureSupportNotification
+sealed abstract class ReplyMagnet[+T] {
+  def get: Try[Future[T]]
+}
+
+object ReplyMagnet {
+  implicit def apply[T](any: ⇒ Future[T]): ReplyMagnet[T] = new ReplyMagnet[T] {
+    override def get = Try(any)
+  }
+}

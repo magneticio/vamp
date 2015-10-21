@@ -9,6 +9,6 @@ object SnakeCaseSerializationFormat extends SerializationFormat {
 
 class SnakeCaseFieldSerializer extends FieldSerializer[Any] {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
-    case (name, x) => Some(Text.toSnakeCase(name, dash = false) -> x)
+    case (name, x) ⇒ Some(Text.toSnakeCase(name, dash = false) -> x)
   }
 }

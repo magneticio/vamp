@@ -1,6 +1,6 @@
 package io.vamp.common.akka
 
-import akka.actor.{Actor, ActorRefFactory}
+import akka.actor.{ Actor, ActorRefFactory }
 
 import scala.concurrent.ExecutionContext
 
@@ -15,6 +15,6 @@ trait ActorRefFactoryExecutionContextProvider extends ExecutionContextProvider {
 }
 
 trait ActorExecutionContextProvider extends ExecutionContextProvider {
-  this: Actor =>
+  this: Actor ⇒
   implicit def executionContext: ExecutionContext = context.dispatcher
 }

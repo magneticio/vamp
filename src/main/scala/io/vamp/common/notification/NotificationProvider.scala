@@ -1,6 +1,6 @@
 package io.vamp.common.notification
 
-import akka.actor.{AbstractLoggingActor, Actor, ActorRef}
+import akka.actor.{ AbstractLoggingActor, Actor, ActorRef }
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
@@ -15,7 +15,7 @@ trait NotificationProvider {
 }
 
 trait LoggingNotificationProvider extends NotificationProvider {
-  this: MessageResolverProvider =>
+  this: MessageResolverProvider ⇒
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[Notification]))
 
@@ -28,12 +28,11 @@ trait LoggingNotificationProvider extends NotificationProvider {
     logger.error(msg)
 
     notification match {
-      case error: ErrorNotification => error.reason match {
-        case reason : Throwable if reason.toString.contains("Connection refused") => logger.error(reason.getMessage)
-        case reason: Throwable => logger.error(reason.getMessage, reason)
-        case reason => logger.error(reason.toString)
+      case error: ErrorNotification ⇒ error.reason match {
+        case reason: Throwable ⇒ logger.error(reason.getMessage, reason)
+        case reason            ⇒ logger.error(reason.toString)
       }
-      case _ =>
+      case _ ⇒
     }
 
     NotificationErrorException(notification, msg)
@@ -41,7 +40,7 @@ trait LoggingNotificationProvider extends NotificationProvider {
 }
 
 trait ActorNotificationProvider extends NotificationProvider {
-  this: Actor with MessageResolverProvider =>
+  this: Actor with MessageResolverProvider ⇒
 
   protected val notificationActor: ActorRef
 
@@ -59,7 +58,7 @@ trait ActorNotificationProvider extends NotificationProvider {
 }
 
 trait ActorLoggingNotificationProvider extends NotificationProvider {
-  this: AbstractLoggingActor with MessageResolverProvider =>
+  this: AbstractLoggingActor with MessageResolverProvider ⇒
 
   protected val notificationActor: ActorRef
 
@@ -78,6 +77,4 @@ trait ActorLoggingNotificationProvider extends NotificationProvider {
     NotificationErrorException(notification, msg)
   }
 }
-
-
 
