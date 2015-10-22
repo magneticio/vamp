@@ -1,9 +1,9 @@
 
 global
-  pidfile 33000
+  pidfile /opt/docker/data/haproxy-private.pid
   daemon
   maxconn 4096
-  stats socket haproxy_stat level admin
+  stats socket /opt/docker/data/haproxy.stats.sock level admin
   log /var/run/vamp.log.sock local0
 
   defaults
@@ -33,45 +33,17 @@ global
 
 
 frontend name
-  mode http
-  bind 0.0.0.0:8080             
+  bind 0.0.0.0:8080
   option httplog                                               
-  
-  bind unix@/tmp/vamp_test_be_1_a.sock accept-proxy 
-  option http-server-close                                     
 
   log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
 
-  ###
-  #
-  # Spike/Rate Limiting & Quota Management
-  #
-  # We use a stick table to keep track of TCP connections rates and bytes send out.
-  # On these metrics we set rules to designate upper limits. When limits are hit
-  # we reroute the traffic to a specific abusers backend.
-  #
-  ###
-  
-  # Start HTTP spike limit generation
-  stick-table type ip size 200k expire 10s store http_req_rate(1s)
-  # Values below are specific to the backend.
-  # Track the request and set ACL's.
-  tcp-request content track-sc1 src
-  acl marked_as_abuser sc1_http_req_rate gt 10000
-  use_backend abusers if marked_as_abuser
-  # End HTTP spike limit generation.
-  
-  
-  # Start TCP spike limit generation
-  stick-table type ip size 200k expire 10s store conn_rate(1s)
-  # Values below are specific to the backend.
-  # Track the request and set ACL's.
-  tcp-request content track-sc2 src
-  acl marked_as_abuser sc2_conn_rate gt 10000
-  use_backend abusers if marked_as_abuser
-  # End TCP spike limit generation.
-  
+  option http-server-close
+  bind unix@/tmp/vamp_test_be_1_a.sock accept-proxy
 
+  mode http
+
+  
   ###
   #
   # Filter Management

@@ -2,7 +2,7 @@
 @import io.vamp.core.router_driver.haproxy.HaProxyInterface.Mode
 @(conf: HaProxyConfiguration)
 global
-  pidfile @conf.pid
+  pidfile @conf.pidFile
   daemon
   maxconn 4096
   stats socket @conf.statsSocket level admin
@@ -35,15 +35,18 @@ global
 
 @for(frontend <- conf.frontends) {
 frontend @frontend.name
-  mode @frontend.mode
   @if(frontend.bindIp.isDefined && frontend.bindPort.isDefined)       {bind @frontend.bindIp.get:@frontend.bindPort.get             }
   @if(frontend.mode == Mode.http)                                     {option httplog                                               }
   @if(frontend.mode == Mode.tcp)                                      {option tcplog                                                }
-  @if(frontend.unixSock.isDefined && frontend.sockProtocol.isDefined) {bind unix@@@frontend.unixSock.get @frontend.sockProtocol.get }
-  @if(frontend.options.httpClose)                                     {option http-server-close                                     }
 
   log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
 
+  @if(frontend.options.httpClose)                                     {option http-server-close                                     }
+  @if(frontend.unixSock.isDefined && frontend.sockProtocol.isDefined) {bind unix@@@frontend.unixSock.get @frontend.sockProtocol.get }
+
+  mode @frontend.mode
+
+  @* httpQuota and tcpQuota not supported yet.
   ###
   #
   # Spike/Rate Limiting & Quota Management
@@ -73,7 +76,7 @@ frontend @frontend.name
   use_backend abusers if marked_as_abuser
   # End TCP spike limit generation.
   }
-
+  *@
   ###
   #
   # Filter Management
