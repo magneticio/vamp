@@ -2,8 +2,8 @@ package io.vamp.core.router_driver.haproxy
 
 case class HaProxyConfiguration(pid: Int,
                                 statsSocket: String,
-                                frontends: List[Frontend],
-                                backends: List[Backend],
+                                frontends: List[HaProxyFrontend],
+                                backends: List[HaProxyBackend],
                                 errorDir: String)
 
 object HaProxyInterface {
@@ -20,31 +20,31 @@ sealed trait HaProxyInterface {
   def mode: HaProxyInterface.Mode.Value
 }
 
-case class Frontend(name: String,
+case class HaProxyFrontend(name: String,
                     bindIp: Option[String],
                     bindPort: Option[Int],
                     mode: HaProxyInterface.Mode.Value,
                     unixSock: Option[String],
                     sockProtocol: Option[String],
-                    options: Options,
-                    httpQuota: Option[HttpQuota],
-                    tcpQuota: Option[TcpQuota],
-                    filters: List[Filter],
+                    options: HaProxyOptions,
+                    httpQuota: Option[HaProxyHttpQuota],
+                    tcpQuota: Option[HaProxyTcpQuota],
+                    filters: List[HaProxyFilter],
                     defaultBackend: String) extends HaProxyInterface
 
-case class Options(abortOnClose: Boolean,
-                   allBackups: Boolean,
-                   checkCache: Boolean,
-                   forwardFor: Boolean,
-                   httpClose: Boolean,
-                   httpCheck: Boolean,
-                   sslHelloCheck: Boolean,
-                   tcpKeepAlive: Boolean,
-                   tcpSmartAccept: Boolean,
-                   tcpSmartConnect: Boolean,
-                   tcpLog: Boolean)
+case class HaProxyOptions(abortOnClose: Boolean = false,
+                   allBackups: Boolean = false,
+                   checkCache: Boolean = false,
+                   forwardFor: Boolean = false,
+                   httpClose: Boolean = false,
+                   httpCheck: Boolean = false,
+                   sslHelloCheck: Boolean = false,
+                   tcpKeepAlive: Boolean = false,
+                   tcpSmartAccept: Boolean = false,
+                   tcpSmartConnect: Boolean = false,
+                   tcpLog: Boolean = false)
 
-sealed trait Quota {
+sealed trait HaProxyQuota {
   def sampleWindow: String
 
   def rate: Int
@@ -52,18 +52,18 @@ sealed trait Quota {
   def expiryTime: String
 }
 
-case class HttpQuota(sampleWindow: String, rate: Int, expiryTime: String) extends Quota
+case class HaProxyHttpQuota(sampleWindow: String, rate: Int, expiryTime: String) extends HaProxyQuota
 
-case class TcpQuota(sampleWindow: String, rate: Int, expiryTime: String) extends Quota
+case class HaProxyTcpQuota(sampleWindow: String, rate: Int, expiryTime: String) extends HaProxyQuota
 
-case class Filter(name: String, condition: String, destination: String, negate: Boolean)
+case class HaProxyFilter(name: String, condition: String, destination: String, negate: Boolean)
 
-case class Backend(name: String,
+case class HaProxyBackend(name: String,
                    mode: HaProxyInterface.Mode.Value,
-                   proxyServers: List[ProxyServer],
-                   servers: List[Server],
-                   options: Options) extends HaProxyInterface
+                   proxyServers: List[HaProxyProxyServer],
+                   servers: List[HaProxyServer],
+                   options: HaProxyOptions) extends HaProxyInterface
 
-case class ProxyServer(name: String, unixSock: String, weight: Int)
+case class HaProxyProxyServer(name: String, unixSock: String, weight: Int)
 
-case class Server(name: String, host: String, port: Int, weight: Int, maxConn: Int, checkInterval: Option[Int])
+case class HaProxyServer(name: String, host: String, port: Int, weight: Int, maxConn: Int = 1000, checkInterval: Option[Int] = None)

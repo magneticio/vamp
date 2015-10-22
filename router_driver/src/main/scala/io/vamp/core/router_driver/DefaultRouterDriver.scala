@@ -35,22 +35,16 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
     DeploymentRoutes(clusterRoutes, endpointRoutes)
   }
 
-  def create(deployment: Deployment, cluster: DeploymentCluster, port: Port, update: Boolean) = {
-    val name = clusterRouteName(deployment, cluster, port)
-    create(name, route(name, deployment, Some(cluster), port), update)
-  }
+  def create(deployment: Deployment, cluster: DeploymentCluster, port: Port, update: Boolean) = create(route(clusterRouteName(deployment, cluster, port), deployment, Some(cluster), port), update)
 
-  def create(deployment: Deployment, port: Port, update: Boolean) = {
-    val name = endpointRouteName(deployment, port)
-    create(name, route(name, deployment, None, port), update)
-  }
+  def create(deployment: Deployment, port: Port, update: Boolean) = create(route(endpointRouteName(deployment, port), deployment, None, port), update)
 
-  private def create(name: String, route: Route, update: Boolean) = {
+  private def create(route: Route, update: Boolean) = {
     if (update) {
-      logger.info(s"router update: $name")
-      RestClient.put[Any](s"$url/v1/routes/$name", route)
+      logger.info(s"router update: ${route.name}")
+      RestClient.put[Any](s"$url/v1/routes/${route.name}", route)
     } else {
-      logger.info(s"router create: $name")
+      logger.info(s"router create: ${route.name}")
       RestClient.post[Any](s"$url/v1/routes", route)
     }
   }
@@ -65,8 +59,8 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
   }
 
   private def route(name: String, deployment: Deployment, cluster: Option[DeploymentCluster], port: Port) = cluster match {
-    case None    ⇒ Route(name, port.number, if (port.`type` == Port.Http) "http" else "tcp", filters(cluster), None, None, services(deployment, None, port))
-    case Some(c) ⇒ Route(name, c.routes.get(port.number).get, if (port.`type` == Port.Http) "http" else "tcp", filters(cluster), None, None, services(deployment, cluster, port))
+    case None    ⇒ Route(name, port.number, if (port.`type` == Port.Http) "http" else "tcp", filters(cluster), services(deployment, None, port))
+    case Some(c) ⇒ Route(name, c.routes.get(port.number).get, if (port.`type` == Port.Http) "http" else "tcp", filters(cluster), services(deployment, cluster, port))
   }
 
   private def filters(cluster: Option[DeploymentCluster]): List[Filter] = {
