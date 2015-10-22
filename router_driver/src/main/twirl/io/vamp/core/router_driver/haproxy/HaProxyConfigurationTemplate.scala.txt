@@ -1,6 +1,6 @@
-@import io.vamp.router_driver.HAProxyConfiguration
-@import io.vamp.router_driver.HAProxyInterface.Mode
-@(conf: HAProxyConfiguration)
+@import io.vamp.core.router_driver.haproxy.HaProxyConfiguration
+@import io.vamp.core.router_driver.haproxy.HaProxyInterface.Mode
+@(conf: HaProxyConfiguration)
 global
   pidfile @conf.pid
   daemon
