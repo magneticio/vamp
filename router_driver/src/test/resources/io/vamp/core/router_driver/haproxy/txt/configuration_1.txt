@@ -103,4 +103,4 @@ backend name2
 
 backend abusers
   mode http
-  errorfile 409 /error/500rate.http
+  errorfile 409 /opt/docker/configuration/error_pages/500rate.http

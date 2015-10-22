@@ -76,18 +76,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
         options = options
       ) :: Nil
 
-    compare(HaProxyConfigurationTemplate(HaProxyConfiguration(
-      pidFile = "/opt/docker/data/haproxy-private.pid",
-      statsSocket = "/opt/docker/data/haproxy.stats.sock",
-      frontends = frontends,
-      backends = backends,
-      errorDir = "/error")
-    ).toString(), "configuration_1.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(frontends, backends)).toString(), "configuration_1.txt")
   }
 
   it should "serialize single service http route to HAProxy configuration" in {
 
-    val model = convert(Route(
+    val haproxy = convert(Route(
       name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080",
       port = 33000,
       protocol = "http",
@@ -101,7 +95,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
           port = 32768) :: Nil
       ) :: Nil))
 
-    model shouldBe HaProxy(List(
+    haproxy shouldBe HaProxy(List(
       Frontend(
         name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080",
         bindIp = Option("0.0.0.0"),
@@ -145,17 +139,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
         options = Options())
     ))
 
-    compare(HaProxyConfigurationTemplate(HaProxyConfiguration(
-      pidFile = "/opt/docker/data/haproxy-private.pid",
-      statsSocket = "/opt/docker/data/haproxy.stats.sock",
-      frontends = model.frontends,
-      backends = model.backends,
-      errorDir = "/opt/docker/configuration/error_pages")
-    ).toString(), "configuration_2.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(haproxy.frontends, haproxy.backends)).toString(), "configuration_2.txt")
   }
 
   it should "serialize single service tcp route to HAProxy configuration" in {
-    val model = convert(Route(
+    val haproxy = convert(Route(
       name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080",
       port = 33000,
       protocol = "tcp",
@@ -169,7 +157,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
           port = 32768) :: Nil
       ) :: Nil))
 
-    model shouldBe HaProxy(List(
+    haproxy shouldBe HaProxy(List(
       Frontend(
         name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080",
         bindIp = Option("0.0.0.0"),
@@ -214,17 +202,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
           options = Options())
       ))
 
-    compare(HaProxyConfigurationTemplate(HaProxyConfiguration(
-      pidFile = "/opt/docker/data/haproxy-private.pid",
-      statsSocket = "/opt/docker/data/haproxy.stats.sock",
-      frontends = model.frontends,
-      backends = model.backends,
-      errorDir = "/opt/docker/configuration/error_pages")
-    ).toString(), "configuration_3.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(haproxy.frontends, haproxy.backends)).toString(), "configuration_3.txt")
   }
 
   it should "serialize single service route with single endpoint to HAProxy configuration" in {
-    val model = convert(List(
+    val haproxy = convert(List(
       Route(
         name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_sava_8080",
         port = 33002,
@@ -253,7 +235,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
         ) :: Nil)
     ))
 
-    model shouldBe HaProxy(List(
+    haproxy shouldBe HaProxy(List(
       Frontend(
         name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_sava_8080",
         bindIp = Option("0.0.0.0"),
@@ -338,17 +320,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
           options = Options())
       ))
 
-    compare(HaProxyConfigurationTemplate(HaProxyConfiguration(
-      pidFile = "/opt/docker/data/haproxy-private.pid",
-      statsSocket = "/opt/docker/data/haproxy.stats.sock",
-      frontends = model.frontends,
-      backends = model.backends,
-      errorDir = "/opt/docker/configuration/error_pages")
-    ).toString(), "configuration_4.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(haproxy.frontends, haproxy.backends)).toString(), "configuration_4.txt")
   }
 
   it should "serialize A/B services to HAProxy configuration" in {
-    val model = convert(List(
+    val haproxy = convert(List(
       Route(
         name = "cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080",
         port = 33001,
@@ -400,7 +376,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
         ) :: Nil)
     ))
 
-    model shouldBe HaProxy(List(
+    haproxy shouldBe HaProxy(List(
       Frontend(
         name = "cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080",
         bindIp = Option("0.0.0.0"),
@@ -528,17 +504,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
           options = Options())
       ))
 
-    compare(HaProxyConfigurationTemplate(HaProxyConfiguration(
-      pidFile = "/opt/docker/data/haproxy-private.pid",
-      statsSocket = "/opt/docker/data/haproxy.stats.sock",
-      frontends = model.frontends,
-      backends = model.backends,
-      errorDir = "/opt/docker/configuration/error_pages")
-    ).toString(), "configuration_5.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(haproxy.frontends, haproxy.backends)).toString(), "configuration_5.txt")
   }
 
   it should "serialize services with dependency to HAProxy configuration" in {
-    val model = convert(List(
+    val haproxy = convert(List(
       Route(
         name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080",
         port = 33003,
@@ -584,7 +554,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
         ) :: Nil)
     ))
 
-    model shouldBe HaProxy(List(
+    haproxy shouldBe HaProxy(List(
       Frontend(
         name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080",
         bindIp = Option("0.0.0.0"),
@@ -713,13 +683,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
           options = Options())
       ))
 
-    compare(HaProxyConfigurationTemplate(HaProxyConfiguration(
-      pidFile = "/opt/docker/data/haproxy-private.pid",
-      statsSocket = "/opt/docker/data/haproxy.stats.sock",
-      frontends = model.frontends,
-      backends = model.backends,
-      errorDir = "/opt/docker/configuration/error_pages")
-    ).toString(), "configuration_6.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(haproxy.frontends, haproxy.backends)).toString(), "configuration_6.txt")
   }
 
   it should "convert filters" in {
@@ -738,7 +702,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
       ("misses cookie JSESSIONID", "cook_cnt(JSESSIONID) eq 0", false),
       ("has header X-SPECIAL", "hdr_cnt(X-SPECIAL) gt 0", false),
       ("misses header X-SPECIAL", "hdr_cnt(X-SPECIAL) eq 0", false)
-    ).foreach { input ⇒
+    ) foreach { input ⇒
         filter(Filter(None, input._1, "")) match {
           case HaProxyFilter(_, condition, _, negate) ⇒
             input._2 shouldBe condition

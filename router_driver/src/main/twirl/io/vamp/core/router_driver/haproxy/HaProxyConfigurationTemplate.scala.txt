@@ -1,11 +1,11 @@
-@import io.vamp.core.router_driver.haproxy.HaProxyConfiguration
+@import io.vamp.core.router_driver.haproxy.HaProxy
 @import io.vamp.core.router_driver.haproxy.Interface.Mode
-@(conf: HaProxyConfiguration)
+@(haproxy: HaProxy)
 global
-  pidfile @conf.pidFile
+  pidfile /opt/docker/data/haproxy-private.pid
   daemon
   maxconn 4096
-  stats socket @conf.statsSocket level admin
+  stats socket /opt/docker/data/haproxy.stats.sock level admin
   log /var/run/vamp.log.sock local0
 
   defaults
@@ -33,7 +33,7 @@ global
     stats realm Haproxy\ Stats
     stats auth haproxy:haproxy
 
-@for(frontend <- conf.frontends) {
+@for(frontend <- haproxy.frontends) {
 frontend @frontend.name
   @if(frontend.bindIp.isDefined && frontend.bindPort.isDefined)       {bind @frontend.bindIp.get:@frontend.bindPort.get             }
   @if(frontend.mode == Mode.http)                                     {option httplog                                               }
@@ -91,7 +91,7 @@ frontend @frontend.name
   default_backend @frontend.defaultBackend
 }
 
-@for(backend <- conf.backends) {
+@for(backend <- haproxy.backends) {
 backend @backend.name
   mode @backend.mode
   @if(backend.mode == Mode.http)        {balance roundrobin       }
@@ -128,4 +128,4 @@ backend @backend.name
 }
 backend abusers
   mode http
-  errorfile 409 @conf.errorDir/500rate.http
+  errorfile 409 /opt/docker/configuration/error_pages/500rate.http

@@ -1,7 +1,5 @@
 package io.vamp.core.router_driver.haproxy
 
-case class HaProxyConfiguration(pidFile: String, statsSocket: String, frontends: List[Frontend], backends: List[Backend], errorDir: String)
-
 case class HaProxy(frontends: List[Frontend], backends: List[Backend])
 
 case class Frontend(name: String,
