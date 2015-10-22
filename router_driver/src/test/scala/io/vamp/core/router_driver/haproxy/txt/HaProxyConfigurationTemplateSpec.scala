@@ -1,7 +1,7 @@
 package io.vamp.core.router_driver.haproxy.txt
 
-import io.vamp.core.router_driver.haproxy.{ Server ⇒ HaProxyServer, _ }
-import io.vamp.core.router_driver.{ Route, Server, Service }
+import io.vamp.core.router_driver.haproxy.{ Filter ⇒ HaProxyFilter, Server ⇒ HaProxyServer, _ }
+import io.vamp.core.router_driver.{ Filter, Route, Server, Service }
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{ FlatSpec, Matchers }
@@ -28,7 +28,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
       tcpLog = true
     )
 
-    val filters = Filter(
+    val filters = HaProxyFilter(
       name = "ie",
       condition = "hdr_sub(user-agent) MSIE",
       destination = "test_be_1_b",
@@ -537,7 +537,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
     ).toString(), "configuration_5.txt")
   }
 
-  it should "serialize A/B services to HAProxy configuration" in {
+  it should "serialize services with dependency to HAProxy configuration" in {
     val model = convert(List(
       Route(
         name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080",
@@ -720,6 +720,31 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
       backends = model.backends,
       errorDir = "/opt/docker/configuration/error_pages")
     ).toString(), "configuration_6.txt")
+  }
+
+  it should "convert filters" in {
+    List(
+      ("hdr_sub(user-agent) Android", "hdr_sub(user-agent) Android", false),
+      ("user-agent=Android", "hdr_sub(user-agent) Android", false),
+      ("user-agent!=Android", "hdr_sub(user-agent) Android", true),
+      ("User-Agent=Android", "hdr_sub(user-agent) Android", false),
+      ("user-agent = Android", "hdr_sub(user-agent) Android", false),
+      ("user-agent  =  Android", "user-agent  =  Android", false),
+      ("user.agent = Ios", "hdr_sub(user-agent) Ios", false),
+      ("host = www.google.com", "hdr_str(host) www.google.com", false),
+      ("host != www.google.com", "hdr_str(host) www.google.com", true),
+      ("cookie MYCUSTOMER contains Value=good", "cook_sub(MYCUSTOMER) Value=good", false),
+      ("has cookie JSESSIONID", "cook(JSESSIONID) -m found", false),
+      ("misses cookie JSESSIONID", "cook_cnt(JSESSIONID) eq 0", false),
+      ("has header X-SPECIAL", "hdr_cnt(X-SPECIAL) gt 0", false),
+      ("misses header X-SPECIAL", "hdr_cnt(X-SPECIAL) eq 0", false)
+    ).foreach { input ⇒
+        filter(Filter(None, input._1, "")) match {
+          case HaProxyFilter(_, condition, _, negate) ⇒
+            input._2 shouldBe condition
+            input._3 shouldBe negate
+        }
+      }
   }
 
   private def compare(config: String, resource: String) = {

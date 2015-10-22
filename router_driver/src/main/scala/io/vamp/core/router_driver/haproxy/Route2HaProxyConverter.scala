@@ -1,15 +1,24 @@
 package io.vamp.core.router_driver.haproxy
 
 import io.vamp.common.crypto.Hash
-import io.vamp.core.router_driver.{ Route, Service }
+import io.vamp.core.router_driver.{ Filter ⇒ RouteFilter, Route, Service }
 
 trait Route2HaProxyConverter {
+
+  protected val userAgent = "^[uU]ser[-.][aA]gent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
+  protected val host = "^[hH]ost[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r
+  protected val cookieContains = "^[cC]ookie (.*) [Cc]ontains (.*)$".r
+  protected val hasCookie = "^[Hh]as [Cc]ookie (.*)$".r
+  protected val missesCookie = "^[Mm]isses [Cc]ookie (.*)$".r
+  protected val headerContains = "^[Hh]eader (.*) [Cc]ontains (.*)$".r
+  protected val hasHeader = "^[Hh]as [Hh]eader (.*)$".r
+  protected val missesHeader = "^[Mm]isses [Hh]eader (.*)$".r
 
   def convert(route: Route): HaProxy = HaProxy(frontends(route), backends(route))
 
   def convert(routes: List[Route]): HaProxy = routes.map(convert).reduce((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends))
 
-  private def frontends(implicit route: Route): List[Frontend] = Frontend(
+  protected def frontends(implicit route: Route): List[Frontend] = Frontend(
     name = route.name,
     bindIp = Option("0.0.0.0"),
     bindPort = Option(route.port),
@@ -17,7 +26,7 @@ trait Route2HaProxyConverter {
     unixSock = None,
     sockProtocol = None,
     options = Options(),
-    filters = Nil,
+    filters = filters,
     defaultBackend = route.name) :: route.services.map { service ⇒
       Frontend(
         name = s"${route.name}::${service.name}",
@@ -31,7 +40,7 @@ trait Route2HaProxyConverter {
         defaultBackend = s"${route.name}::${service.name}")
     }
 
-  private def backends(implicit route: Route): List[Backend] = Backend(
+  protected def backends(implicit route: Route): List[Backend] = Backend(
     name = route.name,
     mode = mode,
     proxyServers = route.services.map { service ⇒
@@ -57,7 +66,30 @@ trait Route2HaProxyConverter {
         options = Options())
     }
 
-  private def mode(implicit route: Route) = if (route.protocol == Interface.Mode.http.toString) Interface.Mode.http else Interface.Mode.tcp
+  protected def filters(implicit route: Route): List[Filter] = route.filters.map(filter)
 
-  private def unixSocket(service: Service)(implicit route: Route) = s"/opt/docker/data/${Hash.hexSha1(route.name)}.sock"
+  protected def filter(filter: RouteFilter): Filter = {
+    val (condition, negate) = filter.condition match {
+      case userAgent(n, c)        ⇒ s"hdr_sub(user-agent) ${c.trim}" -> (n == "!")
+      case host(n, c)             ⇒ s"hdr_str(host) ${c.trim}" -> (n == "!")
+      case cookieContains(c1, c2) ⇒ s"cook_sub(${c1.trim}) ${c2.trim}" -> false
+      case hasCookie(c)           ⇒ s"cook(${c.trim}) -m found" -> false
+      case missesCookie(c)        ⇒ s"cook_cnt(${c.trim}) eq 0" -> false
+      case headerContains(h, c)   ⇒ s"hdr_sub(${h.trim}) ${c.trim}" -> false
+      case hasHeader(h)           ⇒ s"hdr_cnt(${h.trim}) gt 0" -> false
+      case missesHeader(h)        ⇒ s"hdr_cnt(${h.trim}) eq 0" -> false
+      case any                    ⇒ any -> false
+    }
+
+    val name = filter.name match {
+      case None    ⇒ Hash.hexSha1(condition).substring(0, 16)
+      case Some(n) ⇒ n
+    }
+
+    Filter(name, condition, filter.destination, negate)
+  }
+
+  protected def mode(implicit route: Route) = if (route.protocol == Interface.Mode.http.toString) Interface.Mode.http else Interface.Mode.tcp
+
+  protected def unixSocket(service: Service)(implicit route: Route) = s"/opt/docker/data/${Hash.hexSha1(route.name)}.sock"
 }
