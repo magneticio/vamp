@@ -46,7 +46,7 @@ resolvers ++= Seq(
 
 Seq(bintraySettings: _*)
 
-val akkaVersion = "2.3.11"
+val akkaVersion = "2.4.0"
 val sprayVersion = "1.3.2"
 val sprayJsonVersion = "1.3.1"
 val dispatchVersion = "0.11.2"
