@@ -28,7 +28,7 @@ trait VampCore extends App {
 
   sys.addShutdownHook {
     bootstrap.foreach(_.shutdown)
-    actorSystem.shutdown()
+    actorSystem.terminate()
   }
 
   bootstrap.foreach(_.run)

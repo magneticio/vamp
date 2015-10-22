@@ -63,7 +63,7 @@ lazy val bintraySetting = Seq(
 // Libraries
 
 val vampUi = "vamp-ui-0.7.11-145.jar"
-val vampCommon = "io.vamp" %% "common" % "0.7.11" :: Nil
+val vampCommon = "io.vamp" %% "common" % "0.7.11-dev.5c86a83" :: Nil
 
 val akka = "com.typesafe.akka" %% "akka-slf4j" % "2.4.0" :: Nil
 val spray = "io.spray" %% "spray-can" % "1.3.2" ::
