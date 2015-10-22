@@ -3,13 +3,6 @@ package io.vamp.core.router_driver.haproxy
 import io.vamp.common.crypto.Hash
 import io.vamp.core.router_driver.{ Route, Service }
 
-import scala.language.implicitConversions
-
-object Route2HaProxyConverter extends Route2HaProxyConverter {
-
-  implicit def route2haproxy(route: Route): HaProxy = convert(route)
-}
-
 trait Route2HaProxyConverter {
 
   def convert(route: Route): HaProxy = HaProxy(frontends(route), backends(route))
@@ -54,14 +47,12 @@ trait Route2HaProxyConverter {
         name = s"${route.name}::${service.name}",
         mode = mode,
         proxyServers = Nil,
-        servers = route.services.flatMap { service ⇒
-          service.servers.map { server ⇒
-            Server(
-              name = server.name,
-              host = server.host,
-              port = server.port,
-              weight = service.weight)
-          }
+        servers = service.servers.map { server ⇒
+          Server(
+            name = server.name,
+            host = server.host,
+            port = server.port,
+            weight = 100)
         },
         options = Options())
     }

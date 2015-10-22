@@ -28,7 +28,7 @@ object Interface {
 
 }
 
-case class Filter(name: String, condition: String, destination: String, negate: Boolean)
+case class Filter(name: String, condition: String, destination: String, negate: Boolean = false)
 
 case class ProxyServer(name: String, unixSock: String, weight: Int)
 

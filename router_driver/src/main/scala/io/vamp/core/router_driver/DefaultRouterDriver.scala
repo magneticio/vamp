@@ -68,7 +68,7 @@ class DefaultRouterDriver(ec: ExecutionContext, url: String) extends RouterDrive
       case None ⇒ None
       case Some(c) ⇒ c.services.flatMap { service ⇒
         service.routing.getOrElse(DefaultRouting("", None, Nil)).filters.flatMap({
-          case filter: DefaultFilter ⇒ Filter(filter.name, filter.condition, s"${artifactName2Id(service.breed, serviceIdMatcher)}") :: Nil
+          case filter: DefaultFilter ⇒ Filter(if (filter.name.isEmpty) None else Option(filter.name), filter.condition, s"${artifactName2Id(service.breed, serviceIdMatcher)}") :: Nil
           case _                     ⇒ Nil
         })
       }

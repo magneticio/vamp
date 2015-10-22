@@ -1,6 +1,6 @@
 package io.vamp.core.router_driver
 
-case class Filter(name: String, condition: String, destination: String)
+case class Filter(name: Option[String], condition: String, destination: String)
 
 case class Server(name: String, host: String, port: Int)
 
