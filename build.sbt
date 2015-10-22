@@ -1,12 +1,13 @@
 import com.typesafe.sbt.SbtScalariform._
-import scalariform.formatter.preferences._
 import sbt.Keys._
+
+import scalariform.formatter.preferences._
 
 organization in ThisBuild := "io.vamp"
 
 name := """core"""
 
-version in ThisBuild := "0.7.11"+ VersionHelper.versionSuffix
+version in ThisBuild := "0.7.11" + VersionHelper.versionSuffix
 
 scalaVersion := "2.11.7"
 
@@ -15,7 +16,7 @@ scalaVersion in ThisBuild := scalaVersion.value
 publishMavenStyle in ThisBuild := false
 
 // This has to be overridden for sub-modules to have different description
-description in ThisBuild:= """Core is the brain of Vamp."""
+description in ThisBuild := """Core is the brain of Vamp."""
 
 pomExtra in ThisBuild := <url>http://vamp.io</url>
   <licenses>
@@ -54,41 +55,45 @@ resolvers in ThisBuild ++= Seq(
 )
 
 lazy val bintraySetting = Seq(
-  bintrayOrganization  := Some("magnetic-io"),
-  licenses  += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
-  bintrayRepository  := "vamp"
+  bintrayOrganization := Some("magnetic-io"),
+  licenses +=("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+  bintrayRepository := "vamp"
 )
 
-// Library Versions
+// Libraries
 
-val vampCommonVersion = "0.7.11"
-val vampUiVersion = "0.7.11-145"
+val vampUi = "vamp-ui-0.7.11-145.jar"
+val vampCommon = "io.vamp" %% "common" % "0.7.11" :: Nil
 
-val sprayVersion = "1.3.2"
-val json4sVersion = "3.2.11"
-val akkaVersion = "2.3.11"
-val scalaLoggingVersion = "3.1.0"
-val slf4jVersion = "1.7.10"
-val logbackVersion = "1.1.2"
-val junitVersion = "4.11"
-val scalatestVersion = "2.2.4"
-val typesafeConfigVersion = "1.2.1"
-val scalaAsyncVersion = "0.9.2"
-val snakeYamlVersion = "1.14"
-val h2Version = "1.3.166"
-val slickVersion = "2.1.0"
-val activeSlickVersion = "0.2.2"
-val postgresVersion = "9.1-901.jdbc4"
-val quartzVersion = "2.2.1"
-val bcprovVersion= "1.46"
-val unisocketsNettyVersion = "0.1.0"
-val jerseyVersion = "2.15"
-val scalaCheckVersion = "1.12.4"
+val akka = "com.typesafe.akka" %% "akka-slf4j" % "2.4.0" :: Nil
+val spray = "io.spray" %% "spray-can" % "1.3.2" ::
+  "io.spray" %% "spray-routing" % "1.3.2" ::
+  "io.spray" %% "spray-httpx" % "1.3.2" :: Nil
 
+val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
+val bouncycastle = "org.bouncycastle" % "bcprov-jdk16" % "1.46" :: Nil
+val unisocketsNetty = "me.lessis" %% "unisockets-netty" % "0.1.0" :: Nil
+val quartz = "org.quartz-scheduler" % "quartz" % "2.2.1" :: Nil
 
-val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
-val scalaTest = "org.scalatest" %% "scalatest" % scalatestVersion
+val sql = "com.h2database" % "h2" % "1.3.166" ::
+  "com.typesafe.slick" %% "slick" % "2.1.0" ::
+  "io.strongtyped" %% "active-slick" % "0.2.2" ::
+  "postgresql" % "postgresql" % "9.1-901.jdbc4" :: Nil
 
+val twirl = "com.typesafe.play" %% "twirl-api" % "1.1.1" :: Nil
+val json4s = "org.json4s" %% "json4s-native" % "3.2.11" :: Nil
+val snakeYaml = "org.yaml" % "snakeyaml" % "1.14" :: Nil
+val jersey = "org.glassfish.jersey.core" % "jersey-client" % "2.15" ::
+  "org.glassfish.jersey.media" % "jersey-media-sse" % "2.15" :: Nil
+
+val config = "com.typesafe" % "config" % "1.2.1" :: Nil
+val logging = "org.slf4j" % "slf4j-api" % "1.7.10" ::
+  "ch.qos.logback" % "logback-classic" % "1.1.2" :: Nil
+
+val testing = "junit" % "junit" % "4.11" % "test" ::
+  "org.scalatest" %% "scalatest" % "2.2.4" % "test" ::
+  "org.scalacheck" %% "scalacheck" % "1.12.4" % "test" ::
+  "com.typesafe.akka" %% "akka-testkit" % "2.4.0" % "test" :: Nil
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
@@ -105,8 +110,8 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-    persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, router_driver, cli
-  ).disablePlugins(sbtassembly.AssemblyPlugin)
+  persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, router_driver, cli
+).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
 lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.preferences.value
@@ -119,15 +124,9 @@ lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := 
 
 lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   description := "Bootstrap for Vamp Core",
-  name:="core-bootstrap",
+  name := "core-bootstrap",
   formatting,
-  libraryDependencies ++= Seq(
-    "org.json4s" %% "json4s-native" % json4sVersion,
-    "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-    "org.slf4j" % "slf4j-api" % slf4jVersion,
-    "ch.qos.logback" % "logback-classic" % logbackVersion,
-    "com.typesafe" % "config" % typesafeConfigVersion
-  ),
+  libraryDependencies ++= akka ++ json4s ++ config ++ logging,
   // Runnable assembly jar lives in bootstrap/target/scala_2.11/ and is renamed to core assembly for consistent filename for
   // downloading
   assemblyJarName in assembly := s"core-assembly-${version.value}.jar"
@@ -137,110 +136,75 @@ val downloadUI = taskKey[Unit]("Download vamp-ui to the rest_api lib directory")
 
 lazy val rest_api = project.settings(bintraySetting: _*).settings(
   description := "REST api for Vamp Core",
-  name:="core-rest_api",
+  name := "core-rest_api",
   formatting,
-  libraryDependencies ++=Seq(
-    "io.spray" %% "spray-can" % sprayVersion,
-    "io.spray" %% "spray-routing" % sprayVersion,
-    "io.spray" %% "spray-httpx" % sprayVersion
-  ))
- .settings(
-    downloadUI := {
-      val libDir = "rest_api/lib"
-      val targetFile = s"vamp-ui-$vampUiVersion.jar"
-      // Only perform this if the file not already exists.
-      if(java.nio.file.Files.notExists(new File(s"$libDir/$targetFile").toPath)) {
-        // Remove old versions of the vamp-ui jar & download the new one
-        IO.delete(IO.listFiles(new File(libDir)) filter ( _.getName.startsWith("vamp-ui")))
-        IO.download(new URL(s"https://bintray.com/artifact/download/magnetic-io/downloads/vamp-ui/vamp-ui-$vampUiVersion.jar"), new File(s"$libDir/$targetFile"))
-      }
+  libraryDependencies ++= spray
+).settings(
+  downloadUI := {
+    val libDir = "rest_api/lib"
+    // Only perform this if the file not already exists.
+    if (java.nio.file.Files.notExists(new File(s"$libDir/$vampUi").toPath)) {
+      // Remove old versions of the vamp-ui jar & download the new one
+      IO.delete(IO.listFiles(new File(libDir)) filter (_.getName.startsWith("vamp-ui")))
+      IO.download(new URL(s"https://bintray.com/artifact/download/magnetic-io/downloads/vamp-ui/$vampUi"), new File(s"$libDir/$vampUi"))
     }
-  )
-  .settings((compile in Compile)<<= (compile in Compile) dependsOn downloadUI)
+  }
+).settings((compile in Compile) <<= (compile in Compile) dependsOn downloadUI)
   .dependsOn(operation).disablePlugins(sbtassembly.AssemblyPlugin)
-
 
 lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
-  name:="core-operation",
+  name := "core-operation",
   formatting,
-  libraryDependencies ++=Seq(
-    "org.quartz-scheduler" % "quartz" % quartzVersion,
-    "org.glassfish.jersey.core" % "jersey-client" % jerseyVersion,
-    "org.glassfish.jersey.media" % "jersey-media-sse" % jerseyVersion
-  )
+  libraryDependencies ++= quartz ++ jersey
 ).dependsOn(persistence, container_driver, router_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val pulse = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
-  name:="core-pulse",
+  name := "core-pulse",
   formatting
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val router_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to Vamp Router",
-  name:="core-router_driver",
+  name := "core-router_driver",
   formatting,
-  libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %% "scala-async" % scalaAsyncVersion,
-    scalaTest % "test",
-    akkaTestkit % "test"
-  )
-).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
+  libraryDependencies ++= async ++ twirl ++ testing
+).dependsOn(model, pulse).enablePlugins(SbtTwirl).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val container_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to container managers",
-  name:="core-container_driver",
+  name := "core-container_driver",
   formatting,
-  libraryDependencies ++=Seq(
-    "org.scala-lang.modules" %% "scala-async" % scalaAsyncVersion,
-    "org.bouncycastle" % "bcprov-jdk16" % bcprovVersion,
-    "me.lessis" %% "unisockets-netty" % unisocketsNettyVersion
-)
+  libraryDependencies ++= async ++ bouncycastle ++ unisocketsNetty
 ).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val persistence = project.settings(bintraySetting: _*).settings(
-  description:= "Stores Vamp artifacts",
-  name:="core-persistence",
+  description := "Stores Vamp artifacts",
+  name := "core-persistence",
   formatting,
-  libraryDependencies ++=Seq(
-    "com.h2database" % "h2" % h2Version,
-    "com.typesafe.slick" %% "slick" % slickVersion,
-    "io.strongtyped" %% "active-slick" % activeSlickVersion,
-    "postgresql" % "postgresql" % postgresVersion,
-    "junit" % "junit" % junitVersion % "test",
-    "org.scalatest" %% "scalatest" % scalatestVersion % "test"
-  )
+  libraryDependencies ++= sql ++ testing
 ).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val cli = project.settings(bintraySetting: _*).settings(
   description := "Command Line Interface for Vamp",
-  name:="core-cli",
+  name := "core-cli",
   formatting,
-  libraryDependencies ++= Seq(
-    "org.slf4j" % "slf4j-api" % slf4jVersion,
-    "ch.qos.logback" % "logback-classic" % logbackVersion
-  ),
+  libraryDependencies ++= logging,
   assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
 ).dependsOn(model)
 
 lazy val dictionary = project.settings(bintraySetting: _*).settings(
   description := "Dictionary for Vamp",
-  name:="core-dictionary",
+  name := "core-dictionary",
   formatting
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val model = project.settings(bintraySetting: _*).settings(
   description := "Definitions of Vamp artifacts",
-  name:="core-model",
+  name := "core-model",
   formatting,
-  libraryDependencies ++= Seq(
-    "io.vamp" %% "common" % vampCommonVersion,
-    "org.yaml" % "snakeyaml" % snakeYamlVersion,
-    "junit" % "junit" % junitVersion % "test",
-    "org.scalatest" %% "scalatest" % scalatestVersion % "test",
-    "org.scalacheck" %% "scalacheck" % scalaCheckVersion % "test"
-  )
+  libraryDependencies ++= vampCommon ++ snakeYaml ++ testing
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 // Java version and encoding requirements
@@ -250,6 +214,4 @@ javacOptions ++= Seq("-encoding", "UTF-8")
 
 scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation, Opts.compile.unchecked) ++
   Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint", "-feature")
-
-
 
