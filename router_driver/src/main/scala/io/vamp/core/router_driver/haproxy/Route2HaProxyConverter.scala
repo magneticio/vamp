@@ -7,14 +7,14 @@ import scala.language.implicitConversions
 
 object Route2HaProxyConverter extends Route2HaProxyConverter {
 
-  implicit def route2haproxy(route: Route): HaProxyModel = convert(route)
+  implicit def route2haproxy(route: Route): HaProxy = convert(route)
 }
 
 trait Route2HaProxyConverter {
 
-  def convert(route: Route): HaProxyModel = HaProxyModel(frontends(route), backends(route))
+  def convert(route: Route): HaProxy = HaProxy(frontends(route), backends(route))
 
-  def convert(routes: List[Route]): HaProxyModel = routes.map(convert).reduce((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends))
+  def convert(routes: List[Route]): HaProxy = routes.map(convert).reduce((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends))
 
   private def frontends(implicit route: Route): List[Frontend] = Frontend(
     name = route.name,
@@ -23,7 +23,7 @@ trait Route2HaProxyConverter {
     mode = mode,
     unixSock = None,
     sockProtocol = None,
-    options = HaProxyOptions(),
+    options = Options(),
     filters = Nil,
     defaultBackend = route.name) :: route.services.map { service ⇒
       Frontend(
@@ -33,7 +33,7 @@ trait Route2HaProxyConverter {
         mode = mode,
         unixSock = Option(unixSocket(service)),
         sockProtocol = Option("accept-proxy"),
-        options = HaProxyOptions(),
+        options = Options(),
         filters = Nil,
         defaultBackend = s"${route.name}::${service.name}")
     }
@@ -42,31 +42,31 @@ trait Route2HaProxyConverter {
     name = route.name,
     mode = mode,
     proxyServers = route.services.map { service ⇒
-      HaProxyProxyServer(
+      ProxyServer(
         name = s"${route.name}::${service.name}",
         unixSock = unixSocket(service),
         weight = service.weight
       )
     },
     servers = Nil,
-    options = HaProxyOptions()) :: route.services.map { service ⇒
+    options = Options()) :: route.services.map { service ⇒
       Backend(
         name = s"${route.name}::${service.name}",
         mode = mode,
         proxyServers = Nil,
         servers = route.services.flatMap { service ⇒
           service.servers.map { server ⇒
-            HaProxyServer(
+            Server(
               name = server.name,
               host = server.host,
               port = server.port,
               weight = service.weight)
           }
         },
-        options = HaProxyOptions())
+        options = Options())
     }
 
-  private def mode(implicit route: Route) = if (route.protocol == HaProxyInterface.Mode.http.toString) HaProxyInterface.Mode.http else HaProxyInterface.Mode.tcp
+  private def mode(implicit route: Route) = if (route.protocol == Interface.Mode.http.toString) Interface.Mode.http else Interface.Mode.tcp
 
   private def unixSocket(service: Service)(implicit route: Route) = s"/opt/docker/data/${Hash.hexSha1(route.name)}.sock"
 }
