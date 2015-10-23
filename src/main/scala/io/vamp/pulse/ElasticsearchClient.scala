@@ -1,4 +1,4 @@
-package io.vamp.core.pulse
+package io.vamp.pulse
 
 import io.vamp.common.http.RestClient
 import org.json4s.{ DefaultFormats, Formats }

@@ -1,4 +1,4 @@
-package io.vamp.core.pulse
+package io.vamp.pulse
 
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
@@ -11,11 +11,11 @@ import io.vamp.common.http.{ OffsetEnvelope, OffsetRequestEnvelope, OffsetRespon
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.core.model.event.Aggregator.AggregatorType
-import io.vamp.core.model.event._
-import io.vamp.core.model.validator.EventValidator
-import io.vamp.core.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
-import io.vamp.core.pulse.notification._
+import io.vamp.model.event.Aggregator.AggregatorType
+import io.vamp.model.event._
+import io.vamp.model.validator.EventValidator
+import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
+import io.vamp.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
 
@@ -34,7 +34,7 @@ case class EventResponseEnvelope(response: List[Event], total: Long, page: Int, 
 
 object PulseActor {
 
-  val configuration = ConfigFactory.load().getConfig("vamp.core.pulse")
+  val configuration = ConfigFactory.load().getConfig("vamp.pulse")
 
   val timeout = Timeout(configuration.getInt("response-timeout").seconds)
 

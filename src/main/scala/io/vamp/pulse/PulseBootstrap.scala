@@ -1,9 +1,9 @@
-package io.vamp.core.pulse
+package io.vamp.pulse
 
 import akka.actor.ActorSystem
 import io.vamp.common.akka.{ Bootstrap, IoC }
-import io.vamp.core.pulse.elasticsearch.PulseInitializationActor
-import io.vamp.core.pulse.notification.PulseNotificationProvider
+import io.vamp.pulse.elasticsearch.PulseInitializationActor
+import io.vamp.pulse.notification.PulseNotificationProvider
 
 object PulseBootstrap extends Bootstrap with PulseNotificationProvider {
 

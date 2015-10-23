@@ -1,7 +1,7 @@
-package io.vamp.core.pulse.elasticsearch
+package io.vamp.pulse.elasticsearch
 
-import io.vamp.core.pulse.PulseActor
-import io.vamp.core.pulse.notification.PulseNotificationProvider
+import io.vamp.pulse.PulseActor
+import io.vamp.pulse.notification.PulseNotificationProvider
 
 import scala.io.Source
 

@@ -1,7 +1,7 @@
-package io.vamp.core.pulse
+package io.vamp.pulse
 
 import akka.actor.{ Actor, ActorLogging, ActorRef }
-import io.vamp.core.model.event.Event
+import io.vamp.model.event.Event
 
 import scala.collection.mutable
 

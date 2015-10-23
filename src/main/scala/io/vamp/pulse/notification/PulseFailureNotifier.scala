@@ -1,12 +1,12 @@
-package io.vamp.core.pulse.notification
+package io.vamp.pulse.notification
 
 import akka.actor.{ Actor, ActorLogging }
 import io.vamp.common.akka.IoC
 import io.vamp.common.notification.{ ErrorNotification, Notification }
 import io.vamp.common.text.Text
-import io.vamp.core.model.event.Event
-import io.vamp.core.pulse.PulseActor
-import io.vamp.core.pulse.PulseActor.Publish
+import io.vamp.model.event.Event
+import io.vamp.pulse.PulseActor
+import io.vamp.pulse.PulseActor.Publish
 
 trait PulseFailureNotifier {
   this: Actor with ActorLogging ⇒
