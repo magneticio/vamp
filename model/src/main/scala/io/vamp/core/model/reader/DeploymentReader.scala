@@ -82,11 +82,11 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
       throwException(UndefinedStateIntentionError(intentionName)))
 
     val step = <<![String]("step" :: "name") match {
-      case n if Step.Failure.getClass.getSimpleName.indexOf(n) == 0 ⇒ Step.Failure(since = since(<<![String]("step" :: "since")), notification = NotificationMessageNotRestored(<<?[String]("step" :: "message").getOrElse("")))
-      case n if Step.ContainerUpdate.getClass.getSimpleName.indexOf(n) == 0 ⇒ Step.ContainerUpdate(since(<<![String]("step" :: "since")))
-      case n if Step.RouteUpdate.getClass.getSimpleName.indexOf(n) == 0 ⇒ Step.RouteUpdate(since(<<![String]("step" :: "since")))
-      case n if Step.Initiated.getClass.getSimpleName.indexOf(n) == 0 ⇒ Step.Initiated(since(<<![String]("step" :: "since")))
-      case n if Step.Done.getClass.getSimpleName.indexOf(n) == 0 ⇒ Step.Done(since(<<![String]("step" :: "since")))
+      case n if Step.Failure.getClass.getName.endsWith(s"$n$$") ⇒ Step.Failure(since = since(<<![String]("step" :: "since")), notification = NotificationMessageNotRestored(<<?[String]("step" :: "message").getOrElse("")))
+      case n if Step.ContainerUpdate.getClass.getName.endsWith(s"$n$$") ⇒ Step.ContainerUpdate(since(<<![String]("step" :: "since")))
+      case n if Step.RouteUpdate.getClass.getName.endsWith(s"$n$$") ⇒ Step.RouteUpdate(since(<<![String]("step" :: "since")))
+      case n if Step.Initiated.getClass.getName.endsWith(s"$n$$") ⇒ Step.Initiated(since(<<![String]("step" :: "since")))
+      case n if Step.Done.getClass.getName.endsWith(s"$n$$") ⇒ Step.Done(since(<<![String]("step" :: "since")))
       case n ⇒ throwException(UndefinedStateStepError(n))
     }
 
