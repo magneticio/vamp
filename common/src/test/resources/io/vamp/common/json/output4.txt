@@ -1,3 +1,0 @@
-package io
-
-case class Input4(var1: Option[String])

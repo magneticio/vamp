@@ -63,12 +63,12 @@ lazy val bintraySetting = Seq(
 // Libraries
 
 val vampUi = "vamp-ui-0.7.11-145.jar"
-val vampCommon = "io.vamp" %% "common" % "0.7.11-dev.5c86a83" :: Nil
 
 val akka = "com.typesafe.akka" %% "akka-slf4j" % "2.4.0" :: Nil
-val spray = "io.spray" %% "spray-can" % "1.3.2" ::
+val spray = "io.spray" %% "spray-can" % "1.3.1" ::
   "io.spray" %% "spray-routing" % "1.3.2" ::
-  "io.spray" %% "spray-httpx" % "1.3.2" :: Nil
+  "io.spray" %% "spray-httpx" % "1.3.2" ::
+  "io.spray" %% "spray-json" % "1.3.1" :: Nil
 
 val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
 val bouncycastle = "org.bouncycastle" % "bcprov-jdk16" % "1.46" :: Nil
@@ -80,18 +80,24 @@ val sql = "com.h2database" % "h2" % "1.3.166" ::
   "io.strongtyped" %% "active-slick" % "0.2.2" ::
   "postgresql" % "postgresql" % "9.1-901.jdbc4" :: Nil
 
+val dispatch = "net.databinder.dispatch" %% "dispatch-core" % "0.11.2" ::
+  "net.databinder.dispatch" %% "dispatch-json4s-native" % "0.11.2" :: Nil
 val twirl = "com.typesafe.play" %% "twirl-api" % "1.1.1" :: Nil
-val json4s = "org.json4s" %% "json4s-native" % "3.2.11" :: Nil
+val json4s = "org.json4s" %% "json4s-native" % "3.2.11" ::
+  "org.json4s" %% "json4s-core" % "3.2.11" ::
+  "org.json4s" %% "json4s-ext" % "3.2.11" ::
+  "org.json4s" %% "json4s-native" % "3.2.11" :: Nil
 val snakeYaml = "org.yaml" % "snakeyaml" % "1.14" :: Nil
 val jersey = "org.glassfish.jersey.core" % "jersey-client" % "2.15" ::
   "org.glassfish.jersey.media" % "jersey-media-sse" % "2.15" :: Nil
 
 val config = "com.typesafe" % "config" % "1.2.1" :: Nil
 val logging = "org.slf4j" % "slf4j-api" % "1.7.10" ::
-  "ch.qos.logback" % "logback-classic" % "1.1.2" :: Nil
+  "ch.qos.logback" % "logback-classic" % "1.1.2" ::
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0" :: Nil
 
 val testing = "junit" % "junit" % "4.11" % "test" ::
-  "org.scalatest" %% "scalatest" % "2.2.4" % "test" ::
+  "org.scalatest" %% "scalatest" % "3.0.0-M10" % "test" ::
   "org.scalacheck" %% "scalacheck" % "1.12.4" % "test" ::
   "com.typesafe.akka" %% "akka-testkit" % "2.4.0" % "test" :: Nil
 
@@ -110,7 +116,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, router_driver, cli
+  common, persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, router_driver, cli
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
@@ -126,7 +132,6 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   description := "Bootstrap for Vamp Core",
   name := "core-bootstrap",
   formatting,
-  libraryDependencies ++= akka ++ json4s ++ config ++ logging,
   // Runnable assembly jar lives in bootstrap/target/scala_2.11/ and is renamed to core assembly for consistent filename for
   // downloading
   assemblyJarName in assembly := s"core-assembly-${version.value}.jar"
@@ -138,7 +143,7 @@ lazy val rest_api = project.settings(bintraySetting: _*).settings(
   description := "REST api for Vamp Core",
   name := "core-rest_api",
   formatting,
-  libraryDependencies ++= spray
+  libraryDependencies ++= testing
 ).settings(
   downloadUI := {
     val libDir = "rest_api/lib"
@@ -156,13 +161,14 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
   name := "core-operation",
   formatting,
-  libraryDependencies ++= quartz ++ jersey
+  libraryDependencies ++= quartz ++ jersey ++ testing
 ).dependsOn(persistence, container_driver, router_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val pulse = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
   name := "core-pulse",
-  formatting
+  formatting,
+  libraryDependencies ++= testing
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val router_driver = project.settings(bintraySetting: _*).settings(
@@ -176,7 +182,7 @@ lazy val container_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to container managers",
   name := "core-container_driver",
   formatting,
-  libraryDependencies ++= async ++ bouncycastle ++ unisocketsNetty
+  libraryDependencies ++= async ++ bouncycastle ++ unisocketsNetty ++ testing
 ).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val persistence = project.settings(bintraySetting: _*).settings(
@@ -190,21 +196,29 @@ lazy val cli = project.settings(bintraySetting: _*).settings(
   description := "Command Line Interface for Vamp",
   name := "core-cli",
   formatting,
-  libraryDependencies ++= logging,
+  libraryDependencies ++= testing,
   assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
 ).dependsOn(model)
 
 lazy val dictionary = project.settings(bintraySetting: _*).settings(
   description := "Dictionary for Vamp",
   name := "core-dictionary",
-  formatting
+  formatting,
+  libraryDependencies ++= testing
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val model = project.settings(bintraySetting: _*).settings(
   description := "Definitions of Vamp artifacts",
   name := "core-model",
   formatting,
-  libraryDependencies ++= vampCommon ++ snakeYaml ++ testing
+  libraryDependencies ++= testing
+).dependsOn(common).disablePlugins(sbtassembly.AssemblyPlugin)
+
+lazy val common = project.settings(bintraySetting: _*).settings(
+  description := "Vamp common",
+  name := "core-common",
+  formatting,
+  libraryDependencies ++= akka ++ spray ++ dispatch ++ json4s ++ snakeYaml ++ logging ++ testing
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 // Java version and encoding requirements
