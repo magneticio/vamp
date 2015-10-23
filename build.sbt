@@ -7,7 +7,7 @@ organization in ThisBuild := "io.vamp"
 
 name := """vamp"""
 
-version in ThisBuild := "0.7.11" + VersionHelper.versionSuffix
+version in ThisBuild := "0.7.11"+ VersionHelper.versionSuffix
 
 scalaVersion := "2.11.7"
 
