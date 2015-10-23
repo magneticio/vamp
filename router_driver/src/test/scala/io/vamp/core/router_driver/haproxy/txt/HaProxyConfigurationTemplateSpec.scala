@@ -687,6 +687,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
   }
 
   it should "convert filters" in {
+    implicit val route = Route("", 0, "", Nil, Nil)
+
     List(
       ("hdr_sub(user-agent) Android", "hdr_sub(user-agent) Android", false),
       ("user-agent=Android", "hdr_sub(user-agent) Android", false),
@@ -709,6 +711,113 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route
             input._3 shouldBe negate
         }
       }
+  }
+
+  it should "serialize service with filters to HAProxy configuration" in {
+    val haproxy = convert(List(
+      Route(
+        name = "6b606985-1414-41bb-911c-825955360a39_sava_8080",
+        port = 33000,
+        protocol = "http",
+        filters = List(
+          Filter(
+            name = None,
+            condition = "user-agent != ie",
+            destination = "sava:1.0.0"
+          ), Filter(
+            name = None,
+            condition = "user-agent = chrome",
+            destination = "sava:1.0.0"
+          ), Filter(
+            name = None,
+            condition = "cookie group contains admin",
+            destination = "sava:1.0.0"
+          ), Filter(
+            name = None,
+            condition = "has header x-allow",
+            destination = "sava:1.0.0"
+          )),
+        services = List(
+          Service(
+            name = "sava:1.0.0",
+            weight = 100,
+            servers = List(
+              Server(
+                name = "64435a223bddf1fa589135baa5e228090279c032",
+                host = "192.168.99.100",
+                port = 32776))
+          )))))
+
+    haproxy shouldBe HaProxy(List(
+      Frontend(
+        name = "6b606985-1414-41bb-911c-825955360a39_sava_8080",
+        bindIp = Option("0.0.0.0"),
+        bindPort = Option(33000),
+        mode = Interface.Mode.http,
+        unixSock = None,
+        sockProtocol = None,
+        options = Options(),
+        filters = List(
+          HaProxyFilter(
+            name = "624dc0f1a5754e94",
+            condition = "hdr_sub(user-agent) ie",
+            destination = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0",
+            negate = true
+          ),
+          HaProxyFilter(
+            name = "3cb39f8aae4d99da",
+            condition = "hdr_sub(user-agent) chrome",
+            destination = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0"
+          ),
+          HaProxyFilter(
+            name = "445a3abaca79c140",
+            condition = "cook_sub(group) admin",
+            destination = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0"
+          ),
+          HaProxyFilter(
+            name = "feb4c187ccc342ce",
+            condition = "hdr_cnt(x-allow) gt 0",
+            destination = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0"
+          )
+        ),
+        defaultBackend = "6b606985-1414-41bb-911c-825955360a39_sava_8080"),
+      Frontend(
+        name = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0",
+        bindIp = None,
+        bindPort = None,
+        mode = Interface.Mode.http,
+        unixSock = Option("/opt/docker/data/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock"),
+        sockProtocol = Option("accept-proxy"),
+        options = Options(),
+        filters = Nil,
+        defaultBackend = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0"
+      )),
+      List(
+        Backend(
+          name = "6b606985-1414-41bb-911c-825955360a39_sava_8080",
+          mode = Interface.Mode.http,
+          proxyServers = List(
+            ProxyServer(
+              name = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0",
+              unixSock = "/opt/docker/data/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock",
+              weight = 100
+            )),
+          servers = Nil,
+          options = Options()),
+        Backend(
+          name = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0",
+          mode = Interface.Mode.http,
+          proxyServers = Nil,
+          servers = List(
+            HaProxyServer(
+              name = "64435a223bddf1fa589135baa5e228090279c032",
+              host = "192.168.99.100",
+              port = 32776,
+              weight = 100)),
+          options = Options())
+      ))
+
+    compare(HaProxyConfigurationTemplate(HaProxy(haproxy.frontends, haproxy.backends)).toString(), "configuration_7.txt")
   }
 
   private def compare(config: String, resource: String) = {

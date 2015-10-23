@@ -68,7 +68,7 @@ trait Route2HaProxyConverter {
 
   protected def filters(implicit route: Route): List[Filter] = route.filters.map(filter)
 
-  protected def filter(filter: RouteFilter): Filter = {
+  protected def filter(filter: RouteFilter)(implicit route: Route): Filter = {
     val (condition, negate) = filter.condition match {
       case userAgent(n, c)        ⇒ s"hdr_sub(user-agent) ${c.trim}" -> (n == "!")
       case host(n, c)             ⇒ s"hdr_str(host) ${c.trim}" -> (n == "!")
@@ -86,7 +86,7 @@ trait Route2HaProxyConverter {
       case Some(n) ⇒ n
     }
 
-    Filter(name, condition, filter.destination, negate)
+    Filter(name, condition, s"${route.name}::${filter.destination}", negate)
   }
 
   protected def mode(implicit route: Route) = if (route.protocol == Interface.Mode.http.toString) Interface.Mode.http else Interface.Mode.tcp
