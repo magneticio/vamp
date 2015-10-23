@@ -1,0 +1,18 @@
+{
+  "var1": "string_value",
+  "var2": true,
+  "var3": 2,
+  "var4": 0.1,
+  "var5": {
+    "var5Var1": 5
+  },
+  "var6": {
+    "var6Var1": 6
+  },
+  "var7": [],
+  "var8": [
+    18027,
+    13200
+  ],
+  "var9": null
+}

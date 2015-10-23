@@ -1,0 +1,19 @@
+{
+  "var1": "string",
+  "var2": {
+    "var2Var1": 5
+  },
+  "var3": {
+    "var3Var1": 6
+  },
+  "var4": {
+    "var4Var1": {
+      "var4Var1Var1": 10
+    }
+  },
+  "var5": {
+    "var5Var1": {
+      "var5Var1Var1": 10
+    }
+  }
+}
