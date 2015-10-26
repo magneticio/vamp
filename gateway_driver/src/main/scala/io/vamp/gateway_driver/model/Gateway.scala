@@ -1,4 +1,4 @@
-package io.vamp.gateway_driver
+package io.vamp.gateway_driver.model
 
 case class Filter(name: Option[String], condition: String, destination: String)
 

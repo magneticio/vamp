@@ -8,6 +8,7 @@ import akka.pattern.ask
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
+import io.vamp.gateway_driver.GatewayDriverNameMatcher
 import io.vamp.model.artifact._
 import io.vamp.model.event.{ Aggregator, Event, EventQuery, TimeRange, _ }
 import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
@@ -16,7 +17,6 @@ import io.vamp.operation.sla.SlaActor.SlaProcessAll
 import io.vamp.persistence.{ ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
-import io.vamp.gateway_driver.haproxy.DefaultRouterDriverNameMatcher
 
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -95,7 +95,7 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
   }
 }
 
-trait SlaPulse extends DefaultRouterDriverNameMatcher {
+trait SlaPulse extends GatewayDriverNameMatcher {
   this: CommonSupportForActors ⇒
 
   implicit val timeout = PulseActor.timeout
@@ -111,7 +111,7 @@ trait SlaPulse extends DefaultRouterDriverNameMatcher {
   }
 
   def responseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime): Future[Option[Double]] = {
-    val eventQuery = EventQuery(Set(s"routes:${clusterRouteName(deployment, cluster, port)}", "metrics:rtime"), Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average)))
+    val eventQuery = EventQuery(Set(s"routes:${clusterGatewayName(deployment, cluster, port)}", "metrics:rtime"), Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average)))
     actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
       case DoubleValueAggregationResult(value) ⇒ Some(value)
       case other ⇒
