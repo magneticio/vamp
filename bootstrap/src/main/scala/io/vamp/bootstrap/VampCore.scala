@@ -7,7 +7,7 @@ import io.vamp.operation.OperationBootstrap
 import io.vamp.persistence.PersistenceBootstrap
 import io.vamp.pulse.PulseBootstrap
 import io.vamp.rest_api.RestApiBootstrap
-import io.vamp.router_driver.RouterDriverBootstrap
+import io.vamp.gateway_driver.GatewayDriverBootstrap
 
 import scala.language.{ implicitConversions, postfixOps }
 
@@ -20,7 +20,7 @@ trait VampCore extends App {
       PersistenceBootstrap :+
       DictionaryBootstrap :+
       ContainerDriverBootstrap :+
-      RouterDriverBootstrap :+
+      GatewayDriverBootstrap :+
       PulseBootstrap :+
       OperationBootstrap :+
       RestApiBootstrap

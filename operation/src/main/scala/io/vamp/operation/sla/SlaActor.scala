@@ -16,7 +16,7 @@ import io.vamp.operation.sla.SlaActor.SlaProcessAll
 import io.vamp.persistence.{ ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
-import io.vamp.router_driver.DefaultRouterDriverNameMatcher
+import io.vamp.gateway_driver.haproxy.DefaultRouterDriverNameMatcher
 
 import scala.concurrent.Future
 import scala.language.postfixOps

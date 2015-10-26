@@ -74,6 +74,7 @@ val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
 val bouncycastle = "org.bouncycastle" % "bcprov-jdk16" % "1.46" :: Nil
 val unisocketsNetty = "me.lessis" %% "unisockets-netty" % "0.1.0" :: Nil
 val quartz = "org.quartz-scheduler" % "quartz" % "2.2.1" :: Nil
+val zookeeper = "org.apache.zookeeper" % "zookeeper" % "3.4.6" :: Nil
 
 val sql = "com.h2database" % "h2" % "1.3.166" ::
   "com.typesafe.slick" %% "slick" % "2.1.0" ::
@@ -116,7 +117,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  common, persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, router_driver, cli
+  common, persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, gateway_driver, cli
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
@@ -162,7 +163,7 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
   name := "operation",
   formatting,
   libraryDependencies ++= quartz ++ jersey ++ testing
-).dependsOn(persistence, container_driver, router_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(persistence, container_driver, gateway_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val pulse = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
@@ -171,11 +172,11 @@ lazy val pulse = project.settings(bintraySetting: _*).settings(
   libraryDependencies ++= testing
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val router_driver = project.settings(bintraySetting: _*).settings(
-  description := "Enables Vamp to talk to Vamp Router",
-  name := "router_driver",
+lazy val gateway_driver = project.settings(bintraySetting: _*).settings(
+  description := "Enables Vamp to talk to Vamp Gateway Agent",
+  name := "gateway_driver",
   formatting,
-  libraryDependencies ++= async ++ twirl ++ testing
+  libraryDependencies ++= twirl ++ zookeeper ++ testing
 ).dependsOn(model, pulse).enablePlugins(SbtTwirl).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val container_driver = project.settings(bintraySetting: _*).settings(

@@ -9,7 +9,7 @@ import io.vamp.common.vitals.{ JmxVitalsProvider, JvmVitals }
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.persistence.PersistenceActor
 import io.vamp.pulse.PulseActor
-import io.vamp.router_driver.RouterDriverActor
+import io.vamp.gateway_driver.GatewayDriverActor
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -25,14 +25,14 @@ trait InfoController extends InfoRetrieval with JmxVitalsProvider {
   val componentInfoTimeout = Timeout(ConfigFactory.load().getInt("vamp.info.timeout") seconds)
 
   def info: Future[InfoMessageBase] = {
-    val actors = List(classOf[PersistenceActor], classOf[RouterDriverActor], classOf[PulseActor], classOf[ContainerDriverActor])
+    val actors = List(classOf[PersistenceActor], classOf[GatewayDriverActor], classOf[PulseActor], classOf[ContainerDriverActor])
 
     retrieve(actors.map(_.asInstanceOf[Class[Actor]])).map { result ⇒
       InfoMessage(infoMessage,
         getClass.getPackage.getImplementationVersion,
         jvmVitals(),
         result.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
-        result.get(classOf[RouterDriverActor].asInstanceOf[Class[Actor]]),
+        result.get(classOf[GatewayDriverActor].asInstanceOf[Class[Actor]]),
         result.get(classOf[PulseActor].asInstanceOf[Class[Actor]]),
         result.get(classOf[ContainerDriverActor].asInstanceOf[Class[Actor]])
       )
