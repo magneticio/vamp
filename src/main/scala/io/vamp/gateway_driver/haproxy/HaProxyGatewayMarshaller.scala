@@ -1,9 +1,13 @@
 package io.vamp.gateway_driver.haproxy
 
 import io.vamp.common.crypto.Hash
-import io.vamp.gateway_driver.{ Filter ⇒ RouteFilter, Gateway, Service }
+import io.vamp.gateway_driver.GatewayMarshaller
+import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
+import io.vamp.gateway_driver.model.{ Filter ⇒ GatewayFilter, Gateway, Service }
 
-trait Route2HaProxyConverter {
+trait HaProxyGatewayMarshaller extends GatewayMarshaller {
+
+  override def info: AnyRef = "HAProxy v1.6.x"
 
   protected val userAgent = "^[uU]ser[-.][aA]gent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
   protected val host = "^[hH]ost[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r
@@ -14,22 +18,26 @@ trait Route2HaProxyConverter {
   protected val hasHeader = "^[Hh]as [Hh]eader (.*)$".r
   protected val missesHeader = "^[Mm]isses [Hh]eader (.*)$".r
 
-  def convert(route: Gateway): HaProxy = HaProxy(frontends(route), backends(route))
+  override def marshall(gateways: List[Gateway]) = HaProxyConfigurationTemplate(convert(gateways)).toString().getBytes
 
-  def convert(routes: List[Gateway]): HaProxy = routes.map(convert).reduce((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends))
+  protected def convert(gateways: List[Gateway]): HaProxy = {
+    gateways.map(convert).reduce((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends))
+  }
 
-  protected def frontends(implicit route: Gateway): List[Frontend] = Frontend(
-    name = route.name,
+  protected def convert(gateway: Gateway): HaProxy = HaProxy(frontends(gateway), backends(gateway))
+
+  protected def frontends(implicit gateway: Gateway): List[Frontend] = Frontend(
+    name = gateway.name,
     bindIp = Option("0.0.0.0"),
-    bindPort = Option(route.port),
+    bindPort = Option(gateway.port),
     mode = mode,
     unixSock = None,
     sockProtocol = None,
     options = Options(),
     filters = filters,
-    defaultBackend = route.name) :: route.services.map { service ⇒
+    defaultBackend = gateway.name) :: gateway.services.map { service ⇒
       Frontend(
-        name = s"${route.name}::${service.name}",
+        name = s"${gateway.name}::${service.name}",
         bindIp = None,
         bindPort = None,
         mode = mode,
@@ -37,23 +45,23 @@ trait Route2HaProxyConverter {
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
-        defaultBackend = s"${route.name}::${service.name}")
+        defaultBackend = s"${gateway.name}::${service.name}")
     }
 
-  protected def backends(implicit route: Gateway): List[Backend] = Backend(
-    name = route.name,
+  protected def backends(implicit gateway: Gateway): List[Backend] = Backend(
+    name = gateway.name,
     mode = mode,
-    proxyServers = route.services.map { service ⇒
+    proxyServers = gateway.services.map { service ⇒
       ProxyServer(
-        name = s"${route.name}::${service.name}",
+        name = s"${gateway.name}::${service.name}",
         unixSock = unixSocket(service),
         weight = service.weight
       )
     },
     servers = Nil,
-    options = Options()) :: route.services.map { service ⇒
+    options = Options()) :: gateway.services.map { service ⇒
       Backend(
-        name = s"${route.name}::${service.name}",
+        name = s"${gateway.name}::${service.name}",
         mode = mode,
         proxyServers = Nil,
         servers = service.servers.map { server ⇒
@@ -66,9 +74,9 @@ trait Route2HaProxyConverter {
         options = Options())
     }
 
-  protected def filters(implicit route: Gateway): List[Filter] = route.filters.map(filter)
+  protected def filters(implicit gateway: Gateway): List[Filter] = gateway.filters.map(filter)
 
-  protected def filter(filter: RouteFilter)(implicit route: Gateway): Filter = {
+  protected def filter(filter: GatewayFilter)(implicit gateway: Gateway): Filter = {
     val (condition, negate) = filter.condition match {
       case userAgent(n, c)        ⇒ s"hdr_sub(user-agent) ${c.trim}" -> (n == "!")
       case host(n, c)             ⇒ s"hdr_str(host) ${c.trim}" -> (n == "!")
@@ -86,10 +94,10 @@ trait Route2HaProxyConverter {
       case Some(n) ⇒ n
     }
 
-    Filter(name, condition, s"${route.name}::${filter.destination}", negate)
+    Filter(name, condition, s"${gateway.name}::${filter.destination}", negate)
   }
 
-  protected def mode(implicit route: Gateway) = if (route.protocol == Interface.Mode.http.toString) Interface.Mode.http else Interface.Mode.tcp
+  protected def mode(implicit gateway: Gateway) = if (gateway.protocol == Interface.Mode.http.toString) Interface.Mode.http else Interface.Mode.tcp
 
-  protected def unixSocket(service: Service)(implicit route: Gateway) = s"/opt/docker/data/${Hash.hexSha1(route.name)}.sock"
+  protected def unixSocket(service: Service)(implicit gateway: Gateway) = s"/opt/docker/data/${Hash.hexSha1(gateway.name)}.sock"
 }

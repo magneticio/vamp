@@ -1,16 +1,18 @@
 package io.vamp.gateway_driver.haproxy.txt
 
 import io.vamp.gateway_driver.haproxy.{ Filter ⇒ HaProxyFilter, Server ⇒ HaProxyServer, _ }
-import io.vamp.gateway_driver.{ Filter, Gateway, Server, Service }
+import io.vamp.gateway_driver.model.{ Filter, Gateway, Server, Service }
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{ FlatSpec, Matchers }
+import org.scalatest.{ Informer, FlatSpec, Matchers }
 
 import scala.io.Source
 import scala.language.postfixOps
 
 @RunWith(classOf[JUnitRunner])
-class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with Route2HaProxyConverter {
+class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaProxyGatewayMarshaller {
+
+  override def info: Informer = super[FlatSpec].info
 
   "HaProxyConfiguration" should "be serialized to valid HAProxy configuration" in {
 
