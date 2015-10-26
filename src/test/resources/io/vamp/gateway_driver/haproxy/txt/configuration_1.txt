@@ -1,0 +1,106 @@
+
+global
+  pidfile /opt/docker/data/haproxy-private.pid
+  daemon
+  maxconn 4096
+  stats socket /opt/docker/data/haproxy.stats.sock level admin
+  log /var/run/vamp.log.sock local0
+
+  defaults
+    log global
+    mode http
+    option dontlognull
+    option redispatch
+    option clitcpka
+    option srvtcpka
+    option http-keep-alive
+    retries 3
+    maxconn 500000
+
+    # slowloris protection: clients should send their full http request in the configured time
+    timeout http-request 5s
+    timeout connect 5000ms
+    timeout client 50000ms
+    timeout server 50000ms
+
+  listen stats :1988
+    mode http
+    stats enable
+    stats uri /
+    stats refresh 2s
+    stats realm Haproxy\ Stats
+    stats auth haproxy:haproxy
+
+
+frontend name
+  bind 0.0.0.0:8080
+  option httplog                                               
+
+  log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+
+  option http-server-close
+  bind unix@/tmp/vamp_test_be_1_a.sock accept-proxy
+
+  mode http
+
+  
+  ###
+  #
+  # Filter Management
+  #
+  # Set filters with optional negation.
+  #
+  ###
+  
+  acl ie hdr_sub(user-agent) MSIE
+  use_backend test_be_1_b if ie
+  
+  default_backend test_be_1
+
+
+
+backend name1
+  mode http
+  balance roundrobin       
+  
+
+  
+  server server1 unix@/tmp/vamp_test_be_1_a.sock send-proxy weight 100
+  
+  
+
+backend name2
+  mode http
+  balance roundrobin       
+  
+
+  
+  
+
+  option forwardfor
+  
+  http-response set-header X-Vamp-Server-Name %s
+  http-response set-header X-Vamp-Server-ResponseTime %t
+  cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h
+  
+
+  
+  server test_be1_a_2 192.168.59.103:8082 cookie test_be1_a_2 weight 100 maxconn 1000 check inter 10
+  
+
+  option abortonclose      
+  option allbackups        
+  option checkcache        
+  option forwardfor        
+  option http-server-close 
+  option httpchk           
+  option ssl-hello-chk     
+  option tcpka             
+  option tcp-smart-accept  
+  option tcp-smart-connect 
+  option tcplog            
+  
+
+backend abusers
+  mode http
+  errorfile 409 /opt/docker/configuration/error_pages/500rate.http
