@@ -9,8 +9,10 @@ import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.nodes.Tag
 import shapeless.HNil
 import spray.http.CacheDirectives.`no-store`
-import spray.http.HttpHeaders.{ Link, RawHeader, `Cache-Control`, `Content-Type` }
+import spray.http.HttpHeaders._
+import spray.http.HttpMethods._
 import spray.http.MediaTypes._
+import spray.http.MediaTypes.register
 import spray.http.Uri.Query
 import spray.http._
 import spray.httpx.marshalling.{ Marshaller, ToResponseMarshaller }
@@ -36,8 +38,12 @@ trait RestApiBase extends HttpServiceBase with RestApiPagination with RestApiMar
   }
 
   protected def contentTypeOnly(mt: MediaType*): Directive0 = extract(_.request.headers).flatMap[HNil] {
-    case headers if mt.exists(t ⇒ headers.contains(`Content-Type`(t))) ⇒ pass
-    case _ ⇒ reject(MalformedHeaderRejection("Content-Type", s"Only the following media types are supported: ${mt.mkString(", ")}"))
+    case headers ⇒ if (headers.exists({
+      case `Content-Type`(ContentType(mediaType: MediaType, _)) ⇒ mt.exists(_.value == mediaType.value)
+      case _ ⇒ false
+    })) pass
+    else reject(MalformedHeaderRejection("Content-Type", s"Only the following media types are supported: ${mt.mkString(", ")}"))
+
   } & cancelAllRejections(ofType[MalformedHeaderRejection])
 
   protected def contentTypeForModification = contentTypeOnly(`application/json`, `application/x-yaml`)
@@ -120,6 +126,36 @@ trait RestApiMarshaller {
       case value: PrettyJson                        ⇒ writePretty(value)
       case value: AnyRef                            ⇒ write(value)
       case value                                    ⇒ write(value.toString)
+    }
+  }
+}
+
+/**
+ * @see https://gist.github.com/joseraya/176821d856b43b1cfe19
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
+ */
+trait CorsSupport {
+  this: HttpServiceBase ⇒
+
+  protected val allowOriginHeader = `Access-Control-Allow-Origin`(AllOrigins)
+
+  protected val optionsCorsHeaders = List(
+    `Access-Control-Allow-Headers`("Origin, X-Requested-With, Content-Type, Accept, Accept-Encoding, Accept-Language, Host, Referer, User-Agent"),
+    `Access-Control-Max-Age`(1728000))
+
+  def cors[T]: Directive0 = mapRequestContext { ctx ⇒
+    ctx.withRouteResponseHandling({
+      // It is an option request for a resource that responds to some other method
+      case Rejected(x) if ctx.request.method.equals(HttpMethods.OPTIONS) && x.exists(_.isInstanceOf[MethodRejection]) ⇒
+        val allowedMethods: List[HttpMethod] = x.filter(_.isInstanceOf[MethodRejection]).map(rejection ⇒ {
+          rejection.asInstanceOf[MethodRejection].supported
+        })
+        ctx.complete(HttpResponse().withHeaders(
+          `Access-Control-Allow-Methods`(OPTIONS, allowedMethods: _*) :: allowOriginHeader ::
+            optionsCorsHeaders
+        ))
+    }).withHttpResponseHeadersMapped { headers ⇒
+      allowOriginHeader :: headers
     }
   }
 }

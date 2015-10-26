@@ -3,16 +3,12 @@ package io.vamp.rest_api
 import akka.event.Logging._
 import akka.util.Timeout
 import io.vamp.common.akka.CommonSupportForActors
-import io.vamp.common.http.RestApiBase
+import io.vamp.common.http.{ CorsSupport, RestApiBase }
 import io.vamp.operation.controller.ArtifactApiController
 import io.vamp.persistence.ArtifactPaginationSupport
-import shapeless.HNil
-import spray.http.HttpHeaders._
-import spray.http.HttpMethods._
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 import spray.http._
-import spray.routing._
 import spray.routing.directives.LogEntry
 
 import scala.language.{ existentials, postfixOps }
@@ -98,43 +94,4 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
   }
 
   def showRequest(request: HttpRequest) = LogEntry(s"${request.uri} - Headers: [${request.headers}]", InfoLevel)
-
-  override protected def contentTypeOnly(mt: MediaType*): Directive0 = extract(_.request.headers).flatMap[HNil] {
-    case headers ⇒ if (headers.exists({
-      case `Content-Type`(ContentType(mediaType: MediaType, _)) ⇒ mt.exists(_.value == mediaType.value)
-      case _ ⇒ false
-    })) pass
-    else reject(MalformedHeaderRejection("Content-Type", s"Only the following media types are supported: ${mt.mkString(", ")}"))
-
-  } & cancelAllRejections(ofType[MalformedHeaderRejection])
-}
-
-/**
- * @see https://gist.github.com/joseraya/176821d856b43b1cfe19
- * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
- */
-trait CorsSupport {
-  this: HttpServiceBase ⇒
-
-  protected val allowOriginHeader = `Access-Control-Allow-Origin`(AllOrigins)
-
-  protected val optionsCorsHeaders = List(
-    `Access-Control-Allow-Headers`("Origin, X-Requested-With, Content-Type, Accept, Accept-Encoding, Accept-Language, Host, Referer, User-Agent"),
-    `Access-Control-Max-Age`(1728000))
-
-  def cors[T]: Directive0 = mapRequestContext { ctx ⇒
-    ctx.withRouteResponseHandling({
-      // It is an option request for a resource that responds to some other method
-      case Rejected(x) if ctx.request.method.equals(HttpMethods.OPTIONS) && x.exists(_.isInstanceOf[MethodRejection]) ⇒
-        val allowedMethods: List[HttpMethod] = x.filter(_.isInstanceOf[MethodRejection]).map(rejection ⇒ {
-          rejection.asInstanceOf[MethodRejection].supported
-        })
-        ctx.complete(HttpResponse().withHeaders(
-          `Access-Control-Allow-Methods`(OPTIONS, allowedMethods: _*) :: allowOriginHeader ::
-            optionsCorsHeaders
-        ))
-    }).withHttpResponseHeadersMapped { headers ⇒
-      allowOriginHeader :: headers
-    }
-  }
 }
