@@ -1,15 +1,18 @@
 package io.vamp.gateway_driver
 
+import akka.pattern.ask
+import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka._
 import io.vamp.common.crypto.Hash
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
+import io.vamp.gateway_driver.GatewayStore.{ Read, Write }
 import io.vamp.gateway_driver.model._
-import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayResponseError, UnsupportedGatewayDriverRequest }
+import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.pulse.notification.PulseFailureNotifier
 
-import scala.language.implicitConversions
+import scala.concurrent.Future
 import scala.util.matching.Regex
 
 object GatewayDriverActor {
@@ -28,11 +31,15 @@ object GatewayDriverActor {
 
 }
 
-class GatewayDriverActor(store: GatewayStore, marshaller: GatewayMarshaller) extends GatewayConverter with PulseFailureNotifier with CommonSupportForActors with GatewayDriverNotificationProvider {
+class GatewayDriverActor(marshaller: GatewayMarshaller) extends GatewayConverter with PulseFailureNotifier with CommonSupportForActors with GatewayDriverNotificationProvider {
 
   import io.vamp.gateway_driver.GatewayDriverActor._
 
+  lazy implicit val timeout = GatewayStore.timeout
+
   def receive = {
+    case Start                             ⇒
+    case Shutdown                          ⇒
     case InfoRequest                       ⇒ reply(info)
     case All                               ⇒ reply(all)
     case Create(deployment, cluster, port) ⇒ update(createGateway(deployment, cluster, port))
@@ -42,19 +49,23 @@ class GatewayDriverActor(store: GatewayStore, marshaller: GatewayMarshaller) ext
     case other                             ⇒ unsupported(UnsupportedGatewayDriverRequest(other))
   }
 
-  override def errorNotificationClass = classOf[GatewayResponseError]
+  override def errorNotificationClass = classOf[GatewayDriverResponseError]
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 
-  private def info = store.info map { case data ⇒ Map("store" -> data, "marshaller" -> marshaller.info) }
+  private def info = IoC.actorFor[GatewayStore] ? InfoRequest map { case data ⇒ Map("store" -> data, "marshaller" -> marshaller.info) }
 
-  private def all = store.read map { case gateways ⇒ toDeploymentGateways(gateways) }
+  private def all = read map { case gateways ⇒ toDeploymentGateways(gateways) }
 
-  private def update(gateway: Gateway) = store.read map { case gateways ⇒ persist(gateway :: gateways.filterNot(_.name == gateway.name)) }
+  private def read: Future[List[Gateway]] = IoC.actorFor[GatewayStore] ? Read map {
+    case gateways ⇒ gateways.asInstanceOf[List[Gateway]]
+  }
 
-  private def remove(name: String) = store.read map { case gateways ⇒ persist(gateways.filterNot(_.name == name)) }
+  private def update(gateway: Gateway) = read map { case gateways ⇒ persist(gateway :: gateways.filterNot(_.name == gateway.name)) }
 
-  private def persist(gateways: List[Gateway]) = store.write(gateways, Option(marshaller.marshall(gateways)))
+  private def remove(name: String) = read map { case gateways ⇒ persist(gateways.filterNot(_.name == name)) }
+
+  private def persist(gateways: List[Gateway]) = IoC.actorFor[GatewayStore] ! Write(gateways, Option(marshaller.marshall(gateways)))
 }
 
 trait GatewayConverter extends GatewayDriverNameMatcher {
