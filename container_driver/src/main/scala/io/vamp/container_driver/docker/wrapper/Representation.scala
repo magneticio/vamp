@@ -212,7 +212,7 @@ object Representation {
       ).headOption.getOrElse(failedToParseHostConfig)
 
     def failedToParseHostConfig: HostConfig = {
-      logger.error(s"Failed to parse host Config")
+      logger.debug(s"Failed to parse host Config")
       new HostConfig()
     }
 

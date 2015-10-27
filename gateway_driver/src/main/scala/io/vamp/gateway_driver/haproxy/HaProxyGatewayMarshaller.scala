@@ -9,24 +9,24 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   override def info: AnyRef = "HAProxy v1.6.x"
 
-  protected val userAgent = "^[uU]ser[-.][aA]gent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
-  protected val host = "^[hH]ost[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r
-  protected val cookieContains = "^[cC]ookie (.*) [Cc]ontains (.*)$".r
-  protected val hasCookie = "^[Hh]as [Cc]ookie (.*)$".r
-  protected val missesCookie = "^[Mm]isses [Cc]ookie (.*)$".r
-  protected val headerContains = "^[Hh]eader (.*) [Cc]ontains (.*)$".r
-  protected val hasHeader = "^[Hh]as [Hh]eader (.*)$".r
-  protected val missesHeader = "^[Mm]isses [Hh]eader (.*)$".r
+  private val userAgent = "^[uU]ser[-.][aA]gent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
+  private val host = "^[hH]ost[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r
+  private val cookieContains = "^[cC]ookie (.*) [Cc]ontains (.*)$".r
+  private val hasCookie = "^[Hh]as [Cc]ookie (.*)$".r
+  private val missesCookie = "^[Mm]isses [Cc]ookie (.*)$".r
+  private val headerContains = "^[Hh]eader (.*) [Cc]ontains (.*)$".r
+  private val hasHeader = "^[Hh]as [Hh]eader (.*)$".r
+  private val missesHeader = "^[Mm]isses [Hh]eader (.*)$".r
 
   override def marshall(gateways: List[Gateway]) = HaProxyConfigurationTemplate(convert(gateways)).toString().getBytes
 
-  protected def convert(gateways: List[Gateway]): HaProxy = {
+  private[haproxy] def convert(gateways: List[Gateway]): HaProxy = {
     gateways.map(convert).reduce((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends))
   }
 
-  protected def convert(gateway: Gateway): HaProxy = HaProxy(frontends(gateway), backends(gateway))
+  private[haproxy] def convert(gateway: Gateway): HaProxy = HaProxy(frontends(gateway), backends(gateway))
 
-  protected def frontends(implicit gateway: Gateway): List[Frontend] = Frontend(
+  private def frontends(implicit gateway: Gateway): List[Frontend] = Frontend(
     name = gateway.name,
     bindIp = Option("0.0.0.0"),
     bindPort = Option(gateway.port),
@@ -48,7 +48,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
         defaultBackend = s"${gateway.name}::${service.name}")
     }
 
-  protected def backends(implicit gateway: Gateway): List[Backend] = Backend(
+  private def backends(implicit gateway: Gateway): List[Backend] = Backend(
     name = gateway.name,
     mode = mode,
     proxyServers = gateway.services.map { service ⇒
@@ -74,9 +74,9 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
         options = Options())
     }
 
-  protected def filters(implicit gateway: Gateway): List[Filter] = gateway.filters.map(filter)
+  private def filters(implicit gateway: Gateway): List[Filter] = gateway.filters.map(filter)
 
-  protected def filter(filter: GatewayFilter)(implicit gateway: Gateway): Filter = {
+  private[haproxy] def filter(filter: GatewayFilter)(implicit gateway: Gateway): Filter = {
     val (condition, negate) = filter.condition match {
       case userAgent(n, c)        ⇒ s"hdr_sub(user-agent) ${c.trim}" -> (n == "!")
       case host(n, c)             ⇒ s"hdr_str(host) ${c.trim}" -> (n == "!")
@@ -97,7 +97,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     Filter(name, condition, s"${gateway.name}::${filter.destination}", negate)
   }
 
-  protected def mode(implicit gateway: Gateway) = if (gateway.protocol == Interface.Mode.http.toString) Interface.Mode.http else Interface.Mode.tcp
+  private def mode(implicit gateway: Gateway) = if (gateway.protocol == Interface.Mode.http.toString) Interface.Mode.http else Interface.Mode.tcp
 
-  protected def unixSocket(service: Service)(implicit gateway: Gateway) = s"/opt/docker/data/${Hash.hexSha1(gateway.name)}.sock"
+  private def unixSocket(service: Service)(implicit gateway: Gateway) = s"/opt/docker/data/${Hash.hexSha1(gateway.name)}.sock"
 }

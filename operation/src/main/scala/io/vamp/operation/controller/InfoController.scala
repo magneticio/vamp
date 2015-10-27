@@ -15,7 +15,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-case class InfoMessage(message: String, version: String, jvm: JvmVitals, persistence: Any, router: Any, pulse: Any, containerDriver: Any) extends InfoMessageBase
+case class InfoMessage(message: String, version: String, jvm: JvmVitals, persistence: Any, gateway: Any, pulse: Any, containerDriver: Any) extends InfoMessageBase
 
 trait InfoController extends InfoRetrieval with JmxVitalsProvider {
   this: ExecutionContextProvider with ActorSystemProvider ⇒

@@ -7,7 +7,7 @@ organization in ThisBuild := "io.vamp"
 
 name := """vamp"""
 
-version in ThisBuild := "0.7.11"+ VersionHelper.versionSuffix
+version in ThisBuild := "0.7.11" + VersionHelper.versionSuffix
 
 scalaVersion := "2.11.7"
 
@@ -65,24 +65,26 @@ lazy val bintraySetting = Seq(
 val vampUi = "vamp-ui-0.7.11-145.jar"
 
 val akka = "com.typesafe.akka" %% "akka-slf4j" % "2.4.0" :: Nil
+
 val spray = "io.spray" %% "spray-can" % "1.3.1" ::
   "io.spray" %% "spray-routing" % "1.3.2" ::
   "io.spray" %% "spray-httpx" % "1.3.2" ::
   "io.spray" %% "spray-json" % "1.3.1" :: Nil
 
+val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.6" exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j")) :: Nil
+
 val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
 val bouncycastle = "org.bouncycastle" % "bcprov-jdk16" % "1.46" :: Nil
 val unisocketsNetty = "me.lessis" %% "unisockets-netty" % "0.1.0" :: Nil
 val quartz = "org.quartz-scheduler" % "quartz" % "2.2.1" :: Nil
-val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.6" exclude("org.slf4j", "slf4j-log4j12")) :: Nil
+val dispatch = "net.databinder.dispatch" %% "dispatch-core" % "0.11.2" ::
+  "net.databinder.dispatch" %% "dispatch-json4s-native" % "0.11.2" :: Nil
 
 val sql = "com.h2database" % "h2" % "1.3.166" ::
   "com.typesafe.slick" %% "slick" % "2.1.0" ::
   "io.strongtyped" %% "active-slick" % "0.2.2" ::
   "postgresql" % "postgresql" % "9.1-901.jdbc4" :: Nil
 
-val dispatch = "net.databinder.dispatch" %% "dispatch-core" % "0.11.2" ::
-  "net.databinder.dispatch" %% "dispatch-json4s-native" % "0.11.2" :: Nil
 val twirl = "com.typesafe.play" %% "twirl-api" % "1.1.1" :: Nil
 val json4s = "org.json4s" %% "json4s-native" % "3.2.11" ::
   "org.json4s" %% "json4s-core" % "3.2.11" ::

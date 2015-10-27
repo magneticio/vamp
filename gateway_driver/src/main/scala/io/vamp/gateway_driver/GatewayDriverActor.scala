@@ -6,7 +6,7 @@ import io.vamp.common.akka._
 import io.vamp.common.crypto.Hash
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.gateway_driver.GatewayStore.{ Read, Write }
+import io.vamp.gateway_driver.GatewayStore.{ Get, Put }
 import io.vamp.gateway_driver.model._
 import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
 import io.vamp.model.artifact._
@@ -55,17 +55,26 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends GatewayConverter
 
   private def info = IoC.actorFor[GatewayStore] ? InfoRequest map { case data ⇒ Map("store" -> data, "marshaller" -> marshaller.info) }
 
-  private def all = read map { case gateways ⇒ toDeploymentGateways(gateways) }
+  private def all = {
+    log.debug(s"Read all gateways")
+    read map { case gateways ⇒ toDeploymentGateways(gateways) }
+  }
 
-  private def read: Future[List[Gateway]] = IoC.actorFor[GatewayStore] ? Read map {
+  private def read: Future[List[Gateway]] = IoC.actorFor[GatewayStore] ? Get map {
     case gateways ⇒ gateways.asInstanceOf[List[Gateway]]
   }
 
-  private def update(gateway: Gateway) = read map { case gateways ⇒ persist(gateway :: gateways.filterNot(_.name == gateway.name)) }
+  private def update(gateway: Gateway) = {
+    log.info(s"Update gateway: ${gateway.name}")
+    read map { case gateways ⇒ persist(gateway :: gateways.filterNot(_.name == gateway.name)) }
+  }
 
-  private def remove(name: String) = read map { case gateways ⇒ persist(gateways.filterNot(_.name == name)) }
+  private def remove(name: String) = {
+    log.info(s"Remove gateway: $name")
+    read map { case gateways ⇒ persist(gateways.filterNot(_.name == name)) }
+  }
 
-  private def persist(gateways: List[Gateway]) = IoC.actorFor[GatewayStore] ! Write(gateways, Option(marshaller.marshall(gateways)))
+  private def persist(gateways: List[Gateway]) = IoC.actorFor[GatewayStore] ! Put(gateways, Option(marshaller.marshall(gateways)))
 }
 
 trait GatewayConverter extends GatewayDriverNameMatcher {
