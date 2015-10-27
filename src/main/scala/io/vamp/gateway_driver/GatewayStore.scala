@@ -11,9 +11,9 @@ object GatewayStore {
 
   sealed trait GatewayStoreMessage
 
-  object Read extends GatewayStoreMessage
+  object Get extends GatewayStoreMessage
 
-  case class Write(gateways: List[Gateway], raw: Option[Array[Byte]]) extends GatewayStoreMessage
+  case class Put(gateways: List[Gateway], raw: Option[Array[Byte]]) extends GatewayStoreMessage
 
 }
 
