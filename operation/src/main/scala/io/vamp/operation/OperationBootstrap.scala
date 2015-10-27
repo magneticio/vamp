@@ -6,7 +6,7 @@ import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.operation.deployment.{ DeploymentActor, DeploymentSynchronizationActor, DeploymentSynchronizationSchedulerActor }
 import io.vamp.operation.sla.{ EscalationActor, EscalationSchedulerActor, SlaActor, SlaSchedulerActor }
-import io.vamp.operation.sse.{ EventSteamingActor, SseConsumerActor }
+import io.vamp.operation.sse.{ EventStreamingActor, SseConsumerActor }
 import io.vamp.operation.workflow.{ WorkflowConfiguration, WorkflowSchedulerActor }
 
 import scala.concurrent.duration._
@@ -30,13 +30,13 @@ object OperationBootstrap extends Bootstrap {
     if (WorkflowConfiguration.enabled) IoC.createActor[WorkflowSchedulerActor] ! Start
 
     IoC.createActor[SseConsumerActor] ! Start
-    IoC.createActor[EventSteamingActor] ! Start
+    IoC.createActor[EventStreamingActor] ! Start
   }
 
   override def shutdown(implicit actorSystem: ActorSystem) = {
     if (WorkflowConfiguration.enabled) IoC.actorFor[WorkflowSchedulerActor] ! Shutdown
 
-    IoC.actorFor[EventSteamingActor] ! Shutdown
+    IoC.actorFor[EventStreamingActor] ! Shutdown
     IoC.actorFor[SseConsumerActor] ! Shutdown
   }
 }

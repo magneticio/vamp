@@ -7,8 +7,8 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.reader._
-import io.vamp.operation.sse.EventSteamingActor
-import io.vamp.operation.sse.EventSteamingActor.{ CloseStream, OpenStream }
+import io.vamp.operation.sse.EventStreamingActor
+import io.vamp.operation.sse.EventStreamingActor.{ CloseStream, OpenStream }
 import io.vamp.pulse.PulseActor.{ Publish, Query }
 import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
 
@@ -27,7 +27,7 @@ trait EventApiController {
     actorFor[PulseActor] ? Query(EventRequestEnvelope(EventQueryReader.read(request), page, perPage))
   }
 
-  def openStream(to: ActorRef, tags: Set[String]) = actorFor[EventSteamingActor] ! OpenStream(to, tags)
+  def openStream(to: ActorRef, tags: Set[String]) = actorFor[EventStreamingActor] ! OpenStream(to, tags)
 
-  def closeStream(to: ActorRef) = actorFor[EventSteamingActor] ! CloseStream(to)
+  def closeStream(to: ActorRef) = actorFor[EventStreamingActor] ! CloseStream(to)
 }

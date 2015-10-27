@@ -47,10 +47,8 @@ class DictionaryActor extends CommonSupportForActors with DictionaryNotification
   }
 
   def receive = {
-    case Get(key) ⇒ reply {
-      Future(get(key))
-    }
-    case any ⇒ unsupported(UnsupportedDictionaryRequest(any))
+    case Get(key) ⇒ reply(Future.successful(get(key)))
+    case any      ⇒ unsupported(UnsupportedDictionaryRequest(any))
   }
 
   private def get(key: String) = key match {
@@ -63,7 +61,7 @@ class DictionaryActor extends CommonSupportForActors with DictionaryNotification
       }
 
     case hostResolver(_*) ⇒
-      ConfigFactory.load().getString("vamp.router-driver.host")
+      ConfigFactory.load().getString("vamp.gateway-driver.host")
 
     case containerScale(deployment, cluster, service) ⇒
       val config = ConfigFactory.load()

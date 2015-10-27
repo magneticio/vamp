@@ -67,21 +67,15 @@ class PulseActor extends PulseFailureNotifier with Percolator with EventValidato
 
   def receive = {
 
-    case Start    ⇒ start()
+    case Start                                   ⇒
 
-    case Shutdown ⇒ shutdown()
+    case Shutdown                                ⇒
 
-    case InfoRequest ⇒ reply {
-      info()
-    }
+    case InfoRequest                             ⇒ reply(info)
 
-    case Publish(event) ⇒ reply({
-      (validateEvent andThen percolate andThen publish)(Event.expandTags(event))
-    }, classOf[EventIndexError])
+    case Publish(event)                          ⇒ reply((validateEvent andThen percolate andThen publish)(Event.expandTags(event)), classOf[EventIndexError])
 
-    case Query(envelope) ⇒ reply({
-      (validateEventQuery andThen eventQuery(envelope.page, envelope.perPage))(envelope.request)
-    }, classOf[EventQueryError])
+    case Query(envelope)                         ⇒ reply((validateEventQuery andThen eventQuery(envelope.page, envelope.perPage))(envelope.request), classOf[EventQueryError])
 
     case RegisterPercolator(name, tags, message) ⇒ registerPercolator(name, tags, message)
 
@@ -90,11 +84,7 @@ class PulseActor extends PulseFailureNotifier with Percolator with EventValidato
     case any                                     ⇒ unsupported(UnsupportedPulseRequest(any))
   }
 
-  private def start() = {}
-
-  private def shutdown() = {}
-
-  private def info() = for {
+  private def info = for {
     e ← elasticsearch.get("/")
     i ← elasticsearch.get(s"/$indexName/_stats/docs")
   } yield Map[String, Any]("elasticsearch" -> e, "index" -> i)

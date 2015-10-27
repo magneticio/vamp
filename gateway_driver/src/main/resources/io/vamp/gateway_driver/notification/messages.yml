@@ -1,3 +1,5 @@
 
-UnsupportedGatewayDriverRequest: "Unsupported gateway driver request."
-GatewayResponseError            : "Router response error."
+UnsupportedGatewayDriverRequest : "Unsupported gateway driver request."
+GatewayDriverResponseError      : "Gateway driver response error."
+UnsupportedGatewayStoreRequest  : "Unsupported gateway store request."
+GatewayStoreResponseError       : "Gateway store response error."

@@ -1,14 +1,20 @@
 package io.vamp.gateway_driver
 
+import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
 import io.vamp.gateway_driver.model.Gateway
+import scala.concurrent.duration._
 
-import scala.concurrent.Future
+object GatewayStore {
 
-trait GatewayStore {
+  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.gateway-driver.response-timeout").seconds)
 
-  def info: Future[Any]
+  sealed trait GatewayStoreMessage
 
-  def read(): Future[List[Gateway]]
+  object Read extends GatewayStoreMessage
 
-  def write(gateways: List[Gateway], raw: Option[Array[Byte]]): Unit
+  case class Write(gateways: List[Gateway], raw: Option[Array[Byte]]) extends GatewayStoreMessage
+
 }
+
+trait GatewayStore

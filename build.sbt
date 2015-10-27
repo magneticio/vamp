@@ -74,7 +74,7 @@ val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
 val bouncycastle = "org.bouncycastle" % "bcprov-jdk16" % "1.46" :: Nil
 val unisocketsNetty = "me.lessis" %% "unisockets-netty" % "0.1.0" :: Nil
 val quartz = "org.quartz-scheduler" % "quartz" % "2.2.1" :: Nil
-val zookeeper = "org.apache.zookeeper" % "zookeeper" % "3.4.6" :: Nil
+val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.6" exclude("org.slf4j", "slf4j-log4j12")) :: Nil
 
 val sql = "com.h2database" % "h2" % "1.3.166" ::
   "com.typesafe.slick" %% "slick" % "2.1.0" ::

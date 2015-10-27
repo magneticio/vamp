@@ -7,12 +7,12 @@ import io.vamp.common.http.SseDirectives.SseMessage
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.model.event.Event
 import io.vamp.operation.notification.OperationNotificationProvider
-import io.vamp.operation.sse.EventSteamingActor.{ Channel, CloseStream, OpenStream }
+import io.vamp.operation.sse.EventStreamingActor.{ Channel, CloseStream, OpenStream }
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.PulseActor
 import org.json4s.native.Serialization._
 
-object EventSteamingActor {
+object EventStreamingActor {
 
   case class OpenStream(channel: ActorRef, tags: Set[String])
 
@@ -22,7 +22,7 @@ object EventSteamingActor {
 
 }
 
-class EventSteamingActor extends CommonSupportForActors with OperationNotificationProvider {
+class EventStreamingActor extends CommonSupportForActors with OperationNotificationProvider {
 
   private val percolator = "stream://"
 
