@@ -65,12 +65,10 @@ trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with 
 
     case Shutdown ⇒ shutdown()
 
-    case InfoRequest ⇒ reply {
-      info() map {
-        case map: Map[_, _] ⇒ map.asInstanceOf[Map[Any, Any]] ++ Map("archive" -> true)
-        case other          ⇒ other
-      }
-    }
+    case InfoRequest ⇒ reply(info() map {
+      case map: Map[_, _] ⇒ map.asInstanceOf[Map[Any, Any]] ++ Map("archive" -> true)
+      case other          ⇒ other
+    })
 
     case All(ofType, page, perPage, expandRef, onlyRef) ⇒ try {
       val artifacts = all(ofType, page, perPage)
@@ -115,11 +113,9 @@ trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with 
     case any ⇒ unsupported(UnsupportedPersistenceRequest(any))
   }
 
-  protected def start() = {
-  }
+  protected def start() = {}
 
-  protected def shutdown() = {
-  }
+  protected def shutdown() = {}
 
   protected def readExpanded(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = read(name, `type`)
 
