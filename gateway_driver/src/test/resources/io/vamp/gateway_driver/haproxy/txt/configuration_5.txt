@@ -1,19 +1,9 @@
 global
- pidfile /opt/docker/data/haproxy-private.pid
-
+ pidfile /opt/vamp/haproxy.pid
  daemon
  maxconn 4096
- stats socket /opt/docker/data/haproxy.stats.sock level admin
-
-
- ###
- #
- # Experimental: Logging Setup
- #
- # We log to a unix socket and read that socket from the Go program
- #
- #
- log /var/run/vamp.log.sock local0
+ log /opt/vamp/haproxy.log.sock local0
+ stats socket /opt/vamp/haproxy.stats.sock level admin
 
  defaults
    log global
@@ -459,8 +449,8 @@ backend cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port
 
 
 
-backend abusers
-    mode http
-    errorfile 409 /opt/docker/configuration/error_pages/500rate.http
+#backend abusers
+#    mode http
+#    errorfile 409 /opt/docker/configuration/error_pages/500rate.http
 
 ### END GENERATED SECTION ###
