@@ -22,7 +22,7 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with PulseFai
   import io.vamp.gateway_driver.GatewayStore._
 
   private val definitionPath = "gateways/definition"
-  private val rawPath = "gateways/raw"
+  private val haproxyPath = "gateways/haproxy"
 
   private implicit val formats: Formats = DefaultFormats
 
@@ -56,7 +56,7 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with PulseFai
     zk.createPath(definitionPath) onFailure {
       case failure ⇒ log.error(failure, failure.getMessage)
     }
-    zk.createPath(rawPath) onFailure {
+    zk.createPath(haproxyPath) onFailure {
       case failure ⇒ log.error(failure, failure.getMessage)
     }
   }
@@ -90,7 +90,7 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with PulseFai
     zk.set(definitionPath, Some(write(gateways).getBytes)) onFailure {
       case failure ⇒ log.error(failure, failure.getMessage)
     }
-    zk.set(rawPath, raw) onFailure {
+    zk.set(haproxyPath, raw) onFailure {
       case failure ⇒ log.error(failure, failure.getMessage)
     }
   }

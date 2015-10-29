@@ -2,11 +2,11 @@
 @import io.vamp.gateway_driver.haproxy.Interface.Mode
 @(haproxy: HaProxy)
 global
-  pidfile /opt/docker/data/haproxy-private.pid
+  pidfile /opt/vamp/haproxy.pid
   daemon
   maxconn 4096
-  stats socket /opt/docker/data/haproxy.stats.sock level admin
-  log /var/run/vamp.log.sock local0
+  log /opt/vamp/haproxy.log.sock local0
+  stats socket /opt/vamp/haproxy.stats.sock level admin
 
   defaults
     log global
@@ -126,6 +126,8 @@ backend @backend.name
   @if(backend.options.tcpLog)           {option tcplog            }
   }
 }
+@*
 backend abusers
   mode http
   errorfile 409 /opt/docker/configuration/error_pages/500rate.http
+*@
