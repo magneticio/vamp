@@ -9,6 +9,8 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   override def info: AnyRef = "HAProxy v1.6.x"
 
+  private val socketPath = "/opt/vamp"
+
   private val userAgent = "^[uU]ser[-.][aA]gent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
   private val host = "^[hH]ost[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r
   private val cookieContains = "^[cC]ookie (.*) [Cc]ontains (.*)$".r
@@ -99,5 +101,5 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   private def mode(implicit gateway: Gateway) = if (gateway.protocol == Interface.Mode.http.toString) Interface.Mode.http else Interface.Mode.tcp
 
-  private def unixSocket(service: Service)(implicit gateway: Gateway) = s"/opt/docker/data/${Hash.hexSha1(gateway.name)}.sock"
+  private def unixSocket(service: Service)(implicit gateway: Gateway) = s"$socketPath/${Hash.hexSha1(gateway.name)}.sock"
 }

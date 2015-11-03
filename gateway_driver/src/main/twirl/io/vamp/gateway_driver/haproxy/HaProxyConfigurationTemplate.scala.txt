@@ -6,7 +6,6 @@ global
   daemon
   maxconn 4096
   log /opt/vamp/haproxy.log.sock local0
-  stats socket /opt/vamp/haproxy.stats.sock level admin
 
   defaults
     log global
@@ -36,10 +35,14 @@ global
 @for(frontend <- haproxy.frontends) {
 frontend @frontend.name
   @if(frontend.bindIp.isDefined && frontend.bindPort.isDefined)       {bind @frontend.bindIp.get:@frontend.bindPort.get             }
-  @if(frontend.mode == Mode.http)                                     {option httplog                                               }
-  @if(frontend.mode == Mode.tcp)                                      {option tcplog                                                }
-
-  log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+  @if(frontend.mode == Mode.http) {
+  option httplog
+  log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tq/%Tw/%Tc/%Tr/%Tt\ %ST\ %B\ %CC\ %CS\ %tsc\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq\ %hr\ %hs\ %{+Q}r
+  }
+  @if(frontend.mode == Mode.tcp) {
+  option tcplog
+  log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tw/%Tc/%Tt\ %B\ %ts\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq
+  }
 
   @if(frontend.options.httpClose)                                     {option http-server-close                                     }
   @if(frontend.unixSock.isDefined && frontend.sockProtocol.isDefined) {bind unix@@@frontend.unixSock.get @frontend.sockProtocol.get }

@@ -3,7 +3,7 @@ global
   daemon
   maxconn 4096
   log /opt/vamp/haproxy.log.sock local0
-  stats socket /opt/vamp/haproxy.stats.sock level admin
+
 
  defaults
    log global
@@ -52,7 +52,7 @@ frontend 6b606985-1414-41bb-911c-825955360a39_sava_8080
     # capture response header X-Vamp-Server-Name len 50
 
 
-    log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+    log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tq/%Tw/%Tc/%Tr/%Tt\ %ST\ %B\ %CC\ %CS\ %tsc\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq\ %hr\ %hs\ %{+Q}r
 
     #
     ###
@@ -121,13 +121,13 @@ frontend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0
     # capture response header X-Vamp-Server-Name len 50
 
 
-    log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+    log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tq/%Tw/%Tc/%Tr/%Tt\ %ST\ %B\ %CC\ %CS\ %tsc\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq\ %hr\ %hs\ %{+Q}r
 
     #
     ###
 
 
-    bind unix@/opt/docker/data/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock accept-proxy
+    bind unix@/opt/vamp/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock accept-proxy
 
 
     mode http
@@ -172,7 +172,7 @@ backend 6b606985-1414-41bb-911c-825955360a39_sava_8080
 
 
 
-        server 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 unix@/opt/docker/data/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock send-proxy weight 100
+        server 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 unix@/opt/vamp/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock send-proxy weight 100
 
 
 
