@@ -80,10 +80,10 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends GatewayConverter
 trait GatewayConverter extends GatewayDriverNameMatcher {
 
   def toDeploymentGateways(gateways: List[Gateway]): DeploymentGateways = {
-    val clusterRoutes = gateways.filter(gateway ⇒ processableClusterRoute(gateway.name)).map(route ⇒ ClusterGateway(clusterGatewayNameMatcher(route.name), route.port, services(route, route.services)))
-    val endpointRoutes = gateways.filter(gateway ⇒ processableEndpointRoute(gateway.name)).map(route ⇒ EndpointGateway(endpointGatewayNameMatcher(route.name), route.port, services(route, route.services)))
+    val clusterGateways = gateways.filter(gateway ⇒ processableClusterGateway(gateway.name)).map(gateway ⇒ ClusterGateway(clusterGatewayNameMatcher(gateway.name), gateway.port, services(gateway, gateway.services)))
+    val endpointGateways = gateways.filter(gateway ⇒ processableEndpointGateway(gateway.name)).map(gateway ⇒ EndpointGateway(endpointGatewayNameMatcher(gateway.name), gateway.port, services(gateway, gateway.services)))
 
-    DeploymentGateways(clusterRoutes, endpointRoutes)
+    DeploymentGateways(clusterGateways, endpointGateways)
   }
 
   def createGateway(deployment: Deployment, cluster: DeploymentCluster, port: Port) = gateway(clusterGatewayName(deployment, cluster, port), deployment, Some(cluster), port)
@@ -137,12 +137,12 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
           })
           p ← deployment.ports.find(_.name == port.name)
         } yield (h, p) match {
-          case (host, routePort) ⇒
+          case (host, gatewayPort) ⇒
             deployment.clusters.find(_.name == cluster) match {
               case None ⇒ Nil
               case Some(c) ⇒
-                c.routes.values.find(_ == routePort.number) match {
-                  case Some(_) ⇒ model.Server(string2Id(s"${deployment.name}_${port.number}"), host.value.get, routePort.number) :: Nil
+                c.routes.values.find(_ == gatewayPort.number) match {
+                  case Some(_) ⇒ model.Server(string2Id(s"${deployment.name}_${port.number}"), host.value.get, gatewayPort.number) :: Nil
                   case _       ⇒ Nil
                 }
             }
@@ -152,13 +152,13 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
     }
   }
 
-  private def services(route: Gateway, services: List[model.Service]): List[GatewayService] = services.map { service ⇒
-    GatewayService(serviceGatewayNameMatcher(service.name), service.weight, service.servers, route.filters.filter(_.destination == service.name))
+  private def services(gateway: Gateway, services: List[model.Service]): List[GatewayService] = services.map { service ⇒
+    GatewayService(serviceGatewayNameMatcher(service.name), service.weight, service.servers, gateway.filters.filter(_.destination == service.name))
   }
 
-  private def processableClusterRoute(name: String): Boolean = name.split(nameDelimiter).size == 3
+  private def processableClusterGateway(name: String): Boolean = name.split(nameDelimiter).size == 3
 
-  private def processableEndpointRoute(name: String): Boolean = name.split(nameDelimiter).size == 2
+  private def processableEndpointGateway(name: String): Boolean = name.split(nameDelimiter).size == 2
 }
 
 trait GatewayDriverNameMatcher {

@@ -113,7 +113,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/docker/data/651a9b8aa0b263752502e881c0da1da2ba4e0a8a.sock"),
+        unixSock = Option("/opt/vamp/651a9b8aa0b263752502e881c0da1da2ba4e0a8a.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -124,7 +124,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         mode = Interface.Mode.http,
         proxyServers = ProxyServer(
           name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080::sava:1.0.0",
-          unixSock = "/opt/docker/data/651a9b8aa0b263752502e881c0da1da2ba4e0a8a.sock",
+          unixSock = "/opt/vamp/651a9b8aa0b263752502e881c0da1da2ba4e0a8a.sock",
           weight = 100
         ) :: Nil,
         servers = Nil,
@@ -175,7 +175,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.tcp,
-        unixSock = Option("/opt/docker/data/651a9b8aa0b263752502e881c0da1da2ba4e0a8a.sock"),
+        unixSock = Option("/opt/vamp/651a9b8aa0b263752502e881c0da1da2ba4e0a8a.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -187,7 +187,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           mode = Interface.Mode.tcp,
           proxyServers = ProxyServer(
             name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080::sava:1.0.0",
-            unixSock = "/opt/docker/data/651a9b8aa0b263752502e881c0da1da2ba4e0a8a.sock",
+            unixSock = "/opt/vamp/651a9b8aa0b263752502e881c0da1da2ba4e0a8a.sock",
             weight = 100
           ) :: Nil,
           servers = Nil,
@@ -253,7 +253,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/docker/data/a88b2dabfa50419d1db522d80ff74f782e24d006.sock"),
+        unixSock = Option("/opt/vamp/a88b2dabfa50419d1db522d80ff74f782e24d006.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -273,7 +273,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.tcp,
-        unixSock = Option("/opt/docker/data/c33b372cdc5daeb780b2f5ca3e1ca59a7320db90.sock"),
+        unixSock = Option("/opt/vamp/c33b372cdc5daeb780b2f5ca3e1ca59a7320db90.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -285,7 +285,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           mode = Interface.Mode.http,
           proxyServers = ProxyServer(
             name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_sava_8080::sava:1.0.0",
-            unixSock = "/opt/docker/data/a88b2dabfa50419d1db522d80ff74f782e24d006.sock",
+            unixSock = "/opt/vamp/a88b2dabfa50419d1db522d80ff74f782e24d006.sock",
             weight = 100
           ) :: Nil,
           servers = Nil,
@@ -305,7 +305,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           mode = Interface.Mode.tcp,
           proxyServers = ProxyServer(
             name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_9050::sava.port",
-            unixSock = "/opt/docker/data/c33b372cdc5daeb780b2f5ca3e1ca59a7320db90.sock",
+            unixSock = "/opt/vamp/c33b372cdc5daeb780b2f5ca3e1ca59a7320db90.sock",
             weight = 100
           ) :: Nil,
           servers = Nil,
@@ -394,7 +394,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/docker/data/3ce169f7009d18e5035a29da2156befc7d59977.sock"),
+        unixSock = Option("/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -404,7 +404,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/docker/data/3ce169f7009d18e5035a29da2156befc7d59977.sock"),
+        unixSock = Option("/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -424,7 +424,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/docker/data/a20734a4b1e6c36d073e5bab33ed17b9b3a1811d.sock"),
+        unixSock = Option("/opt/vamp/a20734a4b1e6c36d073e5bab33ed17b9b3a1811d.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -437,12 +437,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           proxyServers = List(
             ProxyServer(
               name = "cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0",
-              unixSock = "/opt/docker/data/3ce169f7009d18e5035a29da2156befc7d59977.sock",
+              unixSock = "/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock",
               weight = 90
             ),
             ProxyServer(
               name = "cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0",
-              unixSock = "/opt/docker/data/3ce169f7009d18e5035a29da2156befc7d59977.sock",
+              unixSock = "/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock",
               weight = 10
             )),
           servers = Nil,
@@ -489,7 +489,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           mode = Interface.Mode.http,
           proxyServers = ProxyServer(
             name = "cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port",
-            unixSock = "/opt/docker/data/a20734a4b1e6c36d073e5bab33ed17b9b3a1811d.sock",
+            unixSock = "/opt/vamp/a20734a4b1e6c36d073e5bab33ed17b9b3a1811d.sock",
             weight = 100
           ) :: Nil,
           servers = Nil,
@@ -572,7 +572,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/docker/data/672003d66ed7c9b0c8a02cac65811b44457c2d95.sock"),
+        unixSock = Option("/opt/vamp/672003d66ed7c9b0c8a02cac65811b44457c2d95.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -592,7 +592,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/docker/data/4b4471b11e0d48d599f3788a43b31c37c350ecdc.sock"),
+        unixSock = Option("/opt/vamp/4b4471b11e0d48d599f3788a43b31c37c350ecdc.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -612,7 +612,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/docker/data/599bb91c23e5f09b6cd656389aca83d03543c9ef.sock"),
+        unixSock = Option("/opt/vamp/599bb91c23e5f09b6cd656389aca83d03543c9ef.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -625,7 +625,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           proxyServers = List(
             ProxyServer(
               name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080::sava-backend:1.3.0",
-              unixSock = "/opt/docker/data/672003d66ed7c9b0c8a02cac65811b44457c2d95.sock",
+              unixSock = "/opt/vamp/672003d66ed7c9b0c8a02cac65811b44457c2d95.sock",
               weight = 100
             )),
           servers = Nil,
@@ -647,7 +647,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           proxyServers = List(
             ProxyServer(
               name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080::sava-frontend:1.3.0",
-              unixSock = "/opt/docker/data/4b4471b11e0d48d599f3788a43b31c37c350ecdc.sock",
+              unixSock = "/opt/vamp/4b4471b11e0d48d599f3788a43b31c37c350ecdc.sock",
               weight = 100
             )),
           servers = Nil,
@@ -668,7 +668,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           mode = Interface.Mode.http,
           proxyServers = ProxyServer(
             name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050::sava.port",
-            unixSock = "/opt/docker/data/599bb91c23e5f09b6cd656389aca83d03543c9ef.sock",
+            unixSock = "/opt/vamp/599bb91c23e5f09b6cd656389aca83d03543c9ef.sock",
             weight = 100
           ) :: Nil,
           servers = Nil,
@@ -788,7 +788,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/docker/data/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock"),
+        unixSock = Option("/opt/vamp/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -801,7 +801,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           proxyServers = List(
             ProxyServer(
               name = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0",
-              unixSock = "/opt/docker/data/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock",
+              unixSock = "/opt/vamp/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock",
               weight = 100
             )),
           servers = Nil,

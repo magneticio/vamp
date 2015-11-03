@@ -3,7 +3,7 @@ global
  daemon
  maxconn 4096
  log /opt/vamp/haproxy.log.sock local0
- stats socket /opt/vamp/haproxy.stats.sock level admin
+
 
  defaults
    log global
@@ -52,7 +52,7 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080
     # capture response header X-Vamp-Server-Name len 50
 
 
-    log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+    log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tq/%Tw/%Tc/%Tr/%Tt\ %ST\ %B\ %CC\ %CS\ %tsc\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq\ %hr\ %hs\ %{+Q}r
 
     #
     ###
@@ -100,13 +100,13 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0
     # capture response header X-Vamp-Server-Name len 50
 
 
-    log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+    log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tq/%Tw/%Tc/%Tr/%Tt\ %ST\ %B\ %CC\ %CS\ %tsc\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq\ %hr\ %hs\ %{+Q}r
 
     #
     ###
 
     
-    bind unix@/opt/docker/data/3ce169f7009d18e5035a29da2156befc7d59977.sock accept-proxy
+    bind unix@/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock accept-proxy
     
 
     mode http
@@ -151,13 +151,13 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0
     # capture response header X-Vamp-Server-Name len 50
 
 
-    log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+    log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tq/%Tw/%Tc/%Tr/%Tt\ %ST\ %B\ %CC\ %CS\ %tsc\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq\ %hr\ %hs\ %{+Q}r
 
     #
     ###
 
     
-    bind unix@/opt/docker/data/3ce169f7009d18e5035a29da2156befc7d59977.sock accept-proxy
+    bind unix@/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock accept-proxy
     
 
     mode http
@@ -204,7 +204,7 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_9050
     # capture response header X-Vamp-Server-Name len 50
 
 
-    log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+    log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tq/%Tw/%Tc/%Tr/%Tt\ %ST\ %B\ %CC\ %CS\ %tsc\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq\ %hr\ %hs\ %{+Q}r
 
     #
     ###
@@ -253,13 +253,13 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port
     # capture response header X-Vamp-Server-Name len 50
 
 
-    log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+    log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tq/%Tw/%Tc/%Tr/%Tt\ %ST\ %B\ %CC\ %CS\ %tsc\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq\ %hr\ %hs\ %{+Q}r
 
     #
     ###
 
     
-    bind unix@/opt/docker/data/a20734a4b1e6c36d073e5bab33ed17b9b3a1811d.sock accept-proxy
+    bind unix@/opt/vamp/a20734a4b1e6c36d073e5bab33ed17b9b3a1811d.sock accept-proxy
     
 
     mode http
@@ -304,9 +304,9 @@ backend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080
 
 
     
-        server cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0 unix@/opt/docker/data/3ce169f7009d18e5035a29da2156befc7d59977.sock send-proxy weight 90
+        server cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0 unix@/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock send-proxy weight 90
     
-        server cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0 unix@/opt/docker/data/3ce169f7009d18e5035a29da2156befc7d59977.sock send-proxy weight 10
+        server cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0 unix@/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock send-proxy weight 10
     
 
 
@@ -404,7 +404,7 @@ backend cd10460f-ca44-49c6-9965-f66c27acd478_9050
 
 
     
-        server cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port unix@/opt/docker/data/a20734a4b1e6c36d073e5bab33ed17b9b3a1811d.sock send-proxy weight 100
+        server cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port unix@/opt/vamp/a20734a4b1e6c36d073e5bab33ed17b9b3a1811d.sock send-proxy weight 100
     
 
 

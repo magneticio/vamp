@@ -4,7 +4,6 @@ global
   daemon
   maxconn 4096
   log /opt/vamp/haproxy.log.sock local0
-  stats socket /opt/vamp/haproxy.stats.sock level admin
 
   defaults
     log global
@@ -36,7 +35,7 @@ frontend name
   bind 0.0.0.0:8080
   option httplog                                               
 
-  log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+  log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tq/%Tw/%Tc/%Tr/%Tt\ %ST\ %B\ %CC\ %CS\ %tsc\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq\ %hr\ %hs\ %{+Q}r
 
   option http-server-close
   bind unix@/tmp/vamp_test_be_1_a.sock accept-proxy

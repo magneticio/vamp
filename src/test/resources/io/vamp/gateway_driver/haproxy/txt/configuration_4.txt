@@ -3,7 +3,7 @@ global
  daemon
  maxconn 4096
  log /opt/vamp/haproxy.log.sock local0
- stats socket /opt/vamp/haproxy.stats.sock level admin
+
 
  defaults
    log global
@@ -52,7 +52,7 @@ frontend 5b2c2c20-c073-4180-8942-2c3d5ede74fb_sava_8080
     # capture response header X-Vamp-Server-Name len 50
 
 
-    log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+    log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tq/%Tw/%Tc/%Tr/%Tt\ %ST\ %B\ %CC\ %CS\ %tsc\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq\ %hr\ %hs\ %{+Q}r
 
     #
     ###
@@ -101,13 +101,13 @@ frontend 5b2c2c20-c073-4180-8942-2c3d5ede74fb_sava_8080::sava:1.0.0
     # capture response header X-Vamp-Server-Name len 50
 
 
-    log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+    log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tq/%Tw/%Tc/%Tr/%Tt\ %ST\ %B\ %CC\ %CS\ %tsc\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq\ %hr\ %hs\ %{+Q}r
 
     #
     ###
 
     
-    bind unix@/opt/docker/data/a88b2dabfa50419d1db522d80ff74f782e24d006.sock accept-proxy
+    bind unix@/opt/vamp/a88b2dabfa50419d1db522d80ff74f782e24d006.sock accept-proxy
     
 
     mode http
@@ -154,7 +154,7 @@ frontend 5b2c2c20-c073-4180-8942-2c3d5ede74fb_9050
     # capture response header X-Vamp-Server-Name len 50
 
 
-    log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+    log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tw/%Tc/%Tt\ %B\ %ts\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq
 
     #
     ###
@@ -203,13 +203,13 @@ frontend 5b2c2c20-c073-4180-8942-2c3d5ede74fb_9050::sava.port
     # capture response header X-Vamp-Server-Name len 50
 
 
-    log-format {"timestamp": %t, "frontend": "%f", "method": "%r", "captured_request_headers": "%hrl", "captures_response_headers": "%hsl"}
+    log-format %ci:%cp\ [%t]\ %ft\ %b/%s\ %Tw/%Tc/%Tt\ %B\ %ts\ %ac/%fc/%bc/%sc/%rc\ %sq/%bq
 
     #
     ###
 
     
-    bind unix@/opt/docker/data/c33b372cdc5daeb780b2f5ca3e1ca59a7320db90.sock accept-proxy
+    bind unix@/opt/vamp/c33b372cdc5daeb780b2f5ca3e1ca59a7320db90.sock accept-proxy
     
 
     mode tcp
@@ -254,7 +254,7 @@ backend 5b2c2c20-c073-4180-8942-2c3d5ede74fb_sava_8080
 
 
     
-        server 5b2c2c20-c073-4180-8942-2c3d5ede74fb_sava_8080::sava:1.0.0 unix@/opt/docker/data/a88b2dabfa50419d1db522d80ff74f782e24d006.sock send-proxy weight 100
+        server 5b2c2c20-c073-4180-8942-2c3d5ede74fb_sava_8080::sava:1.0.0 unix@/opt/vamp/a88b2dabfa50419d1db522d80ff74f782e24d006.sock send-proxy weight 100
     
 
 
@@ -311,7 +311,7 @@ backend 5b2c2c20-c073-4180-8942-2c3d5ede74fb_9050
 
 
     
-        server 5b2c2c20-c073-4180-8942-2c3d5ede74fb_9050::sava.port unix@/opt/docker/data/c33b372cdc5daeb780b2f5ca3e1ca59a7320db90.sock send-proxy weight 100
+        server 5b2c2c20-c073-4180-8942-2c3d5ede74fb_9050::sava.port unix@/opt/vamp/c33b372cdc5daeb780b2f5ca3e1ca59a7320db90.sock send-proxy weight 100
     
 
 
