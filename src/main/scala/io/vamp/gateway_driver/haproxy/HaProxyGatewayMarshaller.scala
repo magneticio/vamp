@@ -23,7 +23,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   override def marshall(gateways: List[Gateway]) = HaProxyConfigurationTemplate(convert(gateways)).toString().getBytes
 
   private[haproxy] def convert(gateways: List[Gateway]): HaProxy = {
-    gateways.map(convert).reduce((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends))
+    gateways.map(convert).reduceOption((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends)).getOrElse(HaProxy(Nil, Nil))
   }
 
   private[haproxy] def convert(gateway: Gateway): HaProxy = HaProxy(frontends(gateway), backends(gateway))
