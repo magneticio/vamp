@@ -74,7 +74,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
   private def synchronize(deployments: List[Deployment]): Future[_] = {
     implicit val timeout: Timeout = ContainerDriverActor.timeout
-    val router = actorFor[GatewayDriverActor] ? GatewayDriverActor.All
+    val router = actorFor[GatewayDriverActor] ? GatewayDriverActor.GetAllAfterPurge(deployments)
     val container = actorFor[ContainerDriverActor] ? ContainerDriverActor.All
 
     router map {

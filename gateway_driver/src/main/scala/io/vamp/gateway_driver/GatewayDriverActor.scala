@@ -19,7 +19,7 @@ object GatewayDriverActor {
 
   trait GatewayDriverMessage
 
-  object All extends GatewayDriverMessage
+  case class GetAllAfterPurge(deployments: List[Deployment]) extends GatewayDriverMessage
 
   case class Create(deployment: Deployment, cluster: DeploymentCluster, port: Port) extends GatewayDriverMessage
 
@@ -41,7 +41,7 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends GatewayConverter
     case Start                             ⇒
     case Shutdown                          ⇒
     case InfoRequest                       ⇒ reply(info)
-    case All                               ⇒ reply(all)
+    case GetAllAfterPurge(deployments)     ⇒ reply(getAllAfterPurge(deployments))
     case Create(deployment, cluster, port) ⇒ update(createGateway(deployment, cluster, port))
     case Remove(deployment, cluster, port) ⇒ remove(clusterGatewayName(deployment, cluster, port))
     case CreateEndpoint(deployment, port)  ⇒ update(createGateway(deployment, port))
@@ -55,9 +55,16 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends GatewayConverter
 
   private def info = IoC.actorFor[GatewayStore] ? InfoRequest map { case data ⇒ Map("store" -> data, "marshaller" -> marshaller.info) }
 
-  private def all = {
+  private def getAllAfterPurge(deployments: List[Deployment]) = {
     log.debug(s"Read all gateways")
-    read map { case gateways ⇒ toDeploymentGateways(gateways) }
+    read map {
+      case gateways ⇒
+        val purged = gateways.filter {
+          case gateway ⇒ deployments.exists(deployment ⇒ gateway.name.substring(0, 8) == deployment.name.substring(0, 8))
+        }
+        if (gateways.size != purged.size) persist(purged)
+        toDeploymentGateways(purged)
+    }
   }
 
   private def read: Future[List[Gateway]] = IoC.actorFor[GatewayStore] ? Get map {
