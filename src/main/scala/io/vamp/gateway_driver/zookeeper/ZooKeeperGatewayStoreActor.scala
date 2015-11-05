@@ -21,7 +21,7 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with PulseFai
 
   import io.vamp.gateway_driver.GatewayStore._
 
-  private val definitionPath = "gateways/definition"
+  private val gatewaysPath = "gateways"
   private val haproxyPath = "gateways/haproxy"
 
   private implicit val formats: Formats = DefaultFormats
@@ -53,7 +53,7 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with PulseFai
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 
   private def start() = {
-    zk.createPath(definitionPath) onFailure {
+    zk.createPath(gatewaysPath) onFailure {
       case failure ⇒ log.error(failure, failure.getMessage)
     }
     zk.createPath(haproxyPath) onFailure {
@@ -79,7 +79,7 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with PulseFai
     }))
   }
 
-  private def get: Future[List[Gateway]] = zk.get(definitionPath) map {
+  private def get: Future[List[Gateway]] = zk.get(gatewaysPath) map {
     case response ⇒ response.data match {
       case Some(data) ⇒ read[List[Gateway]](new String(data))
       case _          ⇒ Nil
@@ -87,7 +87,7 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with PulseFai
   }
 
   private def put(gateways: List[Gateway], raw: Option[Array[Byte]]) = {
-    zk.set(definitionPath, Some(write(gateways).getBytes)) onFailure {
+    zk.set(gatewaysPath, Some(write(gateways).getBytes)) onFailure {
       case failure ⇒ log.error(failure, failure.getMessage)
     }
     zk.set(haproxyPath, raw) onFailure {
