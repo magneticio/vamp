@@ -33,7 +33,7 @@ NB If you installed Docker Toolbox please use "Docker Quickstart Terminal". At t
 A typical command on Mac OS X running Docker Toolbox would be:
 {{% copyable %}}
 ```
-docker run --net=host -v ~/.docker/machine/machines/default:/certs -e "DOCKER_TLS_VERIFY=1" -e "DOCKER_HOST=`docker-machine url default`" -e "DOCKER_CERT_PATH=/certs" magneticio/vamp-docker:0.7.11.1
+docker run --net=host -v ~/.docker/machine/machines/default:/certs -e "DOCKER_TLS_VERIFY=1" -e "DOCKER_HOST=`docker-machine ip default`" -e "DOCKER_CERT_PATH=/certs" magneticio/vamp-docker:0.7.11.1
 ```
 {{% /copyable %}}
 
