@@ -83,7 +83,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
   it should "serialize single service http route to HAProxy configuration" in {
 
-    val haproxy = convert(Gateway(
+    val actual = convert(Gateway(
       name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080",
       port = 33000,
       protocol = "http",
@@ -97,7 +97,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           port = 32768) :: Nil
       ) :: Nil))
 
-    haproxy shouldBe HaProxy(List(
+    val expected = HaProxy(List(
       Frontend(
         name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080",
         bindIp = Option("0.0.0.0"),
@@ -113,7 +113,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/vamp/651a9b8aa0b263752502e881c0da1da2ba4e0a8a.sock"),
+        unixSock = Option("/opt/vamp/59e3034c619dd724b2e57d38218afdcd63e6ad8a.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -124,7 +124,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         mode = Interface.Mode.http,
         proxyServers = ProxyServer(
           name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080::sava:1.0.0",
-          unixSock = "/opt/vamp/651a9b8aa0b263752502e881c0da1da2ba4e0a8a.sock",
+          unixSock = "/opt/vamp/59e3034c619dd724b2e57d38218afdcd63e6ad8a.sock",
           weight = 100
         ) :: Nil,
         servers = Nil,
@@ -141,11 +141,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         options = Options())
     ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(haproxy.frontends, haproxy.backends)).toString(), "configuration_2.txt")
+    actual shouldBe expected
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_2.txt")
   }
 
   it should "serialize single service tcp route to HAProxy configuration" in {
-    val haproxy = convert(Gateway(
+    val actual = convert(Gateway(
       name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080",
       port = 33000,
       protocol = "tcp",
@@ -159,7 +160,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           port = 32768) :: Nil
       ) :: Nil))
 
-    haproxy shouldBe HaProxy(List(
+    val expected = HaProxy(List(
       Frontend(
         name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080",
         bindIp = Option("0.0.0.0"),
@@ -175,7 +176,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.tcp,
-        unixSock = Option("/opt/vamp/651a9b8aa0b263752502e881c0da1da2ba4e0a8a.sock"),
+        unixSock = Option("/opt/vamp/59e3034c619dd724b2e57d38218afdcd63e6ad8a.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -187,7 +188,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           mode = Interface.Mode.tcp,
           proxyServers = ProxyServer(
             name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080::sava:1.0.0",
-            unixSock = "/opt/vamp/651a9b8aa0b263752502e881c0da1da2ba4e0a8a.sock",
+            unixSock = "/opt/vamp/59e3034c619dd724b2e57d38218afdcd63e6ad8a.sock",
             weight = 100
           ) :: Nil,
           servers = Nil,
@@ -204,11 +205,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           options = Options())
       ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(haproxy.frontends, haproxy.backends)).toString(), "configuration_3.txt")
+    actual shouldBe expected
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_3.txt")
   }
 
   it should "serialize single service route with single endpoint to HAProxy configuration" in {
-    val haproxy = convert(List(
+    val actual = convert(List(
       Gateway(
         name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_sava_8080",
         port = 33002,
@@ -237,7 +239,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         ) :: Nil)
     ))
 
-    haproxy shouldBe HaProxy(List(
+    val expected = HaProxy(List(
       Frontend(
         name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_sava_8080",
         bindIp = Option("0.0.0.0"),
@@ -253,7 +255,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/vamp/a88b2dabfa50419d1db522d80ff74f782e24d006.sock"),
+        unixSock = Option("/opt/vamp/d6e29d4976d84d757dbb6b753d6ad14370d6ca96.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -273,7 +275,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.tcp,
-        unixSock = Option("/opt/vamp/c33b372cdc5daeb780b2f5ca3e1ca59a7320db90.sock"),
+        unixSock = Option("/opt/vamp/8902264b2a19b47f814a170c357c2611ec4cd621.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -285,7 +287,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           mode = Interface.Mode.http,
           proxyServers = ProxyServer(
             name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_sava_8080::sava:1.0.0",
-            unixSock = "/opt/vamp/a88b2dabfa50419d1db522d80ff74f782e24d006.sock",
+            unixSock = "/opt/vamp/d6e29d4976d84d757dbb6b753d6ad14370d6ca96.sock",
             weight = 100
           ) :: Nil,
           servers = Nil,
@@ -305,7 +307,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           mode = Interface.Mode.tcp,
           proxyServers = ProxyServer(
             name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_9050::sava.port",
-            unixSock = "/opt/vamp/c33b372cdc5daeb780b2f5ca3e1ca59a7320db90.sock",
+            unixSock = "/opt/vamp/8902264b2a19b47f814a170c357c2611ec4cd621.sock",
             weight = 100
           ) :: Nil,
           servers = Nil,
@@ -322,11 +324,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           options = Options())
       ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(haproxy.frontends, haproxy.backends)).toString(), "configuration_4.txt")
+    actual shouldBe expected
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_4.txt")
   }
 
   it should "serialize A/B services to HAProxy configuration" in {
-    val haproxy = convert(List(
+    val actual = convert(List(
       Gateway(
         name = "cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080",
         port = 33001,
@@ -378,7 +381,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         ) :: Nil)
     ))
 
-    haproxy shouldBe HaProxy(List(
+    val expected = HaProxy(List(
       Frontend(
         name = "cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080",
         bindIp = Option("0.0.0.0"),
@@ -394,7 +397,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock"),
+        unixSock = Option("/opt/vamp/820eb143a8d42dd08f028f36e6b8385a911b8cd8.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -404,7 +407,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock"),
+        unixSock = Option("/opt/vamp/81233b74c4c856e8c4697d7acf152ca6989db4df.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -424,7 +427,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/vamp/a20734a4b1e6c36d073e5bab33ed17b9b3a1811d.sock"),
+        unixSock = Option("/opt/vamp/590382622f3287cf7bd9584fc1aa43052a40d6cc.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -437,12 +440,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           proxyServers = List(
             ProxyServer(
               name = "cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0",
-              unixSock = "/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock",
+              unixSock = "/opt/vamp/820eb143a8d42dd08f028f36e6b8385a911b8cd8.sock",
               weight = 90
             ),
             ProxyServer(
               name = "cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0",
-              unixSock = "/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock",
+              unixSock = "/opt/vamp/81233b74c4c856e8c4697d7acf152ca6989db4df.sock",
               weight = 10
             )),
           servers = Nil,
@@ -489,7 +492,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           mode = Interface.Mode.http,
           proxyServers = ProxyServer(
             name = "cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port",
-            unixSock = "/opt/vamp/a20734a4b1e6c36d073e5bab33ed17b9b3a1811d.sock",
+            unixSock = "/opt/vamp/590382622f3287cf7bd9584fc1aa43052a40d6cc.sock",
             weight = 100
           ) :: Nil,
           servers = Nil,
@@ -506,11 +509,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           options = Options())
       ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(haproxy.frontends, haproxy.backends)).toString(), "configuration_5.txt")
+    actual shouldBe expected
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_5.txt")
   }
 
   it should "serialize services with dependency to HAProxy configuration" in {
-    val haproxy = convert(List(
+    val actual = convert(List(
       Gateway(
         name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080",
         port = 33003,
@@ -556,7 +560,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         ) :: Nil)
     ))
 
-    haproxy shouldBe HaProxy(List(
+    val expected = HaProxy(List(
       Frontend(
         name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080",
         bindIp = Option("0.0.0.0"),
@@ -572,7 +576,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/vamp/672003d66ed7c9b0c8a02cac65811b44457c2d95.sock"),
+        unixSock = Option("/opt/vamp/1c06647def2154787008cb74a4e9cdb0d414d5d8.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -592,7 +596,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/vamp/4b4471b11e0d48d599f3788a43b31c37c350ecdc.sock"),
+        unixSock = Option("/opt/vamp/83bea7dadc8ccb3d126c78d04b59acc9b9caa6df.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -612,7 +616,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/vamp/599bb91c23e5f09b6cd656389aca83d03543c9ef.sock"),
+        unixSock = Option("/opt/vamp/7d8d614f8c1edab2bbc92a03efadd4e4e8275cee.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -625,7 +629,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           proxyServers = List(
             ProxyServer(
               name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080::sava-backend:1.3.0",
-              unixSock = "/opt/vamp/672003d66ed7c9b0c8a02cac65811b44457c2d95.sock",
+              unixSock = "/opt/vamp/1c06647def2154787008cb74a4e9cdb0d414d5d8.sock",
               weight = 100
             )),
           servers = Nil,
@@ -647,7 +651,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           proxyServers = List(
             ProxyServer(
               name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080::sava-frontend:1.3.0",
-              unixSock = "/opt/vamp/4b4471b11e0d48d599f3788a43b31c37c350ecdc.sock",
+              unixSock = "/opt/vamp/83bea7dadc8ccb3d126c78d04b59acc9b9caa6df.sock",
               weight = 100
             )),
           servers = Nil,
@@ -668,7 +672,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           mode = Interface.Mode.http,
           proxyServers = ProxyServer(
             name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050::sava.port",
-            unixSock = "/opt/vamp/599bb91c23e5f09b6cd656389aca83d03543c9ef.sock",
+            unixSock = "/opt/vamp/7d8d614f8c1edab2bbc92a03efadd4e4e8275cee.sock",
             weight = 100
           ) :: Nil,
           servers = Nil,
@@ -685,7 +689,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           options = Options())
       ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(haproxy.frontends, haproxy.backends)).toString(), "configuration_6.txt")
+    actual shouldBe expected
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_6.txt")
   }
 
   it should "convert filters" in {
@@ -716,7 +721,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
   }
 
   it should "serialize service with filters to HAProxy configuration" in {
-    val haproxy = convert(List(
+    val actual = convert(List(
       Gateway(
         name = "6b606985-1414-41bb-911c-825955360a39_sava_8080",
         port = 33000,
@@ -750,7 +755,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
                 port = 32776))
           )))))
 
-    haproxy shouldBe HaProxy(List(
+    val expected = HaProxy(List(
       Frontend(
         name = "6b606985-1414-41bb-911c-825955360a39_sava_8080",
         bindIp = Option("0.0.0.0"),
@@ -788,7 +793,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         bindIp = None,
         bindPort = None,
         mode = Interface.Mode.http,
-        unixSock = Option("/opt/vamp/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock"),
+        unixSock = Option("/opt/vamp/99ba9340c7565b91b87c80d7da989fc35754a383.sock"),
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
@@ -801,7 +806,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           proxyServers = List(
             ProxyServer(
               name = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0",
-              unixSock = "/opt/vamp/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock",
+              unixSock = "/opt/vamp/99ba9340c7565b91b87c80d7da989fc35754a383.sock",
               weight = 100
             )),
           servers = Nil,
@@ -819,7 +824,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           options = Options())
       ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(haproxy.frontends, haproxy.backends)).toString(), "configuration_7.txt")
+    actual shouldBe expected
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_7.txt")
   }
 
   private def compare(config: String, resource: String) = {

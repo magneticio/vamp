@@ -127,7 +127,7 @@ frontend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0
     ###
 
 
-    bind unix@/opt/vamp/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock accept-proxy
+    bind unix@/opt/vamp/99ba9340c7565b91b87c80d7da989fc35754a383.sock accept-proxy
 
 
     mode http
@@ -172,7 +172,7 @@ backend 6b606985-1414-41bb-911c-825955360a39_sava_8080
 
 
 
-        server 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 unix@/opt/vamp/299e2b9ba12e055ae4d320bce0de6f1c5e6241e5.sock send-proxy weight 100
+        server 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 unix@/opt/vamp/99ba9340c7565b91b87c80d7da989fc35754a383.sock send-proxy weight 100
 
 
 
