@@ -107,7 +107,7 @@ frontend d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080::sava-backend:1.3.0
     ###
 
     
-    bind unix@/opt/vamp/672003d66ed7c9b0c8a02cac65811b44457c2d95.sock accept-proxy
+    bind unix@/opt/vamp/1c06647def2154787008cb74a4e9cdb0d414d5d8.sock accept-proxy
     
 
     mode http
@@ -209,7 +209,7 @@ frontend d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080::sava-frontend:1.3.0
     ###
 
     
-    bind unix@/opt/vamp/4b4471b11e0d48d599f3788a43b31c37c350ecdc.sock accept-proxy
+    bind unix@/opt/vamp/83bea7dadc8ccb3d126c78d04b59acc9b9caa6df.sock accept-proxy
     
 
     mode http
@@ -311,7 +311,7 @@ frontend d5c3c612-6fb3-41e5-8023-292ce3c74924_9050::sava.port
     ###
 
     
-    bind unix@/opt/vamp/599bb91c23e5f09b6cd656389aca83d03543c9ef.sock accept-proxy
+    bind unix@/opt/vamp/7d8d614f8c1edab2bbc92a03efadd4e4e8275cee.sock accept-proxy
     
 
     mode http
@@ -356,7 +356,7 @@ backend d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080
 
 
     
-        server d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080::sava-backend:1.3.0 unix@/opt/vamp/672003d66ed7c9b0c8a02cac65811b44457c2d95.sock send-proxy weight 100
+        server d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080::sava-backend:1.3.0 unix@/opt/vamp/1c06647def2154787008cb74a4e9cdb0d414d5d8.sock send-proxy weight 100
     
 
 
@@ -413,7 +413,7 @@ backend d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080
 
 
     
-        server d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080::sava-frontend:1.3.0 unix@/opt/vamp/4b4471b11e0d48d599f3788a43b31c37c350ecdc.sock send-proxy weight 100
+        server d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080::sava-frontend:1.3.0 unix@/opt/vamp/83bea7dadc8ccb3d126c78d04b59acc9b9caa6df.sock send-proxy weight 100
     
 
 
@@ -470,7 +470,7 @@ backend d5c3c612-6fb3-41e5-8023-292ce3c74924_9050
 
 
     
-        server d5c3c612-6fb3-41e5-8023-292ce3c74924_9050::sava.port unix@/opt/vamp/599bb91c23e5f09b6cd656389aca83d03543c9ef.sock send-proxy weight 100
+        server d5c3c612-6fb3-41e5-8023-292ce3c74924_9050::sava.port unix@/opt/vamp/7d8d614f8c1edab2bbc92a03efadd4e4e8275cee.sock send-proxy weight 100
     
 
 

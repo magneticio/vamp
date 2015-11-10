@@ -106,7 +106,7 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0
     ###
 
     
-    bind unix@/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock accept-proxy
+    bind unix@/opt/vamp/820eb143a8d42dd08f028f36e6b8385a911b8cd8.sock accept-proxy
     
 
     mode http
@@ -157,7 +157,7 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0
     ###
 
     
-    bind unix@/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock accept-proxy
+    bind unix@/opt/vamp/81233b74c4c856e8c4697d7acf152ca6989db4df.sock accept-proxy
     
 
     mode http
@@ -259,7 +259,7 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port
     ###
 
     
-    bind unix@/opt/vamp/a20734a4b1e6c36d073e5bab33ed17b9b3a1811d.sock accept-proxy
+    bind unix@/opt/vamp/590382622f3287cf7bd9584fc1aa43052a40d6cc.sock accept-proxy
     
 
     mode http
@@ -304,9 +304,9 @@ backend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080
 
 
     
-        server cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0 unix@/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock send-proxy weight 90
+        server cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0 unix@/opt/vamp/820eb143a8d42dd08f028f36e6b8385a911b8cd8.sock send-proxy weight 90
     
-        server cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0 unix@/opt/vamp/3ce169f7009d18e5035a29da2156befc7d59977.sock send-proxy weight 10
+        server cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0 unix@/opt/vamp/81233b74c4c856e8c4697d7acf152ca6989db4df.sock send-proxy weight 10
     
 
 
@@ -404,7 +404,7 @@ backend cd10460f-ca44-49c6-9965-f66c27acd478_9050
 
 
     
-        server cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port unix@/opt/vamp/a20734a4b1e6c36d073e5bab33ed17b9b3a1811d.sock send-proxy weight 100
+        server cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port unix@/opt/vamp/590382622f3287cf7bd9584fc1aa43052a40d6cc.sock send-proxy weight 100
     
 
 

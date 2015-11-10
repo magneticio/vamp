@@ -10,6 +10,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   override def info: AnyRef = "HAProxy v1.6.x"
 
   private val socketPath = "/opt/vamp"
+  private val pathDelimiter = "::"
 
   private val userAgent = "^[uU]ser[-.][aA]gent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
   private val host = "^[hH]ost[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r
@@ -39,7 +40,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     filters = filters,
     defaultBackend = gateway.name) :: gateway.services.map { service ⇒
       Frontend(
-        name = s"${gateway.name}::${service.name}",
+        name = s"${gateway.name}$pathDelimiter${service.name}",
         bindIp = None,
         bindPort = None,
         mode = mode,
@@ -47,7 +48,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
         sockProtocol = Option("accept-proxy"),
         options = Options(),
         filters = Nil,
-        defaultBackend = s"${gateway.name}::${service.name}")
+        defaultBackend = s"${gateway.name}$pathDelimiter${service.name}")
     }
 
   private def backends(implicit gateway: Gateway): List[Backend] = Backend(
@@ -55,7 +56,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     mode = mode,
     proxyServers = gateway.services.map { service ⇒
       ProxyServer(
-        name = s"${gateway.name}::${service.name}",
+        name = s"${gateway.name}$pathDelimiter${service.name}",
         unixSock = unixSocket(service),
         weight = service.weight
       )
@@ -63,7 +64,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     servers = Nil,
     options = Options()) :: gateway.services.map { service ⇒
       Backend(
-        name = s"${gateway.name}::${service.name}",
+        name = s"${gateway.name}$pathDelimiter${service.name}",
         mode = mode,
         proxyServers = Nil,
         servers = service.servers.map { server ⇒
@@ -96,10 +97,10 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       case Some(n) ⇒ n
     }
 
-    Filter(name, condition, s"${gateway.name}::${filter.destination}", negate)
+    Filter(name, condition, s"${gateway.name}$pathDelimiter${filter.destination}", negate)
   }
 
   private def mode(implicit gateway: Gateway) = if (gateway.protocol == Interface.Mode.http.toString) Interface.Mode.http else Interface.Mode.tcp
 
-  private def unixSocket(service: Service)(implicit gateway: Gateway) = s"$socketPath/${Hash.hexSha1(gateway.name)}.sock"
+  private def unixSocket(service: Service)(implicit gateway: Gateway) = s"$socketPath/${Hash.hexSha1(s"${gateway.name}$pathDelimiter${service.name}")}.sock"
 }
