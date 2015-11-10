@@ -54,7 +54,7 @@ frontend name
   acl ie hdr_sub(user-agent) MSIE
   use_backend test_be_1_b if ie
   
-  default_backend test_be_1
+  default_backend name1
 
 
 
