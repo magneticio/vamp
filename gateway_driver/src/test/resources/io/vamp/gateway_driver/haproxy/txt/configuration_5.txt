@@ -34,7 +34,7 @@ listen stats :1988
 
 ### BEGIN GENERATED SECTION ###
 
-frontend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080
+frontend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080
     
     bind 0.0.0.0:33001
     
@@ -81,10 +81,10 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080
     #
 
 
-    default_backend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080
+    default_backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080
 
 
-frontend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0
+frontend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0
     
 
      option httplog 
@@ -132,10 +132,10 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0
 
     
 
-    default_backend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0
+    default_backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0
 
 
-frontend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0
+frontend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_1_0
     
 
      option httplog 
@@ -183,10 +183,10 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0
 
     
 
-    default_backend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0
+    default_backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_1_0
 
 
-frontend cd10460f-ca44-49c6-9965-f66c27acd478_9050
+frontend cd10460f_ca44_49c6_9965_f66c27acd478_9050
     
     bind 0.0.0.0:9050
     
@@ -234,10 +234,10 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_9050
 
     
 
-    default_backend cd10460f-ca44-49c6-9965-f66c27acd478_9050
+    default_backend cd10460f_ca44_49c6_9965_f66c27acd478_9050
 
 
-frontend cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port
+frontend cd10460f_ca44_49c6_9965_f66c27acd478_9050__sava_port
     
 
      option httplog 
@@ -285,14 +285,14 @@ frontend cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port
 
     
 
-    default_backend cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port
+    default_backend cd10460f_ca44_49c6_9965_f66c27acd478_9050__sava_port
 
 
 
 
 
 
-backend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080
+backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080
     mode http
 #
 # Regular HTTP/TCP backends
@@ -304,16 +304,16 @@ backend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080
 
 
     
-        server cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0 unix@/opt/vamp/820eb143a8d42dd08f028f36e6b8385a911b8cd8.sock send-proxy weight 90
+        server cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0 unix@/opt/vamp/820eb143a8d42dd08f028f36e6b8385a911b8cd8.sock send-proxy weight 90
     
-        server cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0 unix@/opt/vamp/81233b74c4c856e8c4697d7acf152ca6989db4df.sock send-proxy weight 10
+        server cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_1_0 unix@/opt/vamp/81233b74c4c856e8c4697d7acf152ca6989db4df.sock send-proxy weight 10
     
 
 
 
 
 
-backend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0
+backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0
     mode http
 #
 # Regular HTTP/TCP backends
@@ -353,7 +353,7 @@ backend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0
 
 
 
-backend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0
+backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_1_0
     mode http
 #
 # Regular HTTP/TCP backends
@@ -392,7 +392,7 @@ backend cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0
 
 
 
-backend cd10460f-ca44-49c6-9965-f66c27acd478_9050
+backend cd10460f_ca44_49c6_9965_f66c27acd478_9050
     mode http
 #
 # Regular HTTP/TCP backends
@@ -404,14 +404,14 @@ backend cd10460f-ca44-49c6-9965-f66c27acd478_9050
 
 
     
-        server cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port unix@/opt/vamp/590382622f3287cf7bd9584fc1aa43052a40d6cc.sock send-proxy weight 100
+        server cd10460f_ca44_49c6_9965_f66c27acd478_9050__sava_port unix@/opt/vamp/590382622f3287cf7bd9584fc1aa43052a40d6cc.sock send-proxy weight 100
     
 
 
 
 
 
-backend cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port
+backend cd10460f_ca44_49c6_9965_f66c27acd478_9050__sava_port
     mode http
 #
 # Regular HTTP/TCP backends
@@ -432,7 +432,7 @@ backend cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port
 
     cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h 
     
-        server cd10460f-ca44-49c6-9965-f66c27acd478_9050 192.168.99.100:33002  cookie cd10460f-ca44-49c6-9965-f66c27acd478_9050  weight 100 maxconn 1000
+        server cd10460f_ca44_49c6_9965_f66c27acd478_9050 192.168.99.100:33002  cookie cd10460f_ca44_49c6_9965_f66c27acd478_9050  weight 100 maxconn 1000
     
     
     

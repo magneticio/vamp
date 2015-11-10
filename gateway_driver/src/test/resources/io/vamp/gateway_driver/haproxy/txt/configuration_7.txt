@@ -34,7 +34,7 @@ listen stats :1988
 
 ### BEGIN GENERATED SECTION ###
 
-frontend 6b606985-1414-41bb-911c-825955360a39_sava_8080
+frontend 6b606985_1414_41bb_911c_825955360a39_sava_8080
 
     bind 0.0.0.0:33000
 
@@ -102,10 +102,10 @@ frontend 6b606985-1414-41bb-911c-825955360a39_sava_8080
 
 
 
-    default_backend 6b606985-1414-41bb-911c-825955360a39_sava_8080
+    default_backend 6b606985_1414_41bb_911c_825955360a39_sava_8080
 
 
-frontend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0
+frontend 6b606985_1414_41bb_911c_825955360a39_sava_8080__sava_1_0_0
 
 
      option httplog
@@ -153,14 +153,14 @@ frontend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0
 
 
 
-    default_backend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0
+    default_backend 6b606985_1414_41bb_911c_825955360a39_sava_8080__sava_1_0_0
 
 
 
 
 
 
-backend 6b606985-1414-41bb-911c-825955360a39_sava_8080
+backend 6b606985_1414_41bb_911c_825955360a39_sava_8080
     mode http
 #
 # Regular HTTP/TCP backends
@@ -172,14 +172,14 @@ backend 6b606985-1414-41bb-911c-825955360a39_sava_8080
 
 
 
-        server 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 unix@/opt/vamp/99ba9340c7565b91b87c80d7da989fc35754a383.sock send-proxy weight 100
+        server 6b606985_1414_41bb_911c_825955360a39_sava_8080__sava_1_0_0 unix@/opt/vamp/99ba9340c7565b91b87c80d7da989fc35754a383.sock send-proxy weight 100
 
 
 
 
 
 
-backend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0
+backend 6b606985_1414_41bb_911c_825955360a39_sava_8080__sava_1_0_0
     mode http
 #
 # Regular HTTP/TCP backends

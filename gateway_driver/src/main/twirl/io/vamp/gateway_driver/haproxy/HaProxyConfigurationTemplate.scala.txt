@@ -1,5 +1,5 @@
 @import io.vamp.gateway_driver.haproxy.HaProxy
-@import io.vamp.gateway_driver.haproxy.Interface.Mode
+@import io.vamp.gateway_driver.haproxy.Mode
 @(haproxy: HaProxy)
 global
   pidfile /opt/vamp/haproxy.pid
@@ -33,7 +33,7 @@ global
     stats auth haproxy:haproxy
 
 @for(frontend <- haproxy.frontends) {
-frontend @frontend.name
+frontend @frontend.flattenName
   @if(frontend.bindIp.isDefined && frontend.bindPort.isDefined)       {bind @frontend.bindIp.get:@frontend.bindPort.get             }
   @if(frontend.mode == Mode.http) {
   option httplog
@@ -91,17 +91,17 @@ frontend @frontend.name
   acl @filter.name @filter.condition
   use_backend @filter.destination if @if(filter.negate) {!}@filter.name
   }
-  default_backend @frontend.defaultBackend
+  default_backend @frontend.defaultBackend.flattenName
 }
 
 @for(backend <- haproxy.backends) {
-backend @backend.name
+backend @backend.flattenName
   mode @backend.mode
   @if(backend.mode == Mode.http)        {balance roundrobin       }
   @if(backend.mode == Mode.tcp)         {balance leastconn        }
 
   @for(server <- backend.proxyServers) {
-  server @server.name unix@@@server.unixSock send-proxy weight @server.weight
+  server @server.flattenName unix@@@server.unixSock send-proxy weight @server.weight
   }
   @if(backend.servers.nonEmpty) {
 
@@ -113,7 +113,7 @@ backend @backend.name
   }
 
   @for(server <- backend.servers) {
-  server @server.name @server.host:@server.port @if(backend.mode == Mode.http) {cookie @server.name} weight @server.weight maxconn @server.maxConn @if(server.checkInterval.isDefined) {check inter @server.checkInterval.get}
+  server @server.flattenName @server.host:@server.port @if(backend.mode == Mode.http) {cookie @server.flattenName} weight @server.weight maxconn @server.maxConn @if(server.checkInterval.isDefined) {check inter @server.checkInterval.get}
   }
 
   @if(backend.options.abortOnClose)     {option abortonclose      }

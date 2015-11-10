@@ -27,29 +27,36 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     gateways.map(convert).reduceOption((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends)).getOrElse(HaProxy(Nil, Nil))
   }
 
-  private[haproxy] def convert(gateway: Gateway): HaProxy = HaProxy(frontends(gateway), backends(gateway))
+  private[haproxy] def convert(gateway: Gateway): HaProxy = {
+    val be = backends(gateway)
+    HaProxy(frontends(be)(gateway), be)
+  }
 
-  private def frontends(implicit gateway: Gateway): List[Frontend] = Frontend(
-    name = gateway.name,
-    bindIp = Option("0.0.0.0"),
-    bindPort = Option(gateway.port),
-    mode = mode,
-    unixSock = None,
-    sockProtocol = None,
-    options = Options(),
-    filters = filters,
-    defaultBackend = gateway.name) :: gateway.services.map { service ⇒
-      Frontend(
-        name = s"${gateway.name}$pathDelimiter${service.name}",
-        bindIp = None,
-        bindPort = None,
-        mode = mode,
-        unixSock = Option(unixSocket(service)),
-        sockProtocol = Option("accept-proxy"),
-        options = Options(),
-        filters = Nil,
-        defaultBackend = s"${gateway.name}$pathDelimiter${service.name}")
-    }
+  private def frontends(backends: List[Backend])(implicit gateway: Gateway): List[Frontend] = {
+    def backendFor(name: String) = backends.find(_.name == name).getOrElse(throw new IllegalArgumentException(s"No backend: $name"))
+
+    Frontend(
+      name = gateway.name,
+      bindIp = Option("0.0.0.0"),
+      bindPort = Option(gateway.port),
+      mode = mode,
+      unixSock = None,
+      sockProtocol = None,
+      options = Options(),
+      filters = filters,
+      defaultBackend = backendFor(gateway.name)) :: gateway.services.map { service ⇒
+        Frontend(
+          name = s"${gateway.name}$pathDelimiter${service.name}",
+          bindIp = None,
+          bindPort = None,
+          mode = mode,
+          unixSock = Option(unixSocket(service)),
+          sockProtocol = Option("accept-proxy"),
+          options = Options(),
+          filters = Nil,
+          defaultBackend = backendFor(s"${gateway.name}$pathDelimiter${service.name}"))
+      }
+  }
 
   private def backends(implicit gateway: Gateway): List[Backend] = Backend(
     name = gateway.name,
@@ -100,7 +107,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     Filter(name, condition, s"${gateway.name}$pathDelimiter${filter.destination}", negate)
   }
 
-  private def mode(implicit gateway: Gateway) = if (gateway.protocol == Interface.Mode.http.toString) Interface.Mode.http else Interface.Mode.tcp
+  private def mode(implicit gateway: Gateway) = if (gateway.protocol == Mode.http.toString) Mode.http else Mode.tcp
 
   private def unixSocket(service: Service)(implicit gateway: Gateway) = s"$socketPath/${Hash.hexSha1(s"${gateway.name}$pathDelimiter${service.name}")}.sock"
 }
