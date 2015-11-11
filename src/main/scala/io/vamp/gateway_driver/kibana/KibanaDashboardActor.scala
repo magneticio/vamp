@@ -2,46 +2,54 @@ package io.vamp.gateway_driver.kibana
 
 import akka.actor._
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka._
 import io.vamp.common.vitals.InfoRequest
+import io.vamp.gateway_driver.haproxy.Flatten
+import io.vamp.gateway_driver.kibana.KibanaDashboardActor.KibanaDashboardUpdate
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
-import io.vamp.model.artifact.{ Deployment, DeploymentCluster }
-import io.vamp.model.event.Event
-import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
-import io.vamp.pulse.{ PulseActor, PulseEventTags }
+import io.vamp.model.artifact.Deployment
+import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.pulse.ElasticsearchClient
 
 import scala.concurrent.Future
 import scala.language.postfixOps
+
+class KibanaDashboardSchedulerActor extends SchedulerActor with GatewayDriverNotificationProvider {
+
+  def tick() = IoC.actorFor[KibanaDashboardActor] ! KibanaDashboardUpdate
+}
 
 object KibanaDashboardActor {
 
   object KibanaDashboardUpdate
 
-  object KibanaDashboardDelete
+  val kibanaIndex = ".kibana"
+
+  val logstashType = "haproxy"
 
   val configuration = ConfigFactory.load().getConfig("vamp.gateway-driver.kibana")
 
   val enabled = configuration.getBoolean("enabled")
 
-  val logstashIndex = configuration.getString("logstash-index")
+  val logstashIndex = configuration.getString("logstash.index")
 
   val elasticsearchUrl = configuration.getString("elasticsearch.url")
 }
 
-class KibanaDashboardActor extends CommonSupportForActors with GatewayDriverNotificationProvider {
+class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportForActors with GatewayDriverNotificationProvider {
 
   import KibanaDashboardActor._
-  import PulseEventTags.DeploymentSynchronization._
 
-  private val percolator = "kibana://"
+  private val es = new ElasticsearchClient(elasticsearchUrl)
 
   def receive: Receive = {
-    case Start ⇒ start()
-    case Shutdown ⇒ shutdown()
     case InfoRequest ⇒ reply(info)
-    case (KibanaDashboardUpdate, Event(_, (deployment: Deployment, cluster: DeploymentCluster), _, _)) ⇒ update(deployment, cluster)
-    case (KibanaDashboardDelete, Event(_, (deployment: Deployment, cluster: DeploymentCluster), _, _)) ⇒ delete(deployment, cluster)
+
+    case KibanaDashboardUpdate ⇒ if (enabled) {
+      implicit val timeout = PersistenceActor.timeout
+      allArtifacts[Deployment] map update
+    }
+
     case _ ⇒
   }
 
@@ -49,21 +57,39 @@ class KibanaDashboardActor extends CommonSupportForActors with GatewayDriverNoti
     Map("enabled" -> enabled, "logstash-index" -> logstashIndex)
   }
 
-  private def start() = if (enabled) {
-    IoC.actorFor[PulseActor] ! RegisterPercolator(s"${percolator}update", Set(updateTag), KibanaDashboardUpdate)
-    IoC.actorFor[PulseActor] ! RegisterPercolator(s"${percolator}delete", Set(deleteTag), KibanaDashboardDelete)
+  private def update(deployments: List[Deployment]) = deployments.foreach { deployment ⇒
+    deployment.clusters.foreach { cluster ⇒
+      cluster.services.filter(_.state.isDeployed).foreach { service ⇒
+        service.breed.ports.foreach { port ⇒
+          val id = Flatten.flatten(s"${deployment.name}:${cluster.name}:${port.number}::${service.breed.name}")
+          es.exists(kibanaIndex, Option("search"), id, () ⇒ {
+            log.debug(s"Kibana search exists for: $id")
+          }, () ⇒ {
+            log.info(s"Creating Kibana search for: $id")
+            es.index(kibanaIndex, "search", Option(id), searchDocument(id))
+          })
+        }
+      }
+    }
   }
 
-  private def shutdown() = if (enabled) {
-    IoC.actorFor[PulseActor] ! UnregisterPercolator(s"${percolator}update")
-    IoC.actorFor[PulseActor] ! UnregisterPercolator(s"${percolator}delete")
-  }
-
-  private def update(deployment: Deployment, cluster: DeploymentCluster) = {
-    //println(s"update: ${deployment.name} -> ${cluster.name}")
-  }
-
-  private def delete(deployment: Deployment, cluster: DeploymentCluster) = {
-    //println(s"delete: ${deployment.name} -> ${cluster.name}")
-  }
+  private def searchDocument(id: String) =
+    s"""
+       |{
+       |    "title": "$id",
+       |    "description": "",
+       |    "hits": 0,
+       |    "columns": [
+       |      "_source"
+       |    ],
+       |    "sort": [
+       |      "@timestamp",
+       |      "desc"
+       |    ],
+       |    "version": 1,
+       |    "kibanaSavedObjectMeta": {
+       |      "searchSourceJSON": "{\\\"index\\\":\\\"$logstashIndex\\\",\\\"highlight\\\":{\\\"pre_tags\\\":[\\\"@kibana-highlighted-field@\\\"],\\\"post_tags\\\":[\\\"@/kibana-highlighted-field@\\\"],\\\"fields\\\":{\\\"*\\\":{}},\\\"require_field_match\\\":false,\\\"fragment_size\\\":2147483647},\\\"filter\\\":[],\\\"query\\\":{\\\"query_string\\\":{\\\"query\\\":\\\"type: \\\\\\"$logstashType\\\\\\" AND b: \\\\\\"$id\\\\\\"\\\",\\\"analyze_wildcard\\\":true}}}"
+       |    }
+       |  }
+      """.stripMargin
 }
