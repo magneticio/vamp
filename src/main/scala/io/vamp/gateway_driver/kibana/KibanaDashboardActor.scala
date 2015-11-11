@@ -50,10 +50,10 @@ class KibanaDashboardActor extends CommonSupportForActors with GatewayDriverNoti
   }
 
   private def update(deployment: Deployment, cluster: DeploymentCluster) = {
-    println(s"update: ${deployment.name} -> ${cluster.name}")
+    //println(s"update: ${deployment.name} -> ${cluster.name}")
   }
 
   private def delete(deployment: Deployment, cluster: DeploymentCluster) = {
-    println(s"delete: ${deployment.name} -> ${cluster.name}")
+    //println(s"delete: ${deployment.name} -> ${cluster.name}")
   }
 }
