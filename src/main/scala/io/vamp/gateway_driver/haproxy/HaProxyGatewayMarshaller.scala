@@ -7,7 +7,7 @@ import io.vamp.gateway_driver.model.{ Filter ⇒ GatewayFilter, Gateway, Service
 
 trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
-  override def info: AnyRef = "HAProxy v1.6.x"
+  override def info: AnyRef = "HAProxy v1.5.x"
 
   private val socketPath = "/opt/vamp"
   private val pathDelimiter = "::"

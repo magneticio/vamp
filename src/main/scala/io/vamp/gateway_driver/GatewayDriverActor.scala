@@ -7,6 +7,7 @@ import io.vamp.common.crypto.Hash
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.gateway_driver.GatewayStore.{ Get, Put }
+import io.vamp.gateway_driver.kibana.KibanaDashboardActor
 import io.vamp.gateway_driver.model._
 import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
 import io.vamp.model.artifact._
@@ -53,7 +54,12 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends GatewayConverter
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 
-  private def info = IoC.actorFor[GatewayStore] ? InfoRequest map { case data ⇒ Map("store" -> data, "marshaller" -> marshaller.info) }
+  private def info = (for {
+    store ← IoC.actorFor[GatewayStore] ? InfoRequest
+    kibana ← IoC.actorFor[KibanaDashboardActor] ? InfoRequest
+  } yield (store, kibana)).map {
+    case (store, kibana) ⇒ Map("store" -> store, "marshaller" -> marshaller.info, "kibana" -> kibana)
+  }
 
   private def getAllAfterPurge(deployments: List[Deployment]) = {
     log.debug(s"Read all gateways")
