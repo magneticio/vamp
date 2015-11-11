@@ -42,6 +42,10 @@ object PulseActor {
 
   val indexName = configuration.getString("elasticsearch.index.name")
 
+  val indexTimeFormat: Map[String, String] = configuration.getConfig("elasticsearch.index.time-format").entrySet.asScala.map { entry ⇒
+    entry.getKey -> entry.getValue.unwrapped.toString
+  } toMap
+
   trait PulseMessage
 
   case class Publish(event: Event, publishEventValue: Boolean = true) extends PulseMessage
@@ -50,7 +54,7 @@ object PulseActor {
 
 }
 
-class PulseActor extends PulseFailureNotifier with Percolator with EventValidator with CommonSupportForActors with PulseNotificationProvider {
+class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator with EventValidator with CommonSupportForActors with PulseNotificationProvider {
 
   import ElasticsearchClient._
   import PulseActor._
@@ -58,10 +62,6 @@ class PulseActor extends PulseFailureNotifier with Percolator with EventValidato
   implicit val timeout = PulseActor.timeout
 
   private lazy val elasticsearch = new ElasticsearchClient(elasticsearchUrl)
-
-  private val indexTimeFormat: Map[String, String] = configuration.getConfig("elasticsearch.index.time-format").entrySet.asScala.map { entry ⇒
-    entry.getKey -> entry.getValue.unwrapped.toString
-  } toMap
 
   override def errorNotificationClass = classOf[PulseResponseError]
 
@@ -91,22 +91,15 @@ class PulseActor extends PulseFailureNotifier with Percolator with EventValidato
 
   private def publish(publishEventValue: Boolean)(event: Event) = {
     implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
-    val (indexName, typeName) = indexTypeName(event)
+    val (indexName, typeName) = indexTypeName(event.`type`)
     log.debug(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
 
-    elasticsearch.index(indexName, Some(typeName), if (publishEventValue) event else event.copy(value = None)) map {
+    elasticsearch.index(indexName, typeName, None, if (publishEventValue) event else event.copy(value = None)) map {
       case response: ElasticsearchIndexResponse ⇒ response
       case other ⇒
         log.error(s"Unexpected index result: ${other.toString}.")
         other
     }
-  }
-
-  private def indexTypeName(event: Event): (String, String) = {
-    val schema = event.`type`
-    val format = indexTimeFormat.getOrElse(schema, indexTimeFormat.getOrElse("event", "YYYY-MM-dd"))
-    val time = OffsetDateTime.now().format(DateTimeFormatter.ofPattern(format))
-    s"$indexName-$schema-$time" -> schema
   }
 
   private def eventQuery(page: Int, perPage: Int)(query: EventQuery): Future[Any] = {
@@ -198,5 +191,15 @@ class PulseActor extends PulseFailureNotifier with Percolator with EventValidato
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = {
     percolate(failureNotificationEvent(failure))
     reportException(`class`.getConstructors()(0).newInstance(failure.asInstanceOf[AnyRef]).asInstanceOf[Notification])
+  }
+}
+
+trait PulseEvent {
+  import PulseActor._
+
+  def indexTypeName(schema: String = "event"): (String, String) = {
+    val format = indexTimeFormat.getOrElse(schema, indexTimeFormat.getOrElse("event", "YYYY-MM-dd"))
+    val time = OffsetDateTime.now().format(DateTimeFormatter.ofPattern(format))
+    s"$indexName-$schema-$time" -> schema
   }
 }
