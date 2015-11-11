@@ -20,8 +20,6 @@ trait Percolator {
 
   protected val percolators = mutable.Map[String, PercolatorEntry]()
 
-  protected val logMatch = true
-
   def registerPercolator(name: String, tags: Set[String], message: Any) = {
     log.info(s"Registering percolator '$name' for tags '${tags.mkString(", ")}'.")
     percolators.put(name, PercolatorEntry(tags, sender(), message))
@@ -36,7 +34,7 @@ trait Percolator {
     percolators.foreach {
       case (name, percolator) ⇒
         if (percolator.tags.forall(event.tags.contains)) {
-          if (logMatch) log.debug(s"Percolate match for '$name'.")
+          log.debug(s"Percolate match for '$name'.")
           percolator.actor ! (percolator.message -> event)
         }
     }

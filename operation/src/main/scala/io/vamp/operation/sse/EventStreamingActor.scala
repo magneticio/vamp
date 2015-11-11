@@ -28,22 +28,13 @@ class EventStreamingActor extends CommonSupportForActors with OperationNotificat
 
   def receive: Receive = {
 
-    case OpenStream(channel, tags) ⇒
-      val action = RegisterPercolator(s"$percolator$channel", tags, Channel(channel))
+    case OpenStream(channel, tags)        ⇒ actorFor[PulseActor] ! RegisterPercolator(s"$percolator$channel", tags, Channel(channel))
 
-      actorFor[PulseActor] ! action
-      actorFor[SseConsumerActor] ! action
+    case CloseStream(channel)             ⇒ actorFor[PulseActor] ! UnregisterPercolator(s"$percolator$channel")
 
-    case CloseStream(channel) ⇒
-      val action = UnregisterPercolator(s"$percolator$channel")
+    case (Channel(channel), event: Event) ⇒ channel ! SseMessage(Some(event.`type`), write(event)(SerializationFormat(OffsetDateTimeSerializer)))
 
-      actorFor[PulseActor] ! action
-      actorFor[SseConsumerActor] ! action
-
-    case (Channel(channel), event: Event) ⇒
-      channel ! SseMessage(Some(event.`type`), write(event)(SerializationFormat(OffsetDateTimeSerializer)))
-
-    case _ ⇒
+    case _                                ⇒
   }
 }
 

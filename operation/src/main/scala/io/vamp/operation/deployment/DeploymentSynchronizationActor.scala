@@ -10,16 +10,19 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerServer, ContainerService }
-import io.vamp.gateway_driver.model.{ EndpointGateway, GatewayService, ClusterGateway, DeploymentGateways }
+import io.vamp.gateway_driver._
+import io.vamp.gateway_driver.model.{ ClusterGateway, DeploymentGateways, EndpointGateway, GatewayService }
 import io.vamp.model.artifact.DeploymentService.State.Intention
 import io.vamp.model.artifact.DeploymentService.State.Step._
 import io.vamp.model.artifact.DeploymentService._
 import io.vamp.model.artifact._
+import io.vamp.model.event.Event
 import io.vamp.model.resolver.DeploymentTraitResolver
-import io.vamp.operation.deployment.DeploymentSynchronizationActor.{ Synchronize, SynchronizeAll }
+import io.vamp.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification.{ DeploymentServiceError, InternalServerError, OperationNotificationProvider }
 import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
-import io.vamp.gateway_driver._
+import io.vamp.pulse.{ PulseEventTags, PulseActor }
+import io.vamp.pulse.PulseActor.Publish
 
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -34,10 +37,12 @@ object DeploymentSynchronizationActor {
   object SynchronizeAll
 
   case class Synchronize(deployment: Deployment)
-
 }
 
 class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
+
+  import DeploymentSynchronizationActor._
+  import PulseEventTags.DeploymentSynchronization._
 
   private object Processed {
 
@@ -319,8 +324,9 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
     val resolve = updateEnvironmentVariables(deployment, processedClusters.filter(_.state == Processed.ResolveEnvironmentVariables))
     val persist = processedClusters.filter(_.state == Processed.Persist).map(_.cluster)
     val remove = processedClusters.filter(_.state == Processed.RemoveFromPersistence).map(_.cluster)
+    val update = persist ++ resolve
 
-    (updatePorts(persist) andThen purgeTraits(persist, remove) andThen updateEndpoints(remove, routes) andThen persistDeployment(persist ++ resolve, remove))(deployment)
+    (updatePorts(persist) andThen purgeTraits(persist, remove) andThen updateEndpoints(remove, routes) andThen sendDeploymentEvents(update, remove) andThen persistDeployment(update, remove))(deployment)
   }
 
   private def updatePorts(persist: List[DeploymentCluster]): (Deployment ⇒ Deployment) = { deployment: Deployment ⇒
@@ -397,6 +403,17 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
         }
       }
     }
+
+    deployment
+  }
+
+  private def sendDeploymentEvents(persist: List[DeploymentCluster], remove: List[DeploymentCluster]): (Deployment ⇒ Deployment) = { deployment: Deployment ⇒
+
+    def tags(tag: String, cluster: DeploymentCluster) = Set(s"deployments${Event.tagDelimiter}${deployment.name}", s"clusters${Event.tagDelimiter}${cluster.name}", tag)
+
+    remove.foreach(cluster ⇒ actorFor[PulseActor] ! Publish(Event(tags(deleteTag, cluster), deployment -> cluster), publishEventValue = false))
+
+    persist.filter(_.services.forall(_.state.isDone)).foreach(cluster ⇒ actorFor[PulseActor] ! Publish(Event(tags(updateTag, cluster), deployment -> cluster), publishEventValue = false))
 
     deployment
   }

@@ -17,11 +17,11 @@ trait VampCore extends App {
 
   def bootstrap = {
     List() :+
+      PulseBootstrap :+
       PersistenceBootstrap :+
       DictionaryBootstrap :+
       ContainerDriverBootstrap :+
       GatewayDriverBootstrap :+
-      PulseBootstrap :+
       OperationBootstrap :+
       RestApiBootstrap
   }
