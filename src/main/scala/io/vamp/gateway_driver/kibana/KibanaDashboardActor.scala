@@ -45,7 +45,9 @@ class KibanaDashboardActor extends CommonSupportForActors with GatewayDriverNoti
     case _ ⇒
   }
 
-  private def info = Future.successful("enabled" -> enabled)
+  private def info = Future.successful {
+    Map("enabled" -> enabled, "logstash-index" -> logstashIndex)
+  }
 
   private def start() = if (enabled) {
     IoC.actorFor[PulseActor] ! RegisterPercolator(s"${percolator}update", Set(updateTag), KibanaDashboardUpdate)
