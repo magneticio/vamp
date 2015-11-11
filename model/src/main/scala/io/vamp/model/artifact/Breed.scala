@@ -119,8 +119,8 @@ case class Port(name: String, alias: Option[String], value: Option[String]) exte
   }
 
   lazy val `type`: Port.Value = value match {
-    case None    ⇒ Port.Tcp
-    case Some(v) ⇒ if (v.toLowerCase.endsWith(http)) Port.Http else Port.Tcp
+    case None    ⇒ Port.Http
+    case Some(v) ⇒ if (v.toLowerCase.endsWith(tcp)) Port.Tcp else Port.Http
   }
 }
 

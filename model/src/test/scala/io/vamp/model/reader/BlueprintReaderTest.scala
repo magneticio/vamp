@@ -476,4 +476,30 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("HEAP")
     )
   }
+
+  it should "process default port type" in {
+    val blueprint = BlueprintReader.read(res("blueprint/blueprint54.yml")).asInstanceOf[DefaultBlueprint]
+
+    blueprint should have(
+      'name("nomadic-frostbite"),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")), Port("supersonic.ports.health", None, Some("8080/tcp")), Port("supersonic.ports.metrics", None, Some("8080/http")))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("docker", Some("vamp/solid-barbershop")), List(Port("port", None, Some("80/http")), Port("health", None, Some("8080")), Port("metrics", None, Some("8090/tcp"))), Nil, Nil, Map()), Nil, None, None, Map())), None, Map())))
+    )
+
+    blueprint.endpoints.foreach {
+      case port: Port if port.name == "supersonic.ports.port"    ⇒ port.`type` shouldBe Port.Http
+      case port: Port if port.name == "supersonic.ports.health"  ⇒ port.`type` shouldBe Port.Tcp
+      case port: Port if port.name == "supersonic.ports.metrics" ⇒ port.`type` shouldBe Port.Http
+    }
+
+    blueprint.clusters.find(_.name == "supersonic") map {
+      case cluster ⇒ cluster.services.find(service ⇒ service.breed.name == "solid-barbershop") map { service ⇒
+        service.breed.asInstanceOf[DefaultBreed].ports.foreach {
+          case port: Port if port.name == "port"    ⇒ port.`type` shouldBe Port.Http
+          case port: Port if port.name == "health"  ⇒ port.`type` shouldBe Port.Http
+          case port: Port if port.name == "metrics" ⇒ port.`type` shouldBe Port.Tcp
+        }
+      }
+    }
+  }
 }
