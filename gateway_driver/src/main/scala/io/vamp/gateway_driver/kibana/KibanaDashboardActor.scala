@@ -1,6 +1,7 @@
 package io.vamp.gateway_driver.kibana
 
 import akka.actor._
+import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka._
 import io.vamp.common.vitals.InfoRequest
@@ -19,6 +20,13 @@ object KibanaDashboardActor {
 
   object KibanaDashboardDelete
 
+  val configuration = ConfigFactory.load().getConfig("vamp.gateway-driver.kibana")
+
+  val enabled = configuration.getBoolean("enabled")
+
+  val logstashIndex = configuration.getString("logstash-index")
+
+  val elasticsearchUrl = configuration.getString("elasticsearch.url")
 }
 
 class KibanaDashboardActor extends CommonSupportForActors with GatewayDriverNotificationProvider {
@@ -37,14 +45,14 @@ class KibanaDashboardActor extends CommonSupportForActors with GatewayDriverNoti
     case _ ⇒
   }
 
-  private def info = Future.successful("enabled" -> true)
+  private def info = Future.successful("enabled" -> enabled)
 
-  private def start() = {
+  private def start() = if (enabled) {
     IoC.actorFor[PulseActor] ! RegisterPercolator(s"${percolator}update", Set(updateTag), KibanaDashboardUpdate)
     IoC.actorFor[PulseActor] ! RegisterPercolator(s"${percolator}delete", Set(deleteTag), KibanaDashboardDelete)
   }
 
-  private def shutdown() = {
+  private def shutdown() = if (enabled) {
     IoC.actorFor[PulseActor] ! UnregisterPercolator(s"${percolator}update")
     IoC.actorFor[PulseActor] ! UnregisterPercolator(s"${percolator}delete")
   }

@@ -25,23 +25,23 @@ object RestClient {
 
   val jsonHeaders: List[(String, String)] = List("Accept" -> "application/json", "Content-Type" -> "application/json")
 
-  def get[A](url: String, headers: List[(String, String)] = jsonHeaders)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
-    http[A](Method.GET, url, None, headers)
+  def get[A](url: String, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
+    http[A](Method.GET, url, None, headers, logError)
   }
 
-  def post[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
-    http[A](Method.POST, url, body, headers)
+  def post[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
+    http[A](Method.POST, url, body, headers, logError)
   }
 
-  def put[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
-    http[A](Method.PUT, url, body, headers)
+  def put[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
+    http[A](Method.PUT, url, body, headers, logError)
   }
 
-  def delete(url: String, headers: List[(String, String)] = jsonHeaders)(implicit executor: ExecutionContext) = {
-    http(Method.DELETE, url, None)
+  def delete(url: String, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext) = {
+    http(Method.DELETE, url, None, headers, logError)
   }
 
-  def http[A](method: Method.Value, url: String, body: Any, headers: List[(String, String)] = jsonHeaders)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
+  def http[A](method: Method.Value, url: String, body: Any, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
 
     val requestLog = s"[${method.toString} $url]"
 
@@ -70,15 +70,19 @@ object RestClient {
 
         case status ⇒
           val message = s"rsp $requestLog - unexpected status code: $status"
-          logger.error(message)
+          if (logError) logger.error(message)
           logger.trace(s"$message, for response: ${response.getResponseBody}")
           throw RestClientException(Some(status), response.getResponseBody)
       }
     }).recover {
       case exception ⇒
         val message = s"rsp $requestLog - exception: ${exception.getMessage}"
-        logger.error(message)
-        logger.trace(message, exception)
+
+        if (logError) {
+          logger.error(message)
+          logger.trace(message, exception)
+        }
+
         throw RestClientException(None, exception.getMessage).initCause(if (exception.getCause != null) exception.getCause else exception)
     }
   }

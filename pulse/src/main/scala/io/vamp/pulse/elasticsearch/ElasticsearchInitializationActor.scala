@@ -5,6 +5,7 @@ import io.vamp.common.akka.Bootstrap.Start
 import io.vamp.common.akka._
 import io.vamp.common.http.RestClient
 import io.vamp.common.notification.NotificationProvider
+import io.vamp.pulse.PulseActor
 import io.vamp.pulse.notification.ElasticsearchInitializationTimeoutError
 
 import scala.language.postfixOps
@@ -26,17 +27,23 @@ object ElasticsearchInitializationActor {
 
   case object Done extends State
 
+  case class TemplateDefinition(name: String, template: String)
+
+  case class DocumentDefinition(index: String, `type`: String, id: String, document: String)
+
 }
 
 trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationActor.State, Int] with CommonSupportForActors with NotificationProvider {
 
   import ElasticsearchInitializationActor._
 
-  def templates: Map[String, String]
+  def templates: List[TemplateDefinition] = Nil
 
-  def timeout: akka.util.Timeout
+  def documents: List[DocumentDefinition] = Nil
 
   def elasticsearchUrl: String
+
+  lazy val timeout = PulseActor.timeout
 
   def done() = goto(Done) using 0
 
@@ -45,10 +52,15 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
   when(Idle) {
     case Event(Start, 0) ⇒
       log.info(s"Starting with Elasticsearch initialization.")
-      initializeTemplates()
-      goto(Active) using 1
+      goto(Active) using 2 // initializeTemplates + initializeDocuments
 
     case Event(_, _) ⇒ stay()
+  }
+
+  onTransition {
+    case Idle -> Active ⇒
+      initializeTemplates()
+      initializeDocuments()
   }
 
   when(Active, stateTimeout = timeout.duration) {
@@ -70,9 +82,9 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
   protected def initializeTemplates() = {
     val receiver = self
 
-    def createTemplate(name: String) = templates.get(name).foreach { template ⇒
+    def createTemplate(definition: TemplateDefinition) = {
       receiver ! WaitForOne
-      RestClient.put[Any](s"$elasticsearchUrl/_template/$name", template) onComplete {
+      RestClient.put[Any](s"$elasticsearchUrl/_template/${definition.name}", definition.template) onComplete {
         case _ ⇒ receiver ! DoneWithOne
       }
     }
@@ -80,14 +92,36 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
     RestClient.get[Any](s"$elasticsearchUrl/_template") onComplete {
       case Success(response) ⇒
         response match {
-          case map: Map[_, _] ⇒ templates.keys.filterNot(name ⇒ map.asInstanceOf[Map[String, Any]].contains(name)).foreach(createTemplate)
-          case _              ⇒ templates.keys.foreach(createTemplate)
+          case map: Map[_, _] ⇒ templates.filterNot(definition ⇒ map.asInstanceOf[Map[String, Any]].contains(definition.name)).foreach(createTemplate)
+          case _              ⇒ templates.foreach(createTemplate)
         }
         receiver ! DoneWithOne
 
       case Failure(t) ⇒
-        log.warning(s"Failed to do part of Elasticsearch initialization: $t")
+        log.warning(s"Failed Elasticsearch initialization: $t")
         receiver ! DoneWithOne
     }
+  }
+
+  protected def initializeDocuments() = {
+    val receiver = self
+
+    def createDocument(documentId: String, document: String) = {
+      receiver ! WaitForOne
+      RestClient.put[Any](s"$elasticsearchUrl/$documentId", document) onComplete {
+        case _ ⇒ receiver ! DoneWithOne
+      }
+    }
+
+    documents.foreach { definition ⇒
+      val documentId = s"${definition.index}/${definition.`type`}/${definition.id}"
+
+      RestClient.get[Any](s"$elasticsearchUrl/$documentId", RestClient.jsonHeaders, logError = false) onComplete {
+        case Success(map: Map[_, _]) if map.asInstanceOf[Map[String, Any]].getOrElse("found", false) == true ⇒
+        case _ ⇒ createDocument(documentId, definition.document)
+      }
+    }
+
+    receiver ! DoneWithOne
   }
 }
