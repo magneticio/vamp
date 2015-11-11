@@ -14,8 +14,6 @@ class KibanaDashboardInitializationActor extends ElasticsearchInitializationActo
 
   lazy val elasticsearchUrl = KibanaDashboardActor.elasticsearchUrl
 
-  private val kibanaIndex = ".kibana"
-
   override lazy val documents: List[DocumentDefinition] = {
     def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"$name.json")).mkString
     if (enabled) List(DocumentDefinition(kibanaIndex, "index-pattern", logstashIndex, load("kibana_init"))) else Nil

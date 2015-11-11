@@ -36,5 +36,8 @@ object OperationBootstrap extends Bootstrap {
     if (WorkflowConfiguration.enabled) IoC.actorFor[WorkflowSchedulerActor] ! Shutdown
 
     IoC.actorFor[EventStreamingActor] ! Shutdown
+    IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
+    IoC.actorFor[SlaSchedulerActor] ! SchedulerActor.Period(0 seconds)
+    IoC.actorFor[EscalationSchedulerActor] ! SchedulerActor.Period(0 seconds)
   }
 }

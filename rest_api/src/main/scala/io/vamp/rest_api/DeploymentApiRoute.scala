@@ -7,6 +7,7 @@ import akka.util.Timeout
 import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, ExecutionContextProvider, IoC }
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
+import io.vamp.gateway_driver.kibana.KibanaDashboardActor
 import io.vamp.model.artifact.Deployment
 import io.vamp.model.artifact.DeploymentService.State
 import io.vamp.operation.controller.DeploymentApiController
@@ -40,6 +41,10 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
   } ~ path("reset") {
     respondWithStatus(Accepted) {
       complete(reset())
+    }
+  } ~ path("kibana") {
+    respondWithStatus(Accepted) {
+      complete(kibana())
     }
   }
 
@@ -173,5 +178,7 @@ trait DevController {
     }
     sync()
   }
+
+  def kibana(): Unit = IoC.actorFor[KibanaDashboardActor] ! KibanaDashboardActor.KibanaDashboardUpdate
 }
 

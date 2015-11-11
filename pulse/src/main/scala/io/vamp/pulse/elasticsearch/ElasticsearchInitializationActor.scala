@@ -5,7 +5,7 @@ import io.vamp.common.akka.Bootstrap.Start
 import io.vamp.common.akka._
 import io.vamp.common.http.RestClient
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.pulse.PulseActor
+import io.vamp.pulse.{ ElasticsearchClient, PulseActor }
 import io.vamp.pulse.notification.ElasticsearchInitializationTimeoutError
 
 import scala.language.postfixOps
@@ -106,21 +106,15 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
   protected def initializeDocuments(): Unit = {
     val receiver = self
-
-    def createDocument(documentId: String, document: String) = {
-      receiver ! WaitForOne
-      RestClient.put[Any](s"$elasticsearchUrl/$documentId", document) onComplete {
-        case _ ⇒ receiver ! DoneWithOne
-      }
-    }
+    val es = new ElasticsearchClient(elasticsearchUrl)
 
     documents.foreach { definition ⇒
-      val documentId = s"${definition.index}/${definition.`type`}/${definition.id}"
-
-      RestClient.get[Any](s"$elasticsearchUrl/$documentId", RestClient.jsonHeaders, logError = false) onComplete {
-        case Success(map: Map[_, _]) if map.asInstanceOf[Map[String, Any]].getOrElse("found", false) == true ⇒
-        case _ ⇒ createDocument(documentId, definition.document)
-      }
+      es.exists(definition.index, Option(definition.`type`), definition.id, () ⇒ {}, () ⇒ {
+        receiver ! WaitForOne
+        es.index(definition.index, definition.`type`, Option(definition.id), definition.document) onComplete {
+          case _ ⇒ receiver ! DoneWithOne
+        }
+      })
     }
 
     receiver ! DoneWithOne

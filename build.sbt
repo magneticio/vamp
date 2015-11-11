@@ -179,7 +179,7 @@ lazy val gateway_driver = project.settings(bintraySetting: _*).settings(
   name := "gateway_driver",
   formatting,
   libraryDependencies ++= twirl ++ zookeeper ++ testing
-).dependsOn(model, pulse).enablePlugins(SbtTwirl).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(model, pulse, persistence).enablePlugins(SbtTwirl).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val container_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to container managers",

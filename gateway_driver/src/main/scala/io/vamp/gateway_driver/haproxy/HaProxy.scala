@@ -2,10 +2,14 @@ package io.vamp.gateway_driver.haproxy
 
 case class HaProxy(frontends: List[Frontend], backends: List[Backend])
 
+object Flatten {
+  def flatten(string: String) = string.replaceAll("[^\\p{L}\\d]", "_")
+}
+
 trait FlattenName {
   def name: String
 
-  def flattenName = name.replaceAll("[^\\p{L}\\d]", "_")
+  def flattenName = Flatten.flatten(name)
 }
 
 case class Frontend(name: String,
