@@ -13,7 +13,7 @@ object ElasticsearchClient {
 
   case class ElasticsearchSearchHits(total: Long, hits: List[ElasticsearchSearchHit])
 
-  case class ElasticsearchSearchHit(_source: Map[String, Any])
+  case class ElasticsearchSearchHit(_index: String, _type: String, _id: String, _source: Map[String, Any])
 
   case class ElasticsearchCountResponse(count: Long)
 

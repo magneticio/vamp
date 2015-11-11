@@ -52,7 +52,7 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
   when(Idle) {
     case Event(Start, 0) ⇒
       log.info(s"Starting with Elasticsearch initialization.")
-      goto(Active) using 2 // initializeTemplates + initializeDocuments
+      goto(Active) using 3 // initializeTemplates + initializeDocuments + initializeCustom
 
     case Event(_, _) ⇒ stay()
   }
@@ -61,6 +61,7 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
     case Idle -> Active ⇒
       initializeTemplates()
       initializeDocuments()
+      initializeCustom()
   }
 
   when(Active, stateTimeout = timeout.duration) {
@@ -79,7 +80,7 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
   initialize()
 
-  protected def initializeTemplates() = {
+  protected def initializeTemplates(): Unit = {
     val receiver = self
 
     def createTemplate(definition: TemplateDefinition) = {
@@ -103,7 +104,7 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
     }
   }
 
-  protected def initializeDocuments() = {
+  protected def initializeDocuments(): Unit = {
     val receiver = self
 
     def createDocument(documentId: String, document: String) = {
@@ -123,5 +124,9 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
     }
 
     receiver ! DoneWithOne
+  }
+
+  protected def initializeCustom(): Unit = {
+    self ! DoneWithOne
   }
 }
