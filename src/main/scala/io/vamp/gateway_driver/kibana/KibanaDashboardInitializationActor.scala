@@ -18,13 +18,13 @@ class KibanaDashboardInitializationActor extends ElasticsearchInitializationActo
 
   override lazy val documents: List[DocumentDefinition] = {
     def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"$name.json")).mkString
-    List(DocumentDefinition(kibanaIndex, "index-pattern", logstashIndex, load("kibana_init")))
+    if (enabled) List(DocumentDefinition(kibanaIndex, "index-pattern", logstashIndex, load("kibana_init"))) else Nil
   }
 
   override protected def initializeCustom(): Unit = {
     val receiver = self
 
-    RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$kibanaIndex/config/_search", Map()) map {
+    if (enabled) RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$kibanaIndex/config/_search", Map()) map {
       case response: ElasticsearchSearchResponse ⇒
         response.hits.hits.foreach { hit ⇒
           hit._source.get("defaultIndex") match {
