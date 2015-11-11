@@ -44,7 +44,7 @@ object PulseActor {
 
   trait PulseMessage
 
-  case class Publish(event: Event) extends PulseMessage
+  case class Publish(event: Event, publishEventValue: Boolean = true) extends PulseMessage
 
   case class Query(query: EventRequestEnvelope) extends PulseMessage
 
@@ -73,7 +73,7 @@ class PulseActor extends PulseFailureNotifier with Percolator with EventValidato
 
     case InfoRequest                             ⇒ reply(info)
 
-    case Publish(event)                          ⇒ reply((validateEvent andThen percolate andThen publish)(Event.expandTags(event)), classOf[EventIndexError])
+    case Publish(event, publishEventValue)       ⇒ reply((validateEvent andThen percolate andThen publish(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
 
     case Query(envelope)                         ⇒ reply((validateEventQuery andThen eventQuery(envelope.page, envelope.perPage))(envelope.request), classOf[EventQueryError])
 
@@ -89,11 +89,12 @@ class PulseActor extends PulseFailureNotifier with Percolator with EventValidato
     i ← elasticsearch.get(s"/$indexName/_stats/docs")
   } yield Map[String, Any]("elasticsearch" -> e, "index" -> i)
 
-  private def publish(event: Event) = {
+  private def publish(publishEventValue: Boolean)(event: Event) = {
     implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (indexName, typeName) = indexTypeName(event)
     log.debug(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
-    elasticsearch.index(indexName, Some(typeName), event) map {
+
+    elasticsearch.index(indexName, Some(typeName), if (publishEventValue) event else event.copy(value = None)) map {
       case response: ElasticsearchIndexResponse ⇒ response
       case other ⇒
         log.error(s"Unexpected index result: ${other.toString}.")
