@@ -58,26 +58,45 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
   }
 
   private def update(deployments: List[Deployment]): Unit = deployments.foreach { deployment ⇒
-    deployment.clusters.foreach { cluster ⇒
-      cluster.services.filter(_.state.isDeployed).foreach { service ⇒
-        service.breed.ports.foreach { port ⇒
-          val id = Flatten.flatten(s"${deployment.name}:${cluster.name}:${port.number}::${service.breed.name}")
+    val result: List[Future[(String, Boolean)]] = deployment.clusters.flatMap { cluster ⇒
 
-          update("search", id, searchDocument)
-          update("visualization", s"${id}_tt", ttVisualizationDocument(id))
-          update("visualization", s"${id}_count", countVisualizationDocument(id))
+      cluster.services.filter(_.state.isDeployed).flatMap { service ⇒
+        service.breed.ports.map { port ⇒
+          val id = Flatten.flatten(s"${deployment.name}:${cluster.name}:${port.number}::${service.breed.name}")
+          val changed = for {
+            s ← update("search", id, searchDocument)
+            tt ← update("visualization", s"${id}_tt", ttVisualizationDocument(id))
+            count ← update("visualization", s"${id}_count", countVisualizationDocument(id))
+          } yield !(s && tt && count)
+
+          changed map {
+            case c ⇒ (id, c)
+          }
         }
       }
     }
+
+    Future.sequence(result) map {
+      case list if list.exists(_._2) ⇒
+
+        val panels = list.zipWithIndex.map({
+          case ((id, _), index) ⇒ panel(s"${id}_count", s"${id}_tt", 3 * index + 1)
+        }).reduce((p1, p2) ⇒ s"$p1,$p2")
+
+        update("dashboard", Flatten.flatten(s"${deployment.name}"), dashboard(panels))
+    }
   }
 
-  private def update(`type`: String, id: String, create: (String) ⇒ AnyRef): Unit = {
+  private def update(`type`: String, id: String, create: (String) ⇒ AnyRef): Future[Boolean] = {
     es.exists(kibanaIndex, Option(`type`), id, () ⇒ {
       log.debug(s"Kibana ${`type`} exists for: $id")
     }, () ⇒ {
       log.info(s"Creating Kibana ${`type`} for: $id")
       es.index(kibanaIndex, `type`, Option(id), create(id))
-    })
+    }) map {
+      case true ⇒ true
+      case _    ⇒ false
+    } recover { case _ ⇒ false }
   }
 
   private def searchDocument(id: String) =
@@ -95,7 +114,7 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
        |  ],
        |  "version": 1,
        |  "kibanaSavedObjectMeta": {
-       |    "searchSourceJSON": "{\\\"index\\\":\\\"$logstashIndex\\\",\\\"highlight\\\":{\\\"pre_tags\\\":[\\\"@kibana-highlighted-field@\\\"],\\\"post_tags\\\":[\\\"@/kibana-highlighted-field@\\\"],\\\"fields\\\":{\\\"*\\\":{}},\\\"require_field_match\\\":false,\\\"fragment_size\\\":2147483647},\\\"filter\\\":[],\\\"query\\\":{\\\"query_string\\\":{\\\"query\\\":\\\"type: \\\\\\"$logstashType\\\\\\" AND b: \\\\\\"$id\\\\\\"\\\",\\\"analyze_wildcard\\\":true}}}"
+       |    "searchSourceJSON": "{\\\"index\\":\\\"$logstashIndex\\\",\\\"highlight\\\":{\\\"pre_tags\\\":[\\\"@kibana-highlighted-field@\\\"],\\\"post_tags\\\":[\\\"@/kibana-highlighted-field@\\\"],\\\"fields\\\":{\\\"*\\\":{}},\\\"require_field_match\\\":false,\\\"fragment_size\\\":2147483647},\\\"filter\\\":[],\\\"query\\\":{\\\"query_string\\\":{\\\"query\\\":\\\"type: \\\\\\"$logstashType\\\\\\" AND b: \\\\\\"$id\\\\\\"\\\",\\\"analyze_wildcard\\\":true}}}"
        |  }
        |}
       """.stripMargin
@@ -127,4 +146,23 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
        |   }
        |}
    """.stripMargin
+
+  private def dashboard(panel: String)(id: String) =
+    s"""
+       |{
+       |  "title": "$id",
+       |  "hits": 0,
+       |  "description": "",
+       |  "panelsJSON": "[$panel]",
+       |  "optionsJSON": "{\\\"darkTheme\\\":false}",
+       |  "version": 1,
+       |  "timeRestore": false,
+       |  "kibanaSavedObjectMeta": {
+       |    "searchSourceJSON": "{\\\"filter\\\":[{\\\"query\\\":{\\\"query_string\\\":{\\\"analyze_wildcard\\\":true,\\\"query\\\":\\\"*\\\"}}}]}"
+       |  }
+       |}
+   """.stripMargin
+
+  private def panel(id1: String, id2: String, row: Int) =
+    s"""{\\\"col\\\":1,\\\"id\\\":\\\"$id1\\\",\\\"row\\\":$row,\\\"size_x\\\":6,\\\"size_y\\\":3,\\\"type\\\":\\\"visualization\\\"},{\\\"col\\\":7,\\\"id\\\":\\\"$id2\\\",\\\"row\\\":$row,\\\"size_x\\\":6,\\\"size_y\\\":3,\\\"type\\\":\\\"visualization\\\"}"""
 }
