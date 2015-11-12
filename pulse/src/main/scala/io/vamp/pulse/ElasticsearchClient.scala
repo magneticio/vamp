@@ -4,7 +4,6 @@ import io.vamp.common.http.RestClient
 import org.json4s.{ DefaultFormats, Formats }
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.Success
 
 object ElasticsearchClient {
 
@@ -46,10 +45,14 @@ class ElasticsearchClient(url: String)(implicit executor: ExecutionContext) {
   def aggregate(index: String, `type`: Option[String], query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchAggregationResponse] =
     RestClient.post[ElasticsearchAggregationResponse](s"$url/${indexType(index, `type`)}/_search", query)
 
-  def exists(index: String, `type`: Option[String], id: String, exists: () ⇒ Unit, notExists: () ⇒ Unit) = {
-    RestClient.get[Any](s"$url/${indexType(index, `type`)}/$id", RestClient.jsonHeaders, logError = false) onComplete {
-      case Success(map: Map[_, _]) if map.asInstanceOf[Map[String, Any]].getOrElse("found", false) == true ⇒ exists()
-      case _ ⇒ notExists()
+  def exists(index: String, `type`: Option[String], id: String, exists: () ⇒ Unit, notExists: () ⇒ Unit): Future[Boolean] = {
+    RestClient.get[Any](s"$url/${indexType(index, `type`)}/$id", RestClient.jsonHeaders, logError = false) recover { case _ ⇒ false } map {
+      case map: Map[_, _] if map.asInstanceOf[Map[String, Any]].getOrElse("found", false) == true ⇒
+        exists()
+        true
+      case _ ⇒
+        notExists()
+        false
     }
   }
 
