@@ -1,0 +1,28 @@
+{
+  "template": "$NAME",
+  "order": 1,
+  "settings": {
+    "number_of_shards": 5
+  },
+  "mappings": {
+    "_default_": {
+      "_all": {
+        "enabled": false
+      },
+      "properties": {
+        "name": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "artifact": {
+          "type": "string",
+          "index": "no"
+        }
+      }
+    }
+  },
+  "aliases": {
+    "$NAME": {
+    }
+  }
+}

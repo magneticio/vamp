@@ -1,0 +1,21 @@
+
+InternalServerError             : "Internal server error."
+UnsupportedDeploymentRequest    : "Unsupported deployment request."
+NonUniqueBreedReferenceError    : "Multiple references for breed: '{breed.name}'."
+UnresolvedDependencyError       : "Unresolved dependency '{dependency.name}' for breed '{breed.name}'."
+DeploymentSynchronizationFailure: "Failure during deployment '{deployment.name}' synchronization: {exception}"
+UnresolvedVariableValueError    : "Unresolved value of variable '{name}' for breed '{breed.name}'."
+UnsupportedRoutingWeight        : "Total routing weight for deployment '{deployment.name}' and cluster '{cluster.name}' must be either 100% or 0%, not {weight}%"
+UnresolvedEnvironmentValueError : "Unresolved environment value: '{key}'."
+UnsupportedSlaType              : "Unsupported SLA type {`type`} for given parameters."
+DeploymentServiceError          : "Deployment service error for deployment '{deployment.name}' and service '{service.breed.name}'."
+InvalidRoutingWeight            : "Invalid routing weight for cluster '{deployment.name}/{cluster.name}': expected to be either 0% or 100% after the operation, but actually it is {weight}%"
+UnavailableEndpointPortError    : "Endpoint port '{endpoint.name}:{endpoint.number}' is already in use by deployment: '{deployment.name}'."
+WorkflowSchedulingError         : "Workflow scheduling error."
+WorkflowExecutionError          : "Workflow execution error."
+
+InconsistentArtifactName        : "Inconsistent resource name: parameter is '{parameter}' but in the request body found '{artifact.name}'."
+UnexpectedArtifact              : "Unexpected resource: '{artifact}'."
+InvalidTimeTriggerError         : "Not a valid time trigger patter: '{pattern}'."
+MissingRequiredVariableError    : "Required variable '{required}' not found in the storage."
+

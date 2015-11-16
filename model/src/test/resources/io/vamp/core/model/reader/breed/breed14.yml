@@ -1,0 +1,6 @@
+name: monarch
+deployable: magneticio/monarch:latest
+
+environment_variables:
+  port: 80/http
+  port: 8080/http

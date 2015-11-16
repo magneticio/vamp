@@ -1,0 +1,21 @@
+name: monarch
+deployable: magneticio/monarch:latest
+
+ports:
+  port: 8080/tcp
+
+environment_variables:
+  DB_HOST: $db.host
+  DB_PORT: $db.ports.port
+      
+dependencies:
+
+  db: 
+    name: mysql-wrapper
+    deployable: magneticio/mysql-wrapper:latest
+
+    ports:
+      port: 3006/tcp
+    
+    dependencies:
+      mysql: mysql

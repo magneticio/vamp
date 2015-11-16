@@ -1,0 +1,6 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious: solid-barbershop
+  supersonic: solid-barbershop
+      

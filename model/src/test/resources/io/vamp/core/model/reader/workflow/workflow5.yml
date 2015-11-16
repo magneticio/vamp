@@ -1,0 +1,7 @@
+name: logger
+
+requires:
+- deployment
+- cluster
+
+script: vamp.log("hi")

@@ -1,0 +1,12 @@
+name: nomadic-frostbite
+
+endpoints:
+  supersonic.port: 8080
+
+clusters:
+  supersonic:
+    breed: wordpress1
+    scale: large
+    routing:
+      filters:
+        - android

@@ -1,0 +1,5 @@
+name: monarch
+deployable: magneticio/monarch:latest
+
+constants:
+  port: ~

@@ -1,0 +1,4 @@
+name: kill-vamp
+time: 0
+import: vamp.js
+script: vamp.exit()

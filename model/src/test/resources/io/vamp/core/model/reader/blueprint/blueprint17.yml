@@ -1,0 +1,10 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious:
+    services:
+      -
+        breed: nocturnal-viper
+          
+        routing:
+          filters: android

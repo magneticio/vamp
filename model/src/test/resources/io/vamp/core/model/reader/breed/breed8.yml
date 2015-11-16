@@ -1,0 +1,9 @@
+name: monarch
+deployable: magneticio/monarch:latest
+
+dependencies:
+
+  db: 
+    breed:
+      name: mysql
+      deployable: magneticio/mysql:latest

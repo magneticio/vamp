@@ -1,0 +1,7 @@
+
+UnsupportedContainerDriverError  : "Unsupported container type: '{name}'."
+UnsupportedContainerDriverRequest: "Unsupported container driver request."
+ContainerResponseError           : "Container response error."
+UnsupportedDeployableSchema      : "Unsupported deployable schema '{schema}', supported only: {supported}."
+UndefinedDockerImage$            : "Undefined Docker image (deployable)."
+UndefinedMarathonApplication$    : "Undefined Docker image (deployable) and command ('cmd')."

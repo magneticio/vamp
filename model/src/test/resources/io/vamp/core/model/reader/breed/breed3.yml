@@ -1,0 +1,13 @@
+name: monarch
+deployable: magneticio/monarch:latest
+
+ports:
+  port: 8080/http
+
+environment_variables:
+  DB_HOST: $db.host
+  DB_PORT: $db.ports.port
+      
+dependencies:
+
+  db: mysql

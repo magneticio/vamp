@@ -1,0 +1,11 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious:
+    services:
+      -
+        breed:
+          ref: nocturnal-viper
+          
+    sla: strong-mountain
+    

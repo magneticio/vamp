@@ -1,0 +1,11 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious:
+    services:
+      -
+        breed: nocturnal-viper
+        scale:
+           cpu: 0.2
+           memory: 120
+           instances: 2

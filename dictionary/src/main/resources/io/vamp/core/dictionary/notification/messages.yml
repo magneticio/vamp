@@ -1,0 +1,3 @@
+
+UnsupportedDictionaryRequest: "Unsupported dictionary request."
+NoAvailablePortError        : "No port available in the range [{begin}-{end}]."

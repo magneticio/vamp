@@ -1,0 +1,10 @@
+name: monarch1
+deployable: magneticio/monarch1:latest
+    
+dependencies:
+  db: 
+    name: monarch2
+    deployable: magneticio/monarch2:latest
+    dependencies:
+      es:
+        reference: monarch1

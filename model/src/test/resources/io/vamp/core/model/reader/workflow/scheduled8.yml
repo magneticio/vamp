@@ -1,0 +1,4 @@
+name: dead-vamp
+time: 0
+script: vamp.exit()
+workflow: kill-vamp

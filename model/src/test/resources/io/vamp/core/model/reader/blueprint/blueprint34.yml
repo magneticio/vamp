@@ -1,0 +1,12 @@
+name: nomadic-frostbite
+
+clusters:
+
+  supersonic:
+    breed: 
+      name: solid-barbershop
+      deployable: solid/barbershop
+      dependencies:
+        es: elastic-search
+         
+  notorious: elastic-search

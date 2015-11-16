@@ -1,0 +1,14 @@
+name: nomadic-frostbite
+
+endpoints:
+  notorious.port: 8080
+
+clusters:
+  notorious:
+    services:
+      -
+        breed:
+          reference: nocturnal-viper
+          
+env:
+  notorious.aspect: thorium

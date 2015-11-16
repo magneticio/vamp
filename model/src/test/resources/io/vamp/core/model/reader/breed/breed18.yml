@@ -1,0 +1,10 @@
+name: monarch
+deployable: magneticio/monarch:latest
+
+ports:
+  port: $db.ports.web
+
+dependencies:
+  db: 
+    ref: monarch
+

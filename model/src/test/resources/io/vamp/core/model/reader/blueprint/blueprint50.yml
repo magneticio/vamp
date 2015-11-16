@@ -1,0 +1,16 @@
+name: nomadic-frostbite
+
+clusters:
+  supersonic:
+    services:
+      -
+        breed:
+          name: solid-barbershop
+          deployable: vamp/solid-barbershop
+
+          env:
+            HEAP: 1024MB
+
+        env:
+          HEAP[test]: 2GB
+

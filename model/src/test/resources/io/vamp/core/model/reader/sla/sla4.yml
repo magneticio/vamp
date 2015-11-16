@@ -1,0 +1,26 @@
+name: red
+type: response_time_sliding_window
+
+threshold:
+  upper: 1000
+  lower: 100
+
+window:
+  interval: 600
+  cooldown: 600
+
+escalations:
+  - notify
+  - to_one:
+      escalations:
+        -
+          type: scale_instances
+          minimum: 1
+          maximum: 4
+          scale_by: 1
+        -
+          type: scale_cpu
+          minimum: 1
+          maximum: 4
+          scale_by: 1
+    

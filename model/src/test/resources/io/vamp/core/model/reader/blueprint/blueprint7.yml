@@ -1,0 +1,14 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious:
+    services:
+      -
+        breed: nocturnal-viper
+          
+    sla: 
+      type: vital-cloud
+      reborn: red-swallow
+
+      escalations:
+        - red-flag

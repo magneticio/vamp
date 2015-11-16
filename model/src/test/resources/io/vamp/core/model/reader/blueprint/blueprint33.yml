@@ -1,0 +1,5 @@
+name: nomadic-frostbite
+
+clusters:
+  supersonic: solid-barbershop
+  notorious: elastic-search

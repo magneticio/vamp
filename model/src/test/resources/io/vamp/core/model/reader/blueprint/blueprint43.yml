@@ -1,0 +1,14 @@
+name: nomadic-frostbite
+
+endpoints:
+  supersonic.port: 8080
+
+clusters:
+  supersonic:
+    breed:
+      name: monarch
+      deployable: magneticio/monarch:latest
+      dependencies:
+        db:
+          ref: monarch
+
