@@ -1,5 +1,0 @@
-package io.vamp.core.model.notification
-
-import io.vamp.common.notification.{ DefaultPackageMessageResolverProvider, LoggingNotificationProvider }
-
-trait ModelNotificationProvider extends LoggingNotificationProvider with DefaultPackageMessageResolverProvider

@@ -1,10 +1,10 @@
-package io.vamp.core.persistence
+package io.vamp.persistence
 
 import java.util.concurrent.TimeUnit
 
-import io.vamp.core.model.artifact.DeploymentService.State
-import io.vamp.core.model.artifact._
-import io.vamp.core.persistence.notification.UnsupportedPersistenceRequest
+import io.vamp.model.artifact.DeploymentService.State
+import io.vamp.model.artifact._
+import io.vamp.persistence.notification.UnsupportedPersistenceRequest
 
 import scala.concurrent.duration.FiniteDuration
 

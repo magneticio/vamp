@@ -1,0 +1,224 @@
+global
+  pidfile /opt/vamp/haproxy.pid
+  daemon
+  maxconn 4096
+  log /opt/vamp/haproxy.log.sock local0
+
+
+ defaults
+   log global
+   mode http
+   option dontlognull
+   option redispatch
+   option clitcpka
+   option srvtcpka
+   option http-keep-alive
+
+   retries 3
+   maxconn 500000
+
+   # slowloris protection: clients should send their full http request in the configured time
+   timeout http-request 5s
+
+   timeout connect 5000ms
+   timeout client 50000ms
+   timeout server 50000ms
+
+listen stats :1988
+   mode http
+   stats enable
+   stats uri /
+   stats refresh 2s
+   stats realm Haproxy\ Stats
+   stats auth haproxy:haproxy
+
+### BEGIN GENERATED SECTION ###
+
+frontend 6b606985_1414_41bb_911c_825955360a39_sava_8080
+
+    bind 0.0.0.0:33000
+
+
+     option httplog
+
+
+
+    ###
+    #
+    # Set logging and set the headers to capture
+
+    # capture request header X-Vamp-Server-CurrentTime len 50
+    # capture response header X-Vamp-Server-ResponseTime len 50
+    # capture response header X-Vamp-Server-Name len 50
+
+
+    log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+    #
+    ###
+
+
+
+    mode http
+
+
+    ###
+    #
+    # Spike/Rate Limiting & Quota Management
+    #
+    # We use a stick table to keep track of TCP connections rates and bytes send out.
+    # On these metrics we set rules to designate upper limits. When limits are hit
+    # we reroute the traffic to a specific abusers backend
+
+     # end HTTP spike limit generation
+
+     # end spike limit generation
+
+    ###
+    # Filter Management
+    #
+    # set filters with optional negation
+    #
+
+
+    acl 624dc0f1a5754e94 hdr_sub(user-agent) ie
+
+    use_backend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 if !624dc0f1a5754e94
+
+
+    acl 3cb39f8aae4d99da hdr_sub(user-agent) chrome
+
+    use_backend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 if 3cb39f8aae4d99da
+
+
+    acl 445a3abaca79c140 cook_sub(group) admin
+
+    use_backend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 if 445a3abaca79c140
+
+
+    acl feb4c187ccc342ce hdr_cnt(x-allow) gt 0
+
+    use_backend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 if feb4c187ccc342ce
+
+
+
+    default_backend 6b606985_1414_41bb_911c_825955360a39_sava_8080
+
+
+frontend 6b606985_1414_41bb_911c_825955360a39_sava_8080__sava_1_0_0
+
+
+     option httplog
+
+
+
+    ###
+    #
+    # Set logging and set the headers to capture
+
+    # capture request header X-Vamp-Server-CurrentTime len 50
+    # capture response header X-Vamp-Server-ResponseTime len 50
+    # capture response header X-Vamp-Server-Name len 50
+
+
+    log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+    #
+    ###
+
+
+    bind unix@/opt/vamp/99ba9340c7565b91b87c80d7da989fc35754a383.sock accept-proxy
+
+
+    mode http
+
+
+    ###
+    #
+    # Spike/Rate Limiting & Quota Management
+    #
+    # We use a stick table to keep track of TCP connections rates and bytes send out.
+    # On these metrics we set rules to designate upper limits. When limits are hit
+    # we reroute the traffic to a specific abusers backend
+
+     # end HTTP spike limit generation
+
+     # end spike limit generation
+
+    ###
+    # Filter Management
+    #
+    # set filters with optional negation
+    #
+
+
+
+    default_backend 6b606985_1414_41bb_911c_825955360a39_sava_8080__sava_1_0_0
+
+
+
+
+
+
+backend 6b606985_1414_41bb_911c_825955360a39_sava_8080
+    mode http
+#
+# Regular HTTP/TCP backends
+#
+
+    balance roundrobin
+
+
+
+
+
+        server 6b606985_1414_41bb_911c_825955360a39_sava_8080__sava_1_0_0 unix@/opt/vamp/99ba9340c7565b91b87c80d7da989fc35754a383.sock send-proxy weight 100
+
+
+
+
+
+
+backend 6b606985_1414_41bb_911c_825955360a39_sava_8080__sava_1_0_0
+    mode http
+#
+# Regular HTTP/TCP backends
+#
+
+    balance roundrobin
+
+
+
+
+    option forwardfor
+
+
+   http-response set-header X-Vamp-Server-Name %s
+   http-response set-header X-Vamp-Server-ResponseTime %t
+
+
+
+    cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h
+
+        server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:32776  cookie 64435a223bddf1fa589135baa5e228090279c032  weight 100 maxconn 1000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#backend abusers
+#    mode http
+#    errorfile 409 /opt/docker/configuration/error_pages/500rate.http
+
+### END GENERATED SECTION ###

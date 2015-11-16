@@ -1,8 +1,8 @@
-package io.vamp.core.persistence
+package io.vamp.persistence
 
-import io.vamp.core.model.artifact._
-import io.vamp.core.persistence.notification.NotificationMessageNotRestored
-import io.vamp.core.persistence.slick.components.Components.instance._
+import io.vamp.model.artifact._
+import io.vamp.persistence.notification.NotificationMessageNotRestored
+import io.vamp.persistence.slick.components.Components.instance._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{ FlatSpec, Matchers }
@@ -136,7 +136,7 @@ class JdbcCrudTest extends FlatSpec with Matchers {
         for (cluster ← storedDeployment.clusters) {
           for (service ← cluster.services) {
             service.state.step match {
-              case step: io.vamp.core.model.artifact.DeploymentService.State.Step.Failure ⇒
+              case step: io.vamp.model.artifact.DeploymentService.State.Step.Failure ⇒
                 step.notification.getClass shouldBe classOf[NotificationMessageNotRestored]
                 step.notification shouldBe NotificationMessageNotRestored("Problem in cluster deployment-cluster-2, with a service containing breed wp4.")
               case _ ⇒

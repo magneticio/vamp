@@ -1,4 +1,4 @@
-package io.vamp.core.persistence
+package io.vamp.persistence
 
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.http.OffsetResponseEnvelope

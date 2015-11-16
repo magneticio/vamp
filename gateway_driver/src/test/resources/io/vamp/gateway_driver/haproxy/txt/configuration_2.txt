@@ -1,0 +1,204 @@
+global
+ pidfile /opt/vamp/haproxy.pid
+ daemon
+ maxconn 4096
+ log /opt/vamp/haproxy.log.sock local0
+
+
+ defaults
+   log global
+   mode http
+   option dontlognull
+   option redispatch
+   option clitcpka
+   option srvtcpka
+   option http-keep-alive
+
+   retries 3
+   maxconn 500000
+
+   # slowloris protection: clients should send their full http request in the configured time
+   timeout http-request 5s
+
+   timeout connect 5000ms
+   timeout client 50000ms
+   timeout server 50000ms
+
+listen stats :1988
+   mode http
+   stats enable
+   stats uri /
+   stats refresh 2s
+   stats realm Haproxy\ Stats
+   stats auth haproxy:haproxy
+
+### BEGIN GENERATED SECTION ###
+
+frontend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080
+
+    bind 0.0.0.0:33000
+
+
+     option httplog
+
+
+
+    ###
+    #
+    # Set logging and set the headers to capture
+
+    # capture request header X-Vamp-Server-CurrentTime len 50
+    # capture response header X-Vamp-Server-ResponseTime len 50
+    # capture response header X-Vamp-Server-Name len 50
+
+
+    log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+    #
+    ###
+
+
+
+    mode http
+
+
+    ###
+    #
+    # Spike/Rate Limiting & Quota Management
+    #
+    # We use a stick table to keep track of TCP connections rates and bytes send out.
+    # On these metrics we set rules to designate upper limits. When limits are hit
+    # we reroute the traffic to a specific abusers backend
+
+     # end HTTP spike limit generation
+
+     # end spike limit generation
+
+    ###
+    # Filter Management
+    #
+    # set filters with optional negation
+    #
+
+
+
+    default_backend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080
+
+
+frontend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080__sava_1_0_0
+
+
+     option httplog
+
+
+
+    ###
+    #
+    # Set logging and set the headers to capture
+
+    # capture request header X-Vamp-Server-CurrentTime len 50
+    # capture response header X-Vamp-Server-ResponseTime len 50
+    # capture response header X-Vamp-Server-Name len 50
+
+
+    log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+    #
+    ###
+
+
+    bind unix@/opt/vamp/59e3034c619dd724b2e57d38218afdcd63e6ad8a.sock accept-proxy
+
+
+    mode http
+
+
+    ###
+    #
+    # Spike/Rate Limiting & Quota Management
+    #
+    # We use a stick table to keep track of TCP connections rates and bytes send out.
+    # On these metrics we set rules to designate upper limits. When limits are hit
+    # we reroute the traffic to a specific abusers backend
+
+     # end HTTP spike limit generation
+
+     # end spike limit generation
+
+    ###
+    # Filter Management
+    #
+    # set filters with optional negation
+    #
+
+
+
+    default_backend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080__sava_1_0_0
+
+
+
+
+
+
+backend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080
+    mode http
+#
+# Regular HTTP/TCP backends
+#
+
+    balance roundrobin
+
+
+
+
+
+        server 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080__sava_1_0_0 unix@/opt/vamp/59e3034c619dd724b2e57d38218afdcd63e6ad8a.sock send-proxy weight 100
+
+
+
+
+
+
+backend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080__sava_1_0_0
+    mode http
+#
+# Regular HTTP/TCP backends
+#
+
+    balance roundrobin
+
+
+
+
+    option forwardfor
+
+
+   http-response set-header X-Vamp-Server-Name %s
+   http-response set-header X-Vamp-Server-ResponseTime %t
+
+
+
+    cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h
+
+        server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:32768  cookie 64435a223bddf1fa589135baa5e228090279c032  weight 100 maxconn 1000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#backend abusers
+#    mode http
+#    errorfile 409 /opt/docker/configuration/error_pages/500rate.http
+
+### END GENERATED SECTION ###
