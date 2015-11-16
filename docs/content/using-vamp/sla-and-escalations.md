@@ -51,28 +51,28 @@ clusters:
       memory: 1024
       instances: 2
 
-  sla:
-    # Type of SLA.
-    type: response_time_sliding_window
-    threshold:
-      upper: 1000   # Upper threshold in milliseconds.
-      lower: 100    # Lower threshold in milliseconds.
-    window:
-      interval: 600 # Time period in seconds used for
-                    # average response time aggregation.
-      cooldown: 600 # Time period in seconds. During this 
-                    # period no new escalation events will 
-                    # be generated. New event may be expected 
-                    # not before cooldown + interval time has 
-                    # been reached after the last event. 
-   
-    # List of escalations.
-    escalations:
-      - 
-        type: scale_instances
-        minimum: 1
-        maximum: 3
-        scale_by: 1
+    sla:
+      # Type of SLA.
+      type: response_time_sliding_window
+      threshold:
+        upper: 1000   # Upper threshold in milliseconds.
+        lower: 100    # Lower threshold in milliseconds.
+      window:
+        interval: 600 # Time period in seconds used for
+                      # average response time aggregation.
+        cooldown: 600 # Time period in seconds. During this 
+                      # period no new escalation events will 
+                      # be generated. New event may be expected 
+                      # not before cooldown + interval time has 
+                      # been reached after the last event. 
+     
+      # List of escalations.
+      escalations:
+        - 
+          type: scale_instances
+          minimum: 1
+          maximum: 3
+          scale_by: 1
 ```          
 **Notice** the SLA is defined at the cluster level and acts on the first service in the cluster.
 
@@ -194,32 +194,32 @@ clusters:
       memory: 1024
       instances: 1
     
-  sla:
-    type: response_time_sliding_window
-    threshold:
-      upper: 1000
-      lower: 100
-    window:
-      interval: 600
-      cooldown: 600
-    escalations:
-      - 
-        to_one:
-          escalations:
-            -
-              type: scale_instances
-              # First try to scale up storage service.
-              target: monarch2
-              minimum: 1
-              maximum: 3
-              scale_by: 1
-            -
-              type: scale_instances
-              # If we cannot scale up storage anymore, scale up this.
-              target: monarch1
-              minimum: 1
-              maximum: 3
-              scale_by: 1
+    sla:
+      type: response_time_sliding_window
+      threshold:
+        upper: 1000
+        lower: 100
+      window:
+        interval: 600
+        cooldown: 600
+      escalations:
+        - 
+          to_one:
+            escalations:
+              -
+                type: scale_instances
+                # First try to scale up storage service.
+                target: monarch2
+                minimum: 1
+                maximum: 3
+                scale_by: 1
+              -
+                type: scale_instances
+                # If we cannot scale up storage anymore, scale up this.
+                target: monarch1
+                minimum: 1
+                maximum: 3
+                scale_by: 1
               
   monarch2:
     breed:
