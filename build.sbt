@@ -1,6 +1,7 @@
 import com.typesafe.sbt.SbtScalariform._
 import sbt.Keys._
 
+import scala.language.postfixOps
 import scalariform.formatter.preferences._
 
 organization in ThisBuild := "io.vamp"
@@ -40,9 +41,9 @@ pomExtra in ThisBuild := <url>http://vamp.io</url>
     </developer>
   </developers>
   <scm>
-    <connection>scm:git:git@github.com:magneticio/vamp-core.git</connection>
-    <developerConnection>scm:git:git@github.com:magneticio/vamp-core.git</developerConnection>
-    <url>git@github.com:magneticio/vamp-core.git</url>
+    <connection>scm:git:git@github.com:magneticio/vamp.git</connection>
+    <developerConnection>scm:git:git@github.com:magneticio/vamp.git</developerConnection>
+    <url>git@github.com:magneticio/vamp.git</url>
   </scm>
 
 
@@ -119,7 +120,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  common, persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, gateway_driver, cli
+  common, persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, ui, gateway_driver, cli
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
@@ -135,30 +136,29 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   description := "Bootstrap for Vamp",
   name := "bootstrap",
   formatting,
-  // Runnable assembly jar lives in bootstrap/target/scala_2.11/ and is renamed to vamp assembly for consistent filename for
-  // downloading
+  // Runnable assembly jar lives in bootstrap/target/scala_2.11/
+  // and is renamed to vamp assembly for consistent filename for downloading.
   assemblyJarName in assembly := s"vamp-assembly-${version.value}.jar"
-).dependsOn(rest_api)
-
-val downloadUI = taskKey[Unit]("Download vamp-ui to the rest_api lib directory")
+).dependsOn(common, persistence, model, operation, container_driver, dictionary, pulse, ui, rest_api, gateway_driver)
 
 lazy val rest_api = project.settings(bintraySetting: _*).settings(
   description := "REST api for Vamp",
   name := "rest_api",
   formatting,
   libraryDependencies ++= testing
+).dependsOn(operation).disablePlugins(sbtassembly.AssemblyPlugin)
+
+val buildUI = taskKey[Unit]("Build UI frontend and use it as a resource.")
+
+lazy val ui = project.settings(bintraySetting: _*).settings(
+  description := "UI frontend for Vamp",
+  name := "ui"
 ).settings(
-  downloadUI := {
-    val libDir = "rest_api/lib"
-    // Only perform this if the file not already exists.
-    if (java.nio.file.Files.notExists(new File(s"$libDir/$vampUi").toPath)) {
-      // Remove old versions of the vamp-ui jar & download the new one
-      IO.delete(IO.listFiles(new File(libDir)) filter (_.getName.startsWith("vamp-ui")))
-      IO.download(new URL(s"https://bintray.com/artifact/download/magnetic-io/downloads/vamp-ui/$vampUi"), new File(s"$libDir/$vampUi"))
+    buildUI := {
+      "ui/build.sh src/main/resources/vamp-ui" !
     }
-  }
-).settings((compile in Compile) <<= (compile in Compile) dependsOn downloadUI)
-  .dependsOn(operation).disablePlugins(sbtassembly.AssemblyPlugin)
+  ).settings((compile in Compile) <<= (compile in Compile) dependsOn buildUI)
+  .disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
