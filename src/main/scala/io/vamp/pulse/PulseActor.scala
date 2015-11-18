@@ -85,8 +85,8 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
   }
 
   private def info = for {
-    e ← elasticsearch.get("/")
-    i ← elasticsearch.get(s"/$indexName/_stats/docs")
+    e ← elasticsearch.get("")
+    i ← elasticsearch.get(s"$indexName/_stats/docs")
   } yield Map[String, Any]("elasticsearch" -> e, "index" -> i)
 
   private def publish(publishEventValue: Boolean)(event: Event) = {
