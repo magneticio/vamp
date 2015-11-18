@@ -5,8 +5,8 @@ import io.vamp.common.akka.Bootstrap.Start
 import io.vamp.common.akka._
 import io.vamp.common.http.RestClient
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.pulse.{ ElasticsearchClient, PulseActor }
 import io.vamp.pulse.notification.ElasticsearchInitializationTimeoutError
+import io.vamp.pulse.{ ElasticsearchClient, PulseActor }
 
 import scala.language.postfixOps
 import scala.util.{ Failure, Success }
@@ -23,7 +23,9 @@ object ElasticsearchInitializationActor {
 
   case object Idle extends State
 
-  case object Active extends State
+  case object Phase1 extends State
+
+  case object Phase2 extends State
 
   case object Done extends State
 
@@ -52,26 +54,31 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
   when(Idle) {
     case Event(Start, 0) ⇒
       log.info(s"Starting with Elasticsearch initialization.")
-      goto(Active) using 3 // initializeTemplates + initializeDocuments + initializeCustom
+      goto(Phase1) using 2 // initializeTemplates + initializeDocuments
 
     case Event(_, _) ⇒ stay()
   }
 
   onTransition {
-    case Idle -> Active ⇒
+    case Idle -> Phase1 ⇒
       initializeTemplates()
       initializeDocuments()
-      initializeCustom()
   }
 
-  when(Active, stateTimeout = timeout.duration) {
-    case Event(WaitForOne, count)  ⇒ stay() using count + 1
+  onTransition {
+    case Phase1 -> Phase2 ⇒ initializeCustom()
+  }
 
-    case Event(DoneWithOne, count) ⇒ if (count > 1) stay() using count - 1 else done()
+  when(Phase1, stateTimeout = timeout.duration) {
+    case Event(WaitForOne, count)  ⇒ waitForOne(count)
+    case Event(DoneWithOne, count) ⇒ doneWithOnePhase1(count)
+    case Event(StateTimeout, _)    ⇒ expired()
+  }
 
-    case Event(StateTimeout, _) ⇒
-      reportException(ElasticsearchInitializationTimeoutError)
-      done()
+  when(Phase2, stateTimeout = timeout.duration) {
+    case Event(WaitForOne, count)  ⇒ waitForOne(count)
+    case Event(DoneWithOne, count) ⇒ doneWithOnePhase2(count)
+    case Event(StateTimeout, _)    ⇒ expired()
   }
 
   when(Done) {
@@ -79,6 +86,17 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
   }
 
   initialize()
+
+  private def waitForOne(count: Int) = stay() using count + 1
+
+  private def doneWithOnePhase1(count: Int) = if (count > 1) stay() using count - 1 else goto(Phase2) using 1
+
+  private def doneWithOnePhase2(count: Int) = if (count > 1) stay() using count - 1 else done()
+
+  private def expired() = {
+    reportException(ElasticsearchInitializationTimeoutError)
+    done()
+  }
 
   protected def initializeTemplates(): Unit = {
     val receiver = self
