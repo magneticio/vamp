@@ -89,7 +89,7 @@ frontend @frontend.flattenName
   ###
   @for(filter <- frontend.filters) {
   acl @filter.name @filter.condition
-  use_backend @filter.destination if @if(filter.negate) {!}@filter.name
+  use_backend @filter.flattenDestination if @if(filter.negate) {!}@filter.name
   }
   default_backend @frontend.defaultBackend.flattenName
 }

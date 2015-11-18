@@ -32,7 +32,9 @@ object Mode extends Enumeration {
   val http, tcp = Value
 }
 
-case class Filter(name: String, condition: String, destination: String, negate: Boolean = false)
+case class Filter(name: String, condition: String, destination: String, negate: Boolean = false) {
+  lazy val flattenDestination = Flatten.flatten(destination)
+}
 
 case class ProxyServer(name: String, unixSock: String, weight: Int) extends FlattenName
 
