@@ -6,11 +6,10 @@ We encourage anyone to pitch in with pull requests, issues etc.
 Note: We are currently in alpha. This means the API will change, features will be added/removed and there will be bugs. Having said that:
 
 
-*Vamp is split into separate repos and projects, just like actual microservices... :metal
+*Vamp is split into separate repos and projects, just like actual microservices... :metal:
 
-1. [Vamp-core](https://github.com/magneticio/vamp-core) : the brains of the organization.
-2. [Vamp-pulse](https://github.com/magneticio/vamp-pulse) : takes care of storing and retrieving metrics and events.
-3. [Vamp-router](https://github.com/magneticio/vamp-router) : routes, balances and filters traffic in clever ways.
+1. [Vamp](https://github.com/magneticio/vamp) : the brains of the organization.
+2. [Vamp Gateway Agent](https://github.com/magneticio/vamp-pulse) : takes care of routing and collecting router logs (metrics).
 
 *We accept bug reports and pull requests on the GitHub repo for each project*.
 
