@@ -83,22 +83,22 @@ frontend 6b606985_1414_41bb_911c_825955360a39_sava_8080
 
     acl 624dc0f1a5754e94 hdr_sub(user-agent) ie
 
-    use_backend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 if !624dc0f1a5754e94
+    use_backend 6b606985_1414_41bb_911c_825955360a39_sava_8080__sava_1_0_0 if !624dc0f1a5754e94
 
 
     acl 3cb39f8aae4d99da hdr_sub(user-agent) chrome
 
-    use_backend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 if 3cb39f8aae4d99da
+    use_backend 6b606985_1414_41bb_911c_825955360a39_sava_8080__sava_1_0_0 if 3cb39f8aae4d99da
 
 
     acl 445a3abaca79c140 cook_sub(group) admin
 
-    use_backend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 if 445a3abaca79c140
+    use_backend 6b606985_1414_41bb_911c_825955360a39_sava_8080__sava_1_0_0 if 445a3abaca79c140
 
 
     acl feb4c187ccc342ce hdr_cnt(x-allow) gt 0
 
-    use_backend 6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0 if feb4c187ccc342ce
+    use_backend 6b606985_1414_41bb_911c_825955360a39_sava_8080__sava_1_0_0 if feb4c187ccc342ce
 
 
 
