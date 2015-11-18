@@ -27,6 +27,8 @@ object ElasticsearchInitializationActor {
 
   case object Phase2 extends State
 
+  case object Phase3 extends State
+
   case object Done extends State
 
   case class TemplateDefinition(name: String, template: String)
@@ -54,30 +56,38 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
   when(Idle) {
     case Event(Start, 0) ⇒
       log.info(s"Starting with Elasticsearch initialization.")
-      goto(Phase1) using 2 // initializeTemplates + initializeDocuments
+      goto(Phase1) using 1
 
     case Event(_, _) ⇒ stay()
   }
 
   onTransition {
-    case Idle -> Phase1 ⇒
-      initializeTemplates()
-      initializeDocuments()
+    case Idle -> Phase1 ⇒ initializeTemplates()
   }
 
   onTransition {
-    case Phase1 -> Phase2 ⇒ initializeCustom()
+    case Phase1 -> Phase2 ⇒ initializeDocuments()
+  }
+
+  onTransition {
+    case Phase2 -> Phase3 ⇒ initializeCustom()
   }
 
   when(Phase1, stateTimeout = timeout.duration) {
     case Event(WaitForOne, count)  ⇒ waitForOne(count)
-    case Event(DoneWithOne, count) ⇒ doneWithOnePhase1(count)
+    case Event(DoneWithOne, count) ⇒ doneWithOne(count, () ⇒ goto(Phase2) using 1)
     case Event(StateTimeout, _)    ⇒ expired()
   }
 
   when(Phase2, stateTimeout = timeout.duration) {
     case Event(WaitForOne, count)  ⇒ waitForOne(count)
-    case Event(DoneWithOne, count) ⇒ doneWithOnePhase2(count)
+    case Event(DoneWithOne, count) ⇒ doneWithOne(count, () ⇒ goto(Phase3) using 1)
+    case Event(StateTimeout, _)    ⇒ expired()
+  }
+
+  when(Phase3, stateTimeout = timeout.duration) {
+    case Event(WaitForOne, count)  ⇒ waitForOne(count)
+    case Event(DoneWithOne, count) ⇒ doneWithOne(count, () ⇒ done())
     case Event(StateTimeout, _)    ⇒ expired()
   }
 
@@ -89,9 +99,7 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
   private def waitForOne(count: Int) = stay() using count + 1
 
-  private def doneWithOnePhase1(count: Int) = if (count > 1) stay() using count - 1 else goto(Phase2) using 1
-
-  private def doneWithOnePhase2(count: Int) = if (count > 1) stay() using count - 1 else done()
+  private def doneWithOne(count: Int, next: () ⇒ State) = if (count > 1) stay() using count - 1 else next()
 
   private def expired() = {
     reportException(ElasticsearchInitializationTimeoutError)
