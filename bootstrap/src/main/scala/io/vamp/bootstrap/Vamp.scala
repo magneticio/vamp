@@ -15,6 +15,8 @@ import scala.language.{ implicitConversions, postfixOps }
 
 trait Vamp extends App {
 
+  val version = Option(getClass.getPackage.getImplementationVersion)
+
   val logger = Logger(LoggerFactory.getLogger(classOf[Vamp]))
   
   implicit val actorSystem = ActorSystem("vamp")
@@ -36,14 +38,14 @@ trait Vamp extends App {
   }
 
   logger.info(
-    """
+    s"""
       |██╗   ██╗ █████╗ ███╗   ███╗██████╗
       |██║   ██║██╔══██╗████╗ ████║██╔══██╗
       |██║   ██║███████║██╔████╔██║██████╔╝
       |╚██╗ ██╔╝██╔══██║██║╚██╔╝██║██╔═══╝
       | ╚████╔╝ ██║  ██║██║ ╚═╝ ██║██║
       |  ╚═══╝  ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝
-      |                       version 0.8.0
+      |                       ${if (version.isDefined) s"version ${version.get}" else ""}
       |                       by magnetic.io
       |
     """.stripMargin)
