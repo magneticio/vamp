@@ -6,6 +6,7 @@ import io.vamp.common.akka._
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.gateway_driver.haproxy.Flatten
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor.KibanaDashboardUpdate
+import io.vamp.gateway_driver.logstash.Logstash
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
 import io.vamp.model.artifact.Deployment
 import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
@@ -25,13 +26,9 @@ object KibanaDashboardActor {
 
   val kibanaIndex = ".kibana"
 
-  val logstashType = "haproxy"
-
   val configuration = ConfigFactory.load().getConfig("vamp.gateway-driver.kibana")
 
   val enabled = configuration.getBoolean("enabled")
-
-  val logstashIndex = configuration.getString("logstash.index")
 
   val elasticsearchUrl = configuration.getString("elasticsearch.url")
 }
@@ -54,7 +51,7 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
   }
 
   private def info: Future[_] = Future.successful {
-    Map("enabled" -> enabled, "logstash-index" -> logstashIndex)
+    Map("enabled" -> enabled, "logstash-index" -> Logstash.index)
   }
 
   private def update(deployments: List[Deployment]): Unit = deployments.foreach { deployment ⇒
@@ -114,7 +111,7 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
        |  ],
        |  "version": 1,
        |  "kibanaSavedObjectMeta": {
-       |    "searchSourceJSON": "{\\\"index\\":\\\"$logstashIndex\\\",\\\"highlight\\\":{\\\"pre_tags\\\":[\\\"@kibana-highlighted-field@\\\"],\\\"post_tags\\\":[\\\"@/kibana-highlighted-field@\\\"],\\\"fields\\\":{\\\"*\\\":{}},\\\"require_field_match\\\":false,\\\"fragment_size\\\":2147483647},\\\"filter\\\":[],\\\"query\\\":{\\\"query_string\\\":{\\\"query\\\":\\\"type: \\\\\\"$logstashType\\\\\\" AND b: \\\\\\"$id\\\\\\"\\\",\\\"analyze_wildcard\\\":true}}}"
+       |    "searchSourceJSON": "{\\\"index\\":\\\"${Logstash.index}\\\",\\\"highlight\\\":{\\\"pre_tags\\\":[\\\"@kibana-highlighted-field@\\\"],\\\"post_tags\\\":[\\\"@/kibana-highlighted-field@\\\"],\\\"fields\\\":{\\\"*\\\":{}},\\\"require_field_match\\\":false,\\\"fragment_size\\\":2147483647},\\\"filter\\\":[],\\\"query\\\":{\\\"query_string\\\":{\\\"query\\\":\\\"type: \\\\\\"${Logstash.`type`}\\\\\\" AND b: \\\\\\"$id\\\\\\"\\\",\\\"analyze_wildcard\\\":true}}}"
        |  }
        |}
       """.stripMargin
