@@ -148,17 +148,10 @@ lazy val rest_api = project.settings(bintraySetting: _*).settings(
   libraryDependencies ++= testing
 ).dependsOn(operation).disablePlugins(sbtassembly.AssemblyPlugin)
 
-val buildUI = taskKey[Unit]("Build UI frontend and use it as a resource.")
-
 lazy val ui = project.settings(bintraySetting: _*).settings(
   description := "UI frontend for Vamp",
   name := "ui"
-).settings(
-    buildUI := {
-      "ui/build.sh src/main/resources/vamp-ui" !
-    }
-  ).settings((compile in Compile) <<= (compile in Compile) dependsOn buildUI)
-  .disablePlugins(sbtassembly.AssemblyPlugin)
+).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
@@ -231,4 +224,3 @@ javacOptions ++= Seq("-encoding", "UTF-8")
 
 scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation, Opts.compile.unchecked) ++
   Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint", "-feature")
-
