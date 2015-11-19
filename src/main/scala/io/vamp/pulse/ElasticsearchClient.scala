@@ -32,12 +32,15 @@ class ElasticsearchClient(url: String)(implicit executor: ExecutionContext) {
   def get(path: String): Future[Any] = RestClient.get[Any](s"$url/$path")
 
   def index(index: String, `type`: String, id: Option[String], document: AnyRef)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchIndexResponse] = id match {
-    case None      ⇒ RestClient.post[ElasticsearchIndexResponse](s"$url/$index/${`type`}", document)
+    case None ⇒ RestClient.post[ElasticsearchIndexResponse](s"$url/$index/${`type`}", document)
     case Some(_id) ⇒ RestClient.put[ElasticsearchIndexResponse](s"$url/$index/${`type`}/${_id}", document)
   }
 
   def search(index: String, `type`: Option[String], query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchSearchResponse] =
     RestClient.post[ElasticsearchSearchResponse](s"$url/${indexType(index, `type`)}/_search", query)
+
+  def searchRaw(index: String, `type`: Option[String], query: Any)(implicit formats: Formats = DefaultFormats): Future[Any] =
+    RestClient.post[Any](s"$url/${indexType(index, `type`)}/_search", query)
 
   def count(index: String, `type`: Option[String], query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchCountResponse] =
     RestClient.post[ElasticsearchCountResponse](s"$url/${indexType(index, `type`)}/_count", query)
