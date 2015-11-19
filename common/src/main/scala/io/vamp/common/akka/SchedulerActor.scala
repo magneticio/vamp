@@ -18,7 +18,7 @@ abstract class SchedulerActor extends ScheduleSupport with CommonSupportForActor
 
   def receive: Receive = {
     case Tick                           ⇒ tick()
-    case Period(interval, initialDelay) ⇒ schedule(interval, initialDelay)
+    case Period(_period, _initialDelay) ⇒ schedule(_period, _initialDelay)
   }
 
   def tick(): Unit
@@ -27,11 +27,19 @@ abstract class SchedulerActor extends ScheduleSupport with CommonSupportForActor
 trait ScheduleSupport {
   this: Actor with ExecutionContextProvider ⇒
 
+  protected var period: FiniteDuration = 0.seconds
+
   private var timer: Option[Cancellable] = None
 
-  def schedule(interval: FiniteDuration, initialDelay: FiniteDuration = 0 seconds) = {
+  def schedule(period: FiniteDuration, initialDelay: FiniteDuration = 0 seconds) = {
     timer.map(_.cancel())
-    timer = if (interval.toNanos > 0) Some(context.system.scheduler.schedule(initialDelay, interval, self, Tick)) else None
+    timer = if (period.toNanos > 0) {
+      this.period = period
+      Some(context.system.scheduler.schedule(initialDelay, period, self, Tick))
+    } else {
+      this.period = 0.seconds
+      None
+    }
   }
 
   def unschedule() = timer.map(_.cancel())
