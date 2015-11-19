@@ -24,17 +24,16 @@ object EventStreamingActor {
 
 class EventStreamingActor extends CommonSupportForActors with OperationNotificationProvider {
 
-  private val percolator = "stream://"
-
   def receive: Receive = {
 
-    case OpenStream(channel, tags)        ⇒ actorFor[PulseActor] ! RegisterPercolator(s"$percolator$channel", tags, Channel(channel))
+    case OpenStream(channel, tags)        ⇒ actorFor[PulseActor] ! RegisterPercolator(percolator(channel), tags, Channel(channel))
 
-    case CloseStream(channel)             ⇒ actorFor[PulseActor] ! UnregisterPercolator(s"$percolator$channel")
+    case CloseStream(channel)             ⇒ actorFor[PulseActor] ! UnregisterPercolator(percolator(channel))
 
     case (Channel(channel), event: Event) ⇒ channel ! SseMessage(Some(event.`type`), write(event)(SerializationFormat(OffsetDateTimeSerializer)))
 
     case _                                ⇒
   }
-}
 
+  private def percolator(channel: ActorRef) = s"stream://${channel.path.elements.mkString("/")}"
+}

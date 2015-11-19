@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
-import io.vamp.gateway_driver.aggregation.{ EndpointMetricsActor, EndpointMetricsSchedulerActor }
+import io.vamp.gateway_driver.aggregation.{ MetricsActor, MetricsSchedulerActor }
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.gateway_driver.kibana.{ KibanaDashboardActor, KibanaDashboardInitializationActor, KibanaDashboardSchedulerActor }
 import io.vamp.gateway_driver.zookeeper.ZooKeeperGatewayStoreActor
@@ -26,13 +26,13 @@ object GatewayDriverBootstrap extends Bootstrap {
     IoC.createActor[KibanaDashboardActor] ! Start
     IoC.createActor[KibanaDashboardSchedulerActor] ! SchedulerActor.Period(configuration.getInt("kibana.synchronization.period") seconds)
 
-    IoC.createActor[EndpointMetricsActor] ! Start
-    IoC.createActor[EndpointMetricsSchedulerActor] ! SchedulerActor.Period(configuration.getInt("aggregation.period") second)
+    IoC.createActor[MetricsActor] ! Start
+    IoC.createActor[MetricsSchedulerActor] ! SchedulerActor.Period(configuration.getInt("aggregation.period") second)
   }
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {
-    IoC.actorFor[EndpointMetricsSchedulerActor] ! SchedulerActor.Period(0 seconds)
-    IoC.actorFor[EndpointMetricsActor] ! Shutdown
+    IoC.actorFor[MetricsSchedulerActor] ! SchedulerActor.Period(0 seconds)
+    IoC.actorFor[MetricsActor] ! Shutdown
 
     IoC.actorFor[KibanaDashboardSchedulerActor] ! SchedulerActor.Period(0 seconds)
     IoC.actorFor[KibanaDashboardInitializationActor] ! Shutdown
