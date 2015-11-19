@@ -11,9 +11,8 @@ import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
 import io.vamp.model.artifact.Deployment
 import io.vamp.model.event.Event
 import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
-import io.vamp.pulse.ElasticsearchClient.ElasticsearchCountResponse
 import io.vamp.pulse.PulseActor.Publish
-import io.vamp.pulse.{ PulseEvent, ElasticsearchClient, PulseActor }
+import io.vamp.pulse.{ ElasticsearchClient, PulseActor, PulseEvent }
 
 import scala.language.postfixOps
 
@@ -49,53 +48,71 @@ class EndpointMetricsActor extends PulseEvent with ArtifactPaginationSupport wit
   private def update(deployments: List[Deployment]) = deployments.foreach { deployment ⇒
     deployment.endpoints.foreach { endpoint ⇒
       val name = s"${deployment.name}_${endpoint.number}"
-      publishRate(name)
+
+      val period = 60
+      val flatten = Flatten.flatten(name)
+
+      es.searchRaw(Logstash.index, Option(Logstash.`type`),
+        s"""
+           |{
+           |  "query": {
+           |    "filtered": {
+           |      "query": {
+           |        "match_all": {}
+           |      },
+           |      "filter": {
+           |        "bool": {
+           |          "must": [
+           |            {
+           |              "term": {
+           |                "b": "$flatten"
+           |              }
+           |            },
+           |            {
+           |              "range": {
+           |                "@timestamp": {
+           |                  "gt": "now-${period}s"
+           |                }
+           |              }
+           |            }
+           |          ]
+           |        }
+           |      }
+           |    }
+           |  },
+           |  "aggregations": {
+           |    "Tt": {
+           |      "avg": {
+           |        "field": "Tt"
+           |      }
+           |    }
+           |  },
+           |  "size": 0
+           |}
+        """.stripMargin) map {
+          case map: Map[_, _] ⇒
+
+            val count: Long = map.asInstanceOf[Map[String, _]].get("hits").flatMap(map ⇒ map.asInstanceOf[Map[String, _]].get("total")) match {
+              case Some(number: BigInt) ⇒ number.toLong
+              case _                    ⇒ 0L
+            }
+
+            val rate: Double = count.toDouble / period
+
+            val responseTime: Double = map.asInstanceOf[Map[String, _]].get("aggregations").flatMap(map ⇒ map.asInstanceOf[Map[String, _]].get("Tt")).flatMap(map ⇒ map.asInstanceOf[Map[String, _]].get("value")) match {
+              case Some(number: BigInt)     ⇒ number.toDouble
+              case Some(number: BigDecimal) ⇒ number.toDouble
+              case _                        ⇒ 0D
+            }
+
+            log.debug(s"Request count/rate/responseTime for $name: $count/$rate/$responseTime")
+
+            actorFor[PulseActor] ! Publish(Event(Set(s"endpoints:$name", "metrics:rate"), Double.box(rate), OffsetDateTime.now(), "endpoint-rate"))
+            actorFor[PulseActor] ! Publish(Event(Set(s"endpoints:$name", "metrics:responseTime"), Double.box(responseTime), OffsetDateTime.now(), "endpoint-rate"))
+
+          case _ ⇒
+        }
     }
   }
-
-  private def publishRate(name: String) = {
-
-    val period = 60
-    val flatten = Flatten.flatten(name)
-
-    es.count(Logstash.index, Option(Logstash.`type`),
-      s"""
-         |{
-         |  "query": {
-         |    "filtered": {
-         |      "query": {
-         |        "match_all": {}
-         |      },
-         |      "filter": {
-         |        "bool": {
-         |          "must": [
-         |            {
-         |              "term": {
-         |                "b": "$flatten"
-         |              }
-         |            },
-         |            {
-         |              "range": {
-         |                "@timestamp": {
-         |                  "gt": "now-${period}s"
-         |                }
-         |              }
-         |            }
-         |          ]
-         |        }
-         |      }
-         |    }
-         |  }
-         |}
-        """.stripMargin) map {
-        case ElasticsearchCountResponse(count) ⇒
-
-          val rate = Long.box(count / period)
-          log.debug(s"Request count/rate for $name: $count/$rate")
-          val event = Event(Set(s"endpoints:$name", "metrics:rate"), rate, OffsetDateTime.now(), "endpoint-rate")
-          actorFor[PulseActor] ! Publish(event)
-
-        case _ ⇒
-      }
-  }
 }
+
