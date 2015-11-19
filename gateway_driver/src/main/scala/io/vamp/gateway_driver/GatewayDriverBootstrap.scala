@@ -15,6 +15,8 @@ import scala.language.postfixOps
 object GatewayDriverBootstrap extends Bootstrap {
 
   override def run(implicit actorSystem: ActorSystem) = {
+    val configuration = ConfigFactory.load().getConfig("vamp.gateway-driver")
+
     IoC.alias[GatewayStore, ZooKeeperGatewayStoreActor]
     IoC.createActor[ZooKeeperGatewayStoreActor] ! Start
 
@@ -22,10 +24,10 @@ object GatewayDriverBootstrap extends Bootstrap {
 
     IoC.createActor[KibanaDashboardInitializationActor] ! Start
     IoC.createActor[KibanaDashboardActor] ! Start
-    IoC.createActor[KibanaDashboardSchedulerActor] ! SchedulerActor.Period(ConfigFactory.load().getInt("vamp.gateway-driver.kibana.synchronization.period") seconds)
+    IoC.createActor[KibanaDashboardSchedulerActor] ! SchedulerActor.Period(configuration.getInt("kibana.synchronization.period") seconds)
 
     IoC.createActor[EndpointMetricsActor] ! Start
-    IoC.createActor[EndpointMetricsSchedulerActor] ! SchedulerActor.Period(5 second)
+    IoC.createActor[EndpointMetricsSchedulerActor] ! SchedulerActor.Period(configuration.getInt("aggregation.period") second)
   }
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {
