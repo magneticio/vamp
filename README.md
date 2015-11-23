@@ -20,7 +20,7 @@ component              | purpose
 **Vamp CLI**           | Command line interface for managing Vamp and integration with (shell) scripts.
 
 
-![](http://vamp.io/img/vamp_arch.svg)
+More about Vamp [architecture](http://vamp.io/installation/).
 
 Vamp interfaces with container management platforms to take care of running the actual containers. Vamp uses a driver model, similar to database drivers. This means you can use Vamp with Docker on your laptop and later use the exact same scripts to deploy to a Mesosphere cluster running Marathon.
 
