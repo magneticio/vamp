@@ -8,7 +8,7 @@ organization in ThisBuild := "io.vamp"
 
 name := """vamp"""
 
-version in ThisBuild := "0.7.11" + VersionHelper.versionSuffix
+version in ThisBuild := "0.8.0" + VersionHelper.versionSuffix
 
 scalaVersion := "2.11.7"
 
@@ -62,8 +62,6 @@ lazy val bintraySetting = Seq(
 )
 
 // Libraries
-
-val vampUi = "vamp-ui-0.7.11-145.jar"
 
 val akka = "com.typesafe.akka" %% "akka-slf4j" % "2.4.0" :: Nil
 
