@@ -12,11 +12,13 @@ parts in Go.
 
 Of course, Vamp is made of multiple services itself. Monolith bad, services good...
 
-component   | purpose
-------------|--------
-[Vamp-core](https://github.com/magneticio/vamp-core)   | Main API endpoint, business logic and service coordinator. Talks to the configured container manager (Docker, Marathon etc.) and synchronizes it with Vamp Router. Reads metrics from Vamp Pulse and archives life cycle events to Vamp Pulse. Uses a standard JDBC database for persistence (H2 and MySQL are tested).      
-[Vamp-pulse](https://github.com/magneticio/vamp-pulse) | Consumes metrics from Vamp Router (using SSE or Kafka feeds) and consumes events from Vamp Core through REST. Makes everything searchable and actionable. Runs on Elasticsearch.
-[Vamp-router](https://github.com/magneticio/vamp-router)| Controls HAproxy, creates data feeds from routing information. Gets instructions from Vamp Core through REST and offers SSE and/or Kafka feeds of metric data to Vamp Pulse.
+component              | purpose
+-----------------------|--------
+**[Vamp](https://github.com/magneticio/vamp)**               | Main API endpoint, business logic and service coordinator. Talks to the configured container manager (Docker, Marathon etc.) and synchronizes it with Vamp Gateway Agent via ZooKeeper. Uses a standard JDBC database for persistence (H2 and MySQL are tested). Uses Elasticsearch to store Vamp events (e.g. changes in deployments).
+**[Vamp Gateway Agent](https://github.com/magneticio/vamp-gateway-agent)** | Reads the HAProxy configuration from ZooKeeper and reloads the HAProxy on each configuration change with as close to zero client request interruption as possible. Reads the logs from HAProxy over socket and push them to Logstash over UDP. Handles and recovers from ZooKeeper and Logstash outages without interrupting the haproxy process and client requests.
+**[Vamp UI](https://github.com/magneticio/vamp-ui)**            | Graphical web interface for managing Vamp. Packaged with Vamp. 
+**Vamp CLI**           | Command line interface for managing Vamp and integration with (shell) scripts.
+
 
 ![](http://vamp.io/img/vamp_arch.svg)
 
