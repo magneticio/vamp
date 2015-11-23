@@ -132,7 +132,7 @@ lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := 
 
 lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   description := "Bootstrap for Vamp",
-  name := "bootstrap",
+  name := "vamp-bootstrap",
   formatting,
   // Runnable assembly jar lives in bootstrap/target/scala_2.11/
   // and is renamed to vamp assembly for consistent filename for downloading.
@@ -141,54 +141,54 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
 
 lazy val rest_api = project.settings(bintraySetting: _*).settings(
   description := "REST api for Vamp",
-  name := "rest_api",
+  name := "vamp-rest_api",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(operation).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val ui = project.settings(bintraySetting: _*).settings(
   description := "UI frontend for Vamp",
-  name := "ui"
+  name := "vamp-ui"
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
-  name := "operation",
+  name := "vamp-operation",
   formatting,
   libraryDependencies ++= quartz ++ jersey ++ testing
 ).dependsOn(persistence, container_driver, gateway_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val pulse = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
-  name := "pulse",
+  name := "vamp-pulse",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val gateway_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to Vamp Gateway Agent",
-  name := "gateway_driver",
+  name := "vamp-gateway_driver",
   formatting,
   libraryDependencies ++= twirl ++ zookeeper ++ testing
 ).dependsOn(model, pulse, persistence).enablePlugins(SbtTwirl).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val container_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to container managers",
-  name := "container_driver",
+  name := "vamp-container_driver",
   formatting,
   libraryDependencies ++= async ++ bouncycastle ++ unisocketsNetty ++ testing
 ).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val persistence = project.settings(bintraySetting: _*).settings(
   description := "Stores Vamp artifacts",
-  name := "persistence",
+  name := "vamp-persistence",
   formatting,
   libraryDependencies ++= sql ++ testing
 ).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val cli = project.settings(bintraySetting: _*).settings(
   description := "Command Line Interface for Vamp",
-  name := "cli",
+  name := "vamp-cli",
   formatting,
   libraryDependencies ++= testing,
   assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
@@ -196,21 +196,21 @@ lazy val cli = project.settings(bintraySetting: _*).settings(
 
 lazy val dictionary = project.settings(bintraySetting: _*).settings(
   description := "Dictionary for Vamp",
-  name := "dictionary",
+  name := "vamp-dictionary",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val model = project.settings(bintraySetting: _*).settings(
   description := "Definitions of Vamp artifacts",
-  name := "model",
+  name := "vamp-model",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(common).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val common = project.settings(bintraySetting: _*).settings(
   description := "Vamp common",
-  name := "common",
+  name := "vamp-common",
   formatting,
   libraryDependencies ++= akka ++ spray ++ dispatch ++ json4s ++ snakeYaml ++ logging ++ testing
 ).disablePlugins(sbtassembly.AssemblyPlugin)
