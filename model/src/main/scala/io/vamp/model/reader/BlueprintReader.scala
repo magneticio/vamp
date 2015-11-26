@@ -10,39 +10,39 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
   override def readReference(any: Any): Blueprint = any match {
     case string: String ⇒ BlueprintReference(string)
-    case map: collection.Map[_, _] ⇒
-      implicit val source = map.asInstanceOf[YamlObject]
+    case yaml: YamlSourceReader ⇒
+      implicit val source = yaml
       if (source.size > 1)
         read(source)
       else
         BlueprintReference(name)
-    case _ ⇒ throwException(UnexpectedInnerElementError("/", classOf[YamlObject]))
+    case _ ⇒ throwException(UnexpectedInnerElementError("/", classOf[YamlSourceReader]))
   }
 
-  override protected def expand(implicit source: YamlObject) = {
-    <<?[YamlObject]("clusters") match {
-      case Some(map) ⇒ map.map {
-        case (name: String, breed: String) ⇒ >>("clusters" :: name :: "services", List(new YamlObject() += ("breed" -> breed)))
+  override protected def expand(implicit source: YamlSourceReader) = {
+    <<?[YamlSourceReader]("clusters") match {
+      case Some(yaml) ⇒ yaml.pull().map {
+        case (name: String, breed: String) ⇒ >>("clusters" :: name :: "services", List(YamlSourceReader("breed" -> breed)))
         case (name: String, list: List[_]) ⇒ >>("clusters" :: name :: "services", list)
         case _                             ⇒
       }
       case _ ⇒
     }
-    <<?[YamlObject]("clusters") match {
-      case Some(map) ⇒ map.map {
-        case (name: String, cluster: collection.Map[_, _]) ⇒
-          implicit val source = cluster.asInstanceOf[YamlObject]
+    <<?[YamlSourceReader]("clusters") match {
+      case Some(yaml) ⇒ yaml.pull().map {
+        case (name: String, cluster: YamlSourceReader) ⇒
+          implicit val source = cluster
           <<?[Any]("services") match {
             case None                ⇒ >>("services", List(source))
             case Some(list: List[_]) ⇒
-            case Some(breed: String) ⇒ >>("services", List(new YamlObject() += ("breed" -> breed)))
+            case Some(breed: String) ⇒ >>("services", List(YamlSourceReader("breed" -> breed)))
             case Some(m)             ⇒ >>("services", List(m))
           }
           >>("services", <<![List[_]]("services").map { element ⇒
             if (element.isInstanceOf[String]) {
-              new YamlObject() += ("breed" -> (new YamlObject() += ("reference" -> element)))
+              YamlSourceReader("breed" -> YamlSourceReader("reference" -> element))
             } else {
-              implicit val source = element.asInstanceOf[YamlObject]
+              implicit val source = element.asInstanceOf[YamlSourceReader]
               <<?[Any]("breed") match {
                 case None ⇒
                   <<?[Any]("name") match {
@@ -71,28 +71,27 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     super.expand
   }
 
-  private def expandDialect(implicit source: YamlObject) = {
+  private def expandDialect(implicit source: YamlSourceReader) = {
     <<?[Any]("dialects") match {
-      case None ⇒
-        >>("dialects", new YamlObject() ++= dialectValues.map { case (k, v) ⇒ k.toString.toLowerCase -> v })
-      case _ ⇒
+      case None ⇒ >>("dialects", YamlSourceReader(dialectValues.map { case (k, v) ⇒ k.toString.toLowerCase -> v }))
+      case _    ⇒
     }
   }
 
-  override def parse(implicit source: YamlObject): Blueprint = {
+  override def parse(implicit source: YamlSourceReader): Blueprint = {
 
-    val clusters = <<?[YamlObject]("clusters") match {
+    val clusters = <<?[YamlSourceReader]("clusters") match {
       case None ⇒ List[Cluster]()
-      case Some(map) ⇒ map.map({
-        case (name: String, cluster: collection.Map[_, _]) ⇒
-          implicit val source = cluster.asInstanceOf[YamlObject]
+      case Some(yaml) ⇒ yaml.pull().map {
+        case (name: String, cluster: YamlSourceReader) ⇒
+          implicit val source = cluster
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
-          <<?[List[YamlObject]]("services") match {
+          <<?[List[YamlSourceReader]]("services") match {
             case None       ⇒ Cluster(name, List(), sla, dialects)
             case Some(list) ⇒ Cluster(name, list.map(parseService(_)), sla, dialects)
           }
-      }).toList
+      } toList
     }
 
     val endpoints = ports("endpoints", addGroup = true)
@@ -155,7 +154,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     }
   }
 
-  private def parseService(implicit source: YamlObject): Service =
+  private def parseService(implicit source: YamlSourceReader): Service =
     Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), RoutingReader.readOptionalReferenceOrAnonymous("routing"), dialects)
 }
 
@@ -195,18 +194,19 @@ object DeploymentBlueprintReader extends AbstractBlueprintReader {
 
 object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale] {
 
-  override protected def createReference(implicit source: YamlObject): Scale = ScaleReference(reference)
+  override protected def createReference(implicit source: YamlSourceReader): Scale = ScaleReference(reference)
 
-  override protected def createDefault(implicit source: YamlObject): Scale = DefaultScale(name, <<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
+  override protected def createDefault(implicit source: YamlSourceReader): Scale = DefaultScale(name, <<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
 }
 
 object RoutingReader extends YamlReader[Routing] with WeakReferenceYamlReader[Routing] {
+  import YamlSourceReader._
 
-  override protected def createReference(implicit source: YamlObject): Routing = RoutingReference(reference)
+  override protected def createReference(implicit source: YamlSourceReader): Routing = RoutingReference(reference)
 
-  override protected def createDefault(implicit source: YamlObject): Routing = DefaultRouting(name, <<?[Int]("weight"), filters)
+  override protected def createDefault(implicit source: YamlSourceReader): Routing = DefaultRouting(name, <<?[Int]("weight"), filters)
 
-  protected def filters(implicit source: YamlObject): List[Filter] = <<?[YamlList]("filters") match {
+  protected def filters(implicit source: YamlSourceReader): List[Filter] = <<?[YamlList]("filters") match {
     case None ⇒ List[Filter]()
     case Some(list: YamlList) ⇒ list.map {
       FilterReader.readReferenceOrAnonymous
@@ -216,8 +216,8 @@ object RoutingReader extends YamlReader[Routing] with WeakReferenceYamlReader[Ro
 
 object FilterReader extends YamlReader[Filter] with WeakReferenceYamlReader[Filter] {
 
-  override protected def createReference(implicit source: YamlObject): Filter = FilterReference(reference)
+  override protected def createReference(implicit source: YamlSourceReader): Filter = FilterReference(reference)
 
-  override protected def createDefault(implicit source: YamlObject): Filter = DefaultFilter(name, <<![String]("condition"))
+  override protected def createDefault(implicit source: YamlSourceReader): Filter = DefaultFilter(name, <<![String]("condition"))
 }
 

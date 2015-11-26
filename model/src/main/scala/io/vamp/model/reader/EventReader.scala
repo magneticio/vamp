@@ -10,14 +10,17 @@ import scala.language.postfixOps
 
 object EventReader extends YamlReader[Event] with EventValidator {
 
-  override protected def expand(implicit source: YamlObject) = {
+  override protected def expand(implicit source: YamlSourceReader) = {
     expandToList("tags")
     source
   }
 
-  override protected def parse(implicit source: YamlObject): Event = {
+  override protected def parse(implicit source: YamlSourceReader): Event = {
     val tags = <<![List[String]]("tags").toSet
-    val value = <<![AnyRef]("value")
+    val value = <<![AnyRef]("value") match {
+      case yaml: YamlSourceReader ⇒ yaml.flatten()
+      case any                    ⇒ any
+    }
 
     val timestamp = <<?[String]("timestamp") match {
       case None ⇒ OffsetDateTime.now
@@ -36,12 +39,12 @@ object EventReader extends YamlReader[Event] with EventValidator {
 
 object EventQueryReader extends YamlReader[EventQuery] with EventValidator {
 
-  override protected def expand(implicit source: YamlObject) = {
+  override protected def expand(implicit source: YamlSourceReader) = {
     expandToList("tags")
     source
   }
 
-  override protected def parse(implicit source: YamlObject): EventQuery = {
+  override protected def parse(implicit source: YamlSourceReader): EventQuery = {
     val tags = <<![List[String]]("tags").toSet
 
     val timestamp = <<?[Any]("timestamp").flatMap { _ ⇒

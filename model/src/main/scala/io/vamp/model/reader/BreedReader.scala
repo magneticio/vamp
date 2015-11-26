@@ -10,18 +10,18 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
 
   override def readReference(any: Any): Breed = any match {
     case reference: String ⇒ BreedReference(reference)
-    case map: collection.Map[_, _] ⇒
-      implicit val source = map.asInstanceOf[YamlObject]
-      if (isReference) BreedReference(reference) else read(map.asInstanceOf[YamlObject])
+    case yaml: YamlSourceReader ⇒
+      implicit val source = yaml
+      if (isReference) BreedReference(reference) else read(yaml)
   }
 
-  override protected def expand(implicit source: YamlObject) = {
-    <<?[YamlObject]("dependencies") match {
+  override protected def expand(implicit source: YamlSourceReader) = {
+    <<?[YamlSourceReader]("dependencies") match {
       case None ⇒
-      case Some(map) ⇒ map.map {
+      case Some(yaml) ⇒ yaml.pull().map {
         case (alias: String, dependency: Any) ⇒ dependency match {
           case reference: String ⇒ >>("dependencies" :: alias :: "breed" :: "reference", dependency)
-          case map: collection.Map[_, _] ⇒ map.asInstanceOf[YamlObject].get("breed") match {
+          case yaml: YamlSourceReader ⇒ yaml.find[Any]("breed") match {
             case None        ⇒ >>("dependencies" :: alias :: "breed", dependency)
             case Some(breed) ⇒
           }
@@ -32,16 +32,16 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
     super.expand
   }
 
-  override protected def parse(implicit source: YamlObject): Breed = {
+  override protected def parse(implicit source: YamlSourceReader): Breed = {
 
     val deployable = Deployable(<<![String]("deployable"))
 
-    val dependencies = <<?[YamlObject]("dependencies") match {
+    val dependencies = <<?[YamlSourceReader]("dependencies") match {
       case None ⇒ Map[String, Breed]()
-      case Some(map) ⇒ map.map {
-        case (alias: String, dependency: collection.Map[_, _]) ⇒
-          (alias, readReference(dependency.asInstanceOf[YamlObject].get("breed").get))
-      } toMap
+      case Some(yaml) ⇒ yaml.pull().map {
+        case (alias: String, dependency: YamlSourceReader) ⇒
+          (alias, readReference(dependency.find[Any]("breed").get))
+      }
     }
 
     DefaultBreed(name, deployable, ports(), environmentVariables(), constants(), dependencies)

@@ -7,31 +7,31 @@ object WorkflowReader extends YamlReader[Workflow] with ReferenceYamlReader[Work
 
   override def readReference(any: Any): Workflow = any match {
     case reference: String ⇒ WorkflowReference(reference)
-    case map: collection.Map[_, _] ⇒
-      implicit val source = map.asInstanceOf[YamlObject]
-      if (<<?[Any]("script").isEmpty) WorkflowReference(name) else read(map.asInstanceOf[YamlObject])
+    case yaml: YamlSourceReader ⇒
+      implicit val source = yaml
+      if (<<?[Any]("script").isEmpty) WorkflowReference(name) else read(source)
   }
 
-  override protected def expand(implicit source: YamlObject): YamlObject = {
+  override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
     expandToList("import")
     expandToList("requires")
     source
   }
 
-  override protected def parse(implicit source: YamlObject): Workflow = {
+  override protected def parse(implicit source: YamlSourceReader): Workflow = {
     DefaultWorkflow(name, <<?[List[String]]("import").getOrElse(Nil), <<?[List[String]]("requires").getOrElse(Nil), <<![String]("script"))
   }
 }
 
 object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
 
-  override protected def expand(implicit source: YamlObject): YamlObject = {
+  override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
     expandToList("tags")
     expandToList("import")
     source
   }
 
-  override protected def parse(implicit source: YamlObject): ScheduledWorkflow = {
+  override protected def parse(implicit source: YamlSourceReader): ScheduledWorkflow = {
     val trigger = (<<?[String]("deployment"), <<?[String]("time"), <<?[List[String]]("tags")) match {
 
       case (Some(deployment), _, _) ⇒ DeploymentTrigger(deployment)
@@ -48,6 +48,6 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
       case _       ⇒ DefaultWorkflow("", <<?[List[String]]("import").getOrElse(Nil), Nil, <<![String]("script"))
     }
 
-    ScheduledWorkflow(name, workflow, trigger, <<?[YamlObject]("storage").getOrElse(Map()).toMap)
+    ScheduledWorkflow(name, workflow, trigger, <<?[YamlSourceReader]("storage").getOrElse(YamlSourceReader()).pull())
   }
 }

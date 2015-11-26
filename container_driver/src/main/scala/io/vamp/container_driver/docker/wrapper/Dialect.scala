@@ -8,8 +8,8 @@ trait Dialect {
       case Some(l: List[Any]) ⇒ list ++ l
       case _                  ⇒ list
     })
-    case (key, map: collection.Map[_, _]) ⇒ key -> (dialect.get(key) match {
-      case Some(m: collection.Map[_, _]) ⇒ m ++ map
+    case (key, map: Map[_, _]) ⇒ key -> (dialect.get(key) match {
+      case Some(m: Map[_, _]) ⇒ m ++ map
       case _                             ⇒ map
     })
     case (key, None)  ⇒ key -> dialect.getOrElse(key, None)

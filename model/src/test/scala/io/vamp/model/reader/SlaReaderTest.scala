@@ -15,7 +15,7 @@ class SlaReaderTest extends FlatSpec with Matchers with ReaderTest {
     SlaReader.read(res("sla/sla1.yml")) should have(
       'name("red"),
       'type("response_time"),
-      'parameters(Map("name" -> "red", "window" -> Map("cooldown" -> 600, "interval" -> 600), "threshold" -> Map("lower" -> 100, "upper" -> 1000))),
+      'parameters(Map("window" -> Map("cooldown" -> 600, "interval" -> 600), "threshold" -> Map("lower" -> 100, "upper" -> 1000))),
       'escalations(List(GenericEscalation("", "scale_nothing", Map("scale_by" -> 1, "minimum" -> 1, "maximum" -> 4))))
     )
   }

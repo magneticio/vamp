@@ -11,70 +11,70 @@ import scala.language.postfixOps
 
 object DeploymentReader extends YamlReader[Deployment] with TraitReader with DialectReader {
 
-  override protected def parse(implicit source: DeploymentReader.YamlObject): Deployment = {
-    val clusters = <<?[YamlObject]("clusters") match {
+  override protected def parse(implicit source: YamlSourceReader): Deployment = {
+    val clusters = <<?[YamlSourceReader]("clusters") match {
       case None ⇒ List[DeploymentCluster]()
-      case Some(map) ⇒ map.map({
-        case (name: String, cluster: collection.Map[_, _]) ⇒
-          implicit val source = cluster.asInstanceOf[YamlObject]
+      case Some(yaml) ⇒ yaml.pull().map {
+        case (name: String, cluster: YamlSourceReader) ⇒
+          implicit val source = cluster
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
-          <<?[List[YamlObject]]("services") match {
+          <<?[List[YamlSourceReader]]("services") match {
             case None       ⇒ DeploymentCluster(name, Nil, sla, portMapping("routes"), dialects)
             case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), sla, portMapping("routes"), dialects)
           }
-      }).toList
+      } toList
     }
 
     Deployment(name, clusters, ports("endpoints", addGroup = true), ports(addGroup = true), environmentVariables, hosts())
   }
 
-  private def environmentVariables(implicit source: YamlObject): List[EnvironmentVariable] = first[Any]("environment_variables", "env") match {
+  private def environmentVariables(implicit source: YamlSourceReader): List[EnvironmentVariable] = first[Any]("environment_variables", "env") match {
     case Some(list: List[_]) ⇒ list.map { el ⇒
-      implicit val source = el.asInstanceOf[YamlObject]
+      implicit val source = el.asInstanceOf[YamlSourceReader]
       EnvironmentVariable(<<![String]("name"), <<?[String]("alias"), <<?[String]("value"), <<?[String]("interpolated"))
     }
     case _ ⇒ Nil
   }
 
-  private def parseService(implicit source: YamlObject): DeploymentService = {
+  private def parseService(implicit source: YamlSourceReader): DeploymentService = {
     val breed = BreedReader.readReference(<<![Any]("breed")).asInstanceOf[DefaultBreed]
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale").asInstanceOf[Option[DefaultScale]]
     val routing = RoutingReader.readOptionalReferenceOrAnonymous("routing").asInstanceOf[Option[DefaultRouting]]
-    val servers = <<?[List[YamlObject]]("servers") match {
+    val servers = <<?[List[YamlSourceReader]]("servers") match {
       case None       ⇒ Nil
       case Some(list) ⇒ list.map(parseServer(_))
     }
 
-    DeploymentService(state(<<![YamlObject]("state")), breed, environmentVariables(), scale, routing, servers, dependencies(), dialects)
+    DeploymentService(state(<<![YamlSourceReader]("state")), breed, environmentVariables(), scale, routing, servers, dependencies(), dialects)
   }
 
-  private def parseServer(implicit source: YamlObject): DeploymentServer =
+  private def parseServer(implicit source: YamlSourceReader): DeploymentServer =
     DeploymentServer(name, <<![String]("host"), portMapping(), <<![Boolean]("deployed"))
 
-  private def portMapping(name: String = "ports")(implicit source: YamlObject): Map[Int, Int] = {
-    <<?[YamlObject](name) match {
+  private def portMapping(name: String = "ports")(implicit source: YamlSourceReader): Map[Int, Int] = {
+    <<?[YamlSourceReader](name) match {
       case None ⇒ Map()
-      case Some(map: YamlObject) ⇒ map.flatMap {
+      case Some(yaml: YamlSourceReader) ⇒ yaml.pull().flatMap {
         case (key, value: Int)    ⇒ (key.toInt -> value) :: Nil
         case (key, value: BigInt) ⇒ (key.toInt -> value.toInt) :: Nil
         case (key, value: String) ⇒ (key.toInt -> value.toInt) :: Nil
         case _                    ⇒ Nil
-      } toMap
+      }
     }
   }
 
-  private def dependencies(name: String = "dependencies")(implicit source: YamlObject): Map[String, String] = {
-    <<?[YamlObject](name) match {
+  private def dependencies(name: String = "dependencies")(implicit source: YamlSourceReader): Map[String, String] = {
+    <<?[YamlSourceReader](name) match {
       case None ⇒ Map()
-      case Some(map: YamlObject) ⇒ map.flatMap {
+      case Some(yaml: YamlSourceReader) ⇒ yaml.pull().flatMap {
         case (key, value: String) ⇒ (key -> value) :: Nil
         case _                    ⇒ Nil
-      } toMap
+      }
     }
   }
 
-  private def state(implicit source: YamlObject): DeploymentService.State = {
+  private def state(implicit source: YamlSourceReader): DeploymentService.State = {
     def since(string: String) = OffsetDateTime.parse(string, DateTimeFormatter.ISO_DATE_TIME)
 
     val intentionName = <<![String]("intention")

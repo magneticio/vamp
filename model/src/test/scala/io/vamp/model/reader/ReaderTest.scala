@@ -26,7 +26,7 @@ class YamlReaderTest extends ReaderTest {
   "YamlReader" should "fail on invalid YAML" in {
     expectedError[YamlParsingError]({
       new YamlReader[Any] {
-        override protected def parse(implicit source: YamlObject): Any = None
+        override protected def parse(implicit source: YamlSourceReader): Any = None
       }.read(res("invalid1.yml"))
     }).message should startWith("Can't construct a resource for !ios")
   }
@@ -34,7 +34,7 @@ class YamlReaderTest extends ReaderTest {
   it should "fail on invalid type" in {
     expectedError[UnexpectedTypeError]({
       new YamlReader[Any] {
-        override protected def parse(implicit source: YamlObject): Any = <<![Int]("integer")
+        override protected def parse(implicit source: YamlSourceReader): Any = <<![Int]("integer")
       }.read(res("invalid2.yml"))
     }) should have(
       'path("integer"),
@@ -46,7 +46,7 @@ class YamlReaderTest extends ReaderTest {
   it should "fail on unexpected inner element type" in {
     expectedError[UnexpectedInnerElementError]({
       new YamlReader[Any] {
-        override protected def parse(implicit source: YamlObject): Any = <<![String]("root" :: "nested" :: "next")
+        override protected def parse(implicit source: YamlSourceReader): Any = <<![String]("root" :: "nested" :: "next")
       }.read(res("invalid3.yml"))
     }) should have(
       'path("nested"),
