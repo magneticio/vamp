@@ -32,7 +32,7 @@ class ElasticsearchClient(url: String)(implicit executor: ExecutionContext) {
   def get(path: String): Future[Any] = RestClient.get[Any](s"$url/$path")
 
   def index(index: String, `type`: String, id: Option[String], document: AnyRef)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchIndexResponse] = id match {
-    case None ⇒ RestClient.post[ElasticsearchIndexResponse](s"$url/$index/${`type`}", document)
+    case None      ⇒ RestClient.post[ElasticsearchIndexResponse](s"$url/$index/${`type`}", document)
     case Some(_id) ⇒ RestClient.put[ElasticsearchIndexResponse](s"$url/$index/${`type`}/${_id}", document)
   }
 

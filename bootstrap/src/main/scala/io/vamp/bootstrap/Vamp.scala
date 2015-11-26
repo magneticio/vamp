@@ -18,7 +18,7 @@ trait Vamp extends App {
   val version = Option(getClass.getPackage.getImplementationVersion)
 
   val logger = Logger(LoggerFactory.getLogger(classOf[Vamp]))
-  
+
   implicit val actorSystem = ActorSystem("vamp")
 
   def bootstrap = {

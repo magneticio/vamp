@@ -13,3 +13,5 @@ case class UnexpectedTypeError(path: String, expected: Class[_], actual: Class[_
 case class UnexpectedInnerElementError(path: String, found: Class[_]) extends Notification
 
 case class EitherReferenceOrAnonymous(name: String, reference: String) extends Notification
+
+case class UnexpectedValues(map: Map[String, _], message: String) extends Notification

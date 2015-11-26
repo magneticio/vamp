@@ -6,6 +6,9 @@ import io.vamp.common.notification.NotificationErrorException
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.resolver.TraitResolver
+import org.json4s.native.Serialization
+import org.json4s.{ DefaultFormats, Formats }
+import org.json4s.native.Serialization._
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.constructor.Constructor
 import org.yaml.snakeyaml.error.YAMLException
@@ -50,8 +53,17 @@ trait YamlReader[T] extends ModelNotificationProvider {
   }
 
   private def read(reader: Reader, close: Boolean = false): T = load(reader, close) match {
-    case source: collection.Map[_, _] ⇒ read(YamlSourceReader(source.toMap.asInstanceOf[Map[String, _]]))
-    case source                       ⇒ throwException(UnexpectedTypeError("/", classOf[YamlSourceReader], if (source != null) source.getClass else classOf[Object]))
+    case map: collection.Map[_, _] ⇒
+      val source = YamlSourceReader(map.toMap.asInstanceOf[Map[String, _]])
+      val result = read(source)
+      val nonConsumed = source.notConsumed
+      if (nonConsumed.nonEmpty) {
+        implicit val formats: Formats = DefaultFormats
+        throwException(UnexpectedValues(nonConsumed, Serialization.write(nonConsumed)))
+      }
+      result
+
+    case source ⇒ throwException(UnexpectedTypeError("/", classOf[YamlSourceReader], if (source != null) source.getClass else classOf[Object]))
   }
 
   protected def load(reader: Reader, close: Boolean = false): Any = {
