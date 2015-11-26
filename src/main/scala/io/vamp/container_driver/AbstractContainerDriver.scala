@@ -45,7 +45,7 @@ abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDr
     def visit(any: Any): Any = any match {
       case value: String ⇒ resolve(value, valueFor(deployment, service))
       case list: List[_] ⇒ list.map(visit)
-      case map: scala.collection.Map[_, _] ⇒ map.map {
+      case map: Map[_, _] ⇒ map.map {
         case (key, value) ⇒ key -> visit(value)
       }
       case _ ⇒ any
