@@ -1,6 +1,6 @@
 package io.vamp.model.reader
 
-import io.vamp.model.notification.{ MissingPathValueError, UndefinedWorkflowTriggerError }
+import io.vamp.model.notification.{ MissingPathValueError, UndefinedWorkflowTriggerError, UnexpectedElement }
 import io.vamp.model.workflow._
 import org.junit.runner.RunWith
 import org.scalatest._
@@ -104,7 +104,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
     })
   }
 
-  it should "expand event triggfer tags" in {
+  it should "expand event trigger tags" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled7.yml")) should have(
       'name("logger-schedule"),
       'workflow(WorkflowReference("logger")),
@@ -113,10 +113,10 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   }
 
   it should "ignore 'script' if 'workflow' is specified" in {
-    ScheduledWorkflowReader.read(res("workflow/scheduled8.yml")) should have(
-      'name("dead-vamp"),
-      'workflow(WorkflowReference("kill-vamp")),
-      'trigger(TimeTrigger("0"))
+    expectedError[UnexpectedElement]({
+      ScheduledWorkflowReader.read(res("workflow/scheduled8.yml"))
+    }) should have(
+      'element(Map("script" -> "vamp.exit()"))
     )
   }
 

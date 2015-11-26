@@ -11,6 +11,8 @@ object YamlSourceReader {
   type YamlPath = List[String]
   type YamlList = List[YamlSourceReader]
 
+  implicit def string2Path(path: String): YamlPath = path.split('/').toList
+
   def apply(entries: (String, Any)*): YamlSourceReader = apply(Map(entries: _*))
 
   def apply(map: collection.Map[String, Any] = Map[String, Any]()): YamlSourceReader = new YamlSourceReader(map)
@@ -38,13 +40,23 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
 
   def push(yaml: YamlSourceReader) = yaml.source.foreach { case (key, value) ⇒ source.put(key, value) }
 
-  def pull(accept: (String) ⇒ Boolean = (String) ⇒ true): Map[String, Any] = consume(source.filterKeys(accept).toMap)
+  def pull(accept: (String) ⇒ Boolean = (String) ⇒ true): Map[String, Any] = source.filterKeys(accept).map(consume).toMap
 
-  def flatten(accept: (String) ⇒ Boolean = (String) ⇒ true): Map[String, Any] = flatten(consume = true, accept)
+  def flatten(accept: (String) ⇒ Boolean = (String) ⇒ true): Map[String, Any] = {
+    source.filterKeys(accept).map(consume).map {
+      case (key, value: YamlSourceReader) ⇒ key -> value.flatten((String) ⇒ true)
+      case (key, value: List[_]) ⇒
+        key -> value.map {
+          case yaml: YamlSourceReader ⇒ yaml.flatten((String) ⇒ true)
+          case any                    ⇒ any
+        }
+      case (key, value) ⇒ key -> value
+    } toMap
+  }
 
   def size: Int = source.size
 
-  def consumed: Map[String, _] = _consumed.map {
+  def consumed: Map[String, _] = _consumed.map({
     case (key, value: YamlSourceReader) ⇒ key -> value.consumed
     case (key, value: List[_]) ⇒
       key -> value.map {
@@ -52,16 +64,12 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
         case any                    ⇒ any
       }
     case (key, value) ⇒ key -> value
-  } toMap
-
-  def notConsumed: Map[String, _] = {
-//    val all = flatten(consume = false, (String) ⇒ true)
-//
-//    all.filterNot {
-//      case (key, value) ⇒ _consumed.get(key).isDefined
-//    }
-    Map()
+  }).toMap.filter {
+    case (key, value: Map[_, _]) ⇒ value.nonEmpty
+    case _                       ⇒ true
   }
+
+  def notConsumed: Map[String, _] = notConsumed(source, _consumed)
 
   private def find[V <: Any: ClassTag](target: YamlSourceReader, path: YamlPath): Option[V] =
     path match {
@@ -82,14 +90,21 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
         }
       } match {
         case Success(value) ⇒
-          if (value.isDefined) _consumed.put(last, value.get)
+          target._consumed.put(last, value.getOrElse(None))
           value
         case Failure(e) ⇒ throw e
       }
 
       case head :: tail ⇒ target.source.get(head).flatMap {
-        case yaml: YamlSourceReader ⇒ find[V](yaml, tail)
-        case failure                ⇒ throwException(UnexpectedInnerElementError(head, failure.getClass))
+        case yaml: YamlSourceReader ⇒ Try {
+          find[V](yaml, tail)
+        } match {
+          case Success(value) ⇒
+            if (value.isDefined) _consumed.put(head, yaml)
+            value
+          case Failure(e) ⇒ throw e
+        }
+        case failure ⇒ throwException(UnexpectedInnerElementError(head, failure.getClass))
       }
 
       case Nil ⇒ None
@@ -119,22 +134,25 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
     }
   }
 
-  private def flatten(consume: Boolean, accept: (String) ⇒ Boolean): Map[String, Any] = {
-    val result = source.filterKeys(accept).map {
-      case (key, value: YamlSourceReader) ⇒ key -> value.flatten()
-      case (key, value: List[_]) ⇒
-        key -> value.map {
-          case yaml: YamlSourceReader ⇒ yaml.flatten()
-          case any                    ⇒ any
-        }
-      case (key, value) ⇒ key -> value
-    } toMap
-
-    if (consume) this.consume(result) else result
+  private def consume(entry: (String, Any)): (String, Any) = {
+    _consumed.put(entry._1, entry._2)
+    entry
   }
 
-  private def consume(map: Map[String, Any]) = {
-    map.map { case (key, value) ⇒ _consumed.put(key, value) }
-    map
-  }
+  private def notConsumed(all: collection.Map[String, _], cons: collection.Map[String, _]): Map[String, _] = all.flatMap {
+    case (key, value: YamlSourceReader) if cons.get(key).isDefined ⇒
+      cons.get(key) match {
+        case Some(yaml: YamlSourceReader) ⇒
+          val map = yaml.notConsumed
+          if (map.isEmpty) Nil else (key -> yaml.notConsumed) :: Nil
+        case _ ⇒ (key -> value) :: Nil
+      }
+
+    case (key, value) if cons.get(key).isEmpty ⇒
+      value match {
+        case y: YamlSourceReader ⇒ (key -> y.notConsumed) :: Nil
+        case _                   ⇒ (key -> value) :: Nil
+      }
+    case _ ⇒ Nil
+  } toMap
 }

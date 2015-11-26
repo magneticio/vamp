@@ -1,6 +1,7 @@
 package io.vamp.model.reader
 
 import io.vamp.model.notification.UndefinedWorkflowTriggerError
+import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.workflow._
 
 object WorkflowReader extends YamlReader[Workflow] with ReferenceYamlReader[Workflow] {

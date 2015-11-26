@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter
 import io.vamp.model.artifact.DeploymentService.State.Step
 import io.vamp.model.artifact._
 import io.vamp.model.notification.{ NotificationMessageNotRestored, UndefinedStateIntentionError, UndefinedStateStepError }
+import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
 

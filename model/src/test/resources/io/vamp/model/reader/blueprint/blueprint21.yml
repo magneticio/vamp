@@ -41,8 +41,9 @@ clusters:
     sla: strong-mountain
 
   needless:
-    name: hideous-canal
-    deployable: old/crystal
+    breed:
+      name: hideous-canal
+      deployable: old/crystal
 
     sla: fish-steamy
 

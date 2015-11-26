@@ -5,10 +5,10 @@ import java.io.{ File, InputStream, Reader, StringReader }
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
+import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.resolver.TraitResolver
 import org.json4s.native.Serialization
 import org.json4s.{ DefaultFormats, Formats }
-import org.json4s.native.Serialization._
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.constructor.Constructor
 import org.yaml.snakeyaml.error.YAMLException
@@ -41,10 +41,6 @@ object YamlSource {
 
 trait YamlReader[T] extends ModelNotificationProvider {
 
-  import YamlSourceReader._
-
-  implicit def string2Path(path: String): YamlPath = path.split('/').toList
-
   def read(input: YamlSource): T = input match {
     case ReaderSource(reader) ⇒ read(reader)
     case StreamSource(stream) ⇒ read(Source.fromInputStream(stream).bufferedReader())
@@ -59,7 +55,7 @@ trait YamlReader[T] extends ModelNotificationProvider {
       val nonConsumed = source.notConsumed
       if (nonConsumed.nonEmpty) {
         implicit val formats: Formats = DefaultFormats
-        throwException(UnexpectedValues(nonConsumed, Serialization.write(nonConsumed)))
+        throwException(UnexpectedElement(nonConsumed, Serialization.write(nonConsumed)))
       }
       result
 

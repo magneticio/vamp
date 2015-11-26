@@ -8,6 +8,7 @@ import org.scalatest.{ FlatSpec, Matchers }
 
 import scala.io.Source
 import scala.reflect._
+import YamlSourceReader._
 
 trait ReaderTest extends FlatSpec with Matchers {
   protected def res(path: String): String = Source.fromURL(getClass.getResource(path)).mkString

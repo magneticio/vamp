@@ -2,6 +2,7 @@ package io.vamp.model.reader
 
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
+import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.validator.BreedTraitValueValidator
 
 import scala.language.postfixOps
@@ -22,7 +23,9 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
         case (alias: String, dependency: Any) ⇒ dependency match {
           case reference: String ⇒ >>("dependencies" :: alias :: "breed" :: "reference", dependency)
           case yaml: YamlSourceReader ⇒ yaml.find[Any]("breed") match {
-            case None        ⇒ >>("dependencies" :: alias :: "breed", dependency)
+            case None ⇒
+              >>("dependencies" :: alias, None)
+              >>("dependencies" :: alias :: "breed", dependency)
             case Some(breed) ⇒
           }
         }

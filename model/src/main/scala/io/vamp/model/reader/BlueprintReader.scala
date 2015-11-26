@@ -2,6 +2,7 @@ package io.vamp.model.reader
 
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
+import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.validator.BlueprintTraitValidator
 
 import scala.language.postfixOps
@@ -200,6 +201,7 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
 }
 
 object RoutingReader extends YamlReader[Routing] with WeakReferenceYamlReader[Routing] {
+
   import YamlSourceReader._
 
   override protected def createReference(implicit source: YamlSourceReader): Routing = RoutingReference(reference)

@@ -16,9 +16,6 @@ clusters:
     docker:
       q: w
       o: p
-    google:
-      w: e
-      e: r
     marathon:
       r: t
 
