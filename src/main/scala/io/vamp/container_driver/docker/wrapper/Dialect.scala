@@ -10,7 +10,7 @@ trait Dialect {
     })
     case (key, map: Map[_, _]) ⇒ key -> (dialect.get(key) match {
       case Some(m: Map[_, _]) ⇒ m ++ map
-      case _                             ⇒ map
+      case _                  ⇒ map
     })
     case (key, None)  ⇒ key -> dialect.getOrElse(key, None)
     case (key, value) ⇒ key -> value
