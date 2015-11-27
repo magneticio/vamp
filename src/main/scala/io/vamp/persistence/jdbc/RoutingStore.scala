@@ -72,7 +72,7 @@ trait RoutingStore extends FilterStore with PersistenceNotificationProvider {
       else
         FilterReference(filter.name)
     )
-    DefaultRouting(name = VampPersistenceUtil.restoreToAnonymous(r.name, r.isAnonymous), weight = r.weight, filters = filters)
+    DefaultRouting(name = VampPersistenceUtil.restoreToAnonymous(r.name, r.isAnonymous), weight = r.weight, filters = filters, None)
   }
 
   protected def deleteRoutingFromDb(artifact: Routing): Unit = {
