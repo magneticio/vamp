@@ -6,6 +6,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.common.crypto.Hash
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.dictionary.DictionaryActor
 import io.vamp.model.artifact.DeploymentService.State
@@ -20,6 +21,7 @@ import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, Persist
 
 import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }
+import scala.util.matching.Regex
 
 object DeploymentActor {
 
@@ -87,8 +89,8 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
   }
 }
 
-trait BlueprintSupport {
-  this: ArtifactSupport with ExecutionContextProvider ⇒
+trait BlueprintSupport extends DeploymentValidator {
+  this: ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   private def uuid = UUID.randomUUID.toString
 
@@ -100,7 +102,9 @@ trait BlueprintSupport {
     } else {
       artifactForIfExists[Deployment](name) map {
         case Some(deployment) ⇒ deployment
-        case None             ⇒ Deployment(name, clusters = Nil, endpoints = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
+        case None ⇒
+          validateName(name)
+          Deployment(name, clusters = Nil, endpoints = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
       }
     }
   }
@@ -127,6 +131,13 @@ trait BlueprintSupport {
 trait DeploymentValidator {
 
   this: ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
+
+  private val nameMatcher = """^[\p{L}\d-]+$""".r
+
+  def validateName(name: String) = name match {
+    case nameMatcher(_*) ⇒
+    case _               ⇒ throwException(IllegalDeploymentName(name))
+  }
 
   def validateServices: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
     val services = deployment.clusters.flatMap(_.services).filterNot(_.state.intention == Undeploy)

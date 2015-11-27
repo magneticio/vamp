@@ -13,9 +13,9 @@ InvalidRoutingWeight            : "Invalid routing weight for cluster '{deployme
 UnavailableEndpointPortError    : "Endpoint port '{endpoint.name}:{endpoint.number}' is already in use by deployment: '{deployment.name}'."
 WorkflowSchedulingError         : "Workflow scheduling error."
 WorkflowExecutionError          : "Workflow execution error."
+IllegalDeploymentName           : "Illegal deployment name - only letters, digits and dashes are allowed."
 
 InconsistentArtifactName        : "Inconsistent resource name: parameter is '{parameter}' but in the request body found '{artifact.name}'."
 UnexpectedArtifact              : "Unexpected resource: '{artifact}'."
 InvalidTimeTriggerError         : "Not a valid time trigger patter: '{pattern}'."
 MissingRequiredVariableError    : "Required variable '{required}' not found in the storage."
-
