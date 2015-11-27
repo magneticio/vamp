@@ -14,6 +14,7 @@ import io.vamp.model.artifact._
 import io.vamp.pulse.notification.PulseFailureNotifier
 
 import scala.concurrent.Future
+import scala.language.postfixOps
 import scala.util.matching.Regex
 
 object GatewayDriverActor {
@@ -63,11 +64,20 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends GatewayConverter
 
   private def getAllAfterPurge(deployments: List[Deployment]) = {
     log.debug(s"Read all gateways")
+
+    val gatewayNames = deployments.flatMap { deployment ⇒
+      deployment.clusters.flatMap { cluster ⇒
+        cluster.services.flatMap { service ⇒
+          service.breed.ports.map { port ⇒
+            clusterGatewayName(deployment, cluster, port)
+          }
+        }
+      } ++ deployment.endpoints.map(endpointGatewayName(deployment, _))
+    } toSet
+
     read map {
       case gateways ⇒
-        val purged = gateways.filter {
-          case gateway ⇒ deployments.exists(deployment ⇒ gateway.name.substring(0, 8) == deployment.name.substring(0, 8))
-        }
+        val purged = gateways.filter(gateway ⇒ gatewayNames.contains(gateway.name))
         if (gateways.size != purged.size) persist(purged)
         toDeploymentGateways(purged)
     }
@@ -190,12 +200,8 @@ trait GatewayDriverNameMatcher {
     case Some(port) ⇒ id == endpointGatewayName(deployment, port)
   }
 
-  def clusterGatewayName(deployment: Deployment, cluster: DeploymentCluster, port: Port): String = {
-    val id = s"${deployment.name}$nameDelimiter${cluster.name}$nameDelimiter${port.number}"
-    val hashId = string2Id(id)
-
-    if (hashId == id) id else s"${id.substring(0, 8)}$nameDelimiter${id.substring(9, 13)}$nameDelimiter$hashId"
-  }
+  def clusterGatewayName(deployment: Deployment, cluster: DeploymentCluster, port: Port): String =
+    string2Id(s"${deployment.name}$nameDelimiter${cluster.name}$nameDelimiter${port.number}")
 
   def endpointGatewayName(deployment: Deployment, port: Port): String =
     s"${artifactName2Id(deployment)}$nameDelimiter${port.number}"
