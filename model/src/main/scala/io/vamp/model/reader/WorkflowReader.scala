@@ -6,7 +6,7 @@ import io.vamp.model.workflow._
 
 object WorkflowReader extends YamlReader[Workflow] with ReferenceYamlReader[Workflow] {
 
-  override def readReference(any: Any): Workflow = any match {
+  override def readReference: PartialFunction[Any, Workflow] = {
     case reference: String ⇒ WorkflowReference(reference)
     case yaml: YamlSourceReader ⇒
       implicit val source = yaml

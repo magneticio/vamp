@@ -44,25 +44,16 @@ trait YamlReader[T] extends ModelNotificationProvider {
   def read(input: YamlSource): T = input match {
     case ReaderSource(reader) ⇒ read(reader)
     case StreamSource(stream) ⇒ read(Source.fromInputStream(stream).bufferedReader())
-    case StringSource(string) ⇒ read(new StringReader(string), close = true)
-    case FileSource(file)     ⇒ read(Source.fromFile(file).bufferedReader(), close = true)
+    case StringSource(string) ⇒ read(new StringReader(string))
+    case FileSource(file)     ⇒ read(Source.fromFile(file).bufferedReader())
   }
 
-  private def read(reader: Reader, close: Boolean = false): T = load(reader, close) match {
-    case map: collection.Map[_, _] ⇒
-      val source = YamlSourceReader(map.toMap.asInstanceOf[Map[String, _]])
-      val result = read(source)
-      val nonConsumed = source.notConsumed
-      if (nonConsumed.nonEmpty) {
-        implicit val formats: Formats = DefaultFormats
-        throwException(UnexpectedElement(nonConsumed, Serialization.write(nonConsumed)))
-      }
-      result
+  private def read(reader: Reader): T = load(reader, {
+    case yaml: YamlSourceReader ⇒ read(yaml)
+    case any                    ⇒ throwException(UnexpectedTypeError("/", classOf[YamlSourceReader], if (any != null) any.getClass else classOf[Object]))
+  })
 
-    case source ⇒ throwException(UnexpectedTypeError("/", classOf[YamlSourceReader], if (source != null) source.getClass else classOf[Object]))
-  }
-
-  protected def load(reader: Reader, close: Boolean = false): Any = {
+  protected def load(reader: Reader, process: PartialFunction[Any, T]): T = {
     def convert(any: Any): Any = any match {
       case source: java.util.Map[_, _] ⇒
         // keeping the order
@@ -74,13 +65,31 @@ trait YamlReader[T] extends ModelNotificationProvider {
     }
 
     try {
-      convert(yaml.load(reader))
+
+      val source = convert(yaml.load(reader)) match {
+        case map: collection.Map[_, _] ⇒ YamlSourceReader(map.toMap.asInstanceOf[Map[String, _]])
+        case any                       ⇒ any
+      }
+
+      val result = process(source)
+
+      source match {
+        case yaml: YamlSourceReader ⇒
+          val nonConsumed = yaml.notConsumed
+          if (nonConsumed.nonEmpty) {
+            implicit val formats: Formats = DefaultFormats
+            throwException(UnexpectedElement(nonConsumed, Serialization.write(nonConsumed)))
+          }
+        case _ ⇒
+      }
+
+      result
+
     } catch {
       case e: NotificationErrorException ⇒ throw e
       case e: YAMLException              ⇒ throwException(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
     } finally {
-      if (close)
-        reader.close()
+      reader.close()
     }
   }
 
@@ -138,9 +147,10 @@ trait YamlReader[T] extends ModelNotificationProvider {
 }
 
 trait ReferenceYamlReader[T] extends YamlReader[T] {
-  def readReference(any: Any): T
 
-  def readReferenceFromSource(any: Any): T = readReference(load(new StringReader(any.toString), close = true))
+  def readReference: PartialFunction[Any, T]
+
+  def readReferenceFromSource(any: Any): T = load(new StringReader(any.toString), readReference)
 }
 
 trait WeakReferenceYamlReader[T] extends YamlReader[T] {

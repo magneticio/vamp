@@ -9,7 +9,7 @@ import scala.language.postfixOps
 
 trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader with DialectReader with BlueprintTraitValidator {
 
-  override def readReference(any: Any): Blueprint = any match {
+  override def readReference: PartialFunction[Any, Blueprint] = {
     case string: String ⇒ BlueprintReference(string)
     case yaml: YamlSourceReader ⇒
       implicit val source = yaml

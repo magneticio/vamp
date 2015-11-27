@@ -9,7 +9,7 @@ import scala.language.postfixOps
 
 object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader with BreedTraitValueValidator {
 
-  override def readReference(any: Any): Breed = any match {
+  override def readReference: PartialFunction[Any, Breed] = {
     case reference: String ⇒ BreedReference(reference)
     case yaml: YamlSourceReader ⇒
       implicit val source = yaml

@@ -49,7 +49,7 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
     }
 
     case Merge(name, blueprint, source, validateOnly) ⇒ reply {
-      (merge(deploymentFor(blueprint)) andThen commit(create = true, source, validateOnly))(deploymentFor(name))
+      (merge(deploymentFor(blueprint)) andThen commit(create = true, source, validateOnly))(deploymentFor(name, create = true))
     }
 
     case Slice(name, blueprint, source, validateOnly) ⇒ reply {
@@ -94,7 +94,16 @@ trait BlueprintSupport {
 
   def deploymentFor(): Future[Deployment] = Future(Deployment(uuid, Nil, Nil, Nil, Nil, Nil))
 
-  def deploymentFor(name: String): Future[Deployment] = artifactFor[Deployment](name)
+  def deploymentFor(name: String, create: Boolean = false): Future[Deployment] = {
+    if (!create) {
+      artifactFor[Deployment](name)
+    } else {
+      artifactForIfExists[Deployment](name) map {
+        case Some(deployment) ⇒ deployment
+        case None             ⇒ Deployment(name, clusters = Nil, endpoints = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
+      }
+    }
+  }
 
   def deploymentFor(blueprint: Blueprint): Future[Deployment] = {
     artifactFor[DefaultBlueprint](blueprint) flatMap {
