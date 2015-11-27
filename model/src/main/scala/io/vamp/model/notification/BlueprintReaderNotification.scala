@@ -24,3 +24,5 @@ case class NotificationMessageNotRestored(message: String) extends Notification
 case class UndefinedStateIntentionError(name: String) extends Notification
 
 case class UndefinedStateStepError(name: String) extends Notification
+
+case class IllegalRoutingStickyValue(sticky: String) extends Notification

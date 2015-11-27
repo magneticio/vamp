@@ -34,7 +34,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
         case (name: String, cluster: YamlSourceReader) ⇒
           implicit val source = cluster
           <<?[Any]("services") match {
-            case None                ⇒ >>("services", List(<<-()))
+            case None                ⇒ >>("services", List(<<-))
             case Some(list: List[_]) ⇒
             case Some(breed: String) ⇒ >>("services", List(YamlSourceReader("breed" -> breed)))
             case Some(m)             ⇒ >>("services", List(m))
@@ -206,13 +206,18 @@ object RoutingReader extends YamlReader[Routing] with WeakReferenceYamlReader[Ro
 
   override protected def createReference(implicit source: YamlSourceReader): Routing = RoutingReference(reference)
 
-  override protected def createDefault(implicit source: YamlSourceReader): Routing = DefaultRouting(name, <<?[Int]("weight"), filters)
+  override protected def createDefault(implicit source: YamlSourceReader): Routing = DefaultRouting(name, <<?[Int]("weight"), filters, sticky)
 
   protected def filters(implicit source: YamlSourceReader): List[Filter] = <<?[YamlList]("filters") match {
     case None ⇒ List[Filter]()
     case Some(list: YamlList) ⇒ list.map {
       FilterReader.readReferenceOrAnonymous
     }
+  }
+
+  protected def sticky(implicit source: YamlSourceReader) = <<?[String]("sticky") match {
+    case Some(sticky) ⇒ Option(Routing.values.find(_.toString.toLowerCase == sticky.toLowerCase).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
+    case None         ⇒ None
   }
 }
 

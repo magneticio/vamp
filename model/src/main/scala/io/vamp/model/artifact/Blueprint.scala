@@ -55,11 +55,15 @@ case class ScaleReference(name: String) extends Reference with Scale
 
 case class DefaultScale(name: String, cpu: Double, memory: Double, instances: Int) extends Scale
 
+object Routing extends Enumeration {
+  val Service, Server = Value
+}
+
 trait Routing extends Artifact
 
 case class RoutingReference(name: String) extends Reference with Routing
 
-case class DefaultRouting(name: String, weight: Option[Int], filters: List[Filter]) extends Routing
+case class DefaultRouting(name: String, weight: Option[Int], filters: List[Filter], sticky: Option[Routing.Value]) extends Routing
 
 trait Filter extends Artifact
 

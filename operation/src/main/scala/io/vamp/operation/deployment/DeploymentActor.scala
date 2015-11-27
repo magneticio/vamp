@@ -6,7 +6,6 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.crypto.Hash
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.dictionary.DictionaryActor
 import io.vamp.model.artifact.DeploymentService.State
@@ -21,7 +20,6 @@ import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, Persist
 
 import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }
-import scala.util.matching.Regex
 
 object DeploymentActor {
 
@@ -353,7 +351,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
             case scale ⇒
               val defaultWeight = if (index == newServices.size - 1) availableWeight - index * weight else weight
               val routing = service.routing match {
-                case None                    ⇒ Some(DefaultRouting("", Some(defaultWeight), Nil))
+                case None                    ⇒ Some(DefaultRouting("", Some(defaultWeight), Nil, None))
                 case Some(r: DefaultRouting) ⇒ Some(r.copy(weight = Some(r.weight.getOrElse(defaultWeight))))
               }
               service.copy(scale = Some(scale), routing = routing)

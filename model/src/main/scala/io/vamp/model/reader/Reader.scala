@@ -121,7 +121,7 @@ trait YamlReader[T] extends ModelNotificationProvider {
 
   protected def <<?[V <: Any: ClassTag](path: YamlPath)(implicit source: YamlSourceReader): Option[V] = source.find[V](path)
 
-  protected def <<-()(implicit source: YamlSourceReader): YamlSourceReader = {
+  protected def <<-(implicit source: YamlSourceReader): YamlSourceReader = {
     val pull = source.pull()
     pull.foreach {
       case (key, _) ⇒ >>(key, None)
