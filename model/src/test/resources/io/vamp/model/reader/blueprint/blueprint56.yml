@@ -1,0 +1,15 @@
+name: sava:1.0
+
+clusters:
+
+  sava:
+    services:
+      -
+        breed:
+          name: sava:1.0.0
+          deployable: magneticio/sava:1.0.0
+
+        scala:
+          cpu: 0.2
+          memory: 128
+          instances: 1

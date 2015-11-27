@@ -56,18 +56,24 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
 
   def size: Int = source.size
 
-  def consumed: Map[String, _] = _consumed.map({
-    case (key, value: YamlSourceReader) ⇒ key -> value.consumed
+  def consumed: Map[String, _] = _consumed.flatMap({
+    case (key, value: YamlSourceReader) ⇒
+      val map = value.consumed
+
+      if (map.isEmpty) Nil else (key -> map) :: Nil
+
     case (key, value: List[_]) ⇒
-      key -> value.map {
-        case yaml: YamlSourceReader ⇒ yaml.consumed
-        case any                    ⇒ any
+      val list = value.flatMap {
+        case yaml: YamlSourceReader ⇒
+          val c = yaml.consumed
+          if (c.isEmpty) Nil else c :: Nil
+        case any ⇒ any :: Nil
       }
-    case (key, value) ⇒ key -> value
-  }).toMap.filter {
-    case (key, value: Map[_, _]) ⇒ value.nonEmpty
-    case _                       ⇒ true
-  }
+
+      if (list.isEmpty) Nil else (key -> list) :: Nil
+
+    case (key, value) ⇒ (key -> value) :: Nil
+  }).toMap
 
   def notConsumed: Map[String, _] = notConsumed(source, _consumed)
 
@@ -139,20 +145,33 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
     entry
   }
 
-  private def notConsumed(all: collection.Map[String, _], cons: collection.Map[String, _]): Map[String, _] = all.flatMap {
-    case (key, value: YamlSourceReader) if cons.get(key).isDefined ⇒
-      cons.get(key) match {
-        case Some(yaml: YamlSourceReader) ⇒
-          val map = yaml.notConsumed
-          if (map.isEmpty) Nil else (key -> yaml.notConsumed) :: Nil
-        case _ ⇒ (key -> value) :: Nil
-      }
+  private def notConsumed(all: collection.Map[String, _], cons: collection.Map[String, _]): Map[String, _] = {
+    all.flatMap {
+      case (key, value: YamlSourceReader) if cons.get(key).isDefined ⇒
+        cons.get(key) match {
+          case Some(yaml: YamlSourceReader) ⇒
+            val map = yaml.notConsumed
+            if (map.isEmpty) Nil else (key -> yaml.notConsumed) :: Nil
+          case _ ⇒ (key -> value) :: Nil
+        }
 
-    case (key, value) if cons.get(key).isEmpty ⇒
-      value match {
-        case y: YamlSourceReader ⇒ (key -> y.notConsumed) :: Nil
-        case _                   ⇒ (key -> value) :: Nil
-      }
-    case _ ⇒ Nil
-  } toMap
+      case (key, value: List[_]) if cons.get(key).nonEmpty ⇒
+        val list = value.flatMap {
+          case y: YamlSourceReader ⇒
+            val nc = y.notConsumed
+            if (nc.isEmpty) Nil else nc :: Nil
+
+          case any ⇒ Nil
+        }
+
+        if (list.isEmpty) Nil else (key -> list) :: Nil
+
+      case (key, value) if cons.get(key).isEmpty ⇒
+        value match {
+          case y: YamlSourceReader ⇒ (key -> y.notConsumed) :: Nil
+          case _                   ⇒ (key -> value) :: Nil
+        }
+      case _ ⇒ Nil
+    } toMap
+  }
 }

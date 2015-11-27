@@ -54,7 +54,7 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
     )
   }
 
-  "YamlSourceReaderTest" should "consume for find and set" in {
+  it should "consume for find and set" in {
 
     val yaml = YamlSourceReader(Map(
       "a" -> "b",
@@ -94,7 +94,7 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
     )
   }
 
-  "YamlSourceReaderTest" should "consume for pull" in {
+  it should "consume for pull" in {
 
     val yaml = YamlSourceReader(Map(
       "a" -> "b",
@@ -144,7 +144,7 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
     )
   }
 
-  "YamlSourceReaderTest" should "consume for flatten" in {
+  it should "consume for flatten" in {
 
     val yaml = YamlSourceReader(Map(
       "a" -> "b",
@@ -186,7 +186,7 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
     )
   }
 
-  "YamlSourceReaderTest" should "consume for flatten all" in {
+  it should "consume for flatten all" in {
 
     val yaml = YamlSourceReader(Map(
       "a" -> "b",
@@ -221,7 +221,7 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
     yaml.notConsumed should be(Map())
   }
 
-  "YamlSourceReaderTest" should "consume for flatten all, exclude keys" in {
+  it should "consume for flatten all, exclude keys" in {
 
     val yaml = YamlSourceReader(Map(
       "a" -> "b",
@@ -253,5 +253,85 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
     )
 
     yaml.notConsumed should be(Map("a" -> "b"))
+  }
+
+  it should "consume list but not elements" in {
+
+    val yaml = YamlSourceReader(Map(
+      "services" -> List(
+        Map(
+          "breed" -> Map(
+            "ref" -> "sava:1.0.0"
+          ),
+          "scale" -> Map(
+            "cpu" -> "0.2"
+          )
+        )
+      )))
+
+    yaml.find[List[YamlSourceReader]]("services")
+
+    yaml.consumed should be(Map())
+
+    yaml.notConsumed should be(Map(
+      "services" -> List(
+        Map(
+          "breed" -> Map(
+            "ref" -> "sava:1.0.0"
+          ),
+          "scale" -> Map(
+            "cpu" -> "0.2"
+          )
+        )
+      )))
+  }
+
+  it should "consume list with simple elements" in {
+
+    val yaml = YamlSourceReader(Map("services" -> List("a", "b")))
+
+    yaml.find[List[_]]("services")
+
+    yaml.consumed should be(Map("services" -> List("a", "b")))
+
+    yaml.notConsumed should be(Map())
+  }
+
+  it should "consume list element" in {
+
+    val yaml = YamlSourceReader(Map(
+      "services" -> List(
+        Map(
+          "breed" -> Map(
+            "ref" -> "sava:1.0.0"
+          ),
+          "scale" -> Map(
+            "cpu" -> "0.2"
+          )
+        )
+      )))
+
+    val service = yaml.find[List[YamlSourceReader]]("services").get.head
+
+    service.find[String]("breed" :: "ref" :: Nil)
+
+    yaml.consumed should be(
+      Map("services" -> List(
+        Map(
+          "breed" -> Map(
+            "ref" -> "sava:1.0.0"
+          )
+        )
+      ))
+    )
+
+    yaml.notConsumed should be(Map(
+      "services" -> List(
+        Map(
+          "scale" -> Map(
+            "cpu" -> "0.2"
+          )
+        )
+      )))
   }
 }

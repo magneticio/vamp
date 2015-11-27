@@ -38,12 +38,11 @@ clusters:
       name: nocturnal-viper
       deployable: anaconda
 
-    sla: strong-mountain
-
   needless:
-    breed:
-      name: hideous-canal
-      deployable: old/crystal
+    services:
+      breed:
+        name: hideous-canal
+        deployable: old/crystal
 
     sla: fish-steamy
 

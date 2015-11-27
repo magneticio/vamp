@@ -34,7 +34,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
         case (name: String, cluster: YamlSourceReader) ⇒
           implicit val source = cluster
           <<?[Any]("services") match {
-            case None                ⇒ >>("services", List(source))
+            case None                ⇒ >>("services", List(<<-()))
             case Some(list: List[_]) ⇒
             case Some(breed: String) ⇒ >>("services", List(YamlSourceReader("breed" -> breed)))
             case Some(m)             ⇒ >>("services", List(m))

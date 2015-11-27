@@ -9,8 +9,6 @@ clusters:
           a: b
         docker:
           c: d
-        google:
-          e: f
       -
         breed: sava2
     docker:
