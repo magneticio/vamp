@@ -16,4 +16,9 @@ class ElasticsearchPersistenceInitializationActor extends ElasticsearchInitializ
     def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"elasticsearch/$name.json")).mkString.replace("$NAME", index)
     List(TemplateDefinition(s"$index-template", load("template")))
   }
+
+  override protected def initializeCustom(): Unit = {
+    initializeIndex(index)
+    super.initializeCustom()
+  }
 }

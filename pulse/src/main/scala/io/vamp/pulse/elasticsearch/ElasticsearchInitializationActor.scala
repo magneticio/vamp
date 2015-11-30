@@ -149,4 +149,16 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
   protected def initializeCustom(): Unit = {
     self ! DoneWithOne
   }
+
+  protected def initializeIndex(indexName: String): Unit = {
+    val receiver = self
+    RestClient.get[Any](s"$elasticsearchUrl/$indexName", RestClient.jsonHeaders, logError = false) onComplete {
+      case Success(_) ⇒
+      case _ ⇒
+        receiver ! WaitForOne
+        RestClient.put[Any](s"$elasticsearchUrl/$indexName", "") onComplete {
+          case _ ⇒ receiver ! DoneWithOne
+        }
+    }
+  }
 }
