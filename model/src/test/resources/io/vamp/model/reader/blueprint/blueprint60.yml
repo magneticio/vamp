@@ -1,0 +1,5 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious/snake:
+    services: nocturnal-viper

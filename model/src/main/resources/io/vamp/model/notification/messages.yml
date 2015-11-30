@@ -6,6 +6,8 @@ UnexpectedTypeError                   : "Unexpected value type of '{path}'."
 UnexpectedInnerElementError           : "Can't find a nested element of '{path}'."
 EitherReferenceOrAnonymous            : "Either it should be a reference '{name} -> {reference}' or an anonymous inline definition, but not both."
 UnexpectedElement                     : "Unexpected in DSL: {message}"
+IllegalName                           : "Illegal name or reference - white space characters, '/', '[' and ']' are not allowed: {name}"
+IllegalStrictName                     : "Illegal name - white space characters, '.', '/', '[' and ']' are not allowed: {name}"
 
 # Breed Reader
 

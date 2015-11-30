@@ -15,3 +15,7 @@ case class UnexpectedInnerElementError(path: String, found: Class[_]) extends No
 case class EitherReferenceOrAnonymous(name: String, reference: String) extends Notification
 
 case class UnexpectedElement(element: Map[String, _], message: String) extends Notification
+
+case class IllegalName(name: String) extends Notification
+
+case class IllegalStrictName(name: String) extends Notification

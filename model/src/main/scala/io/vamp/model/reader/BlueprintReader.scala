@@ -105,6 +105,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     case blueprint: BlueprintReference ⇒ blueprint
     case blueprint: DefaultBlueprint ⇒
 
+      blueprint.clusters.foreach(cluster ⇒ validateName(cluster.name))
       validateBlueprintTraitValues(blueprint)
       validateRoutingWeights(blueprint)
 

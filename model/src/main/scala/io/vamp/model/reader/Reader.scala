@@ -2,7 +2,7 @@ package io.vamp.model.reader
 
 import java.io.{ File, InputStream, Reader, StringReader }
 
-import io.vamp.common.notification.NotificationErrorException
+import _root_.io.vamp.common.notification.{ NotificationErrorException, NotificationProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
@@ -39,7 +39,7 @@ object YamlSource {
   implicit def file2YamlInput(file: File): YamlSource = FileSource(file)
 }
 
-trait YamlReader[T] extends ModelNotificationProvider {
+trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
 
   def read(input: YamlSource): T = input match {
     case ReaderSource(reader) ⇒ read(reader)
@@ -137,13 +137,16 @@ trait YamlReader[T] extends ModelNotificationProvider {
 
   protected def first[V <: Any: ClassTag](paths: YamlPath*)(implicit source: YamlSourceReader): Option[V] = paths.flatMap(<<?[V](_)).headOption
 
-  protected def name(implicit source: YamlSourceReader): String = <<![String]("name")
+  protected def name(implicit source: YamlSourceReader): String = validateName(<<![String]("name"))
 
-  protected def reference(implicit source: YamlSourceReader): String = <<?[String]("reference").getOrElse(<<![String]("ref"))
+  protected def reference(implicit source: YamlSourceReader): String = validateName(<<?[String]("reference").getOrElse(<<![String]("ref")))
 
-  protected def hasReference(implicit source: YamlSourceReader): Option[String] = <<?[String]("reference").orElse(<<?[String]("ref"))
+  protected def hasReference(implicit source: YamlSourceReader): Option[String] = <<?[String]("reference").orElse(<<?[String]("ref")) match {
+    case Some(ref) ⇒ Option(validateName(ref))
+    case None      ⇒ None
+  }
 
-  protected def isReference(implicit source: YamlSourceReader): Boolean = hasReference.nonEmpty
+  protected def isReference(implicit source: YamlSourceReader): Boolean = hasReference.isDefined
 
   protected def expandToList(path: YamlPath)(implicit source: YamlSourceReader) = {
     <<?[Any](path) match {
@@ -152,6 +155,25 @@ trait YamlReader[T] extends ModelNotificationProvider {
       case Some(value)          ⇒ >>(path, List(value))
     }
   }
+}
+
+trait NameValidator {
+  this: NotificationProvider ⇒
+
+  private val nameMatcher = """^[^\s\/\[\]]+$""".r
+
+  private val strictNameMatcher = """^[^\s\/\[\].]+$""".r
+
+  def validateName(name: String): String = name match {
+    case nameMatcher(_*) ⇒ name
+    case _               ⇒ throwException(IllegalName(name))
+  }
+
+  def validateStrictName(name: String): String =
+    name match {
+      case strictNameMatcher(_*) ⇒ name
+      case _                     ⇒ throwException(IllegalStrictName(name))
+    }
 }
 
 trait ReferenceYamlReader[T] extends YamlReader[T] {
@@ -182,7 +204,7 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] {
 
   protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
     case None        ⇒ ""
-    case Some(value) ⇒ value
+    case Some(value) ⇒ validateName(value)
   }
 
   override protected def parse(implicit source: YamlSourceReader): T = if (isReference) createReference else createDefault

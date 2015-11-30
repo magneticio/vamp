@@ -12,7 +12,7 @@ import io.vamp.model.artifact.DeploymentService.State
 import io.vamp.model.artifact.DeploymentService.State.Intention._
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
-import io.vamp.model.reader.{ BlueprintReader, BreedReader }
+import io.vamp.model.reader.{ NameValidator, BlueprintReader, BreedReader }
 import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.notification._
@@ -87,7 +87,7 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
   }
 }
 
-trait BlueprintSupport extends DeploymentValidator {
+trait BlueprintSupport extends DeploymentValidator with NameValidator {
   this: ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   private def uuid = UUID.randomUUID.toString
@@ -127,15 +127,7 @@ trait BlueprintSupport extends DeploymentValidator {
 }
 
 trait DeploymentValidator {
-
   this: ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
-
-  private val nameMatcher = """^[\p{L}\d-]+$""".r
-
-  def validateName(name: String) = name match {
-    case nameMatcher(_*) ⇒
-    case _               ⇒ throwException(IllegalDeploymentName(name))
-  }
 
   def validateServices: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
     val services = deployment.clusters.flatMap(_.services).filterNot(_.state.intention == Undeploy)

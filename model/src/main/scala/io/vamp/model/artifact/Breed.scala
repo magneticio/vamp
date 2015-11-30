@@ -15,6 +15,8 @@ case class DefaultBreed(name: String, deployable: Deployable, ports: List[Port],
     case Some(TraitReference.Constants)            ⇒ constants
     case _                                         ⇒ Nil
   }
+
+  lazy val traits: List[Trait] = ports ++ environmentVariables ++ constants
 }
 
 case class BreedReference(name: String) extends Reference with Breed

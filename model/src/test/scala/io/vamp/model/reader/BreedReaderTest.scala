@@ -221,7 +221,7 @@ class BreedReaderTest extends ReaderTest {
       'name("monarch"),
       'deployable(Deployable("magneticio/monarch:latest")),
       'ports(Nil),
-      'environmentVariables(List(EnvironmentVariable("period[]", None, Some("100")), EnvironmentVariable("timeout", Some("TIME_OUT"), Some("10")))),
+      'environmentVariables(List(EnvironmentVariable("period", None, Some("100")), EnvironmentVariable("timeout", Some("TIME_OUT"), Some("10")))),
       'dependencies(Map())
     )
   }
@@ -237,6 +237,30 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed/breed25.yml")) should have(
       'name("sava:1.0.0"),
       'deployable(Deployable("docker", Some("magneticio/sava:1.0.0")))
+    )
+  }
+
+  it should "fail on invalid trait name: '.'" in {
+    expectedError[IllegalStrictName]({
+      BreedReader.read(res("breed/breed26.yml"))
+    }) should have(
+      'name("time.out")
+    )
+  }
+
+  it should "fail on invalid trait name: '/'" in {
+    expectedError[IllegalStrictName]({
+      BreedReader.read(res("breed/breed27.yml"))
+    }) should have(
+      'name("time/out")
+    )
+  }
+
+  it should "fail on invalid trait name: '['" in {
+    expectedError[IllegalStrictName]({
+      BreedReader.read(res("breed/breed28.yml"))
+    }) should have(
+      'name("timeout[]")
     )
   }
 }

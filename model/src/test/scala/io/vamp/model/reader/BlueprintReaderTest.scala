@@ -542,4 +542,12 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'sticky("none")
     )
   }
+
+  it should "report illegal cluster name" in {
+    expectedError[IllegalName]({
+      BlueprintReader.read(res("blueprint/blueprint60.yml"))
+    }) should have(
+      'name("notorious/snake")
+    )
+  }
 }
