@@ -121,7 +121,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
   }
 
   private def findAllArtifactsBy(`type`: String)(from: Int, size: Int): Future[ArtifactResponseEnvelope] = {
-    RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${`type`}/_search", Map("from" -> from, "size" -> size), RestClient.jsonHeaders, logError = false) map {
+    RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${`type`}/_search", Map("from" -> (from - 1), "size" -> size), RestClient.jsonHeaders, logError = false) map {
       case response: ElasticsearchSearchResponse ⇒
         val list = response.hits.hits.flatMap { hit ⇒
           hit.get("_source").flatMap(_.asInstanceOf[Map[String, _]].get("artifact")).flatMap { artifact ⇒
