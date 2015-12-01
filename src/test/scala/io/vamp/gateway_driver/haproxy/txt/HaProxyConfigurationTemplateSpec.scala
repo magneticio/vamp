@@ -1,7 +1,7 @@
 package io.vamp.gateway_driver.haproxy.txt
 
 import io.vamp.gateway_driver.haproxy.{ Filter ⇒ HaProxyFilter, Server ⇒ HaProxyServer, _ }
-import io.vamp.gateway_driver.model.{ Filter, Gateway, Server, Service }
+import io.vamp.gateway_driver.model.{ Filter, Gateway, Instance, Service }
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{ FlatSpec, Informer, Matchers }
@@ -91,7 +91,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       services = Service(
         name = "sava:1.0.0",
         weight = 100,
-        servers = Server(
+        servers = Instance(
           name = "64435a223bddf1fa589135baa5e228090279c032",
           host = "192.168.99.100",
           port = 32768) :: Nil
@@ -157,7 +157,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       services = Service(
         name = "sava:1.0.0",
         weight = 100,
-        servers = Server(
+        servers = Instance(
           name = "64435a223bddf1fa589135baa5e228090279c032",
           host = "192.168.99.100",
           port = 32768) :: Nil
@@ -224,7 +224,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         services = Service(
           name = "sava:1.0.0",
           weight = 100,
-          servers = Server(
+          servers = Instance(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
             port = 32770) :: Nil
@@ -237,7 +237,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         services = Service(
           name = "sava.port",
           weight = 100,
-          servers = Server(
+          servers = Instance(
             name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_9050",
             host = "192.168.99.100",
             port = 33002) :: Nil
@@ -347,15 +347,15 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "sava:1.0.0",
             weight = 90,
             servers = List(
-              Server(
+              Instance(
                 name = "64435a223bddf1fa589135baa5e228090279c032",
                 host = "192.168.99.100",
                 port = 32772),
-              Server(
+              Instance(
                 name = "52c84bbf28dcc96bd4c4167eeeb7ff0a69bfb6eb",
                 host = "192.168.99.100",
                 port = 32772),
-              Server(
+              Instance(
                 name = "5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7",
                 host = "192.168.99.100",
                 port = 32772))
@@ -364,11 +364,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "sava:1.1.0",
             weight = 10,
             servers = List(
-              Server(
+              Instance(
                 name = "9019c00f1f7f641c4efc7a02c6f44e9f90d7750",
                 host = "192.168.99.100",
                 port = 32773),
-              Server(
+              Instance(
                 name = "49594c26c89754450bd4f562946a69070a4aa887",
                 host = "192.168.99.100",
                 port = 32773)
@@ -381,7 +381,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         services = Service(
           name = "sava.port",
           weight = 100,
-          servers = Server(
+          servers = Instance(
             name = "cd10460f-ca44-49c6-9965-f66c27acd478_9050",
             host = "192.168.99.100",
             port = 33002) :: Nil
@@ -535,7 +535,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "sava-backend:1.3.0",
             weight = 100,
             servers = List(
-              Server(
+              Instance(
                 name = "57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117",
                 host = "192.168.99.100",
                 port = 32770))
@@ -550,7 +550,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "sava-frontend:1.3.0",
             weight = 100,
             servers = List(
-              Server(
+              Instance(
                 name = "f1638245acf2ebe6db56984a85b48f6db8c74607",
                 host = "192.168.99.100",
                 port = 32771))
@@ -563,7 +563,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         services = Service(
           name = "sava.port",
           weight = 100,
-          servers = Server(
+          servers = Instance(
             name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050",
             host = "192.168.99.100",
             port = 33002) :: Nil
@@ -763,7 +763,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "sava:1.0.0",
             weight = 100,
             servers = List(
-              Server(
+              Instance(
                 name = "64435a223bddf1fa589135baa5e228090279c032",
                 host = "192.168.99.100",
                 port = 32776))

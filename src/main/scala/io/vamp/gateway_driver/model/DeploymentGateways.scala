@@ -12,7 +12,7 @@ trait DeploymentGateway {
 
 case class ClusterGateway(matching: (Deployment, DeploymentCluster, Port) ⇒ Boolean, port: Int, services: List[GatewayService]) extends DeploymentGateway
 
-case class GatewayService(matching: (DeploymentService) ⇒ Boolean, weight: Int, servers: List[Server], filters: List[Filter])
+case class GatewayService(matching: (DeploymentService) ⇒ Boolean, weight: Int, instances: List[Instance], filters: List[Filter])
 
 case class EndpointGateway(matching: (Deployment, Option[Port]) ⇒ Boolean, port: Int, services: List[GatewayService]) extends DeploymentGateway
 
