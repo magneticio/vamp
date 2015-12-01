@@ -136,7 +136,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
         )
         createEnvironmentVariables(service.environmentVariables, EnvironmentVariableParentType.Service, serviceId, deploymentId)
         for (dep ← service.dependencies) DeploymentServiceDependencies.add(DeploymentServiceDependencyModel(name = dep._1, value = dep._2, serviceId = serviceId))
-        for (server ← service.servers) {
+        for (server ← service.instances) {
           val serverId = DeploymentServers.add(DeploymentServerModel(serviceId = serviceId, name = server.name, host = server.host, deployed = server.deployed, deploymentId = deploymentId))
           for (port ← server.ports) ServerPorts.add(ServerPortModel(portIn = port._1, portOut = port._2, serverId = serverId))
         }
@@ -179,15 +179,15 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
         environmentVariables = service.environmentVariables.map(e ⇒ environmentVariableModel2Artifact(e)),
         scale = service.scale flatMap { scale ⇒ Some(defaultScaleModel2Artifact(DefaultScales.findByName(ScaleReferences.findById(scale).name, service.deploymentId))) },
         routing = service.routing flatMap { routing ⇒ Some(defaultRoutingModel2Artifact(DefaultRoutings.findByName(RoutingReferences.findById(routing).name, service.deploymentId))) },
-        servers = deploymentServerModels2Artifacts(service.servers),
+        instances = deploymentServerModels2Artifacts(service.servers),
         dependencies = deploymentServiceDependencies2Artifacts(service.dependencies),
         dialects = DialectSerializer.deserialize(service.dialects)
       )
     )
 
-  private def deploymentServerModels2Artifacts(servers: List[DeploymentServerModel]): List[DeploymentServer] =
+  private def deploymentServerModels2Artifacts(servers: List[DeploymentServerModel]): List[DeploymentInstance] =
     servers.map(server ⇒
-      DeploymentServer(name = server.name, host = server.host, ports = serverPorts2Artifact(server.ports), deployed = server.deployed)
+      DeploymentInstance(name = server.name, host = server.host, ports = serverPorts2Artifact(server.ports), deployed = server.deployed)
     )
 
   private def serverPorts2Artifact(ports: List[ServerPortModel]): Map[Int, Int] = ports.map(port ⇒ port.portIn -> port.portOut).toMap

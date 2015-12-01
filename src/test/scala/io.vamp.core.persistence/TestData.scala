@@ -175,7 +175,7 @@ object TestData {
     environmentVariables = List(myParameter1, myParameter2, myParameter3)
   )
 
-  val deploymentServer1 = DeploymentServer(name = "deployment-1-server-1", host = "vamp.magnetic.io", ports = Map(80 -> 8080, 22 -> 2222), deployed = true)
+  val deploymentInstance1 = DeploymentInstance(name = "deployment-1-server-1", host = "vamp.magnetic.io", ports = Map(80 -> 8080, 22 -> 2222), deployed = true)
 
   val deploymentServiceBreed1 = DefaultBreed(
     name = "wp4",
@@ -192,7 +192,7 @@ object TestData {
 
   val deploymentService1 = DeploymentService(
     state = State(State.Intention.Deploy, State.Step.Done()),
-    servers = List(deploymentServer1),
+    instances = List(deploymentInstance1),
     breed = deploymentServiceBreed1,
     environmentVariables = List(
       EnvironmentVariable(name = "UPPER_MEM", alias = None, value = Some("256K"))
