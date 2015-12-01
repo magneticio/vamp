@@ -82,5 +82,5 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
   }
 
   private def containerService(app: App): ContainerService =
-    ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task ⇒ ContainerServer(task.id, task.host, task.ports, task.startedAt.isDefined)))
+    ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
 }

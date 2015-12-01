@@ -55,8 +55,8 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
     DeploymentService(state(<<![YamlSourceReader]("state")), breed, environmentVariables(), scale, routing, servers, dependencies(), dialects)
   }
 
-  private def parseServer(implicit source: YamlSourceReader): DeploymentServer =
-    DeploymentServer(name, <<![String]("host"), portMapping(), <<![Boolean]("deployed"))
+  private def parseServer(implicit source: YamlSourceReader): DeploymentInstance =
+    DeploymentInstance(name, <<![String]("host"), portMapping(), <<![Boolean]("deployed"))
 
   private def portMapping(name: String = "ports")(implicit source: YamlSourceReader): Map[Int, Int] = {
     <<?[YamlSourceReader](name) match {

@@ -110,13 +110,13 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
       ContainerService(
         matching = nameMatcher(details.name),
         scale = scale,
-        servers = (0 until scale.instances).map(i ⇒ server.copy(name = s"${server.name}[$i]")).toList)
+        instances = (0 until scale.instances).map(i ⇒ server.copy(name = s"${server.name}[$i]")).toList)
     }).toList
   }
 
-  private def detail2Server(cd: ContainerDetails): ContainerServer = {
+  private def detail2Server(cd: ContainerDetails): ContainerInstance = {
     logger.trace(s"Details2Server containerDetails: $cd")
-    ContainerServer(
+    ContainerInstance(
       name = serverNameFromContainer(cd),
       host = if (cd.config.hostName.isEmpty) defaultHost else cd.config.hostName,
       ports = cd.networkSettings.ports.flatMap(port ⇒ port._2.map(e ⇒ e.hostPort)).toList,

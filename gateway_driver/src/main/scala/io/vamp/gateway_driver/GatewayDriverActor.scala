@@ -138,19 +138,19 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
 
   private def services(deployment: Deployment, cluster: Option[DeploymentCluster], port: Port): List[model.Service] = cluster match {
     case Some(c) ⇒
-      c.services.map { service ⇒ model.Service(s"${artifactName2Id(service.breed, serviceIdMatcher)}", service.routing.getOrElse(DefaultRouting("", Some(100), Nil, None)).weight.getOrElse(100), service.servers.map(server(service, _, port))) }
+      c.services.map { service ⇒ model.Service(s"${artifactName2Id(service.breed, serviceIdMatcher)}", service.routing.getOrElse(DefaultRouting("", Some(100), Nil, None)).weight.getOrElse(100), service.instances.map(server(service, _, port))) }
 
     case None ⇒
       val name = TraitReference.referenceFor(port.name).map(_.referenceWithoutGroup).getOrElse(port.name)
       model.Service(s"${string2Id(name, serviceIdMatcher)}", 100, servers(deployment, port)) :: Nil
   }
 
-  private def server(service: DeploymentService, server: DeploymentServer, port: Port) = server.ports.get(port.number) match {
-    case Some(p) ⇒ Server(artifactName2Id(server), server.host, p)
-    case _       ⇒ model.Server(artifactName2Id(server), server.host, 0)
+  private def server(service: DeploymentService, server: DeploymentInstance, port: Port) = server.ports.get(port.number) match {
+    case Some(p) ⇒ Instance(artifactName2Id(server), server.host, p)
+    case _       ⇒ model.Instance(artifactName2Id(server), server.host, 0)
   }
 
-  private def servers(deployment: Deployment, port: Port): List[model.Server] = {
+  private def servers(deployment: Deployment, port: Port): List[model.Instance] = {
     TraitReference.referenceFor(port.name) match {
       case Some(TraitReference(cluster, _, name)) ⇒
         (for {
@@ -165,7 +165,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
               case None ⇒ Nil
               case Some(c) ⇒
                 c.routes.values.find(_ == gatewayPort.number) match {
-                  case Some(_) ⇒ model.Server(string2Id(s"${deployment.name}_${port.number}"), host.value.get, gatewayPort.number) :: Nil
+                  case Some(_) ⇒ model.Instance(string2Id(s"${deployment.name}_${port.number}"), host.value.get, gatewayPort.number) :: Nil
                   case _       ⇒ Nil
                 }
             }
