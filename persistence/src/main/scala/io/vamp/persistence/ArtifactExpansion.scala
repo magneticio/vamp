@@ -30,7 +30,8 @@ trait ArtifactExpansion {
   }
 
   private def expandClusters(clusters: List[Cluster]): List[Cluster] = clusters.map { cluster ⇒
-    cluster.copy(services = expandServices(cluster.services),
+    cluster.copy(
+      services = expandServices(cluster.services),
       sla = cluster.sla match {
         case Some(sla: GenericSla)                   ⇒ Some(sla)
         case Some(sla: EscalationOnlySla)            ⇒ Some(sla)
@@ -40,13 +41,20 @@ trait ArtifactExpansion {
           case _                            ⇒ throwException(ArtifactNotFound(sla.name, classOf[GenericSla]))
         }
         case _ ⇒ None
+      },
+      routing = cluster.routing match {
+        case Some(routing) ⇒ Some(routing.copy(routes = expandRoutes(routing.routes)))
+        case _             ⇒ None
       }
     )
   }
 
+  private def expandRoutes(routes: Map[String, Route]): Map[String, Route] = routes.map {
+    case (name, route) ⇒ name -> expandIfReference[DefaultRoute, RouteReference](route)
+  }
+
   private def expandServices(services: List[Service]): List[Service] = services.map { service ⇒
     service.copy(
-      route = service.route.flatMap(routing ⇒ Some(expandIfReference[DefaultRoute, RouteReference](routing))),
       scale = service.scale.flatMap(scale ⇒ Some(expandIfReference[DefaultScale, ScaleReference](scale))),
       breed = expandIfReference[DefaultBreed, BreedReference](service.breed)
     )

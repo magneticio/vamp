@@ -111,27 +111,17 @@ trait DeploymentApiController extends ArtifactShrinkage {
       case _ ⇒ Future(None)
     }
 
-  def routing(deploymentName: String, clusterName: String, breedName: String)(implicit timeout: Timeout) =
+  def routing(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
     (actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result ⇒
-      result.asInstanceOf[Option[Deployment]].flatMap(deployment ⇒ deployment.clusters.find(_.name == clusterName).flatMap(cluster ⇒ cluster.services.find(_.breed.name == breedName)).flatMap(service ⇒ Some(service.route)))
+      result.asInstanceOf[Option[Deployment]].flatMap(deployment ⇒ deployment.clusters.find(_.name == clusterName).flatMap(cluster ⇒ Some(cluster.routing)))
     }
 
-  def routingUpdate(deploymentName: String, clusterName: String, breedName: String, request: String)(implicit timeout: Timeout) =
+  def routingUpdate(deploymentName: String, clusterName: String, request: String)(implicit timeout: Timeout) =
     actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment]) flatMap {
       case Some(deployment: Deployment) ⇒
         deployment.clusters.find(_.name == clusterName) match {
-          case None ⇒ Future(None)
-          case Some(cluster) ⇒ cluster.services.find(_.breed.name == breedName) match {
-            case None ⇒ Future(None)
-            case Some(service) ⇒
-              (RouteReader.read(request) match {
-                case r: RouteReference ⇒ actorFor[PersistenceActor] ? PersistenceActor.Read(r.name, classOf[Route])
-                case r: DefaultRoute   ⇒ Future(r)
-              }).map {
-                case routing: DefaultRoute ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateRouting(deployment, cluster, service, routing, request)
-                case _                     ⇒ Future(None)
-              }
-          }
+          case None          ⇒ Future(None)
+          case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateRouting(deployment, cluster, RoutingReader.read(request), request)
         }
       case _ ⇒ Future(None)
     }

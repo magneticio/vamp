@@ -75,7 +75,7 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
           val to = OffsetDateTime.now()
           val from = to.minus(sla.interval.toSeconds, ChronoUnit.SECONDS)
 
-          Future.sequence(cluster.routes.keys.map(value ⇒ Port.portFor(value)).map({ port ⇒
+          Future.sequence(cluster.portMapping.keys.map(value ⇒ Port.portFor(value)).map({ port ⇒
             responseTime(deployment, cluster, port, from, to)
           })) map {
             case optionalResponseTimes ⇒

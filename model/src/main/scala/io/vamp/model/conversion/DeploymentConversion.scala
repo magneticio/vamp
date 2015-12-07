@@ -18,7 +18,7 @@ class DeploymentConversion(val deployment: Deployment) {
     }
 
     val clusters = deployment.clusters.map(cluster ⇒ {
-      Cluster(cluster.name, cluster.services.map(service ⇒ Service(service.breed, purgeEnvironmentVariables(cluster, service), service.scale, service.route, service.dialects)), cluster.sla, cluster.dialects)
+      Cluster(cluster.name, cluster.services.map(service ⇒ Service(service.breed, purgeEnvironmentVariables(cluster, service), service.scale, service.dialects)), cluster.routing, cluster.sla, cluster.dialects)
     })
 
     val environmentVariables = deployment.environmentVariables.filter { ev ⇒

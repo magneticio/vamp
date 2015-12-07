@@ -16,7 +16,6 @@ trait Parameters extends CommandLineBasics {
   val help = 'help
   val file = 'file
   val json = 'json
-  val routing = 'routing
   val scale = 'scale
   val blueprint = 'blueprint
   val stdin = 'stdin
@@ -60,7 +59,6 @@ trait Parameters extends CommandLineBasics {
       case "--blueprint" :: value :: tail      ⇒ nextOption(map ++ Map(blueprint -> value), tail)
       case "--deployment" :: value :: tail     ⇒ nextOption(map ++ Map(deployment -> value), tail)
       case "--cluster" :: value :: tail        ⇒ nextOption(map ++ Map(cluster -> value), tail)
-      case "--routing" :: value :: tail        ⇒ nextOption(map ++ Map(routing -> value), tail)
       case "--environment" :: value :: tail    ⇒ nextOption(map ++ Map(environment -> value), tail)
       case "--endpoint" :: value :: tail       ⇒ nextOption(map ++ Map(endpoint -> value), tail)
       case "--scale" :: value :: tail          ⇒ nextOption(map ++ Map(scale -> value), tail)
@@ -68,7 +66,6 @@ trait Parameters extends CommandLineBasics {
       case "--breed" :: value :: tail          ⇒ nextOption(map ++ Map(breed -> value), tail)
       case "--deployable" :: value :: tail     ⇒ nextOption(map ++ Map(deployable -> value), tail)
       case "--help" :: tail                    ⇒ nextOption(map ++ Map(help -> ""), tail)
-      case "--routing" :: tail                 ⇒ nextOption(map ++ Map(routing -> ""), tail)
       case "--scale" :: tail                   ⇒ nextOption(map ++ Map(scale -> ""), tail)
       case "--destination" :: value :: tail    ⇒ nextOption(map ++ Map(destination -> value), tail)
       case "--file" :: value :: tail           ⇒ nextOption(map ++ Map(file -> value), tail)

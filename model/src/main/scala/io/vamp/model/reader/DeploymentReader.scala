@@ -21,8 +21,8 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
           <<?[List[YamlSourceReader]]("services") match {
-            case None       ⇒ DeploymentCluster(name, Nil, sla, portMapping("port_mapping"), dialects)
-            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), sla, portMapping("port_mapping"), dialects)
+            case None       ⇒ DeploymentCluster(name, Nil, None, sla, portMapping("port_mapping"), dialects)
+            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), RoutingReader.optional(), sla, portMapping("port_mapping"), dialects)
           }
       } toList
     }
@@ -46,13 +46,12 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
   private def parseService(implicit source: YamlSourceReader): DeploymentService = {
     val breed = BreedReader.readReference(<<![Any]("breed")).asInstanceOf[DefaultBreed]
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale").asInstanceOf[Option[DefaultScale]]
-    val routing = RouteReader.readOptionalReferenceOrAnonymous("route").asInstanceOf[Option[DefaultRoute]]
     val servers = <<?[List[YamlSourceReader]]("servers") match {
       case None       ⇒ Nil
       case Some(list) ⇒ list.map(parseServer(_))
     }
 
-    DeploymentService(state(<<![YamlSourceReader]("state")), breed, environmentVariables(), scale, routing, servers, dependencies(), dialects)
+    DeploymentService(state(<<![YamlSourceReader]("state")), breed, environmentVariables(), scale, servers, dependencies(), dialects)
   }
 
   private def parseServer(implicit source: YamlSourceReader): DeploymentInstance =

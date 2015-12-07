@@ -14,14 +14,10 @@ object PersistenceBootstrap extends Bootstrap {
       IoC.alias[PersistenceActor, InMemoryPersistenceActor]
       IoC.createActor[InMemoryPersistenceActor] ! Start
 
-    case "elasticsearch" ⇒
+    case _ ⇒
       IoC.alias[PersistenceActor, ElasticsearchPersistenceActor]
       IoC.createActor[ElasticsearchPersistenceInitializationActor] ! Start
       IoC.createActor[ElasticsearchPersistenceActor] ! Start
-
-    case _ ⇒
-      IoC.alias[PersistenceActor, JdbcPersistenceActor]
-      IoC.createActor[JdbcPersistenceActor] ! Start
   }
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {

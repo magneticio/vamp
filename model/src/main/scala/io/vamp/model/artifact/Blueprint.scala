@@ -28,12 +28,14 @@ object Dialect extends Enumeration {
 abstract class AbstractCluster extends Artifact {
   def services: List[AbstractService]
 
+  def routing: Option[Routing]
+
   def sla: Option[Sla]
 
   def dialects: Map[Dialect.Value, Any]
 }
 
-case class Cluster(name: String, services: List[Service], sla: Option[Sla], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
+case class Cluster(name: String, services: List[Service], routing: Option[Routing], sla: Option[Sla], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
 
 abstract class AbstractService {
   def breed: Breed
@@ -42,31 +44,13 @@ abstract class AbstractService {
 
   def scale: Option[Scale]
 
-  def route: Option[Route]
-
   def dialects: Map[Dialect.Value, Any]
 }
 
-case class Service(breed: Breed, environmentVariables: List[EnvironmentVariable], scale: Option[Scale], route: Option[Route], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
+case class Service(breed: Breed, environmentVariables: List[EnvironmentVariable], scale: Option[Scale], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
 
 trait Scale extends Artifact
 
 case class ScaleReference(name: String) extends Reference with Scale
 
 case class DefaultScale(name: String, cpu: Double, memory: Double, instances: Int) extends Scale
-
-object Route extends Enumeration {
-  val Service, Server = Value
-}
-
-trait Route extends Artifact
-
-case class RouteReference(name: String) extends Reference with Route
-
-case class DefaultRoute(name: String, weight: Option[Int], filters: List[Filter], sticky: Option[Route.Value]) extends Route
-
-trait Filter extends Artifact
-
-case class FilterReference(name: String) extends Reference with Filter
-
-case class DefaultFilter(name: String, condition: String) extends Filter

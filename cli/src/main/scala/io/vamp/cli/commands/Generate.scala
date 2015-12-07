@@ -34,14 +34,13 @@ trait Generate extends Parameters with IoUtils {
 
       case Some("blueprint") ⇒
         val myScale: Option[Scale] = getOptionalParameter(scale).flatMap(s ⇒ Some(ScaleReference(name = s)))
-        val myRouting: Option[Route] = getOptionalParameter(routing).flatMap(s ⇒ Some(RouteReference(name = s)))
 
         val mySla: Option[Sla] = getOptionalParameter(sla).flatMap(s ⇒ Some(SlaReference(name = s, escalations = List.empty)))
         readArtifactStartingPoint[Blueprint](fileContent, BlueprintReader, emptyBlueprint) match {
           case bp: DefaultBlueprint ⇒
             val newCluster = getOptionalParameter(cluster) flatMap (clusterName ⇒
               getOptionalParameter(breed) flatMap (breedName ⇒
-                Some(List(Cluster(name = clusterName, services = List(Service(breed = BreedReference(breedName), Nil, scale = myScale, route = myRouting)), sla = mySla)))
+                Some(List(Cluster(name = clusterName, services = List(Service(breed = BreedReference(breedName), Nil, scale = myScale)), routing = None, sla = mySla)))
               )
             )
             Some(bp.copy(
@@ -185,7 +184,7 @@ trait Generate extends Parameters with IoUtils {
 
   private def emptyScale = DefaultScale(name = "", cpu = 0.0, memory = 0.0, instances = 0)
 
-  private def emptyRouting = DefaultRoute(name = "", weight = None, filters = List.empty, None)
+  private def emptyRouting = DefaultRoute(name = "", weight = None, filters = List.empty)
 
   private def emptyFilter = DefaultFilter(name = "", condition = "")
 

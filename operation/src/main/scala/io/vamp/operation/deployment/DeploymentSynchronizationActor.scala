@@ -266,12 +266,14 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
             routeService.instances.exists(routerServer ⇒ routerServer.host == deploymentServer.host && routerServer.port == deploymentServer.ports.getOrElse(port.number, 0))
           }
 
-          lazy val matchingServersWeight = deploymentService.route.flatMap(_.weight.flatMap(w ⇒ Some(w == routeService.weight))) match {
+          lazy val route = deploymentCluster.route(deploymentService)
+
+          lazy val matchingServersWeight = route.flatMap(_.weight.flatMap(w ⇒ Some(w == routeService.weight))) match {
             case None    ⇒ false
             case Some(m) ⇒ m
           }
 
-          lazy val matchingFilters = (deploymentService.route match {
+          lazy val matchingFilters = (route match {
             case None ⇒ Nil
             case Some(r) ⇒ r.filters.flatMap {
               case d: DefaultFilter ⇒ d.condition :: Nil
@@ -332,7 +334,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   private def updatePorts(persist: List[DeploymentCluster]): (Deployment ⇒ Deployment) = { deployment: Deployment ⇒
     val ports = persist.flatMap({ cluster ⇒
       cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
-        Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.routes.get(port.number).flatMap(n ⇒ Some(n.toString)))
+        Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portMapping.get(port.number).flatMap(n ⇒ Some(n.toString)))
       })
     }).map(p ⇒ p.name -> p).toMap ++ deployment.ports.map(p ⇒ p.name -> p).toMap
 

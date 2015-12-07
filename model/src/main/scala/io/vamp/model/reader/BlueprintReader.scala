@@ -89,8 +89,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
           <<?[List[YamlSourceReader]]("services") match {
-            case None       ⇒ Cluster(name, List(), sla, dialects)
-            case Some(list) ⇒ Cluster(name, list.map(parseService(_)), sla, dialects)
+            case None       ⇒ Cluster(name, List(), None, sla, dialects)
+            case Some(list) ⇒ Cluster(name, list.map(parseService(_)), RoutingReader.optional(), sla, dialects)
           }
       } toList
     }
@@ -107,6 +107,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
       blueprint.clusters.foreach(cluster ⇒ validateName(cluster.name))
       validateBlueprintTraitValues(blueprint)
+      validateRouteServiceNames(blueprint)
       validateRouteWeights(blueprint)
 
       if (blueprint.clusters.flatMap(_.services).count(_ ⇒ true) == 0) throwException(NoServiceError)
@@ -120,10 +121,24 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       blueprint
   }
 
+  protected def validateRouteServiceNames(blueprint: DefaultBlueprint): Unit = {
+    blueprint.clusters.foreach { cluster ⇒
+      cluster.routing.foreach { routing ⇒
+        routing.routes.foreach {
+          case (name, _) ⇒ if (!cluster.services.exists(_.breed.name == name)) throwException(UnresolvedServiceRouteError(cluster, name))
+        }
+      }
+    }
+  }
+
   protected def validateRouteWeights(blueprint: DefaultBlueprint): Unit = {
     blueprint.clusters.find({ cluster ⇒
-      val weights = cluster.services.flatMap(_.route).filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
-      weights.exists(_ < 0) || weights.sum > 100
+      cluster.routing match {
+        case None ⇒ false
+        case Some(routing) ⇒
+          val weights = routing.routes.values.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
+          weights.exists(_ < 0) || weights.sum > 100
+      }
     }).flatMap {
       case cluster ⇒ throwException(RouteWeightError(cluster))
     }
@@ -157,7 +172,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   }
 
   private def parseService(implicit source: YamlSourceReader): Service =
-    Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), RouteReader.readOptionalReferenceOrAnonymous("route"), dialects)
+    Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), dialects)
 }
 
 object BlueprintReader extends AbstractBlueprintReader {
@@ -201,24 +216,48 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
   override protected def createDefault(implicit source: YamlSourceReader): Scale = DefaultScale(name, <<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
 }
 
+object RoutingReader extends YamlReader[Routing] {
+
+  import YamlSourceReader._
+
+  def optional(entry: String = "routing")(implicit source: YamlSourceReader): Option[Routing] = <<?[YamlSourceReader](entry).flatMap {
+    case yaml ⇒
+      implicit val source = yaml
+      Some(RoutingReader.read)
+  }
+
+  override protected def parse(implicit source: YamlSourceReader): Routing = {
+
+    val routes = <<?[YamlSourceReader]("routes") match {
+      case Some(map) ⇒ map.pull().map {
+        case (name: String, _) ⇒
+          name -> RouteReader.readReferenceOrAnonymous(<<![Any](name))
+      }
+      case None ⇒ Map[String, Route]()
+    }
+
+    Routing(sticky, routes)
+  }
+
+  protected def sticky(implicit source: YamlSourceReader) = <<?[String]("sticky") match {
+    case Some(sticky) ⇒ Option(Routing.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
+    case None         ⇒ None
+  }
+}
+
 object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route] {
 
   import YamlSourceReader._
 
   override protected def createReference(implicit source: YamlSourceReader): Route = RouteReference(reference)
 
-  override protected def createDefault(implicit source: YamlSourceReader): Route = DefaultRoute(name, <<?[Int]("weight"), filters, sticky)
+  override protected def createDefault(implicit source: YamlSourceReader): Route = DefaultRoute(name, <<?[Int]("weight"), filters)
 
   protected def filters(implicit source: YamlSourceReader): List[Filter] = <<?[YamlList]("filters") match {
     case None ⇒ List[Filter]()
     case Some(list: YamlList) ⇒ list.map {
       FilterReader.readReferenceOrAnonymous
     }
-  }
-
-  protected def sticky(implicit source: YamlSourceReader) = <<?[String]("sticky") match {
-    case Some(sticky) ⇒ Option(Route.values.find(_.toString.toLowerCase == sticky.toLowerCase).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
-    case None         ⇒ None
   }
 }
 

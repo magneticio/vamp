@@ -59,9 +59,25 @@ case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints
   lazy val traits = ports ++ environmentVariables ++ hosts
 }
 
-case class DeploymentCluster(name: String, services: List[DeploymentService], sla: Option[Sla], routes: Map[Int, Int] = Map(), dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
+case class DeploymentCluster(
+    name: String,
+    services: List[DeploymentService],
+    routing: Option[Routing],
+    sla: Option[Sla],
+    portMapping: Map[Int, Int] = Map(),
+    dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster {
 
-case class DeploymentService(state: DeploymentService.State, breed: DefaultBreed, environmentVariables: List[EnvironmentVariable], scale: Option[DefaultScale], route: Option[DefaultRoute], instances: List[DeploymentInstance], dependencies: Map[String, String] = Map(), dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService with DeploymentState
+  def route(service: DeploymentService): Option[DefaultRoute] = routing.flatMap(routing ⇒ routing.routes.find(_._1 == service.breed.name)).map(_._2).asInstanceOf[Option[DefaultRoute]]
+}
+
+case class DeploymentService(
+  state: DeploymentService.State,
+  breed: DefaultBreed,
+  environmentVariables: List[EnvironmentVariable],
+  scale: Option[DefaultScale],
+  instances: List[DeploymentInstance],
+  dependencies: Map[String, String] = Map(),
+  dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService with DeploymentState
 
 case class DeploymentInstance(name: String, host: String, ports: Map[Int, Int], deployed: Boolean) extends Artifact
 

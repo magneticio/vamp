@@ -27,7 +27,8 @@ RouteWeightError                      : "Total route weight cannot exceed 100 or
 UnresolvedScaleEscalationTargetCluster: "Unresolved scale escalation target cluster '{target}' for cluster '{cluster.name}'"
 NoServiceError$                       : "Expected at least one service."
 MissingEnvironmentVariableError       : "Missing environment variable value for '{name}' in service '{breed.name}.'"
-IllegalRoutingStickyValue             : "Illegal routing sticky value: {sticky}"
+IllegalRoutingStickyValue             : "Illegal routing sticky value: '{sticky}'."
+UnresolvedServiceRouteError           : "Unresolved service route for '{cluster.name}' and '{service}'."
 
 # SLA
 

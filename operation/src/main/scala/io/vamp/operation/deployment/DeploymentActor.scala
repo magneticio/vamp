@@ -35,7 +35,7 @@ object DeploymentActor {
 
   case class UpdateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) extends DeploymentMessages
 
-  case class UpdateRouting(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, routing: DefaultRoute, source: String) extends DeploymentMessages
+  case class UpdateRouting(deployment: Deployment, cluster: DeploymentCluster, routing: Routing, source: String) extends DeploymentMessages
 
 }
 
@@ -64,8 +64,8 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
       updateScale(deployment, cluster, service, scale, source)
     }
 
-    case UpdateRouting(deployment, cluster, service, routing, source) ⇒ reply {
-      updateRouting(deployment, cluster, service, routing, source)
+    case UpdateRouting(deployment, cluster, routing, source) ⇒ reply {
+      updateRouting(deployment, cluster, routing, source)
     }
 
     case any ⇒ unsupported(UnsupportedDeploymentRequest(any))
@@ -111,15 +111,30 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator {
     artifactFor[DefaultBlueprint](blueprint) flatMap {
       case bp ⇒
         val clusters = bp.clusters.map { cluster ⇒
-          Future.traverse(cluster.services)({ service ⇒
-            for {
-              breed ← artifactFor[DefaultBreed](service.breed)
-              scale ← artifactFor[DefaultScale](service.scale)
-              routing ← artifactFor[DefaultRoute](service.route)
-            } yield {
-              DeploymentService(Deploy, breed, service.environmentVariables, scale, routing, Nil, Map(), service.dialects)
+          for {
+            services ← Future.traverse(cluster.services)({ service ⇒
+              for {
+                breed ← artifactFor[DefaultBreed](service.breed)
+                scale ← artifactFor[DefaultScale](service.scale)
+              } yield {
+                DeploymentService(Deploy, breed, service.environmentVariables, scale, Nil, Map(), service.dialects)
+              }
+            })
+            routing ← cluster.routing match {
+              case Some(r) ⇒
+
+                val routes: Future[Map[String, Route]] = Future.sequence(r.routes.map({
+                  case (name, route) ⇒ name -> artifactFor[DefaultRoute](route)
+                }).map(entry ⇒ entry._2.map(i ⇒ (entry._1, i)))).map(_.toMap)
+
+                routes.map(routes ⇒ Some(r.copy(routes = routes)))
+
+              case None ⇒ Future.successful(None)
             }
-          }).map(DeploymentCluster(cluster.name, _, cluster.sla, Map(), cluster.dialects))
+
+          } yield {
+            DeploymentCluster(cluster.name, services, routing, cluster.sla, Map(), cluster.dialects)
+          }
         }
         Future.sequence(clusters).map(Deployment(uuid, _, bp.endpoints, Nil, bp.environmentVariables, Nil))
     }
@@ -158,7 +173,7 @@ trait DeploymentValidator {
   }
 
   def validateRoutingWeights: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
-    deployment.clusters.map(cluster ⇒ cluster -> weightOf(cluster.services)).find({
+    deployment.clusters.map(cluster ⇒ cluster -> weightOf(cluster)).find({
       case (cluster, weight) ⇒ weight != 100 && weight != 0
     }).flatMap({
       case (cluster, weight) ⇒ throwException(UnsupportedRouteWeight(deployment, cluster, weight))
@@ -227,7 +242,15 @@ trait DeploymentValidator {
     case _ ⇒ false
   }
 
-  def weightOf(services: List[DeploymentService]) = services.flatMap(_.route).flatMap(_.weight).sum
+  def weightOf(cluster: DeploymentCluster): Int = weightOf(cluster, cluster.services)
+
+  def weightOf(cluster: DeploymentCluster, services: List[DeploymentService]): Int = cluster.routing.flatMap({ routing ⇒
+    Some(routing.routes.filter({
+      case (name, _) ⇒ services.exists(_.breed.name == name)
+    }).map({
+      case (_, route: DefaultRoute) ⇒ route.weight.getOrElse(0)
+    }).sum)
+  }).getOrElse(0)
 }
 
 trait DeploymentOperation {
@@ -272,13 +295,24 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
         val blueprintClusters = blueprint.clusters.map { cluster ⇒
           stable.clusters.find(_.name == cluster.name) match {
             case None ⇒ mergeServices(stable, None, cluster).map {
-              case services ⇒ cluster.copy(services = services)
+              case services ⇒
+                val nc = cluster.copy(services = services)
+                nc.copy(routing = updatedWeights(None, nc))
             }
             case Some(deploymentCluster) ⇒ mergeServices(stable, Some(deploymentCluster), cluster).map {
-              case services ⇒ deploymentCluster.copy(services = services, routes = cluster.routes ++ deploymentCluster.routes, dialects = deploymentCluster.dialects ++ cluster.dialects, sla = cluster.sla)
+              case services ⇒
+                val nc = deploymentCluster.copy(
+                  services = services,
+                  portMapping = cluster.portMapping ++ deploymentCluster.portMapping,
+                  dialects = deploymentCluster.dialects ++ cluster.dialects,
+                  routing = if (cluster.routing.isDefined) cluster.routing else deploymentCluster.routing,
+                  sla = if (cluster.sla.isDefined) cluster.sla else deploymentCluster.sla
+                )
+                nc.copy(routing = updatedWeights(Some(deploymentCluster), nc))
             }
           }
         }
+
         Future.sequence(deploymentClusters ++ blueprintClusters)
     }
   }
@@ -294,42 +328,20 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
           case None ⇒ service
           case Some(bpService) ⇒
             val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
-            val routing = if (bpService.route.isDefined) bpService.route else service.route
-            val state: State = if (service.scale != bpService.scale || service.route != bpService.route) Deploy else service.state
+            val state: State = if (service.scale != bpService.scale || sc.routing != blueprintCluster.routing) Deploy else service.state
 
-            service.copy(scale = scale, route = routing, state = state, dialects = service.dialects ++ bpService.dialects)
+            service.copy(scale = scale, state = state, dialects = service.dialects ++ bpService.dialects)
         }
       }
     }
   }
 
   def mergeNewServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[Future[DeploymentService]] = {
-    val newServices = blueprintCluster.services.filter(service ⇒ stableCluster match {
-      case None     ⇒ true
-      case Some(sc) ⇒ !sc.services.exists(_.breed.name == service.breed.name)
-    })
+    val newServices = newService(stableCluster, blueprintCluster)
 
     if (newServices.nonEmpty) {
-      val oldWeight = stableCluster.flatMap(cluster ⇒ Some(cluster.services.flatMap({ service ⇒
-        blueprintCluster.services.find(_.breed.name == service.breed.name) match {
-          case None         ⇒ service.route
-          case Some(update) ⇒ update.route
-        }
-      }).flatMap(_.weight).sum)) match {
-        case None      ⇒ 0
-        case Some(sum) ⇒ sum
-      }
-
-      val newWeight = newServices.flatMap(_.route).filter(_.isInstanceOf[DefaultRoute]).flatMap(_.weight).sum
-      val availableWeight = 100 - oldWeight - newWeight
-
-      if (availableWeight < 0)
-        throwException(RouteWeightError(blueprintCluster))
-
-      val weight = Math.round(availableWeight / newServices.size)
-
-      newServices.view.zipWithIndex.toList.map {
-        case (service, index) ⇒
+      newServices.map {
+        case service ⇒
           (service.scale match {
             case None ⇒
               implicit val timeout = DictionaryActor.timeout
@@ -340,16 +352,53 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
               }
             case Some(scale: DefaultScale) ⇒ Future(scale)
           }).map {
-            case scale ⇒
-              val defaultWeight = if (index == newServices.size - 1) availableWeight - index * weight else weight
-              val routing = service.route match {
-                case None                  ⇒ Some(DefaultRoute("", Some(defaultWeight), Nil, None))
-                case Some(r: DefaultRoute) ⇒ Some(r.copy(weight = Some(r.weight.getOrElse(defaultWeight))))
-              }
-              service.copy(scale = Some(scale), route = routing)
+            case scale ⇒ service.copy(scale = Some(scale))
           }
       }
     } else Nil
+  }
+
+  def newService(stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster) = blueprintCluster.services.filter(service ⇒ stableCluster match {
+    case None     ⇒ true
+    case Some(sc) ⇒ !sc.services.exists(_.breed.name == service.breed.name)
+  })
+
+  def updatedWeights(stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): Option[Routing] = {
+    val newServices = newService(stableCluster, blueprintCluster)
+
+    if (newServices.nonEmpty) {
+
+      val oldWeight = stableCluster.flatMap(cluster ⇒ Some(cluster.services.flatMap({ service ⇒
+        blueprintCluster.services.find(_.breed.name == service.breed.name) match {
+          case None         ⇒ cluster.route(service)
+          case Some(update) ⇒ blueprintCluster.route(update)
+        }
+      }).flatMap(_.weight).sum)) match {
+        case None      ⇒ 0
+        case Some(sum) ⇒ sum
+      }
+
+      val newWeight = newServices.flatMap(s ⇒ blueprintCluster.route(s)).flatMap(_.weight).sum
+      val availableWeight = 100 - oldWeight - newWeight
+
+      if (availableWeight < 0)
+        throwException(RouteWeightError(blueprintCluster))
+
+      val weight = Math.round(availableWeight / newServices.size)
+
+      val routes = newServices.view.zipWithIndex.toList.map {
+        case (service, index) ⇒
+          val defaultWeight = if (index == newServices.size - 1) availableWeight - index * weight else weight
+          val route = blueprintCluster.route(service) match {
+            case None                  ⇒ DefaultRoute("", Some(defaultWeight), Nil)
+            case Some(r: DefaultRoute) ⇒ r.copy(weight = Some(r.weight.getOrElse(defaultWeight)))
+          }
+          service.breed.name -> route
+      } toMap
+
+      Some(Routing(None, routes))
+
+    } else stableCluster.flatMap(cluster ⇒ cluster.routing)
   }
 
   def resolveHosts: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
@@ -367,7 +416,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     futureDeployment.flatMap {
       case deployment ⇒
         Future.sequence(deployment.clusters.map({ cluster ⇒
-          Future.sequence(cluster.services.map(_.breed).flatMap(_.ports).map(_.number).map(port ⇒ cluster.routes.get(port) match {
+          Future.sequence(cluster.services.map(_.breed).flatMap(_.ports).map(_.number).map(port ⇒ cluster.portMapping.get(port) match {
             case None ⇒
               implicit val timeout = DictionaryActor.timeout
               val key = DictionaryActor.portAssignment.format(deployment.name, port)
@@ -376,7 +425,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
                 case e           ⇒ throwException(UnresolvedEnvironmentValueError(key, e))
               }
             case Some(number) ⇒ Future(port -> number)
-          })).map(routes ⇒ cluster.copy(routes = routes.toMap))
+          })).map(routes ⇒ cluster.copy(portMapping = routes.toMap))
         })).map {
           case clusters ⇒ deployment.copy(clusters = clusters)
         }
@@ -427,7 +476,7 @@ trait DeploymentSlicer extends DeploymentOperation {
 
   def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster ⇒
     blueprint.clusters.find(_.name == cluster.name).foreach { bpc ⇒
-      val weight = weightOf(cluster.services.filterNot(service ⇒ bpc.services.exists(_.breed.name == service.breed.name)))
+      val weight = weightOf(cluster, cluster.services.filterNot(service ⇒ bpc.services.exists(_.breed.name == service.breed.name)))
       if (weight != 100 && weight != 0) throwException(InvalidRouteWeight(deployment, cluster, weight))
     }
   }
@@ -465,9 +514,8 @@ trait DeploymentUpdate {
     actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
   }
 
-  def updateRouting(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, routing: DefaultRoute, source: String) = {
-    lazy val services = cluster.services.map(s ⇒ if (s.breed.name == service.breed.name) service.copy(route = Some(routing), state = Deploy) else s)
-    val clusters = deployment.clusters.map(c ⇒ if (c.name == cluster.name) c.copy(services = services) else c)
+  def updateRouting(deployment: Deployment, cluster: DeploymentCluster, routing: Routing, source: String) = {
+    val clusters = deployment.clusters.map(c ⇒ if (c.name == cluster.name) c.copy(routing = Some(routing)) else c)
     actorFor[PersistenceActor] ? PersistenceActor.Update(validateRoutingWeights(deployment.copy(clusters = clusters)), Some(source))
   }
 }
