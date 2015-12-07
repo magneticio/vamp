@@ -117,7 +117,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
     def `type`(port: Port): String = if (port.`type` == Port.Http) "http" else "tcp"
     cluster match {
       case None    ⇒ Gateway(name, port.number, `type`(port), filters(cluster), services(deployment, None, port))
-      case Some(c) ⇒ Gateway(name, c.routes.get(port.number).get, `type`(port), filters(cluster), services(deployment, cluster, port))
+      case Some(c) ⇒ Gateway(name, c.portMapping.get(port.number).get, `type`(port), filters(cluster), services(deployment, cluster, port))
     }
   }
 
@@ -125,7 +125,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
     (cluster match {
       case None ⇒ None
       case Some(c) ⇒ c.services.flatMap { service ⇒
-        service.route.getOrElse(DefaultRoute("", None, Nil, None)).filters.flatMap({
+        route(c, service).filters.flatMap({
           case filter: DefaultFilter ⇒ model.Filter(if (filter.name.isEmpty) None else Option(filter.name), filter.condition, s"${artifactName2Id(service.breed, serviceIdMatcher)}") :: Nil
           case _                     ⇒ Nil
         })
@@ -138,11 +138,15 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
 
   private def services(deployment: Deployment, cluster: Option[DeploymentCluster], port: Port): List[model.Service] = cluster match {
     case Some(c) ⇒
-      c.services.map { service ⇒ model.Service(s"${artifactName2Id(service.breed, serviceIdMatcher)}", service.route.getOrElse(DefaultRoute("", Some(100), Nil, None)).weight.getOrElse(100), service.instances.map(server(service, _, port))) }
+      c.services.map { service ⇒ model.Service(s"${artifactName2Id(service.breed, serviceIdMatcher)}", route(c, service).weight.getOrElse(100), service.instances.map(server(service, _, port))) }
 
     case None ⇒
       val name = TraitReference.referenceFor(port.name).map(_.referenceWithoutGroup).getOrElse(port.name)
       model.Service(s"${string2Id(name, serviceIdMatcher)}", 100, servers(deployment, port)) :: Nil
+  }
+
+  private def route(cluster: DeploymentCluster, service: DeploymentService): DefaultRoute = {
+    cluster.route(service).getOrElse(DefaultRoute("", None, Nil)).asInstanceOf[DefaultRoute]
   }
 
   private def server(service: DeploymentService, server: DeploymentInstance, port: Port) = server.ports.get(port.number) match {
@@ -164,7 +168,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
             deployment.clusters.find(_.name == cluster) match {
               case None ⇒ Nil
               case Some(c) ⇒
-                c.routes.values.find(_ == gatewayPort.number) match {
+                c.portMapping.values.find(_ == gatewayPort.number) match {
                   case Some(_) ⇒ model.Instance(string2Id(s"${deployment.name}_${port.number}"), host.value.get, gatewayPort.number) :: Nil
                   case _       ⇒ Nil
                 }
