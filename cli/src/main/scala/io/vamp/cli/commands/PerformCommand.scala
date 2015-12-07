@@ -58,7 +58,7 @@ object PerformCommand extends Generate {
 
     case Some("routings") ⇒
       println("NAME".padTo(25, ' ').bold.cyan + "FILTERS".bold.cyan)
-      VampHostCalls.getRoutings.foreach({ case b: DefaultRouting ⇒ println(s"${b.name.padTo(25, ' ')}${b.filters.map({ case d: DefaultFilter ⇒ s"${d.condition}" }).mkString(", ")}") })
+      VampHostCalls.getRoutings.foreach({ case b: DefaultRoute ⇒ println(s"${b.name.padTo(25, ' ')}${b.filters.map({ case d: DefaultFilter ⇒ s"${d.condition}" }).mkString(", ")}") })
 
     case Some("scales") ⇒
       println("NAME".padTo(25, ' ').bold.cyan + "CPU".padTo(7, ' ').bold.cyan + "MEMORY".padTo(10, ' ').bold.cyan + "INSTANCES".bold.cyan)
@@ -83,7 +83,7 @@ object PerformCommand extends Generate {
       }
       case Some("escalation") ⇒ VampHostCalls.getEscalation(getParameter(name))
       case Some("filter")     ⇒ VampHostCalls.getFilter(getParameter(name))
-      case Some("routing")    ⇒ VampHostCalls.getRouting(getParameter(name))
+      case Some("routes")     ⇒ VampHostCalls.getRoute(getParameter(name))
       case Some("scale")      ⇒ VampHostCalls.getScale(getParameter(name))
       case Some("sla")        ⇒ VampHostCalls.getSla(getParameter(name))
       case Some(invalid)      ⇒ terminateWithError(s"Artifact type unknown: '$invalid'")
@@ -97,7 +97,7 @@ object PerformCommand extends Generate {
     case Some("blueprint")  ⇒ printArtifact(VampHostCalls.createBlueprint(readFileContent))
     case Some("escalation") ⇒ printArtifact(VampHostCalls.createEscalation(readFileContent))
     case Some("filter")     ⇒ printArtifact(VampHostCalls.createFilter(readFileContent))
-    case Some("routing")    ⇒ printArtifact(VampHostCalls.createRouting(readFileContent))
+    case Some("routes")     ⇒ printArtifact(VampHostCalls.createRoute(readFileContent))
     case Some("scale")      ⇒ printArtifact(VampHostCalls.createScale(readFileContent))
     case Some("sla")        ⇒ printArtifact(VampHostCalls.createSla(readFileContent))
     case Some(invalid)      ⇒ terminateWithError(s"Unsupported artifact '$invalid'")
@@ -109,7 +109,7 @@ object PerformCommand extends Generate {
     case Some("blueprint")  ⇒ printArtifact(VampHostCalls.updateBlueprint(getParameter(name), readFileContent))
     case Some("escalation") ⇒ printArtifact(VampHostCalls.updateEscalation(getParameter(name), readFileContent))
     case Some("filter")     ⇒ printArtifact(VampHostCalls.updateFilter(getParameter(name), readFileContent))
-    case Some("routing")    ⇒ printArtifact(VampHostCalls.updateRouting(getParameter(name), readFileContent))
+    case Some("routes")     ⇒ printArtifact(VampHostCalls.updateRoute(getParameter(name), readFileContent))
     case Some("scale")      ⇒ printArtifact(VampHostCalls.updateScale(getParameter(name), readFileContent))
     case Some("sla")        ⇒ printArtifact(VampHostCalls.updateSla(getParameter(name), readFileContent))
     case Some(invalid)      ⇒ terminateWithError(s"Artifact type unknown: '$invalid'")
@@ -121,7 +121,7 @@ object PerformCommand extends Generate {
     case Some("blueprint")  ⇒ VampHostCalls.deleteBlueprint(getParameter(name))
     case Some("escalation") ⇒ VampHostCalls.deleteEscalation(getParameter(name))
     case Some("filter")     ⇒ VampHostCalls.deleteFilter(getParameter(name))
-    case Some("routing")    ⇒ VampHostCalls.deleteRouting(getParameter(name))
+    case Some("routes")     ⇒ VampHostCalls.deleteRoute(getParameter(name))
     case Some("scale")      ⇒ VampHostCalls.deleteScale(getParameter(name))
     case Some("sla")        ⇒ VampHostCalls.deleteSla(getParameter(name))
     case Some(invalid)      ⇒ terminateWithError(s"Unsupported artifact '$invalid'")

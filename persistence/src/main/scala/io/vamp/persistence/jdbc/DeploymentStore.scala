@@ -126,7 +126,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
             deploymentId = deploymentId,
             breed = breedRefId,
             scale = createScaleReference(service.scale, deploymentId),
-            routing = createRoutingReference(service.routing, deploymentId),
+            routing = createRoutingReference(service.route, deploymentId),
             deploymentIntention = service.state.intention,
             deploymentStep = service.state.step,
             deploymentTime = service.state.since,
@@ -178,7 +178,7 @@ trait DeploymentStore extends BlueprintStore with BreedStore with EnvironmentVar
         breed = defaultBreedModel2DefaultBreedArtifact(DefaultBreeds.findByName(BreedReferences.findById(service.breed).name, service.deploymentId)),
         environmentVariables = service.environmentVariables.map(e ⇒ environmentVariableModel2Artifact(e)),
         scale = service.scale flatMap { scale ⇒ Some(defaultScaleModel2Artifact(DefaultScales.findByName(ScaleReferences.findById(scale).name, service.deploymentId))) },
-        routing = service.routing flatMap { routing ⇒ Some(defaultRoutingModel2Artifact(DefaultRoutings.findByName(RoutingReferences.findById(routing).name, service.deploymentId))) },
+        route = service.routing flatMap { routing ⇒ Some(defaultRoutingModel2Artifact(DefaultRoutings.findByName(RoutingReferences.findById(routing).name, service.deploymentId))) },
         instances = deploymentServerModels2Artifacts(service.servers),
         dependencies = deploymentServiceDependencies2Artifacts(service.dependencies),
         dialects = DialectSerializer.deserialize(service.dialects)

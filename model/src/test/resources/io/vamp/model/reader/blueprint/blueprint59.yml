@@ -4,5 +4,5 @@ clusters:
   notorious:
     services:
       breed: nocturnal-viper
-      routing:
+      route:
         sticky: none

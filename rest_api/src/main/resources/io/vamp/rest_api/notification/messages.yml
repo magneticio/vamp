@@ -1,3 +1,3 @@
 
-UnexpectedEndOfRequest             : "Unexpected end of the request."
-UnsupportedRoutingWeightChangeError: "Routing weight cannot be changed only for one service alone. Current weight: {weight}."
+UnexpectedEndOfRequest           : "Unexpected end of the request."
+UnsupportedRouteWeightChangeError: "Route weight cannot be changed only for one service alone. Current weight: {weight}."

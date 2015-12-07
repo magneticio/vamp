@@ -8,6 +8,6 @@ clusters:
     -
       breed: wordpress1
       scale: large
-      routing:
+      route:
         filters:
           condition: "user.agent == android"

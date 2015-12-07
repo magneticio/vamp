@@ -61,7 +61,7 @@ case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints
 
 case class DeploymentCluster(name: String, services: List[DeploymentService], sla: Option[Sla], routes: Map[Int, Int] = Map(), dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
 
-case class DeploymentService(state: DeploymentService.State, breed: DefaultBreed, environmentVariables: List[EnvironmentVariable], scale: Option[DefaultScale], routing: Option[DefaultRouting], instances: List[DeploymentInstance], dependencies: Map[String, String] = Map(), dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService with DeploymentState
+case class DeploymentService(state: DeploymentService.State, breed: DefaultBreed, environmentVariables: List[EnvironmentVariable], scale: Option[DefaultScale], route: Option[DefaultRoute], instances: List[DeploymentInstance], dependencies: Map[String, String] = Map(), dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService with DeploymentState
 
 case class DeploymentInstance(name: String, host: String, ports: Map[Int, Int], deployed: Boolean) extends Artifact
 

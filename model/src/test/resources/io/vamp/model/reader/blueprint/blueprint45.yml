@@ -6,6 +6,6 @@ endpoints:
 clusters:
   supersonic:
     breed: wordpress1
-    routing:
+    route:
       filters:
         android

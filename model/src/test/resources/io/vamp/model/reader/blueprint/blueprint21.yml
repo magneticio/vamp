@@ -14,7 +14,7 @@ clusters:
           memory: 120
           instances: 2
 
-        routing:
+        route:
           weight: 95
           filters:
             - condition: ua = android

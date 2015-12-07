@@ -45,7 +45,7 @@ trait PersistenceArchiving {
     case t if classOf[Sla].isAssignableFrom(t) ⇒ Some(s"slas:${artifact.name}")
     case t if classOf[Scale].isAssignableFrom(t) ⇒ Some(s"scales:${artifact.name}")
     case t if classOf[Escalation].isAssignableFrom(t) ⇒ Some(s"escalations:${artifact.name}")
-    case t if classOf[Routing].isAssignableFrom(t) ⇒ Some(s"routings:${artifact.name}")
+    case t if classOf[Route].isAssignableFrom(t) ⇒ Some(s"routings:${artifact.name}")
     case t if classOf[Filter].isAssignableFrom(t) ⇒ Some(s"filters:${artifact.name}")
     case t if classOf[Workflow].isAssignableFrom(t) ⇒ Some(s"workflows:${artifact.name}")
     case t if classOf[ScheduledWorkflow].isAssignableFrom(t) ⇒ Some(s"scheduled-workflows:${artifact.name}")

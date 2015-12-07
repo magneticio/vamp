@@ -21,7 +21,7 @@ trait CliCommand {
 
   def jsonOutput = "  --json               Output Json instead of Yaml[Optional]"
 
-  val allArtifacts = List("blueprint", "breed", "deployment", "escalation", "filter", "routing", "scale", "sla")
+  val allArtifacts = List("blueprint", "breed", "deployment", "escalation", "filter", "routes", "scale", "sla")
   val allArtifactsPlural = List("blueprints", "breeds", "deployments", "escalations", "filters", "routings", "scales", "slas")
 }
 
@@ -130,7 +130,7 @@ case class GenerateCommand() extends CliCommand {
                             """.stripMargin
   override val requiresName = false
   override val commandType = CommandType.Generate
-  override val allowedArtifacts = List("breed", "blueprint", "escalation-cpu", "escalation-instance", "escalation-memory", "filter", "routing", "scale", "sla-response-time-sliding-window")
+  override val allowedArtifacts = List("breed", "blueprint", "escalation-cpu", "escalation-instance", "escalation-memory", "filter", "routes", "scale", "sla-response-time-sliding-window")
   override val requiresArtifact = true
   override val requiresHostConnection: Boolean = false
 }

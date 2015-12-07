@@ -6,4 +6,4 @@ clusters:
       -
         breed: nocturnal-viper
           
-        routing: conservative
+        route: conservative

@@ -123,7 +123,7 @@ trait BlueprintStore extends BreedStore with ScaleStore with RoutingStore with S
       breed = findBreedArtifactViaReferenceId(service.breedReferenceId, deploymentId),
       environmentVariables = Nil,
       scale = findOptionScaleArtifactViaReferenceName(service.scaleReference, deploymentId),
-      routing = findOptionRoutingArtifactViaReference(service.routingReference, deploymentId),
+      route = findOptionRoutingArtifactViaReference(service.routingReference, deploymentId),
       dialects = DialectSerializer.deserialize(service.dialects)
     )
   )
@@ -166,7 +166,7 @@ trait BlueprintStore extends BreedStore with ScaleStore with RoutingStore with S
         deploymentId = deploymentId,
         clusterId = clusterId,
         breedReferenceId = createBreedReference(service.breed, deploymentId),
-        routingReference = createRoutingReference(service.routing, deploymentId),
+        routingReference = createRoutingReference(service.route, deploymentId),
         scaleReference = createScaleReference(service.scale, deploymentId),
         dialects = DialectSerializer.serialize(service.dialects))
       )

@@ -55,10 +55,10 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
                   }
                 case _ ⇒
               }
-              <<?[Any]("routing") match {
+              <<?[Any]("route") match {
                 case None            ⇒
                 case Some(s: String) ⇒
-                case Some(s)         ⇒ expandToList("routing" :: "filters")
+                case Some(s)         ⇒ expandToList("route" :: "filters")
               }
               expandDialect
               element
@@ -107,7 +107,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
       blueprint.clusters.foreach(cluster ⇒ validateName(cluster.name))
       validateBlueprintTraitValues(blueprint)
-      validateRoutingWeights(blueprint)
+      validateRouteWeights(blueprint)
 
       if (blueprint.clusters.flatMap(_.services).count(_ ⇒ true) == 0) throwException(NoServiceError)
 
@@ -120,12 +120,12 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       blueprint
   }
 
-  protected def validateRoutingWeights(blueprint: DefaultBlueprint): Unit = {
+  protected def validateRouteWeights(blueprint: DefaultBlueprint): Unit = {
     blueprint.clusters.find({ cluster ⇒
-      val weights = cluster.services.flatMap(_.routing).filter(_.isInstanceOf[DefaultRouting]).map(_.asInstanceOf[DefaultRouting]).flatMap(_.weight)
+      val weights = cluster.services.flatMap(_.route).filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
       weights.exists(_ < 0) || weights.sum > 100
     }).flatMap {
-      case cluster ⇒ throwException(RoutingWeightError(cluster))
+      case cluster ⇒ throwException(RouteWeightError(cluster))
     }
   }
 
@@ -157,7 +157,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   }
 
   private def parseService(implicit source: YamlSourceReader): Service =
-    Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), RoutingReader.readOptionalReferenceOrAnonymous("routing"), dialects)
+    Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), RouteReader.readOptionalReferenceOrAnonymous("route"), dialects)
 }
 
 object BlueprintReader extends AbstractBlueprintReader {
@@ -201,13 +201,13 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
   override protected def createDefault(implicit source: YamlSourceReader): Scale = DefaultScale(name, <<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
 }
 
-object RoutingReader extends YamlReader[Routing] with WeakReferenceYamlReader[Routing] {
+object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route] {
 
   import YamlSourceReader._
 
-  override protected def createReference(implicit source: YamlSourceReader): Routing = RoutingReference(reference)
+  override protected def createReference(implicit source: YamlSourceReader): Route = RouteReference(reference)
 
-  override protected def createDefault(implicit source: YamlSourceReader): Routing = DefaultRouting(name, <<?[Int]("weight"), filters, sticky)
+  override protected def createDefault(implicit source: YamlSourceReader): Route = DefaultRoute(name, <<?[Int]("weight"), filters, sticky)
 
   protected def filters(implicit source: YamlSourceReader): List[Filter] = <<?[YamlList]("filters") match {
     case None ⇒ List[Filter]()
@@ -217,7 +217,7 @@ object RoutingReader extends YamlReader[Routing] with WeakReferenceYamlReader[Ro
   }
 
   protected def sticky(implicit source: YamlSourceReader) = <<?[String]("sticky") match {
-    case Some(sticky) ⇒ Option(Routing.values.find(_.toString.toLowerCase == sticky.toLowerCase).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
+    case Some(sticky) ⇒ Option(Route.values.find(_.toString.toLowerCase == sticky.toLowerCase).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
     case None         ⇒ None
   }
 }

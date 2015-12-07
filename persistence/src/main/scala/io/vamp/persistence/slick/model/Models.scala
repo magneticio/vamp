@@ -177,7 +177,7 @@ case class DeploymentDefaultScale(deploymentId: Option[Int], artifact: DefaultSc
 
 case class DeploymentGenericEscalation(deploymentId: Option[Int], artifact: Escalation)
 
-case class DeploymentDefaultRouting(deploymentId: Option[Int], artifact: DefaultRouting)
+case class DeploymentDefaultRouting(deploymentId: Option[Int], artifact: DefaultRoute)
 
 case class DeploymentDefaultBreed(deploymentId: Option[Int], artifact: DefaultBreed)
 

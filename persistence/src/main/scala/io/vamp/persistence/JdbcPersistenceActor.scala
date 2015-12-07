@@ -101,7 +101,7 @@ trait JdbcPersistence
         ofType == classOf[ScaleInstancesEscalation] || ofType == classOf[ScaleCpuEscalation] || ofType == classOf[ScaleMemoryEscalation] ||
         ofType == classOf[ToOneEscalation] || ofType == classOf[ToAllEscalation] ⇒ GenericEscalations -> classOf[GenericEscalation]
       case _ if ofType == classOf[DefaultFilter] || ofType == classOf[Filter] ⇒ DefaultFilters -> classOf[DefaultFilter]
-      case _ if ofType == classOf[DefaultRouting] || ofType == classOf[Routing] ⇒ DefaultRoutings -> classOf[DefaultRouting]
+      case _ if ofType == classOf[DefaultRoute] || ofType == classOf[Route] ⇒ DefaultRoutings -> classOf[DefaultRoute]
       case _ if ofType == classOf[DefaultScale] || ofType == classOf[Scale] ⇒ DefaultScales -> classOf[DefaultScale]
       case _ if ofType == classOf[GenericSla] || ofType == classOf[EscalationOnlySla] || ofType == classOf[ResponseTimeSlidingWindowSla] || ofType == classOf[Sla] ⇒ GenericSlas -> classOf[GenericSla]
       case _ if ofType == classOf[DefaultBreed] || ofType == classOf[Breed] ⇒ DefaultBreeds -> classOf[DefaultBreed]
@@ -125,7 +125,7 @@ trait JdbcPersistence
       case a: DefaultFilter ⇒
         DefaultFilters.findByName(a.name, deploymentId).copy(condition = a.condition).update
 
-      case a: DefaultRouting ⇒
+      case a: DefaultRoute ⇒
         updateRouting(DefaultRoutings.findByName(a.name, deploymentId), a)
 
       case a: DefaultScale ⇒
@@ -159,7 +159,7 @@ trait JdbcPersistence
       case _ if ofType == classOf[DefaultFilter] || ofType == classOf[Filter] ⇒
         findFilterOptionArtifact(name)
 
-      case _ if ofType == classOf[DefaultRouting] || ofType == classOf[Routing] ⇒
+      case _ if ofType == classOf[DefaultRoute] || ofType == classOf[Route] ⇒
         findRoutingOptionArtifact(name)
 
       case _ if ofType == classOf[DefaultScale] || ofType == classOf[Scale] ⇒
@@ -184,7 +184,7 @@ trait JdbcPersistence
 
       case art: Filter     ⇒ createFilterArtifact(art)
 
-      case art: Routing    ⇒ createRoutingArtifact(art)
+      case art: Route      ⇒ createRoutingArtifact(art)
 
       case art: Scale      ⇒ createScaleArtifact(art)
 
@@ -211,7 +211,7 @@ trait JdbcPersistence
 
       case filter: DefaultFilter       ⇒ deleteFilterFromDb(filter)
 
-      case routing: DefaultRouting     ⇒ deleteRoutingFromDb(routing)
+      case routing: DefaultRoute       ⇒ deleteRoutingFromDb(routing)
 
       case scale: DefaultScale         ⇒ deleteScaleFromDb(scale)
 

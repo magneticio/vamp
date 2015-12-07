@@ -125,7 +125,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
     (cluster match {
       case None ⇒ None
       case Some(c) ⇒ c.services.flatMap { service ⇒
-        service.routing.getOrElse(DefaultRouting("", None, Nil, None)).filters.flatMap({
+        service.route.getOrElse(DefaultRoute("", None, Nil, None)).filters.flatMap({
           case filter: DefaultFilter ⇒ model.Filter(if (filter.name.isEmpty) None else Option(filter.name), filter.condition, s"${artifactName2Id(service.breed, serviceIdMatcher)}") :: Nil
           case _                     ⇒ Nil
         })
@@ -138,7 +138,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
 
   private def services(deployment: Deployment, cluster: Option[DeploymentCluster], port: Port): List[model.Service] = cluster match {
     case Some(c) ⇒
-      c.services.map { service ⇒ model.Service(s"${artifactName2Id(service.breed, serviceIdMatcher)}", service.routing.getOrElse(DefaultRouting("", Some(100), Nil, None)).weight.getOrElse(100), service.instances.map(server(service, _, port))) }
+      c.services.map { service ⇒ model.Service(s"${artifactName2Id(service.breed, serviceIdMatcher)}", service.route.getOrElse(DefaultRoute("", Some(100), Nil, None)).weight.getOrElse(100), service.instances.map(server(service, _, port))) }
 
     case None ⇒
       val name = TraitReference.referenceFor(port.name).map(_.referenceWithoutGroup).getOrElse(port.name)

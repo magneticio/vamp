@@ -6,7 +6,7 @@ clusters:
       -
         breed: nocturnal-viper
           
-        routing:
+        route:
           name: "!ios"
           weight: 10
           filters:

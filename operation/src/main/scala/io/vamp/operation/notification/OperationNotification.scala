@@ -20,13 +20,13 @@ case class UnsupportedEscalationType(`type`: String) extends Notification
 
 case class DeploymentServiceError(deployment: Deployment, service: DeploymentService) extends Notification
 
-case class UnsupportedRoutingWeight(deployment: Deployment, cluster: DeploymentCluster, weight: Int) extends Notification
+case class UnsupportedRouteWeight(deployment: Deployment, cluster: DeploymentCluster, weight: Int) extends Notification
 
 case class UnresolvedDependencyError(breed: Breed, dependency: Breed) extends Notification
 
 case class NonUniqueBreedReferenceError(breed: Breed) extends Notification
 
-case class InvalidRoutingWeight(deployment: Deployment, cluster: DeploymentCluster, weight: Int) extends Notification
+case class InvalidRouteWeight(deployment: Deployment, cluster: DeploymentCluster, weight: Int) extends Notification
 
 case class UnavailableEndpointPortError(endpoint: Port, deployment: Deployment) extends Notification
 

@@ -52,7 +52,7 @@ trait ArtifactApiController extends ArtifactSupport {
     ("slas" -> new PersistenceHandler[Sla](SlaReader)) +
     ("scales" -> new PersistenceHandler[Scale](ScaleReader)) +
     ("escalations" -> new PersistenceHandler[Escalation](EscalationReader)) +
-    ("routings" -> new PersistenceHandler[Routing](RoutingReader)) +
+    ("routes" -> new PersistenceHandler[Route](RouteReader)) +
     ("filters" -> new PersistenceHandler[Filter](FilterReader)) +
     // workaround for None response.
     ("deployments" -> new Handler()) ++

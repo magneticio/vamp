@@ -67,10 +67,10 @@ class ScaleSerializer extends ArtifactSerializer[Scale] with ReferenceSerializat
   }
 }
 
-class RoutingSerializer extends ArtifactSerializer[Routing] with ReferenceSerialization {
+class RoutingSerializer extends ArtifactSerializer[Route] with ReferenceSerialization {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case routing: RoutingReference ⇒ serializeReference(routing)
-    case routing: DefaultRouting ⇒
+    case routing: RouteReference ⇒ serializeReference(routing)
+    case routing: DefaultRoute ⇒
       val list = new ArrayBuffer[JField]
       if (routing.name.nonEmpty)
         list += JField("name", JString(routing.name))

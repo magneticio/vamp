@@ -16,7 +16,7 @@ clusters:
           cpu: 0.5
           memory: 512
           instances: 1
-        routing:
+        route:
           filters:
             - android  
         

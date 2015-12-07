@@ -113,7 +113,7 @@ trait DeploymentApiController extends ArtifactShrinkage {
 
   def routing(deploymentName: String, clusterName: String, breedName: String)(implicit timeout: Timeout) =
     (actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result ⇒
-      result.asInstanceOf[Option[Deployment]].flatMap(deployment ⇒ deployment.clusters.find(_.name == clusterName).flatMap(cluster ⇒ cluster.services.find(_.breed.name == breedName)).flatMap(service ⇒ Some(service.routing)))
+      result.asInstanceOf[Option[Deployment]].flatMap(deployment ⇒ deployment.clusters.find(_.name == clusterName).flatMap(cluster ⇒ cluster.services.find(_.breed.name == breedName)).flatMap(service ⇒ Some(service.route)))
     }
 
   def routingUpdate(deploymentName: String, clusterName: String, breedName: String, request: String)(implicit timeout: Timeout) =
@@ -124,12 +124,12 @@ trait DeploymentApiController extends ArtifactShrinkage {
           case Some(cluster) ⇒ cluster.services.find(_.breed.name == breedName) match {
             case None ⇒ Future(None)
             case Some(service) ⇒
-              (RoutingReader.read(request) match {
-                case r: RoutingReference ⇒ actorFor[PersistenceActor] ? PersistenceActor.Read(r.name, classOf[Routing])
-                case r: DefaultRouting   ⇒ Future(r)
+              (RouteReader.read(request) match {
+                case r: RouteReference ⇒ actorFor[PersistenceActor] ? PersistenceActor.Read(r.name, classOf[Route])
+                case r: DefaultRoute   ⇒ Future(r)
               }).map {
-                case routing: DefaultRouting ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateRouting(deployment, cluster, service, routing, request)
-                case _                       ⇒ Future(None)
+                case routing: DefaultRoute ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateRouting(deployment, cluster, service, routing, request)
+                case _                     ⇒ Future(None)
               }
           }
         }

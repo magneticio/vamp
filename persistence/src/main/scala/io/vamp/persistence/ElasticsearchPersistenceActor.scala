@@ -36,7 +36,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "slas" -> SlaReader,
     "scales" -> ScaleReader,
     "escalations" -> EscalationReader,
-    "routings" -> RoutingReader,
+    "routings" -> RouteReader,
     "filters" -> FilterReader,
     "workflows" -> WorkflowReader,
     "scheduled-workflows" -> ScheduledWorkflowReader

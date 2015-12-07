@@ -7,5 +7,5 @@ clusters:
         breed: 
           ref: nocturnal-viper
           
-        routing:
+        route:
           weight: 50

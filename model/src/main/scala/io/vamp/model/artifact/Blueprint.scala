@@ -42,12 +42,12 @@ abstract class AbstractService {
 
   def scale: Option[Scale]
 
-  def routing: Option[Routing]
+  def route: Option[Route]
 
   def dialects: Map[Dialect.Value, Any]
 }
 
-case class Service(breed: Breed, environmentVariables: List[EnvironmentVariable], scale: Option[Scale], routing: Option[Routing], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
+case class Service(breed: Breed, environmentVariables: List[EnvironmentVariable], scale: Option[Scale], route: Option[Route], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
 
 trait Scale extends Artifact
 
@@ -55,15 +55,15 @@ case class ScaleReference(name: String) extends Reference with Scale
 
 case class DefaultScale(name: String, cpu: Double, memory: Double, instances: Int) extends Scale
 
-object Routing extends Enumeration {
+object Route extends Enumeration {
   val Service, Server = Value
 }
 
-trait Routing extends Artifact
+trait Route extends Artifact
 
-case class RoutingReference(name: String) extends Reference with Routing
+case class RouteReference(name: String) extends Reference with Route
 
-case class DefaultRouting(name: String, weight: Option[Int], filters: List[Filter], sticky: Option[Routing.Value]) extends Routing
+case class DefaultRoute(name: String, weight: Option[Int], filters: List[Filter], sticky: Option[Route.Value]) extends Route
 
 trait Filter extends Artifact
 

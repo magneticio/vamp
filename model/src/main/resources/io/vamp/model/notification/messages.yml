@@ -23,7 +23,7 @@ UnresolvedEndpointPortError           : "Endpoint port '{name} -> {value}' canno
 UnresolvedEnvironmentVariableError    : "Parameter '{name} -> {value}' cannot be resolved. Check if cluster exists and if it has any breed with port, environment variable or constant referable by {name}."
 NonUniqueBlueprintBreedReferenceError : "Multiple references for breed: '{name}'."
 UnresolvedBreedDependencyError        : "Unresolved breed dependency for breed '{breed.name}' and dependency '{dependency._1} -> {dependency._2.name}'."
-RoutingWeightError                    : "Total routing weight cannot exceed 100 or be a negative value. Check cluster: '{cluster.name}'."
+RouteWeightError                      : "Total route weight cannot exceed 100 or be a negative value. Check cluster: '{cluster.name}'."
 UnresolvedScaleEscalationTargetCluster: "Unresolved scale escalation target cluster '{target}' for cluster '{cluster.name}'"
 NoServiceError$                       : "Expected at least one service."
 MissingEnvironmentVariableError       : "Missing environment variable value for '{name}' in service '{breed.name}.'"

@@ -7,6 +7,6 @@ clusters:
   supersonic:
     breed: wordpress1
     scale: large
-    routing:
+    route:
       filters:
         - android
