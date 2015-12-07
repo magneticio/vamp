@@ -21,7 +21,7 @@ trait ArtifactExpansion {
     case sla: GenericSla                      ⇒ sla.copy(escalations = sla.escalations.map(expandIfReference[GenericEscalation, EscalationReference]))
     case sla: EscalationOnlySla               ⇒ sla.copy(escalations = sla.escalations.map(expandIfReference[GenericEscalation, EscalationReference]))
     case sla: ResponseTimeSlidingWindowSla    ⇒ sla.copy(escalations = sla.escalations.map(expandIfReference[GenericEscalation, EscalationReference]))
-    case routing: DefaultRouting              ⇒ routing.copy(filters = routing.filters.map(expandIfReference[DefaultFilter, FilterReference]))
+    case routing: DefaultRoute                ⇒ routing.copy(filters = routing.filters.map(expandIfReference[DefaultFilter, FilterReference]))
     case escalation: GenericEscalation        ⇒ escalation
     case filter: DefaultFilter                ⇒ filter
     case scale: DefaultScale                  ⇒ scale
@@ -46,7 +46,7 @@ trait ArtifactExpansion {
 
   private def expandServices(services: List[Service]): List[Service] = services.map { service ⇒
     service.copy(
-      routing = service.routing.flatMap(routing ⇒ Some(expandIfReference[DefaultRouting, RoutingReference](routing))),
+      route = service.route.flatMap(routing ⇒ Some(expandIfReference[DefaultRoute, RouteReference](routing))),
       scale = service.scale.flatMap(scale ⇒ Some(expandIfReference[DefaultScale, ScaleReference](scale))),
       breed = expandIfReference[DefaultBreed, BreedReference](service.breed)
     )

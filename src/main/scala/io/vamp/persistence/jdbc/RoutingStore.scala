@@ -14,22 +14,22 @@ trait RoutingStore extends FilterStore with PersistenceNotificationProvider {
   import io.vamp.persistence.slick.components.Components.instance._
   import io.vamp.persistence.slick.model.Implicits._
 
-  protected def findOptionRoutingArtifactViaReference(referenceId: Option[Int], deploymentId: Option[Int]): Option[Routing] = referenceId match {
+  protected def findOptionRoutingArtifactViaReference(referenceId: Option[Int], deploymentId: Option[Int]): Option[Route] = referenceId match {
     case Some(routingRefId) ⇒
       RoutingReferences.findOptionById(routingRefId) match {
         case Some(ref: RoutingReferenceModel) if ref.isDefinedInline ⇒
           DefaultRoutings.findOptionByName(ref.name, deploymentId) match {
             case Some(defaultRouting) ⇒ Some(defaultRoutingModel2Artifact(defaultRouting))
-            case None                 ⇒ Some(RoutingReference(name = ref.name)) // Not found, return a reference instead
+            case None                 ⇒ Some(RouteReference(name = ref.name)) // Not found, return a reference instead
           }
-        case Some(ref) ⇒ Some(RoutingReference(name = ref.name))
+        case Some(ref) ⇒ Some(RouteReference(name = ref.name))
         case None      ⇒ None
       }
     case None ⇒ None
   }
 
-  protected def createRoutingReference(artifact: Option[Routing], deploymentId: Option[Int]): Option[Int] = artifact match {
-    case Some(routing: DefaultRouting) ⇒
+  protected def createRoutingReference(artifact: Option[Route], deploymentId: Option[Int]): Option[Int] = artifact match {
+    case Some(routing: DefaultRoute) ⇒
       DefaultRoutings.findOptionByName(routing.name, deploymentId) match {
         case Some(existing) ⇒
           updateRouting(existing, routing)
@@ -38,7 +38,7 @@ trait RoutingStore extends FilterStore with PersistenceNotificationProvider {
           val routingName = createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(deploymentId, routing)).name
           Some(RoutingReferences.add(RoutingReferenceModel(deploymentId = deploymentId, name = routingName, isDefinedInline = true)))
       }
-    case Some(routing: RoutingReference) ⇒
+    case Some(routing: RouteReference) ⇒
       Some(RoutingReferences.add(RoutingReferenceModel(deploymentId = deploymentId, name = routing.name, isDefinedInline = false)))
     case _ ⇒ None
   }
@@ -49,7 +49,7 @@ trait RoutingStore extends FilterStore with PersistenceNotificationProvider {
     DefaultRoutings.findById(routingId)
   }
 
-  protected def updateRouting(existing: DefaultRoutingModel, artifact: DefaultRouting): Unit = {
+  protected def updateRouting(existing: DefaultRoutingModel, artifact: DefaultRoute): Unit = {
     deleteFilterReferences(existing.filterReferences)
     createFilterReferences(DeploymentDefaultRouting(existing.deploymentId, artifact), existing.id.get)
     existing.copy(weight = artifact.weight).update
@@ -62,7 +62,7 @@ trait RoutingStore extends FilterStore with PersistenceNotificationProvider {
     }
   }
 
-  protected def defaultRoutingModel2Artifact(r: DefaultRoutingModel): DefaultRouting = {
+  protected def defaultRoutingModel2Artifact(r: DefaultRoutingModel): DefaultRoute = {
     val filters: List[Filter] = r.filterReferences.map(filter ⇒
       if (filter.isDefinedInline)
         DefaultFilters.findOptionByName(filter.name, filter.deploymentId) match {
@@ -72,10 +72,10 @@ trait RoutingStore extends FilterStore with PersistenceNotificationProvider {
       else
         FilterReference(filter.name)
     )
-    DefaultRouting(name = VampPersistenceUtil.restoreToAnonymous(r.name, r.isAnonymous), weight = r.weight, filters = filters, None)
+    DefaultRoute(name = VampPersistenceUtil.restoreToAnonymous(r.name, r.isAnonymous), weight = r.weight, filters = filters, None)
   }
 
-  protected def deleteRoutingFromDb(artifact: Routing): Unit = {
+  protected def deleteRoutingFromDb(artifact: Route): Unit = {
     DefaultRoutings.findOptionByName(artifact.name, None) match {
       case Some(routing) ⇒
         deleteRoutingModel(routing)
@@ -88,8 +88,8 @@ trait RoutingStore extends FilterStore with PersistenceNotificationProvider {
     DefaultRoutings.deleteById(routing.id.get)
   }
 
-  protected def createRoutingArtifact(art: Routing): String = art match {
-    case a: DefaultRouting ⇒ createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(None, a)).name
+  protected def createRoutingArtifact(art: Route): String = art match {
+    case a: DefaultRoute ⇒ createDefaultRoutingModelFromArtifact(DeploymentDefaultRouting(None, a)).name
   }
 
 }

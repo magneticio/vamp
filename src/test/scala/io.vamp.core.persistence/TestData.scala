@@ -78,9 +78,9 @@ object TestData {
   val filterAnonymous = DefaultFilter(name = "", condition = "test-anonymous")
   val filterRef1 = FilterReference(name = "referenced_filter")
 
-  val route4 = DefaultRouting(name = "route4", weight = Some(1), filters = List(filter1.copy(condition = "route4-condition"), filterAnonymous, filterRef1), None)
-  val route4Updated = DefaultRouting(name = "route4", weight = Some(12), filters = List(filter1Updated), None)
-  val route5 = DefaultRouting(name = "route5", weight = None, filters = List(filter2), None)
+  val route4 = DefaultRoute(name = "route4", weight = Some(1), filters = List(filter1.copy(condition = "route4-condition"), filterAnonymous, filterRef1), None)
+  val route4Updated = DefaultRoute(name = "route4", weight = Some(12), filters = List(filter1Updated), None)
+  val route5 = DefaultRoute(name = "route5", weight = None, filters = List(filter2), None)
 
   val sla7 = EscalationOnlySla(name = "sla7", escalations = List.empty)
   val sla7Updated = sla7.copy(escalations = List(GenericEscalation(name = "sla7-escalation", `type` = "my-type7", parameters = Map.empty)))
@@ -108,9 +108,9 @@ object TestData {
   val escalation12 = ToAllEscalation(name = "escalation12", escalations = List(escalation7.copy(name = ""), escalation8.copy(name = "")))
 
   private val minimalBreedReference = BreedReference("minimal-breed")
-  private val myRoute = DefaultRouting(name = "my-route", weight = Some(1), filters = List(DefaultFilter(name = "my-filter", condition = "my-condition")), None)
-  private val myService1 = Service(breed = minimalBreedReference, Nil, scale = Some(myScale1), routing = None)
-  private val myService2 = Service(breed = minimalBreedReference, Nil, scale = Some(myScale2), routing = Some(myRoute))
+  private val myRoute = DefaultRoute(name = "my-route", weight = Some(1), filters = List(DefaultFilter(name = "my-filter", condition = "my-condition")), None)
+  private val myService1 = Service(breed = minimalBreedReference, Nil, scale = Some(myScale1), route = None)
+  private val myService2 = Service(breed = minimalBreedReference, Nil, scale = Some(myScale2), route = Some(myRoute))
   private val myEscalation = GenericEscalation(name = "my-escalation", `type` = "my-type", parameters = Map("param1" -> 1, "param2" -> "Hello"))
   private val mySlaReference = SlaReference(name = "my-sla", escalations = List(myEscalation))
   private val mySlidingWindowSla = ResponseTimeSlidingWindowSla("",
@@ -157,12 +157,12 @@ object TestData {
       myCluster_db.copy(
         name = "cluster-without-sla",
         sla = None,
-        services = List(Service(breed = breed1Updated.copy(name = "full-service-breed"), Nil, routing = Some(route4), scale = Some(myScale2)))
+        services = List(Service(breed = breed1Updated.copy(name = "full-service-breed"), Nil, route = Some(route4), scale = Some(myScale2)))
       ),
       myCluster_db.copy(
         name = "cluster-without-sla-2",
         sla = None,
-        services = List(Service(breed = breed1Updated.copy(name = "full-service-breed2"), Nil, routing = Some(route4), scale = Some(myScale2)))
+        services = List(Service(breed = breed1Updated.copy(name = "full-service-breed2"), Nil, route = Some(route4), scale = Some(myScale2)))
       )
     ),
     endpoints = List.empty,
@@ -198,7 +198,7 @@ object TestData {
       EnvironmentVariable(name = "UPPER_MEM", alias = None, value = Some("256K"))
     ),
     scale = Some(DefaultScale(name = "my-scale2", cpu = 2, memory = 4096, instances = 4)),
-    routing = Some(DefaultRouting(name = "route5", weight = None, filters = List.empty, None)),
+    route = Some(DefaultRoute(name = "route5", weight = None, filters = List.empty, None)),
     dependencies = Map("abc" -> "def")
   )
 

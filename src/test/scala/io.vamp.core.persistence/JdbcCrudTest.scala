@@ -160,8 +160,8 @@ class JdbcCrudTest extends FlatSpec with Matchers {
     jdbcStore.delete("filter1", classOf[DefaultFilter])
     jdbcStore.delete("filter2", classOf[DefaultFilter])
     jdbcStore.delete("my-filter", classOf[DefaultFilter])
-    jdbcStore.delete("my-route", classOf[DefaultRouting])
-    jdbcStore.delete("route4", classOf[DefaultRouting])
+    jdbcStore.delete("my-route", classOf[DefaultRoute])
+    jdbcStore.delete("route4", classOf[DefaultRoute])
     jdbcStore.delete("my-scale", classOf[DefaultScale])
     jdbcStore.delete("my-scale2", classOf[DefaultScale])
     jdbcStore.delete("sla7-escalation", classOf[GenericEscalation])
@@ -172,7 +172,7 @@ class JdbcCrudTest extends FlatSpec with Matchers {
     jdbcStore.all(classOf[DefaultBreed], 1, 1).response shouldBe List.empty
     jdbcStore.all(classOf[GenericEscalation], 1, 1).response shouldBe List.empty
     jdbcStore.all(classOf[DefaultFilter], 1, 1).response shouldBe List.empty
-    jdbcStore.all(classOf[DefaultRouting], 1, 1).response shouldBe List.empty
+    jdbcStore.all(classOf[DefaultRoute], 1, 1).response shouldBe List.empty
     jdbcStore.all(classOf[DefaultScale], 1, 1).response shouldBe List.empty
     jdbcStore.all(classOf[GenericSla], 1, 1).response shouldBe List.empty
     jdbcStore.all(classOf[Deployment], 1, 1).response shouldBe List.empty
