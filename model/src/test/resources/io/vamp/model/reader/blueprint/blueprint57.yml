@@ -2,7 +2,7 @@ name: nomadic-frostbite
 
 clusters:
   notorious:
+    routing:
+      sticky: service
     services:
       breed: nocturnal-viper
-      route:
-        sticky: service

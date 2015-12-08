@@ -519,29 +519,29 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  //  it should "read sticky service" in {
-  //    BlueprintReader.read(res("blueprint/blueprint57.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Some(DefaultRoute("", None, Nil, Some(Route.Service))), Map())), None, Map()))),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
-  //
-  //  it should "read sticky server" in {
-  //    BlueprintReader.read(res("blueprint/blueprint58.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Some(DefaultRoute("", None, Nil, Some(Route.Server))), Map())), None, Map()))),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
-  //
-  //  it should "report illegal sticky value" in {
-  //    expectedError[IllegalRoutingStickyValue]({
-  //      BlueprintReader.read(res("blueprint/blueprint59.yml"))
-  //    }) should have(
-  //      'sticky("none")
-  //    )
-  //  }
+  it should "read sticky service" in {
+    BlueprintReader.read(res("blueprint/blueprint57.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Map())), Some(Routing(Some(Routing.Sticky.Service), Map())), None, Map()))),
+      'environmentVariables(Nil)
+    )
+  }
+
+  it should "read sticky server" in {
+    BlueprintReader.read(res("blueprint/blueprint58.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Map())), Some(Routing(Some(Routing.Sticky.Server), Map())), None, Map()))),
+      'environmentVariables(Nil)
+    )
+  }
+
+  it should "report illegal sticky value" in {
+    expectedError[IllegalRoutingStickyValue]({
+      BlueprintReader.read(res("blueprint/blueprint59.yml"))
+    }) should have(
+      'sticky("none")
+    )
+  }
 
   it should "report illegal cluster name" in {
     expectedError[IllegalName]({
