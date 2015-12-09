@@ -5,18 +5,20 @@ endpoints:
 
 clusters:
   supersonic:
+    routing:
+      routes:
+        sava1:
+          filters:
+          - android
+
     services:
       -
         breed: 
-          name: wordpress1
-          deployable: tutum/wordpress:latest
+          name: sava1
+          deployable: magneticio/sava:latest
           ports:
             port: 80/http
         scale:
           cpu: 0.5
           memory: 512
           instances: 1
-        route:
-          filters:
-            - android  
-        

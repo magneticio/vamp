@@ -6,8 +6,5 @@ endpoints:
 clusters:
   supersonic:
     - 
-      breed: wordpress1
+      breed: sava1
       scale: large
-      route:
-        filters:
-          - android

@@ -5,9 +5,10 @@ endpoints:
 
 clusters:
   supersonic:
-    -
-      breed: wordpress1
-      scale: large
-      route:
-        filters:
-          condition: "user.agent == android"
+    breed: sava1
+    scale: large
+    routing:
+      routes:
+        sava1:
+          filters:
+            condition: "user.agent == android"

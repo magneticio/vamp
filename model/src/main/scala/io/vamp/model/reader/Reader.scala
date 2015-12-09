@@ -121,8 +121,8 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
 
   protected def <<?[V <: Any: ClassTag](path: YamlPath)(implicit source: YamlSourceReader): Option[V] = source.find[V](path)
 
-  protected def <<-(implicit source: YamlSourceReader): YamlSourceReader = {
-    val pull = source.pull()
+  protected def <<-(keep: String*)(implicit source: YamlSourceReader): YamlSourceReader = {
+    val pull = source.pull({ key ⇒ !keep.contains(key) })
     pull.foreach {
       case (key, _) ⇒ >>(key, None)
     }

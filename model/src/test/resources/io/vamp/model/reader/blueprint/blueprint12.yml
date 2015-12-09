@@ -2,10 +2,12 @@ name: nomadic-frostbite
 
 clusters:
   notorious:
+    routing:
+      routes:
+        nocturnal-viper:
+          weight: 50
+
     services:
       -
         breed: 
           ref: nocturnal-viper
-          
-        route:
-          weight: 50

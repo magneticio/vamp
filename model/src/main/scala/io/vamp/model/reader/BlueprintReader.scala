@@ -34,7 +34,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
         case (name: String, cluster: YamlSourceReader) ⇒
           implicit val source = cluster
           <<?[Any]("services") match {
-            case None                ⇒ >>("services", List(<<-))
+            case None                ⇒ >>("services", List(<<-("sla", "routing")))
             case Some(list: List[_]) ⇒
             case Some(breed: String) ⇒ >>("services", List(YamlSourceReader("breed" -> breed)))
             case Some(m)             ⇒ >>("services", List(m))
@@ -54,11 +54,6 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
                     case Some(_) ⇒ >>("breed", source)
                   }
                 case _ ⇒
-              }
-              <<?[Any]("route") match {
-                case None            ⇒
-                case Some(s: String) ⇒
-                case Some(s)         ⇒ expandToList("route" :: "filters")
               }
               expandDialect
               element
@@ -231,7 +226,7 @@ object RoutingReader extends YamlReader[Routing] {
     val routes = <<?[YamlSourceReader]("routes") match {
       case Some(map) ⇒ map.pull().map {
         case (name: String, _) ⇒
-          name -> RouteReader.readReferenceOrAnonymous(<<![Any](name))
+          name -> RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name))
       }
       case None ⇒ Map[String, Route]()
     }
@@ -252,6 +247,16 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   override protected def createReference(implicit source: YamlSourceReader): Route = RouteReference(reference)
 
   override protected def createDefault(implicit source: YamlSourceReader): Route = DefaultRoute(name, <<?[Int]("weight"), filters)
+
+  override protected def expand(implicit source: YamlSourceReader) = {
+    <<?[Any]("filters") match {
+      case Some(s: String)     ⇒ expandToList("filters")
+      case Some(list: List[_]) ⇒
+      case Some(m)             ⇒ >>("filters", List(m))
+      case _                   ⇒
+    }
+    super.expand
+  }
 
   protected def filters(implicit source: YamlSourceReader): List[Filter] = <<?[YamlList]("filters") match {
     case None ⇒ List[Filter]()

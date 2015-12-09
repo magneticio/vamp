@@ -99,68 +99,68 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  //  it should "read the reference route" in {
-  //    BlueprintReader.read(res("blueprint/blueprint11.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Some(RouteReference("conservative")))), None))),
-  //      'endpoints(Nil),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
-  //
-  //  it should "read the route with weight" in {
-  //    BlueprintReader.read(res("blueprint/blueprint12.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Some(DefaultRoute("", Some(50), Nil, None)))), None))),
-  //      'endpoints(Nil),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
-  //
-  //  it should "read the route with filter reference" in {
-  //    BlueprintReader.read(res("blueprint/blueprint13.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Some(DefaultRoute("", None, List(FilterReference("android")), None)))), None))),
-  //      'endpoints(Nil),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
-  //
-  //  it should "read the route with filter references" in {
-  //    BlueprintReader.read(res("blueprint/blueprint14.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Some(DefaultRoute("", None, List(FilterReference("android"), FilterReference("ios")), None)))), None))),
-  //      'endpoints(Nil),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
-  //
-  //  it should "read the route with anonymous filter" in {
-  //    BlueprintReader.read(res("blueprint/blueprint15.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Some(DefaultRoute("", Some(10), List(DefaultFilter("", "user.agent != ios")), None)))), None))),
-  //      'endpoints(Nil),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
+  it should "read the reference route" in {
+    BlueprintReader.read(res("blueprint/blueprint11.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None)), Some(Routing(None, Map("nocturnal-viper" -> RouteReference("conservative")))), None))),
+      'endpoints(Nil),
+      'environmentVariables(Nil)
+    )
+  }
 
-  //  it should "fail on both reference and inline route declarations" in {
-  //    expectedError[EitherReferenceOrAnonymous]({
-  //      BlueprintReader.read(res("blueprint/blueprint16.yml"))
-  //    }) should have(
-  //      'name("route"),
-  //      'reference("!ios")
-  //    )
-  //  }
+  it should "read the route with weight" in {
+    BlueprintReader.read(res("blueprint/blueprint12.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None)), Some(Routing(None, Map("nocturnal-viper" -> DefaultRoute("", Some(50), List())))), None, Map()))),
+      'endpoints(Nil),
+      'environmentVariables(Nil)
+    )
+  }
 
-  //  it should "expand the filter list" in {
-  //    BlueprintReader.read(res("blueprint/blueprint17.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Some(DefaultRoute("", None, List(FilterReference("android")), None)))), None))),
-  //      'endpoints(Nil),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
+  it should "read the route with filter reference" in {
+    BlueprintReader.read(res("blueprint/blueprint13.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None)), Some(Routing(None, Map("nocturnal-viper" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
+      'endpoints(Nil),
+      'environmentVariables(Nil)
+    )
+  }
+
+  it should "read the route with filter references" in {
+    BlueprintReader.read(res("blueprint/blueprint14.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None)), Some(Routing(None, Map("nocturnal-viper" -> DefaultRoute("", None, List(FilterReference("android"), FilterReference("ios")))))), None))),
+      'endpoints(Nil),
+      'environmentVariables(Nil)
+    )
+  }
+
+  it should "read the route with anonymous filter" in {
+    BlueprintReader.read(res("blueprint/blueprint15.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None)), Some(Routing(None, Map("nocturnal-viper" -> DefaultRoute("", Some(10), List(DefaultFilter("", "user.agent != ios")))))), None))),
+      'endpoints(Nil),
+      'environmentVariables(Nil)
+    )
+  }
+
+  it should "fail on both reference and inline route declarations" in {
+    expectedError[EitherReferenceOrAnonymous]({
+      BlueprintReader.read(res("blueprint/blueprint16.yml"))
+    }) should have(
+      'name("route"),
+      'reference("!ios")
+    )
+  }
+
+  it should "expand the filter list" in {
+    BlueprintReader.read(res("blueprint/blueprint17.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None)), Some(Routing(None, Map("nocturnal-viper" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
+      'endpoints(Nil),
+      'environmentVariables(Nil)
+    )
+  }
 
   it should "expand the breed" in {
     BlueprintReader.read(res("blueprint/blueprint18.yml")) should have(
@@ -189,14 +189,14 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  //  it should "expand the more complex blueprint" in {
-  //    BlueprintReader.read(res("blueprint/blueprint21.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Nil, Some(DefaultScale("", 0.2, 120.0, 2)), Some(DefaultRoute("", Some(95), List(DefaultFilter("", "ua = android")), None))), Service(BreedReference("remote-venus"), Nil, Some(ScaleReference("worthy")), None)), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious"))))), Map("reborn" -> "red-swallow")))), Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), Nil, Nil, Nil, Map()), Nil, None, None)), None), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), Nil, Nil, Nil, Map()), Nil, None, None)), Some(SlaReference("fish-steamy", Nil))), Cluster("omega", List(Service(BreedReference("scary-lion"), Nil, None, None)), None))),
-  //      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-  //      'environmentVariables(List(EnvironmentVariable("omega.environment_variables.aspect", None, Some("thorium"))))
-  //    )
-  //  }
+  it should "expand the more complex blueprint" in {
+    BlueprintReader.read(res("blueprint/blueprint21.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Nil, Some(DefaultScale("", 0.2, 120.0, 2))), Service(BreedReference("remote-venus"), Nil, Some(ScaleReference("worthy")))), Some(Routing(None, Map("solid-barbershop" -> DefaultRoute("", Some(95), List(DefaultFilter("", "ua = android")))))), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious"))))), Map("reborn" -> "red-swallow")))), Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), Nil, Nil, Nil, Map()), Nil, None)), None, None), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), Nil, Nil, Nil, Map()), Nil, None)), None, Some(SlaReference("fish-steamy", Nil))), Cluster("omega", List(Service(BreedReference("scary-lion"), Nil, None)), None, None))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
+      'environmentVariables(List(EnvironmentVariable("omega.environment_variables.aspect", None, Some("thorium"))))
+    )
+  }
 
   it should "validate endpoints for inline breeds - valid case" in {
     BlueprintReader.read(res("blueprint/blueprint22.yml")) should have(
@@ -340,50 +340,50 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  //  it should "read scale and route - expanded" in {
-  //    BlueprintReader.read(res("blueprint/blueprint38.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRoute("", None, List(FilterReference("android")), None)))), None))),
-  //      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
+  it should "read scale and route - expanded" in {
+    BlueprintReader.read(res("blueprint/blueprint38.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("sava1", Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)))), Some(Routing(None, Map("sava1" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
+      'environmentVariables(Nil)
+    )
+  }
 
-  //  it should "read scale and route - service single element." in {
-  //    BlueprintReader.read(res("blueprint/blueprint39.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRoute("", None, List(FilterReference("android")), None)))), None))),
-  //      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
+  it should "read scale and route - service single element." in {
+    BlueprintReader.read(res("blueprint/blueprint39.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("sava1", Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)))), Some(Routing(None, Map("sava1" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
+      'environmentVariables(Nil)
+    )
+  }
 
-  //  it should "read scale and route - no service just cluster." in {
-  //    BlueprintReader.read(res("blueprint/blueprint40.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("wordpress1", Deployable("tutum/wordpress:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)), Some(DefaultRoute("", None, List(FilterReference("android")), None)))), None))),
-  //      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
+  it should "read scale and route - no service just cluster." in {
+    BlueprintReader.read(res("blueprint/blueprint40.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("sava1", Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)))), Some(Routing(None, Map("sava1" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
+      'environmentVariables(Nil)
+    )
+  }
 
-  //  it should "read scale and route - no service and compact breed." in {
-  //    BlueprintReader.read(res("blueprint/blueprint41.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Nil, Some(ScaleReference("large")), Some(DefaultRoute("", None, List(FilterReference("android")), None)))), None))),
-  //      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
+  it should "read scale and route - no service and compact breed." in {
+    BlueprintReader.read(res("blueprint/blueprint41.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), Nil, Some(ScaleReference("large")))), Some(Routing(None, Map("sava1" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
+      'environmentVariables(Nil)
+    )
+  }
 
-  //  it should "read scale and route - cluster contains list." in {
-  //    BlueprintReader.read(res("blueprint/blueprint42.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Nil, Some(ScaleReference("large")), Some(DefaultRoute("", None, List(FilterReference("android")), None)))), None))),
-  //      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
+  it should "read scale and route - cluster contains list." in {
+    BlueprintReader.read(res("blueprint/blueprint42.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), Nil, Some(ScaleReference("large")))), None, None))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
+      'environmentVariables(Nil)
+    )
+  }
 
   it should "fail on direct recursive dependency" in {
     expectedError[RecursiveDependenciesError]({
@@ -401,23 +401,23 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  //  it should "expand single reference filter to a list" in {
-  //    BlueprintReader.read(res("blueprint/blueprint45.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Nil, None, Some(DefaultRoute("", None, List(FilterReference("android")), None)))), None))),
-  //      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
+  it should "expand single reference filter to a list" in {
+    BlueprintReader.read(res("blueprint/blueprint45.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), Nil, None)), Some(Routing(None, Map("sava1" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
+      'environmentVariables(Nil)
+    )
+  }
 
-  //  it should "expand single filter to a list" in {
-  //    BlueprintReader.read(res("blueprint/blueprint46.yml")) should have(
-  //      'name("nomadic-frostbite"),
-  //      'clusters(List(Cluster("supersonic", List(Service(BreedReference("wordpress1"), Nil, Some(ScaleReference("large")), Some(DefaultRoute("", None, List(DefaultFilter("", "user.agent == android")), None)))), None))),
-  //      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
-  //      'environmentVariables(Nil)
-  //    )
-  //  }
+  it should "expand single filter to a list" in {
+    BlueprintReader.read(res("blueprint/blueprint46.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), Nil, Some(ScaleReference("large")))), Some(Routing(None, Map("sava1" -> DefaultRoute("", None, List(DefaultFilter("", "user.agent == android")))))), None))),
+      'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
+      'environmentVariables(Nil)
+    )
+  }
 
   it should "parse dialects" in {
     BlueprintReader.read(res("blueprint/blueprint47.yml")) should have(

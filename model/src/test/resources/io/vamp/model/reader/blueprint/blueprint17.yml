@@ -2,9 +2,11 @@ name: nomadic-frostbite
 
 clusters:
   notorious:
+    routing:
+      routes:
+        nocturnal-viper:
+          filters: android
+
     services:
       -
         breed: nocturnal-viper
-          
-        route:
-          filters: android

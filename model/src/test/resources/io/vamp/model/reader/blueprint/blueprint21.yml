@@ -6,6 +6,13 @@ endpoints:
 clusters:
 
   supersonic:
+    routing:
+      routes:
+        solid-barbershop:
+          weight: 95
+          filters:
+            - condition: ua = android
+
     services:
       -
         reference: solid-barbershop
@@ -13,11 +20,6 @@ clusters:
           cpu: 0.2
           memory: 120
           instances: 2
-
-        route:
-          weight: 95
-          filters:
-            - condition: ua = android
       -
         ref: remote-venus
         scale: worthy
