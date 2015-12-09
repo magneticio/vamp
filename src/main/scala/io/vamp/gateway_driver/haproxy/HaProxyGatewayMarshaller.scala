@@ -4,6 +4,7 @@ import io.vamp.common.crypto.Hash
 import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
 import io.vamp.gateway_driver.model.{ Filter ⇒ GatewayFilter, Gateway, Service }
+import io.vamp.model.artifact.Routing
 
 trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
@@ -65,7 +66,8 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       ProxyServer(
         name = s"${gateway.name}$pathDelimiter${service.name}",
         unixSock = unixSocket(service),
-        weight = service.weight
+        weight = service.weight,
+        sticky = gateway.sticky.contains(Routing.Sticky.Service)
       )
     },
     servers = Nil,
@@ -79,7 +81,8 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
             name = server.name,
             host = server.host,
             port = server.port,
-            weight = 100)
+            weight = 100,
+            sticky = gateway.sticky.contains(Routing.Sticky.Instance))
         },
         options = Options())
     }

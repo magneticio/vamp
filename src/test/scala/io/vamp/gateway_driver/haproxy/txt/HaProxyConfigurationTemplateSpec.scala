@@ -40,7 +40,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     val servers1 = ProxyServer(
       name = "server1",
       unixSock = "/tmp/vamp_test_be_1_a.sock",
-      weight = 100
+      weight = 100,
+      sticky = false
     ) :: Nil
 
     val servers2 = HaProxyServer(
@@ -49,6 +50,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       port = 8082,
       weight = 100,
       maxConn = 1000,
+      sticky = false,
       checkInterval = Option(10)
     ) :: Nil
 
@@ -95,7 +97,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "64435a223bddf1fa589135baa5e228090279c032",
           host = "192.168.99.100",
           port = 32768) :: Nil
-      ) :: Nil))
+      ) :: Nil,
+      sticky = None))
 
     val backend1 = Backend(
       name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080",
@@ -103,7 +106,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       proxyServers = ProxyServer(
         name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080::sava:1.0.0",
         unixSock = "/opt/vamp/59e3034c619dd724b2e57d38218afdcd63e6ad8a.sock",
-        weight = 100
+        weight = 100,
+        sticky = false
       ) :: Nil,
       servers = Nil,
       options = Options()
@@ -117,7 +121,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "64435a223bddf1fa589135baa5e228090279c032",
         host = "192.168.99.100",
         port = 32768,
-        weight = 100) :: Nil,
+        weight = 100,
+        sticky = false) :: Nil,
       options = Options()
     )
 
@@ -161,7 +166,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "64435a223bddf1fa589135baa5e228090279c032",
           host = "192.168.99.100",
           port = 32768) :: Nil
-      ) :: Nil))
+      ) :: Nil,
+      sticky = None))
 
     val backend1 = Backend(
       name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080",
@@ -169,7 +175,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       proxyServers = ProxyServer(
         name = "3267f8c0-d717-4b8c-bca7-665d9d9294b7_sava_8080::sava:1.0.0",
         unixSock = "/opt/vamp/59e3034c619dd724b2e57d38218afdcd63e6ad8a.sock",
-        weight = 100
+        weight = 100,
+        sticky = false
       ) :: Nil,
       servers = Nil,
       options = Options()
@@ -183,7 +190,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "64435a223bddf1fa589135baa5e228090279c032",
         host = "192.168.99.100",
         port = 32768,
-        weight = 100) :: Nil,
+        weight = 100,
+        sticky = false) :: Nil,
       options = Options()
     )
 
@@ -228,7 +236,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
             port = 32770) :: Nil
-        ) :: Nil),
+        ) :: Nil,
+        sticky = None),
       Gateway(
         name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_9050",
         port = 9050,
@@ -241,7 +250,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_9050",
             host = "192.168.99.100",
             port = 33002) :: Nil
-        ) :: Nil)
+        ) :: Nil,
+        sticky = None)
     ))
 
     val backend1 = Backend(
@@ -250,7 +260,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       proxyServers = ProxyServer(
         name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_sava_8080::sava:1.0.0",
         unixSock = "/opt/vamp/d6e29d4976d84d757dbb6b753d6ad14370d6ca96.sock",
-        weight = 100
+        weight = 100,
+        sticky = false
       ) :: Nil,
       servers = Nil,
       options = Options())
@@ -263,7 +274,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "64435a223bddf1fa589135baa5e228090279c032",
         host = "192.168.99.100",
         port = 32770,
-        weight = 100) :: Nil,
+        weight = 100,
+        sticky = false) :: Nil,
       options = Options())
 
     val backend3 = Backend(
@@ -272,7 +284,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       proxyServers = ProxyServer(
         name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_9050::sava.port",
         unixSock = "/opt/vamp/8902264b2a19b47f814a170c357c2611ec4cd621.sock",
-        weight = 100
+        weight = 100,
+        sticky = false
       ) :: Nil,
       servers = Nil,
       options = Options())
@@ -285,7 +298,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "5b2c2c20-c073-4180-8942-2c3d5ede74fb_9050",
         host = "192.168.99.100",
         port = 33002,
-        weight = 100) :: Nil,
+        weight = 100,
+        sticky = false) :: Nil,
       options = Options())
 
     val expected = HaProxy(List(
@@ -372,7 +386,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
                 name = "49594c26c89754450bd4f562946a69070a4aa887",
                 host = "192.168.99.100",
                 port = 32773)
-            )))),
+            ))),
+        sticky = None),
       Gateway(
         name = "cd10460f-ca44-49c6-9965-f66c27acd478_9050",
         port = 9050,
@@ -385,7 +400,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "cd10460f-ca44-49c6-9965-f66c27acd478_9050",
             host = "192.168.99.100",
             port = 33002) :: Nil
-        ) :: Nil)
+        ) :: Nil,
+        sticky = None)
     ))
 
     val backend1 = Backend(
@@ -395,12 +411,14 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         ProxyServer(
           name = "cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.0.0",
           unixSock = "/opt/vamp/820eb143a8d42dd08f028f36e6b8385a911b8cd8.sock",
-          weight = 90
+          weight = 90,
+          sticky = false
         ),
         ProxyServer(
           name = "cd10460f-ca44-49c6-9965-f66c27acd478_sava_8080::sava:1.1.0",
           unixSock = "/opt/vamp/81233b74c4c856e8c4697d7acf152ca6989db4df.sock",
-          weight = 10
+          weight = 10,
+          sticky = false
         )),
       servers = Nil,
       options = Options())
@@ -414,17 +432,20 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "64435a223bddf1fa589135baa5e228090279c032",
           host = "192.168.99.100",
           port = 32772,
-          weight = 100),
+          weight = 100,
+          sticky = false),
         HaProxyServer(
           name = "52c84bbf28dcc96bd4c4167eeeb7ff0a69bfb6eb",
           host = "192.168.99.100",
           port = 32772,
-          weight = 100),
+          weight = 100,
+          sticky = false),
         HaProxyServer(
           name = "5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7",
           host = "192.168.99.100",
           port = 32772,
-          weight = 100)),
+          weight = 100,
+          sticky = false)),
       options = Options())
 
     val backend3 = Backend(
@@ -436,12 +457,14 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "9019c00f1f7f641c4efc7a02c6f44e9f90d7750",
           host = "192.168.99.100",
           port = 32773,
-          weight = 100),
+          weight = 100,
+          sticky = false),
         HaProxyServer(
           name = "49594c26c89754450bd4f562946a69070a4aa887",
           host = "192.168.99.100",
           port = 32773,
-          weight = 100)),
+          weight = 100,
+          sticky = false)),
       options = Options())
 
     val backend4 = Backend(
@@ -450,7 +473,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       proxyServers = ProxyServer(
         name = "cd10460f-ca44-49c6-9965-f66c27acd478_9050::sava.port",
         unixSock = "/opt/vamp/590382622f3287cf7bd9584fc1aa43052a40d6cc.sock",
-        weight = 100
+        weight = 100,
+        sticky = false
       ) :: Nil,
       servers = Nil,
       options = Options())
@@ -463,7 +487,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "cd10460f-ca44-49c6-9965-f66c27acd478_9050",
         host = "192.168.99.100",
         port = 33002,
-        weight = 100) :: Nil,
+        weight = 100,
+        sticky = false) :: Nil,
       options = Options())
 
     val expected = HaProxy(List(
@@ -539,7 +564,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
                 name = "57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117",
                 host = "192.168.99.100",
                 port = 32770))
-          ))),
+          )),
+        sticky = None),
       Gateway(
         name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080",
         port = 33002,
@@ -554,7 +580,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
                 name = "f1638245acf2ebe6db56984a85b48f6db8c74607",
                 host = "192.168.99.100",
                 port = 32771))
-          ))),
+          )),
+        sticky = None),
       Gateway(
         name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050",
         port = 9050,
@@ -567,7 +594,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050",
             host = "192.168.99.100",
             port = 33002) :: Nil
-        ) :: Nil)
+        ) :: Nil,
+        sticky = None)
     ))
 
     val backend1 = Backend(
@@ -577,7 +605,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         ProxyServer(
           name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080::sava-backend:1.3.0",
           unixSock = "/opt/vamp/1c06647def2154787008cb74a4e9cdb0d414d5d8.sock",
-          weight = 100
+          weight = 100,
+          sticky = false
         )),
       servers = Nil,
       options = Options())
@@ -591,7 +620,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117",
           host = "192.168.99.100",
           port = 32770,
-          weight = 100)),
+          weight = 100,
+          sticky = false)),
       options = Options())
 
     val backend3 = Backend(
@@ -601,7 +631,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         ProxyServer(
           name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080::sava-frontend:1.3.0",
           unixSock = "/opt/vamp/83bea7dadc8ccb3d126c78d04b59acc9b9caa6df.sock",
-          weight = 100
+          weight = 100,
+          sticky = false
         )),
       servers = Nil,
       options = Options())
@@ -615,7 +646,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "f1638245acf2ebe6db56984a85b48f6db8c74607",
           host = "192.168.99.100",
           port = 32771,
-          weight = 100)),
+          weight = 100,
+          sticky = false)),
       options = Options())
 
     val backend5 = Backend(
@@ -624,7 +656,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       proxyServers = ProxyServer(
         name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050::sava.port",
         unixSock = "/opt/vamp/7d8d614f8c1edab2bbc92a03efadd4e4e8275cee.sock",
-        weight = 100
+        weight = 100,
+        sticky = false
       ) :: Nil,
       servers = Nil,
       options = Options())
@@ -637,7 +670,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050",
         host = "192.168.99.100",
         port = 33002,
-        weight = 100) :: Nil,
+        weight = 100,
+        sticky = false) :: Nil,
       options = Options())
 
     val expected = HaProxy(List(
@@ -708,7 +742,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
   }
 
   it should "convert filters" in {
-    implicit val route = Gateway("", 0, "", Nil, Nil)
+    implicit val route = Gateway("", 0, "", Nil, Nil, None)
 
     List(
       ("hdr_sub(user-agent) Android", "hdr_sub(user-agent) Android", false),
@@ -767,7 +801,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
                 name = "64435a223bddf1fa589135baa5e228090279c032",
                 host = "192.168.99.100",
                 port = 32776))
-          )))))
+          )),
+        sticky = None)))
 
     val backend1 = Backend(
       name = "6b606985-1414-41bb-911c-825955360a39_sava_8080",
@@ -776,7 +811,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         ProxyServer(
           name = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0",
           unixSock = "/opt/vamp/99ba9340c7565b91b87c80d7da989fc35754a383.sock",
-          weight = 100
+          weight = 100,
+          sticky = false
         )),
       servers = Nil,
       options = Options())
@@ -790,7 +826,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "64435a223bddf1fa589135baa5e228090279c032",
           host = "192.168.99.100",
           port = 32776,
-          weight = 100)),
+          weight = 100,
+          sticky = false)),
       options = Options())
 
     val expected = HaProxy(List(

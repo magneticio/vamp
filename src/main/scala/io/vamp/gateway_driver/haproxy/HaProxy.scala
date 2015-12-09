@@ -1,5 +1,7 @@
 package io.vamp.gateway_driver.haproxy
 
+import io.vamp.common.crypto.Hash
+
 case class HaProxy(frontends: List[Frontend], backends: List[Backend])
 
 object Flatten {
@@ -10,6 +12,8 @@ trait FlattenName {
   def name: String
 
   def flattenName = Flatten.flatten(name)
+
+  def hashName = Hash.hexSha1(name)
 }
 
 case class Frontend(name: String,
@@ -36,9 +40,9 @@ case class Filter(name: String, condition: String, destination: String, negate: 
   lazy val flattenDestination = Flatten.flatten(destination)
 }
 
-case class ProxyServer(name: String, unixSock: String, weight: Int) extends FlattenName
+case class ProxyServer(name: String, unixSock: String, weight: Int, sticky: Boolean) extends FlattenName
 
-case class Server(name: String, host: String, port: Int, weight: Int, maxConn: Int = 1000, checkInterval: Option[Int] = None) extends FlattenName
+case class Server(name: String, host: String, port: Int, weight: Int, sticky: Boolean, maxConn: Int = 1000, checkInterval: Option[Int] = None) extends FlattenName
 
 case class Options(abortOnClose: Boolean = false,
                    allBackups: Boolean = false,
