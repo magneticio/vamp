@@ -55,19 +55,25 @@ trait DeploymentState {
   def state: DeploymentService.State
 }
 
-case class Deployment(name: String, clusters: List[DeploymentCluster], endpoints: List[Port], ports: List[Port], environmentVariables: List[EnvironmentVariable], hosts: List[Host]) extends AbstractBlueprint {
+case class Deployment(
+    name: String,
+    clusters: List[DeploymentCluster],
+    endpoints: List[Port],
+    ports: List[Port],
+    environmentVariables: List[EnvironmentVariable],
+    hosts: List[Host]) extends AbstractBlueprint {
   lazy val traits = ports ++ environmentVariables ++ hosts
 }
 
 case class DeploymentCluster(
     name: String,
     services: List[DeploymentService],
-    routing: Option[Routing],
+    routing: Map[String, Routing],
     sla: Option[Sla],
     portMapping: Map[Int, Int] = Map(),
     dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster {
 
-  def route(service: DeploymentService): Option[DefaultRoute] = routing.flatMap(routing ⇒ routing.routes.find(_._1 == service.breed.name)).map(_._2).asInstanceOf[Option[DefaultRoute]]
+  def route(service: DeploymentService, portName: String): Option[DefaultRoute] = routing.get(portName).flatMap(routing ⇒ routing.routes.find(_._1 == service.breed.name)).map(_._2).asInstanceOf[Option[DefaultRoute]]
 }
 
 case class DeploymentService(

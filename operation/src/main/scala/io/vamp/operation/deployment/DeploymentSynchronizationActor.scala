@@ -266,7 +266,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
             routeService.instances.exists(routerServer ⇒ routerServer.host == deploymentServer.host && routerServer.port == deploymentServer.ports.getOrElse(port.number, 0))
           }
 
-          lazy val route = deploymentCluster.route(deploymentService)
+          lazy val route = deploymentCluster.route(deploymentService, port.name)
 
           lazy val matchingServersWeight = route.flatMap(_.weight.flatMap(w ⇒ Some(w == routeService.weight))) match {
             case None    ⇒ false

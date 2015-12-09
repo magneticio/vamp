@@ -3,6 +3,6 @@ name: nomadic-frostbite
 clusters:
   notorious:
     routing:
-      sticky: server
+      sticky: instance
     services:
       breed: nocturnal-viper

@@ -28,14 +28,14 @@ object Dialect extends Enumeration {
 abstract class AbstractCluster extends Artifact {
   def services: List[AbstractService]
 
-  def routing: Option[Routing]
+  def routing: Map[String, Routing]
 
   def sla: Option[Sla]
 
   def dialects: Map[Dialect.Value, Any]
 }
 
-case class Cluster(name: String, services: List[Service], routing: Option[Routing], sla: Option[Sla], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
+case class Cluster(name: String, services: List[Service], routing: Map[String, Routing], sla: Option[Sla], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
 
 abstract class AbstractService {
   def breed: Breed

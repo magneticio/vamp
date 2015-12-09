@@ -3,7 +3,7 @@ package io.vamp.model.artifact
 object Routing {
 
   object Sticky extends Enumeration {
-    val Service, Server = Value
+    val Service, Instance = Value
   }
 
 }

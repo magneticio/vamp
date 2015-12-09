@@ -1,0 +1,16 @@
+name: nomadic-frostbite
+
+clusters:
+  sava:
+    routing:
+      web:
+        sticky: service
+      admin:
+        sticky: instance
+    services:
+      breed:
+        name: sava_1.0
+        deployable: magneticio/sava:1.0.0
+        ports:
+          web: 8080
+          admin: 8081

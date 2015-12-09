@@ -42,9 +42,8 @@ trait ArtifactExpansion {
         }
         case _ ⇒ None
       },
-      routing = cluster.routing match {
-        case Some(routing) ⇒ Some(routing.copy(routes = expandRoutes(routing.routes)))
-        case _             ⇒ None
+      routing = cluster.routing.map {
+        case (port, routing) ⇒ port -> routing.copy(routes = expandRoutes(routing.routes))
       }
     )
   }

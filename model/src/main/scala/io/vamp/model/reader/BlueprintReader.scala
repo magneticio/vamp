@@ -84,8 +84,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
           <<?[List[YamlSourceReader]]("services") match {
-            case None       ⇒ Cluster(name, List(), None, sla, dialects)
-            case Some(list) ⇒ Cluster(name, list.map(parseService(_)), RoutingReader.optional(), sla, dialects)
+            case None       ⇒ Cluster(name, List(), Map(), sla, dialects)
+            case Some(list) ⇒ Cluster(name, list.map(parseService(_)), RoutingMapReader.optional(), sla, dialects)
           }
       } toList
     }
@@ -118,8 +118,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
   protected def validateRouteServiceNames(blueprint: DefaultBlueprint): Unit = {
     blueprint.clusters.foreach { cluster ⇒
-      cluster.routing.foreach { routing ⇒
-        routing.routes.foreach {
+      cluster.routing.foreach {
+        case (_, routing) ⇒ routing.routes.foreach {
           case (name, _) ⇒ if (!cluster.services.exists(_.breed.name == name)) throwException(UnresolvedServiceRouteError(cluster, name))
         }
       }
@@ -128,9 +128,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
   protected def validateRouteWeights(blueprint: DefaultBlueprint): Unit = {
     blueprint.clusters.find({ cluster ⇒
-      cluster.routing match {
-        case None ⇒ false
-        case Some(routing) ⇒
+      cluster.routing.exists {
+        case (_, routing) ⇒
           val weights = routing.routes.values.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
           weights.exists(_ < 0) || weights.sum > 100
       }
@@ -211,30 +210,37 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
   override protected def createDefault(implicit source: YamlSourceReader): Scale = DefaultScale(name, <<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
 }
 
-object RoutingReader extends YamlReader[Routing] {
+object RoutingMapReader extends YamlReader[Map[String, Routing]] {
 
   import YamlSourceReader._
 
-  def optional(entry: String = "routing")(implicit source: YamlSourceReader): Option[Routing] = <<?[YamlSourceReader](entry).flatMap {
-    case yaml ⇒
+  def optional(entry: String = "routing")(implicit source: YamlSourceReader): Map[String, Routing] = <<?[YamlSourceReader](entry) match {
+    case Some(yaml) ⇒
       implicit val source = yaml
-      Some(RoutingReader.read)
+      RoutingMapReader.read
+    case None ⇒ Map()
   }
 
-  override protected def parse(implicit source: YamlSourceReader): Routing = {
+  override protected def expand(implicit source: YamlSourceReader) = {
+    if (<<?[Any]("sticky").isDefined || <<?[Any]("routes").isDefined) >>("", <<-())
+    super.expand
+  }
 
-    val routes = <<?[YamlSourceReader]("routes") match {
-      case Some(map) ⇒ map.pull().map {
-        case (name: String, _) ⇒
-          name -> RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name))
+  override protected def parse(implicit source: YamlSourceReader): Map[String, Routing] = source.pull().map {
+    case (port: String, _) ⇒
+
+      val routes = <<?[YamlSourceReader](port :: "routes") match {
+        case Some(map) ⇒ map.pull().map {
+          case (name: String, _) ⇒
+            name -> RouteReader.readReferenceOrAnonymous(<<![Any](port :: "routes" :: name))
+        }
+        case None ⇒ Map[String, Route]()
       }
-      case None ⇒ Map[String, Route]()
-    }
 
-    Routing(sticky, routes)
+      port -> Routing(sticky(port :: "sticky"), routes)
   }
 
-  protected def sticky(implicit source: YamlSourceReader) = <<?[String]("sticky") match {
+  protected def sticky(path: YamlPath)(implicit source: YamlSourceReader) = <<?[String](path) match {
     case Some(sticky) ⇒ Option(Routing.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
     case None         ⇒ None
   }
