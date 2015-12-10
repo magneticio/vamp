@@ -4,8 +4,9 @@ object Routing {
 
   object Sticky extends Enumeration {
     val Service, Instance = Value
-  }
 
+    def byName(sticky: String): Option[Sticky.Value] = Routing.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
+  }
 }
 
 case class Routing(sticky: Option[Routing.Sticky.Value], routes: Map[String, Route])

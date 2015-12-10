@@ -241,7 +241,7 @@ object RoutingMapReader extends YamlReader[Map[String, Routing]] {
   }
 
   protected def sticky(path: YamlPath)(implicit source: YamlSourceReader) = <<?[String](path) match {
-    case Some(sticky) ⇒ Option(Routing.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
+    case Some(sticky) ⇒ Option(Routing.Sticky.byName(sticky).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
     case None         ⇒ None
   }
 }

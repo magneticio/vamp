@@ -11,7 +11,8 @@ object BlueprintSerializationFormat extends io.vamp.common.json.SerializationFor
   override def customSerializers = super.customSerializers :+
     new BlueprintSerializer() :+
     new ScaleSerializer() :+
-    new RoutingSerializer() :+
+    new RoutingStickySerializer :+
+    new RouteSerializer() :+
     new FilterSerializer()
 
   override def fieldSerializers = super.fieldSerializers :+
@@ -67,7 +68,13 @@ class ScaleSerializer extends ArtifactSerializer[Scale] with ReferenceSerializat
   }
 }
 
-class RoutingSerializer extends ArtifactSerializer[Route] with ReferenceSerialization {
+class RoutingStickySerializer extends CustomSerializer[Routing.Sticky.Value](format ⇒ ({
+  case JString(sticky) ⇒ Routing.Sticky.byName(sticky).getOrElse(throw new UnsupportedOperationException(s"Cannot deserialize sticky value: $sticky"))
+}, {
+  case sticky: Routing.Sticky.Value ⇒ JString(sticky.toString.toLowerCase)
+}))
+
+class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerialization {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case routing: RouteReference ⇒ serializeReference(routing)
     case routing: DefaultRoute ⇒
