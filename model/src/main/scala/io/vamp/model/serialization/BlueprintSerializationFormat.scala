@@ -34,15 +34,13 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomp
 }
 
 trait DialectSerializer {
-  def serializeDialects(dialects: Map[Dialect.Value, Any]) = {
-    implicit val formats = DefaultFormats
-    Extraction.decompose(dialects.map({ case (k, v) ⇒ k.toString.toLowerCase -> v }))
-  }
+  def serializeDialects(dialects: Map[Dialect.Value, Any]) = Extraction.decompose(dialects.map({ case (k, v) ⇒ k.toString.toLowerCase -> v }))(DefaultFormats)
 }
 
 class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] with DialectSerializer {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
     case ("name", _)            ⇒ None
+    case ("portMapping", portMapping) ⇒ Some(("port_mapping", Extraction.decompose(portMapping)(DefaultFormats)))
     case ("dialects", dialects) ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
   }
 }
