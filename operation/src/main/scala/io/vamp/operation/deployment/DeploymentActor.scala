@@ -396,7 +396,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
             service.breed.name -> route
         } toMap
 
-        port -> Routing(None, routes)
+        port -> blueprintCluster.routing.getOrElse(port, Routing(None, Map())).copy(routes = routes)
       } toMap
 
     } else stableCluster.map(cluster ⇒ cluster.routing).getOrElse(Map())

@@ -6,13 +6,15 @@ import java.net.Socket
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka._
+import io.vamp.common.json.SerializationFormat
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.gateway_driver.model.Gateway
 import io.vamp.gateway_driver.notification._
+import io.vamp.model.serialization.RoutingStickySerializer
 import io.vamp.pulse.notification.PulseFailureNotifier
+import org.json4s.Formats
 import org.json4s.native.Serialization._
-import org.json4s.{ DefaultFormats, Formats }
 
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -24,7 +26,9 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with PulseFai
   private val gatewaysPath = "gateways"
   private val haproxyPath = "gateways/haproxy"
 
-  private implicit val formats: Formats = DefaultFormats
+  private implicit val formats: Formats = SerializationFormat(new io.vamp.common.json.SerializationFormat {
+    override def customSerializers = super.customSerializers :+ new RoutingStickySerializer
+  })
 
   private lazy val config = ConfigFactory.load().getConfig("vamp.gateway-driver.zookeeper")
 
@@ -94,7 +98,6 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with PulseFai
       case failure ⇒ log.error(failure, failure.getMessage)
     }
   }
-
 }
 
 trait ZooKeeperServerStatistics {
