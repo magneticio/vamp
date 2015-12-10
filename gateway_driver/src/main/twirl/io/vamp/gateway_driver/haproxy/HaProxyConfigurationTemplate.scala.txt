@@ -100,7 +100,7 @@ backend @backend.flattenName
   @if(backend.mode == Mode.http)        {balance roundrobin       }
   @if(backend.mode == Mode.tcp)         {balance leastconn        }
   @if(backend.sticky) {
-  cookie VAMPSTICKY insert indirect nocache
+  cookie @backend.hashName insert indirect nocache
   }
 
   @for(server <- backend.proxyServers) {
@@ -109,11 +109,6 @@ backend @backend.flattenName
   @if(backend.servers.nonEmpty) {
 
   option forwardfor
-  @if(backend.mode == Mode.http) {
-  http-response set-header X-Vamp-Server-Name %s
-  http-response set-header X-Vamp-Server-ResponseTime %t
-  cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h
-  }
   @for(server <- backend.servers) {
   server @server.flattenName @server.host:@server.port @if(backend.mode == Mode.http) {cookie @server.flattenName} weight @server.weight maxconn @server.maxConn @if(server.checkInterval.isDefined) {check inter @server.checkInterval.get} @if(backend.sticky) {check cookie @server.hashName}
   }

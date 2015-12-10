@@ -376,30 +376,8 @@ backend d5c3c612_6fb3_41e5_8023_292ce3c74924_backend_8080__sava_backend_1_3_0
 
     option forwardfor
    
-
-   http-response set-header X-Vamp-Server-Name %s
-   http-response set-header X-Vamp-Server-ResponseTime %t
-
-   
-
-    cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h 
+    server 57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117 192.168.99.100:32770  cookie 57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117  weight 100 maxconn 1000
     
-        server 57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117 192.168.99.100:32770  cookie 57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117  weight 100 maxconn 1000  
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
-
-
 
 backend d5c3c612_6fb3_41e5_8023_292ce3c74924_sava_8080
     mode http
@@ -433,29 +411,7 @@ backend d5c3c612_6fb3_41e5_8023_292ce3c74924_sava_8080__sava_frontend_1_3_0
 
     option forwardfor
    
-
-   http-response set-header X-Vamp-Server-Name %s
-   http-response set-header X-Vamp-Server-ResponseTime %t
-
-   
-
-    cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h 
-    
-        server f1638245acf2ebe6db56984a85b48f6db8c74607 192.168.99.100:32771  cookie f1638245acf2ebe6db56984a85b48f6db8c74607  weight 100 maxconn 1000  
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
-
+    server f1638245acf2ebe6db56984a85b48f6db8c74607 192.168.99.100:32771  cookie f1638245acf2ebe6db56984a85b48f6db8c74607  weight 100 maxconn 1000
 
 
 backend d5c3c612_6fb3_41e5_8023_292ce3c74924_9050
@@ -467,14 +423,7 @@ backend d5c3c612_6fb3_41e5_8023_292ce3c74924_9050
     balance roundrobin 
    
 
-
-
-    
-        server d5c3c612_6fb3_41e5_8023_292ce3c74924_9050__sava_port unix@/opt/vamp/7d8d614f8c1edab2bbc92a03efadd4e4e8275cee.sock send-proxy weight 100
-    
-
-
-
+    server d5c3c612_6fb3_41e5_8023_292ce3c74924_9050__sava_port unix@/opt/vamp/7d8d614f8c1edab2bbc92a03efadd4e4e8275cee.sock send-proxy weight 100
 
 
 backend d5c3c612_6fb3_41e5_8023_292ce3c74924_9050__sava_port
@@ -483,37 +432,13 @@ backend d5c3c612_6fb3_41e5_8023_292ce3c74924_9050__sava_port
 # Regular HTTP/TCP backends
 #
 
-    balance roundrobin 
-   
-
-
+    balance roundrobin
 
     option forwardfor
    
 
-   http-response set-header X-Vamp-Server-Name %s
-   http-response set-header X-Vamp-Server-ResponseTime %t
-
-   
-
-    cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h 
+    server d5c3c612_6fb3_41e5_8023_292ce3c74924_9050 192.168.99.100:33002  cookie d5c3c612_6fb3_41e5_8023_292ce3c74924_9050  weight 100 maxconn 1000
     
-        server d5c3c612_6fb3_41e5_8023_292ce3c74924_9050 192.168.99.100:33002  cookie d5c3c612_6fb3_41e5_8023_292ce3c74924_9050  weight 100 maxconn 1000  
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
-
-
 
 #backend abusers
 #    mode http

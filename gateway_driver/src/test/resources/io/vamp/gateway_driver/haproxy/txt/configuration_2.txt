@@ -172,30 +172,7 @@ backend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080__sava_1_0_0
 
     option forwardfor
 
-
-   http-response set-header X-Vamp-Server-Name %s
-   http-response set-header X-Vamp-Server-ResponseTime %t
-
-
-
-    cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h
-
-        server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:32768  cookie 64435a223bddf1fa589135baa5e228090279c032  weight 100 maxconn 1000
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:32768  cookie 64435a223bddf1fa589135baa5e228090279c032  weight 100 maxconn 1000
 
 #backend abusers
 #    mode http
