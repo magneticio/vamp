@@ -222,7 +222,7 @@ object RoutingMapReader extends YamlReader[Map[String, Routing]] {
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
-    if (<<?[Any]("sticky").isDefined || <<?[Any]("routes").isDefined) >>("", <<-())
+    if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>("", <<-())
     super.expand
   }
 
@@ -241,7 +241,7 @@ object RoutingMapReader extends YamlReader[Map[String, Routing]] {
   }
 
   protected def sticky(path: YamlPath)(implicit source: YamlSourceReader) = <<?[String](path) match {
-    case Some(sticky) ⇒ Option(Routing.Sticky.byName(sticky).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
+    case Some(sticky) ⇒ if (sticky.toLowerCase == "none") None else Option(Routing.Sticky.byName(sticky).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
     case None         ⇒ None
   }
 }

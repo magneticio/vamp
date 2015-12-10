@@ -539,7 +539,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[IllegalRoutingStickyValue]({
       BlueprintReader.read(res("blueprint/blueprint59.yml"))
     }) should have(
-      'sticky("none")
+      'sticky("server")
     )
   }
 
@@ -556,6 +556,22 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("sava", List(Service(DefaultBreed("sava_1.0", Deployable("docker", Some("magneticio/sava:1.0.0")), List(Port("web", None, Some("8080")), Port("admin", None, Some("8081"))), List(), List(), Map()), List(), None, Map())), Map("web" -> Routing(Some(Routing.Sticky.Service), Map()), "admin" -> Routing(Some(Routing.Sticky.Instance), Map())), None, Map()))),
       'endpoints(Nil),
+      'environmentVariables(Nil)
+    )
+  }
+
+  it should "read sticky none" in {
+    BlueprintReader.read(res("blueprint/blueprint62.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Map())), Map("" -> Routing(None, Map())), None, Map()))),
+      'environmentVariables(Nil)
+    )
+  }
+
+  it should "read sticky null" in {
+    BlueprintReader.read(res("blueprint/blueprint63.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Map())), Map("" -> Routing(None, Map())), None, Map()))),
       'environmentVariables(Nil)
     )
   }

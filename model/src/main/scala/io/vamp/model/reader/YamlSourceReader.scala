@@ -2,6 +2,7 @@ package io.vamp.model.reader
 
 import io.vamp.model.notification.{ ModelNotificationProvider, UnexpectedInnerElementError, UnexpectedTypeError }
 
+import scala.collection.immutable.::
 import scala.collection.mutable
 import scala.language.{ implicitConversions, postfixOps }
 import scala.reflect._
@@ -101,7 +102,7 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
         case Failure(e) ⇒ throw e
       }
 
-      case head :: tail ⇒ target.source.get(head).flatMap {
+      case head :: tail ⇒ target.source.get(head).filter(_ != null).flatMap {
         case yaml: YamlSourceReader ⇒ Try {
           find[V](yaml, tail)
         } match {
