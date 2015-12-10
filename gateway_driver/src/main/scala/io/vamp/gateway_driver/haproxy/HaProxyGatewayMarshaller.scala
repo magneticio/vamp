@@ -66,24 +66,24 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       ProxyServer(
         name = s"${gateway.name}$pathDelimiter${service.name}",
         unixSock = unixSocket(service),
-        weight = service.weight,
-        sticky = gateway.sticky.contains(Routing.Sticky.Service)
+        weight = service.weight
       )
     },
     servers = Nil,
+    sticky = gateway.sticky.contains(Routing.Sticky.Service) || gateway.sticky.contains(Routing.Sticky.Instance),
     options = Options()) :: gateway.services.map { service ⇒
       Backend(
         name = s"${gateway.name}$pathDelimiter${service.name}",
         mode = mode,
         proxyServers = Nil,
-        servers = service.servers.map { server ⇒
+        servers = service.instances.map { server ⇒
           Server(
             name = server.name,
             host = server.host,
             port = server.port,
-            weight = 100,
-            sticky = gateway.sticky.contains(Routing.Sticky.Instance))
+            weight = 100)
         },
+        sticky = gateway.sticky.contains(Routing.Sticky.Instance),
         options = Options())
     }
 

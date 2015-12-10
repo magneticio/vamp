@@ -180,7 +180,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
   }
 
   private def services(gateway: Gateway, services: List[model.Service]): List[GatewayService] = services.map { service ⇒
-    GatewayService(serviceGatewayNameMatcher(service.name), service.weight, service.servers, gateway.filters.filter(_.destination == service.name))
+    GatewayService(serviceGatewayNameMatcher(service.name), service.weight, service.instances, gateway.filters.filter(_.destination == service.name))
   }
 
   private def processableClusterGateway(name: String): Boolean = name.split(nameDelimiter).size == 3
