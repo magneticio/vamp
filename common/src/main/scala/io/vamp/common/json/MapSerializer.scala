@@ -16,5 +16,5 @@ class MapSerializer extends Serializer[Map[_, _]] {
       }.toList)
   }
 
-  def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Map[_, _]] = throw new UnsupportedOperationException()
+  def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Map[_, _]] = SerializationFormat.unsupported
 }

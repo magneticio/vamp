@@ -15,6 +15,6 @@ class ThrowableSerializer(message: Option[String] = None) extends Serializer[Thr
     case t: Throwable ⇒ new JObject(List(JField("message", JString(message.getOrElse(t.getMessage)))))
   }
 
-  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Throwable] = throw new UnsupportedOperationException()
+  override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Throwable] = SerializationFormat.unsupported
 }
 

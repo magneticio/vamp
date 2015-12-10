@@ -24,6 +24,10 @@ object SerializationFormat {
   implicit def fieldSerializer2serializationFormat(fieldSerializer: FieldSerializer[_]): SerializationFormat = new SerializationFormat {
     override def fieldSerializers = fieldSerializer :: super.fieldSerializers
   }
+
+  def unsupported[A] : PartialFunction[(TypeInfo, JValue), A] = {
+    case some ⇒ throw new UnsupportedOperationException(s"Cannot deserialize [${some.getClass}]: $some")
+  }
 }
 
 trait SerializationFormat {
