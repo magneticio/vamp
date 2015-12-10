@@ -25,7 +25,7 @@ object SerializationFormat {
     override def fieldSerializers = fieldSerializer :: super.fieldSerializers
   }
 
-  def unsupported[A] : PartialFunction[(TypeInfo, JValue), A] = {
+  def unsupported[A]: PartialFunction[(TypeInfo, JValue), A] = {
     case some ⇒ throw new UnsupportedOperationException(s"Cannot deserialize [${some.getClass}]: $some")
   }
 }
