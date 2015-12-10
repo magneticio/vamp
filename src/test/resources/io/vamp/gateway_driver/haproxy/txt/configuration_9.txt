@@ -299,7 +299,7 @@ backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080
 #
 
     balance roundrobin 
-    cookie VAMPSTICKY insert indirect nocache
+    cookie 3ce169f7009d18e5035a29da2156befc7d59977 insert indirect nocache
 
     
         server cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0 unix@/opt/vamp/820eb143a8d42dd08f028f36e6b8385a911b8cd8.sock send-proxy weight 90 check cookie 820eb143a8d42dd08f028f36e6b8385a911b8cd8
@@ -314,16 +314,10 @@ backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0
 #
 
     balance roundrobin 
-    cookie VAMPSTICKY insert indirect nocache
+    cookie 820eb143a8d42dd08f028f36e6b8385a911b8cd8 insert indirect nocache
 
     option forwardfor
-   
 
-    http-response set-header X-Vamp-Server-Name %s
-    http-response set-header X-Vamp-Server-ResponseTime %t
-
-    cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h 
-    
     server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:32772  cookie 64435a223bddf1fa589135baa5e228090279c032  weight 100 maxconn 1000 check cookie 4b2154194d424834d8116450ba789c85dbdcc704
     server 52c84bbf28dcc96bd4c4167eeeb7ff0a69bfb6eb 192.168.99.100:32772  cookie 52c84bbf28dcc96bd4c4167eeeb7ff0a69bfb6eb  weight 100 maxconn 1000 check cookie df8209c485e96a9cbb4e2009bde4c90dcebd66e7
     server 5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7 192.168.99.100:32772  cookie 5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7  weight 100 maxconn 1000 check cookie 589b0e2765292c74af2094e7455691625d60d4c1
@@ -336,16 +330,10 @@ backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_1_0
 #
 
     balance roundrobin 
-    cookie VAMPSTICKY insert indirect nocache
+    cookie 81233b74c4c856e8c4697d7acf152ca6989db4df insert indirect nocache
 
     option forwardfor
    
-
-    http-response set-header X-Vamp-Server-Name %s
-    http-response set-header X-Vamp-Server-ResponseTime %t
-
-    cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h 
-    
     server 9019c00f1f7f641c4efc7a02c6f44e9f90d7750 192.168.99.100:32773  cookie 9019c00f1f7f641c4efc7a02c6f44e9f90d7750  weight 100 maxconn 1000 check cookie fd9c9b513aca3d39e3ff6d798e035b7b1c80c4c3
     server 49594c26c89754450bd4f562946a69070a4aa887 192.168.99.100:32773  cookie 49594c26c89754450bd4f562946a69070a4aa887  weight 100 maxconn 1000 check cookie 55b9d04138e9bb40fe34e5df045db360397cbc7a
 
@@ -376,35 +364,10 @@ backend cd10460f_ca44_49c6_9965_f66c27acd478_9050__sava_port
 #
 
     balance roundrobin 
-   
-
-
 
     option forwardfor
-   
 
-   http-response set-header X-Vamp-Server-Name %s
-   http-response set-header X-Vamp-Server-ResponseTime %t
-
-   
-
-    cookie vamp_srv insert indirect nocache httponly maxidle 5m maxlife 1h 
-    
-        server cd10460f_ca44_49c6_9965_f66c27acd478_9050 192.168.99.100:33002  cookie cd10460f_ca44_49c6_9965_f66c27acd478_9050  weight 100 maxconn 1000
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
-
+    server cd10460f_ca44_49c6_9965_f66c27acd478_9050 192.168.99.100:33002  cookie cd10460f_ca44_49c6_9965_f66c27acd478_9050  weight 100 maxconn 1000
 
 
 #backend abusers
