@@ -5,6 +5,7 @@ import io.vamp.common.http.RestClient
 import io.vamp.model.artifact.{ Artifact, DefaultBlueprint }
 import io.vamp.model.reader._
 import io.vamp.model.serialization.CoreSerializationFormat
+import org.json4s.DefaultFormats
 import org.json4s.native.Serialization._
 
 import scala.concurrent.Future
@@ -66,11 +67,11 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     findHitBy(storeArtifact.name, storeArtifact.getClass) map {
       case None ⇒
         // TODO validate response
-        RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts", ElasticsearchArtifact(storeArtifact.name, write(storeArtifact)))
+        request(RestClient.Method.POST, s"$elasticsearchUrl/$index/$artifacts", ElasticsearchArtifact(storeArtifact.name, write(storeArtifact)))
       case Some(hit) ⇒
         // TODO validate response
         if (ignoreIfExists)
-          hit.get("_id").foreach(id ⇒ RestClient.post[Any](s"$elasticsearchUrl/$index/$artifacts/$id", ElasticsearchArtifact(storeArtifact.name, write(storeArtifact))))
+          hit.get("_id").foreach(id ⇒ request(RestClient.Method.POST, s"$elasticsearchUrl/$index/$artifacts/$id", ElasticsearchArtifact(storeArtifact.name, write(storeArtifact))))
     }
 
     storeArtifact
@@ -90,11 +91,11 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     findHitBy(artifact.name, artifact.getClass) map {
       case None ⇒ if (create) {
         // TODO validate response
-        RestClient.post[Any](s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}", ElasticsearchArtifact(artifact.name, write(artifact)))
+        request(RestClient.Method.POST, s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}", ElasticsearchArtifact(artifact.name, write(artifact)))
       }
       case Some(hit) ⇒
         // TODO validate response
-        hit.get("_id").foreach(id ⇒ RestClient.post[Any](s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id", ElasticsearchArtifact(artifact.name, write(artifact))))
+        hit.get("_id").foreach(id ⇒ request(RestClient.Method.POST, s"$elasticsearchUrl/$index/${typeOf(artifact.getClass)}/$id", ElasticsearchArtifact(artifact.name, write(artifact))))
     }
 
     artifact
@@ -107,7 +108,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     // asynchronously delete
     findHitBy(name, `type`) map {
       case None      ⇒
-      case Some(hit) ⇒ hit.get("_id").foreach(id ⇒ RestClient.delete(s"$elasticsearchUrl/$index/${typeOf(`type`)}/$id"))
+      case Some(hit) ⇒ hit.get("_id").foreach(id ⇒ request(RestClient.Method.DELETE, s"$elasticsearchUrl/$index/${typeOf(`type`)}/$id", None))
     }
 
     artifact
@@ -118,6 +119,11 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
       allPages[Artifact](findAllArtifactsBy(group)) map {
         case artifacts ⇒ artifacts.foreach(artifact ⇒ store.create(artifact, ignoreIfExists = true))
       }
+  }
+
+  protected def request(method: RestClient.Method.Value, url: String, body: Any) = {
+    implicit val format = DefaultFormats
+    RestClient.http[Any](method, url, body, headers = RestClient.jsonHeaders, logError = true)
   }
 
   private def findAllArtifactsBy(`type`: String)(from: Int, size: Int): Future[ArtifactResponseEnvelope] = {
