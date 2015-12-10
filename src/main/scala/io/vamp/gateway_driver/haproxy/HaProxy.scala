@@ -30,6 +30,7 @@ case class Backend(name: String,
                    mode: Mode.Value,
                    proxyServers: List[ProxyServer],
                    servers: List[Server],
+                   sticky: Boolean,
                    options: Options) extends FlattenName
 
 object Mode extends Enumeration {
@@ -40,9 +41,9 @@ case class Filter(name: String, condition: String, destination: String, negate: 
   lazy val flattenDestination = Flatten.flatten(destination)
 }
 
-case class ProxyServer(name: String, unixSock: String, weight: Int, sticky: Boolean) extends FlattenName
+case class ProxyServer(name: String, unixSock: String, weight: Int) extends FlattenName
 
-case class Server(name: String, host: String, port: Int, weight: Int, sticky: Boolean, maxConn: Int = 1000, checkInterval: Option[Int] = None) extends FlattenName
+case class Server(name: String, host: String, port: Int, weight: Int, maxConn: Int = 1000, checkInterval: Option[Int] = None) extends FlattenName
 
 case class Options(abortOnClose: Boolean = false,
                    allBackups: Boolean = false,
