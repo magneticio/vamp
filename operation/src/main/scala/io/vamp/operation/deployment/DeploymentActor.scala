@@ -170,7 +170,22 @@ trait DeploymentValidator {
     deployment
   }
 
-  def validateRoutingWeights: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
+  def validateRouting = validateRouteWeights andThen validateRoutingStickiness
+
+  def validateRoutingStickiness: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
+    deployment.clusters.foreach { cluster ⇒
+      cluster.services.foreach { service ⇒
+        service.breed match {
+          case breed: DefaultBreed ⇒ breed.ports.foreach(port ⇒ if (port.`type` != Port.Http && cluster.routing.get(port.name).flatMap(_.sticky).isDefined) throwException(StickyPortTypeError(port.name)))
+          case _                   ⇒
+        }
+      }
+    }
+
+    deployment
+  }
+
+  def validateRouteWeights: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
     deployment.clusters.map(cluster ⇒
 
       cluster -> weightOf(cluster, cluster.services, "")).find({
@@ -264,7 +279,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
   def resolveProperties = resolveHosts andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
 
-  def validateMerge = validateServices andThen validateRoutingWeights andThen validateScaleEscalations andThen validateEndpoints
+  def validateMerge = validateServices andThen validateRouting andThen validateScaleEscalations andThen validateEndpoints
 
   def merge(blueprint: Future[Deployment]): (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
     futureDeployment.flatMap {
@@ -492,7 +507,7 @@ trait DeploymentSlicer extends DeploymentOperation {
     } yield {
       validateRoutingWeightOfServicesForRemoval(stable, blueprint)
 
-      (validateServices andThen validateRoutingWeights andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster ⇒
+      (validateServices andThen validateRouting andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster ⇒
         blueprint.clusters.find(_.name == cluster.name) match {
           case None      ⇒ cluster
           case Some(bpc) ⇒ cluster.copy(services = cluster.services.map(service ⇒ service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) Undeploy else service.state)))
@@ -520,6 +535,6 @@ trait DeploymentUpdate {
 
   def updateRouting(deployment: Deployment, cluster: DeploymentCluster, routing: Map[String, Routing], source: String) = {
     val clusters = deployment.clusters.map(c ⇒ if (c.name == cluster.name) c.copy(routing = routing) else c)
-    actorFor[PersistenceActor] ? PersistenceActor.Update(validateRoutingWeights(deployment.copy(clusters = clusters)), Some(source))
+    actorFor[PersistenceActor] ? PersistenceActor.Update(validateRouting(deployment.copy(clusters = clusters)), Some(source))
   }
 }

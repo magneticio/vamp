@@ -1,0 +1,14 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious:
+    routing:
+      web:
+        sticky: service
+
+    services:
+      breed:
+        name: nocturnal-viper
+        deployable: anaconda
+        ports:
+          web: 8080/http

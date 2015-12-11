@@ -575,4 +575,20 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'environmentVariables(Nil)
     )
   }
+
+  it should "allow sticky http port" in {
+    BlueprintReader.read(res("blueprint/blueprint64.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("8080/http"))), Nil, Nil, Map()), Nil, None, Map())), Map("web" -> Routing(Some(Routing.Sticky.Service), Map())), None, Map()))),
+      'environmentVariables(Nil)
+    )
+  }
+
+  it should "not allow sticky tcp port" in {
+    expectedError[StickyPortTypeError]({
+      BlueprintReader.read(res("blueprint/blueprint65.yml"))
+    }) should have(
+      'port("web")
+    )
+  }
 }

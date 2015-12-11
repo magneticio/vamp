@@ -102,18 +102,30 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
       blueprint.clusters.foreach(cluster ⇒ validateName(cluster.name))
       validateBlueprintTraitValues(blueprint)
+
       validateRouteServiceNames(blueprint)
       validateRouteWeights(blueprint)
+      validateRouting(blueprint)
 
       if (blueprint.clusters.flatMap(_.services).count(_ ⇒ true) == 0) throwException(NoServiceError)
 
       val breeds = blueprint.clusters.flatMap(_.services.map(_.breed))
+
       validateBreeds(breeds)
       validateServiceEnvironmentVariables(blueprint.clusters.flatMap(_.services))
       validateDependencies(breeds)
       breeds.foreach(BreedReader.validateNonRecursiveDependencies)
 
       blueprint
+  }
+
+  protected def validateRouting(blueprint: DefaultBlueprint): Unit = blueprint.clusters.foreach { cluster ⇒
+    cluster.services.foreach { service ⇒
+      service.breed match {
+        case breed: DefaultBreed ⇒ breed.ports.foreach(port ⇒ if (port.`type` != Port.Http && cluster.routing.get(port.name).flatMap(_.sticky).isDefined) throwException(StickyPortTypeError(port.name)))
+        case _                   ⇒
+      }
+    }
   }
 
   protected def validateRouteServiceNames(blueprint: DefaultBlueprint): Unit = {
