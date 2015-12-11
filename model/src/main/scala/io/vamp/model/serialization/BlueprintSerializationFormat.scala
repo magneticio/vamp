@@ -39,9 +39,9 @@ trait DialectSerializer {
 
 class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] with DialectSerializer {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
-    case ("name", _)            ⇒ None
+    case ("name", _)                  ⇒ None
     case ("portMapping", portMapping) ⇒ Some(("port_mapping", Extraction.decompose(portMapping)(DefaultFormats)))
-    case ("dialects", dialects) ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
+    case ("dialects", dialects)       ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
   }
 }
 

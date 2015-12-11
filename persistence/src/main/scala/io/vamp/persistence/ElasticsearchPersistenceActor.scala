@@ -44,7 +44,11 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
   )
 
   protected def info(): Future[Any] = RestClient.get[Any](s"$elasticsearchUrl") map {
-    case info ⇒ Map[String, Any]("type" -> "elasticsearch", "elasticsearch" -> info)
+    case info ⇒ Map[String, Any](
+      "type" -> "elasticsearch",
+      "url" -> elasticsearchUrl,
+      "index" -> index,
+      "elasticsearch" -> info)
   }
 
   protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
