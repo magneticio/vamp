@@ -59,7 +59,7 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
 
       cluster.services.filter(_.state.isDeployed).flatMap { service ⇒
         service.breed.ports.map { port ⇒
-          val id = Flatten.flatten(s"${deployment.name}:${cluster.name}:${port.number}::${service.breed.name}")
+          val id = Flatten.flatten(s"${deployment.name}:${cluster.name}:${port.name}::${service.breed.name}")
           val changed = for {
             s ← update("search", id, searchDocument)
             tt ← update("visualization", s"${id}_tt", ttVisualizationDocument(id))
