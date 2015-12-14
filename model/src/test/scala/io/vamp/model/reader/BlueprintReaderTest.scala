@@ -343,7 +343,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read scale and route - expanded" in {
     BlueprintReader.read(res("blueprint/blueprint38.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("sava1", Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)))), Map("" -> Routing(None, Map("sava1" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("sava1", Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)))), Map("port" -> Routing(None, Map("sava1" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
       'environmentVariables(Nil)
     )
@@ -352,7 +352,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read scale and route - service single element." in {
     BlueprintReader.read(res("blueprint/blueprint39.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("sava1", Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)))), Map("" -> Routing(None, Map("sava1" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("sava1", Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)))), Map("port" -> Routing(None, Map("sava1" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
       'environmentVariables(Nil)
     )
@@ -361,7 +361,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read scale and route - no service just cluster." in {
     BlueprintReader.read(res("blueprint/blueprint40.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("sava1", Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)))), Map("" -> Routing(None, Map("sava1" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("sava1", Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)))), Map("port" -> Routing(None, Map("sava1" -> DefaultRoute("", None, List(FilterReference("android")))))), None))),
       'endpoints(List(Port("supersonic.ports.port", None, Some("8080")))),
       'environmentVariables(Nil)
     )
@@ -598,6 +598,22 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     }) should have(
       'port(Port("web", None, Some("8080/tcp"))),
       'filter(DefaultFilter("", "user.agent != ios"))
+    )
+  }
+
+  it should "not allow anonymous port mapping if more than 1 port defined" in {
+    expectedError[IllegalAnonymousRoutingPortMappingError]({
+      BlueprintReader.read(res("blueprint/blueprint67.yml"))
+    }) should have(
+      'breed(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("8080")), Port("admin", None, Some("9090"))), Nil, Nil, Map()))
+    )
+  }
+
+  it should "remap anonymous routing port" in {
+    BlueprintReader.read(res("blueprint/blueprint68.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("8080"))), Nil, Nil, Map()), Nil, None, Map())), Map("web" -> Routing(Some(Routing.Sticky.Service), Map())), None, Map()))),
+      'environmentVariables(Nil)
     )
   }
 }

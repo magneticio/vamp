@@ -19,19 +19,19 @@ UnresolvedDependencyInTraitValueError : "Unresolved reference '{reference}' in b
 
 # Blueprint Reader
 
-UnresolvedEndpointPortError           : "Endpoint port '{name} -> {value}' cannot be resolved. Check if referenced cluster exists and if it has any breed with referenced port name."
-UnresolvedEnvironmentVariableError    : "Parameter '{name} -> {value}' cannot be resolved. Check if cluster exists and if it has any breed with port, environment variable or constant referable by {name}."
-NonUniqueBlueprintBreedReferenceError : "Multiple references for breed: '{name}'."
-UnresolvedBreedDependencyError        : "Unresolved breed dependency for breed '{breed.name}' and dependency '{dependency._1} -> {dependency._2.name}'."
-RouteWeightError                      : "Total route weight cannot exceed 100 or be a negative value. Check cluster: '{cluster.name}'."
-UnresolvedScaleEscalationTargetCluster: "Unresolved scale escalation target cluster '{target}' for cluster '{cluster.name}'"
-NoServiceError$                       : "Expected at least one service."
-MissingEnvironmentVariableError       : "Missing environment variable value for '{name}' in service '{breed.name}.'"
-IllegalRoutingStickyValue             : "Illegal routing sticky value: '{sticky}'."
-UnresolvedServiceRouteError           : "Unresolved service route for '{cluster.name}' and '{service}'."
-StickyPortTypeError                   : "Sticky sessions are not allowed for TCP port: '{port.name}'."
-FilterPortTypeError                   : "HTTP filters are not allowed for TCP port: '{port.name}' and filter '{filter.condition}'."
-
+UnresolvedEndpointPortError            : "Endpoint port '{name} -> {value}' cannot be resolved. Check if referenced cluster exists and if it has any breed with referenced port name."
+UnresolvedEnvironmentVariableError     : "Parameter '{name} -> {value}' cannot be resolved. Check if cluster exists and if it has any breed with port, environment variable or constant referable by {name}."
+NonUniqueBlueprintBreedReferenceError  : "Multiple references for breed: '{name}'."
+UnresolvedBreedDependencyError         : "Unresolved breed dependency for breed '{breed.name}' and dependency '{dependency._1} -> {dependency._2.name}'."
+RouteWeightError                       : "Total route weight cannot exceed 100 or be a negative value. Check cluster: '{cluster.name}'."
+UnresolvedScaleEscalationTargetCluster : "Unresolved scale escalation target cluster '{target}' for cluster '{cluster.name}'"
+NoServiceError$                        : "Expected at least one service."
+MissingEnvironmentVariableError        : "Missing environment variable value for '{name}' in service '{breed.name}.'"
+IllegalRoutingStickyValue              : "Illegal routing sticky value: '{sticky}'."
+UnresolvedServiceRouteError            : "Unresolved service route for '{cluster.name}' and '{service}'."
+StickyPortTypeError                    : "Sticky sessions are not allowed for TCP port: '{port.name}'."
+FilterPortTypeError                    : "HTTP filters are not allowed for TCP port: '{port.name}' and filter '{filter.condition}'."
+IllegalAnonymousRoutingPortMappingError: "Illegal anonymous routing port mapping - more than 1 port defined for '{breed.name}'."
 # SLA
 
 Escalate                              : "Escalate '{deployment.name}/{cluster.name}'."

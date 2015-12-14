@@ -8,7 +8,7 @@ import io.vamp.model.validator.BlueprintTraitValidator
 
 import scala.language.postfixOps
 
-trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader with DialectReader with BlueprintTraitValidator with BlueprintRoutingValidation {
+trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader with DialectReader with BlueprintTraitValidator with BlueprintRoutingHelper {
 
   override def readReference: PartialFunction[Any, Blueprint] = {
     case string: String ⇒ BlueprintReference(string)
@@ -76,7 +76,6 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   }
 
   override def parse(implicit source: YamlSourceReader): Blueprint = {
-
     val clusters = <<?[YamlSourceReader]("clusters") match {
       case None ⇒ List[Cluster]()
       case Some(yaml) ⇒ yaml.pull().map {
@@ -85,8 +84,10 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
           <<?[List[YamlSourceReader]]("services") match {
-            case None       ⇒ Cluster(name, List(), Map(), sla, dialects)
-            case Some(list) ⇒ Cluster(name, list.map(parseService(_)), RoutingMapReader.optional(), sla, dialects)
+            case None ⇒ Cluster(name, List(), Map(), sla, dialects)
+            case Some(list) ⇒
+              val services = list.map(parseService(_))
+              Cluster(name, services, processAnonymousRouting(services, RoutingMapReader.mapping()), sla, dialects)
           }
       } toList
     }
@@ -108,6 +109,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       validateRouteWeights(blueprint)
       validateRouteFilterConditions(blueprint)
       validateRoutingStickiness(blueprint)
+      validateRoutingAnonymousPortMapping(blueprint)
 
       if (blueprint.clusters.flatMap(_.services).count(_ ⇒ true) == 0) throwException(NoServiceError)
 
@@ -174,8 +176,30 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), dialects)
 }
 
-trait BlueprintRoutingValidation {
+trait BlueprintRoutingHelper {
   this: NotificationProvider ⇒
+
+  protected def processAnonymousRouting(services: List[AbstractService], routing: Map[String, Routing]) = {
+    if (routing.get(Routing.anonymous).isDefined) {
+      val ports = services.map(_.breed).flatMap {
+        case breed: DefaultBreed ⇒ breed.ports
+        case _                   ⇒ Nil
+      }
+
+      if (ports.size == 1) Map[String, Routing](ports.head.name -> routing.get(Routing.anonymous).get) else routing
+    } else routing
+  }
+
+  protected def validateRoutingAnonymousPortMapping(blueprint: AbstractBlueprint): Unit = blueprint.clusters.foreach { cluster ⇒
+    if (cluster.routing.get(Routing.anonymous).isDefined) {
+      cluster.services.foreach { service ⇒
+        service.breed match {
+          case breed: DefaultBreed ⇒ if (breed.ports.size > 1) throwException(IllegalAnonymousRoutingPortMappingError(breed))
+          case _                   ⇒
+        }
+      }
+    }
+  }
 
   protected def validateRoutingStickiness(blueprint: AbstractBlueprint): Unit = blueprint.clusters.foreach { cluster ⇒
     cluster.services.foreach { service ⇒
@@ -252,15 +276,13 @@ object RoutingMapReader extends YamlReader[Map[String, Routing]] {
 
   import YamlSourceReader._
 
-  def optional(entry: String = "routing")(implicit source: YamlSourceReader): Map[String, Routing] = <<?[YamlSourceReader](entry) match {
-    case Some(yaml) ⇒
-      implicit val source = yaml
-      RoutingMapReader.read
-    case None ⇒ Map()
+  def mapping(entry: String = "routing")(implicit source: YamlSourceReader): Map[String, Routing] = <<?[YamlSourceReader](entry) match {
+    case Some(yaml) ⇒ RoutingMapReader.read(yaml)
+    case None       ⇒ Map()
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
-    if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>("", <<-())
+    if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>(Routing.anonymous, <<-())
     super.expand
   }
 

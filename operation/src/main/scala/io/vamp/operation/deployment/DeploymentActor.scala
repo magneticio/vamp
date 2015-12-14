@@ -12,7 +12,7 @@ import io.vamp.model.artifact.DeploymentService.State
 import io.vamp.model.artifact.DeploymentService.State.Intention._
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
-import io.vamp.model.reader.{ BlueprintRoutingValidation, NameValidator, BlueprintReader, BreedReader }
+import io.vamp.model.reader.{ BlueprintRoutingHelper, NameValidator, BlueprintReader, BreedReader }
 import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.notification._
@@ -87,7 +87,7 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
   }
 }
 
-trait BlueprintSupport extends DeploymentValidator with NameValidator {
+trait BlueprintSupport extends DeploymentValidator with NameValidator with BlueprintRoutingHelper {
   this: ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   private def uuid = UUID.randomUUID.toString
@@ -131,7 +131,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator {
             }).map(_.toMap)
 
           } yield {
-            DeploymentCluster(cluster.name, services, routing, cluster.sla, Map(), cluster.dialects)
+            DeploymentCluster(cluster.name, services, processAnonymousRouting(services, routing), cluster.sla, Map(), cluster.dialects)
           }
         }
         Future.sequence(clusters).map(Deployment(uuid, _, bp.endpoints, Nil, bp.environmentVariables, Nil))
@@ -139,8 +139,8 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator {
   }
 }
 
-trait DeploymentValidator extends BlueprintRoutingValidation {
-  this: ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
+trait DeploymentValidator {
+  this: BlueprintRoutingHelper with ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   def validateServices: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
     val services = deployment.clusters.flatMap(_.services).filterNot(_.state.intention == Undeploy)
@@ -173,6 +173,7 @@ trait DeploymentValidator extends BlueprintRoutingValidation {
   def validateRouting = validateRouteWeights andThen { (deployment: Deployment) ⇒
     validateRouteFilterConditions(deployment)
     validateRoutingStickiness(deployment)
+    validateRoutingAnonymousPortMapping(deployment)
     deployment
   }
 

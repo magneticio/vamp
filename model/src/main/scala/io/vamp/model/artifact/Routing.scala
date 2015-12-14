@@ -2,6 +2,8 @@ package io.vamp.model.artifact
 
 object Routing {
 
+  val anonymous = ""
+
   object Sticky extends Enumeration {
     val Service, Instance = Value
 
