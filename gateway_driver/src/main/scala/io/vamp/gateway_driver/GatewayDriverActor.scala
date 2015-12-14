@@ -169,7 +169,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
               case None ⇒ Nil
               case Some(c) ⇒
                 c.portMapping.values.find(_ == gatewayPort.number) match {
-                  case Some(_) ⇒ model.Instance(string2Id(s"${deployment.name}_${port.number}"), host.value.get, gatewayPort.number) :: Nil
+                  case Some(_) ⇒ model.Instance(string2Id(s"${deployment.name}_${port.name}"), host.value.get, gatewayPort.number) :: Nil
                   case _       ⇒ Nil
                 }
             }
@@ -205,10 +205,10 @@ trait GatewayDriverNameMatcher {
   }
 
   def clusterGatewayName(deployment: Deployment, cluster: DeploymentCluster, port: Port): String =
-    string2Id(s"${deployment.name}$nameDelimiter${cluster.name}$nameDelimiter${port.number}")
+    string2Id(s"${deployment.name}$nameDelimiter${cluster.name}$nameDelimiter${port.name}")
 
   def endpointGatewayName(deployment: Deployment, port: Port): String =
-    s"${artifactName2Id(deployment)}$nameDelimiter${port.number}"
+    s"${artifactName2Id(deployment)}$nameDelimiter${port.name}"
 
   def isDeploymentEndpoint(id: String, deployment: Deployment): Boolean =
     id.startsWith(s"${artifactName2Id(deployment)}$nameDelimiter")

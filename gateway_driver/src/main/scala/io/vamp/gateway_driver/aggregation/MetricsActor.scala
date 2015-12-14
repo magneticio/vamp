@@ -53,7 +53,7 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
   private def endpoints: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
     deployments.foreach { deployment ⇒
       deployment.endpoints.foreach { endpoint ⇒
-        val name = s"${deployment.name}_${endpoint.number}"
+        val name = s"${deployment.name}_${endpoint.name}"
         query(name) map {
           case Metrics(rate, responseTime) ⇒
             publish(s"endpoints:$name" :: "metrics:rate" :: Nil, rate)
@@ -69,11 +69,11 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
       deployment.clusters.foreach { cluster ⇒
         cluster.services.filter(_.state.isDeployed).foreach { service ⇒
           service.breed.ports.foreach { port ⇒
-            val name = s"${deployment.name}_${cluster.name}_${port.number}::${service.breed.name}"
+            val name = s"${deployment.name}_${cluster.name}_${port.name}::${service.breed.name}"
             query(name) map {
               case Metrics(rate, responseTime) ⇒
-                publish(s"endpoints:${deployment.name}_${cluster.name}_${port.number}" :: s"services:${service.breed.name}" :: "service" :: "metrics:rate" :: Nil, rate)
-                publish(s"endpoints:${deployment.name}_${cluster.name}_${port.number}" :: s"services:${service.breed.name}" :: "service" :: "metrics:responseTime" :: Nil, responseTime)
+                publish(s"endpoints:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:rate" :: Nil, rate)
+                publish(s"endpoints:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:responseTime" :: Nil, responseTime)
             }
           }
         }
