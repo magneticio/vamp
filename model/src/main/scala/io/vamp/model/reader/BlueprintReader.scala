@@ -1,5 +1,6 @@
 package io.vamp.model.reader
 
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
@@ -7,7 +8,7 @@ import io.vamp.model.validator.BlueprintTraitValidator
 
 import scala.language.postfixOps
 
-trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader with DialectReader with BlueprintTraitValidator {
+trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader with DialectReader with BlueprintTraitValidator with BlueprintRoutingValidation {
 
   override def readReference: PartialFunction[Any, Blueprint] = {
     case string: String ⇒ BlueprintReference(string)
@@ -105,7 +106,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
       validateRouteServiceNames(blueprint)
       validateRouteWeights(blueprint)
-      validateRouting(blueprint)
+      validateRouteFilterConditions(blueprint)
+      validateRoutingStickiness(blueprint)
 
       if (blueprint.clusters.flatMap(_.services).count(_ ⇒ true) == 0) throwException(NoServiceError)
 
@@ -117,37 +119,6 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
       breeds.foreach(BreedReader.validateNonRecursiveDependencies)
 
       blueprint
-  }
-
-  protected def validateRouting(blueprint: DefaultBlueprint): Unit = blueprint.clusters.foreach { cluster ⇒
-    cluster.services.foreach { service ⇒
-      service.breed match {
-        case breed: DefaultBreed ⇒ breed.ports.foreach(port ⇒ if (port.`type` != Port.Http && cluster.routing.get(port.name).flatMap(_.sticky).isDefined) throwException(StickyPortTypeError(port.name)))
-        case _                   ⇒
-      }
-    }
-  }
-
-  protected def validateRouteServiceNames(blueprint: DefaultBlueprint): Unit = {
-    blueprint.clusters.foreach { cluster ⇒
-      cluster.routing.foreach {
-        case (_, routing) ⇒ routing.routes.foreach {
-          case (name, _) ⇒ if (!cluster.services.exists(_.breed.name == name)) throwException(UnresolvedServiceRouteError(cluster, name))
-        }
-      }
-    }
-  }
-
-  protected def validateRouteWeights(blueprint: DefaultBlueprint): Unit = {
-    blueprint.clusters.find({ cluster ⇒
-      cluster.routing.exists {
-        case (_, routing) ⇒
-          val weights = routing.routes.values.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
-          weights.exists(_ < 0) || weights.sum > 100
-      }
-    }).flatMap {
-      case cluster ⇒ throwException(RouteWeightError(cluster))
-    }
   }
 
   protected def validateBreeds(breeds: List[Breed]): Unit = {
@@ -177,8 +148,63 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     }
   }
 
+  protected def validateRouteServiceNames(blueprint: DefaultBlueprint): Unit = {
+    blueprint.clusters.foreach { cluster ⇒
+      cluster.routing.foreach {
+        case (_, routing) ⇒ routing.routes.foreach {
+          case (name, _) ⇒ if (!cluster.services.exists(_.breed.name == name)) throwException(UnresolvedServiceRouteError(cluster, name))
+        }
+      }
+    }
+  }
+
+  protected def validateRouteWeights(blueprint: AbstractBlueprint): Unit = {
+    blueprint.clusters.find({ cluster ⇒
+      cluster.routing.exists {
+        case (_, routing) ⇒
+          val weights = routing.routes.values.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
+          weights.exists(_ < 0) || weights.sum > 100
+      }
+    }).flatMap {
+      case cluster ⇒ throwException(RouteWeightError(cluster))
+    }
+  }
+
   private def parseService(implicit source: YamlSourceReader): Service =
     Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), dialects)
+}
+
+trait BlueprintRoutingValidation {
+  this: NotificationProvider ⇒
+
+  protected def validateRoutingStickiness(blueprint: AbstractBlueprint): Unit = blueprint.clusters.foreach { cluster ⇒
+    cluster.services.foreach { service ⇒
+      service.breed match {
+        case breed: DefaultBreed ⇒ breed.ports.foreach(port ⇒ if (port.`type` != Port.Http && cluster.routing.get(port.name).flatMap(_.sticky).isDefined) throwException(StickyPortTypeError(port)))
+        case _                   ⇒
+      }
+    }
+  }
+
+  protected def validateRouteFilterConditions(blueprint: AbstractBlueprint): Unit = blueprint.clusters.foreach { cluster ⇒
+    cluster.services.foreach { service ⇒
+      service.breed match {
+        case breed: DefaultBreed ⇒
+          breed.ports.foreach { port ⇒
+            if (port.`type` != Port.Http) {
+              cluster.routing.get(port.name) match {
+                case Some(routing) ⇒ routing.routes.values.foreach {
+                  case route: DefaultRoute ⇒ route.filters.foreach(filter ⇒ if (DefaultFilter.isHttp(filter)) throwException(FilterPortTypeError(port, filter)))
+                  case _                   ⇒
+                }
+                case None ⇒
+              }
+            }
+          }
+        case _ ⇒
+      }
+    }
+  }
 }
 
 object BlueprintReader extends AbstractBlueprintReader {

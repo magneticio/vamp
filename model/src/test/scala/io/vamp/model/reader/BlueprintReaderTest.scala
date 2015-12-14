@@ -588,7 +588,16 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[StickyPortTypeError]({
       BlueprintReader.read(res("blueprint/blueprint65.yml"))
     }) should have(
-      'port("web")
+      'port(Port("web", None, Some("8080/tcp")))
+    )
+  }
+
+  it should "not allow HTTP filters on tcp port" in {
+    expectedError[FilterPortTypeError]({
+      BlueprintReader.read(res("blueprint/blueprint66.yml"))
+    }) should have(
+      'port(Port("web", None, Some("8080/tcp"))),
+      'filter(DefaultFilter("", "user.agent != ios"))
     )
   }
 }

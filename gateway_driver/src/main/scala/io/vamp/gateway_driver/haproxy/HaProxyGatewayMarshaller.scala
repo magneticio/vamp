@@ -8,19 +8,12 @@ import io.vamp.model.artifact.Routing
 
 trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
+  import io.vamp.model.artifact.DefaultFilter._
+
   override def info: AnyRef = "HAProxy v1.5.x"
 
   private val socketPath = "/opt/vamp"
   private val pathDelimiter = "::"
-
-  private val userAgent = "^[uU]ser[-.][aA]gent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
-  private val host = "^[hH]ost[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r
-  private val cookieContains = "^[cC]ookie (.*) [Cc]ontains (.*)$".r
-  private val hasCookie = "^[Hh]as [Cc]ookie (.*)$".r
-  private val missesCookie = "^[Mm]isses [Cc]ookie (.*)$".r
-  private val headerContains = "^[Hh]eader (.*) [Cc]ontains (.*)$".r
-  private val hasHeader = "^[Hh]as [Hh]eader (.*)$".r
-  private val missesHeader = "^[Mm]isses [Hh]eader (.*)$".r
 
   override def marshall(gateways: List[Gateway]) = HaProxyConfigurationTemplate(convert(gateways)).toString().getBytes
 

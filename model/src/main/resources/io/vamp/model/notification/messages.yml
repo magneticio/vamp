@@ -29,7 +29,8 @@ NoServiceError$                       : "Expected at least one service."
 MissingEnvironmentVariableError       : "Missing environment variable value for '{name}' in service '{breed.name}.'"
 IllegalRoutingStickyValue             : "Illegal routing sticky value: '{sticky}'."
 UnresolvedServiceRouteError           : "Unresolved service route for '{cluster.name}' and '{service}'."
-StickyPortTypeError                   : "Sticky sessions are not allowed on TCP ports: {port}."
+StickyPortTypeError                   : "Sticky sessions are not allowed for TCP port: '{port.name}'."
+FilterPortTypeError                   : "HTTP filters are not allowed for TCP port: '{port.name}' and filter '{filter.condition}'."
 
 # SLA
 

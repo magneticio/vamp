@@ -1,7 +1,7 @@
 package io.vamp.model.notification
 
 import io.vamp.common.notification.Notification
-import io.vamp.model.artifact.{ AbstractCluster, Breed }
+import io.vamp.model.artifact.{ Filter, Port, AbstractCluster, Breed }
 
 case class UnresolvedEndpointPortError(name: String, value: Any) extends Notification
 
@@ -29,4 +29,6 @@ case class UndefinedStateStepError(name: String) extends Notification
 
 case class IllegalRoutingStickyValue(sticky: String) extends Notification
 
-case class StickyPortTypeError(port: String) extends Notification
+case class StickyPortTypeError(port: Port) extends Notification
+
+case class FilterPortTypeError(port: Port, filter: Filter) extends Notification

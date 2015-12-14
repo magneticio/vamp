@@ -12,7 +12,7 @@ import io.vamp.model.artifact.DeploymentService.State
 import io.vamp.model.artifact.DeploymentService.State.Intention._
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
-import io.vamp.model.reader.{ NameValidator, BlueprintReader, BreedReader }
+import io.vamp.model.reader.{ BlueprintRoutingValidation, NameValidator, BlueprintReader, BreedReader }
 import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.notification._
@@ -139,7 +139,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator {
   }
 }
 
-trait DeploymentValidator {
+trait DeploymentValidator extends BlueprintRoutingValidation {
   this: ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   def validateServices: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
@@ -170,18 +170,9 @@ trait DeploymentValidator {
     deployment
   }
 
-  def validateRouting = validateRouteWeights andThen validateRoutingStickiness
-
-  def validateRoutingStickiness: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
-    deployment.clusters.foreach { cluster ⇒
-      cluster.services.foreach { service ⇒
-        service.breed match {
-          case breed: DefaultBreed ⇒ breed.ports.foreach(port ⇒ if (port.`type` != Port.Http && cluster.routing.get(port.name).flatMap(_.sticky).isDefined) throwException(StickyPortTypeError(port.name)))
-          case _                   ⇒
-        }
-      }
-    }
-
+  def validateRouting = validateRouteWeights andThen { (deployment: Deployment) ⇒
+    validateRouteFilterConditions(deployment)
+    validateRoutingStickiness(deployment)
     deployment
   }
 
