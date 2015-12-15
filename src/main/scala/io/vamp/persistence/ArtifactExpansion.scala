@@ -42,15 +42,11 @@ trait ArtifactExpansion {
         }
         case _ ⇒ None
       },
-      routing = cluster.routing.map {
-        case (port, routing) ⇒ port -> routing.copy(routes = expandRoutes(routing.routes))
-      }
+      routing = cluster.routing.map { routing ⇒ routing.copy(routes = expandRoutes(routing.routes)) }
     )
   }
 
-  private def expandRoutes(routes: Map[String, Route]): Map[String, Route] = routes.map {
-    case (name, route) ⇒ name -> expandIfReference[DefaultRoute, RouteReference](route)
-  }
+  private def expandRoutes(routes: List[Route]): List[Route] = routes.map { route ⇒ expandIfReference[DefaultRoute, RouteReference](route) }
 
   private def expandServices(services: List[Service]): List[Service] = services.map { service ⇒
     service.copy(
