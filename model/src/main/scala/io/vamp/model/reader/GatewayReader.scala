@@ -6,17 +6,9 @@ import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
 
-class GatewayReader extends YamlReader[Gateway] with ReferenceYamlReader[Gateway] {
+trait AbstractGatewayReader extends YamlReader[Gateway] {
 
   import YamlSourceReader._
-
-  override def readReference: PartialFunction[Any, Gateway] = {
-    case reference: String ⇒ GatewayReference(reference)
-    case yaml: YamlSourceReader ⇒
-      implicit val source = yaml
-      if (isReference) GatewayReference(reference) else read(yaml)
-    case _ ⇒ throwException(UnexpectedInnerElementError("/", classOf[YamlSourceReader]))
-  }
 
   override protected def parse(implicit source: YamlSourceReader): Gateway = DefaultGateway(name, port, sticky("sticky"), routes)
 
@@ -43,7 +35,18 @@ class GatewayReader extends YamlReader[Gateway] with ReferenceYamlReader[Gateway
   }
 }
 
-object GatewayWeakReferenceReader extends GatewayReader with WeakReferenceYamlReader[Gateway] {
+object GatewayReader extends AbstractGatewayReader with ReferenceYamlReader[Gateway] {
+
+  override def readReference: PartialFunction[Any, Gateway] = {
+    case reference: String ⇒ GatewayReference(reference)
+    case yaml: YamlSourceReader ⇒
+      implicit val source = yaml
+      if (isReference) GatewayReference(reference) else read(yaml)
+    case _ ⇒ throwException(UnexpectedInnerElementError("/", classOf[YamlSourceReader]))
+  }
+}
+
+object GatewayWeakReferenceReader extends AbstractGatewayReader with WeakReferenceYamlReader[Gateway] {
 
   override protected def createReference(implicit source: YamlSourceReader): Gateway = GatewayReference(reference)
 

@@ -54,6 +54,7 @@ trait ArtifactApiController extends ArtifactSupport {
     ("escalations" -> new PersistenceHandler[Escalation](EscalationReader)) +
     ("routes" -> new PersistenceHandler[Route](RouteReader)) +
     ("filters" -> new PersistenceHandler[Filter](FilterReader)) +
+    ("gateways" -> new PersistenceHandler[Gateway](GatewayReader)) +
     // workaround for None response.
     ("deployments" -> new Handler()) ++
     // workflow handlers
