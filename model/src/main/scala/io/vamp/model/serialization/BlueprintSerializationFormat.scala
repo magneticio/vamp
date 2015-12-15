@@ -5,13 +5,15 @@ import org.json4s.JsonAST.JString
 import org.json4s._
 
 import scala.collection.mutable.ArrayBuffer
+import scala.language.postfixOps
 
 object BlueprintSerializationFormat extends io.vamp.common.json.SerializationFormat {
 
   override def customSerializers = super.customSerializers :+
     new BlueprintSerializer() :+
     new ScaleSerializer() :+
-    new RoutingStickySerializer :+
+    new GatewaySerializer() :+
+    new RoutingStickySerializer() :+
     new RouteSerializer() :+
     new FilterSerializer()
 
@@ -37,9 +39,10 @@ trait DialectSerializer {
   def serializeDialects(dialects: Map[Dialect.Value, Any]) = Extraction.decompose(dialects.map({ case (k, v) ⇒ k.toString.toLowerCase -> v }))(DefaultFormats)
 }
 
-class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] with DialectSerializer {
+class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] with DialectSerializer with RoutingSerializer {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
     case ("name", _)                  ⇒ None
+    case ("routing", routing)         ⇒ Some(("routing", serializeRoutings(routing.asInstanceOf[List[DefaultGateway]])))
     case ("portMapping", portMapping) ⇒ Some(("port_mapping", Extraction.decompose(portMapping)(DefaultFormats)))
     case ("dialects", dialects)       ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
   }
@@ -62,6 +65,30 @@ class ScaleSerializer extends ArtifactSerializer[Scale] with ReferenceSerializat
       list += JField("cpu", JDouble(scale.cpu))
       list += JField("memory", JDouble(scale.memory))
       list += JField("instances", JInt(scale.instances))
+      new JObject(list.toList)
+  }
+}
+
+trait RoutingSerializer {
+  def serializeRoutings(routings: List[DefaultGateway]) = Extraction.decompose {
+    routings.map { routing ⇒
+      routing.port.name -> Extraction.decompose(routing)(CoreSerializationFormat.default)
+    } toMap
+  }(DefaultFormats)
+}
+
+class GatewaySerializer extends ArtifactSerializer[Gateway] with ReferenceSerialization {
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case gateway: GatewayReference ⇒ serializeReference(gateway)
+    case gateway: DefaultGateway ⇒
+      val list = new ArrayBuffer[JField]
+      list += JField("sticky", Extraction.decompose(gateway.sticky))
+      list += JField("routes", Extraction.decompose {
+        gateway.routes.map { route ⇒
+          route.path -> route
+        } toMap
+      })
+
       new JObject(list.toList)
   }
 }
