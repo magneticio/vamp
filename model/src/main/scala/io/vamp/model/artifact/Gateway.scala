@@ -2,21 +2,31 @@ package io.vamp.model.artifact
 
 trait Gateway extends Artifact
 
-object DefaultGateway {
+case class GatewayReference(name: String) extends Gateway with Reference
 
-  val anonymous = PortReference("")
+object AbstractGateway {
 
   object Sticky extends Enumeration {
     val Service, Instance = Value
 
-    def byName(sticky: String): Option[Sticky.Value] = DefaultGateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
+    def byName(sticky: String): Option[Sticky.Value] = AbstractGateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
   }
 
 }
 
-case class DefaultGateway(name: String, port: AbstractPort, sticky: Option[DefaultGateway.Sticky.Value], routes: List[Route]) extends Gateway
+trait AbstractGateway extends Gateway {
+  def sticky: Option[AbstractGateway.Sticky.Value]
 
-case class GatewayReference(name: String) extends Gateway with Reference
+  def routes: List[Route]
+}
+
+case class DefaultGateway(name: String, port: Port, sticky: Option[AbstractGateway.Sticky.Value], routes: List[Route]) extends AbstractGateway
+
+object ClusterGateway {
+  val anonymous = ""
+}
+
+case class ClusterGateway(name: String, port: String, sticky: Option[AbstractGateway.Sticky.Value], routes: List[Route]) extends AbstractGateway
 
 object Route {
   val noPath = ""

@@ -35,7 +35,7 @@ object DeploymentActor {
 
   case class UpdateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) extends DeploymentMessages
 
-  case class UpdateRouting(deployment: Deployment, cluster: DeploymentCluster, routing: List[DefaultGateway], source: String) extends DeploymentMessages
+  case class UpdateRouting(deployment: Deployment, cluster: DeploymentCluster, routing: List[ClusterGateway], source: String) extends DeploymentMessages
 
 }
 
@@ -368,7 +368,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     case Some(sc) ⇒ !sc.services.exists(_.breed.name == service.breed.name)
   })
 
-  def updatedWeights(stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[DefaultGateway] = {
+  def updatedWeights(stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[ClusterGateway] = {
     val newServices = newService(stableCluster, blueprintCluster)
 
     if (newServices.nonEmpty) {
@@ -401,7 +401,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
             route.copy(path = service.breed.name)
         }
 
-        blueprintCluster.routingBy(port).getOrElse(DefaultGateway("", PortReference(port), None, Nil)).copy(routes = routes)
+        blueprintCluster.routingBy(port).getOrElse(ClusterGateway("", port, None, Nil)).copy(routes = routes)
       } toList
 
     } else stableCluster.map(cluster ⇒ cluster.routing).getOrElse(Nil)
@@ -523,7 +523,7 @@ trait DeploymentUpdate {
     actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
   }
 
-  def updateRouting(deployment: Deployment, cluster: DeploymentCluster, routing: List[DefaultGateway], source: String) = {
+  def updateRouting(deployment: Deployment, cluster: DeploymentCluster, routing: List[ClusterGateway], source: String) = {
     val clusters = deployment.clusters.map(c ⇒ if (c.name == cluster.name) c.copy(routing = routing) else c)
     actorFor[PersistenceActor] ? PersistenceActor.Update(validateRouting(deployment.copy(clusters = clusters)), Some(source))
   }

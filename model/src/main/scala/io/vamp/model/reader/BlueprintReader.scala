@@ -179,20 +179,20 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 trait BlueprintRoutingHelper {
   this: NotificationProvider ⇒
 
-  protected def processAnonymousRouting(services: List[AbstractService], routing: List[DefaultGateway]): List[DefaultGateway] = {
-    if (routing.exists(_.port == DefaultGateway.anonymous)) {
+  protected def processAnonymousRouting(services: List[AbstractService], routing: List[ClusterGateway]): List[ClusterGateway] = {
+    if (routing.exists(_.port == ClusterGateway.anonymous)) {
       val ports = services.map(_.breed).flatMap {
         case breed: DefaultBreed ⇒ breed.ports
         case _                   ⇒ Nil
       }
       if (ports.size == 1)
-        routing.find(_.port == DefaultGateway.anonymous).get.copy(port = PortReference(ports.head.name)) :: Nil
+        routing.find(_.port == ClusterGateway.anonymous).get.copy(port = ports.head.name) :: Nil
       else routing
     } else routing
   }
 
   protected def validateRoutingAnonymousPortMapping(blueprint: AbstractBlueprint): Unit = blueprint.clusters.foreach { cluster ⇒
-    if (cluster.routingBy(DefaultGateway.anonymous).isDefined) {
+    if (cluster.routingBy(ClusterGateway.anonymous).isDefined) {
       cluster.services.foreach { service ⇒
         service.breed match {
           case breed: DefaultBreed ⇒ if (breed.ports.size > 1) throwException(IllegalAnonymousRoutingPortMappingError(breed))
@@ -273,21 +273,21 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
   override protected def createDefault(implicit source: YamlSourceReader): Scale = DefaultScale(name, <<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
 }
 
-object RoutingReader extends YamlReader[List[DefaultGateway]] {
+object RoutingReader extends YamlReader[List[ClusterGateway]] {
 
   import YamlSourceReader._
 
-  def mapping(entry: String = "routing")(implicit source: YamlSourceReader): List[DefaultGateway] = <<?[YamlSourceReader](entry) match {
+  def mapping(entry: String = "routing")(implicit source: YamlSourceReader): List[ClusterGateway] = <<?[YamlSourceReader](entry) match {
     case Some(yaml) ⇒ read(yaml)
     case None       ⇒ Nil
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
-    if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>(DefaultGateway.anonymous.reference, <<-())
+    if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>(ClusterGateway.anonymous, <<-())
     super.expand
   }
 
-  override protected def parse(implicit source: YamlSourceReader): List[DefaultGateway] = source.pull().map {
-    case (port: String, yaml: YamlSourceReader) ⇒ GatewayWeakReferenceReader.readReferenceOrAnonymous(yaml).asInstanceOf[DefaultGateway].copy(port = PortReference(port))
+  override protected def parse(implicit source: YamlSourceReader): List[ClusterGateway] = source.pull().map {
+    case (port: String, yaml: YamlSourceReader) ⇒ ClusterGatewayReader.readReferenceOrAnonymous(yaml).asInstanceOf[ClusterGateway].copy(port = port)
   } toList
 }

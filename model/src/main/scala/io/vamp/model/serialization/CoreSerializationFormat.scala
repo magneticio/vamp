@@ -12,6 +12,7 @@ object CoreSerializationFormat {
     MapSerializer,
     BreedSerializationFormat,
     BlueprintSerializationFormat,
+    GatewaySerializationFormat,
     SlaSerializationFormat,
     WorkflowSerializationFormat
   )

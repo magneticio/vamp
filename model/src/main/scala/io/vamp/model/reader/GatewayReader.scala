@@ -6,27 +6,22 @@ import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
 
-trait AbstractGatewayReader extends YamlReader[Gateway] {
+trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] {
 
-  import YamlSourceReader._
-
-  override protected def parse(implicit source: YamlSourceReader): Gateway = DefaultGateway(name, port, sticky("sticky"), routes)
-
-  override protected def validate(any: Gateway): Gateway = any match {
-    case gateway: DefaultGateway   ⇒ gateway
-    case gateway: GatewayReference ⇒ gateway
+  protected def port(implicit source: YamlSourceReader): Port = <<![Any]("port") match {
+    case value: Int    ⇒ Port.portFor(value)
+    case value: String ⇒ Port.portFor(value)
+    case any           ⇒ throwException(UnexpectedTypeError("port", classOf[String], any.getClass))
   }
 
-  protected def port(implicit source: YamlSourceReader) = Port.portFor(<<?[Int]("port").getOrElse(<<?[String]("port")).toString)
-
   protected def sticky(path: YamlPath)(implicit source: YamlSourceReader) = <<?[String](path) match {
-    case Some(sticky) ⇒ if (sticky.toLowerCase == "none") None else Option(DefaultGateway.Sticky.byName(sticky).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
+    case Some(sticky) ⇒ if (sticky.toLowerCase == "none") None else Option(AbstractGateway.Sticky.byName(sticky).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
     case None         ⇒ None
   }
 
   protected def routes(implicit source: YamlSourceReader): List[Route] = <<?[YamlSourceReader]("routes") match {
     case Some(map) ⇒ map.pull().map {
-      case (name: String, _) ⇒ RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name)) match {
+      case (name: String, _) ⇒ RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
         case route: DefaultRoute   ⇒ route.copy(path = name)
         case route: RouteReference ⇒ route.copy(path = name)
       }
@@ -35,7 +30,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] {
   }
 }
 
-object GatewayReader extends AbstractGatewayReader with ReferenceYamlReader[Gateway] {
+object GatewayReader extends AbstractGatewayReader[Gateway] with ReferenceYamlReader[Gateway] {
 
   override def readReference: PartialFunction[Any, Gateway] = {
     case reference: String ⇒ GatewayReference(reference)
@@ -44,13 +39,17 @@ object GatewayReader extends AbstractGatewayReader with ReferenceYamlReader[Gate
       if (isReference) GatewayReference(reference) else read(yaml)
     case _ ⇒ throwException(UnexpectedInnerElementError("/", classOf[YamlSourceReader]))
   }
+
+  override protected def parse(implicit source: YamlSourceReader): Gateway = DefaultGateway(name, port, sticky("sticky"), routes)
 }
 
-object GatewayWeakReferenceReader extends AbstractGatewayReader with WeakReferenceYamlReader[Gateway] {
+object ClusterGatewayReader extends AbstractGatewayReader[Gateway] with WeakReferenceYamlReader[Gateway] {
 
   override protected def createReference(implicit source: YamlSourceReader): Gateway = GatewayReference(reference)
 
-  override protected def createDefault(implicit source: YamlSourceReader): Gateway = DefaultGateway("", port, sticky("sticky"), routes)
+  override protected def createDefault(implicit source: YamlSourceReader): Gateway = ClusterGateway("", "", sticky("sticky"), routes)
+
+  override protected def parse(implicit source: YamlSourceReader): Gateway = ClusterGateway(name, "", sticky("sticky"), routes)
 }
 
 object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route] {

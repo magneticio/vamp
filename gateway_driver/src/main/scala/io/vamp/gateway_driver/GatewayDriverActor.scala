@@ -8,7 +8,7 @@ import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.gateway_driver.GatewayStore.{ Get, Put }
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor
-import io.vamp.gateway_driver.model.{ Gateway ⇒ DriverGateway, _ }
+import io.vamp.gateway_driver.model.{ Gateway ⇒ DriverGateway, ClusterGateway ⇒ DriverClusterGateway, _ }
 import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.pulse.notification.PulseFailureNotifier
@@ -103,7 +103,7 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends GatewayConverter
 trait GatewayConverter extends GatewayDriverNameMatcher {
 
   def toDeploymentGateways(gateways: List[DriverGateway]): DeploymentGateways = {
-    val clusterGateways = gateways.filter(gateway ⇒ processableClusterGateway(gateway.name)).map(gateway ⇒ ClusterGateway(clusterGatewayNameMatcher(gateway.name), gateway.port, services(gateway, gateway.services)))
+    val clusterGateways = gateways.filter(gateway ⇒ processableClusterGateway(gateway.name)).map(gateway ⇒ DriverClusterGateway(clusterGatewayNameMatcher(gateway.name), gateway.port, services(gateway, gateway.services)))
     val endpointGateways = gateways.filter(gateway ⇒ processableEndpointGateway(gateway.name)).map(gateway ⇒ EndpointGateway(endpointGatewayNameMatcher(gateway.name), gateway.port, services(gateway, gateway.services)))
 
     DeploymentGateways(clusterGateways, endpointGateways)

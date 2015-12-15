@@ -40,6 +40,7 @@ trait PersistenceArchiving {
 
   private def tagFor(artifact: Artifact): Option[String] = artifact.getClass match {
     case t if classOf[Deployment].isAssignableFrom(t) ⇒ Some(s"deployments:${artifact.name}")
+    case t if classOf[Gateway].isAssignableFrom(t) ⇒ Some(s"gateways:${artifact.name}")
     case t if classOf[Breed].isAssignableFrom(t) ⇒ Some(s"breeds:${artifact.name}")
     case t if classOf[Blueprint].isAssignableFrom(t) ⇒ Some(s"blueprints:${artifact.name}")
     case t if classOf[Sla].isAssignableFrom(t) ⇒ Some(s"slas:${artifact.name}")

@@ -2,7 +2,7 @@ package io.vamp.gateway_driver.haproxy.txt
 
 import io.vamp.gateway_driver.haproxy.{ Filter ⇒ HaProxyFilter, Server ⇒ HaProxyServer, _ }
 import io.vamp.gateway_driver.model.{ Filter, Gateway, Instance, Service }
-import io.vamp.model.artifact.DefaultGateway
+import io.vamp.model.artifact.AbstractGateway
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{ FlatSpec, Informer, Matchers }
@@ -914,7 +914,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
                 host = "192.168.99.100",
                 port = 32773)
             ))),
-        sticky = Some(DefaultGateway.Sticky.Service)),
+        sticky = Some(AbstractGateway.Sticky.Service)),
       Gateway(
         name = "cd10460f-ca44-49c6-9965-f66c27acd478_9050",
         port = 9050,
@@ -1109,7 +1109,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
                 host = "192.168.99.100",
                 port = 32773)
             ))),
-        sticky = Some(DefaultGateway.Sticky.Instance)),
+        sticky = Some(AbstractGateway.Sticky.Instance)),
       Gateway(
         name = "cd10460f-ca44-49c6-9965-f66c27acd478_9050",
         port = 9050,
