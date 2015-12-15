@@ -98,14 +98,27 @@ case class TraitReference(cluster: String, group: String, name: String) extends 
   def referenceWithoutGroup = s"$cluster.$name"
 }
 
+trait AbstractPort {
+  def name: String
+}
+
 object Port extends Enumeration {
 
   val Tcp, Http = Value
 
   def portFor(number: Int): Port = Port("", None, Some(number.toString))
+
+  def portFor(value: String): Port = Port("", None, Some(value))
 }
 
-case class Port(name: String, alias: Option[String], value: Option[String]) extends Trait {
+object PortReference {
+  implicit def portReference2string(ref: PortReference): String = ref.reference
+}
+case class PortReference(reference: String) extends AbstractPort {
+  val name = reference
+}
+
+case class Port(name: String, alias: Option[String], value: Option[String]) extends AbstractPort with Trait {
   private val tcp = "/tcp"
   private val http = "/http"
 

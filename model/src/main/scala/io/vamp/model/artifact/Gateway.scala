@@ -1,23 +1,34 @@
 package io.vamp.model.artifact
 
-object Routing {
+trait Gateway extends Artifact
 
-  val anonymous = ""
+object DefaultGateway {
+
+  val anonymous = PortReference("")
 
   object Sticky extends Enumeration {
     val Service, Instance = Value
 
-    def byName(sticky: String): Option[Sticky.Value] = Routing.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
+    def byName(sticky: String): Option[Sticky.Value] = DefaultGateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
   }
+
 }
 
-case class Routing(sticky: Option[Routing.Sticky.Value], routes: Map[String, Route])
+case class DefaultGateway(name: String, port: AbstractPort, sticky: Option[DefaultGateway.Sticky.Value], routes: List[Route]) extends Gateway
 
-trait Route extends Artifact
+case class GatewayReference(name: String) extends Gateway with Reference
 
-case class RouteReference(name: String) extends Reference with Route
+object Route {
+  val noPath = ""
+}
 
-case class DefaultRoute(name: String, weight: Option[Int], filters: List[Filter]) extends Route
+trait Route extends Artifact {
+  def path: String
+}
+
+case class RouteReference(name: String, path: String) extends Reference with Route
+
+case class DefaultRoute(name: String, path: String, weight: Option[Int], filters: List[Filter]) extends Route
 
 trait Filter extends Artifact
 

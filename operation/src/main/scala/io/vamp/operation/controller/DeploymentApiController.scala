@@ -121,7 +121,7 @@ trait DeploymentApiController extends ArtifactShrinkage {
       case Some(deployment: Deployment) ⇒
         deployment.clusters.find(_.name == clusterName) match {
           case None          ⇒ Future(None)
-          case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateRouting(deployment, cluster, RoutingMapReader.read(request), request)
+          case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateRouting(deployment, cluster, RoutingReader.read(request), request)
         }
       case _ ⇒ Future(None)
     }

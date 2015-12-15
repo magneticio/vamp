@@ -66,10 +66,10 @@ class ScaleSerializer extends ArtifactSerializer[Scale] with ReferenceSerializat
   }
 }
 
-class RoutingStickySerializer extends CustomSerializer[Routing.Sticky.Value](format ⇒ ({
-  case JString(sticky) ⇒ Routing.Sticky.byName(sticky).getOrElse(throw new UnsupportedOperationException(s"Cannot deserialize sticky value: $sticky"))
+class RoutingStickySerializer extends CustomSerializer[DefaultGateway.Sticky.Value](format ⇒ ({
+  case JString(sticky) ⇒ DefaultGateway.Sticky.byName(sticky).getOrElse(throw new UnsupportedOperationException(s"Cannot deserialize sticky value: $sticky"))
 }, {
-  case sticky: Routing.Sticky.Value ⇒ JString(sticky.toString.toLowerCase)
+  case sticky: DefaultGateway.Sticky.Value ⇒ JString(sticky.toString.toLowerCase)
 }))
 
 class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerialization {

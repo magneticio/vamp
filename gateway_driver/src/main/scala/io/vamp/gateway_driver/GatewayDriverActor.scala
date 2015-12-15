@@ -8,7 +8,7 @@ import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.gateway_driver.GatewayStore.{ Get, Put }
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor
-import io.vamp.gateway_driver.model._
+import io.vamp.gateway_driver.model.{ Gateway ⇒ DriverGateway, _ }
 import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.pulse.notification.PulseFailureNotifier
@@ -83,11 +83,11 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends GatewayConverter
     }
   }
 
-  private def read: Future[List[Gateway]] = IoC.actorFor[GatewayStore] ? Get map {
-    case gateways ⇒ gateways.asInstanceOf[List[Gateway]]
+  private def read: Future[List[DriverGateway]] = IoC.actorFor[GatewayStore] ? Get map {
+    case gateways ⇒ gateways.asInstanceOf[List[DriverGateway]]
   }
 
-  private def update(gateway: Gateway) = {
+  private def update(gateway: DriverGateway) = {
     log.info(s"Update gateway: ${gateway.name}")
     read map { case gateways ⇒ persist(gateway :: gateways.filterNot(_.name == gateway.name)) }
   }
@@ -97,12 +97,12 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends GatewayConverter
     read map { case gateways ⇒ persist(gateways.filterNot(_.name == name)) }
   }
 
-  private def persist(gateways: List[Gateway]) = IoC.actorFor[GatewayStore] ! Put(gateways, Option(marshaller.marshall(gateways)))
+  private def persist(gateways: List[DriverGateway]) = IoC.actorFor[GatewayStore] ! Put(gateways, Option(marshaller.marshall(gateways)))
 }
 
 trait GatewayConverter extends GatewayDriverNameMatcher {
 
-  def toDeploymentGateways(gateways: List[Gateway]): DeploymentGateways = {
+  def toDeploymentGateways(gateways: List[DriverGateway]): DeploymentGateways = {
     val clusterGateways = gateways.filter(gateway ⇒ processableClusterGateway(gateway.name)).map(gateway ⇒ ClusterGateway(clusterGatewayNameMatcher(gateway.name), gateway.port, services(gateway, gateway.services)))
     val endpointGateways = gateways.filter(gateway ⇒ processableEndpointGateway(gateway.name)).map(gateway ⇒ EndpointGateway(endpointGatewayNameMatcher(gateway.name), gateway.port, services(gateway, gateway.services)))
 
@@ -116,8 +116,8 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
   private def gateway(name: String, deployment: Deployment, cluster: Option[DeploymentCluster], port: Port) = {
     def `type`(port: Port): String = if (port.`type` == Port.Http) "http" else "tcp"
     cluster match {
-      case None    ⇒ Gateway(name, port.number, `type`(port), filters(cluster, port), services(deployment, None, port), None)
-      case Some(c) ⇒ Gateway(name, c.portMapping.get(port.number).get, `type`(port), filters(cluster, port), services(deployment, cluster, port), c.routing.get(port.name).flatMap(_.sticky))
+      case None    ⇒ DriverGateway(name, port.number, `type`(port), filters(cluster, port), services(deployment, None, port), None)
+      case Some(c) ⇒ DriverGateway(name, c.portMapping.get(port.number).get, `type`(port), filters(cluster, port), services(deployment, cluster, port), c.routingBy(port.name).flatMap(_.sticky))
     }
   }
 
@@ -146,7 +146,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
   }
 
   private def route(cluster: DeploymentCluster, service: DeploymentService, port: Port): DefaultRoute = {
-    cluster.route(service, port.name).getOrElse(DefaultRoute("", None, Nil))
+    cluster.route(service, port.name).getOrElse(DefaultRoute("", "", None, Nil))
   }
 
   private def server(service: DeploymentService, server: DeploymentInstance, port: Port) = server.ports.get(port.number) match {
@@ -179,7 +179,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
     }
   }
 
-  private def services(gateway: Gateway, services: List[model.Service]): List[GatewayService] = services.map { service ⇒
+  private def services(gateway: DriverGateway, services: List[model.Service]): List[GatewayService] = services.map { service ⇒
     GatewayService(serviceGatewayNameMatcher(service.name), service.weight, service.instances, gateway.filters.filter(_.destination == service.name))
   }
 

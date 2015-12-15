@@ -21,8 +21,8 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
           <<?[List[YamlSourceReader]]("services") match {
-            case None       ⇒ DeploymentCluster(name, Nil, Map(), sla, portMapping("port_mapping"), dialects)
-            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), RoutingMapReader.mapping(), sla, portMapping("port_mapping"), dialects)
+            case None       ⇒ DeploymentCluster(name, Nil, Nil, sla, portMapping("port_mapping"), dialects)
+            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), RoutingReader.mapping(), sla, portMapping("port_mapping"), dialects)
           }
       } toList
     }
