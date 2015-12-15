@@ -31,6 +31,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
   private val store = new InMemoryStore(log)
 
   private val types: Map[String, YamlReader[_ <: Artifact]] = Map(
+    "gateways" -> GatewayReader,
     "deployments" -> DeploymentReader,
     "breeds" -> BreedReader,
     "blueprints" -> BlueprintReader,
