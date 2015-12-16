@@ -2,7 +2,7 @@ package io.vamp.model.validator
 
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
-import io.vamp.model.notification.{ UnresolvedDependencyInTraitValueError, UnresolvedEndpointPortError, UnresolvedEnvironmentVariableError }
+import io.vamp.model.notification.{ UnresolvedDependencyInTraitValueError, UnresolvedEnvironmentVariableError }
 import io.vamp.model.resolver.TraitResolver
 
 import scala.language.postfixOps
@@ -43,12 +43,10 @@ trait BreedTraitValueValidator extends TraitResolver {
 trait BlueprintTraitValidator extends TraitResolver {
   this: NotificationProvider ⇒
 
-  def validateBlueprintTraitValues = validateEndpoints andThen validateEnvironmentVariables
+  def validateBlueprintTraitValues = validateGateways andThen validateEnvironmentVariables
 
-  private def validateEndpoints: (DefaultBlueprint ⇒ DefaultBlueprint) = { blueprint: DefaultBlueprint ⇒
-    validateVariables(blueprint.endpoints, TraitReference.Ports, { endpoint ⇒
-      throwException(UnresolvedEndpointPortError(TraitReference.referenceFor(endpoint.name).flatMap(r ⇒ Some(r.referenceWithoutGroup)).getOrElse(endpoint.name), endpoint.value))
-    })(blueprint)
+  private def validateGateways: (DefaultBlueprint ⇒ DefaultBlueprint) = { blueprint: DefaultBlueprint ⇒
+    blueprint
   }
 
   private def validateEnvironmentVariables: (DefaultBlueprint ⇒ DefaultBlueprint) = { blueprint: DefaultBlueprint ⇒

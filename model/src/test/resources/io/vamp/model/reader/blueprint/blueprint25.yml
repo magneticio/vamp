@@ -1,7 +1,7 @@
 name: nomadic-frostbite
 
-endpoints:
-  supersonic.http: 8080
+gateways:
+  8080: supersonic.http
 
 clusters:
   supersonic:

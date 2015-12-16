@@ -183,7 +183,36 @@ trait ReferenceYamlReader[T] extends YamlReader[T] {
   def readReferenceFromSource(any: Any): T = load(new StringReader(any.toString), readReference)
 }
 
-trait WeakReferenceYamlReader[T] extends YamlReader[T] {
+object AnonymousYamlReader {
+  val name = ""
+}
+
+trait AnonymousYamlReader[T] extends YamlReader[T] {
+
+  import YamlSourceReader._
+
+  def readAnonymous(any: Any): T = any match {
+    case yaml: YamlSourceReader ⇒ read(validateAnonymous(yaml))
+  }
+
+  def readOptionalAnonymous(path: YamlPath)(implicit source: YamlSourceReader): Option[T] = <<?[Any](path).flatMap {
+    reference ⇒ Some(readAnonymous(reference))
+  }
+
+  def validateAnonymous(implicit source: YamlSourceReader): YamlSourceReader = {
+    if (!isAnonymous) throwException(NotAnonymousError(name))
+    source
+  }
+
+  protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
+    case None       ⇒ AnonymousYamlReader.name
+    case Some(name) ⇒ name
+  }
+
+  protected def isAnonymous(implicit source: YamlSourceReader): Boolean = <<?[String]("name").isEmpty
+}
+
+trait WeakReferenceYamlReader[T] extends YamlReader[T] with AnonymousYamlReader[T] {
 
   import YamlSourceReader._
 
@@ -203,13 +232,11 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] {
   }
 
   protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
-    case None        ⇒ ""
+    case None        ⇒ AnonymousYamlReader.name
     case Some(value) ⇒ validateName(value)
   }
 
   override protected def parse(implicit source: YamlSourceReader): T = if (isReference) createReference else createDefault
-
-  protected def isAnonymous(implicit source: YamlSourceReader): Boolean = <<?[String]("name").isEmpty
 
   protected def `type`(implicit source: YamlSourceReader): String = <<![String]("type")
 

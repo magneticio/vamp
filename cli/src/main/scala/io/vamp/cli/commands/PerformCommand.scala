@@ -36,7 +36,7 @@ object PerformCommand extends Generate {
 
     case Some("blueprints") ⇒
       println("NAME".padTo(40, ' ').bold.cyan + "ENDPOINTS".bold.cyan)
-      VampHostCalls.getBlueprints.foreach({ case blueprint: DefaultBlueprint ⇒ println(s"${blueprint.name.padTo(40, ' ')}${blueprint.endpoints.map(e ⇒ s"${e.name} -> ${e.value.get}").mkString(", ")}") })
+      VampHostCalls.getBlueprints.foreach({ case blueprint: DefaultBlueprint ⇒ println(s"${blueprint.name.padTo(40, ' ')}${blueprint.gateways.map(e ⇒ s"${e.name} -> ...").mkString(", ")}") })
 
     case Some("deployments") ⇒
       println("NAME".padTo(40, ' ').bold.cyan + "CLUSTERS".bold.cyan)
@@ -180,7 +180,7 @@ object PerformCommand extends Generate {
 
   private def mergeBlueprints(sourceBlueprint: DefaultBlueprint, additionalBlueprint: DefaultBlueprint): DefaultBlueprint = sourceBlueprint.copy(
     clusters = sourceBlueprint.clusters ++ additionalBlueprint.clusters,
-    endpoints = sourceBlueprint.endpoints ++ additionalBlueprint.endpoints,
+    gateways = sourceBlueprint.gateways ++ additionalBlueprint.gateways,
     environmentVariables = sourceBlueprint.environmentVariables ++ additionalBlueprint.environmentVariables
   )
 

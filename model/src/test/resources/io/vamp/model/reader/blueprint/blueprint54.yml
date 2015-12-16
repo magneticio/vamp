@@ -1,9 +1,9 @@
 name: nomadic-frostbite
 
-endpoints:
-  supersonic.port: 8080
-  supersonic.health: 8080/tcp
-  supersonic.metrics: 8080/http
+gateways:
+  8080     : supersonic.port
+  8080/tcp : supersonic.health
+  8080/http: supersonic.metrics
 
 clusters:
   supersonic:

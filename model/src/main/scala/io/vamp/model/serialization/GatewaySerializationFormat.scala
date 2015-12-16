@@ -17,7 +17,7 @@ object GatewaySerializationFormat extends io.vamp.common.json.SerializationForma
     new FilterSerializer()
 }
 
-class GatewaySerializer() extends ArtifactSerializer[DefaultGateway] with AbstractGatewaySerializer {
+class GatewaySerializer() extends ArtifactSerializer[Gateway] with AbstractGatewaySerializer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeGateway
 }
 
@@ -28,12 +28,11 @@ class ClusterGatewaySerializer() extends ArtifactSerializer[ClusterGateway] with
 trait AbstractGatewaySerializer extends ReferenceSerialization {
 
   def serializeGateway(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case gateway: GatewayReference ⇒ serializeReference(gateway)
     case gateway: AbstractGateway ⇒
       val list = new ArrayBuffer[JField]
 
       gateway match {
-        case defaultGateway: DefaultGateway ⇒
+        case defaultGateway: Gateway ⇒
           list += JField("name", JString(defaultGateway.name))
           list += JField("port", JString(defaultGateway.port.value.get))
       }

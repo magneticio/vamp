@@ -24,12 +24,12 @@ object FullDeploymentSerializationFormat extends io.vamp.common.json.Serializati
     new DeploymentServiceStateStepSerializer()
 }
 
-class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment] with TraitDecomposer {
+class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment] with TraitDecomposer with BlueprintGatewaySerializer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case deployment: Deployment ⇒
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(deployment.name))
-      list += JField("endpoints", traits(deployment.endpoints))
+      list += JField("gateways", serializeGateways(deployment.gateways))
       list += JField("clusters", Extraction.decompose(deployment.clusters.map(cluster ⇒ cluster.name -> cluster).toMap))
       list += JField("ports", traits(deployment.ports))
 

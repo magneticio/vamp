@@ -22,12 +22,12 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
 
           <<?[List[YamlSourceReader]]("services") match {
             case None       ⇒ DeploymentCluster(name, Nil, Nil, sla, portMapping("port_mapping"), dialects)
-            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), RoutingReader.mapping(), sla, portMapping("port_mapping"), dialects)
+            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), RoutingReader.mapping("routing"), sla, portMapping("port_mapping"), dialects)
           }
       } toList
     }
 
-    Deployment(name, clusters, ports("endpoints", addGroup = true), ports(addGroup = true), environmentVariables, hosts())
+    Deployment(name, clusters, BlueprintGatewayReader.mapping("gateways"), ports(addGroup = true), environmentVariables, hosts())
   }
 
   override protected def validate(deployment: Deployment): Deployment = {

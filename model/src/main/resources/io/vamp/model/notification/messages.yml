@@ -5,6 +5,7 @@ MissingPathValueError                 : "Can't find any value for path: /{path}"
 UnexpectedTypeError                   : "Unexpected value type of '{path}'."
 UnexpectedInnerElementError           : "Can't find a nested element of '{path}'."
 EitherReferenceOrAnonymous            : "Either it should be a reference '{name} -> {reference}' or an anonymous inline definition, but not both."
+NotAnonymousError                     : "Expected an anonimous artifact, not one with the name: '{name}'."
 UnexpectedElement                     : "Unexpected in DSL: {message}"
 IllegalName                           : "Illegal name or reference - white space characters, '/', '[' and ']' are not allowed: {name}"
 IllegalStrictName                     : "Illegal name - white space characters, '.', '/', '[' and ']' are not allowed: {name}"
@@ -19,7 +20,6 @@ UnresolvedDependencyInTraitValueError : "Unresolved reference '{reference}' in b
 
 # Blueprint Reader
 
-UnresolvedEndpointPortError            : "Endpoint port '{name} -> {value}' cannot be resolved. Check if referenced cluster exists and if it has any breed with referenced port name."
 UnresolvedEnvironmentVariableError     : "Parameter '{name} -> {value}' cannot be resolved. Check if cluster exists and if it has any breed with port, environment variable or constant referable by {name}."
 NonUniqueBlueprintBreedReferenceError  : "Multiple references for breed: '{name}'."
 UnresolvedBreedDependencyError         : "Unresolved breed dependency for breed '{breed.name}' and dependency '{dependency._1} -> {dependency._2.name}'."

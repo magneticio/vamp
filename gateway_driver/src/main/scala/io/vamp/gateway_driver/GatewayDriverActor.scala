@@ -62,6 +62,7 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends GatewayConverter
     case (store, kibana) ⇒ Map("store" -> store, "marshaller" -> marshaller.info, "kibana" -> kibana)
   }
 
+  // TODO remove this method
   private def getAllAfterPurge(deployments: List[Deployment]) = {
     log.debug(s"Read all gateways")
 
@@ -72,7 +73,7 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends GatewayConverter
             clusterGatewayName(deployment, cluster, port)
           }
         }
-      } ++ deployment.endpoints.map(endpointGatewayName(deployment, _))
+      }
     } toSet
 
     read map {

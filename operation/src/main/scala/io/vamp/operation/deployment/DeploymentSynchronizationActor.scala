@@ -380,31 +380,31 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
       case _ ⇒ true
     })
 
-    deployment.copy(endpoints = purge(deployment.endpoints), ports = purge(deployment.ports), environmentVariables = purge(deployment.environmentVariables), hosts = purge(deployment.hosts))
+    deployment.copy( /*gateways = purge(deployment.gateways), */ ports = purge(deployment.ports), environmentVariables = purge(deployment.environmentVariables), hosts = purge(deployment.hosts))
   }
 
   private def updateEndpoints(remove: List[DeploymentCluster], routes: List[EndpointGateway]): (Deployment ⇒ Deployment) = { deployment: Deployment ⇒
 
-    routes.filter(_.matching(deployment, None)).foreach(route ⇒ if (!deployment.endpoints.exists(_.number == route.port)) {
-      actorFor[GatewayDriverActor] ! GatewayDriverActor.RemoveEndpoint(deployment, Port.portFor(route.port))
-    })
-
-    deployment.endpoints.foreach { port ⇒
-      TraitReference.referenceFor(port.name).map(_.cluster).foreach { clusterName ⇒
-        deployment.clusters.find(_.name == clusterName).foreach { cluster ⇒
-          if (cluster.services.forall(_.state.isDeployed)) routes.find(_.matching(deployment, Some(port))) match {
-
-            case None ⇒
-              actorFor[GatewayDriverActor] ! GatewayDriverActor.CreateEndpoint(deployment, port)
-
-            case Some(route) if route.services.flatMap(_.instances).count(_ ⇒ true) == 0 ⇒
-              actorFor[GatewayDriverActor] ! GatewayDriverActor.CreateEndpoint(deployment, port)
-
-            case _ ⇒
-          }
-        }
-      }
-    }
+    //    routes.filter(_.matching(deployment, None)).foreach(route ⇒ if (!deployment.gateways.exists(_.number == route.port)) {
+    //      actorFor[GatewayDriverActor] ! GatewayDriverActor.RemoveEndpoint(deployment, Port.portFor(route.port))
+    //    })
+    //
+    //    deployment.gateways.foreach { port ⇒
+    //      TraitReference.referenceFor(port.name).map(_.cluster).foreach { clusterName ⇒
+    //        deployment.clusters.find(_.name == clusterName).foreach { cluster ⇒
+    //          if (cluster.services.forall(_.state.isDeployed)) routes.find(_.matching(deployment, Some(port))) match {
+    //
+    //            case None ⇒
+    //              actorFor[GatewayDriverActor] ! GatewayDriverActor.CreateEndpoint(deployment, port)
+    //
+    //            case Some(route) if route.services.flatMap(_.instances).count(_ ⇒ true) == 0 ⇒
+    //              actorFor[GatewayDriverActor] ! GatewayDriverActor.CreateEndpoint(deployment, port)
+    //
+    //            case _ ⇒
+    //          }
+    //        }
+    //      }
+    //    }
 
     deployment
   }

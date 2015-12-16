@@ -18,35 +18,23 @@ object BlueprintSerializationFormat extends io.vamp.common.json.SerializationFor
     new ServiceFieldSerializer()
 }
 
-class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomposer with ReferenceSerialization {
+class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomposer with ReferenceSerialization with BlueprintGatewaySerializer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case blueprint: BlueprintReference ⇒ serializeReference(blueprint)
     case blueprint: AbstractBlueprint ⇒
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(blueprint.name))
-      list += JField("endpoints", traits(blueprint.endpoints))
+      list += JField("gateways", serializeGateways(blueprint.gateways))
       list += JField("clusters", Extraction.decompose(blueprint.clusters.map(cluster ⇒ cluster.name -> cluster).toMap))
       list += JField("environment_variables", traits(blueprint.environmentVariables))
       new JObject(list.toList)
   }
 }
 
-trait DialectSerializer {
-  def serializeDialects(dialects: Map[Dialect.Value, Any]) = Extraction.decompose(dialects.map({ case (k, v) ⇒ k.toString.toLowerCase -> v }))(DefaultFormats)
-}
-
-trait RoutingSerializer {
-  def serializeRoutings(routings: List[DefaultGateway]) = Extraction.decompose {
-    routings.map { routing ⇒
-      routing.port.name -> Extraction.decompose(routing)(CoreSerializationFormat.default)
-    } toMap
-  }(DefaultFormats)
-}
-
 class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] with DialectSerializer with RoutingSerializer {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
     case ("name", _)                  ⇒ None
-    case ("routing", routing)         ⇒ Some(("routing", serializeRoutings(routing.asInstanceOf[List[DefaultGateway]])))
+    case ("routing", routing)         ⇒ Some(("routing", serializeRoutings(routing.asInstanceOf[List[Gateway]])))
     case ("portMapping", portMapping) ⇒ Some(("port_mapping", Extraction.decompose(portMapping)(DefaultFormats)))
     case ("dialects", dialects)       ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
   }
@@ -73,3 +61,22 @@ class ScaleSerializer extends ArtifactSerializer[Scale] with ReferenceSerializat
   }
 }
 
+trait DialectSerializer {
+  def serializeDialects(dialects: Map[Dialect.Value, Any]) = Extraction.decompose(dialects.map({ case (k, v) ⇒ k.toString.toLowerCase -> v }))(DefaultFormats)
+}
+
+trait RoutingSerializer {
+  def serializeRoutings(routings: List[Gateway]) = Extraction.decompose {
+    routings.map { routing ⇒
+      routing.port.name -> Extraction.decompose(routing)(CoreSerializationFormat.default)
+    } toMap
+  }(DefaultFormats)
+}
+
+trait BlueprintGatewaySerializer {
+  def serializeGateways(gateways: List[Gateway]) = Extraction.decompose {
+    gateways.map { gateway ⇒
+      gateway.port.name -> Extraction.decompose(gateway)(CoreSerializationFormat.default)
+    } toMap
+  }(DefaultFormats)
+}

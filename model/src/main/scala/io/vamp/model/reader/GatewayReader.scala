@@ -6,7 +6,7 @@ import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
 
-trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] {
+trait AbstractGatewayReader[T <: AbstractGateway] extends YamlReader[T] with AnonymousYamlReader[T] {
 
   protected def port(implicit source: YamlSourceReader): Port = <<![Any]("port") match {
     case value: Int    ⇒ Port.portFor(value)
@@ -30,26 +30,14 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] {
   }
 }
 
-object GatewayReader extends AbstractGatewayReader[Gateway] with ReferenceYamlReader[Gateway] {
+object GatewayReader extends AbstractGatewayReader[Gateway] {
 
-  override def readReference: PartialFunction[Any, Gateway] = {
-    case reference: String ⇒ GatewayReference(reference)
-    case yaml: YamlSourceReader ⇒
-      implicit val source = yaml
-      if (isReference) GatewayReference(reference) else read(yaml)
-    case _ ⇒ throwException(UnexpectedInnerElementError("/", classOf[YamlSourceReader]))
-  }
-
-  override protected def parse(implicit source: YamlSourceReader): Gateway = DefaultGateway(name, port, sticky("sticky"), routes)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes)
 }
 
-object ClusterGatewayReader extends AbstractGatewayReader[Gateway] with WeakReferenceYamlReader[Gateway] {
+object ClusterGatewayReader extends AbstractGatewayReader[ClusterGateway] {
 
-  override protected def createReference(implicit source: YamlSourceReader): Gateway = GatewayReference(reference)
-
-  override protected def createDefault(implicit source: YamlSourceReader): Gateway = ClusterGateway("", "", sticky("sticky"), routes)
-
-  override protected def parse(implicit source: YamlSourceReader): Gateway = ClusterGateway(name, "", sticky("sticky"), routes)
+  override protected def parse(implicit source: YamlSourceReader): ClusterGateway = ClusterGateway(name, <<![String]("port"), sticky("sticky"), routes)
 }
 
 object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route] {

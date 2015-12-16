@@ -1,9 +1,5 @@
 package io.vamp.model.artifact
 
-trait Gateway extends Artifact
-
-case class GatewayReference(name: String) extends Gateway with Reference
-
 object AbstractGateway {
 
   object Sticky extends Enumeration {
@@ -14,13 +10,14 @@ object AbstractGateway {
 
 }
 
-trait AbstractGateway extends Gateway {
+trait AbstractGateway extends Artifact {
+
   def sticky: Option[AbstractGateway.Sticky.Value]
 
   def routes: List[Route]
 }
 
-case class DefaultGateway(name: String, port: Port, sticky: Option[AbstractGateway.Sticky.Value], routes: List[Route]) extends AbstractGateway
+case class Gateway(name: String, port: Port, sticky: Option[AbstractGateway.Sticky.Value], routes: List[Route]) extends AbstractGateway
 
 object ClusterGateway {
   val anonymous = ""

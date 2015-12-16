@@ -87,15 +87,14 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
             case None ⇒ Cluster(name, List(), Nil, sla, dialects)
             case Some(list) ⇒
               val services = list.map(parseService(_))
-              Cluster(name, services, processAnonymousRouting(services, RoutingReader.mapping()), sla, dialects)
+              Cluster(name, services, processAnonymousRouting(services, RoutingReader.mapping("routing")), sla, dialects)
           }
       } toList
     }
 
-    val endpoints = ports("endpoints", addGroup = true)
     val evs = environmentVariables(alias = false, addGroup = true)
 
-    DefaultBlueprint(name, clusters, endpoints, evs)
+    DefaultBlueprint(name, clusters, BlueprintGatewayReader.mapping("gateways"), evs)
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {
@@ -273,21 +272,47 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
   override protected def createDefault(implicit source: YamlSourceReader): Scale = DefaultScale(name, <<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
 }
 
-object RoutingReader extends YamlReader[List[ClusterGateway]] {
+trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
 
   import YamlSourceReader._
 
-  def mapping(entry: String = "routing")(implicit source: YamlSourceReader): List[ClusterGateway] = <<?[YamlSourceReader](entry) match {
+  def mapping(entry: String)(implicit source: YamlSourceReader): List[T] = <<?[YamlSourceReader](entry) match {
     case Some(yaml) ⇒ read(yaml)
     case None       ⇒ Nil
   }
+
+  protected def parse(implicit source: YamlSourceReader): List[T] = source.pull().keySet.map { port ⇒
+    val yaml = <<![YamlSourceReader](port :: Nil)
+    if (yaml.find[Any]("port").isDefined) throwException(UnexpectedElement(Map[String, Any](name -> "port"), ""))
+    >>("port", port)(yaml)
+    reader.readAnonymous(yaml)
+  } toList
+
+  protected def reader: AnonymousYamlReader[T]
+}
+
+object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
+
+  protected val reader = GatewayReader
+
+  override protected def expand(implicit source: YamlSourceReader) = {
+    source.pull().keySet.map { port ⇒
+      <<![Any](port :: Nil) match {
+        case route: String ⇒ >>(port :: "routes" :: route, YamlSourceReader())
+        case _             ⇒
+      }
+    }
+
+    super.expand
+  }
+}
+
+object RoutingReader extends GatewayMappingReader[ClusterGateway] {
+
+  protected val reader = ClusterGatewayReader
 
   override protected def expand(implicit source: YamlSourceReader) = {
     if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>(ClusterGateway.anonymous, <<-())
     super.expand
   }
-
-  override protected def parse(implicit source: YamlSourceReader): List[ClusterGateway] = source.pull().map {
-    case (port: String, yaml: YamlSourceReader) ⇒ ClusterGatewayReader.readReferenceOrAnonymous(yaml).asInstanceOf[ClusterGateway].copy(port = port)
-  } toList
 }

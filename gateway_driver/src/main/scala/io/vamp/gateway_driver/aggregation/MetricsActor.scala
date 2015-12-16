@@ -32,7 +32,7 @@ object MetricsActor {
 
 /**
  * Workaround for current (old) UI and showing metrics.
- * This is a naive implementation for aggregation of response time and request rate of endpoints.
+ * This is a naive implementation for aggregation of response time and request rate of gateways.
  * This should be removed once we have an updated UI.
  */
 class MetricsActor extends PulseEvent with ArtifactPaginationSupport with CommonSupportForActors with GatewayDriverNotificationProvider {
@@ -46,18 +46,18 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
   private val es = new ElasticsearchClient(PulseActor.elasticsearchUrl)
 
   def receive: Receive = {
-    case EndpointMetricsUpdate ⇒ allArtifacts[Deployment] map (endpoints andThen services)
+    case EndpointMetricsUpdate ⇒ allArtifacts[Deployment] map (gateways andThen services)
     case _                     ⇒
   }
 
-  private def endpoints: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
+  private def gateways: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
     deployments.foreach { deployment ⇒
-      deployment.endpoints.foreach { endpoint ⇒
+      deployment.gateways.foreach { endpoint ⇒
         val name = s"${deployment.name}_${endpoint.name}"
         query(name) map {
           case Metrics(rate, responseTime) ⇒
-            publish(s"endpoints:$name" :: "metrics:rate" :: Nil, rate)
-            publish(s"endpoints:$name" :: "metrics:responseTime" :: Nil, responseTime)
+            publish(s"gateways:$name" :: "metrics:rate" :: Nil, rate)
+            publish(s"gateways:$name" :: "metrics:responseTime" :: Nil, responseTime)
         }
       }
     }
@@ -72,8 +72,8 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
             val name = s"${deployment.name}_${cluster.name}_${port.name}::${service.breed.name}"
             query(name) map {
               case Metrics(rate, responseTime) ⇒
-                publish(s"endpoints:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:rate" :: Nil, rate)
-                publish(s"endpoints:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:responseTime" :: Nil, responseTime)
+                publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:rate" :: Nil, rate)
+                publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:responseTime" :: Nil, responseTime)
             }
           }
         }

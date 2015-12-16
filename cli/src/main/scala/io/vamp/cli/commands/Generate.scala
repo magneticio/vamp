@@ -180,7 +180,7 @@ trait Generate extends Parameters with IoUtils {
 
   private def emptyBreed = DefaultBreed(name = "", deployable = Deployable(""), ports = List.empty, environmentVariables = List.empty, constants = List.empty, dependencies = Map.empty)
 
-  private def emptyBlueprint = DefaultBlueprint(name = "", clusters = List.empty, endpoints = List.empty, environmentVariables = List.empty)
+  private def emptyBlueprint = DefaultBlueprint(name = "", clusters = List.empty, gateways = List.empty, environmentVariables = List.empty)
 
   private def emptyScale = DefaultScale(name = "", cpu = 0.0, memory = 0.0, instances = 0)
 

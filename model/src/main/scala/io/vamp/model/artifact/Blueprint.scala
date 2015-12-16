@@ -7,14 +7,14 @@ trait AbstractBlueprint extends Blueprint {
 
   def clusters: List[AbstractCluster]
 
-  def endpoints: List[Port]
+  def gateways: List[Gateway]
 
   def environmentVariables: List[EnvironmentVariable]
 
   def traits: List[Trait]
 }
 
-case class DefaultBlueprint(name: String, clusters: List[Cluster], endpoints: List[Port], environmentVariables: List[EnvironmentVariable]) extends AbstractBlueprint {
+case class DefaultBlueprint(name: String, clusters: List[Cluster], gateways: List[Gateway], environmentVariables: List[EnvironmentVariable]) extends AbstractBlueprint {
   lazy val traits = environmentVariables
 }
 

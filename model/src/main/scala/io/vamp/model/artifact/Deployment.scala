@@ -58,7 +58,7 @@ trait DeploymentState {
 case class Deployment(
     name: String,
     clusters: List[DeploymentCluster],
-    endpoints: List[Port],
+    gateways: List[Gateway],
     ports: List[Port],
     environmentVariables: List[EnvironmentVariable],
     hosts: List[Host]) extends AbstractBlueprint {

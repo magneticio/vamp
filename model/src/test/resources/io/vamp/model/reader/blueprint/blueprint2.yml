@@ -1,7 +1,7 @@
 name: nomadic-frostbite
 
-endpoints:
-  notorious.port: 8080
+gateways:
+  8080: notorious.port
 
 clusters:
   notorious:

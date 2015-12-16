@@ -102,7 +102,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
         case Some(deployment) ⇒ deployment
         case None ⇒
           validateName(name)
-          Deployment(name, clusters = Nil, endpoints = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
+          Deployment(name, clusters = Nil, gateways = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
       }
     }
   }
@@ -132,7 +132,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
             DeploymentCluster(cluster.name, services, processAnonymousRouting(services, routing), cluster.sla, Map(), cluster.dialects)
           }
         }
-        Future.sequence(clusters).map(Deployment(uuid, _, bp.endpoints, Nil, bp.environmentVariables, Nil))
+        Future.sequence(clusters).map(Deployment(uuid, _, bp.gateways, Nil, bp.environmentVariables, Nil))
     }
   }
 }
@@ -141,7 +141,7 @@ trait DeploymentValidator {
   this: BlueprintRoutingHelper with ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   def validateServices: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
-    val services = deployment.clusters.flatMap(_.services).filterNot(_.state.intention == Undeploy)
+    val services = deployment.clusters.flatMap(_.services).filterNot { service ⇒ service.state.intention == Undeploy }
 
     val breeds = services.map(_.breed)
 
@@ -206,31 +206,33 @@ trait DeploymentValidator {
 
   def validateBlueprintEndpoints: (Future[Deployment] ⇒ Future[Deployment]) = { (futureBlueprint: Future[Deployment]) ⇒
     // Reference check.
-    futureBlueprint.map {
-      case bp: AbstractBlueprint ⇒ bp.environmentVariables.find(ev ⇒ !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap {
-        case t ⇒ throwException(UnresolvedEndpointPortError(t.name, t.value))
-      }.getOrElse(bp)
-      case blueprint ⇒ blueprint
-    }
+    //    futureBlueprint.map {
+    //      case bp: AbstractBlueprint ⇒ bp.environmentVariables.find(ev ⇒ !traitExists(bp, TraitReference.referenceFor(ev.name), strictBreeds = true)).flatMap {
+    //        case t ⇒ throwException(UnresolvedEndpointPortError(t.name, t.value))
+    //      }.getOrElse(bp)
+    //      case blueprint ⇒ blueprint
+    //    }
+    futureBlueprint
   }
 
   def validateEndpoints: (Deployment ⇒ Future[Deployment]) = { (deployment: Deployment) ⇒
     // Availability check.
-    implicit val timeout = PersistenceActor.timeout
-    allArtifacts[Deployment] map {
-      case deployments ⇒
-        val ports = deployments.filterNot(_.name == deployment.name).flatMap { d ⇒
-          d.endpoints.map(_.number -> d)
-        }.toMap
-
-        deployment.endpoints.foreach { port ⇒
-          ports.get(port.number) match {
-            case Some(d) ⇒ throwException(UnavailableEndpointPortError(port, d))
-            case _       ⇒
-          }
-        }
-        deployment
-    }
+    //    implicit val timeout = PersistenceActor.timeout
+    //    allArtifacts[Deployment] map {
+    //      case deployments ⇒
+    //        val ports = deployments.filterNot(_.name == deployment.name).flatMap { d ⇒
+    //          d.gateways.map(_.number -> d)
+    //        }.toMap
+    //
+    //        deployment.gateways.foreach { port ⇒
+    //          ports.get(port.number) match {
+    //            case Some(d) ⇒ throwException(UnavailableEndpointPortError(port, d))
+    //            case _       ⇒
+    //          }
+    //        }
+    //        deployment
+    //    }
+    Future.successful(deployment)
   }
 
   def traitExists(blueprint: AbstractBlueprint, reference: Option[TraitReference], strictBreeds: Boolean): Boolean = reference match {
@@ -278,12 +280,12 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
           case attachment ⇒
             mergeClusters(futureDeployment, attachment) flatMap {
               case clusters ⇒
-                val endpoints = mergeTrait(attachment.endpoints, deployment.endpoints)
+                //val gateways = mergeTrait(attachment.gateways, deployment.gateways)
                 val ports = mergeTrait(attachment.ports, deployment.ports)
                 val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
                 val hosts = mergeTrait(attachment.hosts, deployment.hosts)
 
-                validateMerge(Deployment(deployment.name, clusters, endpoints, ports, environmentVariables, hosts))
+                validateMerge(Deployment(deployment.name, clusters, Nil, ports, environmentVariables, hosts))
             }
         }
     }
