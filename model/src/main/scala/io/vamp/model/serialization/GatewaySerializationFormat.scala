@@ -35,6 +35,7 @@ trait AbstractGatewaySerializer extends ReferenceSerialization {
         case defaultGateway: Gateway ⇒
           list += JField("name", JString(defaultGateway.name))
           list += JField("port", JString(defaultGateway.port.value.get))
+        case _ ⇒
       }
 
       list += JField("sticky", Extraction.decompose(gateway.sticky))
