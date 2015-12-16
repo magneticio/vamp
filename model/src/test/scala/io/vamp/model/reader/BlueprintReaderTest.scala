@@ -207,32 +207,32 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  //  it should "validate gateways for inline breeds - no cluster" in {
-  //    expectedError[UnresolvedEndpointPortError]({
-  //      BlueprintReader.read(res("blueprint/blueprint23.yml"))
-  //    }) should have(
-  //      'name("omega.port"),
-  //      'value(Some("8080"))
-  //    )
-  //  }
-  //
-  //  it should "validate gateways for inline breeds - not a port" in {
-  //    expectedError[UnresolvedEndpointPortError]({
-  //      BlueprintReader.read(res("blueprint/blueprint24.yml"))
-  //    }) should have(
-  //      'name("supersonic.port"),
-  //      'value(Some("8080"))
-  //    )
-  //  }
-  //
-  //  it should "validate gateways for inline breeds - no port" in {
-  //    expectedError[UnresolvedEndpointPortError]({
-  //      BlueprintReader.read(res("blueprint/blueprint25.yml"))
-  //    }) should have(
-  //      'name("supersonic.http"),
-  //      'value(Some("8080"))
-  //    )
-  //  }
+  it should "validate gateways for inline breeds - no cluster" in {
+    expectedError[UnresolvedGatewayPortError]({
+      BlueprintReader.read(res("blueprint/blueprint23.yml"))
+    }) should have(
+      'name("omega.port"),
+      'value(Some("8080"))
+    )
+  }
+
+  it should "validate gateways for inline breeds - not a port" in {
+    expectedError[UnresolvedGatewayPortError]({
+      BlueprintReader.read(res("blueprint/blueprint24.yml"))
+    }) should have(
+      'name("supersonic.port"),
+      'value(Some("8080"))
+    )
+  }
+
+  it should "validate gateways for inline breeds - no port" in {
+    expectedError[UnresolvedGatewayPortError]({
+      BlueprintReader.read(res("blueprint/blueprint25.yml"))
+    }) should have(
+      'name("supersonic.http"),
+      'value(Some("8080"))
+    )
+  }
 
   it should "validate environment variables for inline breeds - valid case" in {
     BlueprintReader.read(res("blueprint/blueprint26.yml")) should have(
@@ -487,9 +487,9 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
 
     blueprint.gateways.foreach {
-      case gateway: Gateway if gateway.routes.exists(_.path == "supersonic.port")    ⇒ gateway.port.`type` shouldBe Port.Http
-      case gateway: Gateway if gateway.routes.exists(_.path == "supersonic.health")  ⇒ gateway.port.`type` shouldBe Port.Tcp
-      case gateway: Gateway if gateway.routes.exists(_.path == "supersonic.metrics") ⇒ gateway.port.`type` shouldBe Port.Http
+      case gateway: Gateway if gateway.routes.exists(_.path.source == "supersonic.port")    ⇒ gateway.port.`type` shouldBe Port.Http
+      case gateway: Gateway if gateway.routes.exists(_.path.source == "supersonic.health")  ⇒ gateway.port.`type` shouldBe Port.Tcp
+      case gateway: Gateway if gateway.routes.exists(_.path.source == "supersonic.metrics") ⇒ gateway.port.`type` shouldBe Port.Http
     }
 
     blueprint.clusters.find(_.name == "supersonic") foreach {
@@ -614,6 +614,31 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("8080"))), Nil, Nil, Map()), Nil, None, Map())), List(ClusterGateway("", "web", Some(AbstractGateway.Sticky.Service), Nil)), None, Map()))),
       'environmentVariables(Nil)
+    )
+  }
+
+  it should "read complex gateway" in {
+    BlueprintReader.read(res("blueprint/blueprint69.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("9050")), Port("admin", None, Some("9060"))), Nil, Nil, Map()), Nil, None, Map())), List(ClusterGateway("", "web", Some(AbstractGateway.Sticky.Service), Nil)), None, Map()))),
+      'environmentVariables(Nil)
+    )
+  }
+
+  it should "not allow sticky tcp gateway" in {
+    expectedError[StickyPortTypeError]({
+      BlueprintReader.read(res("blueprint/blueprint70.yml"))
+    }) should have(
+      'port(Port("notorious.web", None, Some("8080/tcp")))
+    )
+  }
+
+  it should "not allow HTTP filters on gateway tcp port" in {
+    expectedError[FilterPortTypeError]({
+      BlueprintReader.read(res("blueprint/blueprint71.yml"))
+    }) should have(
+      'port(Port("notorious.web", None, Some("8080/tcp"))),
+      'filter(DefaultFilter("", "user.agent != ios"))
     )
   }
 }

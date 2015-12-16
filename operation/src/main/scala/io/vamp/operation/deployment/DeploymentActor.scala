@@ -169,8 +169,8 @@ trait DeploymentValidator {
   }
 
   def validateRouting = validateRouteWeights andThen { (deployment: Deployment) ⇒
-    validateRouteFilterConditions(deployment)
-    validateRoutingStickiness(deployment)
+    validateFilterConditions(deployment)
+    validateStickiness(deployment)
     validateRoutingAnonymousPortMapping(deployment)
     deployment
   }

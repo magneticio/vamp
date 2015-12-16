@@ -1,0 +1,17 @@
+name: nomadic-frostbite
+
+gateways:
+  8080/tcp:
+    routes:
+      notorious.web:
+        filters:
+        - condition: user.agent != ios
+
+clusters:
+  notorious:
+    services:
+      breed:
+        name: nocturnal-viper
+        deployable: anaconda
+        ports:
+          web: 8080

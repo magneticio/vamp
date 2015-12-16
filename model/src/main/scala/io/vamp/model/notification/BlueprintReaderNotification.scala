@@ -3,6 +3,8 @@ package io.vamp.model.notification
 import io.vamp.common.notification.Notification
 import io.vamp.model.artifact.{ Filter, Port, AbstractCluster, Breed }
 
+case class UnresolvedGatewayPortError(name: String, value: Any) extends Notification
+
 case class UnresolvedEnvironmentVariableError(name: String, value: Any) extends Notification
 
 case class NonUniqueBlueprintBreedReferenceError(name: String) extends Notification

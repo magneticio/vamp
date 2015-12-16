@@ -1,0 +1,15 @@
+name: nomadic-frostbite
+
+gateways:
+  8080/tcp:
+    sticky: service
+    routes: notorious.web
+
+clusters:
+  notorious:
+    services:
+      breed:
+        name: nocturnal-viper
+        deployable: anaconda
+        ports:
+          web: 9050

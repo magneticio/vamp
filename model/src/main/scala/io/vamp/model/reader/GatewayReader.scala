@@ -8,6 +8,14 @@ import scala.language.postfixOps
 
 trait AbstractGatewayReader[T <: AbstractGateway] extends YamlReader[T] with AnonymousYamlReader[T] {
 
+  override protected def expand(implicit source: YamlSourceReader) = {
+    <<?[Any]("routes") match {
+      case Some(route: String) ⇒ >>("routes" :: route, YamlSourceReader())
+      case _                   ⇒
+    }
+    super.expand
+  }
+
   protected def port(implicit source: YamlSourceReader): Port = <<![Any]("port") match {
     case value: Int    ⇒ Port.portFor(value)
     case value: String ⇒ Port.portFor(value)

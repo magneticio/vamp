@@ -2,7 +2,7 @@ package io.vamp.model.validator
 
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
-import io.vamp.model.notification.{ UnresolvedDependencyInTraitValueError, UnresolvedEnvironmentVariableError }
+import io.vamp.model.notification.{ UnresolvedDependencyInTraitValueError, UnresolvedEnvironmentVariableError, UnresolvedGatewayPortError }
 import io.vamp.model.resolver.TraitResolver
 
 import scala.language.postfixOps
@@ -43,10 +43,20 @@ trait BreedTraitValueValidator extends TraitResolver {
 trait BlueprintTraitValidator extends TraitResolver {
   this: NotificationProvider ⇒
 
-  def validateBlueprintTraitValues = validateGateways andThen validateEnvironmentVariables
+  def validateBlueprintTraitValues = validateGatewayPorts andThen validateEnvironmentVariables
 
-  private def validateGateways: (DefaultBlueprint ⇒ DefaultBlueprint) = { blueprint: DefaultBlueprint ⇒
-    blueprint
+  private def validateGatewayPorts: (DefaultBlueprint ⇒ DefaultBlueprint) = { blueprint: DefaultBlueprint ⇒
+
+    val ports = blueprint.gateways.flatMap { gateway ⇒
+      gateway.routes.map(_.path).map {
+        case path if path.path.size == 2 ⇒ gateway.port.copy(name = TraitReference(path.path.head, TraitReference.Ports, path.path.tail.head).reference)
+        case path                        ⇒ throwException(UnresolvedGatewayPortError(path.source, gateway.port.value))
+      }
+    }
+
+    validateVariables(ports, TraitReference.Ports, { port ⇒
+      throwException(UnresolvedGatewayPortError(TraitReference.referenceFor(port.name).flatMap(r ⇒ Some(r.referenceWithoutGroup)).getOrElse(port.name), port.value))
+    })(blueprint)
   }
 
   private def validateEnvironmentVariables: (DefaultBlueprint ⇒ DefaultBlueprint) = { blueprint: DefaultBlueprint ⇒

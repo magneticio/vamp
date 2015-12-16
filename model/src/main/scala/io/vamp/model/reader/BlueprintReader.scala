@@ -106,8 +106,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
       validateRouteServiceNames(blueprint)
       validateRouteWeights(blueprint)
-      validateRouteFilterConditions(blueprint)
-      validateRoutingStickiness(blueprint)
+      validateFilterConditions(blueprint)
+      validateStickiness(blueprint)
       validateRoutingAnonymousPortMapping(blueprint)
 
       if (blueprint.clusters.flatMap(_.services).count(_ ⇒ true) == 0) throwException(NoServiceError)
@@ -153,8 +153,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     blueprint.clusters.foreach { cluster ⇒
       cluster.routing.foreach { routing ⇒
         routing.routes.foreach { route ⇒
-          if (!cluster.services.exists(_.breed.name == route.path))
-            throwException(UnresolvedServiceRouteError(cluster, route.path))
+          if (!cluster.services.exists(_.breed.name == route.path.source))
+            throwException(UnresolvedServiceRouteError(cluster, route.path.source))
         }
       }
     }
@@ -201,16 +201,31 @@ trait BlueprintRoutingHelper {
     }
   }
 
-  protected def validateRoutingStickiness(blueprint: AbstractBlueprint): Unit = blueprint.clusters.foreach { cluster ⇒
-    cluster.services.foreach { service ⇒
-      service.breed match {
-        case breed: DefaultBreed ⇒ breed.ports.foreach(port ⇒ if (port.`type` != Port.Http && cluster.routingBy(port.name).flatMap(_.sticky).isDefined) throwException(StickyPortTypeError(port)))
-        case _                   ⇒
+  protected def validateStickiness(blueprint: AbstractBlueprint): Unit = {
+
+    blueprint.clusters.foreach { cluster ⇒
+      cluster.services.foreach { service ⇒
+        service.breed match {
+          case breed: DefaultBreed ⇒ breed.ports.foreach { port ⇒
+            if (port.`type` != Port.Http && cluster.routingBy(port.name).flatMap(_.sticky).isDefined) throwException(StickyPortTypeError(port))
+
+            blueprint.gateways.foreach { gateway ⇒
+              gateway.routeBy(cluster.name :: port.name :: Nil) match {
+                case Some(route) ⇒ if (gateway.port.`type` != Port.Http && gateway.sticky.isDefined) throwException(StickyPortTypeError(gateway.port.copy(name = route.path.source)))
+                case _           ⇒
+              }
+            }
+          }
+          case _ ⇒
+        }
       }
+
+      // gateways
+
     }
   }
 
-  protected def validateRouteFilterConditions(blueprint: AbstractBlueprint): Unit = blueprint.clusters.foreach { cluster ⇒
+  protected def validateFilterConditions(blueprint: AbstractBlueprint): Unit = blueprint.clusters.foreach { cluster ⇒
     cluster.services.foreach { service ⇒
       service.breed match {
         case breed: DefaultBreed ⇒
@@ -222,6 +237,13 @@ trait BlueprintRoutingHelper {
                   case _                   ⇒
                 }
                 case None ⇒
+              }
+            }
+
+            blueprint.gateways.foreach { gateway ⇒
+              gateway.routeBy(cluster.name :: port.name :: Nil) match {
+                case Some(route: DefaultRoute) ⇒ if (gateway.port.`type` != Port.Http) route.filters.foreach(filter ⇒ if (DefaultFilter.isHttp(filter)) throwException(FilterPortTypeError(gateway.port.copy(name = route.path.source), filter)))
+                case _                         ⇒
               }
             }
           }
@@ -298,7 +320,7 @@ object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
   override protected def expand(implicit source: YamlSourceReader) = {
     source.pull().keySet.map { port ⇒
       <<![Any](port :: Nil) match {
-        case route: String ⇒ >>(port :: "routes" :: route, YamlSourceReader())
+        case route: String ⇒ >>(port :: "routes", route)
         case _             ⇒
       }
     }

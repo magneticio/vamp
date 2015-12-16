@@ -1,5 +1,7 @@
 package io.vamp.model.artifact
 
+import scala.language.implicitConversions
+
 object AbstractGateway {
 
   object Sticky extends Enumeration {
@@ -15,6 +17,8 @@ trait AbstractGateway extends Artifact {
   def sticky: Option[AbstractGateway.Sticky.Value]
 
   def routes: List[Route]
+
+  def routeBy(path: RoutePath) = routes.find(_.path == path)
 }
 
 case class Gateway(name: String, port: Port, sticky: Option[AbstractGateway.Sticky.Value], routes: List[Route]) extends AbstractGateway
@@ -26,16 +30,34 @@ object ClusterGateway {
 case class ClusterGateway(name: String, port: String, sticky: Option[AbstractGateway.Sticky.Value], routes: List[Route]) extends AbstractGateway
 
 object Route {
-  val noPath = ""
+  val noPath = RoutePath()
 }
 
 trait Route extends Artifact {
-  def path: String
+  def path: RoutePath
 }
 
-case class RouteReference(name: String, path: String) extends Reference with Route
+object RoutePath {
 
-case class DefaultRoute(name: String, path: String, weight: Option[Int], filters: List[Filter]) extends Route
+  def apply(path: List[String] = Nil) = list2path(path)
+
+  implicit def string2path(path: String): RoutePath = new RoutePath(path)
+
+  implicit def list2path(path: List[String]): RoutePath = new RoutePath(path.mkString("/"))
+}
+
+case class RoutePath(source: String) {
+  val path = source.split("[\\/\\.]").toList
+
+  override def equals(obj: scala.Any): Boolean = obj match {
+    case routePath: RoutePath ⇒ path == routePath.path
+    case _                    ⇒ super.equals(obj)
+  }
+}
+
+case class RouteReference(name: String, path: RoutePath) extends Reference with Route
+
+case class DefaultRoute(name: String, path: RoutePath, weight: Option[Int], filters: List[Filter]) extends Route
 
 trait Filter extends Artifact
 

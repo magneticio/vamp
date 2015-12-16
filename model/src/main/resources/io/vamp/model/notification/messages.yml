@@ -20,6 +20,7 @@ UnresolvedDependencyInTraitValueError : "Unresolved reference '{reference}' in b
 
 # Blueprint Reader
 
+UnresolvedGatewayPortError             : "Gateway port '{name} -> {value}' cannot be resolved. Check if referenced cluster exists and if it has any breed with referenced port name."
 UnresolvedEnvironmentVariableError     : "Parameter '{name} -> {value}' cannot be resolved. Check if cluster exists and if it has any breed with port, environment variable or constant referable by {name}."
 NonUniqueBlueprintBreedReferenceError  : "Multiple references for breed: '{name}'."
 UnresolvedBreedDependencyError         : "Unresolved breed dependency for breed '{breed.name}' and dependency '{dependency._1} -> {dependency._2.name}'."
