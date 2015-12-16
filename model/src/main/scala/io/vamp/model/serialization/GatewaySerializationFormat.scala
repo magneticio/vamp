@@ -31,17 +31,10 @@ trait AbstractGatewaySerializer extends ReferenceSerialization {
     case gateway: AbstractGateway ⇒
       val list = new ArrayBuffer[JField]
 
-      gateway match {
-        case defaultGateway: Gateway ⇒
-          list += JField("name", JString(defaultGateway.name))
-          list += JField("port", JString(defaultGateway.port.value.get))
-        case _ ⇒
-      }
-
       list += JField("sticky", Extraction.decompose(gateway.sticky))
       list += JField("routes", Extraction.decompose {
         gateway.routes.map { route ⇒
-          route.path -> route
+          route.path.source -> route
         } toMap
       })
 

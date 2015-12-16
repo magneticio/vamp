@@ -73,6 +73,6 @@ trait RoutingSerializer {
 
 trait BlueprintGatewaySerializer {
   def serializeGateways(gateways: List[Gateway]) = Extraction.decompose {
-    gateways.map(gateway ⇒ gateway.port.name -> Extraction.decompose(gateway)(CoreSerializationFormat.default)).toMap
+    gateways.map(gateway ⇒ gateway.port.value.get -> Extraction.decompose(gateway)(CoreSerializationFormat.default)).toMap
   }(DefaultFormats)
 }

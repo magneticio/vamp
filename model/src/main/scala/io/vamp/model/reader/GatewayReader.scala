@@ -10,7 +10,7 @@ trait AbstractGatewayReader[T <: AbstractGateway] extends YamlReader[T] with Ano
 
   override protected def expand(implicit source: YamlSourceReader) = {
     <<?[Any]("routes") match {
-      case Some(route: String) ⇒ >>("routes" :: route, YamlSourceReader())
+      case Some(route: String) ⇒ >>("routes" :: route :: Nil, YamlSourceReader())
       case _                   ⇒
     }
     super.expand
