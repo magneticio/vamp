@@ -1,7 +1,7 @@
 package io.vamp.model.notification
 
 import io.vamp.common.notification.Notification
-import io.vamp.model.artifact.{ Filter, Port, AbstractCluster, Breed }
+import io.vamp.model.artifact._
 
 case class UnresolvedGatewayPortError(name: String, value: Any) extends Notification
 

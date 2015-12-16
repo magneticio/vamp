@@ -106,8 +106,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
       validateRouteServiceNames(blueprint)
       validateRouteWeights(blueprint)
-      validateFilterConditions(blueprint)
-      validateStickiness(blueprint)
+      validateBlueprintGateways(blueprint)
       validateRoutingAnonymousPortMapping(blueprint)
 
       if (blueprint.clusters.flatMap(_.services).count(_ ⇒ true) == 0) throwException(NoServiceError)
@@ -190,19 +189,23 @@ trait BlueprintRoutingHelper {
     } else routing
   }
 
-  protected def validateRoutingAnonymousPortMapping(blueprint: AbstractBlueprint): Unit = blueprint.clusters.foreach { cluster ⇒
-    if (cluster.routingBy(ClusterGateway.anonymous).isDefined) {
-      cluster.services.foreach { service ⇒
-        service.breed match {
-          case breed: DefaultBreed ⇒ if (breed.ports.size > 1) throwException(IllegalAnonymousRoutingPortMappingError(breed))
-          case _                   ⇒
+  protected def validateRoutingAnonymousPortMapping[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
+    blueprint.clusters.foreach { cluster ⇒
+      if (cluster.routingBy(ClusterGateway.anonymous).isDefined) {
+        cluster.services.foreach { service ⇒
+          service.breed match {
+            case breed: DefaultBreed ⇒ if (breed.ports.size > 1) throwException(IllegalAnonymousRoutingPortMappingError(breed))
+            case _                   ⇒
+          }
         }
       }
     }
+    blueprint
   }
 
-  protected def validateStickiness(blueprint: AbstractBlueprint): Unit = {
+  protected def validateBlueprintGateways[T <: AbstractBlueprint]: T ⇒ T = validateStickiness[T] andThen validateFilterConditions[T]
 
+  private def validateStickiness[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.clusters.foreach { cluster ⇒
       cluster.services.foreach { service ⇒
         service.breed match {
@@ -219,37 +222,38 @@ trait BlueprintRoutingHelper {
           case _ ⇒
         }
       }
-
-      // gateways
-
     }
+    blueprint
   }
 
-  protected def validateFilterConditions(blueprint: AbstractBlueprint): Unit = blueprint.clusters.foreach { cluster ⇒
-    cluster.services.foreach { service ⇒
-      service.breed match {
-        case breed: DefaultBreed ⇒
-          breed.ports.foreach { port ⇒
-            if (port.`type` != Port.Http) {
-              cluster.routingBy(port.name) match {
-                case Some(routing) ⇒ routing.routes.foreach {
-                  case route: DefaultRoute ⇒ route.filters.foreach(filter ⇒ if (DefaultFilter.isHttp(filter)) throwException(FilterPortTypeError(port, filter)))
-                  case _                   ⇒
+  private def validateFilterConditions[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
+    blueprint.clusters.foreach { cluster ⇒
+      cluster.services.foreach { service ⇒
+        service.breed match {
+          case breed: DefaultBreed ⇒
+            breed.ports.foreach { port ⇒
+              if (port.`type` != Port.Http) {
+                cluster.routingBy(port.name) match {
+                  case Some(routing) ⇒ routing.routes.foreach {
+                    case route: DefaultRoute ⇒ route.filters.foreach(filter ⇒ if (DefaultFilter.isHttp(filter)) throwException(FilterPortTypeError(port, filter)))
+                    case _                   ⇒
+                  }
+                  case None ⇒
                 }
-                case None ⇒
               }
-            }
 
-            blueprint.gateways.foreach { gateway ⇒
-              gateway.routeBy(cluster.name :: port.name :: Nil) match {
-                case Some(route: DefaultRoute) ⇒ if (gateway.port.`type` != Port.Http) route.filters.foreach(filter ⇒ if (DefaultFilter.isHttp(filter)) throwException(FilterPortTypeError(gateway.port.copy(name = route.path.source), filter)))
-                case _                         ⇒
+              blueprint.gateways.foreach { gateway ⇒
+                gateway.routeBy(cluster.name :: port.name :: Nil) match {
+                  case Some(route: DefaultRoute) ⇒ if (gateway.port.`type` != Port.Http) route.filters.foreach(filter ⇒ if (DefaultFilter.isHttp(filter)) throwException(FilterPortTypeError(gateway.port.copy(name = route.path.source), filter)))
+                  case _                         ⇒
+                }
               }
             }
-          }
-        case _ ⇒
+          case _ ⇒
+        }
       }
     }
+    blueprint
   }
 }
 

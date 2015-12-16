@@ -33,6 +33,7 @@ UnresolvedServiceRouteError            : "Unresolved service route for '{cluster
 StickyPortTypeError                    : "Sticky sessions are not allowed for TCP port: '{port.name}'."
 FilterPortTypeError                    : "HTTP filters are not allowed for TCP port: '{port.name}' and filter '{filter.condition}'."
 IllegalAnonymousRoutingPortMappingError: "Illegal anonymous routing port mapping - more than 1 port defined for '{breed.name}'."
+
 # SLA
 
 Escalate                              : "Escalate '{deployment.name}/{cluster.name}'."
