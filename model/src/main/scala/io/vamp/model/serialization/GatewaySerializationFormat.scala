@@ -21,14 +21,14 @@ class GatewaySerializer() extends ArtifactSerializer[Gateway] with AbstractGatew
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeGateway
 }
 
-class ClusterGatewaySerializer() extends ArtifactSerializer[ClusterGateway] with AbstractGatewaySerializer {
+class ClusterGatewaySerializer() extends ArtifactSerializer[Gateway] with AbstractGatewaySerializer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeGateway
 }
 
 trait AbstractGatewaySerializer extends ReferenceSerialization {
 
   def serializeGateway(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case gateway: AbstractGateway ⇒
+    case gateway: Gateway ⇒
       val list = new ArrayBuffer[JField]
 
       list += JField("sticky", Extraction.decompose(gateway.sticky))
@@ -42,10 +42,10 @@ trait AbstractGatewaySerializer extends ReferenceSerialization {
   }
 }
 
-class RoutingStickySerializer extends CustomSerializer[AbstractGateway.Sticky.Value](format ⇒ ({
-  case JString(sticky) ⇒ AbstractGateway.Sticky.byName(sticky).getOrElse(throw new UnsupportedOperationException(s"Cannot deserialize sticky value: $sticky"))
+class RoutingStickySerializer extends CustomSerializer[Gateway.Sticky.Value](format ⇒ ({
+  case JString(sticky) ⇒ Gateway.Sticky.byName(sticky).getOrElse(throw new UnsupportedOperationException(s"Cannot deserialize sticky value: $sticky"))
 }, {
-  case sticky: AbstractGateway.Sticky.Value ⇒ JString(sticky.toString.toLowerCase)
+  case sticky: Gateway.Sticky.Value ⇒ JString(sticky.toString.toLowerCase)
 }))
 
 class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerialization {

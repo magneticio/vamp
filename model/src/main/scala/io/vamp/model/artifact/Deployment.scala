@@ -66,12 +66,12 @@ case class Deployment(
 case class DeploymentCluster(
     name: String,
     services: List[DeploymentService],
-    routing: List[ClusterGateway],
+    routing: List[Gateway],
     sla: Option[Sla],
     portMapping: Map[Int, Int] = Map(),
     dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster {
 
-  def route(service: DeploymentService, portName: String): Option[DefaultRoute] = routing.find(_.port == portName).flatMap(routing ⇒ routing.routes.find(_.path == service.breed.name)).asInstanceOf[Option[DefaultRoute]]
+  def route(service: DeploymentService, portName: String): Option[DefaultRoute] = routing.find(_.port.name == portName).flatMap(routing ⇒ routing.routes.find(_.path == service.breed.name)).asInstanceOf[Option[DefaultRoute]]
 }
 
 case class DeploymentService(

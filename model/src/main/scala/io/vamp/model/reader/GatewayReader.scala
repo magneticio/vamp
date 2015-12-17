@@ -6,7 +6,7 @@ import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
 
-trait AbstractGatewayReader[T <: AbstractGateway] extends YamlReader[T] with AnonymousYamlReader[T] {
+trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYamlReader[T] {
 
   override protected def expand(implicit source: YamlSourceReader) = {
     <<?[Any]("routes") match {
@@ -23,7 +23,7 @@ trait AbstractGatewayReader[T <: AbstractGateway] extends YamlReader[T] with Ano
   }
 
   protected def sticky(path: YamlPath)(implicit source: YamlSourceReader) = <<?[String](path) match {
-    case Some(sticky) ⇒ if (sticky.toLowerCase == "none") None else Option(AbstractGateway.Sticky.byName(sticky).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
+    case Some(sticky) ⇒ if (sticky.toLowerCase == "none") None else Option(Gateway.Sticky.byName(sticky).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
     case None         ⇒ None
   }
 
@@ -43,9 +43,9 @@ object GatewayReader extends AbstractGatewayReader[Gateway] {
   override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes)
 }
 
-object ClusterGatewayReader extends AbstractGatewayReader[ClusterGateway] {
+object ClusterGatewayReader extends AbstractGatewayReader[Gateway] {
 
-  override protected def parse(implicit source: YamlSourceReader): ClusterGateway = ClusterGateway(name, <<![String]("port"), sticky("sticky"), routes)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), sticky("sticky"), routes)
 }
 
 object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route] {

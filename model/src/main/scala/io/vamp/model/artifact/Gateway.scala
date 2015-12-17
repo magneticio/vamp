@@ -2,32 +2,21 @@ package io.vamp.model.artifact
 
 import scala.language.implicitConversions
 
-object AbstractGateway {
+object Gateway {
+
+  val anonymous = ""
 
   object Sticky extends Enumeration {
     val Service, Instance = Value
 
-    def byName(sticky: String): Option[Sticky.Value] = AbstractGateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
+    def byName(sticky: String): Option[Sticky.Value] = Gateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
   }
 
 }
 
-trait AbstractGateway extends Artifact {
-
-  def sticky: Option[AbstractGateway.Sticky.Value]
-
-  def routes: List[Route]
-
+case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value], routes: List[Route]) extends Artifact {
   def routeBy(path: RoutePath) = routes.find(_.path == path)
 }
-
-case class Gateway(name: String, port: Port, sticky: Option[AbstractGateway.Sticky.Value], routes: List[Route]) extends AbstractGateway
-
-object ClusterGateway {
-  val anonymous = ""
-}
-
-case class ClusterGateway(name: String, port: String, sticky: Option[AbstractGateway.Sticky.Value], routes: List[Route]) extends AbstractGateway
 
 object Route {
   val noPath = RoutePath()

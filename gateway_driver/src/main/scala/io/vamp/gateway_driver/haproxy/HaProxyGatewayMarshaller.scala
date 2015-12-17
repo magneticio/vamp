@@ -4,7 +4,7 @@ import io.vamp.common.crypto.Hash
 import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
 import io.vamp.gateway_driver.model.{ Filter ⇒ GatewayFilter, Gateway, Service }
-import io.vamp.model.artifact.AbstractGateway
+import io.vamp.model.artifact.{ Gateway ⇒ GatewayArtifact }
 
 trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
@@ -63,7 +63,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       )
     },
     servers = Nil,
-    sticky = gateway.sticky.contains(AbstractGateway.Sticky.Service) || gateway.sticky.contains(AbstractGateway.Sticky.Instance),
+    sticky = gateway.sticky.contains(GatewayArtifact.Sticky.Service) || gateway.sticky.contains(GatewayArtifact.Sticky.Instance),
     options = Options()) :: gateway.services.map { service ⇒
       Backend(
         name = s"${gateway.name}$pathDelimiter${service.name}",
@@ -76,7 +76,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
             port = server.port,
             weight = 100)
         },
-        sticky = gateway.sticky.contains(AbstractGateway.Sticky.Instance),
+        sticky = gateway.sticky.contains(GatewayArtifact.Sticky.Instance),
         options = Options())
     }
 

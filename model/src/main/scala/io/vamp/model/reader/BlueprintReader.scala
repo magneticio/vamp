@@ -177,21 +177,21 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 trait BlueprintRoutingHelper {
   this: NotificationProvider ⇒
 
-  protected def processAnonymousRouting(services: List[AbstractService], routing: List[ClusterGateway]): List[ClusterGateway] = {
-    if (routing.exists(_.port == ClusterGateway.anonymous)) {
+  protected def processAnonymousRouting(services: List[AbstractService], routing: List[Gateway]): List[Gateway] = {
+    if (routing.exists(_.port.name == Gateway.anonymous)) {
       val ports = services.map(_.breed).flatMap {
         case breed: DefaultBreed ⇒ breed.ports
         case _                   ⇒ Nil
       }
       if (ports.size == 1)
-        routing.find(_.port == ClusterGateway.anonymous).get.copy(port = ports.head.name) :: Nil
+        routing.find(_.port.name == Gateway.anonymous).get.copy(port = Port(ports.head.name, None, None)) :: Nil
       else routing
     } else routing
   }
 
   protected def validateRoutingAnonymousPortMapping[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.clusters.foreach { cluster ⇒
-      if (cluster.routingBy(ClusterGateway.anonymous).isDefined) {
+      if (cluster.routingBy(Gateway.anonymous).isDefined) {
         cluster.services.foreach { service ⇒
           service.breed match {
             case breed: DefaultBreed ⇒ if (breed.ports.size > 1) throwException(IllegalAnonymousRoutingPortMappingError(breed))
@@ -333,12 +333,12 @@ object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
   }
 }
 
-object RoutingReader extends GatewayMappingReader[ClusterGateway] {
+object RoutingReader extends GatewayMappingReader[Gateway] {
 
   protected val reader = ClusterGatewayReader
 
   override protected def expand(implicit source: YamlSourceReader) = {
-    if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>(ClusterGateway.anonymous, <<-())
+    if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>(Gateway.anonymous, <<-())
     super.expand
   }
 }
