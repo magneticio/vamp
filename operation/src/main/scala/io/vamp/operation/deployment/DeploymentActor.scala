@@ -218,24 +218,22 @@ trait DeploymentValidator {
     futureBlueprint
   }
 
-  def validateGateways: (Deployment ⇒ Future[Deployment]) = { (deployment: Deployment) ⇒
+  def validateGateways: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
     // Availability check.
     implicit val timeout = PersistenceActor.timeout
-    allArtifacts[Deployment] map {
-      case deployments ⇒
-        val ports = deployments.filterNot(_.name == deployment.name).flatMap { d ⇒
-          d.gateways.map(_.port.number -> d)
-        }.toMap
+    allArtifacts[Gateway] map {
+      case gateways ⇒
+        val ports = gateways.map(gateway ⇒ gateway.port.number -> gateway).toMap
 
         deployment.gateways.foreach { gateway ⇒
           ports.get(gateway.port.number) match {
-            case Some(d) ⇒ throwException(UnavailableGatewayPortError(gateway.port, d))
+            case Some(g) ⇒ throwException(UnavailableGatewayPortError(gateway.port, g))
             case _       ⇒
           }
         }
         deployment
     }
-    Future.successful(deployment)
+    deployment
   }
 
   def traitExists(blueprint: AbstractBlueprint, reference: Option[TraitReference], strictBreeds: Boolean): Boolean = reference match {
@@ -281,7 +279,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
       case deployment ⇒
         (validateBlueprint andThen resolveProperties)(blueprint) flatMap {
           case attachment ⇒
-            mergeClusters(futureDeployment, attachment) flatMap {
+            mergeClusters(futureDeployment, attachment) map {
               case clusters ⇒
                 val gateways = attachment.gateways.filterNot(gateway ⇒ deployment.gateways.exists(_.port.number == gateway.port.number)) ++ deployment.gateways
                 val ports = mergeTrait(attachment.ports, deployment.ports)
