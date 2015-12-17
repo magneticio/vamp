@@ -122,7 +122,7 @@ trait TypeOfArtifact {
   this: NotificationProvider ⇒
 
   def typeOf(`type`: Class[_]): String = `type` match {
-    case t if classOf[AbstractGateway].isAssignableFrom(t) ⇒ "gateways"
+    case t if classOf[Gateway].isAssignableFrom(t) ⇒ "gateways"
     case t if classOf[Deployment].isAssignableFrom(t) ⇒ "deployments"
     case t if classOf[Breed].isAssignableFrom(t) ⇒ "breeds"
     case t if classOf[Blueprint].isAssignableFrom(t) ⇒ "blueprints"
