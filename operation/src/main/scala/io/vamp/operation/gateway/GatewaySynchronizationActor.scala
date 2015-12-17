@@ -51,9 +51,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
    */
   def receive = {
     case SynchronizeAll ⇒ synchronize()
-
     case _: Gateway     ⇒ // ignore PersistenceActor replies
-
     case any            ⇒ unsupported(UnsupportedGatewayRequest(any))
   }
 
@@ -81,7 +79,10 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       if (gateway.port.value.isDefined) gateway else gateway.copy(port = gateway.port.copy(value = Some("0")))
     }
 
-    newly.foreach(IoC.actorFor[PersistenceActor] ! Create(_))
+    newly.foreach { gateway ⇒
+      log.info(s"gateway created: ${gateway.name}")
+      IoC.actorFor[PersistenceActor] ! Create(gateway)
+    }
 
     newly ++ gateways
   }
@@ -93,7 +94,10 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       name.path.size > 1 && !deployments.exists(_.name == name.path.head)
     }
 
-    remove.foreach(gateway ⇒ IoC.actorFor[PersistenceActor] ! Delete(gateway.name, gateway.getClass))
+    remove.foreach { gateway ⇒
+      log.info(s"gateway removed: ${gateway.name}")
+      IoC.actorFor[PersistenceActor] ! Delete(gateway.name, gateway.getClass)
+    }
 
     keep
   }

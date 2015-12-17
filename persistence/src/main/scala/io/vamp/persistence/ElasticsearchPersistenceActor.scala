@@ -132,17 +132,13 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${`type`}/_search", Map("from" -> (from - 1), "size" -> size), RestClient.jsonHeaders, logError = false) map {
       case response: ElasticsearchSearchResponse ⇒
         val list = response.hits.hits.flatMap { hit ⇒
-          hit.get("_source").flatMap(_.asInstanceOf[Map[String, _]].get("artifact")).flatMap { artifact ⇒
-            types.get(`type`).flatMap { reader ⇒ Some(reader.read(artifact.toString)) }
+          hit.get("_source").flatMap(_.asInstanceOf[Map[String, _]].get("artifact")).flatMap { source ⇒
+            types.get(`type`).flatMap { reader ⇒ Some(reader.unmarshall(source.toString, validate = false)) }
           }
         }
         ArtifactResponseEnvelope(list, response.hits.total, from, size)
       case other ⇒
         log.error(s"unexpected: ${other.toString}")
-        ArtifactResponseEnvelope(Nil, 0L, from, size)
-    } recover {
-      case failure ⇒
-        log.error(s"unexpected: ${failure.getMessage}")
         ArtifactResponseEnvelope(Nil, 0L, from, size)
     }
   }
