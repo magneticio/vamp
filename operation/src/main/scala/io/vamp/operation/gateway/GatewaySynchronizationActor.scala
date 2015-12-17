@@ -3,6 +3,7 @@ package io.vamp.operation.gateway
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
+import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
 import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport }
 
@@ -10,7 +11,12 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.{ existentials, postfixOps }
 
-object GatewayActor {
+class GatewaySynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
+
+  def tick() = IoC.actorFor[GatewaySynchronizationActor] ! SynchronizeAll
+}
+
+object GatewaySynchronizationActor {
 
   val configuration = ConfigFactory.load().getConfig("vamp.operation.gateway")
 
@@ -23,13 +29,11 @@ object GatewayActor {
 
   trait GatewayMessages
 
-  object GetAvailablePortNumber extends GatewayMessages
+  object SynchronizeAll extends GatewayMessages
 
 }
 
-class GatewayActor extends CommonSupportForActors with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
-
-  import GatewayActor._
+class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
 
   /*
   private var currentPort = portRangeLower - 1
@@ -44,7 +48,7 @@ class GatewayActor extends CommonSupportForActors with ArtifactSupport with Arti
       }
    */
   def receive = {
-    case GetAvailablePortNumber ⇒ reply {
+    case SynchronizeAll ⇒ reply {
       Future.successful(0)
     }
 

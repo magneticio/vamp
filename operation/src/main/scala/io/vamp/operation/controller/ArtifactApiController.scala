@@ -3,19 +3,19 @@ package io.vamp.operation.controller
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
+import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider}
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.reader._
-import io.vamp.model.workflow.{ DefaultWorkflow, ScheduledWorkflow, TimeTrigger, Workflow }
-import io.vamp.operation.notification.{ InconsistentArtifactName, InvalidTimeTriggerError, MissingRequiredVariableError, UnexpectedArtifact }
-import io.vamp.operation.workflow.{ WorkflowConfiguration, WorkflowSchedulerActor }
+import io.vamp.model.workflow.{DefaultWorkflow, ScheduledWorkflow, TimeTrigger, Workflow}
+import io.vamp.operation.notification.{InconsistentArtifactName, InvalidTimeTriggerError, MissingRequiredVariableError, UnexpectedArtifact}
+import io.vamp.operation.workflow.WorkflowSchedulerActor
 import io.vamp.persistence.notification.PersistenceOperationFailure
-import io.vamp.persistence.{ ArtifactResponseEnvelope, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.{ArtifactResponseEnvelope, ArtifactSupport, PersistenceActor}
 import org.quartz.CronExpression
 
 import scala.concurrent.Future
-import scala.language.{ existentials, postfixOps }
+import scala.language.{existentials, postfixOps}
 import scala.reflect._
 
 trait ArtifactApiController extends ArtifactSupport {
@@ -56,11 +56,10 @@ trait ArtifactApiController extends ArtifactSupport {
     ("filters" -> new PersistenceHandler[Filter](FilterReader)) +
     ("gateways" -> new PersistenceHandler[Gateway](GatewayReader)) +
     // workaround for None response.
-    ("deployments" -> new Handler()) ++
+    ("deployments" -> new Handler()) +
     // workflow handlers
-    (if (WorkflowConfiguration.enabled) {
-      Map() + ("workflows" -> new PersistenceHandler[Workflow](WorkflowReader)) + ("scheduled-workflows" -> new ScheduledWorkflowHandler())
-    } else Map())
+    ("workflows" -> new PersistenceHandler[Workflow](WorkflowReader)) +
+    ("scheduled-workflows" -> new ScheduledWorkflowHandler())
 
   class Handler {
 
