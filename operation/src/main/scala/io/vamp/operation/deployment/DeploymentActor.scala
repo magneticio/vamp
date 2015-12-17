@@ -425,11 +425,11 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     futureDeployment.map {
       case deployment ⇒
         val clusters = deployment.clusters.map { cluster ⇒
-          val routes: Map[Int, Int] = cluster.services.map(_.breed).flatMap(_.ports).map(_.number).map(port ⇒ cluster.portMapping.get(port) match {
-            case None         ⇒ port -> 0
-            case Some(number) ⇒ port -> number
+          val portMapping: Map[String, Int] = cluster.services.map(_.breed).flatMap(_.ports).map(port ⇒ cluster.portMapping.get(port.name) match {
+            case None         ⇒ port.name -> 0
+            case Some(number) ⇒ port.name -> number
           }).toMap
-          cluster.copy(portMapping = routes)
+          cluster.copy(portMapping = portMapping)
         }
         deployment.copy(clusters = clusters)
     }

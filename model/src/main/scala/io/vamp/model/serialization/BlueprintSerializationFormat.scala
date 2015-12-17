@@ -65,14 +65,14 @@ trait DialectSerializer {
   def serializeDialects(dialects: Map[Dialect.Value, Any]) = Extraction.decompose(dialects.map({ case (k, v) ⇒ k.toString.toLowerCase -> v }))(DefaultFormats)
 }
 
-trait RoutingSerializer {
-  def serializeRoutings(gateways: List[Gateway]) = Extraction.decompose {
-    gateways.map(gateway ⇒ gateway.port.name -> Extraction.decompose(gateway)(CoreSerializationFormat.default)).toMap
+trait BlueprintGatewaySerializer extends GatewayDecomposer {
+  def serializeGateways(gateways: List[Gateway]) = Extraction.decompose {
+    gateways.map(gateway ⇒ gateway.port.value.get -> serializeAnonymousGateway(CoreSerializationFormat.default)(gateway)).toMap
   }(DefaultFormats)
 }
 
-trait BlueprintGatewaySerializer {
-  def serializeGateways(gateways: List[Gateway]) = Extraction.decompose {
-    gateways.map(gateway ⇒ gateway.port.value.get -> Extraction.decompose(gateway)(CoreSerializationFormat.default)).toMap
+trait RoutingSerializer extends GatewayDecomposer {
+  def serializeRoutings(gateways: List[Gateway]) = Extraction.decompose {
+    gateways.map(gateway ⇒ gateway.port.name -> serializeAnonymousGateway(CoreSerializationFormat.default)(gateway)).toMap
   }(DefaultFormats)
 }

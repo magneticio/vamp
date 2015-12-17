@@ -15,38 +15,40 @@ object Gateway {
 }
 
 case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value], routes: List[Route]) extends Artifact {
-  def routeBy(path: RoutePath) = routes.find(_.path == path)
+  def routeBy(path: GatewayPath) = routes.find(_.path == path)
 }
 
-object Route {
-  val noPath = RoutePath()
-}
-
-trait Route extends Artifact {
-  def path: RoutePath
-}
-
-object RoutePath {
+object GatewayPath {
 
   def apply(path: List[String] = Nil) = list2path(path)
 
-  implicit def string2path(path: String): RoutePath = new RoutePath(path)
+  def apply(path: Any*) = list2path(path.toList.map(_.toString))
 
-  implicit def list2path(path: List[String]): RoutePath = new RoutePath(path.mkString("/"))
+  implicit def string2path(path: String): GatewayPath = new GatewayPath(path)
+
+  implicit def list2path(path: List[String]): GatewayPath = new GatewayPath(path.mkString("/"))
 }
 
-case class RoutePath(source: String) {
+case class GatewayPath(source: String) {
   val path = source.split("[\\/\\.]").toList
 
   override def equals(obj: scala.Any): Boolean = obj match {
-    case routePath: RoutePath ⇒ path == routePath.path
-    case _                    ⇒ super.equals(obj)
+    case routePath: GatewayPath ⇒ path == routePath.path
+    case _                      ⇒ super.equals(obj)
   }
 }
 
-case class RouteReference(name: String, path: RoutePath) extends Reference with Route
+object Route {
+  val noPath = GatewayPath()
+}
 
-case class DefaultRoute(name: String, path: RoutePath, weight: Option[Int], filters: List[Filter]) extends Route
+trait Route extends Artifact {
+  def path: GatewayPath
+}
+
+case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
+
+case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter]) extends Route
 
 trait Filter extends Artifact
 

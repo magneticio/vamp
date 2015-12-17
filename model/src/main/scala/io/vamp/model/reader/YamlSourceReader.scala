@@ -170,7 +170,15 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
       case (key, value) if cons.get(key).isEmpty ⇒
         value match {
           case y: YamlSourceReader ⇒ (key -> y.notConsumed) :: Nil
-          case _                   ⇒ (key -> value) :: Nil
+          case l: List[_] ⇒ (key ->
+            l.flatMap {
+              case yaml: YamlSourceReader ⇒
+                val c = yaml.consumed
+                if (c.isEmpty) Nil else c :: Nil
+              case any ⇒ any :: Nil
+            }
+          ) :: Nil
+          case _ ⇒ (key -> value) :: Nil
         }
       case _ ⇒ Nil
     } toMap

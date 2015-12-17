@@ -120,10 +120,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
   }
 
   override protected def start() = types.foreach {
-    case (group, _) ⇒
-      allPages[Artifact](findAllArtifactsBy(group)) map {
-        case artifacts ⇒ artifacts.foreach(artifact ⇒ store.create(artifact, ignoreIfExists = true))
-      }
+    case (group, _) ⇒ allPages[Artifact](findAllArtifactsBy(group)).map(_.foreach(store.create(_, ignoreIfExists = true)))
   }
 
   protected def request(method: RestClient.Method.Value, url: String, body: Any) = {
@@ -136,12 +133,16 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
       case response: ElasticsearchSearchResponse ⇒
         val list = response.hits.hits.flatMap { hit ⇒
           hit.get("_source").flatMap(_.asInstanceOf[Map[String, _]].get("artifact")).flatMap { artifact ⇒
-            types.get(`type`).flatMap(reader ⇒ Some(reader.read(artifact.toString)))
+            types.get(`type`).flatMap { reader ⇒ Some(reader.read(artifact.toString)) }
           }
         }
         ArtifactResponseEnvelope(list, response.hits.total, from, size)
       case other ⇒
-        log.debug(s"unexpected: ${other.toString}")
+        log.error(s"unexpected: ${other.toString}")
+        ArtifactResponseEnvelope(Nil, 0L, from, size)
+    } recover {
+      case failure ⇒
+        log.error(s"unexpected: ${failure.getMessage}")
         ArtifactResponseEnvelope(Nil, 0L, from, size)
     }
   }

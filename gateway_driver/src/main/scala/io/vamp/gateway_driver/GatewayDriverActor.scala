@@ -118,7 +118,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
     def `type`(port: Port): String = if (port.`type` == Port.Http) "http" else "tcp"
     cluster match {
       case None    ⇒ DriverGateway(name, port.number, `type`(port), filters(cluster, port), services(deployment, None, port), None)
-      case Some(c) ⇒ DriverGateway(name, c.portMapping.get(port.number).get, `type`(port), filters(cluster, port), services(deployment, cluster, port), c.routingBy(port.name).flatMap(_.sticky))
+      case Some(c) ⇒ DriverGateway(name, c.portMapping.get(port.name).get, `type`(port), filters(cluster, port), services(deployment, cluster, port), c.routingBy(port.name).flatMap(_.sticky))
     }
   }
 
@@ -150,7 +150,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
     cluster.route(service, port.name).getOrElse(DefaultRoute("", "", None, Nil))
   }
 
-  private def server(service: DeploymentService, server: DeploymentInstance, port: Port) = server.ports.get(port.number) match {
+  private def server(service: DeploymentService, server: DeploymentInstance, port: Port) = server.ports.get(port.name) match {
     case Some(p) ⇒ Instance(artifactName2Id(server), server.host, p)
     case _       ⇒ model.Instance(artifactName2Id(server), server.host, 0)
   }

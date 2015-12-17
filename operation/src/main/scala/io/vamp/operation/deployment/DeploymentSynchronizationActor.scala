@@ -138,7 +138,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
   private def deploy(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService]): ProcessedService = {
     def convert(server: ContainerInstance): DeploymentInstance = {
-      val ports = deploymentService.breed.ports.map(_.number) zip server.ports
+      val ports = deploymentService.breed.ports.map(_.name) zip server.ports
       DeploymentInstance(server.name, server.host, ports.toMap, server.deployed)
     }
 
@@ -253,7 +253,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   private def updatePorts(persist: List[DeploymentCluster]): (Deployment ⇒ Deployment) = { deployment: Deployment ⇒
     val ports = persist.flatMap({ cluster ⇒
       cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
-        Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portMapping.get(port.number).flatMap(n ⇒ Some(n.toString)))
+        Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portMapping.get(port.name).flatMap(n ⇒ Some(n.toString)))
       })
     }).map(p ⇒ p.name -> p).toMap ++ deployment.ports.map(p ⇒ p.name -> p).toMap
 

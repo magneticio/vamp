@@ -46,24 +46,24 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
   private def parseService(implicit source: YamlSourceReader): DeploymentService = {
     val breed = BreedReader.readReference(<<![Any]("breed")).asInstanceOf[DefaultBreed]
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale").asInstanceOf[Option[DefaultScale]]
-    val servers = <<?[List[YamlSourceReader]]("servers") match {
+    val servers = <<?[List[YamlSourceReader]]("instances") match {
       case None       ⇒ Nil
-      case Some(list) ⇒ list.map(parseServer(_))
+      case Some(list) ⇒ list.map(parseInstances(_))
     }
 
     DeploymentService(state(<<![YamlSourceReader]("state")), breed, environmentVariables(), scale, servers, dependencies(), dialects)
   }
 
-  private def parseServer(implicit source: YamlSourceReader): DeploymentInstance =
+  private def parseInstances(implicit source: YamlSourceReader): DeploymentInstance =
     DeploymentInstance(name, <<![String]("host"), portMapping(), <<![Boolean]("deployed"))
 
-  private def portMapping(name: String = "ports")(implicit source: YamlSourceReader): Map[Int, Int] = {
+  private def portMapping(name: String = "ports")(implicit source: YamlSourceReader): Map[String, Int] = {
     <<?[YamlSourceReader](name) match {
       case None ⇒ Map()
       case Some(yaml: YamlSourceReader) ⇒ yaml.pull().flatMap {
-        case (key, value: Int)    ⇒ (key.toInt -> value) :: Nil
-        case (key, value: BigInt) ⇒ (key.toInt -> value.toInt) :: Nil
-        case (key, value: String) ⇒ (key.toInt -> value.toInt) :: Nil
+        case (key, value: Int)    ⇒ (key.toString -> value) :: Nil
+        case (key, value: BigInt) ⇒ (key.toString -> value.toInt) :: Nil
+        case (key, value: String) ⇒ (key.toString -> value.toInt) :: Nil
         case _                    ⇒ Nil
       }
     }

@@ -27,13 +27,13 @@ object OperationBootstrap extends Bootstrap {
 
   def run(implicit actorSystem: ActorSystem) = {
 
-    IoC.createActor(Props(classOf[GatewaySynchronizationActor]).withMailbox(synchronizationMailbox))
-    IoC.createActor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod seconds)
-
     IoC.createActor[DeploymentActor]
 
     IoC.createActor(Props(classOf[DeploymentSynchronizationActor]).withMailbox(synchronizationMailbox))
-    IoC.createActor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod seconds)
+    IoC.createActor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod seconds, 0 seconds)
+
+    IoC.createActor(Props(classOf[GatewaySynchronizationActor]).withMailbox(synchronizationMailbox))
+    IoC.createActor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod seconds, synchronizationPeriod / 2 seconds)
 
     IoC.createActor[SlaActor]
     IoC.createActor[SlaSchedulerActor] ! SchedulerActor.Period(slaPeriod seconds)

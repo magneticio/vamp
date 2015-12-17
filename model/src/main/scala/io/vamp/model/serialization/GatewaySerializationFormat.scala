@@ -11,25 +11,29 @@ object GatewaySerializationFormat extends io.vamp.common.json.SerializationForma
 
   override def customSerializers = super.customSerializers :+
     new GatewaySerializer() :+
-    new ClusterGatewaySerializer() :+
     new RoutingStickySerializer() :+
     new RouteSerializer() :+
     new FilterSerializer()
 }
 
-class GatewaySerializer() extends ArtifactSerializer[Gateway] with AbstractGatewaySerializer {
+class GatewaySerializer extends ArtifactSerializer[Gateway] with GatewayDecomposer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeGateway
 }
 
-class ClusterGatewaySerializer() extends ArtifactSerializer[Gateway] with AbstractGatewaySerializer {
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeGateway
-}
+trait GatewayDecomposer extends ReferenceSerialization {
 
-trait AbstractGatewaySerializer extends ReferenceSerialization {
+  def serializeGateway(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = true)
 
-  def serializeGateway(implicit format: Formats): PartialFunction[Any, JValue] = {
+  def serializeAnonymousGateway(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = false)
+
+  private def serialize(full: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = {
     case gateway: Gateway ⇒
       val list = new ArrayBuffer[JField]
+
+      if (full) {
+        list += JField("name", JString(gateway.name))
+        list += JField("port", JString(gateway.port.value.get))
+      }
 
       list += JField("sticky", Extraction.decompose(gateway.sticky))
       list += JField("routes", Extraction.decompose {

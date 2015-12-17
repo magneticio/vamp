@@ -12,7 +12,7 @@ import io.vamp.model.artifact.Deployment
 import io.vamp.model.artifact.DeploymentService.State
 import io.vamp.operation.controller.DeploymentApiController
 import io.vamp.operation.deployment.DeploymentSynchronizationActor
-import io.vamp.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
+import io.vamp.operation.gateway.GatewaySynchronizationActor
 import io.vamp.operation.sla.{ EscalationActor, SlaActor }
 import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 import spray.http.StatusCodes._
@@ -163,7 +163,10 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
 trait DevController {
   this: ArtifactPaginationSupport with NotificationProvider with ExecutionContextProvider with ActorSystemProvider ⇒
 
-  def sync(): Unit = IoC.actorFor[DeploymentSynchronizationActor] ! SynchronizeAll
+  def sync(): Unit = {
+    IoC.actorFor[GatewaySynchronizationActor] ! GatewaySynchronizationActor.SynchronizeAll
+    IoC.actorFor[DeploymentSynchronizationActor] ! DeploymentSynchronizationActor.SynchronizeAll
+  }
 
   def slaCheck() = IoC.actorFor[SlaActor] ! SlaActor.SlaProcessAll
 

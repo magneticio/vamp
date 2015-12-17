@@ -206,7 +206,7 @@ trait AnonymousYamlReader[T] extends YamlReader[T] {
 
   protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
     case None       ⇒ AnonymousYamlReader.name
-    case Some(name) ⇒ name
+    case Some(name) ⇒ validateName(name)
   }
 
   protected def isAnonymous(implicit source: YamlSourceReader): Boolean = <<?[String]("name").isEmpty

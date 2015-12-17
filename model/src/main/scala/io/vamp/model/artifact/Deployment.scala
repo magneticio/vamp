@@ -68,7 +68,7 @@ case class DeploymentCluster(
     services: List[DeploymentService],
     routing: List[Gateway],
     sla: Option[Sla],
-    portMapping: Map[Int, Int] = Map(),
+    portMapping: Map[String, Int] = Map(),
     dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster {
 
   def route(service: DeploymentService, portName: String): Option[DefaultRoute] = routing.find(_.port.name == portName).flatMap(routing ⇒ routing.routes.find(_.path == service.breed.name)).asInstanceOf[Option[DefaultRoute]]
@@ -83,7 +83,7 @@ case class DeploymentService(
   dependencies: Map[String, String] = Map(),
   dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService with DeploymentState
 
-case class DeploymentInstance(name: String, host: String, ports: Map[Int, Int], deployed: Boolean) extends Artifact
+case class DeploymentInstance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact
 
 object Host {
   val host = "host"
