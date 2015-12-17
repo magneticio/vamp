@@ -424,22 +424,16 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
   }
 
   def resolveRouteMapping: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
-    futureDeployment.flatMap {
+    futureDeployment.map {
       case deployment ⇒
-        Future.sequence(deployment.clusters.map({ cluster ⇒
-          Future.sequence(cluster.services.map(_.breed).flatMap(_.ports).map(_.number).map(port ⇒ cluster.portMapping.get(port) match {
-            case None ⇒
-              implicit val timeout = DictionaryActor.timeout
-              val key = DictionaryActor.portAssignment.format(deployment.name, port)
-              actorFor[DictionaryActor] ? DictionaryActor.Get(key) map {
-                case number: Int ⇒ port -> number
-                case e           ⇒ throwException(UnresolvedEnvironmentValueError(key, e))
-              }
-            case Some(number) ⇒ Future(port -> number)
-          })).map(routes ⇒ cluster.copy(portMapping = routes.toMap))
-        })).map {
-          case clusters ⇒ deployment.copy(clusters = clusters)
+        val clusters = deployment.clusters.map { cluster ⇒
+          val routes: Map[Int, Int] = cluster.services.map(_.breed).flatMap(_.ports).map(_.number).map(port ⇒ cluster.portMapping.get(port) match {
+            case None         ⇒ port -> 0
+            case Some(number) ⇒ port -> number
+          }).toMap
+          cluster.copy(portMapping = routes)
         }
+        deployment.copy(clusters = clusters)
     }
   }
 

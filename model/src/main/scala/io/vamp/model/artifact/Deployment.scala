@@ -30,9 +30,7 @@ object DeploymentService {
 
       case class Initiated(since: OffsetDateTime = OffsetDateTime.now()) extends Step
 
-      case class ContainerUpdate(since: OffsetDateTime = OffsetDateTime.now()) extends Step
-
-      case class RouteUpdate(since: OffsetDateTime = OffsetDateTime.now()) extends Step
+      case class Update(since: OffsetDateTime = OffsetDateTime.now()) extends Step
 
       case class Done(since: OffsetDateTime = OffsetDateTime.now()) extends Step
 

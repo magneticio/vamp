@@ -117,13 +117,13 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
             if (deploymentService.state.isDone)
               redeployIfNeeded(deployment, deploymentCluster, deploymentService, containerServices)
             else if (deploymentService.state.step.isInstanceOf[Initiated])
-              ProcessedService(Processed.Persist, deploymentService.copy(state = deploymentService.state.copy(step = ContainerUpdate())))
+              ProcessedService(Processed.Persist, deploymentService.copy(state = deploymentService.state.copy(step = Update())))
             else
               deploy(deployment, deploymentCluster, deploymentService, containerServices)
 
           case Intention.Undeploy ⇒
             if (deploymentService.state.step.isInstanceOf[Initiated])
-              ProcessedService(Processed.Persist, deploymentService.copy(state = deploymentService.state.copy(step = RouteUpdate())))
+              ProcessedService(Processed.Persist, deploymentService.copy(state = deploymentService.state.copy(step = Update())))
             else
               undeploy(deployment, deploymentCluster, deploymentService, containerServices)
 
@@ -160,7 +160,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
           actorFor[ContainerDriverActor] ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = true)
           ProcessedService(Processed.Ignore, deploymentService)
         } else if (!matchingServers(deploymentService, cs)) {
-          ProcessedService(Processed.Persist, deploymentService.copy(instances = cs.instances.map(convert), state = deploymentService.state.copy(step = RouteUpdate())))
+          ProcessedService(Processed.Persist, deploymentService.copy(instances = cs.instances.map(convert)))
         } else {
           ProcessedService(Processed.Persist, deploymentService.copy(state = deploymentService.state.copy(step = Done())))
         }
@@ -183,7 +183,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
   private def redeployIfNeeded(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService]): ProcessedService = {
     def redeploy() = {
-      val ds = deploymentService.copy(state = deploymentService.state.copy(step = ContainerUpdate()))
+      val ds = deploymentService.copy(state = deploymentService.state.copy(step = Update()))
       deploy(deployment, deploymentCluster, ds, containerServices)
       ProcessedService(Processed.Persist, ds)
     }
@@ -205,7 +205,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
         ProcessedService(Processed.RemoveFromPersistence, deploymentService)
       case Some(cs) ⇒
         actorFor[ContainerDriverActor] ! ContainerDriverActor.Undeploy(deployment, deploymentService)
-        ProcessedService(Processed.Persist, deploymentService.copy(state = deploymentService.state.copy(step = ContainerUpdate())))
+        ProcessedService(Processed.Persist, deploymentService.copy(state = deploymentService.state.copy(step = Update())))
     }
   }
 

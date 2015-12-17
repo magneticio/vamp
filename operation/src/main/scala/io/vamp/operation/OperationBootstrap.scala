@@ -5,6 +5,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.operation.deployment.{ DeploymentActor, DeploymentSynchronizationActor, DeploymentSynchronizationSchedulerActor }
+import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.sla.{ EscalationActor, EscalationSchedulerActor, SlaActor, SlaSchedulerActor }
 import io.vamp.operation.sse.EventStreamingActor
 import io.vamp.operation.workflow.{ WorkflowConfiguration, WorkflowSchedulerActor }
@@ -16,6 +17,7 @@ object OperationBootstrap extends Bootstrap {
 
   def run(implicit actorSystem: ActorSystem) = {
 
+    IoC.createActor[GatewayActor]
     IoC.createActor[DeploymentActor]
 
     IoC.createActor(Props(classOf[DeploymentSynchronizationActor]).withMailbox("vamp.operation.synchronization.mailbox"))

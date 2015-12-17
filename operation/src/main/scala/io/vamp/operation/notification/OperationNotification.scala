@@ -41,3 +41,5 @@ case class InconsistentArtifactName(parameter: String, artifact: Artifact) exten
 case class InvalidTimeTriggerError(pattern: String) extends Notification
 
 case class MissingRequiredVariableError(required: String) extends Notification
+
+case class NoAvailablePortError(begin: Int, end: Int) extends Notification

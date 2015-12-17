@@ -88,8 +88,7 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
 
     val step = <<![String]("step" :: "name") match {
       case n if Step.Failure.getClass.getName.endsWith(s"$n$$") ⇒ Step.Failure(since = since(<<![String]("step" :: "since")), notification = NotificationMessageNotRestored(<<?[String]("step" :: "message").getOrElse("")))
-      case n if Step.ContainerUpdate.getClass.getName.endsWith(s"$n$$") ⇒ Step.ContainerUpdate(since(<<![String]("step" :: "since")))
-      case n if Step.RouteUpdate.getClass.getName.endsWith(s"$n$$") ⇒ Step.RouteUpdate(since(<<![String]("step" :: "since")))
+      case n if Step.Update.getClass.getName.endsWith(s"$n$$") ⇒ Step.Update(since(<<![String]("step" :: "since")))
       case n if Step.Initiated.getClass.getName.endsWith(s"$n$$") ⇒ Step.Initiated(since(<<![String]("step" :: "since")))
       case n if Step.Done.getClass.getName.endsWith(s"$n$$") ⇒ Step.Done(since(<<![String]("step" :: "since")))
       case n ⇒ throwException(UndefinedStateStepError(n))

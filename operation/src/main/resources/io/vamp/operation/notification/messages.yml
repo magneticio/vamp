@@ -18,3 +18,5 @@ InconsistentArtifactName        : "Inconsistent resource name: parameter is '{pa
 UnexpectedArtifact              : "Unexpected resource: '{artifact}'."
 InvalidTimeTriggerError         : "Not a valid time trigger patter: '{pattern}'."
 MissingRequiredVariableError    : "Required variable '{required}' not found in the storage."
+
+NoAvailablePortError            : "No port available in the range [{begin}-{end}]."
