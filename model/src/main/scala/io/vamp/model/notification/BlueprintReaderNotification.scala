@@ -29,7 +29,7 @@ case class UndefinedStateIntentionError(name: String) extends Notification
 
 case class UndefinedStateStepError(name: String) extends Notification
 
-case class IllegalRoutingStickyValue(sticky: String) extends Notification
+case class IllegalGatewayStickyValue(sticky: String) extends Notification
 
 case class StickyPortTypeError(port: Port) extends Notification
 
@@ -38,5 +38,7 @@ case class FilterPortTypeError(port: Port, filter: Filter) extends Notification
 case class DuplicateGatewayPortError(port: Int) extends Notification
 
 case class IllegalAnonymousRoutingPortMappingError(breed: Breed) extends Notification
+
+case class UnsupportedGatewayNameError(name: String) extends Notification
 
 case class UnsupportedRoutePathError(path: GatewayPath) extends Notification

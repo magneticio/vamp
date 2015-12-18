@@ -41,17 +41,15 @@ object YamlSource {
 
 trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
 
-  def read(input: YamlSource): T = unmarshall(input, validate = true)
-
-  def unmarshall(input: YamlSource, validate: Boolean): T = input match {
-    case ReaderSource(reader) ⇒ readSource(reader, validate)
-    case StreamSource(stream) ⇒ readSource(Source.fromInputStream(stream).bufferedReader(), validate)
-    case StringSource(string) ⇒ readSource(new StringReader(string), validate)
-    case FileSource(file)     ⇒ readSource(Source.fromFile(file).bufferedReader(), validate)
+  def read(input: YamlSource): T = input match {
+    case ReaderSource(reader) ⇒ readSource(reader)
+    case StreamSource(stream) ⇒ readSource(Source.fromInputStream(stream).bufferedReader())
+    case StringSource(string) ⇒ readSource(new StringReader(string))
+    case FileSource(file)     ⇒ readSource(Source.fromFile(file).bufferedReader())
   }
 
-  private def readSource(reader: Reader, validate: Boolean): T = load(reader, {
-    case yaml: YamlSourceReader ⇒ read(yaml, validate)
+  private def readSource(reader: Reader): T = load(reader, {
+    case yaml: YamlSourceReader ⇒ read(yaml)
     case any                    ⇒ throwException(UnexpectedTypeError("/", classOf[YamlSourceReader], if (any != null) any.getClass else classOf[Object]))
   })
 
@@ -101,18 +99,11 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
     })
   }
 
-  def read(implicit source: YamlSourceReader, valid: Boolean = true): T = {
+  def read(implicit source: YamlSourceReader): T = {
     val expanded = expand(source)
-    if (valid) validate(expanded)
+    validate(expanded)
     val parsed = parse(expanded)
-
-    if (valid) {
-      parsed match {
-        case artifact: Artifact ⇒ if (!artifact.name.isEmpty) validateName(artifact.name)
-        case _                  ⇒
-      }
-      validate(parsed)
-    } else parsed
+    validate(parsed)
   }
 
   protected def expand(implicit source: YamlSourceReader): YamlSourceReader = source
@@ -146,7 +137,7 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
 
   protected def first[V <: Any: ClassTag](paths: YamlPath*)(implicit source: YamlSourceReader): Option[V] = paths.flatMap(<<?[V](_)).headOption
 
-  protected def name(implicit source: YamlSourceReader): String = <<![String]("name")
+  protected def name(implicit source: YamlSourceReader): String = validateName(<<![String]("name"))
 
   protected def reference(implicit source: YamlSourceReader): String = validateName(<<?[String]("reference").getOrElse(<<![String]("ref")))
 
@@ -215,7 +206,7 @@ trait AnonymousYamlReader[T] extends YamlReader[T] {
 
   protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
     case None       ⇒ AnonymousYamlReader.name
-    case Some(name) ⇒ name
+    case Some(name) ⇒ validateName(name)
   }
 
   protected def isAnonymous(implicit source: YamlSourceReader): Boolean = <<?[String]("name").isEmpty
@@ -242,7 +233,7 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] with AnonymousYamlReader[
 
   protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
     case None        ⇒ AnonymousYamlReader.name
-    case Some(value) ⇒ value
+    case Some(value) ⇒ validateName(value)
   }
 
   override protected def parse(implicit source: YamlSourceReader): T = if (isReference) createReference else createDefault

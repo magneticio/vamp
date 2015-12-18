@@ -221,13 +221,6 @@ trait BlueprintRoutingHelper {
         service.breed match {
           case breed: DefaultBreed ⇒ breed.ports.foreach { port ⇒
             if (port.`type` != Port.Type.Http && cluster.routingBy(port.name).flatMap(_.sticky).isDefined) throwException(StickyPortTypeError(port))
-
-            blueprint.gateways.foreach { gateway ⇒
-              gateway.routeBy(cluster.name :: port.name :: Nil) match {
-                case Some(route) ⇒ if (gateway.port.`type` != Port.Type.Http && gateway.sticky.isDefined) throwException(StickyPortTypeError(gateway.port.copy(name = route.path.source)))
-                case _           ⇒
-              }
-            }
           }
           case _ ⇒
         }

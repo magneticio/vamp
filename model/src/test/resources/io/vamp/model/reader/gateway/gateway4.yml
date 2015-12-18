@@ -1,0 +1,7 @@
+name: sava/web
+port: 8080/tcp
+sticky: service
+
+routes:
+  web/port:
+    weight: 100

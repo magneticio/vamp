@@ -536,7 +536,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   }
 
   it should "report illegal sticky value" in {
-    expectedError[IllegalRoutingStickyValue]({
+    expectedError[IllegalGatewayStickyValue]({
       BlueprintReader.read(res("blueprint/blueprint59.yml"))
     }) should have(
       'sticky("server")
@@ -628,7 +628,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[StickyPortTypeError]({
       BlueprintReader.read(res("blueprint/blueprint70.yml"))
     }) should have(
-      'port(Port("notorious/web", None, Some("8080/tcp")))
+      'port(Port("8080/tcp", None, Some("8080/tcp")))
     )
   }
 

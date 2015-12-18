@@ -29,7 +29,7 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
   }
 
   protected def sticky(path: YamlPath)(implicit source: YamlSourceReader) = <<?[String](path) match {
-    case Some(sticky) ⇒ if (sticky.toLowerCase == "none") None else Option(Gateway.Sticky.byName(sticky).getOrElse(throwException(IllegalRoutingStickyValue(sticky))))
+    case Some(sticky) ⇒ if (sticky.toLowerCase == "none") None else Option(Gateway.Sticky.byName(sticky).getOrElse(throwException(IllegalGatewayStickyValue(sticky))))
     case None         ⇒ None
   }
 
@@ -47,8 +47,21 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
   protected def active(implicit source: YamlSourceReader): Boolean = <<?[Boolean]("active").getOrElse(false)
 
   override protected def validate(gateway: T): T = {
+
     gateway.routes.map(_.path).foreach(path ⇒ if (path.path.size < 1 || path.path.size > 4) throwException(UnsupportedRoutePathError(path)))
+
+    if (gateway.port.`type` != Port.Type.Http && gateway.sticky.isDefined) throwException(StickyPortTypeError(gateway.port.copy(name = gateway.port.value.get)))
+
     gateway
+  }
+
+  protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
+    case None ⇒ AnonymousYamlReader.name
+    case Some(name) ⇒
+      val path = GatewayPath(name).path
+      if (path.size < 1 || path.size > 2)
+        throwException(UnsupportedGatewayNameError(name))
+      name
   }
 }
 
@@ -69,9 +82,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   override protected def createReference(implicit source: YamlSourceReader): Route = RouteReference(reference, Route.noPath)
 
   override protected def createDefault(implicit source: YamlSourceReader): Route = {
-
     source.flatten({ entry ⇒ entry == "instances" })
-
     DefaultRoute(name, Route.noPath, <<?[Int]("weight"), filters)
   }
 
