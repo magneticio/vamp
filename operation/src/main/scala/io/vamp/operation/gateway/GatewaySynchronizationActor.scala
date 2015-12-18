@@ -39,18 +39,6 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   import GatewaySynchronizationActor._
 
-  /*
-  private var currentPort = portRangeLower - 1
-
-
-  case portAssignment(deployment, port) ⇒
-      if (currentPort == portRange(1))
-        reportException(NoAvailablePortError(portRange(0), portRange(1)))
-      else {
-        currentPort += 1
-        currentPort
-      }
-   */
   def receive = {
     case SynchronizeAll ⇒ synchronize()
     case any            ⇒ if (sender() != IoC.actorFor[PersistenceActor]) unsupported(UnsupportedGatewayRequest(any))
@@ -148,5 +136,6 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   }
 
   private def flush: List[Gateway] ⇒ Unit = { gateways ⇒
+    // TODO set active, persist, send to driver
   }
 }
