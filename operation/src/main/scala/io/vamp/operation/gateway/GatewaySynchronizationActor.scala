@@ -3,7 +3,7 @@ package io.vamp.operation.gateway
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
-import io.vamp.model.artifact.{ Port, Deployment, Gateway, GatewayPath }
+import io.vamp.model.artifact._
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
 import io.vamp.persistence.PersistenceActor.{ Update, Create, Delete }
@@ -94,7 +94,15 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
         })
       }
 
-      val updatedDeployment = deployment.copy(clusters = updated ++ keep)
+      val clusters = updated ++ keep
+
+      val deploymentPorts = clusters.flatMap({ cluster ⇒
+        cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
+          Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portMapping.get(port.name).flatMap(n ⇒ Some(n.toString)))
+        })
+      }).map(p ⇒ p.name -> p).toMap ++ deployment.ports.map(p ⇒ p.name -> p).toMap
+
+      val updatedDeployment = deployment.copy(clusters = clusters, ports = deploymentPorts.values.toList)
 
       if (update.nonEmpty) IoC.actorFor[PersistenceActor] ! Update(updatedDeployment)
 
