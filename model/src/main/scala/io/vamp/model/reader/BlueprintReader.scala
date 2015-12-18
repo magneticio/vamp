@@ -210,11 +210,11 @@ trait BlueprintRoutingHelper {
       cluster.services.foreach { service ⇒
         service.breed match {
           case breed: DefaultBreed ⇒ breed.ports.foreach { port ⇒
-            if (port.`type` != Port.Http && cluster.routingBy(port.name).flatMap(_.sticky).isDefined) throwException(StickyPortTypeError(port))
+            if (port.`type` != Port.Type.Http && cluster.routingBy(port.name).flatMap(_.sticky).isDefined) throwException(StickyPortTypeError(port))
 
             blueprint.gateways.foreach { gateway ⇒
               gateway.routeBy(cluster.name :: port.name :: Nil) match {
-                case Some(route) ⇒ if (gateway.port.`type` != Port.Http && gateway.sticky.isDefined) throwException(StickyPortTypeError(gateway.port.copy(name = route.path.source)))
+                case Some(route) ⇒ if (gateway.port.`type` != Port.Type.Http && gateway.sticky.isDefined) throwException(StickyPortTypeError(gateway.port.copy(name = route.path.source)))
                 case _           ⇒
               }
             }
@@ -232,7 +232,7 @@ trait BlueprintRoutingHelper {
         service.breed match {
           case breed: DefaultBreed ⇒
             breed.ports.foreach { port ⇒
-              if (port.`type` != Port.Http) {
+              if (port.`type` != Port.Type.Http) {
                 cluster.routingBy(port.name) match {
                   case Some(routing) ⇒ routing.routes.foreach {
                     case route: DefaultRoute ⇒ route.filters.foreach(filter ⇒ if (DefaultFilter.isHttp(filter)) throwException(FilterPortTypeError(port, filter)))
@@ -244,7 +244,7 @@ trait BlueprintRoutingHelper {
 
               blueprint.gateways.foreach { gateway ⇒
                 gateway.routeBy(cluster.name :: port.name :: Nil) match {
-                  case Some(route: DefaultRoute) ⇒ if (gateway.port.`type` != Port.Http) route.filters.foreach(filter ⇒ if (DefaultFilter.isHttp(filter)) throwException(FilterPortTypeError(gateway.port.copy(name = route.path.source), filter)))
+                  case Some(route: DefaultRoute) ⇒ if (gateway.port.`type` != Port.Type.Http) route.filters.foreach(filter ⇒ if (DefaultFilter.isHttp(filter)) throwException(FilterPortTypeError(gateway.port.copy(name = route.path.source), filter)))
                   case _                         ⇒
                 }
               }

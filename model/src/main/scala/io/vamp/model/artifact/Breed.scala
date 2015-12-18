@@ -98,18 +98,25 @@ case class TraitReference(cluster: String, group: String, name: String) extends 
   def referenceWithoutGroup = s"$cluster.$name"
 }
 
-object Port extends Enumeration {
+object Port {
 
-  val Tcp, Http = Value
+  object Type extends Enumeration {
+    val Tcp, Http = Value
 
-  def portFor(number: Int): Port = Port("", None, Some(number.toString))
+    def toTypeString(value: Port.Type.Value) = s"/${value.toString.toLowerCase}"
+  }
 
-  def portFor(value: String): Port = Port("", None, Some(value))
+  def apply(number: Int): Port = Port("", None, Some(number.toString))
+
+  def apply(value: String): Port = Port("", None, Some(value))
+
+  def apply(number: Int, `type`: Port.Type.Value): Port = Port("", None, Some(s"$number${Port.Type.toTypeString(`type`)}"))
 }
 
 case class Port(name: String, alias: Option[String], value: Option[String]) extends Trait {
-  private val tcp = "/tcp"
-  private val http = "/http"
+
+  private val tcp = Port.Type.toTypeString(Port.Type.Tcp)
+  private val http = Port.Type.toTypeString(Port.Type.Http)
 
   lazy val number: Int = value match {
     case None ⇒ 0
@@ -122,9 +129,9 @@ case class Port(name: String, alias: Option[String], value: Option[String]) exte
         v.toInt
   }
 
-  lazy val `type`: Port.Value = value match {
-    case None    ⇒ Port.Http
-    case Some(v) ⇒ if (v.toLowerCase.endsWith(tcp)) Port.Tcp else Port.Http
+  lazy val `type`: Port.Type.Value = value match {
+    case None    ⇒ Port.Type.Http
+    case Some(v) ⇒ if (v.toLowerCase.endsWith(tcp)) Port.Type.Tcp else Port.Type.Http
   }
 }
 

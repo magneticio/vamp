@@ -17,8 +17,8 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
   }
 
   protected def port(implicit source: YamlSourceReader): Port = <<![Any]("port") match {
-    case value: Int    ⇒ Port.portFor(value)
-    case value: String ⇒ Port.portFor(value)
+    case value: Int    ⇒ Port(value)
+    case value: String ⇒ Port(value)
     case any           ⇒ throwException(UnexpectedTypeError("port", classOf[String], any.getClass))
   }
 

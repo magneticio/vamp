@@ -115,7 +115,7 @@ trait GatewayConverter extends GatewayDriverNameMatcher {
   def createGateway(deployment: Deployment, port: Port) = gateway(endpointGatewayName(deployment, port), deployment, None, port)
 
   private def gateway(name: String, deployment: Deployment, cluster: Option[DeploymentCluster], port: Port) = {
-    def `type`(port: Port): String = if (port.`type` == Port.Http) "http" else "tcp"
+    def `type`(port: Port): String = if (port.`type` == Port.Type.Http) "http" else "tcp"
     cluster match {
       case None    ⇒ DriverGateway(name, port.number, `type`(port), filters(cluster, port), services(deployment, None, port), None)
       case Some(c) ⇒ DriverGateway(name, c.portMapping.get(port.name).get, `type`(port), filters(cluster, port), services(deployment, cluster, port), c.routingBy(port.name).flatMap(_.sticky))

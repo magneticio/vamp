@@ -487,17 +487,17 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
 
     blueprint.gateways.foreach {
-      case gateway: Gateway if gateway.routes.exists(_.path.source == "supersonic.port")    ⇒ gateway.port.`type` shouldBe Port.Http
-      case gateway: Gateway if gateway.routes.exists(_.path.source == "supersonic.health")  ⇒ gateway.port.`type` shouldBe Port.Tcp
-      case gateway: Gateway if gateway.routes.exists(_.path.source == "supersonic.metrics") ⇒ gateway.port.`type` shouldBe Port.Http
+      case gateway: Gateway if gateway.routes.exists(_.path.source == "supersonic.port")    ⇒ gateway.port.`type` shouldBe Port.Type.Http
+      case gateway: Gateway if gateway.routes.exists(_.path.source == "supersonic.health")  ⇒ gateway.port.`type` shouldBe Port.Type.Tcp
+      case gateway: Gateway if gateway.routes.exists(_.path.source == "supersonic.metrics") ⇒ gateway.port.`type` shouldBe Port.Type.Http
     }
 
     blueprint.clusters.find(_.name == "supersonic") foreach {
       case cluster ⇒ cluster.services.find(service ⇒ service.breed.name == "solid-barbershop") foreach { service ⇒
         service.breed.asInstanceOf[DefaultBreed].ports.foreach {
-          case port: Port if port.name == "port"    ⇒ port.`type` shouldBe Port.Http
-          case port: Port if port.name == "health"  ⇒ port.`type` shouldBe Port.Http
-          case port: Port if port.name == "metrics" ⇒ port.`type` shouldBe Port.Tcp
+          case port: Port if port.name == "port"    ⇒ port.`type` shouldBe Port.Type.Http
+          case port: Port if port.name == "health"  ⇒ port.`type` shouldBe Port.Type.Http
+          case port: Port if port.name == "metrics" ⇒ port.`type` shouldBe Port.Type.Tcp
         }
       }
     }

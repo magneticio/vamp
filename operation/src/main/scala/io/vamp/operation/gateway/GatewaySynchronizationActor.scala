@@ -3,10 +3,10 @@ package io.vamp.operation.gateway
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
-import io.vamp.model.artifact.{ Deployment, Gateway, GatewayPath }
+import io.vamp.model.artifact.{ Port, Deployment, Gateway, GatewayPath }
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
-import io.vamp.persistence.PersistenceActor.{ Create, Delete }
+import io.vamp.persistence.PersistenceActor.{ Update, Create, Delete }
 import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 
 import scala.concurrent.duration._
@@ -37,6 +37,8 @@ object GatewaySynchronizationActor {
 
 class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
 
+  import GatewaySynchronizationActor._
+
   /*
   private var currentPort = portRangeLower - 1
 
@@ -51,18 +53,52 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
    */
   def receive = {
     case SynchronizeAll ⇒ synchronize()
-    case _: Gateway     ⇒ // ignore PersistenceActor replies
-    case any            ⇒ unsupported(UnsupportedGatewayRequest(any))
+    case any            ⇒ if (sender() != IoC.actorFor[PersistenceActor]) unsupported(UnsupportedGatewayRequest(any))
   }
 
   private def synchronize() = {
     implicit val timeout = PersistenceActor.timeout
     (for {
       gateways ← allArtifacts[Gateway]
-      deployments ← allArtifacts[Deployment]
+      deployments ← allArtifacts[Deployment] map { deployments ⇒ update(gateways, deployments) }
     } yield (gateways, deployments)) onComplete {
       case Success((gateways, deployments)) ⇒ (add(deployments) andThen remove(deployments) andThen flush)(gateways)
       case Failure(error)                   ⇒ throwException(InternalServerError(error))
+    }
+  }
+
+  private def update(gateways: List[Gateway], deployments: List[Deployment]): List[Deployment] = {
+
+    var currentPort = portRangeLower - 1
+    val used = gateways.map(_.port.number).toSet
+
+    def availablePort = {
+      currentPort += 1
+
+      while (used.contains(currentPort) && currentPort < portRangeUpper) currentPort += 1
+
+      if (currentPort == portRangeUpper)
+        reportException(NoAvailablePortError(portRangeLower, portRangeUpper))
+
+      currentPort
+    }
+
+    deployments.map { deployment ⇒
+      val (update, keep) = deployment.clusters.partition { cluster ⇒
+        cluster.services.forall(_.state.isDone) && cluster.portMapping.exists { case (_, value) ⇒ value == 0 }
+      }
+
+      val updated = update.map { cluster ⇒
+        cluster.copy(portMapping = cluster.portMapping.map {
+          case (name, value) ⇒ name -> (if (value == 0) availablePort else value)
+        })
+      }
+
+      val updatedDeployment = deployment.copy(clusters = updated ++ keep)
+
+      if (update.nonEmpty) IoC.actorFor[PersistenceActor] ! Update(updatedDeployment)
+
+      updatedDeployment
     }
   }
 
@@ -71,12 +107,13 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     val newly = deployments.flatMap { deployment ⇒
       deployment.gateways.map(gateway ⇒ gateway.copy(name = GatewayPath(deployment.name, gateway.port.number).source)) ++
         deployment.clusters.filter(_.services.forall(_.state.isDone)).flatMap { cluster ⇒
-          cluster.routing.map(routing ⇒ routing.copy(name = GatewayPath(deployment.name, cluster.name, routing.port.name).source))
+          cluster.routing.map { routing ⇒
+            val port = routing.port.copy(value = cluster.portMapping.get(routing.port.name).flatMap { number ⇒ Port(number, routing.port.`type`).value })
+            routing.copy(name = GatewayPath(deployment.name, cluster.name, routing.port.name).source, port = port)
+          }
         }
     } filterNot { gateway ⇒
       gateways.exists(_.name == gateway.name)
-    } map { gateway ⇒
-      if (gateway.port.value.isDefined) gateway else gateway.copy(port = gateway.port.copy(value = Some("0")))
     }
 
     newly.foreach { gateway ⇒
