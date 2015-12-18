@@ -1,7 +1,7 @@
 name: nomadic-frostbite
 
 gateways:
-  8080: supersonic.port
+  8080: supersonic/port
 
 clusters:
 

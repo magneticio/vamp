@@ -1,10 +1,10 @@
 name: nomadic-frostbite
 
 gateways:
-  8080: notorious.web
+  8080: notorious/web
   8081:
     sticky: service
-    routes: notorious.admin
+    routes: notorious/admin
 
 clusters:
   notorious:

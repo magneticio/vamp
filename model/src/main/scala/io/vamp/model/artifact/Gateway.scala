@@ -20,18 +20,20 @@ case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value
 
 object GatewayPath {
 
+  val pathDelimiter = "/"
+
   def apply(source: String) = string2path(source)
 
   def apply(path: List[Any] = Nil) = list2path(path.map(_.toString))
 
-  implicit def string2path(source: String): GatewayPath = new GatewayPath(source, source.split("[\\/\\.]").toList)
+  implicit def string2path(source: String): GatewayPath = new GatewayPath(source, source.split(pathDelimiter.replaceAllLiterally("/", "\\/")).toList)
 
-  implicit def list2path(path: List[String]): GatewayPath = new GatewayPath(path.mkString("/"), path)
+  implicit def list2path(path: List[String]): GatewayPath = new GatewayPath(path.mkString(pathDelimiter), path)
 }
 
 case class GatewayPath(source: String, path: List[String]) {
 
-  val normalized = path.mkString("/")
+  val normalized = path.mkString(GatewayPath.pathDelimiter)
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case routePath: GatewayPath ⇒ path == routePath.path
@@ -43,21 +45,32 @@ object Route {
   val noPath = GatewayPath()
 }
 
-trait Route extends Artifact {
+sealed trait Route extends Artifact {
   def path: GatewayPath
+}
+
+sealed trait AbstractRoute extends Route {
+
+  def weight: Option[Int]
+
+  def filters: List[Filter]
 }
 
 case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
 
-case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter]) extends Route
+case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter]) extends AbstractRoute
 
-case class GatewayReferenceRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter]) extends Route {
+sealed trait ActiveRoute
+
+case class GatewayReferenceRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter]) extends AbstractRoute with ActiveRoute {
   val reference = path.normalized
 }
 
-case class DeploymentGatewayRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter], instances: List[DeploymentInstance]) extends Route
+case class DeploymentGatewayRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter], instances: List[DeploymentGatewayRouteInstance]) extends AbstractRoute with ActiveRoute
 
-trait Filter extends Artifact
+case class DeploymentGatewayRouteInstance(name: String, host: String, port: Int) extends Artifact
+
+sealed trait Filter extends Artifact
 
 case class FilterReference(name: String) extends Reference with Filter
 

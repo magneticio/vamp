@@ -55,13 +55,21 @@ class RoutingStickySerializer extends CustomSerializer[Gateway.Sticky.Value](for
 
 class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerialization {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case routing: RouteReference ⇒ serializeReference(routing)
-    case routing: DefaultRoute ⇒
+    case route: RouteReference ⇒ serializeReference(route)
+    case route: AbstractRoute ⇒
       val list = new ArrayBuffer[JField]
-      if (routing.name.nonEmpty)
-        list += JField("name", JString(routing.name))
-      list += JField("weight", JInt(if (routing.weight.isDefined) routing.weight.get else 0))
-      list += JField("filters", Extraction.decompose(routing.filters))
+
+      if (route.name.nonEmpty)
+        list += JField("name", JString(route.name))
+
+      list += JField("weight", JInt(if (route.weight.isDefined) route.weight.get else 0))
+      list += JField("filters", Extraction.decompose(route.filters))
+
+      route match {
+        case r: DeploymentGatewayRoute ⇒ list += JField("instances", Extraction.decompose(r.instances))
+        case _                         ⇒
+      }
+
       new JObject(list.toList)
   }
 }

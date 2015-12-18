@@ -3,7 +3,7 @@ name: nomadic-frostbite
 gateways:
   8080/tcp:
     routes:
-      notorious.web:
+      notorious/web:
         filters:
         - condition: user.agent != ios
 

@@ -4,6 +4,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.model.artifact._
+import io.vamp.model.notification.UnsupportedRoutePathError
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
 import io.vamp.persistence.PersistenceActor.{ Create, Delete, Update }
@@ -146,32 +147,51 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   private def enrich(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = _.map { gateway ⇒
 
-    //    def deploymentInstances(routePath: GatewayPath): List[DeploymentInstance] = routePath.path match {
-    //      case deployment :: cluster :: service :: port :: Nil ⇒ Nil //deployments.find(_.name == deployment).flatMap(_.clusters.find(_.name == cluster)).flatMap()
-    //
-    //      case _ ⇒ throwException(InternalServerError(s"unsupported cluster route path: ${routePath.source}"))
-    //    }
-    //
-    //    val routes = gateway.routes.map {
-    //
-    //      case route: DefaultRoute if route.path.path.size == 1 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
-    //
-    //      case route: DefaultRoute if route.path.path.size == 2 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
-    //
-    //      case route: DefaultRoute if route.path.path.size == 3 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
-    //
-    //      case route: DefaultRoute if route.path.path.size == 4 ⇒ DeploymentGatewayRoute(route.name, route.path, route.weight, route.filters, deploymentInstances(route.path))
-    //
-    //      case route ⇒ throwException(UnsupportedRoutePathError(route.path))
-    //    }
-    //
-    //    gateway.copy(routes = routes)
+    def deploymentInstances(routePath: GatewayPath): List[DeploymentGatewayRouteInstance] = routePath.path match {
 
-    gateway
+      case deployment :: cluster :: service :: port :: Nil ⇒
+        deployments.find {
+          _.name == deployment
+        }.flatMap {
+          _.clusters.find(_.name == cluster)
+        }.flatMap {
+          _.services.find(_.breed.name == service)
+        }.map {
+          _.instances
+        }.getOrElse(Nil).map { instance ⇒ DeploymentGatewayRouteInstance(instance.name, instance.host, instance.ports.get(port).get) }
+
+      case _ ⇒ throwException(InternalServerError(s"unsupported cluster route path: ${routePath.source}"))
+    }
+
+    if (gateway.routes.exists(!_.isInstanceOf[ActiveRoute])) {
+
+      val routes = gateway.routes.map {
+
+        case route: DefaultRoute if route.path.path.size == 1 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
+
+        case route: DefaultRoute if route.path.path.size == 2 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
+
+        case route: DefaultRoute if route.path.path.size == 3 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
+
+        case route: DefaultRoute if route.path.path.size == 4 ⇒ DeploymentGatewayRoute(route.name, route.path, route.weight, route.filters, deploymentInstances(route.path))
+
+        case route: GatewayReferenceRoute ⇒ route
+
+        case route: DeploymentGatewayRoute ⇒ route
+
+        case route ⇒ throwException(UnsupportedRoutePathError(route.path))
+      }
+
+      gateway.copy(routes = routes) match {
+        case updated ⇒
+          IoC.actorFor[PersistenceActor] ! Update(updated)
+          updated
+      }
+
+    } else gateway
   }
 
   private def flush: List[Gateway] ⇒ Unit = { gateways ⇒
     // TODO send to driver
-
   }
 }
