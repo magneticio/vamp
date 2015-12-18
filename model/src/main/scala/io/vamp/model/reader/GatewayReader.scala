@@ -37,6 +37,7 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
       case (name: String, _) ⇒ RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
         case route: DefaultRoute   ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
         case route: RouteReference ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
+        case route                 ⇒ route
       }
     } toList
     case None ⇒ Nil
@@ -96,4 +97,48 @@ object FilterReader extends YamlReader[Filter] with WeakReferenceYamlReader[Filt
   override protected def createReference(implicit source: YamlSourceReader): Filter = FilterReference(reference)
 
   override protected def createDefault(implicit source: YamlSourceReader): Filter = DefaultFilter(name, <<![String]("condition"))
+}
+
+trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
+
+  import YamlSourceReader._
+
+  def mapping(entry: String)(implicit source: YamlSourceReader): List[T] = <<?[YamlSourceReader](entry) match {
+    case Some(yaml) ⇒ read(yaml)
+    case None       ⇒ Nil
+  }
+
+  protected def parse(implicit source: YamlSourceReader): List[T] = source.pull().keySet.map { port ⇒
+    val yaml = <<![YamlSourceReader](port :: Nil)
+    if (yaml.find[Any]("port").isDefined) throwException(UnexpectedElement(Map[String, Any](name -> "port"), ""))
+    >>("port", port)(yaml)
+    reader.readAnonymous(yaml)
+  } toList
+
+  protected def reader: AnonymousYamlReader[T]
+}
+
+object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
+
+  protected val reader = GatewayReader
+
+  override protected def expand(implicit source: YamlSourceReader) = {
+    source.pull().keySet.map { port ⇒
+      <<![Any](port :: Nil) match {
+        case route: String ⇒ >>(port :: "routes", route)
+        case _             ⇒
+      }
+    }
+    super.expand
+  }
+}
+
+object RoutingReader extends GatewayMappingReader[Gateway] {
+
+  protected val reader = ClusterGatewayReader
+
+  override protected def expand(implicit source: YamlSourceReader) = {
+    if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>(Gateway.anonymous, <<-())
+    super.expand
+  }
 }

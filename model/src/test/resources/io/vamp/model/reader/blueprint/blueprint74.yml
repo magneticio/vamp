@@ -1,0 +1,9 @@
+name: nomadic-frostbite
+
+gateways:
+  8080/http: supersonic/port
+  8080/tcp : supersonic/health
+
+clusters:
+  supersonic:
+    breed: solid-barbershop

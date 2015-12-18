@@ -213,7 +213,7 @@ trait BlueprintRoutingHelper {
     blueprint
   }
 
-  protected def validateBlueprintGateways[T <: AbstractBlueprint]: T ⇒ T = validateStickiness[T] andThen validateFilterConditions[T]
+  protected def validateBlueprintGateways[T <: AbstractBlueprint]: T ⇒ T = validateStickiness[T] andThen validateFilterConditions[T] andThen validateGatewayPorts[T]
 
   private def validateStickiness[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.clusters.foreach { cluster ⇒
@@ -265,6 +265,11 @@ trait BlueprintRoutingHelper {
     }
     blueprint
   }
+
+  private def validateGatewayPorts[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
+    blueprint.gateways.groupBy(_.port.number).collect { case (port, list) if list.size > 1 ⇒ throwException(DuplicateGatewayPortError(port)) }
+    blueprint
+  }
 }
 
 object BlueprintReader extends AbstractBlueprintReader {
@@ -306,49 +311,4 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
   override protected def createReference(implicit source: YamlSourceReader): Scale = ScaleReference(reference)
 
   override protected def createDefault(implicit source: YamlSourceReader): Scale = DefaultScale(name, <<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
-}
-
-trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
-
-  import YamlSourceReader._
-
-  def mapping(entry: String)(implicit source: YamlSourceReader): List[T] = <<?[YamlSourceReader](entry) match {
-    case Some(yaml) ⇒ read(yaml)
-    case None       ⇒ Nil
-  }
-
-  protected def parse(implicit source: YamlSourceReader): List[T] = source.pull().keySet.map { port ⇒
-    val yaml = <<![YamlSourceReader](port :: Nil)
-    if (yaml.find[Any]("port").isDefined) throwException(UnexpectedElement(Map[String, Any](name -> "port"), ""))
-    >>("port", port)(yaml)
-    reader.readAnonymous(yaml)
-  } toList
-
-  protected def reader: AnonymousYamlReader[T]
-}
-
-object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
-
-  protected val reader = GatewayReader
-
-  override protected def expand(implicit source: YamlSourceReader) = {
-    source.pull().keySet.map { port ⇒
-      <<![Any](port :: Nil) match {
-        case route: String ⇒ >>(port :: "routes", route)
-        case _             ⇒
-      }
-    }
-
-    super.expand
-  }
-}
-
-object RoutingReader extends GatewayMappingReader[Gateway] {
-
-  protected val reader = ClusterGatewayReader
-
-  override protected def expand(implicit source: YamlSourceReader) = {
-    if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>(Gateway.anonymous, <<-())
-    super.expand
-  }
 }

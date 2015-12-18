@@ -482,7 +482,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
 
     blueprint should have(
       'name("nomadic-frostbite"),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))), Gateway("", Port("", None, Some("8080/tcp")), None, List(DefaultRoute("", "supersonic/health", None, Nil))), Gateway("", Port("", None, Some("8080/http")), None, List(DefaultRoute("", "supersonic/metrics", None, Nil))))),
+      'gateways(List(Gateway("", Port("", None, Some("8081")), None, List(DefaultRoute("", "supersonic/port", None, Nil))), Gateway("", Port("", None, Some("8082/tcp")), None, List(DefaultRoute("", "supersonic/health", None, Nil))), Gateway("", Port("", None, Some("8083/http")), None, List(DefaultRoute("", "supersonic/metrics", None, Nil))))),
       'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("docker", Some("vamp/solid-barbershop")), List(Port("port", None, Some("80/http")), Port("health", None, Some("8080")), Port("metrics", None, Some("8090/tcp"))), Nil, Nil, Map()), Nil, None, Map())), Nil, None, Map())))
     )
 
@@ -654,6 +654,14 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       BlueprintReader.read(res("blueprint/blueprint73.yml"))
     }) should have(
       'gateway(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/port1", List("notorious", "port1")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious/port2", List("notorious", "port2")), Some(60), Nil)), active = false))
+    )
+  }
+
+  it should "fail on duplicate gateway port" in {
+    expectedError[DuplicateGatewayPortError]({
+      BlueprintReader.read(res("blueprint/blueprint74.yml"))
+    }) should have(
+      'port(8080)
     )
   }
 }
