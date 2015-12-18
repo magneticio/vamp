@@ -247,17 +247,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
     val remove = processedClusters.filter(_.state == Processed.RemoveFromPersistence).map(_.cluster)
     val update = persist ++ resolve
 
-    (updatePorts(persist) andThen purgeTraits(persist, remove) andThen sendDeploymentEvents(update, remove) andThen persistDeployment(update, remove))(deployment)
-  }
-
-  private def updatePorts(persist: List[DeploymentCluster]): (Deployment ⇒ Deployment) = { deployment: Deployment ⇒
-    val ports = persist.flatMap({ cluster ⇒
-      cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
-        Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portMapping.get(port.name).flatMap(n ⇒ Some(n.toString)))
-      })
-    }).map(p ⇒ p.name -> p).toMap ++ deployment.ports.map(p ⇒ p.name -> p).toMap
-
-    deployment.copy(ports = ports.values.toList)
+    (purgeTraits(persist, remove) andThen sendDeploymentEvents(update, remove) andThen persistDeployment(update, remove))(deployment)
   }
 
   private def updateEnvironmentVariables(deployment: Deployment, processedClusters: List[ProcessedCluster]): List[DeploymentCluster] = {
