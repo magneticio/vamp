@@ -15,7 +15,7 @@ import spray.http.MediaTypes._
 import spray.http.MediaTypes.register
 import spray.http.Uri.Query
 import spray.http._
-import spray.httpx.marshalling.{ Marshaller, ToResponseMarshaller }
+import spray.httpx.marshalling.{ MarshallingContext, Marshaller, ToResponseMarshaller }
 import spray.routing._
 
 trait RestApiContentTypes {
@@ -106,20 +106,21 @@ trait RestApiMarshaller {
   implicit def marshaller: ToResponseMarshaller[Any] = ToResponseMarshaller.oneOf(`application/json`, `application/x-yaml`)(jsonMarshaller, yamlMarshaller)
 
   def jsonMarshaller: Marshaller[Any] = Marshaller.of[Any](`application/json`) { (value, contentType, ctx) ⇒
-    ctx.marshalTo(HttpEntity(contentType, toJson(value)))
+    marshall(value, contentType, ctx, { value ⇒ toJson(value) })
   }
 
   def yamlMarshaller: Marshaller[Any] = Marshaller.of[Any](`application/x-yaml`) { (value, contentType, ctx) ⇒
-    val response = value match {
-      case None ⇒ toJson(None)
-      case some ⇒
-        val yaml = new Yaml()
-        new Yaml().dumpAs(yaml.load(toJson(some)), if (value.isInstanceOf[List[_]]) Tag.SEQ else Tag.MAP, FlowStyle.BLOCK)
-    }
-    ctx.marshalTo(HttpEntity(contentType, response))
+    marshall(value, contentType, ctx, { _ ⇒
+      value match {
+        case None ⇒ toJson(None)
+        case some ⇒
+          val yaml = new Yaml()
+          new Yaml().dumpAs(yaml.load(toJson(some)), if (value.isInstanceOf[List[_]]) Tag.SEQ else Tag.MAP, FlowStyle.BLOCK)
+      }
+    })
   }
 
-  def toJson(any: Any) = {
+  private def toJson(any: Any) = {
     any match {
       case notification: NotificationErrorException ⇒ throw notification
       case exception: Exception                     ⇒ throw new RuntimeException(exception)
@@ -127,6 +128,11 @@ trait RestApiMarshaller {
       case value: AnyRef                            ⇒ write(value)
       case value                                    ⇒ write(value.toString)
     }
+  }
+
+  private def marshall(value: Any, contentType: ContentType, ctx: MarshallingContext, transform: Any ⇒ String) = value match {
+    case entity: HttpEntity ⇒ ctx.marshalTo(entity)
+    case _                  ⇒ ctx.marshalTo(HttpEntity(contentType, transform(value)))
   }
 }
 

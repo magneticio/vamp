@@ -31,12 +31,12 @@ object GatewayPath {
   implicit def list2path(path: List[String]): GatewayPath = new GatewayPath(path.mkString(pathDelimiter), path)
 }
 
-case class GatewayPath(source: String, path: List[String]) {
+case class GatewayPath(source: String, segments: List[String]) {
 
-  val normalized = path.mkString(GatewayPath.pathDelimiter)
+  val normalized = segments.mkString(GatewayPath.pathDelimiter)
 
   override def equals(obj: scala.Any): Boolean = obj match {
-    case routePath: GatewayPath ⇒ path == routePath.path
+    case routePath: GatewayPath ⇒ segments == routePath.segments
     case _                      ⇒ super.equals(obj)
   }
 }

@@ -49,7 +49,7 @@ trait BlueprintTraitValidator extends TraitResolver {
 
     val ports = blueprint.gateways.flatMap { gateway ⇒
       gateway.routes.map(_.path).map {
-        case path if path.path.size == 2 ⇒ gateway.port.copy(name = TraitReference(path.path.head, TraitReference.Ports, path.path.tail.head).reference)
+        case path if path.segments.size == 2 ⇒ gateway.port.copy(name = TraitReference(path.segments.head, TraitReference.Ports, path.segments.tail.head).reference)
         case path                        ⇒ throwException(UnresolvedGatewayPortError(path.source, gateway.port.value))
       }
     }

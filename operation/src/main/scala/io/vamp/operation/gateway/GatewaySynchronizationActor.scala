@@ -109,8 +109,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
           val name = GatewayPath(deployment.name :: cluster.name :: routing.port.name :: Nil).source
           val port = routing.port.copy(value = cluster.portMapping.get(routing.port.name).flatMap { number ⇒ Port(number, routing.port.`type`).value })
           val routes = routing.routes.map {
-            case route: DefaultRoute if route.path.path.size == 1 ⇒ route.copy(path = GatewayPath(deployment.name :: cluster.name :: route.path.source :: routing.port.name :: Nil))
-            case route ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.path.path.size}"))
+            case route: DefaultRoute if route.path.segments.size == 1 ⇒ route.copy(path = GatewayPath(deployment.name :: cluster.name :: route.path.source :: routing.port.name :: Nil))
+            case route ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.path.segments.size}"))
           }
           routing.copy(name = name, port = port, routes = routes)
         }
@@ -134,7 +134,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
     val (remove, keep) = gateways.partition { gateway ⇒
       val name = GatewayPath(gateway.name)
-      name.path.size > 1 && !deployments.exists(_.name == name.path.head)
+      name.segments.size > 1 && !deployments.exists(_.name == name.segments.head)
     }
 
     remove.foreach { gateway ⇒
@@ -147,7 +147,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   private def enrich(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = _.map { gateway ⇒
 
-    def deploymentInstances(routePath: GatewayPath): List[DeploymentGatewayRouteInstance] = routePath.path match {
+    def deploymentInstances(routePath: GatewayPath): List[DeploymentGatewayRouteInstance] = routePath.segments match {
 
       case deployment :: cluster :: service :: port :: Nil ⇒
         deployments.find {
@@ -167,13 +167,13 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
       val routes = gateway.routes.map {
 
-        case route: DefaultRoute if route.path.path.size == 1 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
+        case route: DefaultRoute if route.path.segments.size == 1 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
 
-        case route: DefaultRoute if route.path.path.size == 2 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
+        case route: DefaultRoute if route.path.segments.size == 2 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
 
-        case route: DefaultRoute if route.path.path.size == 3 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
+        case route: DefaultRoute if route.path.segments.size == 3 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
 
-        case route: DefaultRoute if route.path.path.size == 4 ⇒ DeploymentGatewayRoute(route.name, route.path, route.weight, route.filters, deploymentInstances(route.path))
+        case route: DefaultRoute if route.path.segments.size == 4 ⇒ DeploymentGatewayRoute(route.name, route.path, route.weight, route.filters, deploymentInstances(route.path))
 
         case route: GatewayReferenceRoute ⇒ route
 

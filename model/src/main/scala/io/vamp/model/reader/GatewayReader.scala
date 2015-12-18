@@ -46,7 +46,7 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
 
   override protected def validate(gateway: T): T = {
 
-    gateway.routes.map(_.path).foreach(path ⇒ if (path.path.size < 1 || path.path.size > 4) throwException(UnsupportedRoutePathError(path)))
+    gateway.routes.map(_.path).foreach(path ⇒ if (path.segments.size < 1 || path.segments.size > 4) throwException(UnsupportedRoutePathError(path)))
 
     if (gateway.port.`type` != Port.Type.Http && gateway.sticky.isDefined) throwException(StickyPortTypeError(gateway.port.copy(name = gateway.port.value.get)))
 
@@ -56,7 +56,7 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
   protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
     case None ⇒ AnonymousYamlReader.name
     case Some(name) ⇒
-      val path = GatewayPath(name).path
+      val path = GatewayPath(name).segments
       if (path.size < 1 || path.size > 2)
         throwException(UnsupportedGatewayNameError(name))
       name

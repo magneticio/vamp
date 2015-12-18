@@ -8,7 +8,7 @@ import akka.pattern.ask
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
-import io.vamp.gateway_driver.GatewayDriverNameMatcher
+import io.vamp.gateway_driver.GatewayNameMatcher
 import io.vamp.model.artifact._
 import io.vamp.model.event.{ Aggregator, Event, EventQuery, TimeRange, _ }
 import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
@@ -95,7 +95,7 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
   }
 }
 
-trait SlaPulse extends GatewayDriverNameMatcher {
+trait SlaPulse extends GatewayNameMatcher {
   this: CommonSupportForActors ⇒
 
   implicit val timeout = PulseActor.timeout

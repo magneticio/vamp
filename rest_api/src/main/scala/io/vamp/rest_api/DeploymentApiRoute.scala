@@ -3,20 +3,24 @@ package io.vamp.rest_api
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
+import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, ExecutionContextProvider, IoC }
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
+import io.vamp.gateway_driver.GatewayStore
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor
-import io.vamp.model.artifact.{ Gateway, Deployment }
 import io.vamp.model.artifact.DeploymentService.State
+import io.vamp.model.artifact.{ Deployment, Gateway }
 import io.vamp.operation.controller.DeploymentApiController
 import io.vamp.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.operation.gateway.GatewaySynchronizationActor
 import io.vamp.operation.sla.{ EscalationActor, SlaActor }
 import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 import spray.http.StatusCodes._
+import spray.http._
 
+import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }
 
 trait DeploymentApiRoute extends DeploymentApiController with DevController {
@@ -45,6 +49,10 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
   } ~ path("kibana") {
     respondWithStatus(Accepted) {
       complete(kibana())
+    }
+  } ~ path("haproxy") {
+    onSuccess(haproxy()) { result ⇒
+      respondWith(OK, result)
     }
   }
 
@@ -193,5 +201,13 @@ trait DevController {
   }
 
   def kibana(): Unit = IoC.actorFor[KibanaDashboardActor] ! KibanaDashboardActor.KibanaDashboardUpdate
+
+  def haproxy(): Future[Any] = {
+    implicit val timeout = GatewayStore.timeout
+    IoC.actorFor[GatewayStore] ? GatewayStore.Get map {
+      case Some(result: String) ⇒ HttpEntity(result)
+      case _                    ⇒ HttpEntity("")
+    }
+  }
 }
 
