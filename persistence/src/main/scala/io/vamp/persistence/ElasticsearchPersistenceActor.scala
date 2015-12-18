@@ -34,7 +34,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
 
   private val types: Map[String, YamlReader[_ <: Artifact]] = Map(
     "gateways" -> new AbstractGatewayReader[Gateway] {
-      override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes(splitPath = true), active)
+      override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes(splitPath = true))
       protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
         case None       ⇒ AnonymousYamlReader.name
         case Some(name) ⇒ name

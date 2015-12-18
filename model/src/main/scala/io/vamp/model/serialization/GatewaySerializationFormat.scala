@@ -43,7 +43,6 @@ trait GatewayDecomposer extends ReferenceSerialization {
           route.path.source -> route
         } toMap
       })
-      list += JField("active", JBool(gateway.active))
 
       new JObject(list.toList)
   }

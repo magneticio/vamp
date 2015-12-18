@@ -44,8 +44,6 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
     case None ⇒ Nil
   }
 
-  protected def active(implicit source: YamlSourceReader): Boolean = <<?[Boolean]("active").getOrElse(false)
-
   override protected def validate(gateway: T): T = {
 
     gateway.routes.map(_.path).foreach(path ⇒ if (path.path.size < 1 || path.path.size > 4) throwException(UnsupportedRoutePathError(path)))
@@ -67,12 +65,12 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
 
 object GatewayReader extends AbstractGatewayReader[Gateway] {
 
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes(splitPath = true), active)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes(splitPath = true))
 }
 
 object ClusterGatewayReader extends AbstractGatewayReader[Gateway] {
 
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), sticky("sticky"), routes(splitPath = false), active)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), sticky("sticky"), routes(splitPath = false))
 }
 
 object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route] {
