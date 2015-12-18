@@ -102,7 +102,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   private def add(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
     val newly = deployments.flatMap { deployment ⇒
 
-      val deploymentGateways = deployment.gateways.map { gateway ⇒ gateway.copy(name = GatewayPath(deployment.name :: gateway.port.number :: Nil).source) }
+      val deploymentGateways = deployment.gateways.map { gateway ⇒ gateway.copy(name = GatewayPath(deployment.name :: gateway.port.name :: Nil).source) }
 
       val clusterGateways = deployment.clusters.filter(_.services.forall(_.state.isDone)).flatMap { cluster ⇒
         cluster.routing.map { routing ⇒

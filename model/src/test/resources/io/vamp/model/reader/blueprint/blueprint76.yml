@@ -1,0 +1,11 @@
+name: nomadic-frostbite
+
+gateways:
+  web:
+    port: 8080/http
+    routes: notorious/web
+
+clusters:
+  notorious:
+    services:
+      breed: nocturnal-viper

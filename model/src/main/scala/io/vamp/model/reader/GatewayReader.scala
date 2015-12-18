@@ -5,6 +5,7 @@ import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
+import scala.util.Try
 
 trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYamlReader[T] {
 
@@ -108,14 +109,25 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
     case None       ⇒ Nil
   }
 
-  protected def parse(implicit source: YamlSourceReader): List[T] = source.pull().keySet.map { port ⇒
-    val yaml = <<![YamlSourceReader](port :: Nil)
-    if (yaml.find[Any]("port").isDefined) throwException(UnexpectedElement(Map[String, Any](name -> "port"), ""))
-    >>("port", port)(yaml)
-    reader.readAnonymous(yaml)
+  protected def parse(implicit source: YamlSourceReader): List[T] = source.pull().keySet.map { key ⇒
+    val yaml = <<![YamlSourceReader](key :: Nil)
+
+    <<?[Any](key :: "port") match {
+      case Some(value) ⇒ if (!acceptPort) throwException(UnexpectedElement(Map[String, Any](key -> "port"), ""))
+      case None        ⇒ >>("port", key)(yaml)
+    }
+
+    reader.readAnonymous(yaml) match {
+      case artifact ⇒ update(key, artifact)
+    }
+
   } toList
 
   protected def reader: AnonymousYamlReader[T]
+
+  protected def acceptPort: Boolean
+
+  protected def update(key: String, artifact: T)(implicit source: YamlSourceReader): T = artifact
 }
 
 object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
@@ -131,6 +143,11 @@ object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
     }
     super.expand
   }
+
+  protected def acceptPort = true
+
+  override protected def update(key: String, gateway: Gateway)(implicit source: YamlSourceReader): Gateway =
+    gateway.copy(port = gateway.port.copy(name = Try(Port(key).number.toString).getOrElse(key)))
 }
 
 object RoutingReader extends GatewayMappingReader[Gateway] {
@@ -141,4 +158,6 @@ object RoutingReader extends GatewayMappingReader[Gateway] {
     if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>(Gateway.anonymous, <<-())
     super.expand
   }
+
+  protected def acceptPort = false
 }

@@ -22,7 +22,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint2.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None)), Nil, None))),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", "notorious/port", None, Nil))))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", "notorious/port", None, Nil))))),
       'environmentVariables(List(EnvironmentVariable("notorious.environment_variables.aspect", None, Some("thorium"))))
     )
   }
@@ -193,7 +193,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint21.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Nil, Some(DefaultScale("", 0.2, 120.0, 2))), Service(BreedReference("remote-venus"), Nil, Some(ScaleReference("worthy")))), List(Gateway("", Port("", None, None), None, List(DefaultRoute("", "solid-barbershop", Some(95), List(DefaultFilter("", "ua = android")))))), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious"))))), Map("reborn" -> "red-swallow")))), Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), Nil, Nil, Nil, Map()), Nil, None)), Nil, None), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), Nil, Nil, Nil, Map()), Nil, None)), Nil, Some(SlaReference("fish-steamy", Nil))), Cluster("omega", List(Service(BreedReference("scary-lion"), Nil, None)), Nil, None))),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
       'environmentVariables(List(EnvironmentVariable("omega.environment_variables.aspect", None, Some("thorium"))))
     )
   }
@@ -202,7 +202,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint22.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("vamp/solid-barbershop"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, None)), Nil, None))),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
       'environmentVariables(Nil)
     )
   }
@@ -344,7 +344,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint38.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("sava1", Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)))), List(Gateway("", Port("port", None, None), None, List(DefaultRoute("", "sava1", None, List(FilterReference("android")))))), None))),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
       'environmentVariables(Nil)
     )
   }
@@ -353,7 +353,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint39.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("sava1", Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)))), List(Gateway("", Port("port", None, None), None, List(DefaultRoute("", "sava1", None, List(FilterReference("android")))))), None))),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
       'environmentVariables(Nil)
     )
   }
@@ -362,7 +362,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint40.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("sava1", Deployable("magneticio/sava:latest"), List(Port("port", None, Some("80/http"))), Nil, Nil, Map()), Nil, Some(DefaultScale("", 0.5, 512.0, 1)))), List(Gateway("", Port("port", None, None), None, List(DefaultRoute("", "sava1", None, List(FilterReference("android")))))), None))),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
       'environmentVariables(Nil)
     )
   }
@@ -371,7 +371,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint41.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), Nil, Some(ScaleReference("large")))), List(Gateway("", Port("", None, None), None, List(DefaultRoute("", "sava1", None, List(FilterReference("android")))))), None))),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
       'environmentVariables(Nil)
     )
   }
@@ -380,7 +380,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint42.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), Nil, Some(ScaleReference("large")))), Nil, None))),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
       'environmentVariables(Nil)
     )
   }
@@ -405,7 +405,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint45.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), Nil, None)), List(Gateway("", Port("", None, None), None, List(DefaultRoute("", "sava1", None, List(FilterReference("android")))))), None))),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
       'environmentVariables(Nil)
     )
   }
@@ -414,7 +414,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint46.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), Nil, Some(ScaleReference("large")))), List(Gateway("", Port("", None, None), None, List(DefaultRoute("", "sava1", None, List(DefaultFilter("", "user.agent == android")))))), None))),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
       'environmentVariables(Nil)
     )
   }
@@ -482,7 +482,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
 
     blueprint should have(
       'name("nomadic-frostbite"),
-      'gateways(List(Gateway("", Port("", None, Some("8081")), None, List(DefaultRoute("", "supersonic/port", None, Nil))), Gateway("", Port("", None, Some("8082/tcp")), None, List(DefaultRoute("", "supersonic/health", None, Nil))), Gateway("", Port("", None, Some("8083/http")), None, List(DefaultRoute("", "supersonic/metrics", None, Nil))))),
+      'gateways(List(Gateway("", Port("8081", None, Some("8081")), None, List(DefaultRoute("", "supersonic/port", None, Nil))), Gateway("", Port("8082", None, Some("8082/tcp")), None, List(DefaultRoute("", "supersonic/health", None, Nil))), Gateway("", Port("8083", None, Some("8083/http")), None, List(DefaultRoute("", "supersonic/metrics", None, Nil))))),
       'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("docker", Some("vamp/solid-barbershop")), List(Port("port", None, Some("80/http")), Port("health", None, Some("8080")), Port("metrics", None, Some("8090/tcp"))), Nil, Nil, Map()), Nil, None, Map())), Nil, None, Map())))
     )
 
@@ -621,7 +621,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint69.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("9050")), Port("admin", None, Some("9060"))), Nil, Nil, Map()), Nil, None, Map())), List(Gateway("", Port("web", None, None), Some(Gateway.Sticky.Service), Nil)), None, Map()))),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/web", List("notorious", "web")), None, Nil)), active = false), Gateway("", Port("", None, Some("8081")), Some(Gateway.Sticky.Service), List(DefaultRoute("", GatewayPath("notorious/admin", List("notorious", "admin")), None, Nil)), active = false))))
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/web", List("notorious", "web")), None, Nil)), active = false), Gateway("", Port("8081", None, Some("8081")), Some(Gateway.Sticky.Service), List(DefaultRoute("", GatewayPath("notorious/admin", List("notorious", "admin")), None, Nil)), active = false))))
   }
 
   it should "not allow sticky tcp gateway" in {
@@ -644,7 +644,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read complex gateway with weights" in {
     BlueprintReader.read(res("blueprint/blueprint72.yml")) should have(
       'name("nomadic-frostbite"),
-      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/port1", List("notorious", "port1")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious/port2", List("notorious", "port2")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious/port3", List("notorious", "port3")), None, Nil)), active = false))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/port1", List("notorious", "port1")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious/port2", List("notorious", "port2")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious/port3", List("notorious", "port3")), None, Nil)), active = false))),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Map())), Nil, None, Map())))
     )
   }
@@ -653,7 +653,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[GatewayRouteWeightError]({
       BlueprintReader.read(res("blueprint/blueprint73.yml"))
     }) should have(
-      'gateway(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/port1", List("notorious", "port1")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious/port2", List("notorious", "port2")), Some(60), Nil)), active = false))
+      'gateway(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/port1", List("notorious", "port1")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious/port2", List("notorious", "port2")), Some(60), Nil)), active = false))
     )
   }
 
@@ -662,6 +662,22 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       BlueprintReader.read(res("blueprint/blueprint74.yml"))
     }) should have(
       'port(8080)
+    )
+  }
+
+  it should "fail on explicit routing port" in {
+    expectedError[UnexpectedElement]({
+      BlueprintReader.read(res("blueprint/blueprint75.yml"))
+    }) should have(
+      'element(Map("web" -> "port"))
+    )
+  }
+
+  it should "read explicit gateway port" in {
+    BlueprintReader.read(res("blueprint/blueprint76.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Map())), Nil, None, Map()))),
+      'gateways(List(Gateway("", Port("web", None, Some("8080/http")), None, List(DefaultRoute("", GatewayPath("notorious/web", List("notorious", "web")), None, Nil)), active = false)))
     )
   }
 }
