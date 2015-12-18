@@ -1,22 +1,22 @@
 # Yaml Reader
 
-YamlParsingError                      : "Error: {message}"
-MissingPathValueError                 : "Can't find any value for path: /{path}"
-UnexpectedTypeError                   : "Unexpected value type of '{path}'."
-UnexpectedInnerElementError           : "Can't find a nested element of '{path}'."
-EitherReferenceOrAnonymous            : "Either it should be a reference '{name} -> {reference}' or an anonymous inline definition, but not both."
-NotAnonymousError                     : "Expected an anonimous artifact, not one with the name: '{name}'."
-UnexpectedElement                     : "Unexpected in DSL: {message}"
-IllegalName                           : "Illegal name or reference - white space characters, '/', '[' and ']' are not allowed: {name}"
-IllegalStrictName                     : "Illegal name - white space characters, '.', '/', '[' and ']' are not allowed: {name}"
+YamlParsingError                       : "Error: {message}"
+MissingPathValueError                  : "Can't find any value for path: /{path}"
+UnexpectedTypeError                    : "Unexpected value type of '{path}'."
+UnexpectedInnerElementError            : "Can't find a nested element of '{path}'."
+EitherReferenceOrAnonymous             : "Either it should be a reference '{name} -> {reference}' or an anonymous inline definition, but not both."
+NotAnonymousError                      : "Expected an anonimous artifact, not one with the name: '{name}'."
+UnexpectedElement                      : "Unexpected in DSL: {message}"
+IllegalName                            : "Illegal name or reference - white space characters, '/', '[' and ']' are not allowed: {name}"
+IllegalStrictName                      : "Illegal name - white space characters, '.', '/', '[' and ']' are not allowed: {name}"
 
 # Breed Reader
 
-MalformedTraitError                   : "Malformed entry for port, environment variable or constant '{name}'."
-MissingPortValueError                 : "Missing port value for '{port.name}' and breed '{breed.name} -> {breed.deployable.name}'."
-MissingConstantValueError             : "Missing constant value for '{constant.name}' and breed '{breed.name} -> {breed.deployable.name}'."
-RecursiveDependenciesError            : "Recursive (cyclic) dependency detected for breed '{breed.name}'"
-UnresolvedDependencyInTraitValueError : "Unresolved reference '{reference}' in breed '{breed.name} -> {breed.deployable.name}'."
+MalformedTraitError                    : "Malformed entry for port, environment variable or constant '{name}'."
+MissingPortValueError                  : "Missing port value for '{port.name}' and breed '{breed.name} -> {breed.deployable.name}'."
+MissingConstantValueError              : "Missing constant value for '{constant.name}' and breed '{breed.name} -> {breed.deployable.name}'."
+RecursiveDependenciesError             : "Recursive (cyclic) dependency detected for breed '{breed.name}'"
+UnresolvedDependencyInTraitValueError  : "Unresolved reference '{reference}' in breed '{breed.name} -> {breed.deployable.name}'."
 
 # Blueprint Reader
 
@@ -30,29 +30,29 @@ NoServiceError$                        : "Expected at least one service."
 MissingEnvironmentVariableError        : "Missing environment variable value for '{name}' in service '{breed.name}.'"
 IllegalRoutingStickyValue              : "Illegal routing sticky value: '{sticky}'."
 UnresolvedServiceRouteError            : "Unresolved service route for '{cluster.name}' and '{service}'."
+UnsupportedRoutePathError              : "Unsupported route path: '{path.source}'. Must be one of: '$gateway', '$deployment/$port' or '$deployment/$cluster/$port'."
 StickyPortTypeError                    : "Sticky sessions are not allowed for TCP port: '{port.name}'."
 FilterPortTypeError                    : "HTTP filters are not allowed for TCP port: '{port.name}' and filter '{filter.condition}'."
 IllegalAnonymousRoutingPortMappingError: "Illegal anonymous routing port mapping - more than 1 port defined for '{breed.name}'."
 
 # SLA
 
-Escalate                              : "Escalate '{deployment.name}/{cluster.name}'."
-DeEscalate                            : "Deescalate '{deployment.name}/{cluster.name}'."
+Escalate                               : "Escalate '{deployment.name}/{cluster.name}'."
+DeEscalate                             : "Deescalate '{deployment.name}/{cluster.name}'."
 
 # Deployment Reader
 
-NotificationMessageNotRestored        : "Deployment service error was not restored. {message}"
-UndefinedStateIntentionError          : "Undefined state intention: {name}."
-UndefinedStateStepError               : "Undefined state step: {name}."
+NotificationMessageNotRestored         : "Deployment service error was not restored. {message}"
+UndefinedStateIntentionError           : "Undefined state intention: {name}."
+UndefinedStateStepError                : "Undefined state step: {name}."
 
 # Workflows
 
-UndefinedWorkflowTriggerError$        : "Undefined workflow trigger - either deployment, time or tags must be specified."
+UndefinedWorkflowTriggerError$         : "Undefined workflow trigger - either deployment, time or tags must be specified."
 
 # Event
 
-NoTagEventError$                      : "Publishing an event without tags is not allowed."
-EventTimestampError                   : "Event timestamp cannot be parsed: '{timestamp}'."
-EventQueryTimeError$                  : "Event query time range is not valid, both 'lt' and 'lte' or 'gt' and 'gte' are not allowed."
-UnsupportedAggregatorError            : "Unsuported aggregator: {aggregator}."
-
+NoTagEventError$                       : "Publishing an event without tags is not allowed."
+EventTimestampError                    : "Event timestamp cannot be parsed: '{timestamp}'."
+EventQueryTimeError$                   : "Event query time range is not valid, both 'lt' and 'lte' or 'gt' and 'gte' are not allowed."
+UnsupportedAggregatorError             : "Unsuported aggregator: {aggregator}."

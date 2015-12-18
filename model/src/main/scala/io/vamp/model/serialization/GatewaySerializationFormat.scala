@@ -35,7 +35,7 @@ trait GatewayDecomposer extends ReferenceSerialization {
         list += JField("port", JString(gateway.port.value.get))
       }
 
-      list += JField("sticky", Extraction.decompose(gateway.sticky))
+      list += JField("sticky", if (gateway.sticky.isDefined) Extraction.decompose(gateway.sticky) else JString("none"))
       list += JField("routes", Extraction.decompose {
         gateway.routes.map { route ⇒
           route.path.source -> route
@@ -60,8 +60,7 @@ class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerializat
       val list = new ArrayBuffer[JField]
       if (routing.name.nonEmpty)
         list += JField("name", JString(routing.name))
-      if (routing.weight.nonEmpty)
-        list += JField("weight", JInt(routing.weight.get))
+      list += JField("weight", JInt(if (routing.weight.isDefined) routing.weight.get else 0))
       list += JField("filters", Extraction.decompose(routing.filters))
       new JObject(list.toList)
   }

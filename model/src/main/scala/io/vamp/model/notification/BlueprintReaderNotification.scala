@@ -34,3 +34,5 @@ case class StickyPortTypeError(port: Port) extends Notification
 case class FilterPortTypeError(port: Port, filter: Filter) extends Notification
 
 case class IllegalAnonymousRoutingPortMappingError(breed: Breed) extends Notification
+
+case class UnsupportedRoutePathError(path: GatewayPath) extends Notification

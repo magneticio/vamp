@@ -36,6 +36,8 @@ case class GatewayPath(source: String) {
     case routePath: GatewayPath ⇒ path == routePath.path
     case _                      ⇒ super.equals(obj)
   }
+
+  def normalized = path.mkString("/")
 }
 
 object Route {
@@ -49,6 +51,12 @@ trait Route extends Artifact {
 case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
 
 case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter]) extends Route
+
+case class GatewayReferenceRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter]) extends Route {
+  val reference = path.normalized
+}
+
+case class DeploymentGatewayRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter], instances: List[DeploymentInstance]) extends Route
 
 trait Filter extends Artifact
 

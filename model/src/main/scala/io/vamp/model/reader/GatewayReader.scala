@@ -38,6 +38,11 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
   }
 
   protected def active(implicit source: YamlSourceReader): Boolean = <<?[Boolean]("active").getOrElse(false)
+
+  override protected def validate(gateway: T): T = {
+    gateway.routes.map(_.path).foreach(path ⇒ if (path.path.size < 1 || path.path.size > 4) throwException(UnsupportedRoutePathError(path)))
+    gateway
+  }
 }
 
 object GatewayReader extends AbstractGatewayReader[Gateway] {

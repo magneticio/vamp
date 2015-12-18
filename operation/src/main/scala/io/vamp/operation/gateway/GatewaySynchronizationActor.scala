@@ -4,6 +4,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.model.artifact._
+import io.vamp.model.notification.UnsupportedRoutePathError
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
 import io.vamp.persistence.PersistenceActor.{ Update, Create, Delete }
@@ -50,7 +51,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       gateways ← allArtifacts[Gateway]
       deployments ← allArtifacts[Deployment] map { deployments ⇒ update(gateways, deployments) }
     } yield (gateways, deployments)) onComplete {
-      case Success((gateways, deployments)) ⇒ (add(deployments) andThen remove(deployments) andThen flush)(gateways)
+      case Success((gateways, deployments)) ⇒ (add(deployments) andThen remove(deployments) andThen enrich(deployments) andThen flush)(gateways)
       case Failure(error)                   ⇒ throwException(InternalServerError(error))
     }
   }
@@ -104,8 +105,13 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       deployment.gateways.map(gateway ⇒ gateway.copy(name = GatewayPath(deployment.name, gateway.port.number).source)) ++
         deployment.clusters.filter(_.services.forall(_.state.isDone)).flatMap { cluster ⇒
           cluster.routing.map { routing ⇒
+            val name = GatewayPath(deployment.name, cluster.name, routing.port.name).source
             val port = routing.port.copy(value = cluster.portMapping.get(routing.port.name).flatMap { number ⇒ Port(number, routing.port.`type`).value })
-            routing.copy(name = GatewayPath(deployment.name, cluster.name, routing.port.name).source, port = port)
+            val routes = routing.routes.map {
+              case route: DefaultRoute if route.path.path.size == 1 ⇒ route.copy(path = GatewayPath(deployment.name, cluster.name, route.path, routing.port.name))
+              case route ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.getClass}"))
+            }
+            routing.copy(name = name, port = port, routes = routes)
           }
         }
     } filterNot { gateway ⇒
@@ -135,7 +141,32 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     keep
   }
 
+  private def enrich(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = _.map { gateway ⇒
+
+    def deploymentInstances(routePath: GatewayPath): List[DeploymentInstance] = routePath.path match {
+      case deployment :: cluster :: service :: port :: Nil ⇒ Nil //deployments.find(_.name == deployment).flatMap(_.clusters.find(_.name == cluster)).flatMap()
+
+      case _ ⇒ throwException(InternalServerError(s"unsupported cluster route path: ${routePath.source}"))
+    }
+
+    val routes = gateway.routes.map {
+
+      case route: DefaultRoute if route.path.path.size == 1 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
+
+      case route: DefaultRoute if route.path.path.size == 2 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
+
+      case route: DefaultRoute if route.path.path.size == 3 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
+
+      case route: DefaultRoute if route.path.path.size == 4 ⇒ DeploymentGatewayRoute(route.name, route.path, route.weight, route.filters, deploymentInstances(route.path))
+
+      case route ⇒ throwException(UnsupportedRoutePathError(route.path))
+    }
+
+    gateway.copy(routes = routes)
+  }
+
   private def flush: List[Gateway] ⇒ Unit = { gateways ⇒
-    // TODO set active, persist, send to driver
+    // TODO send to driver
+
   }
 }
