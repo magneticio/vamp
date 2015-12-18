@@ -2,7 +2,8 @@ package io.vamp.persistence
 
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.http.RestClient
-import io.vamp.model.artifact.{ Artifact, DefaultBlueprint }
+import io.vamp.model.artifact.{ GatewayPath, Gateway, Artifact, DefaultBlueprint }
+import io.vamp.model.notification.UnsupportedGatewayNameError
 import io.vamp.model.reader._
 import io.vamp.model.serialization.CoreSerializationFormat
 import org.json4s.DefaultFormats
@@ -26,12 +27,19 @@ case class ElasticsearchSearchHits(total: Long, hits: List[Map[String, _]])
 
 class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact with PaginationSupport {
 
+  import YamlSourceReader._
   import ElasticsearchPersistenceActor._
 
   private val store = new InMemoryStore(log)
 
   private val types: Map[String, YamlReader[_ <: Artifact]] = Map(
-    "gateways" -> GatewayReader,
+    "gateways" -> new AbstractGatewayReader[Gateway] {
+      override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes(splitPath = true), active)
+      protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
+        case None       ⇒ AnonymousYamlReader.name
+        case Some(name) ⇒ name
+      }
+    },
     "deployments" -> DeploymentReader,
     "breeds" -> BreedReader,
     "blueprints" -> BlueprintReader,
@@ -133,7 +141,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
       case response: ElasticsearchSearchResponse ⇒
         val list = response.hits.hits.flatMap { hit ⇒
           hit.get("_source").flatMap(_.asInstanceOf[Map[String, _]].get("artifact")).flatMap { source ⇒
-            types.get(`type`).flatMap { reader ⇒ Some(reader.unmarshall(source.toString, validate = false)) }
+            types.get(`type`).flatMap { reader ⇒ Some(reader.read(source.toString)) }
           }
         }
         ArtifactResponseEnvelope(list, response.hits.total, from, size)
