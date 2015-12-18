@@ -8,7 +8,7 @@ import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, Execut
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor
-import io.vamp.model.artifact.Deployment
+import io.vamp.model.artifact.{ Gateway, Deployment }
 import io.vamp.model.artifact.DeploymentService.State
 import io.vamp.operation.controller.DeploymentApiController
 import io.vamp.operation.deployment.DeploymentSynchronizationActor
@@ -175,11 +175,21 @@ trait DevController {
     IoC.actorFor[EscalationActor] ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }
 
-  def reset()(implicit timeout: Timeout): Unit = allArtifacts[Deployment] map { deployments ⇒
-    deployments.foreach { deployment ⇒
-      IoC.actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster ⇒ cluster.copy(services = cluster.services.map(service ⇒ service.copy(state = State(State.Intention.Undeploy)))))))
+  def reset()(implicit timeout: Timeout): Unit = {
+
+    allArtifacts[Gateway] map { gateways ⇒
+      gateways.foreach { gateway ⇒
+        IoC.actorFor[PersistenceActor] ! PersistenceActor.Delete(gateway.name, gateway.getClass)
+      }
+      sync()
     }
-    sync()
+
+    allArtifacts[Deployment] map { deployments ⇒
+      deployments.foreach { deployment ⇒
+        IoC.actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster ⇒ cluster.copy(services = cluster.services.map(service ⇒ service.copy(state = State(State.Intention.Undeploy)))))))
+      }
+      sync()
+    }
   }
 
   def kibana(): Unit = IoC.actorFor[KibanaDashboardActor] ! KibanaDashboardActor.KibanaDashboardUpdate
