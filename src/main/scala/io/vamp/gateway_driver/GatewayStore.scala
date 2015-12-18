@@ -2,7 +2,7 @@ package io.vamp.gateway_driver
 
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.vamp.gateway_driver.model.Gateway
+
 import scala.concurrent.duration._
 
 object GatewayStore {
@@ -13,7 +13,7 @@ object GatewayStore {
 
   object Get extends GatewayStoreMessage
 
-  case class Put(gateways: List[Gateway], raw: Option[Array[Byte]]) extends GatewayStoreMessage
+  case class Put(data: Option[String]) extends GatewayStoreMessage
 
 }
 
