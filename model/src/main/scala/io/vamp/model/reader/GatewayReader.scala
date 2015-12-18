@@ -11,7 +11,12 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
   override protected def expand(implicit source: YamlSourceReader) = {
     <<?[Any]("routes") match {
       case Some(route: String) ⇒ >>("routes" :: route :: Nil, YamlSourceReader())
-      case _                   ⇒
+      case Some(routes: List[_]) ⇒ routes.foreach {
+        case route: String           ⇒ >>("routes" :: route :: Nil, YamlSourceReader())
+        case route: YamlSourceReader ⇒ route.pull().foreach { case (name, value) ⇒ >>("routes" :: name :: Nil, value) }
+        case _                       ⇒
+      }
+      case _ ⇒
     }
     super.expand
   }
@@ -27,11 +32,11 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
     case None         ⇒ None
   }
 
-  protected def routes(implicit source: YamlSourceReader): List[Route] = <<?[YamlSourceReader]("routes") match {
+  protected def routes(splitPath: Boolean)(implicit source: YamlSourceReader): List[Route] = <<?[YamlSourceReader]("routes") match {
     case Some(map) ⇒ map.pull().map {
       case (name: String, _) ⇒ RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
-        case route: DefaultRoute   ⇒ route.copy(path = name)
-        case route: RouteReference ⇒ route.copy(path = name)
+        case route: DefaultRoute   ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
+        case route: RouteReference ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
       }
     } toList
     case None ⇒ Nil
@@ -47,12 +52,12 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
 
 object GatewayReader extends AbstractGatewayReader[Gateway] {
 
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes, active)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes(splitPath = true), active)
 }
 
 object ClusterGatewayReader extends AbstractGatewayReader[Gateway] {
 
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), sticky("sticky"), routes, active)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), sticky("sticky"), routes(splitPath = false), active)
 }
 
 object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route] {

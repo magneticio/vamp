@@ -1,0 +1,14 @@
+name: nomadic-frostbite
+
+gateways:
+  8080:
+    routes:
+      notorious.port1:
+        weight: 50
+      notorious.port2:
+        weight: 60
+
+clusters:
+  notorious:
+    services:
+      breed: nocturnal-viper

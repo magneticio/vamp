@@ -20,24 +20,23 @@ case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value
 
 object GatewayPath {
 
-  def apply(path: List[String] = Nil) = list2path(path)
+  def apply(source: String) = string2path(source)
 
-  def apply(path: Any*) = list2path(path.toList.map(_.toString))
+  def apply(path: List[Any] = Nil) = list2path(path.map(_.toString))
 
-  implicit def string2path(path: String): GatewayPath = new GatewayPath(path)
+  implicit def string2path(source: String): GatewayPath = new GatewayPath(source, source.split("[\\/\\.]").toList)
 
-  implicit def list2path(path: List[String]): GatewayPath = new GatewayPath(path.mkString("/"))
+  implicit def list2path(path: List[String]): GatewayPath = new GatewayPath(path.mkString("/"), path)
 }
 
-case class GatewayPath(source: String) {
-  val path = source.split("[\\/\\.]").toList
+case class GatewayPath(source: String, path: List[String]) {
+
+  val normalized = path.mkString("/")
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case routePath: GatewayPath ⇒ path == routePath.path
     case _                      ⇒ super.equals(obj)
   }
-
-  def normalized = path.mkString("/")
 }
 
 object Route {

@@ -253,7 +253,7 @@ trait DeploymentValidator {
 
   def weightOf(cluster: DeploymentCluster, services: List[DeploymentService], port: String): Int = cluster.routingBy(port).flatMap({ routing ⇒
     Some(routing.routes.filter({
-      case route: DefaultRoute ⇒ services.exists(_.breed.name == route.path)
+      case route: DefaultRoute ⇒ services.exists(_.breed.name == route.path.source)
     }).map({
       case route: DefaultRoute ⇒ route.weight.getOrElse(0)
     }).sum)
@@ -280,7 +280,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
           case attachment ⇒
             mergeClusters(futureDeployment, attachment) flatMap {
               case clusters ⇒
-                val gateways = attachment.gateways.filterNot(gateway ⇒ deployment.gateways.exists(_.port.number == gateway.port.number)) ++ deployment.gateways
+                val gateways = attachment.gateways.filterNot(gateway ⇒ deployment.gateways.exists(_.port.number == gateway.port.number)).map(updateWeights) ++ deployment.gateways
                 val ports = mergeTrait(attachment.ports, deployment.ports)
                 val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
                 val hosts = mergeTrait(attachment.hosts, deployment.hosts)
@@ -400,13 +400,42 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
               case None                  ⇒ DefaultRoute("", "", Some(defaultWeight), Nil)
               case Some(r: DefaultRoute) ⇒ r.copy(weight = Some(r.weight.getOrElse(defaultWeight)))
             }
-            route.copy(path = service.breed.name)
+            route.copy(path = GatewayPath(service.breed.name :: Nil))
         }
 
         blueprintCluster.routingBy(port).getOrElse(Gateway("", Port(port, None, None), None, Nil)).copy(routes = routes)
       } toList
 
     } else stableCluster.map(cluster ⇒ cluster.routing).getOrElse(Nil)
+  }
+
+  def updateWeights(gateway: Gateway): Gateway = {
+
+    gateway.routes.find(!_.isInstanceOf[DefaultRoute]).foreach(route ⇒ throwException(InternalServerError(s"unsupported gateway route: ${route.getClass}")))
+
+    val (newRoutes, oldRoutes) = gateway.routes.map(_.asInstanceOf[DefaultRoute]).partition(_.weight.isEmpty)
+
+    val routes = if (newRoutes.nonEmpty) {
+
+      val oldWeight = oldRoutes.map(_.weight.get).sum
+      val availableWeight = 100 - oldWeight
+
+      if (availableWeight < 0)
+        throwException(GatewayRouteWeightError(gateway))
+
+      val weight = Math.round(availableWeight / newRoutes.size)
+
+      val updatedRoutes = newRoutes.view.zipWithIndex.toList.map {
+        case (route, index) ⇒
+          val defaultWeight = if (index == newRoutes.size - 1) availableWeight - index * weight else weight
+          route.copy(weight = Option(defaultWeight))
+      }
+
+      updatedRoutes ++ oldRoutes
+
+    } else newRoutes ++ oldRoutes
+
+    gateway.copy(routes = routes)
   }
 
   def resolveHosts: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒

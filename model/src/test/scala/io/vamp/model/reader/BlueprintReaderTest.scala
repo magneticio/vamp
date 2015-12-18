@@ -621,8 +621,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint69.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("9050")), Port("admin", None, Some("9060"))), Nil, Nil, Map()), Nil, None, Map())), List(Gateway("", Port("web", None, None), Some(Gateway.Sticky.Service), Nil)), None, Map()))),
-      'environmentVariables(Nil)
-    )
+      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious.web", List("notorious", "web")), None, Nil)), active = false), Gateway("", Port("", None, Some("8081")), Some(Gateway.Sticky.Service), List(DefaultRoute("", GatewayPath("notorious.admin", List("notorious", "admin")), None, Nil)), active = false))))
   }
 
   it should "not allow sticky tcp gateway" in {
@@ -639,6 +638,22 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     }) should have(
       'port(Port("notorious.web", None, Some("8080/tcp"))),
       'filter(DefaultFilter("", "user.agent != ios"))
+    )
+  }
+
+  it should "read complex gateway with weights" in {
+    BlueprintReader.read(res("blueprint/blueprint72.yml")) should have(
+      'name("nomadic-frostbite"),
+      'gateways(List(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious.port1", List("notorious", "port1")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious.port2", List("notorious", "port2")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious.port3", List("notorious", "port3")), None, Nil)), active = false))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Map())), Nil, None, Map())))
+    )
+  }
+
+  it should "fail on gateeay weight > 100" in {
+    expectedError[GatewayRouteWeightError]({
+      BlueprintReader.read(res("blueprint/blueprint73.yml"))
+    }) should have(
+      'gateway(Gateway("", Port("", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious.port1", List("notorious", "port1")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious.port2", List("notorious", "port2")), Some(60), Nil)), active = false))
     )
   }
 }

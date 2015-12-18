@@ -34,6 +34,7 @@ UnsupportedRoutePathError              : "Unsupported route path: '{path.source}
 StickyPortTypeError                    : "Sticky sessions are not allowed for TCP port: '{port.name}'."
 FilterPortTypeError                    : "HTTP filters are not allowed for TCP port: '{port.name}' and filter '{filter.condition}'."
 IllegalAnonymousRoutingPortMappingError: "Illegal anonymous routing port mapping - more than 1 port defined for '{breed.name}'."
+GatewayRouteWeightError                : "Total route weight cannot be greater than 100 for gateway: {gateway.port.value.get}."
 
 # SLA
 

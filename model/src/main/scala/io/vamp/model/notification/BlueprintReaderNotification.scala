@@ -15,6 +15,8 @@ case class UnresolvedServiceRouteError(cluster: AbstractCluster, service: String
 
 case class RouteWeightError(cluster: AbstractCluster) extends Notification
 
+case class GatewayRouteWeightError(gateway: Gateway) extends Notification
+
 case class UnresolvedScaleEscalationTargetCluster(cluster: AbstractCluster, target: String) extends Notification
 
 case class MissingEnvironmentVariableError(breed: Breed, name: String) extends Notification
