@@ -67,8 +67,8 @@ class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerializat
       list += JField("filters", Extraction.decompose(route.filters))
 
       route match {
-        case r: DeploymentGatewayRoute ⇒ list += JField("instances", Extraction.decompose(r.instances))
-        case _                         ⇒
+        case r: DeployedRoute ⇒ list += JField("instances", Extraction.decompose(r.targets))
+        case _                ⇒
       }
 
       new JObject(list.toList)

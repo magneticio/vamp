@@ -205,7 +205,7 @@ trait DeploymentValidator {
       case bp: AbstractBlueprint ⇒
         val ports = bp.gateways.flatMap { gateway ⇒
           gateway.routes.map { route ⇒
-            if (route.path.segments.size != 2) throwException(UnresolvedGatewayPortError(route.path.source, gateway.port.value.get))
+            if (route.length != 2) throwException(UnresolvedGatewayPortError(route.path.source, gateway.port.value.get))
             gateway.port.copy(name = TraitReference(route.path.segments.head, TraitReference.Ports, route.path.segments.tail.head).reference)
           }
         }

@@ -111,8 +111,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
           val name = GatewayPath(deployment.name :: cluster.name :: routing.port.name :: Nil).source
           val port = routing.port.copy(value = cluster.portMapping.get(routing.port.name).flatMap { number ⇒ Port(number, routing.port.`type`).value })
           val routes = routing.routes.map {
-            case route: DefaultRoute if route.path.segments.size == 1 ⇒ route.copy(path = GatewayPath(deployment.name :: cluster.name :: route.path.source :: routing.port.name :: Nil))
-            case route ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.path.segments.size}"))
+            case route: DefaultRoute if route.length == 1 ⇒ route.copy(path = GatewayPath(deployment.name :: cluster.name :: route.path.source :: routing.port.name :: Nil))
+            case route                                    ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.length}"))
           }
           routing.copy(name = name, port = port, routes = routes)
         }
@@ -135,8 +135,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   private def remove(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
 
     val (remove, keep) = gateways.partition { gateway ⇒
-      val name = GatewayPath(gateway.name)
-      name.segments.size > 1 && !deployments.exists(_.name == name.segments.head)
+      val path = GatewayPath(gateway.name)
+      path.segments.size > 1 && !deployments.exists(_.name == path.segments.head)
     }
 
     remove.foreach { gateway ⇒
@@ -147,50 +147,81 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     keep
   }
 
-  private def enrich(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = _.map { gateway ⇒
+  private def enrich(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
+    gateways.map { gateway ⇒
 
-    def deploymentInstances(routePath: GatewayPath): List[DeploymentGatewayRouteInstance] = routePath.segments match {
+      def targets(path: GatewayPath): List[DeployedRouteTarget] = {
 
-      case deployment :: cluster :: service :: port :: Nil ⇒
-        deployments.find {
-          _.name == deployment
-        }.flatMap {
-          _.clusters.find(_.name == cluster)
-        }.flatMap {
-          _.services.find(_.breed.name == service)
-        }.map {
-          _.instances
-        }.getOrElse(Nil).map { instance ⇒ DeploymentGatewayRouteInstance(instance.name, instance.host, instance.ports.get(port).get) }
+        val routes: Option[List[DeployedRouteTarget]] = path.segments match {
 
-      case _ ⇒ throwException(InternalServerError(s"unsupported cluster route path: ${routePath.source}"))
+          case reference :: Nil ⇒
+            gateways.find {
+              _.name == reference
+            }.flatMap { gw ⇒
+              Option {
+                DeployedRouteTarget(reference, gw.port.number) :: Nil
+              }
+            }
+
+          case deployment :: port :: Nil ⇒
+            deployments.find {
+              _.name == deployment
+            }.flatMap {
+              _.gateways.find(_.name == port)
+            }.flatMap { gateway ⇒
+              Option {
+                DeployedRouteTarget(path.normalized, gateway.port.number) :: Nil
+              }
+            }
+
+          case deployment :: cluster :: port :: Nil ⇒
+            deployments.find {
+              _.name == deployment
+            }.flatMap {
+              _.clusters.find(_.name == cluster)
+            }.flatMap {
+              _.portMapping.get(port)
+            }.flatMap { port ⇒
+              Option {
+                DeployedRouteTarget(path.normalized, port) :: Nil
+              }
+            }
+
+          case deployment :: cluster :: service :: port :: Nil ⇒
+            deployments.find {
+              _.name == deployment
+            }.flatMap {
+              _.clusters.find(_.name == cluster)
+            }.flatMap {
+              _.services.find(_.breed.name == service)
+            }.flatMap { service ⇒
+              Option {
+                service.instances.map {
+                  instance ⇒ DeployedRouteTarget(instance.name, instance.host, instance.ports.get(port).get)
+                }
+              }
+            }
+        }
+
+        routes.getOrElse(throwException(InternalServerError(s"unsupported gateway route path: ${path.source}")))
+      }
+
+      if (gateway.routes.exists(!_.isInstanceOf[DeployedRoute])) {
+
+        val routes = gateway.routes.map {
+          case route: DefaultRoute if route.length > 0 && route.length < 5 ⇒ DeployedRoute(route, targets(route.path))
+          case route: DeployedRoute ⇒ route
+          case route ⇒ throwException(UnsupportedRoutePathError(route.path))
+        }
+
+        gateway.copy(routes = routes) match {
+          case updated ⇒
+            IoC.actorFor[PersistenceActor] ! Update(updated)
+            updated
+        }
+
+      } else gateway
     }
-
-    if (gateway.routes.exists(!_.isInstanceOf[ActiveRoute])) {
-
-      val routes = gateway.routes.map {
-
-        case route: DefaultRoute if route.path.segments.size == 1 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
-
-        case route: DefaultRoute if route.path.segments.size == 2 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
-
-        case route: DefaultRoute if route.path.segments.size == 3 ⇒ GatewayReferenceRoute(route.name, route.path, route.weight, route.filters)
-
-        case route: DefaultRoute if route.path.segments.size == 4 ⇒ DeploymentGatewayRoute(route.name, route.path, route.weight, route.filters, deploymentInstances(route.path))
-
-        case route: GatewayReferenceRoute ⇒ route
-
-        case route: DeploymentGatewayRoute ⇒ route
-
-        case route ⇒ throwException(UnsupportedRoutePathError(route.path))
-      }
-
-      gateway.copy(routes = routes) match {
-        case updated ⇒
-          IoC.actorFor[PersistenceActor] ! Update(updated)
-          updated
-      }
-
-    } else gateway
   }
 
   private def flush: List[Gateway] ⇒ Unit = IoC.actorFor[GatewayDriverActor] ! Commit(_)

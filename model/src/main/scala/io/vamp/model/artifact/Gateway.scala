@@ -47,6 +47,8 @@ object Route {
 
 sealed trait Route extends Artifact {
   def path: GatewayPath
+
+  val length = path.segments.size
 }
 
 sealed trait AbstractRoute extends Route {
@@ -60,15 +62,20 @@ case class RouteReference(name: String, path: GatewayPath) extends Reference wit
 
 case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter]) extends AbstractRoute
 
-sealed trait ActiveRoute
-
-case class GatewayReferenceRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter]) extends AbstractRoute with ActiveRoute {
-  val reference = path.normalized
+object DeployedRoute {
+  def apply(route: DefaultRoute, targets: List[DeployedRouteTarget]): DeployedRoute = new DeployedRoute(route.name, route.path, route.weight, route.filters, targets)
 }
 
-case class DeploymentGatewayRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter], instances: List[DeploymentGatewayRouteInstance]) extends AbstractRoute with ActiveRoute
+case class DeployedRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter], targets: List[DeployedRouteTarget]) extends AbstractRoute
 
-case class DeploymentGatewayRouteInstance(name: String, host: String, port: Int) extends Artifact
+object DeployedRouteTarget {
+
+  val host = "0.0.0.0"
+
+  def apply(name: String, port: Int) = new DeployedRouteTarget(name, host, port)
+}
+
+case class DeployedRouteTarget(name: String, host: String, port: Int) extends Artifact
 
 sealed trait Filter extends Artifact
 

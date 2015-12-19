@@ -34,7 +34,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
 
   private val docker = wrapper.Docker()
 
-  private val defaultHost = ConfigFactory.load().getString("vamp.gateway-driver.host")
+  private val defaultHost = "0.0.0.0"
 
   def info: Future[ContainerInfo] = docker.info().map {
     logger.debug(s"docker get info :$docker")

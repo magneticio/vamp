@@ -67,16 +67,17 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
           unixSock = unixSocket(route),
           weight = route.weight.get
         )
+      case route ⇒ throw new IllegalArgumentException(s"Unsupported route: $route")
     },
     servers = Nil,
     sticky = gateway.sticky.contains(Gateway.Sticky.Service) || gateway.sticky.contains(Gateway.Sticky.Instance),
     options = Options()) :: gateway.routes.map {
-      case route: DeploymentGatewayRoute ⇒
+      case route: DeployedRoute ⇒
         Backend(
           name = reference(route.path.normalized),
           mode = mode,
           proxyServers = Nil,
-          servers = route.instances.map { instance ⇒
+          servers = route.targets.map { instance ⇒
             Server(
               name = instance.name,
               host = instance.host,
@@ -85,6 +86,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
           },
           sticky = gateway.sticky.contains(Gateway.Sticky.Instance),
           options = Options())
+      case route ⇒ throw new IllegalArgumentException(s"Unsupported route: $route")
     }
 
   private def filters(implicit gateway: Gateway): List[Filter] = gateway.routes.flatMap {
@@ -119,4 +121,3 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     case _                    ⇒ Hash.hexSha1(reference)
   }
 }
-

@@ -48,9 +48,9 @@ trait BlueprintTraitValidator extends TraitResolver {
   private def validateGatewayPorts: (DefaultBlueprint ⇒ DefaultBlueprint) = { blueprint: DefaultBlueprint ⇒
 
     val ports = blueprint.gateways.flatMap { gateway ⇒
-      gateway.routes.map(_.path).map {
-        case path if path.segments.size == 2 ⇒ gateway.port.copy(name = TraitReference(path.segments.head, TraitReference.Ports, path.segments.tail.head).reference)
-        case path                            ⇒ throwException(UnresolvedGatewayPortError(path.source, gateway.port.value))
+      gateway.routes.map {
+        case route if route.length == 2 ⇒ gateway.port.copy(name = TraitReference(route.path.segments.head, TraitReference.Ports, route.path.segments.tail.head).reference)
+        case route                      ⇒ throwException(UnresolvedGatewayPortError(route.path.source, gateway.port.value))
       }
     }
 
