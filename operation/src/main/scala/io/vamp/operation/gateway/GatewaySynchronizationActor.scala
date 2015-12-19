@@ -3,6 +3,8 @@ package io.vamp.operation.gateway
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
+import io.vamp.gateway_driver.GatewayDriverActor
+import io.vamp.gateway_driver.GatewayDriverActor.Commit
 import io.vamp.model.artifact._
 import io.vamp.model.notification.UnsupportedRoutePathError
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
@@ -191,7 +193,5 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     } else gateway
   }
 
-  private def flush: List[Gateway] ⇒ Unit = { gateways ⇒
-    // TODO send to driver
-  }
+  private def flush: List[Gateway] ⇒ Unit = IoC.actorFor[GatewayDriverActor] ! Commit(_)
 }

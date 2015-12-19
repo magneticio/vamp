@@ -1,21 +1,27 @@
 package io.vamp.gateway_driver.haproxy
 
 import io.vamp.common.crypto.Hash
+import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
-import io.vamp.gateway_driver.{ GatewayMarshaller, GatewayNameMatcher }
 import io.vamp.model.artifact._
 
-trait HaProxyGatewayMarshaller extends GatewayMarshaller with GatewayNameMatcher {
+object HaProxyGatewayMarshaller {
+  val path: List[String] = "haproxy" :: "1.5" :: Nil
+}
+
+trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   import io.vamp.model.artifact.DefaultFilter._
 
-  override def info: AnyRef = "HAProxy v1.5.x"
-
   private val socketPath = "/opt/vamp"
 
-  override def marshall(gateways: List[Gateway]): String = {
-    HaProxyConfigurationTemplate(convert(gateways)).body
-  }
+  private val referenceMatcher = """^[a-zA-Z0-9][a-zA-Z0-9.\-_]{3,63}$""".r
+
+  override val path = HaProxyGatewayMarshaller.path
+
+  override def info: AnyRef = "HAProxy v1.5.x"
+
+  override def marshall(gateways: List[Gateway]): String = HaProxyConfigurationTemplate(convert(gateways)).body.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n")
 
   private[haproxy] def convert(gateways: List[Gateway]): HaProxy = {
     gateways.map(convert).reduceOption((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends)).getOrElse(HaProxy(Nil, Nil))
@@ -39,7 +45,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller with GatewayNameMatcher
       filters = filters,
       defaultBackend = backendFor(gateway.name)) :: gateway.routes.map { route ⇒
         Frontend(
-          name = route.path.normalized,
+          name = reference(route.path.normalized),
           bindIp = None,
           bindPort = None,
           mode = mode,
@@ -47,7 +53,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller with GatewayNameMatcher
           sockProtocol = Option("accept-proxy"),
           options = Options(),
           filters = Nil,
-          defaultBackend = backendFor(route.path.normalized))
+          defaultBackend = backendFor(reference(route.path.normalized)))
       }
   }
 
@@ -57,7 +63,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller with GatewayNameMatcher
     proxyServers = gateway.routes.map {
       case route: AbstractRoute ⇒
         ProxyServer(
-          name = route.path.normalized,
+          name = reference(route.path.normalized),
           unixSock = unixSocket(route),
           weight = route.weight.get
         )
@@ -67,7 +73,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller with GatewayNameMatcher
     options = Options()) :: gateway.routes.map {
       case route: DeploymentGatewayRoute ⇒
         Backend(
-          name = route.path.normalized,
+          name = reference(route.path.normalized),
           mode = mode,
           proxyServers = Nil,
           servers = route.instances.map { instance ⇒
@@ -101,10 +107,16 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller with GatewayNameMatcher
 
     val name = if (filter.name.isEmpty) Hash.hexSha1(condition).substring(0, 16) else filter.name
 
-    Filter(name, condition, route.path.normalized, negate)
+    Filter(name, condition, reference(route.path.normalized), negate)
   }
 
   private def mode(implicit gateway: Gateway) = if (gateway.port.`type` == Port.Type.Http) Mode.http else Mode.tcp
 
   private def unixSocket(route: Route)(implicit gateway: Gateway) = s"$socketPath/${Hash.hexSha1(s"${route.path.normalized}")}.sock"
+
+  private def reference(reference: String) = Flatten.flatten(reference) match {
+    case referenceMatcher(_*) ⇒ reference
+    case _                    ⇒ Hash.hexSha1(reference)
+  }
 }
+

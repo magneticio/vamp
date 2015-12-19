@@ -9,6 +9,7 @@ import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, Execut
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.gateway_driver.GatewayStore
+import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor
 import io.vamp.model.artifact.DeploymentService.State
 import io.vamp.model.artifact.{ Deployment, Gateway }
@@ -204,7 +205,7 @@ trait DevController {
 
   def haproxy(): Future[Any] = {
     implicit val timeout = GatewayStore.timeout
-    IoC.actorFor[GatewayStore] ? GatewayStore.Get map {
+    IoC.actorFor[GatewayStore] ? GatewayStore.Get(GatewayStore.path ++ HaProxyGatewayMarshaller.path) map {
       case Some(result: String) ⇒ HttpEntity(result)
       case _                    ⇒ HttpEntity("")
     }
