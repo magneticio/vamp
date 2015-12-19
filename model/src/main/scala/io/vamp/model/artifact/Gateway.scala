@@ -14,7 +14,7 @@ object Gateway {
 
 }
 
-case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value], routes: List[Route]) extends Artifact {
+case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value], routes: List[Route], active: Boolean = false) extends Artifact {
   def routeBy(path: GatewayPath) = routes.find(_.path == path)
 }
 
@@ -63,7 +63,7 @@ case class RouteReference(name: String, path: GatewayPath) extends Reference wit
 case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter]) extends AbstractRoute
 
 object DeployedRoute {
-  def apply(route: DefaultRoute, targets: List[DeployedRouteTarget]): DeployedRoute = new DeployedRoute(route.name, route.path, route.weight, route.filters, targets)
+  def apply(route: AbstractRoute, targets: List[DeployedRouteTarget]): DeployedRoute = new DeployedRoute(route.name, route.path, route.weight, route.filters, targets)
 }
 
 case class DeployedRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter], targets: List[DeployedRouteTarget]) extends AbstractRoute

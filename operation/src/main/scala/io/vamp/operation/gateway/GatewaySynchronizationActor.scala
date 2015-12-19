@@ -53,7 +53,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       gateways ← allArtifacts[Gateway]
       deployments ← allArtifacts[Deployment] map { deployments ⇒ update(gateways, deployments) }
     } yield (gateways, deployments)) onComplete {
-      case Success((gateways, deployments)) ⇒ (add(deployments) andThen remove(deployments) andThen enrich(deployments) andThen flush)(gateways)
+      case Success((gateways, deployments)) ⇒ (add(deployments) andThen remove(deployments) andThen flush(deployments))(gateways)
       case Failure(error)                   ⇒ throwException(InternalServerError(error))
     }
   }
@@ -147,84 +147,77 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     keep
   }
 
-  private def enrich(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
-    gateways.map { gateway ⇒
+  private def flush(deployments: List[Deployment]): List[Gateway] ⇒ Unit = { gateways ⇒
+    val processed = gateways.map { gateway ⇒
 
-      def targets(path: GatewayPath): List[DeployedRouteTarget] = {
+      def targets(path: GatewayPath): List[Option[DeployedRouteTarget]] = path.segments match {
 
-        val routes: Option[List[DeployedRouteTarget]] = path.segments match {
-
-          case reference :: Nil ⇒
-            gateways.find {
-              _.name == reference
-            }.flatMap { gw ⇒
-              Option {
-                DeployedRouteTarget(reference, gw.port.number) :: Nil
-              }
+        case reference :: Nil ⇒
+          gateways.find {
+            _.name == reference
+          }.flatMap { gw ⇒
+            Option {
+              DeployedRouteTarget(reference, gw.port.number)
             }
+          } :: Nil
 
-          case deployment :: port :: Nil ⇒
-            deployments.find {
-              _.name == deployment
-            }.flatMap {
-              _.gateways.find(_.name == port)
-            }.flatMap { gateway ⇒
-              Option {
-                DeployedRouteTarget(path.normalized, gateway.port.number) :: Nil
-              }
+        case deployment :: _ :: Nil ⇒
+          deployments.find {
+            _.name == deployment
+          }.flatMap {
+            _.gateways.find(_.name == path.normalized)
+          }.flatMap { gateway ⇒
+            Option {
+              DeployedRouteTarget(path.normalized, gateway.port.number)
             }
+          } :: Nil
 
-          case deployment :: cluster :: port :: Nil ⇒
-            deployments.find {
-              _.name == deployment
-            }.flatMap {
-              _.clusters.find(_.name == cluster)
-            }.flatMap {
-              _.portMapping.get(port)
-            }.flatMap { port ⇒
-              Option {
-                DeployedRouteTarget(path.normalized, port) :: Nil
-              }
+        case deployment :: cluster :: port :: Nil ⇒
+          deployments.find {
+            _.name == deployment
+          }.flatMap {
+            _.clusters.find(_.name == cluster)
+          }.flatMap {
+            _.portMapping.get(port)
+          }.flatMap { port ⇒
+            Option {
+              DeployedRouteTarget(path.normalized, port)
             }
+          } :: Nil
 
-          case deployment :: cluster :: service :: port :: Nil ⇒
-            deployments.find {
-              _.name == deployment
-            }.flatMap {
-              _.clusters.find(_.name == cluster)
-            }.flatMap {
-              _.services.find(_.breed.name == service)
-            }.flatMap { service ⇒
-              Option {
-                service.instances.map {
-                  instance ⇒ DeployedRouteTarget(instance.name, instance.host, instance.ports.get(port).get)
+        case deployment :: cluster :: service :: port :: Nil ⇒
+          deployments.find {
+            _.name == deployment
+          }.flatMap {
+            _.clusters.find(_.name == cluster)
+          }.flatMap {
+            _.services.find(_.breed.name == service)
+          }.map { service ⇒
+            service.instances.map {
+              instance ⇒
+                Option {
+                  DeployedRouteTarget(instance.name, instance.host, instance.ports.get(port).get)
                 }
-              }
             }
+          }.getOrElse(Nil)
 
-          case _ ⇒ None
-        }
-
-        routes.getOrElse(throwException(InternalServerError(s"unsupported gateway route path: ${path.source}")))
+        case _ ⇒ None :: Nil
       }
 
-      if (gateway.routes.exists(!_.isInstanceOf[DeployedRoute])) {
+      val routes: List[Option[DeployedRoute]] = gateway.routes.map {
+        case route: AbstractRoute if route.length > 0 && route.length < 5 ⇒
+          val optionalTargets = targets(route.path)
+          if (optionalTargets.exists(_.isEmpty)) None else Option(DeployedRoute(route, optionalTargets.flatten))
+        case route ⇒ throwException(UnsupportedRoutePathError(route.path))
+      }
 
-        val routes = gateway.routes.map {
-          case route: DefaultRoute if route.length > 0 && route.length < 5 ⇒ DeployedRoute(route, targets(route.path))
-          case route: DeployedRoute ⇒ route
-          case route ⇒ throwException(UnsupportedRoutePathError(route.path))
-        }
-
-        gateway.copy(routes = routes) match {
-          case updated ⇒
-            IoC.actorFor[PersistenceActor] ! Update(updated)
-            updated
-        }
-
-      } else gateway
+      if (routes.exists(_.isEmpty)) gateway.copy(active = false) else gateway.copy(routes = routes.flatten, active = true)
     }
-  }
 
-  private def flush: List[Gateway] ⇒ Unit = IoC.actorFor[GatewayDriverActor] ! Commit(_)
+    processed.foreach {
+      IoC.actorFor[PersistenceActor] ! Update(_)
+    }
+
+    IoC.actorFor[GatewayDriverActor] ! Commit(processed.filter(_.active))
+  }
 }
