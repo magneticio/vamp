@@ -6,7 +6,7 @@ import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
 import io.vamp.model.artifact._
 
 object HaProxyGatewayMarshaller {
-  val path: List[String] = "haproxy" :: "1.5" :: Nil
+  val path: List[String] = "haproxy" :: Nil
 }
 
 trait HaProxyGatewayMarshaller extends GatewayMarshaller {
@@ -92,7 +92,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     case _                    ⇒ Nil
   }
 
-  private[haproxy] def filter(route: Route, filter: DefaultFilter)(implicit gateway: Gateway): Filter = {
+  private[haproxy] def filter(route: Route, filter: DefaultFilter): Filter = {
     val (condition, negate) = filter.condition match {
       case userAgent(n, c)        ⇒ s"hdr_sub(user-agent) ${c.trim}" -> (n == "!")
       case host(n, c)             ⇒ s"hdr_str(host) ${c.trim}" -> (n == "!")
