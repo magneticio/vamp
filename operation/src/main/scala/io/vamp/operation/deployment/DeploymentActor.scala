@@ -282,7 +282,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
           case attachment ⇒
             mergeClusters(futureDeployment, attachment) flatMap {
               case clusters ⇒
-                val gateways = attachment.gateways.filterNot(gateway ⇒ deployment.gateways.exists(_.port.number == gateway.port.number)).map(updateWeights) ++ deployment.gateways
+                val gateways = attachment.gateways.filterNot(gateway ⇒ deployment.gateways.exists(_.port.number == gateway.port.number)).map(processGateway(deployment)) ++ deployment.gateways
                 val ports = mergeTrait(attachment.ports, deployment.ports)
                 val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
                 val hosts = mergeTrait(attachment.hosts, deployment.hosts)
@@ -411,7 +411,19 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     } else stableCluster.map(cluster ⇒ cluster.routing).getOrElse(Nil)
   }
 
-  def updateWeights(gateway: Gateway): Gateway = {
+  def processGateway(deployment: Deployment): Gateway ⇒ Gateway = processGatewayRoutes(deployment) andThen processGatewayWeights
+
+  def processGatewayRoutes(deployment: Deployment): Gateway ⇒ Gateway = { gateway ⇒
+
+    val routes = gateway.routes.map {
+      case route: DefaultRoute   ⇒ route.copy(path = GatewayPath(deployment.name :: route.path.segments))
+      case route: RouteReference ⇒ route.copy(path = GatewayPath(deployment.name :: route.path.segments))
+      case route                 ⇒ route
+    }
+    gateway.copy(routes = routes)
+  }
+
+  def processGatewayWeights: Gateway ⇒ Gateway = { gateway ⇒
 
     gateway.routes.find(!_.isInstanceOf[DefaultRoute]).foreach(route ⇒ throwException(InternalServerError(s"unsupported gateway route: ${route.getClass}")))
 
