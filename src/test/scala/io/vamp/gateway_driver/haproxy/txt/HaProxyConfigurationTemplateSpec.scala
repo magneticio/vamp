@@ -603,72 +603,85 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
     compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_5.txt")
   }
-  /*
+
   it should "serialize services with dependency to HAProxy configuration" in {
     val actual = convert(List(
       Gateway(
-        name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080",
-        port = 33003,
-        protocol = "http",
-        filters = Nil,
-        services = List(
-          Service(
-            name = "sava-backend:1.3.0",
-            weight = 100,
-            instances = List(
-              Instance(
-                name = "57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117",
-                host = "192.168.99.100",
-                port = 32770))
-          )),
-        sticky = None),
-      Gateway(
-        name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080",
-        port = 33002,
-        protocol = "http",
-        filters = Nil,
-        services = List(
-          Service(
-            name = "sava-frontend:1.3.0",
-            weight = 100,
-            instances = List(
-              Instance(
-                name = "f1638245acf2ebe6db56984a85b48f6db8c74607",
-                host = "192.168.99.100",
-                port = 32771))
-          )),
-        sticky = None),
-      Gateway(
-        name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050",
-        port = 9050,
-        protocol = "http",
-        filters = Nil,
-        services = Service(
-          name = "sava.port",
-          weight = 100,
-          instances = Instance(
-            name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050",
+        name = "vamp/backend/port",
+        port = Port(33003),
+        sticky = None,
+        routes = DeployedRoute(
+          name = "vamp/sava/sava-backend:1.3.0/port",
+          path = GatewayPath("vamp/sava/sava-backend:1.3.0/port"),
+          weight = Option(100),
+          filters = Nil,
+          targets = DeployedRouteTarget(
+            name = "57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117",
             host = "192.168.99.100",
-            port = 33002) :: Nil
-        ) :: Nil,
-        sticky = None)
+            port = 32770
+          ) :: Nil)
+          :: Nil
+      ),
+      Gateway(
+        name = "vamp/sava/port",
+        port = Port("33002"),
+        sticky = None,
+        routes = DeployedRoute(
+          name = "vamp/sava/sava-frontend:1.3.0/port",
+          path = GatewayPath("vamp/sava/sava-frontend:1.3.0/port"),
+          weight = Option(100),
+          filters = Nil,
+          targets = DeployedRouteTarget(
+            name = "f1638245acf2ebe6db56984a85b48f6db8c74607",
+            host = "192.168.99.100",
+            port = 32771
+          ) :: Nil)
+          :: Nil
+      ),
+      Gateway(
+        name = "vamp/port",
+        port = Port("9050/http"),
+        sticky = None,
+        routes = DeployedRoute(
+          name = "vamp/sava/port",
+          path = GatewayPath("vamp/sava/port"),
+          weight = Option(100),
+          filters = Nil,
+          targets = DeployedRouteTarget(
+            name = "64435a223bddf1fa589135baa5e228090279c032",
+            host = "192.168.99.100",
+            port = 33002
+          ) :: Nil)
+          :: Nil
+      )
     ))
 
     val backend1 = Backend(
-      name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080",
+      name = "vamp/backend/port",
       mode = Mode.http,
       proxyServers = List(
         ProxyServer(
-          name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080::sava-backend:1.3.0",
-          unixSock = "/opt/vamp/1c06647def2154787008cb74a4e9cdb0d414d5d8.sock",
+          name = "vamp/sava/sava-backend:1.3.0/port",
+          unixSock = "/opt/vamp/75a0696ad9b0e11d0663619d8f71aefae6d713b3.sock",
           weight = 100
         )),
       servers = Nil,
       sticky = false,
       options = Options())
 
+    val frontend1 = Frontend(
+      name = "vamp/backend/port",
+      bindIp = Option("0.0.0.0"),
+      bindPort = Option(33003),
+      mode = Mode.http,
+      unixSock = None,
+      sockProtocol = None,
+      options = Options(),
+      filters = Nil,
+      defaultBackend = backend1)
+
     val backend2 = Backend(
-      name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080::sava-backend:1.3.0",
+      name = "vamp/sava/sava-backend:1.3.0/port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -680,21 +693,43 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       sticky = false,
       options = Options())
 
+    val frontend2 = Frontend(
+      name = "vamp/sava/sava-backend:1.3.0/port",
+      bindIp = None,
+      bindPort = None,
+      mode = Mode.http,
+      unixSock = Option("/opt/vamp/75a0696ad9b0e11d0663619d8f71aefae6d713b3.sock"),
+      sockProtocol = Option("accept-proxy"),
+      options = Options(),
+      filters = Nil,
+      defaultBackend = backend2)
+
     val backend3 = Backend(
-      name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080",
+      name = "vamp/sava/port",
       mode = Mode.http,
       proxyServers = List(
         ProxyServer(
-          name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080::sava-frontend:1.3.0",
-          unixSock = "/opt/vamp/83bea7dadc8ccb3d126c78d04b59acc9b9caa6df.sock",
+          name = "vamp/sava/sava-frontend:1.3.0/port",
+          unixSock = "/opt/vamp/de7001119ec1c9f23d00219755a58c78eea9fa47.sock",
           weight = 100
         )),
       servers = Nil,
       sticky = false,
       options = Options())
 
+    val frontend3 = Frontend(
+      name = "vamp/sava/port",
+      bindIp = Option("0.0.0.0"),
+      bindPort = Option(33002),
+      mode = Mode.http,
+      unixSock = None,
+      sockProtocol = None,
+      options = Options(),
+      filters = Nil,
+      defaultBackend = backend3)
+
     val backend4 = Backend(
-      name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080::sava-frontend:1.3.0",
+      name = "vamp/sava/sava-frontend:1.3.0/port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -706,97 +741,83 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       sticky = false,
       options = Options())
 
+    val frontend4 = Frontend(
+      name = "vamp/sava/sava-frontend:1.3.0/port",
+      bindIp = None,
+      bindPort = None,
+      mode = Mode.http,
+      unixSock = Option("/opt/vamp/de7001119ec1c9f23d00219755a58c78eea9fa47.sock"),
+      sockProtocol = Option("accept-proxy"),
+      options = Options(),
+      filters = Nil,
+      defaultBackend = backend4)
+
     val backend5 = Backend(
-      name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050",
+      name = "vamp/port",
       mode = Mode.http,
       proxyServers = ProxyServer(
-        name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050::sava.port",
-        unixSock = "/opt/vamp/7d8d614f8c1edab2bbc92a03efadd4e4e8275cee.sock",
+        name = "vamp/sava/port",
+        unixSock = "/opt/vamp/f77523c37c4ba3ea9c821590c3d1abffb56baab1.sock",
         weight = 100
       ) :: Nil,
       servers = Nil,
       sticky = false,
       options = Options())
 
+    val frontend5 = Frontend(
+      name = "vamp/port",
+      bindIp = Option("0.0.0.0"),
+      bindPort = Option(9050),
+      mode = Mode.http,
+      unixSock = None,
+      sockProtocol = None,
+      options = Options(),
+      filters = Nil,
+      defaultBackend = backend5)
+
     val backend6 = Backend(
-      name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050::sava.port",
+      name = "vamp/sava/port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = HaProxyServer(
-        name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050",
+        name = "64435a223bddf1fa589135baa5e228090279c032",
         host = "192.168.99.100",
         port = 33002,
         weight = 100) :: Nil,
       sticky = false,
       options = Options())
 
-    val expected = HaProxy(List(
-      Frontend(
-        name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080",
-        bindIp = Option("0.0.0.0"),
-        bindPort = Option(33003),
-        mode = Mode.http,
-        unixSock = None,
-        sockProtocol = None,
-        options = Options(),
-        filters = Nil,
-        defaultBackend = backend1),
-      Frontend(
-        name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_backend_8080::sava-backend:1.3.0",
-        bindIp = None,
-        bindPort = None,
-        mode = Mode.http,
-        unixSock = Option("/opt/vamp/1c06647def2154787008cb74a4e9cdb0d414d5d8.sock"),
-        sockProtocol = Option("accept-proxy"),
-        options = Options(),
-        filters = Nil,
-        defaultBackend = backend2),
-      Frontend(
-        name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080",
-        bindIp = Option("0.0.0.0"),
-        bindPort = Option(33002),
-        mode = Mode.http,
-        unixSock = None,
-        sockProtocol = None,
-        options = Options(),
-        filters = Nil,
-        defaultBackend = backend3),
-      Frontend(
-        name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_sava_8080::sava-frontend:1.3.0",
-        bindIp = None,
-        bindPort = None,
-        mode = Mode.http,
-        unixSock = Option("/opt/vamp/83bea7dadc8ccb3d126c78d04b59acc9b9caa6df.sock"),
-        sockProtocol = Option("accept-proxy"),
-        options = Options(),
-        filters = Nil,
-        defaultBackend = backend4),
-      Frontend(
-        name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050",
-        bindIp = Option("0.0.0.0"),
-        bindPort = Option(9050),
-        mode = Mode.http,
-        unixSock = None,
-        sockProtocol = None,
-        options = Options(),
-        filters = Nil,
-        defaultBackend = backend5),
-      Frontend(
-        name = "d5c3c612-6fb3-41e5-8023-292ce3c74924_9050::sava.port",
-        bindIp = None,
-        bindPort = None,
-        mode = Mode.http,
-        unixSock = Option("/opt/vamp/7d8d614f8c1edab2bbc92a03efadd4e4e8275cee.sock"),
-        sockProtocol = Option("accept-proxy"),
-        options = Options(),
-        filters = Nil,
-        defaultBackend = backend6)
-    ), List(backend1, backend2, backend3, backend4, backend5, backend6))
+    val frontend6 = Frontend(
+      name = "vamp/sava/port",
+      bindIp = None,
+      bindPort = None,
+      mode = Mode.http,
+      unixSock = Option("/opt/vamp/f77523c37c4ba3ea9c821590c3d1abffb56baab1.sock"),
+      sockProtocol = Option("accept-proxy"),
+      options = Options(),
+      filters = Nil,
+      defaultBackend = backend6)
 
-    actual shouldBe expected
+    actual match {
+      case HaProxy(List(f1, f2, f3, f4, f5, f6), List(b1, b2, b3, b4, b5, b6)) ⇒
+        f1 shouldBe frontend1
+        f2 shouldBe frontend2
+        f3 shouldBe frontend3
+        f4 shouldBe frontend4
+        f5 shouldBe frontend5
+        f6 shouldBe frontend6
+        b1 shouldBe backend1
+        b2 shouldBe backend2
+        b3 shouldBe backend3
+        b4 shouldBe backend4
+        b5 shouldBe backend5
+        b6 shouldBe backend6
+
+      case _ ⇒ fail("can't match expected")
+    }
     compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_6.txt")
   }
-*/
+
   it should "convert filters" in {
     implicit val route = DefaultRoute("sava", GatewayPath("sava"), None, Nil)
 
@@ -1328,6 +1349,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 */
   private def compare(config: String, resource: String) = {
 
+    println(config)
+
     def normalize(string: String): Array[String] = string.split('\n').map(_.trim).filter(_.nonEmpty).filterNot(_.startsWith("#")).map(_.replaceAll("\\s+", " "))
 
     val actual = normalize(config)
@@ -1336,8 +1359,6 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     actual.length shouldBe expected.length
 
     actual.zip(expected).foreach { line ⇒
-      println(line._1)
-      println(line._2)
       line._1 shouldBe line._2
     }
   }
