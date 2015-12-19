@@ -8,7 +8,6 @@ import akka.pattern.ask
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
-import io.vamp.gateway_driver.GatewayNameMatcher
 import io.vamp.model.artifact._
 import io.vamp.model.event.{ Aggregator, Event, EventQuery, TimeRange, _ }
 import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
@@ -95,7 +94,7 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
   }
 }
 
-trait SlaPulse extends GatewayNameMatcher {
+trait SlaPulse {
   this: CommonSupportForActors ⇒
 
   implicit val timeout = PulseActor.timeout
@@ -111,7 +110,7 @@ trait SlaPulse extends GatewayNameMatcher {
   }
 
   def responseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime): Future[Option[Double]] = {
-    val eventQuery = EventQuery(Set(s"routes:${clusterGatewayName(deployment, cluster, port)}", "metrics:rtime"), Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average)))
+    val eventQuery = EventQuery(Set(s"routes:${deployment.name}/${cluster.name}/${port.name}", "metrics:rtime"), Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average)))
     actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
       case DoubleValueAggregationResult(value) ⇒ Some(value)
       case other ⇒
