@@ -6,5 +6,7 @@ trait GatewayMarshaller {
 
   def info: AnyRef
 
+  def path: List[String]
+
   def marshall(gateways: List[Gateway]): String
 }

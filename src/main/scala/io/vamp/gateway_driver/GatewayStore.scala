@@ -7,14 +7,21 @@ import scala.concurrent.duration._
 
 object GatewayStore {
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.gateway-driver.response-timeout").seconds)
+  val path = List[String]("gateway")
+
+  val timeout = Timeout(ConfigFactory.load().getInt("vamp.gateway-driver.response-timeout").seconds)
 
   sealed trait GatewayStoreMessage
 
-  object Get extends GatewayStoreMessage
+  case class Create(path: List[String]) extends GatewayStoreMessage
 
-  case class Put(data: Option[String]) extends GatewayStoreMessage
+  case class Get(path: List[String]) extends GatewayStoreMessage
+
+  case class Put(path: List[String], data: Option[String]) extends GatewayStoreMessage
 
 }
 
-trait GatewayStore
+trait GatewayStore {
+
+  protected def pathToString(path: List[String]) = path.mkString("/")
+}
