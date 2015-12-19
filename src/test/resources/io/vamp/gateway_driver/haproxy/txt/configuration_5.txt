@@ -34,7 +34,7 @@ listen stats :1988
 
 ### BEGIN GENERATED SECTION ###
 
-frontend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080
+frontend vamp_sava_port
     
     bind 0.0.0.0:33001
     
@@ -81,10 +81,10 @@ frontend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080
     #
 
 
-    default_backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080
+    default_backend vamp_sava_port
 
 
-frontend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0
+frontend vamp_sava_sava_1_0_0_port
     
 
      option httplog 
@@ -106,7 +106,7 @@ frontend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0
     ###
 
     
-    bind unix@/opt/vamp/820eb143a8d42dd08f028f36e6b8385a911b8cd8.sock accept-proxy
+    bind unix@/opt/vamp/43db76fcd665d7fbbaf939cf00b919ae487c28e3.sock accept-proxy
     
 
     mode http
@@ -132,10 +132,10 @@ frontend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0
 
     
 
-    default_backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0
+    default_backend vamp_sava_sava_1_0_0_port
 
 
-frontend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_1_0
+frontend vamp_sava_sava_1_1_0_port
     
 
      option httplog 
@@ -157,7 +157,7 @@ frontend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_1_0
     ###
 
     
-    bind unix@/opt/vamp/81233b74c4c856e8c4697d7acf152ca6989db4df.sock accept-proxy
+    bind unix@/opt/vamp/eea6737a044601607363a4a09ae0ff974bc92625.sock accept-proxy
     
 
     mode http
@@ -183,10 +183,10 @@ frontend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_1_0
 
     
 
-    default_backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_1_0
+    default_backend vamp_sava_sava_1_1_0_port
 
 
-frontend cd10460f_ca44_49c6_9965_f66c27acd478_9050
+frontend vamp_port
     
     bind 0.0.0.0:9050
     
@@ -234,10 +234,10 @@ frontend cd10460f_ca44_49c6_9965_f66c27acd478_9050
 
     
 
-    default_backend cd10460f_ca44_49c6_9965_f66c27acd478_9050
+    default_backend vamp_port
 
 
-frontend cd10460f_ca44_49c6_9965_f66c27acd478_9050__sava_port
+frontend vamp_sava_port
     
 
      option httplog 
@@ -259,7 +259,7 @@ frontend cd10460f_ca44_49c6_9965_f66c27acd478_9050__sava_port
     ###
 
     
-    bind unix@/opt/vamp/590382622f3287cf7bd9584fc1aa43052a40d6cc.sock accept-proxy
+    bind unix@/opt/vamp/f77523c37c4ba3ea9c821590c3d1abffb56baab1.sock accept-proxy
     
 
     mode http
@@ -285,14 +285,14 @@ frontend cd10460f_ca44_49c6_9965_f66c27acd478_9050__sava_port
 
     
 
-    default_backend cd10460f_ca44_49c6_9965_f66c27acd478_9050__sava_port
+    default_backend vamp_sava_port
 
 
 
 
 
 
-backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080
+backend vamp_sava_port
     mode http
 #
 # Regular HTTP/TCP backends
@@ -304,16 +304,16 @@ backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080
 
 
     
-        server cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0 unix@/opt/vamp/820eb143a8d42dd08f028f36e6b8385a911b8cd8.sock send-proxy weight 90
+        server vamp_sava_sava_1_0_0_port unix@/opt/vamp/43db76fcd665d7fbbaf939cf00b919ae487c28e3.sock send-proxy weight 90
     
-        server cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_1_0 unix@/opt/vamp/81233b74c4c856e8c4697d7acf152ca6989db4df.sock send-proxy weight 10
+        server vamp_sava_sava_1_1_0_port unix@/opt/vamp/eea6737a044601607363a4a09ae0ff974bc92625.sock send-proxy weight 10
     
 
 
 
 
 
-backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0
+backend vamp_sava_sava_1_0_0_port
     mode http
 #
 # Regular HTTP/TCP backends
@@ -332,7 +332,7 @@ backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_0_0
     server 5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7 192.168.99.100:32772  cookie 5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7  weight 100 maxconn 1000
     
 
-backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_1_0
+backend vamp_sava_sava_1_1_0_port
     mode http
 #
 # Regular HTTP/TCP backends
@@ -349,7 +349,7 @@ backend cd10460f_ca44_49c6_9965_f66c27acd478_sava_8080__sava_1_1_0
     server 49594c26c89754450bd4f562946a69070a4aa887 192.168.99.100:32773  cookie 49594c26c89754450bd4f562946a69070a4aa887  weight 100 maxconn 1000
 
 
-backend cd10460f_ca44_49c6_9965_f66c27acd478_9050
+backend vamp_port
     mode http
 #
 # Regular HTTP/TCP backends
@@ -357,10 +357,10 @@ backend cd10460f_ca44_49c6_9965_f66c27acd478_9050
 
     balance roundrobin 
 
-    server cd10460f_ca44_49c6_9965_f66c27acd478_9050__sava_port unix@/opt/vamp/590382622f3287cf7bd9584fc1aa43052a40d6cc.sock send-proxy weight 100
+    server vamp_sava_port unix@/opt/vamp/f77523c37c4ba3ea9c821590c3d1abffb56baab1.sock send-proxy weight 100
 
 
-backend cd10460f_ca44_49c6_9965_f66c27acd478_9050__sava_port
+backend vamp_sava_port
     mode http
 #
 # Regular HTTP/TCP backends
@@ -372,7 +372,7 @@ backend cd10460f_ca44_49c6_9965_f66c27acd478_9050__sava_port
 
     option forwardfor
    
-    server cd10460f_ca44_49c6_9965_f66c27acd478_9050 192.168.99.100:33002  cookie cd10460f_ca44_49c6_9965_f66c27acd478_9050  weight 100 maxconn 1000
+    server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:33002 cookie 64435a223bddf1fa589135baa5e228090279c032 weight 100 maxconn 1000
     
 
 
