@@ -35,7 +35,7 @@ listen stats :1988
 
 ### BEGIN GENERATED SECTION ###
 
-frontend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080
+frontend vamp_sava_port
 
     bind 0.0.0.0:33000
 
@@ -83,10 +83,10 @@ frontend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080
 
 
 
-    default_backend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080
+    default_backend vamp_sava_port
 
 
-frontend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080__sava_1_0_0
+frontend vamp_sava_sava_1_0_0_port
 
 
 
@@ -108,7 +108,7 @@ frontend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080__sava_1_0_0
     ###
 
 
-    bind unix@/opt/vamp/59e3034c619dd724b2e57d38218afdcd63e6ad8a.sock accept-proxy
+    bind unix@/opt/vamp/43db76fcd665d7fbbaf939cf00b919ae487c28e3.sock accept-proxy
 
 
     mode tcp
@@ -134,14 +134,14 @@ frontend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080__sava_1_0_0
 
 
 
-    default_backend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080__sava_1_0_0
+    default_backend vamp_sava_sava_1_0_0_port
 
 
 
 
 
 
-backend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080
+backend vamp_sava_port
     mode tcp
 #
 # Regular HTTP/TCP backends
@@ -153,14 +153,14 @@ backend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080
 
 
 
-        server 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080__sava_1_0_0 unix@/opt/vamp/59e3034c619dd724b2e57d38218afdcd63e6ad8a.sock send-proxy weight 100
+        server vamp_sava_sava_1_0_0_port unix@/opt/vamp/43db76fcd665d7fbbaf939cf00b919ae487c28e3.sock send-proxy weight 100
 
 
 
 
 
 
-backend 3267f8c0_d717_4b8c_bca7_665d9d9294b7_sava_8080__sava_1_0_0
+backend vamp_sava_sava_1_0_0_port
     mode tcp
 #
 # Regular HTTP/TCP backends

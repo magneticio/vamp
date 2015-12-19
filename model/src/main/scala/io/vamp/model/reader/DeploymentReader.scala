@@ -55,7 +55,7 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
   }
 
   private def parseInstances(implicit source: YamlSourceReader): DeploymentInstance =
-    DeploymentInstance(name, <<![String]("host"), portMapping(), <<![Boolean]("deployed"))
+    DeploymentInstance(<<![String]("name"), <<![String]("host"), portMapping(), <<![Boolean]("deployed"))
 
   private def portMapping(name: String = "ports")(implicit source: YamlSourceReader): Map[String, Int] = {
     <<?[YamlSourceReader](name) match {

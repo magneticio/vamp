@@ -7,7 +7,7 @@ import scala.concurrent.duration._
 
 object GatewayStore {
 
-  val path = List[String]("gateway")
+  val path = List[String]("gateways")
 
   val timeout = Timeout(ConfigFactory.load().getInt("vamp.gateway-driver.response-timeout").seconds)
 
