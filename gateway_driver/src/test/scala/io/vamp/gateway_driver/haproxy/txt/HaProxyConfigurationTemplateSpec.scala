@@ -815,6 +815,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
       case _ ⇒ fail("can't match expected")
     }
+
     compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_6.txt")
   }
 
@@ -845,58 +846,87 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       }
   }
 
-  /*
   it should "serialize service with filters to HAProxy configuration" in {
-    val actual = convert(List(
+    val actual = convert(
       Gateway(
-        name = "6b606985-1414-41bb-911c-825955360a39_sava_8080",
-        port = 33000,
-        protocol = "http",
-        filters = List(
-          Filter(
-            name = None,
-            condition = "user-agent != ie",
-            destination = "sava:1.0.0"
-          ), Filter(
-            name = None,
-            condition = "user-agent = chrome",
-            destination = "sava:1.0.0"
-          ), Filter(
-            name = None,
-            condition = "cookie group contains admin",
-            destination = "sava:1.0.0"
-          ), Filter(
-            name = None,
-            condition = "has header x-allow",
-            destination = "sava:1.0.0"
-          )),
-        services = List(
-          Service(
-            name = "sava:1.0.0",
-            weight = 100,
-            instances = List(
-              Instance(
-                name = "64435a223bddf1fa589135baa5e228090279c032",
-                host = "192.168.99.100",
-                port = 32776))
-          )),
-        sticky = None)))
+        name = "vamp/sava/port",
+        port = Port(33000),
+        sticky = None,
+        routes = DeployedRoute(
+          name = "vamp/sava/sava:1.0.0/port",
+          path = GatewayPath("vamp/sava/sava:1.0.0/port"),
+          weight = Option(100),
+          filters = List(
+            DefaultFilter(
+              name = "",
+              condition = "user-agent != ie"
+            ), DefaultFilter(
+              name = "",
+              condition = "user-agent = chrome"
+            ), DefaultFilter(
+              name = "",
+              condition = "cookie group contains admin"
+            ), DefaultFilter(
+              name = "",
+              condition = "has header x-allow"
+            )
+          ),
+          targets = DeployedRouteTarget(
+            name = "64435a223bddf1fa589135baa5e228090279c032",
+            host = "192.168.99.100",
+            port = 32776
+          ) :: Nil
+        ) :: Nil)
+    )
 
     val backend1 = Backend(
-      name = "6b606985-1414-41bb-911c-825955360a39_sava_8080",
+      name = "vamp/sava/port",
       mode = Mode.http,
       proxyServers = List(
         ProxyServer(
-          name = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0",
-          unixSock = "/opt/vamp/99ba9340c7565b91b87c80d7da989fc35754a383.sock",
+          name = "vamp/sava/sava:1.0.0/port",
+          unixSock = "/opt/vamp/43db76fcd665d7fbbaf939cf00b919ae487c28e3.sock",
           weight = 100
         )),
       servers = Nil,
       sticky = false,
       options = Options())
 
+    val frontend1 = Frontend(
+      name = "vamp/sava/port",
+      bindIp = Option("0.0.0.0"),
+      bindPort = Option(33000),
+      mode = Mode.http,
+      unixSock = None,
+      sockProtocol = None,
+      options = Options(),
+      filters = List(
+        HaProxyFilter(
+          name = "624dc0f1a5754e94",
+          condition = "hdr_sub(user-agent) ie",
+          destination = "vamp/sava/sava:1.0.0/port",
+          negate = true
+        ),
+        HaProxyFilter(
+          name = "3cb39f8aae4d99da",
+          condition = "hdr_sub(user-agent) chrome",
+          destination = "vamp/sava/sava:1.0.0/port"
+        ),
+        HaProxyFilter(
+          name = "445a3abaca79c140",
+          condition = "cook_sub(group) admin",
+          destination = "vamp/sava/sava:1.0.0/port"
+        ),
+        HaProxyFilter(
+          name = "feb4c187ccc342ce",
+          condition = "hdr_cnt(x-allow) gt 0",
+          destination = "vamp/sava/sava:1.0.0/port"
+        )
+      ),
+      defaultBackend = backend1)
+
     val backend2 = Backend(
-      name = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0",
+      name = "vamp/sava/sava:1.0.0/port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -908,55 +938,31 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       sticky = false,
       options = Options())
 
-    val expected = HaProxy(List(
-      Frontend(
-        name = "6b606985-1414-41bb-911c-825955360a39_sava_8080",
-        bindIp = Option("0.0.0.0"),
-        bindPort = Option(33000),
-        mode = Mode.http,
-        unixSock = None,
-        sockProtocol = None,
-        options = Options(),
-        filters = List(
-          HaProxyFilter(
-            name = "624dc0f1a5754e94",
-            condition = "hdr_sub(user-agent) ie",
-            destination = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0",
-            negate = true
-          ),
-          HaProxyFilter(
-            name = "3cb39f8aae4d99da",
-            condition = "hdr_sub(user-agent) chrome",
-            destination = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0"
-          ),
-          HaProxyFilter(
-            name = "445a3abaca79c140",
-            condition = "cook_sub(group) admin",
-            destination = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0"
-          ),
-          HaProxyFilter(
-            name = "feb4c187ccc342ce",
-            condition = "hdr_cnt(x-allow) gt 0",
-            destination = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0"
-          )
-        ),
-        defaultBackend = backend1),
-      Frontend(
-        name = "6b606985-1414-41bb-911c-825955360a39_sava_8080::sava:1.0.0",
-        bindIp = None,
-        bindPort = None,
-        mode = Mode.http,
-        unixSock = Option("/opt/vamp/99ba9340c7565b91b87c80d7da989fc35754a383.sock"),
-        sockProtocol = Option("accept-proxy"),
-        options = Options(),
-        filters = Nil,
-        defaultBackend = backend2)
-    ), List(backend1, backend2))
+    val frontend2 = Frontend(
+      name = "vamp/sava/sava:1.0.0/port",
+      bindIp = None,
+      bindPort = None,
+      mode = Mode.http,
+      unixSock = Option("/opt/vamp/43db76fcd665d7fbbaf939cf00b919ae487c28e3.sock"),
+      sockProtocol = Option("accept-proxy"),
+      options = Options(),
+      filters = Nil,
+      defaultBackend = backend2)
 
-    actual shouldBe expected
+    actual match {
+      case HaProxy(List(f1, f2), List(b1, b2)) ⇒
+        f1 shouldBe frontend1
+        f2 shouldBe frontend2
+        b1 shouldBe backend1
+        b2 shouldBe backend2
+
+      case _ ⇒ fail("can't match expected")
+    }
+
     compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_7.txt")
   }
 
+  /*
   it should "serialize A/B services to HAProxy configuration - sticky service" in {
     val actual = convert(List(
       Gateway(
