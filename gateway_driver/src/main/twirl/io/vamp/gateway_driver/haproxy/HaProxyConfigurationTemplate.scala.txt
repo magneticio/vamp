@@ -1,6 +1,7 @@
 @import io.vamp.gateway_driver.haproxy.HaProxy
 @import io.vamp.gateway_driver.haproxy.Mode
 @(haproxy: HaProxy)
+# HAProxy 1.5
 global
   pidfile /opt/vamp/haproxy.pid
   daemon

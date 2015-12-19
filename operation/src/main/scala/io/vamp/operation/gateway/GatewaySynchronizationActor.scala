@@ -214,10 +214,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       if (routes.exists(_.isEmpty)) gateway.copy(active = false) else gateway.copy(routes = routes.flatten, active = true)
     }
 
-    processed.foreach {
-      IoC.actorFor[PersistenceActor] ! Update(_)
-    }
-
     IoC.actorFor[GatewayDriverActor] ! Commit(processed.filter(_.active))
+
+    processed.foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(gateway) }
   }
 }
