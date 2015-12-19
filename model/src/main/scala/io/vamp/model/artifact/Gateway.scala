@@ -22,13 +22,15 @@ object GatewayPath {
 
   val pathDelimiter = "/"
 
+  private val pathDelimiterSplitter = "\\/"
+
   def apply(source: String) = string2path(source)
 
   def apply(path: List[Any] = Nil) = list2path(path.map(_.toString))
 
-  implicit def string2path(source: String): GatewayPath = new GatewayPath(source, source.split(pathDelimiter.replaceAllLiterally("/", "\\/")).toList)
+  implicit def string2path(source: String): GatewayPath = new GatewayPath(source, source.split(pathDelimiterSplitter).toList.filterNot(_.isEmpty))
 
-  implicit def list2path(path: List[String]): GatewayPath = new GatewayPath(path.mkString(pathDelimiter), path)
+  implicit def list2path(path: List[String]): GatewayPath = new GatewayPath(path.mkString(pathDelimiter), path.filterNot(_.isEmpty))
 }
 
 case class GatewayPath(source: String, segments: List[String]) {

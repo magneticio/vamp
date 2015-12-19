@@ -487,9 +487,9 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
 
     blueprint.gateways.foreach {
-      case gateway: Gateway if gateway.routes.exists(_.path.source == "supersonic/port")    ⇒ gateway.port.`type` shouldBe Port.Type.Http
-      case gateway: Gateway if gateway.routes.exists(_.path.source == "supersonic/health")  ⇒ gateway.port.`type` shouldBe Port.Type.Tcp
-      case gateway: Gateway if gateway.routes.exists(_.path.source == "supersonic/metrics") ⇒ gateway.port.`type` shouldBe Port.Type.Http
+      case gateway: Gateway if gateway.routes.exists(_.path.normalized == "supersonic/port")    ⇒ gateway.port.`type` shouldBe Port.Type.Http
+      case gateway: Gateway if gateway.routes.exists(_.path.normalized == "supersonic/health")  ⇒ gateway.port.`type` shouldBe Port.Type.Tcp
+      case gateway: Gateway if gateway.routes.exists(_.path.normalized == "supersonic/metrics") ⇒ gateway.port.`type` shouldBe Port.Type.Http
     }
 
     blueprint.clusters.find(_.name == "supersonic") foreach {

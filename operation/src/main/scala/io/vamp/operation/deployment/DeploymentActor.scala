@@ -253,7 +253,7 @@ trait DeploymentValidator {
 
   def weightOf(cluster: DeploymentCluster, services: List[DeploymentService], port: String): Int = cluster.routingBy(port).flatMap({ routing ⇒
     Some(routing.routes.filter({
-      case route: DefaultRoute ⇒ services.exists(_.breed.name == route.path.source)
+      case route: DefaultRoute ⇒ services.exists(_.breed.name == route.path.normalized)
       case _                   ⇒ true
     }).map({
       case route: DefaultRoute ⇒ route.weight.getOrElse(0)

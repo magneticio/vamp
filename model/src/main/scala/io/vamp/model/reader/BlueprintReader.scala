@@ -153,7 +153,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     blueprint.clusters.foreach { cluster ⇒
       cluster.routing.foreach { routing ⇒
         routing.routes.foreach { route ⇒
-          if (!cluster.services.exists(_.breed.name == route.path.source))
+          if (!cluster.services.exists(_.breed.name == route.path.normalized))
             throwException(UnresolvedServiceRouteError(cluster, route.path.source))
         }
       }
