@@ -213,7 +213,8 @@ trait BlueprintRoutingHelper {
     blueprint
   }
 
-  protected def validateBlueprintGateways[T <: AbstractBlueprint]: T ⇒ T = validateStickiness[T] andThen validateFilterConditions[T] andThen validateGatewayPorts[T]
+  protected def validateBlueprintGateways[T <: AbstractBlueprint]: T ⇒ T =
+    validateStickiness[T] andThen validateFilterConditions[T] andThen validateGatewayPorts[T] andThen validateGatewayRoutingPorts[T]
 
   private def validateStickiness[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.clusters.foreach { cluster ⇒
@@ -261,6 +262,24 @@ trait BlueprintRoutingHelper {
 
   private def validateGatewayPorts[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.gateways.groupBy(_.port.number).collect { case (port, list) if list.size > 1 ⇒ throwException(DuplicateGatewayPortError(port)) }
+    blueprint
+  }
+
+  private def validateGatewayRoutingPorts[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
+    val breeds = blueprint.clusters.flatMap(_.services).map(_.breed)
+
+    if (breeds.forall(_.isInstanceOf[DefaultBreed])) {
+      val ports: List[String] = breeds.flatMap {
+        case breed: DefaultBreed ⇒ breed.ports.map(_.name)
+        case _                   ⇒ Nil
+      }
+
+      blueprint.clusters.flatMap(_.routing).map(_.port).foreach { port ⇒
+        if (!(port.name.isEmpty || ports.contains(port.name)))
+          throwException(UnresolvedGatewayPortError(port.name, ""))
+      }
+    }
+
     blueprint
   }
 }

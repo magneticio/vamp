@@ -1,0 +1,14 @@
+name: sava
+
+clusters:
+  sava:
+    routing:
+      port1:
+        routes: sava:1.0.0
+
+    services:
+        breed:
+          name: sava:1.0.0
+          deployable: docker://magneticio/sava:1.0.0
+          ports:
+            port: 8080/http

@@ -680,4 +680,13 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'gateways(List(Gateway("", Port("web", None, Some("8080/http")), None, List(DefaultRoute("", GatewayPath("notorious/web", List("notorious", "web")), None, Nil)))))
     )
   }
+
+  it should "not allow non existing cluster routing port" in {
+    expectedError[UnresolvedGatewayPortError]({
+      BlueprintReader.read(res("blueprint/blueprint77.yml"))
+    }) should have(
+      'name("port1"),
+      'value("")
+    )
+  }
 }
