@@ -201,6 +201,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
                 }
               }
             }
+
+          case _ ⇒ None
         }
 
         routes.getOrElse(throwException(InternalServerError(s"unsupported gateway route path: ${path.source}")))

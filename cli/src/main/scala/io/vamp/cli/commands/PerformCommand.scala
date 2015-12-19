@@ -54,11 +54,22 @@ object PerformCommand extends Generate {
 
     case Some("filters") ⇒
       println("NAME".padTo(25, ' ').bold.cyan + "CONDITION".bold.cyan)
-      VampHostCalls.getFilters.foreach({ case b: DefaultFilter ⇒ println(s"${b.name.padTo(25, ' ')}${b.condition}") })
+      VampHostCalls.getFilters.foreach({
+        case b: DefaultFilter ⇒ println(s"${b.name.padTo(25, ' ')}${b.condition}")
+        case _                ⇒
+      })
 
     case Some("routings") ⇒
       println("NAME".padTo(25, ' ').bold.cyan + "FILTERS".bold.cyan)
-      VampHostCalls.getRoutings.foreach({ case b: DefaultRoute ⇒ println(s"${b.name.padTo(25, ' ')}${b.filters.map({ case d: DefaultFilter ⇒ s"${d.condition}" }).mkString(", ")}") })
+      VampHostCalls.getRoutings.foreach({
+        case b: DefaultRoute ⇒ println(s"${b.name.padTo(25, ' ')}${
+          b.filters.map({
+            case d: DefaultFilter ⇒ s"${d.condition}"
+            case _                ⇒ ""
+          }).mkString(", ")
+        }")
+        case _ ⇒
+      })
 
     case Some("scales") ⇒
       println("NAME".padTo(25, ' ').bold.cyan + "CPU".padTo(7, ' ').bold.cyan + "MEMORY".padTo(10, ' ').bold.cyan + "INSTANCES".bold.cyan)

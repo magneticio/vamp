@@ -254,8 +254,10 @@ trait DeploymentValidator {
   def weightOf(cluster: DeploymentCluster, services: List[DeploymentService], port: String): Int = cluster.routingBy(port).flatMap({ routing ⇒
     Some(routing.routes.filter({
       case route: DefaultRoute ⇒ services.exists(_.breed.name == route.path.source)
+      case _                   ⇒ true
     }).map({
       case route: DefaultRoute ⇒ route.weight.getOrElse(0)
+      case route               ⇒ throwException(InternalServerError(s"unsupported route: $route"))
     }).sum)
   }).getOrElse(0)
 }
