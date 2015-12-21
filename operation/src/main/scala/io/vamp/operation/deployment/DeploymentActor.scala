@@ -223,7 +223,7 @@ trait DeploymentValidator {
     implicit val timeout = PersistenceActor.timeout
     allArtifacts[Gateway] map {
       case gateways ⇒
-        val ports = gateways.map(gateway ⇒ gateway.port.number -> gateway).toMap
+        val ports = gateways.filter(gateway ⇒ GatewayPath(gateway.name).segments.head != deployment.name).map(gateway ⇒ gateway.port.number -> gateway).toMap
 
         deployment.gateways.foreach { gateway ⇒
           ports.get(gateway.port.number) match {
