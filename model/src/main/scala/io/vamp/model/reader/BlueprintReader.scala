@@ -189,12 +189,12 @@ trait BlueprintRoutingHelper {
 
   protected def processAnonymousRouting(services: List[AbstractService], routing: List[Gateway]): List[Gateway] = {
     if (routing.exists(_.port.name == Gateway.anonymous)) {
-      val ports = services.map(_.breed).flatMap {
-        case breed: DefaultBreed ⇒ breed.ports
+      val ports = services.map(_.breed).flatMap({
+        case breed: DefaultBreed ⇒ breed.ports.map(_.name)
         case _                   ⇒ Nil
-      }
+      }).toSet
       if (ports.size == 1)
-        routing.find(_.port.name == Gateway.anonymous).get.copy(port = Port(ports.head.name, None, None)) :: Nil
+        routing.find(_.port.name == Gateway.anonymous).get.copy(port = Port(ports.head, None, None)) :: Nil
       else routing
     } else routing
   }

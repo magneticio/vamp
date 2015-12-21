@@ -34,7 +34,7 @@ abstract class AbstractCluster extends Artifact {
 
   def dialects: Map[Dialect.Value, Any]
 
-  def routingBy(portName: String) = routing.find(_.port.name == portName)
+  def routingBy(portName: String): Option[Gateway] = routing.find(_.port.name == portName)
 }
 
 case class Cluster(name: String, services: List[Service], routing: List[Gateway], sla: Option[Sla], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster

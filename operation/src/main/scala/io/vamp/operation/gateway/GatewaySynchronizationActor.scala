@@ -102,7 +102,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   }
 
   private def add(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
-    val newly = deployments.flatMap { deployment ⇒
+    val deploymentGateways = deployments.flatMap { deployment ⇒
 
       val deploymentGateways = deployment.gateways.map { gateway ⇒ gateway.copy(name = GatewayPath(deployment.name :: gateway.port.name :: Nil).normalized) }
 
@@ -120,16 +120,18 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
       deploymentGateways ++ clusterGateways
 
-    } filterNot { gateway ⇒
-      gateways.exists(_.name == gateway.name)
     }
 
-    newly.foreach { gateway ⇒
-      log.info(s"gateway created: ${gateway.name}")
-      IoC.actorFor[PersistenceActor] ! Create(gateway)
+    deploymentGateways.foreach { gateway ⇒
+      if (!gateways.exists(_.name == gateway.name)) {
+        log.info(s"gateway created: ${gateway.name}")
+        IoC.actorFor[PersistenceActor] ! Create(gateway)
+      }
     }
 
-    newly ++ gateways
+    deploymentGateways.filterNot { gateway ⇒
+      gateways.exists(_.name == gateway.name) && !gateway.inner
+    } ++ gateways.filterNot(_.inner)
   }
 
   private def remove(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒

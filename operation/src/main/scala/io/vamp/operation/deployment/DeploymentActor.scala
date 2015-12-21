@@ -346,7 +346,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
   }
 
   def mergeNewServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[Future[DeploymentService]] = {
-    val newServices = newService(stableCluster, blueprintCluster)
+    val (newServices, _) = newService(stableCluster, blueprintCluster)
 
     if (newServices.nonEmpty) {
       newServices.map {
@@ -367,26 +367,22 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     } else Nil
   }
 
-  def newService(stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster) = blueprintCluster.services.filter(service ⇒ stableCluster match {
+  def newService(stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): (List[DeploymentService], List[DeploymentService]) =
+    blueprintCluster.services.partition(service ⇒ isNewService(stableCluster, service))
+
+  def isNewService(stableCluster: Option[DeploymentCluster], blueprintService: DeploymentService) = stableCluster match {
     case None     ⇒ true
-    case Some(sc) ⇒ !sc.services.exists(_.breed.name == service.breed.name)
-  })
+    case Some(sc) ⇒ !sc.services.exists(_.breed.name == blueprintService.breed.name)
+  }
 
   def updatedWeights(stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[Gateway] = {
-    val newServices = newService(stableCluster, blueprintCluster)
+
+    val (newServices, oldService) = newService(stableCluster, blueprintCluster)
 
     if (newServices.nonEmpty) {
       newServices.flatMap(_.breed.ports).map(_.name).toSet[String].map { port ⇒
-        val oldWeight = stableCluster.flatMap(cluster ⇒ Some(cluster.services.flatMap({ service ⇒
-          blueprintCluster.services.find(_.breed.name == service.breed.name) match {
-            case None         ⇒ cluster.route(service, port)
-            case Some(update) ⇒ blueprintCluster.route(update, port)
-          }
-        }).flatMap(_.weight).sum)) match {
-          case None      ⇒ 0
-          case Some(sum) ⇒ sum
-        }
 
+        val oldWeight = oldService.flatMap(s ⇒ blueprintCluster.route(s, port)).flatMap(_.weight).sum
         val newWeight = newServices.flatMap(s ⇒ blueprintCluster.route(s, port)).flatMap(_.weight).sum
         val availableWeight = 100 - oldWeight - newWeight
 
@@ -395,7 +391,14 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
         val weight = Math.round(availableWeight / newServices.size)
 
-        val routes: List[Route] = newServices.view.zipWithIndex.toList.map {
+        val oldRoutes: List[Route] = oldService.flatMap { service ⇒
+          blueprintCluster.route(service, port) match {
+            case None    ⇒ Nil
+            case Some(r) ⇒ r :: Nil
+          }
+        }
+
+        val newRoutes: List[Route] = newServices.view.zipWithIndex.toList.map {
           case (service, index) ⇒
             val defaultWeight = if (index == newServices.size - 1) availableWeight - index * weight else weight
             val route = blueprintCluster.route(service, port) match {
@@ -405,10 +408,10 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
             route.copy(path = GatewayPath(service.breed.name :: Nil))
         }
 
-        blueprintCluster.routingBy(port).getOrElse(Gateway("", Port(port, None, None), None, Nil)).copy(routes = routes)
+        blueprintCluster.routingBy(port).getOrElse(Gateway("", Port(port, None, None), None, Nil)).copy(routes = oldRoutes ++ newRoutes)
       } toList
 
-    } else stableCluster.map(cluster ⇒ cluster.routing).getOrElse(Nil)
+    } else stableCluster.map(cluster ⇒ blueprintCluster.routing).getOrElse(Nil)
   }
 
   def processGateway(deployment: Deployment): Gateway ⇒ Gateway = processGatewayRoutes(deployment) andThen processGatewayWeights
