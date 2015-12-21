@@ -1,383 +1,252 @@
+# HAProxy 1.5
 global
- pidfile /opt/vamp/haproxy.pid
- daemon
- maxconn 4096
- log /opt/vamp/haproxy.log.sock local0
+  pidfile /opt/vamp/haproxy.pid
+  daemon
+  maxconn 4096
+  log /opt/vamp/haproxy.log.sock local0
 
-
- defaults
-   log global
-   mode http
-   option dontlognull
-   option redispatch
-   option clitcpka
-   option srvtcpka
-   option http-keep-alive
-
-   retries 3
-   maxconn 500000
-
-   # slowloris protection: clients should send their full http request in the configured time
-   timeout http-request 5s
-
-   timeout connect 5000ms
-   timeout client 50000ms
-   timeout server 50000ms
-
-listen stats :1988
-   mode http
-   stats enable
-   stats uri /
-   stats refresh 2s
-   stats realm Haproxy\ Stats
-   stats auth haproxy:haproxy
-
-### BEGIN GENERATED SECTION ###
-
-frontend vamp_sava_port
-    
-    bind 0.0.0.0:33001
-    
-
-     option httplog 
-    
-
-
-    ###
-    #
-    # Set logging and set the headers to capture
-
-    # capture request header X-Vamp-Server-CurrentTime len 50
-    # capture response header X-Vamp-Server-ResponseTime len 50
-    # capture response header X-Vamp-Server-Name len 50
-
-
-    log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
-
-    #
-    ###
-
-    
-
+  defaults
+    log global
     mode http
-    
+    option dontlognull
+    option redispatch
+    option clitcpka
+    option srvtcpka
+    option http-keep-alive
+    retries 3
+    maxconn 500000
 
-    ###
-    #
-    # Spike/Rate Limiting & Quota Management
-    #
-    # We use a stick table to keep track of TCP connections rates and bytes send out.
-    # On these metrics we set rules to designate upper limits. When limits are hit
-    # we reroute the traffic to a specific abusers backend
+    # slowloris protection: clients should send their full http request in the configured time
+    timeout http-request 5s
+    timeout connect 5000ms
+    timeout client 50000ms
+    timeout server 50000ms
 
-     # end HTTP spike limit generation
-
-     # end spike limit generation
-
-    ###
-    # Filter Management
-    #
-    # set filters with optional negation
-    #
-
-
-    default_backend vamp_sava_port
-
-
-frontend vamp_sava_sava_1_0_0_port
-    
-
-     option httplog 
-    
-
-
-    ###
-    #
-    # Set logging and set the headers to capture
-
-    # capture request header X-Vamp-Server-CurrentTime len 50
-    # capture response header X-Vamp-Server-ResponseTime len 50
-    # capture response header X-Vamp-Server-Name len 50
-
-
-    log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
-
-    #
-    ###
-
-    
-    bind unix@/opt/vamp/43db76fcd665d7fbbaf939cf00b919ae487c28e3.sock accept-proxy
-    
-
+  listen stats :1988
     mode http
-    
-
-    ###
-    #
-    # Spike/Rate Limiting & Quota Management
-    #
-    # We use a stick table to keep track of TCP connections rates and bytes send out.
-    # On these metrics we set rules to designate upper limits. When limits are hit
-    # we reroute the traffic to a specific abusers backend
-
-     # end HTTP spike limit generation
-
-     # end spike limit generation
-
-    ###
-    # Filter Management
-    #
-    # set filters with optional negation
-    #
-
-    
-
-    default_backend vamp_sava_sava_1_0_0_port
-
-
-frontend vamp_sava_sava_1_1_0_port
-    
-
-     option httplog 
-    
-
-
-    ###
-    #
-    # Set logging and set the headers to capture
-
-    # capture request header X-Vamp-Server-CurrentTime len 50
-    # capture response header X-Vamp-Server-ResponseTime len 50
-    # capture response header X-Vamp-Server-Name len 50
-
-
-    log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
-
-    #
-    ###
-
-    
-    bind unix@/opt/vamp/eea6737a044601607363a4a09ae0ff974bc92625.sock accept-proxy
-    
-
-    mode http
-    
-
-    ###
-    #
-    # Spike/Rate Limiting & Quota Management
-    #
-    # We use a stick table to keep track of TCP connections rates and bytes send out.
-    # On these metrics we set rules to designate upper limits. When limits are hit
-    # we reroute the traffic to a specific abusers backend
-
-     # end HTTP spike limit generation
-
-     # end spike limit generation
-
-    ###
-    # Filter Management
-    #
-    # set filters with optional negation
-    #
-
-    
-
-    default_backend vamp_sava_sava_1_1_0_port
-
-
-frontend vamp_port
-    
-    bind 0.0.0.0:9050
-    
-
-     option httplog 
-    
-
-
-    ###
-    #
-    # Set logging and set the headers to capture
-
-    # capture request header X-Vamp-Server-CurrentTime len 50
-    # capture response header X-Vamp-Server-ResponseTime len 50
-    # capture response header X-Vamp-Server-Name len 50
-
-
-    log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
-
-    #
-    ###
-
-    
-
-    mode http
-    
-
-    ###
-    #
-    # Spike/Rate Limiting & Quota Management
-    #
-    # We use a stick table to keep track of TCP connections rates and bytes send out.
-    # On these metrics we set rules to designate upper limits. When limits are hit
-    # we reroute the traffic to a specific abusers backend
-
-     # end HTTP spike limit generation
-
-     # end spike limit generation
-
-    ###
-    # Filter Management
-    #
-    # set filters with optional negation
-    #
-
-    
-
-    default_backend vamp_port
-
-
-frontend vamp_sava_port
-    
-
-     option httplog 
-    
-
-
-    ###
-    #
-    # Set logging and set the headers to capture
-
-    # capture request header X-Vamp-Server-CurrentTime len 50
-    # capture response header X-Vamp-Server-ResponseTime len 50
-    # capture response header X-Vamp-Server-Name len 50
-
-
-    log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
-
-    #
-    ###
-
-    
-    bind unix@/opt/vamp/f77523c37c4ba3ea9c821590c3d1abffb56baab1.sock accept-proxy
-    
-
-    mode http
-    
-
-    ###
-    #
-    # Spike/Rate Limiting & Quota Management
-    #
-    # We use a stick table to keep track of TCP connections rates and bytes send out.
-    # On these metrics we set rules to designate upper limits. When limits are hit
-    # we reroute the traffic to a specific abusers backend
-
-     # end HTTP spike limit generation
-
-     # end spike limit generation
-
-    ###
-    # Filter Management
-    #
-    # set filters with optional negation
-    #
-
-    
-
-    default_backend vamp_sava_port
-
-
-
-
-
-
-backend vamp_sava_port
-    mode http
-#
-# Regular HTTP/TCP backends
-#
-
-    balance roundrobin 
-   
-
-
-
-    
-        server vamp_sava_sava_1_0_0_port unix@/opt/vamp/43db76fcd665d7fbbaf939cf00b919ae487c28e3.sock send-proxy weight 90
-    
-        server vamp_sava_sava_1_1_0_port unix@/opt/vamp/eea6737a044601607363a4a09ae0ff974bc92625.sock send-proxy weight 10
-    
-
-
-
-
-
-backend vamp_sava_sava_1_0_0_port
-    mode http
-#
-# Regular HTTP/TCP backends
-#
-
-    balance roundrobin 
-   
-
-
-
-    option forwardfor
-   
-
-    server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:32772  cookie 64435a223bddf1fa589135baa5e228090279c032  weight 100 maxconn 1000
-    server 52c84bbf28dcc96bd4c4167eeeb7ff0a69bfb6eb 192.168.99.100:32772  cookie 52c84bbf28dcc96bd4c4167eeeb7ff0a69bfb6eb  weight 100 maxconn 1000
-    server 5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7 192.168.99.100:32772  cookie 5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7  weight 100 maxconn 1000
-    
-
-backend vamp_sava_sava_1_1_0_port
-    mode http
-#
-# Regular HTTP/TCP backends
-#
-
-    balance roundrobin 
-   
-
-
-
-    option forwardfor
-   
-    server 9019c00f1f7f641c4efc7a02c6f44e9f90d7750 192.168.99.100:32773  cookie 9019c00f1f7f641c4efc7a02c6f44e9f90d7750  weight 100 maxconn 1000
-    server 49594c26c89754450bd4f562946a69070a4aa887 192.168.99.100:32773  cookie 49594c26c89754450bd4f562946a69070a4aa887  weight 100 maxconn 1000
-
-
-backend vamp_port
-    mode http
-#
-# Regular HTTP/TCP backends
-#
-
-    balance roundrobin 
-
-    server vamp_sava_port unix@/opt/vamp/f77523c37c4ba3ea9c821590c3d1abffb56baab1.sock send-proxy weight 100
-
-
-backend vamp_sava_port
-    mode http
-#
-# Regular HTTP/TCP backends
-#
-
-    balance roundrobin 
-   
-
-
-    option forwardfor
-   
-    server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:33002 cookie 64435a223bddf1fa589135baa5e228090279c032 weight 100 maxconn 1000
-    
-
-
-#backend abusers
-#    mode http
-#    errorfile 409 /opt/docker/configuration/error_pages/500rate.http
-
-### END GENERATED SECTION ###
+    stats enable
+    stats uri /
+    stats refresh 2s
+    stats realm Haproxy\ Stats
+    stats auth haproxy:haproxy
+
+
+frontend vamp_sava_port_-
+  bind 0.0.0.0:33001             
+  
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+  
+  
+
+  
+  
+
+  mode http
+
+  
+  ###
+  #
+  # Filter Management
+  #
+  # Set filters with optional negation.
+  #
+  ###
+  
+  default_backend vamp_sava_port_-
+
+frontend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
+  
+  
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+  
+  
+
+  
+  bind unix@/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock accept-proxy 
+
+  mode http
+
+  
+  ###
+  #
+  # Filter Management
+  #
+  # Set filters with optional negation.
+  #
+  ###
+  
+  default_backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
+
+frontend vamp_sava_port_-_vamp_sava_sava_1_1_0_port
+  
+  
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+  
+  
+
+  
+  bind unix@/opt/vamp/2b564b6015289092cc65330cd11d18ca8c8c1318.sock accept-proxy 
+
+  mode http
+
+  
+  ###
+  #
+  # Filter Management
+  #
+  # Set filters with optional negation.
+  #
+  ###
+  
+  default_backend vamp_sava_port_-_vamp_sava_sava_1_1_0_port
+
+frontend vamp_port_-_-
+  bind 0.0.0.0:9050             
+  
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+  
+  
+
+  
+  
+
+  mode http
+
+  
+  ###
+  #
+  # Filter Management
+  #
+  # Set filters with optional negation.
+  #
+  ###
+  
+  default_backend vamp_port_-_-
+
+frontend vamp_port_-_-_vamp_sava_port_-
+  
+  
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+  
+  
+
+  
+  bind unix@/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock accept-proxy 
+
+  mode http
+
+  
+  ###
+  #
+  # Filter Management
+  #
+  # Set filters with optional negation.
+  #
+  ###
+  
+  default_backend vamp_port_-_-_vamp_sava_port_-
+
+
+
+backend vamp_sava_port_-
+  mode http
+  balance roundrobin       
+  
+  
+
+  
+  server vamp_sava_port_-_vamp_sava_sava_1_0_0_port unix@/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock send-proxy weight 90 
+  
+  server vamp_sava_port_-_vamp_sava_sava_1_1_0_port unix@/opt/vamp/2b564b6015289092cc65330cd11d18ca8c8c1318.sock send-proxy weight 10 
+  
+  
+
+backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
+  mode http
+  balance roundrobin       
+  
+  
+
+  
+  
+
+  option forwardfor
+  
+  server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:32772 cookie 64435a223bddf1fa589135baa5e228090279c032 weight 100 maxconn 1000  
+  
+  server 52c84bbf28dcc96bd4c4167eeeb7ff0a69bfb6eb 192.168.99.100:32772 cookie 52c84bbf28dcc96bd4c4167eeeb7ff0a69bfb6eb weight 100 maxconn 1000  
+  
+  server 5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7 192.168.99.100:32772 cookie 5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7 weight 100 maxconn 1000  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+backend vamp_sava_port_-_vamp_sava_sava_1_1_0_port
+  mode http
+  balance roundrobin       
+  
+  
+
+  
+  
+
+  option forwardfor
+  
+  server 9019c00f1f7f641c4efc7a02c6f44e9f90d7750 192.168.99.100:32773 cookie 9019c00f1f7f641c4efc7a02c6f44e9f90d7750 weight 100 maxconn 1000  
+  
+  server 49594c26c89754450bd4f562946a69070a4aa887 192.168.99.100:32773 cookie 49594c26c89754450bd4f562946a69070a4aa887 weight 100 maxconn 1000  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+backend vamp_port_-_-
+  mode http
+  balance roundrobin       
+  
+  
+
+  
+  server vamp_port_-_-_vamp_sava_port_- unix@/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock send-proxy weight 100 
+  
+  
+
+backend vamp_port_-_-_vamp_sava_port_-
+  mode http
+  balance roundrobin       
+  
+  
+
+  
+  
+
+  option forwardfor
+  
+  server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:33002 cookie 64435a223bddf1fa589135baa5e228090279c032 weight 100 maxconn 1000  
+  

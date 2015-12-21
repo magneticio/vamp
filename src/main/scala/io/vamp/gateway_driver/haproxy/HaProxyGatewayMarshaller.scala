@@ -6,16 +6,38 @@ import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
 import io.vamp.model.artifact._
 
 object HaProxyGatewayMarshaller {
+
   val path: List[String] = "haproxy" :: Nil
+
+  private val referenceMatcher = """^[a-zA-Z0-9][a-zA-Z0-9.\-_]{3,63}$""".r
+
+  def name(gateway: Gateway, path: GatewayPath = Nil) = {
+    def path2string(path: GatewayPath): String = {
+      path.segments match {
+        case Nil                   ⇒ ""
+        case some if some.size < 4 ⇒ path2string(some :+ "-")
+        case some                  ⇒ some.mkString("/")
+      }
+    }
+
+    path2string(path) match {
+      case ""  ⇒ flatten(path2string(gateway.name))
+      case str ⇒ flatten(s"${path2string(gateway.name)}/$str")
+    }
+  }
+
+  private def flatten(string: String) = Flatten.flatten(string) match {
+    case referenceMatcher(_*) ⇒ string
+    case _                    ⇒ Hash.hexSha1(string)
+  }
 }
 
 trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
+  import HaProxyGatewayMarshaller._
   import io.vamp.model.artifact.DefaultFilter._
 
   private val socketPath = "/opt/vamp"
-
-  private val referenceMatcher = """^[a-zA-Z0-9][a-zA-Z0-9.\-_]{3,63}$""".r
 
   override val path = HaProxyGatewayMarshaller.path
 
@@ -35,7 +57,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     def backendFor(name: String) = backends.find(_.name == name).getOrElse(throw new IllegalArgumentException(s"No backend: $name"))
 
     Frontend(
-      name = gateway.name,
+      name = name(gateway),
       bindIp = Option("0.0.0.0"),
       bindPort = Option(gateway.port.number),
       mode = mode,
@@ -43,9 +65,9 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       sockProtocol = None,
       options = Options(),
       filters = filters,
-      defaultBackend = backendFor(gateway.name)) :: gateway.routes.map { route ⇒
+      defaultBackend = backendFor(name(gateway))) :: gateway.routes.map { route ⇒
         Frontend(
-          name = reference(route.path.normalized),
+          name = name(gateway, route.path),
           bindIp = None,
           bindPort = None,
           mode = mode,
@@ -53,17 +75,17 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
           sockProtocol = Option("accept-proxy"),
           options = Options(),
           filters = Nil,
-          defaultBackend = backendFor(reference(route.path.normalized)))
+          defaultBackend = backendFor(name(gateway, route.path)))
       }
   }
 
   private def backends(implicit gateway: Gateway): List[Backend] = Backend(
-    name = gateway.name,
+    name = name(gateway),
     mode = mode,
     proxyServers = gateway.routes.map {
       case route: AbstractRoute ⇒
         ProxyServer(
-          name = reference(route.path.normalized),
+          name = name(gateway, route.path),
           unixSock = unixSocket(route),
           weight = route.weight.get
         )
@@ -74,7 +96,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     options = Options()) :: gateway.routes.map {
       case route: DeployedRoute ⇒
         Backend(
-          name = reference(route.path.normalized),
+          name = name(gateway, route.path),
           mode = mode,
           proxyServers = Nil,
           servers = route.targets.map { instance ⇒
@@ -94,7 +116,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     case _                    ⇒ Nil
   }
 
-  private[haproxy] def filter(route: Route, filter: DefaultFilter): Filter = {
+  private[haproxy] def filter(route: Route, filter: DefaultFilter)(implicit gateway: Gateway): Filter = {
     val (condition, negate) = filter.condition match {
       case userAgent(n, c)        ⇒ s"hdr_sub(user-agent) ${c.trim}" -> (n == "!")
       case host(n, c)             ⇒ s"hdr_str(host) ${c.trim}" -> (n == "!")
@@ -109,15 +131,10 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
     val name = if (filter.name.isEmpty) Hash.hexSha1(condition).substring(0, 16) else filter.name
 
-    Filter(name, condition, reference(route.path.normalized), negate)
+    Filter(name, condition, HaProxyGatewayMarshaller.name(gateway, route.path), negate)
   }
 
   private def mode(implicit gateway: Gateway) = if (gateway.port.`type` == Port.Type.Http) Mode.http else Mode.tcp
 
-  private def unixSocket(route: Route)(implicit gateway: Gateway) = s"$socketPath/${Hash.hexSha1(s"${route.path.normalized}")}.sock"
-
-  private def reference(reference: String) = Flatten.flatten(reference) match {
-    case referenceMatcher(_*) ⇒ reference
-    case _                    ⇒ Hash.hexSha1(reference)
-  }
+  private def unixSocket(route: Route)(implicit gateway: Gateway) = s"$socketPath/${Hash.hexSha1(HaProxyGatewayMarshaller.name(gateway, route.path))}.sock"
 }

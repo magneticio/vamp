@@ -1,3 +1,4 @@
+# HAProxy 1.5
 global
   pidfile /opt/vamp/haproxy.pid
   daemon
@@ -30,7 +31,7 @@ global
     stats auth haproxy:haproxy
 
 
-frontend vamp_sava_port
+frontend vamp_sava_port_-
   bind 0.0.0.0:33000             
   
   option httplog
@@ -53,20 +54,20 @@ frontend vamp_sava_port
   ###
   
   acl 624dc0f1a5754e94 hdr_sub(user-agent) ie
-  use_backend vamp_sava_sava_1_0_0_port if !624dc0f1a5754e94
+  use_backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port if !624dc0f1a5754e94
   
   acl 3cb39f8aae4d99da hdr_sub(user-agent) chrome
-  use_backend vamp_sava_sava_1_0_0_port if 3cb39f8aae4d99da
+  use_backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port if 3cb39f8aae4d99da
   
   acl 445a3abaca79c140 cook_sub(group) admin
-  use_backend vamp_sava_sava_1_0_0_port if 445a3abaca79c140
+  use_backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port if 445a3abaca79c140
   
   acl feb4c187ccc342ce hdr_cnt(x-allow) gt 0
-  use_backend vamp_sava_sava_1_0_0_port if feb4c187ccc342ce
+  use_backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port if feb4c187ccc342ce
   
-  default_backend vamp_sava_port
+  default_backend vamp_sava_port_-
 
-frontend vamp_sava_sava_1_0_0_port
+frontend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
   
   
   option httplog
@@ -75,7 +76,7 @@ frontend vamp_sava_sava_1_0_0_port
   
 
   
-  bind unix@/opt/vamp/43db76fcd665d7fbbaf939cf00b919ae487c28e3.sock accept-proxy 
+  bind unix@/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock accept-proxy 
 
   mode http
 
@@ -88,22 +89,22 @@ frontend vamp_sava_sava_1_0_0_port
   #
   ###
   
-  default_backend vamp_sava_sava_1_0_0_port
+  default_backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
 
 
 
-backend vamp_sava_port
+backend vamp_sava_port_-
   mode http
   balance roundrobin       
   
   
 
   
-  server vamp_sava_sava_1_0_0_port unix@/opt/vamp/43db76fcd665d7fbbaf939cf00b919ae487c28e3.sock send-proxy weight 100 
+  server vamp_sava_port_-_vamp_sava_sava_1_0_0_port unix@/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock send-proxy weight 100 
   
   
 
-backend vamp_sava_sava_1_0_0_port
+backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
   mode http
   balance roundrobin       
   
@@ -117,4 +118,6 @@ backend vamp_sava_sava_1_0_0_port
   server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:32776 cookie 64435a223bddf1fa589135baa5e228090279c032 weight 100 maxconn 1000  
   
 
+  
+  
   
