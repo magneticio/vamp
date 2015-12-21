@@ -129,16 +129,19 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       }
     }
 
-    deploymentGateways.filterNot { gateway ⇒
+    gateways ++ deploymentGateways.filterNot { gateway ⇒
       gateways.exists(_.name == gateway.name) && !gateway.inner
-    } ++ gateways.filterNot(_.inner)
+    }
   }
 
   private def remove(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
 
     val (remove, keep) = gateways.partition { gateway ⇒
-      val path = GatewayPath(gateway.name)
-      path.segments.size > 1 && !deployments.exists(_.name == path.segments.head)
+      GatewayPath(gateway.name).segments match {
+        case deployment :: _ :: Nil               ⇒ !deployments.exists(_.name == deployment)
+        case deployment :: cluster :: port :: Nil ⇒ deployments.find(_.name == deployment).flatMap(deployment ⇒ deployment.clusters.find(_.name == cluster)).isEmpty
+        case _                                    ⇒ false
+      }
     }
 
     remove.foreach { gateway ⇒
