@@ -2,8 +2,7 @@ package io.vamp.persistence
 
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.http.RestClient
-import io.vamp.model.artifact.{ GatewayPath, Gateway, Artifact, DefaultBlueprint }
-import io.vamp.model.notification.UnsupportedGatewayNameError
+import io.vamp.model.artifact._
 import io.vamp.model.reader._
 import io.vamp.model.serialization.CoreSerializationFormat
 import org.json4s.DefaultFormats
@@ -27,16 +26,17 @@ case class ElasticsearchSearchHits(total: Long, hits: List[Map[String, _]])
 
 class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact with PaginationSupport {
 
-  import YamlSourceReader._
   import ElasticsearchPersistenceActor._
+  import YamlSourceReader._
 
   private val store = new InMemoryStore(log)
 
   private val types: Map[String, YamlReader[_ <: Artifact]] = Map(
     "gateways" -> new AbstractGatewayReader[Gateway] {
       override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes(splitPath = true), active)
+
       protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
-        case None       ⇒ AnonymousYamlReader.name
+        case None ⇒ AnonymousYamlReader.name
         case Some(name) ⇒ name
       }
     },
@@ -70,8 +70,8 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     log.debug(s"${getClass.getSimpleName}: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
     val storeArtifact = store.create(artifact, ignoreIfExists)
     storeArtifact match {
-      case blueprint: DefaultBlueprint ⇒ blueprint.clusters.flatMap(_.services).map(_.breed).foreach(breed ⇒ create(breed, ignoreIfExists = true))
-      case _                           ⇒
+      case blueprint: DefaultBlueprint ⇒ blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).foreach(breed ⇒ create(breed, ignoreIfExists = true))
+      case _ ⇒
     }
 
     val artifacts = typeOf(storeArtifact.getClass)
@@ -120,7 +120,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
 
     // asynchronously delete
     findHitBy(name, `type`) map {
-      case None      ⇒
+      case None ⇒
       case Some(hit) ⇒ hit.get("_id").foreach(id ⇒ request(RestClient.Method.DELETE, s"$elasticsearchUrl/$index/${typeOf(`type`)}/$id", None))
     }
 
