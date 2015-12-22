@@ -1,9 +1,12 @@
 package io.vamp.gateway_driver.kibana
 
+import java.net.URLEncoder
+
 import akka.actor._
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.common.vitals.InfoRequest
+import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.haproxy.Flatten
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor.KibanaDashboardUpdate
 import io.vamp.gateway_driver.logstash.Logstash
@@ -59,7 +62,7 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
 
       cluster.services.filter(_.state.isDeployed).flatMap { service ⇒
         service.breed.ports.map { port ⇒
-          val id = Flatten.flatten(s"${deployment.name}:${cluster.name}:${port.name}::${service.breed.name}")
+          val id = GatewayMarshaller.name(deployment, cluster, service, port)
           val changed = for {
             s ← update("search", id, searchDocument)
             tt ← update("visualization", s"${id}_tt", ttVisualizationDocument(id))
@@ -85,11 +88,13 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
   }
 
   private def update(`type`: String, id: String, create: (String) ⇒ AnyRef): Future[Boolean] = {
-    es.exists(kibanaIndex, Option(`type`), id, () ⇒ {
+    val encodedId = URLEncoder.encode(id, "UTF-8")
+
+    es.exists(kibanaIndex, Option(`type`), encodedId, () ⇒ {
       log.debug(s"Kibana ${`type`} exists for: $id")
     }, () ⇒ {
       log.info(s"Creating Kibana ${`type`} for: $id")
-      es.index(kibanaIndex, `type`, Option(id), create(id))
+      es.index(kibanaIndex, `type`, Option(encodedId), create(id))
     }) map {
       case true ⇒ true
       case _    ⇒ false

@@ -6,6 +6,7 @@ import akka.actor._
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.haproxy.Flatten
 import io.vamp.gateway_driver.logstash.Logstash
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
@@ -52,8 +53,8 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
 
   private def gateways: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
     deployments.foreach { deployment ⇒
-      deployment.gateways.foreach { endpoint ⇒
-        val name = s"${deployment.name}_${endpoint.name}"
+      deployment.gateways.foreach { gateway ⇒
+        val name = GatewayMarshaller.name(deployment, gateway.port)
         query(name) map {
           case Metrics(rate, responseTime) ⇒
             publish(s"gateways:$name" :: "metrics:rate" :: Nil, rate)
