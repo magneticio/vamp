@@ -10,6 +10,9 @@ object GatewayMarshaller {
 
   def name(deployment: Deployment, port: Port): String = flatten(path2string(deployment.name :: port.name :: Nil))
 
+  def name(deployment: Deployment, cluster: DeploymentCluster, port: Port): String =
+    flatten(path2string(deployment.name :: cluster.name :: port.name :: Nil))
+
   def name(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, port: Port): String = {
     val name1 = path2string(deployment.name :: cluster.name :: port.name :: Nil)
     val name2 = path2string(deployment.name :: cluster.name :: service.breed.name :: port.name :: Nil)

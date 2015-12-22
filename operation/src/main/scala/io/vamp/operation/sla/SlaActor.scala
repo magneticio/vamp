@@ -75,8 +75,8 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
         val to = OffsetDateTime.now()
         val from = to.minus(sla.interval.toSeconds, ChronoUnit.SECONDS)
 
-        Future.sequence(cluster.portMapping.keys.map(value ⇒ Port(value)).map({ port ⇒
-          responseTime(deployment, cluster, port, from, to)
+        Future.sequence(cluster.portMapping.keys.map({ portName ⇒
+          responseTime(deployment, cluster, portName, from, to)
         })) map {
           case optionalResponseTimes ⇒
             val responseTimes = optionalResponseTimes.flatten
@@ -106,8 +106,10 @@ trait SlaPulse {
     }
   }
 
-  def responseTime(deployment: Deployment, cluster: DeploymentCluster, port: Port, from: OffsetDateTime, to: OffsetDateTime): Future[Option[Double]] = {
-    val eventQuery = EventQuery(Set(s"routes:${deployment.name}/${cluster.name}/${port.name}", "metrics:rtime"), Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average)))
+  def responseTime(deployment: Deployment, cluster: DeploymentCluster, portName: String, from: OffsetDateTime, to: OffsetDateTime): Future[Option[Double]] = {
+    val tags = Set(s"gateways:${deployment.name}_${cluster.name}_$portName", "metrics:responseTime")
+    val eventQuery = EventQuery(tags, Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average)))
+
     actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
       case DoubleValueAggregationResult(value) ⇒ Some(value)
       case other                               ⇒ log.error(other.toString); None

@@ -47,7 +47,7 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
   private val es = new ElasticsearchClient(PulseActor.elasticsearchUrl)
 
   def receive: Receive = {
-    case EndpointMetricsUpdate ⇒ allArtifacts[Deployment] map (gateways andThen services)
+    case EndpointMetricsUpdate ⇒ allArtifacts[Deployment] map (gateways andThen clusters andThen services)
     case _                     ⇒
   }
 
@@ -65,12 +65,30 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
     deployments
   }
 
+  private def clusters: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
+    deployments.foreach { deployment ⇒
+      deployment.clusters.foreach { cluster ⇒
+        cluster.services.filter(_.state.isDeployed).foreach { service ⇒
+          service.breed.ports.foreach { port ⇒
+            val name = GatewayMarshaller.name(deployment, cluster, port)
+            query(name) map {
+              case Metrics(rate, responseTime) ⇒
+                publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: "metrics:rate" :: Nil, rate)
+                publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: "metrics:responseTime" :: Nil, responseTime)
+            }
+          }
+        }
+      }
+    }
+    deployments
+  }
+
   private def services: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
     deployments.foreach { deployment ⇒
       deployment.clusters.foreach { cluster ⇒
         cluster.services.filter(_.state.isDeployed).foreach { service ⇒
           service.breed.ports.foreach { port ⇒
-            val name = s"${deployment.name}_${cluster.name}_${port.name}::${service.breed.name}"
+            val name = GatewayMarshaller.name(deployment, cluster, service, port)
             query(name) map {
               case Metrics(rate, responseTime) ⇒
                 publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:rate" :: Nil, rate)
