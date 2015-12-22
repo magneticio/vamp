@@ -25,7 +25,7 @@ class EscalationSchedulerActor extends SchedulerActor with OperationNotification
   def tick() = windowStart match {
     case Some(from) ⇒
       val to = OffsetDateTime.now().withNano(0)
-      actorFor[SlaActor] ! EscalationProcessAll(from, to)
+      actorFor[EscalationActor] ! EscalationProcessAll(from, to)
       windowStart = Some(to)
 
     case None ⇒
