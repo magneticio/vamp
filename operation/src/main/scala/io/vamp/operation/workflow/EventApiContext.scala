@@ -12,7 +12,6 @@ import io.vamp.persistence.PersistenceActor
 import io.vamp.pulse.PulseActor.{ Publish, Query }
 import io.vamp.pulse.{ EventRequestEnvelope, EventResponseEnvelope, PulseActor }
 
-import scala.async.Async.{ async, await }
 import scala.concurrent.ExecutionContext
 
 class EventApiContext(actorSystem: ActorSystem)(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext {
@@ -56,12 +55,8 @@ class EventApiContext(actorSystem: ActorSystem)(implicit scheduledWorkflow: Sche
     }
     logger.debug(s"Publishing event: $event")
     reset()
-    async {
-      await {
-        implicit val as = actorSystem
-        IoC.actorFor[PulseActor] ? Publish(event)
-      }
-    }
+    implicit val as = actorSystem
+    IoC.actorFor[PulseActor] ? Publish(event)
   }
 
   def lt(time: String) = {
@@ -143,15 +138,11 @@ class EventApiContext(actorSystem: ActorSystem)(implicit scheduledWorkflow: Sche
     val eventQuery = EventQuery(tags, Some(TimeRange(_lt, _lte, _gt, _gte)), aggregator.flatMap(agg ⇒ Some(Aggregator(agg, _field))))
     logger.info(s"Event query: $eventQuery")
     reset()
-    async {
-      await {
-        implicit val as = actorSystem
-        IoC.actorFor[PulseActor] ? Query(EventRequestEnvelope(eventQuery, _page, _perPage)) map {
-          case EventResponseEnvelope(list, _, _, _)    ⇒ list
-          case result: SingleValueAggregationResult[_] ⇒ result.value
-          case other                                   ⇒ other
-        }
-      }
+    implicit val as = actorSystem
+    IoC.actorFor[PulseActor] ? Query(EventRequestEnvelope(eventQuery, _page, _perPage)) map {
+      case EventResponseEnvelope(list, _, _, _)    ⇒ list
+      case result: SingleValueAggregationResult[_] ⇒ result.value
+      case other                                   ⇒ other
     }
   }
 

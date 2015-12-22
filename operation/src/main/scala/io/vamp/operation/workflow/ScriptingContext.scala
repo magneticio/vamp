@@ -7,11 +7,11 @@ import org.json4s.native.Serialization._
 import org.json4s.{ DefaultFormats, Formats }
 import org.slf4j.LoggerFactory
 
-import scala.async.Async.{ async, await }
 import scala.collection.JavaConverters._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.language.implicitConversions
 import scala.reflect.Manifest
+import scala.util.{ Failure, Success }
 
 abstract class ScriptingContext(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) {
 
@@ -33,7 +33,7 @@ trait SerializationMagnet {
 }
 
 object SerializationMagnet {
-  implicit def apply(any: ⇒ Any)(implicit executionContext: ExecutionContext, mf: Manifest[Any], formats: Formats = DefaultFormats) = new SerializationMagnet {
+  implicit def apply(any: ⇒ Any)(implicit timeout: Timeout, mf: Manifest[Any], formats: Formats = DefaultFormats) = new SerializationMagnet {
     def serialize = SerializationMagnet.serialize(any)
 
     def load = SerializationMagnet.load(any)
@@ -41,8 +41,8 @@ object SerializationMagnet {
     def asScala = SerializationMagnet.toScala(any)
   }
 
-  protected def serialize(any: Any)(implicit executionContext: ExecutionContext, mf: Manifest[Any], formats: Formats = DefaultFormats): Any = toJavaScript(any match {
-    case future: Future[_] ⇒ serialize(async(await(future)))
+  protected def serialize(any: Any)(implicit timeout: Timeout, mf: Manifest[Any], formats: Formats = DefaultFormats): Any = toJavaScript(any match {
+    case future: Future[_] ⇒ serialize(offload(future))
     case list: Seq[_]      ⇒ list.map(serialize)
     case anyRef: AnyRef ⇒
       val string = write(anyRef)
@@ -76,5 +76,14 @@ object SerializationMagnet {
       else map
 
     case _ ⇒ any
+  }
+
+  @deprecated("Blocking", "0.7.10")
+  private def offload(future: Future[Any])(implicit timeout: Timeout): Any = {
+    Await.ready(future, timeout.duration)
+    future.value.get match {
+      case Success(result) ⇒ result
+      case Failure(result) ⇒ result
+    }
   }
 }

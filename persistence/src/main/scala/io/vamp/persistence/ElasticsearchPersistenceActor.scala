@@ -36,7 +36,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
       override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes(splitPath = true), active)
 
       protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
-        case None ⇒ AnonymousYamlReader.name
+        case None       ⇒ AnonymousYamlReader.name
         case Some(name) ⇒ name
       }
     },
@@ -71,7 +71,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     val storeArtifact = store.create(artifact, ignoreIfExists)
     storeArtifact match {
       case blueprint: DefaultBlueprint ⇒ blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).foreach(breed ⇒ create(breed, ignoreIfExists = true))
-      case _ ⇒
+      case _                           ⇒
     }
 
     val artifacts = typeOf(storeArtifact.getClass)
@@ -120,7 +120,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
 
     // asynchronously delete
     findHitBy(name, `type`) map {
-      case None ⇒
+      case None      ⇒
       case Some(hit) ⇒ hit.get("_id").foreach(id ⇒ request(RestClient.Method.DELETE, s"$elasticsearchUrl/$index/${typeOf(`type`)}/$id", None))
     }
 

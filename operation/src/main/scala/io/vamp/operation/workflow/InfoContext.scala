@@ -9,7 +9,6 @@ import io.vamp.common.vitals.JvmVitals
 import io.vamp.model.workflow.ScheduledWorkflow
 import io.vamp.operation.controller.InfoController
 
-import scala.async.Async.{ async, await }
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -21,16 +20,12 @@ class InfoContext(actorSystem: ActorSystem)(implicit scheduledWorkflow: Schedule
   implicit lazy val timeout: Timeout = Timeout(ConfigFactory.load().getInt("vamp.operation.workflow.info.timeout") seconds)
 
   def info() = serialize {
-    async {
-      await {
-        new InfoController with ExecutionContextProvider with ActorSystemProvider {
-          override implicit def actorSystem: ActorSystem = InfoContext.this.actorSystem
+    new InfoController with ExecutionContextProvider with ActorSystemProvider {
+      override implicit def actorSystem: ActorSystem = InfoContext.this.actorSystem
 
-          override implicit def timeout: Timeout = InfoContext.this.timeout
+      override implicit def timeout: Timeout = InfoContext.this.timeout
 
-          override implicit def executionContext: ExecutionContext = InfoContext.this.executionContext
-        } info
-      }
-    }
+      override implicit def executionContext: ExecutionContext = InfoContext.this.executionContext
+    } info
   }
 }

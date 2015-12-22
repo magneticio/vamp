@@ -5,7 +5,6 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.http.RestClient
 import io.vamp.model.workflow.ScheduledWorkflow
 
-import scala.async.Async.{ async, await }
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
@@ -18,7 +17,7 @@ class HttpClientContext(implicit scheduledWorkflow: ScheduledWorkflow, execution
   private var body: Any = null
   private var url: Option[String] = None
   private var method: Option[Method.Value] = None
-  private var headers: List[(String, String)] = Nil
+  private var headers: List[(String, String)] = RestClient.acceptEncodingIdentity :: Nil
 
   def set(name: String, value: String): HttpClientContext = {
     headers = headers :+ (name -> value)
@@ -46,7 +45,7 @@ class HttpClientContext(implicit scheduledWorkflow: ScheduledWorkflow, execution
     body = null
     url = None
     method = None
-    headers = Nil
+    headers = RestClient.acceptEncodingIdentity :: Nil
     this
   }
 
@@ -57,18 +56,20 @@ class HttpClientContext(implicit scheduledWorkflow: ScheduledWorkflow, execution
   }
 
   private def request(asJson: Boolean, default: Any) = serialize {
-    val response = async {
-      await((method, url) match {
-        case (Some(m), Some(u)) ⇒ if (asJson) http[Any](m, u, body, headers) else http[String](m, u, body, headers)
-        case _                  ⇒ throw new RuntimeException(s"HTTP: method or URL not specified.")
-      })
-    }
-    reset()
-    response match {
-      case e: Throwable ⇒
-        logger.error(e.getMessage, e)
-        None
-      case other ⇒ other
+    (method, url) match {
+      case (Some(m), Some(u)) ⇒
+        (if (asJson) http[Any](m, u, body, headers) else http[String](m, u, body, headers)) map {
+          case response ⇒
+            reset()
+            response match {
+              case e: Throwable ⇒
+                logger.error(e.getMessage, e)
+                None
+              case other ⇒ other
+            }
+        }
+
+      case _ ⇒ throw new RuntimeException(s"HTTP: method or URL not specified.")
     }
   }
 }

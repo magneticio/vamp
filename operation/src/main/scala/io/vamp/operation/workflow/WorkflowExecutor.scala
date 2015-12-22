@@ -19,7 +19,8 @@ trait WorkflowExecutor {
   private val urlPattern = "^(https?:\\/\\/.+)$".r
 
   def execute(scheduledWorkflow: ScheduledWorkflow, data: Any): Future[_] = {
-    log.info(s"Executing workflow: $scheduledWorkflow")
+    log.info(s"Executing workflow: ${scheduledWorkflow.name}")
+    log.debug(s"Executing workflow: $scheduledWorkflow")
     for {
       refreshed ← artifactFor[ScheduledWorkflow](scheduledWorkflow.name)
       workflow ← artifactFor[DefaultWorkflow](refreshed.workflow)
