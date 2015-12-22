@@ -10,7 +10,7 @@ import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.haproxy.Flatten
 import io.vamp.gateway_driver.logstash.Logstash
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
-import io.vamp.model.artifact.Deployment
+import io.vamp.model.artifact.{ Port, Deployment }
 import io.vamp.model.event.Event
 import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor.Publish
@@ -68,14 +68,12 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
   private def clusters: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
     deployments.foreach { deployment ⇒
       deployment.clusters.foreach { cluster ⇒
-        cluster.services.filter(_.state.isDeployed).foreach { service ⇒
-          service.breed.ports.foreach { port ⇒
-            val name = GatewayMarshaller.name(deployment, cluster, port)
-            query(name) map {
-              case Metrics(rate, responseTime) ⇒
-                publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: "metrics:rate" :: Nil, rate)
-                publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: "metrics:responseTime" :: Nil, responseTime)
-            }
+        cluster.services.filter(_.state.isDeployed).flatMap(_.breed.ports.map(_.name)).toSet[String].foreach { port ⇒
+          val name = GatewayMarshaller.name(deployment, cluster, Port(port, None, None))
+          query(name) map {
+            case Metrics(rate, responseTime) ⇒
+              publish(s"gateways:${deployment.name}_${cluster.name}_$port" :: "metrics:rate" :: Nil, rate)
+              publish(s"gateways:${deployment.name}_${cluster.name}_$port" :: "metrics:responseTime" :: Nil, responseTime)
           }
         }
       }
@@ -115,7 +113,7 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
          |          "must": [
          |            {
          |              "term": {
-         |                "b": "${Flatten.flatten(name)}"
+         |                "b": "$name"
          |              }
          |            },
          |            {

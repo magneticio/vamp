@@ -27,7 +27,7 @@ object GatewayMarshaller {
   private def path2string(path: GatewayPath): String = {
     path.segments match {
       case Nil                   ⇒ ""
-      case some if some.size < 4 ⇒ path2string(some :+ "-")
+      case some if some.size < 4 ⇒ path2string(some :+ "_")
       case some                  ⇒ some.mkString("/")
     }
   }
