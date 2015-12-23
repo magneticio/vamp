@@ -129,9 +129,9 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       }
     }
 
-    gateways ++ deploymentGateways.filterNot { gateway ⇒
+    (gateways ++ deploymentGateways.filterNot { gateway ⇒
       gateways.exists(_.name == gateway.name) && !gateway.inner
-    }
+    }).map(gateway ⇒ gateway.name -> gateway).toMap.values.toList
   }
 
   private def remove(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
