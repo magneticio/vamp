@@ -31,7 +31,7 @@ global
     stats auth haproxy:haproxy
 
 
-frontend vamp_sava_port_-
+frontend vamp_sava_port__
   bind 0.0.0.0:33001             
   
   option httplog
@@ -53,9 +53,9 @@ frontend vamp_sava_port_-
   #
   ###
   
-  default_backend vamp_sava_port_-
+  default_backend vamp_sava_port__
 
-frontend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
+frontend vamp_sava_port___vamp_sava_sava_1_0_0_port
   
   
   option httplog
@@ -64,7 +64,7 @@ frontend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
   
 
   
-  bind unix@/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock accept-proxy 
+  bind unix@/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock accept-proxy 
 
   mode http
 
@@ -77,9 +77,9 @@ frontend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
   #
   ###
   
-  default_backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
+  default_backend vamp_sava_port___vamp_sava_sava_1_0_0_port
 
-frontend vamp_sava_port_-_vamp_sava_sava_1_1_0_port
+frontend vamp_sava_port___vamp_sava_sava_1_1_0_port
   
   
   option httplog
@@ -88,7 +88,7 @@ frontend vamp_sava_port_-_vamp_sava_sava_1_1_0_port
   
 
   
-  bind unix@/opt/vamp/2b564b6015289092cc65330cd11d18ca8c8c1318.sock accept-proxy 
+  bind unix@/opt/vamp/2c18094d38f551adc44714bdc31e693118339ce6.sock accept-proxy 
 
   mode http
 
@@ -101,9 +101,9 @@ frontend vamp_sava_port_-_vamp_sava_sava_1_1_0_port
   #
   ###
   
-  default_backend vamp_sava_port_-_vamp_sava_sava_1_1_0_port
+  default_backend vamp_sava_port___vamp_sava_sava_1_1_0_port
 
-frontend vamp_port_-_-
+frontend vamp_port____
   bind 0.0.0.0:9050             
   
   option httplog
@@ -125,9 +125,9 @@ frontend vamp_port_-_-
   #
   ###
   
-  default_backend vamp_port_-_-
+  default_backend vamp_port____
 
-frontend vamp_port_-_-_vamp_sava_port_-
+frontend vamp_port_____vamp_sava_port__
   
   
   option httplog
@@ -136,7 +136,7 @@ frontend vamp_port_-_-_vamp_sava_port_-
   
 
   
-  bind unix@/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock accept-proxy 
+  bind unix@/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock accept-proxy 
 
   mode http
 
@@ -149,24 +149,24 @@ frontend vamp_port_-_-_vamp_sava_port_-
   #
   ###
   
-  default_backend vamp_port_-_-_vamp_sava_port_-
+  default_backend vamp_port_____vamp_sava_port__
 
 
 
-backend vamp_sava_port_-
+backend vamp_sava_port__
   mode http
   balance roundrobin       
   
   
 
   
-  server vamp_sava_port_-_vamp_sava_sava_1_0_0_port unix@/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock send-proxy weight 90 
+  server vamp_sava_port___vamp_sava_sava_1_0_0_port unix@/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock send-proxy weight 90 
   
-  server vamp_sava_port_-_vamp_sava_sava_1_1_0_port unix@/opt/vamp/2b564b6015289092cc65330cd11d18ca8c8c1318.sock send-proxy weight 10 
+  server vamp_sava_port___vamp_sava_sava_1_1_0_port unix@/opt/vamp/2c18094d38f551adc44714bdc31e693118339ce6.sock send-proxy weight 10 
   
   
 
-backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
+backend vamp_sava_port___vamp_sava_sava_1_0_0_port
   mode http
   balance roundrobin       
   
@@ -197,7 +197,7 @@ backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
   
   
 
-backend vamp_sava_port_-_vamp_sava_sava_1_1_0_port
+backend vamp_sava_port___vamp_sava_sava_1_1_0_port
   mode http
   balance roundrobin       
   
@@ -226,18 +226,18 @@ backend vamp_sava_port_-_vamp_sava_sava_1_1_0_port
   
   
 
-backend vamp_port_-_-
+backend vamp_port____
   mode http
   balance roundrobin       
   
   
 
   
-  server vamp_port_-_-_vamp_sava_port_- unix@/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock send-proxy weight 100 
+  server vamp_port_____vamp_sava_port__ unix@/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock send-proxy weight 100 
   
   
 
-backend vamp_port_-_-_vamp_sava_port_-
+backend vamp_port_____vamp_sava_port__
   mode http
   balance roundrobin       
   
@@ -249,4 +249,9 @@ backend vamp_port_-_-_vamp_sava_port_-
   option forwardfor
   
   server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:33002 cookie 64435a223bddf1fa589135baa5e228090279c032 weight 100 maxconn 1000  
+  
+
+  
+  
+  
   

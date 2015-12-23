@@ -5,7 +5,7 @@ import io.vamp.common.crypto.Hash
 case class HaProxy(frontends: List[Frontend], backends: List[Backend])
 
 object Flatten {
-  def flatten(string: String) = string.replaceAll("[^\\p{L}\\d\\-_]", "_")
+  def flatten(string: String) = string.replaceAll("[^\\p{L}\\d_]", "_")
 }
 
 trait FlattenName {

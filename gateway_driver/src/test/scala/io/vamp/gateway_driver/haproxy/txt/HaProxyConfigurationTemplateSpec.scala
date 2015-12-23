@@ -86,11 +86,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
   it should "serialize single service http route to HAProxy configuration" in {
 
     val actual = convert(Gateway(
-      name = "vamp/sava/port/-",
+      name = "vamp/sava/port/_",
       port = Port(33000),
       sticky = None,
       routes = DeployedRoute(
-        name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+        name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
         weight = Option(100),
         filters = Nil,
@@ -102,11 +102,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       ) :: Nil))
 
     val backend1 = Backend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       mode = Mode.http,
       proxyServers = ProxyServer(
-        name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
-        unixSock = "/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock",
+        name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
+        unixSock = "/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock",
         weight = 100
       ) :: Nil,
       servers = Nil,
@@ -115,7 +115,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     )
 
     val frontend1 = Frontend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(33000),
       mode = Mode.http,
@@ -126,7 +126,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend1)
 
     val backend2 = Backend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = HaProxyServer(
@@ -139,11 +139,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     )
 
     val frontend2 = Frontend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock"),
+      unixSock = Option("/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
@@ -164,11 +164,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
   it should "serialize single service tcp route to HAProxy configuration" in {
     val actual = convert(Gateway(
-      name = "vamp/sava/port/-",
+      name = "vamp/sava/port/_",
       port = Port("33000/tcp"),
       sticky = None,
       routes = DeployedRoute(
-        name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+        name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
         weight = Option(100),
         filters = Nil,
@@ -180,11 +180,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       ) :: Nil))
 
     val backend1 = Backend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       mode = Mode.tcp,
       proxyServers = ProxyServer(
-        name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
-        unixSock = "/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock",
+        name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
+        unixSock = "/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock",
         weight = 100
       ) :: Nil,
       servers = Nil,
@@ -193,7 +193,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     )
 
     val frontend1 = Frontend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(33000),
       mode = Mode.tcp,
@@ -204,7 +204,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend1)
 
     val backend2 = Backend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       mode = Mode.tcp,
       proxyServers = Nil,
       servers = HaProxyServer(
@@ -217,11 +217,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     )
 
     val frontend2 = Frontend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.tcp,
-      unixSock = Option("/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock"),
+      unixSock = Option("/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
@@ -243,11 +243,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
   it should "serialize single service route with single endpoint to HAProxy configuration" in {
     val actual = convert(List(
       Gateway(
-        name = "vamp/sava/port/-",
+        name = "vamp/sava/port/_",
         port = Port("33002"),
         sticky = None,
         routes = DeployedRoute(
-          name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+          name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
           weight = Option(100),
           filters = Nil,
@@ -259,12 +259,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           :: Nil
       ),
       Gateway(
-        name = "vamp/port/-/-",
+        name = "vamp/port/_/_",
         port = Port("9050/tcp"),
         sticky = None,
         routes = DeployedRoute(
-          name = "vamp/sava/port/-",
-          path = GatewayPath("vamp/sava/port/-"),
+          name = "vamp/sava/port/_",
+          path = GatewayPath("vamp/sava/port/_"),
           weight = Option(100),
           filters = Nil,
           targets = DeployedRouteTarget(
@@ -277,11 +277,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     ))
 
     val backend1 = Backend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       mode = Mode.http,
       proxyServers = ProxyServer(
-        name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
-        unixSock = "/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock",
+        name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
+        unixSock = "/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock",
         weight = 100
       ) :: Nil,
       servers = Nil,
@@ -289,7 +289,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend1 = Frontend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(33002),
       mode = Mode.http,
@@ -300,7 +300,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend1)
 
     val backend2 = Backend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = HaProxyServer(
@@ -312,22 +312,22 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend2 = Frontend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock"),
+      unixSock = Option("/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
       defaultBackend = backend2)
 
     val backend3 = Backend(
-      name = "vamp/port/-/-",
+      name = "vamp_port____",
       mode = Mode.tcp,
       proxyServers = ProxyServer(
-        name = "vamp/port/-/-/vamp/sava/port/-",
-        unixSock = "/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock",
+        name = "vamp_port_____vamp_sava_port__",
+        unixSock = "/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock",
         weight = 100
       ) :: Nil,
       servers = Nil,
@@ -335,7 +335,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend3 = Frontend(
-      name = "vamp/port/-/-",
+      name = "vamp_port____",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(9050),
       mode = Mode.tcp,
@@ -346,7 +346,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend3)
 
     val backend4 = Backend(
-      name = "vamp/port/-/-/vamp/sava/port/-",
+      name = "vamp_port_____vamp_sava_port__",
       mode = Mode.tcp,
       proxyServers = Nil,
       servers = HaProxyServer(
@@ -358,11 +358,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend4 = Frontend(
-      name = "vamp/port/-/-/vamp/sava/port/-",
+      name = "vamp_port_____vamp_sava_port__",
       bindIp = None,
       bindPort = None,
       mode = Mode.tcp,
-      unixSock = Option("/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock"),
+      unixSock = Option("/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
@@ -389,12 +389,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
     val actual = convert(List(
       Gateway(
-        name = "vamp/sava/port/-",
+        name = "vamp/sava/port/_",
         port = Port(33001),
         sticky = None,
         routes = List(
           DeployedRoute(
-            name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+            name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
             weight = Option(90),
             filters = Nil,
@@ -413,7 +413,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
                 port = 32772
               ))),
           DeployedRoute(
-            name = "vamp/sava/port/-/vamp/sava/sava:1.1.0/port",
+            name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
             weight = Option(10),
             filters = Nil,
@@ -430,12 +430,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         )
       ),
       Gateway(
-        name = "vamp/port/-/-",
+        name = "vamp/port/_/_",
         port = Port("9050/http"),
         sticky = None,
         routes = DeployedRoute(
-          name = "vamp/sava/port/-",
-          path = GatewayPath("vamp/sava/port/-"),
+          name = "vamp/sava/port/_",
+          path = GatewayPath("vamp/sava/port/_"),
           weight = Option(100),
           filters = Nil,
           targets = DeployedRouteTarget(
@@ -448,17 +448,17 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     ))
 
     val backend1 = Backend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       mode = Mode.http,
       proxyServers = List(
         ProxyServer(
-          name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
-          unixSock = "/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock",
+          name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
+          unixSock = "/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock",
           weight = 90
         ),
         ProxyServer(
-          name = "vamp/sava/port/-/vamp/sava/sava:1.1.0/port",
-          unixSock = "/opt/vamp/2b564b6015289092cc65330cd11d18ca8c8c1318.sock",
+          name = "vamp_sava_port___vamp_sava_sava_1_1_0_port",
+          unixSock = "/opt/vamp/2c18094d38f551adc44714bdc31e693118339ce6.sock",
           weight = 10
         )),
       servers = Nil,
@@ -466,7 +466,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend1 = Frontend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(33001),
       mode = Mode.http,
@@ -477,7 +477,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend1)
 
     val backend2 = Backend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -500,18 +500,18 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend2 = Frontend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock"),
+      unixSock = Option("/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
       defaultBackend = backend2)
 
     val backend3 = Backend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.1.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_1_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -529,22 +529,22 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend3 = Frontend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.1.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_1_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/2b564b6015289092cc65330cd11d18ca8c8c1318.sock"),
+      unixSock = Option("/opt/vamp/2c18094d38f551adc44714bdc31e693118339ce6.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
       defaultBackend = backend3)
 
     val backend4 = Backend(
-      name = "vamp/port/-/-",
+      name = "vamp_port____",
       mode = Mode.http,
       proxyServers = ProxyServer(
-        name = "vamp/port/-/-/vamp/sava/port/-",
-        unixSock = "/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock",
+        name = "vamp_port_____vamp_sava_port__",
+        unixSock = "/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock",
         weight = 100
       ) :: Nil,
       servers = Nil,
@@ -552,7 +552,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend4 = Frontend(
-      name = "vamp/port/-/-",
+      name = "vamp_port____",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(9050),
       mode = Mode.http,
@@ -563,7 +563,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend4)
 
     val backend5 = Backend(
-      name = "vamp/port/-/-/vamp/sava/port/-",
+      name = "vamp_port_____vamp_sava_port__",
       mode = Mode.http,
       proxyServers = Nil,
       servers = HaProxyServer(
@@ -575,11 +575,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend5 = Frontend(
-      name = "vamp/port/-/-/vamp/sava/port/-",
+      name = "vamp_port_____vamp_sava_port__",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock"),
+      unixSock = Option("/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
@@ -623,7 +623,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           :: Nil
       ),
       Gateway(
-        name = "vamp/sava/port/-",
+        name = "vamp/sava/port/_",
         port = Port("33002"),
         sticky = None,
         routes = DeployedRoute(
@@ -639,12 +639,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           :: Nil
       ),
       Gateway(
-        name = "vamp/port/-/-",
+        name = "vamp/port/_/_",
         port = Port("9050/http"),
         sticky = None,
         routes = DeployedRoute(
-          name = "vamp/sava/port/-",
-          path = GatewayPath("vamp/sava/port/-"),
+          name = "vamp/sava/port/_",
+          path = GatewayPath("vamp/sava/port/_"),
           weight = Option(100),
           filters = Nil,
           targets = DeployedRouteTarget(
@@ -657,12 +657,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     ))
 
     val backend1 = Backend(
-      name = "vamp/backend/port/-",
+      name = "vamp_backend_port__",
       mode = Mode.http,
       proxyServers = List(
         ProxyServer(
-          name = "vamp/backend/port/-/vamp/sava/sava-backend:1.3.0/port",
-          unixSock = "/opt/vamp/a48dbb53522c4cb49684c0db8280a881328c0b1.sock",
+          name = "vamp_backend_port___vamp_sava_sava_backend_1_3_0_port",
+          unixSock = "/opt/vamp/24b9fa071b8818c5d8ae96a3b0c6b2e4fda0d8ea.sock",
           weight = 100
         )),
       servers = Nil,
@@ -670,7 +670,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend1 = Frontend(
-      name = "vamp/backend/port/-",
+      name = "vamp_backend_port__",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(33003),
       mode = Mode.http,
@@ -681,7 +681,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend1)
 
     val backend2 = Backend(
-      name = "vamp/backend/port/-/vamp/sava/sava-backend:1.3.0/port",
+      name = "vamp_backend_port___vamp_sava_sava_backend_1_3_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -694,23 +694,23 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend2 = Frontend(
-      name = "vamp/backend/port/-/vamp/sava/sava-backend:1.3.0/port",
+      name = "vamp_backend_port___vamp_sava_sava_backend_1_3_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/a48dbb53522c4cb49684c0db8280a881328c0b1.sock"),
+      unixSock = Option("/opt/vamp/24b9fa071b8818c5d8ae96a3b0c6b2e4fda0d8ea.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
       defaultBackend = backend2)
 
     val backend3 = Backend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       mode = Mode.http,
       proxyServers = List(
         ProxyServer(
-          name = "vamp/sava/port/-/vamp/sava/sava-frontend:1.3.0/port",
-          unixSock = "/opt/vamp/ff6c1e43521976fe84a2f61d5818bc948ae8ca85.sock",
+          name = "vamp_sava_port___vamp_sava_sava_frontend_1_3_0_port",
+          unixSock = "/opt/vamp/33c37db212c3e69d2ce25b0bcdbed69ef2a017af.sock",
           weight = 100
         )),
       servers = Nil,
@@ -718,7 +718,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend3 = Frontend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(33002),
       mode = Mode.http,
@@ -729,7 +729,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend3)
 
     val backend4 = Backend(
-      name = "vamp/sava/port/-/vamp/sava/sava-frontend:1.3.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_frontend_1_3_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -742,22 +742,22 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend4 = Frontend(
-      name = "vamp/sava/port/-/vamp/sava/sava-frontend:1.3.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_frontend_1_3_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/ff6c1e43521976fe84a2f61d5818bc948ae8ca85.sock"),
+      unixSock = Option("/opt/vamp/33c37db212c3e69d2ce25b0bcdbed69ef2a017af.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
       defaultBackend = backend4)
 
     val backend5 = Backend(
-      name = "vamp/port/-/-",
+      name = "vamp_port____",
       mode = Mode.http,
       proxyServers = ProxyServer(
-        name = "vamp/port/-/-/vamp/sava/port/-",
-        unixSock = "/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock",
+        name = "vamp_port_____vamp_sava_port__",
+        unixSock = "/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock",
         weight = 100
       ) :: Nil,
       servers = Nil,
@@ -765,7 +765,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend5 = Frontend(
-      name = "vamp/port/-/-",
+      name = "vamp_port____",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(9050),
       mode = Mode.http,
@@ -776,7 +776,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend5)
 
     val backend6 = Backend(
-      name = "vamp/port/-/-/vamp/sava/port/-",
+      name = "vamp_port_____vamp_sava_port__",
       mode = Mode.http,
       proxyServers = Nil,
       servers = HaProxyServer(
@@ -788,11 +788,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend6 = Frontend(
-      name = "vamp/port/-/-/vamp/sava/port/-",
+      name = "vamp_port_____vamp_sava_port__",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock"),
+      unixSock = Option("/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
@@ -849,11 +849,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
   it should "serialize service with filters to HAProxy configuration" in {
     val actual = convert(
       Gateway(
-        name = "vamp/sava/port/-",
+        name = "vamp/sava/port/_",
         port = Port(33000),
         sticky = None,
         routes = DeployedRoute(
-          name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+          name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
           weight = Option(100),
           filters = List(
@@ -880,12 +880,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     )
 
     val backend1 = Backend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       mode = Mode.http,
       proxyServers = List(
         ProxyServer(
-          name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
-          unixSock = "/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock",
+          name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
+          unixSock = "/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock",
           weight = 100
         )),
       servers = Nil,
@@ -893,7 +893,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend1 = Frontend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(33000),
       mode = Mode.http,
@@ -904,29 +904,29 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         HaProxyFilter(
           name = "624dc0f1a5754e94",
           condition = "hdr_sub(user-agent) ie",
-          destination = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+          destination = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
           negate = true
         ),
         HaProxyFilter(
           name = "3cb39f8aae4d99da",
           condition = "hdr_sub(user-agent) chrome",
-          destination = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port"
+          destination = "vamp_sava_port___vamp_sava_sava_1_0_0_port"
         ),
         HaProxyFilter(
           name = "445a3abaca79c140",
           condition = "cook_sub(group) admin",
-          destination = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port"
+          destination = "vamp_sava_port___vamp_sava_sava_1_0_0_port"
         ),
         HaProxyFilter(
           name = "feb4c187ccc342ce",
           condition = "hdr_cnt(x-allow) gt 0",
-          destination = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port"
+          destination = "vamp_sava_port___vamp_sava_sava_1_0_0_port"
         )
       ),
       defaultBackend = backend1)
 
     val backend2 = Backend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -939,11 +939,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend2 = Frontend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock"),
+      unixSock = Option("/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
@@ -965,12 +965,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
   it should "serialize A/B services to HAProxy configuration - sticky service" in {
     val actual = convert(List(
       Gateway(
-        name = "vamp/sava/port/-",
+        name = "vamp/sava/port/_",
         port = Port(33001),
         sticky = Some(Gateway.Sticky.Service),
         routes = List(
           DeployedRoute(
-            name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+            name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
             weight = Option(90),
             filters = Nil,
@@ -989,7 +989,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
                 port = 32772
               ))),
           DeployedRoute(
-            name = "vamp/sava/port/-/vamp/sava/sava:1.1.0/port",
+            name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
             weight = Option(10),
             filters = Nil,
@@ -1006,12 +1006,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         )
       ),
       Gateway(
-        name = "vamp/port/-/-",
+        name = "vamp/port/_/_",
         port = Port("9050/http"),
         sticky = None,
         routes = DeployedRoute(
-          name = "vamp/sava/port/-",
-          path = GatewayPath("vamp/sava/port/-"),
+          name = "vamp/sava/port/_",
+          path = GatewayPath("vamp/sava/port/_"),
           weight = Option(100),
           filters = Nil,
           targets = DeployedRouteTarget(
@@ -1024,17 +1024,17 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     ))
 
     val backend1 = Backend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       mode = Mode.http,
       proxyServers = List(
         ProxyServer(
-          name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
-          unixSock = "/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock",
+          name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
+          unixSock = "/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock",
           weight = 90
         ),
         ProxyServer(
-          name = "vamp/sava/port/-/vamp/sava/sava:1.1.0/port",
-          unixSock = "/opt/vamp/2b564b6015289092cc65330cd11d18ca8c8c1318.sock",
+          name = "vamp_sava_port___vamp_sava_sava_1_1_0_port",
+          unixSock = "/opt/vamp/2c18094d38f551adc44714bdc31e693118339ce6.sock",
           weight = 10
         )),
       servers = Nil,
@@ -1042,7 +1042,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend1 = Frontend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(33001),
       mode = Mode.http,
@@ -1053,7 +1053,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend1)
 
     val backend2 = Backend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -1076,18 +1076,18 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend2 = Frontend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock"),
+      unixSock = Option("/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
       defaultBackend = backend2)
 
     val backend3 = Backend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.1.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_1_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -1105,22 +1105,22 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend3 = Frontend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.1.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_1_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/2b564b6015289092cc65330cd11d18ca8c8c1318.sock"),
+      unixSock = Option("/opt/vamp/2c18094d38f551adc44714bdc31e693118339ce6.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
       defaultBackend = backend3)
 
     val backend4 = Backend(
-      name = "vamp/port/-/-",
+      name = "vamp_port____",
       mode = Mode.http,
       proxyServers = ProxyServer(
-        name = "vamp/port/-/-/vamp/sava/port/-",
-        unixSock = "/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock",
+        name = "vamp_port_____vamp_sava_port__",
+        unixSock = "/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock",
         weight = 100
       ) :: Nil,
       servers = Nil,
@@ -1128,7 +1128,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend4 = Frontend(
-      name = "vamp/port/-/-",
+      name = "vamp_port____",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(9050),
       mode = Mode.http,
@@ -1139,7 +1139,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend4)
 
     val backend5 = Backend(
-      name = "vamp/port/-/-/vamp/sava/port/-",
+      name = "vamp_port_____vamp_sava_port__",
       mode = Mode.http,
       proxyServers = Nil,
       servers = HaProxyServer(
@@ -1151,11 +1151,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend5 = Frontend(
-      name = "vamp/port/-/-/vamp/sava/port/-",
+      name = "vamp_port_____vamp_sava_port__",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock"),
+      unixSock = Option("/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
@@ -1183,12 +1183,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
   it should "serialize A/B services to HAProxy configuration - sticky instance" in {
     val actual = convert(List(
       Gateway(
-        name = "vamp/sava/port/-",
+        name = "vamp/sava/port/_",
         port = Port(33001),
         sticky = Some(Gateway.Sticky.Instance),
         routes = List(
           DeployedRoute(
-            name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+            name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
             weight = Option(90),
             filters = Nil,
@@ -1207,7 +1207,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
                 port = 32772
               ))),
           DeployedRoute(
-            name = "vamp/sava/port/-/vamp/sava/sava:1.1.0/port",
+            name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
             weight = Option(10),
             filters = Nil,
@@ -1224,12 +1224,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         )
       ),
       Gateway(
-        name = "vamp/port/-/-",
+        name = "vamp/port/_/_",
         port = Port("9050/http"),
         sticky = None,
         routes = DeployedRoute(
-          name = "vamp/sava/port/-",
-          path = GatewayPath("vamp/sava/port/-"),
+          name = "vamp/sava/port/_",
+          path = GatewayPath("vamp/sava/port/_"),
           weight = Option(100),
           filters = Nil,
           targets = DeployedRouteTarget(
@@ -1242,17 +1242,17 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     ))
 
     val backend1 = Backend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       mode = Mode.http,
       proxyServers = List(
         ProxyServer(
-          name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
-          unixSock = "/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock",
+          name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
+          unixSock = "/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock",
           weight = 90
         ),
         ProxyServer(
-          name = "vamp/sava/port/-/vamp/sava/sava:1.1.0/port",
-          unixSock = "/opt/vamp/2b564b6015289092cc65330cd11d18ca8c8c1318.sock",
+          name = "vamp_sava_port___vamp_sava_sava_1_1_0_port",
+          unixSock = "/opt/vamp/2c18094d38f551adc44714bdc31e693118339ce6.sock",
           weight = 10
         )),
       servers = Nil,
@@ -1260,7 +1260,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend1 = Frontend(
-      name = "vamp/sava/port/-",
+      name = "vamp_sava_port__",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(33001),
       mode = Mode.http,
@@ -1271,7 +1271,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend1)
 
     val backend2 = Backend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -1294,18 +1294,18 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend2 = Frontend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.0.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_0_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock"),
+      unixSock = Option("/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
       defaultBackend = backend2)
 
     val backend3 = Backend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.1.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_1_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -1323,22 +1323,22 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend3 = Frontend(
-      name = "vamp/sava/port/-/vamp/sava/sava:1.1.0/port",
+      name = "vamp_sava_port___vamp_sava_sava_1_1_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/2b564b6015289092cc65330cd11d18ca8c8c1318.sock"),
+      unixSock = Option("/opt/vamp/2c18094d38f551adc44714bdc31e693118339ce6.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
       defaultBackend = backend3)
 
     val backend4 = Backend(
-      name = "vamp/port/-/-",
+      name = "vamp_port____",
       mode = Mode.http,
       proxyServers = ProxyServer(
-        name = "vamp/port/-/-/vamp/sava/port/-",
-        unixSock = "/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock",
+        name = "vamp_port_____vamp_sava_port__",
+        unixSock = "/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock",
         weight = 100
       ) :: Nil,
       servers = Nil,
@@ -1346,7 +1346,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend4 = Frontend(
-      name = "vamp/port/-/-",
+      name = "vamp_port____",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(9050),
       mode = Mode.http,
@@ -1357,7 +1357,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend4)
 
     val backend5 = Backend(
-      name = "vamp/port/-/-/vamp/sava/port/-",
+      name = "vamp_port_____vamp_sava_port__",
       mode = Mode.http,
       proxyServers = Nil,
       servers = HaProxyServer(
@@ -1369,11 +1369,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend5 = Frontend(
-      name = "vamp/port/-/-/vamp/sava/port/-",
+      name = "vamp_port_____vamp_sava_port__",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/d4fb0bf347af0c6777d7ddb488fa13ac4360e338.sock"),
+      unixSock = Option("/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
@@ -1463,12 +1463,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     ))
 
     val backend1 = Backend(
-      name = "vamp:1.x/sava/port/-",
+      name = "vamp_1_x_sava_port__",
       mode = Mode.http,
       proxyServers = List(
         ProxyServer(
-          name = "vamp:1.x/sava/port/-/vamp:1.x/sava/sava:1.0.0/port",
-          unixSock = "/opt/vamp/94ec2082c62403bfed22d71fe4f38229330ebd27.sock",
+          name = "vamp_1_x_sava_port___vamp_1_x_sava_sava_1_0_0_port",
+          unixSock = "/opt/vamp/93029bce848f8c4ee301957082a065337bd87b83.sock",
           weight = 100
         )),
       servers = Nil,
@@ -1476,7 +1476,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend1 = Frontend(
-      name = "vamp:1.x/sava/port/-",
+      name = "vamp_1_x_sava_port__",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(33001),
       mode = Mode.http,
@@ -1487,7 +1487,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend1)
 
     val backend2 = Backend(
-      name = "vamp:1.x/sava/port/-/vamp:1.x/sava/sava:1.0.0/port",
+      name = "vamp_1_x_sava_port___vamp_1_x_sava_sava_1_0_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -1500,23 +1500,23 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend2 = Frontend(
-      name = "vamp:1.x/sava/port/-/vamp:1.x/sava/sava:1.0.0/port",
+      name = "vamp_1_x_sava_port___vamp_1_x_sava_sava_1_0_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/94ec2082c62403bfed22d71fe4f38229330ebd27.sock"),
+      unixSock = Option("/opt/vamp/93029bce848f8c4ee301957082a065337bd87b83.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
       defaultBackend = backend2)
 
     val backend3 = Backend(
-      name = "vamp:2.x/sava/port/-",
+      name = "vamp_2_x_sava_port__",
       mode = Mode.http,
       proxyServers = List(
         ProxyServer(
-          name = "vamp:2.x/sava/port/-/vamp:2.x/sava/sava:2.0.0/port",
-          unixSock = "/opt/vamp/bdecefb6a0fe1e1cd1093f701284e1486cba0c76.sock",
+          name = "vamp_2_x_sava_port___vamp_2_x_sava_sava_2_0_0_port",
+          unixSock = "/opt/vamp/30e6112066fa724684d488b6f67e6f3eb8feffd.sock",
           weight = 100
         )),
       servers = Nil,
@@ -1524,7 +1524,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend3 = Frontend(
-      name = "vamp:2.x/sava/port/-",
+      name = "vamp_2_x_sava_port__",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(33001),
       mode = Mode.http,
@@ -1535,7 +1535,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend3)
 
     val backend4 = Backend(
-      name = "vamp:2.x/sava/port/-/vamp:2.x/sava/sava:2.0.0/port",
+      name = "vamp_2_x_sava_port___vamp_2_x_sava_sava_2_0_0_port",
       mode = Mode.http,
       proxyServers = Nil,
       servers = List(
@@ -1548,26 +1548,26 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend4 = Frontend(
-      name = "vamp:2.x/sava/port/-/vamp:2.x/sava/sava:2.0.0/port",
+      name = "vamp_2_x_sava_port___vamp_2_x_sava_sava_2_0_0_port",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/bdecefb6a0fe1e1cd1093f701284e1486cba0c76.sock"),
+      unixSock = Option("/opt/vamp/30e6112066fa724684d488b6f67e6f3eb8feffd.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
       defaultBackend = backend4)
 
     val backend5 = Backend(
-      name = "vamp/-/-/-",
+      name = "vamp______",
       mode = Mode.http,
       proxyServers = ProxyServer(
-        name = "vamp/-/-/-/vamp:1.x/sava/port/-",
-        unixSock = "/opt/vamp/225cba0a38ff23124d6db98ab6c1e9abff810769.sock",
+        name = "vamp_______vamp_1_x_sava_port__",
+        unixSock = "/opt/vamp/448e8ed648748027c06d830a06cdbb3bab5fa188.sock",
         weight = 90
       ) :: ProxyServer(
-          name = "vamp/-/-/-/vamp:2.x/sava/port/-",
-          unixSock = "/opt/vamp/4254eb5ec2c4d56d5a8dfb430c324848e6569693.sock",
+          name = "vamp_______vamp_2_x_sava_port__",
+          unixSock = "/opt/vamp/a4012a075acd2fc45c112c74df5583f71c46757c.sock",
           weight = 10
         ) :: Nil,
       servers = Nil,
@@ -1575,7 +1575,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend5 = Frontend(
-      name = "vamp/-/-/-",
+      name = "vamp______",
       bindIp = Option("0.0.0.0"),
       bindPort = Option(9050),
       mode = Mode.http,
@@ -1586,7 +1586,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend5)
 
     val backend6 = Backend(
-      name = "vamp/-/-/-/vamp:1.x/sava/port/-",
+      name = "vamp_______vamp_1_x_sava_port__",
       mode = Mode.http,
       proxyServers = Nil,
       servers = HaProxyServer(
@@ -1598,18 +1598,18 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend6 = Frontend(
-      name = "vamp/-/-/-/vamp:1.x/sava/port/-",
+      name = "vamp_______vamp_1_x_sava_port__",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/225cba0a38ff23124d6db98ab6c1e9abff810769.sock"),
+      unixSock = Option("/opt/vamp/448e8ed648748027c06d830a06cdbb3bab5fa188.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
       defaultBackend = backend6)
 
     val backend7 = Backend(
-      name = "vamp/-/-/-/vamp:2.x/sava/port/-",
+      name = "vamp_______vamp_2_x_sava_port__",
       mode = Mode.http,
       proxyServers = Nil,
       servers = HaProxyServer(
@@ -1621,11 +1621,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       options = Options())
 
     val frontend7 = Frontend(
-      name = "vamp/-/-/-/vamp:2.x/sava/port/-",
+      name = "vamp_______vamp_2_x_sava_port__",
       bindIp = None,
       bindPort = None,
       mode = Mode.http,
-      unixSock = Option("/opt/vamp/4254eb5ec2c4d56d5a8dfb430c324848e6569693.sock"),
+      unixSock = Option("/opt/vamp/a4012a075acd2fc45c112c74df5583f71c46757c.sock"),
       sockProtocol = Option("accept-proxy"),
       options = Options(),
       filters = Nil,
@@ -1655,6 +1655,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
   }
 
   private def compare(config: String, resource: String) = {
+    println(config)
+
     def normalize(string: String): Array[String] = string.split('\n').map(_.trim).filter(_.nonEmpty).filterNot(_.startsWith("#")).map(_.replaceAll("\\s+", " "))
 
     val actual = normalize(config)

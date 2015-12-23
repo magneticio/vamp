@@ -31,7 +31,7 @@ global
     stats auth haproxy:haproxy
 
 
-frontend vamp_sava_port_-
+frontend vamp_sava_port__
   bind 0.0.0.0:33000             
   
   option httplog
@@ -53,9 +53,9 @@ frontend vamp_sava_port_-
   #
   ###
   
-  default_backend vamp_sava_port_-
+  default_backend vamp_sava_port__
 
-frontend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
+frontend vamp_sava_port___vamp_sava_sava_1_0_0_port
   
   
   option httplog
@@ -64,7 +64,7 @@ frontend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
   
 
   
-  bind unix@/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock accept-proxy 
+  bind unix@/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock accept-proxy 
 
   mode http
 
@@ -77,22 +77,22 @@ frontend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
   #
   ###
   
-  default_backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
+  default_backend vamp_sava_port___vamp_sava_sava_1_0_0_port
 
 
 
-backend vamp_sava_port_-
+backend vamp_sava_port__
   mode http
   balance roundrobin       
   
   
 
   
-  server vamp_sava_port_-_vamp_sava_sava_1_0_0_port unix@/opt/vamp/bd21e7864b6d08fcacdbd1b42b588d31a7cfa3e7.sock send-proxy weight 100 
+  server vamp_sava_port___vamp_sava_sava_1_0_0_port unix@/opt/vamp/a48357ca5dc363b9e588e812dcac64c3998a3738.sock send-proxy weight 100 
   
   
 
-backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
+backend vamp_sava_port___vamp_sava_sava_1_0_0_port
   mode http
   balance roundrobin       
   
@@ -104,6 +104,4 @@ backend vamp_sava_port_-_vamp_sava_sava_1_0_0_port
   option forwardfor
   
   server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:32768 cookie 64435a223bddf1fa589135baa5e228090279c032 weight 100 maxconn 1000  
-  
-
   
