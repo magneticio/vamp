@@ -29,6 +29,7 @@ class DictionaryActor extends CommonSupportForActors with DictionaryNotification
 
   implicit val timeout = DictionaryActor.timeout
 
+  private val hostResolver = toRegExp(DictionaryActor.hostResolver)
   private val containerScale = toRegExp(DictionaryActor.containerScale)
 
   private def toRegExp(string: String) = {
@@ -46,6 +47,9 @@ class DictionaryActor extends CommonSupportForActors with DictionaryNotification
   }
 
   private def get(key: String) = key match {
+
+    case hostResolver(_*) ⇒
+      ConfigFactory.load().getString("vamp.gateway-driver.host")
 
     case containerScale(deployment, cluster, service) ⇒
       val config = ConfigFactory.load()
