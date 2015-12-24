@@ -64,7 +64,7 @@ class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerializat
       if (route.name.nonEmpty)
         list += JField("name", JString(route.name))
 
-      list += JField("weight", JInt(if (route.weight.isDefined) route.weight.get else 0))
+      list += JField("weight", if (route.weight.isDefined) JInt(route.weight.get) else JNull)
       list += JField("filters", Extraction.decompose(route.filters))
 
       route match {
