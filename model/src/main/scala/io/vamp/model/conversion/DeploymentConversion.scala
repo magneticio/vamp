@@ -34,6 +34,14 @@ class DeploymentConversion(val deployment: Deployment) {
       }
     } map (_.copy(interpolated = None))
 
-    DefaultBlueprint(deployment.name, clusters, deployment.gateways, environmentVariables)
+    val gateways = deployment.gateways.map { gateway ⇒
+      gateway.copy(routes = gateway.routes.map {
+        case route: DefaultRoute   ⇒ route.copy(path = GatewayPath(route.path.segments.tail))
+        case route: RouteReference ⇒ route.copy(path = GatewayPath(route.path.segments.tail))
+        case route                 ⇒ route
+      })
+    }
+
+    DefaultBlueprint(deployment.name, clusters, gateways, environmentVariables)
   }
 }
