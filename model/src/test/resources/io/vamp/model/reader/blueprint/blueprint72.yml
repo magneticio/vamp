@@ -4,9 +4,9 @@ gateways:
   8080:
     routes:
     - notorious/port1:
-        weight: 50
+        weight: 50%
     - notorious/port2:
-        weight: 50
+        weight: 50 %
     - notorious/port3
 
 clusters:

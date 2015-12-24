@@ -3,6 +3,6 @@ port: 8080/http
 
 routes:
   sava:1.0/port:
-    weight: 50
+    weight: 50%
   sava:1.1/port:
-    weight: 50
+    weight: 50%

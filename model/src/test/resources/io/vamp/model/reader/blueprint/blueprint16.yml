@@ -6,7 +6,7 @@ clusters:
       routes:
         nocturnal-viper:
           name: "!ios"
-          weight: 10
+          weight: 10 %
           filters:
           - condition: user.agent != ios
 

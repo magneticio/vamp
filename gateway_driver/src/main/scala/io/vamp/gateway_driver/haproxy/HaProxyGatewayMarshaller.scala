@@ -63,7 +63,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
         ProxyServer(
           name = GatewayMarshaller.name(gateway, route.path),
           unixSock = unixSocket(route),
-          weight = route.weight.get
+          weight = route.weight.get.value
         )
       case route ⇒ throw new IllegalArgumentException(s"Unsupported route: $route")
     },

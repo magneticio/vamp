@@ -9,7 +9,7 @@ clusters:
     routing:
       routes:
         solid-barbershop:
-          weight: 95
+          weight: 95%
           filters:
             - condition: ua = android
 

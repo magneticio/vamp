@@ -12,7 +12,7 @@ import io.vamp.model.artifact.DeploymentService.State
 import io.vamp.model.artifact.DeploymentService.State.Intention._
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
-import io.vamp.model.reader.{ BlueprintReader, BlueprintRoutingHelper, BreedReader, NameValidator }
+import io.vamp.model.reader._
 import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.notification._
@@ -256,7 +256,7 @@ trait DeploymentValidator {
       case route: DefaultRoute ⇒ services.exists(_.breed.name == route.path.normalized)
       case _                   ⇒ true
     }).map({
-      case route: DefaultRoute ⇒ route.weight.getOrElse(0)
+      case route: DefaultRoute ⇒ route.weight.getOrElse(Percentage(0)).value
       case route               ⇒ throwException(InternalServerError(s"unsupported route: $route"))
     }).sum)
   }).getOrElse(0)
@@ -382,8 +382,8 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     if (newServices.nonEmpty) {
       newServices.flatMap(_.breed.ports).map(_.name).toSet[String].map { port ⇒
 
-        val oldWeight = oldService.flatMap(s ⇒ blueprintCluster.route(s, port)).flatMap(_.weight).sum
-        val newWeight = newServices.flatMap(s ⇒ blueprintCluster.route(s, port)).flatMap(_.weight).sum
+        val oldWeight = oldService.flatMap(s ⇒ blueprintCluster.route(s, port)).flatMap(_.weight.map(_.value)).sum
+        val newWeight = newServices.flatMap(s ⇒ blueprintCluster.route(s, port)).flatMap(_.weight.map(_.value)).sum
         val availableWeight = 100 - oldWeight - newWeight
 
         if (availableWeight < 0)
@@ -402,8 +402,8 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
           case (service, index) ⇒
             val defaultWeight = if (index == newServices.size - 1) availableWeight - index * weight else weight
             val route = blueprintCluster.route(service, port) match {
-              case None                  ⇒ DefaultRoute("", "", Some(defaultWeight), Nil)
-              case Some(r: DefaultRoute) ⇒ r.copy(weight = Some(r.weight.getOrElse(defaultWeight)))
+              case None                  ⇒ DefaultRoute("", "", Option(Percentage(defaultWeight)), Nil)
+              case Some(r: DefaultRoute) ⇒ r.copy(weight = Option(r.weight.getOrElse(Percentage(defaultWeight))))
             }
             route.copy(path = GatewayPath(service.breed.name :: Nil))
         }
@@ -434,7 +434,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
     val routes = if (newRoutes.nonEmpty) {
 
-      val oldWeight = oldRoutes.map(_.weight.get).sum
+      val oldWeight = oldRoutes.map(_.weight.get.value).sum
       val availableWeight = 100 - oldWeight
 
       if (availableWeight < 0)
@@ -445,7 +445,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
       val updatedRoutes = newRoutes.view.zipWithIndex.toList.map {
         case (route, index) ⇒
           val defaultWeight = if (index == newRoutes.size - 1) availableWeight - index * weight else weight
-          route.copy(weight = Option(defaultWeight))
+          route.copy(weight = Option(Percentage(defaultWeight)))
       }
 
       updatedRoutes ++ oldRoutes

@@ -111,7 +111,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the route with weight" in {
     BlueprintReader.read(res("blueprint/blueprint12.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None)), List(Gateway("", Port("", None, None), None, List(DefaultRoute("", "nocturnal-viper", Some(50), Nil)))), None, Map()))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None)), List(Gateway("", Port("", None, None), None, List(DefaultRoute("", "nocturnal-viper", Some(Percentage(50)), Nil)))), None, Map()))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -138,7 +138,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the route with anonymous filter" in {
     BlueprintReader.read(res("blueprint/blueprint15.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None)), List(Gateway("", Port("", None, None), None, List(DefaultRoute("", "nocturnal-viper", Some(10), List(DefaultFilter("", "user.agent != ios")))))), None))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None)), List(Gateway("", Port("", None, None), None, List(DefaultRoute("", "nocturnal-viper", Some(Percentage(10)), List(DefaultFilter("", "user.agent != ios")))))), None))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -192,7 +192,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "expand the more complex blueprint" in {
     BlueprintReader.read(res("blueprint/blueprint21.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Nil, Some(DefaultScale("", 0.2, 120.0, 2))), Service(BreedReference("remote-venus"), Nil, Some(ScaleReference("worthy")))), List(Gateway("", Port("", None, None), None, List(DefaultRoute("", "solid-barbershop", Some(95), List(DefaultFilter("", "ua = android")))))), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious"))))), Map("reborn" -> "red-swallow")))), Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), Nil, Nil, Nil, Map()), Nil, None)), Nil, None), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), Nil, Nil, Nil, Map()), Nil, None)), Nil, Some(SlaReference("fish-steamy", Nil))), Cluster("omega", List(Service(BreedReference("scary-lion"), Nil, None)), Nil, None))),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Nil, Some(DefaultScale("", 0.2, 120.0, 2))), Service(BreedReference("remote-venus"), Nil, Some(ScaleReference("worthy")))), List(Gateway("", Port("", None, None), None, List(DefaultRoute("", "solid-barbershop", Some(Percentage(95)), List(DefaultFilter("", "ua = android")))))), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious"))))), Map("reborn" -> "red-swallow")))), Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), Nil, Nil, Nil, Map()), Nil, None)), Nil, None), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), Nil, Nil, Nil, Map()), Nil, None)), Nil, Some(SlaReference("fish-steamy", Nil))), Cluster("omega", List(Service(BreedReference("scary-lion"), Nil, None)), Nil, None))),
       'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", "supersonic/port", None, Nil))))),
       'environmentVariables(List(EnvironmentVariable("omega.environment_variables.aspect", None, Some("thorium"))))
     )
@@ -644,7 +644,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read complex gateway with weights" in {
     BlueprintReader.read(res("blueprint/blueprint72.yml")) should have(
       'name("nomadic-frostbite"),
-      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/port1", List("notorious", "port1")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious/port2", List("notorious", "port2")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious/port3", List("notorious", "port3")), None, Nil))))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/port1", List("notorious", "port1")), Some(Percentage(50)), Nil), DefaultRoute("", GatewayPath("notorious/port2", List("notorious", "port2")), Some(Percentage(50)), Nil), DefaultRoute("", GatewayPath("notorious/port3", List("notorious", "port3")), None, Nil))))),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Map())), Nil, None, Map())))
     )
   }
@@ -653,7 +653,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[GatewayRouteWeightError]({
       BlueprintReader.read(res("blueprint/blueprint73.yml"))
     }) should have(
-      'gateway(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/port1", List("notorious", "port1")), Some(50), Nil), DefaultRoute("", GatewayPath("notorious/port2", List("notorious", "port2")), Some(60), Nil))))
+      'gateway(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/port1", List("notorious", "port1")), Some(Percentage(50)), Nil), DefaultRoute("", GatewayPath("notorious/port2", List("notorious", "port2")), Some(Percentage(60)), Nil))))
     )
   }
 
