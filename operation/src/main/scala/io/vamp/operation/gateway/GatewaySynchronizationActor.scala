@@ -110,9 +110,12 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
         cluster.routing.map { routing ⇒
           val name = GatewayPath(deployment.name :: cluster.name :: routing.port.name :: Nil).normalized
           val port = routing.port.copy(value = cluster.portMapping.get(routing.port.name).flatMap { number ⇒ Port(number, routing.port.`type`).value })
-          val routes = routing.routes.map {
-            case route: DefaultRoute if route.length == 1 ⇒ route.copy(path = GatewayPath(deployment.name :: cluster.name :: route.path.normalized :: routing.port.name :: Nil))
-            case route                                    ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.length}"))
+          val routes = routing.routes.flatMap {
+            case route: DefaultRoute if route.length == 1 ⇒
+              if (cluster.services.exists(_.breed.name == route.path.segments.head))
+                route.copy(path = GatewayPath(deployment.name :: cluster.name :: route.path.normalized :: routing.port.name :: Nil)) :: Nil
+              else Nil
+            case route ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.length}"))
           }
           routing.copy(name = name, port = port, routes = routes)
         }
