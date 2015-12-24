@@ -1655,8 +1655,6 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
   }
 
   private def compare(config: String, resource: String) = {
-    println(config)
-
     def normalize(string: String): Array[String] = string.split('\n').map(_.trim).filter(_.nonEmpty).filterNot(_.startsWith("#")).map(_.replaceAll("\\s+", " "))
 
     val actual = normalize(config)
