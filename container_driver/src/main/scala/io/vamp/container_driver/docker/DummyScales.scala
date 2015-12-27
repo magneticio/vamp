@@ -2,6 +2,7 @@ package io.vamp.container_driver.docker
 
 import com.typesafe.config.ConfigFactory
 import io.vamp.model.artifact.DefaultScale
+import io.vamp.model.reader.MegaByte
 
 import scala.async.Async.{ async, await }
 import scala.concurrent.{ ExecutionContext, Future }
@@ -18,7 +19,7 @@ trait DummyScales {
   private val defaultCpu = ConfigFactory.load().getDouble("vamp.dictionary.default-scale.cpu")
   private val defaultMemory = ConfigFactory.load().getDouble("vamp.dictionary.default-scale.memory")
   private val defaultInstances = ConfigFactory.load().getInt("vamp.dictionary.default-scale.instances")
-  private val defaultScale: DefaultScale = DefaultScale(name = "", cpu = defaultCpu, memory = defaultMemory, instances = defaultInstances)
+  private val defaultScale: DefaultScale = DefaultScale(name = "", cpu = defaultCpu, memory = MegaByte.of(defaultMemory), instances = defaultInstances)
 
   private var scales: Map[String, DefaultScale] = Map.empty
 

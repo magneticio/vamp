@@ -6,7 +6,8 @@ import io.vamp.container_driver._
 import io.vamp.container_driver.marathon.api.{ Docker, _ }
 import io.vamp.container_driver.notification.UndefinedMarathonApplication
 import io.vamp.model.artifact._
-import org.json4s.{ Extraction, DefaultFormats, Formats }
+import io.vamp.model.reader.MegaByte
+import org.json4s.{ DefaultFormats, Extraction, Formats }
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -39,7 +40,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
     val id = appId(deployment, service.breed)
     if (update) logger.info(s"marathon update app: $id") else logger.info(s"marathon create app: $id")
 
-    val app = MarathonApp(id, container(deployment, cluster, service), service.scale.get.instances, service.scale.get.cpu, service.scale.get.memory, environment(deployment, cluster, service), cmd(deployment, cluster, service))
+    val app = MarathonApp(id, container(deployment, cluster, service), service.scale.get.instances, service.scale.get.cpu, service.scale.get.memory.value, environment(deployment, cluster, service), cmd(deployment, cluster, service))
     val payload = requestPayload(deployment, cluster, service, app)
 
     if (update)
@@ -82,5 +83,5 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
   }
 
   private def containerService(app: App): ContainerService =
-    ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, app.mem, app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
+    ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, MegaByte.of(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
 }

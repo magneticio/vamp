@@ -7,5 +7,5 @@ clusters:
         breed: nocturnal-viper
         scale:
            cpu: 0.2
-           memory: 120
+           memory: 120 M
            instances: 2

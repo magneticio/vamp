@@ -1,6 +1,5 @@
 package io.vamp.container_driver.docker
 
-import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import io.vamp.container_driver._
 import io.vamp.container_driver.docker.wrapper.Create.Response
@@ -228,7 +227,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
       startPrep = startPrep.portBind(wrapper.model.Port.Tcp(port.containerPort), PortBinding.local(port.hostPort))
     }
     startPrep = serviceScale match {
-      case Some(scale) ⇒ startPrep.cpuShares(scale.cpu.toInt).memory(if (scale.memory.toLong < dockerMinimumMemory) dockerMinimumMemory else scale.memory.toLong)
+      case Some(scale) ⇒ startPrep.cpuShares(scale.cpu.toInt).memory(if (scale.memory.value.toLong < dockerMinimumMemory) dockerMinimumMemory else scale.memory.value.toLong)
       case None        ⇒ startPrep
     }
 

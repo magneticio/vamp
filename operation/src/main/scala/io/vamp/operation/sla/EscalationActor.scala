@@ -9,6 +9,7 @@ import io.vamp.model.artifact.DeploymentService.State.Step.Initiated
 import io.vamp.model.artifact._
 import io.vamp.model.event.{ EventQuery, TimeRange }
 import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
+import io.vamp.model.reader.MegaByte
 import io.vamp.operation.notification.{ InternalServerError, OperationNotificationProvider, UnsupportedEscalationType }
 import io.vamp.operation.sla.EscalationActor.EscalationProcessAll
 import io.vamp.persistence.{ ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor }
@@ -173,10 +174,10 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
             }
 
           case ScaleMemoryEscalation(_, minimum, maximum, scaleBy, _) ⇒
-            val memory = if (escalate) scale.memory + scaleBy else scale.memory - scaleBy
+            val memory = if (escalate) scale.memory.value + scaleBy else scale.memory.value - scaleBy
             if (memory <= maximum && memory >= minimum) {
               log.info(s"scale memory: ${deployment.name}/${targetCluster.name} to $memory")
-              commit(targetCluster, scale.copy(memory = memory))
+              commit(targetCluster, scale.copy(memory = MegaByte(memory)))
               true
             } else {
               log.debug(s"scale memory not within boundaries: ${deployment.name}/${targetCluster.name} is already ${scale.memory}")

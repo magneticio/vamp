@@ -6,6 +6,7 @@ import io.vamp.common.akka._
 import io.vamp.dictionary.DictionaryActor.Get
 import io.vamp.dictionary.notification.{ DictionaryNotificationProvider, UnsupportedDictionaryRequest }
 import io.vamp.model.artifact.DefaultScale
+import io.vamp.model.reader.MegaByte
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -56,7 +57,7 @@ class DictionaryActor extends CommonSupportForActors with DictionaryNotification
       val cpu = config.getDouble("vamp.dictionary.default-scale.cpu")
       val memory = config.getDouble("vamp.dictionary.default-scale.memory")
       val instances = config.getInt("vamp.dictionary.default-scale.instances")
-      DefaultScale("", cpu, memory, instances)
+      DefaultScale("", cpu, MegaByte.of(memory), instances)
 
     case value ⇒ value
   }

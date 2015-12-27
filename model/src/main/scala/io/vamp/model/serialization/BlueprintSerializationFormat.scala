@@ -55,7 +55,7 @@ class ScaleSerializer extends ArtifactSerializer[Scale] with ReferenceSerializat
       if (scale.name.nonEmpty)
         list += JField("name", JString(scale.name))
       list += JField("cpu", JDouble(scale.cpu))
-      list += JField("memory", JDouble(scale.memory))
+      list += JField("memory", JString(scale.memory.normalized))
       list += JField("instances", JInt(scale.instances))
       new JObject(list.toList)
   }
