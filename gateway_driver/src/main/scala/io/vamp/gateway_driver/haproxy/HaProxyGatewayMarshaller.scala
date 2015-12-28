@@ -17,7 +17,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   override val path = HaProxyGatewayMarshaller.path
 
-  override def info: AnyRef = "HAProxy v1.5.x"
+  override def info: AnyRef = "HAProxy v1.6.x"
 
   override def marshall(gateways: List[Gateway]): String = HaProxyConfigurationTemplate(convert(gateways)).body.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n")
 
