@@ -1,9 +1,11 @@
 @import io.vamp.gateway_driver.haproxy.HaProxy
 @import io.vamp.gateway_driver.haproxy.Mode
 @(haproxy: HaProxy)
-# HAProxy 1.5
+# HAProxy 1.6
 global
   pidfile /opt/vamp/haproxy.pid
+  server-state-file /opt/vamp/haproxy_server_state
+
   daemon
   maxconn 4096
   log /opt/vamp/haproxy.log.sock local0
@@ -25,7 +27,8 @@ global
     timeout client 50000ms
     timeout server 50000ms
 
-  listen stats :1988
+  listen stats
+    bind :1988
     mode http
     stats enable
     stats uri /
