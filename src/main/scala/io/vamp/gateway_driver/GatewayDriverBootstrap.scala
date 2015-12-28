@@ -20,7 +20,10 @@ object GatewayDriverBootstrap extends Bootstrap {
     IoC.alias[GatewayStore, ZooKeeperGatewayStoreActor]
     IoC.createActor[ZooKeeperGatewayStoreActor] ! Start
 
-    IoC.createActor[GatewayDriverActor](new HaProxyGatewayMarshaller() {}) ! Start
+    IoC.createActor[GatewayDriverActor](new HaProxyGatewayMarshaller() {
+      override def tcpLogFormat: String = ConfigFactory.load().getString("vamp.gateway-driver.haproxy.tcp-log-format")
+      override def httpLogFormat: String = ConfigFactory.load().getString("vamp.gateway-driver.haproxy.http-log-format")
+    }) ! Start
 
     IoC.createActor[KibanaDashboardInitializationActor] ! Start
     IoC.createActor[KibanaDashboardActor] ! Start
