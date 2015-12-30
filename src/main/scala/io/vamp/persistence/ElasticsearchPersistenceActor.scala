@@ -97,38 +97,4 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "workflows" -> WorkflowReader,
     "scheduled-workflows" -> ScheduledWorkflowReader
   ).get(`type`)
-
-  //  override protected def start() = types.foreach {
-  //    case (group, _) ⇒ allPages[Artifact](findAllArtifactsBy(group)).map(_.foreach(store.create(_, ignoreIfExists = true)))
-  //  }
-
-  //  protected def request(method: RestClient.Method.Value, url: String, body: Any) = {
-  //    implicit val format = DefaultFormats
-  //    RestClient.http[Any](method, url, body, headers = RestClient.jsonHeaders, logError = true)
-  //  }
-  //
-  //  private def findAllArtifactsBy(`type`: String)(from: Int, size: Int): Future[ArtifactResponseEnvelope] = {
-  //    RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${`type`}/_search", Map("from" -> (from - 1), "size" -> size), RestClient.jsonHeaders, logError = false) map {
-  //      case response: ElasticsearchSearchResponse ⇒
-  //        val list = response.hits.hits.flatMap { hit ⇒
-  //          hit.get("_source").flatMap(_.asInstanceOf[Map[String, _]].get("artifact")).flatMap { source ⇒
-  //            types.get(`type`).flatMap { reader ⇒ Some(reader.read(source.toString)) }
-  //          }
-  //        }
-  //        ArtifactResponseEnvelope(list, response.hits.total, from, size)
-  //      case other ⇒
-  //        log.error(s"unexpected: ${other.toString}")
-  //        ArtifactResponseEnvelope(Nil, 0L, from, size)
-  //    }
-  //  }
-
-  //  private def findHitBy(name: String, `type`: Class[_ <: Artifact]): Future[Option[Map[String, _]]] = {
-  //    val request = RestClient.post[ElasticsearchSearchResponse](s"$elasticsearchUrl/$index/${typeOf(`type`)}/_search", Map("from" -> 0, "size" -> 1, "query" -> ("term" -> ("name" -> name))))
-  //    request.recover({ case f ⇒ Failure(f) }) map {
-  //      case response: ElasticsearchSearchResponse ⇒ if (response.hits.total == 1) Some(response.hits.hits.head) else None
-  //      case other ⇒
-  //        log.error(s"unexpected: ${other.toString}")
-  //        None
-  //    }
-  //  }
 }
