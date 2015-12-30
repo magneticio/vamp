@@ -21,6 +21,8 @@ import scala.reflect._
 trait ArtifactApiController extends ArtifactSupport {
   this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
 
+  def background(artifact: String): Boolean = mapping.get(artifact).exists(_.background)
+
   def allArtifacts(artifact: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[ArtifactResponseEnvelope] = mapping.get(artifact) match {
     case Some(controller) ⇒ controller.all(page, perPage, expandReferences, onlyReferences)
     case None ⇒ throwException(UnexpectedArtifact(artifact))
@@ -54,12 +56,13 @@ trait ArtifactApiController extends ArtifactSupport {
     ("escalations" -> new PersistenceHandler[Escalation](EscalationReader)) +
     ("routes" -> new PersistenceHandler[Route](RouteReader)) +
     ("filters" -> new PersistenceHandler[Filter](FilterReader)) +
-    ("gateways" -> new PersistenceHandler[Gateway](GatewayReader)) +
-    // workaround for None response.
-    ("deployments" -> new Handler()) +
-    // workflow handlers
     ("workflows" -> new PersistenceHandler[Workflow](WorkflowReader)) +
-    ("scheduled-workflows" -> new ScheduledWorkflowHandler())
+    ("scheduled-workflows" -> new ScheduledWorkflowHandler()) +
+    ("gateways" -> new PersistenceHandler[Gateway](GatewayReader){
+      override def background = true
+    }) +
+    // workaround for None response.
+    ("deployments" -> new Handler())
 
   class Handler {
 
@@ -72,6 +75,8 @@ trait ArtifactApiController extends ArtifactSupport {
     def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = throwException(UnexpectedArtifact(source))
 
     def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = Future(None)
+
+    def background: Boolean = false
   }
 
   class PersistenceHandler[T <: Artifact : ClassTag](unmarshaller: YamlReader[T]) extends Handler {
@@ -149,5 +154,4 @@ trait ArtifactApiController extends ArtifactSupport {
       }
     }
   }
-
 }

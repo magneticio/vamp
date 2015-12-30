@@ -32,7 +32,7 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
         entity(as[String]) { request ⇒
           validateOnly { validateOnly ⇒
             onSuccess(createArtifact(artifact, request, validateOnly)) { result ⇒
-              respondWith(Created, result)
+              respondWith(if (background(artifact)) Accepted else Created, result)
             }
           }
         }
@@ -52,7 +52,7 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
         entity(as[String]) { request ⇒
           validateOnly { validateOnly ⇒
             onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result ⇒
-              respondWith(OK, result)
+              respondWith(if (background(artifact)) Accepted else OK, result)
             }
           }
         }
@@ -60,7 +60,7 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
         entity(as[String]) { request ⇒
           validateOnly { validateOnly ⇒
             onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result ⇒
-              respondWith(NoContent, None)
+              respondWith(if (background(artifact)) Accepted else NoContent, None)
             }
           }
         }
