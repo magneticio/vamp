@@ -7,10 +7,9 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.gateway_driver.GatewayMarshaller
-import io.vamp.gateway_driver.haproxy.Flatten
 import io.vamp.gateway_driver.logstash.Logstash
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
-import io.vamp.model.artifact.{ Port, Deployment }
+import io.vamp.model.artifact.{ Deployment, Port }
 import io.vamp.model.event.Event
 import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor.Publish
@@ -100,7 +99,7 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
   }
 
   private def query(name: String): Future[Metrics] = {
-    es.searchRaw(Logstash.index, Option(Logstash.`type`),
+    es.search[Any](Logstash.index, Logstash.`type`,
       s"""
          |{
          |  "query": {

@@ -89,15 +89,14 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
 
   private def update(`type`: String, id: String, create: (String) ⇒ AnyRef): Future[Boolean] = {
     val encodedId = URLEncoder.encode(id, "UTF-8")
-
-    es.exists(kibanaIndex, Option(`type`), encodedId, () ⇒ {
-      log.debug(s"Kibana ${`type`} exists for: $id")
-    }, () ⇒ {
-      log.info(s"Creating Kibana ${`type`} for: $id")
-      es.index(kibanaIndex, `type`, Option(encodedId), create(id))
-    }) map {
-      case true ⇒ true
-      case _    ⇒ false
+    es.exists(kibanaIndex, `type`, encodedId).map {
+      case true ⇒
+        log.debug(s"Kibana ${`type`} exists for: $id")
+        true
+      case false ⇒
+        log.info(s"Creating Kibana ${`type`} for: $id")
+        es.index[Any](kibanaIndex, `type`, encodedId, create(id))
+        false
     } recover { case _ ⇒ false }
   }
 
