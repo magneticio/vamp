@@ -1,5 +1,7 @@
 package io.vamp.common.http
 
+import java.util.concurrent.ExecutionException
+
 import com.ning.http.client.{ AsyncCompletionHandler, Response }
 import com.typesafe.scalalogging.Logger
 import dispatch._
@@ -75,6 +77,8 @@ object RestClient {
           throw RestClientException(Some(status), response.getResponseBody)
       }
     }).recover {
+      case exception: RestClientException ⇒ throw exception
+      case exception: ExecutionException if exception.getCause != null && exception.getCause.getClass == classOf[RestClientException] ⇒ throw exception.getCause
       case exception ⇒
         val message = s"rsp $requestLog - exception: ${exception.getMessage}"
 

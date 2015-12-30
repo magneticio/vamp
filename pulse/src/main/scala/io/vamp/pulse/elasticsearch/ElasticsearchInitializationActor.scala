@@ -135,12 +135,14 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
     val es = new ElasticsearchClient(elasticsearchUrl)
 
     documents.foreach { definition ⇒
-      es.exists(definition.index, Option(definition.`type`), definition.id, () ⇒ {}, () ⇒ {
-        receiver ! WaitForOne
-        es.index(definition.index, definition.`type`, Option(definition.id), definition.document) onComplete {
-          case _ ⇒ receiver ! DoneWithOne
-        }
-      })
+      es.exists(definition.index, definition.`type`, definition.id).map {
+        case true ⇒
+        case false ⇒
+          receiver ! WaitForOne
+          es.index[Any](definition.index, definition.`type`, definition.id, definition.document) onComplete {
+            case _ ⇒ receiver ! DoneWithOne
+          }
+      }
     }
 
     receiver ! DoneWithOne

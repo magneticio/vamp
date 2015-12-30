@@ -45,15 +45,15 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
 
   def receive = {
     case Create(blueprint, source, validateOnly) ⇒ reply {
-      (merge(deploymentFor(blueprint)) andThen commit(create = true, source, validateOnly))(deploymentFor())
+      (merge(deploymentFor(blueprint)) andThen commit(source, validateOnly))(deploymentFor())
     }
 
     case Merge(name, blueprint, source, validateOnly) ⇒ reply {
-      (merge(deploymentFor(blueprint)) andThen commit(create = true, source, validateOnly))(deploymentFor(name, create = true))
+      (merge(deploymentFor(blueprint)) andThen commit(source, validateOnly))(deploymentFor(name, create = true))
     }
 
     case Slice(name, blueprint, source, validateOnly) ⇒ reply {
-      (slice(deploymentFor(blueprint)) andThen commit(create = false, source, validateOnly))(deploymentFor(name))
+      (slice(deploymentFor(blueprint)) andThen commit(source, validateOnly))(deploymentFor(name))
     }
 
     case UpdateSla(deployment, cluster, sla, source) ⇒ reply {
@@ -71,18 +71,16 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
     case any ⇒ unsupported(UnsupportedDeploymentRequest(any))
   }
 
-  def commit(create: Boolean, source: String, validateOnly: Boolean): (Future[Deployment] ⇒ Future[Deployment]) = { (future: Future[Deployment]) ⇒
+  def commit(source: String, validateOnly: Boolean): (Future[Deployment] ⇒ Future[Deployment]) = { future ⇒
     if (validateOnly) future
-    else {
-      future.flatMap {
-        case deployment ⇒
-          implicit val timeout: Timeout = PersistenceActor.timeout
-          checked[Deployment](IoC.actorFor[PersistenceActor] ? PersistenceActor.Update(deployment, Some(source), create = create)) map {
-            case persisted ⇒
-              IoC.actorFor[DeploymentSynchronizationActor] ! Synchronize(persisted)
-              persisted
-          }
-      }
+    else future.flatMap {
+      case deployment ⇒
+        implicit val timeout: Timeout = PersistenceActor.timeout
+        checked[Deployment](IoC.actorFor[PersistenceActor] ? PersistenceActor.Update(deployment, Some(source))) map {
+          case deployment ⇒
+            IoC.actorFor[DeploymentSynchronizationActor] ! Synchronize(deployment)
+            deployment
+        }
     }
   }
 }
@@ -263,7 +261,7 @@ trait DeploymentValidator {
 }
 
 trait DeploymentOperation {
-  def commit(create: Boolean, source: String, validateOnly: Boolean): (Future[Deployment] ⇒ Future[Deployment])
+  def commit(source: String, validateOnly: Boolean): (Future[Deployment] ⇒ Future[Deployment])
 }
 
 trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver {

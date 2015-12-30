@@ -79,11 +79,6 @@ val quartz = "org.quartz-scheduler" % "quartz" % "2.2.1" :: Nil
 val dispatch = "net.databinder.dispatch" %% "dispatch-core" % "0.11.2" ::
   "net.databinder.dispatch" %% "dispatch-json4s-native" % "0.11.2" :: Nil
 
-val sql = "com.h2database" % "h2" % "1.3.166" ::
-  "com.typesafe.slick" %% "slick" % "2.1.0" ::
-  "io.strongtyped" %% "active-slick" % "0.2.2" ::
-  "postgresql" % "postgresql" % "9.1-901.jdbc4" :: Nil
-
 val twirl = "com.typesafe.play" %% "twirl-api" % "1.1.1" :: Nil
 val json4s = "org.json4s" %% "json4s-native" % "3.2.11" ::
   "org.json4s" %% "json4s-core" % "3.2.11" ::
@@ -183,7 +178,7 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
   description := "Stores Vamp artifacts",
   name := "vamp-persistence",
   formatting,
-  libraryDependencies ++= sql ++ testing
+  libraryDependencies ++= testing
 ).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val cli = project.settings(bintraySetting: _*).settings(
