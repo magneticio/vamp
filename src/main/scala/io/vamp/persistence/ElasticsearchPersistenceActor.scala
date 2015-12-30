@@ -5,8 +5,7 @@ import io.vamp.model.artifact._
 import io.vamp.model.reader._
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.pulse.ElasticsearchClient
-import io.vamp.pulse.ElasticsearchClient.{ ElasticsearchSearchResponse, ElasticsearchGetResponse }
-import org.json4s.DefaultFormats
+import io.vamp.pulse.ElasticsearchClient.{ ElasticsearchGetResponse, ElasticsearchSearchResponse }
 import org.json4s.native.Serialization._
 
 import scala.concurrent.Future
@@ -18,7 +17,7 @@ object ElasticsearchPersistenceActor {
   lazy val elasticsearchUrl: String = ConfigFactory.load().getString("vamp.persistence.elasticsearch.url")
 }
 
-case class ElasticsearchArtifact(name: String, artifact: String)
+case class ElasticsearchArtifact(artifact: String)
 
 case class ElasticsearchPersistenceInfo(`type`: String, url: String, index: String, elasticsearch: Any)
 
@@ -51,30 +50,30 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
          |  "size": $perPage
          |}
         """.stripMargin) map {
-        case response ⇒
-          val list = response.hits.hits.flatMap { hit ⇒
-            readerOf(`type`).flatMap { reader ⇒ Option(reader.read(write(hit._source)(DefaultFormats))) }
-          }
-          ArtifactResponseEnvelope(list, response.hits.total, from, perPage)
+        case response ⇒ ArtifactResponseEnvelope(response.hits.hits.flatMap { hit ⇒ read(`type`, hit._source) }, response.hits.total, from, perPage)
       }
   }
 
   protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = {
     log.debug(s"${getClass.getSimpleName}: read [${type2string(`type`)}] - $name}")
     es.get[ElasticsearchGetResponse](index, `type`, name) map {
-      case hit ⇒ if (hit.found) readerOf(`type`).flatMap { reader ⇒ Option(reader.read(write(hit._source)(DefaultFormats))) } else None
+      case hit ⇒ if (hit.found) read(`type`, hit._source) else None
     }
   }
 
   protected def set(artifact: Artifact): Future[Artifact] = {
-    val store = write(artifact)(CoreSerializationFormat.full)
-    log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - $store")
-    es.index[Any](index, artifact.getClass, artifact.name, store).map { _ ⇒ artifact }
+    val json = write(artifact)(CoreSerializationFormat.full)
+    log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - $json")
+    es.index[Any](index, artifact.getClass, artifact.name, ElasticsearchArtifact(json)).map { _ ⇒ artifact }
   }
 
   protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
     es.delete(index, `type`, name).map { _ ⇒ None }
+  }
+
+  private def read(`type`: String, source: Map[String, Any]): Option[Artifact] = source.get("artifact").flatMap { artifact ⇒
+    readerOf(`type`).flatMap { reader ⇒ Option(reader.read(artifact.toString)) }
   }
 
   private def readerOf(`type`: String): Option[YamlReader[_ <: Artifact]] = Map(
