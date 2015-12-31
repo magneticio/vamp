@@ -24,7 +24,8 @@ trait PersistenceArchiving {
   def archiveUpdate(artifact: Artifact, source: Option[String]): Artifact =
     if (source.isDefined) archive(artifact, source, s"archiving:update") else artifact
 
-  def archiveDelete(artifact: Option[Artifact]): Option[Artifact] = artifact.flatMap(a ⇒ Some(archive(a, None, s"archiving:delete")))
+  def archiveDelete(artifact: Option[Artifact]): Option[Artifact] =
+    artifact.flatMap(a ⇒ Some(archive(a, None, s"archiving:delete")))
 
   private def archive(artifact: Artifact, source: Option[String], archiveTag: String) = {
     tagFor(artifact) match {

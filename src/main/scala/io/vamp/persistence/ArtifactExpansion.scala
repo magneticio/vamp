@@ -18,7 +18,7 @@ trait ArtifactExpansion {
     if (artifact.isDefined) expandReferences(artifact.get).map(Option(_)) else Future.successful(None)
 
   protected def expandReferences(artifact: Artifact): Future[Artifact] = artifact match {
-    case deployment: Deployment               ⇒ Future.successful(deployment) // Deployments are already fully expanded
+    case deployment: Deployment               ⇒ Future.successful(deployment)
     case blueprint: DefaultBlueprint          ⇒ expandClusters(blueprint.clusters).map(clusters ⇒ blueprint.copy(clusters = clusters))
     case breed: DefaultBreed                  ⇒ expandBreed(breed)
     case sla: Sla                             ⇒ expandSla(sla)
