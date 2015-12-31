@@ -7,7 +7,7 @@ import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.model.artifact.Artifact
+import io.vamp.model.artifact._
 import io.vamp.persistence.notification._
 import io.vamp.pulse.notification.PulseFailureNotifier
 
@@ -39,7 +39,7 @@ object PersistenceActor {
 
 }
 
-trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with ArtifactShrinkage with PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
+trait PersistenceActor extends PersistenceRequestSplit with PersistenceArchiving with ArtifactExpansion with ArtifactShrinkage with PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
@@ -69,7 +69,7 @@ trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with 
     })
 
     case All(ofType, page, perPage, expandRef, onlyRef) ⇒ reply {
-      all(ofType, page, perPage) flatMap {
+      all(ofType, page, perPage).flatMap(combine).flatMap {
         case artifacts ⇒ (expandRef, onlyRef) match {
           case (true, false) ⇒ Future.sequence(artifacts.response.map(expandReferences)).map { case response ⇒ artifacts.copy(response = response) }
           case (false, true) ⇒ Future.successful(artifacts.copy(response = artifacts.response.map(onlyReferences)))
@@ -78,26 +78,27 @@ trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with 
       }
     }
 
-    case Create(artifact, source) ⇒ reply {
-      set(artifact) map {
-        archiveCreate(_, source)
+    case Read(name, ofType, expandRef, onlyRef) ⇒ reply {
+      get(name, ofType).flatMap(combine).flatMap {
+        case artifact ⇒
+          (expandRef, onlyRef) match {
+            case (true, false) ⇒ expandReferences(artifact)
+            case (false, true) ⇒ Future.successful(onlyReferences(artifact))
+            case _             ⇒ Future.successful(artifact)
+          }
       }
     }
 
-    case Read(name, ofType, expandRef, onlyRef) ⇒ reply {
-      get(name, ofType) flatMap {
-        case artifact ⇒ (expandRef, onlyRef) match {
-          case (true, false) ⇒ expandReferences(artifact)
-          case (false, true) ⇒ Future.successful(onlyReferences(artifact))
-          case _             ⇒ Future.successful(artifact)
-        }
-      }
+    case Create(artifact, source) ⇒ reply {
+      split(artifact, { artifact: Artifact ⇒
+        set(artifact) map { archiveCreate(_, source) }
+      })
     }
 
     case Update(artifact, source) ⇒ reply {
-      set(artifact) map {
-        archiveUpdate(_, source)
-      }
+      split(artifact, { artifact: Artifact ⇒
+        set(artifact) map { archiveUpdate(_, source) }
+      })
     }
 
     case Delete(name, ofType) ⇒ reply {

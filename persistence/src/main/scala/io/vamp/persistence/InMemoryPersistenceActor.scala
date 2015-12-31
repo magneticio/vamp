@@ -6,7 +6,7 @@ import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
-import io.vamp.persistence.notification.{ ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest }
+import io.vamp.persistence.notification.{ PersistenceNotificationProvider, UnsupportedPersistenceRequest }
 import org.json4s.native.Serialization._
 
 import scala.collection.mutable
@@ -86,11 +86,6 @@ class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with Persistence
   }
 
   private def create(artifact: Artifact): Artifact = {
-    artifact match {
-      case blueprint: DefaultBlueprint ⇒ blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).foreach(breed ⇒ create(breed))
-      case _                           ⇒
-    }
-
     store.get(artifact.getClass) match {
       case None ⇒
         val map = new mutable.HashMap[String, Artifact]()

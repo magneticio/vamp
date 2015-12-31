@@ -77,9 +77,9 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
       case deployment ⇒
         implicit val timeout: Timeout = PersistenceActor.timeout
         checked[Deployment](IoC.actorFor[PersistenceActor] ? PersistenceActor.Update(deployment, Some(source))) map {
-          case deployment ⇒
-            IoC.actorFor[DeploymentSynchronizationActor] ! Synchronize(deployment)
-            deployment
+          case persisted ⇒
+            IoC.actorFor[DeploymentSynchronizationActor] ! Synchronize(persisted)
+            persisted
         }
     }
   }
