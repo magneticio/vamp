@@ -9,7 +9,7 @@ clusters:
     routing:
       routes:
         solid-barbershop:
-          weight: 95
+          weight: 95%
           filters:
             - condition: ua = android
 
@@ -18,7 +18,7 @@ clusters:
         reference: solid-barbershop
         scale:
           cpu: 0.2
-          memory: 120
+          memory: 120 mb
           instances: 2
       -
         ref: remote-venus

@@ -2,7 +2,7 @@ package io.vamp.gateway_driver.haproxy
 
 import io.vamp.common.crypto.Hash
 
-case class HaProxy(frontends: List[Frontend], backends: List[Backend])
+case class HaProxy(frontends: List[Frontend], backends: List[Backend], tcpLogFormat: String, httpLogFormat: String)
 
 object Flatten {
   def flatten(string: String) = string.replaceAll("[^\\p{L}\\d_]", "_")

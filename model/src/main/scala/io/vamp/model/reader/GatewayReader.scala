@@ -83,7 +83,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
 
   override protected def createDefault(implicit source: YamlSourceReader): Route = {
     source.flatten({ entry ⇒ entry == "instances" })
-    DefaultRoute(name, Route.noPath, <<?[Int]("weight"), filters)
+    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), filters)
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {

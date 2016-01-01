@@ -16,7 +16,7 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("sava"),
       'port(Port("", None, Some("8080/http"))),
       'sticky(Some(Gateway.Sticky.Service)),
-      'routes(List(DefaultRoute("", GatewayPath("sava1", List("sava1")), Some(50), Nil), DefaultRoute("", GatewayPath("sava2/v1", List("sava2", "v1")), Some(50), Nil)))
+      'routes(List(DefaultRoute("", GatewayPath("sava1", List("sava1")), Some(Percentage(50)), Nil), DefaultRoute("", GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), Nil)))
     )
   }
 
@@ -25,7 +25,7 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("sava/web"),
       'port(Port("", None, Some("8080/tcp"))),
       'sticky(None),
-      'routes(List(DefaultRoute("", GatewayPath("web/port", List("web", "port")), Some(100), Nil)))
+      'routes(List(DefaultRoute("", GatewayPath("web/port", List("web", "port")), Some(Percentage(100)), Nil)))
     )
   }
 

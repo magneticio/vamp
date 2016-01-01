@@ -5,7 +5,7 @@ clusters:
     routing:
       routes:
         nocturnal-viper:
-          weight: 50
+          weight: 50%
 
     services:
       -

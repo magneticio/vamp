@@ -2,6 +2,7 @@ package io.vamp.gateway_driver.haproxy.txt
 
 import io.vamp.gateway_driver.haproxy.{ Filter ⇒ HaProxyFilter, Server ⇒ HaProxyServer, _ }
 import io.vamp.model.artifact._
+import io.vamp.model.reader.Percentage
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{ FlatSpec, Informer, Matchers }
@@ -13,6 +14,10 @@ import scala.language.postfixOps
 class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaProxyGatewayMarshaller {
 
   override def info: Informer = super[FlatSpec].info
+
+  val httpLogFormat = """{"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}"""
+
+  val tcpLogFormat = """{"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tw":%Tw,"Tc":%Tc,"Tt":%Tt,"B":%B,"ts":"%ts","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq}"""
 
   "HaProxyConfiguration" should "be serialized to valid HAProxy configuration" in {
 
@@ -80,7 +85,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backends.head
     ) :: Nil
 
-    compare(HaProxyConfigurationTemplate(HaProxy(frontends, backends)).toString(), "configuration_1.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(frontends, backends, tcpLogFormat, httpLogFormat)).toString(), "configuration_1.txt")
   }
 
   it should "serialize single service http route to HAProxy configuration" in {
@@ -92,7 +97,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       routes = DeployedRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
-        weight = Option(100),
+        weight = Option(Percentage(100)),
         filters = Nil,
         targets = DeployedRouteTarget(
           name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -150,7 +155,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend2)
 
     actual match {
-      case HaProxy(List(f1, f2), List(b1, b2)) ⇒
+      case HaProxy(List(f1, f2), List(b1, b2), _, _) ⇒
         f1 shouldBe frontend1
         f2 shouldBe frontend2
         b1 shouldBe backend1
@@ -159,7 +164,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       case _ ⇒ fail("can't match expected")
     }
 
-    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_2.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends, tcpLogFormat, httpLogFormat)).toString(), "configuration_2.txt")
   }
 
   it should "serialize single service tcp route to HAProxy configuration" in {
@@ -170,7 +175,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       routes = DeployedRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
-        weight = Option(100),
+        weight = Option(Percentage(100)),
         filters = Nil,
         targets = DeployedRouteTarget(
           name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -228,7 +233,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend2)
 
     actual match {
-      case HaProxy(List(f1, f2), List(b1, b2)) ⇒
+      case HaProxy(List(f1, f2), List(b1, b2), _, _) ⇒
         f1 shouldBe frontend1
         f2 shouldBe frontend2
         b1 shouldBe backend1
@@ -237,7 +242,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       case _ ⇒ fail("can't match expected")
     }
 
-    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_3.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends, tcpLogFormat, httpLogFormat)).toString(), "configuration_3.txt")
   }
 
   it should "serialize single service route with single endpoint to HAProxy configuration" in {
@@ -249,7 +254,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         routes = DeployedRoute(
           name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
-          weight = Option(100),
+          weight = Option(Percentage(100)),
           filters = Nil,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -265,7 +270,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         routes = DeployedRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
-          weight = Option(100),
+          weight = Option(Percentage(100)),
           filters = Nil,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -369,7 +374,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend4)
 
     actual match {
-      case HaProxy(List(f1, f2, f3, f4), List(b1, b2, b3, b4)) ⇒
+      case HaProxy(List(f1, f2, f3, f4), List(b1, b2, b3, b4), _, _) ⇒
         f1 shouldBe frontend1
         f2 shouldBe frontend2
         f3 shouldBe frontend3
@@ -382,7 +387,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       case _ ⇒ fail("can't match expected")
     }
 
-    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_4.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends, tcpLogFormat, httpLogFormat)).toString(), "configuration_4.txt")
   }
 
   it should "serialize A/B services to HAProxy configuration" in {
@@ -396,7 +401,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           DeployedRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
-            weight = Option(90),
+            weight = Option(Percentage(90)),
             filters = Nil,
             targets = List(
               DeployedRouteTarget(
@@ -415,7 +420,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           DeployedRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
-            weight = Option(10),
+            weight = Option(Percentage(10)),
             filters = Nil,
             targets = List(
               DeployedRouteTarget(
@@ -436,7 +441,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         routes = DeployedRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
-          weight = Option(100),
+          weight = Option(Percentage(100)),
           filters = Nil,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -586,7 +591,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend5)
 
     actual match {
-      case HaProxy(List(f1, f2, f3, f4, f5), List(b1, b2, b3, b4, b5)) ⇒
+      case HaProxy(List(f1, f2, f3, f4, f5), List(b1, b2, b3, b4, b5), _, _) ⇒
         f1 shouldBe frontend1
         f2 shouldBe frontend2
         f3 shouldBe frontend3
@@ -601,7 +606,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       case _ ⇒ fail("can't match expected")
     }
 
-    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_5.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends, tcpLogFormat, httpLogFormat)).toString(), "configuration_5.txt")
   }
 
   it should "serialize services with dependency to HAProxy configuration" in {
@@ -613,7 +618,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         routes = DeployedRoute(
           name = "vamp/sava/sava-backend:1.3.0/port",
           path = GatewayPath("vamp/sava/sava-backend:1.3.0/port"),
-          weight = Option(100),
+          weight = Option(Percentage(100)),
           filters = Nil,
           targets = DeployedRouteTarget(
             name = "57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117",
@@ -629,7 +634,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         routes = DeployedRoute(
           name = "vamp/sava/sava-frontend:1.3.0/port",
           path = GatewayPath("vamp/sava/sava-frontend:1.3.0/port"),
-          weight = Option(100),
+          weight = Option(Percentage(100)),
           filters = Nil,
           targets = DeployedRouteTarget(
             name = "f1638245acf2ebe6db56984a85b48f6db8c74607",
@@ -645,7 +650,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         routes = DeployedRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
-          weight = Option(100),
+          weight = Option(Percentage(100)),
           filters = Nil,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -799,7 +804,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend6)
 
     actual match {
-      case HaProxy(List(f1, f2, f3, f4, f5, f6), List(b1, b2, b3, b4, b5, b6)) ⇒
+      case HaProxy(List(f1, f2, f3, f4, f5, f6), List(b1, b2, b3, b4, b5, b6), _, _) ⇒
         f1 shouldBe frontend1
         f2 shouldBe frontend2
         f3 shouldBe frontend3
@@ -816,7 +821,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       case _ ⇒ fail("can't match expected")
     }
 
-    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_6.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends, tcpLogFormat, httpLogFormat)).toString(), "configuration_6.txt")
   }
 
   it should "convert filters" in {
@@ -855,7 +860,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         routes = DeployedRoute(
           name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
-          weight = Option(100),
+          weight = Option(Percentage(100)),
           filters = List(
             DefaultFilter(
               name = "",
@@ -950,7 +955,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend2)
 
     actual match {
-      case HaProxy(List(f1, f2), List(b1, b2)) ⇒
+      case HaProxy(List(f1, f2), List(b1, b2), _, _) ⇒
         f1 shouldBe frontend1
         f2 shouldBe frontend2
         b1 shouldBe backend1
@@ -959,7 +964,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       case _ ⇒ fail("can't match expected")
     }
 
-    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_7.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends, tcpLogFormat, httpLogFormat)).toString(), "configuration_7.txt")
   }
 
   it should "serialize A/B services to HAProxy configuration - sticky service" in {
@@ -972,7 +977,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           DeployedRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
-            weight = Option(90),
+            weight = Option(Percentage(90)),
             filters = Nil,
             targets = List(
               DeployedRouteTarget(
@@ -991,7 +996,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           DeployedRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
-            weight = Option(10),
+            weight = Option(Percentage(10)),
             filters = Nil,
             targets = List(
               DeployedRouteTarget(
@@ -1012,7 +1017,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         routes = DeployedRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
-          weight = Option(100),
+          weight = Option(Percentage(100)),
           filters = Nil,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -1162,7 +1167,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend5)
 
     actual match {
-      case HaProxy(List(f1, f2, f3, f4, f5), List(b1, b2, b3, b4, b5)) ⇒
+      case HaProxy(List(f1, f2, f3, f4, f5), List(b1, b2, b3, b4, b5), _, _) ⇒
         f1 shouldBe frontend1
         f2 shouldBe frontend2
         f3 shouldBe frontend3
@@ -1177,7 +1182,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       case _ ⇒ fail("can't match expected")
     }
 
-    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_8.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends, tcpLogFormat, httpLogFormat)).toString(), "configuration_8.txt")
   }
 
   it should "serialize A/B services to HAProxy configuration - sticky instance" in {
@@ -1190,7 +1195,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           DeployedRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
-            weight = Option(90),
+            weight = Option(Percentage(90)),
             filters = Nil,
             targets = List(
               DeployedRouteTarget(
@@ -1209,7 +1214,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           DeployedRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
-            weight = Option(10),
+            weight = Option(Percentage(10)),
             filters = Nil,
             targets = List(
               DeployedRouteTarget(
@@ -1230,7 +1235,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         routes = DeployedRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
-          weight = Option(100),
+          weight = Option(Percentage(100)),
           filters = Nil,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -1380,7 +1385,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend5)
 
     actual match {
-      case HaProxy(List(f1, f2, f3, f4, f5), List(b1, b2, b3, b4, b5)) ⇒
+      case HaProxy(List(f1, f2, f3, f4, f5), List(b1, b2, b3, b4, b5), _, _) ⇒
         f1 shouldBe frontend1
         f2 shouldBe frontend2
         f3 shouldBe frontend3
@@ -1395,7 +1400,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       case _ ⇒ fail("can't match expected")
     }
 
-    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_9.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends, tcpLogFormat, httpLogFormat)).toString(), "configuration_9.txt")
   }
 
   it should "serialize A/B testing on deployments" in {
@@ -1407,7 +1412,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         routes = DeployedRoute(
           name = "vamp:1.x/sava/sava:1.0.0/port",
           path = GatewayPath("vamp:1.x/sava/sava:1.0.0/port"),
-          weight = Option(100),
+          weight = Option(Percentage(100)),
           filters = Nil,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -1423,7 +1428,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         routes = DeployedRoute(
           name = "vamp:2.x/sava/sava:2.0.0/port",
           path = GatewayPath("vamp:2.x/sava/sava:2.0.0/port"),
-          weight = Option(100),
+          weight = Option(Percentage(100)),
           filters = Nil,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -1440,7 +1445,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           DeployedRoute(
             name = "vamp:1.x/sava/port",
             path = GatewayPath("vamp:1.x/sava/port"),
-            weight = Option(90),
+            weight = Option(Percentage(90)),
             filters = Nil,
             targets = List(
               DeployedRouteTarget(
@@ -1451,7 +1456,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           DeployedRoute(
             name = "vamp:2.x/sava/port",
             path = GatewayPath("vamp:2.x/sava/port"),
-            weight = Option(10),
+            weight = Option(Percentage(10)),
             filters = Nil,
             targets = List(
               DeployedRouteTarget(
@@ -1632,7 +1637,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backend7)
 
     actual match {
-      case HaProxy(List(f1, f2, f3, f4, f5, f6, f7), List(b1, b2, b3, b4, b5, b6, b7)) ⇒
+      case HaProxy(List(f1, f2, f3, f4, f5, f6, f7), List(b1, b2, b3, b4, b5, b6, b7), _, _) ⇒
         f1 shouldBe frontend1
         f2 shouldBe frontend2
         f3 shouldBe frontend3
@@ -1651,7 +1656,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       case _ ⇒ fail("can't match expected")
     }
 
-    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends)).toString(), "configuration_10.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(actual.frontends, actual.backends, tcpLogFormat, httpLogFormat)).toString(), "configuration_10.txt")
   }
 
   private def compare(config: String, resource: String) = {

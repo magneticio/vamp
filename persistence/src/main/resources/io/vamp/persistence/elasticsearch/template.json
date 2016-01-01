@@ -10,10 +10,6 @@
         "enabled": false
       },
       "properties": {
-        "name": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
         "artifact": {
           "type": "string",
           "index": "no"

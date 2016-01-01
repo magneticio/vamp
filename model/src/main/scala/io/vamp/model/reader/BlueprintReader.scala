@@ -164,7 +164,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     blueprint.clusters.find({ cluster ⇒
       cluster.routing.exists { routing ⇒
         val weights = routing.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
-        weights.exists(_ < 0) || weights.sum > 100
+        weights.exists(_.value < 0) || weights.map(_.value).sum > 100
       }
     }).flatMap {
       case cluster ⇒ throwException(RouteWeightError(cluster))
@@ -174,7 +174,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   protected def validateGatewayRouteWeights(blueprint: AbstractBlueprint): Unit = {
     blueprint.gateways.find({ gateway ⇒
       val weights = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
-      weights.exists(_ < 0) || weights.sum > 100
+      weights.exists(_.value < 0) || weights.map(_.value).sum > 100
     }).flatMap {
       case gateway ⇒ throwException(GatewayRouteWeightError(gateway))
     }
@@ -322,5 +322,5 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
 
   override protected def createReference(implicit source: YamlSourceReader): Scale = ScaleReference(reference)
 
-  override protected def createDefault(implicit source: YamlSourceReader): Scale = DefaultScale(name, <<![Double]("cpu"), <<![Double]("memory"), <<![Int]("instances"))
+  override protected def createDefault(implicit source: YamlSourceReader): Scale = DefaultScale(name, <<![Double]("cpu"), <<![MegaByte]("memory"), <<![Int]("instances"))
 }

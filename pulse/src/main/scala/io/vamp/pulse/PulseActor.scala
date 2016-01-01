@@ -61,7 +61,7 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
 
   implicit val timeout = PulseActor.timeout
 
-  private lazy val elasticsearch = new ElasticsearchClient(elasticsearchUrl)
+  private lazy val es = new ElasticsearchClient(elasticsearchUrl)
 
   override def errorNotificationClass = classOf[PulseResponseError]
 
@@ -84,17 +84,16 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
     case any                                     ⇒ unsupported(UnsupportedPulseRequest(any))
   }
 
-  private def info = for {
-    e ← elasticsearch.get("")
-    i ← elasticsearch.get(s"$indexName/_stats/docs")
-  } yield Map[String, Any]("elasticsearch" -> e, "index" -> i)
+  private def info = es.health map {
+    case health ⇒ Map[String, Any]("elasticsearch" -> health)
+  }
 
   private def publish(publishEventValue: Boolean)(event: Event) = {
     implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (indexName, typeName) = indexTypeName(event.`type`)
     log.debug(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
 
-    elasticsearch.index(indexName, typeName, None, if (publishEventValue) event else event.copy(value = None)) map {
+    es.index[ElasticsearchIndexResponse](indexName, typeName, if (publishEventValue) event else event.copy(value = None)) map {
       case response: ElasticsearchIndexResponse ⇒ response
       case other ⇒
         log.error(s"Unexpected index result: ${other.toString}.")
@@ -116,14 +115,14 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
     implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, EventRequestEnvelope.maxPerPage)
 
-    elasticsearch.search(indexName, None, constructSearch(query, p, pp)) map {
+    es.search[ElasticsearchSearchResponse](indexName, constructSearch(query, p, pp)) map {
       case ElasticsearchSearchResponse(hits) ⇒
         EventResponseEnvelope(hits.hits.flatMap(hit ⇒ Some(read[Event](write(hit._source)))), hits.total, p, pp)
       case other ⇒ reportException(EventQueryError(other))
     }
   }
 
-  private def countEvents(eventQuery: EventQuery) = elasticsearch.count(indexName, None, constructQuery(eventQuery)) map {
+  private def countEvents(eventQuery: EventQuery) = es.count(indexName, constructQuery(eventQuery)) map {
     case ElasticsearchCountResponse(count) ⇒ LongValueAggregationResult(count)
     case other                             ⇒ reportException(EventQueryError(other))
   }
@@ -169,7 +168,7 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
   }
 
   private def aggregateEvents(eventQuery: EventQuery, aggregator: AggregatorType, field: Option[String]) = {
-    elasticsearch.aggregate(indexName, None, constructAggregation(eventQuery, aggregator, field)) map {
+    es.aggregate(indexName, constructAggregation(eventQuery, aggregator, field)) map {
       case ElasticsearchAggregationResponse(ElasticsearchAggregations(ElasticsearchAggregationValue(value))) ⇒ DoubleValueAggregationResult(value)
       case other ⇒ reportException(EventQueryError(other))
     }

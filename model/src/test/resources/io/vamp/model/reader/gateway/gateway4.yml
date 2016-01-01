@@ -4,4 +4,4 @@ sticky: service
 
 routes:
   web/port:
-    weight: 100
+    weight: 100%

@@ -1,9 +1,13 @@
 package io.vamp.pulse
 
-import io.vamp.common.http.RestClient
-import org.json4s.{ DefaultFormats, Formats }
+import java.net.URLEncoder
+
+import io.vamp.common.http.{ RestClientException, RestClient }
+import org.json4s.native.JsonMethods._
+import org.json4s.{ StringInput, DefaultFormats, Formats }
 
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.Try
 
 object ElasticsearchClient {
 
@@ -11,9 +15,11 @@ object ElasticsearchClient {
 
   case class ElasticsearchSearchResponse(hits: ElasticsearchSearchHits)
 
-  case class ElasticsearchSearchHits(total: Long, hits: List[ElasticsearchSearchHit])
+  case class ElasticsearchSearchHits(total: Long, hits: List[ElasticsearchHit])
 
-  case class ElasticsearchSearchHit(_index: String, _type: String, _id: String, _source: Map[String, Any])
+  case class ElasticsearchHit(_index: String, _type: String, _id: String, _source: Map[String, Any] = Map())
+
+  case class ElasticsearchGetResponse(_index: String, _type: String, _id: String, found: Boolean, _source: Map[String, Any] = Map())
 
   case class ElasticsearchCountResponse(count: Long)
 
@@ -29,35 +35,44 @@ class ElasticsearchClient(url: String)(implicit executor: ExecutionContext) {
 
   import ElasticsearchClient._
 
-  def get(path: String): Future[Any] = RestClient.get[Any](s"$url/$path")
+  def health = RestClient.get[Any](urlOf(url, "_cluster", "health"))
 
-  def index(index: String, `type`: String, id: Option[String], document: AnyRef)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchIndexResponse] = id match {
-    case None      ⇒ RestClient.post[ElasticsearchIndexResponse](s"$url/$index/${`type`}", document)
-    case Some(_id) ⇒ RestClient.put[ElasticsearchIndexResponse](s"$url/$index/${`type`}/${_id}", document)
-  }
-
-  def search(index: String, `type`: Option[String], query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchSearchResponse] =
-    RestClient.post[ElasticsearchSearchResponse](s"$url/${indexType(index, `type`)}/_search", query)
-
-  def searchRaw(index: String, `type`: Option[String], query: Any)(implicit formats: Formats = DefaultFormats): Future[Any] =
-    RestClient.post[Any](s"$url/${indexType(index, `type`)}/_search", query)
-
-  def count(index: String, `type`: Option[String], query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchCountResponse] =
-    RestClient.post[ElasticsearchCountResponse](s"$url/${indexType(index, `type`)}/_count", query)
-
-  def aggregate(index: String, `type`: Option[String], query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchAggregationResponse] =
-    RestClient.post[ElasticsearchAggregationResponse](s"$url/${indexType(index, `type`)}/_search", query)
-
-  def exists(index: String, `type`: Option[String], id: String, exists: () ⇒ Unit, notExists: () ⇒ Unit): Future[Boolean] = {
-    RestClient.get[Any](s"$url/${indexType(index, `type`)}/$id", RestClient.jsonHeaders, logError = false) recover { case _ ⇒ false } map {
-      case map: Map[_, _] if map.asInstanceOf[Map[String, Any]].getOrElse("found", false) == true ⇒
-        exists()
-        true
-      case _ ⇒
-        notExists()
-        false
+  def exists(index: String, `type`: String, id: String): Future[Boolean] = {
+    RestClient.get[Any](urlOf(url, index, `type`, id), RestClient.jsonHeaders, logError = false) map {
+      case response: Map[_, _] ⇒ Try(response.asInstanceOf[Map[String, Boolean]].getOrElse("found", false)).getOrElse(false)
+      case _                   ⇒ false
     }
   }
 
-  private def indexType(index: String, `type`: Option[String]) = if (`type`.isDefined) s"$index/${`type`.get}" else index
+  def get[A](index: String, `type`: String, id: String)(implicit mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
+    RestClient.get[A](urlOf(url, index, `type`, id), RestClient.jsonHeaders, logError = false).recover {
+      case RestClientException(Some(404), body) ⇒ parse(StringInput(body), useBigDecimalForDouble = true).extract[A](formats, mf)
+    }
+  }
+
+  def index[A](index: String, `type`: String, document: AnyRef)(implicit mf: scala.reflect.Manifest[A], formats: Formats): Future[A] =
+    RestClient.post[A](urlOf(url, index, `type`), document)
+
+  def index[A](index: String, `type`: String, id: String, document: AnyRef)(implicit mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] =
+    RestClient.put[A](urlOf(url, index, `type`, id), document)
+
+  def delete(index: String, `type`: String, id: String): Future[_] = {
+    RestClient.delete(urlOf(url, index, `type`, id), RestClient.jsonHeaders, logError = false).recover {
+      case _ ⇒ None
+    }
+  }
+
+  def search[A](index: String, query: Any)(implicit mf: scala.reflect.Manifest[A], formats: Formats): Future[A] =
+    RestClient.post[A](urlOf(url, index, "_search"), query)
+
+  def search[A](index: String, `type`: String, query: Any)(implicit mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] =
+    RestClient.post[A](urlOf(url, index, `type`, "_search"), query)
+
+  def count(index: String, query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchCountResponse] =
+    RestClient.post[ElasticsearchCountResponse](urlOf(url, index, "_count"), query)
+
+  def aggregate(index: String, query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchAggregationResponse] =
+    RestClient.post[ElasticsearchAggregationResponse](urlOf(url, index, "_search"), query)
+
+  private def urlOf(url: String, paths: String*) = (url :: paths.map(path ⇒ URLEncoder.encode(path, "UTF-8")).toList) mkString "/"
 }

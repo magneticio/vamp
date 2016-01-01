@@ -1,5 +1,7 @@
 package io.vamp.model.artifact
 
+import io.vamp.model.reader.Percentage
+
 import scala.language.implicitConversions
 
 object Gateway {
@@ -57,20 +59,20 @@ sealed trait Route extends Artifact {
 
 sealed trait AbstractRoute extends Route {
 
-  def weight: Option[Int]
+  def weight: Option[Percentage]
 
   def filters: List[Filter]
 }
 
 case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
 
-case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter]) extends AbstractRoute
+case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter]) extends AbstractRoute
 
 object DeployedRoute {
   def apply(route: AbstractRoute, targets: List[DeployedRouteTarget]): DeployedRoute = new DeployedRoute(route.name, route.path, route.weight, route.filters, targets)
 }
 
-case class DeployedRoute(name: String, path: GatewayPath, weight: Option[Int], filters: List[Filter], targets: List[DeployedRouteTarget]) extends AbstractRoute
+case class DeployedRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter], targets: List[DeployedRouteTarget]) extends AbstractRoute
 
 object DeployedRouteTarget {
 

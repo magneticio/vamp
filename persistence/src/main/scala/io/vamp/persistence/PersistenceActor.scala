@@ -7,7 +7,7 @@ import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.model.artifact.Artifact
+import io.vamp.model.artifact._
 import io.vamp.persistence.notification._
 import io.vamp.pulse.notification.PulseFailureNotifier
 
@@ -29,17 +29,17 @@ object PersistenceActor {
 
   case class All(`type`: Class[_ <: Artifact], page: Int, perPage: Int, expandReferences: Boolean = false, onlyReferences: Boolean = false) extends PersistenceMessages
 
-  case class Create(artifact: Artifact, source: Option[String] = None, ignoreIfExists: Boolean = true) extends PersistenceMessages
+  case class Create(artifact: Artifact, source: Option[String] = None) extends PersistenceMessages
 
   case class Read(name: String, `type`: Class[_ <: Artifact], expandReferences: Boolean = false, onlyReferences: Boolean = false) extends PersistenceMessages
 
-  case class Update(artifact: Artifact, source: Option[String] = None, create: Boolean = false) extends PersistenceMessages
+  case class Update(artifact: Artifact, source: Option[String] = None) extends PersistenceMessages
 
   case class Delete(name: String, `type`: Class[_ <: Artifact]) extends PersistenceMessages
 
 }
 
-trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with ArtifactShrinkage with PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
+trait PersistenceActor extends PersistenceRequestSplit with PersistenceArchiving with ArtifactExpansion with ArtifactShrinkage with PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
@@ -47,15 +47,13 @@ trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with 
 
   protected def info(): Future[Any]
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope]
 
-  protected def create(artifact: Artifact, ignoreIfExists: Boolean): Artifact
+  protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]]
 
-  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
+  protected def set(artifact: Artifact): Future[Artifact]
 
-  protected def update(artifact: Artifact, create: Boolean): Artifact
-
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact]
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]]
 
   override def errorNotificationClass = classOf[PersistenceOperationFailure]
 
@@ -70,44 +68,43 @@ trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with 
       case other          ⇒ other
     })
 
-    case All(ofType, page, perPage, expandRef, onlyRef) ⇒ try {
-      val artifacts = all(ofType, page, perPage)
-      sender() ! ((expandRef, onlyRef) match {
-        case (true, false) ⇒ artifacts.copy(response = artifacts.response.map(expandReferences))
-        case (false, true) ⇒ artifacts.copy(response = artifacts.response.map(onlyReferences))
-        case _             ⇒ artifacts
+    case All(ofType, page, perPage, expandRef, onlyRef) ⇒ reply {
+      all(ofType, page, perPage).flatMap(combine).flatMap {
+        case artifacts ⇒ (expandRef, onlyRef) match {
+          case (true, false) ⇒ Future.sequence(artifacts.response.map(expandReferences)).map { case response ⇒ artifacts.copy(response = response) }
+          case (false, true) ⇒ Future.successful(artifacts.copy(response = artifacts.response.map(onlyReferences)))
+          case _             ⇒ Future.successful(artifacts)
+        }
+      }
+    }
+
+    case Read(name, ofType, expandRef, onlyRef) ⇒ reply {
+      get(name, ofType).flatMap(combine).flatMap {
+        case artifact ⇒
+          (expandRef, onlyRef) match {
+            case (true, false) ⇒ expandReferences(artifact)
+            case (false, true) ⇒ Future.successful(onlyReferences(artifact))
+            case _             ⇒ Future.successful(artifact)
+          }
+      }
+    }
+
+    case Create(artifact, source) ⇒ reply {
+      split(artifact, { artifact: Artifact ⇒
+        set(artifact) map { archiveCreate(_, source) }
       })
-    } catch {
-      case e: Throwable ⇒ sender() ! failure(e)
     }
 
-    case Create(artifact, source, ignoreIfExists) ⇒ try {
-      sender() ! archiveCreate(create(artifact, ignoreIfExists), source)
-    } catch {
-      case e: Throwable ⇒ sender() ! failure(e)
-    }
-
-    case Read(name, ofType, expandRef, onlyRef) ⇒ try {
-      val artifact = read(name, ofType)
-      sender() ! ((expandRef, onlyRef) match {
-        case (true, false) ⇒ expandReferences(artifact)
-        case (false, true) ⇒ onlyReferences(artifact)
-        case _             ⇒ artifact
+    case Update(artifact, source) ⇒ reply {
+      split(artifact, { artifact: Artifact ⇒
+        set(artifact) map { archiveUpdate(_, source) }
       })
-    } catch {
-      case e: Throwable ⇒ sender() ! failure(e)
     }
 
-    case Update(artifact, source, create) ⇒ try {
-      sender() ! archiveUpdate(update(artifact, create), source)
-    } catch {
-      case e: Throwable ⇒ sender() ! failure(e)
-    }
-
-    case Delete(name, ofType) ⇒ try {
-      sender() ! archiveDelete(delete(name, ofType))
-    } catch {
-      case e: Throwable ⇒ sender() ! failure(e)
+    case Delete(name, ofType) ⇒ reply {
+      delete(name, ofType) map {
+        archiveDelete
+      }
     }
 
     case any ⇒ unsupported(UnsupportedPersistenceRequest(any))
@@ -117,7 +114,7 @@ trait PersistenceActor extends PersistenceArchiving with ArtifactExpansion with 
 
   protected def shutdown() = {}
 
-  protected def readExpanded(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = read(name, `type`)
+  protected def readExpanded(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = get(name, `type`)
 
   override def typeName = "persistence"
 

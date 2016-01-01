@@ -4,6 +4,6 @@ sticky: service
 
 routes:
   sava1:
-    weight: 50
+    weight: 50%
   sava2/v1:
-    weight: 50
+    weight: 50%

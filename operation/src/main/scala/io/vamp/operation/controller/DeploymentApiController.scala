@@ -43,14 +43,14 @@ trait DeploymentApiController extends ArtifactShrinkage {
   def createDeployment(request: String, validateOnly: Boolean)(implicit timeout: Timeout) = DeploymentBlueprintReader.readReferenceFromSource(request) match {
     case blueprint: BlueprintReference ⇒ actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, request, validateOnly)
     case blueprint: DefaultBlueprint ⇒
-      if (!validateOnly) actorFor[PersistenceActor] ? PersistenceActor.Create(blueprint, Some(request), ignoreIfExists = true)
+      if (!validateOnly) actorFor[PersistenceActor] ? PersistenceActor.Create(blueprint, Some(request))
       actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, request, validateOnly)
   }
 
   def updateDeployment(name: String, request: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = DeploymentBlueprintReader.readReferenceFromSource(request) match {
     case blueprint: BlueprintReference ⇒ actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
     case blueprint: DefaultBlueprint ⇒
-      if (!validateOnly) actorFor[PersistenceActor] ? PersistenceActor.Create(blueprint, Some(request), ignoreIfExists = true)
+      if (!validateOnly) actorFor[PersistenceActor] ? PersistenceActor.Create(blueprint, Some(request))
       actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
   }
 

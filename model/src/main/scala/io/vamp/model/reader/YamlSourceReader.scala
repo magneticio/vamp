@@ -80,27 +80,28 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
 
   private def find[V <: Any: ClassTag](target: YamlSourceReader, path: YamlPath): Option[V] =
     path match {
-      case last :: Nil ⇒ Try {
-        target.source.get(last) match {
-          case None ⇒ None
-          case Some(null) ⇒ None
-          case Some(value: V) ⇒ Some(value.asInstanceOf[V])
-          // if V == Double, conversion from Int to Double if Double is expected and Int provided.
-          case Some(value: Int) if classTag[V].runtimeClass == classOf[Double] ⇒ Some(value.toDouble.asInstanceOf[V])
-          // if V == String
-          case Some(value) if classTag[V].runtimeClass == classOf[String] ⇒ Some(value.toString.asInstanceOf[V])
-          // if V == Map
-          case Some(value: YamlSourceReader) if classTag[V].runtimeClass == classOf[Map[_, _]] ⇒ Some(value.pull().asInstanceOf[V])
-          // if V == List
-          case Some(value: List[_]) if classTag[V].runtimeClass == classOf[List[_]] ⇒ Some(value.asInstanceOf[V])
-          case Some(failure) ⇒ throwException(UnexpectedTypeError(last, classTag[V].runtimeClass, failure.getClass))
+      case last :: Nil ⇒
+        Try {
+          target.source.get(last) match {
+            case None ⇒ None
+            case Some(null) ⇒ None
+            case Some(value: V) ⇒ Some(value.asInstanceOf[V])
+            // if V == Double, conversion from Int to Double if Double is expected and Int provided.
+            case Some(value: Int) if classTag[V].runtimeClass == classOf[Double] ⇒ Some(value.toDouble.asInstanceOf[V])
+            // if V == String
+            case Some(value) if classTag[V].runtimeClass == classOf[String] ⇒ Some(value.toString.asInstanceOf[V])
+            // if V == Map
+            case Some(value: YamlSourceReader) if classTag[V].runtimeClass == classOf[Map[_, _]] ⇒ Some(value.pull().asInstanceOf[V])
+            // if V == List
+            case Some(value: List[_]) if classTag[V].runtimeClass == classOf[List[_]] ⇒ Some(value.asInstanceOf[V])
+            case Some(value) ⇒ Option(UnitValue.of[V](value).getOrElse(throwException(UnexpectedTypeError(last, classTag[V].runtimeClass, value.getClass))))
+          }
+        } match {
+          case Success(value) ⇒
+            target._consumed.put(last, value.getOrElse(None))
+            value
+          case Failure(e) ⇒ throw e
         }
-      } match {
-        case Success(value) ⇒
-          target._consumed.put(last, value.getOrElse(None))
-          value
-        case Failure(e) ⇒ throw e
-      }
 
       case head :: tail ⇒ target.source.get(head).filter(_ != null).flatMap {
         case yaml: YamlSourceReader ⇒ Try {

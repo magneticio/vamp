@@ -1,5 +1,6 @@
 package io.vamp.gateway_driver.haproxy
 
+import com.typesafe.config.ConfigFactory
 import io.vamp.common.crypto.Hash
 import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
@@ -17,16 +18,20 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   override val path = HaProxyGatewayMarshaller.path
 
-  override def info: AnyRef = "HAProxy v1.5.x"
+  override def info: AnyRef = "HAProxy v1.6.x"
+
+  def tcpLogFormat: String
+
+  def httpLogFormat: String
 
   override def marshall(gateways: List[Gateway]): String = HaProxyConfigurationTemplate(convert(gateways)).body.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n")
 
   private[haproxy] def convert(gateways: List[Gateway]): HaProxy = {
-    gateways.map(convert).reduceOption((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends)).getOrElse(HaProxy(Nil, Nil))
+    gateways.map(convert).reduceOption((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends)).getOrElse(HaProxy(Nil, Nil, tcpLogFormat, httpLogFormat))
   }
 
   private[haproxy] def convert(gateway: Gateway): HaProxy = backends(gateway) match {
-    case backend ⇒ HaProxy(frontends(backend)(gateway), backend)
+    case backend ⇒ HaProxy(frontends(backend)(gateway), backend, tcpLogFormat, httpLogFormat)
   }
 
   private def frontends(backends: List[Backend])(implicit gateway: Gateway): List[Frontend] = {
@@ -63,7 +68,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
         ProxyServer(
           name = GatewayMarshaller.name(gateway, route.path),
           unixSock = unixSocket(route),
-          weight = route.weight.get
+          weight = route.weight.get.value
         )
       case route ⇒ throw new IllegalArgumentException(s"Unsupported route: $route")
     },

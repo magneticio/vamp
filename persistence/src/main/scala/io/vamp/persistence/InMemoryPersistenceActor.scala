@@ -6,12 +6,12 @@ import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
-import io.vamp.persistence.notification.{ ArtifactAlreadyExists, ArtifactNotFound, PersistenceNotificationProvider, UnsupportedPersistenceRequest }
+import io.vamp.persistence.notification.{ PersistenceNotificationProvider, UnsupportedPersistenceRequest }
 import org.json4s.native.Serialization._
 
 import scala.collection.mutable
 import scala.concurrent.Future
-import scala.language.postfixOps
+import scala.language.{ implicitConversions, postfixOps }
 
 class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
 
@@ -23,27 +23,22 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     store.info()
   }
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] = Future.successful {
     log.debug(s"${getClass.getSimpleName}: all [${`type`.getSimpleName}] of $page per $perPage")
     store.all(`type`, page, perPage)
   }
 
-  protected def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
-    log.debug(s"${getClass.getSimpleName}: create [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
-    store.create(artifact, ignoreIfExists)
-  }
-
-  protected def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
+  protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future.successful {
     log.debug(s"${getClass.getSimpleName}: read [${`type`.getSimpleName}] - $name}")
     store.read(name, `type`)
   }
 
-  protected def update(artifact: Artifact, create: Boolean = false): Artifact = {
-    log.debug(s"${getClass.getSimpleName}: update [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
-    store.update(artifact, create)
+  protected def set(artifact: Artifact): Future[Artifact] = Future.successful {
+    log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
+    store.set(artifact)
   }
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future.successful {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
     store.delete(name, `type`)
   }
@@ -60,7 +55,7 @@ class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with Persistence
     } toMap))
 
   def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
-    val artifacts = store.get(typeOf(`type`)) match {
+    val artifacts = store.get(`type`) match {
       case None      ⇒ Nil
       case Some(map) ⇒ map.values.toList
     }
@@ -71,57 +66,44 @@ class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with Persistence
     ArtifactResponseEnvelope(artifacts.slice((p - 1) * pp, p * pp), total, rp, rpp)
   }
 
-  def create(artifact: Artifact, ignoreIfExists: Boolean = false): Artifact = {
-    artifact match {
-      case blueprint: DefaultBlueprint ⇒ blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).foreach(breed ⇒ create(breed, ignoreIfExists = true))
-      case _                           ⇒
-    }
+  def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = store.get(`type`).flatMap(_.get(name))
 
-    val branch = typeOf(artifact.getClass)
-    store.get(branch) match {
-      case None ⇒
-        val map = new mutable.HashMap[String, Artifact]()
-        map.put(artifact.name, artifact)
-        store.put(branch, map)
-      case Some(map) ⇒ map.get(artifact.name) match {
-        case None ⇒ map.put(artifact.name, artifact)
-        case Some(_) ⇒
-          if (!ignoreIfExists) throwException(ArtifactAlreadyExists(artifact.name, artifact.getClass))
-          map.put(artifact.name, artifact)
-      }
-    }
-    artifact
-  }
-
-  def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = store.get(typeOf(`type`)).flatMap(_.get(name))
-
-  def update(artifact: Artifact, create: Boolean = false): Artifact = {
-    store.get(typeOf(artifact.getClass)) match {
-      case None ⇒ if (create) this.create(artifact) else throwException(ArtifactNotFound(artifact.name, artifact.getClass))
-      case Some(map) ⇒
-        if (map.get(artifact.name).isEmpty)
-          if (create) this.create(artifact) else throwException(ArtifactNotFound(artifact.name, artifact.getClass))
-        else
-          map.put(artifact.name, artifact)
+  def set(artifact: Artifact): Artifact = {
+    store.get(artifact.getClass) match {
+      case None      ⇒ create(artifact)
+      case Some(map) ⇒ map.put(artifact.name, artifact)
     }
     artifact
   }
 
   def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
-    val group = typeOf(`type`)
-    store.get(group) flatMap {
+    store.get(`type`) flatMap {
       case map ⇒
         val artifact = map.remove(name)
-        if (artifact.isEmpty) log.debug(s"Artifact not found for deletion: $group:$name")
+        if (artifact.isEmpty) log.debug(s"Artifact not found for deletion: ${type2string(`type`)}:$name")
         artifact
     }
+  }
+
+  private def create(artifact: Artifact): Artifact = {
+    store.get(artifact.getClass) match {
+      case None ⇒
+        val map = new mutable.HashMap[String, Artifact]()
+        map.put(artifact.name, artifact)
+        store.put(artifact.getClass, map)
+      case Some(map) ⇒ map.get(artifact.name) match {
+        case None    ⇒ map.put(artifact.name, artifact)
+        case Some(_) ⇒ map.put(artifact.name, artifact)
+      }
+    }
+    artifact
   }
 }
 
 trait TypeOfArtifact {
   this: NotificationProvider ⇒
 
-  def typeOf(`type`: Class[_]): String = `type` match {
+  implicit def type2string(`type`: Class[_]): String = `type` match {
     case t if classOf[Gateway].isAssignableFrom(t) ⇒ "gateways"
     case t if classOf[Deployment].isAssignableFrom(t) ⇒ "deployments"
     case t if classOf[Breed].isAssignableFrom(t) ⇒ "breeds"

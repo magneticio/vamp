@@ -1,9 +1,11 @@
 @import io.vamp.gateway_driver.haproxy.HaProxy
 @import io.vamp.gateway_driver.haproxy.Mode
 @(haproxy: HaProxy)
-# HAProxy 1.5
+# HAProxy 1.6
 global
   pidfile /opt/vamp/haproxy.pid
+  server-state-file /opt/vamp/haproxy_server_state
+
   daemon
   maxconn 4096
   log /opt/vamp/haproxy.log.sock local0
@@ -25,7 +27,8 @@ global
     timeout client 50000ms
     timeout server 50000ms
 
-  listen stats :1988
+  listen stats
+    bind :1988
     mode http
     stats enable
     stats uri /
@@ -38,11 +41,11 @@ frontend @frontend.flattenName
   @if(frontend.bindIp.isDefined && frontend.bindPort.isDefined)       {bind @frontend.bindIp.get:@frontend.bindPort.get             }
   @if(frontend.mode == Mode.http) {
   option httplog
-  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+  log-format @haproxy.httpLogFormat
   }
   @if(frontend.mode == Mode.tcp) {
   option tcplog
-  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tw":%Tw,"Tc":%Tc,"Tt":%Tt,"B":%B,"ts":"%ts","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq}
+  log-format @haproxy.tcpLogFormat
   }
 
   @if(frontend.options.httpClose)                                     {option http-server-close                                     }
