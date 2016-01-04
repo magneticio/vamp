@@ -4,6 +4,7 @@ import akka.event.Logging._
 import akka.util.Timeout
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.http.{ CorsSupport, RestApiBase }
+import io.vamp.model.artifact.Artifact
 import io.vamp.operation.controller.ArtifactApiController
 import io.vamp.persistence.ArtifactPaginationSupport
 import spray.http.MediaTypes._
@@ -70,7 +71,7 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
 
   val route = cors {
     noCachingAllowed {
-      pathPrefix("api" / "v1") {
+      pathPrefix("api" / Artifact.version) {
         compressResponse() {
           sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
             infoRoute ~ deploymentRoutes ~ eventRoutes ~ crudRoutes

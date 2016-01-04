@@ -46,17 +46,17 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       options = Options(),
       filters = filters,
       defaultBackend = backendFor(GatewayMarshaller.name(gateway))) :: gateway.routes.map { route ⇒
-      Frontend(
-        name = GatewayMarshaller.name(gateway, route.path),
-        bindIp = None,
-        bindPort = None,
-        mode = mode,
-        unixSock = Option(unixSocket(route)),
-        sockProtocol = Option("accept-proxy"),
-        options = Options(),
-        filters = Nil,
-        defaultBackend = backendFor(GatewayMarshaller.name(gateway, route.path)))
-    }
+        Frontend(
+          name = GatewayMarshaller.name(gateway, route.path),
+          bindIp = None,
+          bindPort = None,
+          mode = mode,
+          unixSock = Option(unixSocket(route)),
+          sockProtocol = Option("accept-proxy"),
+          options = Options(),
+          filters = Nil,
+          defaultBackend = backendFor(GatewayMarshaller.name(gateway, route.path)))
+      }
   }
 
   private def backends(implicit gateway: Gateway): List[Backend] = Backend(
@@ -74,39 +74,39 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     servers = Nil,
     sticky = gateway.sticky.contains(Gateway.Sticky.Service) || gateway.sticky.contains(Gateway.Sticky.Instance),
     options = Options()) :: gateway.routes.map {
-    case route: DeployedRoute ⇒
-      Backend(
-        name = GatewayMarshaller.name(gateway, route.path),
-        mode = mode,
-        proxyServers = Nil,
-        servers = route.targets.map { instance ⇒
-          Server(
-            name = instance.name,
-            host = instance.host,
-            port = instance.port,
-            weight = 100)
-        },
-        sticky = gateway.sticky.contains(Gateway.Sticky.Instance),
-        options = Options())
-    case route ⇒ throw new IllegalArgumentException(s"Unsupported route: $route")
-  }
+      case route: DeployedRoute ⇒
+        Backend(
+          name = GatewayMarshaller.name(gateway, route.path),
+          mode = mode,
+          proxyServers = Nil,
+          servers = route.targets.map { instance ⇒
+            Server(
+              name = instance.name,
+              host = instance.host,
+              port = instance.port,
+              weight = 100)
+          },
+          sticky = gateway.sticky.contains(Gateway.Sticky.Instance),
+          options = Options())
+      case route ⇒ throw new IllegalArgumentException(s"Unsupported route: $route")
+    }
 
   private def filters(implicit gateway: Gateway): List[Filter] = gateway.routes.flatMap {
     case route: AbstractRoute ⇒ route.filters.map(f ⇒ filter(route, f.asInstanceOf[DefaultFilter]))
-    case _ ⇒ Nil
+    case _                    ⇒ Nil
   }
 
   private[haproxy] def filter(route: Route, filter: DefaultFilter)(implicit gateway: Gateway): Filter = {
     val (condition, negate) = filter.condition match {
-      case userAgent(n, c) ⇒ s"hdr_sub(user-agent) ${c.trim}" -> (n == "!")
-      case host(n, c) ⇒ s"hdr_str(host) ${c.trim}" -> (n == "!")
+      case userAgent(n, c)        ⇒ s"hdr_sub(user-agent) ${c.trim}" -> (n == "!")
+      case host(n, c)             ⇒ s"hdr_str(host) ${c.trim}" -> (n == "!")
       case cookieContains(c1, c2) ⇒ s"cook_sub(${c1.trim}) ${c2.trim}" -> false
-      case hasCookie(c) ⇒ s"cook(${c.trim}) -m found" -> false
-      case missesCookie(c) ⇒ s"cook_cnt(${c.trim}) eq 0" -> false
-      case headerContains(h, c) ⇒ s"hdr_sub(${h.trim}) ${c.trim}" -> false
-      case hasHeader(h) ⇒ s"hdr_cnt(${h.trim}) gt 0" -> false
-      case missesHeader(h) ⇒ s"hdr_cnt(${h.trim}) eq 0" -> false
-      case any ⇒ any -> false
+      case hasCookie(c)           ⇒ s"cook(${c.trim}) -m found" -> false
+      case missesCookie(c)        ⇒ s"cook_cnt(${c.trim}) eq 0" -> false
+      case headerContains(h, c)   ⇒ s"hdr_sub(${h.trim}) ${c.trim}" -> false
+      case hasHeader(h)           ⇒ s"hdr_cnt(${h.trim}) gt 0" -> false
+      case missesHeader(h)        ⇒ s"hdr_cnt(${h.trim}) eq 0" -> false
+      case any                    ⇒ any -> false
     }
 
     val name = if (filter.name.isEmpty) Hash.hexSha1(condition).substring(0, 16) else filter.name
