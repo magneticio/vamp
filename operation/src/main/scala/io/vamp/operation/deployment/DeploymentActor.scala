@@ -547,10 +547,17 @@ trait DeploymentSlicer extends DeploymentOperation {
       validateRoutingWeightOfServicesForRemoval(stable, blueprint)
 
       (validateServices andThen validateRouting andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster ⇒
-        blueprint.clusters.find(_.name == cluster.name) match {
-          case None      ⇒ cluster
-          case Some(bpc) ⇒ cluster.copy(services = cluster.services.map(service ⇒ service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) Undeploy else service.state)))
-        }
+        blueprint.clusters.find(_.name == cluster.name).map { bpc ⇒
+          val services = cluster.services.map { service ⇒
+            service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) Undeploy else service.state)
+          }
+          val routing = cluster.routing.map { gateway ⇒
+            gateway.copy(routes = gateway.routes.filterNot { route ⇒
+              bpc.services.exists(route.path.segments.last == _.breed.name)
+            })
+          }
+          cluster.copy(services = services, routing = routing)
+        } getOrElse cluster
       ).filter(_.services.nonEmpty)))
     }
   }
