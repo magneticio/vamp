@@ -35,14 +35,17 @@ trait GatewayDecomposer extends ReferenceSerialization {
         list += JField("lookup_name", JString(gateway.lookupName))
         list += JField("port", if (gateway.port.value.isDefined) JString(gateway.port.value.get) else JNull)
         list += JField("active", JBool(gateway.active))
-      } else if (gateway.port.value.isDefined && gateway.port.name != gateway.port.value.get) {
+      } else if (gateway.port.value.isDefined && gateway.port.name != gateway.port.value.get && !gateway.inner) {
         list += JField("port", JString(gateway.port.value.get))
       }
 
       list += JField("sticky", if (gateway.sticky.isDefined) Extraction.decompose(gateway.sticky) else JString("none"))
       list += JField("routes", Extraction.decompose {
         gateway.routes.map { route ⇒
-          route.path.source -> route
+          (route.path.segments match {
+            case _ :: _ :: s :: _ :: Nil if !full ⇒ s
+            case _                                ⇒ route.path.source
+          }) -> route
         } toMap
       })
 

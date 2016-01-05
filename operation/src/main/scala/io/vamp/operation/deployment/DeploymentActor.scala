@@ -308,7 +308,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
             case None ⇒ mergeServices(stable, None, cluster).map {
               case services ⇒
                 val nc = cluster.copy(services = services)
-                nc.copy(routing = updatedWeights(stable, None, nc))
+                nc.copy(routing = updatedRouting(stable, None, nc))
             }
             case Some(deploymentCluster) ⇒ mergeServices(stable, Some(deploymentCluster), cluster).map {
               case services ⇒
@@ -319,7 +319,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
                   routing = if (cluster.routing.nonEmpty) cluster.routing else deploymentCluster.routing,
                   sla = if (cluster.sla.isDefined) cluster.sla else deploymentCluster.sla
                 )
-                nc.copy(routing = updatedWeights(stable, Some(deploymentCluster), nc))
+                nc.copy(routing = updatedRouting(stable, Some(deploymentCluster), nc))
             }
           }
         }
@@ -375,6 +375,16 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
   def isNewService(stableCluster: Option[DeploymentCluster], blueprintService: DeploymentService) = stableCluster match {
     case None     ⇒ true
     case Some(sc) ⇒ !sc.services.exists(_.breed.name == blueprintService.breed.name)
+  }
+
+  def updatedRouting(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[Gateway] = {
+    updatedWeights(deployment, stableCluster, blueprintCluster) map { gateway ⇒
+      gateway.copy(routes = gateway.routes.map {
+        case route: DefaultRoute if route.length == 1 ⇒
+          route.copy(path = GatewayPath(deployment.name :: blueprintCluster.name :: route.path.normalized :: gateway.port.name :: Nil))
+        case route ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.length}"))
+      })
+    }
   }
 
   def updatedWeights(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[Gateway] = {

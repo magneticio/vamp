@@ -36,6 +36,8 @@ object GatewaySynchronizationActor {
 
   object SynchronizeAll extends GatewayMessages
 
+  case class Synchronize(deployments: List[Deployment], gateways: List[Gateway]) extends GatewayMessages
+
 }
 
 class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
@@ -43,19 +45,26 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   import GatewaySynchronizationActor._
 
   def receive = {
-    case SynchronizeAll ⇒ //synchronize()
-    case any            ⇒ //if (sender() != IoC.actorFor[PersistenceActor]) unsupported(UnsupportedGatewayRequest(any))
+    case SynchronizeAll                     ⇒ synchronize()
+    case Synchronize(deployments, gateways) ⇒ synchronize(deployments, gateways)
+    case _                                  ⇒
   }
 
   private def synchronize() = {
+    val sendTo = self
     implicit val timeout = PersistenceActor.timeout
     (for {
       gateways ← allArtifacts[Gateway]
-      deployments ← allArtifacts[Deployment] map { deployments ⇒ update(gateways, deployments) }
+      deployments ← allArtifacts[Deployment]
     } yield (gateways, deployments)) onComplete {
-      case Success((gateways, deployments)) ⇒ (add(deployments) andThen remove(deployments) andThen flush(deployments))(gateways)
+      case Success((gateways, deployments)) ⇒ sendTo ! Synchronize(deployments, gateways)
       case Failure(error)                   ⇒ throwException(InternalServerError(error))
     }
+  }
+
+  private def synchronize(deployments: List[Deployment], gateways: List[Gateway]) = {
+    val updated = update(gateways, deployments)
+    (add(updated) andThen remove(updated) andThen flush(updated))(gateways)
   }
 
   private def update(gateways: List[Gateway], deployments: List[Deployment]): List[Deployment] = {
@@ -107,25 +116,11 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       val clusterGateways = deployment.clusters.filter(_.services.forall(_.state.isDone)).flatMap { cluster ⇒
         cluster.routing.map { routing ⇒
           val port = routing.port.copy(value = cluster.portMapping.get(routing.port.name).flatMap { number ⇒ Port(number, routing.port.`type`).value })
-          val routes = routing.routes.flatMap {
-            case route: DefaultRoute if route.length == 1 ⇒
-              if (cluster.services.exists(_.breed.name == route.path.segments.head))
-                route.copy(path = GatewayPath(deployment.name :: cluster.name :: route.path.normalized :: routing.port.name :: Nil)) :: Nil
-              else Nil
-            case route ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.length}"))
-          }
-          routing.copy(port = port, routes = routes)
+          routing.copy(port = port)
         }
       }
 
       deployment.gateways ++ clusterGateways
-    }
-
-    deploymentGateways.foreach { gateway ⇒
-      if (!gateways.exists(_.name == gateway.name)) {
-        log.info(s"gateway created: ${gateway.name}")
-        IoC.actorFor[PersistenceActor] ! Create(gateway)
-      }
     }
 
     (gateways ++ deploymentGateways.filterNot { gateway ⇒

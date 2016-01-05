@@ -2,7 +2,6 @@ package io.vamp.model.reader
 
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
-import io.vamp.model.reader.DeploymentReader._
 import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
@@ -36,9 +35,10 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
 
   protected def routes(splitPath: Boolean)(implicit source: YamlSourceReader): List[Route] = <<?[YamlSourceReader]("routes") match {
     case Some(map) ⇒ map.pull().map {
-      case (name: String, _) ⇒ RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
+      case (name: String, _) ⇒ routerReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
         case route: DefaultRoute   ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
         case route: RouteReference ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
+        case route: DeployedRoute  ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
         case route                 ⇒ route
       }
     } toList
@@ -64,6 +64,8 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
         throwException(UnsupportedGatewayNameError(name))
       name
   }
+
+  protected def routerReader: AbstractRouteReader = RouteReader
 }
 
 object GatewayReader extends AbstractGatewayReader[Gateway] {
@@ -76,7 +78,7 @@ object ClusterGatewayReader extends AbstractGatewayReader[Gateway] {
   override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), sticky("sticky"), routes(splitPath = false), active)
 }
 
-object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route] {
+trait AbstractRouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route] {
 
   import YamlSourceReader._
 
@@ -105,6 +107,25 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   }
 }
 
+object RouteReader extends AbstractRouteReader
+
+object DeployedRouteReader extends AbstractRouteReader {
+
+  override protected def createDefault(implicit source: YamlSourceReader): DeployedRoute = {
+
+    val targets = <<?[YamlList]("instances") match {
+      case Some(list) ⇒ list.map {
+        case yaml ⇒
+          implicit val source = yaml
+          DeployedRouteTarget(<<![String]("name"), <<![String]("host"), <<![Int]("port"))
+      }
+      case _ ⇒ Nil
+    }
+
+    DeployedRoute(name, Route.noPath, <<?[Percentage]("weight"), filters, targets)
+  }
+}
+
 object FilterReader extends YamlReader[Filter] with WeakReferenceYamlReader[Filter] {
 
   override protected def createReference(implicit source: YamlSourceReader): Filter = FilterReference(reference)
@@ -125,7 +146,7 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
     val yaml = <<![YamlSourceReader](key :: Nil)
 
     <<?[Any](key :: "port") match {
-      case Some(value) ⇒ if (!acceptPort) throwException(UnexpectedElement(Map[String, Any](key -> "port"), ""))
+      case Some(value) ⇒ if (!acceptPort) throwException(UnexpectedElement(Map[String, Any](key -> "port"), value.toString))
       case None        ⇒ >>("port", key)(yaml)
     }
 

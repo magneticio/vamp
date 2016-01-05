@@ -93,6 +93,8 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
         case Some(value: String) ⇒ Port(value)
         case _                   ⇒ Port("", None, None)
       }
+
+      protected override def routerReader: AbstractRouteReader = DeployedRouteReader
     },
     "deployments" -> DeploymentReader,
     "breeds" -> BreedReader,
