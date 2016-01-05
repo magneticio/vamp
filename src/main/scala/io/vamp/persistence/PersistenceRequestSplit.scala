@@ -41,7 +41,7 @@ trait PersistenceRequestSplit {
         val services = Future.sequence {
           cluster.services.map { service ⇒
             (service.breed match {
-              case b: DefaultBreed ⇒ retrieve(b)
+              case b: DefaultBreed ⇒ get(b).map { result ⇒ result.getOrElse(BreedReference(b.name)) }
               case b               ⇒ Future.successful(b)
             }).map {
               case breed ⇒ service.copy(breed = breed)
@@ -56,7 +56,7 @@ trait PersistenceRequestSplit {
 
   private def combine(deployment: Deployment): Future[Deployment] = for {
     gateways ← Future.sequence {
-      deployment.gateways.map(gateway ⇒ gateway.copy(name = Deployment.gatewayNameFor(deployment, gateway))).map { retrieve }
+      deployment.gateways.map(gateway ⇒ gateway.copy(name = Deployment.gatewayNameFor(deployment, gateway))).map { gateway ⇒ get(gateway) }
     }
 
     clusters ← Future.sequence {
@@ -65,18 +65,18 @@ trait PersistenceRequestSplit {
           cluster.routing.map { gateway ⇒
             gateway.copy(name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port))
           } map {
-            retrieve(_) map { gateway ⇒
-              gateway.copy(port = gateway.port.copy(name = GatewayPath(gateway.name).segments.last))
+            get(_) map { result ⇒
+              result.flatMap(gateway ⇒ Option(gateway.copy(port = gateway.port.copy(name = GatewayPath(gateway.name).segments.last))))
             }
           }
         }
         routing.map(routing ⇒
-          cluster.copy(routing = routing))
+          cluster.copy(routing = routing.flatten))
       }
     }
-  } yield deployment.copy(gateways = gateways, clusters = clusters)
+  } yield deployment.copy(gateways = gateways.flatten, clusters = clusters)
 
-  private def retrieve[A <: Artifact](artifact: A): Future[A] = get(artifact.name, artifact.getClass).map(_.get.asInstanceOf[A])
+  private def get[A <: Artifact](artifact: A): Future[Option[A]] = get(artifact.name, artifact.getClass).asInstanceOf[Future[Option[A]]]
 
   protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]]
 }
