@@ -54,7 +54,7 @@ class ElasticsearchClient(url: String)(implicit executor: ExecutionContext) {
     RestClient.post[A](urlOf(url, index, `type`), document)
 
   def index[A](index: String, `type`: String, id: String, document: AnyRef)(implicit mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] =
-    RestClient.put[A](urlOf(url, index, `type`, id), document)
+    RestClient.post[A](urlOf(url, index, `type`, id), document)
 
   def delete(index: String, `type`: String, id: String): Future[_] = {
     RestClient.delete(urlOf(url, index, `type`, id), RestClient.jsonHeaders, logError = false).recover {
