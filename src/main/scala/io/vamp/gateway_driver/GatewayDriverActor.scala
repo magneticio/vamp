@@ -1,11 +1,10 @@
 package io.vamp.gateway_driver
 
 import akka.pattern.ask
-import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.gateway_driver.GatewayStore.{ Get, Create, Put }
+import io.vamp.gateway_driver.GatewayStore.{ Create, Get, Put }
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor
 import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
 import io.vamp.model.artifact._
@@ -29,9 +28,11 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PulseFailureNoti
 
   private def path = GatewayStore.path ++ marshaller.path
 
+  override def preStart() {
+    IoC.actorFor[GatewayStore] ! Create(GatewayStore.path ++ marshaller.path)
+  }
+
   def receive = {
-    case Start            ⇒ IoC.actorFor[GatewayStore] ! Create(GatewayStore.path ++ marshaller.path)
-    case Shutdown         ⇒
     case InfoRequest      ⇒ reply(info)
     case Commit(gateways) ⇒ commit(gateways)
     case other            ⇒ unsupported(UnsupportedGatewayDriverRequest(other))
