@@ -56,15 +56,22 @@ trait PersistenceRequestSplit {
 
   private def combine(deployment: Deployment): Future[Deployment] = for {
     gateways ← Future.sequence {
-      deployment.gateways.map { retrieve }
+      deployment.gateways.map(gateway ⇒ gateway.copy(name = Deployment.gatewayNameFor(deployment, gateway))).map { retrieve }
     }
 
     clusters ← Future.sequence {
       deployment.clusters.map { cluster ⇒
         val routing = Future.sequence {
-          cluster.routing.map { retrieve }
+          cluster.routing.map { gateway ⇒
+            gateway.copy(name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port))
+          } map {
+            retrieve(_) map { gateway ⇒
+              gateway.copy(port = gateway.port.copy(name = GatewayPath(gateway.name).segments.last))
+            }
+          }
         }
-        routing.map(routing ⇒ cluster.copy(routing = routing))
+        routing.map(routing ⇒
+          cluster.copy(routing = routing))
       }
     }
   } yield deployment.copy(gateways = gateways, clusters = clusters)
