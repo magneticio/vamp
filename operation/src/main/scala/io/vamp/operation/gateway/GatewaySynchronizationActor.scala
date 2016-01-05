@@ -43,8 +43,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   import GatewaySynchronizationActor._
 
   def receive = {
-    case SynchronizeAll ⇒ synchronize()
-    case any            ⇒ if (sender() != IoC.actorFor[PersistenceActor]) unsupported(UnsupportedGatewayRequest(any))
+    case SynchronizeAll ⇒ //synchronize()
+    case any            ⇒ //if (sender() != IoC.actorFor[PersistenceActor]) unsupported(UnsupportedGatewayRequest(any))
   }
 
   private def synchronize() = {
@@ -104,11 +104,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   private def add(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
     val deploymentGateways = deployments.flatMap { deployment ⇒
 
-      val deploymentGateways = deployment.gateways.map { gateway ⇒ gateway.copy(name = GatewayPath(deployment.name :: gateway.port.name :: Nil).normalized) }
-
       val clusterGateways = deployment.clusters.filter(_.services.forall(_.state.isDone)).flatMap { cluster ⇒
         cluster.routing.map { routing ⇒
-          val name = GatewayPath(deployment.name :: cluster.name :: routing.port.name :: Nil).normalized
           val port = routing.port.copy(value = cluster.portMapping.get(routing.port.name).flatMap { number ⇒ Port(number, routing.port.`type`).value })
           val routes = routing.routes.flatMap {
             case route: DefaultRoute if route.length == 1 ⇒
@@ -117,12 +114,11 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
               else Nil
             case route ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.length}"))
           }
-          routing.copy(name = name, port = port, routes = routes)
+          routing.copy(port = port, routes = routes)
         }
       }
 
-      deploymentGateways ++ clusterGateways
-
+      deployment.gateways ++ clusterGateways
     }
 
     deploymentGateways.foreach { gateway ⇒

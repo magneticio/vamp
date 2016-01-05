@@ -7,10 +7,7 @@ object Artifact {
 }
 
 trait Artifact {
-
   def name: String
-
-  def lookupName = Hash.hexSha1(s"$getClass@$name", Artifact.version)
 }
 
 trait Reference extends Artifact
@@ -19,3 +16,7 @@ trait Type {
   def `type`: String
 }
 
+trait Lookup {
+  this: Artifact ⇒
+  def lookupName = Hash.hexSha1(s"$getClass@$name", Artifact.version)
+}

@@ -106,11 +106,11 @@ object Port {
     def toTypeString(value: Port.Type.Value) = s"/${value.toString.toLowerCase}"
   }
 
-  def apply(number: Int): Port = Port("", None, Some(number.toString))
+  def apply(number: Int): Port = Port(number.toString, None, Some(number.toString))
 
-  def apply(value: String): Port = Port("", None, Some(value))
+  def apply(value: String): Port = Port("", None, Some(value)) match { case port ⇒ port.copy(name = port.number.toString) }
 
-  def apply(number: Int, `type`: Port.Type.Value): Port = Port("", None, Some(s"$number${Port.Type.toTypeString(`type`)}"))
+  def apply(number: Int, `type`: Port.Type.Value): Port = Port(number.toString, None, Some(s"$number${Port.Type.toTypeString(`type`)}"))
 }
 
 case class Port(name: String, alias: Option[String], value: Option[String]) extends Trait {

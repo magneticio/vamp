@@ -32,7 +32,8 @@ trait GatewayDecomposer extends ReferenceSerialization {
 
       if (full) {
         list += JField("name", JString(gateway.name))
-        list += JField("port", JString(gateway.port.value.get))
+        list += JField("lookup_name", JString(gateway.lookupName))
+        list += JField("port", if (gateway.port.value.isDefined) JString(gateway.port.value.get) else JNull)
         list += JField("active", JBool(gateway.active))
       } else if (gateway.port.value.isDefined && gateway.port.name != gateway.port.value.get) {
         list += JField("port", JString(gateway.port.value.get))

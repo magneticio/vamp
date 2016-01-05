@@ -27,6 +27,8 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
       } toList
     }
 
+    <<?[String]("lookup_name")
+
     Deployment(name, clusters, BlueprintGatewayReader.mapping("gateways"), ports(addGroup = true), environmentVariables, hosts())
   }
 
@@ -46,12 +48,12 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
   private def parseService(implicit source: YamlSourceReader): DeploymentService = {
     val breed = BreedReader.readReference(<<![Any]("breed")).asInstanceOf[DefaultBreed]
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale").asInstanceOf[Option[DefaultScale]]
-    val servers = <<?[List[YamlSourceReader]]("instances") match {
+    val instances = <<?[List[YamlSourceReader]]("instances") match {
       case None       ⇒ Nil
       case Some(list) ⇒ list.map(parseInstances(_))
     }
-
-    DeploymentService(state(<<![YamlSourceReader]("state")), breed, environmentVariables(), scale, servers, dependencies(), dialects)
+    val envVars = environmentVariables().map { ev ⇒ ev.copy(interpolated = ev.value) }
+    DeploymentService(state(<<![YamlSourceReader]("state")), breed, envVars, scale, instances, dependencies(), dialects)
   }
 
   private def parseInstances(implicit source: YamlSourceReader): DeploymentInstance =
@@ -87,7 +89,7 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
       throwException(UndefinedStateIntentionError(intentionName)))
 
     val step = <<![String]("step" :: "name") match {
-      case n if Step.Failure.getClass.getName.endsWith(s"$n$$") ⇒ Step.Failure(since = since(<<![String]("step" :: "since")), notification = NotificationMessageNotRestored(<<?[String]("step" :: "message").getOrElse("")))
+      case n if Step.Failure.getClass.getName.endsWith(s"$n$$") ⇒ Step.Failure(since = since(<<![String]("step" :: "since")), notification = NotificationMessageNotRestored(<<?[String]("step" :: "notification").getOrElse("")))
       case n if Step.Update.getClass.getName.endsWith(s"$n$$") ⇒ Step.Update(since(<<![String]("step" :: "since")))
       case n if Step.Initiated.getClass.getName.endsWith(s"$n$$") ⇒ Step.Initiated(since(<<![String]("step" :: "since")))
       case n if Step.Done.getClass.getName.endsWith(s"$n$$") ⇒ Step.Done(since(<<![String]("step" :: "since")))

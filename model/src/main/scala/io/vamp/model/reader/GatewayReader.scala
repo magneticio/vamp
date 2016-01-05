@@ -2,6 +2,7 @@ package io.vamp.model.reader
 
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
+import io.vamp.model.reader.DeploymentReader._
 import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps

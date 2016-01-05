@@ -16,7 +16,7 @@ object Gateway {
 
 }
 
-case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value], routes: List[Route], active: Boolean = false) extends Artifact {
+case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value], routes: List[Route], active: Boolean = false) extends Artifact with Lookup {
   def routeBy(path: GatewayPath) = routes.find(_.path == path)
 
   def inner = routes.forall(_.length == 4)

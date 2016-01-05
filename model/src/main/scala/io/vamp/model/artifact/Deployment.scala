@@ -53,14 +53,22 @@ trait DeploymentState {
   def state: DeploymentService.State
 }
 
+object Deployment {
+  def gatewayNameFor(deployment: Deployment, gateway: Gateway) = GatewayPath(deployment.name :: gateway.port.name :: Nil).normalized
+}
+
 case class Deployment(
     name: String,
     clusters: List[DeploymentCluster],
     gateways: List[Gateway],
     ports: List[Port],
     environmentVariables: List[EnvironmentVariable],
-    hosts: List[Host]) extends AbstractBlueprint {
+    hosts: List[Host]) extends AbstractBlueprint with Lookup {
   lazy val traits = ports ++ environmentVariables ++ hosts
+}
+
+object DeploymentCluster {
+  def gatewayNameFor(deployment: Deployment, cluster: DeploymentCluster, port: Port) = GatewayPath(deployment.name :: cluster.name :: port.name :: Nil).normalized
 }
 
 case class DeploymentCluster(
