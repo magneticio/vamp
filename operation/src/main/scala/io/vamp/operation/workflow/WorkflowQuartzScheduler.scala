@@ -51,9 +51,9 @@ trait WorkflowQuartzScheduler {
       log.info(s"Quartz job successfully removed for workflow '${scheduledWorkflow.name}'.")
   }
 
-  def quartzStart: (Unit ⇒ Unit) = { _ ⇒ scheduler.start() }
+  def quartzStart() = scheduler.start()
 
-  def quartzShutdown: (Unit ⇒ Unit) = { _ ⇒ scheduler.shutdown() }
+  def quartzShutdown() = scheduler.shutdown()
 }
 
 private class QuartzJob() extends Job {

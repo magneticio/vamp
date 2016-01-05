@@ -1,11 +1,8 @@
 package io.vamp.dictionary
 
-import akka.actor.ActorSystem
+import akka.actor.{ ActorRef, ActorSystem }
 import io.vamp.common.akka.{ Bootstrap, IoC }
 
 object DictionaryBootstrap extends Bootstrap {
-
-  def run(implicit actorSystem: ActorSystem) = {
-    IoC.createActor[DictionaryActor]
-  }
+  def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = IoC.createActor[DictionaryActor] :: Nil
 }

@@ -2,7 +2,6 @@ package io.vamp.persistence
 
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.Notification
@@ -59,10 +58,6 @@ trait PersistenceActor extends PersistenceRequestSplit with PersistenceArchiving
 
   def receive = {
 
-    case Start    ⇒ start()
-
-    case Shutdown ⇒ shutdown()
-
     case InfoRequest ⇒ reply(info() map {
       case map: Map[_, _] ⇒ map.asInstanceOf[Map[Any, Any]] ++ Map("archive" -> true)
       case other          ⇒ other
@@ -91,13 +86,17 @@ trait PersistenceActor extends PersistenceRequestSplit with PersistenceArchiving
 
     case Create(artifact, source) ⇒ reply {
       split(artifact, { artifact: Artifact ⇒
-        set(artifact) map { archiveCreate(_, source) }
+        set(artifact) map {
+          archiveCreate(_, source)
+        }
       })
     }
 
     case Update(artifact, source) ⇒ reply {
       split(artifact, { artifact: Artifact ⇒
-        set(artifact) map { archiveUpdate(_, source) }
+        set(artifact) map {
+          archiveUpdate(_, source)
+        }
       })
     }
 
@@ -109,10 +108,6 @@ trait PersistenceActor extends PersistenceRequestSplit with PersistenceArchiving
 
     case any ⇒ unsupported(UnsupportedPersistenceRequest(any))
   }
-
-  protected def start() = {}
-
-  protected def shutdown() = {}
 
   protected def readExpanded(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = get(name, `type`)
 

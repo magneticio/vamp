@@ -1,7 +1,6 @@
 package io.vamp.operation.workflow
 
 import akka.actor._
-import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka._
 import io.vamp.model.event.Event
 import io.vamp.model.workflow.{ DeploymentTrigger, EventTrigger, ScheduledWorkflow, TimeTrigger }
@@ -31,9 +30,6 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
   private val percolator = "workflow://"
 
   def receive: Receive = {
-    case Start ⇒ try start(()) catch {
-      case t: Throwable ⇒ reportException(InternalServerError(t))
-    }
 
     case RescheduleAll ⇒ try reschedule() catch {
       case t: Throwable ⇒ reportException(WorkflowSchedulingError(t))
@@ -55,15 +51,24 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
       case t: Throwable ⇒ reportException(WorkflowExecutionError(t))
     }
 
-    case Shutdown ⇒ try shutdown(()) catch {
-      case t: Throwable ⇒ reportException(InternalServerError(t))
-    }
-
     case _ ⇒
   }
 
-  private def start: (Unit ⇒ Unit) = quartzStart andThen { _ ⇒
-    context.system.scheduler.scheduleOnce(PersistenceActor.timeout.duration, self, RescheduleAll)
+  override def preStart() {
+    try {
+      quartzStart()
+      context.system.scheduler.scheduleOnce(PersistenceActor.timeout.duration, self, RescheduleAll)
+    } catch {
+      case t: Throwable ⇒ reportException(InternalServerError(t))
+    }
+  }
+
+  override def postStop() {
+    try {
+      quartzShutdown()
+    } catch {
+      case t: Throwable ⇒ reportException(InternalServerError(t))
+    }
   }
 
   private def reschedule() = {
@@ -73,8 +78,6 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
       case any                         ⇒ reportException(InternalServerError(any))
     }
   }
-
-  private def shutdown: (Unit ⇒ Unit) = quartzShutdown
 
   private def schedule: (ScheduledWorkflow ⇒ Unit) = { (workflow: ScheduledWorkflow) ⇒
     unschedule(workflow)

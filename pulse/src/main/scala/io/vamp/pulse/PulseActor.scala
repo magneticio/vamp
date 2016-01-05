@@ -5,7 +5,6 @@ import java.time.format.DateTimeFormatter
 
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka._
 import io.vamp.common.http.{ OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope }
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
@@ -66,10 +65,6 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
   override def errorNotificationClass = classOf[PulseResponseError]
 
   def receive = {
-
-    case Start                                   ⇒
-
-    case Shutdown                                ⇒
 
     case InfoRequest                             ⇒ reply(info)
 
@@ -194,6 +189,7 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
 }
 
 trait PulseEvent {
+
   import PulseActor._
 
   def indexTypeName(schema: String = "event"): (String, String) = {

@@ -4,7 +4,6 @@ import java.io._
 import java.net.Socket
 
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.Bootstrap.{ Shutdown, Start }
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
@@ -33,8 +32,6 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with GatewayS
   )
 
   def receive = {
-    case Start        ⇒ start()
-    case Shutdown     ⇒ shutdown()
     case InfoRequest  ⇒ reply(info)
     case Create(p)    ⇒ create(p)
     case Get(p)       ⇒ reply(get(p))
@@ -42,13 +39,11 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with GatewayS
     case other        ⇒ unsupported(UnsupportedGatewayStoreRequest(other))
   }
 
+  override def postStop() = zk.close()
+
   override def errorNotificationClass = classOf[GatewayStoreResponseError]
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
-
-  private def start() = {}
-
-  private def shutdown() = zk.close()
 
   private def info = zkVersion(servers) map {
     case version ⇒ "zookeeper" -> (Map("version" -> version) ++ (zk.underlying match {

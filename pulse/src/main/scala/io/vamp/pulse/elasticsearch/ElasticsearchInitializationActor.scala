@@ -1,7 +1,6 @@
 package io.vamp.pulse.elasticsearch
 
 import akka.actor.{ FSM, _ }
-import io.vamp.common.akka.Bootstrap.Start
 import io.vamp.common.akka._
 import io.vamp.common.http.RestClient
 import io.vamp.common.notification.NotificationProvider
@@ -20,8 +19,6 @@ object ElasticsearchInitializationActor {
   object DoneWithOne extends InitializationEvent
 
   sealed trait State
-
-  case object Idle extends State
 
   case object Phase1 extends State
 
@@ -51,19 +48,9 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
   def done() = goto(Done) using 0
 
-  startWith(Idle, 0)
+  startWith(Phase1, 1)
 
-  when(Idle) {
-    case Event(Start, 0) ⇒
-      log.info(s"Starting with Elasticsearch initialization.")
-      goto(Phase1) using 1
-
-    case Event(_, _) ⇒ stay()
-  }
-
-  onTransition {
-    case Idle -> Phase1 ⇒ initializeTemplates()
-  }
+  initializeTemplates()
 
   onTransition {
     case Phase1 -> Phase2 ⇒ initializeDocuments()
