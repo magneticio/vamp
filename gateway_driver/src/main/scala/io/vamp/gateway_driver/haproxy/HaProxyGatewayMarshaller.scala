@@ -33,39 +33,39 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     case backend ⇒ HaProxy(frontends(backend)(gateway), backend, tcpLogFormat, httpLogFormat)
   }
 
-  private def frontends(backends: List[Backend])(implicit gateway: Gateway): List[Frontend] = {
-    def backendFor(name: String) = backends.find(_.name == name).getOrElse(throw new IllegalArgumentException(s"No backend: $name"))
-
-    Frontend(
-      name = GatewayMarshaller.name(gateway),
-      bindIp = Option("0.0.0.0"),
-      bindPort = Option(gateway.port.number),
-      mode = mode,
-      unixSock = None,
-      sockProtocol = None,
-      options = Options(),
-      filters = filters,
-      defaultBackend = backendFor(GatewayMarshaller.name(gateway))) :: gateway.routes.map { route ⇒
-        Frontend(
-          name = GatewayMarshaller.name(gateway, route.path),
-          bindIp = None,
-          bindPort = None,
-          mode = mode,
-          unixSock = Option(unixSocket(route)),
-          sockProtocol = Option("accept-proxy"),
-          options = Options(),
-          filters = Nil,
-          defaultBackend = backendFor(GatewayMarshaller.name(gateway, route.path)))
-      }
-  }
+  private def frontends(backends: List[Backend])(implicit gateway: Gateway): List[Frontend] = Frontend(
+    name = GatewayMarshaller.name(gateway),
+    lookup = GatewayMarshaller.lookup(gateway),
+    bindIp = Option("0.0.0.0"),
+    bindPort = Option(gateway.port.number),
+    mode = mode,
+    unixSock = None,
+    sockProtocol = None,
+    options = Options(),
+    filters = filters(backends),
+    defaultBackend = backendFor(backends, GatewayMarshaller.lookup(gateway))) :: gateway.routes.map { route ⇒
+      Frontend(
+        name = GatewayMarshaller.name(gateway, route.path.segments),
+        lookup = GatewayMarshaller.lookup(gateway, route.path.segments),
+        bindIp = None,
+        bindPort = None,
+        mode = mode,
+        unixSock = Option(unixSocket(route)),
+        sockProtocol = Option("accept-proxy"),
+        options = Options(),
+        filters = Nil,
+        defaultBackend = backendFor(backends, GatewayMarshaller.lookup(gateway, route.path.segments)))
+    }
 
   private def backends(implicit gateway: Gateway): List[Backend] = Backend(
     name = GatewayMarshaller.name(gateway),
+    lookup = GatewayMarshaller.lookup(gateway),
     mode = mode,
     proxyServers = gateway.routes.map {
       case route: AbstractRoute ⇒
         ProxyServer(
-          name = GatewayMarshaller.name(gateway, route.path),
+          name = GatewayMarshaller.name(gateway, route.path.segments),
+          lookup = GatewayMarshaller.lookup(gateway, route.path.segments),
           unixSock = unixSocket(route),
           weight = route.weight.get.value
         )
@@ -76,12 +76,14 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     options = Options()) :: gateway.routes.map {
       case route: DeployedRoute ⇒
         Backend(
-          name = GatewayMarshaller.name(gateway, route.path),
+          name = GatewayMarshaller.name(gateway, route.path.segments),
+          lookup = GatewayMarshaller.lookup(gateway, route.path.segments),
           mode = mode,
           proxyServers = Nil,
           servers = route.targets.map { instance ⇒
             Server(
-              name = instance.name,
+              name = GatewayMarshaller.name(instance),
+              lookup = GatewayMarshaller.lookup(instance),
               host = instance.host,
               port = instance.port,
               weight = 100)
@@ -91,12 +93,12 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       case route ⇒ throw new IllegalArgumentException(s"Unsupported route: $route")
     }
 
-  private def filters(implicit gateway: Gateway): List[Filter] = gateway.routes.flatMap {
-    case route: AbstractRoute ⇒ route.filters.map(f ⇒ filter(route, f.asInstanceOf[DefaultFilter]))
+  private def filters(backends: List[Backend])(implicit gateway: Gateway): List[Filter] = gateway.routes.flatMap {
+    case route: AbstractRoute ⇒ route.filters.map(f ⇒ filter(backends, route, f.asInstanceOf[DefaultFilter]))
     case _                    ⇒ Nil
   }
 
-  private[haproxy] def filter(route: Route, filter: DefaultFilter)(implicit gateway: Gateway): Filter = {
+  private[haproxy] def filter(backends: List[Backend], route: Route, filter: DefaultFilter)(implicit gateway: Gateway): Filter = {
     val (condition, negate) = filter.condition match {
       case userAgent(n, c)        ⇒ s"hdr_sub(user-agent) ${c.trim}" -> (n == "!")
       case host(n, c)             ⇒ s"hdr_str(host) ${c.trim}" -> (n == "!")
@@ -111,10 +113,12 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
     val name = if (filter.name.isEmpty) Hash.hexSha1(condition).substring(0, 16) else filter.name
 
-    Filter(name, condition, GatewayMarshaller.name(gateway, route.path), negate)
+    Filter(name, condition, backendFor(backends, GatewayMarshaller.lookup(gateway, route.path.segments)), negate)
   }
+
+  private def backendFor(backends: List[Backend], lookup: String): Backend = backends.find(_.lookup == lookup).getOrElse(throw new IllegalArgumentException(s"No backend: $lookup"))
 
   private def mode(implicit gateway: Gateway) = if (gateway.port.`type` == Port.Type.Http) Mode.http else Mode.tcp
 
-  private def unixSocket(route: Route)(implicit gateway: Gateway) = s"$socketPath/${Hash.hexSha1(GatewayMarshaller.name(gateway, route.path))}.sock"
+  private def unixSocket(route: Route)(implicit gateway: Gateway) = s"$socketPath/${GatewayMarshaller.lookup(gateway, route.path.segments)}.sock"
 }

@@ -2,6 +2,7 @@
 global
   pidfile /opt/vamp/haproxy.pid
   server-state-file /opt/vamp/haproxy_server_state
+
   daemon
   maxconn 4096
   log /opt/vamp/haproxy.log.sock local0
@@ -32,21 +33,15 @@ global
     stats realm Haproxy\ Stats
     stats auth haproxy:haproxy
 
-
-frontend vamp_backend_port__
+# frontend: vamp/backend/port
+frontend d2b6fbfab1d760f6bbf9ec3cec297e5f477b778e
   bind 0.0.0.0:33003             
   
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
-  
-  
-
-  
-  
 
   mode http
 
-  
   ###
   #
   # Filter Management
@@ -55,22 +50,19 @@ frontend vamp_backend_port__
   #
   ###
   
-  default_backend vamp_backend_port__
+  # backend: vamp/backend/port
+  default_backend d2b6fbfab1d760f6bbf9ec3cec297e5f477b778e
 
-frontend vamp_backend_port___vamp_sava_sava_backend_1_3_0_port
-  
-  
+# frontend: vamp/backend/port://vamp/sava/sava-backend:1.3.0/port
+frontend 82fdbb8655a82a4fc1e34b2abc80ef672d041367
+
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
-  
-  
 
-  
-  bind unix@/opt/vamp/24b9fa071b8818c5d8ae96a3b0c6b2e4fda0d8ea.sock accept-proxy 
+  bind unix@/opt/vamp/82fdbb8655a82a4fc1e34b2abc80ef672d041367.sock accept-proxy 
 
   mode http
 
-  
   ###
   #
   # Filter Management
@@ -79,22 +71,18 @@ frontend vamp_backend_port___vamp_sava_sava_backend_1_3_0_port
   #
   ###
   
-  default_backend vamp_backend_port___vamp_sava_sava_backend_1_3_0_port
+  # backend: vamp/backend/port://vamp/sava/sava-backend:1.3.0/port
+  default_backend 82fdbb8655a82a4fc1e34b2abc80ef672d041367
 
-frontend vamp_sava_port__
+# frontend: vamp/sava/port/_
+frontend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   bind 0.0.0.0:33002             
   
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
-  
-  
-
-  
-  
 
   mode http
 
-  
   ###
   #
   # Filter Management
@@ -103,22 +91,19 @@ frontend vamp_sava_port__
   #
   ###
   
-  default_backend vamp_sava_port__
+  # backend: vamp/sava/port/_
+  default_backend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 
-frontend vamp_sava_port___vamp_sava_sava_frontend_1_3_0_port
-  
-  
+# frontend: vamp/sava/port/_://vamp/sava/sava-frontend:1.3.0/port
+frontend fd3538270c3c3c288a61dab21c82bdd7750e8fa4
+
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
-  
-  
 
-  
-  bind unix@/opt/vamp/33c37db212c3e69d2ce25b0bcdbed69ef2a017af.sock accept-proxy 
+  bind unix@/opt/vamp/fd3538270c3c3c288a61dab21c82bdd7750e8fa4.sock accept-proxy 
 
   mode http
 
-  
   ###
   #
   # Filter Management
@@ -127,22 +112,18 @@ frontend vamp_sava_port___vamp_sava_sava_frontend_1_3_0_port
   #
   ###
   
-  default_backend vamp_sava_port___vamp_sava_sava_frontend_1_3_0_port
+  # backend: vamp/sava/port/_://vamp/sava/sava-frontend:1.3.0/port
+  default_backend fd3538270c3c3c288a61dab21c82bdd7750e8fa4
 
-frontend vamp_port____
+# frontend: vamp/port/_/_
+frontend fe0b5f28bbc918d7c54c72552a525894f2dfc09c
   bind 0.0.0.0:9050             
   
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
-  
-  
-
-  
-  
 
   mode http
 
-  
   ###
   #
   # Filter Management
@@ -151,22 +132,19 @@ frontend vamp_port____
   #
   ###
   
-  default_backend vamp_port____
+  # backend: vamp/port/_/_
+  default_backend fe0b5f28bbc918d7c54c72552a525894f2dfc09c
 
-frontend vamp_port_____vamp_sava_port__
-  
-  
+# frontend: vamp/port/_/_://vamp/sava/port/_
+frontend a0f840f005123ef8acf4b0f9586420a540f8caf8
+
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
-  
-  
 
-  
-  bind unix@/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock accept-proxy 
+  bind unix@/opt/vamp/a0f840f005123ef8acf4b0f9586420a540f8caf8.sock accept-proxy 
 
   mode http
 
-  
   ###
   #
   # Filter Management
@@ -175,109 +153,59 @@ frontend vamp_port_____vamp_sava_port__
   #
   ###
   
-  default_backend vamp_port_____vamp_sava_port__
+  # backend: vamp/port/_/_://vamp/sava/port/_
+  default_backend a0f840f005123ef8acf4b0f9586420a540f8caf8
 
-
-
-backend vamp_backend_port__
+# backend: vamp/backend/port
+backend d2b6fbfab1d760f6bbf9ec3cec297e5f477b778e
   mode http
   balance roundrobin       
-  
-  
 
-  
-  server vamp_backend_port___vamp_sava_sava_backend_1_3_0_port unix@/opt/vamp/24b9fa071b8818c5d8ae96a3b0c6b2e4fda0d8ea.sock send-proxy weight 100 
-  
-  
+  # server: vamp/backend/port://vamp/sava/sava-backend:1.3.0/port
+  server 82fdbb8655a82a4fc1e34b2abc80ef672d041367 unix@/opt/vamp/82fdbb8655a82a4fc1e34b2abc80ef672d041367.sock send-proxy weight 100 
 
-backend vamp_backend_port___vamp_sava_sava_backend_1_3_0_port
+# backend: vamp/backend/port://vamp/sava/sava-backend:1.3.0/port
+backend 82fdbb8655a82a4fc1e34b2abc80ef672d041367
   mode http
   balance roundrobin       
-  
-  
-
-  
-  
 
   option forwardfor
   
-  server 57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117 192.168.99.100:32770 cookie 57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117 weight 100 maxconn 1000  
-  
+  # server: 57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117
+  server c68f31ef92eb68705bd21f9cae84aac32c0e7439 192.168.99.100:32770 cookie c68f31ef92eb68705bd21f9cae84aac32c0e7439 weight 100 maxconn 1000  
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-backend vamp_sava_port__
+# backend: vamp/sava/port/_
+backend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   mode http
   balance roundrobin       
-  
-  
 
-  
-  server vamp_sava_port___vamp_sava_sava_frontend_1_3_0_port unix@/opt/vamp/33c37db212c3e69d2ce25b0bcdbed69ef2a017af.sock send-proxy weight 100 
-  
-  
+  # server: vamp/sava/port/_://vamp/sava/sava-frontend:1.3.0/port
+  server fd3538270c3c3c288a61dab21c82bdd7750e8fa4 unix@/opt/vamp/fd3538270c3c3c288a61dab21c82bdd7750e8fa4.sock send-proxy weight 100 
 
-backend vamp_sava_port___vamp_sava_sava_frontend_1_3_0_port
+# backend: vamp/sava/port/_://vamp/sava/sava-frontend:1.3.0/port
+backend fd3538270c3c3c288a61dab21c82bdd7750e8fa4
   mode http
   balance roundrobin       
-  
-  
-
-  
-  
 
   option forwardfor
   
-  server f1638245acf2ebe6db56984a85b48f6db8c74607 192.168.99.100:32771 cookie f1638245acf2ebe6db56984a85b48f6db8c74607 weight 100 maxconn 1000  
-  
+  # server: f1638245acf2ebe6db56984a85b48f6db8c74607
+  server 1d1926cfdee23134a6f45bc2b8220fee0509c7 192.168.99.100:32771 cookie 1d1926cfdee23134a6f45bc2b8220fee0509c7 weight 100 maxconn 1000  
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-backend vamp_port____
+# backend: vamp/port/_/_
+backend fe0b5f28bbc918d7c54c72552a525894f2dfc09c
   mode http
   balance roundrobin       
-  
-  
 
-  
-  server vamp_port_____vamp_sava_port__ unix@/opt/vamp/d8d2c28abb99fd260384413391a704d3b531aa63.sock send-proxy weight 100 
-  
-  
+  # server: vamp/port/_/_://vamp/sava/port/_
+  server a0f840f005123ef8acf4b0f9586420a540f8caf8 unix@/opt/vamp/a0f840f005123ef8acf4b0f9586420a540f8caf8.sock send-proxy weight 100 
 
-backend vamp_port_____vamp_sava_port__
+# backend: vamp/port/_/_://vamp/sava/port/_
+backend a0f840f005123ef8acf4b0f9586420a540f8caf8
   mode http
   balance roundrobin       
-  
-  
-
-  
-  
 
   option forwardfor
   
-  server 64435a223bddf1fa589135baa5e228090279c032 192.168.99.100:33002 cookie 64435a223bddf1fa589135baa5e228090279c032 weight 100 maxconn 1000  
-  
-
-  
+  # server: 64435a223bddf1fa589135baa5e228090279c032
+  server 709bda50dd19ad66282c78fdb423446bef362382 192.168.99.100:33002 cookie 709bda50dd19ad66282c78fdb423446bef362382 weight 100 maxconn 1000  

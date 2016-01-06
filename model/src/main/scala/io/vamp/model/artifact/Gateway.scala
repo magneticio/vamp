@@ -81,7 +81,7 @@ object DeployedRouteTarget {
   def apply(name: String, port: Int) = new DeployedRouteTarget(name, host, port)
 }
 
-case class DeployedRouteTarget(name: String, host: String, port: Int) extends Artifact
+case class DeployedRouteTarget(name: String, host: String, port: Int) extends Artifact with Lookup
 
 sealed trait Filter extends Artifact
 
