@@ -30,6 +30,14 @@ class DictionaryActor extends CommonSupportForActors with DictionaryNotification
 
   implicit val timeout = DictionaryActor.timeout
 
+  private val config = ConfigFactory.load()
+
+  private val host = config.getString("vamp.gateway-driver.host")
+
+  private val scale = config.getConfig("vamp.dictionary.default-scale") match {
+    case c ⇒ DefaultScale("", c.getDouble("cpu"), MegaByte.of(c.getString("memory")), c.getInt("instances"))
+  }
+
   private val hostResolver = toRegExp(DictionaryActor.hostResolver)
   private val containerScale = toRegExp(DictionaryActor.containerScale)
 
@@ -48,17 +56,8 @@ class DictionaryActor extends CommonSupportForActors with DictionaryNotification
   }
 
   private def get(key: String) = key match {
-
-    case hostResolver(_*) ⇒
-      ConfigFactory.load().getString("vamp.gateway-driver.host")
-
-    case containerScale(deployment, cluster, service) ⇒
-      val config = ConfigFactory.load()
-      val cpu = config.getDouble("vamp.dictionary.default-scale.cpu")
-      val memory = config.getDouble("vamp.dictionary.default-scale.memory")
-      val instances = config.getInt("vamp.dictionary.default-scale.instances")
-      DefaultScale("", cpu, MegaByte.of(memory), instances)
-
-    case value ⇒ value
+    case hostResolver(_*)                             ⇒ host
+    case containerScale(deployment, cluster, service) ⇒ scale
+    case value                                        ⇒ value
   }
 }
