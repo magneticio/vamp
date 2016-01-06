@@ -1,7 +1,5 @@
 package io.vamp.gateway_driver.kibana
 
-import java.net.URLEncoder
-
 import akka.actor._
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
@@ -10,8 +8,8 @@ import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor.KibanaDashboardUpdate
 import io.vamp.gateway_driver.logstash.Logstash
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
-import io.vamp.model.artifact.Deployment
-import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.model.artifact.Gateway
+import io.vamp.persistence.{ArtifactPaginationSupport, PersistenceActor}
 import io.vamp.pulse.ElasticsearchClient
 
 import scala.concurrent.Future
@@ -46,7 +44,7 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
 
     case KibanaDashboardUpdate ⇒ if (enabled) {
       implicit val timeout = PersistenceActor.timeout
-      allArtifacts[Deployment] map update
+      allArtifacts[Gateway] map update
     }
 
     case _ ⇒
@@ -56,53 +54,26 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
     Map("enabled" -> enabled, "logstash-index" -> Logstash.index)
   }
 
-  private def update(deployments: List[Deployment]): Unit = deployments.foreach { deployment ⇒
-    val result: List[Future[(String, Boolean)]] = deployment.clusters.flatMap { cluster ⇒
+  private def update(gateways: List[Gateway]): Unit = gateways.foreach { gateway ⇒
+    val name = GatewayMarshaller.name(gateway)
+    val lookup = GatewayMarshaller.lookup(gateway)
 
-      cluster.services.filter(_.state.isDeployed).flatMap { service ⇒
-        service.breed.ports.map { port ⇒
-          val id = "" //GatewayMarshaller.name(deployment, cluster, service, port)
-          val changed = for {
-            s ← update("search", id, searchDocument)
-            tt ← update("visualization", s"${id}_tt", ttVisualizationDocument(id))
-            count ← update("visualization", s"${id}_count", countVisualizationDocument(id))
-          } yield !(s && tt && count)
-
-          changed map {
-            case c ⇒ (id, c)
-          }
-        }
-      }
-    }
-
-    Future.sequence(result) map {
-      case list if list.exists(_._2) ⇒
-
-        val panels = list.zipWithIndex.map({
-          case ((id, _), index) ⇒ panel(s"${id}_count", s"${id}_tt", 3 * index + 1)
-        }).reduce((p1, p2) ⇒ s"$p1,$p2")
-
-        update("dashboard", /*Flatten.flatten(s"${deployment.name}")*/ "", dashboard(panels))
-    }
+    update("search", lookup, () ⇒ searchDocument(s"gateway: $name", lookup))
+    update("visualization", s"${lookup}_tt", () ⇒ totalTimeVisualizationDocument(s"total time: $name", lookup))
+    update("visualization", s"${lookup}_count", () ⇒ requestCountVisualizationDocument(s"request count: $name", lookup))
   }
 
-  private def update(`type`: String, id: String, create: (String) ⇒ AnyRef): Future[Boolean] = {
-    val encodedId = URLEncoder.encode(id, "UTF-8")
-    es.exists(kibanaIndex, `type`, encodedId).map {
-      case true ⇒
-        log.debug(s"Kibana ${`type`} exists for: $id")
-        true
-      case false ⇒
-        log.info(s"Creating Kibana ${`type`} for: $id")
-        es.index[Any](kibanaIndex, `type`, encodedId, create(id))
-        false
-    } recover { case _ ⇒ false }
+  private def update(`type`: String, id: String, data: () ⇒ AnyRef) = es.exists(kibanaIndex, `type`, id) recover { case _ ⇒ false } map {
+    case false ⇒
+      log.info(s"Creating Kibana ${`type`} for: $id")
+      es.index[Any](kibanaIndex, `type`, id, data())
+    case true ⇒ log.debug(s"Kibana ${`type`} exists for: $id")
   }
 
-  private def searchDocument(id: String) =
+  private def searchDocument(name: String, lookup: String) =
     s"""
        |{
-       |  "title": "$id",
+       |  "title": "$name",
        |  "description": "",
        |  "hits": 0,
        |  "columns": [
@@ -114,29 +85,15 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
        |  ],
        |  "version": 1,
        |  "kibanaSavedObjectMeta": {
-       |    "searchSourceJSON": "{\\\"index\\":\\\"${Logstash.index}\\\",\\\"highlight\\\":{\\\"pre_tags\\\":[\\\"@kibana-highlighted-field@\\\"],\\\"post_tags\\\":[\\\"@/kibana-highlighted-field@\\\"],\\\"fields\\\":{\\\"*\\\":{}},\\\"require_field_match\\\":false,\\\"fragment_size\\\":2147483647},\\\"filter\\\":[],\\\"query\\\":{\\\"query_string\\\":{\\\"query\\\":\\\"type: \\\\\\"${Logstash.`type`}\\\\\\" AND b: \\\\\\"$id\\\\\\"\\\",\\\"analyze_wildcard\\\":true}}}"
+       |    "searchSourceJSON": "{\\\"index\\":\\\"${Logstash.index}\\\",\\\"highlight\\\":{\\\"pre_tags\\\":[\\\"@kibana-highlighted-field@\\\"],\\\"post_tags\\\":[\\\"@/kibana-highlighted-field@\\\"],\\\"fields\\\":{\\\"*\\\":{}},\\\"require_field_match\\\":false,\\\"fragment_size\\\":2147483647},\\\"filter\\\":[],\\\"query\\\":{\\\"query_string\\\":{\\\"query\\\":\\\"type: \\\\\\"${Logstash.`type`}\\\\\\" AND b: \\\\\\"$lookup\\\\\\"\\\",\\\"analyze_wildcard\\\":true}}}"
        |  }
        |}
       """.stripMargin
 
-  private def countVisualizationDocument(searchId: String)(id: String) =
+  private def totalTimeVisualizationDocument(name: String, searchId: String) =
     s"""
        |{
-       |  "title": "$id",
-       |  "visState": "{\\\"type\\\":\\\"histogram\\\",\\\"params\\\":{\\\"shareYAxis\\\":true,\\\"addTooltip\\\":true,\\\"addLegend\\\":true,\\\"scale\\\":\\\"linear\\\",\\\"mode\\\":\\\"stacked\\\",\\\"times\\\":[],\\\"addTimeMarker\\\":false,\\\"defaultYExtents\\\":false,\\\"setYExtents\\\":false,\\\"yAxis\\\":{}},\\\"aggs\\\":[{\\\"id\\\":\\\"1\\\",\\\"type\\\":\\\"count\\\",\\\"schema\\\":\\\"metric\\\",\\\"params\\\":{}},{\\\"id\\\":\\\"2\\\",\\\"type\\\":\\\"date_histogram\\\",\\\"schema\\\":\\\"segment\\\",\\\"params\\\":{\\\"field\\\":\\\"@timestamp\\\",\\\"interval\\\":\\\"auto\\\",\\\"customInterval\\\":\\\"2h\\\",\\\"min_doc_count\\\":1,\\\"extended_bounds\\\":{}}}],\\\"listeners\\\":{}}",
-       |  "description": "",
-       |  "savedSearchId": "$searchId",
-       |  "version": 1,
-       |  "kibanaSavedObjectMeta": {
-       |    "searchSourceJSON": "{\\\"filter\\\":[]}"
-       |  }
-       |}
-   """.stripMargin
-
-  private def ttVisualizationDocument(searchId: String)(id: String) =
-    s"""
-       |{
-       |  "title": "$id",
+       |  "title": "$name",
        |  "visState": "{\\\"type\\\":\\\"histogram\\\",\\\"params\\\":{\\\"shareYAxis\\\":true,\\\"addTooltip\\\":true,\\\"addLegend\\\":true,\\\"scale\\\":\\\"linear\\\",\\\"mode\\\":\\\"stacked\\\",\\\"times\\\":[],\\\"addTimeMarker\\\":false,\\\"defaultYExtents\\\":false,\\\"setYExtents\\\":false,\\\"yAxis\\\":{}},\\\"aggs\\\":[{\\\"id\\\":\\\"1\\\",\\\"type\\\":\\\"avg\\\",\\\"schema\\\":\\\"metric\\\",\\\"params\\\":{\\\"field\\\":\\\"Tt\\\"}},{\\\"id\\\":\\\"2\\\",\\\"type\\\":\\\"date_histogram\\\",\\\"schema\\\":\\\"segment\\\",\\\"params\\\":{\\\"field\\\":\\\"@timestamp\\\",\\\"interval\\\":\\\"auto\\\",\\\"customInterval\\\":\\\"2h\\\",\\\"min_doc_count\\\":1,\\\"extended_bounds\\\":{}}}],\\\"listeners\\\":{}}",
        |  "description": "",
        |  "savedSearchId": "$searchId",
@@ -144,6 +101,20 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
        |  "kibanaSavedObjectMeta": {
        |    "searchSourceJSON": "{\\\"filter\\\":[]}"
        |   }
+       |}
+   """.stripMargin
+
+  private def requestCountVisualizationDocument(name: String, searchId: String) =
+    s"""
+       |{
+       |  "title": "$name",
+       |  "visState": "{\\\"type\\\":\\\"histogram\\\",\\\"params\\\":{\\\"shareYAxis\\\":true,\\\"addTooltip\\\":true,\\\"addLegend\\\":true,\\\"scale\\\":\\\"linear\\\",\\\"mode\\\":\\\"stacked\\\",\\\"times\\\":[],\\\"addTimeMarker\\\":false,\\\"defaultYExtents\\\":false,\\\"setYExtents\\\":false,\\\"yAxis\\\":{}},\\\"aggs\\\":[{\\\"id\\\":\\\"1\\\",\\\"type\\\":\\\"count\\\",\\\"schema\\\":\\\"metric\\\",\\\"params\\\":{}},{\\\"id\\\":\\\"2\\\",\\\"type\\\":\\\"date_histogram\\\",\\\"schema\\\":\\\"segment\\\",\\\"params\\\":{\\\"field\\\":\\\"@timestamp\\\",\\\"interval\\\":\\\"auto\\\",\\\"customInterval\\\":\\\"2h\\\",\\\"min_doc_count\\\":1,\\\"extended_bounds\\\":{}}}],\\\"listeners\\\":{}}",
+       |  "description": "",
+       |  "savedSearchId": "$searchId",
+       |  "version": 1,
+       |  "kibanaSavedObjectMeta": {
+       |    "searchSourceJSON": "{\\\"filter\\\":[]}"
+       |  }
        |}
    """.stripMargin
 
