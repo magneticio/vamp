@@ -7,7 +7,6 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.gateway_driver.GatewayMarshaller
-import io.vamp.gateway_driver.haproxy.Flatten
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor.KibanaDashboardUpdate
 import io.vamp.gateway_driver.logstash.Logstash
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
@@ -62,7 +61,7 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
 
       cluster.services.filter(_.state.isDeployed).flatMap { service ⇒
         service.breed.ports.map { port ⇒
-          val id = GatewayMarshaller.name(deployment, cluster, service, port)
+          val id = "" //GatewayMarshaller.name(deployment, cluster, service, port)
           val changed = for {
             s ← update("search", id, searchDocument)
             tt ← update("visualization", s"${id}_tt", ttVisualizationDocument(id))
@@ -83,7 +82,7 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
           case ((id, _), index) ⇒ panel(s"${id}_count", s"${id}_tt", 3 * index + 1)
         }).reduce((p1, p2) ⇒ s"$p1,$p2")
 
-        update("dashboard", Flatten.flatten(s"${deployment.name}"), dashboard(panels))
+        update("dashboard", /*Flatten.flatten(s"${deployment.name}")*/ "", dashboard(panels))
     }
   }
 

@@ -1,22 +1,9 @@
 package io.vamp.gateway_driver.haproxy
 
-import io.vamp.common.crypto.Hash
-
 case class HaProxy(frontends: List[Frontend], backends: List[Backend], tcpLogFormat: String, httpLogFormat: String)
 
-object Flatten {
-  def flatten(string: String) = string.replaceAll("[^\\p{L}\\d_]", "_")
-}
-
-trait FlattenName {
-  def name: String
-
-  def flattenName = Flatten.flatten(name)
-
-  def hashName = Hash.hexSha1(name)
-}
-
 case class Frontend(name: String,
+                    lookup: String,
                     bindIp: Option[String],
                     bindPort: Option[Int],
                     mode: Mode.Value,
@@ -24,26 +11,25 @@ case class Frontend(name: String,
                     sockProtocol: Option[String],
                     options: Options,
                     filters: List[Filter],
-                    defaultBackend: Backend) extends FlattenName
+                    defaultBackend: Backend)
 
 case class Backend(name: String,
+                   lookup: String,
                    mode: Mode.Value,
                    proxyServers: List[ProxyServer],
                    servers: List[Server],
                    sticky: Boolean,
-                   options: Options) extends FlattenName
+                   options: Options)
 
 object Mode extends Enumeration {
   val http, tcp = Value
 }
 
-case class Filter(name: String, condition: String, destination: String, negate: Boolean = false) {
-  lazy val flattenDestination = Flatten.flatten(destination)
-}
+case class Filter(name: String, condition: String, destination: Backend, negate: Boolean = false)
 
-case class ProxyServer(name: String, unixSock: String, weight: Int) extends FlattenName
+case class ProxyServer(name: String, lookup: String, unixSock: String, weight: Int)
 
-case class Server(name: String, host: String, port: Int, weight: Int, maxConn: Int = 1000, checkInterval: Option[Int] = None) extends FlattenName
+case class Server(name: String, lookup: String, host: String, port: Int, weight: Int, maxConn: Int = 1000, checkInterval: Option[Int] = None)
 
 case class Options(abortOnClose: Boolean = false,
                    allBackups: Boolean = false,

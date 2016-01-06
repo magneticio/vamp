@@ -6,10 +6,9 @@ import akka.actor._
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.logstash.Logstash
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
-import io.vamp.model.artifact.{ Deployment, Port }
+import io.vamp.model.artifact.Deployment
 import io.vamp.model.event.Event
 import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor.Publish
@@ -53,11 +52,11 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
   private def gateways: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
     deployments.foreach { deployment ⇒
       deployment.gateways.foreach { gateway ⇒
-        val name = GatewayMarshaller.name(deployment, gateway.port)
-        query(name) map {
+        val lookup = "" //GatewayMarshaller.name(deployment, gateway.port)
+        query(lookup) map {
           case Metrics(rate, responseTime) ⇒
-            publish(s"gateways:$name" :: "metrics:rate" :: Nil, rate)
-            publish(s"gateways:$name" :: "metrics:responseTime" :: Nil, responseTime)
+            publish(s"gateways:$lookup" :: "metrics:rate" :: Nil, rate)
+            publish(s"gateways:$lookup" :: "metrics:responseTime" :: Nil, responseTime)
         }
       }
     }
@@ -68,8 +67,8 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
     deployments.foreach { deployment ⇒
       deployment.clusters.foreach { cluster ⇒
         cluster.services.filter(_.state.isDeployed).flatMap(_.breed.ports.map(_.name)).toSet[String].foreach { port ⇒
-          val name = GatewayMarshaller.name(deployment, cluster, Port(port, None, None))
-          query(name) map {
+          val lookup = "" //GatewayMarshaller.name(deployment, cluster, Port(port, None, None))
+          query(lookup) map {
             case Metrics(rate, responseTime) ⇒
               publish(s"gateways:${deployment.name}_${cluster.name}_$port" :: "metrics:rate" :: Nil, rate)
               publish(s"gateways:${deployment.name}_${cluster.name}_$port" :: "metrics:responseTime" :: Nil, responseTime)
@@ -85,8 +84,8 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
       deployment.clusters.foreach { cluster ⇒
         cluster.services.filter(_.state.isDeployed).foreach { service ⇒
           service.breed.ports.foreach { port ⇒
-            val name = GatewayMarshaller.name(deployment, cluster, service, port)
-            query(name) map {
+            val lookup = "" //GatewayMarshaller.name(deployment, cluster, service, port)
+            query(lookup) map {
               case Metrics(rate, responseTime) ⇒
                 publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:rate" :: Nil, rate)
                 publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:responseTime" :: Nil, responseTime)
@@ -98,7 +97,7 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
     deployments
   }
 
-  private def query(name: String): Future[Metrics] = {
+  private def query(lookup: String): Future[Metrics] = {
     es.search[Any](Logstash.index, Logstash.`type`,
       s"""
          |{
@@ -112,7 +111,7 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
          |          "must": [
          |            {
          |              "term": {
-         |                "b": "$name"
+         |                "b": "$lookup"
          |              }
          |            },
          |            {
@@ -152,7 +151,7 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
             case _                        ⇒ 0D
           }
 
-          log.debug(s"Request count/rate/responseTime for $name: $count/$rate/$responseTime")
+          log.debug(s"Request count/rate/responseTime for $lookup: $count/$rate/$responseTime")
 
           Metrics(rate, responseTime)
 
