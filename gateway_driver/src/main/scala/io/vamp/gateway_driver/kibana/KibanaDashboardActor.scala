@@ -5,24 +5,25 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.gateway_driver.GatewayMarshaller
-import io.vamp.gateway_driver.kibana.KibanaDashboardActor.KibanaDashboardUpdate
+import io.vamp.gateway_driver.kibana.KibanaDashboardActor.KibanaUpdate
 import io.vamp.gateway_driver.logstash.Logstash
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
-import io.vamp.model.artifact.Gateway
-import io.vamp.persistence.{ArtifactPaginationSupport, PersistenceActor}
+import io.vamp.model.artifact.{ GatewayPath, Deployment, Gateway }
+import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.pulse.ElasticsearchClient
+import io.vamp.pulse.ElasticsearchClient.ElasticsearchGetResponse
 
 import scala.concurrent.Future
 import scala.language.postfixOps
 
 class KibanaDashboardSchedulerActor extends SchedulerActor with GatewayDriverNotificationProvider {
 
-  def tick() = IoC.actorFor[KibanaDashboardActor] ! KibanaDashboardUpdate
+  def tick() = IoC.actorFor[KibanaDashboardActor] ! KibanaUpdate
 }
 
 object KibanaDashboardActor {
 
-  object KibanaDashboardUpdate
+  object KibanaUpdate
 
   val kibanaIndex = ".kibana"
 
@@ -42,9 +43,15 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
   def receive: Receive = {
     case InfoRequest ⇒ reply(info)
 
-    case KibanaDashboardUpdate ⇒ if (enabled) {
+    case KibanaUpdate ⇒ if (enabled) {
       implicit val timeout = PersistenceActor.timeout
-      allArtifacts[Gateway] map update
+      allArtifacts[Gateway] map {
+        case gateways ⇒
+          allArtifacts[Deployment] map {
+            case deployments ⇒ process(gateways, deployments)
+          }
+          process(gateways)
+      }
     }
 
     case _ ⇒
@@ -54,13 +61,34 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
     Map("enabled" -> enabled, "logstash-index" -> Logstash.index)
   }
 
-  private def update(gateways: List[Gateway]): Unit = gateways.foreach { gateway ⇒
+  private def process(gateways: List[Gateway]): Unit = gateways.foreach { gateway ⇒
     val name = GatewayMarshaller.name(gateway)
     val lookup = GatewayMarshaller.lookup(gateway)
-
     update("search", lookup, () ⇒ searchDocument(s"gateway: $name", lookup))
     update("visualization", s"${lookup}_tt", () ⇒ totalTimeVisualizationDocument(s"total time: $name", lookup))
     update("visualization", s"${lookup}_count", () ⇒ requestCountVisualizationDocument(s"request count: $name", lookup))
+  }
+
+  private def process(gateways: List[Gateway], deployments: List[Deployment]): Unit = deployments.foreach { deployment ⇒
+
+    val deploymentGateways = gateways.filter { gateway ⇒
+      GatewayPath(gateway.name).segments.head == deployment.name
+    } sortBy { gateway ⇒
+      GatewayPath(gateway.name).segments.length
+    }
+
+    val panels = deploymentGateways.zipWithIndex.map {
+      case (gateway, index) ⇒
+        val lookup = GatewayMarshaller.lookup(gateway)
+        panel(s"${lookup}_count", s"${lookup}_tt", 3 * index + 1)
+    }.reduce((p1, p2) ⇒ s"$p1,$p2")
+
+    es.get[ElasticsearchGetResponse](kibanaIndex, "dashboard", deployment.lookupName) map {
+      case response ⇒ if (!response.found || response._source.getOrElse("panelsJSON", "") != s"[${panels.replace("\\\"", "\"")}]") {
+        log.info(s"Updating Kibana dashboard: ${deployment.name}")
+        es.index[Any](kibanaIndex, "dashboard", deployment.lookupName, dashboard(deployment.name, panels))
+      } else log.info(s"Kibana dashboard up to date: ${deployment.name}")
+    }
   }
 
   private def update(`type`: String, id: String, data: () ⇒ AnyRef) = es.exists(kibanaIndex, `type`, id) recover { case _ ⇒ false } map {
@@ -118,13 +146,13 @@ class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportF
        |}
    """.stripMargin
 
-  private def dashboard(panel: String)(id: String) =
+  private def dashboard(name: String, panels: String) =
     s"""
        |{
-       |  "title": "$id",
+       |  "title": "$name",
        |  "hits": 0,
        |  "description": "",
-       |  "panelsJSON": "[$panel]",
+       |  "panelsJSON": "[$panels]",
        |  "optionsJSON": "{\\\"darkTheme\\\":false}",
        |  "version": 1,
        |  "timeRestore": false,

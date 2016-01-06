@@ -14,7 +14,7 @@ object GatewayMarshaller {
     case _   ⇒ artifact.lookup(expand(artifact, path))
   }
 
-  private def expand(artifact: Lookup, path: List[String] = Nil): String = (path match {
+  private def expand(artifact: Lookup, path: List[String]): String = (path match {
     case Nil ⇒ expand(artifact.name :: Nil)
     case _   ⇒ expand(artifact.name :: Nil) ++ expand(path)
   }).mkString("/")

@@ -9,7 +9,7 @@ import io.vamp.model.artifact._
 import io.vamp.model.notification.UnsupportedRoutePathError
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
-import io.vamp.persistence.PersistenceActor.{ Create, Delete, Update }
+import io.vamp.persistence.PersistenceActor.Update
 import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 
 import scala.concurrent.duration._
@@ -64,7 +64,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   private def synchronize(deployments: List[Deployment], gateways: List[Gateway]) = {
     val updated = update(gateways, deployments)
-    (add(updated) andThen remove(updated) andThen flush(updated))(gateways)
+    (add(updated) andThen flush(updated))(gateways)
   }
 
   private def update(gateways: List[Gateway], deployments: List[Deployment]): List[Deployment] = {
@@ -126,24 +126,6 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     (gateways ++ deploymentGateways.filterNot { gateway ⇒
       gateways.exists(_.name == gateway.name) && !gateway.inner
     }).map(gateway ⇒ gateway.name -> gateway).toMap.values.toList
-  }
-
-  private def remove(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
-
-    val (remove, keep) = gateways.partition { gateway ⇒
-      GatewayPath(gateway.name).segments match {
-        case deployment :: _ :: Nil               ⇒ !deployments.exists(_.name == deployment)
-        case deployment :: cluster :: port :: Nil ⇒ deployments.find(_.name == deployment).flatMap(deployment ⇒ deployment.clusters.find(_.name == cluster)).isEmpty
-        case _                                    ⇒ false
-      }
-    }
-
-    remove.foreach { gateway ⇒
-      log.info(s"gateway removed: ${gateway.name}")
-      IoC.actorFor[PersistenceActor] ! Delete(gateway.name, gateway.getClass)
-    }
-
-    keep
   }
 
   private def flush(deployments: List[Deployment]): List[Gateway] ⇒ Unit = { gateways ⇒

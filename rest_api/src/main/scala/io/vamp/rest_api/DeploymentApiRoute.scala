@@ -201,7 +201,7 @@ trait DevController {
     }
   }
 
-  def kibana(): Unit = IoC.actorFor[KibanaDashboardActor] ! KibanaDashboardActor.KibanaDashboardUpdate
+  def kibana(): Unit = IoC.actorFor[KibanaDashboardActor] ! KibanaDashboardActor.KibanaUpdate
 
   def haproxy(): Future[Any] = {
     implicit val timeout = GatewayStore.timeout
