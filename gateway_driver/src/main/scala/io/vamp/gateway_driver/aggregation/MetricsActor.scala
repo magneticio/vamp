@@ -19,12 +19,12 @@ import scala.language.postfixOps
 
 class MetricsSchedulerActor extends SchedulerActor with GatewayDriverNotificationProvider {
 
-  def tick() = IoC.actorFor[MetricsActor] ! MetricsActor.EndpointMetricsUpdate
+  def tick() = IoC.actorFor[MetricsActor] ! MetricsActor.MetricsUpdate
 }
 
 object MetricsActor {
 
-  object EndpointMetricsUpdate
+  object MetricsUpdate
 
   val window = ConfigFactory.load().getInt("vamp.gateway-driver.aggregation.window")
 }
@@ -45,7 +45,7 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
   private val es = new ElasticsearchClient(PulseActor.elasticsearchUrl)
 
   def receive: Receive = {
-    case EndpointMetricsUpdate ⇒ allArtifacts[Deployment] map (gateways andThen clusters andThen services)
+    case MetricsUpdate ⇒ allArtifacts[Deployment] map (gateways andThen clusters andThen services)
     case _                     ⇒
   }
 
