@@ -10,7 +10,7 @@ import io.vamp.gateway_driver.logstash.Logstash
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
 import io.vamp.model.artifact.Deployment
 import io.vamp.model.event.Event
-import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ ElasticsearchClient, PulseActor, PulseEvent }
 

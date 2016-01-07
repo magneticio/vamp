@@ -8,8 +8,8 @@ import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor.KibanaUpdate
 import io.vamp.gateway_driver.logstash.Logstash
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
-import io.vamp.model.artifact.{ GatewayPath, Deployment, Gateway }
-import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.model.artifact.{ Deployment, Gateway, GatewayPath }
+import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.pulse.ElasticsearchClient
 import io.vamp.pulse.ElasticsearchClient.ElasticsearchGetResponse
 
