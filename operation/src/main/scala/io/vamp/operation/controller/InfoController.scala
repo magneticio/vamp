@@ -7,9 +7,9 @@ import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.http.{ InfoMessageBase, InfoRetrieval }
 import io.vamp.common.vitals.{ JmxVitalsProvider, JvmVitals }
 import io.vamp.container_driver.ContainerDriverActor
+import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.persistence.db.PersistenceActor
 import io.vamp.pulse.PulseActor
-import io.vamp.gateway_driver.GatewayDriverActor
 
 import scala.concurrent.Future
 import scala.concurrent.duration._

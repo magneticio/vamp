@@ -8,7 +8,7 @@ import akka.util.Timeout
 import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, ExecutionContextProvider, IoC }
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.gateway_driver.GatewayStore
+import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.gateway_driver.aggregation.MetricsActor
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor
@@ -19,6 +19,7 @@ import io.vamp.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.operation.gateway.GatewaySynchronizationActor
 import io.vamp.operation.sla.{ EscalationActor, SlaActor }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.persistence.kv.KeyValueStoreActor
 import spray.http.StatusCodes._
 import spray.http._
 
@@ -213,8 +214,8 @@ trait DevController {
   def metrics(): Unit = IoC.actorFor[MetricsActor] ! MetricsActor.MetricsUpdate
 
   def haproxy(): Future[Any] = {
-    implicit val timeout = GatewayStore.timeout
-    IoC.actorFor[GatewayStore] ? GatewayStore.Get(GatewayStore.path ++ HaProxyGatewayMarshaller.path) map {
+    implicit val timeout = KeyValueStoreActor.timeout
+    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(GatewayDriverActor.path ++ HaProxyGatewayMarshaller.path) map {
       case Some(result: String) ⇒ HttpEntity(result)
       case _                    ⇒ HttpEntity("")
     }

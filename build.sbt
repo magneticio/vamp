@@ -70,7 +70,7 @@ val spray = "io.spray" %% "spray-can" % "1.3.1" ::
   "io.spray" %% "spray-httpx" % "1.3.2" ::
   "io.spray" %% "spray-json" % "1.3.1" :: Nil
 
-val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.6" exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j")) :: Nil
+val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.7" exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j")) :: Nil
 
 val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
 val bouncycastle = "org.bouncycastle" % "bcprov-jdk16" % "1.46" :: Nil
@@ -164,7 +164,7 @@ lazy val gateway_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to Vamp Gateway Agent",
   name := "vamp-gateway_driver",
   formatting,
-  libraryDependencies ++= twirl ++ zookeeper ++ testing
+  libraryDependencies ++= twirl ++ testing
 ).dependsOn(model, pulse, persistence).enablePlugins(SbtTwirl).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val container_driver = project.settings(bintraySetting: _*).settings(
@@ -178,7 +178,7 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
   description := "Stores Vamp artifacts",
   name := "vamp-persistence",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= zookeeper ++ testing
 ).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val cli = project.settings(bintraySetting: _*).settings(

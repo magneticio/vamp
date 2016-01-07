@@ -1,24 +1,17 @@
-package io.vamp.gateway_driver.zookeeper
+package io.vamp.persistence.kv
 
 import java.io._
 import java.net.Socket
 
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
-import io.vamp.common.notification.Notification
-import io.vamp.common.vitals.InfoRequest
-import io.vamp.gateway_driver.GatewayStore
-import io.vamp.gateway_driver.notification._
-import io.vamp.pulse.notification.PulseFailureNotifier
 
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with GatewayStore with PulseFailureNotifier with CommonSupportForActors with GatewayDriverNotificationProvider {
+class ZooKeeperGatewayStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
 
-  import io.vamp.gateway_driver.GatewayStore._
-
-  private lazy val config = ConfigFactory.load().getConfig("vamp.gateway-driver.zookeeper")
+  private lazy val config = ConfigFactory.load().getConfig("vamp.persistence.zookeeper")
 
   private lazy val servers = config.getString("servers")
 
@@ -31,21 +24,7 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with GatewayS
     eCtx = actorSystem.dispatcher
   )
 
-  def receive = {
-    case InfoRequest  ⇒ reply(info)
-    case Create(p)    ⇒ create(p)
-    case Get(p)       ⇒ reply(get(p))
-    case Put(p, data) ⇒ put(p, data)
-    case other        ⇒ unsupported(UnsupportedGatewayStoreRequest(other))
-  }
-
-  override def postStop() = zk.close()
-
-  override def errorNotificationClass = classOf[GatewayStoreResponseError]
-
-  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
-
-  private def info = zkVersion(servers) map {
+  override protected def info(): Future[Any] = zkVersion(servers) map {
     case version ⇒ "zookeeper" -> (Map("version" -> version) ++ (zk.underlying match {
       case Some(zookeeper) ⇒
         val state = zookeeper.getState
@@ -61,17 +40,23 @@ class ZooKeeperGatewayStoreActor extends ZooKeeperServerStatistics with GatewayS
     }))
   }
 
-  private def create(path: List[String]) = zk.createPath(pathToString(path)) onFailure {
-    case failure ⇒ log.error(failure, failure.getMessage)
+  override protected def get(path: List[String]): Future[Option[String]] = {
+    zk.get(pathToString(path)) map { case response ⇒ response.data.map(new String(_)) }
   }
 
-  private def get(path: List[String]): Future[Option[String]] = zk.get(pathToString(path)) map { case response ⇒ response.data.map(new String(_)) }
-
-  private def put(path: List[String], data: Option[String]) = {
-    zk.set(pathToString(path), data.map(_.getBytes)) onFailure {
-      case failure ⇒ log.error(failure, failure.getMessage)
+  override protected def set(path: List[String], data: Option[String]): Unit = {
+    zk.get(pathToString(path)) recoverWith {
+      case _ ⇒ zk.createPath(pathToString(path))
+    } onComplete {
+      case _ ⇒ zk.set(pathToString(path), data.map(_.getBytes)) onFailure {
+        case failure ⇒ log.error(failure, failure.getMessage)
+      }
     }
   }
+
+  override def postStop() = zk.close()
+
+  private def pathToString(path: List[String]) = path.mkString("/")
 }
 
 trait ZooKeeperServerStatistics {

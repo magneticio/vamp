@@ -1,4 +1,4 @@
-package io.vamp.gateway_driver.zookeeper
+package io.vamp.persistence.kv
 
 import java.util
 import java.util.concurrent.{ CountDownLatch, TimeUnit }
@@ -268,7 +268,7 @@ class AsyncZooKeeperClientImpl(
   /**
    * connect() attaches to the remote zookeeper and sets an instance variable.
    */
-  private[zookeeper] def connect(): Unit = {
+  private[kv] def connect(): Unit = {
     import KeeperState._
     val connectionLatch = new CountDownLatch(1)
     val assignLatch = new CountDownLatch(1)
@@ -306,7 +306,7 @@ class AsyncZooKeeperClientImpl(
     }
   }
 
-  private[zookeeper] def handleNull(op: Option[Array[Byte]]): Array[Byte] = if (op == null) null else op.orNull
+  private[kv] def handleNull(op: Option[Array[Byte]]): Array[Byte] = if (op == null) null else op.orNull
 
   override def subPaths(path: String, sep: Char) =
     path.split(sep).toList match {
@@ -324,7 +324,7 @@ class AsyncZooKeeperClientImpl(
    * @param path relative or absolute path
    * @return absolute zk path
    */
-  private[zookeeper] def mkPath(path: String) = (path startsWith "/" match {
+  private[kv] def mkPath(path: String) = (path startsWith "/" match {
     case true  ⇒ path
     case false ⇒ "%s/%s".format(basePath, path)
   }).replaceAll("//", "/") match {
