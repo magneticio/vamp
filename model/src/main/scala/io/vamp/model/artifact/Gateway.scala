@@ -89,14 +89,15 @@ case class FilterReference(name: String) extends Reference with Filter
 
 object DefaultFilter {
 
-  val userAgent = "^[uU]ser[-.][aA]gent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
-  val host = "^[hH]ost[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r
-  val cookieContains = "^[cC]ookie (.*) [Cc]ontains (.*)$".r
-  val hasCookie = "^[Hh]as [Cc]ookie (.*)$".r
-  val missesCookie = "^[Mm]isses [Cc]ookie (.*)$".r
-  val headerContains = "^[Hh]eader (.*) [Cc]ontains (.*)$".r
-  val hasHeader = "^[Hh]as [Hh]eader (.*)$".r
-  val missesHeader = "^[Mm]isses [Hh]eader (.*)$".r
+  val userAgent = "^(?i)user[-.]agent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
+  val host = "^(?i)host[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r
+  val cookieContains = "^(?i)cookie (.+) contains (.+)$".r
+  val hasCookie = "^(?i)has cookie (.+)$".r
+  val missesCookie = "^(?i)misses cookie (.+)$".r
+  val headerContains = "^(?i)header (.+) contains (.+)$".r
+  val hasHeader = "^(?i)has header (.+)$".r
+  val missesHeader = "^(?i)misses header (.+)$".r
+  val rewrite = "^(?i)rewrite (.+) if (.+)$".r
 
   def isHttp(filter: Filter): Boolean = filter match {
     case f: DefaultFilter ⇒ f.condition match {

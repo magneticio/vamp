@@ -47,7 +47,10 @@ frontend name
 
   # destination: name1
   acl 22626cf3a6a55e2d hdr_sub(user-agent) MSIE
-  use_backend name1 if 22626cf3a6a55e2d 
+  acl 81b5022a1c5966ab hdr_sub(user-agent) Chrome
+  use_backend name1 if 22626cf3a6a55e2d 81b5022a1c5966ab 
+  
+  http-request set-path /images/%[path] if p_ext_jpg path_end -i .jpg
 
   # backend: name1
   default_backend name1

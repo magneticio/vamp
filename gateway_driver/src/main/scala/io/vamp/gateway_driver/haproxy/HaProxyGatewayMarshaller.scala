@@ -100,19 +100,23 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   private[haproxy] def filter(backends: List[Backend], route: AbstractRoute)(implicit gateway: Gateway): Filter = {
 
     val conditions = route.filters.filter(_.isInstanceOf[DefaultFilter]).map(_.asInstanceOf[DefaultFilter].condition).map {
-      case userAgent(n, c)        ⇒ Condition(s"hdr_sub(user-agent) ${c.trim}", n == "!")
-      case host(n, c)             ⇒ Condition(s"hdr_str(host) ${c.trim}", n == "!")
-      case cookieContains(c1, c2) ⇒ Condition(s"cook_sub(${c1.trim}) ${c2.trim}")
-      case hasCookie(c)           ⇒ Condition(s"cook(${c.trim}) -m found")
-      case missesCookie(c)        ⇒ Condition(s"cook_cnt(${c.trim}) eq 0")
-      case headerContains(h, c)   ⇒ Condition(s"hdr_sub(${h.trim}) ${c.trim}")
-      case hasHeader(h)           ⇒ Condition(s"hdr_cnt(${h.trim}) gt 0")
-      case missesHeader(h)        ⇒ Condition(s"hdr_cnt(${h.trim}) eq 0")
-      case any                    ⇒ Condition(any)
+      case userAgent(n, c)        ⇒ Acl(s"hdr_sub(user-agent) ${c.trim}", n == "!")
+      case host(n, c)             ⇒ Acl(s"hdr_str(host) ${c.trim}", n == "!")
+      case cookieContains(c1, c2) ⇒ Acl(s"cook_sub(${c1.trim}) ${c2.trim}")
+      case hasCookie(c)           ⇒ Acl(s"cook(${c.trim}) -m found")
+      case missesCookie(c)        ⇒ Acl(s"cook_cnt(${c.trim}) eq 0")
+      case headerContains(h, c)   ⇒ Acl(s"hdr_sub(${h.trim}) ${c.trim}")
+      case hasHeader(h)           ⇒ Acl(s"hdr_cnt(${h.trim}) gt 0")
+      case missesHeader(h)        ⇒ Acl(s"hdr_cnt(${h.trim}) eq 0")
+      case rewrite(p, c)          ⇒ Rewrite(p, if (c.matches("^\\s*\\{.*\\}\\s*$")) c else s"{ $c }")
+      case any                    ⇒ Acl(any)
     }
 
+    val acls = conditions.filter(_.isInstanceOf[Acl]).map(_.asInstanceOf[Acl])
+    val rewrites = conditions.filter(_.isInstanceOf[Rewrite]).map(_.asInstanceOf[Rewrite])
+
     backendFor(backends, GatewayMarshaller.lookup(gateway, route.path.segments)) match {
-      case backend ⇒ Filter(backend.lookup, backend, conditions)
+      case backend ⇒ Filter(backend.lookup, backend, acls, rewrites)
     }
   }
 
