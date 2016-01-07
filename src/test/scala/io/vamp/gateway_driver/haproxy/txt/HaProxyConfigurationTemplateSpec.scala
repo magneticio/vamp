@@ -58,6 +58,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       mode = Mode.http,
       proxyServers = servers1,
       servers = Nil,
+      rewrites = Nil,
       sticky = false,
       options = options
     ) :: Backend(
@@ -66,14 +67,14 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         mode = Mode.http,
         proxyServers = Nil,
         servers = servers2,
+        rewrites = Rewrite("/images/%[path]", "p_ext_jpg path_end -i .jpg") :: Nil,
         sticky = false,
         options = options
       ) :: Nil
 
     val filters = HaProxyFilter(
       name = "ie",
-      acls = Acl("hdr_sub(user-agent) MSIE") :: Acl("hdr_sub(user-agent) Chrome") :: Nil,
-      rewrites = Rewrite("/images/%[path]", "p_ext_jpg path_end -i .jpg") :: Nil,
+      conditions = Condition("hdr_sub(user-agent) MSIE") :: Condition("hdr_sub(user-agent) Chrome") :: Nil,
       destination = backends.head
     ) :: Nil
 
@@ -293,7 +294,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
   it should "convert filters" in {
     val route = DefaultRoute("sava", GatewayPath("sava"), None, Nil)
-    val backends = Backend("vamp://sava", "ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, sticky = false, Options()) :: Nil
+    val backends = Backend("vamp://sava", "ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, Nil, sticky = false, Options()) :: Nil
 
     List(
       ("hdr_sub(user-agent) Android", "hdr_sub(user-agent) Android", false),
@@ -312,9 +313,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       ("misses header X-SPECIAL", "hdr_cnt(X-SPECIAL) eq 0", false)
     ) foreach { input ⇒
         filter(backends, route.copy(filters = DefaultFilter("", input._1) :: Nil))(Gateway("vamp", Port(0), None, Nil)) match {
-          case HaProxyFilter(_, _, acls, _) ⇒
-            input._2 shouldBe acls.head.definition
-            input._3 shouldBe acls.head.negate
+          case HaProxyFilter(_, _, conditions) ⇒
+            input._2 shouldBe conditions.head.definition
+            input._3 shouldBe conditions.head.negate
         }
       }
   }
@@ -559,8 +560,6 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     def normalize(string: String): Array[String] = string.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n") match {
       case s ⇒ s.split('\n').map(_.trim).filter(_.nonEmpty).filterNot(_.startsWith("#")).map(_.replaceAll("\\s+", " "))
     }
-
-    println(config.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n"))
 
     val actual = normalize(config)
     val expected = normalize(Source.fromURL(getClass.getResource(resource)).mkString)

@@ -54,46 +54,11 @@ frontend @frontend.lookup
 
   mode @frontend.mode
 
-  @* httpQuota and tcpQuota not supported yet.
-  ###
-  #
-  # Spike/Rate Limiting & Quota Management
-  #
-  # We use a stick table to keep track of TCP connections rates and bytes send out.
-  # On these metrics we set rules to designate upper limits. When limits are hit
-  # we reroute the traffic to a specific abusers backend.
-  #
-  ###
-  @if(frontend.httpQuota.isDefined) {
-  # Start HTTP spike limit generation
-  stick-table type ip size 200k expire @frontend.httpQuota.get.expiryTime store http_req_rate(@frontend.httpQuota.get.sampleWindow)
-  # Values below are specific to the backend.
-  # Track the request and set ACL's.
-  tcp-request content track-sc1 src
-  acl marked_as_abuser sc1_http_req_rate gt @frontend.httpQuota.get.rate
-  use_backend abusers if marked_as_abuser
-  # End HTTP spike limit generation.
-  }
-  @if(frontend.tcpQuota.isDefined) {
-  # Start TCP spike limit generation
-  stick-table type ip size 200k expire @frontend.tcpQuota.get.expiryTime store conn_rate(@frontend.tcpQuota.get.sampleWindow)
-  # Values below are specific to the backend.
-  # Track the request and set ACL's.
-  tcp-request content track-sc2 src
-  acl marked_as_abuser sc2_conn_rate gt @frontend.tcpQuota.get.rate
-  use_backend abusers if marked_as_abuser
-  # End TCP spike limit generation.
-  }
-  *@
-
   @for(filter <- frontend.filters) {
-  @if(filter.acls.nonEmpty) {
+  @if(filter.conditions.nonEmpty) {
   # destination: @filter.destination.name
-  @for(acl <- filter.acls) {acl @acl.name @acl.definition
-  }use_backend @filter.destination.lookup if @for(acl <- filter.acls) {@if(acl.negate) {!}@acl.name } }
-  @for(rewrite <- filter.rewrites) {
-  http-request set-path @rewrite.path if @rewrite.condition
-  }
+  @for(condition <- filter.conditions) {acl @condition.name @condition.definition
+  }use_backend @filter.destination.lookup if @for(condition <- filter.conditions) {@if(condition.negate) {!}@condition.name } }
   }
 
   # backend: @frontend.defaultBackend.name
@@ -108,6 +73,10 @@ backend @backend.lookup
   @if(backend.mode == Mode.tcp)         {balance leastconn        }
   @if(backend.sticky) {
   cookie @backend.lookup insert indirect nocache
+  }
+
+  @for(rewrite <- backend.rewrites) {
+  http-request set-path @rewrite.path if @rewrite.condition
   }
 
   @for(server <- backend.proxyServers) {
@@ -135,8 +104,3 @@ backend @backend.lookup
   @if(backend.options.tcpLog)           {option tcplog            }
   }
 }
-@*
-backend abusers
-  mode http
-  errorfile 409 /opt/docker/configuration/error_pages/500rate.http
-*@
