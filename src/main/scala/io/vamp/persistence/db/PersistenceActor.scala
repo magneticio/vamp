@@ -1,12 +1,14 @@
 package io.vamp.persistence.db
 
 import akka.util.Timeout
+import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.model.artifact._
+import io.vamp.persistence.kv.KeyValueStoreActor
 import io.vamp.persistence.notification._
 import io.vamp.pulse.notification.PulseFailureNotifier
 
@@ -58,10 +60,13 @@ trait PersistenceActor extends PersistenceRequestSplit with PersistenceArchiving
 
   def receive = {
 
-    case InfoRequest ⇒ reply(info() map {
-      case map: Map[_, _] ⇒ map.asInstanceOf[Map[Any, Any]] ++ Map("archive" -> true)
-      case other          ⇒ other
-    })
+    case InfoRequest ⇒ reply {
+      info() flatMap {
+        case persistenceInfo ⇒ IoC.actorFor[KeyValueStoreActor] ? InfoRequest map {
+          case keyValueInfo ⇒ Map("db" -> persistenceInfo, "keyValue" -> keyValueInfo, "archive" -> true)
+        }
+      }
+    }
 
     case All(ofType, page, perPage, expandRef, onlyRef) ⇒ reply {
       all(ofType, page, perPage).flatMap(combine).flatMap {
