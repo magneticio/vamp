@@ -1,6 +1,5 @@
 package io.vamp.gateway_driver.haproxy
 
-import io.vamp.common.crypto.Hash
 import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
 import io.vamp.model.artifact._
@@ -94,26 +93,27 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     }
 
   private def filters(backends: List[Backend])(implicit gateway: Gateway): List[Filter] = gateway.routes.flatMap {
-    case route: AbstractRoute ⇒ route.filters.map(f ⇒ filter(backends, route, f.asInstanceOf[DefaultFilter]))
+    case route: AbstractRoute ⇒ if (route.filters.nonEmpty) filter(backends, route) :: Nil else Nil
     case _                    ⇒ Nil
   }
 
-  private[haproxy] def filter(backends: List[Backend], route: Route, filter: DefaultFilter)(implicit gateway: Gateway): Filter = {
-    val (condition, negate) = filter.condition match {
-      case userAgent(n, c)        ⇒ s"hdr_sub(user-agent) ${c.trim}" -> (n == "!")
-      case host(n, c)             ⇒ s"hdr_str(host) ${c.trim}" -> (n == "!")
-      case cookieContains(c1, c2) ⇒ s"cook_sub(${c1.trim}) ${c2.trim}" -> false
-      case hasCookie(c)           ⇒ s"cook(${c.trim}) -m found" -> false
-      case missesCookie(c)        ⇒ s"cook_cnt(${c.trim}) eq 0" -> false
-      case headerContains(h, c)   ⇒ s"hdr_sub(${h.trim}) ${c.trim}" -> false
-      case hasHeader(h)           ⇒ s"hdr_cnt(${h.trim}) gt 0" -> false
-      case missesHeader(h)        ⇒ s"hdr_cnt(${h.trim}) eq 0" -> false
-      case any                    ⇒ any -> false
+  private[haproxy] def filter(backends: List[Backend], route: AbstractRoute)(implicit gateway: Gateway): Filter = {
+
+    val conditions = route.filters.filter(_.isInstanceOf[DefaultFilter]).map(_.asInstanceOf[DefaultFilter].condition).map {
+      case userAgent(n, c)        ⇒ Condition(s"hdr_sub(user-agent) ${c.trim}", n == "!")
+      case host(n, c)             ⇒ Condition(s"hdr_str(host) ${c.trim}", n == "!")
+      case cookieContains(c1, c2) ⇒ Condition(s"cook_sub(${c1.trim}) ${c2.trim}")
+      case hasCookie(c)           ⇒ Condition(s"cook(${c.trim}) -m found")
+      case missesCookie(c)        ⇒ Condition(s"cook_cnt(${c.trim}) eq 0")
+      case headerContains(h, c)   ⇒ Condition(s"hdr_sub(${h.trim}) ${c.trim}")
+      case hasHeader(h)           ⇒ Condition(s"hdr_cnt(${h.trim}) gt 0")
+      case missesHeader(h)        ⇒ Condition(s"hdr_cnt(${h.trim}) eq 0")
+      case any                    ⇒ Condition(any)
     }
 
-    val name = if (filter.name.isEmpty) Hash.hexSha1(condition).substring(0, 16) else filter.name
-
-    Filter(name, condition, backendFor(backends, GatewayMarshaller.lookup(gateway, route.path.segments)), negate)
+    backendFor(backends, GatewayMarshaller.lookup(gateway, route.path.segments)) match {
+      case backend ⇒ Filter(backend.lookup, backend, conditions)
+    }
   }
 
   private def backendFor(backends: List[Backend], lookup: String): Backend = backends.find(_.lookup == lookup).getOrElse(throw new IllegalArgumentException(s"No backend: $lookup"))

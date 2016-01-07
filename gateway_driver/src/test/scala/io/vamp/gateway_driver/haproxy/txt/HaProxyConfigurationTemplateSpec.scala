@@ -72,9 +72,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
     val filters = HaProxyFilter(
       name = "ie",
-      condition = "hdr_sub(user-agent) MSIE",
-      destination = backends.head,
-      negate = false
+      conditions = Condition("hdr_sub(user-agent) MSIE") :: Nil,
+      destination = backends.head
     ) :: Nil
 
     val frontends = Frontend(
@@ -311,10 +310,10 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       ("has header X-SPECIAL", "hdr_cnt(X-SPECIAL) gt 0", false),
       ("misses header X-SPECIAL", "hdr_cnt(X-SPECIAL) eq 0", false)
     ) foreach { input ⇒
-        filter(backends, route, DefaultFilter("", input._1))(Gateway("vamp", Port(0), None, Nil)) match {
-          case HaProxyFilter(_, condition, _, negate) ⇒
-            input._2 shouldBe condition
-            input._3 shouldBe negate
+        filter(backends, route.copy(filters = DefaultFilter("", input._1) :: Nil))(Gateway("vamp", Port(0), None, Nil)) match {
+          case HaProxyFilter(_, _, conditions) ⇒
+            input._2 shouldBe conditions.head.definition
+            input._3 shouldBe conditions.head.negate
         }
       }
   }

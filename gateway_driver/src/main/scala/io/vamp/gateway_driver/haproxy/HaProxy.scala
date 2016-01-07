@@ -1,5 +1,10 @@
 package io.vamp.gateway_driver.haproxy
 
+import io.vamp.common.crypto.Hash
+import io.vamp.model.artifact.Lookup
+
+import scala.tools.nsc.doc.base.comment.DefinitionList
+
 case class HaProxy(frontends: List[Frontend], backends: List[Backend], tcpLogFormat: String, httpLogFormat: String)
 
 case class Frontend(name: String,
@@ -25,7 +30,11 @@ object Mode extends Enumeration {
   val http, tcp = Value
 }
 
-case class Filter(name: String, condition: String, destination: Backend, negate: Boolean = false)
+case class Filter(name: String, destination: Backend, conditions: List[Condition])
+
+case class Condition(definition: String, negate: Boolean = false) {
+  val name = Hash.hexSha1(definition).substring(0, 16)
+}
 
 case class ProxyServer(name: String, lookup: String, unixSock: String, weight: Int)
 
