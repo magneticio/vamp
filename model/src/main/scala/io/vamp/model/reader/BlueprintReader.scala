@@ -1,6 +1,6 @@
 package io.vamp.model.reader
 
-import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.notification.{ Notification, NotificationErrorException, NotificationProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
@@ -315,7 +315,10 @@ object BlueprintReader extends AbstractBlueprintReader {
 }
 
 object DeploymentBlueprintReader extends AbstractBlueprintReader {
+
   override protected def validateDependencies(breeds: List[Breed]): Unit = {}
+
+  override def reportException(notification: Notification): Exception = NotificationErrorException(notification, message(notification))
 }
 
 object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale] {

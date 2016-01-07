@@ -5,12 +5,12 @@ import java.time.format.DateTimeFormatter
 
 import io.vamp.model.artifact.DeploymentService.State.Step
 import io.vamp.model.artifact._
-import io.vamp.model.notification.{ NotificationMessageNotRestored, UndefinedStateIntentionError, UndefinedStateStepError }
+import io.vamp.model.notification.{ UnexpectedInnerElementError, NotificationMessageNotRestored, UndefinedStateIntentionError, UndefinedStateStepError }
 import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
 
-object DeploymentReader extends YamlReader[Deployment] with TraitReader with DialectReader {
+object DeploymentReader extends YamlReader[Deployment] with TraitReader with DialectReader with ReferenceYamlReader[Deployment] {
 
   override protected def parse(implicit source: YamlSourceReader): Deployment = {
     val clusters = <<?[YamlSourceReader]("clusters") match {
@@ -97,5 +97,10 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
     }
 
     DeploymentService.State(intention, step, since(<<![String]("since")))
+  }
+
+  override def readReference: PartialFunction[Any, Deployment] = {
+    case yaml: YamlSourceReader if yaml.size > 1 ⇒ read(yaml)
+    case _                                       ⇒ throwException(UnexpectedInnerElementError("/", classOf[YamlSourceReader]))
   }
 }

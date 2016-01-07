@@ -4,7 +4,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.notification.{ NotificationErrorException, NotificationProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.conversion.DeploymentConversion._
 import io.vamp.model.reader._
@@ -14,6 +14,7 @@ import io.vamp.persistence.notification.PersistenceOperationFailure
 
 import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }
+import scala.util.Try
 
 trait DeploymentApiController extends ArtifactShrinkage {
   this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
@@ -40,25 +41,38 @@ trait DeploymentApiController extends ArtifactShrinkage {
     } else deployment
   }
 
-  def createDeployment(request: String, validateOnly: Boolean)(implicit timeout: Timeout) = DeploymentBlueprintReader.readReferenceFromSource(request) match {
+  def createDeployment(request: String, validateOnly: Boolean)(implicit timeout: Timeout) = processBlueprint(request, {
     case blueprint: BlueprintReference ⇒ actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, request, validateOnly)
     case blueprint: DefaultBlueprint ⇒
       if (!validateOnly) actorFor[PersistenceActor] ? PersistenceActor.Create(blueprint, Some(request))
       actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, request, validateOnly)
-  }
+  })
 
-  def updateDeployment(name: String, request: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = DeploymentBlueprintReader.readReferenceFromSource(request) match {
+  def updateDeployment(name: String, request: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = processBlueprint(request, {
     case blueprint: BlueprintReference ⇒ actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
     case blueprint: DefaultBlueprint ⇒
-      if (!validateOnly) actorFor[PersistenceActor] ? PersistenceActor.Create(blueprint, Some(request))
+      if (!validateOnly) actorFor[PersistenceActor] ! PersistenceActor.Create(blueprint, Some(request))
       actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
+  })
+
+  private def processBlueprint(request: String, process: (Blueprint) ⇒ Future[Any]) = try {
+    process {
+      DeploymentBlueprintReader.readReferenceFromSource(request)
+    }
+  } catch {
+    case e: NotificationErrorException ⇒ Try {
+      process(DeploymentReader.readReferenceFromSource(request).asBlueprint)
+    } getOrElse (throw e)
   }
 
   def deleteDeployment(name: String, request: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = {
-    if (request.nonEmpty)
-      actorFor[DeploymentActor] ? DeploymentActor.Slice(name, DeploymentBlueprintReader.readReferenceFromSource(request), request, validateOnly)
-    else
+    if (request.nonEmpty) {
+      processBlueprint(request, {
+        case blueprint ⇒ actorFor[DeploymentActor] ? DeploymentActor.Slice(name, blueprint, request, validateOnly)
+      })
+    } else {
       actorFor[PersistenceActor] ? PersistenceActor.Read(name, classOf[Deployment])
+    }
   }
 
   def sla(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =

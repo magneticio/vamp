@@ -425,7 +425,15 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
         blueprintCluster.routingBy(portName).getOrElse(Gateway("", port, None, Nil)).copy(name = name, routes = oldRoutes ++ newRoutes)
       } toList
 
-    } else stableCluster.map(_ ⇒ blueprintCluster.routing).getOrElse(Nil)
+    } else {
+      stableCluster.map { cluster ⇒
+        cluster.services.flatMap(_.breed.ports).map(_.name).toSet[String].map { portName ⇒
+          val port = cluster.routingBy(portName).map(_.port).getOrElse(Port(portName, None, None))
+          val name = DeploymentCluster.gatewayNameFor(deployment, blueprintCluster, port)
+          blueprintCluster.routingBy(portName).getOrElse(Gateway("", port, None, Nil)).copy(name = name, port = port)
+        } toList
+      } getOrElse Nil
+    }
   }
 
   def processGateway(deployment: Deployment): Gateway ⇒ Gateway = processGatewayRoutes(deployment) andThen processGatewayWeights andThen updateGatewayName(deployment)
