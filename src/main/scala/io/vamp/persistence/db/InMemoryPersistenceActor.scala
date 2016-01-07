@@ -1,4 +1,4 @@
-package io.vamp.persistence
+package io.vamp.persistence.db
 
 import akka.event.LoggingAdapter
 import io.vamp.common.http.OffsetEnvelope
