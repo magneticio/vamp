@@ -85,18 +85,13 @@ frontend @frontend.lookup
   # End TCP spike limit generation.
   }
   *@
-  ###
-  #
-  # Filter Management
-  #
-  # Set filters with optional negation.
-  #
-  ###
+
   @for(filter <- frontend.filters) {
-  acl @filter.name @filter.condition
-  # destination: filter.destination.name
-  use_backend @filter.destination.lookup if @if(filter.negate) {!}@filter.name
+  # destination: @filter.destination.name
+  @for(condition <- filter.conditions) {acl @condition.name @condition.definition
+  }use_backend @filter.destination.lookup if @for(condition <- filter.conditions) {@if(condition.negate) {!}@condition.name }
   }
+
   # backend: @frontend.defaultBackend.name
   default_backend @frontend.defaultBackend.lookup
 }

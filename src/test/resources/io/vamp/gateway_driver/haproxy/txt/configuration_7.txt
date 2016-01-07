@@ -42,34 +42,17 @@ frontend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 
   mode http
 
-  ###
-  #
-  # Filter Management
-  #
-  # Set filters with optional negation.
-  #
-  ###
-  
+  # destination: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
   acl 624dc0f1a5754e94 hdr_sub(user-agent) ie
-  # destination: filter.destination.name
-  use_backend 62a11db802baf59987a3ece9e10d8754eca16a09 if !624dc0f1a5754e94
-  
   acl 3cb39f8aae4d99da hdr_sub(user-agent) chrome
-  # destination: filter.destination.name
-  use_backend 62a11db802baf59987a3ece9e10d8754eca16a09 if 3cb39f8aae4d99da
-  
   acl 445a3abaca79c140 cook_sub(group) admin
-  # destination: filter.destination.name
-  use_backend 62a11db802baf59987a3ece9e10d8754eca16a09 if 445a3abaca79c140
-  
   acl feb4c187ccc342ce hdr_cnt(x-allow) gt 0
-  # destination: filter.destination.name
-  use_backend 62a11db802baf59987a3ece9e10d8754eca16a09 if feb4c187ccc342ce
-  
+  use_backend 62a11db802baf59987a3ece9e10d8754eca16a09 if !624dc0f1a5754e94 3cb39f8aae4d99da 445a3abaca79c140 feb4c187ccc342ce 
+
   # backend: vamp/sava/port/_
   default_backend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 
-# frontend: vamp/sava/port/_://vamp/sava/sava:1.0.0/port
+# frontend: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
 frontend 62a11db802baf59987a3ece9e10d8754eca16a09
 
   option httplog
@@ -79,15 +62,7 @@ frontend 62a11db802baf59987a3ece9e10d8754eca16a09
 
   mode http
 
-  ###
-  #
-  # Filter Management
-  #
-  # Set filters with optional negation.
-  #
-  ###
-  
-  # backend: vamp/sava/port/_://vamp/sava/sava:1.0.0/port
+  # backend: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
   default_backend 62a11db802baf59987a3ece9e10d8754eca16a09
 
 # backend: vamp/sava/port/_
@@ -95,10 +70,10 @@ backend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   mode http
   balance roundrobin       
 
-  # server: vamp/sava/port/_://vamp/sava/sava:1.0.0/port
+  # server: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
   server 62a11db802baf59987a3ece9e10d8754eca16a09 unix@/opt/vamp/62a11db802baf59987a3ece9e10d8754eca16a09.sock send-proxy weight 100 
 
-# backend: vamp/sava/port/_://vamp/sava/sava:1.0.0/port
+# backend: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
 backend 62a11db802baf59987a3ece9e10d8754eca16a09
   mode http
   balance roundrobin       

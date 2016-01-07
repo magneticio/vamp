@@ -45,18 +45,10 @@ frontend name
 
   mode http
 
-  ###
-  #
-  # Filter Management
-  #
-  # Set filters with optional negation.
-  #
-  ###
-  
-  acl ie hdr_sub(user-agent) MSIE
-  # destination: filter.destination.name
-  use_backend name1 if ie
-  
+  # destination: name1
+  acl 22626cf3a6a55e2d hdr_sub(user-agent) MSIE
+  use_backend name1 if 22626cf3a6a55e2d 
+
   # backend: name1
   default_backend name1
 
