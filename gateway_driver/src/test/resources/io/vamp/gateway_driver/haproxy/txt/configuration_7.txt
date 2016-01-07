@@ -47,11 +47,7 @@ frontend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   acl 3cb39f8aae4d99da hdr_sub(user-agent) chrome
   acl 445a3abaca79c140 cook_sub(group) admin
   acl feb4c187ccc342ce hdr_cnt(x-allow) gt 0
-  use_backend 62a11db802baf59987a3ece9e10d8754eca16a09 if !624dc0f1a5754e94 3cb39f8aae4d99da 445a3abaca79c140 feb4c187ccc342ce 
-  
-  http-request set-path /images/%[path] if { p_ext_jpg path_end -i .jpg }
-  
-  http-request set-path /img/%[path] if { p_ext_jpg path_end -i .jpg } !{ p_folder_images path_beg -i /images/ }
+  use_backend 62a11db802baf59987a3ece9e10d8754eca16a09 if !624dc0f1a5754e94 3cb39f8aae4d99da 445a3abaca79c140 feb4c187ccc342ce  
 
   # backend: vamp/sava/port/_
   default_backend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
@@ -81,6 +77,10 @@ backend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 backend 62a11db802baf59987a3ece9e10d8754eca16a09
   mode http
   balance roundrobin       
+
+  http-request set-path /images/%[path] if { p_ext_jpg path_end -i .jpg }
+  
+  http-request set-path /img/%[path] if { p_ext_jpg path_end -i .jpg } !{ p_folder_images path_beg -i /images/ }
 
   option forwardfor
   

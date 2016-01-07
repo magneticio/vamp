@@ -11,15 +11,16 @@ case class Frontend(name: String,
                     mode: Mode.Value,
                     unixSock: Option[String],
                     sockProtocol: Option[String],
-                    options: Options,
                     filters: List[Filter],
-                    defaultBackend: Backend)
+                    defaultBackend: Backend,
+                    options: Options)
 
 case class Backend(name: String,
                    lookup: String,
                    mode: Mode.Value,
                    proxyServers: List[ProxyServer],
                    servers: List[Server],
+                   rewrites: List[Rewrite],
                    sticky: Boolean,
                    options: Options)
 
@@ -27,9 +28,9 @@ object Mode extends Enumeration {
   val http, tcp = Value
 }
 
-case class Filter(name: String, destination: Backend, acls: List[Acl], rewrites: List[Rewrite])
+case class Filter(name: String, destination: Backend, conditions: List[Condition])
 
-case class Acl(definition: String, negate: Boolean = false) {
+case class Condition(definition: String, negate: Boolean = false) {
   val name = Hash.hexSha1(definition).substring(0, 16)
 }
 
