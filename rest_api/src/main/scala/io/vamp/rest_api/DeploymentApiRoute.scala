@@ -190,19 +190,21 @@ trait DevController {
   }
 
   def reset()(implicit timeout: Timeout): Unit = {
-
-    allArtifacts[Gateway] map { gateways ⇒
-      gateways.foreach { gateway ⇒
-        IoC.actorFor[PersistenceActor] ! PersistenceActor.Delete(gateway.name, gateway.getClass)
-      }
-      sync()
-    }
-
     allArtifacts[Deployment] map { deployments ⇒
-      deployments.foreach { deployment ⇒
-        IoC.actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster ⇒ cluster.copy(services = cluster.services.map(service ⇒ service.copy(state = State(State.Intention.Undeploy)))))))
+      Future.sequence {
+        deployments.map { deployment ⇒
+          IoC.actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster ⇒ cluster.copy(services = cluster.services.map(service ⇒ service.copy(state = State(State.Intention.Undeploy)))))))
+        }
+      } onComplete {
+        case _ ⇒
+          allArtifacts[Gateway] map { gateways ⇒
+            Future.sequence {
+              gateways.map { gateway ⇒
+                IoC.actorFor[PersistenceActor] ? PersistenceActor.Delete(gateway.name, gateway.getClass)
+              }
+            }
+          }
       }
-      sync()
     }
   }
 
@@ -218,4 +220,3 @@ trait DevController {
     }
   }
 }
-
