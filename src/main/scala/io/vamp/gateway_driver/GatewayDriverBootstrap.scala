@@ -6,7 +6,6 @@ import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.gateway_driver.aggregation.{ MetricsActor, MetricsSchedulerActor }
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.gateway_driver.kibana.{ KibanaDashboardActor, KibanaDashboardInitializationActor, KibanaDashboardSchedulerActor }
-import io.vamp.gateway_driver.zookeeper.ZooKeeperGatewayStoreActor
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -16,10 +15,7 @@ object GatewayDriverBootstrap extends Bootstrap {
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
     val configuration = ConfigFactory.load().getConfig("vamp.gateway-driver")
 
-    IoC.alias[GatewayStore, ZooKeeperGatewayStoreActor]
-
     val actors = List(
-      IoC.createActor[ZooKeeperGatewayStoreActor],
       IoC.createActor[GatewayDriverActor](new HaProxyGatewayMarshaller() {
         override def tcpLogFormat: String = ConfigFactory.load().getString("vamp.gateway-driver.haproxy.tcp-log-format")
         override def httpLogFormat: String = ConfigFactory.load().getString("vamp.gateway-driver.haproxy.http-log-format")

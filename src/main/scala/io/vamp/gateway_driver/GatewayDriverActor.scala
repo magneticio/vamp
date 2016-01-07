@@ -4,15 +4,17 @@ import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.gateway_driver.GatewayStore.{ Create, Get, Put }
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor
 import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
 import io.vamp.model.artifact._
+import io.vamp.persistence.kv.KeyValueStoreActor
 import io.vamp.pulse.notification.PulseFailureNotifier
 
 import scala.language.postfixOps
 
 object GatewayDriverActor {
+
+  val path = "gateways" :: Nil
 
   trait GatewayDriverMessage
 
@@ -24,12 +26,12 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PulseFailureNoti
 
   import GatewayDriverActor._
 
-  lazy implicit val timeout = GatewayStore.timeout
+  lazy implicit val timeout = KeyValueStoreActor.timeout
 
-  private def path = GatewayStore.path ++ marshaller.path
+  private def path = GatewayDriverActor.path ++ marshaller.path
 
   override def preStart() {
-    IoC.actorFor[GatewayStore] ! Create(GatewayStore.path ++ marshaller.path)
+    IoC.actorFor[KeyValueStoreActor] ! KeyValueStoreActor.Set(path, None)
   }
 
   def receive = {
@@ -42,20 +44,17 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PulseFailureNoti
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 
-  private def info = (for {
-    store ← IoC.actorFor[GatewayStore] ? InfoRequest
-    kibana ← IoC.actorFor[KibanaDashboardActor] ? InfoRequest
-  } yield (store, kibana)).map {
-    case (store, kibana) ⇒ Map("store" -> store, "marshaller" -> marshaller.info, "kibana" -> kibana)
+  private def info = IoC.actorFor[KibanaDashboardActor] ? InfoRequest map {
+    case kibana ⇒ Map("marshaller" -> marshaller.info, "kibana" -> kibana)
   }
 
   private def commit(gateways: List[Gateway]) = {
-    def send(value: String) = IoC.actorFor[GatewayStore] ! Put(path, Option(value))
+    def send(value: String) = IoC.actorFor[KeyValueStoreActor] ! KeyValueStoreActor.Set(path, Option(value))
 
     val content = marshaller.marshall(gateways)
-    implicit val timeout = GatewayStore.timeout
+    implicit val timeout = KeyValueStoreActor.timeout
 
-    IoC.actorFor[GatewayStore] ? Get(path) map {
+    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(path) map {
       case Some(value: String) ⇒ if (value != content) send(content)
       case _                   ⇒ send(content)
     }
