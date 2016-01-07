@@ -1,6 +1,6 @@
-package io.vamp.persistence
+package io.vamp.persistence.db
 
-import _root_.io.vamp.common.akka.ExecutionContextProvider
+import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.workflow.{ DefaultWorkflow, ScheduledWorkflow, WorkflowReference }

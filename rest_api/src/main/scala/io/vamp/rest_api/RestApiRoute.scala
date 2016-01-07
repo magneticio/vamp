@@ -6,7 +6,7 @@ import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.http.{ CorsSupport, RestApiBase }
 import io.vamp.model.artifact.Artifact
 import io.vamp.operation.controller.ArtifactApiController
-import io.vamp.persistence.ArtifactPaginationSupport
+import io.vamp.persistence.db.ArtifactPaginationSupport
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 import spray.http._

@@ -9,8 +9,8 @@ import io.vamp.model.artifact._
 import io.vamp.model.conversion.DeploymentConversion._
 import io.vamp.model.reader._
 import io.vamp.operation.deployment.DeploymentActor
+import io.vamp.persistence.db.{ ArtifactResponseEnvelope, ArtifactShrinkage, PersistenceActor }
 import io.vamp.persistence.notification.PersistenceOperationFailure
-import io.vamp.persistence.{ ArtifactResponseEnvelope, ArtifactShrinkage, PersistenceActor }
 
 import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }

@@ -1,4 +1,4 @@
-package io.vamp.persistence
+package io.vamp.persistence.db
 
 import com.typesafe.config.ConfigFactory
 import io.vamp.model.artifact._

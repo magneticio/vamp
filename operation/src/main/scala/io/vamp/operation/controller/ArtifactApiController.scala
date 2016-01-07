@@ -10,8 +10,8 @@ import io.vamp.model.reader._
 import io.vamp.model.workflow.{DefaultWorkflow, ScheduledWorkflow, TimeTrigger, Workflow}
 import io.vamp.operation.notification.{InconsistentArtifactName, InvalidTimeTriggerError, MissingRequiredVariableError, UnexpectedArtifact}
 import io.vamp.operation.workflow.WorkflowSchedulerActor
+import io.vamp.persistence.db.{ArtifactResponseEnvelope, ArtifactSupport, PersistenceActor}
 import io.vamp.persistence.notification.PersistenceOperationFailure
-import io.vamp.persistence.{ArtifactResponseEnvelope, ArtifactSupport, PersistenceActor}
 import org.quartz.CronExpression
 
 import scala.concurrent.Future
@@ -58,7 +58,7 @@ trait ArtifactApiController extends ArtifactSupport {
     ("filters" -> new PersistenceHandler[Filter](FilterReader)) +
     ("workflows" -> new PersistenceHandler[Workflow](WorkflowReader)) +
     ("scheduled-workflows" -> new ScheduledWorkflowHandler()) +
-    ("gateways" -> new PersistenceHandler[Gateway](GatewayReader){
+    ("gateways" -> new PersistenceHandler[Gateway](GatewayReader) {
       override def background = true
     }) +
     // workaround for None response.
@@ -154,4 +154,5 @@ trait ArtifactApiController extends ArtifactSupport {
       }
     }
   }
+
 }

@@ -1,4 +1,4 @@
-package io.vamp.persistence
+package io.vamp.persistence.db
 
 import io.vamp.persistence.notification.PersistenceNotificationProvider
 import io.vamp.pulse.elasticsearch.ElasticsearchInitializationActor

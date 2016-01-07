@@ -1,7 +1,8 @@
-package io.vamp.persistence
+package io.vamp.core.persistence.db
 
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.http.OffsetResponseEnvelope
+import io.vamp.persistence.db.PaginationSupport
 import org.junit.runner.RunWith
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.junit.JUnitRunner

@@ -1,6 +1,6 @@
-package io.vamp.persistence
+package io.vamp.persistence.db
 
-import akka.actor.{ Actor, ActorLogging }
+import akka.actor.ActorLogging
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka._

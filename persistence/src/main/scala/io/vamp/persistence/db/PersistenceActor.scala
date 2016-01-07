@@ -1,4 +1,4 @@
-package io.vamp.persistence
+package io.vamp.persistence.db
 
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -22,7 +22,7 @@ case class ArtifactResponseEnvelope(response: List[Artifact], total: Long, page:
 
 object PersistenceActor {
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.persistence.response-timeout").seconds)
+  val timeout = Timeout(ConfigFactory.load().getInt("vamp.persistence.response-timeout").seconds)
 
   trait PersistenceMessages
 

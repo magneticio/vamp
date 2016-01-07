@@ -17,7 +17,7 @@ import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification.{ DeploymentServiceError, InternalServerError, OperationNotificationProvider }
-import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 
 import scala.concurrent.Future
 import scala.language.postfixOps

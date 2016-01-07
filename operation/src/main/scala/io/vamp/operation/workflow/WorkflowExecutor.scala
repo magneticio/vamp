@@ -6,7 +6,7 @@ import akka.actor.{ Actor, ActorLogging }
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, IoC }
 import io.vamp.model.artifact.Deployment
 import io.vamp.model.workflow._
-import io.vamp.persistence.{ ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.db.{ ArtifactSupport, PersistenceActor }
 import jdk.nashorn.api.scripting.NashornScriptEngineFactory
 
 import scala.collection.Set

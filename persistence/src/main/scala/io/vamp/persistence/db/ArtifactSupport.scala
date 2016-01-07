@@ -1,10 +1,10 @@
-package io.vamp.persistence
+package io.vamp.persistence.db
 
+import io.vamp.persistence.notification.{ ArtifactNotFound, PersistenceOperationFailure }
 import akka.pattern.ask
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, IoC }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact.Artifact
-import _root_.io.vamp.persistence.notification.{ PersistenceOperationFailure, ArtifactNotFound }
 
 import scala.concurrent.Future
 import scala.reflect._

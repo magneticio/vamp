@@ -8,7 +8,7 @@ import io.vamp.common.akka.IoC
 import io.vamp.model.event.Aggregator.AggregatorType
 import io.vamp.model.event._
 import io.vamp.model.workflow.ScheduledWorkflow
-import io.vamp.persistence.PersistenceActor
+import io.vamp.persistence.db.PersistenceActor
 import io.vamp.pulse.PulseActor.{ Publish, Query }
 import io.vamp.pulse.{ EventRequestEnvelope, EventResponseEnvelope, PulseActor }
 

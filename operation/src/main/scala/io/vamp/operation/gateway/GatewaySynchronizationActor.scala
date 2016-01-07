@@ -9,8 +9,8 @@ import io.vamp.model.artifact._
 import io.vamp.model.notification.UnsupportedRoutePathError
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
-import io.vamp.persistence.PersistenceActor.Update
-import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.db.PersistenceActor.Update
+import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 
 import scala.concurrent.duration._
 import scala.language.{ existentials, postfixOps }

@@ -1,4 +1,4 @@
-package io.vamp.persistence
+package io.vamp.persistence.db
 
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.model.artifact._

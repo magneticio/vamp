@@ -18,7 +18,7 @@ import io.vamp.operation.controller.DeploymentApiController
 import io.vamp.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.operation.gateway.GatewaySynchronizationActor
 import io.vamp.operation.sla.{ EscalationActor, SlaActor }
-import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 import spray.http.StatusCodes._
 import spray.http._
 

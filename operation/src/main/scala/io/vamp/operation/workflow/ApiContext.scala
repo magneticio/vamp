@@ -5,7 +5,7 @@ import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.model.workflow.ScheduledWorkflow
 import io.vamp.operation.notification.OperationNotificationProvider
-import io.vamp.persistence.{ PaginationSupport, PersistenceActor }
+import io.vamp.persistence.db.{ PaginationSupport, PersistenceActor }
 import org.json4s.Formats
 
 import scala.concurrent.ExecutionContext

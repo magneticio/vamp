@@ -2,7 +2,7 @@ package io.vamp.model.reader
 
 import java.io.{ File, InputStream, Reader, StringReader }
 
-import _root_.io.vamp.common.notification.{ NotificationErrorException, NotificationProvider }
+import io.vamp.common.notification.{ NotificationErrorException, NotificationProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
