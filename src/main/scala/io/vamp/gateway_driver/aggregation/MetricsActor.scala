@@ -46,7 +46,7 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
 
   def receive: Receive = {
     case MetricsUpdate ⇒ allArtifacts[Deployment] map (gateways andThen clusters andThen services)
-    case _                     ⇒
+    case _             ⇒
   }
 
   private def gateways: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
