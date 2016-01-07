@@ -87,9 +87,13 @@ frontend @frontend.lookup
   *@
 
   @for(filter <- frontend.filters) {
+  @if(filter.acls.nonEmpty) {
   # destination: @filter.destination.name
-  @for(condition <- filter.conditions) {acl @condition.name @condition.definition
-  }use_backend @filter.destination.lookup if @for(condition <- filter.conditions) {@if(condition.negate) {!}@condition.name }
+  @for(acl <- filter.acls) {acl @acl.name @acl.definition
+  }use_backend @filter.destination.lookup if @for(acl <- filter.acls) {@if(acl.negate) {!}@acl.name } }
+  @for(rewrite <- filter.rewrites) {
+  http-request set-path @rewrite.path if @rewrite.condition
+  }
   }
 
   # backend: @frontend.defaultBackend.name

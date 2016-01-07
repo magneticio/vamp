@@ -72,7 +72,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
     val filters = HaProxyFilter(
       name = "ie",
-      conditions = Condition("hdr_sub(user-agent) MSIE") :: Nil,
+      acls = Acl("hdr_sub(user-agent) MSIE") :: Acl("hdr_sub(user-agent) Chrome") :: Nil,
+      rewrites = Rewrite("/images/%[path]", "p_ext_jpg path_end -i .jpg") :: Nil,
       destination = backends.head
     ) :: Nil
 
@@ -311,9 +312,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       ("misses header X-SPECIAL", "hdr_cnt(X-SPECIAL) eq 0", false)
     ) foreach { input ⇒
         filter(backends, route.copy(filters = DefaultFilter("", input._1) :: Nil))(Gateway("vamp", Port(0), None, Nil)) match {
-          case HaProxyFilter(_, _, conditions) ⇒
-            input._2 shouldBe conditions.head.definition
-            input._3 shouldBe conditions.head.negate
+          case HaProxyFilter(_, _, acls, _) ⇒
+            input._2 shouldBe acls.head.definition
+            input._3 shouldBe acls.head.negate
         }
       }
   }
@@ -341,8 +342,13 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             ), DefaultFilter(
               name = "",
               condition = "has header x-allow"
-            )
-          ),
+            ), DefaultFilter(
+              name = "",
+              condition = "rewrite /images/%[path] if p_ext_jpg path_end -i .jpg"
+            ), DefaultFilter(
+              name = "",
+              condition = "rewrite /img/%[path] if { p_ext_jpg path_end -i .jpg } !{ p_folder_images path_beg -i /images/ }"
+            )),
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
@@ -550,7 +556,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
   }
 
   private def compare(config: String, resource: String) = {
-    def normalize(string: String): Array[String] = string.split('\n').map(_.trim).filter(_.nonEmpty).filterNot(_.startsWith("#")).map(_.replaceAll("\\s+", " "))
+    def normalize(string: String): Array[String] = string.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n") match {
+      case s ⇒ s.split('\n').map(_.trim).filter(_.nonEmpty).filterNot(_.startsWith("#")).map(_.replaceAll("\\s+", " "))
+    }
+
+    println(config.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n"))
 
     val actual = normalize(config)
     val expected = normalize(Source.fromURL(getClass.getResource(resource)).mkString)
