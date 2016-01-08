@@ -12,9 +12,9 @@ import scala.concurrent.Future
 
 object ElasticsearchPersistenceActor {
 
-  lazy val index = ConfigFactory.load().getString("vamp.persistence.elasticsearch.index")
+  lazy val index = ConfigFactory.load().getString("vamp.persistence.database.elasticsearch.index")
 
-  lazy val elasticsearchUrl: String = ConfigFactory.load().getString("vamp.persistence.elasticsearch.url")
+  lazy val elasticsearchUrl: String = ConfigFactory.load().getString("vamp.persistence.database.elasticsearch.url")
 }
 
 case class ElasticsearchArtifact(artifact: String)

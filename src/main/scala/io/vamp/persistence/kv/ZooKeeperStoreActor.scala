@@ -9,9 +9,9 @@ import io.vamp.common.akka._
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-class ZooKeeperGatewayStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
+class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
 
-  private lazy val config = ConfigFactory.load().getConfig("vamp.persistence.zookeeper")
+  private lazy val config = ConfigFactory.load().getConfig("vamp.persistence.key-value-store.zookeeper")
 
   private lazy val servers = config.getString("servers")
 
@@ -19,7 +19,7 @@ class ZooKeeperGatewayStoreActor extends KeyValueStoreActor with ZooKeeperServer
     servers = servers,
     sessionTimeout = config.getInt("session-timeout"),
     connectTimeout = config.getInt("connect-timeout"),
-    basePath = config.getString("base-path"),
+    basePath = "",
     watcher = None,
     eCtx = actorSystem.dispatcher
   )
@@ -55,8 +55,6 @@ class ZooKeeperGatewayStoreActor extends KeyValueStoreActor with ZooKeeperServer
   }
 
   override def postStop() = zk.close()
-
-  private def pathToString(path: List[String]) = path.mkString("/")
 }
 
 trait ZooKeeperServerStatistics {
