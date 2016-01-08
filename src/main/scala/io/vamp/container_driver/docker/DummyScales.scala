@@ -15,11 +15,10 @@ import scala.language.postfixOps
 
 trait DummyScales {
 
-  // Create some sane defaults
-  private val defaultCpu = ConfigFactory.load().getDouble("vamp.dictionary.default-scale.cpu")
-  private val defaultMemory = ConfigFactory.load().getDouble("vamp.dictionary.default-scale.memory")
-  private val defaultInstances = ConfigFactory.load().getInt("vamp.dictionary.default-scale.instances")
-  private val defaultScale: DefaultScale = DefaultScale(name = "", cpu = defaultCpu, memory = MegaByte.of(defaultMemory), instances = defaultInstances)
+  private val defaultScale: DefaultScale = {
+    val c = ConfigFactory.load().getConfig("vamp.dictionary.default-scale")
+    DefaultScale(name = "", cpu = c.getDouble("cpu"), memory = MegaByte.of(c.getString("memory")), instances = c.getInt("instances"))
+  }
 
   private var scales: Map[String, DefaultScale] = Map.empty
 
