@@ -1,5 +1,6 @@
 package io.vamp.persistence.kv
 
+import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
@@ -27,9 +28,11 @@ trait KeyValueStoreActor extends PulseFailureNotifier with CommonSupportForActor
 
   lazy implicit val timeout = KeyValueStoreActor.timeout
 
+  private val basePath = ConfigFactory.load().getString("vamp.persistence.key-value-store.base-path").stripMargin('/')
+
   def receive = {
-    case InfoRequest     ⇒ reply { info() }
-    case Get(path)       ⇒ reply { get(path) }
+    case InfoRequest     ⇒ reply(info())
+    case Get(path)       ⇒ reply(get(path))
     case Set(path, data) ⇒ set(path, data)
     case any             ⇒ unsupported(UnsupportedPersistenceRequest(any))
   }
@@ -39,6 +42,8 @@ trait KeyValueStoreActor extends PulseFailureNotifier with CommonSupportForActor
   protected def get(path: List[String]): Future[Option[String]]
 
   protected def set(path: List[String], data: Option[String]): Unit
+
+  protected def pathToString(path: List[String]) = (basePath :: path).mkString("/")
 
   override def typeName = "key-value"
 
