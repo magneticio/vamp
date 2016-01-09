@@ -63,7 +63,7 @@ trait PersistenceActor extends PersistenceRequestSplit with PersistenceArchiving
     case InfoRequest ⇒ reply {
       info() flatMap {
         case persistenceInfo ⇒ IoC.actorFor[KeyValueStoreActor] ? InfoRequest map {
-          case keyValueInfo ⇒ Map("db" -> persistenceInfo, "keyValue" -> keyValueInfo, "archive" -> true)
+          case keyValueInfo ⇒ Map("database" -> persistenceInfo, "keyValue" -> keyValueInfo, "archive" -> true)
         }
       }
     }

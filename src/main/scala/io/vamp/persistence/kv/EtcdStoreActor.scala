@@ -8,7 +8,7 @@ import io.vamp.common.http.RestClient
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-class EtcdStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
+class EtcdStoreActor extends KeyValueStoreActor {
 
   private val url = ConfigFactory.load().getString("vamp.persistence.key-value-store.etcd.url")
 
