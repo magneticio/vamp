@@ -4,7 +4,7 @@ import akka.actor.{ ActorRef, ActorSystem }
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ Bootstrap, IoC }
 import io.vamp.persistence.db.{ ElasticsearchPersistenceActor, ElasticsearchPersistenceInitializationActor, InMemoryPersistenceActor, PersistenceActor }
-import io.vamp.persistence.kv.{ EtcdStoreActor, KeyValueStoreActor, ZooKeeperStoreActor }
+import io.vamp.persistence.kv.{ ConsulStoreActor, EtcdStoreActor, KeyValueStoreActor, ZooKeeperStoreActor }
 
 object PersistenceBootstrap extends Bootstrap {
 
@@ -32,13 +32,17 @@ object PersistenceBootstrap extends Bootstrap {
     }
 
     val kvActor = keyValueStoreType match {
-      case "zookeeper" ⇒
-        IoC.alias[KeyValueStoreActor, ZooKeeperStoreActor]
-        IoC.createActor[ZooKeeperStoreActor]
-
       case "etcd" ⇒
         IoC.alias[KeyValueStoreActor, EtcdStoreActor]
         IoC.createActor[EtcdStoreActor]
+
+      case "consul" ⇒
+        IoC.alias[KeyValueStoreActor, ConsulStoreActor]
+        IoC.createActor[ConsulStoreActor]
+
+      case "zookeeper" ⇒
+        IoC.alias[KeyValueStoreActor, ZooKeeperStoreActor]
+        IoC.createActor[ZooKeeperStoreActor]
 
       case other ⇒ throw new RuntimeException(s"Unsupported key-value store type: $other")
     }
