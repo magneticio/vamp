@@ -5,56 +5,90 @@ import java.net.Socket
 
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
+import io.vamp.persistence.kv.AsyncResponse.{ DataResponse, FailedAsyncResponse }
+import org.apache.zookeeper.KeeperException.Code
 
 import scala.concurrent.Future
 import scala.language.postfixOps
 
 class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
 
-  private lazy val config = ConfigFactory.load().getConfig("vamp.persistence.key-value-store.zookeeper")
+  private val config = ConfigFactory.load().getConfig("vamp.persistence.key-value-store.zookeeper")
 
-  private lazy val servers = config.getString("servers")
+  private val servers = config.getString("servers")
 
-  private lazy val zk = AsyncZooKeeperClient(
-    servers = servers,
-    sessionTimeout = config.getInt("session-timeout"),
-    connectTimeout = config.getInt("connect-timeout"),
-    basePath = "",
-    watcher = None,
-    eCtx = actorSystem.dispatcher
-  )
+  private var zooKeeperClient: Option[AsyncZooKeeperClient] = None
 
-  override protected def info(): Future[Any] = zkVersion(servers) map {
-    case version ⇒ "zookeeper" -> (Map("version" -> version) ++ (zk.underlying match {
-      case Some(zookeeper) ⇒
-        val state = zookeeper.getState
-        Map(
-          "client" -> Map(
-            "servers" -> servers,
-            "state" -> state.toString,
-            "session" -> zookeeper.getSessionId,
-            "timeout" -> (if (state.isConnected) zookeeper.getSessionTimeout else "")
+  override protected def info(): Future[Any] = zooKeeperClient match {
+    case Some(zk) ⇒ zkVersion(servers) map {
+      case version ⇒ "zookeeper" -> (Map("version" -> version) ++ (zk.underlying match {
+        case Some(zookeeper) ⇒
+          val state = zookeeper.getState
+          Map(
+            "client" -> Map(
+              "servers" -> servers,
+              "state" -> state.toString,
+              "session" -> zookeeper.getSessionId,
+              "timeout" -> (if (state.isConnected) zookeeper.getSessionTimeout else "")
+            )
           )
-        )
-      case _ ⇒ Map("error" -> "no connection")
-    }))
-  }
-
-  override protected def get(path: List[String]): Future[Option[String]] = {
-    zk.get(pathToString(path)) map { case response ⇒ response.data.map(new String(_)) }
-  }
-
-  override protected def set(path: List[String], data: Option[String]): Unit = {
-    zk.get(pathToString(path)) recoverWith {
-      case _ ⇒ zk.createPath(pathToString(path))
-    } onComplete {
-      case _ ⇒ zk.set(pathToString(path), data.map(_.getBytes)) onFailure {
-        case failure ⇒ log.error(failure, failure.getMessage)
-      }
+        case _ ⇒ Map("error" -> "no connection")
+      }))
+    }
+    case None ⇒ Future.successful {
+      None
     }
   }
 
-  override def postStop() = zk.close()
+  override protected def get(path: List[String]): Future[Option[String]] = zooKeeperClient match {
+    case Some(zk) ⇒ zk.get(pathToString(path)) recoverWith {
+      case failure: FailedAsyncResponse if failure.code == Code.NONODE ⇒ Future.successful {
+        None
+      }
+      case failure ⇒
+        // something is going wrong with the connection
+        initClient()
+        Future.successful {
+          None
+        }
+    } map {
+      case None                   ⇒ None
+      case response: DataResponse ⇒ response.data.map(new String(_))
+    }
+
+    case None ⇒ Future.successful {
+      None
+    }
+  }
+
+  override protected def set(path: List[String], data: Option[String]): Unit = zooKeeperClient match {
+    case Some(zk) ⇒
+      zk.get(pathToString(path)) recoverWith {
+        case _ ⇒ zk.createPath(pathToString(path))
+      } onComplete {
+        case _ ⇒ zk.set(pathToString(path), data.map(_.getBytes)) onFailure {
+          case failure ⇒ log.error(failure, failure.getMessage)
+        }
+      }
+    case _ ⇒
+  }
+
+  private def initClient() = zooKeeperClient = Option {
+    AsyncZooKeeperClient(
+      servers = servers,
+      sessionTimeout = config.getInt("session-timeout"),
+      connectTimeout = config.getInt("connect-timeout"),
+      basePath = "",
+      watcher = None,
+      eCtx = actorSystem.dispatcher
+    )
+  }
+
+  override def preStart() = initClient()
+
+  override def postStop() = zooKeeperClient.foreach {
+    _.close()
+  }
 }
 
 trait ZooKeeperServerStatistics {
