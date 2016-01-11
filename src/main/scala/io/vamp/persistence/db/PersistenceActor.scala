@@ -107,7 +107,13 @@ trait PersistenceActor extends PersistenceRequestSplit with PersistenceArchiving
 
     case Delete(name, ofType) ⇒ reply {
       delete(name, ofType) map {
-        archiveDelete
+        case Some(artifact) ⇒
+          split(artifact, { artifact: Artifact ⇒
+            delete(artifact.name, artifact.getClass)
+            Future.successful(artifact)
+          })
+          archiveDelete(Option(artifact))
+        case _ ⇒ None
       }
     }
 
