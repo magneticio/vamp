@@ -63,11 +63,11 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   }
 
   private def synchronize(deployments: List[Deployment], gateways: List[Gateway]) = {
-    val updated = update(gateways, deployments)
-    (add(updated) andThen flush(updated))(gateways)
+    val updated = assignPorts(gateways, deployments)
+    (updateGatewayPorts(updated) andThen updateInstances(updated) andThen flush)(gateways)
   }
 
-  private def update(gateways: List[Gateway], deployments: List[Deployment]): List[Deployment] = {
+  private def assignPorts(gateways: List[Gateway], deployments: List[Deployment]): List[Deployment] = {
 
     var currentPort = portRangeLower - 1
     val used = gateways.map(_.port.number).toSet
@@ -110,7 +110,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     }
   }
 
-  private def add(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
+  private def updateGatewayPorts(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
     val deploymentGateways = deployments.flatMap { deployment ⇒
 
       val clusterGateways = deployment.clusters.filter(_.services.forall(_.state.isDone)).flatMap { cluster ⇒
@@ -128,8 +128,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     }).map(gateway ⇒ gateway.name -> gateway).toMap.values.toList
   }
 
-  private def flush(deployments: List[Deployment]): List[Gateway] ⇒ Unit = { gateways ⇒
-    val processed = gateways.map { gateway ⇒
+  private def updateInstances(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
+    gateways.map { gateway ⇒
 
       def targets(path: GatewayPath): List[Option[DeployedRouteTarget]] = path.segments match {
 
@@ -193,10 +193,16 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       }
 
       if (routes.exists(_.isEmpty)) gateway.copy(active = false) else gateway.copy(routes = routes.flatten, active = true)
+
+    } map { gateway ⇒
+      IoC.actorFor[PersistenceActor] ! Update(gateway)
+      gateway
     }
+  }
 
-    IoC.actorFor[GatewayDriverActor] ! Commit(processed.filter(_.active))
-
-    processed.foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(gateway) }
+  private def flush: List[Gateway] ⇒ Unit = { gateways ⇒
+    IoC.actorFor[GatewayDriverActor] ! Commit(
+      gateways filter { _.active } filter { _.port.number > 0 }
+    )
   }
 }
