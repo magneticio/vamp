@@ -21,19 +21,24 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
 
   override protected def info(): Future[Any] = zooKeeperClient match {
     case Some(zk) ⇒ zkVersion(servers) map {
-      case version ⇒ "zookeeper" -> (Map("version" -> version) ++ (zk.underlying match {
-        case Some(zookeeper) ⇒
-          val state = zookeeper.getState
-          Map(
-            "client" -> Map(
-              "servers" -> servers,
-              "state" -> state.toString,
-              "session" -> zookeeper.getSessionId,
-              "timeout" -> (if (state.isConnected) zookeeper.getSessionTimeout else "")
-            )
-          )
-        case _ ⇒ Map("error" -> "no connection")
-      }))
+      case version ⇒
+        Map(
+          "type" -> "zookeeper",
+          "zookeeper" -> (Map("version" -> version) ++ (zk.underlying match {
+            case Some(zookeeper) ⇒
+              val state = zookeeper.getState
+              Map(
+                "client" -> Map(
+                  "servers" -> servers,
+                  "state" -> state.toString,
+                  "session" -> zookeeper.getSessionId,
+                  "timeout" -> (if (state.isConnected) zookeeper.getSessionTimeout else "")
+                )
+              )
+
+            case _ ⇒ Map("error" -> "no connection")
+          }))
+        )
     }
     case None ⇒ Future.successful {
       None

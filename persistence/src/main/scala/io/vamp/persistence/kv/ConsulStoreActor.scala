@@ -13,7 +13,10 @@ class ConsulStoreActor extends KeyValueStoreActor {
   private val url = ConfigFactory.load().getString("vamp.persistence.key-value-store.consul.url")
 
   override protected def info(): Future[Any] = RestClient.get[Any](s"$url/v1/agent/self") map {
-    case consul ⇒ Map("consul" -> consul)
+    case consul ⇒ Map(
+      "type" -> "consul",
+      "consul" -> consul
+    )
   }
 
   override protected def get(path: List[String]): Future[Option[String]] = {
