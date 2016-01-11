@@ -247,10 +247,13 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
     if (persist.nonEmpty || remove.nonEmpty) {
       val clusters = deployment.clusters.filterNot(cluster ⇒ remove.exists(_.name == cluster.name)).map(cluster ⇒ persist.find(_.name == cluster.name).getOrElse(cluster))
 
-      if (clusters.isEmpty)
+      if (clusters.isEmpty) {
+        deployment.gateways foreach { gateway ⇒ actorFor[PersistenceActor] ! PersistenceActor.Delete(gateway.name, classOf[Gateway]) }
+        deployment.clusters.flatMap(_.routing) foreach { gateway ⇒ actorFor[PersistenceActor] ! PersistenceActor.Delete(gateway.name, classOf[Gateway]) }
         actorFor[PersistenceActor] ! PersistenceActor.Delete(deployment.name, classOf[Deployment])
-      else
+      } else {
         actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = clusters))
+      }
     }
   }
 }
