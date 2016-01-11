@@ -6,9 +6,11 @@ import akka.actor._
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.common.crypto.Hash
+import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.logstash.Logstash
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
-import io.vamp.model.artifact.Deployment
+import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor.Publish
@@ -44,6 +46,8 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
 
   private val es = new ElasticsearchClient(PulseActor.elasticsearchUrl)
 
+  private val referenceMatcher = """^[a-zA-Z0-9][a-zA-Z0-9.\-_]{3,63}$""".r
+
   def receive: Receive = {
     case MetricsUpdate ⇒ allArtifacts[Deployment] map (gateways andThen clusters andThen services)
     case _             ⇒
@@ -52,27 +56,11 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
   private def gateways: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
     deployments.foreach { deployment ⇒
       deployment.gateways.foreach { gateway ⇒
-        val lookup = "" //GatewayMarshaller.name(deployment, gateway.port)
-        query(lookup) map {
+        val name = nameFor(deployment, gateway.port)
+        query(gateway.lookupName) map {
           case Metrics(rate, responseTime) ⇒
-            publish(s"gateways:$lookup" :: "metrics:rate" :: Nil, rate)
-            publish(s"gateways:$lookup" :: "metrics:responseTime" :: Nil, responseTime)
-        }
-      }
-    }
-    deployments
-  }
-
-  private def clusters: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
-    deployments.foreach { deployment ⇒
-      deployment.clusters.foreach { cluster ⇒
-        cluster.services.filter(_.state.isDeployed).flatMap(_.breed.ports.map(_.name)).toSet[String].foreach { port ⇒
-          val lookup = "" //GatewayMarshaller.name(deployment, cluster, Port(port, None, None))
-          query(lookup) map {
-            case Metrics(rate, responseTime) ⇒
-              publish(s"gateways:${deployment.name}_${cluster.name}_$port" :: "metrics:rate" :: Nil, rate)
-              publish(s"gateways:${deployment.name}_${cluster.name}_$port" :: "metrics:responseTime" :: Nil, responseTime)
-          }
+            publish(s"gateways:$name" :: "metrics:rate" :: Nil, rate)
+            publish(s"gateways:$name" :: "metrics:responseTime" :: Nil, responseTime)
         }
       }
     }
@@ -84,17 +72,48 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
       deployment.clusters.foreach { cluster ⇒
         cluster.services.filter(_.state.isDeployed).foreach { service ⇒
           service.breed.ports.foreach { port ⇒
-            val lookup = "" //GatewayMarshaller.name(deployment, cluster, service, port)
-            query(lookup) map {
-              case Metrics(rate, responseTime) ⇒
-                publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:rate" :: Nil, rate)
-                publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:responseTime" :: Nil, responseTime)
+            cluster.routingBy(port.name) foreach {
+              case gateway ⇒
+                gateway.routes.map(_.path.segments).find {
+                  case _ :: _ :: s :: _ :: Nil ⇒ s == service.breed.name
+                  case _                       ⇒ false
+                } foreach {
+                  case segments ⇒ query(GatewayMarshaller.lookup(gateway, segments)) map {
+                    case Metrics(rate, responseTime) ⇒
+                      publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:rate" :: Nil, rate)
+                      publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:responseTime" :: Nil, responseTime)
+                  }
+                }
             }
           }
         }
       }
     }
     deployments
+  }
+
+  private def nameFor(deployment: Deployment, port: Port): String = flatten(path2string(deployment.name :: port.name :: Nil))
+
+  private def nameFor(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, port: Port): String = {
+    val name1 = path2string(deployment.name :: cluster.name :: port.name :: Nil)
+    val name2 = path2string(deployment.name :: cluster.name :: service.breed.name :: port.name :: Nil)
+    flatten(s"$name1/$name2")
+  }
+
+  private def path2string(path: GatewayPath): String = {
+    path.segments match {
+      case Nil                   ⇒ ""
+      case some if some.size < 4 ⇒ path2string(some :+ "_")
+      case some                  ⇒ some.mkString("/")
+    }
+  }
+
+  private def flatten(string: String) = {
+    val flatten = string.replaceAll("[^\\p{L}\\d_]", "_")
+    flatten match {
+      case referenceMatcher(_*) ⇒ flatten
+      case _                    ⇒ Hash.hexSha1(flatten)
+    }
   }
 
   private def query(lookup: String): Future[Metrics] = {
