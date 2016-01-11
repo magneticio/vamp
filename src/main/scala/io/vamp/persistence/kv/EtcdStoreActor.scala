@@ -16,7 +16,14 @@ class EtcdStoreActor extends KeyValueStoreActor {
     version ← RestClient.get[Any](s"$url/version")
     self ← RestClient.get[Any](s"$url/v2/stats/self")
     store ← RestClient.get[Any](s"$url/v2/stats/store")
-  } yield Map("etcd" -> Map("version" -> version, "statistics" -> self, "store" -> store))
+  } yield Map(
+    "type" -> "etcd",
+    "etcd" -> Map(
+      "version" -> version,
+      "statistics" -> self,
+      "store" -> store
+    )
+  )
 
   override protected def get(path: List[String]): Future[Option[String]] = {
     RestClient.get[Any](urlOf(path), RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
