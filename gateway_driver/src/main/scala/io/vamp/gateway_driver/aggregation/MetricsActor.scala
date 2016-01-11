@@ -49,7 +49,7 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
   private val referenceMatcher = """^[a-zA-Z0-9][a-zA-Z0-9.\-_]{3,63}$""".r
 
   def receive: Receive = {
-    case MetricsUpdate ⇒ allArtifacts[Deployment] map (gateways andThen clusters andThen services)
+    case MetricsUpdate ⇒ allArtifacts[Deployment] map (gateways andThen services)
     case _             ⇒
   }
 
@@ -93,12 +93,6 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
   }
 
   private def nameFor(deployment: Deployment, port: Port): String = flatten(path2string(deployment.name :: port.name :: Nil))
-
-  private def nameFor(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, port: Port): String = {
-    val name1 = path2string(deployment.name :: cluster.name :: port.name :: Nil)
-    val name2 = path2string(deployment.name :: cluster.name :: service.breed.name :: port.name :: Nil)
-    flatten(s"$name1/$name2")
-  }
 
   private def path2string(path: GatewayPath): String = {
     path.segments match {
