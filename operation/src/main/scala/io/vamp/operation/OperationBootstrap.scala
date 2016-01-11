@@ -24,6 +24,8 @@ object OperationBootstrap extends Bootstrap {
 
   val synchronizationPeriod = configuration.getInt("synchronization.period")
 
+  val synchronizationInitialDelay = configuration.getInt("synchronization.initial-delay")
+
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
     val actors = List(
       IoC.createActor[DeploymentActor],
@@ -44,8 +46,8 @@ object OperationBootstrap extends Bootstrap {
       IoC.createActor[WorkflowSchedulerActor]
     )
 
-    IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod seconds, 0 seconds)
-    IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod seconds, synchronizationPeriod / 2 seconds)
+    IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod seconds, synchronizationInitialDelay seconds)
+    IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod seconds, (synchronizationInitialDelay + synchronizationPeriod / 2) seconds)
     IoC.actorFor[SlaSchedulerActor] ! SchedulerActor.Period(slaPeriod seconds)
     IoC.actorFor[EscalationSchedulerActor] ! SchedulerActor.Period(escalationPeriod seconds)
 
