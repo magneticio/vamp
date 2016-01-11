@@ -30,10 +30,6 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PulseFailureNoti
 
   private def path = GatewayDriverActor.path ++ marshaller.path
 
-  override def preStart() {
-    IoC.actorFor[KeyValueStoreActor] ! KeyValueStoreActor.Set(path, None)
-  }
-
   def receive = {
     case InfoRequest      ⇒ reply(info)
     case Commit(gateways) ⇒ commit(gateways)
