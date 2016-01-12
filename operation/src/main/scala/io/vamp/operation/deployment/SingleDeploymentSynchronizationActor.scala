@@ -108,13 +108,15 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
   }
 
   private def hasDependenciesDeployed(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService) = {
-    deploymentService.breed.dependencies.forall({
+    deploymentService.breed.dependencies.forall {
       case (n, d) ⇒
-        deployment.clusters.flatMap(_.services).find(s ⇒ s.breed.name == d.name) match {
-          case None          ⇒ false
-          case Some(service) ⇒ service.state.isDeployed
+        deployment.clusters.exists { cluster ⇒
+          cluster.services.find(s ⇒ s.breed.name == d.name) match {
+            case None          ⇒ false
+            case Some(service) ⇒ service.state.isDeployed && service.breed.ports.forall { port ⇒ cluster.portMapping.getOrElse(port.name, 0) > 0 }
+          }
         }
-    })
+    }
   }
 
   private def hasResolvedEnvironmentVariables(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService) = {
@@ -248,8 +250,6 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
       val clusters = deployment.clusters.filterNot(cluster ⇒ remove.exists(_.name == cluster.name)).map(cluster ⇒ persist.find(_.name == cluster.name).getOrElse(cluster))
 
       if (clusters.isEmpty) {
-        deployment.gateways foreach { gateway ⇒ actorFor[PersistenceActor] ! PersistenceActor.Delete(gateway.name, classOf[Gateway]) }
-        deployment.clusters.flatMap(_.routing) foreach { gateway ⇒ actorFor[PersistenceActor] ! PersistenceActor.Delete(gateway.name, classOf[Gateway]) }
         actorFor[PersistenceActor] ! PersistenceActor.Delete(deployment.name, classOf[Deployment])
       } else {
         actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = clusters))

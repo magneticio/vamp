@@ -9,7 +9,7 @@ import io.vamp.model.artifact._
 import io.vamp.model.notification.UnsupportedRoutePathError
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
-import io.vamp.persistence.db.PersistenceActor.Update
+import io.vamp.persistence.db.PersistenceActor.{ Delete, Update }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 
 import scala.concurrent.duration._
@@ -64,7 +64,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   private def synchronize(deployments: List[Deployment], gateways: List[Gateway]) = {
     val updated = assignPorts(gateways, deployments)
-    (updateGatewayPorts(updated) andThen updateInstances(updated) andThen flush)(gateways)
+    (purgeRemoved(updated) andThen updateGatewayPorts(updated) andThen updateInstances(updated) andThen flush)(gateways)
   }
 
   private def assignPorts(gateways: List[Gateway], deployments: List[Deployment]): List[Deployment] = {
@@ -96,11 +96,11 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
       val clusters = updated ++ keep
 
-      val deploymentPorts = clusters.flatMap({ cluster ⇒
+      val deploymentPorts = deployment.ports.map(p ⇒ p.name -> p).toMap ++ clusters.flatMap({ cluster ⇒
         cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
           Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portMapping.get(port.name).flatMap(n ⇒ Some(n.toString)))
         })
-      }).map(p ⇒ p.name -> p).toMap ++ deployment.ports.map(p ⇒ p.name -> p).toMap
+      }).map(p ⇒ p.name -> p).toMap
 
       val updatedDeployment = deployment.copy(clusters = clusters, ports = deploymentPorts.values.toList)
 
@@ -108,6 +108,24 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
       updatedDeployment
     }
+  }
+
+  private def purgeRemoved(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
+
+    val (remove, keep) = gateways.partition { gateway ⇒
+      GatewayPath(gateway.name).segments match {
+        case deployment :: _ :: Nil               ⇒ !deployments.exists(_.name == deployment)
+        case deployment :: cluster :: port :: Nil ⇒ deployments.find(_.name == deployment).flatMap(deployment ⇒ deployment.clusters.find(_.name == cluster)).isEmpty
+        case _                                    ⇒ false
+      }
+    }
+
+    remove.foreach { gateway ⇒
+      log.info(s"gateway removed: ${gateway.name}")
+      IoC.actorFor[PersistenceActor] ! Delete(gateway.name, gateway.getClass)
+    }
+
+    keep
   }
 
   private def updateGatewayPorts(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
