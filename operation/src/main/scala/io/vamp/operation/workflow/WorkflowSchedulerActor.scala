@@ -4,6 +4,7 @@ import akka.actor._
 import io.vamp.common.akka._
 import io.vamp.model.event.Event
 import io.vamp.model.workflow.{ DeploymentTrigger, EventTrigger, ScheduledWorkflow, TimeTrigger }
+import io.vamp.operation.OperationBootstrap
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
@@ -57,7 +58,7 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
   override def preStart() {
     try {
       quartzStart()
-      context.system.scheduler.scheduleOnce(PersistenceActor.timeout.duration, self, RescheduleAll)
+      context.system.scheduler.scheduleOnce(OperationBootstrap.synchronizationInitialDelay, self, RescheduleAll)
     } catch {
       case t: Throwable ⇒ reportException(InternalServerError(t))
     }

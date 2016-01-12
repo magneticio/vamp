@@ -18,13 +18,13 @@ object OperationBootstrap extends Bootstrap {
 
   val synchronizationMailbox = "vamp.operation.synchronization.mailbox"
 
-  val slaPeriod = configuration.getInt("sla.period")
+  val slaPeriod = configuration.getInt("sla.period") seconds
 
-  val escalationPeriod = configuration.getInt("escalation.period")
+  val escalationPeriod = configuration.getInt("escalation.period") seconds
 
-  val synchronizationPeriod = configuration.getInt("synchronization.period")
+  val synchronizationPeriod = configuration.getInt("synchronization.period") seconds
 
-  val synchronizationInitialDelay = configuration.getInt("synchronization.initial-delay")
+  val synchronizationInitialDelay = configuration.getInt("synchronization.initial-delay") seconds
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
     val actors = List(
@@ -46,10 +46,10 @@ object OperationBootstrap extends Bootstrap {
       IoC.createActor[WorkflowSchedulerActor]
     )
 
-    IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod seconds, synchronizationInitialDelay seconds)
-    IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod seconds, (synchronizationInitialDelay + synchronizationPeriod / 2) seconds)
-    IoC.actorFor[SlaSchedulerActor] ! SchedulerActor.Period(slaPeriod seconds)
-    IoC.actorFor[EscalationSchedulerActor] ! SchedulerActor.Period(escalationPeriod seconds)
+    IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay)
+    IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + synchronizationPeriod / 2)
+    IoC.actorFor[SlaSchedulerActor] ! SchedulerActor.Period(slaPeriod, synchronizationInitialDelay)
+    IoC.actorFor[EscalationSchedulerActor] ! SchedulerActor.Period(escalationPeriod, synchronizationInitialDelay)
 
     actors
   }
