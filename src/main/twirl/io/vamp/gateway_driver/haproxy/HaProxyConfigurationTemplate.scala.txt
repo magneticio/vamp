@@ -22,10 +22,10 @@ global
     maxconn 500000
 
     # slowloris protection: clients should send their full http request in the configured time
-    timeout http-request 5s
-    timeout connect 5000ms
-    timeout client 50000ms
-    timeout server 50000ms
+    timeout http-request 60s
+    timeout connect 50s
+    timeout client 50s
+    timeout server 50s
 
   listen stats
     bind :1988
