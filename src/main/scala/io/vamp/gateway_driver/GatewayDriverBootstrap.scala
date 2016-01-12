@@ -12,13 +12,20 @@ import scala.language.postfixOps
 
 object GatewayDriverBootstrap extends Bootstrap {
 
+  val configuration = ConfigFactory.load()
+  val gatewayDriverConfiguration = configuration.getConfig("vamp.gateway-driver")
+  val haproxyConfiguration = gatewayDriverConfiguration.getConfig("haproxy")
+
+  val kibanaSynchronizationPeriod = gatewayDriverConfiguration.getInt("kibana.synchronization.period") seconds
+  val aggregationPeriod = gatewayDriverConfiguration.getInt("aggregation.period") seconds
+  val synchronizationInitialDelay = configuration.getInt("vamp.operation.synchronization.initial-delay") seconds
+
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
-    val configuration = ConfigFactory.load().getConfig("vamp.gateway-driver")
 
     val actors = List(
       IoC.createActor[GatewayDriverActor](new HaProxyGatewayMarshaller() {
-        override def tcpLogFormat: String = ConfigFactory.load().getString("vamp.gateway-driver.haproxy.tcp-log-format")
-        override def httpLogFormat: String = ConfigFactory.load().getString("vamp.gateway-driver.haproxy.http-log-format")
+        override def tcpLogFormat: String = haproxyConfiguration.getString("tcp-log-format")
+        override def httpLogFormat: String = haproxyConfiguration.getString("http-log-format")
       }),
       IoC.createActor[KibanaDashboardInitializationActor],
       IoC.createActor[KibanaDashboardActor],
@@ -27,8 +34,8 @@ object GatewayDriverBootstrap extends Bootstrap {
       IoC.createActor[MetricsSchedulerActor]
     )
 
-    IoC.actorFor[KibanaDashboardSchedulerActor] ! SchedulerActor.Period(configuration.getInt("kibana.synchronization.period") seconds)
-    IoC.actorFor[MetricsSchedulerActor] ! SchedulerActor.Period(configuration.getInt("aggregation.period") second)
+    IoC.actorFor[MetricsSchedulerActor] ! SchedulerActor.Period(aggregationPeriod, synchronizationInitialDelay)
+    IoC.actorFor[KibanaDashboardSchedulerActor] ! SchedulerActor.Period(kibanaSynchronizationPeriod, synchronizationInitialDelay)
 
     actors
   }
