@@ -220,7 +220,12 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   private def flush: List[Gateway] ⇒ Unit = { gateways ⇒
     IoC.actorFor[GatewayDriverActor] ! Commit {
-      gateways filter { _.active } filter { _.port.number > 0 } sortBy { _.lookupName }
+      gateways filter { _.active } filter { _.port.number > 0 } sortWith { (gateway1, gateway2) ⇒
+        val len1 = GatewayPath(gateway1.name).segments.size
+        val len2 = GatewayPath(gateway2.name).segments.size
+        if (len1 == len2) gateway1.lookupName.compareTo(gateway2.lookupName) < 0
+        else len1 < len2
+      }
     }
   }
 }
