@@ -44,6 +44,7 @@ trait GatewayDecomposer extends ReferenceSerialization {
         gateway.routes.map { route ⇒
           (route.path.segments match {
             case _ :: _ :: s :: _ :: Nil if !full ⇒ s
+            case _ :: _ :: _ :: Nil if !full      ⇒ GatewayPath(route.path.segments.tail).normalized
             case _                                ⇒ route.path.source
           }) -> route
         } toMap
