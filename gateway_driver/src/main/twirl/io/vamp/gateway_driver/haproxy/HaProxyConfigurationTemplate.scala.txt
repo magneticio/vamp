@@ -88,7 +88,7 @@ backend @backend.lookup
   option forwardfor
   @for(server <- backend.servers) {
   # server: @server.name
-  server @server.lookup @server.host:@server.port @if(backend.mode == Mode.http) {cookie @server.lookup} weight @server.weight maxconn @server.maxConn @if(server.checkInterval.isDefined) {check inter @server.checkInterval.get} @if(backend.sticky) {check cookie @server.lookup}
+  server @server.lookup @server.host:@server.port @if(backend.mode == Mode.http) {cookie @server.lookup} weight @server.weight @if(server.checkInterval.isDefined) {check inter @server.checkInterval.get} @if(backend.sticky) {check cookie @server.lookup}
   }
 
   @if(backend.options.abortOnClose)     {option abortonclose      }

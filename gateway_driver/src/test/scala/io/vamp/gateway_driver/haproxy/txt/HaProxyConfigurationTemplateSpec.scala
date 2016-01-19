@@ -48,7 +48,6 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       host = "192.168.59.103",
       port = 8082,
       weight = 100,
-      maxConn = 1000,
       checkInterval = Option(10)
     ) :: Nil
 
@@ -294,7 +293,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
   it should "convert filters" in {
     val route = DefaultRoute("sava", GatewayPath("sava"), None, Nil)
-    val backends = Backend("vamp://sava", "ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, Nil, sticky = false, Options()) :: Nil
+    val backends = Backend("vamp://sava", "im_ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, Nil, sticky = false, Options()) :: Nil
 
     List(
       ("hdr_sub(user-agent) Android", "hdr_sub(user-agent) Android", false),
@@ -312,7 +311,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       ("has header X-SPECIAL", "hdr_cnt(X-SPECIAL) gt 0", false),
       ("misses header X-SPECIAL", "hdr_cnt(X-SPECIAL) eq 0", false)
     ) foreach { input ⇒
-        filter(backends, route.copy(filters = DefaultFilter("", input._1) :: Nil))(Gateway("vamp", Port(0), None, Nil)) match {
+        filter(route.copy(filters = DefaultFilter("", input._1) :: Nil))(backends, Gateway("vamp", Port(0), None, Nil)) match {
           case HaProxyFilter(_, _, conditions) ⇒
             input._2 shouldBe conditions.head.definition
             input._3 shouldBe conditions.head.negate

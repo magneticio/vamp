@@ -1,0 +1,16 @@
+name: nomadic-frostbite
+
+gateways:
+  8080:
+    routes:
+      notorious/port1:
+        weight: 100%
+      notorious/port2:
+        weight: 10%
+        filters:
+        - condition: user-agent = firefox
+
+clusters:
+  notorious:
+    services:
+      breed: nocturnal-viper

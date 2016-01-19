@@ -689,4 +689,12 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
       'value("")
     )
   }
+
+  it should "parse weights with filter conditions" in {
+    BlueprintReader.read(res("blueprint/blueprint78.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Map())), Nil, None, Map()))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/port1", List("notorious", "port1")), Some(Percentage.of("100%")), List()), DefaultRoute("", GatewayPath("notorious/port2", List("notorious", "port2")), Some(Percentage.of("10%")), List(DefaultFilter("", "user-agent = firefox")))))))
+    )
+  }
 }
