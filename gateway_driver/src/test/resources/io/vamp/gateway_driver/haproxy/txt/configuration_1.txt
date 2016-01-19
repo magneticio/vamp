@@ -71,7 +71,7 @@ backend name2
   option forwardfor
   
   # server: test_be1_a_2
-  server test_be1_a_2 192.168.59.103:8082 cookie test_be1_a_2 weight 100 maxconn 1000 check inter 10 
+  server test_be1_a_2 192.168.59.103:8082 cookie test_be1_a_2 weight 100 check inter 10 
 
   option abortonclose      
   option allbackups        

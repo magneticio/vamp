@@ -62,6 +62,8 @@ sealed trait AbstractRoute extends Route {
   def weight: Option[Percentage]
 
   def filters: List[Filter]
+
+  def hasRoutingFilters: Boolean = filters.exists(DefaultFilter.isRouting)
 }
 
 case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
@@ -113,6 +115,16 @@ object DefaultFilter {
     }
     case _ ⇒ false
   }
+
+  def isRewrite(filter: Filter): Boolean = filter match {
+    case f: DefaultFilter ⇒ f.condition match {
+      case rewrite(n, c) ⇒ true
+      case any           ⇒ false
+    }
+    case _ ⇒ false
+  }
+
+  def isRouting(filter: Filter) = !isRewrite(filter)
 }
 
 case class DefaultFilter(name: String, condition: String) extends Filter

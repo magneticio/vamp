@@ -42,18 +42,23 @@ frontend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 
   mode http
 
-  ###
-  #
-  # Filter Management
-  #
-  # Set filters with optional negation.
-  #
-  ###
-  
-  # backend: vamp/sava/port/_
-  default_backend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
+  # backend: other vamp/sava/port/_
+  default_backend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 
-# frontend: vamp/sava/port/_://vamp/sava/sava:1.0.0/port
+# frontend: other vamp/sava/port/_
+frontend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
+
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+  bind unix@/opt/vamp/o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb.sock accept-proxy 
+
+  mode http
+
+  # backend: other vamp/sava/port/_
+  default_backend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
+
+# frontend: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
 frontend 62a11db802baf59987a3ece9e10d8754eca16a09
 
   option httplog
@@ -63,15 +68,7 @@ frontend 62a11db802baf59987a3ece9e10d8754eca16a09
 
   mode http
 
-  ###
-  #
-  # Filter Management
-  #
-  # Set filters with optional negation.
-  #
-  ###
-  
-  # backend: vamp/sava/port/_://vamp/sava/sava:1.0.0/port
+  # backend: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
   default_backend 62a11db802baf59987a3ece9e10d8754eca16a09
 
 # frontend: vamp/port/_/_
@@ -83,18 +80,23 @@ frontend fe0b5f28bbc918d7c54c72552a525894f2dfc09c
 
   mode tcp
 
-  ###
-  #
-  # Filter Management
-  #
-  # Set filters with optional negation.
-  #
-  ###
-  
-  # backend: vamp/port/_/_
-  default_backend fe0b5f28bbc918d7c54c72552a525894f2dfc09c
+  # backend: other vamp/port/_/_
+  default_backend o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c
 
-# frontend: vamp/port/_/_://vamp/sava/port/_
+# frontend: other vamp/port/_/_
+frontend o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c
+
+  option tcplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tw":%Tw,"Tc":%Tc,"Tt":%Tt,"B":%B,"ts":"%ts","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq}
+
+  bind unix@/opt/vamp/o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c.sock accept-proxy 
+
+  mode tcp
+
+  # backend: other vamp/port/_/_
+  default_backend o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c
+
+# frontend: vamp/port/_/_//vamp/sava/port/_
 frontend a0f840f005123ef8acf4b0f9586420a540f8caf8
 
   option tcplog
@@ -104,26 +106,18 @@ frontend a0f840f005123ef8acf4b0f9586420a540f8caf8
 
   mode tcp
 
-  ###
-  #
-  # Filter Management
-  #
-  # Set filters with optional negation.
-  #
-  ###
-  
-  # backend: vamp/port/_/_://vamp/sava/port/_
+  # backend: vamp/port/_/_//vamp/sava/port/_
   default_backend a0f840f005123ef8acf4b0f9586420a540f8caf8
 
-# backend: vamp/sava/port/_
-backend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
+# backend: other vamp/sava/port/_
+backend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   mode http
   balance roundrobin       
 
-  # server: vamp/sava/port/_://vamp/sava/sava:1.0.0/port
+  # server: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
   server 62a11db802baf59987a3ece9e10d8754eca16a09 unix@/opt/vamp/62a11db802baf59987a3ece9e10d8754eca16a09.sock send-proxy weight 100 
 
-# backend: vamp/sava/port/_://vamp/sava/sava:1.0.0/port
+# backend: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
 backend 62a11db802baf59987a3ece9e10d8754eca16a09
   mode http
   balance roundrobin       
@@ -131,18 +125,18 @@ backend 62a11db802baf59987a3ece9e10d8754eca16a09
   option forwardfor
   
   # server: 64435a223bddf1fa589135baa5e228090279c032
-  server 709bda50dd19ad66282c78fdb423446bef362382 192.168.99.100:32770 cookie 709bda50dd19ad66282c78fdb423446bef362382 weight 100 maxconn 1000  
+  server 709bda50dd19ad66282c78fdb423446bef362382 192.168.99.100:32770 cookie 709bda50dd19ad66282c78fdb423446bef362382 weight 100  
 
-# backend: vamp/port/_/_
-backend fe0b5f28bbc918d7c54c72552a525894f2dfc09c
+# backend: other vamp/port/_/_
+backend o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c
   mode tcp
   
   balance leastconn        
 
-  # server: vamp/port/_/_://vamp/sava/port/_
+  # server: vamp/port/_/_//vamp/sava/port/_
   server a0f840f005123ef8acf4b0f9586420a540f8caf8 unix@/opt/vamp/a0f840f005123ef8acf4b0f9586420a540f8caf8.sock send-proxy weight 100 
 
-# backend: vamp/port/_/_://vamp/sava/port/_
+# backend: vamp/port/_/_//vamp/sava/port/_
 backend a0f840f005123ef8acf4b0f9586420a540f8caf8
   mode tcp
   
@@ -151,4 +145,4 @@ backend a0f840f005123ef8acf4b0f9586420a540f8caf8
   option forwardfor
   
   # server: 64435a223bddf1fa589135baa5e228090279c032
-  server 709bda50dd19ad66282c78fdb423446bef362382 192.168.99.100:33002  weight 100 maxconn 1000  
+  server 709bda50dd19ad66282c78fdb423446bef362382 192.168.99.100:33002  weight 100  
