@@ -163,7 +163,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
   protected def validateRouteWeights(blueprint: AbstractBlueprint): Unit = {
     blueprint.clusters.find({ cluster ⇒
       cluster.routing.exists { routing ⇒
-        val weights = routing.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
+        val weights = routing.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).filterNot(_.hasRoutingFilters).flatMap(_.weight)
         weights.exists(_.value < 0) || weights.map(_.value).sum > 100
       }
     }).flatMap {
@@ -173,7 +173,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
 
   protected def validateGatewayRouteWeights(blueprint: AbstractBlueprint): Unit = {
     blueprint.gateways.find({ gateway ⇒
-      val weights = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
+      val weights = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).filterNot(_.hasRoutingFilters).flatMap(_.weight)
       weights.exists(_.value < 0) || weights.map(_.value).sum > 100
     }).flatMap {
       case gateway ⇒ throwException(GatewayRouteWeightError(gateway))
