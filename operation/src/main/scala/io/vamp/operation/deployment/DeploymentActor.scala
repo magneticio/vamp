@@ -397,8 +397,12 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     if (newServices.nonEmpty) {
       newServices.flatMap(_.breed.ports).map(_.name).toSet[String].map { portName ⇒
 
-        val oldWeight = oldService.flatMap(s ⇒ stableCluster.flatMap(_.route(s, portName))).flatMap(_.weight.map(_.value)).sum
-        val newWeight = newServices.flatMap(s ⇒ blueprintCluster.route(s, portName)).flatMap(_.weight.map(_.value)).sum
+        val oldNonRouting = oldService.flatMap(s ⇒ stableCluster.flatMap(_.route(s, portName, short = true))).filterNot(_.hasRoutingFilters)
+        val oldWeight = oldNonRouting.flatMap(_.weight.map(_.value)).sum
+
+        val newNonRouting = newServices.flatMap(s ⇒ blueprintCluster.route(s, portName, short = true)).filterNot(_.hasRoutingFilters)
+        val newWeight = newNonRouting.flatMap(_.weight.map(_.value)).sum
+
         val availableWeight = 100 - oldWeight - newWeight
 
         if (availableWeight < 0)
@@ -407,7 +411,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
         val weight = Math.round(availableWeight / newServices.size)
 
         val oldRoutes: List[Route] = oldService.flatMap { service ⇒
-          blueprintCluster.route(service, portName) match {
+          blueprintCluster.route(service, portName, short = true) match {
             case None    ⇒ Nil
             case Some(r) ⇒ r :: Nil
           }
@@ -417,12 +421,19 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
           case (service, index) ⇒
 
             val path = GatewayPath(service.breed.name :: Nil)
-            val defaultWeight = if (index == newServices.size - 1) availableWeight - index * weight else weight
+            val defaultWeight = if (index == newNonRouting.size - 1) availableWeight - index * weight else weight
 
-            blueprintCluster.route(service, portName) match {
+            def weightFor(route: AbstractRoute): Percentage = {
+              if (route.hasRoutingFilters)
+                route.weight.getOrElse(Percentage(100))
+              else
+                route.weight.getOrElse(Percentage(defaultWeight))
+            }
+
+            blueprintCluster.route(service, portName, short = true) match {
               case None                   ⇒ DefaultRoute("", path, Option(Percentage(defaultWeight)), Nil)
-              case Some(r: DefaultRoute)  ⇒ r.copy(path = path, weight = Option(r.weight.getOrElse(Percentage(defaultWeight))))
-              case Some(r: DeployedRoute) ⇒ r.copy(path = path, weight = Option(r.weight.getOrElse(Percentage(defaultWeight))))
+              case Some(r: DefaultRoute)  ⇒ r.copy(path = path, weight = Option(weightFor(r)))
+              case Some(r: DeployedRoute) ⇒ r.copy(path = path, weight = Option(weightFor(r)))
             }
         }
 

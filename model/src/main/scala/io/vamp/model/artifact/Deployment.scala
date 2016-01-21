@@ -79,11 +79,12 @@ case class DeploymentCluster(
     portMapping: Map[String, Int] = Map(),
     dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster {
 
-  def route(service: DeploymentService, portName: String): Option[AbstractRoute] = {
+  def route(service: DeploymentService, portName: String, short: Boolean = false): Option[AbstractRoute] = {
     routing.find(_.port.name == portName).flatMap(routing ⇒ routing.routes.find { route ⇒
       route.path.segments match {
-        case _ :: _ :: s :: p :: Nil ⇒ s == service.breed.name && p == portName
-        case _                       ⇒ false
+        case s :: Nil if short                 ⇒ s == service.breed.name
+        case _ :: _ :: s :: _ :: Nil if !short ⇒ s == service.breed.name
+        case _                                 ⇒ false
       }
     }).asInstanceOf[Option[AbstractRoute]]
   }
