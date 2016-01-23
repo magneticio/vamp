@@ -39,7 +39,7 @@ trait BooleanParser extends Parser {
     OptionalWhiteSpace ~ "(" ~ Expression ~ ")" ~~> ((node: AstNode) ⇒ node)
   }
 
-  def Operand = rule {
+  def Operand: Rule1[AstNode] = rule {
     OptionalWhiteSpace ~ oneOrMore(noneOf(" \n\r\t\f()|&!")) ~> ((value: String) ⇒ Value(value))
   }
 
