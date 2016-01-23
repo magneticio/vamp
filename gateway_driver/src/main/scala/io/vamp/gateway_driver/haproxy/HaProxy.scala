@@ -28,10 +28,14 @@ object Mode extends Enumeration {
   val http, tcp = Value
 }
 
-case class Filter(name: String, destination: Backend, conditions: List[Condition])
+case class Filter(name: String, destination: Backend, acls: List[Acl])
 
-case class Condition(definition: String, negate: Boolean = false) {
-  val name = Hash.hexSha1(definition).substring(0, 16)
+object Acl {
+  def apply(definition: String): Acl = Acl(Hash.hexSha1(definition).substring(0, 16), definition)
+}
+case class Acl(name: String, definition: String) {
+  // remove
+  val negate: Boolean = false
 }
 
 case class Rewrite(path: String, condition: String)

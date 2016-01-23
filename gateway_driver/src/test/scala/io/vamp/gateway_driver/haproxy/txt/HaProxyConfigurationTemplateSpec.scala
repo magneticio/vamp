@@ -73,7 +73,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
     val filters = HaProxyFilter(
       name = "ie",
-      conditions = Condition("hdr_sub(user-agent) MSIE") :: Condition("hdr_sub(user-agent) Chrome") :: Nil,
+      acls = Acl("hdr_sub(user-agent) MSIE") :: Acl("hdr_sub(user-agent) Chrome") :: Nil,
       destination = backends.head
     ) :: Nil
 
