@@ -25,6 +25,50 @@ class FilterConditionParserSpec extends FlatSpec with Matchers with FilterCondit
     parse(" User-Agent == Firefox ") shouldBe UserAgent("Firefox")
     parse(" User-Agent ! Firefox ") shouldBe Negation(UserAgent("Firefox"))
     parse(" User-Agent != Firefox ") shouldBe Negation(UserAgent("Firefox"))
+
+    parse("User-Agent is Firefox") shouldBe UserAgent("Firefox")
+    parse("User-Agent not Firefox") shouldBe Negation(UserAgent("Firefox"))
+
+    parse("( User-Agent is Firefox ) ") shouldBe UserAgent("Firefox")
+  }
+
+  it should "resolve host" in {
+    parse("host == localhost") shouldBe Host("localhost")
+    parse("host != localhost") shouldBe Negation(Host("localhost"))
+
+    parse("host is localhost") shouldBe Host("localhost")
+    parse("host not localhost") shouldBe Negation(Host("localhost"))
+    parse("host misses localhost") shouldBe Negation(Host("localhost"))
+
+    parse("host has localhost") shouldBe Host("localhost")
+    parse("host contains localhost") shouldBe Host("localhost")
+
+    parse("! host is localhost") shouldBe Negation(Host("localhost"))
+    parse("not host is localhost") shouldBe Negation(Host("localhost"))
+  }
+
+  it should "resolve cookie" in {
+    parse("has cookie vamp") shouldBe Cookie("vamp")
+    parse("misses cookie vamp") shouldBe Negation(Cookie("vamp"))
+    parse("contains cookie vamp") shouldBe Cookie("vamp")
+  }
+
+  it should "resolve header" in {
+    parse("has header vamp") shouldBe Header("vamp")
+    parse("misses header vamp") shouldBe Negation(Header("vamp"))
+    parse("contains header vamp") shouldBe Header("vamp")
+  }
+
+  it should "resolve cookie contains" in {
+    parse("cookie vamp has 12345") shouldBe CookieContains("vamp", "12345")
+    parse("cookie vamp misses 12345") shouldBe Negation(CookieContains("vamp", "12345"))
+    parse("cookie vamp contains 12345") shouldBe CookieContains("vamp", "12345")
+  }
+
+  it should "resolve header contains" in {
+    parse("header vamp has 12345") shouldBe HeaderContains("vamp", "12345")
+    parse("header vamp misses 12345") shouldBe Negation(HeaderContains("vamp", "12345"))
+    parse("header vamp contains 12345") shouldBe HeaderContains("vamp", "12345")
   }
 
   it should "pass through non-matched" in {

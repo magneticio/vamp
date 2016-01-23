@@ -4,7 +4,19 @@ import org.parboiled.scala._
 
 import scala.language.implicitConversions
 
-case class UserAgent(value: String) extends Operand
+sealed trait FilterConditionOperand extends Operand
+
+case class Host(value: String) extends FilterConditionOperand
+
+case class Cookie(value: String) extends FilterConditionOperand
+
+case class Header(value: String) extends FilterConditionOperand
+
+case class UserAgent(value: String) extends FilterConditionOperand
+
+case class CookieContains(name: String, value: String) extends FilterConditionOperand
+
+case class HeaderContains(name: String, value: String) extends FilterConditionOperand
 
 trait FilterConditionParser extends BooleanParser {
 
@@ -14,15 +26,71 @@ trait FilterConditionParser extends BooleanParser {
   }
 
   override def Operand: Rule1[AstNode] = rule {
-    TrueConstant | FalseConstant | UserAgentOperand | ValueOperand
+    TrueConstant | FalseConstant | FilterConditionOperand | ValueOperand
+  }
+
+  def FilterConditionOperand: Rule1[AstNode] = rule {
+    HostOperand | UserAgentOperand | HeaderOperand | CookieOperand | CookieContainsOperand | HeaderContainsOperand
+  }
+
+  def HostOperand = rule {
+    HostString ~ ComparisonOperator ~ String ~~> ((equal: Boolean, value: String) ⇒ if (equal) Host(value) else Negation(Host(value)))
+  }
+
+  def HostString = rule {
+    OptionalWhiteSpace ~ ignoreCase("host") ~ OptionalWhiteSpace
   }
 
   def UserAgentOperand = rule {
-    UserAgentString ~ (Equal | NonEqual) ~ String ~~> ((equal: Boolean, value: String) ⇒ if (equal) UserAgent(value) else Negation(UserAgent(value)))
+    UserAgentString ~ ComparisonOperator ~ String ~~> ((equal: Boolean, value: String) ⇒ if (equal) UserAgent(value) else Negation(UserAgent(value)))
   }
 
   def UserAgentString = rule {
     OptionalWhiteSpace ~ ignoreCase("user") ~ optional("-") ~ ignoreCase("agent") ~ OptionalWhiteSpace
+  }
+
+  def CookieOperand = rule {
+    OptionalWhiteSpace ~ ContainsOperator ~ CookieString ~ WhiteSpace ~ String ~~> ((equal: Boolean, value: String) ⇒ if (equal) Cookie(value) else Negation(Cookie(value)))
+  }
+
+  def CookieContainsOperand = rule {
+    OptionalWhiteSpace ~ CookieString ~ WhiteSpace ~ String ~ WhiteSpace ~ ContainsOperator ~ String ~~> ((name: String, equal: Boolean, value: String) ⇒ if (equal) CookieContains(name, value) else Negation(CookieContains(name, value)))
+  }
+
+  def CookieString = rule {
+    ignoreCase("cookie")
+  }
+
+  def HeaderOperand = rule {
+    OptionalWhiteSpace ~ ContainsOperator ~ HeaderString ~ WhiteSpace ~ String ~~> ((equal: Boolean, value: String) ⇒ if (equal) Header(value) else Negation(Header(value)))
+  }
+
+  def HeaderContainsOperand = rule {
+    OptionalWhiteSpace ~ HeaderString ~ WhiteSpace ~ String ~ WhiteSpace ~ ContainsOperator ~ String ~~> ((name: String, equal: Boolean, value: String) ⇒ if (equal) HeaderContains(name, value) else Negation(HeaderContains(name, value)))
+  }
+
+  def HeaderString = rule {
+    ignoreCase("header")
+  }
+
+  def ComparisonOperator = rule {
+    Equal | NonEqual | Has | Is | Misses | (Not ~> (_ ⇒ false))
+  }
+
+  def ContainsOperator = rule {
+    Has | Misses
+  }
+
+  def Is = rule {
+    ignoreCase("is") ~ WhiteSpace ~> (_ ⇒ true)
+  }
+
+  def Has = rule {
+    (ignoreCase("has") | ignoreCase("contains")) ~ WhiteSpace ~> (_ ⇒ true)
+  }
+
+  def Misses = rule {
+    ignoreCase("misses") ~ WhiteSpace ~> (_ ⇒ false)
   }
 
   def NonEqual = rule {
@@ -36,23 +104,4 @@ trait FilterConditionParser extends BooleanParser {
   def String = rule {
     OptionalWhiteSpace ~ oneOrMore(noneOf(" \n\r\t\f")) ~> (value ⇒ value)
   }
-
-  //  val userAgent = "^(?i)user[-.]agent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
-  //  val host = "^(?i)host[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r
-  //  val cookieContains = "^(?i)cookie (.+) contains (.+)$".r
-  //  val hasCookie = "^(?i)has cookie (.+)$".r
-  //  val missesCookie = "^(?i)misses cookie (.+)$".r
-  //  val headerContains = "^(?i)header (.+) contains (.+)$".r
-  //  val hasHeader = "^(?i)has header (.+)$".r
-  //  val missesHeader = "^(?i)misses header (.+)$".r
-  //  val rewrite = "^(?i)rewrite (.+) if (.+)$".r
-
-  //  case userAgent(n, c)        ⇒ Condition(s"hdr_sub(user-agent) ${c.trim}", n == "!") :: Nil
-  //  case host(n, c)             ⇒ Condition(s"hdr_str(host) ${c.trim}", n == "!") :: Nil
-  //  case cookieContains(c1, c2) ⇒ Condition(s"cook_sub(${c1.trim}) ${c2.trim}") :: Nil
-  //  case hasCookie(c)           ⇒ Condition(s"cook(${c.trim}) -m found") :: Nil
-  //  case missesCookie(c)        ⇒ Condition(s"cook_cnt(${c.trim}) eq 0") :: Nil
-  //  case headerContains(h, c)   ⇒ Condition(s"hdr_sub(${h.trim}) ${c.trim}") :: Nil
-  //  case hasHeader(h)           ⇒ Condition(s"hdr_cnt(${h.trim}) gt 0") :: Nil
-  //  case missesHeader(h)        ⇒ Condition(s"hdr_cnt(${h.trim}) eq 0") :: Nil
 }

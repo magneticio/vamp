@@ -2,8 +2,6 @@ package io.vamp.model.parser
 
 import org.parboiled.scala._
 
-import scala.language.implicitConversions
-
 trait BooleanParser extends Parser {
 
   def parse(expression: String): AstNode = BasicParseRunner(InputLine).run(expression).result match {
@@ -12,13 +10,13 @@ trait BooleanParser extends Parser {
   }
 
   def InputLine = rule {
-    Expression ~ OptionalWhiteSpace ~ EOI
+    Expression ~ EOI
   }
 
   def Expression: Rule1[AstNode] = rule {
     Term ~ zeroOrMore(
       OptionalWhiteSpace ~ (ignoreCase("or") | "||" | "|") ~ WhiteSpace ~ Term ~~> ((node1: AstNode, node2: AstNode) ⇒ Or(node1, node2))
-    )
+    ) ~ OptionalWhiteSpace
   }
 
   def Term: Rule1[AstNode] = rule {

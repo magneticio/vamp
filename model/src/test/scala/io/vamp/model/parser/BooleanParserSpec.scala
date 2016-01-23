@@ -14,6 +14,7 @@ class BooleanParserSpec extends FlatSpec with Matchers with BooleanParser {
     parse(" a") shouldBe Value("a")
     parse("a ") shouldBe Value("a")
     parse(" a ") shouldBe Value("a")
+    parse("((a))") shouldBe Value("a")
 
     parse("TRUE") shouldBe True
     parse("t ") shouldBe True
@@ -22,6 +23,8 @@ class BooleanParserSpec extends FlatSpec with Matchers with BooleanParser {
     parse("False") shouldBe False
     parse(" F") shouldBe False
     parse(" 0 ") shouldBe False
+    parse("(false)") shouldBe False
+    parse("((1))") shouldBe True
   }
 
   it should "parse 'not' expression" in {

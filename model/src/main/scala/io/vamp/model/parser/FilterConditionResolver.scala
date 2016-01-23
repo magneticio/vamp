@@ -4,16 +4,6 @@ trait FilterConditionResolver extends FilterConditionParser with BooleanFlatter 
 
   def resolve(input: String): AstNode = flatten(parse(input))
 
-  //  val userAgent = "^(?i)user[-.]agent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
-  //  val host = "^(?i)host[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r
-  //  val cookieContains = "^(?i)cookie (.+) contains (.+)$".r
-  //  val hasCookie = "^(?i)has cookie (.+)$".r
-  //  val missesCookie = "^(?i)misses cookie (.+)$".r
-  //  val headerContains = "^(?i)header (.+) contains (.+)$".r
-  //  val hasHeader = "^(?i)has header (.+)$".r
-  //  val missesHeader = "^(?i)misses header (.+)$".r
-  //  val rewrite = "^(?i)rewrite (.+) if (.+)$".r
-
   //  case userAgent(n, c)        ⇒ Condition(s"hdr_sub(user-agent) ${c.trim}", n == "!") :: Nil
   //  case host(n, c)             ⇒ Condition(s"hdr_str(host) ${c.trim}", n == "!") :: Nil
   //  case cookieContains(c1, c2) ⇒ Condition(s"cook_sub(${c1.trim}) ${c2.trim}") :: Nil
