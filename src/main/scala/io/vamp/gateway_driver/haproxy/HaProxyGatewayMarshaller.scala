@@ -166,16 +166,16 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   private[haproxy] def filter(route: AbstractRoute)(implicit backends: List[Backend], gateway: Gateway): Filter = {
     val conditions = route.filters.filter(_.isInstanceOf[DefaultFilter]).map(_.asInstanceOf[DefaultFilter].condition).flatMap {
-      case userAgent(n, c)        ⇒ Condition(s"hdr_sub(user-agent) ${c.trim}", n == "!") :: Nil
-      case host(n, c)             ⇒ Condition(s"hdr_str(host) ${c.trim}", n == "!") :: Nil
-      case cookieContains(c1, c2) ⇒ Condition(s"cook_sub(${c1.trim}) ${c2.trim}") :: Nil
-      case hasCookie(c)           ⇒ Condition(s"cook(${c.trim}) -m found") :: Nil
-      case missesCookie(c)        ⇒ Condition(s"cook_cnt(${c.trim}) eq 0") :: Nil
-      case headerContains(h, c)   ⇒ Condition(s"hdr_sub(${h.trim}) ${c.trim}") :: Nil
-      case hasHeader(h)           ⇒ Condition(s"hdr_cnt(${h.trim}) gt 0") :: Nil
-      case missesHeader(h)        ⇒ Condition(s"hdr_cnt(${h.trim}) eq 0") :: Nil
-      case rewrite(p, c)          ⇒ Nil
-      case any                    ⇒ Condition(any) :: Nil
+      //      case userAgent(n, c)        ⇒ Acl(s"hdr_sub(user-agent) ${c.trim}", n == "!") :: Nil
+      //      case host(n, c)             ⇒ Acl(s"hdr_str(host) ${c.trim}", n == "!") :: Nil
+      //      case cookieContains(c1, c2) ⇒ Acl(s"cook_sub(${c1.trim}) ${c2.trim}") :: Nil
+      //      case hasCookie(c)           ⇒ Acl(s"cook(${c.trim}) -m found") :: Nil
+      //      case missesCookie(c)        ⇒ Acl(s"cook_cnt(${c.trim}) eq 0") :: Nil
+      //      case headerContains(h, c)   ⇒ Acl(s"hdr_sub(${h.trim}) ${c.trim}") :: Nil
+      //      case hasHeader(h)           ⇒ Acl(s"hdr_cnt(${h.trim}) gt 0") :: Nil
+      //      case missesHeader(h)        ⇒ Acl(s"hdr_cnt(${h.trim}) eq 0") :: Nil
+      //      case rewrite(p, c)          ⇒ Nil
+      case any ⇒ Acl(any) :: Nil
     }
 
     backendFor(intermediate, GatewayMarshaller.lookup(gateway, route.path.segments)) match {
