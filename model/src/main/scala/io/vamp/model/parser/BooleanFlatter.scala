@@ -14,16 +14,20 @@ trait BooleanFlatter {
   private[parser] def map(node: AstNode): List[ReductionInput] = {
     val ops = operands(node)
 
-    (0L until 1 << ops.size) flatMap { value ⇒
-      val map = ops.zipWithIndex.map {
-        case (op, index) ⇒ op -> ((value & 1 << index) > 0)
+    if (ops.nonEmpty) {
+
+      (0L until 1 << ops.size) flatMap { value ⇒
+        val map = ops.zipWithIndex.map {
+          case (op, index) ⇒ op -> ((value & 1 << index) > 0)
+        } toList
+
+        if (calculate(node, map)) ReductionInput(terms(map), value) :: Nil else Nil
       } toList
 
-      if (calculate(node, map)) ReductionInput(terms(map), value) :: Nil else Nil
-    } toList
+    } else ReductionInput((if (calculate(node, Nil)) True else False) :: Nil, 0) :: Nil
   }
 
-  private[parser] def reduce(node: AstNode, terms: List[ReductionInput]) = {
+  private[parser] def reduce(node: AstNode, terms: List[ReductionInput]): AstNode = {
     if (terms.nonEmpty) {
 
       var previous = terms
@@ -41,10 +45,11 @@ trait BooleanFlatter {
       } reduce {
         (op1, op2) ⇒ Or(op1, op2)
       }
-    } else node
+    } else False
   }
 
   private def operands(node: AstNode): Set[Operand] = node match {
+    case _: Constant             ⇒ Set()
     case operand: Operand        ⇒ Set(operand)
     case Negation(operand)       ⇒ operands(operand)
     case Or(operand1, operand2)  ⇒ operands(operand1) ++ operands(operand2)
@@ -52,6 +57,8 @@ trait BooleanFlatter {
   }
 
   private def calculate(node: AstNode, values: List[(Operand, Boolean)]): Boolean = node match {
+    case True          ⇒ true
+    case False         ⇒ false
     case op: Operand   ⇒ values.find(_._1 == op).get._2
     case Negation(op)  ⇒ !calculate(op, values)
     case Or(op1, op2)  ⇒ calculate(op1, values) || calculate(op2, values)
@@ -74,15 +81,8 @@ trait BooleanFlatter {
       val comparison = term.value ^ node.value
 
       if (powerOf2(comparison) && term.terms.size == node.terms.size) {
-
-        if (node.terms.size > 1) {
-          shrank += shrink(node, comparison)
-          term.copy(reduced = true)
-        } else {
-          shrank += node
-          term
-        }
-
+        shrank += shrink(node, comparison)
+        term.copy(reduced = true)
       } else term
     }
 
@@ -90,9 +90,11 @@ trait BooleanFlatter {
   }
 
   private def shrink(node: ReductionInput, comparison: Long): ReductionInput = {
-    node.copy(terms = node.terms.zipWithIndex.flatMap {
+    val terms = node.terms.zipWithIndex.flatMap {
       case (n, index) ⇒ if (comparison == (1 << index)) Nil else n :: Nil
-    })
+    }
+
+    node.copy(terms = if (terms.isEmpty) True :: Nil else terms)
   }
 
   private def powerOf2(x: Long) = (x != 0) && ((x & (x - 1)) == 0)

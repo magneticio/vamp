@@ -1,41 +1,8 @@
 package io.vamp.model.parser
 
-import org.parboiled.scala._
+trait FilterConditionResolver extends FilterConditionParser with BooleanFlatter {
 
-import scala.language.implicitConversions
-
-case class UserAgent(value: String) extends Operand
-
-trait FilterConditionParser extends BooleanParser {
-
-  override def parse(expression: String): AstNode = BasicParseRunner(InputLine).run(expression).result match {
-    case Some(node) ⇒ node
-    case None       ⇒ Value(expression)
-  }
-
-  override def Operand: Rule1[AstNode] = rule {
-    TrueConstant | FalseConstant | UserAgentOperand | ValueOperand
-  }
-
-  def UserAgentOperand = rule {
-    UserAgentString ~ (Equal | NonEqual) ~ String ~~> ((equal: Boolean, value: String) ⇒ if (equal) UserAgent(value) else Negation(UserAgent(value)))
-  }
-
-  def UserAgentString = rule {
-    OptionalWhiteSpace ~ ignoreCase("user") ~ optional("-") ~ ignoreCase("agent") ~ OptionalWhiteSpace
-  }
-
-  def NonEqual = rule {
-    ("!=" | "!") ~> (_ ⇒ false)
-  }
-
-  def Equal = rule {
-    ("==" | "=") ~> (_ ⇒ true)
-  }
-
-  def String = rule {
-    OptionalWhiteSpace ~ oneOrMore(noneOf(" \n\r\t\f")) ~> (value ⇒ value)
-  }
+  def resolve(input: String): AstNode = flatten(parse(input))
 
   //  val userAgent = "^(?i)user[-.]agent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
   //  val host = "^(?i)host[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r

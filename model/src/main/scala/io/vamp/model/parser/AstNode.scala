@@ -4,6 +4,8 @@ sealed trait AstNode
 
 trait Operand extends AstNode
 
+trait Constant extends AstNode
+
 sealed trait Operation extends AstNode
 
 case class Or(operand1: AstNode, operand2: AstNode) extends Operation {
@@ -21,5 +23,9 @@ case class And(operand1: AstNode, operand2: AstNode) extends Operation {
 }
 
 case class Negation(operand: AstNode) extends Operation
+
+object True extends Constant
+
+object False extends Constant
 
 case class Value(value: String) extends Operand

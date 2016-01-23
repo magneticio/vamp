@@ -17,18 +17,22 @@ trait BooleanParser extends Parser {
 
   def Expression: Rule1[AstNode] = rule {
     Term ~ zeroOrMore(
-      WhiteSpace ~ (ignoreCase("or") | "||" | "|") ~ WhiteSpace ~ Term ~~> ((node1: AstNode, node2: AstNode) ⇒ Or(node1, node2))
+      OptionalWhiteSpace ~ (ignoreCase("or") | "||" | "|") ~ WhiteSpace ~ Term ~~> ((node1: AstNode, node2: AstNode) ⇒ Or(node1, node2))
     )
   }
 
   def Term: Rule1[AstNode] = rule {
     Factor ~ zeroOrMore(
-      WhiteSpace ~ (ignoreCase("and") | "&&" | "&") ~ WhiteSpace ~ Factor ~~> ((node1: AstNode, node2: AstNode) ⇒ And(node1, node2))
+      OptionalWhiteSpace ~ (ignoreCase("and") | "&&" | "&") ~ WhiteSpace ~ Factor ~~> ((node1: AstNode, node2: AstNode) ⇒ And(node1, node2))
     )
   }
 
   def Factor: Rule1[AstNode] = rule {
     (optional(Not) ~> (_.nonEmpty) ~ (Operand | Parenthesis)) ~~> ((negation: Boolean, node: AstNode) ⇒ if (negation) Negation(node) else node)
+  }
+
+  def Operand: Rule1[AstNode] = rule {
+    TrueConstant | FalseConstant | ValueOperand
   }
 
   def Not = rule {
@@ -39,7 +43,15 @@ trait BooleanParser extends Parser {
     OptionalWhiteSpace ~ "(" ~ Expression ~ ")" ~~> ((node: AstNode) ⇒ node)
   }
 
-  def Operand: Rule1[AstNode] = rule {
+  def TrueConstant: Rule1[AstNode] = rule {
+    OptionalWhiteSpace ~ (((ignoreCase("true") | ignoreCase("t")) ~ (OptionalWhiteSpace | EOI)) | "1") ~> (_ ⇒ True)
+  }
+
+  def FalseConstant: Rule1[AstNode] = rule {
+    OptionalWhiteSpace ~ (((ignoreCase("false") | ignoreCase("f")) ~ (OptionalWhiteSpace | EOI)) | "0") ~> (_ ⇒ False)
+  }
+
+  def ValueOperand: Rule1[AstNode] = rule {
     OptionalWhiteSpace ~ oneOrMore(noneOf(" \n\r\t\f()|&!")) ~> ((value: String) ⇒ Value(value))
   }
 
