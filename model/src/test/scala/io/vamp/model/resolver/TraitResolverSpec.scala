@@ -8,7 +8,7 @@ import org.scalatest.junit.JUnitRunner
 import scala.language.postfixOps
 
 @RunWith(classOf[JUnitRunner])
-class TraitResolverTest extends FlatSpec with Matchers with TraitResolver {
+class TraitResolverSpec extends FlatSpec with Matchers with TraitResolver {
 
   "TraitResolver" should "split into parts value with no references" in {
     partsFor("abc") should have(

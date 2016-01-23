@@ -8,7 +8,7 @@ import org.scalatest.junit.JUnitRunner
 import scala.language.postfixOps
 
 @RunWith(classOf[JUnitRunner])
-class DeploymentTraitResolverTest extends FlatSpec with Matchers with DeploymentTraitResolver {
+class DeploymentTraitResolverSpec extends FlatSpec with Matchers with DeploymentTraitResolver {
 
   "DeploymentTraitResolver" should "pass through environment variables for an empty cluster list" in {
 
