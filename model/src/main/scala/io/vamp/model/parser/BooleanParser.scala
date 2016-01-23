@@ -8,7 +8,7 @@ trait BooleanParser extends Parser {
 
   def parse(expression: String): AstNode = BasicParseRunner(InputLine).run(expression).result match {
     case Some(node) ⇒ node
-    case None ⇒ throw new RuntimeException(s"can't parse: $expression")
+    case None       ⇒ throw new RuntimeException(s"can't parse: $expression")
   }
 
   def InputLine = rule {
