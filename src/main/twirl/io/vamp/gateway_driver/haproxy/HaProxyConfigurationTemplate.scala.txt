@@ -55,10 +55,10 @@ frontend @frontend.lookup
   mode @frontend.mode
 
   @for(filter <- frontend.filters) {
-  @if(filter.acls.nonEmpty) {
+  @if(filter.acls.isDefined) {
   # destination: @filter.destination.name
-  @for(acl <- filter.acls) {acl @acl.name @acl.definition
-  }use_backend @filter.destination.lookup if @for(acl <- filter.acls) {@if(acl.negate) {!}@acl.name } }
+  @for(acl <- filter.acls.get.acls) {acl @acl.name @acl.definition
+  }use_backend @filter.destination.lookup @if(filter.acls.get.condition.isDefined) {if @filter.acls.get.condition.get}}
   }
 
   # backend: @frontend.defaultBackend.name
