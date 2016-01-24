@@ -8,6 +8,7 @@ import org.scalatest.{ FlatSpec, Matchers }
 class HaProxyFilterResolverSpec extends FlatSpec with Matchers with HaProxyAclResolver {
 
   "FilterConditionResolver" should "resolve single" in {
+
     resolve("User-Agent is Firefox" :: Nil) shouldBe Some {
       HaProxyAcls(List(Acl("af31629d4c4c8e71", "hdr_sub(user-agent) Firefox")), Some("af31629d4c4c8e71"))
     }
@@ -44,6 +45,21 @@ class HaProxyFilterResolverSpec extends FlatSpec with Matchers with HaProxyAclRe
       HaProxyAcls(List(Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android")), Some("29c278b48a0ff033"))
     }
 
+    resolve("{ hdr_sub(user-agent) Android }" :: Nil) shouldBe Some {
+      HaProxyAcls(List(Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android")), Some("29c278b48a0ff033"))
+    }
+  }
+
+  it should "resolve multiple" in {
+
+    resolve("user-agent == Firefox or user-agent != Chrome" :: "has cookie vamp" :: Nil) shouldBe Some {
+      HaProxyAcls(List(
+        Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome"), Acl("d2c606178591676a", "cook(vamp) -m found"), Acl("af31629d4c4c8e71", "hdr_sub(user-agent) Firefox")
+      ),
+        Some("!81b5022a1c5966ab d2c606178591676a or af31629d4c4c8e71 d2c606178591676a")
+      )
+    }
+
     resolve("hdr_sub(user-agent) Firefox" :: "hdr_sub(user-agent) Chrome" :: Nil) shouldBe Some {
       HaProxyAcls(List(
         Acl("af31629d4c4c8e71", "hdr_sub(user-agent) Firefox"), Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome")
@@ -51,14 +67,28 @@ class HaProxyFilterResolverSpec extends FlatSpec with Matchers with HaProxyAclRe
         Some("af31629d4c4c8e71 81b5022a1c5966ab")
       )
     }
-  }
 
-  it should "resolve multiple" in {
-    resolve("user-agent == Firefox or user-agent != Chrome" :: "has cookie vamp" :: Nil) shouldBe Some {
+    resolve("{hdr_sub(user-agent) Android} or {hdr_sub(user-agent) Chrome}" :: Nil) shouldBe Some {
       HaProxyAcls(List(
-        Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome"), Acl("d2c606178591676a", "cook(vamp) -m found"), Acl("af31629d4c4c8e71", "hdr_sub(user-agent) Firefox")
+        Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android"), Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome")
       ),
-        Some("!81b5022a1c5966ab d2c606178591676a or af31629d4c4c8e71 d2c606178591676a")
+        Some("29c278b48a0ff033 or 81b5022a1c5966ab")
+      )
+    }
+
+    resolve("not {hdr_sub(user-agent) Android} and User-Agent != Chrome" :: Nil) shouldBe Some {
+      HaProxyAcls(List(
+        Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android"), Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome")
+      ),
+        Some("!29c278b48a0ff033 !81b5022a1c5966ab")
+      )
+    }
+
+    resolve("not {hdr_sub(user-agent) Android} or User-Agent != Chrome" :: Nil) shouldBe Some {
+      HaProxyAcls(List(
+        Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome"), Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android")
+      ),
+        Some("!81b5022a1c5966ab or !29c278b48a0ff033")
       )
     }
   }
