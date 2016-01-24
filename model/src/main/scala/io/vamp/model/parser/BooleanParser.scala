@@ -26,7 +26,7 @@ trait BooleanParser extends Parser {
   }
 
   def Factor: Rule1[AstNode] = rule {
-    (optional(Not) ~> (_.nonEmpty) ~ (Operand | Parenthesis)) ~~> ((negation: Boolean, node: AstNode) ⇒ if (negation) Negation(node) else node)
+    (OptionalWhiteSpace ~ optional(Not) ~> (_.nonEmpty) ~ (Operand | Parenthesis)) ~~> ((negation: Boolean, node: AstNode) ⇒ if (negation) Negation(node) else node)
   }
 
   def Operand: Rule1[AstNode] = rule {
@@ -34,7 +34,7 @@ trait BooleanParser extends Parser {
   }
 
   def Not = rule {
-    OptionalWhiteSpace ~ ("!" | ("not" ~ WhiteSpace))
+    "!" | ("not" ~ WhiteSpace)
   }
 
   def Parenthesis: Rule1[AstNode] = rule {

@@ -91,30 +91,9 @@ case class FilterReference(name: String) extends Reference with Filter
 
 object DefaultFilter {
 
-  val userAgent = "^(?i)user[-.]agent[ ]?([!])?=[ ]?([a-zA-Z0-9]+)$".r
-  val host = "^(?i)host[ ]?([!])?=[ ]?([a-zA-Z0-9.]+)$".r
-  val cookieContains = "^(?i)cookie (.+) contains (.+)$".r
-  val hasCookie = "^(?i)has cookie (.+)$".r
-  val missesCookie = "^(?i)misses cookie (.+)$".r
-  val headerContains = "^(?i)header (.+) contains (.+)$".r
-  val hasHeader = "^(?i)has header (.+)$".r
-  val missesHeader = "^(?i)misses header (.+)$".r
   val rewrite = "^(?i)rewrite (.+) if (.+)$".r
 
-  def isHttp(filter: Filter): Boolean = filter match {
-    case f: DefaultFilter ⇒ f.condition match {
-      case userAgent(n, c)        ⇒ true
-      case host(n, c)             ⇒ true
-      case cookieContains(c1, c2) ⇒ true
-      case hasCookie(c)           ⇒ true
-      case missesCookie(c)        ⇒ true
-      case headerContains(h, c)   ⇒ true
-      case hasHeader(h)           ⇒ true
-      case missesHeader(h)        ⇒ true
-      case any                    ⇒ false
-    }
-    case _ ⇒ false
-  }
+  def isHttp(filter: Filter): Boolean = filter.isInstanceOf[DefaultFilter]
 
   def isRewrite(filter: Filter): Boolean = filter match {
     case f: DefaultFilter ⇒ f.condition match {

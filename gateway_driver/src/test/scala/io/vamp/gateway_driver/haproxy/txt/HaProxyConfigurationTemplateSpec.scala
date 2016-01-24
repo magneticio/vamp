@@ -73,7 +73,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
     val filters = HaProxyFilter(
       name = "ie",
-      acls = Acl("hdr_sub(user-agent) MSIE") :: Acl("hdr_sub(user-agent) Chrome") :: Nil,
+      acls = new HaProxyAclResolver() {} resolve ("hdr_sub(user-agent) Firefox" :: "hdr_sub(user-agent) Chrome" :: Nil),
       destination = backends.head
     ) :: Nil
 
@@ -296,25 +296,24 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     val backends = Backend("vamp://sava", "im_ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, Nil, sticky = false, Options()) :: Nil
 
     List(
-      ("hdr_sub(user-agent) Android", "hdr_sub(user-agent) Android", false),
-      ("user-agent=Android", "hdr_sub(user-agent) Android", false),
-      ("user-agent!=Android", "hdr_sub(user-agent) Android", true),
-      ("User-Agent=Android", "hdr_sub(user-agent) Android", false),
-      ("user-agent = Android", "hdr_sub(user-agent) Android", false),
-      ("user-agent  =  Android", "user-agent  =  Android", false),
-      ("user.agent = Ios", "hdr_sub(user-agent) Ios", false),
-      ("host = www.google.com", "hdr_str(host) www.google.com", false),
-      ("host != www.google.com", "hdr_str(host) www.google.com", true),
-      ("cookie MYCUSTOMER contains Value=good", "cook_sub(MYCUSTOMER) Value=good", false),
-      ("has cookie JSESSIONID", "cook(JSESSIONID) -m found", false),
-      ("misses cookie JSESSIONID", "cook_cnt(JSESSIONID) eq 0", false),
-      ("has header X-SPECIAL", "hdr_cnt(X-SPECIAL) gt 0", false),
-      ("misses header X-SPECIAL", "hdr_cnt(X-SPECIAL) eq 0", false)
+      ("hdr_sub(user-agent) Android", "hdr_sub(user-agent) Android"),
+      ("user-agent=Android", "hdr_sub(user-agent) Android"),
+      ("user-agent!=Android", "hdr_sub(user-agent) Android"),
+      ("User-Agent=Android", "hdr_sub(user-agent) Android"),
+      ("user-agent = Android", "hdr_sub(user-agent) Android"),
+      ("user-agent  =  Android", "hdr_sub(user-agent) Android"),
+      ("user.agent = Ios", "hdr_sub(user-agent) Ios"),
+      ("host = www.google.com", "hdr_str(host) www.google.com"),
+      ("host != www.google.com", "hdr_str(host) www.google.com"),
+      ("cookie MYCUSTOMER contains Value=good", "cook_sub(MYCUSTOMER) Value=good"),
+      ("has cookie JSESSIONID", "cook(JSESSIONID) -m found"),
+      ("misses cookie JSESSIONID", "cook_cnt(JSESSIONID) eq 0"),
+      ("has header X-SPECIAL", "hdr_cnt(X-SPECIAL) gt 0"),
+      ("misses header X-SPECIAL", "hdr_cnt(X-SPECIAL) eq 0")
     ) foreach { input ⇒
         filter(route.copy(filters = DefaultFilter("", input._1) :: Nil))(backends, Gateway("vamp", Port(0), None, Nil)) match {
-          case HaProxyFilter(_, _, conditions) ⇒
-            input._2 shouldBe conditions.head.definition
-            input._3 shouldBe conditions.head.negate
+          case HaProxyFilter(_, _, Some(acls)) ⇒
+            acls.acls.head.definition shouldBe input._2
         }
       }
   }
@@ -560,6 +559,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       case s ⇒ s.split('\n').map(_.trim).filter(_.nonEmpty).filterNot(_.startsWith("#")).map(_.replaceAll("\\s+", " "))
     }
 
+    println(config.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n"))
     val actual = normalize(config)
     val expected = normalize(Source.fromURL(getClass.getResource(resource)).mkString)
 

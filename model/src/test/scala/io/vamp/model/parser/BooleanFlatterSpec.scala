@@ -17,6 +17,8 @@ class BooleanFlatterSpec extends FlatSpec with Matchers with BooleanFlatter with
     transform(parse("true and true")) shouldBe parse("true")
     transform(parse("1 and 0")) shouldBe parse("false")
     transform(parse("F and F")) shouldBe parse("false")
+
+    transform(parse("((a) and (b))")) shouldBe parse("a and b")
   }
 
   it should "map combined" in {

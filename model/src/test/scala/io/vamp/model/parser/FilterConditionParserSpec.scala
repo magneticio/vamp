@@ -13,6 +13,7 @@ class FilterConditionParserSpec extends FlatSpec with Matchers with FilterCondit
     parse("user-agent == a and user-agent != b") shouldBe {
       And(UserAgent("a"), Negation(UserAgent("b")))
     }
+
     parse("user-agent == a and not user-agent == b") shouldBe {
       And(UserAgent("a"), Negation(UserAgent("b")))
     }
@@ -25,11 +26,10 @@ class FilterConditionParserSpec extends FlatSpec with Matchers with FilterCondit
     parse(" User-Agent == Firefox ") shouldBe UserAgent("Firefox")
     parse(" User-Agent ! Firefox ") shouldBe Negation(UserAgent("Firefox"))
     parse(" User-Agent != Firefox ") shouldBe Negation(UserAgent("Firefox"))
-
+    parse("user.agent != Firefox") shouldBe Negation(UserAgent("Firefox"))
     parse("User-Agent is Firefox") shouldBe UserAgent("Firefox")
     parse("User-Agent not Firefox") shouldBe Negation(UserAgent("Firefox"))
-
-    parse("( User-Agent is Firefox ) ") shouldBe UserAgent("Firefox")
+    parse(" ( User-Agent == Firefox ) ") shouldBe UserAgent("Firefox")
   }
 
   it should "resolve host" in {
@@ -69,10 +69,5 @@ class FilterConditionParserSpec extends FlatSpec with Matchers with FilterCondit
     parse("header vamp has 12345") shouldBe HeaderContains("vamp", "12345")
     parse("header vamp misses 12345") shouldBe Negation(HeaderContains("vamp", "12345"))
     parse("header vamp contains 12345") shouldBe HeaderContains("vamp", "12345")
-  }
-
-  it should "pass through non-matched" in {
-    parse(" User-Agent == Fire fox ") shouldBe Value(" User-Agent == Fire fox ")
-    parse("abc") shouldBe Value("abc")
   }
 }
