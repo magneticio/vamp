@@ -19,6 +19,16 @@ class FilterConditionParserSpec extends FlatSpec with Matchers with FilterCondit
     }
   }
 
+  it should "resolve direct value" in {
+    parse("{water -> ice}") shouldBe Value("water -> ice")
+    parse("{ water -> ice}") shouldBe Value("water -> ice")
+    parse("{ water -> ice }") shouldBe Value("water -> ice")
+    parse(" {water -> ice}") shouldBe Value("water -> ice")
+    parse("{water -> ice} ") shouldBe Value("water -> ice")
+    parse(" {water -> ice} ") shouldBe Value("water -> ice")
+    parse("  {  water  ->  ice  } ") shouldBe Value("water  ->  ice")
+  }
+
   it should "resolve user agent" in {
     parse("User-Agent==Firefox") shouldBe UserAgent("Firefox")
     parse("User-Agent== Firefox ") shouldBe UserAgent("Firefox")

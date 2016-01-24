@@ -21,7 +21,11 @@ case class HeaderContains(name: String, value: String) extends FilterConditionOp
 trait FilterConditionParser extends BooleanParser {
 
   override def Operand: Rule1[AstNode] = rule {
-    HostOperand | UserAgentOperand | HeaderOperand | CookieOperand | CookieContainsOperand | HeaderContainsOperand
+    HostOperand | UserAgentOperand | HeaderOperand | CookieOperand | CookieContainsOperand | HeaderContainsOperand | ValueOperand
+  }
+
+  override def ValueOperand: Rule1[AstNode] = rule {
+    OptionalWhiteSpace ~ "{" ~ oneOrMore(noneOf("{}")) ~> ((value: String) ⇒ Value(value.trim)) ~ "}"
   }
 
   def HostOperand = rule {
