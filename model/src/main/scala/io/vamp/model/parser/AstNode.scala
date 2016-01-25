@@ -4,7 +4,7 @@ sealed trait AstNode
 
 trait Operand extends AstNode
 
-trait Constant extends AstNode
+sealed trait Constant extends AstNode
 
 sealed trait Operation extends AstNode
 
