@@ -184,7 +184,7 @@ trait Generate extends Parameters with IoUtils {
 
   private def emptyScale = DefaultScale(name = "", cpu = 0.0, memory = MegaByte(0.0), instances = 0)
 
-  private def emptyRouting = DefaultRoute(name = "", path = "", weight = None, filters = List.empty)
+  private def emptyRouting = DefaultRoute(name = "", path = "", weight = None, filters = List.empty, balance = None)
 
   private def emptyFilter = DefaultFilter(name = "", condition = "")
 

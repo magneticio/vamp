@@ -22,6 +22,7 @@ case class Backend(name: String,
                    servers: List[Server],
                    rewrites: List[Rewrite],
                    sticky: Boolean,
+                   balance: String,
                    options: Options)
 
 object Mode extends Enumeration {

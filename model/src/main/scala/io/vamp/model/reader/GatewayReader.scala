@@ -86,7 +86,7 @@ trait AbstractRouteReader extends YamlReader[Route] with WeakReferenceYamlReader
 
   override protected def createDefault(implicit source: YamlSourceReader): Route = {
     source.flatten({ entry ⇒ entry == "instances" })
-    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), filters)
+    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), filters, <<?[String]("balance"))
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
@@ -122,7 +122,7 @@ object DeployedRouteReader extends AbstractRouteReader {
       case _ ⇒ Nil
     }
 
-    DeployedRoute(name, Route.noPath, <<?[Percentage]("weight"), filters, targets)
+    DeployedRoute(name, Route.noPath, <<?[Percentage]("weight"), filters, <<?[String]("balance"), targets)
   }
 }
 

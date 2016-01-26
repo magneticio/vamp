@@ -59,6 +59,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       servers = Nil,
       rewrites = Nil,
       sticky = false,
+      balance = "roundrobin",
       options = options
     ) :: Backend(
         name = "name2",
@@ -68,6 +69,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         servers = servers2,
         rewrites = Rewrite("/images/%[path]", "p_ext_jpg path_end -i .jpg") :: Nil,
         sticky = false,
+        balance = "roundrobin",
         options = options
       ) :: Nil
 
@@ -103,6 +105,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
         weight = Option(Percentage(100)),
         filters = Nil,
+        balance = None,
         targets = DeployedRouteTarget(
           name = "64435a223bddf1fa589135baa5e228090279c032",
           host = "192.168.99.100",
@@ -123,6 +126,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
         weight = Option(Percentage(100)),
         filters = Nil,
+        balance = None,
         targets = DeployedRouteTarget(
           name = "64435a223bddf1fa589135baa5e228090279c032",
           host = "192.168.99.100",
@@ -144,6 +148,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
           weight = Option(Percentage(100)),
           filters = Nil,
+          balance = None,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
@@ -160,6 +165,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
           filters = Nil,
+          balance = None,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
@@ -184,6 +190,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
             weight = Option(Percentage(90)),
             filters = Nil,
+            balance = None,
             targets = List(
               DeployedRouteTarget(
                 name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -203,6 +210,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
             weight = Option(Percentage(10)),
             filters = Nil,
+            balance = None,
             targets = List(
               DeployedRouteTarget(
                 name = "9019c00f1f7f641c4efc7a02c6f44e9f90d7750",
@@ -224,6 +232,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
           filters = Nil,
+          balance = None,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
@@ -247,6 +256,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           path = GatewayPath("vamp/sava/sava-backend:1.3.0/port"),
           weight = Option(Percentage(100)),
           filters = Nil,
+          balance = None,
           targets = DeployedRouteTarget(
             name = "57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117",
             host = "192.168.99.100",
@@ -263,6 +273,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           path = GatewayPath("vamp/sava/sava-frontend:1.3.0/port"),
           weight = Option(Percentage(100)),
           filters = Nil,
+          balance = None,
           targets = DeployedRouteTarget(
             name = "f1638245acf2ebe6db56984a85b48f6db8c74607",
             host = "192.168.99.100",
@@ -279,6 +290,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
           filters = Nil,
+          balance = None,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
@@ -292,8 +304,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
   }
 
   it should "convert filters" in {
-    val route = DefaultRoute("sava", GatewayPath("sava"), None, Nil)
-    val backends = Backend("vamp://sava", "im_ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, Nil, sticky = false, Options()) :: Nil
+    val route = DefaultRoute("sava", GatewayPath("sava"), None, Nil, None)
+    val backends = Backend("vamp://sava", "im_ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, Nil, sticky = false, "", Options()) :: Nil
 
     List(
       ("hdr_sub(user-agent) Android", "hdr_sub(user-agent) Android"),
@@ -348,6 +360,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
               name = "",
               condition = "rewrite /img/%[path] if { p_ext_jpg path_end -i .jpg } !{ p_folder_images path_beg -i /images/ }"
             )),
+          balance = None,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
@@ -371,6 +384,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
             weight = Option(Percentage(90)),
             filters = Nil,
+            balance = None,
             targets = List(
               DeployedRouteTarget(
                 name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -390,6 +404,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
             weight = Option(Percentage(10)),
             filters = Nil,
+            balance = None,
             targets = List(
               DeployedRouteTarget(
                 name = "9019c00f1f7f641c4efc7a02c6f44e9f90d7750",
@@ -411,6 +426,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
           filters = Nil,
+          balance = None,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
@@ -435,6 +451,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
             weight = Option(Percentage(90)),
             filters = Nil,
+            balance = None,
             targets = List(
               DeployedRouteTarget(
                 name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -454,6 +471,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
             weight = Option(Percentage(10)),
             filters = Nil,
+            balance = None,
             targets = List(
               DeployedRouteTarget(
                 name = "9019c00f1f7f641c4efc7a02c6f44e9f90d7750",
@@ -475,6 +493,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
           filters = Nil,
+          balance = None,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
@@ -498,6 +517,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           path = GatewayPath("vamp:1.x/sava/sava:1.0.0/port"),
           weight = Option(Percentage(100)),
           filters = Nil,
+          balance = None,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
@@ -514,6 +534,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           path = GatewayPath("vamp:2.x/sava/sava:2.0.0/port"),
           weight = Option(Percentage(100)),
           filters = Nil,
+          balance = None,
           targets = DeployedRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.101",
@@ -531,6 +552,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             path = GatewayPath("vamp:1.x/sava/port"),
             weight = Option(Percentage(90)),
             filters = Nil,
+            balance = None,
             targets = List(
               DeployedRouteTarget(
                 name = "64435a223bddf1fa589135baa5e228090279c032",
@@ -542,6 +564,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             path = GatewayPath("vamp:2.x/sava/port"),
             weight = Option(Percentage(10)),
             filters = Nil,
+            balance = None,
             targets = List(
               DeployedRouteTarget(
                 name = "9019c00f1f7f641c4efc7a02c6f44e9f90d7750",
@@ -552,6 +575,47 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     ))
 
     compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, tcpLogFormat, httpLogFormat)).toString(), "configuration_10.txt")
+  }
+
+  it should "serialize custom balance" in {
+    val converted = convert(List(
+      Gateway(
+        name = "vamp:1.x/sava/port",
+        port = Port(33001),
+        sticky = None,
+        routes = DeployedRoute(
+          name = "vamp:1.x/sava/sava:1.0.0/port",
+          path = GatewayPath("vamp:1.x/sava/sava:1.0.0/port"),
+          weight = Option(Percentage(100)),
+          filters = Nil,
+          balance = Some("first"),
+          targets = DeployedRouteTarget(
+            name = "64435a223bddf1fa589135baa5e228090279c032",
+            host = "192.168.99.100",
+            port = 32770
+          ) :: Nil)
+          :: Nil
+      ),
+      Gateway(
+        name = "vamp:2.x/sava/port",
+        port = Port(33001),
+        sticky = None,
+        routes = DeployedRoute(
+          name = "vamp:2.x/sava/sava:2.0.0/port",
+          path = GatewayPath("vamp:2.x/sava/sava:2.0.0/port"),
+          weight = Option(Percentage(100)),
+          filters = Nil,
+          balance = Some("custom"),
+          targets = DeployedRouteTarget(
+            name = "64435a223bddf1fa589135baa5e228090279c032",
+            host = "192.168.99.101",
+            port = 32771
+          ) :: Nil)
+          :: Nil
+      )
+    ))
+
+    compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, tcpLogFormat, httpLogFormat)).toString(), "configuration_11.txt")
   }
 
   private def compare(config: String, resource: String) = {

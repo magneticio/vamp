@@ -17,9 +17,12 @@ object Gateway {
 }
 
 case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value], routes: List[Route], active: Boolean = false) extends Artifact with Lookup {
+
   def routeBy(path: GatewayPath) = routes.find(_.path == path)
 
   def inner = routes.forall(_.length == 4)
+
+  def defaultBalance = if (port.`type` == Port.Type.Http) "roundrobin" else "leastconn"
 }
 
 object GatewayPath {
@@ -63,18 +66,20 @@ sealed trait AbstractRoute extends Route {
 
   def filters: List[Filter]
 
+  def balance: Option[String]
+
   def hasRoutingFilters: Boolean = filters.exists(DefaultFilter.isRouting)
 }
 
 case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
 
-case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter]) extends AbstractRoute
+case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter], balance: Option[String]) extends AbstractRoute
 
 object DeployedRoute {
-  def apply(route: AbstractRoute, targets: List[DeployedRouteTarget]): DeployedRoute = new DeployedRoute(route.name, route.path, route.weight, route.filters, targets)
+  def apply(route: AbstractRoute, targets: List[DeployedRouteTarget]): DeployedRoute = new DeployedRoute(route.name, route.path, route.weight, route.filters, route.balance, targets)
 }
 
-case class DeployedRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter], targets: List[DeployedRouteTarget]) extends AbstractRoute
+case class DeployedRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter], balance: Option[String], targets: List[DeployedRouteTarget]) extends AbstractRoute
 
 object DeployedRouteTarget {
 

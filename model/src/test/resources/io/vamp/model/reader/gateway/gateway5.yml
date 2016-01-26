@@ -1,0 +1,11 @@
+name: sava/web
+port: 8080/tcp
+sticky: none
+
+routes:
+  web/port1:
+    weight: 40%
+    balance: custom 1
+  web/port2:
+    weight: 60%
+    balance: custom 2
