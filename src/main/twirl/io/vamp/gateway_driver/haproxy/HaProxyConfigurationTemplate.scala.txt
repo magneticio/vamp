@@ -35,8 +35,7 @@ frontend @frontend.lookup
 # backend: @backend.name
 backend @backend.lookup
   mode @backend.mode
-  @if(backend.mode == Mode.http)        {balance roundrobin       }
-  @if(backend.mode == Mode.tcp)         {balance leastconn        }
+  balance @backend.balance
   @if(backend.sticky) {
   cookie @backend.lookup insert indirect nocache
   }

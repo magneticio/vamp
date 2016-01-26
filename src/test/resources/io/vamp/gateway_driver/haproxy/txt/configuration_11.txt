@@ -1,0 +1,113 @@
+# HAProxy 1.6, Frontends & Backends managed by Vamp
+
+# frontend: vamp:1.x/sava/port
+frontend c86a561803e448cb80efa03e185fe8e480ec102d
+  bind 0.0.0.0:33001             
+  
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+  mode http
+
+  # backend: other vamp:1.x/sava/port
+  default_backend o_c86a561803e448cb80efa03e185fe8e480ec102d
+
+# frontend: other vamp:1.x/sava/port
+frontend o_c86a561803e448cb80efa03e185fe8e480ec102d
+
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+  bind unix@/opt/vamp/o_c86a561803e448cb80efa03e185fe8e480ec102d.sock accept-proxy 
+
+  mode http
+
+  # backend: other vamp:1.x/sava/port
+  default_backend o_c86a561803e448cb80efa03e185fe8e480ec102d
+
+# frontend: vamp:1.x/sava/port//vamp:1.x/sava/sava:1.0.0/port
+frontend 9c22eab1db438da16f5dde324bd47e875f863cba
+
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+  bind unix@/opt/vamp/9c22eab1db438da16f5dde324bd47e875f863cba.sock accept-proxy 
+
+  mode http
+
+  # backend: vamp:1.x/sava/port//vamp:1.x/sava/sava:1.0.0/port
+  default_backend 9c22eab1db438da16f5dde324bd47e875f863cba
+
+# frontend: vamp:2.x/sava/port
+frontend b65dec43ba82a8515698f9384aa827078c80a96b
+  bind 0.0.0.0:33001             
+  
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+  mode http
+
+  # backend: other vamp:2.x/sava/port
+  default_backend o_b65dec43ba82a8515698f9384aa827078c80a96b
+
+# frontend: other vamp:2.x/sava/port
+frontend o_b65dec43ba82a8515698f9384aa827078c80a96b
+
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+  bind unix@/opt/vamp/o_b65dec43ba82a8515698f9384aa827078c80a96b.sock accept-proxy 
+
+  mode http
+
+  # backend: other vamp:2.x/sava/port
+  default_backend o_b65dec43ba82a8515698f9384aa827078c80a96b
+
+# frontend: vamp:2.x/sava/port//vamp:2.x/sava/sava:2.0.0/port
+frontend aa47c8ef97ab60906937d1729071fb22f4d185dc
+
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+  bind unix@/opt/vamp/aa47c8ef97ab60906937d1729071fb22f4d185dc.sock accept-proxy 
+
+  mode http
+
+  # backend: vamp:2.x/sava/port//vamp:2.x/sava/sava:2.0.0/port
+  default_backend aa47c8ef97ab60906937d1729071fb22f4d185dc
+
+# backend: other vamp:1.x/sava/port
+backend o_c86a561803e448cb80efa03e185fe8e480ec102d
+  mode http
+  balance roundrobin
+
+  # server: vamp:1.x/sava/port//vamp:1.x/sava/sava:1.0.0/port
+  server 9c22eab1db438da16f5dde324bd47e875f863cba unix@/opt/vamp/9c22eab1db438da16f5dde324bd47e875f863cba.sock send-proxy weight 100 
+
+# backend: vamp:1.x/sava/port//vamp:1.x/sava/sava:1.0.0/port
+backend 9c22eab1db438da16f5dde324bd47e875f863cba
+  mode http
+  balance first
+
+  option forwardfor
+  
+  # server: 64435a223bddf1fa589135baa5e228090279c032
+  server 709bda50dd19ad66282c78fdb423446bef362382 192.168.99.100:32770 cookie 709bda50dd19ad66282c78fdb423446bef362382 weight 100  
+
+# backend: other vamp:2.x/sava/port
+backend o_b65dec43ba82a8515698f9384aa827078c80a96b
+  mode http
+  balance roundrobin
+
+  # server: vamp:2.x/sava/port//vamp:2.x/sava/sava:2.0.0/port
+  server aa47c8ef97ab60906937d1729071fb22f4d185dc unix@/opt/vamp/aa47c8ef97ab60906937d1729071fb22f4d185dc.sock send-proxy weight 100 
+
+# backend: vamp:2.x/sava/port//vamp:2.x/sava/sava:2.0.0/port
+backend aa47c8ef97ab60906937d1729071fb22f4d185dc
+  mode http
+  balance custom
+
+  option forwardfor
+  
+  # server: 64435a223bddf1fa589135baa5e228090279c032
+  server 709bda50dd19ad66282c78fdb423446bef362382 192.168.99.101:32771 cookie 709bda50dd19ad66282c78fdb423446bef362382 weight 100  
