@@ -56,6 +56,13 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     }
   }
 
+  def createRewrite(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Rewrite] = {
+    sendAndWaitYaml(s"POST $vampHost/api/v1/rewrites", Some(definition)) match {
+      case Some(rewrite) ⇒ Some(RewriteReader.read(rewrite))
+      case _             ⇒ terminateWithError("Rewrite not created")
+    }
+  }
+
   def createRoute(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Route] = {
     sendAndWaitYaml(s"POST $vampHost/api/v1/routings", Some(definition)) match {
       case Some(routing) ⇒ Some(RouteReader.read(routing))
@@ -105,6 +112,13 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     }
   }
 
+  def updateRewrite(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Rewrite] = {
+    sendAndWaitYaml(s"PUT $vampHost/api/v1/rewrites/$name", Some(definition)) match {
+      case Some(rewrite) ⇒ Some(RewriteReader.read(rewrite))
+      case _             ⇒ terminateWithError("Filter not updated")
+    }
+  }
+
   def updateRoute(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Route] = {
     sendAndWaitYaml(s"PUT $vampHost/api/v1/routings/$name", Some(definition)) match {
       case Some(routing) ⇒ Some(RouteReader.read(routing))
@@ -137,6 +151,9 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
 
   def deleteFilter(name: String)(implicit vampHost: String) =
     sendAndWaitYaml(s"DELETE $vampHost/api/v1/filters/$name", None)
+
+  def deleteRewrite(name: String)(implicit vampHost: String) =
+    sendAndWaitYaml(s"DELETE $vampHost/api/v1/rewrites/$name", None)
 
   def deleteRoute(name: String)(implicit vampHost: String) =
     sendAndWaitYaml(s"DELETE $vampHost/api/v1/routings/$name", None)
@@ -184,6 +201,12 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
       case None      ⇒ List.empty
     }
 
+  def getRewrites(implicit vampHost: String): List[Rewrite] =
+    sendAndWaitYaml(s"GET $vampHost/api/v1/rewrites") match {
+      case Some(ser) ⇒ yamArrayListToList(ser).map(a ⇒ RewriteReader.read(a))
+      case None      ⇒ List.empty
+    }
+
   def getRoutings(implicit vampHost: String): List[Route] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/routings") match {
       case Some(ser) ⇒ yamArrayListToList(ser).map(a ⇒ RouteReader.read(a))
@@ -222,6 +245,9 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
 
   def getFilter(filterId: String)(implicit vampHost: String): Option[Filter] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/filters/$filterId").map(FilterReader.read(_))
+
+  def getRewrite(rewriteId: String)(implicit vampHost: String): Option[Rewrite] =
+    sendAndWaitYaml(s"GET $vampHost/api/v1/rewrites/$rewriteId").map(RewriteReader.read(_))
 
   def getRoute(name: String)(implicit vampHost: String): Option[Route] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/routing/$name").map(RouteReader.read(_))

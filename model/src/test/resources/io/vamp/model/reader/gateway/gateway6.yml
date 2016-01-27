@@ -1,0 +1,10 @@
+name: sava/web
+port: 8080
+sticky: none
+
+routes:
+  web/port1:
+    rewrites:
+    - path: a if b
+  web/port2:
+    weight: 100%

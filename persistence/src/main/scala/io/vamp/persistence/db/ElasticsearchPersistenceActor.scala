@@ -104,6 +104,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "escalations" -> EscalationReader,
     "routings" -> RouteReader,
     "filters" -> FilterReader,
+    "rewrites" -> FilterReader,
     "workflows" -> WorkflowReader,
     "scheduled-workflows" -> ScheduledWorkflowReader
   ).get(`type`)

@@ -239,7 +239,7 @@ trait BlueprintRoutingHelper {
               if (port.`type` != Port.Type.Http) {
                 cluster.routingBy(port.name) match {
                   case Some(routing) ⇒ routing.routes.foreach {
-                    case route: DefaultRoute ⇒ route.filters.foreach(filter ⇒ if (DefaultFilter.isHttp(filter)) throwException(FilterPortTypeError(port, filter)))
+                    case route: DefaultRoute ⇒ route.filters.foreach(filter ⇒ if (filter.isInstanceOf[DefaultFilter]) throwException(FilterPortTypeError(port, filter)))
                     case _                   ⇒
                   }
                   case None ⇒
@@ -248,7 +248,7 @@ trait BlueprintRoutingHelper {
 
               blueprint.gateways.foreach { gateway ⇒
                 gateway.routeBy(cluster.name :: port.name :: Nil) match {
-                  case Some(route: DefaultRoute) ⇒ if (gateway.port.`type` != Port.Type.Http) route.filters.foreach(filter ⇒ if (DefaultFilter.isHttp(filter)) throwException(FilterPortTypeError(gateway.port.copy(name = route.path.source), filter)))
+                  case Some(route: DefaultRoute) ⇒ if (gateway.port.`type` != Port.Type.Http) route.filters.foreach(filter ⇒ if (filter.isInstanceOf[DefaultFilter]) throwException(FilterPortTypeError(gateway.port.copy(name = route.path.source), filter)))
                   case _                         ⇒
                 }
               }

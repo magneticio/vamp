@@ -13,7 +13,8 @@ object GatewaySerializationFormat extends io.vamp.common.json.SerializationForma
     new GatewaySerializer() :+
     new RoutingStickySerializer() :+
     new RouteSerializer() :+
-    new FilterSerializer()
+    new FilterSerializer() :+
+    new RewriteSerializer()
 }
 
 class GatewaySerializer extends ArtifactSerializer[Gateway] with GatewayDecomposer {
@@ -71,6 +72,7 @@ class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerializat
 
       list += JField("weight", if (route.weight.isDefined) JString(route.weight.get.normalized) else JNull)
       list += JField("filters", Extraction.decompose(route.filters))
+      list += JField("rewrites", Extraction.decompose(route.rewrites))
 
       route match {
         case r: DeployedRoute ⇒ list += JField("instances", Extraction.decompose(r.targets))
@@ -89,6 +91,18 @@ class FilterSerializer extends ArtifactSerializer[Filter] with ReferenceSerializ
       if (filter.name.nonEmpty)
         list += JField("name", JString(filter.name))
       list += JField("condition", JString(filter.condition))
+      new JObject(list.toList)
+  }
+}
+
+class RewriteSerializer extends ArtifactSerializer[Rewrite] with ReferenceSerialization {
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case rewrite: RewriteReference ⇒ serializeReference(rewrite)
+    case rewrite: PathRewrite ⇒
+      val list = new ArrayBuffer[JField]
+      if (rewrite.name.nonEmpty)
+        list += JField("name", JString(rewrite.name))
+      list += JField("path", JString(rewrite.definition))
       new JObject(list.toList)
   }
 }

@@ -59,6 +59,13 @@ object PerformCommand extends Generate {
         case _                ⇒
       })
 
+    case Some("rewrites") ⇒
+      println("NAME".padTo(25, ' ').bold.cyan + "CONDITION".bold.cyan)
+      VampHostCalls.getRewrites.foreach({
+        case b: PathRewrite ⇒ println(s"${b.name.padTo(25, ' ')}${b.definition}")
+        case _              ⇒
+      })
+
     case Some("routings") ⇒
       println("NAME".padTo(25, ' ').bold.cyan + "FILTERS".bold.cyan)
       VampHostCalls.getRoutings.foreach({
@@ -94,7 +101,8 @@ object PerformCommand extends Generate {
       }
       case Some("escalation") ⇒ VampHostCalls.getEscalation(getParameter(name))
       case Some("filter")     ⇒ VampHostCalls.getFilter(getParameter(name))
-      case Some("routes")     ⇒ VampHostCalls.getRoute(getParameter(name))
+      case Some("rewrite")    ⇒ VampHostCalls.getRewrite(getParameter(name))
+      case Some("route")      ⇒ VampHostCalls.getRoute(getParameter(name))
       case Some("scale")      ⇒ VampHostCalls.getScale(getParameter(name))
       case Some("sla")        ⇒ VampHostCalls.getSla(getParameter(name))
       case Some(invalid)      ⇒ terminateWithError(s"Artifact type unknown: '$invalid'")
@@ -108,6 +116,7 @@ object PerformCommand extends Generate {
     case Some("blueprint")  ⇒ printArtifact(VampHostCalls.createBlueprint(readFileContent))
     case Some("escalation") ⇒ printArtifact(VampHostCalls.createEscalation(readFileContent))
     case Some("filter")     ⇒ printArtifact(VampHostCalls.createFilter(readFileContent))
+    case Some("rewrite")    ⇒ printArtifact(VampHostCalls.createRewrite(readFileContent))
     case Some("routes")     ⇒ printArtifact(VampHostCalls.createRoute(readFileContent))
     case Some("scale")      ⇒ printArtifact(VampHostCalls.createScale(readFileContent))
     case Some("sla")        ⇒ printArtifact(VampHostCalls.createSla(readFileContent))
@@ -120,6 +129,7 @@ object PerformCommand extends Generate {
     case Some("blueprint")  ⇒ printArtifact(VampHostCalls.updateBlueprint(getParameter(name), readFileContent))
     case Some("escalation") ⇒ printArtifact(VampHostCalls.updateEscalation(getParameter(name), readFileContent))
     case Some("filter")     ⇒ printArtifact(VampHostCalls.updateFilter(getParameter(name), readFileContent))
+    case Some("rewrite")    ⇒ printArtifact(VampHostCalls.updateRewrite(getParameter(name), readFileContent))
     case Some("routes")     ⇒ printArtifact(VampHostCalls.updateRoute(getParameter(name), readFileContent))
     case Some("scale")      ⇒ printArtifact(VampHostCalls.updateScale(getParameter(name), readFileContent))
     case Some("sla")        ⇒ printArtifact(VampHostCalls.updateSla(getParameter(name), readFileContent))
@@ -132,6 +142,7 @@ object PerformCommand extends Generate {
     case Some("blueprint")  ⇒ VampHostCalls.deleteBlueprint(getParameter(name))
     case Some("escalation") ⇒ VampHostCalls.deleteEscalation(getParameter(name))
     case Some("filter")     ⇒ VampHostCalls.deleteFilter(getParameter(name))
+    case Some("rewrite")    ⇒ VampHostCalls.deleteRewrite(getParameter(name))
     case Some("routes")     ⇒ VampHostCalls.deleteRoute(getParameter(name))
     case Some("scale")      ⇒ VampHostCalls.deleteScale(getParameter(name))
     case Some("sla")        ⇒ VampHostCalls.deleteSla(getParameter(name))

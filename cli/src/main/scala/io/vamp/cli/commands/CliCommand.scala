@@ -21,8 +21,8 @@ trait CliCommand {
 
   def jsonOutput = "  --json               Output Json instead of Yaml[Optional]"
 
-  val allArtifacts = List("blueprint", "breed", "deployment", "escalation", "filter", "routes", "scale", "sla")
-  val allArtifactsPlural = List("blueprints", "breeds", "deployments", "escalations", "filters", "routings", "scales", "slas")
+  val allArtifacts = List("blueprint", "breed", "deployment", "escalation", "filter", "rewrite", "gateway", "scale", "sla")
+  val allArtifactsPlural = List("blueprints", "breeds", "deployments", "escalations", "filters", "rewrites", "gateways", "scales", "slas")
 }
 
 case class ListCommand() extends CliCommand {

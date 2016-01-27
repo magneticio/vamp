@@ -86,7 +86,7 @@ trait AbstractRouteReader extends YamlReader[Route] with WeakReferenceYamlReader
 
   override protected def createDefault(implicit source: YamlSourceReader): Route = {
     source.flatten({ entry ⇒ entry == "instances" })
-    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), filters, <<?[String]("balance"))
+    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), filters, rewrites, <<?[String]("balance"))
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
@@ -96,14 +96,23 @@ trait AbstractRouteReader extends YamlReader[Route] with WeakReferenceYamlReader
       case Some(m)             ⇒ >>("filters", List(m))
       case _                   ⇒
     }
+    <<?[Any]("rewrites") match {
+      case Some(s: String)     ⇒ expandToList("rewrites")
+      case Some(list: List[_]) ⇒
+      case Some(m)             ⇒ >>("rewrites", List(m))
+      case _                   ⇒
+    }
     super.expand
   }
 
   protected def filters(implicit source: YamlSourceReader): List[Filter] = <<?[YamlList]("filters") match {
-    case None ⇒ List[Filter]()
-    case Some(list: YamlList) ⇒ list.map {
-      FilterReader.readReferenceOrAnonymous
-    }
+    case None                 ⇒ List.empty[Filter]
+    case Some(list: YamlList) ⇒ list.map { FilterReader.readReferenceOrAnonymous }
+  }
+
+  protected def rewrites(implicit source: YamlSourceReader): List[Rewrite] = <<?[YamlList]("rewrites") match {
+    case None                 ⇒ List.empty[Rewrite]
+    case Some(list: YamlList) ⇒ list.map { RewriteReader.readReferenceOrAnonymous }
   }
 }
 
@@ -122,7 +131,7 @@ object DeployedRouteReader extends AbstractRouteReader {
       case _ ⇒ Nil
     }
 
-    DeployedRoute(name, Route.noPath, <<?[Percentage]("weight"), filters, <<?[String]("balance"), targets)
+    DeployedRoute(name, Route.noPath, <<?[Percentage]("weight"), filters, rewrites, <<?[String]("balance"), targets)
   }
 }
 
@@ -131,6 +140,19 @@ object FilterReader extends YamlReader[Filter] with WeakReferenceYamlReader[Filt
   override protected def createReference(implicit source: YamlSourceReader): Filter = FilterReference(reference)
 
   override protected def createDefault(implicit source: YamlSourceReader): Filter = DefaultFilter(name, <<![String]("condition"))
+}
+
+object RewriteReader extends YamlReader[Rewrite] with WeakReferenceYamlReader[Rewrite] {
+
+  override protected def createReference(implicit source: YamlSourceReader): Rewrite = RewriteReference(reference)
+
+  override protected def createDefault(implicit source: YamlSourceReader): Rewrite = <<![String]("path") match {
+    case definition ⇒
+      PathRewrite.parse(name, definition) match {
+        case Some(rewrite: PathRewrite) ⇒ rewrite
+        case _                          ⇒ throwException(UnsupportedPathRewriteError(definition))
+      }
+  }
 }
 
 trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {

@@ -66,20 +66,22 @@ sealed trait AbstractRoute extends Route {
 
   def filters: List[Filter]
 
+  def rewrites: List[Rewrite]
+
   def balance: Option[String]
 
-  def hasRoutingFilters: Boolean = filters.exists(DefaultFilter.isRouting)
+  def hasRoutingFilters: Boolean = filters.exists(_.isInstanceOf[DefaultFilter])
 }
 
 case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
 
-case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter], balance: Option[String]) extends AbstractRoute
+case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter], rewrites: List[Rewrite], balance: Option[String]) extends AbstractRoute
 
 object DeployedRoute {
-  def apply(route: AbstractRoute, targets: List[DeployedRouteTarget]): DeployedRoute = new DeployedRoute(route.name, route.path, route.weight, route.filters, route.balance, targets)
+  def apply(route: AbstractRoute, targets: List[DeployedRouteTarget]): DeployedRoute = new DeployedRoute(route.name, route.path, route.weight, route.filters, route.rewrites, route.balance, targets)
 }
 
-case class DeployedRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter], balance: Option[String], targets: List[DeployedRouteTarget]) extends AbstractRoute
+case class DeployedRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter], rewrites: List[Rewrite], balance: Option[String], targets: List[DeployedRouteTarget]) extends AbstractRoute
 
 object DeployedRouteTarget {
 
@@ -94,21 +96,22 @@ sealed trait Filter extends Artifact
 
 case class FilterReference(name: String) extends Reference with Filter
 
-object DefaultFilter {
+case class DefaultFilter(name: String, condition: String) extends Filter
 
-  val rewrite = "^(?i)rewrite (.+) if (.+)$".r
+sealed trait Rewrite extends Artifact
 
-  def isHttp(filter: Filter): Boolean = filter.isInstanceOf[DefaultFilter]
+case class RewriteReference(name: String) extends Reference with Rewrite
 
-  def isRewrite(filter: Filter): Boolean = filter match {
-    case f: DefaultFilter ⇒ f.condition match {
-      case rewrite(n, c) ⇒ true
-      case any           ⇒ false
-    }
-    case _ ⇒ false
+object PathRewrite {
+
+  private val matcher = "^(?i)(.+) if (.+)$".r
+
+  def parse(name: String, definition: String): Option[PathRewrite] = definition match {
+    case matcher(path, condition) ⇒ Option(PathRewrite(name, path, condition))
+    case _                        ⇒ None
   }
-
-  def isRouting(filter: Filter) = !isRewrite(filter)
 }
 
-case class DefaultFilter(name: String, condition: String) extends Filter
+case class PathRewrite(name: String, path: String, condition: String) extends Rewrite {
+  val definition = s"$path if $condition"
+}

@@ -1,6 +1,6 @@
 package io.vamp.model.reader
 
-import io.vamp.model.artifact.{ DefaultRoute, GatewayPath, Gateway, Port }
+import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import org.junit.runner.RunWith
 import org.scalatest._
@@ -16,7 +16,7 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("sava"),
       'port(Port("8080", None, Some("8080/http"))),
       'sticky(Some(Gateway.Sticky.Service)),
-      'routes(List(DefaultRoute("", GatewayPath("sava1", List("sava1")), Some(Percentage(50)), Nil, None), DefaultRoute("", GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), Nil, None)))
+      'routes(List(DefaultRoute("", GatewayPath("sava1", List("sava1")), Some(Percentage(50)), Nil, Nil, None), DefaultRoute("", GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), Nil, Nil, None)))
     )
   }
 
@@ -25,7 +25,7 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("sava/web"),
       'port(Port("8080", None, Some("8080/tcp"))),
       'sticky(None),
-      'routes(List(DefaultRoute("", GatewayPath("web/port", List("web", "port")), Some(Percentage(100)), Nil, None)))
+      'routes(List(DefaultRoute("", GatewayPath("web/port", List("web", "port")), Some(Percentage(100)), Nil, Nil, None)))
     )
   }
 
@@ -51,8 +51,20 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
       'port(Port("8080", None, Some("8080/tcp"))),
       'sticky(None),
       'routes(List(
-        DefaultRoute("", GatewayPath("web/port1", List("web", "port1")), Some(Percentage(40)), Nil, Some("custom 1")),
-        DefaultRoute("", GatewayPath("web/port2", List("web", "port2")), Some(Percentage(60)), Nil, Some("custom 2"))
+        DefaultRoute("", GatewayPath("web/port1", List("web", "port1")), Some(Percentage(40)), Nil, Nil, Some("custom 1")),
+        DefaultRoute("", GatewayPath("web/port2", List("web", "port2")), Some(Percentage(60)), Nil, Nil, Some("custom 2"))
+      ))
+    )
+  }
+
+  it should "read route rewrites" in {
+    GatewayReader.read(res("gateway/gateway6.yml")) should have(
+      'name("sava/web"),
+      'port(Port("8080", None, Some("8080"))),
+      'sticky(None),
+      'routes(List(
+        DefaultRoute("", GatewayPath("web/port1", List("web", "port1")), None, Nil, List(PathRewrite("", "a", "b")), None),
+        DefaultRoute("", GatewayPath("web/port2", List("web", "port2")), Some(Percentage(100)), Nil, Nil, None)
       ))
     )
   }

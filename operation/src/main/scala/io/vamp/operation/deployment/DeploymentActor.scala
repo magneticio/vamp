@@ -431,7 +431,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
             }
 
             blueprintCluster.route(service, portName, short = true) match {
-              case None                   ⇒ DefaultRoute("", path, Option(Percentage(defaultWeight)), Nil, None)
+              case None                   ⇒ DefaultRoute("", path, Option(Percentage(defaultWeight)), Nil, Nil, None)
               case Some(r: DefaultRoute)  ⇒ r.copy(path = path, weight = Option(weightFor(r)))
               case Some(r: DeployedRoute) ⇒ r.copy(path = path, weight = Option(weightFor(r)))
             }

@@ -10,8 +10,6 @@ object HaProxyGatewayMarshaller {
 
 trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
-  import io.vamp.model.artifact.DefaultFilter._
-
   private val socketPath = "/opt/vamp"
 
   private val other = "o_"
@@ -170,19 +168,17 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   }
 
   private[haproxy] def filter(route: AbstractRoute)(implicit backends: List[Backend], gateway: Gateway): Filter = {
-    val conditions = route.filters.filter(_.isInstanceOf[DefaultFilter]).map(_.asInstanceOf[DefaultFilter].condition).filter {
-      case rewrite(_, _) ⇒ false
-      case any           ⇒ true
-    }
-
-    backendFor(intermediate, GatewayMarshaller.lookup(gateway, route.path.segments)) match {
-      case backend ⇒ Filter(backend.lookup, backend, aclResolver.resolve(conditions))
+    route.filters.filter(_.isInstanceOf[DefaultFilter]).map(_.asInstanceOf[DefaultFilter].condition) match {
+      case conditions ⇒
+        backendFor(intermediate, GatewayMarshaller.lookup(gateway, route.path.segments)) match {
+          case backend ⇒ Filter(backend.lookup, backend, aclResolver.resolve(conditions))
+        }
     }
   }
 
-  private def rewrites(route: AbstractRoute): List[Rewrite] = route.filters.filter(_.isInstanceOf[DefaultFilter]).map(_.asInstanceOf[DefaultFilter].condition).flatMap {
-    case rewrite(p, c) ⇒ Rewrite(p, if (c.matches("^\\s*\\{.*\\}\\s*$")) c else s"{ $c }") :: Nil
-    case _             ⇒ Nil
+  private def rewrites(route: AbstractRoute): List[Rewrite] = route.rewrites.flatMap {
+    case PathRewrite(_, p, c) ⇒ Rewrite(p, if (c.matches("^\\s*\\{.*\\}\\s*$")) c else s"{ $c }") :: Nil
+    case _                    ⇒ Nil
   }
 
   private def backendFor(lookup: String*)(implicit backends: List[Backend]): Backend = lookup.mkString match {

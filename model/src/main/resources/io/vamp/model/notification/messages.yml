@@ -37,6 +37,8 @@ FilterPortTypeError                    : "HTTP filters are not allowed for TCP p
 IllegalAnonymousRoutingPortMappingError: "Illegal anonymous routing port mapping - more than 1 port defined for '{breed.name}'."
 GatewayRouteWeightError                : "Total route weight cannot be greater than 100: {gateway.port.value.get}."
 DuplicateGatewayPortError              : "Duplicate gateway port: '{port}'."
+UnsupportedPathRewriteError            : "Unsupported path rewrite: {definition}."
+
 # SLA
 
 Escalate                               : "Escalate '{deployment.name}/{cluster.name}'."

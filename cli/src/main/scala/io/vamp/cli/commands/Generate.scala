@@ -101,6 +101,12 @@ trait Generate extends Parameters with IoUtils {
           case other             ⇒ Some(other)
         }
 
+      case Some("rewrite") ⇒
+        readArtifactStartingPoint[Rewrite](fileContent, RewriteReader, emptyRewrite) match {
+          case df: DefaultFilter ⇒ Some(df.copy(name = replaceValueString(name, df.name)))
+          case other             ⇒ Some(other)
+        }
+
       case Some("routes") ⇒
         readArtifactStartingPoint[Route](fileContent, RouteReader, emptyRouting) match {
           case dr: DefaultRoute ⇒ Some(dr.copy(name = replaceValueString(name, dr.name)))
@@ -184,9 +190,11 @@ trait Generate extends Parameters with IoUtils {
 
   private def emptyScale = DefaultScale(name = "", cpu = 0.0, memory = MegaByte(0.0), instances = 0)
 
-  private def emptyRouting = DefaultRoute(name = "", path = "", weight = None, filters = List.empty, balance = None)
+  private def emptyRouting = DefaultRoute(name = "", path = "", weight = None, filters = List.empty, rewrites = List.empty, balance = None)
 
   private def emptyFilter = DefaultFilter(name = "", condition = "")
+
+  private def emptyRewrite = PathRewrite(name = "", path = "", condition = "")
 
   private def emptyScaleCpuEscalation = ScaleCpuEscalation(name = "", minimum = 0, maximum = 0, scaleBy = 0, targetCluster = None)
 
