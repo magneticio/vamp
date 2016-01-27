@@ -45,7 +45,7 @@ trait ReplyActor {
 
   def errorNotificationClass: Class[_ <: ErrorNotification] = classOf[GenericErrorNotification]
 
-  def unsupported(requestError: RequestError) = reply(Future(reportException(requestError)))
+  def unsupported(requestError: RequestError) = reply(Future.failed(reportException(requestError)))
 }
 
 sealed abstract class ReplyMagnet[+T] {

@@ -9,6 +9,8 @@ import scala.util.Try
 
 trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYamlReader[T] {
 
+  private val nameMatcher = """^[^\s\[\]]+$""".r
+
   override protected def expand(implicit source: YamlSourceReader) = {
     <<?[Any]("routes") match {
       case Some(route: String) ⇒ >>("routes" :: route :: Nil, YamlSourceReader())
@@ -48,21 +50,23 @@ trait AbstractGatewayReader[T <: Gateway] extends YamlReader[T] with AnonymousYa
   protected def active(implicit source: YamlSourceReader): Boolean = <<?[Boolean]("active").getOrElse(false)
 
   override protected def validate(gateway: T): T = {
-
     gateway.routes.foreach(route ⇒ if (route.length < 1 || route.length > 4) throwException(UnsupportedRoutePathError(route.path)))
-
     if (gateway.port.`type` != Port.Type.Http && gateway.sticky.isDefined) throwException(StickyPortTypeError(gateway.port.copy(name = gateway.port.value.get)))
-
     gateway
   }
 
-  protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
-    case None ⇒ AnonymousYamlReader.name
-    case Some(name) ⇒
-      val path = GatewayPath(name).segments
-      if (path.size < 1 || path.size > 2)
-        throwException(UnsupportedGatewayNameError(name))
-      name
+  override def validateName(name: String): String = {
+
+    def error = throwException(UnsupportedGatewayNameError(name))
+
+    name match {
+      case nameMatcher(_*) ⇒ GatewayPath(name).segments match {
+        case path ⇒ if (path.size < 1 || path.size > 4) error
+      }
+      case _ ⇒ error
+    }
+
+    name
   }
 
   protected def routerReader: AbstractRouteReader = RouteReader
@@ -90,29 +94,32 @@ trait AbstractRouteReader extends YamlReader[Route] with WeakReferenceYamlReader
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
-    <<?[Any]("filters") match {
-      case Some(s: String)     ⇒ expandToList("filters")
+
+    def list(name: String) = <<?[Any](name) match {
+      case Some(s: String)     ⇒ expandToList(name)
       case Some(list: List[_]) ⇒
-      case Some(m)             ⇒ >>("filters", List(m))
+      case Some(m)             ⇒ >>(name, List(m))
       case _                   ⇒
     }
-    <<?[Any]("rewrites") match {
-      case Some(s: String)     ⇒ expandToList("rewrites")
-      case Some(list: List[_]) ⇒
-      case Some(m)             ⇒ >>("rewrites", List(m))
-      case _                   ⇒
-    }
+
+    list("filters")
+    list("rewrites")
+
     super.expand
   }
 
   protected def filters(implicit source: YamlSourceReader): List[Filter] = <<?[YamlList]("filters") match {
-    case None                 ⇒ List.empty[Filter]
-    case Some(list: YamlList) ⇒ list.map { FilterReader.readReferenceOrAnonymous }
+    case None ⇒ List.empty[Filter]
+    case Some(list: YamlList) ⇒ list.map {
+      FilterReader.readReferenceOrAnonymous
+    }
   }
 
   protected def rewrites(implicit source: YamlSourceReader): List[Rewrite] = <<?[YamlList]("rewrites") match {
-    case None                 ⇒ List.empty[Rewrite]
-    case Some(list: YamlList) ⇒ list.map { RewriteReader.readReferenceOrAnonymous }
+    case None ⇒ List.empty[Rewrite]
+    case Some(list: YamlList) ⇒ list.map {
+      RewriteReader.readReferenceOrAnonymous
+    }
   }
 }
 

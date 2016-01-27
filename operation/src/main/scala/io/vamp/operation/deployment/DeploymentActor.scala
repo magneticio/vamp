@@ -23,19 +23,19 @@ import scala.language.{ existentials, postfixOps }
 
 object DeploymentActor {
 
-  trait DeploymentMessages
+  trait DeploymentMessage
 
-  case class Create(blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessages
+  case class Create(blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessage
 
-  case class Merge(name: String, blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessages
+  case class Merge(name: String, blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessage
 
-  case class Slice(name: String, blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessages
+  case class Slice(name: String, blueprint: Blueprint, source: String, validateOnly: Boolean) extends DeploymentMessage
 
-  case class UpdateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String) extends DeploymentMessages
+  case class UpdateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String) extends DeploymentMessage
 
-  case class UpdateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) extends DeploymentMessages
+  case class UpdateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) extends DeploymentMessage
 
-  case class UpdateRouting(deployment: Deployment, cluster: DeploymentCluster, routing: List[Gateway], source: String) extends DeploymentMessages
+  case class UpdateRouting(deployment: Deployment, cluster: DeploymentCluster, routing: List[Gateway], source: String) extends DeploymentMessage
 
 }
 

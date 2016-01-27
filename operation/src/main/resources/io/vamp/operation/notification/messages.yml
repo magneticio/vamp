@@ -1,6 +1,7 @@
 
 InternalServerError             : "Internal server error."
 UnsupportedDeploymentRequest    : "Unsupported deployment request."
+UnsupportedGatewayRequest       : "Unsupported gateway request."
 NonUniqueBreedReferenceError    : "Multiple references for breed: '{breed.name}'."
 UnresolvedDependencyError       : "Unresolved dependency '{dependency.name}' for breed '{breed.name}'."
 DeploymentSynchronizationFailure: "Failure during deployment '{deployment.name}' synchronization: {exception}"
@@ -20,3 +21,5 @@ InvalidTimeTriggerError         : "Not a valid time trigger patter: '{pattern}'.
 MissingRequiredVariableError    : "Required variable '{required}' not found in the storage."
 
 NoAvailablePortError            : "No port available in the range [{begin}-{end}]."
+
+UnsupportedGatewayRemovalError  : "Gateway is an internal deployment gateway - it can be removed only when deployment cluster is removed."

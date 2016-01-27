@@ -4,7 +4,7 @@ import akka.actor.{ ActorRef, ActorSystem, Props }
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.operation.deployment.{ DeploymentActor, DeploymentSynchronizationActor, DeploymentSynchronizationSchedulerActor }
-import io.vamp.operation.gateway.{ GatewaySynchronizationActor, GatewaySynchronizationSchedulerActor }
+import io.vamp.operation.gateway.{ GatewayActor, GatewaySynchronizationActor, GatewaySynchronizationSchedulerActor }
 import io.vamp.operation.sla.{ EscalationActor, EscalationSchedulerActor, SlaActor, SlaSchedulerActor }
 import io.vamp.operation.sse.EventStreamingActor
 import io.vamp.operation.workflow.WorkflowSchedulerActor
@@ -32,6 +32,8 @@ object OperationBootstrap extends Bootstrap {
 
       IoC.createActor(Props(classOf[DeploymentSynchronizationActor]).withMailbox(synchronizationMailbox)),
       IoC.createActor[DeploymentSynchronizationSchedulerActor],
+
+      IoC.createActor[GatewayActor],
 
       IoC.createActor(Props(classOf[GatewaySynchronizationActor]).withMailbox(synchronizationMailbox)),
       IoC.createActor[GatewaySynchronizationSchedulerActor],

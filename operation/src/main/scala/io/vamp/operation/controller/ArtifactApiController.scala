@@ -1,10 +1,11 @@
 package io.vamp.operation.controller
 
+import _root_.io.vamp.common.notification.NotificationProvider
+import _root_.io.vamp.operation.gateway.GatewayActor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider}
-import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.reader._
 import io.vamp.model.workflow.{DefaultWorkflow, ScheduledWorkflow, TimeTrigger, Workflow}
@@ -59,7 +60,7 @@ trait ArtifactApiController extends ArtifactSupport {
     ("rewrites" -> new PersistenceHandler[Rewrite](RewriteReader)) +
     ("workflows" -> new PersistenceHandler[Workflow](WorkflowReader)) +
     ("scheduled-workflows" -> new ScheduledWorkflowHandler()) +
-    ("gateways" -> new PersistenceHandler[Gateway](GatewayReader) {
+    ("gateways" -> new GatewayHandler() {
       override def background = true
     }) +
     // workaround for None response.
@@ -84,11 +85,12 @@ trait ArtifactApiController extends ArtifactSupport {
 
     val `type` = classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]]
 
-    override def all(page: Int, perPage: Int, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) =
+    override def all(page: Int, perPage: Int, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = {
       actorFor[PersistenceActor] ? PersistenceActor.All(`type`, page, perPage, expandReferences, onlyReferences) map {
         case envelope: ArtifactResponseEnvelope ⇒ envelope
         case other ⇒ throwException(PersistenceOperationFailure(other))
       }
+    }
 
     override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       (unmarshal andThen validate)(source) flatMap {
@@ -96,7 +98,9 @@ trait ArtifactApiController extends ArtifactSupport {
       }
     }
 
-    override def read(name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = actorFor[PersistenceActor] ? PersistenceActor.Read(name, `type`, expandReferences, onlyReferences)
+    override def read(name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = {
+      actorFor[PersistenceActor] ? PersistenceActor.Read(name, `type`, expandReferences, onlyReferences)
+    }
 
     override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       (unmarshal andThen validate)(source) flatMap {
@@ -108,12 +112,34 @@ trait ArtifactApiController extends ArtifactSupport {
       }
     }
 
-    override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) =
+    override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       if (validateOnly) Future(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, `type`)
+    }
 
     protected def unmarshal: (String ⇒ T) = { (source: String) ⇒ unmarshaller.read(source) }
 
     protected def validate: (T ⇒ Future[T]) = { (artifact: T) ⇒ Future(artifact) }
+  }
+
+  class GatewayHandler extends PersistenceHandler[Gateway](GatewayReader) {
+
+    override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+      unmarshal(source) match {
+        case gateway ⇒ actorFor[GatewayActor] ? GatewayActor.Create(gateway, Option(source), validateOnly)
+      }
+    }
+
+    override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+      unmarshal(source) match {
+        case gateway ⇒
+          if (name != gateway.name) throwException(InconsistentArtifactName(name, gateway))
+          actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly)
+      }
+    }
+
+    override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+      actorFor[GatewayActor] ? GatewayActor.Delete(name, validateOnly)
+    }
   }
 
   class ScheduledWorkflowHandler extends PersistenceHandler[ScheduledWorkflow](ScheduledWorkflowReader) {

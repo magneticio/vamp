@@ -33,7 +33,7 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[UnsupportedGatewayNameError]({
       GatewayReader.read(res("gateway/gateway3.yml"))
     }) should have(
-      'name("sava/web/port")
+      'name("a/b/c/d/e")
     )
   }
 

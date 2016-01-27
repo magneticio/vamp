@@ -75,6 +75,7 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
 
       source match {
         case yaml: YamlSourceReader ⇒
+          if (result.isInstanceOf[Lookup]) yaml.find[String]("lookup_name")
           val nonConsumed = yaml.notConsumed
           if (nonConsumed.nonEmpty) {
             implicit val formats: Formats = DefaultFormats

@@ -27,8 +27,6 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
       } toList
     }
 
-    <<?[String]("lookup_name")
-
     Deployment(name, clusters, BlueprintGatewayReader.mapping("gateways"), ports(addGroup = true), environmentVariables, hosts())
   }
 

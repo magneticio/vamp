@@ -8,6 +8,8 @@ case class InternalServerError(reason: Any) extends Notification with ErrorNotif
 
 case class UnsupportedDeploymentRequest(request: Any) extends Notification with RequestError
 
+case class UnsupportedGatewayRequest(request: Any) extends Notification with RequestError
+
 case class DeploymentSynchronizationFailure(deployment: Deployment, exception: Throwable) extends Notification
 
 case class UnresolvedVariableValueError(breed: Breed, name: String) extends Notification
@@ -43,3 +45,5 @@ case class InvalidTimeTriggerError(pattern: String) extends Notification
 case class MissingRequiredVariableError(required: String) extends Notification
 
 case class NoAvailablePortError(begin: Int, end: Int) extends Notification
+
+case class UnsupportedGatewayRemovalError(name: String) extends Notification
