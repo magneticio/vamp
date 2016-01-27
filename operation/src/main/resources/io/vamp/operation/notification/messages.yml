@@ -22,4 +22,6 @@ MissingRequiredVariableError    : "Required variable '{required}' not found in t
 
 NoAvailablePortError            : "No port available in the range [{begin}-{end}]."
 
-UnsupportedGatewayRemovalError  : "Gateway is an internal deployment gateway - it can be removed only when deployment cluster is removed."
+InnerGatewayCreateError         : "Gateway is an internal deployment gateway - it can be created only when deployment cluster is created."
+InnerGatewayUpdateError         : "Gateway is an internal deployment gateway - routes can be addded or removed only when cluster services are created or removed."
+InnerGatewayRemoveError         : "Gateway is an internal deployment gateway - it can be removed only when deployment cluster is removed."
