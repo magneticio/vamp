@@ -1,11 +1,15 @@
 package io.vamp.gateway_driver.haproxy
 
+import com.typesafe.config.ConfigFactory
 import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
 import io.vamp.model.artifact._
 
 object HaProxyGatewayMarshaller {
-  val path: List[String] = "haproxy" :: "1.6" :: Nil
+
+  val version = ConfigFactory.load().getString("vamp.gateway-driver.haproxy.version").trim
+
+  val path: List[String] = "haproxy" :: version :: Nil
 }
 
 trait HaProxyGatewayMarshaller extends GatewayMarshaller {
@@ -18,9 +22,9 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   private val aclResolver = new HaProxyAclResolver() {}
 
-  override val path = HaProxyGatewayMarshaller.path
+  override lazy val path = HaProxyGatewayMarshaller.path
 
-  override def info: AnyRef = "HAProxy v1.6.x"
+  override lazy val info: AnyRef = s"HAProxy v${HaProxyGatewayMarshaller.version}.x"
 
   def tcpLogFormat: String
 

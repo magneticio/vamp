@@ -22,6 +22,10 @@ object GatewayDriverBootstrap extends Bootstrap {
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
+    HaProxyGatewayMarshaller.version match {
+      case version if version != "1.6" && version != "1.5" ⇒ throw new RuntimeException(s"unsupported HAProxy configuration version: $version")
+    }
+
     val actors = List(
       IoC.createActor[GatewayDriverActor](new HaProxyGatewayMarshaller() {
         override def tcpLogFormat: String = haproxyConfiguration.getString("tcp-log-format")
