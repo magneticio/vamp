@@ -14,9 +14,7 @@ import scala.language.postfixOps
 
 object GatewayDriverActor {
 
-  val path = "gateways" :: Nil
-
-  trait GatewayDriverMessage
+  sealed trait GatewayDriverMessage
 
   case class Commit(gateways: List[Gateway]) extends GatewayDriverMessage
 
@@ -28,7 +26,7 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PulseFailureNoti
 
   lazy implicit val timeout = KeyValueStoreActor.timeout
 
-  private def path = GatewayDriverActor.path ++ marshaller.path
+  private def path = marshaller.path
 
   def receive = {
     case InfoRequest      ⇒ reply(info)
@@ -51,8 +49,10 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PulseFailureNoti
     implicit val timeout = KeyValueStoreActor.timeout
 
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(path) map {
-      case Some(value: String) ⇒ if (value != content) send(content)
-      case _                   ⇒ send(content)
+      case Some(value: String) ⇒
+        if (value != content) send(content)
+      case any                   ⇒
+        send(content)
     }
   }
 }
