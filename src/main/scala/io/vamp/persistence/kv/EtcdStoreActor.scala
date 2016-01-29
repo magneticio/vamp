@@ -7,6 +7,7 @@ import io.vamp.common.http.RestClient
 
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.util.Try
 
 class EtcdStoreActor extends KeyValueStoreActor {
 
@@ -25,11 +26,9 @@ class EtcdStoreActor extends KeyValueStoreActor {
     )
   )
 
-  override protected def all(path: List[String]): Future[Map[String, String]] = Future.successful(Map())
-
   override protected def get(path: List[String]): Future[Option[String]] = {
     RestClient.get[Any](urlOf(path), RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
-      case map: Map[_, _] ⇒ map.asInstanceOf[Map[String, _]].get("node").flatMap(_.asInstanceOf[Map[String, _]].get("value")).map(_.toString)
+      case map: Map[_, _] ⇒ map.asInstanceOf[Map[String, _]].get("node").map(_.asInstanceOf[Map[String, _]]).getOrElse(Map()).get("value").map(_.toString)
       case _              ⇒ None
     }
   }
@@ -39,5 +38,5 @@ class EtcdStoreActor extends KeyValueStoreActor {
     case Some(value) ⇒ RestClient.put[Any](urlOf(path), s"value=${URLEncoder.encode(value, "UTF-8")}", List("Accept" -> "application/json", "Content-Type" -> "application/x-www-form-urlencoded"))
   }
 
-  private def urlOf(path: List[String]) = s"$url/v2/keys/${pathToString(path)}"
+  private def urlOf(path: List[String], recursive: Boolean = false) = s"$url/v2/keys/${pathToString(path)}${if (recursive) "?recursive=true" else ""}"
 }

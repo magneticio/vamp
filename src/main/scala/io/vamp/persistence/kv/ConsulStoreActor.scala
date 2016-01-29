@@ -19,21 +19,10 @@ class ConsulStoreActor extends KeyValueStoreActor {
     )
   }
 
-  override protected def all(path: List[String]): Future[Map[String, String]] = {
-    RestClient.get[Any](urlOf(path, recurse = true), RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
-      case list: List[_] ⇒
-        list.flatMap {
-          case map: Map[_, _] ⇒ result(path, map) :: Nil
-          case _              ⇒ Nil
-        } toMap
-      case _ ⇒ Map()
-    }
-  }
-
   override protected def get(path: List[String]): Future[Option[String]] = {
     RestClient.get[Any](urlOf(path), RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
-      case head :: Nil    ⇒ Option(result(path, head.asInstanceOf[Map[_, _]])._2)
-      case map: Map[_, _] ⇒ Option(result(path, map)._2)
+      case head :: Nil    ⇒ Option(result(head.asInstanceOf[Map[_, _]]))
+      case map: Map[_, _] ⇒ Option(result(map))
       case _              ⇒ None
     }
   }
@@ -45,9 +34,7 @@ class ConsulStoreActor extends KeyValueStoreActor {
 
   private def urlOf(path: List[String], recurse: Boolean = false) = s"$url/v1/kv/${pathToString(path)}${if (recurse) "?recurse" else ""}"
 
-  private def result(path: List[String], map: Map[_, _]): (String, String) = {
-    val key = map.asInstanceOf[Map[String, _]].get("Key").map(_.toString).getOrElse("").split('/').drop(path.size + 1).mkString("/")
-    val value = map.asInstanceOf[Map[String, _]].get("Value").map(value ⇒ Base64.getDecoder.decode(value.asInstanceOf[String])).map(new String(_)).getOrElse("")
-    key -> value
+  private def result(map: Map[_, _]): String = {
+    map.asInstanceOf[Map[String, _]].get("Value").map(value ⇒ Base64.getDecoder.decode(value.asInstanceOf[String])).map(new String(_)).getOrElse("")
   }
 }
