@@ -16,6 +16,8 @@ object KeyValueStoreActor {
 
   sealed trait KeyValueStoreMessage
 
+  case class All(path: List[String]) extends KeyValueStoreMessage
+
   case class Get(path: List[String]) extends KeyValueStoreMessage
 
   case class Set(path: List[String], data: Option[String]) extends KeyValueStoreMessage
@@ -32,12 +34,15 @@ trait KeyValueStoreActor extends PulseFailureNotifier with CommonSupportForActor
 
   def receive = {
     case InfoRequest     ⇒ reply(info())
+    case All(path)       ⇒ reply(all(path))
     case Get(path)       ⇒ reply(get(path))
     case Set(path, data) ⇒ set(path, data)
     case any             ⇒ unsupported(UnsupportedPersistenceRequest(any))
   }
 
   protected def info(): Future[Any]
+
+  protected def all(path: List[String]): Future[List[String]]
 
   protected def get(path: List[String]): Future[Option[String]]
 

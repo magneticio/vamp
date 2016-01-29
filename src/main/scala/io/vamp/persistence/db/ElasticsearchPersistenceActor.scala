@@ -24,7 +24,6 @@ case class ElasticsearchPersistenceInfo(`type`: String, url: String, index: Stri
 class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact with PaginationSupport {
 
   import ElasticsearchPersistenceActor._
-  import YamlSourceReader._
 
   private val es = new ElasticsearchClient(elasticsearchUrl)
 
@@ -77,22 +76,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
   }
 
   private def readerOf(`type`: String): Option[YamlReader[_ <: Artifact]] = Map(
-    "gateways" -> new AbstractGatewayReader[Gateway] {
-      override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes(splitPath = true), active)
-
-      protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
-        case None       ⇒ AnonymousYamlReader.name
-        case Some(name) ⇒ name
-      }
-
-      protected override def port(implicit source: YamlSourceReader): Port = <<?[Any]("port") match {
-        case Some(value: Int)    ⇒ Port(value)
-        case Some(value: String) ⇒ Port(value)
-        case _                   ⇒ Port("", None, None)
-      }
-
-      protected override def routerReader: AbstractRouteReader = DeployedRouteReader
-    },
+    "gateways" -> DeployedGatewayReader,
     "deployments" -> DeploymentReader,
     "breeds" -> BreedReader,
     "blueprints" -> BlueprintReader,
