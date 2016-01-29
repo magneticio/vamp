@@ -25,7 +25,7 @@ class EtcdStoreActor extends KeyValueStoreActor {
     )
   )
 
-  override protected def all(path: List[String]): Future[List[String]] = Future.successful(Nil)
+  override protected def all(path: List[String]): Future[Map[String, String]] = Future.successful(Map())
 
   override protected def get(path: List[String]): Future[Option[String]] = {
     RestClient.get[Any](urlOf(path), RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {

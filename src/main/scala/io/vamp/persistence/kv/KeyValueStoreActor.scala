@@ -42,7 +42,7 @@ trait KeyValueStoreActor extends PulseFailureNotifier with CommonSupportForActor
 
   protected def info(): Future[Any]
 
-  protected def all(path: List[String]): Future[List[String]]
+  protected def all(path: List[String]): Future[Map[String, String]]
 
   protected def get(path: List[String]): Future[Option[String]]
 
