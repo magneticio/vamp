@@ -215,7 +215,7 @@ trait DevController {
 
   def haproxy(): Future[Any] = {
     implicit val timeout = KeyValueStoreActor.timeout
-    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(GatewayDriverActor.path ++ HaProxyGatewayMarshaller.path) map {
+    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(HaProxyGatewayMarshaller.path) map {
       case Some(result: String) ⇒ HttpEntity(result)
       case _                    ⇒ HttpEntity("")
     }

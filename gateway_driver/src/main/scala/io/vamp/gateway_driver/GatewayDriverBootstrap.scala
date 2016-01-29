@@ -24,6 +24,7 @@ object GatewayDriverBootstrap extends Bootstrap {
 
     HaProxyGatewayMarshaller.version match {
       case version if version != "1.6" && version != "1.5" ⇒ throw new RuntimeException(s"unsupported HAProxy configuration version: $version")
+      case _ ⇒
     }
 
     val actors = List(
