@@ -19,6 +19,8 @@ class ConsulStoreActor extends KeyValueStoreActor {
     )
   }
 
+  override protected def all(path: List[String]): Future[List[String]] = Future.successful(Nil)
+
   override protected def get(path: List[String]): Future[Option[String]] = {
     RestClient.get[Any](urlOf(path), RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
       case map: Map[_, _] ⇒ map.asInstanceOf[Map[String, _]].get("Value").map(value ⇒ Base64.getDecoder.decode(value.asInstanceOf[String])).map(new String(_))
