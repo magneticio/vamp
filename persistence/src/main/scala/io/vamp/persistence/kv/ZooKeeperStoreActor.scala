@@ -45,8 +45,6 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
     }
   }
 
-  override protected def all(path: List[String]): Future[Map[String, String]] = Future.successful(Map())
-
   override protected def get(path: List[String]): Future[Option[String]] = zooKeeperClient match {
     case Some(zk) ⇒ zk.get(pathToString(path)) recoverWith {
       case failure: FailedAsyncResponse if failure.code == Code.NONODE ⇒ Future.successful {
