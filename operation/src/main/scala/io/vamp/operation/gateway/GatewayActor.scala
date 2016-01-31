@@ -54,18 +54,22 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
 
     def default = if (validateOnly) Future.successful(gateway) else actorFor[PersistenceActor] ? PersistenceActor.Update(gateway, source)
 
-    if (internal(gateway.name) && !force)
-      routeChanged(gateway) flatMap {
-        case true  ⇒ Future.failed(reportException(InnerGatewayUpdateError(gateway.name)))
-        case false ⇒ default
-      }
+    if (internal(gateway.name) && !force) routeChanged(gateway) flatMap {
+      case true  ⇒ Future.failed(reportException(InnerGatewayUpdateError(gateway.name)))
+      case false ⇒ default
+    }
     else default
   }
 
-  private def delete(name: String, validateOnly: Boolean, force: Boolean): Future[Any] = (internal(name), force, validateOnly) match {
-    case (true, false, _) ⇒ Future.failed(reportException(InnerGatewayRemoveError(name)))
-    case (_, _, true)     ⇒ Future.successful(None)
-    case _                ⇒ actorFor[PersistenceActor] ? PersistenceActor.Delete(name, classOf[Gateway])
+  private def delete(name: String, validateOnly: Boolean, force: Boolean): Future[Any] = {
+
+    def default = if (validateOnly) Future.successful(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, classOf[Gateway])
+
+    if (internal(name) && !force) deploymentExists(name) flatMap {
+      case true  ⇒ Future.failed(reportException(InnerGatewayRemoveError(name)))
+      case false ⇒ default
+    }
+    else default
   }
 
   private def internal(name: String) = GatewayPath(name).segments.size == 3
@@ -74,6 +78,12 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
     checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(gateway.name, classOf[Gateway])) map {
       case Some(old: Gateway) ⇒ old.routes.map(_.path.normalized).toSet != gateway.routes.map(_.path.normalized).toSet
       case _                  ⇒ true
+    }
+  }
+
+  private def deploymentExists(name: String): Future[Boolean] = {
+    checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(GatewayPath(name).segments.head, classOf[Deployment])) map {
+      case result ⇒ result.isDefined
     }
   }
 }
