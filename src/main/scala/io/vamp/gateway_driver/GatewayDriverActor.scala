@@ -49,10 +49,8 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PulseFailureNoti
     implicit val timeout = KeyValueStoreActor.timeout
 
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(path) map {
-      case Some(value: String) ⇒
-        if (value != content) send(content)
-      case any                   ⇒
-        send(content)
+      case Some(value: String) ⇒ if (value != content) send(content)
+      case _                   ⇒ send(content)
     }
   }
 }
