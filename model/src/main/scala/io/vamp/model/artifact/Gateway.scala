@@ -16,11 +16,11 @@ object Gateway {
 
 }
 
-case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value], routes: List[Route], active: Boolean = false) extends Artifact with Lookup {
+case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value], routes: List[Route], deployed: Boolean = false) extends Artifact with Lookup {
 
   def routeBy(path: GatewayPath) = routes.find(_.path == path)
 
-  def inner = routes.forall(_.length == 4)
+  def inner = GatewayPath(name).segments.size == 3 && routes.forall(_.length == 4)
 
   def defaultBalance = if (port.`type` == Port.Type.Http) "roundrobin" else "leastconn"
 }

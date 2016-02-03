@@ -4,6 +4,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.model.artifact._
 import io.vamp.model.reader._
 import io.vamp.model.serialization.CoreSerializationFormat
+import io.vamp.persistence.operation.{ RouteTargets, GatewayDeploymentStatus, GatewayPort }
 import io.vamp.pulse.ElasticsearchClient
 import io.vamp.pulse.ElasticsearchClient.{ ElasticsearchGetResponse, ElasticsearchSearchResponse }
 import org.json4s.native.Serialization._
@@ -24,6 +25,7 @@ case class ElasticsearchPersistenceInfo(`type`: String, url: String, index: Stri
 class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact with PaginationSupport {
 
   import ElasticsearchPersistenceActor._
+  import YamlSourceReader._
 
   private val es = new ElasticsearchClient(elasticsearchUrl)
 
@@ -87,6 +89,33 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "filters" -> FilterReader,
     "rewrites" -> FilterReader,
     "workflows" -> WorkflowReader,
-    "scheduled-workflows" -> ScheduledWorkflowReader
+    "scheduled-workflows" -> ScheduledWorkflowReader,
+    // gateway persistence
+    "route-targets" -> new NoNameValidationYamlReader[RouteTargets] {
+      override protected def parse(implicit source: YamlSourceReader) = {
+        val targets = <<?[YamlList]("targets") match {
+          case Some(list) ⇒ list.map {
+            case yaml ⇒
+              implicit val source = yaml
+              DeployedRouteTarget(<<![String]("name"), <<![String]("host"), <<![Int]("port"))
+          }
+          case _ ⇒ Nil
+        }
+        RouteTargets(<<![String]("name"), targets)
+      }
+    },
+    "gateway-ports" -> new NoNameValidationYamlReader[GatewayPort] {
+      override protected def parse(implicit source: YamlSourceReader) = GatewayPort(name, <<![String]("port"))
+    },
+    "gateway-deployment-statuses" -> new NoNameValidationYamlReader[GatewayDeploymentStatus] {
+      override protected def parse(implicit source: YamlSourceReader) = GatewayDeploymentStatus(name, <<![Boolean]("deployed"))
+    }
   ).get(`type`)
+}
+
+trait NoNameValidationYamlReader[T] extends YamlReader[T] {
+
+  import YamlSourceReader._
+
+  override protected def name(implicit source: YamlSourceReader): String = <<![String]("name")
 }

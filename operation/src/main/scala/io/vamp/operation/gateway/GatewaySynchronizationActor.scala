@@ -6,14 +6,14 @@ import io.vamp.common.akka._
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor.Commit
 import io.vamp.model.artifact._
-import io.vamp.model.notification.UnsupportedRoutePathError
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
-import io.vamp.persistence.db.PersistenceActor.{ Delete, Update }
+import io.vamp.persistence.db.PersistenceActor.{ Create, Update }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.operation.{ RouteTargets, GatewayDeploymentStatus, GatewayPort }
 
 import scala.concurrent.duration._
-import scala.language.{ existentials, postfixOps }
+import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
 class GatewaySynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
@@ -32,11 +32,11 @@ object GatewaySynchronizationActor {
     (portRange(0), portRange(1))
   }
 
-  trait GatewayMessages
+  sealed trait GatewayMessages
 
   object SynchronizeAll extends GatewayMessages
 
-  case class Synchronize(deployments: List[Deployment], gateways: List[Gateway]) extends GatewayMessages
+  case class Synchronize(gateways: List[Gateway], deployments: List[Deployment]) extends GatewayMessages
 
 }
 
@@ -46,7 +46,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   def receive = {
     case SynchronizeAll                     ⇒ synchronize()
-    case Synchronize(deployments, gateways) ⇒ synchronize(deployments, gateways)
+    case Synchronize(gateways, deployments) ⇒ synchronize(gateways, deployments)
     case _                                  ⇒
   }
 
@@ -57,17 +57,16 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       gateways ← allArtifacts[Gateway]
       deployments ← allArtifacts[Deployment]
     } yield (gateways, deployments)) onComplete {
-      case Success((gateways, deployments)) ⇒ sendTo ! Synchronize(deployments, gateways)
+      case Success((gateways, deployments)) ⇒ sendTo ! Synchronize(gateways, deployments)
       case Failure(error)                   ⇒ throwException(InternalServerError(error))
     }
   }
 
-  private def synchronize(deployments: List[Deployment], gateways: List[Gateway]) = {
-    val updated = assignPorts(gateways, deployments)
-    (purgeRemoved(updated) andThen updateGatewayPorts(updated) andThen updateInstances(updated) andThen flush)(gateways)
+  private def synchronize(gateways: List[Gateway], deployments: List[Deployment]) = {
+    (portAssignment(deployments) andThen instanceUpdate(deployments) andThen flush)(gateways)
   }
 
-  private def assignPorts(gateways: List[Gateway], deployments: List[Deployment]): List[Deployment] = {
+  private def portAssignment(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
 
     var currentPort = portRangeLower - 1
     val used = gateways.map(_.port.number).toSet
@@ -83,147 +82,100 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       currentPort
     }
 
-    deployments.map { deployment ⇒
-      val (update, keep) = deployment.clusters.partition { cluster ⇒
-        cluster.services.forall(_.state.isDone) && cluster.portMapping.exists { case (_, value) ⇒ value == 0 }
-      }
+    val (noPortGateways, otherGateways) = gateways.partition { gateway ⇒ gateway.port.value.isEmpty }
 
-      val updated = update.map { cluster ⇒
-        cluster.copy(portMapping = cluster.portMapping.map {
-          case (name, value) ⇒ name -> (if (value == 0) availablePort else value)
-        })
-      }
-
-      val clusters = updated ++ keep
-
-      val deploymentPorts = deployment.ports.map(p ⇒ p.name -> p).toMap ++ clusters.flatMap({ cluster ⇒
-        cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
-          Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portMapping.get(port.name).flatMap(n ⇒ Some(n.toString)))
-        })
-      }).map(p ⇒ p.name -> p).toMap
-
-      val updatedDeployment = deployment.copy(clusters = clusters, ports = deploymentPorts.values.toList)
-
-      if (update.nonEmpty) IoC.actorFor[PersistenceActor] ! Update(updatedDeployment)
-
-      updatedDeployment
+    noPortGateways foreach { gateway ⇒
+      IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = false))
+      IoC.actorFor[PersistenceActor] ! Create(GatewayPort(gateway.name, Port(availablePort, gateway.port.`type`).value.get))
     }
+
+    otherGateways
   }
 
-  private def purgeRemoved(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
+  private def instanceUpdate(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
 
-    val (remove, keep) = gateways.partition { gateway ⇒
-      GatewayPath(gateway.name).segments match {
-        case deployment :: _ :: Nil               ⇒ !deployments.exists(_.name == deployment)
-        case deployment :: cluster :: port :: Nil ⇒ deployments.find(_.name == deployment).flatMap(deployment ⇒ deployment.clusters.find(_.name == cluster)).isEmpty
-        case _                                    ⇒ false
+    val (withRoutes, withoutRoutes) = gateways partition { gateway ⇒
+      gateway.routes.forall {
+        case route: DeployedRoute if route.targets.nonEmpty ⇒ targets(gateways, deployments, route) == route.targets
+        case _ ⇒ false
       }
     }
 
-    remove.foreach { gateway ⇒
-      log.info(s"gateway removed: ${gateway.name}")
-      IoC.actorFor[PersistenceActor] ! Delete(gateway.name, gateway.getClass)
+    withoutRoutes flatMap (_.routes) foreach {
+      case route: AbstractRoute ⇒ IoC.actorFor[PersistenceActor] ! Update(RouteTargets(route.path.normalized, targets(gateways, deployments, route)))
+      case _                    ⇒
     }
 
-    keep
+    withRoutes foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = true)) }
+
+    withoutRoutes foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = false)) }
+
+    withRoutes
   }
 
-  private def updateGatewayPorts(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
-    val deploymentGateways = deployments.flatMap { deployment ⇒
+  private def targets(gateways: List[Gateway], deployments: List[Deployment], route: AbstractRoute): List[DeployedRouteTarget] = {
 
-      val clusterGateways = deployment.clusters.filter(_.services.forall(_.state.isDone)).flatMap { cluster ⇒
-        cluster.routing.map { routing ⇒
-          val port = routing.port.copy(value = cluster.portMapping.get(routing.port.name).flatMap { number ⇒ Port(number, routing.port.`type`).value })
-          routing.copy(port = port)
-        }
-      }
+    val targets = route.path.segments match {
 
-      deployment.gateways ++ clusterGateways
+      case reference :: Nil ⇒
+        gateways.find {
+          _.name == reference
+        }.flatMap { gw ⇒
+          Option {
+            DeployedRouteTarget(reference, gw.port.number)
+          }
+        } :: Nil
+
+      case deployment :: _ :: Nil ⇒
+        deployments.find {
+          _.name == deployment
+        }.flatMap {
+          _.gateways.find(_.name == route.path.normalized)
+        }.flatMap { gateway ⇒
+          Option {
+            DeployedRouteTarget(route.path.normalized, gateway.port.number)
+          }
+        } :: Nil
+
+      case deployment :: cluster :: port :: Nil ⇒
+        deployments.find {
+          _.name == deployment
+        }.flatMap {
+          _.clusters.find(_.name == cluster)
+        }.flatMap {
+          _.portMapping.get(port)
+        }.flatMap { port ⇒
+          if (port != 0) Option(DeployedRouteTarget(route.path.normalized, port)) else None
+        } :: Nil
+
+      case deployment :: cluster :: service :: port :: Nil ⇒
+        deployments.find {
+          _.name == deployment
+        }.flatMap {
+          _.clusters.find(_.name == cluster)
+        }.flatMap {
+          _.services.find(_.breed.name == service)
+        }.map { service ⇒
+          service.instances.map {
+            instance ⇒
+              Option {
+                DeployedRouteTarget(instance.name, instance.host, instance.ports.get(port).get)
+              }
+          }
+        }.getOrElse(Nil)
+
+      case _ ⇒ None :: Nil
     }
 
-    (gateways ++ deploymentGateways.filterNot { gateway ⇒
-      gateways.exists(_.name == gateway.name) && !gateway.inner
-    }).map(gateway ⇒ gateway.name -> gateway).toMap.values.toList
-  }
-
-  private def updateInstances(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
-    gateways.map { gateway ⇒
-
-      def targets(path: GatewayPath): List[Option[DeployedRouteTarget]] = path.segments match {
-
-        case reference :: Nil ⇒
-          gateways.find {
-            _.name == reference
-          }.flatMap { gw ⇒
-            Option {
-              DeployedRouteTarget(reference, gw.port.number)
-            }
-          } :: Nil
-
-        case deployment :: _ :: Nil ⇒
-          deployments.find {
-            _.name == deployment
-          }.flatMap {
-            _.gateways.find(_.name == path.normalized)
-          }.flatMap { gateway ⇒
-            Option {
-              DeployedRouteTarget(path.normalized, gateway.port.number)
-            }
-          } :: Nil
-
-        case deployment :: cluster :: port :: Nil ⇒
-          deployments.find {
-            _.name == deployment
-          }.flatMap {
-            _.clusters.find(_.name == cluster)
-          }.flatMap {
-            _.portMapping.get(port)
-          }.flatMap { port ⇒
-            Option {
-              DeployedRouteTarget(path.normalized, port)
-            }
-          } :: Nil
-
-        case deployment :: cluster :: service :: port :: Nil ⇒
-          deployments.find {
-            _.name == deployment
-          }.flatMap {
-            _.clusters.find(_.name == cluster)
-          }.flatMap {
-            _.services.find(_.breed.name == service)
-          }.map { service ⇒
-            service.instances.map {
-              instance ⇒
-                Option {
-                  DeployedRouteTarget(instance.name, instance.host, instance.ports.get(port).get)
-                }
-            }
-          }.getOrElse(Nil)
-
-        case _ ⇒ None :: Nil
-      }
-
-      val routes: List[Option[DeployedRoute]] = gateway.routes.map {
-        case route: AbstractRoute if route.length > 0 && route.length < 5 ⇒
-          val optionalTargets = targets(route.path)
-          if (optionalTargets.exists(_.isEmpty)) None else Option(DeployedRoute(route, optionalTargets.flatten))
-        case route ⇒ throwException(UnsupportedRoutePathError(route.path))
-      }
-
-      if (routes.exists(_.isEmpty)) gateway.copy(active = false) else gateway.copy(routes = routes.flatten, active = true)
-
-    } map { gateway ⇒
-      IoC.actorFor[PersistenceActor] ! Update(gateway)
-      gateway
-    }
+    if (targets.exists(_.isEmpty)) Nil else targets.flatten
   }
 
   private def flush: List[Gateway] ⇒ Unit = { gateways ⇒
     IoC.actorFor[GatewayDriverActor] ! Commit {
-      gateways filter { _.active } filter { _.port.number > 0 } sortWith { (gateway1, gateway2) ⇒
+      gateways sortWith { (gateway1, gateway2) ⇒
         val len1 = GatewayPath(gateway1.name).segments.size
         val len2 = GatewayPath(gateway2.name).segments.size
-        if (len1 == len2) gateway1.lookupName.compareTo(gateway2.lookupName) < 0
+        if (len1 == len2) gateway1.name.compareTo(gateway2.name) < 0
         else len1 < len2
       }
     }
