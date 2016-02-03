@@ -46,16 +46,21 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
   private def parseService(implicit source: YamlSourceReader): DeploymentService = {
     val breed = BreedReader.readReference(<<![Any]("breed")).asInstanceOf[DefaultBreed]
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale").asInstanceOf[Option[DefaultScale]]
-    val instances = <<?[List[YamlSourceReader]]("instances") match {
-      case None       ⇒ Nil
-      case Some(list) ⇒ list.map(parseInstances(_))
-    }
     val envVars = environmentVariables().map { ev ⇒ ev.copy(interpolated = ev.value) }
-    DeploymentService(state(<<![YamlSourceReader]("state")), breed, envVars, scale, instances, dependencies(), dialects)
+
+    DeploymentService(state(<<![YamlSourceReader]("state")), breed, envVars, scale, parseInstances, dependencies(), dialects)
   }
 
-  private def parseInstances(implicit source: YamlSourceReader): DeploymentInstance =
+  def parseInstances(implicit source: YamlSourceReader): List[DeploymentInstance] = {
+    <<?[List[YamlSourceReader]]("instances") match {
+      case None       ⇒ Nil
+      case Some(list) ⇒ list.map(parseInstance(_))
+    }
+  }
+
+  private def parseInstance(implicit source: YamlSourceReader): DeploymentInstance = {
     DeploymentInstance(<<![String]("name"), <<![String]("host"), portMapping(), <<![Boolean]("deployed"))
+  }
 
   private def portMapping(name: String = "ports")(implicit source: YamlSourceReader): Map[String, Int] = {
     <<?[YamlSourceReader](name) match {
@@ -79,7 +84,17 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
     }
   }
 
-  private def state(implicit source: YamlSourceReader): DeploymentService.State = {
+  private def state(implicit source: YamlSourceReader): DeploymentService.State = DeploymentServiceStateReader.read
+
+  override def readReference: PartialFunction[Any, Deployment] = {
+    case yaml: YamlSourceReader if yaml.size > 1 ⇒ read(yaml)
+    case _                                       ⇒ throwException(UnexpectedInnerElementError("/", classOf[YamlSourceReader]))
+  }
+}
+
+object DeploymentServiceStateReader extends YamlReader[DeploymentService.State] {
+
+  override protected def parse(implicit source: YamlSourceReader) = {
     def since(string: String) = OffsetDateTime.parse(string, DateTimeFormatter.ISO_DATE_TIME)
 
     val intentionName = <<![String]("intention")
@@ -95,10 +110,5 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
     }
 
     DeploymentService.State(intention, step, since(<<![String]("since")))
-  }
-
-  override def readReference: PartialFunction[Any, Deployment] = {
-    case yaml: YamlSourceReader if yaml.size > 1 ⇒ read(yaml)
-    case _                                       ⇒ throwException(UnexpectedInnerElementError("/", classOf[YamlSourceReader]))
   }
 }

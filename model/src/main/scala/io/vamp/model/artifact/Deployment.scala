@@ -44,6 +44,8 @@ object DeploymentService {
     def isDone = step.isInstanceOf[Done]
 
     def isDeployed = intention == State.Intention.Deploy && isDone
+
+    def isUndeployed = intention == State.Intention.Undeploy && isDone
   }
 
   implicit def step2state(intention: StateIntentionType): State = State(intention)

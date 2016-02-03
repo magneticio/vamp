@@ -2,13 +2,15 @@ package io.vamp.persistence.db
 
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.model.artifact._
-import io.vamp.persistence.operation.{ GatewayDeploymentStatus, GatewayPort, RouteTargets }
+import io.vamp.persistence.operation._
 
 import scala.concurrent.Future
 import scala.language.postfixOps
 
 trait PersistenceMultiplexer {
   this: ExecutionContextProvider ⇒
+
+  import DeploymentPersistence._
 
   protected def split(artifact: Artifact, each: Artifact ⇒ Future[Artifact]): Future[List[Artifact]] = artifact match {
     case deployment: Deployment      ⇒ split(deployment, each)
@@ -105,20 +107,42 @@ trait PersistenceMultiplexer {
 
       clusters ← Future.sequence {
         deployment.clusters.map { cluster ⇒
-          val routing = Future.sequence {
-            cluster.routing.map { gateway ⇒
-              gateway.copy(name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port))
-            } map combine
-          }
-          routing.map { routing ⇒
+          for {
+            routing ← Future.sequence {
+              cluster.routing.map { gateway ⇒
+                gateway.copy(name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port))
+              } map combine
+            }
+            services ← Future.sequence {
+              cluster.services.filterNot(_.state.isUndeployed).map { service ⇒
+                for {
+                  state ← get(serviceArtifactName(deployment, service), classOf[DeploymentServiceState]).map {
+                    _.getOrElse(DeploymentServiceState("", service.state)).asInstanceOf[DeploymentServiceState].state
+                  }
+                  instances ← get(serviceArtifactName(deployment, service), classOf[DeploymentServiceInstances]).map {
+                    _.getOrElse(DeploymentServiceInstances("", service.instances)).asInstanceOf[DeploymentServiceInstances].instances
+                  }
+                  environmentVariables ← get(serviceArtifactName(deployment, service), classOf[DeploymentServiceEnvironmentVariables]).map {
+                    _.getOrElse(DeploymentServiceEnvironmentVariables("", service.environmentVariables)).asInstanceOf[DeploymentServiceEnvironmentVariables].environmentVariables
+                  }
+                } yield service.copy(state = state, instances = instances, environmentVariables = environmentVariables)
+              }
+            }
+          } yield {
+
             val portMapping = cluster.portMapping.map {
               case (name, value) ⇒ name -> routing.find(gateway ⇒ GatewayPath(gateway.name).segments.last == name).map(_.port.number).getOrElse(value)
             }
-            cluster.copy(routing = routing, portMapping = portMapping)
+
+            cluster.copy(services = services, routing = routing, portMapping = portMapping)
           }
         }
       }
     } yield {
+
+      val hosts = deployment.hosts.filter { host ⇒
+        TraitReference.referenceFor(host.name).flatMap(ref ⇒ clusters.find(_.name == ref.cluster)).isDefined
+      }
 
       val ports = clusters.flatMap { cluster ⇒
         cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
@@ -126,7 +150,7 @@ trait PersistenceMultiplexer {
         })
       } map { p ⇒ p.name -> p } toMap
 
-      deployment.copy(gateways = gateways.flatten, clusters = clusters, ports = ports.values.toList)
+      deployment.copy(gateways = gateways.flatten, clusters = clusters, ports = ports.values.toList, hosts = hosts)
     }
   }
 
