@@ -1,7 +1,7 @@
 package io.vamp.persistence.db
 
-import akka.util.Timeout
 import akka.pattern.ask
+import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
@@ -40,7 +40,7 @@ object PersistenceActor {
 
 }
 
-trait PersistenceActor extends PersistenceRequestSplit with PersistenceArchiving with ArtifactExpansion with ArtifactShrinkage with PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
+trait PersistenceActor extends PersistenceMultiplexer with PersistenceArchiving with ArtifactExpansion with ArtifactShrinkage with PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
@@ -106,9 +106,11 @@ trait PersistenceActor extends PersistenceRequestSplit with PersistenceArchiving
     }
 
     case Delete(name, ofType) ⇒ reply {
-      delete(name, ofType) map {
-        archiveDelete
-      }
+      remove(name, ofType, { (name, ofType) ⇒
+        delete(name, ofType) map {
+          archiveDelete
+        }
+      })
     }
 
     case any ⇒ unsupported(UnsupportedPersistenceRequest(any))

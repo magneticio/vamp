@@ -7,6 +7,7 @@ import io.vamp.model.artifact._
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, UnsupportedPersistenceRequest }
+import io.vamp.persistence.operation.{ GatewayDeploymentStatus, GatewayPort, RouteTargets }
 import org.json4s.native.Serialization._
 
 import scala.collection.mutable
@@ -104,6 +105,11 @@ trait TypeOfArtifact {
   this: NotificationProvider ⇒
 
   implicit def type2string(`type`: Class[_]): String = `type` match {
+    // gateway persistence
+    case t if classOf[RouteTargets].isAssignableFrom(t) ⇒ "route-targets"
+    case t if classOf[GatewayPort].isAssignableFrom(t) ⇒ "gateway-ports"
+    case t if classOf[GatewayDeploymentStatus].isAssignableFrom(t) ⇒ "gateway-deployment-statuses"
+    //
     case t if classOf[Gateway].isAssignableFrom(t) ⇒ "gateways"
     case t if classOf[Deployment].isAssignableFrom(t) ⇒ "deployments"
     case t if classOf[Breed].isAssignableFrom(t) ⇒ "breeds"
