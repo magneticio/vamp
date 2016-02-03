@@ -7,7 +7,7 @@ import io.vamp.model.artifact._
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, UnsupportedPersistenceRequest }
-import io.vamp.persistence.operation.{ GatewayDeploymentStatus, GatewayPort, RouteTargets }
+import io.vamp.persistence.operation._
 import org.json4s.native.Serialization._
 
 import scala.collection.mutable
@@ -109,6 +109,10 @@ trait TypeOfArtifact {
     case t if classOf[RouteTargets].isAssignableFrom(t) ⇒ "route-targets"
     case t if classOf[GatewayPort].isAssignableFrom(t) ⇒ "gateway-ports"
     case t if classOf[GatewayDeploymentStatus].isAssignableFrom(t) ⇒ "gateway-deployment-statuses"
+    // deployment persistence
+    case t if classOf[DeploymentServiceState].isAssignableFrom(t) ⇒ "deployment-service-states"
+    case t if classOf[DeploymentServiceInstances].isAssignableFrom(t) ⇒ "deployment-service-instances"
+    case t if classOf[DeploymentServiceEnvironmentVariables].isAssignableFrom(t) ⇒ "deployment-service-environment-variables"
     //
     case t if classOf[Gateway].isAssignableFrom(t) ⇒ "gateways"
     case t if classOf[Deployment].isAssignableFrom(t) ⇒ "deployments"

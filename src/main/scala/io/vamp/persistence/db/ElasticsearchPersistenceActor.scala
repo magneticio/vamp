@@ -4,7 +4,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.model.artifact._
 import io.vamp.model.reader._
 import io.vamp.model.serialization.CoreSerializationFormat
-import io.vamp.persistence.operation.{ RouteTargets, GatewayDeploymentStatus, GatewayPort }
+import io.vamp.persistence.operation._
 import io.vamp.pulse.ElasticsearchClient
 import io.vamp.pulse.ElasticsearchClient.{ ElasticsearchGetResponse, ElasticsearchSearchResponse }
 import org.json4s.native.Serialization._
@@ -109,6 +109,25 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     },
     "gateway-deployment-statuses" -> new NoNameValidationYamlReader[GatewayDeploymentStatus] {
       override protected def parse(implicit source: YamlSourceReader) = GatewayDeploymentStatus(name, <<![Boolean]("deployed"))
+    },
+    // deployment persistence
+    "deployment-service-states" -> new NoNameValidationYamlReader[DeploymentServiceState] {
+      override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceState(name, DeploymentServiceStateReader.read(<<![YamlSourceReader]("state")))
+    },
+    "deployment-service-instances" -> new NoNameValidationYamlReader[DeploymentServiceInstances] {
+      override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceInstances(name, DeploymentReader.parseInstances)
+    },
+    "deployment-service-environment-variables" -> new NoNameValidationYamlReader[DeploymentServiceEnvironmentVariables] {
+
+      override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceEnvironmentVariables(name, environmentVariables)
+
+      private def environmentVariables(implicit source: YamlSourceReader): List[EnvironmentVariable] = first[Any]("environment_variables", "env") match {
+        case Some(list: List[_]) ⇒ list.map { el ⇒
+          implicit val source = el.asInstanceOf[YamlSourceReader]
+          EnvironmentVariable(<<![String]("name"), <<?[String]("alias"), <<?[String]("value"), <<?[String]("interpolated"))
+        }
+        case _ ⇒ Nil
+      }
     }
   ).get(`type`)
 }
