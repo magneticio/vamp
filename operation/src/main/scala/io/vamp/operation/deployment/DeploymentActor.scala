@@ -15,6 +15,7 @@ import io.vamp.model.notification._
 import io.vamp.model.reader._
 import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
+import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 
@@ -268,7 +269,7 @@ trait DeploymentOperation {
 }
 
 trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver {
-  this: DeploymentValidator with ArtifactSupport with ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
+  this: ReplyActor with DeploymentValidator with ArtifactSupport with ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
 
   def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintRoutes
 
@@ -308,22 +309,28 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
         val blueprintClusters = blueprint.clusters.map { cluster ⇒
           stable.clusters.find(_.name == cluster.name) match {
-            case None ⇒ mergeServices(stable, None, cluster).map {
-              case services ⇒
-                val nc = cluster.copy(services = services)
-                nc.copy(routing = updatedRouting(stable, None, nc))
-            }
-            case Some(deploymentCluster) ⇒ mergeServices(stable, Some(deploymentCluster), cluster).map {
-              case services ⇒
-                val nc = deploymentCluster.copy(
-                  services = services,
-                  portMapping = cluster.portMapping ++ deploymentCluster.portMapping,
-                  dialects = deploymentCluster.dialects ++ cluster.dialects,
-                  routing = if (cluster.routing.nonEmpty) cluster.routing else deploymentCluster.routing,
-                  sla = if (cluster.sla.isDefined) cluster.sla else deploymentCluster.sla
-                )
-                nc.copy(routing = updatedRouting(stable, Some(deploymentCluster), nc))
-            }
+            case None ⇒
+              mergeServices(stable, None, cluster).flatMap {
+                case services ⇒
+                  val nc = cluster.copy(services = services)
+                  updatedRouting(stable, None, nc) map {
+                    routing ⇒ nc.copy(routing = routing)
+                  }
+              }
+            case Some(deploymentCluster) ⇒
+              mergeServices(stable, Some(deploymentCluster), cluster).flatMap {
+                case services ⇒
+                  val nc = deploymentCluster.copy(
+                    services = services,
+                    portMapping = cluster.portMapping ++ deploymentCluster.portMapping,
+                    dialects = deploymentCluster.dialects ++ cluster.dialects,
+                    routing = if (cluster.routing.nonEmpty) cluster.routing else deploymentCluster.routing,
+                    sla = if (cluster.sla.isDefined) cluster.sla else deploymentCluster.sla
+                  )
+                  updatedRouting(stable, Some(deploymentCluster), nc) map {
+                    routing ⇒ nc.copy(routing = routing)
+                  }
+              }
           }
         }
 
@@ -380,122 +387,36 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     case Some(sc) ⇒ !sc.services.exists(_.breed.name == blueprintService.breed.name)
   }
 
-  def updatedRouting(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[Gateway] = {
-    updatedWeights(deployment, stableCluster, blueprintCluster) map { gateway ⇒
-      gateway.copy(routes = gateway.routes.map {
-        case route: DeployedRoute if route.length == 1 ⇒ route.copy(path = GatewayPath(deployment.name :: blueprintCluster.name :: route.path.normalized :: gateway.port.name :: Nil))
-        case route: DefaultRoute if route.length == 1  ⇒ route.copy(path = GatewayPath(deployment.name :: blueprintCluster.name :: route.path.normalized :: gateway.port.name :: Nil))
-        case route if route.length == 4                ⇒ route
-        case route                                     ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.length}"))
-      })
+  def updatedRouting(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): Future[List[Gateway]] = {
+
+    def exists(gateway: Gateway) = stableCluster.exists(cluster ⇒ cluster.routing.exists(_.port.name == gateway.port.name))
+
+    def update(gateway: Gateway) = gateway.copy(routes = gateway.routes.map {
+      case route: DeployedRoute if route.length == 1 ⇒ route.copy(path = GatewayPath(deployment.name :: blueprintCluster.name :: route.path.normalized :: gateway.port.name :: Nil))
+      case route: DefaultRoute if route.length == 1  ⇒ route.copy(path = GatewayPath(deployment.name :: blueprintCluster.name :: route.path.normalized :: gateway.port.name :: Nil))
+      case route if route.length == 4                ⇒ route
+      case route                                     ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.length}"))
+    })
+
+    implicit val timeout = PersistenceActor.timeout
+
+    Future.sequence {
+      blueprintCluster.routing.map { gateway ⇒
+        if (exists(gateway))
+          checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Update(update(gateway), None, validateOnly = false, force = true))
+        else
+          checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Create(update(gateway), None, validateOnly = false, force = true))
+      } ++ stableCluster.map(cluster ⇒ cluster.routing.filterNot(routing ⇒ blueprintCluster.routing.exists(_.port.name == routing.port.name))).getOrElse(Nil).map(Future.successful)
     }
   }
 
-  def updatedWeights(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[Gateway] = {
-    val (newServices, oldService) = newService(stableCluster, blueprintCluster)
-
-    if (newServices.nonEmpty) {
-      newServices.flatMap(_.breed.ports).map(_.name).toSet[String].map { portName ⇒
-
-        val oldNonRouting = oldService.flatMap(s ⇒ stableCluster.flatMap(_.route(s, portName, short = true))).filterNot(_.hasRoutingFilters)
-        val oldWeight = oldNonRouting.flatMap(_.weight.map(_.value)).sum
-
-        val newNonRouting = newServices.flatMap(s ⇒ blueprintCluster.route(s, portName, short = true)).filterNot(_.hasRoutingFilters)
-        val newWeight = newNonRouting.flatMap(_.weight.map(_.value)).sum
-
-        val availableWeight = 100 - oldWeight - newWeight
-
-        if (availableWeight < 0)
-          throwException(RouteWeightError(blueprintCluster))
-
-        val weight = Math.round(availableWeight / newServices.size)
-
-        val oldRoutes: List[Route] = oldService.flatMap { service ⇒
-          blueprintCluster.route(service, portName, short = true) match {
-            case None    ⇒ Nil
-            case Some(r) ⇒ r :: Nil
-          }
-        }
-
-        val newRoutes: List[Route] = newServices.view.zipWithIndex.toList.map {
-          case (service, index) ⇒
-
-            val path = GatewayPath(service.breed.name :: Nil)
-            val defaultWeight = if (index == newNonRouting.size - 1) availableWeight - index * weight else weight
-
-            def weightFor(route: AbstractRoute): Percentage = {
-              if (route.hasRoutingFilters)
-                route.weight.getOrElse(Percentage(100))
-              else
-                route.weight.getOrElse(Percentage(defaultWeight))
-            }
-
-            blueprintCluster.route(service, portName, short = true) match {
-              case None                   ⇒ DefaultRoute("", path, Option(Percentage(defaultWeight)), Nil, Nil, None)
-              case Some(r: DefaultRoute)  ⇒ r.copy(path = path, weight = Option(weightFor(r)))
-              case Some(r: DeployedRoute) ⇒ r.copy(path = path, weight = Option(weightFor(r)))
-            }
-        }
-
-        val port = Port(portName, None, None)
-        val name = DeploymentCluster.gatewayNameFor(deployment, blueprintCluster, port)
-
-        blueprintCluster.routingBy(portName).getOrElse(Gateway("", port, None, Nil)).copy(name = name, routes = oldRoutes ++ newRoutes)
-      } toList
-
-    } else {
-      stableCluster.map { cluster ⇒
-        cluster.services.flatMap(_.breed.ports).map(_.name).toSet[String].map { portName ⇒
-          val port = cluster.routingBy(portName).map(_.port).getOrElse(Port(portName, None, None))
-          val name = DeploymentCluster.gatewayNameFor(deployment, blueprintCluster, port)
-          blueprintCluster.routingBy(portName).getOrElse(Gateway("", port, None, Nil)).copy(name = name, port = port)
-        } toList
-      } getOrElse Nil
-    }
-  }
-
-  def processGateway(deployment: Deployment): Gateway ⇒ Gateway = processGatewayRoutes(deployment) andThen processGatewayWeights andThen updateGatewayName(deployment)
-
-  def updateGatewayName(deployment: Deployment): Gateway ⇒ Gateway = { gateway ⇒
-    gateway.copy(name = Deployment.gatewayNameFor(deployment, gateway))
-  }
-
-  def processGatewayRoutes(deployment: Deployment): Gateway ⇒ Gateway = { gateway ⇒
+  def processGateway(deployment: Deployment): Gateway ⇒ Gateway = { gateway ⇒
     val routes = gateway.routes.map {
       case route: DefaultRoute   ⇒ route.copy(path = GatewayPath(deployment.name :: route.path.segments))
       case route: RouteReference ⇒ route.copy(path = GatewayPath(deployment.name :: route.path.segments))
       case route                 ⇒ route
     }
-    gateway.copy(routes = routes)
-  }
-
-  def processGatewayWeights: Gateway ⇒ Gateway = { gateway ⇒
-
-    gateway.routes.find(!_.isInstanceOf[DefaultRoute]).foreach(route ⇒ throwException(InternalServerError(s"unsupported gateway route: ${route.getClass}")))
-
-    val (newRoutes, oldRoutes) = gateway.routes.map(_.asInstanceOf[DefaultRoute]).partition(_.weight.isEmpty)
-
-    val routes = if (newRoutes.nonEmpty) {
-
-      val oldWeight = oldRoutes.map(_.weight.get.value).sum
-      val availableWeight = 100 - oldWeight
-
-      if (availableWeight < 0)
-        throwException(GatewayRouteWeightError(gateway))
-
-      val weight = Math.round(availableWeight / newRoutes.size)
-
-      val updatedRoutes = newRoutes.view.zipWithIndex.toList.map {
-        case (route, index) ⇒
-          val defaultWeight = if (index == newRoutes.size - 1) availableWeight - index * weight else weight
-          route.copy(weight = Option(Percentage(defaultWeight)))
-      }
-
-      updatedRoutes ++ oldRoutes
-
-    } else newRoutes ++ oldRoutes
-
-    gateway.copy(routes = routes)
+    gateway.copy(name = Deployment.gatewayNameFor(deployment, gateway), routes = routes)
   }
 
   def resolveHosts: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
