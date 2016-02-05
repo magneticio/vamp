@@ -13,6 +13,8 @@ import scala.concurrent.Future
 
 object GatewayActor {
 
+  implicit val timeout = PersistenceActor.timeout
+
   trait GatewayMessage
 
   case class Create(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean = false) extends GatewayMessage
@@ -26,8 +28,6 @@ object GatewayActor {
 class GatewayActor extends CommonSupportForActors with OperationNotificationProvider {
 
   import GatewayActor._
-
-  private implicit val timeout = PersistenceActor.timeout
 
   def receive = {
 

@@ -8,7 +8,6 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.dictionary.DictionaryActor
-import io.vamp.model.artifact.DeploymentService.State
 import io.vamp.model.artifact.DeploymentService.State.Intention._
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
@@ -18,6 +17,8 @@ import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.operation.DeploymentPersistence._
+import io.vamp.persistence.operation.{ DeploymentServiceEnvironmentVariables, DeploymentServiceInstances, DeploymentServiceState }
 
 import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }
@@ -289,7 +290,18 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
                 val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
                 val hosts = mergeTrait(attachment.hosts, deployment.hosts)
 
-                validateMerge(Deployment(deployment.name, clusters, gateways, ports, environmentVariables, hosts))
+                validateMerge(Deployment(deployment.name, clusters, gateways, ports, environmentVariables, hosts)) flatMap {
+                  deployment ⇒
+                    implicit val timeout = GatewayActor.timeout
+                    Future.sequence {
+                      gateways.map { gateway ⇒
+                        if (deployment.gateways.exists(_.name == gateway.name))
+                          actorFor[GatewayActor] ? GatewayActor.Update(gateway, None, validateOnly = false, force = true)
+                        else
+                          actorFor[GatewayActor] ? GatewayActor.Create(gateway, None, validateOnly = false, force = true)
+                      }
+                    } map (_ ⇒ deployment)
+                }
             }
         }
     }
@@ -338,8 +350,11 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     }
   }
 
-  def mergeServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): Future[List[DeploymentService]] =
-    Future.sequence(mergeOldServices(deployment, stableCluster, blueprintCluster) ++ mergeNewServices(deployment, stableCluster, blueprintCluster))
+  def mergeServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): Future[List[DeploymentService]] = {
+    Future.sequence {
+      mergeOldServices(deployment, stableCluster, blueprintCluster) ++ mergeNewServices(deployment, stableCluster, blueprintCluster)
+    }
+  }
 
   def mergeOldServices(deployment: Deployment, stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): List[Future[DeploymentService]] = stableCluster match {
     case None ⇒ Nil
@@ -348,10 +363,13 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
         blueprintCluster.services.find(_.breed.name == service.breed.name) match {
           case None ⇒ service
           case Some(bpService) ⇒
-            val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
-            val state: State = if (service.scale != bpService.scale || sc.routing != blueprintCluster.routing) Deploy else service.state
 
-            service.copy(scale = scale, state = state, dialects = service.dialects ++ bpService.dialects)
+            val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
+            val state: DeploymentService.State = if (service.scale != bpService.scale || sc.routing != blueprintCluster.routing) Deploy else service.state
+
+            resetServiceArtifacts(deployment, blueprintCluster, service, state)
+
+            service.copy(scale = scale, dialects = service.dialects ++ bpService.dialects)
         }
       }
     }
@@ -363,6 +381,9 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     if (newServices.nonEmpty) {
       newServices.map {
         case service ⇒
+
+          resetServiceArtifacts(deployment, blueprintCluster, service)
+
           (service.scale match {
             case None ⇒
               implicit val timeout = DictionaryActor.timeout
@@ -377,6 +398,12 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
           }
       }
     } else Nil
+  }
+
+  private def resetServiceArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.State = Deploy) = {
+    actorFor[PersistenceActor] ! PersistenceActor.Update(DeploymentServiceState(serviceArtifactName(deployment, cluster, service), state))
+    actorFor[PersistenceActor] ! PersistenceActor.Delete(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceInstances])
+    actorFor[PersistenceActor] ! PersistenceActor.Delete(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceEnvironmentVariables])
   }
 
   def newService(stableCluster: Option[DeploymentCluster], blueprintCluster: DeploymentCluster): (List[DeploymentService], List[DeploymentService]) =
