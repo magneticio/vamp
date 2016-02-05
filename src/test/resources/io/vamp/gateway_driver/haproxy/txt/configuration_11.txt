@@ -92,7 +92,7 @@ backend 9c22eab1db438da16f5dde324bd47e875f863cba
   option forwardfor
   
   # server: 64435a223bddf1fa589135baa5e228090279c032
-  server 709bda50dd19ad66282c78fdb423446bef362382 192.168.99.100:32770 cookie 709bda50dd19ad66282c78fdb423446bef362382 weight 100  
+  server ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec 192.168.99.100:32770 cookie ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec weight 100  
 
 # backend: other vamp:2.x/sava/port
 backend o_b65dec43ba82a8515698f9384aa827078c80a96b
@@ -110,4 +110,4 @@ backend aa47c8ef97ab60906937d1729071fb22f4d185dc
   option forwardfor
   
   # server: 64435a223bddf1fa589135baa5e228090279c032
-  server 709bda50dd19ad66282c78fdb423446bef362382 192.168.99.101:32771 cookie 709bda50dd19ad66282c78fdb423446bef362382 weight 100  
+  server ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec 192.168.99.101:32771 cookie ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec weight 100  
