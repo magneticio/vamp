@@ -8,11 +8,11 @@ import akka.util.Timeout
 import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, ExecutionContextProvider, IoC }
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.gateway_driver.aggregation.MetricsActor
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor
-import io.vamp.model.artifact.DeploymentService.State
+import io.vamp.model.artifact.DeploymentService.State.Intention._
+import io.vamp.model.artifact.DeploymentService.State.Step.Update
 import io.vamp.model.artifact.{ Deployment, Gateway }
 import io.vamp.operation.controller.DeploymentApiController
 import io.vamp.operation.deployment.DeploymentSynchronizationActor
@@ -20,6 +20,8 @@ import io.vamp.operation.gateway.GatewaySynchronizationActor
 import io.vamp.operation.sla.{ EscalationActor, SlaActor }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.persistence.kv.KeyValueStoreActor
+import io.vamp.persistence.operation.DeploymentPersistence._
+import io.vamp.persistence.operation.DeploymentServiceState
 import spray.http.StatusCodes._
 import spray.http._
 
@@ -193,8 +195,12 @@ trait DevController {
   def reset()(implicit timeout: Timeout): Unit = {
     allArtifacts[Deployment] map { deployments ⇒
       Future.sequence {
-        deployments.map { deployment ⇒
-          IoC.actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster ⇒ cluster.copy(services = cluster.services.map(service ⇒ service.copy(state = State(State.Intention.Undeploy)))))))
+        deployments.flatMap { deployment ⇒
+          deployment.clusters.flatMap { cluster ⇒
+            cluster.services.map { service ⇒
+              IoC.actorFor[PersistenceActor] ? PersistenceActor.Update(DeploymentServiceState(serviceArtifactName(deployment, cluster, service), Undeploy))
+            }
+          }
         }
       } onComplete {
         case _ ⇒

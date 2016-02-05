@@ -24,18 +24,18 @@ trait PersistenceMultiplexer {
   }
 
   protected def combine(artifact: Option[Artifact]): Future[Option[Artifact]] = {
-    if (artifact.isDefined) combine(artifact.get).map(Option(_)) else Future.successful(None)
+    if (artifact.isDefined) combine(artifact.get) else Future.successful(None)
   }
 
   protected def combine(artifacts: ArtifactResponseEnvelope): Future[ArtifactResponseEnvelope] = {
-    Future.sequence(artifacts.response.map(combine)).map { case response ⇒ artifacts.copy(response = response) }
+    Future.sequence(artifacts.response.map(combine)).map { case response ⇒ artifacts.copy(response = response.flatten) }
   }
 
-  protected def combine(artifact: Artifact): Future[Artifact] = artifact match {
+  protected def combine(artifact: Artifact): Future[Option[Artifact]] = artifact match {
     case gateway: Gateway            ⇒ combine(gateway)
     case deployment: Deployment      ⇒ combine(deployment)
     case blueprint: DefaultBlueprint ⇒ combine(blueprint)
-    case _                           ⇒ Future.successful(artifact)
+    case _                           ⇒ Future.successful(Option(artifact))
   }
 
   private def split(blueprint: DefaultBlueprint, each: Artifact ⇒ Future[Artifact]): Future[List[Artifact]] = Future.sequence {
@@ -51,7 +51,7 @@ trait PersistenceMultiplexer {
 
     get(name, classOf[Gateway]).flatMap {
       case Some(gateway: Gateway) ⇒ Future.sequence {
-        gateway.routes.map(route ⇒ each(route.path.normalized, classOf[DeployedRoute])) ++ default
+        gateway.routes.map(route ⇒ each(route.path.normalized, classOf[DefaultRoute])) ++ default
       }
       case _ ⇒ Future.sequence {
         default
@@ -59,7 +59,7 @@ trait PersistenceMultiplexer {
     }
   }
 
-  private def combine(gateway: Gateway): Future[Gateway] = {
+  private def combine(gateway: Gateway): Future[Option[Gateway]] = {
     for {
       port ← if (gateway.port.value.isEmpty)
         get(gateway.name, classOf[GatewayPort]).map(gp ⇒ gateway.port.copy(value = gp.map(_.asInstanceOf[GatewayPort].port)))
@@ -67,20 +67,20 @@ trait PersistenceMultiplexer {
         Future.successful(gateway.port)
 
       routes ← Future.sequence(gateway.routes.map {
-        case route: AbstractRoute ⇒ get(route.path.normalized, classOf[RouteTargets]).map {
-          case Some(rt: RouteTargets) ⇒ DeployedRoute(route, rt.targets)
-          case _                      ⇒ DeployedRoute(route, Nil)
+        case route: DefaultRoute ⇒ get(route.path.normalized, classOf[RouteTargets]).map {
+          case Some(rt: RouteTargets) ⇒ route.copy(targets = rt.targets)
+          case _                      ⇒ route.copy(targets = Nil)
         }
         case route ⇒ Future.successful(route)
       })
 
       deployed ← get(gateway.name, classOf[GatewayDeploymentStatus]).map(_.getOrElse(GatewayDeploymentStatus("", deployed = false)).asInstanceOf[GatewayDeploymentStatus])
     } yield {
-      gateway.copy(port = port, routes = routes, deployed = deployed.deployed)
+      Option(gateway.copy(port = port, routes = routes, deployed = deployed.deployed))
     }
   }
 
-  private def combine(blueprint: DefaultBlueprint): Future[DefaultBlueprint] = {
+  private def combine(blueprint: DefaultBlueprint): Future[Option[DefaultBlueprint]] = {
     val clusters = Future.sequence {
       blueprint.clusters.map { cluster ⇒
         val services = Future.sequence {
@@ -96,10 +96,10 @@ trait PersistenceMultiplexer {
         services.map(services ⇒ cluster.copy(services = services))
       }
     }
-    clusters.map(clusters ⇒ blueprint.copy(clusters = clusters))
+    clusters.map(clusters ⇒ Option(blueprint.copy(clusters = clusters)))
   }
 
-  private def combine(deployment: Deployment): Future[Deployment] = {
+  private def combine(deployment: Deployment): Future[Option[Deployment]] = {
     for {
       gateways ← Future.sequence {
         deployment.gateways.map(gateway ⇒ gateway.copy(name = Deployment.gatewayNameFor(deployment, gateway))).map { gateway ⇒ get(gateway) }
@@ -112,17 +112,17 @@ trait PersistenceMultiplexer {
               cluster.routing.map { gateway ⇒
                 gateway.copy(name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port))
               } map combine
-            }
+            } map (_.flatten)
             services ← Future.sequence {
               cluster.services.filterNot(_.state.isUndeployed).map { service ⇒
                 for {
-                  state ← get(serviceArtifactName(deployment, service), classOf[DeploymentServiceState]).map {
+                  state ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceState]).map {
                     _.getOrElse(DeploymentServiceState("", service.state)).asInstanceOf[DeploymentServiceState].state
                   }
-                  instances ← get(serviceArtifactName(deployment, service), classOf[DeploymentServiceInstances]).map {
+                  instances ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceInstances]).map {
                     _.getOrElse(DeploymentServiceInstances("", service.instances)).asInstanceOf[DeploymentServiceInstances].instances
                   }
-                  environmentVariables ← get(serviceArtifactName(deployment, service), classOf[DeploymentServiceEnvironmentVariables]).map {
+                  environmentVariables ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceEnvironmentVariables]).map {
                     _.getOrElse(DeploymentServiceEnvironmentVariables("", service.environmentVariables)).asInstanceOf[DeploymentServiceEnvironmentVariables].environmentVariables
                   }
                 } yield service.copy(state = state, instances = instances, environmentVariables = environmentVariables)
@@ -137,20 +137,29 @@ trait PersistenceMultiplexer {
             cluster.copy(services = services, routing = routing, portMapping = portMapping)
           }
         }
+      } map {
+        _.flatMap { cluster ⇒
+          val services = cluster.services.filterNot(_.state.isUndeployed)
+          if (services.isEmpty) Nil else cluster.copy(services = services) :: Nil
+        }
       }
+
     } yield {
 
-      val hosts = deployment.hosts.filter { host ⇒
-        TraitReference.referenceFor(host.name).flatMap(ref ⇒ clusters.find(_.name == ref.cluster)).isDefined
-      }
+      if (clusters.nonEmpty) {
+        val hosts = deployment.hosts.filter { host ⇒
+          TraitReference.referenceFor(host.name).flatMap(ref ⇒ clusters.find(_.name == ref.cluster)).isDefined
+        }
 
-      val ports = clusters.flatMap { cluster ⇒
-        cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
-          Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portMapping.get(port.name).flatMap(n ⇒ Some(n.toString)))
-        })
-      } map { p ⇒ p.name -> p } toMap
+        val ports = clusters.flatMap { cluster ⇒
+          cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
+            Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portMapping.get(port.name).flatMap(n ⇒ Some(n.toString)))
+          })
+        } map { p ⇒ p.name -> p } toMap
 
-      deployment.copy(gateways = gateways.flatten, clusters = clusters, ports = ports.values.toList, hosts = hosts)
+        Option(deployment.copy(gateways = gateways.flatten, clusters = clusters, ports = ports.values.toList, hosts = hosts))
+
+      } else None
     }
   }
 

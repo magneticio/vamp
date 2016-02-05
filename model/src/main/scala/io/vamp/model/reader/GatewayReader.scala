@@ -42,7 +42,6 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
       case (name: String, _) ⇒ routerReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
         case route: DefaultRoute   ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
         case route: RouteReference ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
-        case route: DeployedRoute  ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
         case route                 ⇒ route
       }
     } toList
@@ -209,7 +208,7 @@ object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
     gateway.copy(port = gateway.port.copy(name = Try(Port(key).number.toString).getOrElse(key)))
 }
 
-object RoutingReader extends GatewayMappingReader[Gateway] {
+class RoutingReader(override val acceptPort: Boolean) extends GatewayMappingReader[Gateway] {
 
   protected val reader = ClusterGatewayReader
 
@@ -217,6 +216,4 @@ object RoutingReader extends GatewayMappingReader[Gateway] {
     if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>(Gateway.anonymous, <<-())
     super.expand
   }
-
-  protected def acceptPort = false
 }

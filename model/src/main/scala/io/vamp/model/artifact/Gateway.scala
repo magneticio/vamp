@@ -60,37 +60,20 @@ sealed trait Route extends Artifact {
   val length = path.segments.size
 }
 
-sealed trait AbstractRoute extends Route {
+case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
 
-  def weight: Option[Percentage]
-
-  def filters: List[Filter]
-
-  def rewrites: List[Rewrite]
-
-  def balance: Option[String]
-
+case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
   def hasRoutingFilters: Boolean = filters.exists(_.isInstanceOf[DefaultFilter])
 }
 
-case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
+object RouteTarget {
 
-case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter], rewrites: List[Rewrite], balance: Option[String]) extends AbstractRoute
+  val host = "localhost"
 
-object DeployedRoute {
-  def apply(route: AbstractRoute, targets: List[DeployedRouteTarget]): DeployedRoute = new DeployedRoute(route.name, route.path, route.weight, route.filters, route.rewrites, route.balance, targets)
+  def apply(name: String, port: Int) = new RouteTarget(name, host, port)
 }
 
-case class DeployedRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter], rewrites: List[Rewrite], balance: Option[String], targets: List[DeployedRouteTarget]) extends AbstractRoute
-
-object DeployedRouteTarget {
-
-  val host = "0.0.0.0"
-
-  def apply(name: String, port: Int) = new DeployedRouteTarget(name, host, port)
-}
-
-case class DeployedRouteTarget(name: String, host: String, port: Int) extends Artifact with Lookup
+case class RouteTarget(name: String, host: String, port: Int) extends Artifact with Lookup
 
 sealed trait Filter extends Artifact
 

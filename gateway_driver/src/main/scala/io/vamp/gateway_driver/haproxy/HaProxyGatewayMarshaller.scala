@@ -91,12 +91,12 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     def unsupported(route: Route) = throw new IllegalArgumentException(s"Unsupported route: $route")
 
     val (imRoutes, otherRoutes) = gateway.routes.partition {
-      case route: DeployedRoute ⇒ route.hasRoutingFilters
-      case route                ⇒ unsupported(route)
+      case route: DefaultRoute ⇒ route.hasRoutingFilters
+      case route               ⇒ unsupported(route)
     }
 
     val imBackends = imRoutes.map {
-      case route: DeployedRoute ⇒
+      case route: DefaultRoute ⇒
         Backend(
           name = s"intermediate ${GatewayMarshaller.name(gateway, route.path.segments)}",
           lookup = s"$intermediate${GatewayMarshaller.lookup(gateway, route.path.segments)}",
@@ -125,7 +125,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       lookup = s"$other${GatewayMarshaller.lookup(gateway)}",
       mode = mode,
       proxyServers = otherRoutes.map {
-        case route: DeployedRoute ⇒
+        case route: DefaultRoute ⇒
           ProxyServer(
             name = GatewayMarshaller.name(gateway, route.path.segments),
             lookup = GatewayMarshaller.lookup(gateway, route.path.segments),
@@ -142,7 +142,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     )
 
     val routeBackends = gateway.routes.map {
-      case route: DeployedRoute ⇒
+      case route: DefaultRoute ⇒
         Backend(
           name = GatewayMarshaller.name(gateway, route.path.segments),
           lookup = GatewayMarshaller.lookup(gateway, route.path.segments),
@@ -167,11 +167,11 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   }
 
   private def filters()(implicit backends: List[Backend], gateway: Gateway): List[Filter] = gateway.routes.flatMap {
-    case route: AbstractRoute ⇒ if (route.filters.nonEmpty) filter(route) :: Nil else Nil
-    case _                    ⇒ Nil
+    case route: DefaultRoute ⇒ if (route.filters.nonEmpty) filter(route) :: Nil else Nil
+    case _                   ⇒ Nil
   }
 
-  private[haproxy] def filter(route: AbstractRoute)(implicit backends: List[Backend], gateway: Gateway): Filter = {
+  private[haproxy] def filter(route: DefaultRoute)(implicit backends: List[Backend], gateway: Gateway): Filter = {
     route.filters.filter(_.isInstanceOf[DefaultFilter]).map(_.asInstanceOf[DefaultFilter].condition) match {
       case conditions ⇒
         backendFor(intermediate, GatewayMarshaller.lookup(gateway, route.path.segments)) match {
@@ -180,7 +180,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     }
   }
 
-  private def rewrites(route: AbstractRoute): List[Rewrite] = route.rewrites.flatMap {
+  private def rewrites(route: DefaultRoute): List[Rewrite] = route.rewrites.flatMap {
     case PathRewrite(_, p, c) ⇒ Rewrite(p, if (c.matches("^\\s*\\{.*\\}\\s*$")) c else s"{ $c }") :: Nil
     case _                    ⇒ Nil
   }

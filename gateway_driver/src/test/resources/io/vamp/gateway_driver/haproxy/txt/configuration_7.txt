@@ -1,3 +1,5 @@
+# HAProxy 1.6, Frontends & Backends managed by Vamp
+
 # frontend: vamp/sava/port/_
 frontend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   bind 0.0.0.0:33000             
@@ -12,7 +14,7 @@ frontend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   acl 3cb39f8aae4d99da hdr_sub(user-agent) chrome
   acl 445a3abaca79c140 cook_sub(group) admin
   acl feb4c187ccc342ce hdr_cnt(x-allow) gt 0
-  use_backend im_62a11db802baf59987a3ece9e10d8754eca16a09 if !624dc0f1a5754e94 3cb39f8aae4d99da 445a3abaca79c140 feb4c187ccc342ce  
+  use_backend im_62a11db802baf59987a3ece9e10d8754eca16a09 if !624dc0f1a5754e94 3cb39f8aae4d99da 445a3abaca79c140 feb4c187ccc342ce
 
   # backend: other vamp/sava/port/_
   default_backend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
@@ -46,12 +48,12 @@ frontend 62a11db802baf59987a3ece9e10d8754eca16a09
 # backend: other vamp/sava/port/_
 backend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   mode http
-  balance roundrobin       
+  balance roundrobin
 
 # backend: intermediate vamp/sava/port/_//vamp/sava/sava:1.0.0/port
 backend im_62a11db802baf59987a3ece9e10d8754eca16a09
   mode http
-  balance roundrobin       
+  balance roundrobin
 
   # server: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
   server 62a11db802baf59987a3ece9e10d8754eca16a09 unix@/opt/vamp/62a11db802baf59987a3ece9e10d8754eca16a09.sock send-proxy weight 100 
@@ -62,7 +64,7 @@ backend im_62a11db802baf59987a3ece9e10d8754eca16a09
 # backend: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
 backend 62a11db802baf59987a3ece9e10d8754eca16a09
   mode http
-  balance roundrobin       
+  balance roundrobin
 
   http-request set-path /images/%[path] if { p_ext_jpg path_end -i .jpg }
   
@@ -71,4 +73,4 @@ backend 62a11db802baf59987a3ece9e10d8754eca16a09
   option forwardfor
   
   # server: 64435a223bddf1fa589135baa5e228090279c032
-  server 709bda50dd19ad66282c78fdb423446bef362382 192.168.99.100:32776 cookie 709bda50dd19ad66282c78fdb423446bef362382 weight 100  
+  server ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec 192.168.99.100:32776 cookie ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec weight 100  

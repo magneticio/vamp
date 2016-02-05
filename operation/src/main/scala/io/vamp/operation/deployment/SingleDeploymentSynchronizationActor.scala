@@ -68,10 +68,10 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
         if (!matchingScale(deploymentService, cs))
           deployTo(update = true)
         else if (!matchingServers(deploymentService, cs)) {
-          persist(DeploymentServiceInstances(serviceArtifactName(deployment, deploymentService), cs.instances.map(convert)))
+          persist(DeploymentServiceInstances(serviceArtifactName(deployment, deploymentCluster, deploymentService), cs.instances.map(convert)))
           publishUpdate(deployment, deploymentCluster)
         } else {
-          persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentService), deploymentService.state.copy(step = Done())))
+          persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Done())))
         }
     }
   }
@@ -106,13 +106,13 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
       ev.copy(interpolated = if (ev.interpolated.isEmpty) Some(resolve(ev.value.getOrElse(""), valueFor(deployment, Some(service)))) else ev.interpolated)
     }
 
-    persist(DeploymentServiceEnvironmentVariables(serviceArtifactName(deployment, service), environmentVariables))
+    persist(DeploymentServiceEnvironmentVariables(serviceArtifactName(deployment, cluster, service), environmentVariables))
   }
 
   private def redeployIfNeeded(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService]) = {
 
     def redeploy() = {
-      persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentService), deploymentService.state.copy(step = Update())))
+      persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Update())))
       deploy(deployment, deploymentCluster, deploymentService, containerServices)
       publishUpdate(deployment, deploymentCluster)
     }
@@ -127,9 +127,9 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
     containerService(deployment, deploymentService, containerServices) match {
       case Some(cs) ⇒
         actorFor[ContainerDriverActor] ! ContainerDriverActor.Undeploy(deployment, deploymentService)
-        persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentService), deploymentService.state.copy(step = Update())))
+        persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Update())))
       case _ ⇒
-        persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentService), deploymentService.state.copy(step = Done())))
+        persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Done())))
         publishDelete(deployment, deploymentCluster)
     }
   }

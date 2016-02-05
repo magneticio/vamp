@@ -1,3 +1,5 @@
+# HAProxy 1.6, Frontends & Backends managed by Vamp
+
 # frontend: vamp/sava/port/_
 frontend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   bind 0.0.0.0:33001             
@@ -90,8 +92,8 @@ frontend a0f840f005123ef8acf4b0f9586420a540f8caf8
 # backend: other vamp/sava/port/_
 backend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   mode http
-  balance roundrobin       
-
+  balance roundrobin
+  
   cookie o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb insert indirect nocache
 
   # server: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
@@ -103,36 +105,36 @@ backend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 # backend: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
 backend 62a11db802baf59987a3ece9e10d8754eca16a09
   mode http
-  balance roundrobin       
+  balance roundrobin
 
   option forwardfor
   
   # server: 64435a223bddf1fa589135baa5e228090279c032
-  server 709bda50dd19ad66282c78fdb423446bef362382 192.168.99.100:32772 cookie 709bda50dd19ad66282c78fdb423446bef362382 weight 100  
+  server ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec 192.168.99.100:32772 cookie ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec weight 100  
   
   # server: 52c84bbf28dcc96bd4c4167eeeb7ff0a69bfb6eb
-  server e516be460961f2339e1c696b144e9f437af63b3b 192.168.99.100:32772 cookie e516be460961f2339e1c696b144e9f437af63b3b weight 100  
+  server 873832c66b22d051ca8140aef7baf00725e89aac 192.168.99.100:32772 cookie 873832c66b22d051ca8140aef7baf00725e89aac weight 100  
   
   # server: 5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7
-  server 41fc6dba7183d7f6b84e4b5c6461b54d4471b156 192.168.99.100:32772 cookie 41fc6dba7183d7f6b84e4b5c6461b54d4471b156 weight 100  
+  server 1f0268b2b22be1c312dc8fbaeb24f9d8427585f1 192.168.99.100:32772 cookie 1f0268b2b22be1c312dc8fbaeb24f9d8427585f1 weight 100  
 
 # backend: vamp/sava/port/_//vamp/sava/sava:1.1.0/port
 backend ad4f39dd279a124d782819463f74b1c20322ff65
   mode http
-  balance roundrobin       
+  balance roundrobin
 
   option forwardfor
   
   # server: 9019c00f1f7f641c4efc7a02c6f44e9f90d7750
-  server c470b9079a227f5d4ec2ebb65fd906fac9bf73e7 192.168.99.100:32773 cookie c470b9079a227f5d4ec2ebb65fd906fac9bf73e7 weight 100  
+  server 4c3a7a3be6411a635da003d34ecffb514898c00a 192.168.99.100:32773 cookie 4c3a7a3be6411a635da003d34ecffb514898c00a weight 100  
   
   # server: 49594c26c89754450bd4f562946a69070a4aa887
-  server 30b3b4dcaa7946ed4b49263218fc776a1fa0cbe6 192.168.99.100:32773 cookie 30b3b4dcaa7946ed4b49263218fc776a1fa0cbe6 weight 100  
+  server 342fe25fcec8d73d85f1cb9802047f9a271c30d3 192.168.99.100:32773 cookie 342fe25fcec8d73d85f1cb9802047f9a271c30d3 weight 100  
 
 # backend: other vamp/port/_/_
 backend o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c
   mode http
-  balance roundrobin       
+  balance roundrobin
 
   # server: vamp/port/_/_//vamp/sava/port/_
   server a0f840f005123ef8acf4b0f9586420a540f8caf8 unix@/opt/vamp/a0f840f005123ef8acf4b0f9586420a540f8caf8.sock send-proxy weight 100 
@@ -140,9 +142,9 @@ backend o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c
 # backend: vamp/port/_/_//vamp/sava/port/_
 backend a0f840f005123ef8acf4b0f9586420a540f8caf8
   mode http
-  balance roundrobin       
+  balance roundrobin
 
   option forwardfor
   
   # server: 64435a223bddf1fa589135baa5e228090279c032
-  server 709bda50dd19ad66282c78fdb423446bef362382 192.168.99.100:33002 cookie 709bda50dd19ad66282c78fdb423446bef362382 weight 100  
+  server ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec 192.168.99.100:33002 cookie ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec weight 100  

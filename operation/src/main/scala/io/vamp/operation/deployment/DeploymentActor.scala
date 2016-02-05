@@ -252,14 +252,14 @@ trait DeploymentValidator {
 
   def weightOf(cluster: DeploymentCluster, services: List[DeploymentService], port: String): Int = cluster.routingBy(port).flatMap({ routing ⇒
     Some(routing.routes.filter({
-      case route: AbstractRoute ⇒ route.path.segments match {
+      case route: DefaultRoute ⇒ route.path.segments match {
         case _ :: _ :: s :: _ :: Nil ⇒ services.exists { service ⇒ service.breed.name == s }
         case _                       ⇒ true
       }
       case _ ⇒ true
     }).map({
-      case route: AbstractRoute ⇒ route.weight.getOrElse(Percentage(0)).value
-      case route                ⇒ throwException(InternalServerError(s"unsupported route: $route"))
+      case route: DefaultRoute ⇒ route.weight.getOrElse(Percentage(0)).value
+      case route               ⇒ throwException(InternalServerError(s"unsupported route: $route"))
     }).sum)
   }).getOrElse(0)
 }
@@ -391,21 +391,36 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
     def exists(gateway: Gateway) = stableCluster.exists(cluster ⇒ cluster.routing.exists(_.port.name == gateway.port.name))
 
-    def update(gateway: Gateway) = gateway.copy(routes = gateway.routes.map {
-      case route: DeployedRoute if route.length == 1 ⇒ route.copy(path = GatewayPath(deployment.name :: blueprintCluster.name :: route.path.normalized :: gateway.port.name :: Nil))
-      case route: DefaultRoute if route.length == 1  ⇒ route.copy(path = GatewayPath(deployment.name :: blueprintCluster.name :: route.path.normalized :: gateway.port.name :: Nil))
-      case route if route.length == 4                ⇒ route
-      case route                                     ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.length}"))
-    })
+    def update(gateway: Gateway) = gateway.copy(
+      name = GatewayPath(deployment.name :: blueprintCluster.name :: gateway.port.name :: Nil).normalized,
+      routes = gateway.routes.map {
+        case route: DefaultRoute if route.length == 1 ⇒ route.copy(path = GatewayPath(deployment.name :: blueprintCluster.name :: route.path.normalized :: gateway.port.name :: Nil))
+        case route if route.length == 4               ⇒ route
+        case route                                    ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.length}"))
+      })
 
     implicit val timeout = PersistenceActor.timeout
 
+    val routing = blueprintCluster.routing ++ {
+
+      val default = {
+        blueprintCluster.services.flatMap(_.breed.ports).map(_.name).distinct.map { portName ⇒
+          Gateway("", Port(portName, None, None), None, blueprintCluster.services.flatMap { service ⇒
+            if (service.breed.ports.exists(_.name == portName)) DefaultRoute("", service.breed.name :: Nil, None, Nil, Nil, None) :: Nil
+            else Nil
+          })
+        }
+      }
+
+      if (blueprintCluster.routing.isEmpty && !stableCluster.exists(_.routing.nonEmpty)) default ++ Nil else Nil
+    }
+
     Future.sequence {
-      blueprintCluster.routing.map { gateway ⇒
+      routing.map { gateway ⇒
         if (exists(gateway))
-          checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Update(update(gateway), None, validateOnly = false, force = true))
+          checked[List[Gateway]](IoC.actorFor[GatewayActor] ? GatewayActor.Update(update(gateway), None, validateOnly = false, force = true)).map(_.head)
         else
-          checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Create(update(gateway), None, validateOnly = false, force = true))
+          checked[List[Gateway]](IoC.actorFor[GatewayActor] ? GatewayActor.Create(update(gateway), None, validateOnly = false, force = true)).map(_.head)
       } ++ stableCluster.map(cluster ⇒ cluster.routing.filterNot(routing ⇒ blueprintCluster.routing.exists(_.port.name == routing.port.name))).getOrElse(Nil).map(Future.successful)
     }
   }

@@ -96,14 +96,14 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
     val (withRoutes, withoutRoutes) = gateways partition { gateway ⇒
       gateway.routes.forall {
-        case route: DeployedRoute if route.targets.nonEmpty ⇒ targets(gateways, deployments, route) == route.targets
+        case route: DefaultRoute if route.targets.nonEmpty ⇒ targets(gateways, deployments, route) == route.targets
         case _ ⇒ false
       }
     }
 
     withoutRoutes flatMap (_.routes) foreach {
-      case route: AbstractRoute ⇒ IoC.actorFor[PersistenceActor] ! Update(RouteTargets(route.path.normalized, targets(gateways, deployments, route)))
-      case _                    ⇒
+      case route: DefaultRoute ⇒ IoC.actorFor[PersistenceActor] ! Update(RouteTargets(route.path.normalized, targets(gateways, deployments, route)))
+      case _                   ⇒
     }
 
     withRoutes foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = true)) }
@@ -113,7 +113,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     withRoutes
   }
 
-  private def targets(gateways: List[Gateway], deployments: List[Deployment], route: AbstractRoute): List[DeployedRouteTarget] = {
+  private def targets(gateways: List[Gateway], deployments: List[Deployment], route: DefaultRoute): List[RouteTarget] = {
 
     val targets = route.path.segments match {
 
@@ -122,7 +122,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
           _.name == reference
         }.flatMap { gw ⇒
           Option {
-            DeployedRouteTarget(reference, gw.port.number)
+            RouteTarget(reference, gw.port.number)
           }
         } :: Nil
 
@@ -133,7 +133,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
           _.gateways.find(_.name == route.path.normalized)
         }.flatMap { gateway ⇒
           Option {
-            DeployedRouteTarget(route.path.normalized, gateway.port.number)
+            RouteTarget(route.path.normalized, gateway.port.number)
           }
         } :: Nil
 
@@ -145,7 +145,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
         }.flatMap {
           _.portMapping.get(port)
         }.flatMap { port ⇒
-          if (port != 0) Option(DeployedRouteTarget(route.path.normalized, port)) else None
+          if (port != 0) Option(RouteTarget(route.path.normalized, port)) else None
         } :: Nil
 
       case deployment :: cluster :: service :: port :: Nil ⇒
@@ -159,7 +159,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
           service.instances.map {
             instance ⇒
               Option {
-                DeployedRouteTarget(instance.name, instance.host, instance.ports.get(port).get)
+                RouteTarget(instance.name, instance.host, instance.ports.get(port).get)
               }
           }
         }.getOrElse(Nil)

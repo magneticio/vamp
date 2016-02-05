@@ -87,7 +87,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
             case None ⇒ Cluster(name, List(), Nil, sla, dialects)
             case Some(list) ⇒
               val services = list.map(parseService(_))
-              Cluster(name, services, processAnonymousRouting(services, RoutingReader.mapping("routing")), sla, dialects)
+              Cluster(name, services, processAnonymousRouting(services, routingReader.mapping("routing")), sla, dialects)
           }
       } toList
     }
@@ -282,6 +282,8 @@ trait BlueprintRoutingHelper {
 
     blueprint
   }
+
+  protected def routingReader: GatewayMappingReader[Gateway] = new RoutingReader(acceptPort = false)
 }
 
 object BlueprintReader extends AbstractBlueprintReader {

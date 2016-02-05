@@ -10,7 +10,7 @@ import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
 
-object DeploymentReader extends YamlReader[Deployment] with TraitReader with DialectReader with ReferenceYamlReader[Deployment] {
+trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader with DialectReader with ReferenceYamlReader[Deployment] {
 
   override protected def parse(implicit source: YamlSourceReader): Deployment = {
     val clusters = <<?[YamlSourceReader]("clusters") match {
@@ -22,7 +22,7 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
 
           <<?[List[YamlSourceReader]]("services") match {
             case None       ⇒ DeploymentCluster(name, Nil, Nil, sla, portMapping("port_mapping"), dialects)
-            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), RoutingReader.mapping("routing"), sla, portMapping("port_mapping"), dialects)
+            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), routingReader.mapping("routing"), sla, portMapping("port_mapping"), dialects)
           }
       } toList
     }
@@ -90,6 +90,12 @@ object DeploymentReader extends YamlReader[Deployment] with TraitReader with Dia
     case yaml: YamlSourceReader if yaml.size > 1 ⇒ read(yaml)
     case _                                       ⇒ throwException(UnexpectedInnerElementError("/", classOf[YamlSourceReader]))
   }
+
+  protected def routingReader: GatewayMappingReader[Gateway]
+}
+
+object DeploymentReader extends AbstractDeploymentReader {
+  protected def routingReader: GatewayMappingReader[Gateway] = new RoutingReader(acceptPort = false)
 }
 
 object DeploymentServiceStateReader extends YamlReader[DeploymentService.State] {
