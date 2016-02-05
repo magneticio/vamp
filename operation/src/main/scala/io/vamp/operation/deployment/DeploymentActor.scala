@@ -526,7 +526,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 }
 
 trait DeploymentSlicer extends DeploymentOperation {
-  this: DeploymentValidator with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
+  this: DeploymentValidator with ArtifactSupport with ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
 
   def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster ⇒
     blueprint.clusters.find(_.name == cluster.name).foreach { bpc ⇒
@@ -539,28 +539,44 @@ trait DeploymentSlicer extends DeploymentOperation {
   }
 
   def slice(futureBlueprint: Future[Deployment]): (Future[Deployment] ⇒ Future[Deployment]) = { (stableFuture: Future[Deployment]) ⇒
-    for {
-      blueprint ← futureBlueprint
-      stable ← stableFuture
-    } yield {
-      validateRoutingWeightOfServicesForRemoval(stable, blueprint)
+    futureBlueprint.flatMap { blueprint ⇒
+      stableFuture.flatMap { stable ⇒
 
-      (validateServices andThen validateRouting andThen validateScaleEscalations)(stable.copy(clusters = stable.clusters.map(cluster ⇒
-        blueprint.clusters.find(_.name == cluster.name).map { bpc ⇒
-          val services = cluster.services.map { service ⇒
-            service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) Undeploy else service.state)
-          }
-          val routing = cluster.routing.map { gateway ⇒
-            gateway.copy(routes = gateway.routes.filterNot { route ⇒
-              route.path.segments match {
-                case _ :: _ :: s :: _ :: Nil ⇒ bpc.services.exists(_.breed.name == s)
-                case _                       ⇒ false
+        validateRoutingWeightOfServicesForRemoval(stable, blueprint)
+
+        val (emptyClusters, newClusters) = stable.clusters.map(cluster ⇒
+          blueprint.clusters.find(_.name == cluster.name).map { bpc ⇒
+            val services = cluster.services.map { service ⇒
+              service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) Undeploy else service.state)
+            }
+            val routing = cluster.routing.map { gateway ⇒
+              gateway.copy(routes = gateway.routes.filterNot { route ⇒
+                route.path.segments match {
+                  case _ :: _ :: s :: _ :: Nil ⇒ bpc.services.exists(_.breed.name == s)
+                  case _                       ⇒ false
+                }
+              })
+            }
+            cluster.copy(services = services, routing = routing)
+          } getOrElse cluster
+        ).partition(_.services.nonEmpty)
+
+        val deployment = (validateServices andThen validateRouting andThen validateScaleEscalations)(stable.copy(clusters = newClusters))
+
+        implicit val timeout = GatewayActor.timeout
+        Future.sequence {
+          emptyClusters.flatMap { cluster ⇒
+            stable.clusters.find(_.name == cluster.name) match {
+
+              case Some(c) ⇒ c.services.flatMap(_.breed.ports).map(_.name).distinct.map { portName ⇒
+                actorFor[GatewayActor] ? GatewayActor.Delete(GatewayPath(deployment.name :: cluster.name :: portName :: Nil).normalized, validateOnly = false, force = true)
               }
-            })
+
+              case None ⇒ List.empty[Future[_]]
+            }
           }
-          cluster.copy(services = services, routing = routing)
-        } getOrElse cluster
-      ).filter(_.services.nonEmpty)))
+        } map { _ ⇒ deployment }
+      }
     }
   }
 }
