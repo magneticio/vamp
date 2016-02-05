@@ -4,7 +4,9 @@ import io.vamp.model.artifact._
 
 object DeploymentPersistence {
 
-  def serviceArtifactName(deployment: Deployment, service: DeploymentService) = GatewayPath(deployment.name :: service.breed.name :: Nil).normalized
+  def serviceArtifactName(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
+    GatewayPath(deployment.name :: cluster.name :: service.breed.name :: Nil).normalized
+  }
 }
 
 case class DeploymentServiceState(name: String, state: DeploymentService.State) extends Artifact

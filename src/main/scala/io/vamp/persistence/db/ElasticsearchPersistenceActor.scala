@@ -79,7 +79,9 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
 
   private def readerOf(`type`: String): Option[YamlReader[_ <: Artifact]] = Map(
     "gateways" -> DeployedGatewayReader,
-    "deployments" -> DeploymentReader,
+    "deployments" -> new AbstractDeploymentReader() {
+      override protected def routingReader = new RoutingReader(acceptPort = true)
+    },
     "breeds" -> BreedReader,
     "blueprints" -> BlueprintReader,
     "slas" -> SlaReader,
@@ -97,7 +99,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
           case Some(list) ⇒ list.map {
             case yaml ⇒
               implicit val source = yaml
-              DeployedRouteTarget(<<![String]("name"), <<![String]("host"), <<![Int]("port"))
+              RouteTarget(<<![String]("name"), <<![String]("host"), <<![Int]("port"))
           }
           case _ ⇒ Nil
         }
