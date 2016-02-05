@@ -13,7 +13,6 @@ trait PersistenceMultiplexer {
   import DeploymentPersistence._
 
   protected def split(artifact: Artifact, each: Artifact ⇒ Future[Artifact]): Future[List[Artifact]] = artifact match {
-    case deployment: Deployment      ⇒ split(deployment, each)
     case blueprint: DefaultBlueprint ⇒ split(blueprint, each)
     case _                           ⇒ Future.sequence(each(artifact) :: Nil)
   }
@@ -40,10 +39,6 @@ trait PersistenceMultiplexer {
 
   private def split(blueprint: DefaultBlueprint, each: Artifact ⇒ Future[Artifact]): Future[List[Artifact]] = Future.sequence {
     blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map(each) :+ each(blueprint)
-  }
-
-  private def split(deployment: Deployment, each: Artifact ⇒ Future[Artifact]): Future[List[Artifact]] = Future.sequence {
-    deployment.gateways.map(each) ++ deployment.clusters.flatMap(_.routing).map(each) :+ each(deployment)
   }
 
   protected def removeGateway(name: String, each: (String, Class[_ <: Artifact]) ⇒ Future[Option[Artifact]]): Future[List[Option[Artifact]]] = {
@@ -102,7 +97,7 @@ trait PersistenceMultiplexer {
   private def combine(deployment: Deployment): Future[Option[Deployment]] = {
     for {
       gateways ← Future.sequence {
-        deployment.gateways.map(gateway ⇒ gateway.copy(name = Deployment.gatewayNameFor(deployment, gateway))).map { gateway ⇒ get(gateway) }
+        deployment.gateways.map(gateway ⇒ get(gateway.copy(name = Deployment.gatewayNameFor(deployment, gateway))))
       }
 
       clusters ← Future.sequence {
