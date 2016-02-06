@@ -418,28 +418,35 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
     def exists(gateway: Gateway) = stableCluster.exists(cluster ⇒ cluster.routing.exists(_.port.name == gateway.port.name))
 
+    def routePath(serviceName: String, portName: String) = GatewayPath(deployment.name :: blueprintCluster.name :: serviceName :: portName :: Nil)
+
     def update(gateway: Gateway) = gateway.copy(
       name = GatewayPath(deployment.name :: blueprintCluster.name :: gateway.port.name :: Nil).normalized,
       routes = gateway.routes.map {
-        case route: DefaultRoute if route.length == 1 ⇒ route.copy(path = GatewayPath(deployment.name :: blueprintCluster.name :: route.path.normalized :: gateway.port.name :: Nil))
+        case route: DefaultRoute if route.length == 1 ⇒ route.copy(path = routePath(route.path.normalized, gateway.port.name))
         case route if route.length == 4               ⇒ route
         case route                                    ⇒ throwException(InternalServerError(s"unsupported cluster route: ${route.length}"))
       })
 
     implicit val timeout = PersistenceActor.timeout
 
-    val routing = blueprintCluster.routing ++ {
+    val routing = blueprintCluster.services.flatMap(_.breed.ports).map(_.name).distinct.map { portName ⇒
+      val services = blueprintCluster.services.filter(_.breed.ports.exists(_.name == portName))
 
-      val default = {
-        blueprintCluster.services.flatMap(_.breed.ports).map(_.name).distinct.map { portName ⇒
-          Gateway("", Port(portName, None, None), None, blueprintCluster.services.flatMap { service ⇒
-            if (service.breed.ports.exists(_.name == portName)) DefaultRoute("", service.breed.name :: Nil, None, Nil, Nil, None) :: Nil
-            else Nil
-          })
-        }
+      blueprintCluster.routingBy(portName) match {
+        case Some(oldRouting) ⇒
+          val routes = services.map { service ⇒
+            oldRouting.routeBy(service.breed.name :: Nil) match {
+              case None        ⇒ DefaultRoute("", routePath(service.breed.name, portName), None, Nil, Nil, None)
+              case Some(route) ⇒ route
+            }
+          }
+          oldRouting.copy(routes = routes)
+
+        case None ⇒ Gateway("", Port(portName, None, None), None, services.map { service ⇒
+          DefaultRoute("", routePath(service.breed.name, portName), None, Nil, Nil, None)
+        })
       }
-
-      if (blueprintCluster.routing.isEmpty && !stableCluster.exists(_.routing.nonEmpty)) default ++ Nil else Nil
     }
 
     Future.sequence {

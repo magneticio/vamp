@@ -112,7 +112,7 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
 
       val availableWeight = 100 - withoutFilters.flatMap(_.weight.map(_.value)).sum
 
-      if (availableWeight > 0) {
+      if (availableWeight >= 0) {
 
         val (noWeightRoutes, weightRoutes) = withoutFilters.partition(_.weight.isEmpty)
 

@@ -269,10 +269,10 @@ trait BlueprintRoutingHelper {
     val breeds = blueprint.clusters.flatMap(_.services).map(_.breed)
 
     if (breeds.forall(_.isInstanceOf[DefaultBreed])) {
-      val ports: List[String] = breeds.flatMap {
+      val ports = breeds.flatMap {
         case breed: DefaultBreed ⇒ breed.ports.map(_.name)
         case _                   ⇒ Nil
-      }
+      } distinct
 
       blueprint.clusters.flatMap(_.routing).map(_.port).foreach { port ⇒
         if (!(port.name.isEmpty || ports.contains(port.name)))
