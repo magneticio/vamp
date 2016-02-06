@@ -116,15 +116,18 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
 
         val (noWeightRoutes, weightRoutes) = withoutFilters.partition(_.weight.isEmpty)
 
-        val weight = Math.round(availableWeight / noWeightRoutes.size)
+        if (noWeightRoutes.nonEmpty) {
+          val weight = Math.round(availableWeight / noWeightRoutes.size)
 
-        val routes = noWeightRoutes.view.zipWithIndex.toList.map {
-          case (route, index) ⇒
-            val calculated = if (index == noWeightRoutes.size - 1) availableWeight - index * weight else weight
-            route.copy(weight = Option(Percentage(calculated)))
-        }
+          val routes = noWeightRoutes.view.zipWithIndex.toList.map {
+            case (route, index) ⇒
+              val calculated = if (index == noWeightRoutes.size - 1) availableWeight - index * weight else weight
+              route.copy(weight = Option(Percentage(calculated)))
+          }
 
-        gateway.copy(routes = withFiltersUpdated ++ routes ++ weightRoutes)
+          gateway.copy(routes = withFiltersUpdated ++ routes ++ weightRoutes)
+
+        } else gateway.copy(routes = withFiltersUpdated ++ withoutFilters)
 
       } else gateway.copy(routes = withFiltersUpdated ++ withoutFilters)
 
