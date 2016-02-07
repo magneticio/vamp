@@ -97,8 +97,11 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
 
     val local = (service.breed.environmentVariables.filter(_.value.isDefined) ++
       clusterEnvironmentVariables.flatMap(ev ⇒ TraitReference.referenceFor(ev.name) match {
-        case Some(TraitReference(c, g, n)) if g == TraitReference.groupFor(TraitReference.EnvironmentVariables) && ev.interpolated.isDefined && cluster.name == c ⇒
-          List(ev.copy(name = n, alias = None))
+        case Some(TraitReference(c, g, n)) ⇒
+          if (g == TraitReference.groupFor(TraitReference.EnvironmentVariables) && ev.interpolated.isDefined && cluster.name == c && service.breed.environmentVariables.exists(_.name == n))
+            ev.copy(name = n, alias = None) :: Nil
+          else
+            Nil
         case _ ⇒ Nil
       }) ++ service.environmentVariables).map(ev ⇒ ev.name -> ev).toMap.values.toList
 
