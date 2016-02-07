@@ -555,7 +555,7 @@ trait DeploymentSlicer extends DeploymentOperation {
 
         validateRoutingWeightOfServicesForRemoval(stable, blueprint)
 
-        val (emptyClusters, newClusters) = stable.clusters.map(cluster ⇒
+        val newClusters = stable.clusters.map(cluster ⇒
           blueprint.clusters.find(_.name == cluster.name).map { bpc ⇒
 
             bpc.services.foreach { resetServiceArtifacts(stable, bpc, _) }
@@ -576,20 +576,22 @@ trait DeploymentSlicer extends DeploymentOperation {
             cluster.copy(services = services, routing = routing)
 
           } getOrElse cluster
-        ).partition(cluster ⇒ cluster.services.isEmpty || cluster.services.forall(_.state.intention == Undeploy))
+        )
 
-        val deployment = (validateServices andThen validateRouting andThen validateScaleEscalations)(stable.copy(clusters = newClusters))
+        val deployment = (validateServices andThen validateRouting andThen validateScaleEscalations)(stable.copy(clusters = newClusters.filter(_.services.nonEmpty)))
+
+        val (deleteRouting, updateRouting) = newClusters.partition(cluster ⇒ cluster.services.nonEmpty || cluster.services.forall(_.state.intention == Undeploy))
 
         implicit val timeout = GatewayActor.timeout
         Future.sequence {
-          emptyClusters.flatMap { cluster ⇒
+          deleteRouting.flatMap { cluster ⇒
             stable.clusters.find(_.name == cluster.name) match {
               case Some(c) ⇒ c.services.flatMap(_.breed.ports).map(_.name).distinct.map { portName ⇒
                 actorFor[GatewayActor] ? GatewayActor.Delete(GatewayPath(deployment.name :: cluster.name :: portName :: Nil).normalized, validateOnly = false, force = true)
               }
               case None ⇒ List.empty[Future[_]]
             }
-          } ++ newClusters.flatMap { cluster ⇒
+          } ++ updateRouting.flatMap { cluster ⇒
             stable.clusters.find(_.name == cluster.name) match {
               case Some(_) ⇒ cluster.routing.map { routing ⇒ actorFor[GatewayActor] ? GatewayActor.Update(routing, None, validateOnly = false, force = true) }
               case None    ⇒ List.empty[Future[_]]
