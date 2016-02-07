@@ -580,7 +580,7 @@ trait DeploymentSlicer extends DeploymentOperation {
 
         val deployment = (validateServices andThen validateRouting andThen validateScaleEscalations)(stable.copy(clusters = newClusters.filter(_.services.nonEmpty)))
 
-        val (deleteRouting, updateRouting) = newClusters.partition(cluster ⇒ cluster.services.nonEmpty || cluster.services.forall(_.state.intention == Undeploy))
+        val (deleteRouting, updateRouting) = newClusters.partition(cluster ⇒ cluster.services.isEmpty || cluster.services.forall(_.state.intention == Undeploy))
 
         implicit val timeout = GatewayActor.timeout
         Future.sequence {
