@@ -109,7 +109,7 @@ trait PersistenceMultiplexer {
               } map combine
             } map (_.flatten)
             services ← Future.sequence {
-              cluster.services.filterNot(_.state.isUndeployed).map { service ⇒
+              cluster.services.map { service ⇒
                 for {
                   state ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceState]).map {
                     _.getOrElse(DeploymentServiceState("", service.state)).asInstanceOf[DeploymentServiceState].state
@@ -129,7 +129,7 @@ trait PersistenceMultiplexer {
               case (name, value) ⇒ name -> routing.find(gateway ⇒ GatewayPath(gateway.name).segments.last == name).map(_.port.number).getOrElse(value)
             }
 
-            cluster.copy(services = services, routing = routing, portMapping = portMapping)
+            cluster.copy(services = services.filterNot(_.state.isUndeployed), routing = routing, portMapping = portMapping)
           }
         }
       } map {

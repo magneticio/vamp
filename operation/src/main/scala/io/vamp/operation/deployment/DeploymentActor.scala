@@ -571,7 +571,7 @@ trait DeploymentSlicer extends DeploymentOperation {
                   case _        ⇒ false
                 }
               }))
-            }
+            } map (updateRoutePaths(stable, cluster, _))
 
             cluster.copy(services = services, routing = routing)
 
@@ -593,7 +593,7 @@ trait DeploymentSlicer extends DeploymentOperation {
             }
           } ++ updateRouting.flatMap { cluster ⇒
             stable.clusters.find(_.name == cluster.name) match {
-              case Some(_) ⇒ cluster.routing.map { routing ⇒ actorFor[GatewayActor] ? GatewayActor.Update(routing, None, validateOnly = false, force = true) }
+              case Some(_) ⇒ cluster.routing.map(updateRoutePaths(stable, cluster, _)).map { routing ⇒ actorFor[GatewayActor] ? GatewayActor.Update(routing, None, validateOnly = false, force = true) }
               case None    ⇒ List.empty[Future[_]]
             }
           }
