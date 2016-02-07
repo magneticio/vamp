@@ -2,7 +2,7 @@ package io.vamp.gateway_driver.haproxy
 
 import io.vamp.common.crypto.Hash
 
-case class HaProxy(frontends: List[Frontend], backends: List[Backend], tcpLogFormat: String, httpLogFormat: String)
+case class HaProxy(frontends: List[Frontend], backends: List[Backend], version: String, tcpLogFormat: String, httpLogFormat: String)
 
 case class Frontend(name: String,
                     lookup: String,

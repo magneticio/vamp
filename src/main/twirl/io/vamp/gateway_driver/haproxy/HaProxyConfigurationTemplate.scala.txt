@@ -1,7 +1,7 @@
 @import io.vamp.gateway_driver.haproxy.HaProxy
 @import io.vamp.gateway_driver.haproxy.Mode
 @(haproxy: HaProxy)
-# HAProxy 1.6, Frontends & Backends managed by Vamp
+# HAProxy @haproxy.version, Frontends & Backends managed by Vamp
 @for(frontend <- haproxy.frontends) {
 # frontend: @frontend.name
 frontend @frontend.lookup

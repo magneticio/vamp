@@ -22,9 +22,11 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   private val aclResolver = new HaProxyAclResolver() {}
 
+  lazy val version = HaProxyGatewayMarshaller.version
+
   override lazy val path = HaProxyGatewayMarshaller.path
 
-  override lazy val info: AnyRef = s"HAProxy v${HaProxyGatewayMarshaller.version}.x"
+  override lazy val info: AnyRef = s"HAProxy v$version.x"
 
   def tcpLogFormat: String
 
@@ -33,11 +35,11 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   override def marshall(gateways: List[Gateway]): String = HaProxyConfigurationTemplate(convert(gateways)).body.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n")
 
   private[haproxy] def convert(gateways: List[Gateway]): HaProxy = {
-    gateways.map(convert).reduceOption((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends)).getOrElse(HaProxy(Nil, Nil, tcpLogFormat, httpLogFormat))
+    gateways.map(convert).reduceOption((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends)).getOrElse(HaProxy(Nil, Nil, version, tcpLogFormat, httpLogFormat))
   }
 
   private[haproxy] def convert(gateway: Gateway): HaProxy = backends(gateway) match {
-    case backend ⇒ HaProxy(frontends(backend, gateway), backend, tcpLogFormat, httpLogFormat)
+    case backend ⇒ HaProxy(frontends(backend, gateway), backend, version, tcpLogFormat, httpLogFormat)
   }
 
   private def frontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {
