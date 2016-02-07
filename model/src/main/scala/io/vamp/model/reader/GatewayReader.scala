@@ -204,8 +204,9 @@ object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
 
   protected def acceptPort = true
 
-  override protected def update(key: String, gateway: Gateway)(implicit source: YamlSourceReader): Gateway =
+  override protected def update(key: String, gateway: Gateway)(implicit source: YamlSourceReader): Gateway = {
     gateway.copy(port = gateway.port.copy(name = Try(Port(key).number.toString).getOrElse(key)))
+  }
 }
 
 class RoutingReader(override val acceptPort: Boolean) extends GatewayMappingReader[Gateway] {
@@ -215,5 +216,9 @@ class RoutingReader(override val acceptPort: Boolean) extends GatewayMappingRead
   override protected def expand(implicit source: YamlSourceReader) = {
     if (source.pull({ entry ⇒ entry == "sticky" || entry == "routes" }).nonEmpty) >>(Gateway.anonymous, <<-())
     super.expand
+  }
+
+  override protected def update(key: String, gateway: Gateway)(implicit source: YamlSourceReader): Gateway = {
+    gateway.copy(port = gateway.port.copy(name = key))
   }
 }
