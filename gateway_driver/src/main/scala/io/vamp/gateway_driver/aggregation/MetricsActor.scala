@@ -124,7 +124,7 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
          |          "must": [
          |            {
          |              "term": {
-         |                "b": "$lookup"
+         |                "ft": "$lookup"
          |              }
          |            },
          |            {
