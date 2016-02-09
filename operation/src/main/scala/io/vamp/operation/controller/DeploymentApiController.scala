@@ -41,19 +41,45 @@ trait DeploymentApiController extends ArtifactShrinkage {
     } else deployment
   }
 
-  def createDeployment(request: String, validateOnly: Boolean)(implicit timeout: Timeout) = processBlueprint(request, {
-    case blueprint: BlueprintReference ⇒ actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, request, validateOnly)
-    case blueprint: DefaultBlueprint ⇒
-      if (!validateOnly) actorFor[PersistenceActor] ? PersistenceActor.Create(blueprint, Some(request))
-      actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, request, validateOnly)
-  })
+  def createDeployment(request: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
 
-  def updateDeployment(name: String, request: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = processBlueprint(request, {
-    case blueprint: BlueprintReference ⇒ actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
-    case blueprint: DefaultBlueprint ⇒
-      if (!validateOnly) actorFor[PersistenceActor] ! PersistenceActor.Create(blueprint, Some(request))
-      actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
-  })
+    def default(blueprint: Blueprint) = actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, request, validateOnly)
+
+    processBlueprint(request, {
+      case blueprint: BlueprintReference ⇒ default(blueprint)
+      case blueprint: DefaultBlueprint ⇒
+
+        val futures = {
+          if (!validateOnly)
+            blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
+              case breed ⇒ actorFor[PersistenceActor] ? PersistenceActor.Create(breed, Some(request))
+            }
+          else Nil
+        } :+ default(blueprint)
+
+        Future.sequence(futures)
+    })
+  }
+
+  def updateDeployment(name: String, request: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = {
+
+    def default(blueprint: Blueprint) = actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
+
+    processBlueprint(request, {
+      case blueprint: BlueprintReference ⇒ default(blueprint)
+      case blueprint: DefaultBlueprint ⇒
+
+        val futures = {
+          if (!validateOnly)
+            blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
+              actorFor[PersistenceActor] ? PersistenceActor.Create(_, Some(request))
+            }
+          else Nil
+        } :+ default(blueprint)
+
+        Future.sequence(futures)
+    })
+  }
 
   private def processBlueprint(request: String, process: (Blueprint) ⇒ Future[Any]) = try {
     process {
