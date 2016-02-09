@@ -74,10 +74,10 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
           service.breed.ports.foreach { port ⇒
             cluster.routingBy(port.name) foreach {
               case gateway ⇒
-                gateway.routes.map(_.path.segments).find {
-                  case _ :: _ :: s :: _ :: Nil ⇒ s == service.breed.name
-                  case _                       ⇒ false
-                } foreach {
+                gateway.routes.map(_.path.segments).map {
+                  case s :: Nil if s == service.breed.name ⇒ deployment.name :: cluster.name :: s :: port.name :: Nil
+                  case _                                   ⇒ Nil
+                } filter (_.nonEmpty) foreach {
                   case segments ⇒ query(GatewayMarshaller.lookup(gateway, segments)) map {
                     case Metrics(rate, responseTime) ⇒
                       publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:rate" :: Nil, rate)
