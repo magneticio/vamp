@@ -1,11 +1,13 @@
 package io.vamp.operation.controller
 
 import akka.actor.Actor
+import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
-import io.vamp.common.http.{ InfoMessageBase, InfoRetrieval }
-import io.vamp.common.vitals.{ JmxVitalsProvider, JvmVitals }
+import io.vamp.common.akka.IoC._
+import io.vamp.common.akka.{ ActorSystemProvider, DataRetrieval, ExecutionContextProvider }
+import io.vamp.common.http.JvmInfoMessage
+import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmVitals }
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.model.Model
@@ -24,19 +26,24 @@ case class InfoMessage(message: String,
                        persistence: Any,
                        gateway: Any,
                        pulse: Any,
-                       containerDriver: Any) extends InfoMessageBase
+                       containerDriver: Any) extends JvmInfoMessage
 
-trait InfoController extends InfoRetrieval with JmxVitalsProvider {
+trait InfoController extends DataRetrieval with JmxVitalsProvider {
   this: ExecutionContextProvider with ActorSystemProvider ⇒
+
+  implicit def timeout: Timeout
 
   val infoMessage = ConfigFactory.load().getString("vamp.info.message")
 
-  val componentInfoTimeout = Timeout(ConfigFactory.load().getInt("vamp.info.timeout") seconds)
+  private val dataRetrievalTimeout = Timeout(ConfigFactory.load().getInt("vamp.info.timeout") seconds)
 
-  def info: Future[InfoMessageBase] = {
-    val actors = List(classOf[PersistenceActor], classOf[GatewayDriverActor], classOf[PulseActor], classOf[ContainerDriverActor])
+  def info: Future[JvmInfoMessage] = {
 
-    retrieve(actors.map(_.asInstanceOf[Class[Actor]])).map { result ⇒
+    val actors = List(classOf[PersistenceActor], classOf[GatewayDriverActor], classOf[PulseActor], classOf[ContainerDriverActor]).map(_.asInstanceOf[Class[Actor]])
+
+    val response = retrieve(actors, actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout)
+
+    response.map { result ⇒
       InfoMessage(infoMessage,
         Model.version.orNull,
         Model.uuid,

@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
-import io.vamp.common.http.InfoMessageBase
+import io.vamp.common.http.JvmInfoMessage
 import io.vamp.common.vitals.JvmVitals
 import io.vamp.model.workflow.ScheduledWorkflow
 import io.vamp.operation.controller.InfoController
@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-case class InfoMessage(message: String, jvm: JvmVitals, persistence: Any, router: Any, pulse: Any, containerDriver: Any) extends InfoMessageBase
+case class InfoMessage(message: String, jvm: JvmVitals, persistence: Any, router: Any, pulse: Any, containerDriver: Any) extends JvmInfoMessage
 
 class InfoContext(actorSystem: ActorSystem)(implicit scheduledWorkflow: ScheduledWorkflow, executionContext: ExecutionContext) extends ScriptingContext {
 

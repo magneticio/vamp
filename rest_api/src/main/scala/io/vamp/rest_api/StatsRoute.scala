@@ -3,18 +3,18 @@ package io.vamp.rest_api
 import akka.util.Timeout
 import io.vamp.common.akka.{ CommonSupportForActors, _ }
 import io.vamp.common.http.RestApiBase
-import io.vamp.operation.controller.InfoController
+import io.vamp.operation.controller.StatsController
 import spray.http.StatusCodes.OK
 
-trait InfoRoute extends InfoController with ExecutionContextProvider {
+trait StatsRoute extends StatsController with ExecutionContextProvider {
   this: CommonSupportForActors with RestApiBase ⇒
 
   implicit def timeout: Timeout
 
-  val infoRoute = pathPrefix("information" | "info") {
+  val statsRoute = pathPrefix("stats" | "statistics") {
     pathEndOrSingleSlash {
       get {
-        onSuccess(info) { result ⇒
+        onSuccess(stats) { result ⇒
           respondWithStatus(OK) {
             complete(result)
           }
