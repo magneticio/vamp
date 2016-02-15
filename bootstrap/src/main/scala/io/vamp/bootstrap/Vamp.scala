@@ -4,22 +4,21 @@ import akka.actor._
 import com.typesafe.scalalogging.Logger
 import io.vamp.container_driver.ContainerDriverBootstrap
 import io.vamp.dictionary.DictionaryBootstrap
+import io.vamp.gateway_driver.GatewayDriverBootstrap
+import io.vamp.model.Model
 import io.vamp.operation.OperationBootstrap
 import io.vamp.persistence.PersistenceBootstrap
 import io.vamp.pulse.PulseBootstrap
 import io.vamp.rest_api.RestApiBootstrap
-import io.vamp.gateway_driver.GatewayDriverBootstrap
 import org.slf4j.LoggerFactory
 
 import scala.language.{ implicitConversions, postfixOps }
 
 trait Vamp extends App {
 
-  val version = Option(getClass.getPackage.getImplementationVersion)
+  implicit val actorSystem = ActorSystem("vamp")
 
   val logger = Logger(LoggerFactory.getLogger(classOf[Vamp]))
-
-  implicit val actorSystem = ActorSystem("vamp")
 
   def bootstrap = {
     List() :+
@@ -39,15 +38,15 @@ trait Vamp extends App {
 
   logger.info(
     s"""
-      |██╗   ██╗ █████╗ ███╗   ███╗██████╗
-      |██║   ██║██╔══██╗████╗ ████║██╔══██╗
-      |██║   ██║███████║██╔████╔██║██████╔╝
-      |╚██╗ ██╔╝██╔══██║██║╚██╔╝██║██╔═══╝
-      | ╚████╔╝ ██║  ██║██║ ╚═╝ ██║██║
-      |  ╚═══╝  ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝
-      |                       ${if (version.isDefined) s"version ${version.get}" else ""}
-      |                       by magnetic.io
-      |
+       |██╗   ██╗ █████╗ ███╗   ███╗██████╗
+       |██║   ██║██╔══██╗████╗ ████║██╔══██╗
+       |██║   ██║███████║██╔████╔██║██████╔╝
+       |╚██╗ ██╔╝██╔══██║██║╚██╔╝██║██╔═══╝
+       | ╚████╔╝ ██║  ██║██║ ╚═╝ ██║██║
+       |  ╚═══╝  ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝
+       |                       ${if (Model.version.isDefined) s"version ${Model.version.get}" else ""}
+       |                       by magnetic.io
+       |
     """.stripMargin)
 
   bootstrap.foreach(_.run)

@@ -8,6 +8,7 @@ import io.vamp.common.http.{ InfoMessageBase, InfoRetrieval }
 import io.vamp.common.vitals.{ JmxVitalsProvider, JvmVitals }
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
+import io.vamp.model.Model
 import io.vamp.persistence.db.PersistenceActor
 import io.vamp.pulse.PulseActor
 
@@ -15,7 +16,15 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-case class InfoMessage(message: String, version: String, jvm: JvmVitals, persistence: Any, gateway: Any, pulse: Any, containerDriver: Any) extends InfoMessageBase
+case class InfoMessage(message: String,
+                       version: String,
+                       uuid: String,
+                       runningSince: String,
+                       jvm: JvmVitals,
+                       persistence: Any,
+                       gateway: Any,
+                       pulse: Any,
+                       containerDriver: Any) extends InfoMessageBase
 
 trait InfoController extends InfoRetrieval with JmxVitalsProvider {
   this: ExecutionContextProvider with ActorSystemProvider ⇒
@@ -29,7 +38,9 @@ trait InfoController extends InfoRetrieval with JmxVitalsProvider {
 
     retrieve(actors.map(_.asInstanceOf[Class[Actor]])).map { result ⇒
       InfoMessage(infoMessage,
-        getClass.getPackage.getImplementationVersion,
+        Model.version.orNull,
+        Model.uuid,
+        Model.runningSince,
         jvmVitals(),
         result.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
         result.get(classOf[GatewayDriverActor].asInstanceOf[Class[Actor]]),
