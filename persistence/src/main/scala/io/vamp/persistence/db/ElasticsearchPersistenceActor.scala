@@ -20,7 +20,7 @@ object ElasticsearchPersistenceActor {
 
 case class ElasticsearchArtifact(artifact: String)
 
-case class ElasticsearchPersistenceInfo(`type`: String, url: String, index: String, elasticsearch: Any)
+case class ElasticsearchPersistenceInfo(`type`: String, url: String, index: String, initializationTime: String, elasticsearch: Any)
 
 class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact with PaginationSupport {
 
@@ -29,9 +29,10 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
 
   private val es = new ElasticsearchClient(elasticsearchUrl)
 
-  protected def info(): Future[Any] = es.health.map {
-    ElasticsearchPersistenceInfo("elasticsearch", elasticsearchUrl, index, _)
-  }
+  protected def info(): Future[Any] = for {
+    health ← es.health
+    initializationTime ← es.creationTime(index)
+  } yield ElasticsearchPersistenceInfo("elasticsearch", elasticsearchUrl, index, initializationTime, health)
 
   protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] = {
     log.debug(s"${getClass.getSimpleName}: all [${type2string(`type`)}] of $page per $perPage")
