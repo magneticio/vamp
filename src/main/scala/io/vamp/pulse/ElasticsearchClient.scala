@@ -1,10 +1,12 @@
 package io.vamp.pulse
 
 import java.net.URLEncoder
+import java.time.format.DateTimeFormatter._
+import java.time.{ Instant, ZoneId, ZonedDateTime }
 
-import io.vamp.common.http.{ RestClientException, RestClient }
+import io.vamp.common.http.{ RestClient, RestClientException }
 import org.json4s.native.JsonMethods._
-import org.json4s.{ StringInput, DefaultFormats, Formats }
+import org.json4s.{ DefaultFormats, Formats, StringInput }
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
@@ -36,6 +38,21 @@ class ElasticsearchClient(url: String)(implicit executor: ExecutionContext) {
   import ElasticsearchClient._
 
   def health = RestClient.get[Any](urlOf(url, "_cluster", "health"))
+
+  def creationTime(index: String): Future[String] = RestClient.get[Any](urlOf(url, index)) map {
+    case response: Map[_, _] ⇒ Try {
+      response.asInstanceOf[Map[String, _]].get(index).flatMap {
+        _.asInstanceOf[Map[String, _]].get("settings")
+      } flatMap {
+        _.asInstanceOf[Map[String, _]].get("index")
+      } flatMap {
+        _.asInstanceOf[Map[String, _]].get("creation_date")
+      } map {
+        timestamp ⇒ ISO_OFFSET_DATE_TIME.format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp.toString.toLong), ZoneId.of("UTC")))
+      } getOrElse ""
+    } getOrElse ""
+    case _ ⇒ ""
+  }
 
   def exists(index: String, `type`: String, id: String): Future[Boolean] = {
     RestClient.get[Any](urlOf(url, index, `type`, id), RestClient.jsonHeaders, logError = false) map {
