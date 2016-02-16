@@ -6,7 +6,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.Notification
-import io.vamp.common.vitals.InfoRequest
+import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.model.artifact._
 import io.vamp.persistence.kv.KeyValueStoreActor
 import io.vamp.persistence.notification._
@@ -40,7 +40,7 @@ object PersistenceActor {
 
 }
 
-trait PersistenceActor extends PersistenceMultiplexer with PersistenceArchiving with ArtifactExpansion with ArtifactShrinkage with PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
+trait PersistenceActor extends PersistenceMultiplexer with PersistenceArchiving with PersistenceStats with ArtifactExpansion with ArtifactShrinkage with PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
@@ -66,6 +66,10 @@ trait PersistenceActor extends PersistenceMultiplexer with PersistenceArchiving 
           case keyValueInfo ⇒ Map("database" -> persistenceInfo, "keyValue" -> keyValueInfo, "archive" -> true)
         }
       }
+    }
+
+    case StatsRequest ⇒ reply {
+      stats()
     }
 
     case All(ofType, page, perPage, expandRef, onlyRef) ⇒ reply {

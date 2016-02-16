@@ -6,8 +6,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ ActorSystemProvider, DataRetrieval, ExecutionContextProvider }
-import io.vamp.common.http.JvmInfoMessage
-import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmVitals }
+import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.model.Model
@@ -39,11 +38,11 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
 
   def info: Future[JvmInfoMessage] = {
 
-    val actors = List(classOf[PersistenceActor], classOf[GatewayDriverActor], classOf[PulseActor], classOf[ContainerDriverActor]).map(_.asInstanceOf[Class[Actor]])
+    val actors = List(classOf[PersistenceActor], classOf[GatewayDriverActor], classOf[PulseActor], classOf[ContainerDriverActor]) map {
+      _.asInstanceOf[Class[Actor]]
+    }
 
-    val response = retrieve(actors, actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout)
-
-    response.map { result ⇒
+    retrieve(actors, actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout) map { result ⇒
       InfoMessage(infoMessage,
         Model.version.orNull,
         Model.uuid,

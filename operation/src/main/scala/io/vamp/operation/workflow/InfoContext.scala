@@ -4,8 +4,7 @@ import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
-import io.vamp.common.http.JvmInfoMessage
-import io.vamp.common.vitals.JvmVitals
+import io.vamp.common.vitals.{ JvmInfoMessage, JvmVitals }
 import io.vamp.model.workflow.ScheduledWorkflow
 import io.vamp.operation.controller.InfoController
 

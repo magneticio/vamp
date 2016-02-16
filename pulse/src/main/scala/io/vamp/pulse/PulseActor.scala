@@ -9,7 +9,7 @@ import io.vamp.common.akka._
 import io.vamp.common.http.{ OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope }
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.notification.Notification
-import io.vamp.common.vitals.InfoRequest
+import io.vamp.common.vitals.{ StatsRequest, InfoRequest }
 import io.vamp.model.event.Aggregator.AggregatorType
 import io.vamp.model.event._
 import io.vamp.model.validator.EventValidator
@@ -68,6 +68,8 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
 
     case InfoRequest                             ⇒ reply(info)
 
+    case StatsRequest                            ⇒ reply(stats)
+
     case Publish(event, publishEventValue)       ⇒ reply((validateEvent andThen percolate andThen publish(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
 
     case Query(envelope)                         ⇒ reply((validateEventQuery andThen eventQuery(envelope.page, envelope.perPage))(envelope.request), classOf[EventQueryError])
@@ -82,6 +84,8 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
   private def info = es.health map {
     case health ⇒ Map[String, Any]("elasticsearch" -> health)
   }
+
+  private def stats = Future.successful("pulse")
 
   private def publish(publishEventValue: Boolean)(event: Event) = {
     implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
