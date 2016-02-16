@@ -121,7 +121,7 @@ trait TypeOfArtifact {
     case t if classOf[Sla].isAssignableFrom(t) ⇒ "slas"
     case t if classOf[Scale].isAssignableFrom(t) ⇒ "scales"
     case t if classOf[Escalation].isAssignableFrom(t) ⇒ "escalations"
-    case t if classOf[Route].isAssignableFrom(t) ⇒ "routings"
+    case t if classOf[Route].isAssignableFrom(t) ⇒ "routes"
     case t if classOf[Filter].isAssignableFrom(t) ⇒ "filters"
     case t if classOf[Rewrite].isAssignableFrom(t) ⇒ "rewrites"
     case t if classOf[Workflow].isAssignableFrom(t) ⇒ "workflows"
