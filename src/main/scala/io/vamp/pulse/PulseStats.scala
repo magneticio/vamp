@@ -13,9 +13,16 @@ trait PulseStats {
     for {
       escalations ← count(Escalate.tags)
       deescalations ← count(DeEscalate.tags)
-    } yield {
-      Map("escalation-count" -> escalations, "de-escalation-count" -> deescalations)
-    }
+      deployed ← count(Set(PulseEventTags.DeploymentSynchronization.deployedTag))
+      redeploy ← count(Set(PulseEventTags.DeploymentSynchronization.redeployTag))
+      undeployed ← count(Set(PulseEventTags.DeploymentSynchronization.undeployedTag))
+    } yield Map(
+      "escalation-count" -> escalations,
+      "de-escalation-count" -> deescalations,
+      "deployed" -> deployed,
+      "redeploy" -> redeploy,
+      "undeployed" -> undeployed
+    )
   }
 
   private def count(tags: Set[String]): Future[Long] = {
