@@ -17,7 +17,7 @@ trait PersistenceMultiplexer {
     case _                           ⇒ Future.sequence(each(artifact) :: Nil)
   }
 
-  protected def remove(name: String, `type`: Class[_ <: Artifact], each: (String, Class[_ <: Artifact]) ⇒ Future[Option[Artifact]]): Future[List[Option[Artifact]]] = `type` match {
+  protected def remove(name: String, `type`: Class[_ <: Artifact], each: (String, Class[_ <: Artifact]) ⇒ Future[Boolean]): Future[List[Boolean]] = `type` match {
     case t if classOf[Gateway].isAssignableFrom(t) ⇒ removeGateway(name, each)
     case _                                         ⇒ Future.sequence(each(name, `type`) :: Nil)
   }
@@ -41,7 +41,7 @@ trait PersistenceMultiplexer {
     blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map(each) :+ each(blueprint)
   }
 
-  protected def removeGateway(name: String, each: (String, Class[_ <: Artifact]) ⇒ Future[Option[Artifact]]): Future[List[Option[Artifact]]] = {
+  protected def removeGateway(name: String, each: (String, Class[_ <: Artifact]) ⇒ Future[Boolean]): Future[List[Boolean]] = {
     def default = each(name, classOf[GatewayPort]) :: each(name, classOf[GatewayDeploymentStatus]) :: each(name, classOf[Gateway]) :: Nil
 
     get(name, classOf[Gateway]).flatMap {

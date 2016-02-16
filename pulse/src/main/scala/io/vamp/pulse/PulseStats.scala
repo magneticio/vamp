@@ -19,9 +19,9 @@ trait PulseStats {
     } yield Map(
       "escalation-count" -> escalations,
       "de-escalation-count" -> deescalations,
-      "deployed" -> deployed,
-      "redeploy" -> redeploy,
-      "undeployed" -> undeployed
+      "deployed-services" -> deployed,
+      "redeployed-services" -> redeploy,
+      "undeployed-services" -> undeployed
     )
   }
 
