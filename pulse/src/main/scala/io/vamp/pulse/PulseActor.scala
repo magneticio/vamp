@@ -53,7 +53,7 @@ object PulseActor {
 
 }
 
-class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator with EventValidator with CommonSupportForActors with PulseNotificationProvider {
+class PulseActor extends PulseStats with PulseEvent with PulseFailureNotifier with Percolator with EventValidator with CommonSupportForActors with PulseNotificationProvider {
 
   import ElasticsearchClient._
   import PulseActor._
@@ -85,8 +85,6 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
     case health ⇒ Map[String, Any]("elasticsearch" -> health)
   }
 
-  private def stats = Future.successful("pulse")
-
   private def publish(publishEventValue: Boolean)(event: Event) = {
     implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (indexName, typeName) = indexTypeName(event.`type`)
@@ -100,7 +98,7 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
     }
   }
 
-  private def eventQuery(page: Int, perPage: Int)(query: EventQuery): Future[Any] = {
+  protected def eventQuery(page: Int, perPage: Int)(query: EventQuery): Future[Any] = {
     log.debug(s"Pulse query: $query")
     query.aggregator match {
       case None                                    ⇒ getEvents(query, page, perPage)
@@ -110,7 +108,7 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
     }
   }
 
-  private def getEvents(query: EventQuery, page: Int, perPage: Int) = {
+  protected def getEvents(query: EventQuery, page: Int, perPage: Int) = {
     implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, EventRequestEnvelope.maxPerPage)
 
@@ -121,7 +119,7 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
     }
   }
 
-  private def countEvents(eventQuery: EventQuery) = es.count(indexName, constructQuery(eventQuery)) map {
+  protected def countEvents(eventQuery: EventQuery): Future[Any] = es.count(indexName, constructQuery(eventQuery)) map {
     case ElasticsearchCountResponse(count) ⇒ LongValueAggregationResult(count)
     case other                             ⇒ reportException(EventQueryError(other))
   }
@@ -166,7 +164,7 @@ class PulseActor extends PulseEvent with PulseFailureNotifier with Percolator wi
     case _ ⇒ None
   }
 
-  private def aggregateEvents(eventQuery: EventQuery, aggregator: AggregatorType, field: Option[String]) = {
+  protected def aggregateEvents(eventQuery: EventQuery, aggregator: AggregatorType, field: Option[String]) = {
     es.aggregate(indexName, constructAggregation(eventQuery, aggregator, field)) map {
       case ElasticsearchAggregationResponse(ElasticsearchAggregations(ElasticsearchAggregationValue(value))) ⇒ DoubleValueAggregationResult(value)
       case other ⇒ reportException(EventQueryError(other))
