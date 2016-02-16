@@ -39,9 +39,9 @@ class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
     store.set(artifact)
   }
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future.successful {
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = Future.successful {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
-    store.delete(name, `type`)
+    store.delete(name, `type`).isDefined
   }
 }
 

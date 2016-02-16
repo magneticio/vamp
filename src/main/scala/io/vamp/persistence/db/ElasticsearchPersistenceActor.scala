@@ -69,9 +69,11 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     es.index[Any](index, artifact.getClass, artifact.name, ElasticsearchArtifact(json)).map { _ ⇒ artifact }
   }
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = {
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
-    es.delete(index, `type`, name).map { _ ⇒ None }
+    es.delete(index, `type`, name).map {
+      response ⇒ response != None
+    }
   }
 
   private def read(`type`: String, source: Map[String, Any]): Option[Artifact] = source.get("artifact").flatMap { artifact ⇒

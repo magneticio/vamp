@@ -40,7 +40,7 @@ object PersistenceActor {
 
 }
 
-trait PersistenceActor extends PersistenceMultiplexer with PersistenceArchiving with PersistenceStats with ArtifactExpansion with ArtifactShrinkage with PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
+trait PersistenceActor extends PersistenceMultiplexer with PersistenceArchive with PersistenceStats with ArtifactExpansion with ArtifactShrinkage with PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
 
   import PersistenceActor._
 
@@ -54,7 +54,7 @@ trait PersistenceActor extends PersistenceMultiplexer with PersistenceArchiving 
 
   protected def set(artifact: Artifact): Future[Artifact]
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]]
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean]
 
   override def errorNotificationClass = classOf[PersistenceOperationFailure]
 
@@ -112,7 +112,9 @@ trait PersistenceActor extends PersistenceMultiplexer with PersistenceArchiving 
     case Delete(name, ofType) ⇒ reply {
       remove(name, ofType, { (name, ofType) ⇒
         delete(name, ofType) map {
-          archiveDelete
+          result ⇒
+            if (result) archiveDelete(name, ofType)
+            result
         }
       })
     }
