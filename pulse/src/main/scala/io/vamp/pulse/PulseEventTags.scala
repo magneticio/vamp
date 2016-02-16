@@ -6,9 +6,11 @@ object PulseEventTags {
 
   object DeploymentSynchronization {
 
-    val updateTag = s"synchronization${Event.tagDelimiter}update"
+    val deployedTag = s"synchronization${Event.tagDelimiter}deployed"
 
-    val deleteTag = s"synchronization${Event.tagDelimiter}delete"
+    val redeployTag = s"synchronization${Event.tagDelimiter}redeploy"
+
+    val undeployedTag = s"synchronization${Event.tagDelimiter}undeployed"
   }
 
 }
