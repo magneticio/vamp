@@ -5,10 +5,9 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.operation.deployment.{ DeploymentActor, DeploymentSynchronizationActor, DeploymentSynchronizationSchedulerActor }
 import io.vamp.operation.gateway.{ GatewayActor, GatewaySynchronizationActor, GatewaySynchronizationSchedulerActor }
-import io.vamp.operation.persistence.{ KeyValueSynchronizationActor, KeyValueSchedulerActor }
+import io.vamp.operation.persistence.{ KeyValueSchedulerActor, KeyValueSynchronizationActor }
 import io.vamp.operation.sla.{ EscalationActor, EscalationSchedulerActor, SlaActor, SlaSchedulerActor }
 import io.vamp.operation.sse.EventStreamingActor
-import io.vamp.operation.workflow.WorkflowSchedulerActor
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -49,8 +48,7 @@ object OperationBootstrap extends Bootstrap {
       IoC.createActor[EscalationActor],
       IoC.createActor[EscalationSchedulerActor],
 
-      IoC.createActor[EventStreamingActor],
-      IoC.createActor[WorkflowSchedulerActor]
+      IoC.createActor[EventStreamingActor]
     )
 
     IoC.actorFor[KeyValueSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay)

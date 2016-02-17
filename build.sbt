@@ -113,7 +113,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  common, persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, ui, gateway_driver, cli
+  common, persistence, model, operation, bootstrap, container_driver, workflow_driver, dictionary, pulse, rest_api, ui, gateway_driver, cli
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
@@ -132,7 +132,7 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   // Runnable assembly jar lives in bootstrap/target/scala_2.11/
   // and is renamed to vamp assembly for consistent filename for downloading.
   assemblyJarName in assembly := s"vamp-assembly-${version.value}.jar"
-).dependsOn(common, persistence, model, operation, container_driver, dictionary, pulse, ui, rest_api, gateway_driver)
+).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, dictionary, pulse, ui, rest_api, gateway_driver)
 
 lazy val rest_api = project.settings(bintraySetting: _*).settings(
   description := "REST api for Vamp",
@@ -151,7 +151,7 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
   name := "vamp-operation",
   formatting,
   libraryDependencies ++= quartz ++ jersey ++ testing
-).dependsOn(persistence, container_driver, gateway_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(persistence, container_driver, workflow_driver, gateway_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val pulse = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
@@ -172,6 +172,13 @@ lazy val container_driver = project.settings(bintraySetting: _*).settings(
   name := "vamp-container_driver",
   formatting,
   libraryDependencies ++= async ++ bouncycastle ++ unisocketsNetty ++ testing
+).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
+
+lazy val workflow_driver = project.settings(bintraySetting: _*).settings(
+  description := "Enables Vamp to talk to workflow managers",
+  name := "vamp-workflow_driver",
+  formatting,
+  libraryDependencies ++= testing
 ).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val persistence = project.settings(bintraySetting: _*).settings(
