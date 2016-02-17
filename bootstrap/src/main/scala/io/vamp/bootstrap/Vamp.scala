@@ -10,6 +10,7 @@ import io.vamp.operation.OperationBootstrap
 import io.vamp.persistence.PersistenceBootstrap
 import io.vamp.pulse.PulseBootstrap
 import io.vamp.rest_api.RestApiBootstrap
+import io.vamp.workflow_driver.WorkflowDriverBootstrap
 import org.slf4j.LoggerFactory
 
 import scala.language.{ implicitConversions, postfixOps }
@@ -27,6 +28,7 @@ trait Vamp extends App {
       DictionaryBootstrap :+
       ContainerDriverBootstrap :+
       GatewayDriverBootstrap :+
+      WorkflowDriverBootstrap :+
       OperationBootstrap :+
       RestApiBootstrap
   }

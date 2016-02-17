@@ -12,6 +12,7 @@ import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.model.Model
 import io.vamp.persistence.db.PersistenceActor
 import io.vamp.pulse.PulseActor
+import io.vamp.workflow_driver.WorkflowDriverActor
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -23,9 +24,10 @@ case class InfoMessage(message: String,
                        runningSince: String,
                        jvm: JvmVitals,
                        persistence: Any,
-                       gateway: Any,
                        pulse: Any,
-                       containerDriver: Any) extends JvmInfoMessage
+                       gatewayDriver: Any,
+                       containerDriver: Any,
+                       workflowDriver: Any) extends JvmInfoMessage
 
 trait InfoController extends DataRetrieval with JmxVitalsProvider {
   this: ExecutionContextProvider with ActorSystemProvider ⇒
@@ -38,7 +40,7 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
 
   def info: Future[JvmInfoMessage] = {
 
-    val actors = List(classOf[PersistenceActor], classOf[GatewayDriverActor], classOf[PulseActor], classOf[ContainerDriverActor]) map {
+    val actors = List(classOf[PersistenceActor], classOf[PulseActor], classOf[GatewayDriverActor], classOf[ContainerDriverActor], classOf[WorkflowDriverActor]) map {
       _.asInstanceOf[Class[Actor]]
     }
 
@@ -49,9 +51,10 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
         Model.runningSince,
         jvmVitals(),
         result.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
-        result.get(classOf[GatewayDriverActor].asInstanceOf[Class[Actor]]),
         result.get(classOf[PulseActor].asInstanceOf[Class[Actor]]),
-        result.get(classOf[ContainerDriverActor].asInstanceOf[Class[Actor]])
+        result.get(classOf[GatewayDriverActor].asInstanceOf[Class[Actor]]),
+        result.get(classOf[ContainerDriverActor].asInstanceOf[Class[Actor]]),
+        result.get(classOf[WorkflowDriverActor].asInstanceOf[Class[Actor]])
       )
     }
   }

@@ -8,9 +8,12 @@ import io.vamp.workflow_driver.notification.{ UnsupportedWorkflowDriverError, Wo
 object WorkflowDriverBootstrap extends Bootstrap with WorkflowDriverNotificationProvider {
 
   def createActors(implicit actorSystem: ActorSystem) = {
-    ConfigFactory.load().getString("vamp.container-driver.type").toLowerCase match {
+
+    val config = ConfigFactory.load().getConfig("vamp.workflow-driver")
+
+    config.getString("type").toLowerCase match {
       case ""        ⇒ Nil
-      case "chronos" ⇒ IoC.createActor[WorkflowDriverActor](new ChronosWorkflowDriver(actorSystem.dispatcher)) :: Nil
+      case "chronos" ⇒ IoC.createActor[WorkflowDriverActor](new ChronosWorkflowDriver(actorSystem.dispatcher, config.getString("chronos.url"))) :: Nil
       case value     ⇒ throwException(UnsupportedWorkflowDriverError(value))
     }
   }
