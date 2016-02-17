@@ -21,6 +21,7 @@ trait RestApiRoute
     with EventApiRoute
     with InfoRoute
     with StatsRoute
+    with MetricsRoute
     with HealthRoute
     with ArtifactPaginationSupport
     with CorsSupport {
@@ -83,7 +84,7 @@ trait RestApiRoute
       pathPrefix("api" / Artifact.version) {
         compressResponse() {
           sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
-            infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ healthRoutes ~ crudRoutes
+            infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes
           }
         }
       } ~ path("") {
