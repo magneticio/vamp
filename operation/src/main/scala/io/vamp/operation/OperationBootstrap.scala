@@ -8,6 +8,7 @@ import io.vamp.operation.gateway.{ GatewayActor, GatewaySynchronizationActor, Ga
 import io.vamp.operation.persistence.{ KeyValueSchedulerActor, KeyValueSynchronizationActor }
 import io.vamp.operation.sla.{ EscalationActor, EscalationSchedulerActor, SlaActor, SlaSchedulerActor }
 import io.vamp.operation.sse.EventStreamingActor
+import io.vamp.operation.workflow.WorkflowActor
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -48,12 +49,15 @@ object OperationBootstrap extends Bootstrap {
       IoC.createActor[EscalationActor],
       IoC.createActor[EscalationSchedulerActor],
 
-      IoC.createActor[EventStreamingActor]
+      IoC.createActor[EventStreamingActor],
+
+      IoC.createActor[WorkflowActor]
     )
 
     IoC.actorFor[KeyValueSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay)
     IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + synchronizationPeriod / 3)
     IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + 2 * synchronizationPeriod / 3)
+
     IoC.actorFor[SlaSchedulerActor] ! SchedulerActor.Period(slaPeriod, synchronizationInitialDelay)
     IoC.actorFor[EscalationSchedulerActor] ! SchedulerActor.Period(escalationPeriod, synchronizationInitialDelay)
 

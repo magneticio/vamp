@@ -2,8 +2,8 @@ package io.vamp.model.workflow
 
 import java.time.{ Period, Duration, OffsetDateTime }
 
-import io.vamp.model.artifact.{ Artifact, Reference }
-import io.vamp.model.workflow.TimeTrigger.{ RepeatPeriod, RepeatForever }
+import io.vamp.model.artifact.{ Lookup, Artifact, Reference }
+import io.vamp.model.workflow.TimeTrigger.{ RepeatTimes, RepeatPeriod, RepeatForever }
 import scala.language.implicitConversions
 
 trait Workflow extends Artifact
@@ -22,7 +22,15 @@ object TimeTrigger {
 
   case class RepeatTimesCount(count: Int) extends RepeatTimes
 
-  case class RepeatPeriod(days: Option[Period], time: Option[Duration])
+  case class RepeatPeriod(days: Option[Period], time: Option[Duration]) {
+
+    val format = {
+      val period = s"${days.map(_.toString.substring(1)).getOrElse("")}${time.map(_.toString.substring(1)).getOrElse("")}"
+      if (period.isEmpty) "PT1S" else s"P$period"
+    }
+
+    override def toString = format
+  }
 
   implicit def int2repeat(count: Int): RepeatTimes = RepeatTimesCount(count)
 
@@ -41,10 +49,10 @@ object TimeTrigger {
   }
 }
 
-case class TimeTrigger(period: RepeatPeriod, repeatTimes: TimeTrigger.RepeatTimes = RepeatForever, startTime: Option[OffsetDateTime] = None) extends Trigger
+case class TimeTrigger(period: RepeatPeriod, repeatTimes: RepeatTimes = RepeatForever, startTime: Option[OffsetDateTime] = None) extends Trigger
 
 case class DeploymentTrigger(deployment: String) extends Trigger
 
 case class EventTrigger(tags: Set[String]) extends Trigger
 
-case class ScheduledWorkflow(name: String, workflow: Workflow, trigger: Trigger, storage: Map[String, Any] = Map()) extends Artifact
+case class ScheduledWorkflow(name: String, workflow: Workflow, trigger: Trigger) extends Artifact with Lookup

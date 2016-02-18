@@ -17,9 +17,9 @@ object WorkflowDriverActor {
 
   sealed trait WorkflowDriveMessage
 
-  object All extends WorkflowDriveMessage
+  object Scheduled extends WorkflowDriveMessage
 
-  case class Schedule(scheduledWorkflow: ScheduledWorkflow) extends WorkflowDriveMessage
+  case class Schedule(scheduledWorkflow: ScheduledWorkflow, data: Any) extends WorkflowDriveMessage
 
   case class Unschedule(scheduledWorkflow: ScheduledWorkflow) extends WorkflowDriveMessage
 
@@ -34,11 +34,11 @@ class WorkflowDriverActor(driver: WorkflowDriver) extends PulseFailureNotifier w
   override def errorNotificationClass = classOf[WorkflowResponseError]
 
   def receive = {
-    case InfoRequest                   ⇒ reply(driver.info)
-    case All                           ⇒ reply(driver.all)
-    case Schedule(scheduledWorkflow)   ⇒ reply(driver.schedule(scheduledWorkflow))
-    case Unschedule(scheduledWorkflow) ⇒ reply(driver.unschedule(scheduledWorkflow))
-    case any                           ⇒ unsupported(UnsupportedWorkflowDriverRequest(any))
+    case InfoRequest                       ⇒ reply(driver.info)
+    case Scheduled                         ⇒ reply(driver.all())
+    case Schedule(scheduledWorkflow, data) ⇒ reply(driver.schedule(scheduledWorkflow, data))
+    case Unschedule(scheduledWorkflow)     ⇒ reply(driver.unschedule(scheduledWorkflow))
+    case any                               ⇒ unsupported(UnsupportedWorkflowDriverRequest(any))
   }
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)

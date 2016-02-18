@@ -2,6 +2,7 @@ package io.vamp.operation.controller
 
 import _root_.io.vamp.common.notification.NotificationProvider
 import _root_.io.vamp.operation.gateway.GatewayActor
+import _root_.io.vamp.operation.workflow.WorkflowActor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
@@ -10,7 +11,6 @@ import io.vamp.model.artifact._
 import io.vamp.model.reader._
 import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
 import io.vamp.operation.notification.{ InconsistentArtifactName, UnexpectedArtifact }
-import io.vamp.operation.workflow.WorkflowSchedulerActor
 import io.vamp.persistence.db.{ ArtifactResponseEnvelope, ArtifactSupport, PersistenceActor }
 import io.vamp.persistence.notification.PersistenceOperationFailure
 
@@ -143,26 +143,29 @@ trait ArtifactApiController extends ArtifactSupport {
 
   class ScheduledWorkflowHandler extends PersistenceHandler[ScheduledWorkflow](ScheduledWorkflowReader) {
 
+    import WorkflowActor._
+
     override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = super.create(source, validateOnly).map {
-      case workflow: ScheduledWorkflow ⇒
-        actorFor[WorkflowSchedulerActor] ! WorkflowSchedulerActor.Schedule(workflow)
-        workflow
+      case list: List[_] ⇒
+        list.filter(_.isInstanceOf[ScheduledWorkflow]).foreach(workflow ⇒ actorFor[WorkflowActor] ! Schedule(workflow.asInstanceOf[ScheduledWorkflow]))
+        list
       case any ⇒ any
     }
 
     override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = super.update(name, source, validateOnly).map {
-      case workflow: ScheduledWorkflow ⇒
-        actorFor[WorkflowSchedulerActor] ! WorkflowSchedulerActor.Schedule(workflow)
-        workflow
+      case list: List[_] ⇒
+        list.filter(_.isInstanceOf[ScheduledWorkflow]).foreach(workflow ⇒ actorFor[WorkflowActor] ! Schedule(workflow.asInstanceOf[ScheduledWorkflow]))
+        list
       case any ⇒ any
     }
 
-    override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) = super.delete(name, validateOnly).map {
+    override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) = read(name, expandReferences = false, onlyReferences = false) map {
       case Some(workflow: ScheduledWorkflow) ⇒
-        actorFor[WorkflowSchedulerActor] ! WorkflowSchedulerActor.Unschedule(workflow)
-        workflow
-      case any ⇒ any
+        super.delete(name, validateOnly).map { result ⇒
+          actorFor[WorkflowActor] ! Unschedule(workflow)
+          result
+        }
+      case _ ⇒ false
     }
   }
-
 }

@@ -24,7 +24,7 @@ class ScheduledWorkflowSerializer() extends ArtifactSerializer[ScheduledWorkflow
         case DeploymentTrigger(deployment) ⇒
           list += JField("deployment", JString(deployment))
         case TimeTrigger(period, repeatTimes, startTime) ⇒
-          list += JField("period", JString(period.toString))
+          list += JField("period", JString(period.format))
           repeatTimes match {
             case RepeatTimesCount(count) ⇒ list += JField("repeatCount", JInt(count))
             case _                       ⇒
@@ -40,8 +40,6 @@ class ScheduledWorkflowSerializer() extends ArtifactSerializer[ScheduledWorkflow
         case DefaultWorkflow(_, script)   ⇒ list += JField("script", JString(script))
         case _                            ⇒
       }
-
-      list += JField("storage", Extraction.decompose(scheduledWorkflow.storage))
 
       new JObject(list.toList)
   }
