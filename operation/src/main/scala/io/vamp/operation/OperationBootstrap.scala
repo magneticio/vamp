@@ -8,7 +8,7 @@ import io.vamp.operation.gateway.{ GatewayActor, GatewaySynchronizationActor, Ga
 import io.vamp.operation.persistence.{ KeyValueSchedulerActor, KeyValueSynchronizationActor }
 import io.vamp.operation.sla.{ EscalationActor, EscalationSchedulerActor, SlaActor, SlaSchedulerActor }
 import io.vamp.operation.sse.EventStreamingActor
-import io.vamp.operation.workflow.WorkflowActor
+import io.vamp.operation.workflow.{ WorkflowSynchronizationActor, WorkflowSynchronizationSchedulerActor, WorkflowActor }
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -51,12 +51,15 @@ object OperationBootstrap extends Bootstrap {
 
       IoC.createActor[EventStreamingActor],
 
-      IoC.createActor[WorkflowActor]
+      IoC.createActor[WorkflowActor],
+      IoC.createActor[WorkflowSynchronizationActor],
+      IoC.createActor[WorkflowSynchronizationSchedulerActor]
     )
 
     IoC.actorFor[KeyValueSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay)
-    IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + synchronizationPeriod / 3)
-    IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + 2 * synchronizationPeriod / 3)
+    IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + synchronizationPeriod / 4)
+    IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + 2 * synchronizationPeriod / 4)
+    IoC.actorFor[WorkflowSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + 3 * synchronizationPeriod / 4)
 
     IoC.actorFor[SlaSchedulerActor] ! SchedulerActor.Period(slaPeriod, synchronizationInitialDelay)
     IoC.actorFor[EscalationSchedulerActor] ! SchedulerActor.Period(escalationPeriod, synchronizationInitialDelay)
@@ -69,6 +72,7 @@ object OperationBootstrap extends Bootstrap {
     IoC.actorFor[KeyValueSchedulerActor] ! SchedulerActor.Period(0 seconds)
     IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
     IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
+    IoC.actorFor[WorkflowSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
     IoC.actorFor[SlaSchedulerActor] ! SchedulerActor.Period(0 seconds)
     IoC.actorFor[EscalationSchedulerActor] ! SchedulerActor.Period(0 seconds)
 

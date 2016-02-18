@@ -19,7 +19,7 @@ object WorkflowDriverActor {
 
   object Scheduled extends WorkflowDriveMessage
 
-  case class Schedule(scheduledWorkflow: ScheduledWorkflow, data: Any) extends WorkflowDriveMessage
+  case class Schedule(scheduledWorkflow: ScheduledWorkflow, data: Any = None) extends WorkflowDriveMessage
 
   case class Unschedule(scheduledWorkflow: ScheduledWorkflow) extends WorkflowDriveMessage
 
