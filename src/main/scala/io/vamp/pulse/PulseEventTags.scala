@@ -4,7 +4,7 @@ import io.vamp.model.event.Event
 
 object PulseEventTags {
 
-  object DeploymentSynchronization {
+  object Deployments {
 
     val deployedTag = s"synchronization${Event.tagDelimiter}deployed"
 
@@ -13,4 +13,10 @@ object PulseEventTags {
     val undeployedTag = s"synchronization${Event.tagDelimiter}undeployed"
   }
 
+  object Workflows {
+
+    val scheduledTag = "scheduled"
+
+    val unscheduledTag = s"unscheduled"
+  }
 }
