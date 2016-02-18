@@ -25,7 +25,7 @@ object SingleDeploymentSynchronizationActor {
 class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
 
   import DeploymentPersistence._
-  import PulseEventTags.DeploymentSynchronization._
+  import PulseEventTags.Deployments._
   import SingleDeploymentSynchronizationActor._
 
   def receive: Receive = {

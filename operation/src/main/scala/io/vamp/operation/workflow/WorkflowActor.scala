@@ -1,6 +1,8 @@
 package io.vamp.operation.workflow
 
 import akka.actor._
+import akka.pattern.ask
+import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.event.Event
 import io.vamp.model.workflow.{ DeploymentTrigger, EventTrigger, ScheduledWorkflow, TimeTrigger }
@@ -8,9 +10,9 @@ import io.vamp.operation.OperationBootstrap
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
-import io.vamp.pulse.PulseActor
+import io.vamp.pulse.{ PulseEventTags, PulseActor }
+import io.vamp.pulse.PulseActor.Publish
 import io.vamp.workflow_driver.WorkflowDriverActor
-import akka.pattern.ask
 
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -30,6 +32,7 @@ object WorkflowActor {
 class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
 
   import WorkflowActor._
+  import PulseEventTags.Workflows._
 
   private val percolator = "workflow://"
 
@@ -70,26 +73,36 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
     }
   }
 
-  private def schedule: (ScheduledWorkflow ⇒ Future[Any]) = { workflow ⇒
-    unschedule(workflow) flatMap { _ ⇒
+  private def schedule(workflow: ScheduledWorkflow): Unit = {
+    unschedule(workflow, silent = true) map { _ ⇒
+
       log.debug(s"Scheduling workflow: '${workflow.name}'.")
 
       workflow.trigger match {
         case TimeTrigger(_, _, _)    ⇒ trigger(workflow)
-        case EventTrigger(tags)      ⇒ IoC.actorFor[PulseActor] ? RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
-        case DeploymentTrigger(name) ⇒ IoC.actorFor[PulseActor] ? RegisterPercolator(s"$percolator${workflow.name}", Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
-        case trigger                 ⇒ Future.successful(log.warning(s"Unsupported trigger: '$trigger'."))
+        case EventTrigger(tags)      ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
+        case DeploymentTrigger(name) ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
+        case trigger                 ⇒ log.warning(s"Unsupported trigger: '$trigger'.")
       }
+
+      pulse(workflow, scheduled = true)
     }
   }
 
-  private def unschedule: (ScheduledWorkflow ⇒ Future[Any]) = { workflow ⇒
+  private def unschedule(workflow: ScheduledWorkflow, silent: Boolean = false): Future[Any] = {
     log.debug(s"Unscheduling workflow: '${workflow.name}'.")
-    IoC.actorFor[PulseActor] ? UnregisterPercolator(s"$percolator${workflow.name}")
-    IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow)
+    IoC.actorFor[PulseActor] ! UnregisterPercolator(s"$percolator${workflow.name}")
+    IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) map { any ⇒
+      if (!silent) pulse(workflow, scheduled = false)
+      any
+    }
   }
 
   private def trigger(workflow: ScheduledWorkflow, data: Any = None) = {
-    IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Schedule(workflow, data)
+    IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(workflow, data)
+  }
+
+  private def pulse(workflow: ScheduledWorkflow, scheduled: Boolean) = {
+    actorFor[PulseActor] ! Publish(Event(Set(s"workflows${Event.tagDelimiter}${workflow.name}", if (scheduled) scheduledTag else unscheduledTag), workflow), publishEventValue = false)
   }
 }
