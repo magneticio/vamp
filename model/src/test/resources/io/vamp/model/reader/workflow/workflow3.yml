@@ -1,7 +1,0 @@
-name: logger
-
-import:
-- http://underscorejs.org/underscore-min.js
-- vamp.js
-
-script: vamp.log("hi")

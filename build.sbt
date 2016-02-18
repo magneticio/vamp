@@ -84,7 +84,7 @@ val json4s = "org.json4s" %% "json4s-native" % "3.2.11" ::
   "org.json4s" %% "json4s-core" % "3.2.11" ::
   "org.json4s" %% "json4s-ext" % "3.2.11" ::
   "org.json4s" %% "json4s-native" % "3.2.11" :: Nil
-val snakeYaml = "org.yaml" % "snakeyaml" % "1.14" :: Nil
+val snakeYaml = "org.yaml" % "snakeyaml" % "1.16" :: Nil
 val jersey = "org.glassfish.jersey.core" % "jersey-client" % "2.15" ::
   "org.glassfish.jersey.media" % "jersey-media-sse" % "2.15" :: Nil
 

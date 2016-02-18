@@ -3,7 +3,7 @@ package io.vamp.operation.workflow
 import akka.actor._
 import io.vamp.common.akka._
 import io.vamp.model.event.Event
-import io.vamp.model.workflow.{ DeploymentTrigger, EventTrigger, ScheduledWorkflow, TimeTrigger }
+import io.vamp.model.workflow.{ DeploymentTrigger, EventTrigger, ScheduledWorkflow }
 import io.vamp.operation.OperationBootstrap
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
@@ -86,7 +86,7 @@ class WorkflowSchedulerActor extends WorkflowQuartzScheduler with WorkflowExecut
     log.debug(s"Scheduling workflow: '${workflow.name}'.")
 
     workflow.trigger match {
-      case TimeTrigger(pattern)    ⇒ quartzSchedule(workflow)
+      //case TimeTrigger(pattern)    ⇒ quartzSchedule(workflow)
       case EventTrigger(tags)      ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
       case DeploymentTrigger(name) ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
       case trigger                 ⇒ log.warning(s"Unsupported trigger: '$trigger'.")

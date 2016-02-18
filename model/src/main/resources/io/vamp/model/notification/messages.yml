@@ -53,6 +53,7 @@ UndefinedStateStepError                : "Undefined state step: {name}."
 # Workflows
 
 UndefinedWorkflowTriggerError$         : "Undefined workflow trigger - either deployment, time or tags must be specified."
+IllegalPeriod                          : "Illegal period value: {period}."
 
 # Event
 

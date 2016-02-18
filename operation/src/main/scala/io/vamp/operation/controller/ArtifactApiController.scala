@@ -5,18 +5,17 @@ import _root_.io.vamp.operation.gateway.GatewayActor
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider}
+import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.reader._
-import io.vamp.model.workflow.{DefaultWorkflow, ScheduledWorkflow, TimeTrigger, Workflow}
-import io.vamp.operation.notification.{InconsistentArtifactName, InvalidTimeTriggerError, MissingRequiredVariableError, UnexpectedArtifact}
+import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
+import io.vamp.operation.notification.{ InconsistentArtifactName, UnexpectedArtifact }
 import io.vamp.operation.workflow.WorkflowSchedulerActor
-import io.vamp.persistence.db.{ArtifactResponseEnvelope, ArtifactSupport, PersistenceActor}
+import io.vamp.persistence.db.{ ArtifactResponseEnvelope, ArtifactSupport, PersistenceActor }
 import io.vamp.persistence.notification.PersistenceOperationFailure
-import org.quartz.CronExpression
 
 import scala.concurrent.Future
-import scala.language.{existentials, postfixOps}
+import scala.language.{ existentials, postfixOps }
 import scala.reflect._
 
 trait ArtifactApiController extends ArtifactSupport {
@@ -26,27 +25,27 @@ trait ArtifactApiController extends ArtifactSupport {
 
   def allArtifacts(artifact: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[ArtifactResponseEnvelope] = mapping.get(artifact) match {
     case Some(controller) ⇒ controller.all(page, perPage, expandReferences, onlyReferences)
-    case None ⇒ throwException(UnexpectedArtifact(artifact))
+    case None             ⇒ throwException(UnexpectedArtifact(artifact))
   }
 
   def createArtifact(artifact: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(controller) ⇒ controller.create(content, validateOnly)
-    case None ⇒ throwException(UnexpectedArtifact(artifact))
+    case None             ⇒ throwException(UnexpectedArtifact(artifact))
   }
 
   def readArtifact(artifact: String, name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(controller) ⇒ controller.read(name, expandReferences, onlyReferences)
-    case None ⇒ throwException(UnexpectedArtifact(artifact))
+    case None             ⇒ throwException(UnexpectedArtifact(artifact))
   }
 
   def updateArtifact(artifact: String, name: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(controller) ⇒ controller.update(name, content, validateOnly)
-    case None ⇒ throwException(UnexpectedArtifact(artifact))
+    case None             ⇒ throwException(UnexpectedArtifact(artifact))
   }
 
   def deleteArtifact(artifact: String, name: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
     case Some(controller) ⇒ controller.delete(name, validateOnly)
-    case None ⇒ throwException(UnexpectedArtifact(artifact))
+    case None             ⇒ throwException(UnexpectedArtifact(artifact))
   }
 
   private val mapping: Map[String, Handler] = Map() +
@@ -81,14 +80,14 @@ trait ArtifactApiController extends ArtifactSupport {
     def background: Boolean = false
   }
 
-  class PersistenceHandler[T <: Artifact : ClassTag](unmarshaller: YamlReader[T]) extends Handler {
+  class PersistenceHandler[T <: Artifact: ClassTag](unmarshaller: YamlReader[T]) extends Handler {
 
     val `type` = classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]]
 
     override def all(page: Int, perPage: Int, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = {
       actorFor[PersistenceActor] ? PersistenceActor.All(`type`, page, perPage, expandReferences, onlyReferences) map {
         case envelope: ArtifactResponseEnvelope ⇒ envelope
-        case other ⇒ throwException(PersistenceOperationFailure(other))
+        case other                              ⇒ throwException(PersistenceOperationFailure(other))
       }
     }
 
@@ -163,22 +162,6 @@ trait ArtifactApiController extends ArtifactSupport {
         actorFor[WorkflowSchedulerActor] ! WorkflowSchedulerActor.Unschedule(workflow)
         workflow
       case any ⇒ any
-    }
-
-    override protected def validate: (ScheduledWorkflow ⇒ Future[ScheduledWorkflow]) = { (scheduledWorkflow: ScheduledWorkflow) ⇒
-      scheduledWorkflow.trigger match {
-        case TimeTrigger(pattern) ⇒ if (!CronExpression.isValidExpression(pattern)) throwException(InvalidTimeTriggerError(pattern))
-        case _ ⇒
-      }
-
-      artifactFor[DefaultWorkflow](scheduledWorkflow.workflow) map {
-        case workflow ⇒
-          workflow.requires.find(required ⇒ scheduledWorkflow.storage.get(required).isEmpty) match {
-            case Some(required) ⇒ throwException(MissingRequiredVariableError(required))
-            case _ ⇒
-          }
-          scheduledWorkflow
-      }
     }
   }
 

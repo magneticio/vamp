@@ -11,12 +11,11 @@ import jdk.nashorn.api.scripting.NashornScriptEngineFactory
 
 import scala.collection.Set
 import scala.concurrent.Future
-import scala.io.Source
 
 trait WorkflowExecutor {
   this: Actor with ActorLogging with ActorSystemProvider with ArtifactSupport with ExecutionContextProvider ⇒
 
-  private val urlPattern = "^(https?:\\/\\/.+)$".r
+  //private val urlPattern = "^(https?:\\/\\/.+)$".r
 
   def execute(scheduledWorkflow: ScheduledWorkflow, data: Any): Future[_] = {
     log.info(s"Executing workflow: ${scheduledWorkflow.name}")
@@ -27,18 +26,17 @@ trait WorkflowExecutor {
     } yield eval(refreshed, workflow, data)
   }
 
-  private def eval(scheduledWorkflow: ScheduledWorkflow, workflow: DefaultWorkflow, data: Any) = mergeSource(workflow) map {
-    case source ⇒
-      try {
-        val engine = createEngine()
-        val bindings = initializeBindings(scheduledWorkflow, engine.createBindings, data)
+  private def eval(scheduledWorkflow: ScheduledWorkflow, workflow: DefaultWorkflow, data: Any) = {
+    try {
+      val engine = createEngine()
+      val bindings = initializeBindings(scheduledWorkflow, engine.createBindings, data)
 
-        val result = engine.eval(source, bindings)
-        log.info(s"Result of '${scheduledWorkflow.name}': $result")
-        postEvaluation(scheduledWorkflow, bindings)
-      } catch {
-        case e: Throwable ⇒ log.error(s"Exception during execution of '${scheduledWorkflow.name}': ${e.getMessage}", e)
-      }
+      val result = engine.eval(workflow.script, bindings)
+      log.info(s"Result of '${scheduledWorkflow.name}': $result")
+      postEvaluation(scheduledWorkflow, bindings)
+    } catch {
+      case e: Throwable ⇒ log.error(s"Exception during execution of '${scheduledWorkflow.name}': ${e.getMessage}", e)
+    }
   }
 
   private def createEngine() = {
@@ -50,14 +48,14 @@ trait WorkflowExecutor {
     new NashornScriptEngineFactory().getScriptEngine(arguments, classLoader)
   }
 
-  private def mergeSource(workflow: DefaultWorkflow): Future[String] = Future.sequence(workflow.`import`.map {
-    case urlPattern(url) ⇒
-      log.debug(s"Importing the external script: $url")
-      Future(Source.fromURL(url).mkString)
-    case reference ⇒
-      log.debug(s"Importing the internal script: $reference")
-      artifactFor[DefaultWorkflow](reference).map(_.script)
-  } :+ Future(workflow.script)).map(_.mkString("\n"))
+  //  private def mergeSource(workflow: DefaultWorkflow): Future[String] = Future.sequence(workflow.`import`.map {
+  //    case urlPattern(url) ⇒
+  //      log.debug(s"Importing the external script: $url")
+  //      Future(Source.fromURL(url).mkString)
+  //    case reference ⇒
+  //      log.debug(s"Importing the internal script: $reference")
+  //      artifactFor[DefaultWorkflow](reference).map(_.script)
+  //  } :+ Future(workflow.script)).map(_.mkString("\n"))
 
   private def initializeBindings(scheduledWorkflow: ScheduledWorkflow, bindings: Bindings, data: Any) = {
     addContextBindings(scheduledWorkflow, bindings)
@@ -87,7 +85,7 @@ trait WorkflowExecutor {
     }
 
     scheduledWorkflow.trigger match {
-      case TimeTrigger(_)  ⇒ bindings.put("timestamp", data)
+      //case TimeTrigger(_)  ⇒ bindings.put("timestamp", data)
       case EventTrigger(_) ⇒ tags()
       case DeploymentTrigger(deployment) ⇒
         tags()

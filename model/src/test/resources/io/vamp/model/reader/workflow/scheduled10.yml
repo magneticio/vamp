@@ -1,6 +1,4 @@
 name: kill-vamp
-time: 0
-import:
-- http://underscorejs.org/underscore-min.js
-- vamp.js
+period: P1Y2M3DT4H5M6S
+startTime: 2007-12-03T10:15:30+02:00
 script: vamp.exit()

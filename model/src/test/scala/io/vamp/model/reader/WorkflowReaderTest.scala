@@ -1,6 +1,9 @@
 package io.vamp.model.reader
 
-import io.vamp.model.notification.{ MissingPathValueError, UndefinedWorkflowTriggerError, UnexpectedElement }
+import java.time.OffsetDateTime
+
+import io.vamp.model.notification.{ IllegalPeriod, MissingPathValueError, UndefinedWorkflowTriggerError, UnexpectedElement }
+import io.vamp.model.workflow.TimeTrigger.RepeatForever
 import io.vamp.model.workflow._
 import org.junit.runner.RunWith
 import org.scalatest._
@@ -26,43 +29,11 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  it should "import dependencies" in {
-    WorkflowReader.read(res("workflow/workflow3.yml")) should have(
-      'name("logger"),
-      'import(List("http://underscorejs.org/underscore-min.js", "vamp.js")),
-      'script("vamp.log(\"hi\")")
-    )
-  }
-
-  it should "expand import" in {
-    WorkflowReader.read(res("workflow/workflow4.yml")) should have(
-      'name("logger"),
-      'import(List("vamp.js")),
-      'script("vamp.log(\"hi\")")
-    )
-  }
-
-  it should "read requires" in {
-    WorkflowReader.read(res("workflow/workflow5.yml")) should have(
-      'name("logger"),
-      'requires(List("deployment", "cluster")),
-      'script("vamp.log(\"hi\")")
-    )
-  }
-
-  it should "expand requires" in {
-    WorkflowReader.read(res("workflow/workflow6.yml")) should have(
-      'name("logger"),
-      'requires(List("deployment")),
-      'script("vamp.log(\"hi\")")
-    )
-  }
-
   "ScheduledWorkflowReader" should "read the scheduled workflow with time trigger" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled1.yml")) should have(
       'name("logger-schedule"),
       'workflow(WorkflowReference("logger")),
-      'trigger(TimeTrigger("15 9 5 1"))
+      'trigger(TimeTrigger("P1Y2M3DT4H5M6S"))
     )
   }
 
@@ -83,10 +54,10 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   }
 
   it should "read the deployment trigger with the highest precedence" in {
-    ScheduledWorkflowReader.read(res("workflow/scheduled4.yml")) should have(
-      'name("logger-schedule"),
-      'workflow(WorkflowReference("logger")),
-      'trigger(DeploymentTrigger("deployment/cluster?create|update|delete"))
+    expectedError[UnexpectedElement]({
+      ScheduledWorkflowReader.read(res("workflow/scheduled4.yml"))
+    }) should have(
+      'element(Map("period" -> "P1Y2M3DT4H5M6S"))
     )
   }
 
@@ -94,7 +65,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
     ScheduledWorkflowReader.read(res("workflow/scheduled5.yml")) should have(
       'name("logger-schedule"),
       'workflow(WorkflowReference("logger")),
-      'trigger(TimeTrigger("15 9 5 1"))
+      'trigger(TimeTrigger("P1Y2M3DT4H5M6S"))
     )
   }
 
@@ -123,24 +94,32 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read anonymous workflow specified with 'script'" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled9.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", Nil, Nil, "vamp.exit()")),
-      'trigger(TimeTrigger("0"))
+      'workflow(DefaultWorkflow("", "vamp.exit()")),
+      'trigger(TimeTrigger("P1Y2M3DT4H5M6S"))
     )
   }
 
-  it should "read import" in {
+  it should "read start time" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled10.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", List("http://underscorejs.org/underscore-min.js", "vamp.js"), Nil, "vamp.exit()")),
-      'trigger(TimeTrigger("0"))
+      'workflow(DefaultWorkflow("", "vamp.exit()")),
+      'trigger(TimeTrigger("P1Y2M3DT4H5M6S", RepeatForever, Option(OffsetDateTime.parse("2007-12-03T08:15:30Z"))))
     )
   }
 
-  it should "expand import'" in {
+  it should "read repeat count'" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled11.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", List("vamp.js"), Nil, "vamp.exit()")),
-      'trigger(TimeTrigger("0"))
+      'workflow(DefaultWorkflow("", "vamp.exit()")),
+      'trigger(TimeTrigger("P1Y2M3DT4H5M6S", 5, Option(OffsetDateTime.parse("2012-10-01T05:52Z"))))
+    )
+  }
+
+  it should "fail on an invalid period" in {
+    expectedError[IllegalPeriod]({
+      ScheduledWorkflowReader.read(res("workflow/scheduled12.yml"))
+    }) should have(
+      'period("123")
     )
   }
 }

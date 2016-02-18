@@ -1,8 +1,14 @@
 package io.vamp.model.reader
 
-import io.vamp.model.notification.UndefinedWorkflowTriggerError
+import java.time.{ OffsetDateTime, ZoneId }
+import java.util.Date
+
+import io.vamp.model.notification.{ IllegalPeriod, UndefinedWorkflowTriggerError }
 import io.vamp.model.reader.YamlSourceReader._
+import io.vamp.model.workflow.TimeTrigger.{ RepeatForever, RepeatTimesCount }
 import io.vamp.model.workflow._
+
+import scala.util.Try
 
 object WorkflowReader extends YamlReader[Workflow] with ReferenceYamlReader[Workflow] {
 
@@ -13,14 +19,8 @@ object WorkflowReader extends YamlReader[Workflow] with ReferenceYamlReader[Work
       if (<<?[Any]("script").isEmpty) WorkflowReference(name) else read(source)
   }
 
-  override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
-    expandToList("import")
-    expandToList("requires")
-    source
-  }
-
   override protected def parse(implicit source: YamlSourceReader): Workflow = {
-    DefaultWorkflow(name, <<?[List[String]]("import").getOrElse(Nil), <<?[List[String]]("requires").getOrElse(Nil), <<![String]("script"))
+    DefaultWorkflow(name, <<![String]("script"))
   }
 }
 
@@ -28,25 +28,36 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
 
   override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
     expandToList("tags")
-    expandToList("import")
     source
   }
 
   override protected def parse(implicit source: YamlSourceReader): ScheduledWorkflow = {
-    val trigger = (<<?[String]("deployment"), <<?[String]("time"), <<?[List[String]]("tags")) match {
+    val trigger = <<?[String]("deployment").map {
+      case deployment ⇒ DeploymentTrigger(deployment)
+    } getOrElse {
 
-      case (Some(deployment), _, _) ⇒ DeploymentTrigger(deployment)
+      <<?[String]("period") map { period ⇒
 
-      case (None, Some(time), _)    ⇒ TimeTrigger(time)
+        val repeatTimes = <<?[Int]("repeatCount") match {
+          case None        ⇒ RepeatForever
+          case Some(count) ⇒ RepeatTimesCount(count)
+        }
 
-      case (None, None, Some(tags)) ⇒ EventTrigger(tags.toSet)
+        val startTime = <<?[Date]("startTime") map (time ⇒ OffsetDateTime.from(time.toInstant.atZone(ZoneId.of("UTC"))))
 
-      case _                        ⇒ throwException(UndefinedWorkflowTriggerError)
+        Try(TimeTrigger(period, repeatTimes, startTime)).getOrElse(throwException(IllegalPeriod(period)))
+
+      } getOrElse {
+
+        <<?[List[String]]("tags").map {
+          case tags ⇒ EventTrigger(tags.toSet)
+        } getOrElse throwException(UndefinedWorkflowTriggerError)
+      }
     }
 
     val workflow = <<?[Any]("workflow") match {
       case Some(w) ⇒ WorkflowReader.readReference(w)
-      case _       ⇒ DefaultWorkflow("", <<?[List[String]]("import").getOrElse(Nil), Nil, <<![String]("script"))
+      case _       ⇒ DefaultWorkflow("", <<![String]("script"))
     }
 
     ScheduledWorkflow(name, workflow, trigger, <<?[YamlSourceReader]("storage").getOrElse(YamlSourceReader()).pull())

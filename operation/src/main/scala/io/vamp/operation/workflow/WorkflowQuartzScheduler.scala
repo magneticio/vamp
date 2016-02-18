@@ -3,8 +3,7 @@ package io.vamp.operation.workflow
 import java.util.{ Date, Properties }
 
 import akka.actor.{ Actor, ActorLogging, ActorRef }
-import io.vamp.model.workflow.{ ScheduledWorkflow, TimeTrigger }
-import io.vamp.operation.workflow.WorkflowSchedulerActor.RunWorkflow
+import io.vamp.model.workflow.ScheduledWorkflow
 import org.quartz._
 import org.quartz.impl.StdSchedulerFactory
 
@@ -21,27 +20,27 @@ trait WorkflowQuartzScheduler {
   }
 
   def quartzSchedule(scheduledWorkflow: ScheduledWorkflow) = scheduledWorkflow.trigger match {
-    case TimeTrigger(pattern) ⇒
-      log.info(s"Creating a new Quartz job for workflow '${scheduledWorkflow.name}'.")
-      val job = {
-        val data = new JobDataMap()
-        data.put("message", RunWorkflow(scheduledWorkflow))
-        data.put("actor", self)
-        JobBuilder.newJob(classOf[QuartzJob])
-          .usingJobData(data)
-          .withIdentity(new JobKey(scheduledWorkflow.name))
-          .build()
-      }
-
-      val trigger = {
-        TriggerBuilder.newTrigger()
-          .startNow()
-          .withIdentity(new TriggerKey(s"${scheduledWorkflow.name}-trigger")).forJob(job)
-          .withSchedule(org.quartz.CronScheduleBuilder.cronSchedule(pattern))
-          .build()
-      }
-
-      scheduler.scheduleJob(job, trigger)
+    //    case TimeTrigger(pattern) ⇒
+    //      log.info(s"Creating a new Quartz job for workflow '${scheduledWorkflow.name}'.")
+    //      val job = {
+    //        val data = new JobDataMap()
+    //        data.put("message", RunWorkflow(scheduledWorkflow))
+    //        data.put("actor", self)
+    //        JobBuilder.newJob(classOf[QuartzJob])
+    //          .usingJobData(data)
+    //          .withIdentity(new JobKey(scheduledWorkflow.name))
+    //          .build()
+    //      }
+    //
+    //      val trigger = {
+    //        TriggerBuilder.newTrigger()
+    //          .startNow()
+    //          .withIdentity(new TriggerKey(s"${scheduledWorkflow.name}-trigger")).forJob(job)
+    //          .withSchedule(org.quartz.CronScheduleBuilder.cronSchedule(pattern))
+    //          .build()
+    //      }
+    //
+    //      scheduler.scheduleJob(job, trigger)
 
     case _ ⇒
   }
