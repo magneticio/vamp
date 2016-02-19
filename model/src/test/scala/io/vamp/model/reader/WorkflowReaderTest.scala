@@ -2,7 +2,7 @@ package io.vamp.model.reader
 
 import java.time.OffsetDateTime
 
-import io.vamp.model.notification.{ IllegalPeriod, MissingPathValueError, UndefinedWorkflowTriggerError, UnexpectedElement }
+import io.vamp.model.notification._
 import io.vamp.model.workflow.TimeTrigger.RepeatForever
 import io.vamp.model.workflow._
 import org.junit.runner.RunWith
@@ -17,15 +17,53 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   "WorkflowReader" should "read the workflow" in {
     WorkflowReader.read(res("workflow/workflow1.yml")) should have(
       'name("logger"),
-      'script("\nvamp.log(\"hi\")\n")
+      'script(Option("\nvamp.log(\"hi\")\n")),
+      'containerImage(None),
+      'command(None)
     )
   }
 
   it should "not read reference workflow" in {
-    expectedError[MissingPathValueError]({
+    expectedError[NoWorkflowRunnable]({
       WorkflowReader.read(res("workflow/workflow2.yml"))
     }) should have(
-      'path("script")
+      'name("logger")
+    )
+  }
+
+  it should "read the workflow script" in {
+    WorkflowReader.read(res("workflow/workflow3.yml")) should have(
+      'name("logger"),
+      'script(Option("vamp.log(\"hi\")")),
+      'containerImage(Option("magneticio/vamp-workflow-agent:latest")),
+      'command(Option("bash -c echo 5"))
+    )
+  }
+
+  it should "read the workflow container image and command" in {
+    WorkflowReader.read(res("workflow/workflow4.yml")) should have(
+      'name("logger"),
+      'script(None),
+      'containerImage(Option("magneticio/vamp-workflow-agent:latest")),
+      'command(Option("bash -c echo 5"))
+    )
+  }
+
+  it should "read the workflow container image" in {
+    WorkflowReader.read(res("workflow/workflow5.yml")) should have(
+      'name("logger"),
+      'script(None),
+      'containerImage(Option("magneticio/vamp-workflow-agent:latest")),
+      'command(None)
+    )
+  }
+
+  it should "read the workflow command" in {
+    WorkflowReader.read(res("workflow/workflow6.yml")) should have(
+      'name("logger"),
+      'script(None),
+      'containerImage(None),
+      'command(Option("bash -c echo 5"))
     )
   }
 
@@ -94,7 +132,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read anonymous workflow specified with 'script'" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled9.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", "vamp.exit()")),
+      'workflow(DefaultWorkflow("", None, Option("vamp.exit()"), None)),
       'trigger(TimeTrigger("P1Y2M3DT4H5M6S"))
     )
   }
@@ -102,7 +140,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read start time" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled10.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", "vamp.exit()")),
+      'workflow(DefaultWorkflow("", None, Option("vamp.exit()"), None)),
       'trigger(TimeTrigger("P1Y2M3DT4H5M6S", RepeatForever, Option(OffsetDateTime.parse("2007-12-03T08:15:30Z"))))
     )
   }
@@ -110,7 +148,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read repeat count'" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled11.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", "vamp.exit()")),
+      'workflow(DefaultWorkflow("", None, Option("vamp.exit()"), None)),
       'trigger(TimeTrigger("P1Y2M3DT4H5M6S", 5, Option(OffsetDateTime.parse("2012-10-01T05:52Z"))))
     )
   }

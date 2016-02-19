@@ -11,7 +11,25 @@ import scala.collection.mutable.ArrayBuffer
 
 object WorkflowSerializationFormat extends io.vamp.common.json.SerializationFormat {
   override def customSerializers = super.customSerializers :+
+    new WorkflowSerializer() :+
     new ScheduledWorkflowSerializer()
+}
+
+class WorkflowSerializer() extends ArtifactSerializer[Workflow] with ReferenceSerialization {
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case workflow: WorkflowReference ⇒ serializeReference(workflow)
+    case workflow: DefaultWorkflow ⇒
+      val list = new ArrayBuffer[JField]
+      list += JField("name", JString(workflow.name))
+      if (workflow.containerImage.isDefined)
+        list += JField("container-image", JString(workflow.containerImage.get))
+      if (workflow.script.isDefined)
+        list += JField("script", JString(workflow.script.get))
+      if (workflow.command.isDefined)
+        list += JField("command", JString(workflow.command.get))
+
+      new JObject(list.toList)
+  }
 }
 
 class ScheduledWorkflowSerializer() extends ArtifactSerializer[ScheduledWorkflow] {
@@ -36,9 +54,9 @@ class ScheduledWorkflowSerializer() extends ArtifactSerializer[ScheduledWorkflow
       }
 
       scheduledWorkflow.workflow match {
-        case WorkflowReference(reference) ⇒ list += JField("workflow", JString(reference))
-        case DefaultWorkflow(_, script)   ⇒ list += JField("script", JString(script))
-        case _                            ⇒
+        case WorkflowReference(reference)           ⇒ list += JField("workflow", JString(reference))
+        case DefaultWorkflow(_, _, Some(script), _) ⇒ list += JField("script", JString(script))
+        case _                                      ⇒
       }
 
       new JObject(list.toList)

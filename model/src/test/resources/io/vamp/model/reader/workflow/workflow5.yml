@@ -1,0 +1,2 @@
+name: logger
+container-image: magneticio/vamp-workflow-agent:latest

@@ -10,7 +10,7 @@ trait Workflow extends Artifact
 
 case class WorkflowReference(name: String) extends Reference with Workflow
 
-case class DefaultWorkflow(name: String, script: String) extends Workflow
+case class DefaultWorkflow(name: String, containerImage: Option[String], script: Option[String], command: Option[String]) extends Workflow
 
 trait Trigger
 

@@ -1,0 +1,4 @@
+name: logger
+container-image: magneticio/vamp-workflow-agent:latest
+script: vamp.log("hi")
+command: bash -c echo 5
