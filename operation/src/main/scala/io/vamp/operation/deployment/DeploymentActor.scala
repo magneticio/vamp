@@ -4,6 +4,7 @@ import java.util.UUID
 
 import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
@@ -24,6 +25,14 @@ import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }
 
 object DeploymentActor {
+
+  private val config = ConfigFactory.load()
+
+  val host = config.getString("vamp.gateway-driver.host")
+
+  val scale = config.getConfig("vamp.operation.deployment.scale") match {
+    case c ⇒ DefaultScale("", c.getDouble("cpu"), MegaByte.of(c.getString("memory")), c.getInt("instances"))
+  }
 
   trait DeploymentMessage
 
@@ -415,21 +424,12 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     if (newServices.nonEmpty) {
       newServices.map {
         case service ⇒
-
           resetServiceArtifacts(deployment, blueprintCluster, service)
-
-          (service.scale match {
-            case None ⇒
-              implicit val timeout = DictionaryActor.timeout
-              val key = DictionaryActor.containerScale.format(deployment.name, blueprintCluster.name, service.breed.name)
-              actorFor[DictionaryActor] ? DictionaryActor.Get(key) map {
-                case scale: DefaultScale ⇒ scale
-                case e                   ⇒ throwException(UnresolvedEnvironmentValueError(key, e))
-              }
-            case Some(scale: DefaultScale) ⇒ Future(scale)
-          }).map {
-            case scale ⇒ service.copy(scale = Some(scale))
+          val scale = service.scale match {
+            case None                      ⇒ DeploymentActor.scale
+            case Some(scale: DefaultScale) ⇒ scale
           }
+          Future.successful(service.copy(scale = Some(scale)))
       }
     } else Nil
   }
@@ -487,13 +487,8 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
   }
 
   def resolveHosts: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
-    futureDeployment.flatMap {
-      case deployment ⇒
-        implicit val timeout = DictionaryActor.timeout
-        actorFor[DictionaryActor] ? DictionaryActor.Get(DictionaryActor.hostResolver) map {
-          case host: String ⇒ deployment.copy(hosts = deployment.clusters.map(cluster ⇒ Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(host))))
-          case e            ⇒ throwException(UnresolvedEnvironmentValueError(DictionaryActor.hostResolver, e))
-        }
+    futureDeployment.map {
+      case d ⇒ d.copy(hosts = d.clusters.map(cluster ⇒ Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(DeploymentActor.host))))
     }
   }
 
@@ -572,7 +567,9 @@ trait DeploymentSlicer extends DeploymentOperation {
         val newClusters = stable.clusters.map(cluster ⇒
           blueprint.clusters.find(_.name == cluster.name).map { bpc ⇒
 
-            bpc.services.foreach { resetServiceArtifacts(stable, bpc, _) }
+            bpc.services.foreach {
+              resetServiceArtifacts(stable, bpc, _)
+            }
 
             val services = cluster.services.map { service ⇒
               service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) Undeploy else service.state)
