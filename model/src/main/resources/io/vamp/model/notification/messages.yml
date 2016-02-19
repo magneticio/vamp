@@ -55,6 +55,7 @@ UndefinedStateStepError                : "Undefined state step: {name}."
 UndefinedWorkflowTriggerError$         : "Undefined workflow trigger - either deployment, time or tags must be specified."
 IllegalPeriod                          : "Illegal period value: {period}."
 NoWorkflowRunnable                     : "Either container image, script or command must be defined: {name}."
+InvalidWorkflowScale                   : "Invalid workflow scale, number of instances must not be greater than 1: {scale.instances}."
 
 # Event
 

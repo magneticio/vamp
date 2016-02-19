@@ -222,8 +222,8 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] with AnonymousYamlReader[
     case yaml: YamlSourceReader ⇒ read(validateEitherReferenceOrAnonymous(yaml))
   }
 
-  def readOptionalReferenceOrAnonymous(path: YamlPath)(implicit source: YamlSourceReader): Option[T] = <<?[Any](path).flatMap {
-    reference ⇒ Some(readReferenceOrAnonymous(reference))
+  def readOptionalReferenceOrAnonymous(path: YamlPath)(implicit source: YamlSourceReader): Option[T] = <<?[Any](path).map {
+    reference ⇒ readReferenceOrAnonymous(reference)
   }
 
   protected def validateEitherReferenceOrAnonymous(implicit source: YamlSourceReader): YamlSourceReader = {

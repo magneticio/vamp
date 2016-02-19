@@ -2,7 +2,7 @@ package io.vamp.model.workflow
 
 import java.time.{ Period, Duration, OffsetDateTime }
 
-import io.vamp.model.artifact.{ Lookup, Artifact, Reference }
+import io.vamp.model.artifact.{ Scale, Lookup, Artifact, Reference }
 import io.vamp.model.workflow.TimeTrigger.{ RepeatTimes, RepeatPeriod, RepeatForever }
 import scala.language.implicitConversions
 
@@ -10,7 +10,7 @@ trait Workflow extends Artifact
 
 case class WorkflowReference(name: String) extends Reference with Workflow
 
-case class DefaultWorkflow(name: String, containerImage: Option[String], script: Option[String], command: Option[String]) extends Workflow
+case class DefaultWorkflow(name: String, containerImage: Option[String], script: Option[String], command: Option[String], scale: Option[Scale]) extends Workflow
 
 trait Trigger
 

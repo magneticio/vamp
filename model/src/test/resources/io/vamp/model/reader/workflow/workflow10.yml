@@ -1,0 +1,6 @@
+name: logger
+script: vamp.log("hi")
+scale:
+  cpu: 1
+  memory: 512MB
+  instances: 1

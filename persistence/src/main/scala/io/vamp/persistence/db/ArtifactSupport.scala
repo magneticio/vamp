@@ -13,12 +13,12 @@ trait ArtifactSupport {
   this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
 
   def artifactFor[T <: Artifact: ClassTag](artifact: Option[Artifact]): Future[Option[T]] = artifact match {
-    case None    ⇒ Future(None)
+    case None    ⇒ Future.successful(None)
     case Some(a) ⇒ artifactFor[T](a).map(Some(_))
   }
 
   def artifactFor[T <: Artifact: ClassTag](artifact: Artifact): Future[T] = artifact match {
-    case a: T ⇒ Future(a)
+    case a: T ⇒ Future.successful(a)
     case _    ⇒ artifactFor[T](artifact.name)
   }
 

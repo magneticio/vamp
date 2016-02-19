@@ -3,7 +3,8 @@ package io.vamp.model.reader
 import java.time.{ OffsetDateTime, ZoneId }
 import java.util.Date
 
-import io.vamp.model.notification.{ NoWorkflowRunnable, IllegalPeriod, UndefinedWorkflowTriggerError }
+import io.vamp.model.artifact.DefaultScale
+import io.vamp.model.notification.{ InvalidWorkflowScale, NoWorkflowRunnable, IllegalPeriod, UndefinedWorkflowTriggerError }
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.workflow.TimeTrigger.{ RepeatForever, RepeatTimesCount }
 import io.vamp.model.workflow._
@@ -20,12 +21,13 @@ object WorkflowReader extends YamlReader[Workflow] with ReferenceYamlReader[Work
   }
 
   override protected def parse(implicit source: YamlSourceReader): Workflow = {
-    DefaultWorkflow(name, <<?[String]("container-image"), <<?[String]("script"), <<?[String]("command"))
+    DefaultWorkflow(name, <<?[String]("container-image"), <<?[String]("script"), <<?[String]("command"), ScaleReader.readOptionalReferenceOrAnonymous("scale"))
   }
 
   override def validate(workflow: Workflow): Workflow = workflow match {
-    case DefaultWorkflow(_, None, None, None) ⇒ throwException(NoWorkflowRunnable(workflow.name))
-    case _                                    ⇒ workflow
+    case DefaultWorkflow(_, None, None, None, _) ⇒ throwException(NoWorkflowRunnable(workflow.name))
+    case DefaultWorkflow(_, _, _, _, Some(scale: DefaultScale)) if scale.instances > 1 ⇒ throwException(InvalidWorkflowScale(scale))
+    case _ ⇒ workflow
   }
 }
 
@@ -62,7 +64,7 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
 
     val workflow = <<?[Any]("workflow") match {
       case Some(w) ⇒ WorkflowReader.readReference(w)
-      case _       ⇒ DefaultWorkflow("", None, Option(<<![String]("script")), None)
+      case _       ⇒ DefaultWorkflow("", None, Option(<<![String]("script")), None, None)
     }
 
     ScheduledWorkflow(name, workflow, trigger)

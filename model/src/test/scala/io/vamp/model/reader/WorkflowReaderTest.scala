@@ -2,6 +2,7 @@ package io.vamp.model.reader
 
 import java.time.OffsetDateTime
 
+import io.vamp.model.artifact.{ DefaultScale, ScaleReference }
 import io.vamp.model.notification._
 import io.vamp.model.workflow.TimeTrigger.RepeatForever
 import io.vamp.model.workflow._
@@ -19,7 +20,8 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("logger"),
       'script(Option("\nvamp.log(\"hi\")\n")),
       'containerImage(None),
-      'command(None)
+      'command(None),
+      'scale(None)
     )
   }
 
@@ -36,7 +38,8 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("logger"),
       'script(Option("vamp.log(\"hi\")")),
       'containerImage(Option("magneticio/vamp-workflow-agent:latest")),
-      'command(Option("bash -c echo 5"))
+      'command(Option("bash -c echo 5")),
+      'scale(None)
     )
   }
 
@@ -45,7 +48,8 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("logger"),
       'script(None),
       'containerImage(Option("magneticio/vamp-workflow-agent:latest")),
-      'command(Option("bash -c echo 5"))
+      'command(Option("bash -c echo 5")),
+      'scale(None)
     )
   }
 
@@ -54,7 +58,8 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("logger"),
       'script(None),
       'containerImage(Option("magneticio/vamp-workflow-agent:latest")),
-      'command(None)
+      'command(None),
+      'scale(None)
     )
   }
 
@@ -63,7 +68,56 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
       'name("logger"),
       'script(None),
       'containerImage(None),
-      'command(Option("bash -c echo 5"))
+      'command(Option("bash -c echo 5")),
+      'scale(None)
+    )
+  }
+
+  it should "read an empty scale" in {
+    WorkflowReader.read(res("workflow/workflow7.yml")) should have(
+      'name("logger"),
+      'script(Option("vamp.log(\"hi\")")),
+      'containerImage(None),
+      'command(None),
+      'scale(None)
+    )
+  }
+
+  it should "read scale reference" in {
+    WorkflowReader.read(res("workflow/workflow8.yml")) should have(
+      'name("logger"),
+      'script(Option("vamp.log(\"hi\")")),
+      'containerImage(None),
+      'command(None),
+      'scale(Option(ScaleReference("small")))
+    )
+  }
+
+  it should "read default scale no instances" in {
+    WorkflowReader.read(res("workflow/workflow9.yml")) should have(
+      'name("logger"),
+      'script(Option("vamp.log(\"hi\")")),
+      'containerImage(None),
+      'command(None),
+      'scale(Option(DefaultScale("", 1, MegaByte.of("512MB"), 1)))
+    )
+  }
+
+  it should "read default scale" in {
+    WorkflowReader.read(res("workflow/workflow10.yml")) should have(
+      'name("logger"),
+      'script(Option("vamp.log(\"hi\")")),
+      'containerImage(None),
+      'command(None),
+      'scale(Option(DefaultScale("", 1, MegaByte.of("512MB"), 1)))
+    )
+  }
+
+  it should "fail on scale instances > 1" in {
+    expectedError[InvalidWorkflowScale]({
+      WorkflowReader.read(res("workflow/workflow11.yml"))
+    }) should have(
+      'scale(DefaultScale("", 1, MegaByte.of("512MB"), 2))
     )
   }
 
@@ -132,7 +186,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read anonymous workflow specified with 'script'" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled9.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", None, Option("vamp.exit()"), None)),
+      'workflow(DefaultWorkflow("", None, Option("vamp.exit()"), None, None)),
       'trigger(TimeTrigger("P1Y2M3DT4H5M6S"))
     )
   }
@@ -140,7 +194,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read start time" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled10.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", None, Option("vamp.exit()"), None)),
+      'workflow(DefaultWorkflow("", None, Option("vamp.exit()"), None, None)),
       'trigger(TimeTrigger("P1Y2M3DT4H5M6S", RepeatForever, Option(OffsetDateTime.parse("2007-12-03T08:15:30Z"))))
     )
   }
@@ -148,7 +202,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read repeat count'" in {
     ScheduledWorkflowReader.read(res("workflow/scheduled11.yml")) should have(
       'name("kill-vamp"),
-      'workflow(DefaultWorkflow("", None, Option("vamp.exit()"), None)),
+      'workflow(DefaultWorkflow("", None, Option("vamp.exit()"), None, None)),
       'trigger(TimeTrigger("P1Y2M3DT4H5M6S", 5, Option(OffsetDateTime.parse("2012-10-01T05:52Z"))))
     )
   }

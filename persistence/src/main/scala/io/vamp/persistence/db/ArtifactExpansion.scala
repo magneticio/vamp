@@ -26,6 +26,7 @@ trait ArtifactExpansion {
     case escalation: GenericEscalation        ⇒ Future.successful(escalation)
     case filter: DefaultFilter                ⇒ Future.successful(filter)
     case scale: DefaultScale                  ⇒ Future.successful(scale)
+    case workflow: DefaultWorkflow            ⇒ if (workflow.scale.isDefined) expandIfReference[DefaultScale, ScaleReference](workflow.scale.get).map(scale ⇒ workflow.copy(scale = Option(scale))) else Future.successful(workflow)
     case scheduledWorkflow: ScheduledWorkflow ⇒ expandIfReference[DefaultWorkflow, WorkflowReference](scheduledWorkflow.workflow).map(workflow ⇒ scheduledWorkflow.copy(workflow = workflow))
     case _                                    ⇒ Future.successful(artifact)
   }

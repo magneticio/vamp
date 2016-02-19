@@ -2,22 +2,35 @@ package io.vamp.operation.workflow
 
 import akka.actor._
 import akka.pattern.ask
+import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.model.artifact.DefaultScale
 import io.vamp.model.event.Event
-import io.vamp.model.workflow.{ DeploymentTrigger, EventTrigger, ScheduledWorkflow, TimeTrigger }
+import io.vamp.model.reader.MegaByte
+import io.vamp.model.workflow._
 import io.vamp.operation.OperationBootstrap
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
-import io.vamp.pulse.{ PulseEventTags, PulseActor }
 import io.vamp.pulse.PulseActor.Publish
+import io.vamp.pulse.{ PulseActor, PulseEventTags }
 import io.vamp.workflow_driver.WorkflowDriverActor
 
 import scala.concurrent.Future
 import scala.language.postfixOps
 
 object WorkflowActor {
+
+  private val config = ConfigFactory.load().getConfig("vamp.operation.workflow")
+
+  val command = config.getString("command")
+
+  val containerImage = config.getString("container-image")
+
+  val scale = config.getConfig("scale") match {
+    case c ⇒ DefaultScale("", c.getDouble("cpu"), MegaByte.of(c.getString("memory")), c.getInt("instances"))
+  }
 
   object RescheduleAll
 
@@ -31,8 +44,8 @@ object WorkflowActor {
 
 class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
 
-  import WorkflowActor._
   import PulseEventTags.Workflows._
+  import WorkflowActor._
 
   private val percolator = "workflow://"
 
@@ -98,8 +111,18 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
     }
   }
 
-  private def trigger(workflow: ScheduledWorkflow, data: Any = None) = {
-    IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(workflow, data)
+  private def trigger(scheduledWorkflow: ScheduledWorkflow, data: Any = None) = for {
+    workflow ← artifactFor[DefaultWorkflow](scheduledWorkflow.workflow)
+    scale ← if (workflow.scale.isDefined) artifactFor[DefaultScale](workflow.scale.get) else Future.successful(WorkflowActor.scale)
+  } yield {
+
+    val expandedWorkflow = workflow.copy(
+      scale = Option(scale),
+      command = Option(workflow.command.getOrElse(WorkflowActor.command)),
+      containerImage = Option(workflow.containerImage.getOrElse(WorkflowActor.containerImage))
+    )
+
+    IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(scheduledWorkflow.copy(workflow = expandedWorkflow), data)
   }
 
   private def pulse(workflow: ScheduledWorkflow, scheduled: Boolean) = {
