@@ -115,7 +115,7 @@ trait PersistenceMultiplexer {
                   case _       ⇒ Future.successful(gateway)
                 } map { g ⇒
                   val routes = g.routes.map {
-                    case route: DefaultRoute if route.length == 4 ⇒ route.copy(path = route.path.segments.last :: Nil)
+                    case route: DefaultRoute if route.length == 4 ⇒ route.copy(path = route.path.segments(2) :: Nil)
                     case route                                    ⇒ route
                   }
                   g.copy(name = name, port = g.port.copy(name = gateway.port.name), routes = routes)
