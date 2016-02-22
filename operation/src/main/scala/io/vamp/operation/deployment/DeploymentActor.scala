@@ -7,7 +7,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.notification.{ NotificationErrorException, NotificationProvider }
 import io.vamp.model.artifact.DeploymentService.State.Intention._
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
@@ -20,6 +20,7 @@ import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, Pers
 import io.vamp.persistence.operation.DeploymentPersistence._
 import io.vamp.persistence.operation.{ DeploymentServiceEnvironmentVariables, DeploymentServiceInstances, DeploymentServiceState }
 
+import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }
 
@@ -31,6 +32,15 @@ object DeploymentActor {
 
   val defaultScale = config.getConfig("vamp.operation.deployment.scale") match {
     case c ⇒ DefaultScale("", c.getDouble("cpu"), MegaByte.of(c.getString("memory")), c.getInt("instances"))
+  }
+
+  val defaultArguments: List[Argument] = {
+    config.getStringList("vamp.operation.deployment.arguments").toList.map {
+      _.split("=", 2).toList match {
+        case key :: value :: Nil ⇒ Argument(key, value)
+        case any                 ⇒ throw NotificationErrorException(InvalidArgumentError, if (any != null) any.toString else "")
+      }
+    }
   }
 
   trait DeploymentMessage
@@ -125,7 +135,8 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
                 breed ← artifactFor[DefaultBreed](service.breed)
                 scale ← artifactFor[DefaultScale](service.scale)
               } yield {
-                DeploymentService(Deploy, breed, service.environmentVariables, scale, Nil, service.arguments, Map(), service.dialects)
+                val arguments = DeploymentActor.defaultArguments ++ breed.arguments ++ service.arguments
+                DeploymentService(Deploy, breed, service.environmentVariables, scale, Nil, arguments, Map(), service.dialects)
               }
             })
             routing ← Future.sequence(cluster.routing map { r ⇒

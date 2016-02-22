@@ -1,5 +1,6 @@
 package io.vamp.model.serialization
 
+import io.vamp.common.json.SerializationFormat
 import io.vamp.model.artifact._
 import org.json4s.JsonAST.JString
 import org.json4s._
@@ -11,7 +12,8 @@ object BlueprintSerializationFormat extends io.vamp.common.json.SerializationFor
 
   override def customSerializers = super.customSerializers :+
     new BlueprintSerializer() :+
-    new ScaleSerializer()
+    new ScaleSerializer() :+
+    new ArgumentSerializer
 
   override def fieldSerializers = super.fieldSerializers :+
     new ClusterFieldSerializer() :+
@@ -40,9 +42,10 @@ class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] wi
   }
 }
 
-class ServiceFieldSerializer extends ArtifactFieldSerializer[AbstractService] with DialectSerializer with TraitDecomposer {
+class ServiceFieldSerializer extends ArtifactFieldSerializer[AbstractService] with ArgumentListSerializer with DialectSerializer with TraitDecomposer {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
     case ("environmentVariables", environmentVariables) ⇒ Some(("environment_variables", traits(environmentVariables.asInstanceOf[List[Trait]])))
+    case ("arguments", arguments)                       ⇒ Some(("arguments", serializeArguments(arguments.asInstanceOf[List[Argument]])))
     case ("dialects", dialects)                         ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
   }
 }
@@ -59,6 +62,10 @@ class ScaleSerializer extends ArtifactSerializer[Scale] with ReferenceSerializat
       list += JField("instances", JInt(scale.instances))
       new JObject(list.toList)
   }
+}
+
+trait ArgumentListSerializer {
+  def serializeArguments(arguments: List[Argument]) = Extraction.decompose(arguments)(SerializationFormat(BlueprintSerializationFormat))
 }
 
 trait DialectSerializer {
