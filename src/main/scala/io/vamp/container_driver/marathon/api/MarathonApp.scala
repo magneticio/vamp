@@ -6,6 +6,6 @@ case class MarathonApp(id: String, container: Option[Container], instances: Int,
 
 case class Container(docker: Docker, `type`: String = "DOCKER")
 
-case class Docker(image: String, portMappings: List[DockerPortMapping], parameters: List[DockerParameter] = List(DockerParameter("security-opt", "seccomp:unconfined")), network: String = "BRIDGE")
+case class Docker(image: String, portMappings: List[DockerPortMapping], parameters: List[DockerParameter], network: String = "BRIDGE")
 
 case class DockerParameter(key: String, value: String)
