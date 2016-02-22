@@ -63,7 +63,8 @@ lazy val bintraySetting = Seq(
 
 // Libraries
 
-val akka = "com.typesafe.akka" %% "akka-slf4j" % "2.4.0" :: Nil
+val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.2" ::
+  "com.typesafe.akka" %% "akka-slf4j" % "2.4.2" :: Nil
 
 val spray = "io.spray" %% "spray-can" % "1.3.1" ::
   "io.spray" %% "spray-routing" % "1.3.2" ::
@@ -75,7 +76,6 @@ val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.7" exclude("org.slf
 val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
 val bouncycastle = "org.bouncycastle" % "bcprov-jdk16" % "1.46" :: Nil
 val unisocketsNetty = "me.lessis" %% "unisockets-netty" % "0.1.0" :: Nil
-val quartz = "org.quartz-scheduler" % "quartz" % "2.2.1" :: Nil
 val dispatch = "net.databinder.dispatch" %% "dispatch-core" % "0.11.2" ::
   "net.databinder.dispatch" %% "dispatch-json4s-native" % "0.11.2" :: Nil
 
@@ -150,7 +150,7 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
   name := "vamp-operation",
   formatting,
-  libraryDependencies ++= quartz ++ jersey ++ testing
+  libraryDependencies ++= jersey ++ testing
 ).dependsOn(persistence, container_driver, workflow_driver, gateway_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val pulse = project.settings(bintraySetting: _*).settings(
