@@ -5,7 +5,6 @@ import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
-import scala.util.Try
 
 trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader[Gateway] {
 
@@ -205,7 +204,11 @@ object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
   protected def acceptPort = true
 
   override protected def update(key: String, gateway: Gateway)(implicit source: YamlSourceReader): Gateway = {
-    gateway.copy(port = gateway.port.copy(name = Try(Port(key).number.toString).getOrElse(key)))
+    val name = {
+      val number = Port(key).number
+      if (number != 0) number.toString else key
+    }
+    gateway.copy(port = gateway.port.copy(name = name))
   }
 }
 

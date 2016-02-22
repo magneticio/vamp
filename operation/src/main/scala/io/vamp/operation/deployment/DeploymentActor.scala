@@ -448,21 +448,21 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
     implicit val timeout = PersistenceActor.timeout
 
-    val routing = blueprintCluster.services.flatMap(_.breed.ports).map(_.name).distinct.map { portName ⇒
-      val services = blueprintCluster.services.filter(_.breed.ports.exists(_.name == portName))
+    val routing = blueprintCluster.services.flatMap(_.breed.ports).map(port ⇒ port.name -> port).toMap.values.toList.map { port ⇒
+      val services = blueprintCluster.services.filter(_.breed.ports.exists(_.name == port.name))
 
-      blueprintCluster.routingBy(portName) match {
+      blueprintCluster.routingBy(port.name) match {
         case Some(oldRouting) ⇒
           val routes = services.map { service ⇒
             oldRouting.routeBy(service.breed.name :: Nil) match {
-              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, blueprintCluster, service.breed.name, portName), None, Nil, Nil, None)
+              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, blueprintCluster, service.breed.name, port.name), None, Nil, Nil, None)
               case Some(route) ⇒ route
             }
           }
           oldRouting.copy(routes = routes)
 
-        case None ⇒ Gateway("", Port(portName, None, None), None, services.map { service ⇒
-          DefaultRoute("", serviceRoutePath(deployment, blueprintCluster, service.breed.name, portName), None, Nil, Nil, None)
+        case None ⇒ Gateway("", Port(port.name, None, None, 0, port.`type`), None, services.map { service ⇒
+          DefaultRoute("", serviceRoutePath(deployment, blueprintCluster, service.breed.name, port.name), None, Nil, Nil, None)
         })
       }
     }

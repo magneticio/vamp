@@ -82,11 +82,11 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       currentPort
     }
 
-    val (noPortGateways, otherGateways) = gateways.partition { gateway ⇒ gateway.port.value.isEmpty }
+    val (noPortGateways, otherGateways) = gateways.partition { gateway ⇒ !gateway.port.assigned }
 
     noPortGateways foreach { gateway ⇒
       IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = false))
-      IoC.actorFor[PersistenceActor] ! Create(GatewayPort(gateway.name, Port(availablePort, gateway.port.`type`).value.get))
+      IoC.actorFor[PersistenceActor] ! Create(GatewayPort(gateway.name, availablePort))
     }
 
     otherGateways

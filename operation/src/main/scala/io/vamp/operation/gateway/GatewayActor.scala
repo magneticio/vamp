@@ -48,7 +48,12 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
 
   private def create(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean): Future[Any] = (internal(gateway.name), force, validateOnly) match {
     case (true, false, _) ⇒ Future.failed(reportException(InnerGatewayCreateError(gateway.name)))
-    case (_, _, true)     ⇒ Future.successful(None)
+    case (_, _, true) ⇒
+      try {
+        Future.successful((process andThen validate)(gateway))
+      } catch {
+        case e: Exception ⇒ Future.failed(e)
+      }
     case _ ⇒
       try {
         (process andThen validate andThen persist(source, create = true))(gateway)
