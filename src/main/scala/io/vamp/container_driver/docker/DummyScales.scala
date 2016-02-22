@@ -16,7 +16,7 @@ import scala.language.postfixOps
 trait DummyScales {
 
   private val defaultScale: DefaultScale = {
-    val c = ConfigFactory.load().getConfig("vamp.dictionary.default-scale")
+    val c = ConfigFactory.load().getConfig("vamp.operation.deployment.scale")
     DefaultScale(name = "", cpu = c.getDouble("cpu"), memory = MegaByte.of(c.getString("memory")), instances = c.getInt("instances"))
   }
 
