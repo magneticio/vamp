@@ -110,7 +110,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
       }
     },
     "gateway-ports" -> new NoNameValidationYamlReader[GatewayPort] {
-      override protected def parse(implicit source: YamlSourceReader) = GatewayPort(name, <<![String]("port"))
+      override protected def parse(implicit source: YamlSourceReader) = GatewayPort(name, <<![Int]("port"))
     },
     "gateway-deployment-statuses" -> new NoNameValidationYamlReader[GatewayDeploymentStatus] {
       override protected def parse(implicit source: YamlSourceReader) = GatewayDeploymentStatus(name, <<![Boolean]("deployed"))
