@@ -7,7 +7,7 @@ import io.vamp.model.validator.BreedTraitValueValidator
 
 import scala.language.postfixOps
 
-object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader with BreedTraitValueValidator {
+object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader with ArgumentReader with BreedTraitValueValidator {
 
   override def readReference: PartialFunction[Any, Breed] = {
     case reference: String ⇒ BreedReference(reference)
@@ -32,6 +32,8 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
       }
     }
 
+    expandArguments()
+
     super.expand
   }
 
@@ -47,7 +49,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
       }
     }
 
-    DefaultBreed(name, deployable, ports(), environmentVariables(), constants(), dependencies)
+    DefaultBreed(name, deployable, ports(), environmentVariables(), constants(), arguments(), dependencies)
   }
 
   override protected def validate(any: Breed): Breed = any match {

@@ -331,3 +331,31 @@ trait DialectReader {
   }
 }
 
+trait ArgumentReader {
+  this: YamlReader[_] ⇒
+
+  def expandArguments()(implicit source: YamlSourceReader) = {
+    <<?[Any]("arguments") match {
+      case None                          ⇒
+      case Some(value: List[_])          ⇒
+      case Some(value: YamlSourceReader) ⇒ >>("arguments", value.pull().map(YamlSourceReader(_)).toList)
+      case Some(value)                   ⇒ >>("arguments", List(value))
+    }
+  }
+
+  def arguments()(implicit source: YamlSourceReader): List[Argument] = {
+    <<?[List[_]]("arguments") match {
+      case Some(list) ⇒ list.map {
+        case yaml: YamlSourceReader ⇒
+          if (yaml.size != 1) throwException(InvalidArgumentError)
+          yaml.pull().head match {
+            case (key, value: String) ⇒ Argument(key, value)
+            case _                    ⇒ throwException(InvalidArgumentError)
+          }
+        case _ ⇒ throwException(InvalidArgumentError)
+      }
+      case _ ⇒ Nil
+    }
+  }
+}
+

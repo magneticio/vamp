@@ -48,10 +48,12 @@ abstract class AbstractService {
 
   def scale: Option[Scale]
 
+  def arguments: List[Argument]
+
   def dialects: Map[Dialect.Value, Any]
 }
 
-case class Service(breed: Breed, environmentVariables: List[EnvironmentVariable], scale: Option[Scale], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
+case class Service(breed: Breed, environmentVariables: List[EnvironmentVariable], scale: Option[Scale], arguments: List[Argument], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
 
 trait Scale extends Artifact
 

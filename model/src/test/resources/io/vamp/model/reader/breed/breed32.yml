@@ -1,0 +1,7 @@
+name: sava:1.0.0
+deployable: magneticio/sava:1.0.0
+
+arguments:
+-
+  arg1: test1
+  arg2: test2

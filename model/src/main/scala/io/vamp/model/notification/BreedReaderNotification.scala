@@ -12,3 +12,5 @@ case class MissingConstantValueError(breed: Breed, constant: Constant) extends N
 case class RecursiveDependenciesError(breed: Breed) extends Notification
 
 case class UnresolvedDependencyInTraitValueError(breed: Breed, reference: String) extends Notification
+
+object InvalidArgumentError extends Notification

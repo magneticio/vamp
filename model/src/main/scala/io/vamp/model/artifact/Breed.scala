@@ -7,7 +7,14 @@ import scala.util.Try
 
 trait Breed extends Artifact
 
-case class DefaultBreed(name: String, deployable: Deployable, ports: List[Port], environmentVariables: List[EnvironmentVariable], constants: List[Constant], dependencies: Map[String, Breed]) extends Breed {
+case class DefaultBreed(
+    name: String,
+    deployable: Deployable,
+    ports: List[Port],
+    environmentVariables: List[EnvironmentVariable],
+    constants: List[Constant],
+    arguments: List[Argument],
+    dependencies: Map[String, Breed]) extends Breed {
   def traitsFor(group: String): List[Trait] = traitsFor(TraitReference.groupFor(group))
 
   def traitsFor(group: Option[TraitReference.Value]): List[Trait] = group match {
@@ -147,3 +154,5 @@ case class Port(name: String, alias: Option[String], value: Option[String], numb
 case class EnvironmentVariable(name: String, alias: Option[String], value: Option[String], interpolated: Option[String] = None) extends Trait
 
 case class Constant(name: String, alias: Option[String], value: Option[String]) extends Trait
+
+case class Argument(key: String, value: String)

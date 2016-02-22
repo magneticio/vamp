@@ -125,7 +125,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
                 breed ← artifactFor[DefaultBreed](service.breed)
                 scale ← artifactFor[DefaultScale](service.scale)
               } yield {
-                DeploymentService(Deploy, breed, service.environmentVariables, scale, Nil, Map(), service.dialects)
+                DeploymentService(Deploy, breed, service.environmentVariables, scale, Nil, service.arguments, Map(), service.dialects)
               }
             })
             routing ← Future.sequence(cluster.routing map { r ⇒

@@ -10,7 +10,7 @@ import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
 
-trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader with DialectReader with ReferenceYamlReader[Deployment] {
+trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader with ArgumentReader with DialectReader with ReferenceYamlReader[Deployment] {
 
   override protected def parse(implicit source: YamlSourceReader): Deployment = {
     val clusters = <<?[YamlSourceReader]("clusters") match {
@@ -48,7 +48,7 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale").asInstanceOf[Option[DefaultScale]]
     val envVars = environmentVariables().map { ev ⇒ ev.copy(interpolated = ev.value) }
 
-    DeploymentService(state(<<![YamlSourceReader]("state")), breed, envVars, scale, parseInstances, dependencies(), dialects)
+    DeploymentService(state(<<![YamlSourceReader]("state")), breed, envVars, scale, parseInstances, arguments(), dependencies(), dialects)
   }
 
   def parseInstances(implicit source: YamlSourceReader): List[DeploymentInstance] = {
