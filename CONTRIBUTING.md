@@ -9,7 +9,8 @@ Note: We are currently in alpha. This means the API will change, features will b
 *Vamp is split into separate repos and projects, just like actual microservices...* :metal:
 
 1. [Vamp](https://github.com/magneticio/vamp) : the brains of the organization.
-2. [Vamp Gateway Agent](https://github.com/magneticio/vamp-pulse) : takes care of routing and collecting router logs (metrics).
+2. [Vamp UI](https://github.com/magneticio/vamp-ui) : the Vamp UI.
+3. [Vamp Gateway Agent](https://github.com/magneticio/vamp-gateway-agent) : serves as an intermediary agent between supported config stores (ZooKeeper, etcd, Consul) and HAProxy, and routes HAProxy logs to Logstash.
 
 *We accept bug reports and pull requests on the GitHub repo for each project*.
 
