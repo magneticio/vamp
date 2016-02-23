@@ -17,7 +17,7 @@ trait PersistenceMultiplexer {
     case _                           ⇒ Future.sequence(each(artifact) :: Nil)
   }
 
-  protected def remove(name: String, `type`: Class[_ <: Artifact], each: (String, Class[_ <: Artifact]) ⇒ Future[Option[Artifact]]): Future[List[Option[Artifact]]] = `type` match {
+  protected def remove(name: String, `type`: Class[_ <: Artifact], each: (String, Class[_ <: Artifact]) ⇒ Future[Boolean]): Future[List[Boolean]] = `type` match {
     case t if classOf[Gateway].isAssignableFrom(t) ⇒ removeGateway(name, each)
     case _                                         ⇒ Future.sequence(each(name, `type`) :: Nil)
   }
@@ -41,7 +41,7 @@ trait PersistenceMultiplexer {
     blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map(each) :+ each(blueprint)
   }
 
-  protected def removeGateway(name: String, each: (String, Class[_ <: Artifact]) ⇒ Future[Option[Artifact]]): Future[List[Option[Artifact]]] = {
+  protected def removeGateway(name: String, each: (String, Class[_ <: Artifact]) ⇒ Future[Boolean]): Future[List[Boolean]] = {
     def default = each(name, classOf[GatewayPort]) :: each(name, classOf[GatewayDeploymentStatus]) :: each(name, classOf[Gateway]) :: Nil
 
     get(name, classOf[Gateway]).flatMap {
@@ -56,10 +56,14 @@ trait PersistenceMultiplexer {
 
   private def combine(gateway: Gateway): Future[Option[Gateway]] = {
     for {
-      port ← if (gateway.port.value.isEmpty)
-        get(gateway.name, classOf[GatewayPort]).map(gp ⇒ gateway.port.copy(value = gp.map(_.asInstanceOf[GatewayPort].port)))
-      else
+      port ← if (!gateway.port.assigned) {
+        get(gateway.name, classOf[GatewayPort]).map {
+          case Some(gp) ⇒ gateway.port.copy(number = gp.asInstanceOf[GatewayPort].port) match { case p ⇒ p.copy(value = Option(p.toValue)) }
+          case _        ⇒ gateway.port
+        }
+      } else {
         Future.successful(gateway.port)
+      }
 
       routes ← Future.sequence(gateway.routes.map {
         case route: DefaultRoute ⇒ get(route.path.normalized, classOf[RouteTargets]).map {
@@ -105,9 +109,20 @@ trait PersistenceMultiplexer {
           for {
             routing ← Future.sequence {
               cluster.routing.map { gateway ⇒
-                gateway.copy(name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port))
-              } map combine
-            } map (_.flatten)
+                val name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port)
+                get(name, classOf[Gateway]).flatMap {
+                  case Some(g) ⇒ combine(g).map(_.getOrElse(gateway).asInstanceOf[Gateway])
+                  case _       ⇒ Future.successful(gateway)
+                } map { g ⇒
+                  val routes = g.routes.map {
+                    case route: DefaultRoute if route.length == 4 ⇒ route.copy(path = route.path.segments(2) :: Nil)
+                    case route                                    ⇒ route
+                  }
+                  g.copy(name = name, port = g.port.copy(name = gateway.port.name), routes = routes)
+                }
+              }
+            }
+
             services ← Future.sequence {
               cluster.services.map { service ⇒
                 for {

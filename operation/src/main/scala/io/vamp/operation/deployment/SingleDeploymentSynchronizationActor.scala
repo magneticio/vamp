@@ -25,7 +25,7 @@ object SingleDeploymentSynchronizationActor {
 class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
 
   import DeploymentPersistence._
-  import PulseEventTags.DeploymentSynchronization._
+  import PulseEventTags.Deployments._
   import SingleDeploymentSynchronizationActor._
 
   def receive: Receive = {
@@ -69,9 +69,9 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
           deployTo(update = true)
         else if (!matchingServers(deploymentService, cs)) {
           persist(DeploymentServiceInstances(serviceArtifactName(deployment, deploymentCluster, deploymentService), cs.instances.map(convert)))
-          publishUpdate(deployment, deploymentCluster)
         } else {
           persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Done())))
+          publishDeployed(deployment, deploymentCluster, deploymentService)
         }
     }
   }
@@ -116,8 +116,8 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
 
     def redeploy() = {
       persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Update())))
+      publishRedeploy(deployment, deploymentCluster, deploymentService)
       deploy(deployment, deploymentCluster, deploymentService, containerServices)
-      publishUpdate(deployment, deploymentCluster)
     }
 
     containerService(deployment, deploymentService, containerServices) match {
@@ -133,7 +133,7 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
         persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Update())))
       case _ ⇒
         persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Done())))
-        publishDelete(deployment, deploymentCluster)
+        publishUndeployed(deployment, deploymentCluster, deploymentService)
     }
   }
 
@@ -155,11 +155,21 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
     containerService.instances.size == deploymentService.scale.get.instances && containerService.scale.cpu == deploymentService.scale.get.cpu && containerService.scale.memory == deploymentService.scale.get.memory
   }
 
-  private def publishUpdate(deployment: Deployment, cluster: DeploymentCluster) = actorFor[PulseActor] ! Publish(Event(tags(updateTag, deployment, cluster), deployment -> cluster), publishEventValue = false)
+  private def publishDeployed(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
+    actorFor[PulseActor] ! Publish(Event(tags(deployedTag, deployment, cluster, service), (deployment, cluster, service)), publishEventValue = false)
+  }
 
-  private def publishDelete(deployment: Deployment, cluster: DeploymentCluster) = actorFor[PulseActor] ! Publish(Event(tags(deleteTag, deployment, cluster), deployment -> cluster), publishEventValue = false)
+  private def publishRedeploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
+    actorFor[PulseActor] ! Publish(Event(tags(redeployTag, deployment, cluster, service), (deployment, cluster, service)), publishEventValue = false)
+  }
 
-  private def tags(tag: String, deployment: Deployment, cluster: DeploymentCluster) = Set(s"deployments${Event.tagDelimiter}${deployment.name}", s"clusters${Event.tagDelimiter}${cluster.name}", tag)
+  private def publishUndeployed(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
+    actorFor[PulseActor] ! Publish(Event(tags(undeployedTag, deployment, cluster, service), (deployment, cluster)), publishEventValue = false)
+  }
+
+  private def tags(tag: String, deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
+    Set(s"deployments${Event.tagDelimiter}${deployment.name}", s"clusters${Event.tagDelimiter}${cluster.name}", s"services${Event.tagDelimiter}${service.breed.name}", tag)
+  }
 
   private def persist(artifact: Artifact) = actorFor[PersistenceActor] ! PersistenceActor.Update(artifact)
 }

@@ -98,6 +98,7 @@ case class DeploymentService(
   environmentVariables: List[EnvironmentVariable],
   scale: Option[DefaultScale],
   instances: List[DeploymentInstance],
+  arguments: List[Argument],
   dependencies: Map[String, String] = Map(),
   dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService with DeploymentState
 

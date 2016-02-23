@@ -14,7 +14,17 @@ import spray.routing.directives.LogEntry
 
 import scala.language.{ existentials, postfixOps }
 
-trait RestApiRoute extends RestApiBase with ArtifactApiController with DeploymentApiRoute with EventApiRoute with InfoRoute with ArtifactPaginationSupport with CorsSupport {
+trait RestApiRoute
+    extends RestApiBase
+    with ArtifactApiController
+    with DeploymentApiRoute
+    with EventApiRoute
+    with InfoRoute
+    with StatsRoute
+    with MetricsRoute
+    with HealthRoute
+    with ArtifactPaginationSupport
+    with CorsSupport {
   this: CommonSupportForActors ⇒
 
   implicit def timeout: Timeout
@@ -74,7 +84,7 @@ trait RestApiRoute extends RestApiBase with ArtifactApiController with Deploymen
       pathPrefix("api" / Artifact.version) {
         compressResponse() {
           sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
-            infoRoute ~ deploymentRoutes ~ eventRoutes ~ crudRoutes
+            infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes
           }
         }
       } ~ path("") {

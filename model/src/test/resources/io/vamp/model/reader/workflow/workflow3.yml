@@ -1,7 +1,4 @@
 name: logger
-
-import:
-- http://underscorejs.org/underscore-min.js
-- vamp.js
-
+container-image: magneticio/vamp-workflow-agent:latest
 script: vamp.log("hi")
+command: bash -c echo 5

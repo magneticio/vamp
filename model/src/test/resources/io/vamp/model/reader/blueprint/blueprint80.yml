@@ -1,0 +1,9 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious:
+    services:
+      breed: nocturnal-viper
+      arguments:
+        arg1: test1
+        arg2: test2

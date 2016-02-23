@@ -1,4 +1,4 @@
 name: dead-vamp
-time: 0
+period: P1Y2M3DT4H5M6S
 script: vamp.exit()
 workflow: kill-vamp

@@ -1,6 +1,6 @@
 name: logger-schedule
 workflow: logger
-time: 15 9 5 1
+period: P1Y2M3DT4H5M6S
 tags:
 - deployment
 - cluster

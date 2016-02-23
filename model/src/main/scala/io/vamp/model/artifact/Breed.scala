@@ -3,10 +3,18 @@ package io.vamp.model.artifact
 import java.util.regex.Pattern
 
 import scala.language.implicitConversions
+import scala.util.Try
 
 trait Breed extends Artifact
 
-case class DefaultBreed(name: String, deployable: Deployable, ports: List[Port], environmentVariables: List[EnvironmentVariable], constants: List[Constant], dependencies: Map[String, Breed]) extends Breed {
+case class DefaultBreed(
+    name: String,
+    deployable: Deployable,
+    ports: List[Port],
+    environmentVariables: List[EnvironmentVariable],
+    constants: List[Constant],
+    arguments: List[Argument],
+    dependencies: Map[String, Breed]) extends Breed {
   def traitsFor(group: String): List[Trait] = traitsFor(TraitReference.groupFor(group))
 
   def traitsFor(group: Option[TraitReference.Value]): List[Trait] = group match {
@@ -100,6 +108,9 @@ case class TraitReference(cluster: String, group: String, name: String) extends 
 
 object Port {
 
+  private val tcp = Port.Type.toTypeString(Port.Type.Tcp)
+  private val http = Port.Type.toTypeString(Port.Type.Http)
+
   object Type extends Enumeration {
     val Tcp, Http = Value
 
@@ -110,31 +121,38 @@ object Port {
 
   def apply(value: String): Port = Port("", None, Some(value)) match { case port ⇒ port.copy(name = port.number.toString) }
 
-  def apply(number: Int, `type`: Port.Type.Value): Port = Port(number.toString, None, Some(s"$number${Port.Type.toTypeString(`type`)}"))
+  def apply(number: Int, `type`: Port.Type.Value): Port = Port(number.toString, None, Option(s"$number${Port.Type.toTypeString(`type`)}"))
+
+  def apply(name: String, alias: Option[String], value: Option[String]): Port = {
+
+    val number: Int = value match {
+      case None ⇒ 0
+      case Some(v) ⇒
+        if (v.toLowerCase.endsWith(http))
+          v.substring(0, v.length - http.length).toInt
+        else if (v.toLowerCase.endsWith(tcp))
+          v.substring(0, v.length - tcp.length).toInt
+        else
+          Try(v.toInt).getOrElse(0)
+    }
+
+    val `type`: Port.Type.Value = value match {
+      case None    ⇒ Port.Type.Http
+      case Some(v) ⇒ if (v.toLowerCase.endsWith(tcp)) Port.Type.Tcp else Port.Type.Http
+    }
+
+    Port(name, alias, value, number, `type`)
+  }
 }
 
-case class Port(name: String, alias: Option[String], value: Option[String]) extends Trait {
+case class Port(name: String, alias: Option[String], value: Option[String], number: Int, `type`: Port.Type.Value) extends Trait {
+  val assigned = number > 0
 
-  private val tcp = Port.Type.toTypeString(Port.Type.Tcp)
-  private val http = Port.Type.toTypeString(Port.Type.Http)
-
-  lazy val number: Int = value match {
-    case None ⇒ 0
-    case Some(v) ⇒
-      if (v.toLowerCase.endsWith(http))
-        v.substring(0, v.length - http.length).toInt
-      else if (v.toLowerCase.endsWith(tcp))
-        v.substring(0, v.length - tcp.length).toInt
-      else
-        v.toInt
-  }
-
-  lazy val `type`: Port.Type.Value = value match {
-    case None    ⇒ Port.Type.Http
-    case Some(v) ⇒ if (v.toLowerCase.endsWith(tcp)) Port.Type.Tcp else Port.Type.Http
-  }
+  def toValue = s"$number${Port.Type.toTypeString(`type`)}"
 }
 
 case class EnvironmentVariable(name: String, alias: Option[String], value: Option[String], interpolated: Option[String] = None) extends Trait
 
 case class Constant(name: String, alias: Option[String], value: Option[String]) extends Trait
+
+case class Argument(key: String, value: String)

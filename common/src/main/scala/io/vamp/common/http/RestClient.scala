@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.reflect._
+import scala.util.Try
 
 case class RestClientException(statusCode: Option[Int], message: String) extends RuntimeException(message) {}
 
@@ -67,7 +68,7 @@ object RestClient {
 
         case status if status / 100 == 2 ⇒
           val json = dispatch.as.json4s.Json(response)
-          logger.trace(s"rsp $requestLog - ${compact(render(json))}")
+          Try(logger.trace(s"rsp $requestLog - ${compact(render(json))}"))
           json.extract[A](formats, mf)
 
         case status ⇒

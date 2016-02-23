@@ -86,9 +86,13 @@ trait DeploymentApiController extends ArtifactShrinkage {
       DeploymentBlueprintReader.readReferenceFromSource(request)
     }
   } catch {
-    case e: NotificationErrorException ⇒ Try {
-      process(DeploymentReader.readReferenceFromSource(request).asBlueprint)
-    } getOrElse (throw e)
+    case e: NotificationErrorException ⇒
+      try {
+        reportException(e.notification)
+        process(DeploymentReader.readReferenceFromSource(request).asBlueprint)
+      } catch {
+        case _: Exception ⇒ throw e
+      }
   }
 
   def deleteDeployment(name: String, request: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = {

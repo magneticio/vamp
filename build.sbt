@@ -8,7 +8,7 @@ organization in ThisBuild := "io.vamp"
 
 name := """vamp"""
 
-version in ThisBuild := "0.8.3" + VersionHelper.versionSuffix
+version in ThisBuild := "0.8.3.1" + VersionHelper.versionSuffix
 
 scalaVersion := "2.11.7"
 
@@ -63,7 +63,8 @@ lazy val bintraySetting = Seq(
 
 // Libraries
 
-val akka = "com.typesafe.akka" %% "akka-slf4j" % "2.4.0" :: Nil
+val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.2" ::
+  "com.typesafe.akka" %% "akka-slf4j" % "2.4.2" :: Nil
 
 val spray = "io.spray" %% "spray-can" % "1.3.1" ::
   "io.spray" %% "spray-routing" % "1.3.2" ::
@@ -75,7 +76,6 @@ val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.7" exclude("org.slf
 val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
 val bouncycastle = "org.bouncycastle" % "bcprov-jdk16" % "1.46" :: Nil
 val unisocketsNetty = "me.lessis" %% "unisockets-netty" % "0.1.0" :: Nil
-val quartz = "org.quartz-scheduler" % "quartz" % "2.2.1" :: Nil
 val dispatch = "net.databinder.dispatch" %% "dispatch-core" % "0.11.2" ::
   "net.databinder.dispatch" %% "dispatch-json4s-native" % "0.11.2" :: Nil
 
@@ -84,7 +84,7 @@ val json4s = "org.json4s" %% "json4s-native" % "3.2.11" ::
   "org.json4s" %% "json4s-core" % "3.2.11" ::
   "org.json4s" %% "json4s-ext" % "3.2.11" ::
   "org.json4s" %% "json4s-native" % "3.2.11" :: Nil
-val snakeYaml = "org.yaml" % "snakeyaml" % "1.14" :: Nil
+val snakeYaml = "org.yaml" % "snakeyaml" % "1.16" :: Nil
 val jersey = "org.glassfish.jersey.core" % "jersey-client" % "2.15" ::
   "org.glassfish.jersey.media" % "jersey-media-sse" % "2.15" :: Nil
 
@@ -113,7 +113,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  common, persistence, model, operation, bootstrap, container_driver, dictionary, pulse, rest_api, ui, gateway_driver, cli
+  common, persistence, model, operation, bootstrap, container_driver, workflow_driver, dictionary, pulse, rest_api, ui, gateway_driver, cli
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
@@ -132,7 +132,7 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   // Runnable assembly jar lives in bootstrap/target/scala_2.11/
   // and is renamed to vamp assembly for consistent filename for downloading.
   assemblyJarName in assembly := s"vamp-assembly-${version.value}.jar"
-).dependsOn(common, persistence, model, operation, container_driver, dictionary, pulse, ui, rest_api, gateway_driver)
+).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, dictionary, pulse, ui, rest_api, gateway_driver)
 
 lazy val rest_api = project.settings(bintraySetting: _*).settings(
   description := "REST api for Vamp",
@@ -150,8 +150,8 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
   name := "vamp-operation",
   formatting,
-  libraryDependencies ++= quartz ++ jersey ++ testing
-).dependsOn(persistence, container_driver, gateway_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
+  libraryDependencies ++= jersey ++ testing
+).dependsOn(persistence, container_driver, workflow_driver, gateway_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val pulse = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
@@ -172,6 +172,13 @@ lazy val container_driver = project.settings(bintraySetting: _*).settings(
   name := "vamp-container_driver",
   formatting,
   libraryDependencies ++= async ++ bouncycastle ++ unisocketsNetty ++ testing
+).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
+
+lazy val workflow_driver = project.settings(bintraySetting: _*).settings(
+  description := "Enables Vamp to talk to workflow managers",
+  name := "vamp-workflow_driver",
+  formatting,
+  libraryDependencies ++= testing
 ).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val persistence = project.settings(bintraySetting: _*).settings(

@@ -17,6 +17,7 @@ MissingPortValueError                  : "Missing port value for '{port.name}' a
 MissingConstantValueError              : "Missing constant value for '{constant.name}' and breed '{breed.name} -> {breed.deployable.name}'."
 RecursiveDependenciesError             : "Recursive (cyclic) dependency detected for breed '{breed.name}'"
 UnresolvedDependencyInTraitValueError  : "Unresolved reference '{reference}' in breed '{breed.name} -> {breed.deployable.name}'."
+InvalidArgumentError$                  : "Invalid argument - argument must be in form of 'key: value'."
 
 # Blueprint Reader
 
@@ -53,6 +54,9 @@ UndefinedStateStepError                : "Undefined state step: {name}."
 # Workflows
 
 UndefinedWorkflowTriggerError$         : "Undefined workflow trigger - either deployment, time or tags must be specified."
+IllegalPeriod                          : "Illegal period value: {period}."
+NoWorkflowRunnable                     : "Either container image, script or command must be defined: {name}."
+InvalidWorkflowScale                   : "Invalid workflow scale, number of instances must not be greater than 1: {scale.instances}."
 
 # Event
 

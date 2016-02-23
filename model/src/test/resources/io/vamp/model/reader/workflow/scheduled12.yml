@@ -1,0 +1,3 @@
+name: kill-vamp
+period: 123
+script: vamp.exit()

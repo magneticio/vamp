@@ -40,7 +40,7 @@ trait Generate extends Parameters with IoUtils {
           case bp: DefaultBlueprint ⇒
             val newCluster = getOptionalParameter(cluster) flatMap (clusterName ⇒
               getOptionalParameter(breed) flatMap (breedName ⇒
-                Some(List(Cluster(name = clusterName, services = List(Service(breed = BreedReference(breedName), Nil, scale = myScale)), routing = Nil, sla = mySla)))
+                Some(List(Cluster(name = clusterName, services = List(Service(breed = BreedReference(breedName), Nil, scale = myScale, Nil)), routing = Nil, sla = mySla)))
               )
             )
             Some(bp.copy(
@@ -184,7 +184,7 @@ trait Generate extends Parameters with IoUtils {
       case None    ⇒ originalValue
     }
 
-  private def emptyBreed = DefaultBreed(name = "", deployable = Deployable(""), ports = List.empty, environmentVariables = List.empty, constants = List.empty, dependencies = Map.empty)
+  private def emptyBreed = DefaultBreed(name = "", deployable = Deployable(""), ports = List.empty, environmentVariables = List.empty, constants = List.empty, arguments = List.empty, dependencies = Map.empty)
 
   private def emptyBlueprint = DefaultBlueprint(name = "", clusters = List.empty, gateways = List.empty, environmentVariables = List.empty)
 

@@ -1,5 +1,2 @@
 name: logger
-
-requires: deployment
-
-script: vamp.log("hi")
+command: bash -c echo 5

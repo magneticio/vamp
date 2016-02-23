@@ -10,6 +10,8 @@ import io.vamp.operation.notification._
 import io.vamp.persistence.db.PersistenceActor
 
 import scala.concurrent.Future
+import scala.language.postfixOps
+import scala.util.Try
 
 object GatewayActor {
 
@@ -48,25 +50,17 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
 
   private def create(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean): Future[Any] = (internal(gateway.name), force, validateOnly) match {
     case (true, false, _) ⇒ Future.failed(reportException(InnerGatewayCreateError(gateway.name)))
-    case (_, _, true)     ⇒ Future.successful(None)
-    case _ ⇒
-      try {
-        (process andThen validate andThen persist(source, create = true))(gateway)
-      } catch {
-        case e: Exception ⇒ Future.failed(e)
-      }
+    case (_, _, true)     ⇒ Try((process andThen validate)(gateway) :: Nil).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
+    case _                ⇒ Try((process andThen validate andThen persist(source, create = true))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
   }
 
   private def update(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean): Future[Any] = {
 
     def default = {
-      if (validateOnly) Future.successful(gateway)
+      if (validateOnly)
+        Try((process andThen validate)(gateway) :: Nil).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
       else
-        try {
-          (process andThen validate andThen persist(source, create = false))(gateway)
-        } catch {
-          case e: Exception ⇒ Future.failed(e)
-        }
+        Try((process andThen validate andThen persist(source, create = false))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
     }
 
     if (internal(gateway.name) && !force) routeChanged(gateway) flatMap {

@@ -20,7 +20,7 @@ object ElasticsearchPersistenceActor {
 
 case class ElasticsearchArtifact(artifact: String)
 
-case class ElasticsearchPersistenceInfo(`type`: String, url: String, index: String, elasticsearch: Any)
+case class ElasticsearchPersistenceInfo(`type`: String, url: String, index: String, initializationTime: String, elasticsearch: Any)
 
 class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact with PaginationSupport {
 
@@ -29,9 +29,10 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
 
   private val es = new ElasticsearchClient(elasticsearchUrl)
 
-  protected def info(): Future[Any] = es.health.map {
-    ElasticsearchPersistenceInfo("elasticsearch", elasticsearchUrl, index, _)
-  }
+  protected def info(): Future[Any] = for {
+    health ← es.health
+    initializationTime ← es.creationTime(index)
+  } yield ElasticsearchPersistenceInfo("elasticsearch", elasticsearchUrl, index, initializationTime, health)
 
   protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] = {
     log.debug(s"${getClass.getSimpleName}: all [${type2string(`type`)}] of $page per $perPage")
@@ -68,9 +69,11 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     es.index[Any](index, artifact.getClass, artifact.name, ElasticsearchArtifact(json)).map { _ ⇒ artifact }
   }
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = {
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
-    es.delete(index, `type`, name).map { _ ⇒ None }
+    es.delete(index, `type`, name).map {
+      response ⇒ response != None
+    }
   }
 
   private def read(`type`: String, source: Map[String, Any]): Option[Artifact] = source.get("artifact").flatMap { artifact ⇒
@@ -87,9 +90,9 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "slas" -> SlaReader,
     "scales" -> ScaleReader,
     "escalations" -> EscalationReader,
-    "routings" -> RouteReader,
+    "routes" -> RouteReader,
     "filters" -> FilterReader,
-    "rewrites" -> FilterReader,
+    "rewrites" -> RewriteReader,
     "workflows" -> WorkflowReader,
     "scheduled-workflows" -> ScheduledWorkflowReader,
     // gateway persistence
@@ -107,7 +110,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
       }
     },
     "gateway-ports" -> new NoNameValidationYamlReader[GatewayPort] {
-      override protected def parse(implicit source: YamlSourceReader) = GatewayPort(name, <<![String]("port"))
+      override protected def parse(implicit source: YamlSourceReader) = GatewayPort(name, <<![Int]("port"))
     },
     "gateway-deployment-statuses" -> new NoNameValidationYamlReader[GatewayDeploymentStatus] {
       override protected def parse(implicit source: YamlSourceReader) = GatewayDeploymentStatus(name, <<![Boolean]("deployed"))

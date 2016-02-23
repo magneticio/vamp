@@ -8,7 +8,13 @@ import io.vamp.model.validator.BlueprintTraitValidator
 
 import scala.language.postfixOps
 
-trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlReader[Blueprint] with TraitReader with DialectReader with BlueprintTraitValidator with BlueprintRoutingHelper {
+trait AbstractBlueprintReader extends YamlReader[Blueprint]
+    with ReferenceYamlReader[Blueprint]
+    with TraitReader
+    with ArgumentReader
+    with DialectReader
+    with BlueprintTraitValidator
+    with BlueprintRoutingHelper {
 
   override def readReference: PartialFunction[Any, Blueprint] = {
     case string: String ⇒ BlueprintReference(string)
@@ -56,11 +62,13 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
                   }
                 case _ ⇒
               }
-              expandDialect
+              expandArguments()
+              expandDialect()
               element
             }
           })
-          expandDialect
+          expandArguments()
+          expandDialect()
         case _ ⇒
       }
       case _ ⇒
@@ -68,7 +76,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     super.expand
   }
 
-  private def expandDialect(implicit source: YamlSourceReader) = {
+  private def expandDialect()(implicit source: YamlSourceReader) = {
     <<?[Any]("dialects") match {
       case None ⇒ >>("dialects", YamlSourceReader(dialectValues.map { case (k, v) ⇒ k.toString.toLowerCase -> v }))
       case _    ⇒
@@ -180,8 +188,9 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint] with ReferenceYamlRe
     }
   }
 
-  private def parseService(implicit source: YamlSourceReader): Service =
-    Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), dialects)
+  private def parseService(implicit source: YamlSourceReader): Service = {
+    Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), arguments(), dialects)
+  }
 }
 
 trait BlueprintRoutingHelper {
@@ -327,5 +336,7 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
 
   override protected def createReference(implicit source: YamlSourceReader): Scale = ScaleReference(reference)
 
-  override protected def createDefault(implicit source: YamlSourceReader): Scale = DefaultScale(name, <<![Double]("cpu"), <<![MegaByte]("memory"), <<![Int]("instances"))
+  override protected def createDefault(implicit source: YamlSourceReader): Scale = {
+    DefaultScale(name, <<![Double]("cpu"), <<![MegaByte]("memory"), <<?[Int]("instances").getOrElse(1))
+  }
 }
