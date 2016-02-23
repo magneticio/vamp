@@ -11,7 +11,6 @@ Note: We are currently in alpha. This means the API will change, features will b
 1. [Vamp](https://github.com/magneticio/vamp) : the brains of the organization.
 2. [Vamp UI](https://github.com/magneticio/vamp-ui) : the Vamp UI.
 3. [Vamp Gateway Agent](https://github.com/magneticio/vamp-gateway-agent) : serves as an intermediary agent between supported config stores (ZooKeeper, etcd, Consul) and HAProxy, and routes HAProxy logs to Logstash.
-4. [Vamp Pulse \[deprecated\]](https://github.com/magneticio/vamp-pulse) : takes care of routing and collecting router logs (metrics).
 
 *We accept bug reports and pull requests on the GitHub repo for each project*.
 
