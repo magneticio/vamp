@@ -701,7 +701,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "parse service arguments" in {
     BlueprintReader.read(res("blueprint/blueprint79.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, List(Argument("arg1", "test1"), Argument("arg2", "test2")), Map())), Nil, None, Map())))
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, List(Argument("arg", "test"), Argument("privileged", "false")), Map())), Nil, None, Map())))
     )
   }
 
@@ -709,6 +709,14 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     BlueprintReader.read(res("blueprint/blueprint80.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, List(Argument("arg1", "test1"), Argument("arg2", "test2")), Map())), Nil, None, Map())))
+    )
+  }
+
+  it should "fail on invalid privileged value" in {
+    expectedError[InvalidArgumentValueError]({
+      BlueprintReader.read(res("blueprint/blueprint81.yml"))
+    }) should have(
+      'argument(Argument("privileged", "abcd"))
     )
   }
 }

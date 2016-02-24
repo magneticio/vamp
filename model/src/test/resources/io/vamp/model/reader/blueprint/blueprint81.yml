@@ -5,5 +5,4 @@ clusters:
     services:
       breed: nocturnal-viper
       arguments:
-      - arg: test
-      - privileged: false
+      - privileged: abcd
