@@ -9,6 +9,7 @@ import io.vamp.model.workflow.ScheduledWorkflow
 import io.vamp.pulse.notification.PulseFailureNotifier
 import io.vamp.workflow_driver.notification.{ UnsupportedWorkflowDriverRequest, WorkflowDriverNotificationProvider, WorkflowResponseError }
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 object WorkflowDriverActor {
@@ -44,3 +45,13 @@ class WorkflowDriverActor(driver: WorkflowDriver) extends PulseFailureNotifier w
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 }
 
+object NoneWorkflowDriver extends WorkflowDriver {
+
+  override def info: Future[Any] = Future.successful(None)
+
+  override def all(): Future[List[WorkflowInstance]] = Future.successful(Nil)
+
+  override def schedule(workflow: ScheduledWorkflow, data: Any): Future[Any] = Future.successful(workflow)
+
+  override def unschedule(workflow: ScheduledWorkflow): Future[Any] = Future.successful(workflow)
+}
