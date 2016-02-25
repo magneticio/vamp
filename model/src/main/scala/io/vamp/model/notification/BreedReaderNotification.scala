@@ -14,3 +14,5 @@ case class RecursiveDependenciesError(breed: Breed) extends Notification
 case class UnresolvedDependencyInTraitValueError(breed: Breed, reference: String) extends Notification
 
 object InvalidArgumentError extends Notification
+
+case class InvalidArgumentValueError(argument: Argument) extends Notification

@@ -50,12 +50,11 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
   }
 
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = service.breed.deployable match {
-    case Deployable(schema, Some(definition)) if MarathonDriver.Schema.Docker.toString.compareToIgnoreCase(schema) == 0 ⇒ Some(Container(Docker(definition, portMappings(deployment, cluster, service), parameters(service))))
+    case Deployable(schema, Some(definition)) if MarathonDriver.Schema.Docker.toString.compareToIgnoreCase(schema) == 0 ⇒
+      val (privileged, arguments) = service.arguments.partition(_.privileged)
+      val parameters = arguments.map(argument ⇒ DockerParameter(argument.key, argument.value))
+      Some(Container(Docker(definition, portMappings(deployment, cluster, service), parameters, privileged.headOption.exists(_.value.toBoolean))))
     case _ ⇒ None
-  }
-
-  private def parameters(service: DeploymentService): List[DockerParameter] = service.arguments.map { argument ⇒
-    DockerParameter(argument.key, argument.value)
   }
 
   private def cmd(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[String] = service.breed.deployable match {

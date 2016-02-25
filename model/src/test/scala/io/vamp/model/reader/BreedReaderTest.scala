@@ -284,7 +284,7 @@ class BreedReaderTest extends ReaderTest {
     BreedReader.read(res("breed/breed31.yml")) should have(
       'name("sava:1.0.0"),
       'deployable(Deployable("docker", Some("magneticio/sava:1.0.0"))),
-      'arguments(List(Argument("arg1", "test1"), Argument("arg2", "test2")))
+      'arguments(List(Argument("arg", "test"), Argument("privileged", "true")))
     )
   }
 
@@ -298,5 +298,13 @@ class BreedReaderTest extends ReaderTest {
     expectedError[InvalidArgumentError.type]({
       BreedReader.read(res("breed/breed33.yml"))
     })
+  }
+
+  it should "fail on invalid privileged value" in {
+    expectedError[InvalidArgumentValueError]({
+      BreedReader.read(res("breed/breed34.yml"))
+    }) should have(
+      'argument(Argument("privileged", "1"))
+    )
   }
 }

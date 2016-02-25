@@ -11,10 +11,12 @@ object WorkflowDriverBootstrap extends Bootstrap with WorkflowDriverNotification
 
     val config = ConfigFactory.load().getConfig("vamp.workflow-driver")
 
-    config.getString("type").toLowerCase match {
-      case ""        ⇒ Nil
-      case "chronos" ⇒ IoC.createActor[WorkflowDriverActor](new ChronosWorkflowDriver(actorSystem.dispatcher, config.getString("chronos.url"))) :: Nil
+    val driver = config.getString("type").toLowerCase match {
+      case "none"    ⇒ NoneWorkflowDriver
+      case "chronos" ⇒ new ChronosWorkflowDriver(actorSystem.dispatcher, config.getString("chronos.url"))
       case value     ⇒ throwException(UnsupportedWorkflowDriverError(value))
     }
+
+    IoC.createActor[WorkflowDriverActor](driver) :: Nil
   }
 }

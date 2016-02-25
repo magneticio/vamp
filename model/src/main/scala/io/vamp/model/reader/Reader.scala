@@ -18,6 +18,7 @@ import scala.collection.mutable
 import scala.io.Source
 import scala.language.{ implicitConversions, postfixOps }
 import scala.reflect._
+import scala.util.Try
 
 sealed trait YamlSource
 
@@ -349,13 +350,30 @@ trait ArgumentReader {
         case yaml: YamlSourceReader ⇒
           if (yaml.size != 1) throwException(InvalidArgumentError)
           yaml.pull().head match {
-            case (key, value: String) ⇒ Argument(key, value)
-            case _                    ⇒ throwException(InvalidArgumentError)
+            case (key, value) if isPrimitive(value) ⇒ Argument(key, value.toString)
+            case _                                  ⇒ throwException(InvalidArgumentError)
           }
         case _ ⇒ throwException(InvalidArgumentError)
       }
       case _ ⇒ Nil
     }
+  }
+
+  def validateArguments(argument: List[Argument]) = argument.foreach { argument ⇒
+    if (argument.privileged && Try(argument.value.toBoolean).isFailure) throwException(InvalidArgumentValueError(argument))
+  }
+
+  private def isPrimitive(any: Any) = any match {
+    case _: Boolean ⇒ true
+    case _: Byte    ⇒ true
+    case _: Char    ⇒ true
+    case _: Short   ⇒ true
+    case _: Int     ⇒ true
+    case _: Long    ⇒ true
+    case _: Float   ⇒ true
+    case _: Double  ⇒ true
+    case _: String  ⇒ true
+    case _          ⇒ false
   }
 }
 

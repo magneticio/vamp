@@ -155,4 +155,10 @@ case class EnvironmentVariable(name: String, alias: Option[String], value: Optio
 
 case class Constant(name: String, alias: Option[String], value: Option[String]) extends Trait
 
-case class Argument(key: String, value: String)
+object Argument {
+  val privileged = "privileged"
+}
+
+case class Argument(key: String, value: String) {
+  val privileged = key == Argument.privileged
+}
