@@ -1,2 +1,3 @@
 conf/application.conf
 ui/src/main/resources/vamp-ui
+artifacts/node_modules
