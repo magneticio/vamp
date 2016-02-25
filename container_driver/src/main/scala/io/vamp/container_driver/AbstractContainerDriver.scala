@@ -1,12 +1,13 @@
 package io.vamp.container_driver
 
 import io.vamp.common.crypto.Hash
-import io.vamp.container_driver.docker.DockerPortMapping
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UnsupportedDeployableSchema }
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentTraitResolver
 
 import scala.concurrent.ExecutionContext
+
+case class ContainerPortMapping(containerPort: Int, protocol: String = "tcp", hostPort: Int = 0)
 
 abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDriver with DeploymentTraitResolver with ContainerDriverNotificationProvider {
   protected implicit val executionContext = ec
@@ -25,11 +26,11 @@ abstract class AbstractContainerDriver(ec: ExecutionContext) extends ContainerDr
     case _             ⇒ Hash.hexSha1(artifact.name).substring(0, 20)
   }
 
-  protected def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[DockerPortMapping] = {
+  protected def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[ContainerPortMapping] = {
     service.breed.ports.map(port ⇒
       port.value match {
-        case Some(_) ⇒ DockerPortMapping(port.number)
-        case None    ⇒ DockerPortMapping(deployment.ports.find(p ⇒ TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
+        case Some(_) ⇒ ContainerPortMapping(port.number)
+        case None    ⇒ ContainerPortMapping(deployment.ports.find(p ⇒ TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
       })
   }
 

@@ -189,7 +189,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    * Create a docker container (without starting it)
    * Tries to set the cpu shares & memory based on the supplied scale
    */
-  private def createDockerContainer(dialect: Map[Any, Any], containerName: String, dockerImageName: String, env: Map[String, String], ports: List[DockerPortMapping]): Future[Response] = async {
+  private def createDockerContainer(dialect: Map[Any, Any], containerName: String, dockerImageName: String, env: Map[String, String], ports: List[ContainerPortMapping]): Future[Response] = async {
     logger.debug(s"createDockerContainer :$containerName")
 
     var containerPrep = docker.containers.create(dockerImageName, dialect).name(containerName).hostName(defaultHost)
@@ -211,7 +211,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
   /**
    * Start the container
    */
-  private def startDockerContainer(dialect: Map[Any, Any], id: Future[String], ports: List[DockerPortMapping], serviceScale: Option[DefaultScale]): Future[_] = async {
+  private def startDockerContainer(dialect: Map[Any, Any], id: Future[String], ports: List[ContainerPortMapping], serviceScale: Option[DefaultScale]): Future[_] = async {
     // Configure the container for starting
 
     id.onFailure {
