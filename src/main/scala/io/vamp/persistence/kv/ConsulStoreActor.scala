@@ -27,12 +27,12 @@ class ConsulStoreActor extends KeyValueStoreActor {
     }
   }
 
-  override protected def set(path: List[String], data: Option[String]): Unit = data match {
+  override protected def set(path: List[String], data: Option[String]): Future[Any] = data match {
     case None        ⇒ RestClient.delete(urlOf(path), RestClient.jsonHeaders, logError = false)
     case Some(value) ⇒ RestClient.put[String](urlOf(path), value, List("Accept" -> "application/json", "Content-Type" -> "text/plain"))
   }
 
-  private def urlOf(path: List[String], recurse: Boolean = false) = s"$url/v1/kv/${pathToString(path)}${if (recurse) "?recurse" else ""}"
+  private def urlOf(path: List[String], recurse: Boolean = false) = s"$url/v1/kv${KeyValueStoreActor.pathToString(path)}${if (recurse) "?recurse" else ""}"
 
   private def result(map: Map[_, _]): String = {
     map.asInstanceOf[Map[String, _]].get("Value").map(value ⇒ Base64.getDecoder.decode(value.asInstanceOf[String])).map(new String(_)).getOrElse("")
