@@ -12,15 +12,22 @@ We should use an existing Docker client [library](https://docs.docker.com/engine
 ## Running Vamp
 
 Main class: `io.vamp.bootstrap.Boot`
-Configuration: `-Dlogback.configurationFile=conf/logback.xml -Dconfig.file=conf/application.conf`
+Configuration: 
+```
+-Dlogback.configurationFile=conf/logback.xml -Dconfig.file=conf/application.conf
+```
 
-Example log (configuration)[https://github.com/magneticio/vamp/blob/master/conf/logback.xml].
+Example log [configuration](https://github.com/magneticio/vamp/blob/master/conf/logback.xml).
 
 In order to use Vamp with other dependencies, it's highly recommended to use [vamp-docker](https://github.com/magneticio/vamp-docker) project and run dependencies as Docker containers.
 Building images:
 
 Base image: `./build.sh -b -i=clique-base`
-Other depending on KV store: etcd: `./build.sh -b -i=clique-etcd`, Consul: `./build.sh -b -i=clique-consul`, ZooKeeper: `./build.sh -b -i=clique-zookeeper`
+
+Other depending on KV store: 
+- etcd: `./build.sh -b -i=clique-etcd` 
+- Consul: `./build.sh -b -i=clique-consul` 
+- ZooKeeper: `./build.sh -b -i=clique-zookeeper`
 
 ### Configurations suitable for development and debugging
 
