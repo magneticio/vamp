@@ -21,6 +21,7 @@ var index = function(tags, value) {
 }
 
 var seconds = 30;
+var errorCode = 500;
 
 var metrics = function(gateways) {
   _.forEach(gateways, function(gateway) {
@@ -44,6 +45,13 @@ var metrics = function(gateways) {
                   },
                   {
                     range: {
+                    ST: {
+                      gte: errorCode
+                    }
+                  }
+                 },
+                  {
+                    range: {
                       "@timestamp": {
                         gt: "now-" + seconds + "s"
                       }
@@ -54,28 +62,18 @@ var metrics = function(gateways) {
             }
           }
         },
-        aggregations: {
-          Tt: {
-            avg: {
-              field: "Tt"
-            }
-          }
-        },
         size: 0
       }
     }).then(function (resp) {
 
         var total = resp.hits.total;
-        var rate = Math.round(total / seconds * 100) / 100;
-        var responseTime = Math.round(resp.aggregations.Tt.value * 100) / 100;
+        var health = total == 0 ? 1 : 0;
 
-        console.log("gateway       : " + gateway.name);
-        console.log("total         : " + total);
-        console.log("rate          : " + rate);
-        console.log("response time : " + responseTime);
+        console.log("gateway : " + gateway.name);
+        console.log("total   : " + total);
+        console.log("health  : " + health);
 
-        index(["gateways", "gateways:" + gateway.lookup_name, "metrics", "metrics:rate"], rate);
-        index(["gateways", "gateways:" + gateway.lookup_name, "metrics", "metrics:response-time"], responseTime);
+        index(["gateways", "gateways:" + gateway.lookup_name, "health"], health);
 
     }, function (err) {
         console.log(err.message);
