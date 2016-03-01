@@ -4,6 +4,8 @@ import sbt.Keys._
 import scala.language.postfixOps
 import scalariform.formatter.preferences._
 
+import Dependencies._
+
 organization in ThisBuild := "io.vamp"
 
 name := """vamp"""
@@ -171,7 +173,7 @@ lazy val container_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to container managers",
   name := "vamp-container_driver",
   formatting,
-  libraryDependencies ++= async ++ bouncycastle ++ unisocketsNetty ++ testing
+  libraryDependencies ++= async ++ bouncycastle ++ unisocketsNetty ++ testing ++ Seq(dockerClient)
 ).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val workflow_driver = project.settings(bintraySetting: _*).settings(
