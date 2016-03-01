@@ -23,6 +23,7 @@ import io.vamp.persistence.operation.{ DeploymentServiceEnvironmentVariables, De
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }
+import scala.util.Try
 
 object DeploymentActor {
 
@@ -35,12 +36,18 @@ object DeploymentActor {
   }
 
   val defaultArguments: List[Argument] = {
-    config.getStringList("vamp.operation.deployment.arguments").toList.map {
+    val arguments = config.getStringList("vamp.operation.deployment.arguments").toList.map {
       _.split("=", 2).toList match {
-        case key :: value :: Nil ⇒ Argument(key, value)
+        case key :: value :: Nil ⇒ Argument(key.trim, value.trim)
         case any                 ⇒ throw NotificationErrorException(InvalidArgumentError, if (any != null) any.toString else "")
       }
     }
+
+    arguments.foreach { argument ⇒
+      if (argument.privileged && Try(argument.value.toBoolean).isFailure) throw NotificationErrorException(InvalidArgumentValueError(argument), s"${argument.key} -> ${argument.value}")
+    }
+
+    arguments
   }
 
   trait DeploymentMessage
@@ -135,8 +142,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
                 breed ← artifactFor[DefaultBreed](service.breed)
                 scale ← artifactFor[DefaultScale](service.scale)
               } yield {
-                val arguments = DeploymentActor.defaultArguments ++ breed.arguments ++ service.arguments
-                DeploymentService(Deploy, breed, service.environmentVariables, scale, Nil, arguments, Map(), service.dialects)
+                DeploymentService(Deploy, breed, service.environmentVariables, scale, Nil, arguments(breed, service), Map(), service.dialects)
               }
             })
             routing ← Future.sequence(cluster.routing map { r ⇒
@@ -153,6 +159,14 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
         }
         Future.sequence(clusters).map(Deployment(uuid, _, bp.gateways, Nil, bp.environmentVariables, Nil))
     }
+  }
+
+  private def arguments(breed: DefaultBreed, service: Service): List[Argument] = {
+    val all = DeploymentActor.defaultArguments ++ breed.arguments ++ service.arguments
+
+    val (privileged, others) = all.partition(_.privileged)
+
+    privileged.last :: others
   }
 }
 

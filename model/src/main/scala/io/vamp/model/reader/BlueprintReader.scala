@@ -120,7 +120,10 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 
       if (blueprint.clusters.flatMap(_.services).count(_ ⇒ true) == 0) throwException(NoServiceError)
 
-      val breeds = blueprint.clusters.flatMap(_.services.map(_.breed))
+      val services = blueprint.clusters.flatMap(_.services)
+      val breeds = services.map(_.breed)
+
+      services.foreach(service ⇒ validateArguments(service.arguments))
 
       validateBreeds(breeds)
       validateServiceEnvironmentVariables(blueprint.clusters.flatMap(_.services))

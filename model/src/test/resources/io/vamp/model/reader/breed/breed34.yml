@@ -2,5 +2,4 @@ name: sava:1.0.0
 deployable: magneticio/sava:1.0.0
 
 arguments:
-  arg: test
-  privileged: true
+- privileged: 1
