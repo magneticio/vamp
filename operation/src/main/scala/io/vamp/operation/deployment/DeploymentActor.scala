@@ -312,10 +312,20 @@ trait DeploymentValidator {
   }).getOrElse(0)
 }
 
-trait DeploymentOperation {
+trait DeploymentOperation extends DeploymentGatewayOperation {
   this: ActorSystemProvider with NotificationProvider ⇒
 
   def commit(source: String, validateOnly: Boolean): (Future[Deployment] ⇒ Future[Any])
+
+  def resetServiceArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.State = Deploy) = {
+    actorFor[PersistenceActor] ! PersistenceActor.Update(DeploymentServiceState(serviceArtifactName(deployment, cluster, service), state))
+    actorFor[PersistenceActor] ! PersistenceActor.Delete(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceInstances])
+    actorFor[PersistenceActor] ! PersistenceActor.Delete(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceEnvironmentVariables])
+  }
+}
+
+trait DeploymentGatewayOperation {
+  this: ActorSystemProvider with NotificationProvider ⇒
 
   def serviceRoutePath(deployment: Deployment, cluster: DeploymentCluster, serviceName: String, portName: String) = GatewayPath(deployment.name :: cluster.name :: serviceName :: portName :: Nil)
 
@@ -329,10 +339,24 @@ trait DeploymentOperation {
       })
   }
 
-  def resetServiceArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.State = Deploy) = {
-    actorFor[PersistenceActor] ! PersistenceActor.Update(DeploymentServiceState(serviceArtifactName(deployment, cluster, service), state))
-    actorFor[PersistenceActor] ! PersistenceActor.Delete(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceInstances])
-    actorFor[PersistenceActor] ! PersistenceActor.Delete(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceEnvironmentVariables])
+  def resolveGateways(deployment: Deployment, cluster: DeploymentCluster): List[Gateway] = {
+    cluster.services.flatMap(_.breed.ports).map(port ⇒ port.name -> port).toMap.values.toList.map { port ⇒
+      val services = cluster.services.filter(_.breed.ports.exists(_.name == port.name))
+      cluster.routingBy(port.name) match {
+        case Some(oldRouting) ⇒
+          val routes = services.map { service ⇒
+            oldRouting.routeBy(service.breed.name :: Nil) match {
+              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
+              case Some(route) ⇒ route
+            }
+          }
+          oldRouting.copy(routes = routes)
+
+        case None ⇒ Gateway("", Port(port.name, None, None, 0, port.`type`), None, services.map { service ⇒
+          DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
+        })
+      }
+    }
   }
 }
 
@@ -472,31 +496,11 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
     implicit val timeout = PersistenceActor.timeout
 
-    val routing = blueprintCluster.services.flatMap(_.breed.ports).map(port ⇒ port.name -> port).toMap.values.toList.map { port ⇒
-      val services = blueprintCluster.services.filter(_.breed.ports.exists(_.name == port.name))
-
-      blueprintCluster.routingBy(port.name) match {
-        case Some(oldRouting) ⇒
-          val routes = services.map { service ⇒
-            oldRouting.routeBy(service.breed.name :: Nil) match {
-              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, blueprintCluster, service.breed.name, port.name), None, Nil, Nil, None)
-              case Some(route) ⇒ route
-            }
-          }
-          oldRouting.copy(routes = routes)
-
-        case None ⇒ Gateway("", Port(port.name, None, None, 0, port.`type`), None, services.map { service ⇒
-          DefaultRoute("", serviceRoutePath(deployment, blueprintCluster, service.breed.name, port.name), None, Nil, Nil, None)
-        })
-      }
-    }
-
     Future.sequence {
-      routing.map { gateway ⇒
-        if (exists(gateway))
-          checked[List[Gateway]](IoC.actorFor[GatewayActor] ? GatewayActor.Update(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, force = true)).map(_.head)
-        else
+      resolveGateways(deployment, blueprintCluster).map { gateway ⇒
+        if (!exists(gateway))
           checked[List[Gateway]](IoC.actorFor[GatewayActor] ? GatewayActor.Create(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, force = true)).map(_.head)
+        else Future.successful(gateway)
       } ++ stableCluster.map(cluster ⇒ cluster.routing.filterNot(routing ⇒ blueprintCluster.routing.exists(_.port.name == routing.port.name))).getOrElse(Nil).map(Future.successful)
     }
   }

@@ -1,6 +1,6 @@
 package io.vamp.operation.deployment
 
-import io.vamp.common.akka.CommonSupportForActors
+import io.vamp.common.akka.{ IoC, CommonSupportForActors }
 import io.vamp.common.akka.IoC._
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService }
 import io.vamp.model.artifact.DeploymentService.State.Intention
@@ -8,6 +8,7 @@ import io.vamp.model.artifact.DeploymentService.State.Step.{ Done, Update }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.model.resolver.DeploymentTraitResolver
+import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification.OperationNotificationProvider
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.persistence.operation.{ DeploymentPersistence, DeploymentServiceEnvironmentVariables, DeploymentServiceInstances, DeploymentServiceState }
@@ -22,7 +23,7 @@ object SingleDeploymentSynchronizationActor {
 
 }
 
-class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
+class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation with ArtifactPaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
 
   import DeploymentPersistence._
   import PulseEventTags.Deployments._
@@ -71,6 +72,7 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
           persist(DeploymentServiceInstances(serviceArtifactName(deployment, deploymentCluster, deploymentService), cs.instances.map(convert)))
         } else {
           persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Done())))
+          updateGateways(deployment, deploymentCluster)
           publishDeployed(deployment, deploymentCluster, deploymentService)
         }
     }
@@ -153,6 +155,12 @@ class SingleDeploymentSynchronizationActor extends ArtifactPaginationSupport wit
 
   private def matchingScale(deploymentService: DeploymentService, containerService: ContainerService) = {
     containerService.instances.size == deploymentService.scale.get.instances && containerService.scale.cpu == deploymentService.scale.get.cpu && containerService.scale.memory == deploymentService.scale.get.memory
+  }
+
+  private def updateGateways(deployment: Deployment, cluster: DeploymentCluster) = {
+    resolveGateways(deployment, cluster).foreach { gateway ⇒
+      IoC.actorFor[GatewayActor] ! GatewayActor.Update(updateRoutePaths(deployment, cluster, gateway), None, validateOnly = false, force = true)
+    }
   }
 
   private def publishDeployed(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {

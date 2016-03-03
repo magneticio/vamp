@@ -21,6 +21,8 @@ case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value
   def routeBy(path: GatewayPath) = routes.find(_.path == path)
 
   def defaultBalance = if (port.`type` == Port.Type.Http) "roundrobin" else "leastconn"
+
+  def inner = routes.exists(_.length == 2)
 }
 
 object GatewayPath {

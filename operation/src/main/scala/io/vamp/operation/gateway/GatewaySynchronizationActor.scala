@@ -106,11 +106,15 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       case _                   ⇒
     }
 
-    withRoutes foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = true)) }
+    val (innerWithoutRoutes, outerWithoutRoutes) = withoutRoutes.partition(_.inner)
 
-    withoutRoutes foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = false)) }
+    innerWithoutRoutes foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = false)) }
 
-    withRoutes
+    val passThrough = outerWithoutRoutes ++ withRoutes
+
+    passThrough foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = true)) }
+
+    passThrough
   }
 
   private def targets(gateways: List[Gateway], deployments: List[Deployment], route: DefaultRoute): List[RouteTarget] = {
