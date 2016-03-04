@@ -94,25 +94,27 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   private def instanceUpdate(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
 
-    val (withRoutes, withoutRoutes) = gateways partition { gateway ⇒
+    val (passThrough, withoutRoutes) = gateways.map { gateway ⇒
+      val routes = gateway.routes.map {
+        case route: DefaultRoute ⇒
+          val routeTargets = targets(gateways, deployments, route)
+          val targetMatch = routeTargets == route.targets
+          if (!targetMatch) IoC.actorFor[PersistenceActor] ! Update(RouteTargets(route.path.normalized, routeTargets))
+          route.copy(targets = routeTargets)
+        case route ⇒ route
+      }
+
+      gateway.copy(routes = routes)
+    } partition { gateway ⇒
       gateway.routes.forall {
         case route: DefaultRoute if route.targets.nonEmpty ⇒ targets(gateways, deployments, route) == route.targets
         case _ ⇒ false
-      }
+      } || !gateway.inner
     }
-
-    withoutRoutes flatMap (_.routes) foreach {
-      case route: DefaultRoute ⇒ IoC.actorFor[PersistenceActor] ! Update(RouteTargets(route.path.normalized, targets(gateways, deployments, route)))
-      case _                   ⇒
-    }
-
-    val (innerWithoutRoutes, outerWithoutRoutes) = withoutRoutes.partition(_.inner)
-
-    innerWithoutRoutes foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = false)) }
-
-    val passThrough = outerWithoutRoutes ++ withRoutes
 
     passThrough foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = true)) }
+
+    withoutRoutes foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = false)) }
 
     passThrough
   }

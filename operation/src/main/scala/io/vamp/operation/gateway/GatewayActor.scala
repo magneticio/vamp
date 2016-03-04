@@ -8,6 +8,7 @@ import io.vamp.model.notification.GatewayRouteWeightError
 import io.vamp.model.reader.Percentage
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.PersistenceActor
+import io.vamp.persistence.operation.InnerGateway
 
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -21,10 +22,11 @@ object GatewayActor {
 
   case class Create(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean = false) extends GatewayMessage
 
-  case class Update(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean = false) extends GatewayMessage
+  case class Update(gateway: Gateway, source: Option[String], validateOnly: Boolean, promote: Boolean, force: Boolean = false) extends GatewayMessage
 
   case class Delete(name: String, validateOnly: Boolean, force: Boolean = false) extends GatewayMessage
 
+  case class PromoteInner(gateway: Gateway) extends GatewayMessage
 }
 
 class GatewayActor extends CommonSupportForActors with OperationNotificationProvider {
@@ -37,33 +39,37 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
       create(gateway, source, validateOnly, force)
     }
 
-    case Update(gateway, source, validateOnly, force) ⇒ reply {
-      update(gateway, source, validateOnly, force)
+    case Update(gateway, source, validateOnly, promote, force) ⇒ reply {
+      update(gateway, source, validateOnly, promote, force)
     }
 
     case Delete(name, validateOnly, force) ⇒ reply {
       delete(name, validateOnly, force)
     }
 
+    case PromoteInner(gateway) ⇒ reply {
+      promote(gateway)
+    }
+
     case any ⇒ unsupported(UnsupportedGatewayRequest(any))
   }
 
-  private def create(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean): Future[Any] = (internal(gateway.name), force, validateOnly) match {
+  private def create(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean): Future[Any] = (gateway.inner, force, validateOnly) match {
     case (true, false, _) ⇒ Future.failed(reportException(InnerGatewayCreateError(gateway.name)))
     case (_, _, true)     ⇒ Try((process andThen validate)(gateway) :: Nil).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
     case _                ⇒ Try((process andThen validate andThen persist(source, create = true))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
   }
 
-  private def update(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean): Future[Any] = {
+  private def update(gateway: Gateway, source: Option[String], validateOnly: Boolean, promote: Boolean, force: Boolean): Future[Any] = {
 
     def default = {
       if (validateOnly)
         Try((process andThen validate)(gateway) :: Nil).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
       else
-        Try((process andThen validate andThen persist(source, create = false))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
+        Try((process andThen validate andThen persist(source, create = false, promote))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
     }
 
-    if (internal(gateway.name) && !force) routeChanged(gateway) flatMap {
+    if (gateway.inner && !force) routeChanged(gateway) flatMap {
       case true  ⇒ Future.failed(reportException(InnerGatewayUpdateError(gateway.name)))
       case false ⇒ default
     }
@@ -74,14 +80,16 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
 
     def default = if (validateOnly) Future.successful(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, classOf[Gateway])
 
-    if (internal(name) && !force) deploymentExists(name) flatMap {
+    if (Gateway.inner(name) && !force) deploymentExists(name) flatMap {
       case true  ⇒ Future.failed(reportException(InnerGatewayRemoveError(name)))
       case false ⇒ default
     }
     else default
   }
 
-  private def internal(name: String) = GatewayPath(name).segments.size == 3
+  private def promote(gateway: Gateway) = {
+    persist(None, create = false, promote = true)(gateway)
+  }
 
   private def routeChanged(gateway: Gateway): Future[Boolean] = {
     checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(gateway.name, classOf[Gateway])) map {
@@ -140,10 +148,12 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
     gateway
   }
 
-  private def persist(source: Option[String], create: Boolean): Gateway ⇒ Future[Any] = { gateway ⇒
-    if (create)
-      actorFor[PersistenceActor] ? PersistenceActor.Create(gateway, source)
-    else
-      actorFor[PersistenceActor] ? PersistenceActor.Update(gateway, source)
+  private def persist(source: Option[String], create: Boolean, promote: Boolean = false): Gateway ⇒ Future[Any] = { gateway ⇒
+    val request = {
+      val artifact = if (gateway.inner && !promote) InnerGateway(gateway) else gateway
+      if (create) PersistenceActor.Create(artifact, source) else PersistenceActor.Update(artifact, source)
+    }
+
+    (actorFor[PersistenceActor] ? request) map (_ ⇒ gateway)
   }
 }

@@ -1,6 +1,7 @@
 package io.vamp.persistence.db
 
 import io.vamp.common.akka.ExecutionContextProvider
+import io.vamp.common.akka.IoC._
 import io.vamp.model.artifact._
 import io.vamp.persistence.operation._
 
@@ -110,15 +111,11 @@ trait PersistenceMultiplexer {
             routing ← Future.sequence {
               cluster.routing.map { gateway ⇒
                 val name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port)
-                get(name, classOf[Gateway]).flatMap {
-                  case Some(g) ⇒ combine(g).map(_.getOrElse(gateway).asInstanceOf[Gateway])
-                  case _       ⇒ Future.successful(gateway)
+                get(name, classOf[InnerGateway]).flatMap {
+                  case Some(InnerGateway(g)) ⇒ combine(g).map(_.getOrElse(gateway))
+                  case _                     ⇒ Future.successful(gateway)
                 } map { g ⇒
-                  val routes = g.routes.map {
-                    case route: DefaultRoute if route.length == 4 ⇒ route.copy(path = route.path.segments(2) :: Nil)
-                    case route                                    ⇒ route
-                  }
-                  g.copy(name = name, port = g.port.copy(name = gateway.port.name), routes = routes)
+                  g.copy(name = name, port = g.port.copy(name = gateway.port.name))
                 }
               }
             }

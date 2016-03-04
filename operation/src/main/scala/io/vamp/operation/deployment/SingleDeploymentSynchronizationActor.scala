@@ -135,6 +135,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Update())))
       case _ ⇒
         persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Done())))
+        resetInnerRouteArtifacts(deployment, deploymentCluster, deploymentService)
         publishUndeployed(deployment, deploymentCluster, deploymentService)
     }
   }
@@ -157,10 +158,8 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     containerService.instances.size == deploymentService.scale.get.instances && containerService.scale.cpu == deploymentService.scale.get.cpu && containerService.scale.memory == deploymentService.scale.get.memory
   }
 
-  private def updateGateways(deployment: Deployment, cluster: DeploymentCluster) = {
-    resolveGateways(deployment, cluster).foreach { gateway ⇒
-      IoC.actorFor[GatewayActor] ! GatewayActor.Update(updateRoutePaths(deployment, cluster, gateway), None, validateOnly = false, force = true)
-    }
+  private def updateGateways(deployment: Deployment, cluster: DeploymentCluster) = cluster.routing.foreach { gateway ⇒
+    IoC.actorFor[GatewayActor] ! GatewayActor.PromoteInner(gateway)
   }
 
   private def publishDeployed(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
