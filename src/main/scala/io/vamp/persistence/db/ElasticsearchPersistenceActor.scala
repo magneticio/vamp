@@ -115,6 +115,13 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "gateway-deployment-statuses" -> new NoNameValidationYamlReader[GatewayDeploymentStatus] {
       override protected def parse(implicit source: YamlSourceReader) = GatewayDeploymentStatus(name, <<![Boolean]("deployed"))
     },
+    "inner-gateway" -> new NoNameValidationYamlReader[InnerGateway] {
+      override protected def parse(implicit source: YamlSourceReader) = {
+        <<?[Any]("name")
+        <<?[Any]("gateway" :: "lookup_name" :: Nil)
+        InnerGateway(DeployedGatewayReader.read(<<![YamlSourceReader]("gateway")))
+      }
+    },
     // deployment persistence
     "deployment-service-states" -> new NoNameValidationYamlReader[DeploymentServiceState] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceState(name, DeploymentServiceStateReader.read(<<![YamlSourceReader]("state")))
