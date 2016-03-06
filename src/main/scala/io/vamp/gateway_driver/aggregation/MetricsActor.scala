@@ -75,8 +75,8 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
             cluster.routingBy(port.name) foreach {
               case gateway ⇒
                 gateway.routes.map(_.path.segments).map {
-                  case s :: Nil if s == service.breed.name ⇒ deployment.name :: cluster.name :: s :: port.name :: Nil
-                  case _                                   ⇒ Nil
+                  case _ :: _ :: s :: _ :: Nil if s == service.breed.name ⇒ deployment.name :: cluster.name :: s :: port.name :: Nil
+                  case _ ⇒ Nil
                 } filter (_.nonEmpty) foreach {
                   case segments ⇒ query(GatewayMarshaller.lookup(gateway, segments)) map {
                     case Metrics(rate, responseTime) ⇒
