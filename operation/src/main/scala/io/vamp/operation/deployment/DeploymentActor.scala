@@ -339,7 +339,7 @@ trait DeploymentGatewayOperation {
       cluster.routingBy(port.name) match {
         case Some(oldRouting) ⇒
           val routes = services.map { service ⇒
-            oldRouting.routeBy(service.breed.name :: Nil) match {
+            oldRouting.routeBy(deployment.name :: cluster.name :: service.breed.name :: port.name :: Nil) match {
               case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
               case Some(route) ⇒ route
             }
