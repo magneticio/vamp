@@ -24,6 +24,11 @@ case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value
   def defaultBalance = if (port.`type` == Port.Type.Http) "roundrobin" else "leastconn"
 
   def inner = Gateway.inner(name)
+
+  def hasRouteTargets = routes.exists {
+    case r: DefaultRoute ⇒ r.targets.nonEmpty
+    case r               ⇒ false
+  }
 }
 
 object GatewayPath {
