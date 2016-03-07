@@ -333,26 +333,6 @@ trait DeploymentGatewayOperation {
       })
   }
 
-  def resolveRoutings(deployment: Deployment, cluster: DeploymentCluster): List[Gateway] = {
-    cluster.services.flatMap(_.breed.ports).map(port ⇒ port.name -> port).toMap.values.toList.map { port ⇒
-      val services = cluster.services.filter(_.breed.ports.exists(_.name == port.name))
-      cluster.routingBy(port.name) match {
-        case Some(oldRouting) ⇒
-          val routes = services.map { service ⇒
-            oldRouting.routeBy(service.breed.name :: Nil) match {
-              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
-              case Some(route) ⇒ route
-            }
-          }
-          oldRouting.copy(routes = routes)
-
-        case None ⇒ Gateway("", Port(port.name, None, None, 0, port.`type`), None, services.map { service ⇒
-          DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
-        })
-      }
-    }
-  }
-
   def resetServiceArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.State = Deploy) = {
     actorFor[PersistenceActor] ! PersistenceActor.Update(DeploymentServiceState(serviceArtifactName(deployment, cluster, service), state))
 
@@ -519,6 +499,36 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
         else
           checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Create(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, force = true))
       } ++ stableCluster.map(cluster ⇒ cluster.routing.filterNot(routing ⇒ blueprintCluster.routing.exists(_.port.name == routing.port.name))).getOrElse(Nil).map(Future.successful)
+    }
+  }
+
+  private def resolveRoutings(deployment: Deployment, cluster: DeploymentCluster): List[Gateway] = {
+
+    def routeBy(gateway: Gateway, service: DeploymentService, port: Port) = {
+      gateway.routeBy(service.breed.name :: Nil).orElse(gateway.routeBy(deployment.name :: cluster.name :: service.breed.name :: port.name :: Nil))
+    }
+
+    val ports = cluster.services.flatMap(_.breed.ports).map(port ⇒ port.name -> port).toMap.values.toList
+
+    ports.map { port ⇒
+      val services = cluster.services.filter(_.breed.ports.exists(_.name == port.name))
+
+      cluster.routingBy(port.name) match {
+
+        case Some(newRouting) ⇒
+          val routes = services.map { service ⇒
+            routeBy(newRouting, service, port) match {
+              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
+              case Some(route) ⇒ route
+            }
+          }
+          newRouting.copy(routes = routes)
+
+        case None ⇒
+          Gateway("", Port(port.name, None, None, 0, port.`type`), None, services.map { service ⇒
+            DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
+          })
+      }
     }
   }
 
