@@ -168,12 +168,22 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
   private def persist(source: Option[String], create: Boolean, promote: Boolean = false): Future[Gateway] ⇒ Future[Any] = { future ⇒
     future.flatMap { gateway ⇒
-      val request = {
-        val artifact = if (gateway.inner && !promote) InnerGateway(gateway) else gateway
-        if (create) PersistenceActor.Create(artifact, source) else PersistenceActor.Update(artifact, source)
+
+      val requests = {
+        val artifacts = (gateway.inner, promote) match {
+          case (true, true)  ⇒ InnerGateway(gateway) :: gateway :: Nil
+          case (true, false) ⇒ InnerGateway(gateway) :: Nil
+          case _             ⇒ gateway :: Nil
+        }
+
+        artifacts.map {
+          case artifact ⇒ if (create) PersistenceActor.Create(artifact, source) else PersistenceActor.Update(artifact, source)
+        }
       }
 
-      (actorFor[PersistenceActor] ? request) map (_ ⇒ gateway)
+      Future.sequence(requests.map {
+        request ⇒ actorFor[PersistenceActor] ? request
+      }).map(_ ⇒ gateway)
     }
   }
 }

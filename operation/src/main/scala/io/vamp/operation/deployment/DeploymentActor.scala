@@ -333,13 +333,13 @@ trait DeploymentGatewayOperation {
       })
   }
 
-  def resolveGateways(deployment: Deployment, cluster: DeploymentCluster): List[Gateway] = {
+  def resolveRoutings(deployment: Deployment, cluster: DeploymentCluster): List[Gateway] = {
     cluster.services.flatMap(_.breed.ports).map(port ⇒ port.name -> port).toMap.values.toList.map { port ⇒
       val services = cluster.services.filter(_.breed.ports.exists(_.name == port.name))
       cluster.routingBy(port.name) match {
         case Some(oldRouting) ⇒
           val routes = services.map { service ⇒
-            oldRouting.routeBy(deployment.name :: cluster.name :: service.breed.name :: port.name :: Nil) match {
+            oldRouting.routeBy(service.breed.name :: Nil) match {
               case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
               case Some(route) ⇒ route
             }
@@ -509,11 +509,13 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
     def exists(gateway: Gateway) = stableCluster.exists(cluster ⇒ cluster.routing.exists(_.port.name == gateway.port.name))
 
     implicit val timeout = PersistenceActor.timeout
+    val routings = resolveRoutings(deployment, blueprintCluster)
+    val promote = stableCluster.exists(cluster ⇒ cluster.routing.size == blueprintCluster.routing.size)
 
     Future.sequence {
-      resolveGateways(deployment, blueprintCluster).map { gateway ⇒
+      routings.map { gateway ⇒
         if (exists(gateway))
-          checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Update(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, promote = false, force = true))
+          checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Update(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, promote = promote, force = true))
         else
           checked[Gateway](IoC.actorFor[GatewayActor] ? GatewayActor.Create(updateRoutePaths(deployment, blueprintCluster, gateway), None, validateOnly = validateOnly, force = true))
       } ++ stableCluster.map(cluster ⇒ cluster.routing.filterNot(routing ⇒ blueprintCluster.routing.exists(_.port.name == routing.port.name))).getOrElse(Nil).map(Future.successful)
