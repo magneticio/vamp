@@ -43,10 +43,11 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PulseFailureNoti
   }
 
   private def commit(gateways: List[Gateway]) = {
-    def send(value: String) = IoC.actorFor[KeyValueStoreActor] ! KeyValueStoreActor.Set(path, Option(value))
+    implicit val timeout = KeyValueStoreActor.timeout
+
+    def send(value: String) = IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, Option(value))
 
     val content = marshaller.marshall(gateways)
-    implicit val timeout = KeyValueStoreActor.timeout
 
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(path) map {
       case Some(value: String) ⇒ if (value != content) send(content)

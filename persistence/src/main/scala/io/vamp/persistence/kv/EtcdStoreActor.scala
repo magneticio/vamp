@@ -33,10 +33,10 @@ class EtcdStoreActor extends KeyValueStoreActor {
     }
   }
 
-  override protected def set(path: List[String], data: Option[String]): Unit = data match {
+  override protected def set(path: List[String], data: Option[String]): Future[Any] = data match {
     case None        ⇒ RestClient.delete(urlOf(path), RestClient.jsonHeaders, logError = false)
     case Some(value) ⇒ RestClient.put[Any](urlOf(path), s"value=${URLEncoder.encode(value, "UTF-8")}", List("Accept" -> "application/json", "Content-Type" -> "application/x-www-form-urlencoded"))
   }
 
-  private def urlOf(path: List[String], recursive: Boolean = false) = s"$url/v2/keys/${pathToString(path)}${if (recursive) "?recursive=true" else ""}"
+  private def urlOf(path: List[String], recursive: Boolean = false) = s"$url/v2/keys${KeyValueStoreActor.pathToString(path)}${if (recursive) "?recursive=true" else ""}"
 }

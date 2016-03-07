@@ -14,6 +14,10 @@ object KeyValueStoreActor {
 
   val timeout = PersistenceActor.timeout
 
+  private val basePath = ConfigFactory.load().getString("vamp.persistence.key-value-store.base-path").stripMargin('/')
+
+  def pathToString(path: List[String]) = s"/${(basePath :: path).mkString("/")}"
+
   sealed trait KeyValueStoreMessage
 
   case class Get(path: List[String]) extends KeyValueStoreMessage
@@ -28,12 +32,10 @@ trait KeyValueStoreActor extends PulseFailureNotifier with CommonSupportForActor
 
   lazy implicit val timeout = KeyValueStoreActor.timeout
 
-  private val basePath = ConfigFactory.load().getString("vamp.persistence.key-value-store.base-path").stripMargin('/')
-
   def receive = {
     case InfoRequest     ⇒ reply(info())
     case Get(path)       ⇒ reply(get(path))
-    case Set(path, data) ⇒ set(path, data)
+    case Set(path, data) ⇒ reply(set(path, data))
     case any             ⇒ unsupported(UnsupportedPersistenceRequest(any))
   }
 
@@ -41,9 +43,7 @@ trait KeyValueStoreActor extends PulseFailureNotifier with CommonSupportForActor
 
   protected def get(path: List[String]): Future[Option[String]]
 
-  protected def set(path: List[String], data: Option[String]): Unit
-
-  protected def pathToString(path: List[String]) = (basePath :: path).mkString("/")
+  protected def set(path: List[String], data: Option[String]): Future[Any]
 
   override def typeName = "key-value"
 

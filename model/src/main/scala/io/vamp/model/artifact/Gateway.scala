@@ -14,6 +14,7 @@ object Gateway {
     def byName(sticky: String): Option[Sticky.Value] = Gateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
   }
 
+  def inner(name: String) = GatewayPath(name).segments.size == 3
 }
 
 case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value], routes: List[Route], deployed: Boolean = false) extends Artifact with Lookup {
@@ -21,6 +22,13 @@ case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value
   def routeBy(path: GatewayPath) = routes.find(_.path == path)
 
   def defaultBalance = if (port.`type` == Port.Type.Http) "roundrobin" else "leastconn"
+
+  def inner = Gateway.inner(name)
+
+  def hasRouteTargets = routes.exists {
+    case r: DefaultRoute ⇒ r.targets.nonEmpty
+    case r               ⇒ false
+  }
 }
 
 object GatewayPath {

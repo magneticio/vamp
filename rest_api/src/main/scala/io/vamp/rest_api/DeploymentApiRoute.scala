@@ -180,9 +180,10 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
 trait DevController {
   this: ArtifactPaginationSupport with NotificationProvider with ExecutionContextProvider with ActorSystemProvider ⇒
 
-  def sync(): Unit = {
-    IoC.actorFor[GatewaySynchronizationActor] ! GatewaySynchronizationActor.SynchronizeAll
+  def sync(): Unit = Future {
     IoC.actorFor[DeploymentSynchronizationActor] ! DeploymentSynchronizationActor.SynchronizeAll
+    Thread.sleep(1000)
+    IoC.actorFor[GatewaySynchronizationActor] ! GatewaySynchronizationActor.SynchronizeAll
   }
 
   def slaCheck() = IoC.actorFor[SlaActor] ! SlaActor.SlaProcessAll

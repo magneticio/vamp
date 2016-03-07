@@ -29,6 +29,7 @@ class ChronosWorkflowDriver(ec: ExecutionContext, url: String) extends WorkflowD
       schedule = period(scheduledWorkflow),
       containerImage = workflow.containerImage.get,
       command = workflow.command.get,
+      rootPath = WorkflowDriver.pathToString(scheduledWorkflow),
       cpu = scale.cpu,
       memory = scale.memory.value
     )
@@ -53,7 +54,7 @@ class ChronosWorkflowDriver(ec: ExecutionContext, url: String) extends WorkflowD
     case _ ⇒ "R1//PT1S"
   }
 
-  private def job(name: String, schedule: String, containerImage: String, command: String, cpu: Double, memory: Double) =
+  private def job(name: String, schedule: String, containerImage: String, command: String, rootPath: String, cpu: Double, memory: Double) =
     s"""
     |{
     |  "name": "$name",
@@ -67,7 +68,13 @@ class ChronosWorkflowDriver(ec: ExecutionContext, url: String) extends WorkflowD
     |  "cpus": "$cpu",
     |  "mem": "$memory",
     |  "uris": [],
-    |  "command": "$command"
+    |  "command": "$command",
+    |  "environmentVariables": [
+    |    {
+    |      "name": "VAMP_KEY_VALUE_STORE_ROOT_PATH",
+    |      "value": "$rootPath"
+    |    }
+    |  ]
     |}
   """.stripMargin
 }

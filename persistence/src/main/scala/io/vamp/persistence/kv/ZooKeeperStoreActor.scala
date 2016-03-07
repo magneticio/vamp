@@ -12,6 +12,7 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 
 class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
+  import KeyValueStoreActor._
 
   private val config = ConfigFactory.load().getConfig("vamp.persistence.key-value-store.zookeeper")
 
@@ -66,16 +67,18 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
     }
   }
 
-  override protected def set(path: List[String], data: Option[String]): Unit = zooKeeperClient match {
+  override protected def set(path: List[String], data: Option[String]): Future[Any] = zooKeeperClient match {
     case Some(zk) ⇒
       zk.get(pathToString(path)) recoverWith {
         case _ ⇒ zk.createPath(pathToString(path))
-      } onComplete {
-        case _ ⇒ zk.set(pathToString(path), data.map(_.getBytes)) onFailure {
-          case failure ⇒ log.error(failure, failure.getMessage)
+      } flatMap {
+        case _ ⇒ zk.set(pathToString(path), data.map(_.getBytes)) recoverWith {
+          case failure ⇒
+            log.error(failure, failure.getMessage)
+            Future.failed(failure)
         }
       }
-    case _ ⇒
+    case _ ⇒ Future.successful(None)
   }
 
   private def initClient() = zooKeeperClient = Option {

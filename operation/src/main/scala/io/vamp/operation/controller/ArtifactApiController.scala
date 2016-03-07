@@ -132,7 +132,7 @@ trait ArtifactApiController extends ArtifactSupport {
       unmarshal(source) match {
         case gateway ⇒
           if (name != gateway.name) throwException(InconsistentArtifactName(name, gateway))
-          actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly)
+          actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly, promote = true)
       }
     }
 

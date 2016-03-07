@@ -12,10 +12,11 @@ import io.vamp.model.workflow._
 import io.vamp.operation.OperationBootstrap
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.kv.KeyValueStoreActor
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
-import io.vamp.workflow_driver.WorkflowDriverActor
+import io.vamp.workflow_driver.{ WorkflowDriver, WorkflowDriverActor }
 
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -122,7 +123,11 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
       containerImage = Option(workflow.containerImage.getOrElse(WorkflowActor.containerImage))
     )
 
-    IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(scheduledWorkflow.copy(workflow = expandedWorkflow), data)
+    val path = WorkflowDriver.path(scheduledWorkflow, workflow = true)
+
+    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, expandedWorkflow.script) map {
+      case _ ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(scheduledWorkflow.copy(workflow = expandedWorkflow), data)
+    }
   }
 
   private def pulse(workflow: ScheduledWorkflow, scheduled: Boolean) = {

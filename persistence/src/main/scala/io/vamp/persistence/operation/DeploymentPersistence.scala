@@ -7,6 +7,10 @@ object DeploymentPersistence {
   def serviceArtifactName(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
     GatewayPath(deployment.name :: cluster.name :: service.breed.name :: Nil).normalized
   }
+
+  def servicePortArtifactName(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, port: Port) = {
+    GatewayPath(deployment.name :: cluster.name :: service.breed.name :: port.name :: Nil).normalized
+  }
 }
 
 case class DeploymentServiceState(name: String, state: DeploymentService.State) extends Artifact

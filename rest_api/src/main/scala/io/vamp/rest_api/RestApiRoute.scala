@@ -82,21 +82,21 @@ trait RestApiRoute
   val route = cors {
     noCachingAllowed {
       pathPrefix("api" / Artifact.version) {
-        compressResponse() {
+        compressResponseIfRequested() {
           sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
             infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes
           }
         }
       } ~ path("") {
         logRequest(showRequest _) {
-          compressResponse() {
+          compressResponseIfRequested() {
             // serve up static content from a JAR resource
             getFromResource("vamp-ui/index.html")
           }
         }
       } ~ pathPrefix("") {
         logRequest(showRequest _) {
-          compressResponse() {
+          compressResponseIfRequested() {
             getFromResourceDirectory("vamp-ui")
           }
         }
