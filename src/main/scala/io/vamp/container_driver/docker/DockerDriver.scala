@@ -6,11 +6,14 @@ import io.vamp.model.artifact._
 
 import scala.concurrent.{ ExecutionContext, Future }
 import com.spotify.docker.client.{ DockerClient, DefaultDockerClient }
-import com.spotify.docker.client.messages.{ ContainerConfig, ContainerInfo ⇒ spContainerInfo, Container ⇒ spContainer, ContainerCreation, Info }
+import com.spotify.docker.client.messages.{ HostConfig, PortBinding, ContainerConfig, ContainerInfo ⇒ spContainerInfo, Container ⇒ spContainer, ContainerCreation, Info }
 
 import java.lang.reflect.Field
+import java.net.URI
 
 import io.vamp.model.reader.MegaByte
+
+import com.typesafe.config.ConfigFactory
 
 /** This classes come from marathon driver **/
 case class DockerParameter(key: String, value: String)
@@ -22,7 +25,7 @@ case class App(id: String, instances: Int, cpus: Double, mem: Double, tasks: Lis
 
 object RawDockerClient {
 
-  lazy val client = DefaultDockerClient.builder().build()
+  lazy val client = DefaultDockerClient.builder().uri(ConfigFactory.load().getString("vamp.container-driver.url")).build()
 
   def lift[A, B](f: A ⇒ B): Option[A] ⇒ Option[B] = _ map f
   def Try[A](cl: Class[A], paramKey: String): Either[String, Field] = {
@@ -37,26 +40,38 @@ object RawDockerClient {
 
   def asyncCall[A, B](f: Option[A] ⇒ Option[B])(implicit ec: ExecutionContext): Option[A] ⇒ Future[Option[B]] = a ⇒ Future { f(a) }
 
-  def internalCreateContainer = lift[ContainerConfig, ContainerCreation](client.createContainer(_))
+  def internalCreateContainer = lift[(ContainerConfig, String), ContainerCreation] { x ⇒ client.createContainer(x._1, x._2) }
+  def internalStartContainer = lift[String, Unit](client.startContainer(_))
   def internalUndeployContainer = lift[String, Unit](client.killContainer(_))
-  def internalAllContainer = lift[DockerClient.ListContainersParam, java.util.List[spContainer]](client.listContainers(_))
+  def internalAllContainer = lift[DockerClient.ListContainersParam, java.util.List[spContainer]]({ client.listContainers(_) })
   def internalInfo = lift[Unit, Info](Unit ⇒ client.info())
 
   def translateToRaw(container: Option[Container]): Option[ContainerConfig] = {
+    val spContainer = ContainerConfig.builder()
+    val hostConfig = HostConfig.builder()
+
     container match {
       case Some(container) ⇒ {
-        val spContainer = ContainerConfig.builder()
         spContainer.image(container.docker.image)
         container.docker.parameters.map { x ⇒
           Try(spContainer.getClass, x.key) match {
             case Right(field) ⇒ field.set(spContainer, x.value)
             case _            ⇒ None
           }
-        //container.docker.portMappings.map { x => x.containerPort }
-        //spContainer.e
-        //spContainer.exposedPorts() container.docker.portMappings
         }
-        Some(spContainer.build())
+
+        val mutableHash: java.util.Map[String, java.util.List[PortBinding]] = new java.util.HashMap[String, java.util.List[PortBinding]]()
+        val hostPorts: java.util.List[PortBinding] = new java.util.ArrayList[PortBinding]()
+
+        container.docker.portMappings.map(x ⇒ {
+          hostPorts.add(PortBinding.of("0.0.0.0", x.containerPort))
+          mutableHash.put(x.containerPort.toString(), hostPorts)
+        })
+
+        spContainer.hostConfig(hostConfig.portBindings(mutableHash).build())
+        val spCont = spContainer.build()
+
+        Some(spCont)
       }
       case _ ⇒ None
     }
@@ -87,8 +102,12 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
   import RawDockerClient._
   import scala.collection.JavaConversions._
 
-  /** Duplicate code from Marathon **/
+  /** method from abstract AbstractContainerDriver does not work **/
+  override val nameDelimiter = "_"
+  override def appId(deployment: Deployment, breed: Breed): String = s"vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
+  override def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
 
+  /** Duplicate code from Marathon **/
   private def containerService(app: App): ContainerService =
     ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
 
@@ -120,7 +139,13 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
   }
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
-    asyncCall[ContainerConfig, ContainerCreation](internalCreateContainer).apply((translateToRaw(container(deployment, cluster, service))))
+    val id = appId(deployment, service.breed)
+    asyncCall[(ContainerConfig, String), ContainerCreation](internalCreateContainer).apply((translateToRaw(container(deployment, cluster, service))).map { (_, id) }).map { x ⇒
+      x match {
+        case Some(container) ⇒ internalStartContainer(Some(container.id()))
+        case None            ⇒
+      }
+    }
   }
 
   def undeploy(deployment: Deployment, service: DeploymentService): Future[Any] = {
