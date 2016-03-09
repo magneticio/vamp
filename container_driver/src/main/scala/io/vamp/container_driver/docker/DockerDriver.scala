@@ -5,6 +5,7 @@ import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvid
 import io.vamp.model.artifact._
 
 import scala.concurrent.{ ExecutionContext, Future }
+
 import com.spotify.docker.client.{ DockerClient, DefaultDockerClient }
 import com.spotify.docker.client.messages.{ HostConfig, PortBinding, ContainerConfig, ContainerInfo ⇒ spContainerInfo, Container ⇒ spContainer, ContainerCreation, Info }
 
@@ -15,15 +16,18 @@ import io.vamp.model.reader.MegaByte
 
 import com.typesafe.config.ConfigFactory
 
+import org.joda.time.DateTime
+
 /** This classes come from marathon driver **/
 case class DockerParameter(key: String, value: String)
 case class Container(docker: Docker, `type`: String = "DOCKER")
 case class Docker(image: String, portMappings: List[ContainerPortMapping], parameters: List[DockerParameter], network: String = "BRIDGE")
 
-case class Task(id: String, host: String, ports: List[Int], startedAt: Option[String])
+case class Task(id: String, name: String, host: String, ports: List[Int], startedAt: Option[String])
 case class App(id: String, instances: Int, cpus: Double, mem: Double, tasks: List[Task])
 
 object RawDockerClient {
+  import scala.collection.JavaConversions._
 
   lazy val client = DefaultDockerClient.builder().uri(ConfigFactory.load().getString("vamp.container-driver.url")).build()
 
@@ -43,6 +47,7 @@ object RawDockerClient {
   def internalCreateContainer = lift[(ContainerConfig, String), ContainerCreation] { x ⇒ client.createContainer(x._1, x._2) }
   def internalStartContainer = lift[String, Unit](client.startContainer(_))
   def internalUndeployContainer = lift[String, Unit](client.killContainer(_))
+
   def internalAllContainer = lift[DockerClient.ListContainersParam, java.util.List[spContainer]]({ client.listContainers(_) })
   def internalInfo = lift[Unit, Info](Unit ⇒ client.info())
 
@@ -81,13 +86,14 @@ object RawDockerClient {
     creation.id
 
   def translateFromspContainerToApp(container: spContainer): App = {
-    val containerName = { if (container.names().size() > 0) container.names().get(0) else "?" }
-    App(containerName, 1, 0.0, 0.0, Nil)
+    val containerName = { if (container.names().size() > 0) container.names().head.substring(1) else "?" }
+    App(containerName, 1, 0.0, 0.0, List(Task(container.id(), containerName, "", container.ports().map { x ⇒ x.getPublicPort }.toList, Some(new DateTime(container.created()).toString()))))
   }
 
   def translateInfoToContainerInfo(info: Info): ContainerInfo = {
     ContainerInfo(info.id(), Unit)
   }
+
 }
 
 /**
@@ -109,7 +115,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
 
   /** Duplicate code from Marathon **/
   private def containerService(app: App): ContainerService =
-    ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
+    ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.name, task.host, task.ports, task.startedAt.isDefined)))
 
   private def parameters(service: DeploymentService): List[DockerParameter] = service.arguments.map { argument ⇒
     DockerParameter(argument.key, argument.value)
@@ -130,9 +136,9 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
   }
 
   def all: Future[List[ContainerService]] = {
-    asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](internalAllContainer).apply(None) map { x ⇒
+    asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { x ⇒
       x match {
-        case Some(containers) ⇒ (containers map (containerService _ compose translateFromspContainerToApp _)).toList
+        case Some(containers) ⇒ (containers.filter { x ⇒ x.status().startsWith("Up") } map (containerService _ compose translateFromspContainerToApp _)).toList
         case None             ⇒ Nil
       }
     }
@@ -140,16 +146,33 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
     val id = appId(deployment, service.breed)
-    asyncCall[(ContainerConfig, String), ContainerCreation](internalCreateContainer).apply((translateToRaw(container(deployment, cluster, service))).map { (_, id) }).map { x ⇒
-      x match {
-        case Some(container) ⇒ internalStartContainer(Some(container.id()))
-        case None            ⇒
+    val asyncResult = asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers()))
+
+    asyncResult map { opList ⇒
+      opList match {
+        case Some(list) ⇒ list.filter { container ⇒ container.names().toList.head.substring(1) == id }
+        case None       ⇒ Nil
       }
+    } map { resultList ⇒
+      if (resultList.isEmpty)
+        (internalCreateContainer).apply((translateToRaw(container(deployment, cluster, service))).map { (_, id) }).map { container ⇒ internalStartContainer(Some(container.id())) }
+      else
+        resultList.toList.map { container ⇒ internalStartContainer(Some(container.id())) }
     }
   }
 
   def undeploy(deployment: Deployment, service: DeploymentService): Future[Any] = {
-    val id = appId(deployment, service.breed)
-    asyncCall[String, Unit](internalUndeployContainer).apply(Some(id))
+    val name = appId(deployment, service.breed)
+    val asyncResult = asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers()))
+
+    asyncResult map { opList ⇒
+      opList match {
+        case Some(list) ⇒ list.filter { container ⇒ container.names().toList(0) == name }
+        case None       ⇒ Nil
+      }
+    } map { resultList ⇒
+      resultList.toList.map { container ⇒ internalUndeployContainer(Some(container.id())) }
+    }
   }
+  
 }
