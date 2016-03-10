@@ -3,6 +3,7 @@ package io.vamp.container_driver.docker
 import io.vamp.container_driver.{ AbstractContainerDriver, ContainerPortMapping, ContainerInfo, ContainerService, ContainerInstance }
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider }
 import io.vamp.model.artifact._
+import io.vamp.model.reader.MegaByte
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -12,11 +13,11 @@ import com.spotify.docker.client.messages.{ HostConfig, PortBinding, ContainerCo
 import java.lang.reflect.Field
 import java.net.URI
 
-import io.vamp.model.reader.MegaByte
-
 import com.typesafe.config.ConfigFactory
 
 import org.joda.time.DateTime
+
+import spray.json._
 
 /** This classes come from marathon driver **/
 case class DockerParameter(key: String, value: String)
@@ -51,19 +52,15 @@ object RawDockerClient {
   def internalAllContainer = lift[DockerClient.ListContainersParam, java.util.List[spContainer]]({ client.listContainers(_) })
   def internalInfo = lift[Unit, Info](Unit ⇒ client.info())
 
-  def translateToRaw(container: Option[Container]): Option[ContainerConfig] = {
+  def translateToRaw(container: Option[Container], scale: Option[DefaultScale]): Option[ContainerConfig] = {
+    import DefaultScaleProtocol.DefaultScaleFormat
+
     val spContainer = ContainerConfig.builder()
     val hostConfig = HostConfig.builder()
 
     container match {
       case Some(container) ⇒ {
         spContainer.image(container.docker.image)
-        container.docker.parameters.map { x ⇒
-          Try(spContainer.getClass, x.key) match {
-            case Right(field) ⇒ field.set(spContainer, x.value)
-            case _            ⇒ None
-          }
-        }
 
         val mutableHash: java.util.Map[String, java.util.List[PortBinding]] = new java.util.HashMap[String, java.util.List[PortBinding]]()
         val hostPorts: java.util.List[PortBinding] = new java.util.ArrayList[PortBinding]()
@@ -74,8 +71,11 @@ object RawDockerClient {
         })
 
         spContainer.hostConfig(hostConfig.portBindings(mutableHash).build())
-        val spCont = spContainer.build()
 
+        if (scale != None)
+          spContainer.labels(Map[String, String]("scale" -> scale.get.toJson.toString()).toMap[String, String])
+
+        val spCont = spContainer.build()
         Some(spCont)
       }
       case _ ⇒ None
@@ -86,14 +86,24 @@ object RawDockerClient {
     creation.id
 
   def translateFromspContainerToApp(container: spContainer): App = {
+    import DefaultScaleProtocol.DefaultScaleFormat
+    import spray.json._
+
     val containerName = { if (container.names().size() > 0) container.names().head.substring(1) else "?" }
-    App(containerName, 1, 0.0, 0.0, List(Task(container.id(), containerName, "", container.ports().map { x ⇒ x.getPublicPort }.toList, Some(new DateTime(container.created()).toString()))))
+    val defaultScaleJs = container.labels().getOrDefault("scale", "")
+
+    if (!defaultScaleJs.isEmpty()) {
+      val defaultScale = defaultScaleJs.parseJson.convertTo[DefaultScale]
+      App(containerName, defaultScale.instances, defaultScale.cpu, defaultScale.memory.value, List(Task(container.id(), containerName, "", container.ports().map { x ⇒ x.getPublicPort }.toList, Some(new DateTime(container.created()).toString()))))
+    } else {
+      /* Default app values. They are going to be stored as label */
+      App(containerName, 1, 0.0, 0.0, List(Task(container.id(), containerName, "", container.ports().map { x ⇒ x.getPublicPort }.toList, Some(new DateTime(container.created()).toString()))))
+    }
   }
 
   def translateInfoToContainerInfo(info: Info): ContainerInfo = {
     ContainerInfo(info.id(), Unit)
   }
-
 }
 
 /**
@@ -155,7 +165,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
       }
     } map { resultList ⇒
       if (resultList.isEmpty)
-        (internalCreateContainer).apply((translateToRaw(container(deployment, cluster, service))).map { (_, id) }).map { container ⇒ internalStartContainer(Some(container.id())) }
+        (internalCreateContainer).apply((translateToRaw(container(deployment, cluster, service), service.scale)).map { (_, id) }).map { container ⇒ internalStartContainer(Some(container.id())) }
       else
         resultList.toList.map { container ⇒ internalStartContainer(Some(container.id())) }
     }
@@ -174,5 +184,5 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
       resultList.toList.map { container ⇒ internalUndeployContainer(Some(container.id())) }
     }
   }
-  
+
 }
