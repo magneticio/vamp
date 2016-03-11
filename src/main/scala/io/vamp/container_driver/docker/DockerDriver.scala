@@ -6,6 +6,7 @@ import io.vamp.model.artifact._
 import io.vamp.model.reader.MegaByte
 
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.collection.mutable.{ Map ⇒ MutableMap }
 
 import com.spotify.docker.client.{ DockerClient, DefaultDockerClient }
 import com.spotify.docker.client.messages.{ HostConfig, PortBinding, ContainerConfig, ContainerInfo ⇒ spContainerInfo, Container ⇒ spContainer, ContainerCreation, Info }
@@ -44,15 +45,13 @@ object RawDockerClient {
   }
 
   def asyncCall[A, B](f: Option[A] ⇒ Option[B])(implicit ec: ExecutionContext): Option[A] ⇒ Future[Option[B]] = a ⇒ Future { f(a) }
-
   def internalCreateContainer = lift[(ContainerConfig, String), ContainerCreation] { x ⇒ client.createContainer(x._1, x._2) }
   def internalStartContainer = lift[String, Unit](client.startContainer(_))
   def internalUndeployContainer = lift[String, Unit](client.killContainer(_))
-
   def internalAllContainer = lift[DockerClient.ListContainersParam, java.util.List[spContainer]]({ client.listContainers(_) })
   def internalInfo = lift[Unit, Info](Unit ⇒ client.info())
 
-  def translateToRaw(container: Option[Container], scale: Option[DefaultScale]): Option[ContainerConfig] = {
+  def translateToRaw(container: Option[Container], service: DeploymentService): Option[ContainerConfig] = {
     import DefaultScaleProtocol.DefaultScaleFormat
 
     val spContainer = ContainerConfig.builder()
@@ -61,7 +60,6 @@ object RawDockerClient {
     container match {
       case Some(container) ⇒ {
         spContainer.image(container.docker.image)
-
         val mutableHash: java.util.Map[String, java.util.List[PortBinding]] = new java.util.HashMap[String, java.util.List[PortBinding]]()
         val hostPorts: java.util.List[PortBinding] = new java.util.ArrayList[PortBinding]()
 
@@ -70,10 +68,26 @@ object RawDockerClient {
           mutableHash.put(x.containerPort.toString(), hostPorts)
         })
 
-        spContainer.hostConfig(hostConfig.portBindings(mutableHash).build())
+        val labels: MutableMap[String, String] = MutableMap()
+        if (service.scale != None)
+          labels += ("scale" -> service.scale.get.toJson.toString())
 
-        if (scale != None)
-          spContainer.labels(Map[String, String]("scale" -> scale.get.toJson.toString()).toMap[String, String])
+        if (service.dialects.contains(Dialect.Docker)) {
+          service.dialects.get(Dialect.Docker).map { x ⇒
+            val values = x.asInstanceOf[Map[String, Any]]
+            /* Looking for labels */
+            val inLabels = values.get("labels").asInstanceOf[Option[Map[String, String]]]
+            if (inLabels != None)
+              inLabels.get.foreach(f ⇒ { labels += f })
+            spContainer.labels(labels)
+            /* Getting net parameters */
+            val net = values.get("net").asInstanceOf[Option[String]]
+            if (net != None) {
+                spContainer.hostConfig(hostConfig.portBindings(mutableHash).networkMode(net.get).build())
+            } else
+              spContainer.hostConfig(hostConfig.portBindings(mutableHash).networkMode("bridge").build())
+          }
+        }
 
         val spCont = spContainer.build()
         Some(spCont)
@@ -157,7 +171,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
     val id = appId(deployment, service.breed)
     val asyncResult = asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers()))
-
+    
     asyncResult map { opList ⇒
       opList match {
         case Some(list) ⇒ list.filter { container ⇒ container.names().toList.head.substring(1) == id }
@@ -165,16 +179,15 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
       }
     } map { resultList ⇒
       if (resultList.isEmpty)
-        (internalCreateContainer).apply((translateToRaw(container(deployment, cluster, service), service.scale)).map { (_, id) }).map { container ⇒ internalStartContainer(Some(container.id())) }
+        (internalCreateContainer).apply((translateToRaw(container(deployment, cluster, service), service)).map { (_, id) }).map { container ⇒ internalStartContainer(Some(container.id())) }
       else
         resultList.toList.map { container ⇒ internalStartContainer(Some(container.id())) }
-    }
+    }   
   }
 
   def undeploy(deployment: Deployment, service: DeploymentService): Future[Any] = {
     val name = appId(deployment, service.breed)
     val asyncResult = asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers()))
-
     asyncResult map { opList ⇒
       opList match {
         case Some(list) ⇒ list.filter { container ⇒ container.names().toList(0) == name }
@@ -184,5 +197,4 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
       resultList.toList.map { container ⇒ internalUndeployContainer(Some(container.id())) }
     }
   }
-
 }
