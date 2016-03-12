@@ -85,8 +85,6 @@ val json4s = "org.json4s" %% "json4s-native" % "3.2.11" ::
   "org.json4s" %% "json4s-ext" % "3.2.11" ::
   "org.json4s" %% "json4s-native" % "3.2.11" :: Nil
 val snakeYaml = "org.yaml" % "snakeyaml" % "1.16" :: Nil
-val jersey = "org.glassfish.jersey.core" % "jersey-client" % "2.15" ::
-  "org.glassfish.jersey.media" % "jersey-media-sse" % "2.15" :: Nil
 
 val config = "com.typesafe" % "config" % "1.2.1" :: Nil
 val logging = "org.slf4j" % "slf4j-api" % "1.7.10" ::
@@ -150,7 +148,7 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
   name := "vamp-operation",
   formatting,
-  libraryDependencies ++= jersey ++ testing
+  libraryDependencies ++= testing
 ).dependsOn(persistence, container_driver, workflow_driver, gateway_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val pulse = project.settings(bintraySetting: _*).settings(
