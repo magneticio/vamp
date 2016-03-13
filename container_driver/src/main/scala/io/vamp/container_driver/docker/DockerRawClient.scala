@@ -18,10 +18,24 @@ import spray.json._
 
 import org.joda.time.DateTime
 
+class RawDockerClient(client: DefaultDockerClient) {
+  import RawDockerClient._
+
+  def asyncCall[A, B](f: Option[A] ⇒ Option[B])(implicit ec: ExecutionContext): Option[A] ⇒ Future[Option[B]] = a ⇒ Future { f(a) }
+
+  def internalCreateContainer = lift[(ContainerConfig, String), ContainerCreation] { x ⇒ client.createContainer(x._1, x._2) }
+
+  def internalStartContainer = lift[String, Unit](client.startContainer(_))
+
+  def internalUndeployContainer = lift[String, Unit](client.killContainer(_))
+
+  def internalAllContainer = lift[DockerClient.ListContainersParam, java.util.List[spContainer]]({ client.listContainers(_) })
+
+  def internalInfo = lift[Unit, Info](Unit ⇒ client.info())
+}
+
 object RawDockerClient {
   import scala.collection.JavaConversions._
-
-  lazy val client = DefaultDockerClient.builder().uri(ConfigFactory.load().getString("vamp.container-driver.url")).build()
 
   def lift[A, B](f: A ⇒ B): Option[A] ⇒ Option[B] = _ map f
   def Try[A](cl: Class[A], paramKey: String): Either[String, Field] = {
@@ -33,13 +47,6 @@ object RawDockerClient {
       case u: Throwable            ⇒ Left(u.getMessage)
     }
   }
-
-  def asyncCall[A, B](f: Option[A] ⇒ Option[B])(implicit ec: ExecutionContext): Option[A] ⇒ Future[Option[B]] = a ⇒ Future { f(a) }
-  def internalCreateContainer = lift[(ContainerConfig, String), ContainerCreation] { x ⇒ client.createContainer(x._1, x._2) }
-  def internalStartContainer = lift[String, Unit](client.startContainer(_))
-  def internalUndeployContainer = lift[String, Unit](client.killContainer(_))
-  def internalAllContainer = lift[DockerClient.ListContainersParam, java.util.List[spContainer]]({ client.listContainers(_) })
-  def internalInfo = lift[Unit, Info](Unit ⇒ client.info())
 
   def translateToRaw(container: Option[Container], service: DeploymentService): Option[ContainerConfig] = {
     import DefaultScaleProtocol.DefaultScaleFormat
@@ -65,11 +72,13 @@ object RawDockerClient {
         if (service.dialects.contains(Dialect.Docker)) {
           service.dialects.get(Dialect.Docker).map { x ⇒
             val values = x.asInstanceOf[Map[String, Any]]
+
             /* Looking for labels */
             val inLabels = values.get("labels").asInstanceOf[Option[Map[String, String]]]
             if (inLabels != None)
               inLabels.get.foreach(f ⇒ { labels += f })
             spContainer.labels(labels)
+
             /* Getting net parameters */
             val net = values.get("net").asInstanceOf[Option[String]]
             if (net != None) {
