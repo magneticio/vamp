@@ -4,7 +4,7 @@ import akka.pattern.ask
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact._
-import io.vamp.model.notification.{ DuplicateGatewayPortError, GatewayRouteWeightError }
+import io.vamp.model.notification.GatewayRouteWeightError
 import io.vamp.model.reader.Percentage
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
@@ -57,8 +57,8 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
   private def create(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean): Future[Any] = (gateway.inner, force, validateOnly) match {
     case (true, false, _) ⇒ Future.failed(reportException(InnerGatewayCreateError(gateway.name)))
-    case (_, _, true)     ⇒ Try((process andThen validate)(gateway) :: Nil).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
-    case _                ⇒ Try((process andThen validate andThen purge andThen persist(source, create = true))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
+    case (_, _, true)     ⇒ Try((process andThen validate andThen validateUniquePort)(gateway) :: Nil).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
+    case _                ⇒ Try((process andThen validate andThen validateUniquePort andThen persistFuture(source, create = true, promote = false))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
   }
 
   private def update(gateway: Gateway, source: Option[String], validateOnly: Boolean, promote: Boolean, force: Boolean): Future[Any] = {
@@ -67,7 +67,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
       if (validateOnly)
         Try((process andThen validate)(gateway) :: Nil).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
       else
-        Try((process andThen validate andThen purge andThen persist(source, create = false, promote))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
+        Try((process andThen validate andThen persist(source, create = false, promote))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
     }
 
     if (gateway.inner && !force) routeChanged(gateway) flatMap {
@@ -89,7 +89,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
   }
 
   private def promote(gateway: Gateway) = {
-    persist(None, create = false, promote = true)(Future.successful(gateway))
+    persist(None, create = false, promote = true)(gateway)
   }
 
   private def routeChanged(gateway: Gateway): Future[Boolean] = {
@@ -149,41 +149,39 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     gateway
   }
 
-  private def purge: Gateway ⇒ Future[Gateway] = {
+  private def validateUniquePort: Gateway ⇒ Future[Gateway] = {
     case gateway if gateway.inner ⇒ Future.successful(gateway)
     case gateway ⇒
-      allArtifacts[Gateway] flatMap {
-        case gateways ⇒
-          val processed = gateways.map {
-            case g if g.name != gateway.name && g.port.number == gateway.port.number ⇒
-              if (g.hasRouteTargets) throwException(DuplicateGatewayPortError(g.port.number))
-              actorFor[PersistenceActor] ? PersistenceActor.Delete(g.name, classOf[Gateway])
-            case g ⇒ Future.successful(g)
-          }
-          Future.sequence(processed)
-      } map {
+      allArtifacts[Gateway] map {
+        case gateways if gateway.port.number != 0 ⇒
+          gateways.find(_.port.number == gateway.port.number).map(g ⇒ throwException(UnavailableGatewayPortError(gateway.port, g)))
+          gateway
+
         case _ ⇒ gateway
       }
   }
 
-  private def persist(source: Option[String], create: Boolean, promote: Boolean = false): Future[Gateway] ⇒ Future[Any] = { future ⇒
-    future.flatMap { gateway ⇒
+  private def persistFuture(source: Option[String], create: Boolean, promote: Boolean): Future[Gateway] ⇒ Future[Any] = { future ⇒
+    future flatMap {
+      case gateway ⇒ persist(source, create, promote)(gateway)
+    }
+  }
 
-      val requests = {
-        val artifacts = (gateway.inner, promote) match {
-          case (true, true)  ⇒ InnerGateway(gateway) :: gateway :: Nil
-          case (true, false) ⇒ InnerGateway(gateway) :: Nil
-          case _             ⇒ gateway :: Nil
-        }
-
-        artifacts.map {
-          case artifact ⇒ if (create) PersistenceActor.Create(artifact, source) else PersistenceActor.Update(artifact, source)
-        }
+  private def persist(source: Option[String], create: Boolean, promote: Boolean): Gateway ⇒ Future[Any] = { gateway ⇒
+    val requests = {
+      val artifacts = (gateway.inner, promote) match {
+        case (true, true)  ⇒ InnerGateway(gateway) :: gateway :: Nil
+        case (true, false) ⇒ InnerGateway(gateway) :: Nil
+        case _             ⇒ gateway :: Nil
       }
 
-      Future.sequence(requests.map {
-        request ⇒ actorFor[PersistenceActor] ? request
-      }).map(_ ⇒ gateway)
+      artifacts.map {
+        case artifact ⇒ if (create) PersistenceActor.Create(artifact, source) else PersistenceActor.Update(artifact, source)
+      }
     }
+
+    Future.sequence(requests.map {
+      request ⇒ actorFor[PersistenceActor] ? request
+    }).map(_ ⇒ gateway)
   }
 }

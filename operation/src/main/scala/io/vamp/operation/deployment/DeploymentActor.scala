@@ -256,16 +256,12 @@ trait DeploymentValidator {
     implicit val timeout = PersistenceActor.timeout
     allArtifacts[Gateway] flatMap {
       case gateways ⇒
-        val ports = gateways.filter(gateway ⇒ GatewayPath(gateway.name).segments.head != deployment.name).map(gateway ⇒ gateway.port.number -> gateway).toMap
+        val otherGateways = gateways.filter(gateway ⇒ GatewayPath(gateway.name).segments.head != deployment.name)
 
-        val deploymentGateways = deployment.gateways.flatMap { gateway ⇒
-          ports.get(gateway.port.number) match {
-            case Some(g) ⇒
-              val segments = GatewayPath(g.name).segments
-              if (segments.size == 2) {
-                if (segments.head == deployment.name) Nil else g :: Nil
-              } else throwException(UnavailableGatewayPortError(gateway.port, g))
-            case _ ⇒ Nil
+        val deploymentGateways = deployment.gateways.map { gateway ⇒
+          otherGateways.find(_.port.number == gateway.port.number) match {
+            case Some(g) ⇒ throwException(UnavailableGatewayPortError(gateway.port, g))
+            case _       ⇒ gateway
           }
         } map { gateway ⇒
           artifactForIfExists[Deployment](GatewayPath(gateway.name).segments.head) map { case d ⇒ gateway -> d }

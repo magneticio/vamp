@@ -11,7 +11,7 @@ UnresolvedEnvironmentValueError : "Unresolved environment value: '{key}'."
 UnsupportedSlaType              : "Unsupported SLA type {`type`} for given parameters."
 DeploymentServiceError          : "Deployment service error for deployment '{deployment.name}' and service '{service.breed.name}'."
 InvalidRouteWeight              : "Invalid route weight for cluster '{deployment.name}/{cluster.name}': expected to be either 0% or 100% after the operation, but it is {weight}%"
-UnavailableGatewayPortError     : "Gateway port '{port.value}' is already in use by deployment: '{gateway.name}'."
+UnavailableGatewayPortError     : "Gateway port '{port.value}' is/was in use by deployment: '{gateway.name}'. Remove '{gateway.name}' gateway first or use different port."
 WorkflowSchedulingError         : "Workflow scheduling error."
 WorkflowExecutionError          : "Workflow execution error."
 
