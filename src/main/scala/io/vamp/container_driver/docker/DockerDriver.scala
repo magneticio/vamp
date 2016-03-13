@@ -45,7 +45,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
 
   /** Duplicate code from Marathon **/
   private def containerService(app: App): ContainerService =
-    ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.name, task.host, task.ports, task.startedAt.isDefined)))
+    ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
 
   private def parameters(service: DeploymentService): List[DockerParameter] = service.arguments.map { argument ⇒
     DockerParameter(argument.key, argument.value)
@@ -57,7 +57,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
   }
 
   def info: Future[ContainerInfo] = {
-    asyncCall[Unit, Info](internalInfo).apply(None) map { x ⇒
+    client.asyncCall[Unit, Info](client.internalInfo).apply(None) map { x ⇒
       x match {
         case Some(info) ⇒ ContainerInfo(info.id(), Unit)
         case None       ⇒ ContainerInfo("???", Unit)
@@ -66,7 +66,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
   }
 
   def all: Future[List[ContainerService]] = {
-    asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { x ⇒
+    client.asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](client.internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { x ⇒
       x match {
         case Some(containers) ⇒ (containers.filter { x ⇒ x.status().startsWith("Up") } map (containerService _ compose translateFromspContainerToApp _)).toList
         case None             ⇒ Nil
@@ -76,30 +76,30 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
     val id = appId(deployment, service.breed)
-    val asyncResult = asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers()))
-    asyncResult map { opList ⇒
+    client.asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](client.internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { opList ⇒
       opList match {
         case Some(list) ⇒ list.filter { container ⇒ container.names().toList.head.substring(1) == id }
         case None       ⇒ Nil
       }
     } map { resultList ⇒
       if (resultList.isEmpty)
-        (internalCreateContainer).apply((translateToRaw(container(deployment, cluster, service), service)).map { (_, id) }).map { container ⇒ internalStartContainer(Some(container.id())) }
+        (client.internalCreateContainer).apply((translateToRaw(container(deployment, cluster, service), service)).map { (_, id) }).map { container ⇒ client.internalStartContainer(Some(container.id())) }
       else
-        resultList.toList.map { container ⇒ internalStartContainer(Some(container.id())) }
+        resultList.toList.map { container ⇒ client.internalStartContainer(Some(container.id())) }
     }
   }
 
   def undeploy(deployment: Deployment, service: DeploymentService): Future[Any] = {
     val name = appId(deployment, service.breed)
-    val asyncResult = asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers()))
-    asyncResult map { opList ⇒
+    client.asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](client.internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { opList ⇒   
       opList match {
-        case Some(list) ⇒ list.filter { container ⇒ container.names().toList(0) == name }
-        case None       ⇒ Nil
+        case Some(list) ⇒ list.filter { container ⇒ container.names().toList.head.substring(1) == name }
+        case None       ⇒ { Nil }
       }
     } map { resultList ⇒
-      resultList.toList.map { container ⇒ internalUndeployContainer(Some(container.id())) }
+      resultList.toList.map { container ⇒ client.internalUndeployContainer(Some(container.id())) }
     }
   }
+
+  private def client = new RawDockerClient(DefaultDockerClient.builder().uri(ConfigFactory.load().getString("vamp.container-driver.url")).build())
 }
