@@ -1,7 +1,6 @@
 package io.vamp.container_driver.docker
 
 import io.vamp.container_driver.{ AbstractContainerDriver, ContainerPortMapping, ContainerInfo, ContainerService, ContainerInstance }
-import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.MegaByte
 
@@ -76,22 +75,27 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
     val id = appId(deployment, service.breed)
-    client.asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](client.internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { opList ⇒
-      opList match {
-        case Some(list) ⇒ list.filter { container ⇒ container.names().toList.head.substring(1) == id }
-        case None       ⇒ Nil
+    val dockerContainer = container(deployment, cluster, service)
+
+    client.asyncCall[String, Unit](client.pullImage).apply(dockerContainer.map { c ⇒ c.docker.image }) flatMap { unit ⇒
+      client.asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](client.internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { opList ⇒
+        opList match {
+          case Some(list) ⇒ list.filter { container ⇒ container.names().toList.head.substring(1) == id }
+          case None       ⇒ List()
+        }
+      } map { resultList ⇒
+        if (resultList.isEmpty)
+          (client.internalCreateContainer).apply((translateToRaw(dockerContainer, service)).map { (_, id) }).flatMap { container ⇒ client.internalStartContainer(Some(container.id())) }
+        else
+          resultList.toList.map { container ⇒ client.internalStartContainer(Some(container.id())) }.head
       }
-    } map { resultList ⇒
-      if (resultList.isEmpty)
-        (client.internalCreateContainer).apply((translateToRaw(container(deployment, cluster, service), service)).map { (_, id) }).map { container ⇒ client.internalStartContainer(Some(container.id())) }
-      else
-        resultList.toList.map { container ⇒ client.internalStartContainer(Some(container.id())) }
     }
+
   }
 
   def undeploy(deployment: Deployment, service: DeploymentService): Future[Any] = {
     val name = appId(deployment, service.breed)
-    client.asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](client.internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { opList ⇒   
+    client.asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](client.internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { opList ⇒
       opList match {
         case Some(list) ⇒ list.filter { container ⇒ container.names().toList.head.substring(1) == name }
         case None       ⇒ { Nil }

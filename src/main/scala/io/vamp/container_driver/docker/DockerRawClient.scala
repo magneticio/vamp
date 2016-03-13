@@ -1,11 +1,10 @@
 package io.vamp.container_driver.docker
 
 import com.spotify.docker.client.{ DockerClient, DefaultDockerClient }
-import com.spotify.docker.client.messages.{ HostConfig, PortBinding, ContainerConfig, ContainerInfo ⇒ spContainerInfo, Container ⇒ spContainer, ContainerCreation, Info }
+import com.spotify.docker.client.messages.{ ImageInfo, HostConfig, PortBinding, ContainerConfig, ContainerInfo ⇒ spContainerInfo, Container ⇒ spContainer, ContainerCreation, Info }
 import java.lang.reflect.Field
 
 import io.vamp.container_driver.{ AbstractContainerDriver, ContainerPortMapping, ContainerInfo, ContainerService, ContainerInstance }
-import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.MegaByte
 
@@ -20,7 +19,7 @@ import org.joda.time.DateTime
 
 class RawDockerClient(client: DefaultDockerClient) {
   import RawDockerClient._
-
+  
   def asyncCall[A, B](f: Option[A] ⇒ Option[B])(implicit ec: ExecutionContext): Option[A] ⇒ Future[Option[B]] = a ⇒ Future { f(a) }
 
   def internalCreateContainer = lift[(ContainerConfig, String), ContainerCreation] { x ⇒ client.createContainer(x._1, x._2) }
@@ -32,6 +31,10 @@ class RawDockerClient(client: DefaultDockerClient) {
   def internalAllContainer = lift[DockerClient.ListContainersParam, java.util.List[spContainer]]({ client.listContainers(_) })
 
   def internalInfo = lift[Unit, Info](Unit ⇒ client.info())
+
+  def pullImage = lift[String, Unit](client.pull(_))
+  
+  def checkLocalImage = lift[String, ImageInfo](client.inspectImage(_))
 }
 
 object RawDockerClient {
