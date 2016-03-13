@@ -254,27 +254,18 @@ trait DeploymentValidator {
   def validateGateways: (Deployment ⇒ Future[Deployment]) = { (deployment: Deployment) ⇒
     // Availability check.
     implicit val timeout = PersistenceActor.timeout
-    allArtifacts[Gateway] flatMap {
+    allArtifacts[Gateway] map {
       case gateways ⇒
         val otherGateways = gateways.filter(gateway ⇒ GatewayPath(gateway.name).segments.head != deployment.name)
 
-        val deploymentGateways = deployment.gateways.map { gateway ⇒
+        deployment.gateways.map { gateway ⇒
           otherGateways.find(_.port.number == gateway.port.number) match {
             case Some(g) ⇒ throwException(UnavailableGatewayPortError(gateway.port, g))
-            case _       ⇒ gateway
+            case _ ⇒ gateway
           }
-        } map { gateway ⇒
-          artifactForIfExists[Deployment](GatewayPath(gateway.name).segments.head) map { case d ⇒ gateway -> d }
         }
 
-        Future.sequence(deploymentGateways).map {
-          case dgs ⇒
-            dgs.foreach {
-              case (gateway, Some(_)) ⇒ throwException(UnavailableGatewayPortError(gateway.port, gateway))
-              case _                  ⇒
-            }
-            deployment
-        }
+        deployment
     }
   }
 
