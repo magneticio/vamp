@@ -1,7 +1,6 @@
 package io.vamp.persistence.db
 
 import io.vamp.common.akka.ExecutionContextProvider
-import io.vamp.common.akka.IoC._
 import io.vamp.model.artifact._
 import io.vamp.persistence.operation._
 
