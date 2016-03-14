@@ -261,7 +261,7 @@ trait DeploymentValidator {
         deployment.gateways.map { gateway ⇒
           otherGateways.find(_.port.number == gateway.port.number) match {
             case Some(g) ⇒ throwException(UnavailableGatewayPortError(gateway.port, g))
-            case _ ⇒ gateway
+            case _       ⇒ gateway
           }
         }
 

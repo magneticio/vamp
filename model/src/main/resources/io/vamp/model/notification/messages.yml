@@ -19,6 +19,7 @@ RecursiveDependenciesError             : "Recursive (cyclic) dependency detected
 UnresolvedDependencyInTraitValueError  : "Unresolved reference '{reference}' in breed '{breed.name} -> {breed.deployable.name}'."
 InvalidArgumentError$                  : "Invalid argument - argument must be in form of 'key: value'."
 InvalidArgumentValueError              : "Argument {argument.key} has an invalid value: {argument.value}."
+UnresolvedDependencyError              : "Unresolved dependency '{dependency.name}' for breed '{breed.name}'."
 
 # Blueprint Reader
 
