@@ -46,9 +46,8 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
   private def parseService(implicit source: YamlSourceReader): DeploymentService = {
     val breed = BreedReader.readReference(<<![Any]("breed")).asInstanceOf[DefaultBreed]
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale").asInstanceOf[Option[DefaultScale]]
-    val envVars = environmentVariables().map { ev ⇒ ev.copy(interpolated = ev.value) }
 
-    DeploymentService(state(<<![YamlSourceReader]("state")), breed, envVars, scale, parseInstances, arguments(), dependencies(), dialects)
+    DeploymentService(state(<<![YamlSourceReader]("state")), breed, environmentVariables(), scale, parseInstances, arguments(), dependencies(), dialects)
   }
 
   def parseInstances(implicit source: YamlSourceReader): List[DeploymentInstance] = {
