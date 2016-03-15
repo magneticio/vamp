@@ -10,7 +10,7 @@ import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.PersistenceActor.{ Create, Update }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
-import io.vamp.persistence.operation.{ RouteTargets, GatewayDeploymentStatus, GatewayPort }
+import io.vamp.persistence.operation.{ GatewayDeploymentStatus, GatewayPort, RouteTargets }
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -40,9 +40,16 @@ object GatewaySynchronizationActor {
 
 }
 
+private case class GatewayPipeline(deployable: List[Gateway], nonDeployable: List[Gateway]) {
+  val all = deployable ++ nonDeployable
+}
+
 class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
 
   import GatewaySynchronizationActor._
+
+  // TODO current gateways should be retrieved from key-value store
+  private var current: List[Gateway] = Nil
 
   def receive = {
     case SynchronizeAll                     ⇒ synchronize()
@@ -58,15 +65,15 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       deployments ← allArtifacts[Deployment]
     } yield (gateways, deployments)) onComplete {
       case Success((gateways, deployments)) ⇒ sendTo ! Synchronize(gateways, deployments)
-      case Failure(error)                   ⇒ throwException(InternalServerError(error))
+      case Failure(error)                   ⇒ reportException(InternalServerError(error))
     }
   }
 
   private def synchronize(gateways: List[Gateway], deployments: List[Deployment]) = {
-    (portAssignment(deployments) andThen instanceUpdate(deployments) andThen flush)(gateways)
+    (portAssignment(deployments) andThen instanceUpdate(deployments) andThen select andThen flush)(gateways)
   }
 
-  private def portAssignment(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
+  private def portAssignment(deployments: List[Deployment]): List[Gateway] ⇒ GatewayPipeline = { gateways ⇒
 
     var currentPort = portRangeLower - 1
     val used = gateways.map(_.port.number).toSet
@@ -89,15 +96,15 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       IoC.actorFor[PersistenceActor] ! Create(GatewayPort(gateway.name, availablePort))
     }
 
-    otherGateways
+    GatewayPipeline(otherGateways, noPortGateways)
   }
 
-  private def instanceUpdate(deployments: List[Deployment]): List[Gateway] ⇒ List[Gateway] = { gateways ⇒
+  private def instanceUpdate(deployments: List[Deployment]): GatewayPipeline ⇒ GatewayPipeline = { pipeline ⇒
 
-    val (passThrough, withoutRoutes) = gateways.map { gateway ⇒
+    val (passThrough, withoutRoutes) = pipeline.deployable.map { gateway ⇒
       val routes = gateway.routes.map {
         case route: DefaultRoute ⇒
-          val routeTargets = targets(gateways, deployments, route)
+          val routeTargets = targets(pipeline.deployable, deployments, route)
           val targetMatch = routeTargets == route.targets
           if (!targetMatch) IoC.actorFor[PersistenceActor] ! Update(RouteTargets(route.path.normalized, routeTargets))
           route.copy(targets = routeTargets)
@@ -107,7 +114,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       gateway.copy(routes = routes)
     } partition { gateway ⇒
       gateway.routes.forall {
-        case route: DefaultRoute if route.targets.nonEmpty ⇒ targets(gateways, deployments, route) == route.targets
+        case route: DefaultRoute if route.targets.nonEmpty ⇒ targets(pipeline.deployable, deployments, route) == route.targets
         case _ ⇒ false
       } || !gateway.inner
     }
@@ -116,7 +123,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
     withoutRoutes foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = false)) }
 
-    passThrough
+    GatewayPipeline(passThrough, pipeline.nonDeployable ++ withoutRoutes)
   }
 
   private def targets(gateways: List[Gateway], deployments: List[Deployment], route: DefaultRoute): List[RouteTarget] = {
@@ -174,6 +181,23 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     }
 
     if (targets.exists(_.isEmpty)) Nil else targets.flatten
+  }
+
+  private def select: GatewayPipeline ⇒ List[Gateway] = { pipeline ⇒
+    def byDeploymentName(gateways: List[Gateway]) = gateways.filter(_.inner).groupBy(gateway ⇒ GatewayPath(gateway.name).segments.head)
+
+    val currentByDeployment = byDeploymentName(current)
+    val deployable = byDeploymentName(pipeline.deployable)
+    val nonDeployable = byDeploymentName(pipeline.nonDeployable)
+
+    val inner = byDeploymentName(pipeline.all).toList.flatMap {
+      case (d, g) if deployable.contains(d) && !nonDeployable.contains(d) ⇒ g
+      case (d, g) if nonDeployable.contains(d) ⇒ currentByDeployment.getOrElse(d, Nil)
+      case (_, g) ⇒ g
+    }
+
+    current = pipeline.deployable.filterNot(_.inner) ++ inner
+    current
   }
 
   private def flush: List[Gateway] ⇒ Unit = { gateways ⇒
