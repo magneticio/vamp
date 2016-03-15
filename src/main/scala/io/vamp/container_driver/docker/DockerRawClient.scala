@@ -19,12 +19,14 @@ import org.joda.time.DateTime
 
 class RawDockerClient(client: DefaultDockerClient) {
   import RawDockerClient._
-  
+
   def asyncCall[A, B](f: Option[A] ⇒ Option[B])(implicit ec: ExecutionContext): Option[A] ⇒ Future[Option[B]] = a ⇒ Future { f(a) }
 
   def internalCreateContainer = lift[(ContainerConfig, String), ContainerCreation] { x ⇒ client.createContainer(x._1, x._2) }
 
   def internalStartContainer = lift[String, Unit](client.startContainer(_))
+
+  def internalGetContainerInfo = lift[String, spContainerInfo](client.inspectContainer(_))
 
   def internalUndeployContainer = lift[String, Unit](client.killContainer(_))
 
@@ -32,15 +34,20 @@ class RawDockerClient(client: DefaultDockerClient) {
 
   def internalInfo = lift[Unit, Info](Unit ⇒ client.info())
 
-  def pullImage = lift[String, Unit](client.pull(_))
-  
+  def pullImage = lift[String, Unit]({ image ⇒
+    if (scala.util.Try(client.inspectImage(image)).isFailure)
+      client.pull(image)
+  })
+
   def checkLocalImage = lift[String, ImageInfo](client.inspectImage(_))
+
 }
 
 object RawDockerClient {
   import scala.collection.JavaConversions._
 
   def lift[A, B](f: A ⇒ B): Option[A] ⇒ Option[B] = _ map f
+
   def Try[A](cl: Class[A], paramKey: String): Either[String, Field] = {
     try {
       Right(cl.getClass.getField(paramKey))
@@ -110,10 +117,10 @@ object RawDockerClient {
 
     if (!defaultScaleJs.isEmpty()) {
       val defaultScale = defaultScaleJs.parseJson.convertTo[DefaultScale]
-      App(containerName, defaultScale.instances, defaultScale.cpu, defaultScale.memory.value, List(Task(container.id(), containerName, "", container.ports().map { x ⇒ x.getPublicPort }.toList, Some(new DateTime(container.created()).toString()))))
+      App(containerName, defaultScale.instances, defaultScale.cpu, defaultScale.memory.value, List(Task(container.id(), containerName, "", if (!container.ports().isEmpty()) container.ports().map { x ⇒ x.getPublicPort }.toList else List(0), Some(new DateTime(container.created()).toString()))))
     } else {
       /* Default app values. They are going to be stored as label */
-      App(containerName, 1, 0.0, 0.0, List(Task(container.id(), containerName, "", container.ports().map { x ⇒ x.getPublicPort }.toList, Some(new DateTime(container.created()).toString()))))
+      App(containerName, 1, 0.0, 0.0, List(Task(container.id(), containerName, "", if (!container.ports().isEmpty()) container.ports().map { x ⇒ x.getPublicPort }.toList else List(0), Some(new DateTime(container.created()).toString()))))
     }
   }
 

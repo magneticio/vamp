@@ -50,6 +50,13 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
     DockerParameter(argument.key, argument.value)
   }
 
+  private def getContainerInfo(container: ContainerService): ContainerService = {
+    val info = client.internalGetContainerInfo(Some(container.instances.head.name))
+    if (info != None)
+      container.copy(instances = container.instances.map { x ⇒ x.copy(host = { info.get.networkSettings().ipAddress() }, ports = info.get.networkSettings().ports().map(f ⇒ f._1.split("/")(0)).toList map { x ⇒ x.toInt }) })
+    else container
+  }
+
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = service.breed.deployable match {
     case Deployable(schema, Some(definition)) ⇒ Some(Container(Docker(definition, portMappings(deployment, cluster, service), parameters(service))))
     case _                                    ⇒ None
@@ -59,7 +66,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
     client.asyncCall[Unit, Info](client.internalInfo).apply(None) map { x ⇒
       x match {
         case Some(info) ⇒ ContainerInfo(info.id(), Unit)
-        case None       ⇒ ContainerInfo("???", Unit)
+        case None       ⇒ ContainerInfo("Docker", Unit)
       }
     }
   }
@@ -67,7 +74,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
   def all: Future[List[ContainerService]] = {
     client.asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](client.internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { x ⇒
       x match {
-        case Some(containers) ⇒ (containers.filter { x ⇒ x.status().startsWith("Up") } map (containerService _ compose translateFromspContainerToApp _)).toList
+        case Some(containers) ⇒ (containers.filter { x ⇒ x.status().startsWith("Up") } map (containerService _ compose translateFromspContainerToApp _)).toList map getContainerInfo
         case None             ⇒ Nil
       }
     }
