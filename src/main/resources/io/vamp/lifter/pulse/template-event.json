@@ -1,0 +1,14 @@
+{
+  "template": "$NAME-event-*",
+  "order": 2,
+  "mappings": {
+    "_default_": {
+      "properties": {
+        "value": {
+          "type": "string",
+          "index": "no"
+        }
+      }
+    }
+  }
+}
