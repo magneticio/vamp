@@ -21,17 +21,31 @@ object MarathonDriver {
   MarathonDriver.Schema.values
 }
 
-class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContainerDriver(ec) {
+case class MesosInfo(frameworks: Any, slaves: Any)
+
+case class MarathonDriverInfo(mesos: MesosInfo, marathon: Any)
+
+class MarathonDriver(ec: ExecutionContext, mesos: String, marathon: String) extends AbstractContainerDriver(ec) {
 
   private val logger = Logger(LoggerFactory.getLogger(classOf[MarathonDriver]))
 
-  def info: Future[ContainerInfo] = RestClient.get[Any](s"$url/v2/info").map { response ⇒
-    ContainerInfo("marathon", response)
+  def info: Future[Any] = for {
+    slaves ← RestClient.get[Any](s"$mesos/master/slaves")
+    frameworks ← RestClient.get[Any](s"$mesos/master/frameworks")
+    marathon ← RestClient.get[Any](s"$marathon/v2/info")
+  } yield {
+
+    val s: Any = slaves match {
+      case s: Map[_, _] ⇒ s.asInstanceOf[Map[String, _]].getOrElse("slaves", Nil)
+      case _            ⇒ Nil
+    }
+
+    MarathonDriverInfo(MesosInfo(frameworks, s), marathon)
   }
 
   def all: Future[List[ContainerService]] = {
     logger.debug(s"marathon get all")
-    RestClient.get[Apps](s"$url/v2/apps?embed=apps.tasks").map(apps ⇒ apps.apps.filter(app ⇒ processable(app.id)).map(app ⇒ containerService(app)))
+    RestClient.get[Apps](s"$marathon/v2/apps?embed=apps.tasks").map(apps ⇒ apps.apps.filter(app ⇒ processable(app.id)).map(app ⇒ containerService(app)))
   }
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
@@ -44,9 +58,9 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
     val payload = requestPayload(deployment, cluster, service, app)
 
     if (update)
-      RestClient.put[Any](s"$url/v2/apps/${app.id}", payload)
+      RestClient.put[Any](s"$marathon/v2/apps/${app.id}", payload)
     else
-      RestClient.post[Any](s"$url/v2/apps", payload)
+      RestClient.post[Any](s"$marathon/v2/apps", payload)
   }
 
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = service.breed.deployable match {
@@ -82,7 +96,7 @@ class MarathonDriver(ec: ExecutionContext, url: String) extends AbstractContaine
   def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     logger.info(s"marathon delete app: $id")
-    RestClient.delete(s"$url/v2/apps/$id")
+    RestClient.delete(s"$marathon/v2/apps/$id")
   }
 
   private def containerService(app: App): ContainerService =

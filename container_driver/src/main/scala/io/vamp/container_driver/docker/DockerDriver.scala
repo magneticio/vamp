@@ -35,9 +35,9 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
 
   private val defaultHost = "0.0.0.0"
 
-  def info: Future[ContainerInfo] = docker.info().map {
+  def info: Future[Any] = docker.info().map { response ⇒
     logger.debug(s"docker get info :$docker")
-    ContainerInfo("docker", _)
+    response
   }
 
   def all: Future[List[ContainerService]] = async {

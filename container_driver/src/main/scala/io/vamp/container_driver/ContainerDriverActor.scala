@@ -25,7 +25,9 @@ object ContainerDriverActor {
 
 }
 
-class ContainerDriverActor(driver: ContainerDriver) extends PulseFailureNotifier with CommonSupportForActors with ContainerDriverNotificationProvider {
+case class ContainerInfo(`type`: String, container: Any)
+
+class ContainerDriverActor(`type`: String, driver: ContainerDriver) extends PulseFailureNotifier with CommonSupportForActors with ContainerDriverNotificationProvider {
 
   import io.vamp.container_driver.ContainerDriverActor._
 
@@ -34,7 +36,7 @@ class ContainerDriverActor(driver: ContainerDriver) extends PulseFailureNotifier
   override def errorNotificationClass = classOf[ContainerResponseError]
 
   def receive = {
-    case InfoRequest ⇒ reply(driver.info)
+    case InfoRequest ⇒ reply(driver.info.map(info ⇒ ContainerInfo(`type`, info)))
     case All ⇒ reply(driver.all)
     case Deploy(deployment, cluster, service, update) ⇒ reply(driver.deploy(deployment, cluster, service, update))
     case Undeploy(deployment, service) ⇒ reply(driver.undeploy(deployment, service))
