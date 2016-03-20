@@ -9,14 +9,18 @@ import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvid
 
 object ContainerDriverBootstrap extends Bootstrap with ContainerDriverNotificationProvider {
 
+  val configuration = ConfigFactory.load().getConfig("vamp.container-driver")
+
   def createActors(implicit actorSystem: ActorSystem) = {
 
-    val driver = ConfigFactory.load().getString("vamp.container-driver.type").toLowerCase match {
-      case "marathon" ⇒ new MarathonDriver(actorSystem.dispatcher, ConfigFactory.load().getString("vamp.container-driver.url"))
+    val `type` = ConfigFactory.load().getString("vamp.container-driver.type").toLowerCase
+
+    val driver = `type` match {
       case "docker"   ⇒ new DockerDriver(actorSystem.dispatcher)
+      case "marathon" ⇒ new MarathonDriver(actorSystem.dispatcher, configuration.getString("mesos.url"), configuration.getString("marathon.url"))
       case value      ⇒ throwException(UnsupportedContainerDriverError(value))
     }
 
-    IoC.createActor[ContainerDriverActor](driver) :: Nil
+    IoC.createActor[ContainerDriverActor](`type`, driver) :: Nil
   }
 }
