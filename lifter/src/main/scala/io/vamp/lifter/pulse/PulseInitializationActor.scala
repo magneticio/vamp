@@ -1,12 +1,13 @@
-package io.vamp.pulse.elasticsearch
+package io.vamp.lifter.pulse
 
-import io.vamp.pulse.elasticsearch.ElasticsearchInitializationActor.TemplateDefinition
-import io.vamp.pulse.notification.PulseNotificationProvider
+import io.vamp.lifter.elasticsearch.ElasticsearchInitializationActor
+import io.vamp.lifter.elasticsearch.ElasticsearchInitializationActor.TemplateDefinition
+import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.pulse.{ PulseActor, PulseEvent }
 
 import scala.io.Source
 
-class PulseInitializationActor extends PulseEvent with ElasticsearchInitializationActor with PulseNotificationProvider {
+class PulseInitializationActor extends PulseEvent with ElasticsearchInitializationActor with LifterNotificationProvider {
 
   import PulseActor._
 

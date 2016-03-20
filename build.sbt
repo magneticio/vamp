@@ -130,7 +130,14 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   // Runnable assembly jar lives in bootstrap/target/scala_2.11/
   // and is renamed to vamp assembly for consistent filename for downloading.
   assemblyJarName in assembly := s"vamp-assembly-${version.value}.jar"
-).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, dictionary, pulse, ui, rest_api, gateway_driver)
+).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, dictionary, pulse, ui, rest_api, gateway_driver, lifter)
+
+lazy val lifter = project.settings(bintraySetting: _*).settings(
+  description := "Lifter for Vamp",
+  name := "vamp-lifter",
+  formatting,
+  libraryDependencies ++= testing
+).dependsOn(common, persistence, pulse, gateway_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val rest_api = project.settings(bintraySetting: _*).settings(
   description := "REST api for Vamp",
