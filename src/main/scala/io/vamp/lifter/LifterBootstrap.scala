@@ -24,20 +24,28 @@ object LifterBootstrap extends Bootstrap {
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
-    val persistence = PersistenceBootstrap.databaseType match {
-      case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
-      case _               ⇒ Nil
-    }
+    val persistence = if (configuration.getBoolean("persistence.enabled")) {
+      PersistenceBootstrap.databaseType match {
+        case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
+        case _               ⇒ Nil
+      }
+    } else Nil
 
-    val vga = List(IoC.createActor(Props(classOf[VgaSynchronizationActor]).withMailbox(synchronizationMailbox), IoC.createActor[VgaSynchronizationSchedulerActor]))
+    val vga = if (configuration.getBoolean("vamp-gateway-agent.enabled")) {
+      val actors = List(IoC.createActor(Props(classOf[VgaSynchronizationActor]).withMailbox(synchronizationMailbox), IoC.createActor[VgaSynchronizationSchedulerActor]))
+      IoC.actorFor[VgaSynchronizationSchedulerActor] ! SchedulerActor.Period(vgaSynchronizationPeriod, vgaSynchronizationInitialDelay)
+      actors
+    } else Nil
 
-    val pulse = IoC.createActor[PulseInitializationActor]
+    val pulse = if (configuration.getBoolean("pulse.enabled")) {
+      IoC.createActor[PulseInitializationActor] :: Nil
+    } else Nil
 
-    val kibana = IoC.createActor[KibanaDashboardInitializationActor]
+    val kibana = if (configuration.getBoolean("kibana.enabled")) {
+      IoC.createActor[KibanaDashboardInitializationActor] :: Nil
+    } else Nil
 
-    IoC.actorFor[VgaSynchronizationSchedulerActor] ! SchedulerActor.Period(vgaSynchronizationPeriod, vgaSynchronizationInitialDelay)
-
-    persistence ++ vga :+ pulse :+ kibana
+    persistence ++ vga ++ pulse ++ kibana
   }
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {
