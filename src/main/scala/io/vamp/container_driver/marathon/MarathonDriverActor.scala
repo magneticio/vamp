@@ -3,6 +3,7 @@ package io.vamp.container_driver.marathon
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
+import io.vamp.container_driver.ContainerDriverActor.ContainerDriveMessage
 import io.vamp.container_driver._
 import io.vamp.container_driver.marathon.api.{ Docker, _ }
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
@@ -25,6 +26,12 @@ object MarathonDriverActor {
   }
 
   MarathonDriverActor.Schema.values
+
+  case class DeployApp(app: MarathonApp, update: Boolean) extends ContainerDriveMessage
+
+  case class RetrieveApp(app: String) extends ContainerDriveMessage
+
+  case class UndeployApp(app: MarathonApp) extends ContainerDriveMessage
 }
 
 case class MesosInfo(frameworks: Any, slaves: Any)
@@ -37,11 +44,14 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
   import MarathonDriverActor._
 
   def receive = {
-    case InfoRequest ⇒ reply(info.map(info ⇒ ContainerInfo("marathon", info)))
-    case All ⇒ reply(all)
-    case Deploy(deployment, cluster, service, update) ⇒ reply(deploy(deployment, cluster, service, update))
-    case Undeploy(deployment, service) ⇒ reply(undeploy(deployment, service))
-    case any ⇒ unsupported(UnsupportedContainerDriverRequest(any))
+    case InfoRequest    ⇒ reply(info)
+    case All            ⇒ reply(all)
+    case d: Deploy      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
+    case u: Undeploy    ⇒ reply(undeploy(u.deployment, u.service))
+    case d: DeployApp   ⇒ reply(deploy(d.app, d.update))
+    case u: UndeployApp ⇒ reply(undeploy(u.app))
+    case r: RetrieveApp ⇒ reply(retrieve(r.app))
+    case any            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
   private def info: Future[Any] = for {
@@ -60,7 +70,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
 
   private def all: Future[List[ContainerService]] = {
     log.debug(s"marathon get all")
-    RestClient.get[Apps](s"$marathonUrl/v2/apps?embed=apps.tasks").map(apps ⇒ apps.apps.filter(app ⇒ processable(app.id)).map(app ⇒ containerService(app)))
+    RestClient.get[AppsResponse](s"$marathonUrl/v2/apps?embed=apps.tasks").map(apps ⇒ apps.apps.filter(app ⇒ processable(app.id)).map(app ⇒ containerService(app)))
   }
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
@@ -76,6 +86,10 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
       RestClient.put[Any](s"$marathonUrl/v2/apps/${app.id}", payload)
     else
       RestClient.post[Any](s"$marathonUrl/v2/apps", payload)
+  }
+
+  private def deploy(app: MarathonApp, update: Boolean) = {
+    if (update) RestClient.put[Any](s"$marathonUrl/v2/apps/${app.id}", app) else RestClient.post[Any](s"$marathonUrl/v2/apps", app)
   }
 
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = service.breed.deployable match {
@@ -114,6 +128,19 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     RestClient.delete(s"$marathonUrl/v2/apps/$id")
   }
 
-  private def containerService(app: App): ContainerService =
+  private def undeploy(app: MarathonApp) = {
+    log.info(s"marathon delete app: ${app.id}")
+    RestClient.delete(s"$marathonUrl/v2/apps/${app.id}")
+  }
+
+  private def containerService(app: App): ContainerService = {
     ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
+  }
+
+  private def retrieve(app: String): Future[Option[App]] = {
+    RestClient.get[AppResponse](s"$marathonUrl/v2/apps/$app", RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
+      case AppResponse(response) ⇒ Option(response)
+      case _                     ⇒ None
+    }
+  }
 }
