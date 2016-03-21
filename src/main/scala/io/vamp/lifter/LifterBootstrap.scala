@@ -32,7 +32,7 @@ object LifterBootstrap extends Bootstrap {
     } else Nil
 
     val vga = if (configuration.getBoolean("vamp-gateway-agent.enabled")) {
-      val actors = List(IoC.createActor(Props(classOf[VgaSynchronizationActor]).withMailbox(synchronizationMailbox), IoC.createActor[VgaSynchronizationSchedulerActor]))
+      val actors = List(IoC.createActor(Props(classOf[VgaSynchronizationActor]).withMailbox(synchronizationMailbox)), IoC.createActor[VgaSynchronizationSchedulerActor])
       IoC.actorFor[VgaSynchronizationSchedulerActor] ! SchedulerActor.Period(vgaSynchronizationPeriod, vgaSynchronizationInitialDelay)
       actors
     } else Nil
