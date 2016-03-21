@@ -6,7 +6,7 @@ import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.lifter.kibana.KibanaDashboardInitializationActor
 import io.vamp.lifter.persistence.ElasticsearchPersistenceInitializationActor
 import io.vamp.lifter.pulse.PulseInitializationActor
-import io.vamp.lifter.vga.{ VgaSynchronizationActor, VgaSynchronizationSchedulerActor }
+import io.vamp.lifter.vga.{ VgaMarathonSynchronizationActor, VgaMarathonSynchronizationSchedulerActor }
 import io.vamp.persistence.PersistenceBootstrap
 
 import scala.concurrent.duration._
@@ -32,8 +32,8 @@ object LifterBootstrap extends Bootstrap {
     } else Nil
 
     val vga = if (configuration.getBoolean("vamp-gateway-agent.enabled")) {
-      val actors = List(IoC.createActor(Props(classOf[VgaSynchronizationActor]).withMailbox(synchronizationMailbox)), IoC.createActor[VgaSynchronizationSchedulerActor])
-      IoC.actorFor[VgaSynchronizationSchedulerActor] ! SchedulerActor.Period(vgaSynchronizationPeriod, vgaSynchronizationInitialDelay)
+      val actors = List(IoC.createActor(Props(classOf[VgaMarathonSynchronizationActor]).withMailbox(synchronizationMailbox)), IoC.createActor[VgaMarathonSynchronizationSchedulerActor])
+      IoC.actorFor[VgaMarathonSynchronizationSchedulerActor] ! SchedulerActor.Period(vgaSynchronizationPeriod, vgaSynchronizationInitialDelay)
       actors
     } else Nil
 
@@ -50,7 +50,7 @@ object LifterBootstrap extends Bootstrap {
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {
 
-    IoC.actorFor[VgaSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
+    IoC.actorFor[VgaMarathonSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
 
     super.shutdown(actorSystem)
   }

@@ -137,7 +137,7 @@ lazy val lifter = project.settings(bintraySetting: _*).settings(
   name := "vamp-lifter",
   formatting,
   libraryDependencies ++= testing
-).dependsOn(common, persistence, pulse, gateway_driver).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(common, persistence, pulse, gateway_driver, container_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val rest_api = project.settings(bintraySetting: _*).settings(
   description := "REST api for Vamp",

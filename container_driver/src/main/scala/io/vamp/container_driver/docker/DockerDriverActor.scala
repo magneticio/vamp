@@ -34,7 +34,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
   private val defaultHost = "0.0.0.0"
 
   def receive = {
-    case InfoRequest ⇒ reply(info.map(info ⇒ ContainerInfo("marathon", info)))
+    case InfoRequest ⇒ reply(info)
     case All ⇒ reply(all)
     case Deploy(deployment, cluster, service, update) ⇒ reply(deploy(deployment, cluster, service, update))
     case Undeploy(deployment, service) ⇒ reply(undeploy(deployment, service))
