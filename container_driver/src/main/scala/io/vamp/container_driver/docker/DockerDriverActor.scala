@@ -1,19 +1,19 @@
 package io.vamp.container_driver.docker
 
-import com.typesafe.scalalogging.Logger
+import io.vamp.common.vitals.InfoRequest
+import io.vamp.container_driver.ContainerDriverActor.{ All, Deploy, Undeploy }
 import io.vamp.container_driver._
 import io.vamp.container_driver.docker.wrapper.Create.Response
 import io.vamp.container_driver.docker.wrapper._
 import io.vamp.container_driver.docker.wrapper.model._
-import io.vamp.container_driver.notification.UndefinedDockerImage
+import io.vamp.container_driver.notification.{ UndefinedDockerImage, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
-import org.slf4j.LoggerFactory
 
 import scala.async.Async.{ async, await }
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.Future
 import scala.language.postfixOps
 
-object DockerDriver {
+object DockerDriverActor {
 
   object Schema extends Enumeration {
     val Docker = Value
@@ -21,7 +21,7 @@ object DockerDriver {
 
 }
 
-class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) with DummyScales {
+class DockerDriverActor extends ContainerDriverActor with ContainerDriver with DummyScales {
 
   override protected val nameDelimiter = "_"
 
@@ -29,19 +29,25 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
 
   private val dockerMinimumMemory = 4 * 1024 * 1024
 
-  private val logger = Logger(LoggerFactory.getLogger(classOf[DockerDriver]))
-
   private val docker = wrapper.Docker()
 
   private val defaultHost = "0.0.0.0"
 
-  def info: Future[Any] = docker.info().map { response ⇒
-    logger.debug(s"docker get info :$docker")
-    response
+  def receive = {
+    case InfoRequest ⇒ reply(info.map(info ⇒ ContainerInfo("marathon", info)))
+    case All ⇒ reply(all)
+    case Deploy(deployment, cluster, service, update) ⇒ reply(deploy(deployment, cluster, service, update))
+    case Undeploy(deployment, service) ⇒ reply(undeploy(deployment, service))
+    case any ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
-  def all: Future[List[ContainerService]] = async {
-    logger.debug(s"docker get all")
+  private def info: Future[Any] = docker.info().map { response ⇒
+    log.debug(s"docker get info :$docker")
+    ContainerInfo("docker", response)
+  }
+
+  private def all: Future[List[ContainerService]] = async {
+    log.debug(s"docker get all")
 
     // Get all containers & container details
     val details: List[Future[ContainerDetails]] =
@@ -56,40 +62,40 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
     val actualDetails: List[ContainerDetails] = await(Future.sequence(details))
 
     val containerDetails: List[ContainerService] = details2Services(for { detail ← actualDetails if processable(detail.name) } yield detail)
-    logger.trace("[ALL]: " + containerDetails.toString())
+    log.debug("[ALL]: " + containerDetails.toString())
     containerDetails
   }
 
-  def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
+  private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
     val containerName = appId(deployment, service.breed)
     findContainerIdByName(containerName).map {
       case None ⇒
-        logger.info(s"[DEPLOY] Container $containerName does not exist, needs creating")
-        validateSchemaSupport(service.breed.deployable.schema, DockerDriver.Schema)
+        log.info(s"[DEPLOY] Container $containerName does not exist, needs creating")
+        validateSchemaSupport(service.breed.deployable.schema, DockerDriverActor.Schema)
         createAndStartContainer(containerName, deployment, cluster, service)
 
       case Some(found) if update ⇒
-        logger.info(s"[DEPLOY] Container $containerName already exists, needs updating")
+        log.info(s"[DEPLOY] Container $containerName already exists, needs updating")
         addScale(Future(found), service.scale)
 
       case Some(found) ⇒
-        logger.warn(s"[DEPLOY] Container $containerName already exists, no action")
+        log.warning(s"[DEPLOY] Container $containerName already exists, no action")
         None
     }
   }
 
-  def undeploy(deployment: Deployment, service: DeploymentService) = {
+  private def undeploy(deployment: Deployment, service: DeploymentService) = {
     val containerName = appId(deployment, service.breed)
-    logger.info(s"docker delete app: $containerName")
+    log.info(s"docker delete app: $containerName")
     findContainerIdByName(containerName).map {
       case Some(found) ⇒
-        logger.debug(s"[UNDEPLOY] Container $containerName found, trying to kill it")
+        log.debug(s"[UNDEPLOY] Container $containerName found, trying to kill it")
         removeScale(containerName)
         val container = docker.containers.get(found)
         container.kill()
         container.delete()
       case None ⇒
-        logger.debug(s"[UNDEPLOY] Container $containerName does not exist")
+        log.debug(s"[UNDEPLOY] Container $containerName does not exist")
     }
   }
 
@@ -114,7 +120,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
   }
 
   private def detail2Server(cd: ContainerDetails): ContainerInstance = {
-    logger.trace(s"Details2Server containerDetails: $cd")
+    log.debug(s"Details2Server containerDetails: $cd")
     ContainerInstance(
       name = serverNameFromContainer(cd),
       host = if (cd.config.hostName.isEmpty) defaultHost else cd.config.hostName,
@@ -155,8 +161,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
 
     startDockerContainer(dialect, getContainerFromResponseId(response), portMappings(deployment, cluster, service), service.scale).onFailure {
       case ex ⇒
-        logger.debug(s"Failed to start docker container: $ex")
-        logger.trace(s"${ex.getStackTrace.mkString("\n")}")
+        log.debug(s"Failed to start docker container: $ex, ${ex.getStackTrace.mkString("\n")}")
     }
   }
 
@@ -175,13 +180,13 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    */
   private def pullImage(name: String, dialect: Map[Any, Any]): Unit = {
     docker.images.pull(name, dialect).stream {
-      case Pull.Status(msg) ⇒ logger.debug(s"[DEPLOY] pulling image $name: $msg")
+      case Pull.Status(msg) ⇒ log.debug(s"[DEPLOY] pulling image $name: $msg")
       case Pull.Progress(msg, _, details) ⇒
-        logger.debug(s"[DEPLOY] pulling image $name: $msg")
+        log.debug(s"[DEPLOY] pulling image $name: $msg")
         details.foreach { detail ⇒
-          logger.debug(s"[DEPLOY] pulling image $name: ${detail.bar}")
+          log.debug(s"[DEPLOY] pulling image $name: ${detail.bar}")
         }
-      case Pull.Error(msg, _) ⇒ logger.error(s"[DEPLOY] pulling image $name failed: $msg")
+      case Pull.Error(msg, _) ⇒ log.error(s"[DEPLOY] pulling image $name failed: $msg")
     }
   }
 
@@ -190,17 +195,17 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    * Tries to set the cpu shares & memory based on the supplied scale
    */
   private def createDockerContainer(dialect: Map[Any, Any], containerName: String, dockerImageName: String, env: Map[String, String], ports: List[ContainerPortMapping]): Future[Response] = async {
-    logger.debug(s"createDockerContainer :$containerName")
+    log.debug(s"createDockerContainer :$containerName")
 
     var containerPrep = docker.containers.create(dockerImageName, dialect).name(containerName).hostName(defaultHost)
 
     for (v ← env) {
-      logger.trace(s"[CreateDockerContainer] setting env ${v._1} = ${v._2}")
+      log.debug(s"[CreateDockerContainer] setting env ${v._1} = ${v._2}")
     }
     containerPrep = containerPrep.env(env.toSeq: _*)
 
     val exposedPorts = ports.map(p ⇒ {
-      logger.debug(s"[CreateDockerContainer] exposed ports ${p.containerPort}")
+      log.debug(s"[CreateDockerContainer] exposed ports ${p.containerPort}")
       p.containerPort.toString
     })
     containerPrep = containerPrep.exposedPorts(exposedPorts.toSeq: _*)
@@ -216,14 +221,13 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
 
     id.onFailure {
       case ex ⇒
-        logger.debug(s"Failed to create docker container: $ex")
-        logger.trace(s"${ex.getStackTrace.mkString("\n")}")
+        log.debug(s"Failed to create docker container: $ex, ${ex.getStackTrace.mkString("\n")}")
     }
 
     var startPrep = docker.containers.get(await(id)).start(dialect)
 
     for (port ← ports) {
-      logger.debug(s"[StartContainer] setting port: 0.0.0.0:${port.hostPort} -> ${port.containerPort}/tcp")
+      log.debug(s"[StartContainer] setting port: 0.0.0.0:${port.hostPort} -> ${port.containerPort}/tcp")
       startPrep = startPrep.portBind(wrapper.model.Port.Tcp(port.containerPort), PortBinding.local(port.hostPort))
     }
     startPrep = serviceScale match {
@@ -253,7 +257,7 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) wit
    * Creates a nice debug log message
    */
   private def logContainerDetails(detail: Future[ContainerDetails]) = async {
-    logger.debug(s"[ALL] name: ${await(detail).name} ${
+    log.debug(s"[ALL] name: ${await(detail).name} ${
       if (processable(await(detail).name)) {
         "[Monitored by VAMP]"
       } else {
