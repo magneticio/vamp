@@ -22,6 +22,12 @@ object LifterBootstrap extends Bootstrap {
 
   val vgaSynchronizationInitialDelay = configuration.getInt("vamp-gateway-agent.synchronization.initial-delay") seconds
 
+  val vampGatewayAgentEnabled = configuration.getBoolean("vamp-gateway-agent.enabled")
+
+  val pulseEnabled = configuration.getBoolean("pulse.enabled")
+
+  val kibanaEnabled = configuration.getBoolean("kibana.enabled")
+
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
     val persistence = if (configuration.getBoolean("persistence.enabled")) {
@@ -31,26 +37,26 @@ object LifterBootstrap extends Bootstrap {
       }
     } else Nil
 
-    val vga = if (configuration.getBoolean("vamp-gateway-agent.enabled")) {
+    val vga = if (vampGatewayAgentEnabled) {
       val actors = List(IoC.createActor(Props(classOf[VgaMarathonSynchronizationActor]).withMailbox(synchronizationMailbox)), IoC.createActor[VgaMarathonSynchronizationSchedulerActor])
       IoC.actorFor[VgaMarathonSynchronizationSchedulerActor] ! SchedulerActor.Period(vgaSynchronizationPeriod, vgaSynchronizationInitialDelay)
       actors
     } else Nil
 
-    val pulse = if (configuration.getBoolean("pulse.enabled")) {
+    val pulse = if (pulseEnabled)
       IoC.createActor[PulseInitializationActor] :: Nil
-    } else Nil
+    else Nil
 
-    val kibana = if (configuration.getBoolean("kibana.enabled")) {
+    val kibana = if (kibanaEnabled)
       IoC.createActor[KibanaDashboardInitializationActor] :: Nil
-    } else Nil
+    else Nil
 
     persistence ++ vga ++ pulse ++ kibana
   }
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {
 
-    IoC.actorFor[VgaMarathonSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
+    if (vampGatewayAgentEnabled) IoC.actorFor[VgaMarathonSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
 
     super.shutdown(actorSystem)
   }

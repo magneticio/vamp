@@ -84,6 +84,8 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "gateways" -> DeployedGatewayReader,
     "deployments" -> new AbstractDeploymentReader() {
       override protected def routingReader = new RoutingReader(acceptPort = true)
+
+      override protected def validateEitherReferenceOrAnonymous = false
     },
     "breeds" -> BreedReader,
     "blueprints" -> BlueprintReader,

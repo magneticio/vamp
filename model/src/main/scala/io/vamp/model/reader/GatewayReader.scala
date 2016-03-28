@@ -121,17 +121,13 @@ trait AbstractRouteReader extends YamlReader[Route] with WeakReferenceYamlReader
   }
 
   protected def filters(implicit source: YamlSourceReader): List[Filter] = <<?[YamlList]("filters") match {
-    case None ⇒ List.empty[Filter]
-    case Some(list: YamlList) ⇒ list.map {
-      FilterReader.readReferenceOrAnonymous
-    }
+    case None                 ⇒ List.empty[Filter]
+    case Some(list: YamlList) ⇒ list.map(FilterReader.readReferenceOrAnonymous)
   }
 
   protected def rewrites(implicit source: YamlSourceReader): List[Rewrite] = <<?[YamlList]("rewrites") match {
-    case None ⇒ List.empty[Rewrite]
-    case Some(list: YamlList) ⇒ list.map {
-      RewriteReader.readReferenceOrAnonymous
-    }
+    case None                 ⇒ List.empty[Rewrite]
+    case Some(list: YamlList) ⇒ list.map(RewriteReader.readReferenceOrAnonymous)
   }
 }
 
