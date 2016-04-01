@@ -116,7 +116,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
             ) :: Nil,
           servers = Nil,
           rewrites = Nil,
-          sticky = gateway.sticky.contains(Gateway.Sticky.Service) || gateway.sticky.contains(Gateway.Sticky.Instance),
+          sticky = gateway.sticky.contains(Gateway.Sticky.Route) || gateway.sticky.contains(Gateway.Sticky.Instance),
           balance = gateway.defaultBalance,
           options = Options())
       case route ⇒ unsupported(route)
@@ -138,7 +138,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       },
       servers = Nil,
       rewrites = Nil,
-      sticky = gateway.sticky.contains(Gateway.Sticky.Service) || gateway.sticky.contains(Gateway.Sticky.Instance),
+      sticky = gateway.sticky.contains(Gateway.Sticky.Route) || gateway.sticky.contains(Gateway.Sticky.Instance),
       balance = gateway.defaultBalance,
       options = Options()
     )
