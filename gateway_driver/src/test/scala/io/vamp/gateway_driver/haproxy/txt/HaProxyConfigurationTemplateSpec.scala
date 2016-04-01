@@ -390,12 +390,12 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, version, tcpLogFormat, httpLogFormat)).toString(), "configuration_7.txt")
   }
 
-  it should "serialize A/B services to HAProxy configuration - sticky service" in {
+  it should "serialize A/B services to HAProxy configuration - sticky route" in {
     val converted = convert(List(
       Gateway(
         name = "vamp/sava/port/_",
         port = Port(33001),
-        sticky = Some(Gateway.Sticky.Service),
+        sticky = Some(Gateway.Sticky.Route),
         routes = List(
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",

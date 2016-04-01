@@ -15,7 +15,7 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
     GatewayReader.read(res("gateway/gateway1.yml")) should have(
       'name("sava"),
       'port(Port("8080", None, Some("8080/http"))),
-      'sticky(Some(Gateway.Sticky.Service)),
+      'sticky(Some(Gateway.Sticky.Route)),
       'routes(List(DefaultRoute("", GatewayPath("sava1", List("sava1")), Some(Percentage(50)), Nil, Nil, None), DefaultRoute("", GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), Nil, Nil, None)))
     )
   }

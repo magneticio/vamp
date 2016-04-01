@@ -9,7 +9,7 @@ object Gateway {
   val anonymous = ""
 
   object Sticky extends Enumeration {
-    val Service, Instance = Value
+    val Route, Instance = Value
 
     def byName(sticky: String): Option[Sticky.Value] = Gateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
   }

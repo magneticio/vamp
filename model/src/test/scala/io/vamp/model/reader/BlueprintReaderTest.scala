@@ -519,10 +519,10 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  it should "read sticky service" in {
+  it should "read sticky route" in {
     BlueprintReader.read(res("blueprint/blueprint57.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil, Map())), List(Gateway("", Port("", None, None), Some(Gateway.Sticky.Service), Nil)), None, Map()))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil, Map())), List(Gateway("", Port("", None, None), Some(Gateway.Sticky.Route), Nil)), None, Map()))),
       'environmentVariables(Nil)
     )
   }
@@ -554,7 +554,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "parse multiple port routing" in {
     BlueprintReader.read(res("blueprint/blueprint61.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("sava", List(Service(DefaultBreed("sava_1.0", Deployable("docker", Some("magneticio/sava:1.0.0")), List(Port("web", None, Some("8080")), Port("admin", None, Some("8081"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Map())), List(Gateway("", Port("web", None, None), Some(Gateway.Sticky.Service), Nil), Gateway("", Port("admin", None, None), Some(Gateway.Sticky.Instance), Nil)), None, Map()))),
+      'clusters(List(Cluster("sava", List(Service(DefaultBreed("sava_1.0", Deployable("docker", Some("magneticio/sava:1.0.0")), List(Port("web", None, Some("8080")), Port("admin", None, Some("8081"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Map())), List(Gateway("", Port("web", None, None), Some(Gateway.Sticky.Route), Nil), Gateway("", Port("admin", None, None), Some(Gateway.Sticky.Instance), Nil)), None, Map()))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -579,7 +579,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "allow sticky http port" in {
     BlueprintReader.read(res("blueprint/blueprint64.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("8080/http"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Map())), List(Gateway("", Port("web", None, None), Some(Gateway.Sticky.Service), Nil)), None, Map()))),
+      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("8080/http"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Map())), List(Gateway("", Port("web", None, None), Some(Gateway.Sticky.Route), Nil)), None, Map()))),
       'environmentVariables(Nil)
     )
   }
@@ -612,7 +612,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "remap anonymous routing port" in {
     BlueprintReader.read(res("blueprint/blueprint68.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("8080"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Map())), List(Gateway("", Port("web", None, None), Some(Gateway.Sticky.Service), Nil)), None, Map()))),
+      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("8080"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Map())), List(Gateway("", Port("web", None, None), Some(Gateway.Sticky.Route), Nil)), None, Map()))),
       'environmentVariables(Nil)
     )
   }
@@ -620,8 +620,8 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read complex gateway" in {
     BlueprintReader.read(res("blueprint/blueprint69.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("9050")), Port("admin", None, Some("9060"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Map())), List(Gateway("", Port("web", None, None), Some(Gateway.Sticky.Service), Nil)), None, Map()))),
-      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/web", List("notorious", "web")), None, Nil, Nil, None))), Gateway("", Port("8081", None, Some("8081")), Some(Gateway.Sticky.Service), List(DefaultRoute("", GatewayPath("notorious/admin", List("notorious", "admin")), None, Nil, Nil, None))))))
+      'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("docker", Some("anaconda")), List(Port("web", None, Some("9050")), Port("admin", None, Some("9060"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Map())), List(Gateway("", Port("web", None, None), Some(Gateway.Sticky.Route), Nil)), None, Map()))),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, List(DefaultRoute("", GatewayPath("notorious/web", List("notorious", "web")), None, Nil, Nil, None))), Gateway("", Port("8081", None, Some("8081")), Some(Gateway.Sticky.Route), List(DefaultRoute("", GatewayPath("notorious/admin", List("notorious", "admin")), None, Nil, Nil, None))))))
   }
 
   it should "not allow sticky tcp gateway" in {
