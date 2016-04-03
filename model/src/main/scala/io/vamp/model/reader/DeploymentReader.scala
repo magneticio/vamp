@@ -40,6 +40,9 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
       implicit val source = el.asInstanceOf[YamlSourceReader]
       EnvironmentVariable(<<![String]("name"), <<?[String]("alias"), <<?[String]("value"), <<?[String]("interpolated"))
     }
+    case Some(input: YamlSourceReader) ⇒
+      input.pull()
+      Nil
     case _ ⇒ Nil
   }
 
