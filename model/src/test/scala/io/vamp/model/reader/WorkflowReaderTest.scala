@@ -214,4 +214,18 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
       'period("123")
     )
   }
+
+  it should "read the daemon scheduled workflow" in {
+    ScheduledWorkflowReader.read(res("workflow/scheduled13.yml")) should have(
+      'name("logger-schedule"),
+      'workflow(WorkflowReference("logger")),
+      'trigger(DaemonTrigger)
+    )
+  }
+
+  it should "fail on no trigger and daemon == false" in {
+    expectedError[UndefinedWorkflowTriggerError.type]({
+      ScheduledWorkflowReader.read(res("workflow/scheduled14.yml"))
+    })
+  }
 }

@@ -4,10 +4,10 @@ import java.time.{ OffsetDateTime, ZoneId }
 import java.util.Date
 
 import io.vamp.model.artifact.DefaultScale
-import io.vamp.model.notification.{ InvalidWorkflowScale, NoWorkflowRunnable, IllegalPeriod, UndefinedWorkflowTriggerError }
+import io.vamp.model.notification.{ IllegalPeriod, InvalidWorkflowScale, NoWorkflowRunnable, UndefinedWorkflowTriggerError }
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.workflow.TimeTrigger.{ RepeatForever, RepeatTimesCount }
-import io.vamp.model.workflow._
+import io.vamp.model.workflow.{ DaemonTrigger, _ }
 
 import scala.util.Try
 
@@ -39,26 +39,11 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
   }
 
   override protected def parse(implicit source: YamlSourceReader): ScheduledWorkflow = {
-    val trigger = <<?[String]("deployment").map {
-      case deployment ⇒ DeploymentTrigger(deployment)
-    } getOrElse {
-
-      <<?[String]("period") map { period ⇒
-
-        val repeatTimes = <<?[Int]("repeatCount") match {
-          case None        ⇒ RepeatForever
-          case Some(count) ⇒ RepeatTimesCount(count)
+    val trigger = deploymentTrigger getOrElse {
+      timeTrigger getOrElse {
+        eventTrigger getOrElse {
+          daemonTrigger getOrElse throwException(UndefinedWorkflowTriggerError)
         }
-
-        val startTime = <<?[Date]("startTime") map (time ⇒ OffsetDateTime.from(time.toInstant.atZone(ZoneId.of("UTC"))))
-
-        Try(TimeTrigger(period, repeatTimes, startTime)).getOrElse(throwException(IllegalPeriod(period)))
-
-      } getOrElse {
-
-        <<?[List[String]]("tags").map {
-          case tags ⇒ EventTrigger(tags.toSet)
-        } getOrElse throwException(UndefinedWorkflowTriggerError)
       }
     }
 
@@ -68,5 +53,38 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
     }
 
     ScheduledWorkflow(name, workflow, trigger)
+  }
+
+  private def deploymentTrigger(implicit source: YamlSourceReader): Option[Trigger] = {
+    <<?[String]("deployment").map {
+      case deployment ⇒ DeploymentTrigger(deployment)
+    }
+  }
+
+  private def timeTrigger(implicit source: YamlSourceReader): Option[Trigger] = {
+    <<?[String]("period") map { period ⇒
+
+      val repeatTimes = <<?[Int]("repeatCount") match {
+        case None        ⇒ RepeatForever
+        case Some(count) ⇒ RepeatTimesCount(count)
+      }
+
+      val startTime = <<?[Date]("startTime") map (time ⇒ OffsetDateTime.from(time.toInstant.atZone(ZoneId.of("UTC"))))
+
+      Try(TimeTrigger(period, repeatTimes, startTime)).getOrElse(throwException(IllegalPeriod(period)))
+    }
+  }
+
+  private def eventTrigger(implicit source: YamlSourceReader): Option[Trigger] = {
+    <<?[List[String]]("tags").map {
+      case tags ⇒ EventTrigger(tags.toSet)
+    }
+  }
+
+  private def daemonTrigger(implicit source: YamlSourceReader): Option[Trigger] = {
+    <<?[Boolean]("daemon") match {
+      case Some(daemon) if daemon ⇒ Option(DaemonTrigger)
+      case _                      ⇒ None
+    }
   }
 }
