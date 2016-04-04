@@ -15,7 +15,7 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
 
   protected def appId(deployment: Deployment, breed: Breed): String = s"$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
-  protected def processable(id: String): Boolean = id.split(nameDelimiter).size == 3
+  protected def processable(id: String): Boolean = id.split(nameDelimiter).length == 3
 
   protected def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
 

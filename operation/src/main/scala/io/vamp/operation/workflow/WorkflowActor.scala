@@ -93,6 +93,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
       log.debug(s"Scheduling workflow: '${workflow.name}'.")
 
       workflow.trigger match {
+        case DaemonTrigger           ⇒ trigger(workflow)
         case TimeTrigger(_, _, _)    ⇒ trigger(workflow)
         case EventTrigger(tags)      ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
         case DeploymentTrigger(name) ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", Set("deployments", s"deployments:$name"), RunWorkflow(workflow))

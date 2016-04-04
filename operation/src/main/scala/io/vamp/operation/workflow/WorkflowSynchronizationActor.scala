@@ -2,9 +2,9 @@ package io.vamp.operation.workflow
 
 import akka.pattern.ask
 import io.vamp.common.akka._
-import io.vamp.model.workflow.{ ScheduledWorkflow, TimeTrigger }
+import io.vamp.model.workflow.{ DaemonTrigger, ScheduledWorkflow, TimeTrigger }
 import io.vamp.operation.notification._
-import io.vamp.operation.workflow.WorkflowSynchronizationActor.Synchronize
+import io.vamp.operation.workflow.WorkflowSynchronizationActor.SynchronizeAll
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.workflow_driver.{ WorkflowDriverActor, WorkflowInstance }
 
@@ -12,14 +12,14 @@ import scala.language.postfixOps
 
 class WorkflowSynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
-  def tick() = IoC.actorFor[WorkflowSynchronizationActor] ! Synchronize
+  def tick() = IoC.actorFor[WorkflowSynchronizationActor] ! SynchronizeAll
 }
 
 object WorkflowSynchronizationActor {
 
   sealed trait WorkflowMessages
 
-  object Synchronize extends WorkflowMessages
+  object SynchronizeAll extends WorkflowMessages
 
 }
 
@@ -28,7 +28,7 @@ class WorkflowSynchronizationActor extends CommonSupportForActors with ArtifactS
   import WorkflowSynchronizationActor._
 
   def receive = {
-    case Synchronize ⇒ synchronize()
+    case SynchronizeAll ⇒ synchronize()
     case _           ⇒
   }
 
@@ -39,7 +39,7 @@ class WorkflowSynchronizationActor extends CommonSupportForActors with ArtifactS
       workflowInstances ← checked[List[WorkflowInstance]](IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Scheduled)
     } yield {
       scheduledWorkflows.filter {
-        _.trigger.isInstanceOf[TimeTrigger]
+        scheduled ⇒ scheduled.trigger.isInstanceOf[TimeTrigger] || scheduled.trigger == DaemonTrigger
       } filterNot {
         scheduled ⇒ workflowInstances.exists(_.name == scheduled.name)
       } foreach {
