@@ -79,7 +79,7 @@ class VgaMarathonSynchronizationActor extends CommonSupportForActors with Artifa
       if (count > 0)
         IoC.actorFor[ContainerDriverActor] ! DeployApp(request(count), update = instances != 0)
       else
-        IoC.actorFor[ContainerDriverActor] ! UndeployApp(request(0))
+        IoC.actorFor[ContainerDriverActor] ! UndeployApp(id)
     }
   }
 
