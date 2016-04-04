@@ -184,7 +184,7 @@ lazy val workflow_driver = project.settings(bintraySetting: _*).settings(
   name := "vamp-workflow_driver",
   formatting,
   libraryDependencies ++= testing
-).dependsOn(model, pulse, persistence).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(model, pulse, persistence, container_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val persistence = project.settings(bintraySetting: _*).settings(
   description := "Stores Vamp artifacts",
