@@ -27,11 +27,13 @@ object MarathonDriverActor {
 
   MarathonDriverActor.Schema.values
 
+  case class AllApps(filter: (MarathonApp) ⇒ Boolean) extends ContainerDriveMessage
+
   case class DeployApp(app: MarathonApp, update: Boolean) extends ContainerDriveMessage
 
   case class RetrieveApp(app: String) extends ContainerDriveMessage
 
-  case class UndeployApp(app: MarathonApp) extends ContainerDriveMessage
+  case class UndeployApp(app: String) extends ContainerDriveMessage
 }
 
 case class MesosInfo(frameworks: Any, slaves: Any)
@@ -48,6 +50,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     case All            ⇒ reply(all)
     case d: Deploy      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy    ⇒ reply(undeploy(u.deployment, u.service))
+    case a: AllApps     ⇒ reply(allApps.map(_.filter(a.filter)))
     case d: DeployApp   ⇒ reply(deploy(d.app, d.update))
     case u: UndeployApp ⇒ reply(undeploy(u.app))
     case r: RetrieveApp ⇒ reply(retrieve(r.app))
@@ -89,7 +92,16 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
   }
 
   private def deploy(app: MarathonApp, update: Boolean) = {
-    if (update) RestClient.put[Any](s"$marathonUrl/v2/apps/${app.id}", app) else RestClient.post[Any](s"$marathonUrl/v2/apps", app)
+    // workaround - empty args may case Marathon to reject the request, so removing args altogether
+    val request = if (app.args.isEmpty) {
+      implicit val formats: Formats = DefaultFormats
+      Extraction.decompose(app).values match {
+        case map: Map[_, _] ⇒ map.filterNot { case (n, _) ⇒ n == "args" }
+        case any            ⇒ any
+      }
+    } else app
+
+    if (update) RestClient.put[Any](s"$marathonUrl/v2/apps/${app.id}", request) else RestClient.post[Any](s"$marathonUrl/v2/apps", request)
   }
 
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = service.breed.deployable match {
@@ -128,13 +140,17 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     RestClient.delete(s"$marathonUrl/v2/apps/$id")
   }
 
-  private def undeploy(app: MarathonApp) = {
-    log.info(s"marathon delete app: ${app.id}")
-    RestClient.delete(s"$marathonUrl/v2/apps/${app.id}")
+  private def undeploy(app: String) = {
+    log.info(s"marathon delete app: $app")
+    RestClient.delete(s"$marathonUrl/v2/apps/$app")
   }
 
   private def containerService(app: App): ContainerService = {
     ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
+  }
+
+  private def allApps: Future[List[MarathonApp]] = {
+    Future.successful(Nil)
   }
 
   private def retrieve(app: String): Future[Option[App]] = {
