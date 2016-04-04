@@ -175,12 +175,10 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  it should "ignore 'script' if 'workflow' is specified" in {
-    expectedError[UnexpectedElement]({
+  it should "should fail if both 'script' adn 'workflow' are specified" in {
+    expectedError[BothWorkflowAndScriptError.type]({
       ScheduledWorkflowReader.read(res("workflow/scheduled8.yml"))
-    }) should have(
-      'element(Map("script" -> "vamp.exit()"))
-    )
+    })
   }
 
   it should "read anonymous workflow specified with 'script'" in {

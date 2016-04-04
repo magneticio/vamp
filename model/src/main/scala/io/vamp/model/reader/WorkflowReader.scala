@@ -4,7 +4,7 @@ import java.time.{ OffsetDateTime, ZoneId }
 import java.util.Date
 
 import io.vamp.model.artifact.DefaultScale
-import io.vamp.model.notification.{ IllegalPeriod, InvalidWorkflowScale, NoWorkflowRunnable, UndefinedWorkflowTriggerError }
+import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.workflow.TimeTrigger.{ RepeatForever, RepeatTimesCount }
 import io.vamp.model.workflow.{ DaemonTrigger, _ }
@@ -48,8 +48,9 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
     }
 
     val workflow = <<?[Any]("workflow") match {
+      case Some(w) if <<?[String]("script").isDefined ⇒ throwException(BothWorkflowAndScriptError)
       case Some(w) ⇒ WorkflowReader.readReference(w)
-      case _       ⇒ DefaultWorkflow("", None, Option(<<![String]("script")), None, None)
+      case _ ⇒ DefaultWorkflow("", None, Option(<<![String]("script")), None, None)
     }
 
     ScheduledWorkflow(name, workflow, trigger)
