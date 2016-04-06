@@ -13,6 +13,7 @@ object GatewaySerializationFormat extends io.vamp.common.json.SerializationForma
     new GatewaySerializer() :+
     new RoutingStickySerializer() :+
     new RouteSerializer() :+
+    new ExternalRouteTargetSerializer() :+
     new FilterSerializer() :+
     new RewriteSerializer()
 }
@@ -78,6 +79,15 @@ class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerializat
 
       if (route.targets.nonEmpty) list += JField("instances", Extraction.decompose(route.targets))
 
+      new JObject(list.toList)
+  }
+}
+
+class ExternalRouteTargetSerializer extends ArtifactSerializer[ExternalRouteTarget] {
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case target: ExternalRouteTarget ⇒
+      val list = new ArrayBuffer[JField]
+      list += JField("url", JString(target.url))
       new JObject(list.toList)
   }
 }

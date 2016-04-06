@@ -101,10 +101,14 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "route-targets" -> new NoNameValidationYamlReader[RouteTargets] {
       override protected def parse(implicit source: YamlSourceReader) = {
         val targets = <<?[YamlList]("targets") match {
-          case Some(list) ⇒ list.map {
+          case Some(list) ⇒ list.flatMap {
             case yaml ⇒
               implicit val source = yaml
-              RouteTarget(<<![String]("name"), <<![String]("host"), <<![Int]("port"))
+              (<<?[String]("name"), <<?[String]("url")) match {
+                case (_, Some(url))  ⇒ ExternalRouteTarget(url) :: Nil
+                case (Some(name), _) ⇒ InternalRouteTarget(name, <<![String]("host"), <<![Int]("port")) :: Nil
+                case _               ⇒ Nil
+              }
           }
           case _ ⇒ Nil
         }

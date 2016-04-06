@@ -49,8 +49,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     val servers2 = HaProxyServer(
       name = "test_be1_a_2",
       lookup = "test_be1_a_2",
-      host = "192.168.59.103",
-      port = 8082,
+      url = "192.168.59.103:8082",
       weight = 100,
       checkInterval = Option(10)
     ) :: Nil
@@ -111,7 +110,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         filters = Nil,
         rewrites = Nil,
         balance = None,
-        targets = RouteTarget(
+        targets = InternalRouteTarget(
           name = "64435a223bddf1fa589135baa5e228090279c032",
           host = "192.168.99.100",
           port = 32768
@@ -133,7 +132,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         filters = Nil,
         rewrites = Nil,
         balance = None,
-        targets = RouteTarget(
+        targets = InternalRouteTarget(
           name = "64435a223bddf1fa589135baa5e228090279c032",
           host = "192.168.99.100",
           port = 32768
@@ -156,7 +155,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = Nil,
           rewrites = Nil,
           balance = None,
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
             port = 32770
@@ -174,7 +173,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = Nil,
           rewrites = Nil,
           balance = None,
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
             port = 33002
@@ -201,15 +200,15 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             rewrites = Nil,
             balance = None,
             targets = List(
-              RouteTarget(
+              InternalRouteTarget(
                 name = "64435a223bddf1fa589135baa5e228090279c032",
                 host = "192.168.99.100",
                 port = 32772
-              ), RouteTarget(
+              ), InternalRouteTarget(
                 name = "52c84bbf28dcc96bd4c4167eeeb7ff0a69bfb6eb",
                 host = "192.168.99.100",
                 port = 32772
-              ), RouteTarget(
+              ), InternalRouteTarget(
                 name = "5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7",
                 host = "192.168.99.100",
                 port = 32772
@@ -222,11 +221,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             rewrites = Nil,
             balance = None,
             targets = List(
-              RouteTarget(
+              InternalRouteTarget(
                 name = "9019c00f1f7f641c4efc7a02c6f44e9f90d7750",
                 host = "192.168.99.100",
                 port = 32773
-              ), RouteTarget(
+              ), InternalRouteTarget(
                 name = "49594c26c89754450bd4f562946a69070a4aa887",
                 host = "192.168.99.100",
                 port = 32773
@@ -244,7 +243,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = Nil,
           rewrites = Nil,
           balance = None,
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
             port = 33002
@@ -269,7 +268,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = Nil,
           rewrites = Nil,
           balance = None,
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117",
             host = "192.168.99.100",
             port = 32770
@@ -287,7 +286,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = Nil,
           rewrites = Nil,
           balance = None,
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "f1638245acf2ebe6db56984a85b48f6db8c74607",
             host = "192.168.99.100",
             port = 32771
@@ -305,7 +304,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = Nil,
           rewrites = Nil,
           balance = None,
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
             port = 33002
@@ -379,7 +378,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
               condition = "{ p_ext_jpg path_end -i .jpg } !{ p_folder_images path_beg -i /images/ }"
             )),
           balance = None,
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
             port = 32776
@@ -405,15 +404,15 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             rewrites = Nil,
             balance = None,
             targets = List(
-              RouteTarget(
+              InternalRouteTarget(
                 name = "64435a223bddf1fa589135baa5e228090279c032",
                 host = "192.168.99.100",
                 port = 32772
-              ), RouteTarget(
+              ), InternalRouteTarget(
                 name = "52c84bbf28dcc96bd4c4167eeeb7ff0a69bfb6eb",
                 host = "192.168.99.100",
                 port = 32772
-              ), RouteTarget(
+              ), InternalRouteTarget(
                 name = "5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7",
                 host = "192.168.99.100",
                 port = 32772
@@ -426,11 +425,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             rewrites = Nil,
             balance = None,
             targets = List(
-              RouteTarget(
+              InternalRouteTarget(
                 name = "9019c00f1f7f641c4efc7a02c6f44e9f90d7750",
                 host = "192.168.99.100",
                 port = 32773
-              ), RouteTarget(
+              ), InternalRouteTarget(
                 name = "49594c26c89754450bd4f562946a69070a4aa887",
                 host = "192.168.99.100",
                 port = 32773
@@ -448,7 +447,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = Nil,
           rewrites = Nil,
           balance = None,
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
             port = 33002
@@ -475,15 +474,15 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             rewrites = Nil,
             balance = None,
             targets = List(
-              RouteTarget(
+              InternalRouteTarget(
                 name = "64435a223bddf1fa589135baa5e228090279c032",
                 host = "192.168.99.100",
                 port = 32772
-              ), RouteTarget(
+              ), InternalRouteTarget(
                 name = "52c84bbf28dcc96bd4c4167eeeb7ff0a69bfb6eb",
                 host = "192.168.99.100",
                 port = 32772
-              ), RouteTarget(
+              ), InternalRouteTarget(
                 name = "5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7",
                 host = "192.168.99.100",
                 port = 32772
@@ -496,11 +495,11 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             rewrites = Nil,
             balance = None,
             targets = List(
-              RouteTarget(
+              InternalRouteTarget(
                 name = "9019c00f1f7f641c4efc7a02c6f44e9f90d7750",
                 host = "192.168.99.100",
                 port = 32773
-              ), RouteTarget(
+              ), InternalRouteTarget(
                 name = "49594c26c89754450bd4f562946a69070a4aa887",
                 host = "192.168.99.100",
                 port = 32773
@@ -518,7 +517,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = Nil,
           rewrites = Nil,
           balance = None,
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
             port = 33002
@@ -543,7 +542,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = Nil,
           rewrites = Nil,
           balance = None,
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
             port = 32770
@@ -561,7 +560,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = Nil,
           rewrites = Nil,
           balance = None,
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.101",
             port = 32771
@@ -581,7 +580,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             rewrites = Nil,
             balance = None,
             targets = List(
-              RouteTarget(
+              InternalRouteTarget(
                 name = "64435a223bddf1fa589135baa5e228090279c032",
                 host = "192.168.99.100",
                 port = 32772
@@ -594,7 +593,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             rewrites = Nil,
             balance = None,
             targets = List(
-              RouteTarget(
+              InternalRouteTarget(
                 name = "9019c00f1f7f641c4efc7a02c6f44e9f90d7750",
                 host = "192.168.99.100",
                 port = 32773
@@ -618,7 +617,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = Nil,
           rewrites = Nil,
           balance = Some("first"),
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.100",
             port = 32770
@@ -636,7 +635,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = Nil,
           rewrites = Nil,
           balance = Some("custom"),
-          targets = RouteTarget(
+          targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             host = "192.168.99.101",
             port = 32771

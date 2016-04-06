@@ -29,7 +29,7 @@ class WorkflowSynchronizationActor extends CommonSupportForActors with ArtifactS
 
   def receive = {
     case SynchronizeAll ⇒ synchronize()
-    case _           ⇒
+    case _              ⇒
   }
 
   private def synchronize() = {

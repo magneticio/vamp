@@ -92,7 +92,7 @@ backend 62a11db802baf59987a3ece9e10d8754eca16a09
   option forwardfor
   
   # server: 64435a223bddf1fa589135baa5e228090279c032
-  server ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec 192.168.99.100:32770 cookie ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec weight 100  
+  server f52646a39457170e02fb276840a696267e0815eb 192.168.99.100:32770 cookie f52646a39457170e02fb276840a696267e0815eb weight 100
 
 # backend: other vamp/port/_/_
 backend o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c
@@ -100,7 +100,7 @@ backend o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c
   balance leastconn
 
   # server: vamp/port/_/_//vamp/sava/port/_
-  server a0f840f005123ef8acf4b0f9586420a540f8caf8 unix@/opt/vamp/a0f840f005123ef8acf4b0f9586420a540f8caf8.sock send-proxy weight 100 
+  server a0f840f005123ef8acf4b0f9586420a540f8caf8 unix@/opt/vamp/a0f840f005123ef8acf4b0f9586420a540f8caf8.sock send-proxy weight 100
 
 # backend: vamp/port/_/_//vamp/sava/port/_
 backend a0f840f005123ef8acf4b0f9586420a540f8caf8
@@ -108,6 +108,6 @@ backend a0f840f005123ef8acf4b0f9586420a540f8caf8
   balance leastconn
 
   option forwardfor
-  
+
   # server: 64435a223bddf1fa589135baa5e228090279c032
-  server ad2cec8c0c7ad928c1fe4ccaed4d5f3e127cb0ec 192.168.99.100:33002  weight 100  
+  server f52646a39457170e02fb276840a696267e0815eb 192.168.99.100:33002  weight 100

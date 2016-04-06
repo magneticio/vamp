@@ -68,4 +68,13 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
       ))
     )
   }
+
+  it should "parse external route" in {
+    GatewayReader.read(res("gateway/gateway7.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080/http"))),
+      'sticky(Some(Gateway.Sticky.Route)),
+      'routes(List(DefaultRoute("", GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), Nil, Nil, None)))
+    )
+  }
 }

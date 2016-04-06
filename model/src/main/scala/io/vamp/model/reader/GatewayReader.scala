@@ -38,7 +38,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
 
   protected def routes(splitPath: Boolean)(implicit source: YamlSourceReader): List[Route] = <<?[YamlSourceReader]("routes") match {
     case Some(map) ⇒ map.pull().map {
-      case (name: String, _) ⇒ routerReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
+      case (name: String, _) ⇒ RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
         case route: DefaultRoute   ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
         case route: RouteReference ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
         case route                 ⇒ route
@@ -68,8 +68,6 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
 
     name
   }
-
-  protected def routerReader: AbstractRouteReader = RouteReader
 }
 
 object GatewayReader extends AbstractGatewayReader
@@ -90,11 +88,9 @@ object DeployedGatewayReader extends AbstractGatewayReader {
     case Some(value: String) ⇒ Port(value)
     case _                   ⇒ Port("", None, None)
   }
-
-  protected override def routerReader: AbstractRouteReader = RouteReader
 }
 
-trait AbstractRouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route] {
+object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route] {
 
   import YamlSourceReader._
 
@@ -129,9 +125,9 @@ trait AbstractRouteReader extends YamlReader[Route] with WeakReferenceYamlReader
     case None                 ⇒ List.empty[Rewrite]
     case Some(list: YamlList) ⇒ list.map(RewriteReader.readReferenceOrAnonymous)
   }
-}
 
-object RouteReader extends AbstractRouteReader
+  override def validateName(name: String): String = if (GatewayPath.external(name)) name else super.validateName(name)
+}
 
 object FilterReader extends YamlReader[Filter] with WeakReferenceYamlReader[Filter] {
 

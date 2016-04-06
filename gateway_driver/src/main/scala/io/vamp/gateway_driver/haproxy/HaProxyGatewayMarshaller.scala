@@ -150,13 +150,21 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
           lookup = GatewayMarshaller.lookup(gateway, route.path.segments),
           mode = mode,
           proxyServers = Nil,
-          servers = route.targets.map { instance ⇒
-            Server(
-              name = GatewayMarshaller.name(instance),
-              lookup = GatewayMarshaller.lookup(instance),
-              host = instance.host,
-              port = instance.port,
-              weight = 100)
+          servers = route.targets.map {
+            case internal: InternalRouteTarget ⇒
+              Server(
+                name = GatewayMarshaller.name(internal),
+                lookup = GatewayMarshaller.lookup(internal),
+                url = s"${internal.host}:${internal.port}",
+                weight = 100
+              )
+            case external: ExternalRouteTarget ⇒
+              Server(
+                name = GatewayMarshaller.name(external),
+                lookup = GatewayMarshaller.lookup(external),
+                url = external.url,
+                weight = 100
+              )
           },
           rewrites = rewrites(route),
           sticky = gateway.sticky.contains(Gateway.Sticky.Instance),

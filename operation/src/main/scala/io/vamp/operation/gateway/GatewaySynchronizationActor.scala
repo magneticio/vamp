@@ -127,60 +127,64 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   }
 
   private def targets(gateways: List[Gateway], deployments: List[Deployment], route: DefaultRoute): List[RouteTarget] = {
+    route.path.external match {
+      case Some(external) ⇒ ExternalRouteTarget(external) :: Nil
+      case _ ⇒
 
-    val targets = route.path.segments match {
+        val targets = route.path.segments match {
 
-      case reference :: Nil ⇒
-        gateways.find {
-          _.name == reference
-        }.flatMap { gw ⇒
-          Option {
-            RouteTarget(reference, gw.port.number)
-          }
-        } :: Nil
-
-      case deployment :: _ :: Nil ⇒
-        deployments.find {
-          _.name == deployment
-        }.flatMap {
-          _.gateways.find(_.name == route.path.normalized)
-        }.flatMap { gateway ⇒
-          Option {
-            RouteTarget(route.path.normalized, gateway.port.number)
-          }
-        } :: Nil
-
-      case deployment :: cluster :: port :: Nil ⇒
-        deployments.find {
-          _.name == deployment
-        }.flatMap {
-          _.clusters.find(_.name == cluster)
-        }.flatMap {
-          _.portMapping.get(port)
-        }.flatMap { port ⇒
-          if (port != 0) Option(RouteTarget(route.path.normalized, port)) else None
-        } :: Nil
-
-      case deployment :: cluster :: service :: port :: Nil ⇒
-        deployments.find {
-          _.name == deployment
-        }.flatMap {
-          _.clusters.find(_.name == cluster)
-        }.flatMap {
-          _.services.find(_.breed.name == service)
-        }.map { service ⇒
-          service.instances.map {
-            instance ⇒
+          case reference :: Nil ⇒
+            gateways.find {
+              _.name == reference
+            }.flatMap { gw ⇒
               Option {
-                RouteTarget(instance.name, instance.host, instance.ports.get(port).get)
+                InternalRouteTarget(reference, gw.port.number)
               }
-          }
-        }.getOrElse(Nil)
+            } :: Nil
 
-      case _ ⇒ None :: Nil
+          case deployment :: _ :: Nil ⇒
+            deployments.find {
+              _.name == deployment
+            }.flatMap {
+              _.gateways.find(_.name == route.path.normalized)
+            }.flatMap { gateway ⇒
+              Option {
+                InternalRouteTarget(route.path.normalized, gateway.port.number)
+              }
+            } :: Nil
+
+          case deployment :: cluster :: port :: Nil ⇒
+            deployments.find {
+              _.name == deployment
+            }.flatMap {
+              _.clusters.find(_.name == cluster)
+            }.flatMap {
+              _.portMapping.get(port)
+            }.flatMap { port ⇒
+              if (port != 0) Option(InternalRouteTarget(route.path.normalized, port)) else None
+            } :: Nil
+
+          case deployment :: cluster :: service :: port :: Nil ⇒
+            deployments.find {
+              _.name == deployment
+            }.flatMap {
+              _.clusters.find(_.name == cluster)
+            }.flatMap {
+              _.services.find(_.breed.name == service)
+            }.map { service ⇒
+              service.instances.map {
+                instance ⇒
+                  Option {
+                    InternalRouteTarget(instance.name, instance.host, instance.ports.get(port).get)
+                  }
+              }
+            }.getOrElse(Nil)
+
+          case _ ⇒ None :: Nil
+        }
+
+        if (targets.exists(_.isEmpty)) Nil else targets.flatten
     }
-
-    if (targets.exists(_.isEmpty)) Nil else targets.flatten
   }
 
   private def select: GatewayPipeline ⇒ List[Gateway] = { pipeline ⇒
