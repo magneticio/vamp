@@ -114,7 +114,9 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 
       validateRouteServiceNames(blueprint)
       validateRouteWeights(blueprint)
+      validateRouteFilterStrengths(blueprint)
       validateGatewayRouteWeights(blueprint)
+      validateGatewayRouteFilterStrengths(blueprint)
       validateBlueprintGateways(blueprint)
       validateRoutingAnonymousPortMapping(blueprint)
 
@@ -174,7 +176,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
   protected def validateRouteWeights(blueprint: AbstractBlueprint): Unit = {
     blueprint.clusters.find({ cluster ⇒
       cluster.routing.exists { routing ⇒
-        val weights = routing.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).filterNot(_.hasRoutingFilters).flatMap(_.weight)
+        val weights = routing.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
         weights.exists(_.value < 0) || weights.map(_.value).sum > 100
       }
     }).flatMap {
@@ -182,12 +184,32 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     }
   }
 
+  protected def validateRouteFilterStrengths(blueprint: AbstractBlueprint): Unit = {
+    blueprint.clusters.find({ cluster ⇒
+      cluster.routing.exists { routing ⇒
+        val strength = routing.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.filterStrength)
+        strength.exists(_.value < 0) || strength.exists(_.value > 100)
+      }
+    }).flatMap {
+      case cluster ⇒ throwException(RouteFilterStrengthError(cluster))
+    }
+  }
+
   protected def validateGatewayRouteWeights(blueprint: AbstractBlueprint): Unit = {
     blueprint.gateways.find({ gateway ⇒
-      val weights = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).filterNot(_.hasRoutingFilters).flatMap(_.weight)
+      val weights = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
       weights.exists(_.value < 0) || weights.map(_.value).sum > 100
     }).flatMap {
       case gateway ⇒ throwException(GatewayRouteWeightError(gateway))
+    }
+  }
+
+  protected def validateGatewayRouteFilterStrengths(blueprint: AbstractBlueprint): Unit = {
+    blueprint.gateways.find({ gateway ⇒
+      val strength = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.filterStrength)
+      strength.exists(_.value < 0) || strength.exists(_.value > 100)
+    }).flatMap {
+      case gateway ⇒ throwException(GatewayRouteFilterStrengthError(gateway))
     }
   }
 

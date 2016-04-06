@@ -505,7 +505,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
         case Some(newRouting) ⇒
           val routes = services.map { service ⇒
             routeBy(newRouting, service, port) match {
-              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
+              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, Nil, Nil, None)
               case Some(route) ⇒ route
             }
           }
@@ -513,7 +513,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
         case None ⇒
           Gateway("", Port(port.name, None, None, 0, port.`type`), None, services.map { service ⇒
-            DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
+            DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, Nil, Nil, None)
           })
       }
     }

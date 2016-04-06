@@ -4,7 +4,7 @@ import akka.pattern.ask
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact._
-import io.vamp.model.notification.GatewayRouteWeightError
+import io.vamp.model.notification.{ GatewayRouteFilterStrengthError, GatewayRouteWeightError }
 import io.vamp.model.reader.Percentage
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
@@ -107,17 +107,15 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
   private def process: Gateway ⇒ Gateway = { gateway ⇒
 
-    if (gateway.routes.forall(_.isInstanceOf[DefaultRoute])) {
+    val updatedWeights = if (gateway.routes.forall(_.isInstanceOf[DefaultRoute])) {
 
-      val (withFilters, withoutFilters) = gateway.routes.map(_.asInstanceOf[DefaultRoute]).partition(_.hasRoutingFilters)
+      val allRoutes = gateway.routes.map(_.asInstanceOf[DefaultRoute])
 
-      val withFiltersUpdated = withFilters.map { route ⇒ route.copy(weight = Option(route.weight.getOrElse(Percentage(100)))) }
-
-      val availableWeight = 100 - withoutFilters.flatMap(_.weight.map(_.value)).sum
+      val availableWeight = 100 - allRoutes.flatMap(_.weight.map(_.value)).sum
 
       if (availableWeight >= 0) {
 
-        val (noWeightRoutes, weightRoutes) = withoutFilters.partition(_.weight.isEmpty)
+        val (noWeightRoutes, weightRoutes) = allRoutes.partition(_.weight.isEmpty)
 
         if (noWeightRoutes.nonEmpty) {
           val weight = Math.round(availableWeight / noWeightRoutes.size)
@@ -128,23 +126,31 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
               route.copy(weight = Option(Percentage(calculated)))
           }
 
-          gateway.copy(routes = withFiltersUpdated ++ routes ++ weightRoutes)
+          gateway.copy(routes = routes ++ weightRoutes)
 
-        } else gateway.copy(routes = withFiltersUpdated ++ withoutFilters)
+        } else gateway
 
-      } else gateway.copy(routes = withFiltersUpdated ++ withoutFilters)
+      } else gateway
 
     } else gateway
+
+    val routes = updatedWeights.routes.map(_.asInstanceOf[DefaultRoute]).map { route ⇒
+      val default = if (route.hasRoutingFilters) 100 else 0
+      route.copy(filterStrength = Option(route.filterStrength.getOrElse(Percentage(default))))
+    }
+
+    updatedWeights.copy(routes = routes)
   }
 
   private def validate: Gateway ⇒ Gateway = { gateway ⇒
 
-    val (withFilters, withoutFilters) = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).partition(_.hasRoutingFilters)
+    val defaultRoutes = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute])
 
-    val weights = withoutFilters.flatMap(_.weight)
+    val weights = defaultRoutes.flatMap(_.weight)
+
     if (weights.exists(_.value < 0) || weights.map(_.value).sum > 100) throwException(GatewayRouteWeightError(gateway))
 
-    if (withFilters.flatMap(_.weight).exists(weight ⇒ weight.value < 0 || weight.value > 100)) throwException(GatewayRouteWeightError(gateway))
+    if (defaultRoutes.flatMap(_.filterStrength).exists(weight ⇒ weight.value < 0 || weight.value > 100)) throwException(GatewayRouteFilterStrengthError(gateway))
 
     gateway
   }
