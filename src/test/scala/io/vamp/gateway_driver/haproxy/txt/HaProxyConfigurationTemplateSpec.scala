@@ -107,6 +107,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
         weight = Option(Percentage(100)),
+        filterStrength = None,
         filters = Nil,
         rewrites = Nil,
         balance = None,
@@ -129,6 +130,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
         weight = Option(Percentage(100)),
+        filterStrength = None,
         filters = Nil,
         rewrites = Nil,
         balance = None,
@@ -152,6 +154,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
           weight = Option(Percentage(100)),
+          filterStrength = None,
           filters = Nil,
           rewrites = Nil,
           balance = None,
@@ -170,6 +173,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
+          filterStrength = None,
           filters = Nil,
           rewrites = Nil,
           balance = None,
@@ -196,6 +200,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
             weight = Option(Percentage(90)),
+            filterStrength = None,
             filters = Nil,
             rewrites = Nil,
             balance = None,
@@ -217,6 +222,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
             weight = Option(Percentage(10)),
+            filterStrength = None,
             filters = Nil,
             rewrites = Nil,
             balance = None,
@@ -240,6 +246,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
+          filterStrength = None,
           filters = Nil,
           rewrites = Nil,
           balance = None,
@@ -265,6 +272,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp/sava/sava-backend:1.3.0/port",
           path = GatewayPath("vamp/sava/sava-backend:1.3.0/port"),
           weight = Option(Percentage(100)),
+          filterStrength = None,
           filters = Nil,
           rewrites = Nil,
           balance = None,
@@ -283,6 +291,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp/sava/sava-frontend:1.3.0/port",
           path = GatewayPath("vamp/sava/sava-frontend:1.3.0/port"),
           weight = Option(Percentage(100)),
+          filterStrength = None,
           filters = Nil,
           rewrites = Nil,
           balance = None,
@@ -301,6 +310,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
+          filterStrength = None,
           filters = Nil,
           rewrites = Nil,
           balance = None,
@@ -317,7 +327,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
   }
 
   it should "convert filters" in {
-    val route = DefaultRoute("sava", GatewayPath("sava"), None, Nil, Nil, None)
+    val route = DefaultRoute("sava", GatewayPath("sava"), None, None, Nil, Nil, None)
     val backends = Backend("vamp://sava", "im_ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, Nil, sticky = false, "", Options()) :: Nil
 
     List(
@@ -353,6 +363,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
           weight = Option(Percentage(100)),
+          filterStrength = Option(Percentage(100)),
           filters = List(
             DefaultFilter(
               name = "",
@@ -400,6 +411,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
             weight = Option(Percentage(90)),
+            filterStrength = None,
             filters = Nil,
             rewrites = Nil,
             balance = None,
@@ -421,6 +433,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
             weight = Option(Percentage(10)),
+            filterStrength = None,
             filters = Nil,
             rewrites = Nil,
             balance = None,
@@ -444,6 +457,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
+          filterStrength = None,
           filters = Nil,
           rewrites = Nil,
           balance = None,
@@ -470,6 +484,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
             weight = Option(Percentage(90)),
+            filterStrength = None,
             filters = Nil,
             rewrites = Nil,
             balance = None,
@@ -491,6 +506,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
             weight = Option(Percentage(10)),
+            filterStrength = None,
             filters = Nil,
             rewrites = Nil,
             balance = None,
@@ -514,6 +530,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
+          filterStrength = None,
           filters = Nil,
           rewrites = Nil,
           balance = None,
@@ -539,6 +556,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp:1.x/sava/sava:1.0.0/port",
           path = GatewayPath("vamp:1.x/sava/sava:1.0.0/port"),
           weight = Option(Percentage(100)),
+          filterStrength = None,
           filters = Nil,
           rewrites = Nil,
           balance = None,
@@ -557,6 +575,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp:2.x/sava/sava:2.0.0/port",
           path = GatewayPath("vamp:2.x/sava/sava:2.0.0/port"),
           weight = Option(Percentage(100)),
+          filterStrength = None,
           filters = Nil,
           rewrites = Nil,
           balance = None,
@@ -576,6 +595,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "vamp:1.x/sava/port",
             path = GatewayPath("vamp:1.x/sava/port"),
             weight = Option(Percentage(90)),
+            filterStrength = None,
             filters = Nil,
             rewrites = Nil,
             balance = None,
@@ -589,6 +609,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
             name = "vamp:2.x/sava/port",
             path = GatewayPath("vamp:2.x/sava/port"),
             weight = Option(Percentage(10)),
+            filterStrength = None,
             filters = Nil,
             rewrites = Nil,
             balance = None,
@@ -614,6 +635,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp:1.x/sava/sava:1.0.0/port",
           path = GatewayPath("vamp:1.x/sava/sava:1.0.0/port"),
           weight = Option(Percentage(100)),
+          filterStrength = None,
           filters = Nil,
           rewrites = Nil,
           balance = Some("first"),
@@ -632,6 +654,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           name = "vamp:2.x/sava/sava:2.0.0/port",
           path = GatewayPath("vamp:2.x/sava/sava:2.0.0/port"),
           weight = Option(Percentage(100)),
+          filterStrength = None,
           filters = Nil,
           rewrites = Nil,
           balance = Some("custom"),
@@ -654,6 +677,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
     val actual = normalize(config)
     val expected = normalize(Source.fromURL(getClass.getResource(resource)).mkString)
+
+    println(config.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n"))
 
     actual.length shouldBe expected.length
 

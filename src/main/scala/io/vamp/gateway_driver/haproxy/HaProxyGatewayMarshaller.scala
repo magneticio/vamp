@@ -92,7 +92,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
     def unsupported(route: Route) = throw new IllegalArgumentException(s"Unsupported route: $route")
 
-    val (imRoutes, otherRoutes) = gateway.routes.partition {
+    val imRoutes = gateway.routes.filter {
       case route: DefaultRoute ⇒ route.hasRoutingFilters
       case route               ⇒ unsupported(route)
     }
@@ -107,12 +107,12 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
             name = GatewayMarshaller.name(gateway, route.path.segments),
             lookup = GatewayMarshaller.lookup(gateway, route.path.segments),
             unixSock = unixSocket(GatewayMarshaller.lookup(gateway, route.path.segments)),
-            weight = route.weight.get.value
+            weight = route.filterStrength.get.value
           ) :: ProxyServer(
               name = s"other ${GatewayMarshaller.name(gateway)}",
               lookup = s"$other${GatewayMarshaller.lookup(gateway)}",
               unixSock = unixSocket(s"$other${GatewayMarshaller.lookup(gateway)}"),
-              weight = 100 - route.weight.get.value
+              weight = 100 - route.filterStrength.get.value
             ) :: Nil,
           servers = Nil,
           rewrites = Nil,
@@ -126,7 +126,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       name = s"other ${GatewayMarshaller.name(gateway)}",
       lookup = s"$other${GatewayMarshaller.lookup(gateway)}",
       mode = mode,
-      proxyServers = otherRoutes.map {
+      proxyServers = gateway.routes.map {
         case route: DefaultRoute ⇒
           ProxyServer(
             name = GatewayMarshaller.name(gateway, route.path.segments),
