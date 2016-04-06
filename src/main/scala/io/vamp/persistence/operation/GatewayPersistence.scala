@@ -1,6 +1,6 @@
 package io.vamp.persistence.operation
 
-import io.vamp.model.artifact.{ Gateway, Artifact, RouteTarget }
+import io.vamp.model.artifact.{ Artifact, Gateway, RouteTarget }
 
 case class GatewayPort(name: String, port: Int) extends Artifact
 
