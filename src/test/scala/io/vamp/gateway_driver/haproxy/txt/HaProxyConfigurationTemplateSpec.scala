@@ -678,8 +678,6 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     val actual = normalize(config)
     val expected = normalize(Source.fromURL(getClass.getResource(resource)).mkString)
 
-    println(config.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n"))
-
     actual.length shouldBe expected.length
 
     actual.zip(expected).foreach { line ⇒
