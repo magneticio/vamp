@@ -32,6 +32,15 @@ class RawDockerClient(client: DefaultDockerClient) {
 
   def internalAllContainer = lift[DockerClient.ListContainersParam, java.util.List[spContainer]]({ client.listContainers(_) })
 
+  def internalCallCommand = lift[String, String]({ id ⇒
+    val command: Array[String] = Array("curl", "-Ss", "http://rancher-metadata/latest/self/container/primary_ip")
+    val execId = client.execCreate(id, command, DockerClient.ExecCreateParam.attachStdout(), DockerClient.ExecCreateParam.attachStderr())
+    val output = client.execStart(execId)
+    val outstring = output.readFully()
+    output.close()
+    outstring
+  })
+
   def internalInfo = lift[Unit, Info](Unit ⇒ client.info())
 
   def pullImage = lift[String, Unit]({ image ⇒
@@ -66,6 +75,7 @@ object RawDockerClient {
 
     container match {
       case Some(container) ⇒ {
+
         spContainer.image(container.docker.image)
         val mutableHash: java.util.Map[String, java.util.List[PortBinding]] = new java.util.HashMap[String, java.util.List[PortBinding]]()
         val hostPorts: java.util.List[PortBinding] = new java.util.ArrayList[PortBinding]()

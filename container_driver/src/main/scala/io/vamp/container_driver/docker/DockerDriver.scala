@@ -17,6 +17,8 @@ import com.typesafe.config.ConfigFactory
 
 import org.joda.time.DateTime
 
+import akka.actor.ActorSystem
+
 /** This classes come from marathon driver **/
 case class DockerParameter(key: String, value: String)
 case class Container(docker: Docker, `type`: String = "DOCKER")
@@ -52,14 +54,35 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
 
   private def getContainerInfo(container: ContainerService): ContainerService = {
     val info = client.internalGetContainerInfo(Some(container.instances.head.name))
-    if (info != None)
-      container.copy(instances = container.instances.map { x ⇒ x.copy(host = { info.get.networkSettings().ipAddress() }, ports = info.get.networkSettings().ports().map(f ⇒ f._1.split("/")(0)).toList map { x ⇒ x.toInt }) })
-    else container
+    if (info != None) {
+      container.copy(instances = container.instances.map { x ⇒
+        x.copy(host = {
+          if (info.get.networkSettings().ipAddress() != null && !info.get.networkSettings().ipAddress().isEmpty())
+            info.get.networkSettings().ipAddress()
+          else ""
+        }, ports = { if (info.get.networkSettings().ports() != null && info.get.networkSettings().ports().size() > 0) info.get.networkSettings().ports().map(f ⇒ f._1.split("/")(0)).toList map { x ⇒ x.toInt } else List(0) })
+      })
+    } else container
   }
 
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = service.breed.deployable match {
     case Deployable(schema, Some(definition)) ⇒ Some(Container(Docker(definition, portMappings(deployment, cluster, service), parameters(service))))
     case _                                    ⇒ None
+  }
+
+  private def getRancherIp(list: List[ContainerService]): Future[List[ContainerService]] = {
+    Future {
+      if(isRancherEnvironment)
+      list.map { container ⇒
+        val x = client.internalCallCommand(Some(container.instances.head.name))
+        if (x != None && ipAdddr.pattern.matcher(x.get).matches()) {
+          container.copy(instances = container.instances.map { i ⇒ i.copy(host = x.get) })
+        } else {
+          container
+        }
+      }
+      else list
+    }
   }
 
   def info: Future[ContainerInfo] = {
@@ -71,13 +94,17 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
     }
   }
 
+  case class ClassDecl(kind: Kind, list: ContainerService)
+  sealed trait Kind
+  case object Complex extends Kind
+
   def all: Future[List[ContainerService]] = {
     client.asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](client.internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { x ⇒
       x match {
         case Some(containers) ⇒ (containers.filter { x ⇒ x.status().startsWith("Up") } map (containerService _ compose translateFromspContainerToApp _)).toList map getContainerInfo
         case None             ⇒ Nil
       }
-    }
+    } flatMap getRancherIp
   }
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
@@ -97,7 +124,6 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
           resultList.toList.map { container ⇒ client.internalStartContainer(Some(container.id())) }.head
       }
     }
-
   }
 
   def undeploy(deployment: Deployment, service: DeploymentService): Future[Any] = {
@@ -112,5 +138,9 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
     }
   }
 
-  private def client = new RawDockerClient(DefaultDockerClient.builder().uri(ConfigFactory.load().getString("vamp.container-driver.url")).build())
+  private val cFactory = ConfigFactory.load()
+  private val vampContainerDriverUrl = cFactory.getString("vamp.container-driver.url")
+  private val isRancherEnvironment = cFactory.getBoolean("vamp.container-driver.isInRancher")
+  private val ipAdddr = """^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$""".r
+  private def client = new RawDockerClient(DefaultDockerClient.builder().uri(vampContainerDriverUrl).build())
 }
