@@ -4,9 +4,8 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
-import io.vamp.common.vitals.InfoRequest
-import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError, UnsupportedContainerDriverRequest }
-import io.vamp.model.artifact.{ Deployment, DeploymentCluster, DeploymentService }
+import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
+import io.vamp.model.artifact._
 import io.vamp.pulse.notification.PulseFailureNotifier
 
 import scala.concurrent.duration._
@@ -25,21 +24,17 @@ object ContainerDriverActor {
 
 }
 
-class ContainerDriverActor(driver: ContainerDriver) extends PulseFailureNotifier with CommonSupportForActors with ContainerDriverNotificationProvider {
+case class ContainerService(matching: (Deployment, Breed) ⇒ Boolean, scale: DefaultScale, instances: List[ContainerInstance])
 
-  import io.vamp.container_driver.ContainerDriverActor._
+case class ContainerInstance(name: String, host: String, ports: List[Int], deployed: Boolean)
+
+case class ContainerInfo(`type`: String, container: Any)
+
+trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForActors with ContainerDriverNotificationProvider {
 
   implicit val timeout = ContainerDriverActor.timeout
 
   override def errorNotificationClass = classOf[ContainerResponseError]
-
-  def receive = {
-    case InfoRequest ⇒ reply(driver.info)
-    case All ⇒ reply(driver.all)
-    case Deploy(deployment, cluster, service, update) ⇒ reply(driver.deploy(deployment, cluster, service, update))
-    case Undeploy(deployment, service) ⇒ reply(driver.undeploy(deployment, service))
-    case any ⇒ unsupported(UnsupportedContainerDriverRequest(any))
-  }
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 }
