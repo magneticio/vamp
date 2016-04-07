@@ -1,26 +1,24 @@
 package io.vamp.container_driver.docker
 
-import com.spotify.docker.client.{ DockerClient, DefaultDockerClient }
-import com.spotify.docker.client.messages.{ ImageInfo, HostConfig, PortBinding, ContainerConfig, ContainerInfo ⇒ spContainerInfo, Container ⇒ spContainer, ContainerCreation, Info }
 import java.lang.reflect.Field
 
-import io.vamp.container_driver.{ AbstractContainerDriver, ContainerPortMapping, ContainerInfo, ContainerService, ContainerInstance }
+import com.spotify.docker.client.messages.{ ContainerConfig, ContainerCreation, HostConfig, ImageInfo, Info, PortBinding, Container ⇒ spContainer, ContainerInfo ⇒ spContainerInfo }
+import com.spotify.docker.client.{ DefaultDockerClient, DockerClient }
+import io.vamp.container_driver.ContainerInfo
 import io.vamp.model.artifact._
-import io.vamp.model.reader.MegaByte
-
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.collection.mutable.{ Map ⇒ MutableMap }
-
-import com.typesafe.config.ConfigFactory
-
+import org.joda.time.DateTime
 import spray.json._
 
-import org.joda.time.DateTime
+import scala.collection.mutable.{ Map ⇒ MutableMap }
+import scala.concurrent.{ ExecutionContext, Future }
 
 class RawDockerClient(client: DefaultDockerClient) {
+
   import RawDockerClient._
 
-  def asyncCall[A, B](f: Option[A] ⇒ Option[B])(implicit ec: ExecutionContext): Option[A] ⇒ Future[Option[B]] = a ⇒ Future { f(a) }
+  def asyncCall[A, B](f: Option[A] ⇒ Option[B])(implicit ec: ExecutionContext): Option[A] ⇒ Future[Option[B]] = a ⇒ Future {
+    f(a)
+  }
 
   def internalCreateContainer = lift[(ContainerConfig, String), ContainerCreation] { x ⇒ client.createContainer(x._1, x._2) }
 
@@ -30,7 +28,9 @@ class RawDockerClient(client: DefaultDockerClient) {
 
   def internalUndeployContainer = lift[String, Unit](client.killContainer(_))
 
-  def internalAllContainer = lift[DockerClient.ListContainersParam, java.util.List[spContainer]]({ client.listContainers(_) })
+  def internalAllContainer = lift[DockerClient.ListContainersParam, java.util.List[spContainer]]({
+    client.listContainers(_)
+  })
 
   def internalCallCommand = lift[String, String]({ id ⇒
     val command: Array[String] = Array("curl", "-Ss", "http://rancher-metadata/latest/self/container/primary_ip")
@@ -53,6 +53,7 @@ class RawDockerClient(client: DefaultDockerClient) {
 }
 
 object RawDockerClient {
+
   import scala.collection.JavaConversions._
 
   def lift[A, B](f: A ⇒ B): Option[A] ⇒ Option[B] = _ map f
@@ -71,7 +72,7 @@ object RawDockerClient {
     import DefaultScaleProtocol.DefaultScaleFormat
 
     val spContainer = ContainerConfig.builder()
-    val hostConfig = HostConfig.builder()
+    val hostConfig = HostConfig.builder().privileged(true)
 
     container match {
       case Some(container) ⇒ {
@@ -96,7 +97,9 @@ object RawDockerClient {
             /* Looking for labels */
             val inLabels = values.get("labels").asInstanceOf[Option[Map[String, String]]]
             if (inLabels != None)
-              inLabels.get.foreach(f ⇒ { labels += f })
+              inLabels.get.foreach(f ⇒ {
+                labels += f
+              })
             spContainer.labels(labels)
 
             /* Getting net parameters */
@@ -122,7 +125,9 @@ object RawDockerClient {
     import DefaultScaleProtocol.DefaultScaleFormat
     import spray.json._
 
-    val containerName = { if (container.names().size() > 0) container.names().head.substring(1) else "?" }
+    val containerName = {
+      if (container.names().size() > 0) container.names().head.substring(1) else "?"
+    }
     val defaultScaleJs = container.labels().getOrDefault("scale", "")
 
     if (!defaultScaleJs.isEmpty()) {

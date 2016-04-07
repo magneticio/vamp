@@ -18,7 +18,7 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
       case Some(yaml) ⇒ yaml.pull().map {
         case (name: String, cluster: YamlSourceReader) ⇒
           implicit val source = cluster
-          val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
+          val sla = SlaReader.readOptionalReferenceOrAnonymous("sla", validateEitherReferenceOrAnonymous)
 
           <<?[List[YamlSourceReader]]("services") match {
             case None       ⇒ DeploymentCluster(name, Nil, Nil, sla, portMapping("port_mapping"), dialects)
@@ -40,15 +40,17 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
       implicit val source = el.asInstanceOf[YamlSourceReader]
       EnvironmentVariable(<<![String]("name"), <<?[String]("alias"), <<?[String]("value"), <<?[String]("interpolated"))
     }
+    case Some(input: YamlSourceReader) ⇒
+      input.pull()
+      Nil
     case _ ⇒ Nil
   }
 
   private def parseService(implicit source: YamlSourceReader): DeploymentService = {
     val breed = BreedReader.readReference(<<![Any]("breed")).asInstanceOf[DefaultBreed]
-    val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale").asInstanceOf[Option[DefaultScale]]
-    val envVars = environmentVariables().map { ev ⇒ ev.copy(interpolated = ev.value) }
+    val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale", validateEitherReferenceOrAnonymous).asInstanceOf[Option[DefaultScale]]
 
-    DeploymentService(state(<<![YamlSourceReader]("state")), breed, envVars, scale, parseInstances, arguments(), dependencies(), dialects)
+    DeploymentService(state(<<![YamlSourceReader]("state")), breed, environmentVariables(), scale, parseInstances, arguments(), dependencies(), dialects)
   }
 
   def parseInstances(implicit source: YamlSourceReader): List[DeploymentInstance] = {
@@ -92,6 +94,8 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
   }
 
   protected def routingReader: GatewayMappingReader[Gateway]
+
+  protected def validateEitherReferenceOrAnonymous: Boolean = true
 }
 
 object DeploymentReader extends AbstractDeploymentReader {

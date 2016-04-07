@@ -4,9 +4,10 @@ gateways:
   8080:
     routes:
       notorious/port1:
-        weight: 100%
+        weight: 90%
       notorious/port2:
         weight: 10%
+        filter_strength: 10%
         filters:
         - condition: user-agent = firefox
 

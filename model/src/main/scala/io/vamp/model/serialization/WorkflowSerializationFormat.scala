@@ -47,6 +47,7 @@ class ScheduledWorkflowSerializer() extends ArtifactSerializer[ScheduledWorkflow
       scheduledWorkflow.trigger match {
         case DeploymentTrigger(deployment) ⇒
           list += JField("deployment", JString(deployment))
+
         case TimeTrigger(period, repeatTimes, startTime) ⇒
           list += JField("period", JString(period.format))
           repeatTimes match {
@@ -54,8 +55,13 @@ class ScheduledWorkflowSerializer() extends ArtifactSerializer[ScheduledWorkflow
             case _                       ⇒
           }
           startTime.foreach(start ⇒ list += JField("startTime", JString(start.format(ISO_OFFSET_DATE_TIME))))
+
         case EventTrigger(tags) ⇒
           list += JField("tags", Extraction.decompose(tags))
+
+        case DaemonTrigger ⇒
+          list += JField("daemon", JBool(true))
+
         case _ ⇒
       }
 

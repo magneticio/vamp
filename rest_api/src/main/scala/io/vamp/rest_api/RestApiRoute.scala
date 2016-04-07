@@ -49,7 +49,7 @@ trait RestApiRoute
         }
       }
     }
-  } ~ path(Segment / Segment) { (artifact: String, name: String) ⇒
+  } ~ path(Segment / Rest) { (artifact: String, name: String) ⇒
     pathEndOrSingleSlash {
       get {
         rejectEmptyResponse {

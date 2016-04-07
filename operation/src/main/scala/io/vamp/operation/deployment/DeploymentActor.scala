@@ -254,31 +254,18 @@ trait DeploymentValidator {
   def validateGateways: (Deployment ⇒ Future[Deployment]) = { (deployment: Deployment) ⇒
     // Availability check.
     implicit val timeout = PersistenceActor.timeout
-    allArtifacts[Gateway] flatMap {
+    allArtifacts[Gateway] map {
       case gateways ⇒
-        val ports = gateways.filter(gateway ⇒ GatewayPath(gateway.name).segments.head != deployment.name).map(gateway ⇒ gateway.port.number -> gateway).toMap
+        val otherGateways = gateways.filter(gateway ⇒ GatewayPath(gateway.name).segments.head != deployment.name)
 
-        val deploymentGateways = deployment.gateways.flatMap { gateway ⇒
-          ports.get(gateway.port.number) match {
-            case Some(g) ⇒
-              val segments = GatewayPath(g.name).segments
-              if (segments.size == 2) {
-                if (segments.head == deployment.name) Nil else g :: Nil
-              } else throwException(UnavailableGatewayPortError(gateway.port, g))
-            case _ ⇒ Nil
+        deployment.gateways.map { gateway ⇒
+          otherGateways.find(_.port.number == gateway.port.number) match {
+            case Some(g) ⇒ throwException(UnavailableGatewayPortError(gateway.port, g))
+            case _       ⇒ gateway
           }
-        } map { gateway ⇒
-          artifactForIfExists[Deployment](GatewayPath(gateway.name).segments.head) map { case d ⇒ gateway -> d }
         }
 
-        Future.sequence(deploymentGateways).map {
-          case dgs ⇒
-            dgs.foreach {
-              case (gateway, Some(_)) ⇒ throwException(UnavailableGatewayPortError(gateway.port, gateway))
-              case _                  ⇒
-            }
-            deployment
-        }
+        deployment
     }
   }
 
@@ -518,7 +505,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
         case Some(newRouting) ⇒
           val routes = services.map { service ⇒
             routeBy(newRouting, service, port) match {
-              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
+              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, Nil, Nil, None)
               case Some(route) ⇒ route
             }
           }
@@ -526,7 +513,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
         case None ⇒
           Gateway("", Port(port.name, None, None, 0, port.`type`), None, services.map { service ⇒
-            DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
+            DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, Nil, Nil, None)
           })
       }
     }

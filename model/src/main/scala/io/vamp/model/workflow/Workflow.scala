@@ -10,9 +10,14 @@ trait Workflow extends Artifact
 
 case class WorkflowReference(name: String) extends Reference with Workflow
 
-case class DefaultWorkflow(name: String, containerImage: Option[String], script: Option[String], command: Option[String], scale: Option[Scale]) extends Workflow
+case class DefaultWorkflow(
+  name: String,
+  containerImage: Option[String],
+  script: Option[String],
+  command: Option[String],
+  scale: Option[Scale]) extends Workflow
 
-trait Trigger
+sealed trait Trigger
 
 object TimeTrigger {
 
@@ -54,5 +59,7 @@ case class TimeTrigger(period: RepeatPeriod, repeatTimes: RepeatTimes = RepeatFo
 case class DeploymentTrigger(deployment: String) extends Trigger
 
 case class EventTrigger(tags: Set[String]) extends Trigger
+
+object DaemonTrigger extends Trigger
 
 case class ScheduledWorkflow(name: String, workflow: Workflow, trigger: Trigger) extends Artifact with Lookup

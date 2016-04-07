@@ -175,12 +175,10 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
     )
   }
 
-  it should "ignore 'script' if 'workflow' is specified" in {
-    expectedError[UnexpectedElement]({
+  it should "should fail if both 'script' adn 'workflow' are specified" in {
+    expectedError[BothWorkflowAndScriptError.type]({
       ScheduledWorkflowReader.read(res("workflow/scheduled8.yml"))
-    }) should have(
-      'element(Map("script" -> "vamp.exit()"))
-    )
+    })
   }
 
   it should "read anonymous workflow specified with 'script'" in {
@@ -213,5 +211,19 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
     }) should have(
       'period("123")
     )
+  }
+
+  it should "read the daemon scheduled workflow" in {
+    ScheduledWorkflowReader.read(res("workflow/scheduled13.yml")) should have(
+      'name("logger-schedule"),
+      'workflow(WorkflowReference("logger")),
+      'trigger(DaemonTrigger)
+    )
+  }
+
+  it should "fail on no trigger and daemon == false" in {
+    expectedError[UndefinedWorkflowTriggerError.type]({
+      ScheduledWorkflowReader.read(res("workflow/scheduled14.yml"))
+    })
   }
 }

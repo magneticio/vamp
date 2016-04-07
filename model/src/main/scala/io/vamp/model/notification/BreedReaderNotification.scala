@@ -16,3 +16,5 @@ case class UnresolvedDependencyInTraitValueError(breed: Breed, reference: String
 object InvalidArgumentError extends Notification
 
 case class InvalidArgumentValueError(argument: Argument) extends Notification
+
+case class UnresolvedDependencyError(breed: Breed, dependency: Breed) extends Notification

@@ -1,6 +1,7 @@
 package io.vamp.model.resolver
 
 import io.vamp.model.artifact._
+import io.vamp.model.notification.ModelNotificationProvider
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
@@ -8,7 +9,7 @@ import org.scalatest.junit.JUnitRunner
 import scala.language.postfixOps
 
 @RunWith(classOf[JUnitRunner])
-class DeploymentTraitResolverSpec extends FlatSpec with Matchers with DeploymentTraitResolver {
+class DeploymentTraitResolverSpec extends FlatSpec with Matchers with DeploymentTraitResolver with ModelNotificationProvider {
 
   "DeploymentTraitResolver" should "pass through environment variables for an empty cluster list" in {
 

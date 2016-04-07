@@ -4,7 +4,7 @@ clusters:
   sava:
     routing:
       web:
-        sticky: service
+        sticky: route
       admin:
         sticky: instance
     services:

@@ -24,8 +24,6 @@ case class DeploymentServiceError(deployment: Deployment, service: DeploymentSer
 
 case class UnsupportedRouteWeight(deployment: Deployment, cluster: DeploymentCluster, weight: Int) extends Notification
 
-case class UnresolvedDependencyError(breed: Breed, dependency: Breed) extends Notification
-
 case class NonUniqueBreedReferenceError(breed: Breed) extends Notification
 
 case class InvalidRouteWeight(deployment: Deployment, cluster: DeploymentCluster, weight: Int) extends Notification
