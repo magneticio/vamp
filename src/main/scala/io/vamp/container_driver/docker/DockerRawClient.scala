@@ -72,7 +72,7 @@ object RawDockerClient {
     import DefaultScaleProtocol.DefaultScaleFormat
 
     val spContainer = ContainerConfig.builder()
-    val hostConfig = HostConfig.builder().privileged(true)
+    val hostConfig = HostConfig.builder()
 
     container match {
       case Some(container) ⇒ {
