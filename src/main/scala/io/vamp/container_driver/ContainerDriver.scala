@@ -19,7 +19,7 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
 
   protected def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
 
-  protected def artifactName2Id(artifact: Artifact) = artifact.name match {
+  protected def artifactName2Id(artifact: Artifact): String = artifact.name match {
     case idMatcher(_*) ⇒ artifact.name
     case _             ⇒ Hash.hexSha1(artifact.name).substring(0, 20)
   }

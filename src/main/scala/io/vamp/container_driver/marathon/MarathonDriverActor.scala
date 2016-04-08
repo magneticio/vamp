@@ -1,6 +1,7 @@
 package io.vamp.container_driver.marathon
 
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.crypto.Hash
 import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor.ContainerDriveMessage
@@ -157,6 +158,14 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     RestClient.get[AppResponse](s"$marathonUrl/v2/apps/$app", RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
       case AppResponse(response) ⇒ Option(response)
       case _                     ⇒ None
+    }
+  }
+
+  override protected def artifactName2Id(artifact: Artifact): String = {
+    val id = super.artifactName2Id(artifact)
+    artifact match {
+      case breed: Breed if breed.name != id ⇒ if (breed.name.matches("^[\\d\\p{L}].*$")) s"${breed.name.replaceAll("[^\\p{L}\\d]", "-")}-$id" else id
+      case _                                ⇒ id
     }
   }
 }
