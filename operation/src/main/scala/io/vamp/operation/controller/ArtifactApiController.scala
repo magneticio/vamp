@@ -11,14 +11,14 @@ import io.vamp.model.artifact._
 import io.vamp.model.reader._
 import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
 import io.vamp.operation.notification.{ InconsistentArtifactName, UnexpectedArtifact }
-import io.vamp.persistence.db.{ ArtifactResponseEnvelope, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.db._
 import io.vamp.persistence.notification.PersistenceOperationFailure
 
 import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }
 import scala.reflect._
 
-trait ArtifactApiController extends ArtifactSupport {
+trait ArtifactApiController extends ArtifactExpansionSupport {
   this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
 
   def background(artifact: String): Boolean = mapping.get(artifact).exists(_.background)
@@ -123,13 +123,13 @@ trait ArtifactApiController extends ArtifactSupport {
   class GatewayHandler extends PersistenceHandler[Gateway](GatewayReader) {
 
     override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
-      unmarshal(source) match {
+      expandGateway(unmarshal(source)) flatMap {
         case gateway ⇒ actorFor[GatewayActor] ? GatewayActor.Create(gateway, Option(source), validateOnly)
       }
     }
 
     override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
-      unmarshal(source) match {
+      expandGateway(unmarshal(source)) flatMap {
         case gateway ⇒
           if (name != gateway.name) throwException(InconsistentArtifactName(name, gateway))
           actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly, promote = true)

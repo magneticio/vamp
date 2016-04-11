@@ -16,7 +16,7 @@ import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
-import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.db._
 import io.vamp.persistence.operation.DeploymentPersistence._
 import io.vamp.persistence.operation._
 
@@ -112,8 +112,8 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
   }
 }
 
-trait BlueprintSupport extends DeploymentValidator with NameValidator with BlueprintRoutingHelper {
-  this: ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
+trait BlueprintSupport extends DeploymentValidator with NameValidator with BlueprintRoutingHelper with ArtifactExpansionSupport {
+  this: ActorSystemProvider with ArtifactPaginationSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   private def uuid = UUID.randomUUID.toString
 
@@ -135,6 +135,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
   def deploymentFor(blueprint: Blueprint): Future[Deployment] = {
     artifactFor[DefaultBlueprint](blueprint) flatMap {
       case bp ⇒
+
         val clusters = bp.clusters.map { cluster ⇒
           for {
             services ← Future.traverse(cluster.services)({ service ⇒
@@ -145,19 +146,19 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
                 DeploymentService(Deploy, breed, service.environmentVariables, scale, Nil, arguments(breed, service), Map(), service.dialects)
               }
             })
-            routing ← Future.sequence(cluster.routing map { r ⇒
-              val routes: Future[List[Route]] = Future.sequence(r.routes.map({
-                case route ⇒ artifactFor[DefaultRoute](route)
-              }))
-
-              routes.map(routes ⇒ r.copy(routes = routes))
-            })
+            routing ← expandGateways(cluster.routing)
 
           } yield {
             DeploymentCluster(cluster.name, services, processAnonymousRouting(services, routing), cluster.sla, Map(), cluster.dialects)
           }
         }
-        Future.sequence(clusters).map(Deployment(uuid, _, bp.gateways, Nil, bp.environmentVariables, Nil))
+
+        for {
+          c ← Future.sequence(clusters)
+          g ← expandGateways(bp.gateways)
+        } yield {
+          Deployment(uuid, c, g, Nil, bp.environmentVariables, Nil)
+        }
     }
   }
 

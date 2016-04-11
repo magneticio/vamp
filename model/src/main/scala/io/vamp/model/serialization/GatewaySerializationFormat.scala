@@ -65,7 +65,7 @@ class RoutingStickySerializer extends CustomSerializer[Gateway.Sticky.Value](for
   case sticky: Gateway.Sticky.Value ⇒ JString(sticky.toString.toLowerCase)
 }))
 
-class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerialization {
+class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerialization with FilterDecomposer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case route: RouteReference ⇒ serializeReference(route)
     case route: DefaultRoute ⇒
@@ -75,7 +75,7 @@ class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerializat
 
       list += JField("weight", if (route.weight.isDefined) JString(route.weight.get.normalized) else JNull)
       list += JField("filter_strength", if (route.filterStrength.isDefined) JString(route.filterStrength.get.normalized) else JNull)
-      list += JField("filters", Extraction.decompose(route.filters))
+      list += JField("filters", JArray(route.filters.map(serializeFilter(full = false))))
       list += JField("rewrites", Extraction.decompose(route.rewrites))
 
       if (route.targets.nonEmpty) list += JField("instances", Extraction.decompose(route.targets))
@@ -93,13 +93,17 @@ class ExternalRouteTargetSerializer extends ArtifactSerializer[ExternalRouteTarg
   }
 }
 
-class FilterSerializer extends ArtifactSerializer[Filter] with ReferenceSerialization {
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+class FilterSerializer extends ArtifactSerializer[Filter] with FilterDecomposer {
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeFilter(full = true)
+}
+
+trait FilterDecomposer extends ReferenceSerialization {
+
+  def serializeFilter(full: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = {
     case filter: FilterReference ⇒ serializeReference(filter)
     case filter: DefaultFilter ⇒
       val list = new ArrayBuffer[JField]
-      if (filter.name.nonEmpty)
-        list += JField("name", JString(filter.name))
+      if (filter.name.nonEmpty && full) list += JField("name", JString(filter.name))
       list += JField("condition", JString(filter.condition))
       new JObject(list.toList)
   }
