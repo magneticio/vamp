@@ -15,6 +15,7 @@ import io.vamp.pulse.notification.PulseFailureNotifier
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.existentials
+import scala.reflect._
 
 object ArtifactResponseEnvelope {
   val maxPerPage = 30
@@ -122,7 +123,9 @@ trait PersistenceActor extends PersistenceMultiplexer with PersistenceArchive wi
     case any ⇒ unsupported(UnsupportedPersistenceRequest(any))
   }
 
-  protected def readExpanded(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = get(name, `type`)
+  protected def readExpanded[T <: Artifact: ClassTag](name: String): Future[Option[T]] = {
+    get(name, classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]]).asInstanceOf[Future[Option[T]]]
+  }
 
   override def typeName = "persistence"
 
