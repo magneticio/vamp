@@ -58,7 +58,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
                       case None      ⇒
                       case Some(ref) ⇒ >>("breed", ref)
                     }
-                    case Some(_) ⇒ >>("breed", source)
+                    case Some(_) ⇒ >>("breed", <<-())
                   }
                 case _ ⇒
               }
