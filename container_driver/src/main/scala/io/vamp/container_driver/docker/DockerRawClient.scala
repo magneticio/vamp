@@ -100,7 +100,6 @@ object RawDockerClient {
               inLabels.get.foreach(f ⇒ {
                 labels += f
               })
-            spContainer.labels(labels)
 
             /* Getting net parameters */
             val net = values.get("net").asInstanceOf[Option[String]]
@@ -109,7 +108,11 @@ object RawDockerClient {
             } else
               spContainer.hostConfig(hostConfig.portBindings(mutableHash).networkMode("bridge").build())
           }
+        } else {
+          spContainer.hostConfig(hostConfig.portBindings(mutableHash).networkMode("bridge").build())
         }
+
+        spContainer.labels(labels)
 
         val spCont = spContainer.build()
         Some(spCont)
