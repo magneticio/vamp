@@ -14,6 +14,7 @@ import akka.actor.ActorSystem
 
 class RancherDriverSpec extends FlatSpec with Matchers with BeforeAndAfterAll with BeforeAndAfter {
 
+  /*
   "The Rancher driver" should "deploy a new stack" in {
     val deployment1 = fixture.deployment.copy(name = "deployment_" + DateTime.now())
     val res = fixture.driver.deploy(deployment1, fixture.deploymentCluster, fixture.deploymentService, false)
@@ -29,7 +30,9 @@ class RancherDriverSpec extends FlatSpec with Matchers with BeforeAndAfterAll wi
     val res2= Await.result(res, 60 seconds).asInstanceOf[Any]
     println("RSULTADO: " + res2)
   }
+  */
   
+  /*
   def fixture = new {
     //val ec = scala.concurrent.ExecutionContext.global 
     implicit val _system = ActorSystem("settlements")
@@ -56,4 +59,6 @@ class RancherDriverSpec extends FlatSpec with Matchers with BeforeAndAfterAll wi
     val deployment = Deployment("deployment", List(deploymentCluster), List(gateway1), List(Port("sava.ports.port",None,Some("0"),0,Port.Type.Http)), List(), List(Host("sava.hosts.host",Some("192.168.99.100"))))   
      
   }
+  */
+
 }

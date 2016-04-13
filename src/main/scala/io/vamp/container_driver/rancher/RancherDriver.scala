@@ -7,7 +7,7 @@ import scala.concurrent.duration._
 
 import io.vamp.common.http.RestClient
 import io.vamp.model.artifact._
-import io.vamp.container_driver.{ AbstractContainerDriver, ContainerPortMapping, ContainerInfo, ContainerService, ContainerInstance }
+import io.vamp.container_driver.{ ContainerDriver, ContainerPortMapping, ContainerInfo, ContainerService, ContainerInstance }
 import io.vamp.container_driver.rancher.api.{ Stack }
 import io.vamp.model.reader.MegaByte
 
@@ -26,7 +26,7 @@ case class DockerParameter(key: String, value: String)
 case class Container(docker: Docker, `type`: String = "DOCKER")
 case class Docker(image: String, portMappings: List[ContainerPortMapping], parameters: List[DockerParameter], network: String = "BRIDGE")
 
-class RancherDriver(as: ActorSystem) extends AbstractContainerDriver(as.dispatcher) {
+trait RancherDriver extends ContainerDriver {
 
   override val nameDelimiter = "-"
   override def appId(deployment: Deployment, breed: Breed): String = s"vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
@@ -140,6 +140,8 @@ class RancherDriver(as: ActorSystem) extends AbstractContainerDriver(as.dispatch
     RestClient.delete(serviceUndeployUrl(id))
   }
 
+  private lazy implicit val as = ActorSystem("rancher-retry") 
+  
   private lazy val cFactory = ConfigFactory.load()
   private val vampContainerDriverUrl = cFactory.getString("vamp.container-driver.url")
   private def serviceActivationUrl(serviceId: String) = s"${vampContainerDriverUrl}/services/${serviceId}/?action=activate"
