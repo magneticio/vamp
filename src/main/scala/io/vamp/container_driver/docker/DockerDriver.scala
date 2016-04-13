@@ -1,22 +1,19 @@
 package io.vamp.container_driver.docker
 
-import io.vamp.container_driver.{ AbstractContainerDriver, ContainerPortMapping, ContainerInfo, ContainerService, ContainerInstance }
+import io.vamp.container_driver._
 import io.vamp.model.artifact._
 import io.vamp.model.reader.MegaByte
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.collection.mutable.{ Map ⇒ MutableMap }
-
-import com.spotify.docker.client.{ DockerClient, DefaultDockerClient }
-import com.spotify.docker.client.messages.{ HostConfig, PortBinding, ContainerConfig, ContainerInfo ⇒ spContainerInfo, Container ⇒ spContainer, ContainerCreation, Info }
-
+import com.spotify.docker.client.{ DefaultDockerClient, DockerCertificates, DockerClient }
+import com.spotify.docker.client.messages.{ ContainerConfig, ContainerCreation, HostConfig, Info, PortBinding, Container ⇒ spContainer, ContainerInfo ⇒ spContainerInfo }
 import java.lang.reflect.Field
 import java.net.URI
+import java.nio.file.Paths
 
 import com.typesafe.config.ConfigFactory
-
 import org.joda.time.DateTime
-
 import akka.actor.ActorSystem
 
 /** This classes come from marathon driver **/
@@ -34,7 +31,7 @@ case class App(id: String, instances: Int, cpus: Double, mem: Double, tasks: Lis
  * Seems that Java clients are more up to date than Scala.
  *
  */
-class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*extends ContainerDriver with ContainerDriverNotificationProvider*/ {
+trait DockerDriver extends ContainerDriver {
 
   import RawDockerClient._
   import scala.collection.JavaConversions._
@@ -138,9 +135,13 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
     }
   }
 
-  private val cFactory = ConfigFactory.load()
-  private val vampContainerDriverUrl = cFactory.getString("vamp.container-driver.url")
-  private val isRancherEnvironment = cFactory.getBoolean("vamp.container-driver.isInRancher")
+  private val cFactory = ConfigFactory.load().getConfig("vamp.container-driver.docker")
+  private val vampContainerDriverUrl = cFactory.getString("url")
+  private val vampDockerCertificates = cFactory.getString("certificates")
+  private val isRancherEnvironment = cFactory.getBoolean("isInRancher")
   private val ipAdddr = """^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$""".r
-  private def client = new RawDockerClient(DefaultDockerClient.builder().uri(vampContainerDriverUrl).build())
+  private def client = {
+    val path = if (vampDockerCertificates.startsWith("~")) s"${System.getProperty("user.home")}${vampDockerCertificates.substring(1)}" else vampDockerCertificates
+    new RawDockerClient(DefaultDockerClient.builder().uri(vampContainerDriverUrl).dockerCertificates(new DockerCertificates(Paths.get(path))).build())
+  }
 }
