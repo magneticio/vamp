@@ -108,7 +108,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
       }) ++ service.environmentVariables).map(ev ⇒ ev.name -> ev).toMap.values.toList
 
     val environmentVariables = local.map { ev ⇒
-      ev.copy(interpolated = if (ev.interpolated.isEmpty) Some(resolve(ev.value.getOrElse(""), valueFor(deployment, Some(service)))) else ev.interpolated)
+      ev.copy(interpolated = if (ev.interpolated.isEmpty) Some(resolve(ev.value.getOrElse(""), valueForWithDependencyReplacement(deployment, service))) else ev.interpolated)
     }
 
     persist(DeploymentServiceEnvironmentVariables(serviceArtifactName(deployment, cluster, service), environmentVariables))

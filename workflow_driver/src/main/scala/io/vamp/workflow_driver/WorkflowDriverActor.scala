@@ -26,7 +26,7 @@ object WorkflowDriverActor {
 
 }
 
-class WorkflowDriverActor(driver: WorkflowDriver) extends PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider {
+class WorkflowDriverActor(drivers: List[WorkflowDriver]) extends PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider {
 
   import WorkflowDriverActor._
 
@@ -35,23 +35,20 @@ class WorkflowDriverActor(driver: WorkflowDriver) extends PulseFailureNotifier w
   override def errorNotificationClass = classOf[WorkflowResponseError]
 
   def receive = {
-    case InfoRequest                       ⇒ reply(driver.info)
-    case Scheduled                         ⇒ reply(driver.all())
-    case Schedule(scheduledWorkflow, data) ⇒ reply(driver.schedule(scheduledWorkflow, data))
-    case Unschedule(scheduledWorkflow)     ⇒ reply(driver.unschedule(scheduledWorkflow))
+    case InfoRequest                       ⇒ reply(info)
+    case Scheduled                         ⇒ reply(all())
+    case Schedule(scheduledWorkflow, data) ⇒ reply(schedule(data)(scheduledWorkflow))
+    case Unschedule(scheduledWorkflow)     ⇒ reply(unschedule()(scheduledWorkflow))
     case any                               ⇒ unsupported(UnsupportedWorkflowDriverRequest(any))
   }
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
-}
 
-object NoneWorkflowDriver extends WorkflowDriver {
+  private def info: Future[Map[_, _]] = Future.sequence(drivers.map(_.info)).map(_.reduce(_ ++ _))
 
-  override def info: Future[Any] = Future.successful(None)
+  private def all(): Future[List[WorkflowInstance]] = Future.sequence(drivers.map(_.all())).map(_.reduce(_ ++ _))
 
-  override def all(): Future[List[WorkflowInstance]] = Future.successful(Nil)
+  private def schedule(data: Any): PartialFunction[ScheduledWorkflow, Future[Any]] = drivers.map(_.schedule(data)).reduce(_ orElse _)
 
-  override def schedule(workflow: ScheduledWorkflow, data: Any): Future[Any] = Future.successful(workflow)
-
-  override def unschedule(workflow: ScheduledWorkflow): Future[Any] = Future.successful(workflow)
+  private def unschedule(): PartialFunction[ScheduledWorkflow, Future[Any]] = drivers.map(_.unschedule()).reduce(_ orElse _)
 }

@@ -42,10 +42,8 @@ object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
   }
 
   protected def escalations(implicit source: YamlSourceReader): List[Escalation] = <<?[YamlList]("escalations") match {
-    case None ⇒ List[Escalation]()
-    case Some(list: YamlList) ⇒ list.map {
-      EscalationReader.readReferenceOrAnonymous
-    }
+    case None                 ⇒ List[Escalation]()
+    case Some(list: YamlList) ⇒ list.map(EscalationReader.readReferenceOrAnonymous)
   }
 
   override protected def parameters(implicit source: YamlSourceReader): Map[String, Any] = source.flatten(key ⇒ key != "name" && key != "type" && key != "escalations")

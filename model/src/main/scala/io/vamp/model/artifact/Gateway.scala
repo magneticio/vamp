@@ -9,7 +9,7 @@ object Gateway {
   val anonymous = ""
 
   object Sticky extends Enumeration {
-    val Service, Instance = Value
+    val Route, Instance = Value
 
     def byName(sticky: String): Option[Sticky.Value] = Gateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
   }
@@ -41,7 +41,14 @@ object GatewayPath {
 
   def apply(path: List[Any] = Nil) = list2path(path.map(_.toString))
 
-  implicit def string2path(source: String): GatewayPath = new GatewayPath(source, source.split(pathDelimiterSplitter).toList.filterNot(_.isEmpty))
+  def external(source: String) = source.startsWith("[") && source.endsWith("]")
+
+  implicit def string2path(source: String): GatewayPath = {
+    if (external(source))
+      new GatewayPath(source, source :: Nil)
+    else
+      new GatewayPath(source, source.split(pathDelimiterSplitter).toList.filterNot(_.isEmpty))
+  }
 
   implicit def list2path(path: List[String]): GatewayPath = new GatewayPath(path.mkString(pathDelimiter), path.filterNot(_.isEmpty))
 }
@@ -54,6 +61,8 @@ case class GatewayPath(source: String, segments: List[String]) {
     case routePath: GatewayPath ⇒ segments == routePath.segments
     case _                      ⇒ super.equals(obj)
   }
+
+  def external: Option[String] = if (GatewayPath.external(source) && segments.size == 1) Some(source.substring(1, source.length - 1)) else None
 }
 
 object Route {
@@ -61,6 +70,7 @@ object Route {
 }
 
 sealed trait Route extends Artifact {
+
   def path: GatewayPath
 
   val length = path.segments.size
@@ -68,18 +78,27 @@ sealed trait Route extends Artifact {
 
 case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
 
-case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filters: List[Filter], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
+case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filterStrength: Option[Percentage], filters: List[Filter], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
+
   def hasRoutingFilters: Boolean = filters.exists(_.isInstanceOf[DefaultFilter])
+
+  def external = path.external.isDefined
 }
 
-object RouteTarget {
+object InternalRouteTarget {
 
   val host = "localhost"
 
-  def apply(name: String, port: Int) = new RouteTarget(name, host, port)
+  def apply(name: String, port: Int) = new InternalRouteTarget(name, host, port)
 }
 
-case class RouteTarget(name: String, host: String, port: Int) extends Artifact with Lookup
+sealed trait RouteTarget extends Artifact with Lookup
+
+case class InternalRouteTarget(name: String, host: String, port: Int) extends RouteTarget
+
+case class ExternalRouteTarget(url: String) extends RouteTarget {
+  val name = url
+}
 
 sealed trait Filter extends Artifact
 

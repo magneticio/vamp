@@ -16,9 +16,10 @@ MalformedTraitError                    : "Malformed entry for port, environment 
 MissingPortValueError                  : "Missing port value for '{port.name}' and breed '{breed.name} -> {breed.deployable.name}'."
 MissingConstantValueError              : "Missing constant value for '{constant.name}' and breed '{breed.name} -> {breed.deployable.name}'."
 RecursiveDependenciesError             : "Recursive (cyclic) dependency detected for breed '{breed.name}'"
-UnresolvedDependencyInTraitValueError  : "Unresolved reference '{reference}' in breed '{breed.name} -> {breed.deployable.name}'."
+UnresolvedDependencyInTraitValueError  : "Unresolved reference '{reference}' in breed '{breed.name} -> {breed.deployable.name}'. Check if breed dependency is declared."
 InvalidArgumentError$                  : "Invalid argument - argument must be in form of 'key: value'."
 InvalidArgumentValueError              : "Argument {argument.key} has an invalid value: {argument.value}."
+UnresolvedDependencyError              : "Unresolved dependency '{dependency.name}' for breed '{breed.name}'."
 
 # Blueprint Reader
 
@@ -27,6 +28,7 @@ UnresolvedEnvironmentVariableError     : "Parameter '{name} -> {value}' cannot b
 NonUniqueBlueprintBreedReferenceError  : "Multiple references for breed: '{name}'."
 UnresolvedBreedDependencyError         : "Unresolved breed dependency for breed '{breed.name}' and dependency '{dependency._1} -> {dependency._2.name}'."
 RouteWeightError                       : "Total route weight cannot exceed 100 or be a negative value. Check cluster: '{cluster.name}'."
+RouteFilterStrengthError               : "Route filter strength cannot exceed 100 or be a negative value. Check cluster: '{cluster.name}'."
 UnresolvedScaleEscalationTargetCluster : "Unresolved scale escalation target cluster '{target}' for cluster '{cluster.name}'"
 NoServiceError$                        : "Expected at least one service."
 MissingEnvironmentVariableError        : "Missing environment variable value for '{name}' in service '{breed.name}.'"
@@ -38,6 +40,7 @@ StickyPortTypeError                    : "Sticky sessions are not allowed for TC
 FilterPortTypeError                    : "HTTP filters are not allowed for TCP port: '{port.name}' and filter '{filter.condition}'."
 IllegalAnonymousRoutingPortMappingError: "Illegal anonymous routing port mapping - more than 1 port defined for '{breed.name}'."
 GatewayRouteWeightError                : "Total route weight cannot be greater than 100: {gateway.port.value.get}."
+GatewayRouteFilterStrengthError        : "Route filter strength cannot be less than 0 or greater than 100: {gateway.port.value.get}."
 DuplicateGatewayPortError              : "Duplicate gateway port: '{port}'."
 UnsupportedPathRewriteError            : "Unsupported path rewrite: {definition}."
 
@@ -54,10 +57,11 @@ UndefinedStateStepError                : "Undefined state step: {name}."
 
 # Workflows
 
-UndefinedWorkflowTriggerError$         : "Undefined workflow trigger - either deployment, time or tags must be specified."
+UndefinedWorkflowTriggerError$         : "Undefined workflow trigger - either daemon workflow set to true or deployment, time or tags must be specified."
 IllegalPeriod                          : "Illegal period value: {period}."
 NoWorkflowRunnable                     : "Either container image, script or command must be defined: {name}."
 InvalidWorkflowScale                   : "Invalid workflow scale, number of instances must not be greater than 1: {scale.instances}."
+BothWorkflowAndScriptError$            : "Both workflow reference and script are provided."
 
 # Event
 

@@ -88,7 +88,6 @@ trait DeploymentApiController extends ArtifactShrinkage {
   } catch {
     case e: NotificationErrorException ⇒
       try {
-        reportException(e.notification)
         process(DeploymentReader.readReferenceFromSource(request).asBlueprint)
       } catch {
         case _: Exception ⇒ throw e

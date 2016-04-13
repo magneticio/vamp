@@ -5,6 +5,7 @@ import com.typesafe.scalalogging.Logger
 import io.vamp.container_driver.ContainerDriverBootstrap
 import io.vamp.dictionary.DictionaryBootstrap
 import io.vamp.gateway_driver.GatewayDriverBootstrap
+import io.vamp.lifter.LifterBootstrap
 import io.vamp.model.Model
 import io.vamp.operation.OperationBootstrap
 import io.vamp.persistence.PersistenceBootstrap
@@ -30,7 +31,8 @@ trait Vamp extends App {
       GatewayDriverBootstrap :+
       WorkflowDriverBootstrap :+
       OperationBootstrap :+
-      RestApiBootstrap
+      RestApiBootstrap :+
+      LifterBootstrap
   }
 
   sys.addShutdownHook {

@@ -5,7 +5,7 @@ clusters:
     routing:
       web:
         port: 8080
-        sticky: service
+        sticky: route
 
     services:
       breed: nocturnal-viper

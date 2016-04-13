@@ -18,6 +18,7 @@ import io.vamp.operation.controller.DeploymentApiController
 import io.vamp.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.operation.gateway.GatewaySynchronizationActor
 import io.vamp.operation.sla.{ EscalationActor, SlaActor }
+import io.vamp.operation.workflow.WorkflowSynchronizationActor
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.persistence.kv.KeyValueStoreActor
 import io.vamp.persistence.operation.DeploymentPersistence._
@@ -184,6 +185,8 @@ trait DevController {
     IoC.actorFor[DeploymentSynchronizationActor] ! DeploymentSynchronizationActor.SynchronizeAll
     Thread.sleep(1000)
     IoC.actorFor[GatewaySynchronizationActor] ! GatewaySynchronizationActor.SynchronizeAll
+    Thread.sleep(1000)
+    IoC.actorFor[WorkflowSynchronizationActor] ! WorkflowSynchronizationActor.SynchronizeAll
   }
 
   def slaCheck() = IoC.actorFor[SlaActor] ! SlaActor.SlaProcessAll

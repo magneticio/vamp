@@ -5,7 +5,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.gateway_driver.aggregation.{ MetricsActor, MetricsSchedulerActor }
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
-import io.vamp.gateway_driver.kibana.{ KibanaDashboardActor, KibanaDashboardInitializationActor, KibanaDashboardSchedulerActor }
+import io.vamp.gateway_driver.kibana.{ KibanaDashboardActor, KibanaDashboardSchedulerActor }
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -30,9 +30,9 @@ object GatewayDriverBootstrap extends Bootstrap {
     val actors = List(
       IoC.createActor[GatewayDriverActor](new HaProxyGatewayMarshaller() {
         override def tcpLogFormat: String = haproxyConfiguration.getString("tcp-log-format")
+
         override def httpLogFormat: String = haproxyConfiguration.getString("http-log-format")
       }),
-      IoC.createActor[KibanaDashboardInitializationActor],
       IoC.createActor[KibanaDashboardActor],
       IoC.createActor[KibanaDashboardSchedulerActor],
       IoC.createActor[MetricsActor],

@@ -3,7 +3,7 @@ package io.vamp.persistence
 import akka.actor.{ ActorRef, ActorSystem }
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ Bootstrap, IoC }
-import io.vamp.persistence.db.{ ElasticsearchPersistenceActor, ElasticsearchPersistenceInitializationActor, InMemoryPersistenceActor, PersistenceActor }
+import io.vamp.persistence.db.{ ElasticsearchPersistenceActor, InMemoryPersistenceActor, PersistenceActor }
 import io.vamp.persistence.kv.{ ConsulStoreActor, EtcdStoreActor, KeyValueStoreActor, ZooKeeperStoreActor }
 
 object PersistenceBootstrap extends Bootstrap {
@@ -16,17 +16,14 @@ object PersistenceBootstrap extends Bootstrap {
 
     IoC.alias[KeyValueStoreActor, ZooKeeperStoreActor]
 
-    val dbActors = databaseType match {
+    val dbActor = databaseType match {
       case "in-memory" ⇒
         IoC.alias[PersistenceActor, InMemoryPersistenceActor]
-        IoC.createActor[InMemoryPersistenceActor] :: Nil
+        IoC.createActor[InMemoryPersistenceActor]
 
       case "elasticsearch" ⇒
         IoC.alias[PersistenceActor, ElasticsearchPersistenceActor]
-        List(
-          IoC.createActor[ElasticsearchPersistenceInitializationActor],
-          IoC.createActor[ElasticsearchPersistenceActor]
-        )
+        IoC.createActor[ElasticsearchPersistenceActor]
 
       case other ⇒ throw new RuntimeException(s"Unsupported database type: $other")
     }
@@ -47,6 +44,6 @@ object PersistenceBootstrap extends Bootstrap {
       case other ⇒ throw new RuntimeException(s"Unsupported key-value store type: $other")
     }
 
-    kvActor :: dbActors
+    kvActor :: dbActor :: Nil
   }
 }

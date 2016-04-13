@@ -18,11 +18,11 @@ object WorkflowDriver {
 
 trait WorkflowDriver {
 
-  def info: Future[Any]
+  def info: Future[Map[_, _]]
 
   def all(): Future[List[WorkflowInstance]]
 
-  def schedule(workflow: ScheduledWorkflow, data: Any): Future[Any]
+  def schedule(data: Any): PartialFunction[ScheduledWorkflow, Future[Any]]
 
-  def unschedule(workflow: ScheduledWorkflow): Future[Any]
+  def unschedule(): PartialFunction[ScheduledWorkflow, Future[Any]]
 }

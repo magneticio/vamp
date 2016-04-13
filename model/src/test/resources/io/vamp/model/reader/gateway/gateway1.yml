@@ -1,6 +1,6 @@
 name: sava
 port: 8080/http
-sticky: service
+sticky: route
 
 routes:
   sava1:

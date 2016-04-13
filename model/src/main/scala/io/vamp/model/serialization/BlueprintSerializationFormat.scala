@@ -2,7 +2,7 @@ package io.vamp.model.serialization
 
 import io.vamp.common.json.SerializationFormat
 import io.vamp.model.artifact._
-import org.json4s.JsonAST.JString
+import org.json4s.JsonAST.{ JObject, JString }
 import org.json4s._
 
 import scala.collection.mutable.ArrayBuffer
@@ -42,20 +42,27 @@ class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] wi
   }
 }
 
-class ServiceFieldSerializer extends ArtifactFieldSerializer[AbstractService] with ArgumentListSerializer with DialectSerializer with TraitDecomposer {
+class ServiceFieldSerializer extends ArtifactFieldSerializer[AbstractService] with ArgumentListSerializer with DialectSerializer with TraitDecomposer with BlueprintScaleSerializer {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
     case ("environmentVariables", environmentVariables) ⇒ Some(("environment_variables", traits(environmentVariables.asInstanceOf[List[Trait]])))
     case ("arguments", arguments)                       ⇒ Some(("arguments", serializeArguments(arguments.asInstanceOf[List[Argument]])))
     case ("dialects", dialects)                         ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
+    case ("scale", Some(scale: Scale))                  ⇒ Some(("scale", serializerScale(scale, full = false)))
   }
 }
 
-class ScaleSerializer extends ArtifactSerializer[Scale] with ReferenceSerialization {
+class ScaleSerializer extends ArtifactSerializer[Scale] with BlueprintScaleSerializer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case scale: Scale ⇒ serializerScale(scale)
+  }
+}
+
+trait BlueprintScaleSerializer extends ReferenceSerialization {
+  def serializerScale(scale: Scale, full: Boolean = true): JObject = scale match {
     case scale: ScaleReference ⇒ serializeReference(scale)
     case scale: DefaultScale ⇒
       val list = new ArrayBuffer[JField]
-      if (scale.name.nonEmpty)
+      if (scale.name.nonEmpty && full)
         list += JField("name", JString(scale.name))
       list += JField("cpu", JDouble(scale.cpu))
       list += JField("memory", JString(scale.memory.normalized))

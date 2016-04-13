@@ -16,7 +16,7 @@ import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
-import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.db._
 import io.vamp.persistence.operation.DeploymentPersistence._
 import io.vamp.persistence.operation._
 
@@ -112,8 +112,8 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
   }
 }
 
-trait BlueprintSupport extends DeploymentValidator with NameValidator with BlueprintRoutingHelper {
-  this: ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
+trait BlueprintSupport extends DeploymentValidator with NameValidator with BlueprintRoutingHelper with ArtifactExpansionSupport {
+  this: ActorSystemProvider with ArtifactPaginationSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   private def uuid = UUID.randomUUID.toString
 
@@ -135,6 +135,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
   def deploymentFor(blueprint: Blueprint): Future[Deployment] = {
     artifactFor[DefaultBlueprint](blueprint) flatMap {
       case bp ⇒
+
         val clusters = bp.clusters.map { cluster ⇒
           for {
             services ← Future.traverse(cluster.services)({ service ⇒
@@ -145,19 +146,19 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
                 DeploymentService(Deploy, breed, service.environmentVariables, scale, Nil, arguments(breed, service), Map(), service.dialects)
               }
             })
-            routing ← Future.sequence(cluster.routing map { r ⇒
-              val routes: Future[List[Route]] = Future.sequence(r.routes.map({
-                case route ⇒ artifactFor[DefaultRoute](route)
-              }))
-
-              routes.map(routes ⇒ r.copy(routes = routes))
-            })
+            routing ← expandGateways(cluster.routing)
 
           } yield {
             DeploymentCluster(cluster.name, services, processAnonymousRouting(services, routing), cluster.sla, Map(), cluster.dialects)
           }
         }
-        Future.sequence(clusters).map(Deployment(uuid, _, bp.gateways, Nil, bp.environmentVariables, Nil))
+
+        for {
+          c ← Future.sequence(clusters)
+          g ← expandGateways(bp.gateways)
+        } yield {
+          Deployment(uuid, c, g, Nil, bp.environmentVariables, Nil)
+        }
     }
   }
 
@@ -254,31 +255,18 @@ trait DeploymentValidator {
   def validateGateways: (Deployment ⇒ Future[Deployment]) = { (deployment: Deployment) ⇒
     // Availability check.
     implicit val timeout = PersistenceActor.timeout
-    allArtifacts[Gateway] flatMap {
+    allArtifacts[Gateway] map {
       case gateways ⇒
-        val ports = gateways.filter(gateway ⇒ GatewayPath(gateway.name).segments.head != deployment.name).map(gateway ⇒ gateway.port.number -> gateway).toMap
+        val otherGateways = gateways.filter(gateway ⇒ GatewayPath(gateway.name).segments.head != deployment.name)
 
-        val deploymentGateways = deployment.gateways.flatMap { gateway ⇒
-          ports.get(gateway.port.number) match {
-            case Some(g) ⇒
-              val segments = GatewayPath(g.name).segments
-              if (segments.size == 2) {
-                if (segments.head == deployment.name) Nil else g :: Nil
-              } else throwException(UnavailableGatewayPortError(gateway.port, g))
-            case _ ⇒ Nil
+        deployment.gateways.map { gateway ⇒
+          otherGateways.find(_.port.number == gateway.port.number) match {
+            case Some(g) ⇒ throwException(UnavailableGatewayPortError(gateway.port, g))
+            case _       ⇒ gateway
           }
-        } map { gateway ⇒
-          artifactForIfExists[Deployment](GatewayPath(gateway.name).segments.head) map { case d ⇒ gateway -> d }
         }
 
-        Future.sequence(deploymentGateways).map {
-          case dgs ⇒
-            dgs.foreach {
-              case (gateway, Some(_)) ⇒ throwException(UnavailableGatewayPortError(gateway.port, gateway))
-              case _                  ⇒
-            }
-            deployment
-        }
+        deployment
     }
   }
 
@@ -518,7 +506,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
         case Some(newRouting) ⇒
           val routes = services.map { service ⇒
             routeBy(newRouting, service, port) match {
-              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
+              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, Nil, Nil, None)
               case Some(route) ⇒ route
             }
           }
@@ -526,7 +514,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
         case None ⇒
           Gateway("", Port(port.name, None, None, 0, port.`type`), None, services.map { service ⇒
-            DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, Nil, Nil, None)
+            DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, Nil, Nil, None)
           })
       }
     }

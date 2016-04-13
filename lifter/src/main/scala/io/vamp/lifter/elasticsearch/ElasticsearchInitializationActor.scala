@@ -1,10 +1,10 @@
-package io.vamp.pulse.elasticsearch
+package io.vamp.lifter.elasticsearch
 
 import akka.actor.{ FSM, _ }
 import io.vamp.common.akka._
 import io.vamp.common.http.RestClient
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.pulse.notification.ElasticsearchInitializationTimeoutError
+import io.vamp.lifter.notification.ElasticsearchInitializationTimeoutError
 import io.vamp.pulse.{ ElasticsearchClient, PulseActor }
 
 import scala.language.postfixOps

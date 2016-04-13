@@ -41,7 +41,7 @@ case class Rewrite(path: String, condition: String)
 
 case class ProxyServer(name: String, lookup: String, unixSock: String, weight: Int)
 
-case class Server(name: String, lookup: String, host: String, port: Int, weight: Int, checkInterval: Option[Int] = None)
+case class Server(name: String, lookup: String, url: String, weight: Int, checkInterval: Option[Int] = None)
 
 case class Options(abortOnClose: Boolean = false,
                    allBackups: Boolean = false,
