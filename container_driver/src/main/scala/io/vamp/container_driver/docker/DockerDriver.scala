@@ -72,15 +72,15 @@ class DockerDriver(ec: ExecutionContext) extends AbstractContainerDriver(ec) /*e
 
   private def getRancherIp(list: List[ContainerService]): Future[List[ContainerService]] = {
     Future {
-      if(isRancherEnvironment)
-      list.map { container ⇒
-        val x = client.internalCallCommand(Some(container.instances.head.name))
-        if (x != None && ipAdddr.pattern.matcher(x.get).matches()) {
-          container.copy(instances = container.instances.map { i ⇒ i.copy(host = x.get) })
-        } else {
-          container
+      if (isRancherEnvironment)
+        list.map { container ⇒
+          val x = client.internalCallCommand(Some(container.instances.head.name))
+          if (x != None && ipAdddr.pattern.matcher(x.get).matches()) {
+            container.copy(instances = container.instances.map { i ⇒ i.copy(host = x.get) })
+          } else {
+            container
+          }
         }
-      }
       else list
     }
   }
