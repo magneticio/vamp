@@ -7,7 +7,7 @@ case class MarathonApp(
   container: Option[Container],
   instances: Int,
   cpus: Double,
-  mem: Double,
+  mem: Int,
   env: Map[String, String],
   cmd: Option[String],
   args: List[String] = Nil,
