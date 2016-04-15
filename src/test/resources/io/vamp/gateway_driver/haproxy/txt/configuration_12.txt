@@ -1,0 +1,82 @@
+# HAProxy 1.6, Frontends & Backends managed by Vamp
+
+# Virtual hosts
+
+frontend virtual_hosts
+  bind 0.0.0.0:80
+  mode http
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+  # destination: deployment/cluster/port
+  acl 8a89ee7a8513aa6b hdr(host) -i port.cluster.deployment
+  use_backend 541edef1fa775e786b31ce139a045182afe8e2b if 8a89ee7a8513aa6b
+
+# backend: deployment/cluster/port
+backend 541edef1fa775e786b31ce139a045182afe8e2b
+  balance roundrobin
+  mode http
+  option forwardfor
+  http-request set-header X-Forwarded-Port %[dst_port]
+  # http-request add-header X-Forwarded-Proto https if { ssl_fc }
+
+  # server: deployment/cluster/port
+  server 541edef1fa775e786b31ce139a045182afe8e2b localhost:33000
+
+# Port mapping
+
+# frontend: deployment/cluster/port
+frontend 541edef1fa775e786b31ce139a045182afe8e2b
+  bind 0.0.0.0:33000
+
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+  mode http
+
+  # backend: other deployment/cluster/port
+  default_backend o_541edef1fa775e786b31ce139a045182afe8e2b
+
+# frontend: other deployment/cluster/port
+frontend o_541edef1fa775e786b31ce139a045182afe8e2b
+
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+  bind unix@/opt/vamp/o_541edef1fa775e786b31ce139a045182afe8e2b.sock accept-proxy
+
+  mode http
+
+  # backend: other deployment/cluster/port
+  default_backend o_541edef1fa775e786b31ce139a045182afe8e2b
+
+# frontend: deployment/cluster/port//vamp/sava/sava:1.0.0/port
+frontend 58fc2b1bc3ab2ed40372458ddf81d4b1b3d2646c
+
+  option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
+
+  bind unix@/opt/vamp/58fc2b1bc3ab2ed40372458ddf81d4b1b3d2646c.sock accept-proxy
+
+  mode http
+
+  # backend: deployment/cluster/port//vamp/sava/sava:1.0.0/port
+  default_backend 58fc2b1bc3ab2ed40372458ddf81d4b1b3d2646c
+
+# backend: other deployment/cluster/port
+backend o_541edef1fa775e786b31ce139a045182afe8e2b
+  mode http
+  balance roundrobin
+
+  # server: deployment/cluster/port//vamp/sava/sava:1.0.0/port
+  server 58fc2b1bc3ab2ed40372458ddf81d4b1b3d2646c unix@/opt/vamp/58fc2b1bc3ab2ed40372458ddf81d4b1b3d2646c.sock send-proxy weight 100
+
+# backend: deployment/cluster/port//vamp/sava/sava:1.0.0/port
+backend 58fc2b1bc3ab2ed40372458ddf81d4b1b3d2646c
+  mode http
+  balance roundrobin
+
+  option forwardfor
+
+  # server: 64435a223bddf1fa589135baa5e228090279c032
+  server f52646a39457170e02fb276840a696267e0815eb 192.168.99.100:32768 cookie f52646a39457170e02fb276840a696267e0815eb weight 100
