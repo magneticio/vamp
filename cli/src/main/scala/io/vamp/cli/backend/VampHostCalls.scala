@@ -42,6 +42,13 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     }
   }
 
+  def createGateway(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Gateway] = {
+    sendAndWaitYaml(s"POST $vampHost/api/v1/gateways", Some(definition)) match {
+      case Some(gateway) ⇒ Some(GatewayReader.read(gateway))
+      case _             ⇒ terminateWithError("Gateway not created")
+    }
+  }
+
   def createEscalation(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Escalation] = {
     sendAndWaitYaml(s"POST $vampHost/api/v1/escalations", Some(definition)) match {
       case Some(escalation) ⇒ Some(EscalationReader.read(escalation))
@@ -98,6 +105,13 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     }
   }
 
+  def updateGateway(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Gateway] = {
+    sendAndWaitYaml(s"PUT $vampHost/api/v1/gateways/$name", Some(definition)) match {
+      case Some(gateway) ⇒ Some(GatewayReader.read(gateway))
+      case _             ⇒ terminateWithError("Gateway not updated")
+    }
+  }
+
   def updateEscalation(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Escalation] = {
     sendAndWaitYaml(s"PUT $vampHost/api/v1/escalations/$name", Some(definition)) match {
       case Some(escalation) ⇒ Some(EscalationReader.read(escalation))
@@ -146,6 +160,9 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
   def deleteBlueprint(name: String)(implicit vampHost: String) =
     sendAndWaitYaml(s"DELETE $vampHost/api/v1/blueprints/$name", None)
 
+  def deleteGateway(name: String)(implicit vampHost: String) =
+    sendAndWaitYaml(s"DELETE $vampHost/api/v1/gateways/$name", None)
+
   def deleteEscalation(name: String)(implicit vampHost: String) =
     sendAndWaitYaml(s"DELETE $vampHost/api/v1/escalations/$name", None)
 
@@ -181,6 +198,12 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     sendAndWaitYaml(s"GET $vampHost/api/v1/blueprints") match {
       case Some(blueprints) ⇒ yamArrayListToList(blueprints).map(a ⇒ BlueprintReader.read(a))
       case None             ⇒ List.empty
+    }
+
+  def getGateways(implicit vampHost: String): List[Gateway] =
+    sendAndWaitYaml(s"GET $vampHost/api/v1/gateways") match {
+      case Some(gateways) ⇒ yamArrayListToList(gateways).map(a ⇒ GatewayReader.read(a))
+      case None           ⇒ List.empty
     }
 
   def getDeployments(implicit vampHost: String): List[Deployment] =
@@ -236,6 +259,9 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
 
   def getBlueprint(blueprintId: String)(implicit vampHost: String): Option[Blueprint] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/blueprints/$blueprintId").map(BlueprintReader.read(_))
+
+  def getGateway(gatewayId: String)(implicit vampHost: String): Option[Gateway] =
+    sendAndWaitYaml(s"GET $vampHost/api/v1/gateways/$gatewayId").map(GatewayReader.read(_))
 
   def getDeployment(name: String)(implicit vampHost: String): Option[Deployment] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/deployments/$name").map(DeploymentReader.read(_))
