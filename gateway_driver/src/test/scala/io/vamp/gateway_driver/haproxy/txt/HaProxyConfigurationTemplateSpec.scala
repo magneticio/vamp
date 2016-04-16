@@ -700,8 +700,6 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       case s ⇒ s.split('\n').map(_.trim).filter(_.nonEmpty).filterNot(_.startsWith("#")).map(_.replaceAll("\\s+", " "))
     }
 
-    println(config.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n"))
-
     val actual = normalize(config)
     val expected = normalize(Source.fromURL(getClass.getResource(resource)).mkString)
 

@@ -5,6 +5,8 @@ import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
 import io.vamp.model.artifact._
 
+import scala.language.postfixOps
+
 object HaProxyGatewayMarshaller {
 
   val version = ConfigFactory.load().getString("vamp.gateway-driver.haproxy.version").trim
@@ -53,8 +55,8 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     val be = backends(gateway)
     val fe = frontends(be, gateway)
 
-    val vbe = virtualHostsBackends(gateway)
-    val vfe = virtualHostsFrontends(vbe, gateway)
+    val vbe = virtualHostsBackend(gateway) :: Nil
+    val vfe = virtualHostsFrontend(vbe, gateway) :: Nil
 
     HaProxy(version, fe, be, vfe, vbe, tcpLogFormat, httpLogFormat)
   }
@@ -220,11 +222,8 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   private def unixSocket(id: String)(implicit gateway: Gateway) = s"$socketPath/$id.sock"
 
-  private def virtualHostsFrontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {
-
-    val host = (virtualHostDomain :: GatewayPath(gateway.name).segments).filterNot(_.isEmpty).reverse.mkString(".")
-    val acl = Acl(s"hdr(host) -i $host")
-
+  private def virtualHostsFrontend(implicit backends: List[Backend], gateway: Gateway): Frontend = {
+    val acl = Acl(s"hdr(host) -i $domain")
     Frontend(
       name = GatewayMarshaller.name(gateway),
       lookup = GatewayMarshaller.lookup(gateway),
@@ -240,10 +239,10 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
         Option(HaProxyAcls(acl :: Nil, Option(acl.name)))
       ) :: Nil,
       defaultBackend = backendFor(GatewayMarshaller.lookup(gateway))
-    ) :: Nil
+    )
   }
 
-  private def virtualHostsBackends(implicit gateway: Gateway): List[Backend] = {
+  private def virtualHostsBackend(implicit gateway: Gateway): Backend = {
     Backend(
       name = GatewayMarshaller.name(gateway),
       lookup = GatewayMarshaller.lookup(gateway),
@@ -259,6 +258,12 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       sticky = false,
       balance = "",
       options = Options()
-    ) :: Nil
+    )
+  }
+
+  private def domain(implicit gateway: Gateway): String = {
+    (GatewayPath(gateway.name).segments.reverse ++ virtualHostDomain.split('.').toList).map(_.trim).filterNot(_.isEmpty).map({ domain ⇒
+      if (domain.matches("^[\\d\\p{L}].*$")) domain.replaceAll("[^\\p{L}\\d]", "-") else domain
+    }).mkString(".")
   }
 }
