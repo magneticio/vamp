@@ -510,7 +510,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
               case Some(route) ⇒ route
             }
           }
-          newRouting.copy(routes = routes)
+          newRouting.copy(routes = routes, port = newRouting.port.copy(`type` = port.`type`))
 
         case None ⇒
           Gateway("", Port(port.name, None, None, 0, port.`type`), None, services.map { service ⇒
