@@ -87,7 +87,7 @@ case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percenta
 
 object InternalRouteTarget {
 
-  val host = "localhost"
+  val host = "127.0.0.1"
 
   def apply(name: String, port: Int) = new InternalRouteTarget(name, host, port)
 }
