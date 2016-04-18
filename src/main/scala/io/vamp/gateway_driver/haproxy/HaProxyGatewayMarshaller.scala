@@ -251,7 +251,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       servers = Server(
         name = GatewayMarshaller.name(gateway),
         lookup = GatewayMarshaller.lookup(gateway),
-        url = s"localhost:${gateway.port.number}",
+        url = s"127.0.0.1:${gateway.port.number}",
         weight = 100
       ) :: Nil,
       rewrites = Nil,
