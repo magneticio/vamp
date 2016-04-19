@@ -2,9 +2,9 @@ package io.vamp.container_driver.rancher.api
 
 case class RancherResponse(id: String, status: Int, links: Option[List[String]])
 
-case class Stack(id: Option[String], name: String, actions: Option[Map[String, String]])
+case class Stack(state: Option[String], id: Option[String], name: String, actions: Option[Map[String, String]])
 
-case class LaunchConfig(imageUuid: String, labels: Option[Map[String, String]], startOnCreate: Boolean = true, cpuSet: Option[String] = None, memoryMb: Option[String] = None)
+case class LaunchConfig(imageUuid: String, labels: Option[Map[String, String]], startOnCreate: Boolean = false, cpuSet: Option[String] = None, memoryMb: Option[String] = None)
 
 case class ServiceContainersList(data: List[RancherContainer])
 
@@ -19,3 +19,5 @@ case class ServiceList(data: List[Service])
 case class Service(state: Option[String], environmentId: String, id: Option[String], name: String, scale: Int, launchConfig: Option[LaunchConfig], actions: Option[Map[String, String]], containers: Option[List[RancherContainer]] = None, startOnCreate: Boolean = true)
 
 case class ProjectInfo(id: String, state: String)
+
+case class Stacks(data: List[Stack])
