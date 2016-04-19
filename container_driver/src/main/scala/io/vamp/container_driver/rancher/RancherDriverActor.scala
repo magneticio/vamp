@@ -5,7 +5,7 @@ import io.vamp.container_driver.ContainerDriverActor.{ All, Deploy, Undeploy }
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 
-class DockerDriverActor extends RancherDriver with ContainerDriverActor {
+class RancherDriverActor extends RancherDriver with ContainerDriverActor {
 
   def receive = {
     case InfoRequest ⇒ reply(info)
