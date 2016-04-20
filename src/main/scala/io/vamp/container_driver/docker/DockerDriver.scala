@@ -135,13 +135,10 @@ trait DockerDriver extends ContainerDriver {
     }
   }
 
-  private val cFactory = ConfigFactory.load().getConfig("vamp.container-driver.docker")
-  private val vampContainerDriverUrl = cFactory.getString("url")
-  private val vampDockerCertificates = cFactory.getString("certificates")
-  private val isRancherEnvironment = cFactory.getBoolean("isInRancher")
+  private val cFactory = ConfigFactory.load()
+  private val vampContainerDriverUrl = cFactory.getString("vamp.container-driver.docker.url")
+  private val isRancherEnvironment = cFactory.getBoolean("vamp.container-driver.docker.isInRancher")
   private val ipAdddr = """^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$""".r
-  private def client = {
-    val path = if (vampDockerCertificates.startsWith("~")) s"${System.getProperty("user.home")}${vampDockerCertificates.substring(1)}" else vampDockerCertificates
-    new RawDockerClient(DefaultDockerClient.builder().uri(vampContainerDriverUrl).dockerCertificates(new DockerCertificates(Paths.get(path))).build())
-  }
+  private def client = new RawDockerClient(DefaultDockerClient.builder().uri(vampContainerDriverUrl).build())
+
 }
