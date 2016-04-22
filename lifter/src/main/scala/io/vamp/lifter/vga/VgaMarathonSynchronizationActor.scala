@@ -39,7 +39,7 @@ class VgaMarathonSynchronizationActor extends CommonSupportForActors with Artifa
 
   private val configuration = ConfigFactory.load().getConfig("vamp.lifter.vamp-gateway-agent.synchronization")
 
-  private val id = "vamp/vamp-gateway-agent"
+  private val id = configuration.getString("id")
 
   private val container = configuration.getString("container-image")
   private val arguments = configuration.getStringList("container-arguments").asScala.toList
