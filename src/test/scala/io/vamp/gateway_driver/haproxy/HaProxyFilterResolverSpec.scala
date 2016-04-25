@@ -45,7 +45,7 @@ class HaProxyFilterResolverSpec extends FlatSpec with Matchers with HaProxyAclRe
       HaProxyAcls(List(Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android")), Some("29c278b48a0ff033"))
     }
 
-    resolve("{ hdr_sub(user-agent) Android }" :: Nil) shouldBe Some {
+    resolve("< hdr_sub(user-agent) Android >" :: Nil) shouldBe Some {
       HaProxyAcls(List(Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android")), Some("29c278b48a0ff033"))
     }
   }
@@ -68,7 +68,7 @@ class HaProxyFilterResolverSpec extends FlatSpec with Matchers with HaProxyAclRe
       )
     }
 
-    resolve("{hdr_sub(user-agent) Android} or {hdr_sub(user-agent) Chrome}" :: Nil) shouldBe Some {
+    resolve("<hdr_sub(user-agent) Android> or <hdr_sub(user-agent) Chrome>" :: Nil) shouldBe Some {
       HaProxyAcls(List(
         Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android"), Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome")
       ),
@@ -76,7 +76,7 @@ class HaProxyFilterResolverSpec extends FlatSpec with Matchers with HaProxyAclRe
       )
     }
 
-    resolve("not {hdr_sub(user-agent) Android} and User-Agent != Chrome" :: Nil) shouldBe Some {
+    resolve("not <hdr_sub(user-agent) Android> and User-Agent != Chrome" :: Nil) shouldBe Some {
       HaProxyAcls(List(
         Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android"), Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome")
       ),
@@ -84,7 +84,7 @@ class HaProxyFilterResolverSpec extends FlatSpec with Matchers with HaProxyAclRe
       )
     }
 
-    resolve("not {hdr_sub(user-agent) Android} or User-Agent != Chrome" :: Nil) shouldBe Some {
+    resolve("not <hdr_sub(user-agent) Android> or User-Agent != Chrome" :: Nil) shouldBe Some {
       HaProxyAcls(List(
         Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome"), Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android")
       ),
