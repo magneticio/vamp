@@ -105,6 +105,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       name = "vamp/sava/port/_",
       port = Port(33000),
       sticky = None,
+      virtualHosts = Nil,
       routes = DefaultRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
@@ -128,6 +129,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       name = "vamp/sava/port/_",
       port = Port("33000/tcp"),
       sticky = None,
+      virtualHosts = Nil,
       routes = DefaultRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
@@ -152,6 +154,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/sava/port/_",
         port = Port("33002"),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
@@ -171,6 +174,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/port/_/_",
         port = Port("9050/tcp"),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
@@ -197,6 +201,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/sava/port/_",
         port = Port(33001),
         sticky = None,
+        virtualHosts = Nil,
         routes = List(
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
@@ -244,6 +249,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/port/_/_",
         port = Port("9050/http"),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
@@ -270,6 +276,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/backend/port",
         port = Port(33003),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/sava-backend:1.3.0/port",
           path = GatewayPath("vamp/sava/sava-backend:1.3.0/port"),
@@ -289,6 +296,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/sava/port/_",
         port = Port("33002"),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/sava-frontend:1.3.0/port",
           path = GatewayPath("vamp/sava/sava-frontend:1.3.0/port"),
@@ -308,6 +316,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/port/_/_",
         port = Port("9050/http"),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
@@ -348,7 +357,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       ("has header X-SPECIAL", "hdr_cnt(X-SPECIAL) gt 0"),
       ("misses header X-SPECIAL", "hdr_cnt(X-SPECIAL) eq 0")
     ) foreach { input ⇒
-        filter(route.copy(filters = DefaultFilter("", input._1) :: Nil))(backends, Gateway("vamp", Port(0), None, Nil)) match {
+        filter(route.copy(filters = DefaultFilter("", input._1) :: Nil))(backends, Gateway("vamp", Port(0), None, Nil, Nil)) match {
           case HaProxyFilter(_, _, Some(acls)) ⇒
             acls.acls.head.definition shouldBe input._2
         }
@@ -361,6 +370,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/sava/port/_",
         port = Port(33000),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
@@ -408,6 +418,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/sava/port/_",
         port = Port(33001),
         sticky = Some(Gateway.Sticky.Route),
+        virtualHosts = Nil,
         routes = List(
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
@@ -455,6 +466,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/port/_/_",
         port = Port("9050/http"),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
@@ -481,6 +493,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/sava/port/_",
         port = Port(33001),
         sticky = Some(Gateway.Sticky.Instance),
+        virtualHosts = Nil,
         routes = List(
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
@@ -528,6 +541,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp/port/_/_",
         port = Port("9050/http"),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
@@ -554,6 +568,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp:1.x/sava/port",
         port = Port(33001),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp:1.x/sava/sava:1.0.0/port",
           path = GatewayPath("vamp:1.x/sava/sava:1.0.0/port"),
@@ -573,6 +588,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp:2.x/sava/port",
         port = Port(33001),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp:2.x/sava/sava:2.0.0/port",
           path = GatewayPath("vamp:2.x/sava/sava:2.0.0/port"),
@@ -592,6 +608,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp",
         port = Port("9050/http"),
         sticky = None,
+        virtualHosts = Nil,
         routes = List(
           DefaultRoute(
             name = "vamp:1.x/sava/port",
@@ -633,6 +650,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp:1.x/sava/port",
         port = Port(33001),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp:1.x/sava/sava:1.0.0/port",
           path = GatewayPath("vamp:1.x/sava/sava:1.0.0/port"),
@@ -652,6 +670,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         name = "vamp:2.x/sava/port",
         port = Port(33001),
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp:2.x/sava/sava:2.0.0/port",
           path = GatewayPath("vamp:2.x/sava/sava:2.0.0/port"),
@@ -677,6 +696,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       name = "deployment/cluster/port",
       port = Port(33000),
       sticky = None,
+      virtualHosts = Nil,
       routes = DefaultRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),

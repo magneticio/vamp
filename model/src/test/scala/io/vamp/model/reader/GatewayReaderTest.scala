@@ -77,4 +77,37 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
       'routes(List(DefaultRoute("", GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), None, Nil, Nil, None)))
     )
   }
+
+  it should "parse virtual hosts" in {
+    GatewayReader.read(res("gateway/gateway8.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080"))),
+      'virtualHosts(List("a.b.c", "test")),
+      'routes(List(DefaultRoute("", GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), None, Nil, Nil, None)))
+    )
+  }
+
+  it should "parse empty virtual hosts" in {
+    GatewayReader.read(res("gateway/gateway9.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080"))),
+      'virtualHosts(Nil),
+      'routes(List(DefaultRoute("", GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), None, Nil, Nil, None)))
+    )
+  }
+
+  it should "expand virtual hosts" in {
+    GatewayReader.read(res("gateway/gateway10.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080"))),
+      'virtualHosts(List("inline")),
+      'routes(List(DefaultRoute("", GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), None, Nil, Nil, None)))
+    )
+  }
+
+  it should "fail on invalid host" in {
+    expectedError[IllegalGatewayVirtualHosts.type]({
+      GatewayReader.read(res("gateway/gateway11.yml"))
+    })
+  }
 }

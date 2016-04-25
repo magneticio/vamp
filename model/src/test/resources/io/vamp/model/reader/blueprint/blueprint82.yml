@@ -1,0 +1,26 @@
+name: nomadic-frostbite
+
+gateways:
+  8080:
+    virtual_hosts: [
+      "test.com",
+      "vamp"
+    ]
+    routes:
+      notorious/port1:
+        weight: 100%
+
+  8081:
+    virtual_hosts: "test"
+    routes:
+      notorious/port1:
+        weight: 100%
+
+clusters:
+  notorious:
+    routing:
+      web:
+        virtual_hosts: "route"
+
+    services:
+      breed: nocturnal-viper
