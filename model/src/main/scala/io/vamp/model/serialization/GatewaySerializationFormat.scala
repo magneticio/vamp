@@ -45,6 +45,7 @@ trait GatewayDecomposer extends ReferenceSerialization {
       }
 
       list += JField("sticky", if (gateway.sticky.isDefined) Extraction.decompose(gateway.sticky) else JString("none"))
+      list += JField("virtual_hosts", Extraction.decompose(gateway.virtualHosts))
       list += JField("routes", Extraction.decompose {
         gateway.routes.map { route ⇒
           (route.path.segments match {

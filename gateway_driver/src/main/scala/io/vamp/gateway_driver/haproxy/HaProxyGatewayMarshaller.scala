@@ -55,8 +55,8 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     val be = backends(gateway)
     val fe = frontends(be, gateway)
 
-    val vbe = virtualHostsBackend(gateway) :: Nil
-    val vfe = virtualHostsFrontend(vbe, gateway) :: Nil
+    val vbe = virtualHostsBackends(gateway)
+    val vfe = virtualHostsFrontends(vbe, gateway)
 
     HaProxy(version, fe, be, vfe, vbe, tcpLogFormat, httpLogFormat)
   }
@@ -222,43 +222,74 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   private def unixSocket(id: String)(implicit gateway: Gateway) = s"$socketPath/$id.sock"
 
-  private def virtualHostsFrontend(implicit backends: List[Backend], gateway: Gateway): Frontend = {
-    val acl = Acl(s"hdr(host) -i $domain")
-    Frontend(
-      name = GatewayMarshaller.name(gateway),
-      lookup = GatewayMarshaller.lookup(gateway),
-      bindIp = None,
-      bindPort = None,
-      mode = mode,
-      unixSock = None,
-      sockProtocol = None,
-      options = Options(),
-      filters = Filter(
-        GatewayMarshaller.lookup(gateway),
-        backendFor(GatewayMarshaller.lookup(gateway)),
-        Option(HaProxyAcls(acl :: Nil, Option(acl.name)))
-      ) :: Nil,
-      defaultBackend = backendFor(GatewayMarshaller.lookup(gateway))
-    )
-  }
+  private def virtualHostsFrontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {
 
-  private def virtualHostsBackend(implicit gateway: Gateway): Backend = {
-    Backend(
-      name = GatewayMarshaller.name(gateway),
-      lookup = GatewayMarshaller.lookup(gateway),
-      mode = mode,
-      proxyServers = Nil,
-      servers = Server(
+    val default = virtualHosts match {
+      case true ⇒
+        val acl = Acl(s"hdr(host) -i $domain")
+        Frontend(
+          name = GatewayMarshaller.name(gateway),
+          lookup = GatewayMarshaller.lookup(gateway),
+          bindIp = None,
+          bindPort = None,
+          mode = mode,
+          unixSock = None,
+          sockProtocol = None,
+          options = Options(),
+          filters = Filter(
+            GatewayMarshaller.lookup(gateway),
+            backendFor(GatewayMarshaller.lookup(gateway)),
+            Option(HaProxyAcls(acl :: Nil, Option(acl.name)))
+          ) :: Nil,
+          defaultBackend = backendFor(GatewayMarshaller.lookup(gateway))
+        ) :: Nil
+
+      case false ⇒ Nil
+    }
+
+    val explicit = gateway.virtualHosts.map { virtualHost ⇒
+      val acl = Acl(s"hdr(host) -i $virtualHost")
+      Frontend(
         name = GatewayMarshaller.name(gateway),
         lookup = GatewayMarshaller.lookup(gateway),
-        url = s"127.0.0.1:${gateway.port.number}",
-        weight = 100
-      ) :: Nil,
-      rewrites = Nil,
-      sticky = false,
-      balance = "",
-      options = Options()
-    )
+        bindIp = None,
+        bindPort = None,
+        mode = mode,
+        unixSock = None,
+        sockProtocol = None,
+        options = Options(),
+        filters = Filter(
+          GatewayMarshaller.lookup(gateway),
+          backendFor(GatewayMarshaller.lookup(gateway)),
+          Option(HaProxyAcls(acl :: Nil, Option(acl.name)))
+        ) :: Nil,
+        defaultBackend = backendFor(GatewayMarshaller.lookup(gateway))
+      )
+    }
+
+    default ++ explicit
+  }
+
+  private def virtualHostsBackends(implicit gateway: Gateway): List[Backend] = virtualHosts || gateway.virtualHosts.nonEmpty match {
+    case true ⇒
+      Backend(
+        name = GatewayMarshaller.name(gateway),
+        lookup = GatewayMarshaller.lookup(gateway),
+        mode = mode,
+        proxyServers = Nil,
+        servers = Server(
+          name = GatewayMarshaller.name(gateway),
+          lookup = GatewayMarshaller.lookup(gateway),
+          url = s"127.0.0.1:${gateway.port.number}",
+          weight = 100
+        ) :: Nil,
+        rewrites = Nil,
+        sticky = false,
+        balance = "",
+        options = Options()
+      ) :: Nil
+
+    case false ⇒ Nil
   }
 
   private def domain(implicit gateway: Gateway): String = {
