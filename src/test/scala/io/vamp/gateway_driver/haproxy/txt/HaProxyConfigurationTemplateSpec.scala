@@ -715,6 +715,30 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, converted.virtualHostFrontends, converted.virtualHostBackends, tcpLogFormat, httpLogFormat)).toString(), "configuration_12.txt")
   }
 
+  it should "serialize single service http route with explicit virtual hosts" in {
+    val converted = convert(Gateway(
+      name = "deployment/cluster/port",
+      port = Port(33000),
+      sticky = None,
+      virtualHosts = List("a.b.c.d", "vamp.vamp"),
+      routes = DefaultRoute(
+        name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
+        path = GatewayPath("vamp/sava/sava:1.0.0/port"),
+        weight = Option(Percentage(100)),
+        filterStrength = None,
+        filters = Nil,
+        rewrites = Nil,
+        balance = None,
+        targets = InternalRouteTarget(
+          name = "64435a223bddf1fa589135baa5e228090279c032",
+          host = "192.168.99.100",
+          port = 32768
+        ) :: Nil
+      ) :: Nil))
+
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, converted.virtualHostFrontends, converted.virtualHostBackends, tcpLogFormat, httpLogFormat)).toString(), "configuration_13.txt")
+  }
+
   private def compare(config: String, resource: String) = {
     def normalize(string: String): Array[String] = string.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n") match {
       case s ⇒ s.split('\n').map(_.trim).filter(_.nonEmpty).filterNot(_.startsWith("#")).map(_.replaceAll("\\s+", " "))
