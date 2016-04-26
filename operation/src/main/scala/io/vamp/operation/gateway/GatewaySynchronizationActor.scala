@@ -6,11 +6,14 @@ import io.vamp.common.akka._
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor.Commit
 import io.vamp.model.artifact._
+import io.vamp.model.event.Event
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.PersistenceActor.{ Create, Update }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.persistence.operation.{ GatewayDeploymentStatus, GatewayPort, RouteTargets }
+import io.vamp.pulse.PulseActor
+import io.vamp.pulse.PulseActor.Publish
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -188,6 +191,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   }
 
   private def select: GatewayPipeline ⇒ List[Gateway] = { pipeline ⇒
+
     def byDeploymentName(gateways: List[Gateway]) = gateways.filter(_.inner).groupBy(gateway ⇒ GatewayPath(gateway.name).segments.head)
 
     val currentByDeployment = byDeploymentName(current)
@@ -200,7 +204,15 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       case (_, g) ⇒ g
     }
 
-    current = pipeline.deployable.filterNot(_.inner) ++ inner
+    val selected = pipeline.deployable.filterNot(_.inner) ++ inner
+
+    val currentAsMap = current.map(g ⇒ g.name -> g).toMap
+    val selectedAsMap = selected.map(g ⇒ g.name -> g).toMap
+
+    currentAsMap.keySet.diff(selectedAsMap.keySet).foreach(name ⇒ publishUndeployed(currentAsMap.get(name).get))
+    selectedAsMap.keySet.diff(currentAsMap.keySet).foreach(name ⇒ publishDeployed(selectedAsMap.get(name).get))
+
+    current = selected
     current
   }
 
@@ -213,5 +225,15 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
         else len1 < len2
       }
     }
+  }
+
+  private def publishDeployed(gateway: Gateway) = sendEvent(gateway, "deployed")
+
+  private def publishUndeployed(gateway: Gateway) = sendEvent(gateway, "undeployed")
+
+  private def sendEvent(gateway: Gateway, event: String) = {
+    log.info(s"Gateway event: ${gateway.name} - $event")
+    val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event)
+    IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway), publishEventValue = true)
   }
 }

@@ -30,12 +30,13 @@ trait Percolator {
       log.info(s"Percolator successfully removed for '$name'.")
   }
 
-  def percolate: (Event ⇒ Event) = { (event: Event) ⇒
+  def percolate(publishEventValue: Boolean): (Event ⇒ Event) = { (event: Event) ⇒
     percolators.foreach {
       case (name, percolator) ⇒
         if (percolator.tags.forall(event.tags.contains)) {
           log.debug(s"Percolate match for '$name'.")
-          percolator.actor ! (percolator.message -> event)
+          val send = if (publishEventValue) event else event.copy(value = None)
+          percolator.actor ! (percolator.message -> send)
         }
     }
     event
