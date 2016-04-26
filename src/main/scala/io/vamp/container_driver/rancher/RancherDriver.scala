@@ -1,6 +1,6 @@
 package io.vamp.container_driver.rancher
 
-import io.vamp.container_driver.rancher.api.{ Service ⇒ RancherService, LaunchConfig, RancherResponse, ServiceList, RancherContainer, RancherContainerPortList, ProjectInfo, ServiceContainersList, Stacks }
+import io.vamp.container_driver.rancher.api.{ Service ⇒ RancherService, LaunchConfig, RancherResponse, ServiceList, RancherContainer, RancherContainerPortList, ProjectInfo, ServiceContainersList, Stacks, UpdateService }
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 import io.vamp.common.http.RestClient
@@ -56,19 +56,24 @@ trait RancherDriver extends ContainerDriver {
     case _                                    ⇒ None
   }
 
+  private[rancher] def UnitService(name: String): RancherService = {
+    RancherService(None, "", None, name, None, None, None, None)
+  }
+
   private[rancher] def getRancherService(environment: String, deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): RancherService = {
     val dockerContainer = container(deployment, cluster, service)
     val id = appId(deployment, service.breed)
-    val rs = RancherService(None, environment, Some(id), id, Some(service.scale.get.instances), Some(LaunchConfig(s"docker:${dockerContainer.get.docker.image}", None, false, Some(service.scale.get.cpu.toInt.toString), Some(service.scale.get.memory.value.toString.replace("MB", "").toDouble.toInt.toString))), None)
+    val rs = RancherService(None, environment, None, id, Some(service.scale.get.instances), Some(LaunchConfig(s"docker:${dockerContainer.get.docker.image}", None, false, Some(service.scale.get.cpu.toInt.toString), Some(service.scale.get.memory.value.toString.replace("MB", "").toDouble.toInt.toString))), None)
     rs
   }
 
   private[rancher] def publishService(rancherService: RancherService, environment: String): Future[RancherService] = {
-    RestClient.post[RancherService](s"${vampContainerDriverUrl}/environment/${environment}/services", { requestPayload(rancherService) }, List(authorization))
+    /* Check if is update or create */
+    RestClient.post[RancherService](s"${vampContainerDriverUrl}/environment/${environment}/services", { requestPayload(rancherService) }, List(authorization)).recover { case e: Exception ⇒ println("ERROR PUBLISH: " + e); UnitService("Error") }
   }
 
   private[rancher] def activateService(service: RancherService): Future[RancherService] = {
-    RestClient.post[RancherService](serviceActivationUrl(service.id.get), None, List(authorization))
+    RestClient.post[RancherService](serviceActivationUrl(service.id.get), None, List(authorization)).recover { case e: Exception ⇒ println("ERROR ACTIVATING: " + e); UnitService("Error") }
   }
 
   private[rancher] def getServicesList(): Future[ServiceList] = {
@@ -122,7 +127,7 @@ trait RancherDriver extends ContainerDriver {
   }
 
   private[rancher] def checkIfServiceIsInactive(service: RancherService): Future[RancherService] = {
-    val s1 = after[RancherService](1 seconds, as.scheduler) { RestClient.get[RancherService](s"${serviceListUrl}/${service.id.get}, List(authorization)") }
+    val s1 = after[RancherService](1 seconds, as.scheduler) { RestClient.get[RancherService](s"${serviceListUrl}/${service.id.get}", List(authorization)) }
     s1 flatMap { f ⇒
       f.state match {
         case Some("inactive") ⇒ { activateService(service) }
@@ -137,6 +142,21 @@ trait RancherDriver extends ContainerDriver {
       f.state match {
         case Some("active") ⇒ { s1 }
         case _              ⇒ { checkIfServiceIsActive(f) }
+      }
+    }
+  }
+
+  private[rancher] def checkIfServiceIsAlive(service: RancherService): Future[RancherService] = {
+    val s1 = after[RancherService](1 seconds, as.scheduler) { RestClient.get[RancherService](s"${serviceListUrl}/${service.id.get}", List(authorization)) }
+    s1 flatMap { f: RancherService ⇒
+      println("Checking service after deployment: " + f)
+      f.state match {
+        case _ ⇒ { checkIfServiceIsActive(f) }
+      }
+    } recover {
+      case e: Throwable ⇒ {
+        println("EXCEPTION: " + e)
+        UnitService("???")
       }
     }
   }
@@ -159,6 +179,7 @@ trait RancherDriver extends ContainerDriver {
   }
 
   private[rancher] def createIfNotExistStack(cluster: DeploymentCluster): Future[Stack] = {
+    println("Creating stack")
     val stack = getRancherStack(cluster)
     for {
       s1 ← checkIfStackIsCreated(stack)
@@ -180,20 +201,68 @@ trait RancherDriver extends ContainerDriver {
     all
   }
 
+  def allApps: Future[ServiceList] = getServicesList
+
+  private[rancher] def checkIfServiceExist(service: RancherService): Future[RancherService] = {
+    println("Checking if Rancher service exists: " + service)
+    RestClient.get[ServiceList](serviceListUrl, List(authorization)) map {
+      data ⇒
+        {
+          val list = data.data filter (srv ⇒ srv.name == service.name)
+          println("Service list: " + list)
+          if (list != None && !list.isEmpty) {
+            /* If service exists update scale parameters **/
+            println("Service exist: " + list)
+            list.head.copy(scale = service.scale)
+          } else {
+            println("SERVICE DOES NOT EXIST")
+            service
+          }
+        }
+    }
+  }
+
+  private[rancher] def updateService(service: RancherService): Future[RancherService] = {
+    println("---> Updating service: " + service)
+    val updateUrl = service.actions.get("update")
+    RestClient.put[RancherService](updateUrl, requestPayload(UpdateService(service.scale.get)), List(authorization)) map { x ⇒ println("Result UPDATE: " + x); x }
+  }
+
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
+    println("START TO DEPLOY")
     createIfNotExistStack(cluster) map {
       stack ⇒
         /* Manage exception **/
-        publishService(getRancherService(stack.id.get, deployment, cluster, service), stack.id.get) flatMap checkIfServiceIsInactive flatMap checkIfServiceIsActive
+        val rancherService = getRancherService(stack.id.get, deployment, cluster, service)
+        println("Checking if serive exists")
+        checkIfServiceExist(rancherService) flatMap { s ⇒
+          {
+            println("Check If Exist: " + s)
+            if (s.id == None)
+              publishService(rancherService, stack.id.get)
+            else {
+              updateService(s)
+            }
+          } flatMap checkIfServiceIsInactive flatMap checkIfServiceIsActive
+        }
     }
   }
+
+  def deployApp(service: RancherService, update: Boolean): Future[Any] = {
+    if (update: Boolean) {
+      RestClient.put[RancherService](service.actions.get("update"), requestPayload(UpdateService(service.scale.get)), List(authorization)) flatMap checkIfServiceIsInactive flatMap checkIfServiceIsActive
+    } else Future {}
+  }
+
+  def checkCredentials(credentials: List[(String, String)]): List[(String, String)] =
+    credentials.dropWhile(p ⇒ p._1.isEmpty())
 
   def undeploy(deployment: Deployment, service: DeploymentService): Future[Any] = {
     val id = appId(deployment, service.breed)
     val foundService = getServicesList map { services ⇒ services.data filter { _.name == id } }
     foundService map { list ⇒
       list map { s ⇒
-        RestClient.delete(serviceUndeployUrl(s.id.get), List(authorization))
+        RestClient.delete(serviceUndeployUrl(s.id.get), List(authorization)) flatMap { r ⇒ println("REPONSE AFTER DELETE: " + r); checkIfServiceIsAlive(r) }
       }
     }
   }
@@ -213,6 +282,6 @@ trait RancherDriver extends ContainerDriver {
   private val serviceListUrl = s"${vampContainerDriverUrl}/services"
   private val environmentsUrl = s"${vampContainerDriverUrl}/environments"
 
-  private def authorization: (String, String) = ("Authorization" -> ("Basic " + Credentials.credentials(apiUser, apiPassword)))
+  private def authorization: (String, String) = { if (!apiUser.isEmpty() && !apiPassword.isEmpty()) ("Authorization" -> ("Basic " + Credentials.credentials(apiUser, apiPassword))) else ("", "") }
 
 }
