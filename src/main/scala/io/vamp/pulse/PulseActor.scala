@@ -9,12 +9,13 @@ import io.vamp.common.akka._
 import io.vamp.common.http.{ OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope }
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.notification.Notification
-import io.vamp.common.vitals.{ StatsRequest, InfoRequest }
+import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.model.event.Aggregator.AggregatorType
 import io.vamp.model.event._
 import io.vamp.model.validator.EventValidator
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.notification._
+import org.json4s.DefaultFormats
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
 
@@ -70,7 +71,7 @@ class PulseActor extends PulseStats with PulseEvent with PulseFailureNotifier wi
 
     case StatsRequest                            ⇒ reply(stats)
 
-    case Publish(event, publishEventValue)       ⇒ reply((validateEvent andThen percolate andThen publish(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
+    case Publish(event, publishEventValue)       ⇒ reply((validateEvent andThen percolate(publishEventValue) andThen publish(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
 
     case Query(envelope)                         ⇒ reply((validateEventQuery andThen eventQuery(envelope.page, envelope.perPage))(envelope.request), classOf[EventQueryError])
 
@@ -90,7 +91,13 @@ class PulseActor extends PulseStats with PulseEvent with PulseFailureNotifier wi
     val (indexName, typeName) = indexTypeName(event.`type`)
     log.debug(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
 
-    es.index[ElasticsearchIndexResponse](indexName, typeName, if (publishEventValue) event else event.copy(value = None)) map {
+    val eventToSend = (publishEventValue, event.value) match {
+      case (true, str: String) ⇒ event
+      case (true, any)         ⇒ event.copy(value = write(any)(DefaultFormats))
+      case (false, _)          ⇒ event.copy(value = "")
+    }
+
+    es.index[ElasticsearchIndexResponse](indexName, typeName, eventToSend) map {
       case response: ElasticsearchIndexResponse ⇒ response
       case other ⇒
         log.error(s"Unexpected index result: ${other.toString}.")
@@ -185,7 +192,7 @@ class PulseActor extends PulseStats with PulseEvent with PulseFailureNotifier wi
   }
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = {
-    percolate(failureNotificationEvent(failure))
+    percolate(publishEventValue = true)(failureNotificationEvent(failure))
     reportException(`class`.getConstructors()(0).newInstance(failure.asInstanceOf[AnyRef]).asInstanceOf[Notification])
   }
 }
