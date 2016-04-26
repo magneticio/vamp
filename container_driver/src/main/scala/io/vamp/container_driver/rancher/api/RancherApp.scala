@@ -1,5 +1,9 @@
 package io.vamp.container_driver.rancher.api
 
+case object AllApps
+
+case class DeployApp(service: Service, update: Boolean)
+
 case class RancherResponse(id: String, status: Int, links: Option[List[String]])
 
 case class Stack(state: Option[String], id: Option[String], name: String, actions: Option[Map[String, String]])
@@ -12,11 +16,21 @@ case class RancherContainer(id: String, name: String, primaryIpAddress: String, 
 
 case class RancherContainerPortList(data: List[RancherContainerPort])
 
-case class RancherContainerPort(privatePort: String, protocol: String)
+case class RancherContainerPort(privatePort: Option[String], protocol: Option[String])
 
 case class ServiceList(data: List[Service])
 
-case class Service(state: Option[String], environmentId: String, id: Option[String], name: String, scale: Int, launchConfig: Option[LaunchConfig], actions: Option[Map[String, String]], containers: Option[List[RancherContainer]] = None, startOnCreate: Boolean = true)
+case class UpdateService(scale: Int)
+
+case class Service(state: Option[String],
+                   environmentId: String,
+                   id: Option[String],
+                   name: String,
+                   scale: Option[Int],
+                   launchConfig: Option[LaunchConfig],
+                   actions: Option[Map[String, String]],
+                   containers: Option[List[RancherContainer]] = None,
+                   startOnCreate: Boolean = true)
 
 case class ProjectInfo(id: String, state: String)
 
