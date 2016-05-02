@@ -7,6 +7,7 @@ import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 
 import scala.concurrent.Future
+import scala.util.Try
 
 object KubernetesDriverActor {
 
@@ -22,8 +23,9 @@ class KubernetesDriverActor extends ContainerDriverActor with ContainerDriver {
   import KubernetesDriverActor._
 
   def receive = {
-    case InfoRequest ⇒ reply(info)
-    case any         ⇒ unsupported(UnsupportedContainerDriverRequest(any))
+    case InfoRequest   ⇒ reply(info)
+    case ds: DaemonSet ⇒ daemonSet(ds)
+    case any           ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
   private def info: Future[Any] = for {
@@ -36,5 +38,69 @@ class KubernetesDriverActor extends ContainerDriverActor with ContainerDriver {
     version ← RestClient.get[Any](s"$kubernetesUrl/version")
   } yield {
     ContainerInfo("kubernetes", KubernetesDriverInfo(version, paths, api, apis))
+  }
+
+  private def daemonSet(ds: DaemonSet) = {
+
+    val url = s"$kubernetesUrl/apis/extensions/v1beta1/namespaces/default/daemonsets"
+
+    val request =
+      s"""
+         |{
+         |  "apiVersion": "extensions/v1beta1",
+         |  "kind": "DaemonSet",
+         |  "metadata": {
+         |    "labels": {
+         |      "name": "${ds.name}"
+         |    },
+         |    "name": "${ds.name}"
+         |  },
+         |  "spec": {
+         |    "template": {
+         |      "metadata": {
+         |        "labels": {
+         |          "app": "${ds.name}"
+         |        }
+         |      },
+         |      "spec": {
+         |        "containers": [{
+         |          "image": "${ds.docker.image}",
+         |          "name": "${ds.name}",
+         |          "args": [${ds.args.map(str ⇒ s""""$str"""").mkString(", ")}],
+         |          "resources": {
+         |            "request": {
+         |              "cpu": ${ds.cpu},
+         |              "mem": ${ds.mem}
+         |            }
+         |          }
+         |        }]
+         |      }
+         |    }
+         |  }
+         |}
+      """.stripMargin.stripLineEnd
+
+    def default = {
+      log.info(s"Creating daemon set: ${ds.name}")
+      RestClient.post[Any](url, request)
+    }
+
+    RestClient.get[Any](url).flatMap {
+      case response: Map[_, _] ⇒
+
+        val daemons = Try(
+          response.asInstanceOf[Map[String, _]].get("items") match {
+            case Some(list: List[_]) ⇒ list.map(_.asInstanceOf[Map[String, _]].get("metadata").get.asInstanceOf[Map[String, _]].get("name").get)
+            case _                   ⇒ Nil
+          }
+        ).getOrElse(Nil)
+
+        if (daemons.contains(ds.name)) {
+          log.debug(s"Daemon set exists: ${ds.name}")
+          Future.successful(true)
+        } else default
+
+      case _ ⇒ default
+    }
   }
 }

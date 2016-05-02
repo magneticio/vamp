@@ -16,11 +16,6 @@ import com.typesafe.config.ConfigFactory
 import org.joda.time.DateTime
 import akka.actor.ActorSystem
 
-/** This classes come from marathon driver **/
-case class DockerParameter(key: String, value: String)
-case class Container(docker: Docker, `type`: String = "DOCKER")
-case class Docker(image: String, portMappings: List[ContainerPortMapping], parameters: List[DockerParameter], network: String = "BRIDGE")
-
 case class Task(id: String, name: String, host: String, ports: List[Int], startedAt: Option[String])
 case class App(id: String, instances: Int, cpus: Double, mem: Double, tasks: List[Task])
 

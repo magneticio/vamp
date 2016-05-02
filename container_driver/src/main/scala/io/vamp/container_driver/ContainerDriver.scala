@@ -8,6 +8,12 @@ import io.vamp.model.resolver.DeploymentTraitResolver
 
 case class ContainerPortMapping(containerPort: Int, protocol: String = "tcp", hostPort: Int = 0)
 
+case class Container(docker: Docker, `type`: String = "DOCKER")
+
+case class Docker(image: String, portMappings: List[ContainerPortMapping], parameters: List[DockerParameter], privileged: Boolean = false, network: String = "BRIDGE")
+
+case class DockerParameter(key: String, value: String)
+
 trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotificationProvider with ExecutionContextProvider {
 
   protected val nameDelimiter = "/"

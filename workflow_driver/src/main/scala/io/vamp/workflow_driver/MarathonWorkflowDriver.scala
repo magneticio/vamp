@@ -3,10 +3,9 @@ package io.vamp.workflow_driver
 import akka.actor.ActorSystem
 import akka.pattern.ask
 import io.vamp.common.akka.IoC
-import io.vamp.container_driver.ContainerDriverActor
-import io.vamp.container_driver.marathon.MarathonDriverActor
+import io.vamp.container_driver.{ Container, ContainerDriverActor, Docker }
 import io.vamp.container_driver.marathon.MarathonDriverActor.{ AllApps, DeployApp, RetrieveApp, UndeployApp }
-import io.vamp.container_driver.marathon.api.{ Container, Docker, MarathonApp }
+import io.vamp.container_driver.marathon.{ MarathonApp, MarathonDriverActor }
 import io.vamp.model.artifact.DefaultScale
 import io.vamp.model.workflow.{ DaemonTrigger, DefaultWorkflow, ScheduledWorkflow }
 

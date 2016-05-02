@@ -1,4 +1,4 @@
-package io.vamp.container_driver.marathon.api
+package io.vamp.container_driver.marathon
 
 case class AppResponse(app: App)
 
