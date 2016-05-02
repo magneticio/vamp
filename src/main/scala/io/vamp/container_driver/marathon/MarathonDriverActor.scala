@@ -5,7 +5,6 @@ import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor.ContainerDriveMessage
 import io.vamp.container_driver._
-import io.vamp.container_driver.marathon.api.{ Docker, _ }
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.MegaByte

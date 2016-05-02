@@ -4,7 +4,7 @@ import java.lang.reflect.Field
 
 import com.spotify.docker.client.messages.{ ContainerConfig, ContainerCreation, HostConfig, ImageInfo, Info, PortBinding, Container ⇒ spContainer, ContainerInfo ⇒ spContainerInfo }
 import com.spotify.docker.client.{ DefaultDockerClient, DockerClient }
-import io.vamp.container_driver.ContainerInfo
+import io.vamp.container_driver.{ Container, ContainerInfo }
 import io.vamp.model.artifact._
 import org.joda.time.DateTime
 import spray.json._
