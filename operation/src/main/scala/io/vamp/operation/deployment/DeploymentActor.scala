@@ -32,7 +32,7 @@ object DeploymentActor {
   val gatewayHost = config.getString("vamp.gateway-driver.host")
 
   val defaultScale = config.getConfig("vamp.operation.deployment.scale") match {
-    case c ⇒ DefaultScale("", c.getDouble("cpu"), MegaByte.of(c.getString("memory")), c.getInt("instances"))
+    case c ⇒ DefaultScale("", Quantity.of(c.getDouble("cpu")), MegaByte.of(c.getString("memory")), c.getInt("instances"))
   }
 
   val defaultArguments: List[Argument] = {

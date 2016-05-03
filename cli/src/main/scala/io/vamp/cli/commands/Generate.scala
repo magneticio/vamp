@@ -188,7 +188,7 @@ trait Generate extends Parameters with IoUtils {
 
   private def emptyBlueprint = DefaultBlueprint(name = "", clusters = List.empty, gateways = List.empty, environmentVariables = List.empty)
 
-  private def emptyScale = DefaultScale(name = "", cpu = 0.0, memory = MegaByte(0.0), instances = 0)
+  private def emptyScale = DefaultScale(name = "", cpu = Quantity(0.0), memory = MegaByte(0.0), instances = 0)
 
   private def emptyRouting = DefaultRoute(name = "", path = "", weight = None, filterStrength = None, filters = List.empty, rewrites = List.empty, balance = None)
 

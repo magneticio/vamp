@@ -17,6 +17,7 @@ object UnitValue {
   def of[V <: Any: ClassTag](value: Any): Try[V] = value match {
     case _ if classTag[V].runtimeClass == classOf[Percentage] ⇒ Try(Percentage.of(value).asInstanceOf[V])
     case _ if classTag[V].runtimeClass == classOf[MegaByte] ⇒ Try(MegaByte.of(value).asInstanceOf[V])
+    case _ if classTag[V].runtimeClass == classOf[Quantity] ⇒ Try(Quantity.of(value).asInstanceOf[V])
     case _ ⇒ Failure(new IllegalArgumentException())
   }
 
@@ -48,6 +49,7 @@ object MegaByte {
 
   private val megaBytePattern1 = """^\s*(.\d+)\s*[M|m]\s*[B|b]{0,1}\s*$""".r
   private val megaBytePattern2 = """^\s*(\d+.*\d*)\s*[M|m]\s*[B|b]{0,1}\s*$""".r
+  private val megaBytePattern3 = """^\s*(\d+.*\d*)\s*[M|m]\s*[I|i]{0,1}\s*$""".r
   private val gigaBytePattern1 = """^\s*(.\d+)\s*[G|g]\s*[B|b]{0,1}\s*$""".r
   private val gigaBytePattern2 = """^\s*(\d+.*\d*)\s*[G|g]\s*[B|b]{0,1}\s*$""".r
 
@@ -55,6 +57,7 @@ object MegaByte {
     case string: String ⇒ string match {
       case megaBytePattern1(mb) ⇒ MegaByte(mb.toDouble)
       case megaBytePattern2(mb) ⇒ MegaByte(mb.toDouble)
+      case megaBytePattern3(mb) ⇒ MegaByte(mb.toDouble)
       case gigaBytePattern1(gb) ⇒ MegaByte(MegaByte.gigaByte2MegaByte(gb.toDouble))
       case gigaBytePattern2(gb) ⇒ MegaByte(MegaByte.gigaByte2MegaByte(gb.toDouble))
       case _                    ⇒ throw new IllegalArgumentException()
@@ -71,4 +74,23 @@ case class MegaByte(value: Double) extends UnitValue[Double] {
   }
 
   def normalized = s"${value}MB"
+}
+
+object Quantity {
+
+  private val pattern = """^\s*(.+)\s*$""".r
+  private val milliPattern = """^\s*(.+?)\s*m\s*$""".r
+
+  def of(source: Any): Quantity = source match {
+    case string: String ⇒ string match {
+      case milliPattern(m) ⇒ Quantity(m.toDouble / 1000)
+      case pattern(m)      ⇒ Quantity(m.toDouble)
+      case _               ⇒ throw new IllegalArgumentException()
+    }
+    case _ ⇒ Try(Quantity(source.toString.toDouble)).getOrElse(UnitValue.illegal(source))
+  }
+}
+
+case class Quantity(value: Double) extends UnitValue[Double] {
+  def normalized = value.toString
 }

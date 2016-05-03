@@ -64,7 +64,7 @@ trait BlueprintScaleSerializer extends ReferenceSerialization {
       val list = new ArrayBuffer[JField]
       if (scale.name.nonEmpty && full)
         list += JField("name", JString(scale.name))
-      list += JField("cpu", JDouble(scale.cpu))
+      list += JField("cpu", JString(scale.cpu.normalized))
       list += JField("memory", JString(scale.memory.normalized))
       list += JField("instances", JInt(scale.instances))
       new JObject(list.toList)

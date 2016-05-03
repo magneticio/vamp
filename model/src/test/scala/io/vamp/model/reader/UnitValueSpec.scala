@@ -26,6 +26,8 @@ class UnitValueSpec extends FlatSpec with Matchers {
     UnitValue.of[MegaByte]("128mb") shouldBe Success(MegaByte(128))
     UnitValue.of[MegaByte](" 128mb ") shouldBe Success(MegaByte(128))
     UnitValue.of[MegaByte](" 128 mb ") shouldBe Success(MegaByte(128))
+    UnitValue.of[MegaByte](" 128 Mi ") shouldBe Success(MegaByte(128))
+    UnitValue.of[MegaByte](" 128 mi ") shouldBe Success(MegaByte(128))
     UnitValue.of[MegaByte](".1m") shouldBe Success(MegaByte(0.1))
     UnitValue.of[MegaByte]("10.1Mb") shouldBe Success(MegaByte(10.1))
     UnitValue.of[MegaByte]("64.MB") shouldBe Success(MegaByte(64))
@@ -38,5 +40,16 @@ class UnitValueSpec extends FlatSpec with Matchers {
     UnitValue.of[MegaByte]("-1") shouldBe a[Failure[_]]
     UnitValue.of[MegaByte]("1kb") shouldBe a[Failure[_]]
     UnitValue.of[MegaByte](".") shouldBe a[Failure[_]]
+  }
+
+  "Quantity" should "parse" in {
+
+    UnitValue.of[Quantity]("128") shouldBe Success(Quantity(128.0))
+    UnitValue.of[Quantity]("-128.5") shouldBe Success(Quantity(-128.5))
+    UnitValue.of[Quantity](" 1m ") shouldBe Success(Quantity(0.001))
+    UnitValue.of[Quantity](" 0.1 ") shouldBe Success(Quantity(0.1))
+    UnitValue.of[Quantity](".1") shouldBe Success(Quantity(0.1))
+    UnitValue.of[Quantity]("-0.1 ") shouldBe Success(Quantity(-0.1))
+    UnitValue.of[Quantity]("-.1 ") shouldBe Success(Quantity(-.1))
   }
 }

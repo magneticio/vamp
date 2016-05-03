@@ -31,7 +31,7 @@ class ChronosWorkflowDriver(ec: ExecutionContext, url: String) extends WorkflowD
         containerImage = workflow.containerImage.get,
         command = workflow.command.get,
         rootPath = WorkflowDriver.pathToString(scheduledWorkflow),
-        cpu = scale.cpu,
+        cpu = scale.cpu.value,
         memory = scale.memory.value
       )
 

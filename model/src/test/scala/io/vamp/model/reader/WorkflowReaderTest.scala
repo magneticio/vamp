@@ -99,7 +99,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
       'script(Option("vamp.log(\"hi\")")),
       'containerImage(None),
       'command(None),
-      'scale(Option(DefaultScale("", 1, MegaByte.of("512MB"), 1)))
+      'scale(Option(DefaultScale("", Quantity(1), MegaByte.of("512MB"), 1)))
     )
   }
 
@@ -109,7 +109,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
       'script(Option("vamp.log(\"hi\")")),
       'containerImage(None),
       'command(None),
-      'scale(Option(DefaultScale("", 1, MegaByte.of("512MB"), 1)))
+      'scale(Option(DefaultScale("", Quantity(1), MegaByte.of("512MB"), 1)))
     )
   }
 
@@ -117,7 +117,7 @@ class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
     expectedError[InvalidWorkflowScale]({
       WorkflowReader.read(res("workflow/workflow11.yml"))
     }) should have(
-      'scale(DefaultScale("", 1, MegaByte.of("512MB"), 2))
+      'scale(DefaultScale("", Quantity(1), MegaByte.of("512MB"), 2))
     )
   }
 
