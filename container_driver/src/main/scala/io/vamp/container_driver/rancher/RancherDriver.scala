@@ -73,7 +73,7 @@ trait RancherDriver extends ContainerDriver {
   }
 
   private[rancher] def activateService(service: RancherService): Future[RancherService] = {
-    RestClient.post[RancherService](serviceActivationUrl(service.id.get), None, List(authorization)).recover { case e: Exception ⇒ println("ERROR ACTIVATING: " + e); UnitService("Error") }
+    RestClient.post[RancherService](serviceActivationUrl(service.id.get), None, List(authorization)).recover { case e: Exception ⇒ UnitService("Error") }
   }
 
   private[rancher] def getServicesList(): Future[ServiceList] = {
@@ -96,8 +96,7 @@ trait RancherDriver extends ContainerDriver {
     Future.sequence {
       serviceList map { service ⇒
         RestClient.get[ServiceContainersList](serviceContainersListUrl(service.id.get), List(authorization)) flatMap { list ⇒ getContainerPorts(list.data) } map {
-          conts ⇒
-            {
+          conts ⇒ {
               service.copy(containers = Some(conts))
             }
         }
@@ -149,13 +148,11 @@ trait RancherDriver extends ContainerDriver {
   private[rancher] def checkIfServiceIsAlive(service: RancherService): Future[RancherService] = {
     val s1 = after[RancherService](1 seconds, as.scheduler) { RestClient.get[RancherService](s"${serviceListUrl}/${service.id.get}", List(authorization)) }
     s1 flatMap { f: RancherService ⇒
-      println("Checking service after deployment: " + f)
       f.state match {
         case _ ⇒ { checkIfServiceIsActive(f) }
       }
     } recover {
       case e: Throwable ⇒ {
-        println("EXCEPTION: " + e)
         UnitService("???")
       }
     }
@@ -179,7 +176,6 @@ trait RancherDriver extends ContainerDriver {
   }
 
   private[rancher] def createIfNotExistStack(cluster: DeploymentCluster): Future[Stack] = {
-    println("Creating stack")
     val stack = getRancherStack(cluster)
     for {
       s1 ← checkIfStackIsCreated(stack)
@@ -204,18 +200,13 @@ trait RancherDriver extends ContainerDriver {
   def allApps: Future[ServiceList] = getServicesList
 
   private[rancher] def checkIfServiceExist(service: RancherService): Future[RancherService] = {
-    println("Checking if Rancher service exists: " + service)
     RestClient.get[ServiceList](serviceListUrl, List(authorization)) map {
-      data ⇒
-        {
+      data ⇒ {
           val list = data.data filter (srv ⇒ srv.name == service.name)
-          println("Service list: " + list)
           if (list != None && !list.isEmpty) {
             /* If service exists update scale parameters **/
-            println("Service exist: " + list)
             list.head.copy(scale = service.scale)
           } else {
-            println("SERVICE DOES NOT EXIST")
             service
           }
         }
@@ -223,21 +214,16 @@ trait RancherDriver extends ContainerDriver {
   }
 
   private[rancher] def updateService(service: RancherService): Future[RancherService] = {
-    println("---> Updating service: " + service)
     val updateUrl = service.actions.get("update")
-    RestClient.put[RancherService](updateUrl, requestPayload(UpdateService(service.scale.get)), List(authorization)) map { x ⇒ println("Result UPDATE: " + x); x }
+    RestClient.put[RancherService](updateUrl, requestPayload(UpdateService(service.scale.get)), List(authorization))
   }
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
-    println("START TO DEPLOY")
     createIfNotExistStack(cluster) map {
       stack ⇒
         /* Manage exception **/
         val rancherService = getRancherService(stack.id.get, deployment, cluster, service)
-        println("Checking if serive exists")
-        checkIfServiceExist(rancherService) flatMap { s ⇒
-          {
-            println("Check If Exist: " + s)
+        checkIfServiceExist(rancherService) flatMap { s ⇒ {
             if (s.id == None)
               publishService(rancherService, stack.id.get)
             else {
@@ -262,7 +248,7 @@ trait RancherDriver extends ContainerDriver {
     val foundService = getServicesList map { services ⇒ services.data filter { _.name == id } }
     foundService map { list ⇒
       list map { s ⇒
-        RestClient.delete(serviceUndeployUrl(s.id.get), List(authorization)) flatMap { r ⇒ println("REPONSE AFTER DELETE: " + r); checkIfServiceIsAlive(r) }
+        RestClient.delete(serviceUndeployUrl(s.id.get), List(authorization)) flatMap { r ⇒ checkIfServiceIsAlive(r) }
       }
     }
   }
