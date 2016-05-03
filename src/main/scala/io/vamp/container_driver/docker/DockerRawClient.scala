@@ -135,7 +135,7 @@ object RawDockerClient {
 
     if (!defaultScaleJs.isEmpty()) {
       val defaultScale = defaultScaleJs.parseJson.convertTo[DefaultScale]
-      App(containerName, defaultScale.instances, defaultScale.cpu, defaultScale.memory.value, List(Task(container.id(), containerName, "", if (!container.ports().isEmpty()) container.ports().map { x ⇒ x.getPublicPort }.toList else List(0), Some(new DateTime(container.created()).toString()))))
+      App(containerName, defaultScale.instances, defaultScale.cpu.value, defaultScale.memory.value, List(Task(container.id(), containerName, "", if (!container.ports().isEmpty()) container.ports().map { x ⇒ x.getPublicPort }.toList else List(0), Some(new DateTime(container.created()).toString()))))
     } else {
       /* Default app values. They are going to be stored as label */
       App(containerName, 1, 0.0, 0.0, List(Task(container.id(), containerName, "", if (!container.ports().isEmpty()) container.ports().map { x ⇒ x.getPublicPort }.toList else List(0), Some(new DateTime(container.created()).toString()))))

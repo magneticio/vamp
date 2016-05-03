@@ -2,7 +2,7 @@ package io.vamp.container_driver.docker
 
 import io.vamp.container_driver._
 import io.vamp.model.artifact._
-import io.vamp.model.reader.MegaByte
+import io.vamp.model.reader.{ MegaByte, Quantity }
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.collection.mutable.{ Map ⇒ MutableMap }
@@ -15,6 +15,7 @@ import java.nio.file.Paths
 import com.typesafe.config.ConfigFactory
 import org.joda.time.DateTime
 import akka.actor.ActorSystem
+import io.vamp.common.crypto.Hash
 
 case class Task(id: String, name: String, host: String, ports: List[Int], startedAt: Option[String])
 case class App(id: String, instances: Int, cpus: Double, mem: Double, tasks: List[Task])
@@ -31,14 +32,22 @@ trait DockerDriver extends ContainerDriver {
   import RawDockerClient._
   import scala.collection.JavaConversions._
 
-  /** method from abstract AbstractContainerDriver does not work **/
-  override val nameDelimiter = "_"
-  override def appId(deployment: Deployment, breed: Breed): String = s"vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
-  override def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
+  protected override val nameDelimiter = "_"
+
+  protected val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
+
+  protected override def appId(deployment: Deployment, breed: Breed): String = s"vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
+
+  protected def artifactName2Id(artifact: Artifact): String = artifact.name match {
+    case idMatcher(_*) ⇒ artifact.name
+    case _             ⇒ Hash.hexSha1(artifact.name).substring(0, 20)
+  }
+
+  protected override def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
 
   /** Duplicate code from Marathon **/
   private def containerService(app: App): ContainerService =
-    ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
+    ContainerService(nameMatcher(app.id), DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
 
   private def parameters(service: DeploymentService): List[DockerParameter] = service.arguments.map { argument ⇒
     DockerParameter(argument.key, argument.value)

@@ -5,7 +5,6 @@ import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.http.RestClient
 
 import scala.concurrent.Future
-import scala.util.Try
 
 trait KubernetesDaemonSet {
   this: ActorLogging with ExecutionContextProvider ⇒
@@ -98,14 +97,8 @@ trait KubernetesDaemonSet {
     )
   }
 
-  private def process(url: String, name: String, exists: () ⇒ Unit, notExists: () ⇒ Future[Any]): Future[Any] = RestClient.get[Any](url).map {
-    case response: Map[_, _] ⇒ Try(
-      response.asInstanceOf[Map[String, _]].get("items") match {
-        case Some(list: List[_]) ⇒ list.map(_.asInstanceOf[Map[String, _]].get("metadata").get.asInstanceOf[Map[String, _]].get("name").get)
-        case _                   ⇒ Nil
-      }
-    ).getOrElse(Nil).contains(name)
-    case _ ⇒ false
+  private def process(url: String, name: String, exists: () ⇒ Unit, notExists: () ⇒ Future[Any]): Future[Any] = RestClient.get[KubernetesApiResponse](url).map {
+    case ds ⇒ ds.items.map(_.metadata.name).contains(name)
   } flatMap {
     case true ⇒
       exists()

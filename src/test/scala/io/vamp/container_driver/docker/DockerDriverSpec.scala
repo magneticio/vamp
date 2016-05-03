@@ -1,7 +1,7 @@
 package io.vamp.container_driver.docker
 
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{ MegaByte, Percentage }
+import io.vamp.model.reader.{ MegaByte, Percentage, Quantity }
 import org.joda.time.DateTime
 import org.scalatest._
 
@@ -62,7 +62,7 @@ class DockerDriverSpec extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val deployable = Deployable("docker", Some("magneticio/sava:1.0.0"))
     val ports = List(Port("port", None, Some("8080/http"), 8080, Port.Type.Http))
     val breed = DefaultBreed("sava:1.0.0", deployable, ports, List(), List(), List(), Map())
-    val defaultScale = DefaultScale("", 0.2, MegaByte(64.0), 1)
+    val defaultScale = DefaultScale("", Quantity(0.2), MegaByte(64.0), 1)
 
     val deploymentService = DeploymentService(DeploymentService.State.Intention.Deploy, breed, List(), Some(defaultScale), List(), List(), Map(),
       Map(Dialect.Docker -> Map("labels" -> Map("environment" -> "staging", "owner" -> "buffy the vamp slayer"), "net" -> "host")))
