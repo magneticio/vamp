@@ -22,12 +22,10 @@ trait KubernetesContainerDriver extends ContainerDriver {
     case _ ⇒ Hash.hexSha1(artifact.name).substring(0, 20)
   }
 
-  protected def retrieve(url: String, name: String, exists: () ⇒ Unit, notExists: () ⇒ Future[Any]): Future[Any] = RestClient.get[KubernetesApiResponse](url).map {
+  protected def retrieve(url: String, name: String, exists: () ⇒ Future[Any], notExists: () ⇒ Future[Any]): Future[Any] = RestClient.get[KubernetesApiResponse](url).map {
     case ds ⇒ ds.items.map(_.metadata.name).contains(name)
   } flatMap {
-    case true ⇒
-      exists()
-      Future.successful(false)
+    case true  ⇒ exists()
     case false ⇒ notExists()
   }
 }

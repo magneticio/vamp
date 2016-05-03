@@ -6,10 +6,11 @@ import io.vamp.common.http.RestClient
 import scala.concurrent.Future
 
 trait KubernetesDaemonSet {
-  this: KubernetesContainerDriver with ActorLogging with KubernetesService ⇒
+  this: KubernetesContainerDriver with ActorLogging ⇒
+
+  private lazy val url = s"$kubernetesUrl/apis/extensions/v1beta1/namespaces/default/daemonsets"
 
   protected def createDaemonSet(ds: DaemonSet): Future[Any] = {
-    val url = s"$kubernetesUrl/apis/extensions/v1beta1/namespaces/default/daemonsets"
     val request =
       s"""
          |{
@@ -50,11 +51,12 @@ trait KubernetesDaemonSet {
     retrieve(url, ds.name,
       () ⇒ {
         log.debug(s"Daemon set exists: ${ds.name}")
+        Future.successful(false)
       },
       () ⇒ {
         log.info(s"Creating daemon set: ${ds.name}")
         RestClient.post[Any](url, request)
       }
-    ).flatMap(_ ⇒ createService(ds.name, ds.docker))
+    )
   }
 }
