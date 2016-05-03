@@ -1,29 +1,35 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorLogging
+import io.vamp.common.crypto.Hash
 import io.vamp.common.http.RestClient
-import io.vamp.container_driver.Docker
 
 import scala.concurrent.Future
+
+case class KubernetesServicePort(name: String, protocol: String, port: Int, targetPort: Int)
 
 trait KubernetesService {
   this: KubernetesContainerDriver with ActorLogging ⇒
 
-  protected def createService(name: String, docker: Docker): Future[Any] = {
-    val url = s"$kubernetesUrl/api/v1/namespaces/default/services"
+  private lazy val url = s"$kubernetesUrl/api/v1/namespaces/default/services"
+
+  private val nameMatcher = """^[a-z]([-a-z0-9]*[a-z0-9])?$""".r
+
+  protected def createService(name: String, selector: String, ports: List[KubernetesServicePort], update: Boolean): Future[Any] = {
+    val id = toId(name)
     val request =
       s"""
          |{
          |  "kind": "Service",
          |  "apiVersion": "v1",
          |  "metadata": {
-         |    "name": "$name"
+         |    "name": "$id"
          |  },
          |  "spec": {
          |    "selector": {
-         |      "app": "$name"
+         |      "app": "$selector"
          |    },
-         |    "ports": [${docker.portMappings.map(pm ⇒ s"""{"name": "p${pm.containerPort}", "protocol": "${pm.protocol.toUpperCase}", "port": ${pm.hostPort}, "targetPort": ${pm.containerPort}}""").mkString(", ")}],
+         |    "ports": [${ports.map(p ⇒ s"""{"name": "p${p.name}", "protocol": "${p.protocol.toUpperCase}", "port": ${p.port}, "targetPort": ${p.targetPort}}""").mkString(", ")}],
          |    "type": "NodePort"
          |  }
          |}
@@ -31,12 +37,37 @@ trait KubernetesService {
 
     retrieve(url, name,
       () ⇒ {
-        log.debug(s"Service exists: $name")
+        if (update) {
+          log.info(s"Updating service: $name")
+          RestClient.put[Any](s"$url/$name", request)
+        } else {
+          log.debug(s"Service exists: $name")
+          Future.successful(false)
+        }
       },
       () ⇒ {
         log.info(s"Creating service: $name")
         RestClient.post[Any](url, request)
       }
     )
+  }
+
+  protected def deleteService(name: String): Future[Any] = {
+    val id = toId(name)
+    retrieve(url, id,
+      () ⇒ {
+        log.info(s"Deleting service: $name")
+        RestClient.delete(s"$url/$id")
+      },
+      () ⇒ {
+        log.debug(s"Service does not exist: $name")
+        Future.successful(false)
+      }
+    )
+  }
+
+  private def toId(name: String): String = name match {
+    case nameMatcher(_*) if name.length < 25 ⇒ name
+    case _                                   ⇒ s"hex${Hash.hexSha1(name).substring(0, 20)}"
   }
 }

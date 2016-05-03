@@ -3,6 +3,7 @@ package io.vamp.operation.gateway
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
+import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor.Commit
 import io.vamp.model.artifact._
@@ -209,8 +210,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     val currentAsMap = current.map(g ⇒ g.name -> g).toMap
     val selectedAsMap = selected.map(g ⇒ g.name -> g).toMap
 
-    currentAsMap.keySet.diff(selectedAsMap.keySet).foreach(name ⇒ publishUndeployed(currentAsMap.get(name).get))
-    selectedAsMap.keySet.diff(currentAsMap.keySet).foreach(name ⇒ publishDeployed(selectedAsMap.get(name).get))
+    currentAsMap.keySet.diff(selectedAsMap.keySet).foreach(name ⇒ undeployed(currentAsMap.get(name).get))
+    selectedAsMap.keySet.diff(currentAsMap.keySet).foreach(name ⇒ deployed(selectedAsMap.get(name).get))
 
     current = selected
     current
@@ -227,9 +228,15 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     }
   }
 
-  private def publishDeployed(gateway: Gateway) = sendEvent(gateway, "deployed")
+  private def deployed(gateway: Gateway) = {
+    IoC.actorFor[ContainerDriverActor] ! ContainerDriverActor.DeployGateway(gateway)
+    sendEvent(gateway, "deployed")
+  }
 
-  private def publishUndeployed(gateway: Gateway) = sendEvent(gateway, "undeployed")
+  private def undeployed(gateway: Gateway) = {
+    IoC.actorFor[ContainerDriverActor] ! ContainerDriverActor.UndeployGateway(gateway)
+    sendEvent(gateway, "undeployed")
+  }
 
   private def sendEvent(gateway: Gateway, event: String) = {
     log.info(s"Gateway event: ${gateway.name} - $event")

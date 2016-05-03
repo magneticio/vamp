@@ -11,13 +11,13 @@ import scala.concurrent.Future
 trait KubernetesDeployment {
   this: KubernetesContainerDriver with ActorLogging ⇒
 
-  protected val deploymentUrl = s"$kubernetesUrl/apis/extensions/v1beta1/namespaces/default/deployments"
+  private lazy val url = s"$kubernetesUrl/apis/extensions/v1beta1/namespaces/default/deployments"
 
   protected def schema: Enumeration
 
   protected def allContainerServices: Future[List[ContainerService]] = {
     log.debug(s"kubernetes get all")
-    RestClient.get[KubernetesApiResponse](deploymentUrl).flatMap(deployments ⇒ containerServices(deployments))
+    RestClient.get[KubernetesApiResponse](url).flatMap(deployments ⇒ containerServices(deployments))
   }
 
   private def containerServices(deployments: KubernetesApiResponse): Future[List[ContainerService]] = Future.sequence {
@@ -65,12 +65,12 @@ trait KubernetesDeployment {
       args = Nil
     )
 
-    if (update) RestClient.put[Any](s"$deploymentUrl/$id", app.toString) else RestClient.post[Any](deploymentUrl, app.toString)
+    if (update) RestClient.put[Any](s"$url/$id", app.toString) else RestClient.post[Any](url, app.toString)
   }
 
   protected def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"kubernetes delete app: $id")
-    RestClient.delete(s"$deploymentUrl/$id")
+    RestClient.delete(s"$url/$id")
   }
 }
