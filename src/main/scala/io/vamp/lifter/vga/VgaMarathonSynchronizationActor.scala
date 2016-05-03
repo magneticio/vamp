@@ -77,7 +77,7 @@ class VgaMarathonSynchronizationActor extends VgaSynchronizationActor with Artif
       Container(
         docker = Docker(
           image = container,
-          portMappings = Nil,
+          portMappings = ports,
           parameters = Nil,
           privileged = true,
           network = "HOST"

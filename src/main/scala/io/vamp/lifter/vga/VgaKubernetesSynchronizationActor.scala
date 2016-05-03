@@ -35,7 +35,7 @@ class VgaKubernetesSynchronizationActor extends VgaSynchronizationActor {
       name = id,
       docker = Docker(
         image = container,
-        portMappings = Nil,
+        portMappings = ports,
         parameters = Nil,
         privileged = true,
         network = "HOST"
