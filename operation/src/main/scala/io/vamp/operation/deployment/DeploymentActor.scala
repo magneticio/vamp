@@ -1,7 +1,5 @@
 package io.vamp.operation.deployment
 
-import java.util.UUID
-
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -72,7 +70,7 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
 
   def receive = {
     case Create(blueprint, source, validateOnly) ⇒ reply {
-      (merge(deploymentFor(blueprint), validateOnly) andThen commit(source, validateOnly))(deploymentFor())
+      (merge(deploymentFor(blueprint), validateOnly) andThen commit(source, validateOnly))(deploymentFor(blueprint.name, create = true))
     }
 
     case Merge(name, blueprint, source, validateOnly) ⇒ reply {
@@ -115,10 +113,6 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
 trait BlueprintSupport extends DeploymentValidator with NameValidator with BlueprintRoutingHelper with ArtifactExpansionSupport {
   this: ActorSystemProvider with ArtifactPaginationSupport with ExecutionContextProvider with NotificationProvider ⇒
 
-  private def uuid = UUID.randomUUID.toString
-
-  def deploymentFor(): Future[Deployment] = Future(Deployment(uuid, Nil, Nil, Nil, Nil, Nil))
-
   def deploymentFor(name: String, create: Boolean = false): Future[Deployment] = {
     if (!create) {
       artifactFor[Deployment](name)
@@ -157,7 +151,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
           c ← Future.sequence(clusters)
           g ← expandGateways(bp.gateways)
         } yield {
-          Deployment(uuid, c, g, Nil, bp.environmentVariables, Nil)
+          Deployment(blueprint.name, c, g, Nil, bp.environmentVariables, Nil)
         }
     }
   }
