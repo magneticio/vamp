@@ -73,7 +73,7 @@ case class MegaByte(value: Double) extends UnitValue[Double] {
     if (value < 0) UnitValue.illegal(value)
   }
 
-  def normalized = s"${value}MB"
+  def normalized = f"$value%.2fMB"
 }
 
 object Quantity {
@@ -92,5 +92,5 @@ object Quantity {
 }
 
 case class Quantity(value: Double) extends UnitValue[Double] {
-  def normalized = value.toString
+  def normalized = f"$value%.2f"
 }
