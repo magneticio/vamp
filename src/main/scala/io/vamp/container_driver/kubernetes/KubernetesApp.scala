@@ -49,7 +49,7 @@ case class KubernetesApiResponse(items: List[KubernetesItem])
 
 case class KubernetesItem(metadata: KubernetesMetadata, spec: KubernetesSpec, status: KubernetesStatus)
 
-case class KubernetesMetadata(name: String)
+case class KubernetesMetadata(name: String, labels: Map[String, String])
 
 case class KubernetesSpec(replicas: Option[Int], template: Option[KubernetesTemplate])
 

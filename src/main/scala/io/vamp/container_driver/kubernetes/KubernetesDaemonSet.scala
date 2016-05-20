@@ -5,22 +5,20 @@ import io.vamp.common.http.RestClient
 
 import scala.concurrent.Future
 
-trait KubernetesDaemonSet {
+trait KubernetesDaemonSet extends KubernetesArtifact {
   this: KubernetesContainerDriver with ActorLogging ⇒
 
   private lazy val url = s"$kubernetesUrl/apis/extensions/v1beta1/namespaces/default/daemonsets"
 
-  protected def createDaemonSet(ds: DaemonSet): Future[Any] = {
+  protected def createDaemonSet(ds: DaemonSet, labels: Map[String, String] = Map()): Future[Any] = {
     val request =
       s"""
          |{
          |  "apiVersion": "extensions/v1beta1",
          |  "kind": "DaemonSet",
          |  "metadata": {
-         |    "labels": {
-         |      "name": "${ds.name}"
-         |    },
-         |    "name": "${ds.name}"
+         |    "name": "${ds.name}",
+         |    ${labels2json(labels)}
          |  },
          |  "spec": {
          |    "template": {
