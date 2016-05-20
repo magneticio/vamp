@@ -4,6 +4,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.container_driver.ContainerDriverActor
+import io.vamp.container_driver.ContainerDriverActor.DeployedGateways
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor.Commit
 import io.vamp.model.artifact._
@@ -210,32 +211,24 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     val currentAsMap = current.map(g ⇒ g.name -> g).toMap
     val selectedAsMap = selected.map(g ⇒ g.name -> g).toMap
 
-    currentAsMap.keySet.diff(selectedAsMap.keySet).foreach(name ⇒ undeployed(currentAsMap.get(name).get))
-    selectedAsMap.keySet.diff(currentAsMap.keySet).foreach(name ⇒ deployed(selectedAsMap.get(name).get))
+    currentAsMap.keySet.diff(selectedAsMap.keySet).foreach(name ⇒ sendEvent(currentAsMap.get(name).get, "undeployed"))
+    selectedAsMap.keySet.diff(currentAsMap.keySet).foreach(name ⇒ sendEvent(selectedAsMap.get(name).get, "deployed"))
 
     current = selected
     current
   }
 
   private def flush: List[Gateway] ⇒ Unit = { gateways ⇒
-    IoC.actorFor[GatewayDriverActor] ! Commit {
-      gateways sortWith { (gateway1, gateway2) ⇒
-        val len1 = GatewayPath(gateway1.name).segments.size
-        val len2 = GatewayPath(gateway2.name).segments.size
-        if (len1 == len2) gateway1.name.compareTo(gateway2.name) < 0
-        else len1 < len2
-      }
+
+    val sorted = gateways sortWith { (gateway1, gateway2) ⇒
+      val len1 = GatewayPath(gateway1.name).segments.size
+      val len2 = GatewayPath(gateway2.name).segments.size
+      if (len1 == len2) gateway1.name.compareTo(gateway2.name) < 0
+      else len1 < len2
     }
-  }
 
-  private def deployed(gateway: Gateway) = {
-    IoC.actorFor[ContainerDriverActor] ! ContainerDriverActor.DeployGateway(gateway)
-    sendEvent(gateway, "deployed")
-  }
-
-  private def undeployed(gateway: Gateway) = {
-    IoC.actorFor[ContainerDriverActor] ! ContainerDriverActor.UndeployGateway(gateway)
-    sendEvent(gateway, "undeployed")
+    IoC.actorFor[GatewayDriverActor] ! Commit(sorted)
+    IoC.actorFor[ContainerDriverActor] ! DeployedGateways(sorted)
   }
 
   private def sendEvent(gateway: Gateway, event: String) = {

@@ -22,9 +22,8 @@ object ContainerDriverActor {
 
   case class Undeploy(deployment: Deployment, service: DeploymentService) extends ContainerDriveMessage
 
-  case class DeployGateway(gateway: Gateway) extends ContainerDriveMessage
+  case class DeployedGateways(gateway: List[Gateway]) extends ContainerDriveMessage
 
-  case class UndeployGateway(gateway: Gateway) extends ContainerDriveMessage
 }
 
 case class ContainerService(matching: (Deployment, Breed) ⇒ Boolean, scale: DefaultScale, instances: List[ContainerInstance])

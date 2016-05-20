@@ -8,14 +8,19 @@ import scala.concurrent.Future
 
 case class KubernetesServicePort(name: String, protocol: String, port: Int, targetPort: Int)
 
-trait KubernetesService {
+trait KubernetesService extends KubernetesArtifact {
   this: KubernetesContainerDriver with ActorLogging ⇒
 
   private lazy val url = s"$kubernetesUrl/api/v1/namespaces/default/services"
 
   private val nameMatcher = """^[a-z]([-a-z0-9]*[a-z0-9])?$""".r
 
-  protected def createService(name: String, selector: String, ports: List[KubernetesServicePort], update: Boolean): Future[Any] = {
+  protected def services(labels: Map[String, String] = Map()): Future[KubernetesApiResponse] = {
+    def request(u: String) = RestClient.get[KubernetesApiResponse](u)
+    if (labels.isEmpty) request(url) else request(s"$url?labelSelector=${labels2parameters(labels)}")
+  }
+
+  protected def createService(name: String, selector: String, ports: List[KubernetesServicePort], update: Boolean, labels: Map[String, String] = Map()): Future[Any] = {
     val id = toId(name)
     val request =
       s"""
@@ -23,7 +28,8 @@ trait KubernetesService {
          |  "kind": "Service",
          |  "apiVersion": "v1",
          |  "metadata": {
-         |    "name": "$id"
+         |    "name": "$id",
+         |    ${labels2json(labels)}
          |  },
          |  "spec": {
          |    "selector": {
@@ -35,11 +41,11 @@ trait KubernetesService {
          |}
    """.stripMargin
 
-    retrieve(url, name,
+    retrieve(url, id,
       () ⇒ {
         if (update) {
           log.info(s"Updating service: $name")
-          RestClient.put[Any](s"$url/$name", request)
+          RestClient.put[Any](s"$url/$id", request)
         } else {
           log.debug(s"Service exists: $name")
           Future.successful(false)
@@ -52,15 +58,14 @@ trait KubernetesService {
     )
   }
 
-  protected def deleteService(name: String): Future[Any] = {
-    val id = toId(name)
+  protected def deleteServiceById(id: String): Future[Any] = {
     retrieve(url, id,
       () ⇒ {
-        log.info(s"Deleting service: $name")
+        log.info(s"Deleting service: $id")
         RestClient.delete(s"$url/$id")
       },
       () ⇒ {
-        log.debug(s"Service does not exist: $name")
+        log.debug(s"Service does not exist: $id")
         Future.successful(false)
       }
     )

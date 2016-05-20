@@ -9,6 +9,7 @@ import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact.Gateway
 
 import scala.concurrent.Future
+import scala.language.postfixOps
 
 object KubernetesDriverActor {
 
@@ -35,15 +36,16 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
   protected val kubernetesUrl = KubernetesDriverActor.kubernetesUrl
 
+  private val gatewayService = Map("vamp" -> "gateway")
+
   def receive = {
-    case InfoRequest              ⇒ reply(info)
-    case All                      ⇒ reply(allContainerServices)
-    case d: Deploy                ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
-    case u: Undeploy              ⇒ reply(undeploy(u.deployment, u.service))
-    case DeployGateway(gateway)   ⇒ reply(deployGateway(gateway))
-    case UndeployGateway(gateway) ⇒ reply(undeployGateway(gateway))
-    case ds: DaemonSet            ⇒ reply(daemonSet(ds))
-    case any                      ⇒ unsupported(UnsupportedContainerDriverRequest(any))
+    case InfoRequest                ⇒ reply(info)
+    case All                        ⇒ reply(allContainerServices)
+    case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
+    case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
+    case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
+    case ds: DaemonSet              ⇒ reply(daemonSet(ds))
+    case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
   private def info: Future[Any] = for {
@@ -58,15 +60,21 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     ContainerInfo("kubernetes", KubernetesDriverInfo(version, paths, api, apis))
   }
 
-  private def deployGateway(gateway: Gateway) = {
+  private def deployedGateways(gateways: List[Gateway]) = {
     if (createServices) {
-      val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
-      createService(gateway.name, vampGatewayAgentId, ports, update = true)
-    } else Future.successful(true)
-  }
+      services(gatewayService).map { response ⇒
+        val items = response.items.flatMap { item ⇒ item.metadata.labels.get("lookup_name").map(_ -> item.metadata.name) } toMap
 
-  private def undeployGateway(gateway: Gateway) = {
-    if (createServices) deleteService(gateway.name) else Future.successful(true)
+        val deleted = items.filter { case (l, _) ⇒ !gateways.exists(_.lookupName == l) } map { case (_, id) ⇒ deleteServiceById(id) }
+
+        val created = gateways.filter { case gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName } } map { gateway ⇒
+          val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
+          createService(gateway.name, vampGatewayAgentId, ports, update = false, gatewayService ++ Map("lookup_name" -> gateway.lookupName))
+        }
+
+        Future.sequence(created ++ deleted)
+      }
+    } else Future.successful(true)
   }
 
   private def daemonSet(ds: DaemonSet) = createDaemonSet(ds).flatMap { _ ⇒
