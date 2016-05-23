@@ -13,6 +13,10 @@ class HaProxyFilterResolverSpec extends FlatSpec with Matchers with HaProxyAclRe
       HaProxyAcls(List(Acl("af31629d4c4c8e71", "hdr_sub(user-agent) Firefox")), Some("af31629d4c4c8e71"))
     }
 
+    resolve("User-Agent is Safari" :: Nil) shouldBe Some {
+      HaProxyAcls(List(Acl("ecae438902d47151", "hdr_sub(user-agent) Safari"), Acl("54c1c532d16b2684", "hdr_sub(user-agent) Version")), Some("ecae438902d47151 54c1c532d16b2684"))
+    }
+
     resolve("host == localhost" :: Nil) shouldBe Some {
       HaProxyAcls(List(Acl("58966872db928351", "hdr_str(host) localhost")), Some("58966872db928351"))
     }
