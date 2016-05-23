@@ -10,11 +10,12 @@ frontend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   mode http
 
   # destination: intermediate vamp/sava/port/_//vamp/sava/sava:1.0.0/port
-  acl 624dc0f1a5754e94 hdr_sub(user-agent) ie
-  acl 3cb39f8aae4d99da hdr_sub(user-agent) chrome
   acl 445a3abaca79c140 cook_sub(group) admin
+  acl 81b5022a1c5966ab hdr_sub(user-agent) Chrome
+  acl ecae438902d47151 hdr_sub(user-agent) Safari
   acl feb4c187ccc342ce hdr_cnt(x-allow) gt 0
-  use_backend im_62a11db802baf59987a3ece9e10d8754eca16a09 if !624dc0f1a5754e94 3cb39f8aae4d99da 445a3abaca79c140 feb4c187ccc342ce
+  acl 54c1c532d16b2684 hdr_sub(user-agent) Version
+  use_backend im_62a11db802baf59987a3ece9e10d8754eca16a09 if 445a3abaca79c140 81b5022a1c5966ab !ecae438902d47151 feb4c187ccc342ce or 445a3abaca79c140 81b5022a1c5966ab !54c1c532d16b2684 feb4c187ccc342ce
 
   # backend: other vamp/sava/port/_
   default_backend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb

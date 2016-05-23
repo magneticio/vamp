@@ -342,6 +342,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     val backends = Backend("vamp://sava", "im_ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, Nil, sticky = false, "", Options()) :: Nil
 
     List(
+      ("user-agent = Firefox", "hdr_sub(user-agent) Firefox"),
+      ("user-agent = Safari", "hdr_sub(user-agent) Safari"),
       ("hdr_sub(user-agent) Android", "hdr_sub(user-agent) Android"),
       ("user-agent=Android", "hdr_sub(user-agent) Android"),
       ("user-agent!=Android", "hdr_sub(user-agent) Android"),
@@ -379,7 +381,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = List(
             DefaultFilter(
               name = "",
-              condition = "user-agent != ie"
+              condition = "user-agent != safari"
             ), DefaultFilter(
               name = "",
               condition = "user-agent = chrome"
