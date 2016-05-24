@@ -55,16 +55,16 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
   protected def appId(deployment: Deployment, breed: Breed): String = s"$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
   def receive = {
-    case InfoRequest         ⇒ reply(info)
-    case All                 ⇒ reply(all)
-    case d: Deploy           ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
-    case u: Undeploy         ⇒ reply(undeploy(u.deployment, u.service))
-    case DeployedGateways(_) ⇒
-    case a: AllApps          ⇒ reply(allApps.map(_.filter(a.filter)))
-    case d: DeployApp        ⇒ reply(deploy(d.app, d.update))
-    case u: UndeployApp      ⇒ reply(undeploy(u.app))
-    case r: RetrieveApp      ⇒ reply(retrieve(r.app))
-    case any                 ⇒ unsupported(UnsupportedContainerDriverRequest(any))
+    case InfoRequest                ⇒ reply(info)
+    case All                        ⇒ reply(all)
+    case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
+    case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
+    case DeployedGateways(gateways) ⇒ reply(deployGateways(gateways))
+    case a: AllApps                 ⇒ reply(allApps.map(_.filter(a.filter)))
+    case d: DeployApp               ⇒ reply(deploy(d.app, d.update))
+    case u: UndeployApp             ⇒ reply(undeploy(u.app))
+    case r: RetrieveApp             ⇒ reply(retrieve(r.app))
+    case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
   private def info: Future[Any] = for {
