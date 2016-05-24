@@ -112,7 +112,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
 
   override protected def createDefault(implicit source: YamlSourceReader): Route = {
     source.flatten({ entry ⇒ entry == "instances" })
-    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), <<?[Percentage]("filter_strength"), filters, rewrites, <<?[String]("balance"))
+    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), <<?[Percentage]("filter_strength"), filters, rewrites, balance)
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
@@ -138,6 +138,11 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   protected def rewrites(implicit source: YamlSourceReader): List[Rewrite] = <<?[YamlList]("rewrites") match {
     case None                 ⇒ List.empty[Rewrite]
     case Some(list: YamlList) ⇒ list.map(RewriteReader.readReferenceOrAnonymous)
+  }
+
+  protected def balance(implicit source: YamlSourceReader) = <<?[String]("balance") match {
+    case Some(value) if value == DefaultRoute.defaultBalance ⇒ None
+    case other ⇒ other
   }
 
   override def validateName(name: String): String = if (GatewayPath.external(name)) name else super.validateName(name)

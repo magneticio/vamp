@@ -78,6 +78,10 @@ sealed trait Route extends Artifact {
 
 case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
 
+object DefaultRoute {
+  val defaultBalance = "default"
+}
+
 case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filterStrength: Option[Percentage], filters: List[Filter], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
 
   def hasRoutingFilters: Boolean = filters.exists(_.isInstanceOf[DefaultFilter])
