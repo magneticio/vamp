@@ -135,12 +135,7 @@ trait PersistenceMultiplexer {
               }
             }
           } yield {
-
-            val portMapping = cluster.portMapping.map {
-              case (name, value) ⇒ name -> routing.find(gateway ⇒ GatewayPath(gateway.name).segments.last == name).map(_.port.number).getOrElse(value)
-            }
-
-            cluster.copy(services = services.filterNot(_.state.isUndeployed), routing = routing, portMapping = portMapping)
+            cluster.copy(services = services.filterNot(_.state.isUndeployed), routing = routing)
           }
         }
       } map {

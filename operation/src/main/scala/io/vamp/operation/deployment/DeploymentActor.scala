@@ -143,7 +143,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
             routing ← expandGateways(cluster.routing)
 
           } yield {
-            DeploymentCluster(cluster.name, services, processAnonymousRouting(services, routing), cluster.sla, Map(), cluster.dialects)
+            DeploymentCluster(cluster.name, services, processAnonymousRouting(services, routing), cluster.sla, cluster.dialects)
           }
         }
 
@@ -341,7 +341,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
   def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintRoutes
 
-  def resolveProperties = resolveHosts andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
+  def resolveProperties = resolveHosts andThen validateEmptyVariables andThen resolveDependencyMapping
 
   def validateMerge = validateServices andThen validateRouting andThen validateScaleEscalations andThen validateGateways
 
@@ -401,7 +401,6 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
                 case services ⇒
                   val nc = deploymentCluster.copy(
                     services = services,
-                    portMapping = cluster.portMapping ++ deploymentCluster.portMapping,
                     dialects = deploymentCluster.dialects ++ cluster.dialects,
                     routing = if (cluster.routing.nonEmpty) cluster.routing else deploymentCluster.routing,
                     sla = if (cluster.sla.isDefined) cluster.sla else deploymentCluster.sla
@@ -526,20 +525,6 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
   def resolveHosts: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
     futureDeployment.map {
       case d ⇒ d.copy(hosts = d.clusters.map(cluster ⇒ Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(DeploymentActor.gatewayHost))))
-    }
-  }
-
-  def resolveRouteMapping: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
-    futureDeployment.map {
-      case deployment ⇒
-        val clusters = deployment.clusters.map { cluster ⇒
-          val portMapping: Map[String, Int] = cluster.services.map(_.breed).flatMap(_.ports).map(port ⇒ cluster.portMapping.get(port.name) match {
-            case None         ⇒ port.name -> 0
-            case Some(number) ⇒ port.name -> number
-          }).toMap
-          cluster.copy(portMapping = portMapping)
-        }
-        deployment.copy(clusters = clusters)
     }
   }
 

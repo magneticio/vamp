@@ -117,6 +117,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       }
 
       gateway.copy(routes = routes)
+
     } partition { gateway ⇒
       gateway.routes.forall {
         case route: DefaultRoute if route.targets.nonEmpty ⇒ targets(pipeline.deployable, deployments, route) == route.targets
