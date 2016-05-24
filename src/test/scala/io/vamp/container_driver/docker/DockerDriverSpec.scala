@@ -70,12 +70,12 @@ class DockerDriverSpec extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val gatewayPath = GatewayPath("e1d509c0-2e50-43e4-80dd-cd0d07a853a9/sava/sava:1.0.0/port", List("e1d509c0-2e50-43e4-80dd-cd0d07a853a9", "sava", "sava:1.0.0", "port"))
     val defaultRoute = DefaultRoute("", gatewayPath, Some(Percentage(100)), None, List(), List(), None, List())
 
-    val gateway = Gateway("e1d509c0-2e50-43e4-80dd-cd0d07a853a9/sava/port", Port("port", None, Some("0/http"), 0, Port.Type.Http), None, Nil, List(defaultRoute), deployed = false)
+    val gateway = Gateway("e1d509c0-2e50-43e4-80dd-cd0d07a853a9/sava/port", Port("port", None, Some("0/http"), 0, Port.Type.Http), None, None, Nil, List(defaultRoute), deployed = false)
     val deploymentCluster = DeploymentCluster("sava", List(deploymentService), List(gateway), None, Map())
 
     val gatewayPath1 = GatewayPath("e1d509c0-2e50-43e4-80dd-cd0d07a853a9/sava/port", List("e1d509c0-2e50-43e4-80dd-cd0d07a853a9", "sava", "port"))
     val defaultRoute1 = DefaultRoute("", gatewayPath1, Some(Percentage(100)), None, List(), List(), None, List())
-    val gateway1 = Gateway("e1d509c0-2e50-43e4-80dd-cd0d07a853a9/9050", Port("9050", None, Some("9050"), 9050, Port.Type.Http), None, Nil, List(defaultRoute1), deployed = false)
+    val gateway1 = Gateway("e1d509c0-2e50-43e4-80dd-cd0d07a853a9/9050", Port("9050", None, Some("9050"), 9050, Port.Type.Http), None, None, Nil, List(defaultRoute1), deployed = false)
 
     val deployment = Deployment("deployment", List(deploymentCluster), List(gateway1), List(Port("sava.ports.port", None, Some("0"), 0, Port.Type.Http)), List(), List(Host("sava.hosts.host", Some("192.168.99.100"))))
   }
