@@ -5,6 +5,7 @@ import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
+import scala.util.Try
 
 trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader[Gateway] {
 
@@ -29,13 +30,15 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     super.expand
   }
 
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky, virtualHosts, routes(splitPath = true), deployed)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port(), servicePort, sticky, virtualHosts, routes(splitPath = true), deployed)
 
-  protected def port(implicit source: YamlSourceReader): Port = <<![Any]("port") match {
+  protected def port(entry: String = "port")(implicit source: YamlSourceReader): Port = <<![Any](entry) match {
     case value: Int    ⇒ Port(value)
     case value: String ⇒ Port(value)
     case any           ⇒ throwException(UnexpectedTypeError("port", classOf[String], any.getClass))
   }
+
+  protected def servicePort(implicit source: YamlSourceReader): Option[Port] = Try(port("service_port")).map(Option(_)).getOrElse(None)
 
   protected def sticky(implicit source: YamlSourceReader) = <<?[String]("sticky") match {
     case Some(sticky) ⇒ if (sticky.toLowerCase == "none") None else Option(Gateway.Sticky.byName(sticky).getOrElse(throwException(IllegalGatewayStickyValue(sticky))))
@@ -87,7 +90,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
 object GatewayReader extends AbstractGatewayReader
 
 object ClusterGatewayReader extends AbstractGatewayReader {
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), sticky, virtualHosts, routes(splitPath = false), deployed)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), servicePort, sticky, virtualHosts, routes(splitPath = false), deployed)
 }
 
 object DeployedGatewayReader extends AbstractGatewayReader {
@@ -97,7 +100,7 @@ object DeployedGatewayReader extends AbstractGatewayReader {
     case Some(name) ⇒ name
   }
 
-  protected override def port(implicit source: YamlSourceReader): Port = <<?[Any]("port") match {
+  protected override def port(entry: String = "port")(implicit source: YamlSourceReader): Port = <<?[Any](entry) match {
     case Some(value: Int)    ⇒ Port(value)
     case Some(value: String) ⇒ Port(value)
     case _                   ⇒ Port("", None, None)

@@ -506,7 +506,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
           newRouting.copy(routes = routes, port = newRouting.port.copy(`type` = port.`type`))
 
         case None ⇒
-          Gateway("", Port(port.name, None, None, 0, port.`type`), None, Nil, services.map { service ⇒
+          Gateway("", Port(port.name, None, None, 0, port.`type`), None, None, Nil, services.map { service ⇒
             DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, Nil, Nil, None)
           })
       }
