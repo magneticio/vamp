@@ -71,7 +71,7 @@ class DockerDriverSpec extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val defaultRoute = DefaultRoute("", gatewayPath, Some(Percentage(100)), None, List(), List(), None, List())
 
     val gateway = Gateway("e1d509c0-2e50-43e4-80dd-cd0d07a853a9/sava/port", Port("port", None, Some("0/http"), 0, Port.Type.Http), None, Nil, List(defaultRoute), deployed = false)
-    val deploymentCluster = DeploymentCluster("sava", List(deploymentService), List(gateway), None, Map("port" -> 0), Map())
+    val deploymentCluster = DeploymentCluster("sava", List(deploymentService), List(gateway), None, Map())
 
     val gatewayPath1 = GatewayPath("e1d509c0-2e50-43e4-80dd-cd0d07a853a9/sava/port", List("e1d509c0-2e50-43e4-80dd-cd0d07a853a9", "sava", "port"))
     val defaultRoute1 = DefaultRoute("", gatewayPath1, Some(Percentage(100)), None, List(), List(), None, List())
