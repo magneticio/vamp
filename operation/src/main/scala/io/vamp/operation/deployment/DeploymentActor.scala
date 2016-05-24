@@ -324,6 +324,7 @@ trait DeploymentGatewayOperation {
     actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[DeploymentServiceEnvironmentVariables])
 
     actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[GatewayPort])
+    actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[GatewayServicePort])
     actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[GatewayDeploymentStatus])
     actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[RouteTargets])
     actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[InnerGateway])

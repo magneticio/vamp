@@ -42,7 +42,7 @@ trait PersistenceMultiplexer {
   }
 
   protected def removeGateway(name: String, each: (String, Class[_ <: Artifact]) ⇒ Future[Boolean]): Future[List[Boolean]] = {
-    def default = each(name, classOf[GatewayPort]) :: each(name, classOf[GatewayDeploymentStatus]) :: each(name, classOf[Gateway]) :: Nil
+    def default = each(name, classOf[GatewayPort]) :: each(name, classOf[GatewayServicePort]) :: each(name, classOf[GatewayDeploymentStatus]) :: each(name, classOf[Gateway]) :: Nil
 
     get(name, classOf[Gateway]).flatMap {
       case Some(gateway: Gateway) ⇒ Future.sequence {
@@ -65,6 +65,11 @@ trait PersistenceMultiplexer {
         Future.successful(gateway.port)
       }
 
+      servicePort ← get(gateway.name, classOf[GatewayServicePort]).map {
+        case Some(gp) ⇒ Option(gateway.port.copy(number = gp.asInstanceOf[GatewayServicePort].port) match { case p ⇒ p.copy(value = Option(p.toValue)) })
+        case _        ⇒ None
+      }
+
       routes ← Future.sequence(gateway.routes.map {
         case route: DefaultRoute ⇒ get(route.path.normalized, classOf[RouteTargets]).map {
           case Some(rt: RouteTargets) ⇒ route.copy(targets = rt.targets)
@@ -75,7 +80,7 @@ trait PersistenceMultiplexer {
 
       deployed ← get(gateway.name, classOf[GatewayDeploymentStatus]).map(_.getOrElse(GatewayDeploymentStatus("", deployed = false)).asInstanceOf[GatewayDeploymentStatus])
     } yield {
-      Option(gateway.copy(port = port, routes = routes, deployed = deployed.deployed))
+      Option(gateway.copy(port = port, servicePort = servicePort, routes = routes, deployed = deployed.deployed))
     }
   }
 
@@ -154,7 +159,7 @@ trait PersistenceMultiplexer {
 
         val ports = clusters.flatMap { cluster ⇒
           cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
-            Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portMapping.get(port.name).flatMap(n ⇒ Some(n.toString)))
+            Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.servicePortMapping.get(port.name).flatMap(n ⇒ Some(n.toString)))
           })
         } map { p ⇒ p.name -> p } toMap
 

@@ -5,7 +5,6 @@ import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
-import scala.util.Try
 
 trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader[Gateway] {
 
@@ -15,40 +14,43 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     <<?[Any]("routes") match {
       case Some(route: String) ⇒ >>("routes" :: route :: Nil, YamlSourceReader())
       case Some(routes: List[_]) ⇒ routes.foreach {
-        case route: String           ⇒ >>("routes" :: route :: Nil, YamlSourceReader())
+        case route: String ⇒ >>("routes" :: route :: Nil, YamlSourceReader())
         case route: YamlSourceReader ⇒ route.pull().foreach { case (name, value) ⇒ >>("routes" :: name :: Nil, value) }
-        case _                       ⇒
+        case _ ⇒
       }
       case _ ⇒
     }
     <<?[Any]("virtual_hosts") match {
       case Some(host: String) ⇒ >>("virtual_hosts" :: Nil, List(host))
-      case Some(_: List[_])   ⇒
-      case Some(any)          ⇒ >>("virtual_hosts" :: Nil, List(any))
-      case None               ⇒
+      case Some(_: List[_]) ⇒
+      case Some(any) ⇒ >>("virtual_hosts" :: Nil, List(any))
+      case None ⇒
     }
     super.expand
   }
 
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port(), servicePort, sticky, virtualHosts, routes(splitPath = true), deployed)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, servicePort, sticky, virtualHosts, routes(splitPath = true), deployed)
 
-  protected def port(entry: String = "port")(implicit source: YamlSourceReader): Port = <<![Any](entry) match {
-    case value: Int    ⇒ Port(value)
+  protected def port(implicit source: YamlSourceReader): Port = <<![Any]("port") match {
+    case value: Int ⇒ Port(value)
     case value: String ⇒ Port(value)
-    case any           ⇒ throwException(UnexpectedTypeError("port", classOf[String], any.getClass))
+    case any ⇒ throwException(UnexpectedTypeError("port", classOf[String], any.getClass))
   }
 
-  protected def servicePort(implicit source: YamlSourceReader): Option[Port] = Try(port("service_port")).map(Option(_)).getOrElse(None)
+  protected def servicePort(implicit source: YamlSourceReader): Option[Port] = <<?[Any]("service_port").map {
+    case value: Int ⇒ Port(value)
+    case value ⇒ Port(value.toString)
+  }
 
   protected def sticky(implicit source: YamlSourceReader) = <<?[String]("sticky") match {
     case Some(sticky) ⇒ if (sticky.toLowerCase == "none") None else Option(Gateway.Sticky.byName(sticky).getOrElse(throwException(IllegalGatewayStickyValue(sticky))))
-    case None         ⇒ None
+    case None ⇒ None
   }
 
   protected def virtualHosts(implicit source: YamlSourceReader): List[String] = <<?[List[_]]("virtual_hosts") match {
     case Some(list) ⇒ list.map {
       case host: String ⇒ host
-      case any          ⇒ throwException(IllegalGatewayVirtualHosts)
+      case any ⇒ throwException(IllegalGatewayVirtualHosts)
     }
     case None ⇒ Nil
   }
@@ -56,9 +58,9 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
   protected def routes(splitPath: Boolean)(implicit source: YamlSourceReader): List[Route] = <<?[YamlSourceReader]("routes") match {
     case Some(map) ⇒ map.pull().map {
       case (name: String, _) ⇒ RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
-        case route: DefaultRoute   ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
+        case route: DefaultRoute ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
         case route: RouteReference ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
-        case route                 ⇒ route
+        case route ⇒ route
       }
     } toList
     case None ⇒ Nil
@@ -96,14 +98,14 @@ object ClusterGatewayReader extends AbstractGatewayReader {
 object DeployedGatewayReader extends AbstractGatewayReader {
 
   protected override def name(implicit source: YamlSourceReader): String = <<?[String]("name") match {
-    case None       ⇒ AnonymousYamlReader.name
+    case None ⇒ AnonymousYamlReader.name
     case Some(name) ⇒ name
   }
 
-  protected override def port(entry: String = "port")(implicit source: YamlSourceReader): Port = <<?[Any](entry) match {
-    case Some(value: Int)    ⇒ Port(value)
+  protected override def port(implicit source: YamlSourceReader): Port = <<?[Any]("port") match {
+    case Some(value: Int) ⇒ Port(value)
     case Some(value: String) ⇒ Port(value)
-    case _                   ⇒ Port("", None, None)
+    case _ ⇒ Port("", None, None)
   }
 }
 
@@ -121,10 +123,10 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   override protected def expand(implicit source: YamlSourceReader) = {
 
     def list(name: String) = <<?[Any](name) match {
-      case Some(s: String)     ⇒ expandToList(name)
+      case Some(s: String) ⇒ expandToList(name)
       case Some(list: List[_]) ⇒
-      case Some(m)             ⇒ >>(name, List(m))
-      case _                   ⇒
+      case Some(m) ⇒ >>(name, List(m))
+      case _ ⇒
     }
 
     list("filters")
@@ -134,12 +136,12 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   }
 
   protected def filters(implicit source: YamlSourceReader): List[Filter] = <<?[YamlList]("filters") match {
-    case None                 ⇒ List.empty[Filter]
+    case None ⇒ List.empty[Filter]
     case Some(list: YamlList) ⇒ list.map(FilterReader.readReferenceOrAnonymous)
   }
 
   protected def rewrites(implicit source: YamlSourceReader): List[Rewrite] = <<?[YamlList]("rewrites") match {
-    case None                 ⇒ List.empty[Rewrite]
+    case None ⇒ List.empty[Rewrite]
     case Some(list: YamlList) ⇒ list.map(RewriteReader.readReferenceOrAnonymous)
   }
 
@@ -166,7 +168,7 @@ object RewriteReader extends YamlReader[Rewrite] with WeakReferenceYamlReader[Re
     case definition ⇒
       PathRewrite.parse(name, definition) match {
         case Some(rewrite: PathRewrite) ⇒ rewrite
-        case _                          ⇒ throwException(UnsupportedPathRewriteError(definition))
+        case _ ⇒ throwException(UnsupportedPathRewriteError(definition))
       }
   }
 }
@@ -177,7 +179,7 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
 
   def mapping(entry: String)(implicit source: YamlSourceReader): List[T] = <<?[YamlSourceReader](entry) match {
     case Some(yaml) ⇒ read(yaml)
-    case None       ⇒ Nil
+    case None ⇒ Nil
   }
 
   protected def parse(implicit source: YamlSourceReader): List[T] = source.pull().keySet.map { key ⇒
@@ -185,7 +187,7 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
 
     <<?[Any](key :: "port") match {
       case Some(value) ⇒ if (!acceptPort) throwException(UnexpectedElement(Map[String, Any](key -> "port"), value.toString))
-      case None        ⇒ >>("port", key)(yaml)
+      case None ⇒ >>("port", key)(yaml)
     }
 
     reader.readAnonymous(yaml) match {
@@ -209,7 +211,7 @@ object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
     source.pull().keySet.map { port ⇒
       <<![Any](port :: Nil) match {
         case route: String ⇒ >>(port :: "routes", route)
-        case _             ⇒
+        case _ ⇒
       }
     }
     super.expand

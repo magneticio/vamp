@@ -85,6 +85,10 @@ case class DeploymentCluster(
     GatewayPath(gateway.name).segments.last -> gateway.port.number
   } toMap
 
+  lazy val servicePortMapping: Map[String, Int] = routing.map { gateway ⇒
+    GatewayPath(gateway.name).segments.last -> gateway.servicePort.map(_.number).getOrElse(0)
+  } toMap
+
   def route(service: DeploymentService, portName: String, short: Boolean = false): Option[DefaultRoute] = {
     routing.find(_.port.name == portName).flatMap(routing ⇒ routing.routes.find { route ⇒
       route.path.segments match {

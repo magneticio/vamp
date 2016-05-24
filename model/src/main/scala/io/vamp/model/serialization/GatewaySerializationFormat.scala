@@ -41,7 +41,7 @@ trait GatewayDecomposer extends ReferenceSerialization {
         })
 
         if (gateway.servicePort.isDefined)
-          list += JField("service_port", JString(gateway.servicePort.get.toValue))
+          list += JField("service_port", JInt(gateway.servicePort.get.number))
 
         list += JField("deployed", JBool(gateway.deployed))
       } else if (gateway.port.value.isDefined && gateway.port.name != gateway.port.value.get) {

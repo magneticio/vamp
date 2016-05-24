@@ -177,7 +177,7 @@ lazy val container_driver = project.settings(bintraySetting: _*).settings(
   name := "vamp-container_driver",
   formatting,
   libraryDependencies ++= docker ++ testing
-).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(model, persistence, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val workflow_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to workflow managers",

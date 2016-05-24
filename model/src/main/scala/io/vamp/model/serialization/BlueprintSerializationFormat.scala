@@ -35,10 +35,11 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomp
 
 class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] with DialectSerializer with RoutingSerializer {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
-    case ("name", _)                  ⇒ None
-    case ("portMapping", portMapping) ⇒ None
-    case ("routing", routing)         ⇒ Some(("routing", serializeRoutings(routing.asInstanceOf[List[Gateway]])))
-    case ("dialects", dialects)       ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
+    case ("name", _)                                ⇒ None
+    case ("portMapping", portMapping)               ⇒ None
+    case ("servicePortMapping", servicePortMapping) ⇒ None
+    case ("routing", routing)                       ⇒ Some(("routing", serializeRoutings(routing.asInstanceOf[List[Gateway]])))
+    case ("dialects", dialects)                     ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
   }
 }
 
