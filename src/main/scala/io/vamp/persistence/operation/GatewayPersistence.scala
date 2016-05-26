@@ -4,7 +4,7 @@ import io.vamp.model.artifact.{ Artifact, Gateway, RouteTarget }
 
 case class GatewayPort(name: String, port: Int) extends Artifact
 
-case class GatewayServicePort(name: String, port: Int) extends Artifact
+case class GatewayServiceAddress(name: String, host: String, port: Int) extends Artifact
 
 case class GatewayDeploymentStatus(name: String, deployed: Boolean) extends Artifact
 
