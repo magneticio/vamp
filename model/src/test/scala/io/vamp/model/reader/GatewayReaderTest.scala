@@ -115,7 +115,7 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
     GatewayReader.read(res("gateway/gateway12.yml")) should have(
       'name("sava"),
       'port(Port("8080", None, Some("8080/http"))),
-      'servicePort(Option(Port("31234", None, Some("31234/http")))),
+      'service(Option(GatewayService("127.0.0.1", Port("31234", None, Some("31234/http"))))),
       'sticky(Some(Gateway.Sticky.Route)),
       'routes(List(DefaultRoute("", GatewayPath("sava1", List("sava1")), Some(Percentage(50)), None, Nil, Nil, None), DefaultRoute("", GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), None, Nil, Nil, None)))
     )
@@ -125,7 +125,7 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
     GatewayReader.read(res("gateway/gateway13.yml")) should have(
       'name("sava"),
       'port(Port("8080", None, Some("8080/http"))),
-      'servicePort(Option(Port("31234", None, Some("31234/tcp")))),
+      'service(Option(GatewayService("127.0.0.1", Port("31234", None, Some("31234/tcp"))))),
       'sticky(Some(Gateway.Sticky.Route)),
       'routes(List(DefaultRoute("", GatewayPath("sava1", List("sava1")), Some(Percentage(50)), None, Nil, Nil, None), DefaultRoute("", GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), None, Nil, Nil, None)))
     )
@@ -135,7 +135,7 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
     GatewayReader.read(res("gateway/gateway14.yml")) should have(
       'name("sava"),
       'port(Port("8080", None, Some("8080/http"))),
-      'servicePort(Option(Port("31234", None, Some("31234")))),
+      'service(Option(GatewayService("127.0.0.1", Port("31234", None, Some("31234"))))),
       'sticky(Some(Gateway.Sticky.Route)),
       'routes(List(DefaultRoute("", GatewayPath("sava1", List("sava1")), Some(Percentage(50)), None, Nil, Nil, None), DefaultRoute("", GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), None, Nil, Nil, None)))
     )
