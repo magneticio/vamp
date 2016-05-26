@@ -83,8 +83,10 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
       case (n, d) ⇒
         deployment.clusters.exists { cluster ⇒
           cluster.services.find(s ⇒ s.breed.name == d.name) match {
-            case None          ⇒ false
-            case Some(service) ⇒ service.state.isDeployed && service.breed.ports.forall { port ⇒ cluster.servicePortMapping.getOrElse(port.name, 0) > 0 }
+            case None ⇒ false
+            case Some(service) ⇒ service.state.isDeployed && service.breed.ports.forall {
+              port ⇒ cluster.servicePortMapping.getOrElse(port.name, 0) > 0
+            }
           }
         }
     }

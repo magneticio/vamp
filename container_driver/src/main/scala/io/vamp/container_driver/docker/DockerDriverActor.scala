@@ -12,7 +12,7 @@ class DockerDriverActor extends DockerDriver with ContainerDriverActor {
     case All                        ⇒ reply(all)
     case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
-    case DeployedGateways(gateways) ⇒ reply(deployGateways(gateways))
+    case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 }

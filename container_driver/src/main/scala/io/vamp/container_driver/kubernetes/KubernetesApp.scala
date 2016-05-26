@@ -17,6 +17,7 @@ case class KubernetesApp(name: String, docker: Docker, replicas: Int, cpu: Doubl
        |    "template": {
        |      "metadata": {
        |        "labels": {
+       |          "vamp": "service",
        |          "app": "$name"
        |        }
        |      },
@@ -45,19 +46,21 @@ case class KubernetesApp(name: String, docker: Docker, replicas: Int, cpu: Doubl
      """.stripMargin
 }
 
-case class KubernetesApiResponse(items: List[KubernetesItem])
+case class KubernetesApiResponse(items: List[KubernetesItem] = Nil)
 
 case class KubernetesItem(metadata: KubernetesMetadata, spec: KubernetesSpec, status: KubernetesStatus)
 
-case class KubernetesMetadata(name: String, labels: Map[String, String])
+case class KubernetesMetadata(name: String, labels: Map[String, String] = Map())
 
-case class KubernetesSpec(replicas: Option[Int], template: Option[KubernetesTemplate])
+case class KubernetesSpec(replicas: Option[Int] = None, template: Option[KubernetesTemplate] = None, ports: List[KubernetesPort] = Nil)
+
+case class KubernetesPort(name: String, protocol: String, port: Int, nodePort: Int)
 
 case class KubernetesTemplate(spec: KubernetesTemplateSpec)
 
-case class KubernetesTemplateSpec(containers: List[KubernetesContainer])
+case class KubernetesTemplateSpec(containers: List[KubernetesContainer] = Nil)
 
-case class KubernetesContainer(ports: List[KubernetesContainerPort], resources: KubernetesContainerResource)
+case class KubernetesContainer(resources: KubernetesContainerResource, ports: List[KubernetesContainerPort] = Nil)
 
 case class KubernetesContainerPort(containerPort: Int)
 
@@ -65,4 +68,4 @@ case class KubernetesContainerResource(requests: KubernetesContainerResourceRequ
 
 case class KubernetesContainerResourceRequests(cpu: String, memory: String)
 
-case class KubernetesStatus(phase: Option[String], podIP: Option[String])
+case class KubernetesStatus(phase: Option[String] = None, podIP: Option[String] = None)

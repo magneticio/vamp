@@ -59,7 +59,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     case All                        ⇒ reply(all)
     case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
-    case DeployedGateways(gateways) ⇒ reply(deployGateways(gateways))
+    case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
     case a: AllApps                 ⇒ reply(allApps.map(_.filter(a.filter)))
     case d: DeployApp               ⇒ reply(deploy(d.app, d.update))
     case u: UndeployApp             ⇒ reply(undeploy(u.app))

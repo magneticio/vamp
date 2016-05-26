@@ -1,7 +1,7 @@
 package io.vamp.model.serialization
 
 import io.vamp.model.artifact._
-import io.vamp.model.resolver.TraitResolver
+import io.vamp.model.resolver.TraitNameAliasResolver
 import org.json4s.FieldSerializer._
 import org.json4s.JsonAST.JString
 import org.json4s._
@@ -20,7 +20,7 @@ object BreedSerializationFormat extends io.vamp.common.json.SerializationFormat 
     new BreedFieldSerializer()
 }
 
-trait TraitDecomposer extends TraitResolver {
+trait TraitDecomposer extends TraitNameAliasResolver {
 
   def traits(traits: List[Trait], alias: Boolean = true) = {
     def traitName(name: String) = TraitReference.referenceFor(name) match {

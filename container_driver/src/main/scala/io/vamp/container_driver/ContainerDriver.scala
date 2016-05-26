@@ -27,7 +27,7 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
     service.breed.ports.map(port ⇒
       port.value match {
         case Some(_) ⇒ ContainerPortMapping(port.number)
-        case None ⇒ ContainerPortMapping(deployment.ports.find(p ⇒ TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
+        case None    ⇒ ContainerPortMapping(deployment.ports.find(p ⇒ TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
       })
   }
 
