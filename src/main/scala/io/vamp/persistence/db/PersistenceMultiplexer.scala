@@ -159,7 +159,7 @@ trait PersistenceMultiplexer {
 
         val ports = clusters.flatMap { cluster ⇒
           cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
-            Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.serviceBy(port.name).flatMap(n ⇒ Some(n.port.number.toString)))
+            Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portBy(port.name).flatMap(n ⇒ Some(n.toString)))
           })
         } map { p ⇒ p.name -> p } toMap
 
