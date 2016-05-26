@@ -7,7 +7,7 @@ import io.vamp.common.notification.Notification
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
 import io.vamp.model.artifact._
 import io.vamp.persistence.db.PersistenceActor
-import io.vamp.persistence.operation.GatewayServicePort
+import io.vamp.persistence.operation.GatewayServiceAddress
 import io.vamp.pulse.notification.PulseFailureNotifier
 
 import scala.concurrent.Future
@@ -39,17 +39,19 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
 
   implicit val timeout = ContainerDriverActor.timeout
 
+  val gatewayServiceIp = ConfigFactory.load().getString("vamp.gateway-driver.host")
+
   protected def deployedGateways(gateways: List[Gateway]): Future[Any] = {
     gateways.filter {
-      gateway ⇒ gateway.servicePort.isEmpty && gateway.port.assigned
+      gateway ⇒ gateway.service.isEmpty && gateway.port.assigned
     } foreach {
-      gateway ⇒ setServicePort(gateway, gateway.port.number)
+      gateway ⇒ setGatewayService(gateway, gatewayServiceIp, gateway.port.number)
     }
     Future.successful(true)
   }
 
-  protected def setServicePort(gateway: Gateway, value: Int) = {
-    IoC.actorFor[PersistenceActor].forward(PersistenceActor.Create(GatewayServicePort(gateway.name, value)))
+  protected def setGatewayService(gateway: Gateway, host: String, port: Int) = {
+    IoC.actorFor[PersistenceActor].forward(PersistenceActor.Create(GatewayServiceAddress(gateway.name, host, port)))
   }
 
   override def errorNotificationClass = classOf[ContainerResponseError]

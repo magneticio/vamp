@@ -52,7 +52,7 @@ case class KubernetesItem(metadata: KubernetesMetadata, spec: KubernetesSpec, st
 
 case class KubernetesMetadata(name: String, labels: Map[String, String] = Map())
 
-case class KubernetesSpec(replicas: Option[Int] = None, template: Option[KubernetesTemplate] = None, ports: List[KubernetesPort] = Nil)
+case class KubernetesSpec(replicas: Option[Int] = None, template: Option[KubernetesTemplate] = None, ports: List[KubernetesPort] = Nil, clusterIP: Option[String] = None)
 
 case class KubernetesPort(name: String, protocol: String, port: Int, nodePort: Int)
 
