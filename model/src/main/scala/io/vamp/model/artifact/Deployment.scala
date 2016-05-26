@@ -81,13 +81,13 @@ case class DeploymentCluster(
     sla: Option[Sla],
     dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster {
 
-  lazy val portMapping: Map[String, Int] = routing.map { gateway ⇒
-    GatewayPath(gateway.name).segments.last -> gateway.port.number
-  } toMap
+  def portBy(name: String): Option[Int] = {
+    routing.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } map { _.port.number }
+  }
 
-  lazy val servicePortMapping: Map[String, Int] = routing.map { gateway ⇒
-    GatewayPath(gateway.name).segments.last -> gateway.servicePort.map(_.number).getOrElse(0)
-  } toMap
+  def serviceBy(name: String): Option[GatewayService] = {
+    routing.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } flatMap { _.service }
+  }
 
   def route(service: DeploymentService, portName: String, short: Boolean = false): Option[DefaultRoute] = {
     routing.find(_.port.name == portName).flatMap(routing ⇒ routing.routes.find { route ⇒

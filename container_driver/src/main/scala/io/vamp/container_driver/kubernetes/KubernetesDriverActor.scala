@@ -67,13 +67,15 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
       services(gatewayService).map { response ⇒
 
         // update service ports
-        gateways.filter { _.servicePort.isEmpty } foreach { gateway ⇒
+        gateways.filter {
+          _.service.isEmpty
+        } foreach { gateway ⇒
           response.items.find {
             item ⇒ item.metadata.labels.getOrElse("lookup_name", "") == gateway.lookupName
           } flatMap {
-            item ⇒ item.spec.ports.find(port ⇒ port.port == gateway.port.number)
+            item ⇒ item.spec.clusterIP.flatMap(ip ⇒ item.spec.ports.find(port ⇒ port.port == gateway.port.number).map(port ⇒ ip -> port))
           } foreach {
-            port ⇒ setServicePort(gateway, port.nodePort)
+            case (ip, port) ⇒ setGatewayService(gateway, ip, port.nodePort)
           }
         }
 

@@ -108,7 +108,7 @@ trait TypeOfArtifact {
     // gateway persistence
     case t if classOf[RouteTargets].isAssignableFrom(t) ⇒ "route-targets"
     case t if classOf[GatewayPort].isAssignableFrom(t) ⇒ "gateway-ports"
-    case t if classOf[GatewayServicePort].isAssignableFrom(t) ⇒ "gateway-service-ports"
+    case t if classOf[GatewayServiceAddress].isAssignableFrom(t) ⇒ "gateway-services"
     case t if classOf[GatewayDeploymentStatus].isAssignableFrom(t) ⇒ "gateway-deployment-statuses"
     case t if classOf[InnerGateway].isAssignableFrom(t) ⇒ "inner-gateway"
     // deployment persistence

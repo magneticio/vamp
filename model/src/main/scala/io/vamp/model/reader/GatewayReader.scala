@@ -29,7 +29,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     super.expand
   }
 
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, servicePort, sticky, virtualHosts, routes(splitPath = true), deployed)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, service, sticky, virtualHosts, routes(splitPath = true), deployed)
 
   protected def port(implicit source: YamlSourceReader): Port = <<![Any]("port") match {
     case value: Int    ⇒ Port(value)
@@ -37,9 +37,14 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     case any           ⇒ throwException(UnexpectedTypeError("port", classOf[String], any.getClass))
   }
 
-  protected def servicePort(implicit source: YamlSourceReader): Option[Port] = <<?[Any]("service_port").map {
-    case value: Int ⇒ Port(value)
-    case value      ⇒ Port(value.toString)
+  protected def service(implicit source: YamlSourceReader): Option[GatewayService] = <<?[YamlSourceReader]("service").map {
+    case _ ⇒
+      val host = <<![String]("service" :: "host")
+      val port = <<![Any]("service" :: "port") match {
+        case value: Int ⇒ Port(value)
+        case value      ⇒ Port(value.toString)
+      }
+      GatewayService(host, port)
   }
 
   protected def sticky(implicit source: YamlSourceReader) = <<?[String]("sticky") match {
@@ -92,7 +97,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
 object GatewayReader extends AbstractGatewayReader
 
 object ClusterGatewayReader extends AbstractGatewayReader {
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), servicePort, sticky, virtualHosts, routes(splitPath = false), deployed)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), service, sticky, virtualHosts, routes(splitPath = false), deployed)
 }
 
 object DeployedGatewayReader extends AbstractGatewayReader {

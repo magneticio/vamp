@@ -165,7 +165,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
             }.flatMap {
               _.clusters.find(_.name == cluster)
             }.flatMap {
-              _.portMapping.get(port)
+              _.portBy(port)
             }.flatMap { port ⇒
               if (port != 0) Option(InternalRouteTarget(route.path.normalized, port)) else None
             } :: Nil
