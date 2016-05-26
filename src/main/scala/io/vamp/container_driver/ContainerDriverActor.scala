@@ -39,11 +39,17 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
 
   implicit val timeout = ContainerDriverActor.timeout
 
-  protected def deployGateways(gateways: List[Gateway]): Future[Any] = {
-    gateways.filter(gateway ⇒ gateway.servicePort.isEmpty && gateway.port.assigned).foreach { gateway ⇒
-      IoC.actorFor[PersistenceActor].forward(PersistenceActor.Create(GatewayServicePort(gateway.name, gateway.port.number)))
+  protected def deployedGateways(gateways: List[Gateway]): Future[Any] = {
+    gateways.filter {
+      gateway ⇒ gateway.servicePort.isEmpty && gateway.port.assigned
+    } foreach {
+      gateway ⇒ setServicePort(gateway, gateway.port.number)
     }
     Future.successful(true)
+  }
+
+  protected def setServicePort(gateway: Gateway, value: Int) = {
+    IoC.actorFor[PersistenceActor].forward(PersistenceActor.Create(GatewayServicePort(gateway.name, value)))
   }
 
   override def errorNotificationClass = classOf[ContainerResponseError]

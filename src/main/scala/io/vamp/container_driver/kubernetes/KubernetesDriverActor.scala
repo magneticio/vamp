@@ -38,6 +38,8 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
   private val gatewayService = Map("vamp" -> "gateway")
 
+  private val daemonService = Map("vamp" -> "daemon")
+
   def receive = {
     case InfoRequest                ⇒ reply(info)
     case All                        ⇒ reply(allContainerServices)
@@ -60,14 +62,30 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     ContainerInfo("kubernetes", KubernetesDriverInfo(version, paths, api, apis))
   }
 
-  private def deployedGateways(gateways: List[Gateway]) = {
+  protected override def deployedGateways(gateways: List[Gateway]) = {
     if (createServices) {
       services(gatewayService).map { response ⇒
+
+        // update service ports
+        gateways.filter { _.servicePort.isEmpty } foreach { gateway ⇒
+          response.items.find {
+            item ⇒ item.metadata.labels.getOrElse("lookup_name", "") == gateway.lookupName
+          } flatMap {
+            item ⇒ item.spec.ports.find(port ⇒ port.port == gateway.port.number)
+          } foreach {
+            port ⇒ setServicePort(gateway, port.nodePort)
+          }
+        }
+
         val items = response.items.flatMap { item ⇒ item.metadata.labels.get("lookup_name").map(_ -> item.metadata.name) } toMap
 
+        // delete services
         val deleted = items.filter { case (l, _) ⇒ !gateways.exists(_.lookupName == l) } map { case (_, id) ⇒ deleteServiceById(id) }
 
-        val created = gateways.filter { case gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName } } map { gateway ⇒
+        // create services
+        val created = gateways.filter {
+          case gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
+        } map { gateway ⇒
           val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
           createService(gateway.name, vampGatewayAgentId, ports, update = false, gatewayService ++ Map("lookup_name" -> gateway.lookupName))
         }
@@ -81,6 +99,6 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     val ports = ds.docker.portMappings.map { pm ⇒
       KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort, pm.containerPort)
     }
-    createService(ds.name, ds.name, ports, update = false)
+    createService(ds.name, ds.name, ports, update = false, daemonService)
   }
 }
