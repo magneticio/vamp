@@ -9,7 +9,7 @@ trait KubernetesArtifact {
     s""""labels": {$l}"""
   }
 
-  protected def labels2parameters(labels: Map[String, String]) = {
-    labels.map { case (k, v) ⇒ URLEncoder.encode(s"$k=$v", "UTF-8") } mkString ","
+  protected def labelSelector(labels: Map[String, String]) = {
+    s"labelSelector=${URLEncoder.encode(labels.map { case (k, v) ⇒ s"$k=$v" } mkString ",", "UTF-8")}"
   }
 }

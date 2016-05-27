@@ -17,7 +17,7 @@ trait KubernetesService extends KubernetesArtifact {
 
   protected def services(labels: Map[String, String] = Map()): Future[KubernetesApiResponse] = {
     def request(u: String) = RestClient.get[KubernetesApiResponse](u)
-    if (labels.isEmpty) request(url) else request(s"$url?labelSelector=${labels2parameters(labels)}")
+    if (labels.isEmpty) request(url) else request(s"$url?${labelSelector(labels)}")
   }
 
   protected def createService(name: String, selector: String, ports: List[KubernetesServicePort], update: Boolean, labels: Map[String, String] = Map()): Future[Any] = {
