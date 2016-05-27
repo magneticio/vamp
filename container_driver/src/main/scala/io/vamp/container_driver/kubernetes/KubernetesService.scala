@@ -8,6 +8,10 @@ import scala.concurrent.Future
 
 case class KubernetesServicePort(name: String, protocol: String, port: Int, targetPort: Int)
 
+object KubernetesServiceType extends Enumeration {
+  val NodePort, LoadBalancer = Value
+}
+
 trait KubernetesService extends KubernetesArtifact {
   this: KubernetesContainerDriver with ActorLogging ⇒
 
@@ -20,7 +24,7 @@ trait KubernetesService extends KubernetesArtifact {
     if (labels.isEmpty) request(url) else request(s"$url?${labelSelector(labels)}")
   }
 
-  protected def createService(name: String, selector: String, ports: List[KubernetesServicePort], update: Boolean, labels: Map[String, String] = Map()): Future[Any] = {
+  protected def createService(name: String, `type`: KubernetesServiceType.Value, selector: String, ports: List[KubernetesServicePort], update: Boolean, labels: Map[String, String] = Map()): Future[Any] = {
     val id = toId(name)
     val request =
       s"""
@@ -36,7 +40,7 @@ trait KubernetesService extends KubernetesArtifact {
          |      "app": "$selector"
          |    },
          |    "ports": [${ports.map(p ⇒ s"""{"name": "p${p.name}", "protocol": "${p.protocol.toUpperCase}", "port": ${p.port}, "targetPort": ${p.targetPort}}""").mkString(", ")}],
-         |    "type": "NodePort"
+         |    "type": "${`type`.toString}"
          |  }
          |}
    """.stripMargin
