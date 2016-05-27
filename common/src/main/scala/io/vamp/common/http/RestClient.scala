@@ -43,7 +43,7 @@ object RestClient {
   }
 
   def delete(url: String, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext) = {
-    http(Method.DELETE, url, None, headers, logError)
+    http[Any](Method.DELETE, url, None, headers, logError)
   }
 
   def http[A](method: Method.Value, url: String, body: Any, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {

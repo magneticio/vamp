@@ -2,7 +2,17 @@ package io.vamp.container_driver.kubernetes
 
 import io.vamp.container_driver.Docker
 
-case class KubernetesApp(name: String, docker: Docker, replicas: Int, cpu: Double, mem: Int, privileged: Boolean, env: Map[String, String], cmd: Option[String], args: List[String]) {
+case class KubernetesApp(
+    name: String,
+    docker: Docker,
+    replicas: Int,
+    cpu: Double,
+    mem: Int,
+    privileged: Boolean,
+    env: Map[String, String],
+    cmd: Option[String],
+    args: List[String],
+    labels: Map[String, String]) extends KubernetesArtifact {
 
   override def toString =
     s"""
@@ -16,10 +26,7 @@ case class KubernetesApp(name: String, docker: Docker, replicas: Int, cpu: Doubl
        |    "replicas": $replicas,
        |    "template": {
        |      "metadata": {
-       |        "labels": {
-       |          "vamp": "service",
-       |          "app": "$name"
-       |        }
+       |        ${labels2json(labels)}
        |      },
        |      "spec": {
        |        "containers": [{

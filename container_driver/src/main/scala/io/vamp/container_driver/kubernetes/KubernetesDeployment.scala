@@ -8,16 +8,28 @@ import io.vamp.model.reader.{ MegaByte, Quantity }
 
 import scala.concurrent.Future
 
-trait KubernetesDeployment {
+trait KubernetesDeployment extends KubernetesArtifact {
   this: KubernetesContainerDriver with ActorLogging ⇒
 
-  private lazy val url = s"$kubernetesUrl/apis/extensions/v1beta1/namespaces/default/deployments"
+  private val deploymentServiceLabel = "deployment-service"
+
+  private lazy val podUrl = s"$kubernetesUrl/api/v1/namespaces/default/pods"
+
+  private lazy val replicaSetUrl = s"$kubernetesUrl/apis/extensions/v1beta1/namespaces/default/replicasets"
+
+  private lazy val deploymentUrl = s"$kubernetesUrl/apis/extensions/v1beta1/namespaces/default/deployments"
 
   protected def schema: Enumeration
 
+  protected def labels(id: String) = Map("vamp" -> deploymentServiceLabel, deploymentServiceLabel -> id)
+
+  protected def pods(id: String) = s"$podUrl?${labelSelector(labels(id))}"
+
+  protected def replicas(id: String) = s"$replicaSetUrl?${labelSelector(labels(id))}"
+
   protected def allContainerServices: Future[List[ContainerService]] = {
     log.debug(s"kubernetes get all")
-    RestClient.get[KubernetesApiResponse](url).flatMap(deployments ⇒ containerServices(deployments))
+    RestClient.get[KubernetesApiResponse](deploymentUrl).flatMap(deployments ⇒ containerServices(deployments))
   }
 
   private def containerServices(deployments: KubernetesApiResponse): Future[List[ContainerService]] = Future.sequence {
@@ -30,14 +42,11 @@ trait KubernetesDeployment {
         val ports = item.spec.template.flatMap(_.spec.containers.headOption).map(_.ports.map(_.containerPort)).getOrElse(Nil)
 
         if (name.split(nameDelimiter).length == 2 && scale.isDefined) {
-          val podUrl = s"$kubernetesUrl/api/v1/namespaces/default/pods?labelSelector=app%3D$name"
-
-          RestClient.get[KubernetesApiResponse](podUrl).map { pods ⇒
+          RestClient.get[KubernetesApiResponse](pods(name)).map { pods ⇒
             val instances = pods.items.map { pod ⇒
               ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
             }
             ContainerService(nameMatcher(name), scale.get, instances)
-
           } :: Nil
 
         } else Nil
@@ -62,15 +71,35 @@ trait KubernetesDeployment {
       privileged = privileged,
       env = environment(deployment, cluster, service),
       cmd = None,
-      args = Nil
+      args = Nil,
+      labels = labels(id)
     )
 
-    if (update) RestClient.put[Any](s"$url/$id", app.toString) else RestClient.post[Any](url, app.toString)
+    if (update) RestClient.put[Any](s"$deploymentUrl/$id", app.toString) else RestClient.post[Any](deploymentUrl, app.toString)
   }
 
   protected def undeploy(deployment: Deployment, service: DeploymentService) = {
+
     val id = appId(deployment, service.breed)
+
     log.info(s"kubernetes delete app: $id")
-    RestClient.delete(s"$url/$id")
+
+    for {
+
+      deployment ← RestClient.delete(s"$deploymentUrl/$id")
+
+      replicas ← RestClient.get[KubernetesApiResponse](replicas(id)).flatMap { replicas ⇒
+        Future.sequence {
+          replicas.items.map(item ⇒ RestClient.delete(s"$replicaSetUrl/${item.metadata.name}"))
+        }
+      }
+
+      pods ← RestClient.get[KubernetesApiResponse](pods(id)).flatMap { pods ⇒
+        Future.sequence {
+          pods.items.map(item ⇒ RestClient.delete(s"$podUrl/${item.metadata.name}"))
+        }
+      }
+
+    } yield deployment :: replicas :: pods :: Nil
   }
 }
