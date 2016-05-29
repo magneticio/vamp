@@ -9,7 +9,9 @@ import scala.concurrent.Future
 
 trait KubernetesContainerDriver extends ContainerDriver {
 
-  protected def kubernetesUrl: String
+  protected def apiUrl: String
+
+  protected def apiHeaders: List[(String, String)]
 
   protected val nameDelimiter = "-"
 
@@ -23,7 +25,7 @@ trait KubernetesContainerDriver extends ContainerDriver {
   }
 
   protected def retrieve(url: String, name: String, exists: () ⇒ Future[Any], notExists: () ⇒ Future[Any]): Future[Any] = {
-    RestClient.get[KubernetesItem](s"$url/$name", RestClient.jsonHeaders, logError = false).recover {
+    RestClient.get[KubernetesItem](s"$url/$name", apiHeaders, logError = false).recover {
       case _ ⇒ notExists()
     } map {
       case _ ⇒ exists()

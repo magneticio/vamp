@@ -9,7 +9,9 @@ import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact.Gateway
 
 import scala.concurrent.Future
+import scala.io.Source
 import scala.language.postfixOps
+import scala.util.Try
 
 object KubernetesDriverActor {
 
@@ -19,9 +21,11 @@ object KubernetesDriverActor {
 
   private val configuration = ConfigFactory.load().getConfig("vamp.container-driver.kubernetes")
 
-  val kubernetesUrl = configuration.getString("url")
+  val url = configuration.getString("url")
 
-  val kubernetesServiceType = KubernetesServiceType.withName(configuration.getString("service-type"))
+  val token = configuration.getString("token")
+
+  val serviceType = KubernetesServiceType.withName(configuration.getString("service-type"))
 
   val createServices = configuration.getBoolean("create-services")
 
@@ -36,7 +40,13 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
   protected val schema = KubernetesDriverActor.Schema
 
-  protected val kubernetesUrl = KubernetesDriverActor.kubernetesUrl
+  protected val apiUrl = KubernetesDriverActor.url
+
+  protected val apiHeaders = {
+    Try(Source.fromFile(token).mkString).map {
+      case bearer ⇒ ("Authorization" -> s"Bearer $bearer") :: RestClient.jsonHeaders
+    } getOrElse RestClient.jsonHeaders
+  }
 
   private val gatewayService = Map("vamp" -> "gateway")
 
@@ -53,13 +63,13 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
   }
 
   private def info: Future[Any] = for {
-    paths ← RestClient.get[Any](s"$kubernetesUrl") map {
+    paths ← RestClient.get[Any](s"$apiUrl", apiHeaders) map {
       case map: Map[_, _] ⇒ map.headOption.map { case (_, value) ⇒ value }
       case any            ⇒ any
     }
-    api ← RestClient.get[Any](s"$kubernetesUrl/api")
-    apis ← RestClient.get[Any](s"$kubernetesUrl/apis")
-    version ← RestClient.get[Any](s"$kubernetesUrl/version")
+    api ← RestClient.get[Any](s"$apiUrl/api", apiHeaders)
+    apis ← RestClient.get[Any](s"$apiUrl/apis", apiHeaders)
+    version ← RestClient.get[Any](s"$apiUrl/version", apiHeaders)
   } yield {
     ContainerInfo("kubernetes", KubernetesDriverInfo(version, paths, api, apis))
   }
@@ -91,7 +101,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
           case gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
         } map { gateway ⇒
           val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
-          createService(gateway.name, kubernetesServiceType, vampGatewayAgentId, ports, update = false, gatewayService ++ Map("lookup_name" -> gateway.lookupName))
+          createService(gateway.name, serviceType, vampGatewayAgentId, ports, update = false, gatewayService ++ Map("lookup_name" -> gateway.lookupName))
         }
 
         Future.sequence(created ++ deleted)
@@ -101,11 +111,11 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
   private def daemonSet(ds: DaemonSet) = createDaemonSet(ds).flatMap { response ⇒
     ds.serviceType.map {
-      case serviceType ⇒
+      case st ⇒
         val ports = ds.docker.portMappings.map { pm ⇒
           KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort, pm.containerPort)
         }
-        createService(ds.name, serviceType, ds.name, ports, update = false, daemonService)
+        createService(ds.name, st, ds.name, ports, update = false, daemonService)
     } getOrElse Future.successful(response)
   }
 }

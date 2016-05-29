@@ -13,11 +13,11 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   private val deploymentServiceLabel = "deployment-service"
 
-  private lazy val podUrl = s"$kubernetesUrl/api/v1/namespaces/default/pods"
+  private lazy val podUrl = s"$apiUrl/api/v1/namespaces/default/pods"
 
-  private lazy val replicaSetUrl = s"$kubernetesUrl/apis/extensions/v1beta1/namespaces/default/replicasets"
+  private lazy val replicaSetUrl = s"$apiUrl/apis/extensions/v1beta1/namespaces/default/replicasets"
 
-  private lazy val deploymentUrl = s"$kubernetesUrl/apis/extensions/v1beta1/namespaces/default/deployments"
+  private lazy val deploymentUrl = s"$apiUrl/apis/extensions/v1beta1/namespaces/default/deployments"
 
   protected def schema: Enumeration
 
@@ -29,7 +29,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   protected def allContainerServices: Future[List[ContainerService]] = {
     log.debug(s"kubernetes get all")
-    RestClient.get[KubernetesApiResponse](deploymentUrl).flatMap(deployments ⇒ containerServices(deployments))
+    RestClient.get[KubernetesApiResponse](deploymentUrl, apiHeaders).flatMap(deployments ⇒ containerServices(deployments))
   }
 
   private def containerServices(deployments: KubernetesApiResponse): Future[List[ContainerService]] = Future.sequence {
@@ -42,7 +42,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
         val ports = item.spec.template.flatMap(_.spec.containers.headOption).map(_.ports.map(_.containerPort)).getOrElse(Nil)
 
         if (name.split(nameDelimiter).length == 2 && scale.isDefined) {
-          RestClient.get[KubernetesApiResponse](pods(name)).map { pods ⇒
+          RestClient.get[KubernetesApiResponse](pods(name), apiHeaders).map { pods ⇒
             val instances = pods.items.map { pod ⇒
               ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
             }
@@ -75,7 +75,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
       labels = labels(id)
     )
 
-    if (update) RestClient.put[Any](s"$deploymentUrl/$id", app.toString) else RestClient.post[Any](deploymentUrl, app.toString)
+    if (update) RestClient.put[Any](s"$deploymentUrl/$id", app.toString, apiHeaders) else RestClient.post[Any](deploymentUrl, app.toString, apiHeaders)
   }
 
   protected def undeploy(deployment: Deployment, service: DeploymentService) = {
@@ -86,17 +86,17 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
     for {
 
-      deployment ← RestClient.delete(s"$deploymentUrl/$id")
+      deployment ← RestClient.delete(s"$deploymentUrl/$id", apiHeaders)
 
-      replicas ← RestClient.get[KubernetesApiResponse](replicas(id)).flatMap { replicas ⇒
+      replicas ← RestClient.get[KubernetesApiResponse](replicas(id), apiHeaders).flatMap { replicas ⇒
         Future.sequence {
-          replicas.items.map(item ⇒ RestClient.delete(s"$replicaSetUrl/${item.metadata.name}"))
+          replicas.items.map(item ⇒ RestClient.delete(s"$replicaSetUrl/${item.metadata.name}", apiHeaders))
         }
       }
 
-      pods ← RestClient.get[KubernetesApiResponse](pods(id)).flatMap { pods ⇒
+      pods ← RestClient.get[KubernetesApiResponse](pods(id), apiHeaders).flatMap { pods ⇒
         Future.sequence {
-          pods.items.map(item ⇒ RestClient.delete(s"$podUrl/${item.metadata.name}"))
+          pods.items.map(item ⇒ RestClient.delete(s"$podUrl/${item.metadata.name}", apiHeaders))
         }
       }
 
