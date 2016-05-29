@@ -99,10 +99,13 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     } else Future.successful(true)
   }
 
-  private def daemonSet(ds: DaemonSet) = createDaemonSet(ds).flatMap { _ ⇒
-    val ports = ds.docker.portMappings.map { pm ⇒
-      KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort, pm.containerPort)
-    }
-    createService(ds.name, kubernetesServiceType, ds.name, ports, update = false, daemonService)
+  private def daemonSet(ds: DaemonSet) = createDaemonSet(ds).flatMap { response ⇒
+    ds.serviceType.map {
+      case serviceType ⇒
+        val ports = ds.docker.portMappings.map { pm ⇒
+          KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort, pm.containerPort)
+        }
+        createService(ds.name, serviceType, ds.name, ports, update = false, daemonService)
+    } getOrElse Future.successful(response)
   }
 }
