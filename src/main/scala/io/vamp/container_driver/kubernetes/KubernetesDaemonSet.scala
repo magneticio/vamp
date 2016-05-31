@@ -24,7 +24,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
          |    "template": {
          |      "metadata": {
          |        "labels": {
-         |          ${labels2json(labels)}
+         |          "vamp": "${ds.name}"
          |        }
          |      },
          |      "spec": {

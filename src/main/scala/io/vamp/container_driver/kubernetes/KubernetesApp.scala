@@ -20,8 +20,7 @@ case class KubernetesApp(
        |  "apiVersion": "extensions/v1beta1",
        |  "kind": "Deployment",
        |  "metadata": {
-       |    "name": "$name",
-       |    ${labels2json(labels)}
+       |    "name": "$name"
        |  },
        |  "spec": {
        |    "replicas": $replicas,

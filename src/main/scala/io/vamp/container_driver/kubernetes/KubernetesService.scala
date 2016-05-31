@@ -24,7 +24,7 @@ trait KubernetesService extends KubernetesArtifact {
     if (labels.isEmpty) request(url) else request(s"$url?${labelSelector(labels)}")
   }
 
-  protected def createService(name: String, `type`: KubernetesServiceType.Value, ports: List[KubernetesServicePort], update: Boolean, labels: Map[String, String] = Map()): Future[Any] = {
+  protected def createService(name: String, `type`: KubernetesServiceType.Value, selector: String, ports: List[KubernetesServicePort], update: Boolean, labels: Map[String, String] = Map()): Future[Any] = {
     val id = toId(name)
     val request =
       s"""
@@ -37,7 +37,7 @@ trait KubernetesService extends KubernetesArtifact {
          |  },
          |  "spec": {
          |    "selector": {
-         |      ${labels2json(labels)}
+         |      "vamp": "$selector"
          |    },
          |    "ports": [${ports.map(p ⇒ s"""{"name": "p${p.name}", "protocol": "${p.protocol.toUpperCase}", "port": ${p.port}, "targetPort": ${p.targetPort}}""").mkString(", ")}],
          |    "type": "${`type`.toString}"
