@@ -27,21 +27,14 @@ case class App(id: String, instances: Int, cpus: Double, mem: Double, tasks: Lis
  * Seems that Java clients are more up to date than Scala.
  *
  */
-trait DockerDriver extends ContainerDriver {
+trait DockerDriver extends ContainerDriver with DockerDriverNameMatcher {
 
   import RawDockerClient._
   import scala.collection.JavaConversions._
 
   protected override val nameDelimiter = "_"
 
-  protected val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
-
   protected override def appId(deployment: Deployment, breed: Breed): String = s"vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
-
-  protected def artifactName2Id(artifact: Artifact): String = artifact.name match {
-    case idMatcher(_*) ⇒ artifact.name
-    case _             ⇒ Hash.hexSha1(artifact.name).substring(0, 20)
-  }
 
   protected override def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
 
@@ -139,10 +132,24 @@ trait DockerDriver extends ContainerDriver {
     }
   }
 
-  private val cFactory = ConfigFactory.load()
-  private val vampContainerDriverUrl = cFactory.getString("vamp.container-driver.docker.url")
-  private val isRancherEnvironment = cFactory.getBoolean("vamp.container-driver.docker.isInRancher")
+  private val cFactory = ConfigFactory.load().getConfig("vamp.container-driver.docker")
+  private val vampContainerDriverUrl = cFactory.getString("url")
+  private val vampDockerCertificates = cFactory.getString("certificates")
+  private val isRancherEnvironment = cFactory.getBoolean("isInRancher")
   private val ipAdddr = """^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$""".r
-  private def client = new RawDockerClient(DefaultDockerClient.builder().uri(vampContainerDriverUrl).build())
+  private def client = {
+    val path = if (vampDockerCertificates.startsWith("~")) s"${System.getProperty("user.home")}${vampDockerCertificates.substring(1)}" else vampDockerCertificates
+    new RawDockerClient(DefaultDockerClient.builder().uri(vampContainerDriverUrl).dockerCertificates(new DockerCertificates(Paths.get(path))).build())
+  }
+}
 
+trait DockerDriverNameMatcher {
+  this: ContainerDriver ⇒
+
+  protected val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
+
+  protected def artifactName2Id(artifact: Artifact): String = artifact.name match {
+    case idMatcher(_*) ⇒ artifact.name
+    case _             ⇒ Hash.hexSha1(artifact.name).substring(0, 20)
+  }
 }
