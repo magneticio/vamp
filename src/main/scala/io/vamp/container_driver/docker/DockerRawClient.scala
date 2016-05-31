@@ -4,7 +4,7 @@ import java.lang.reflect.Field
 
 import com.spotify.docker.client.messages.{ ContainerConfig, ContainerCreation, HostConfig, ImageInfo, Info, PortBinding, Container ⇒ spContainer, ContainerInfo ⇒ spContainerInfo }
 import com.spotify.docker.client.{ DefaultDockerClient, DockerClient }
-import io.vamp.container_driver.ContainerInfo
+import io.vamp.container_driver.{ Container, ContainerInfo }
 import io.vamp.model.artifact._
 import org.joda.time.DateTime
 import spray.json._
@@ -135,7 +135,7 @@ object RawDockerClient {
 
     if (!defaultScaleJs.isEmpty()) {
       val defaultScale = defaultScaleJs.parseJson.convertTo[DefaultScale]
-      App(containerName, defaultScale.instances, defaultScale.cpu, defaultScale.memory.value, List(Task(container.id(), containerName, "", if (!container.ports().isEmpty()) container.ports().map { x ⇒ x.getPublicPort }.toList else List(0), Some(new DateTime(container.created()).toString()))))
+      App(containerName, defaultScale.instances, defaultScale.cpu.value, defaultScale.memory.value, List(Task(container.id(), containerName, "", if (!container.ports().isEmpty()) container.ports().map { x ⇒ x.getPublicPort }.toList else List(0), Some(new DateTime(container.created()).toString()))))
     } else {
       /* Default app values. They are going to be stored as label */
       App(containerName, 1, 0.0, 0.0, List(Task(container.id(), containerName, "", if (!container.ports().isEmpty()) container.ports().map { x ⇒ x.getPublicPort }.toList else List(0), Some(new DateTime(container.created()).toString()))))
