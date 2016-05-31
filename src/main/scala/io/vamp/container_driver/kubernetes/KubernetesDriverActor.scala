@@ -28,8 +28,6 @@ object KubernetesDriverActor {
   val serviceType = KubernetesServiceType.withName(configuration.getString("service-type"))
 
   val createServices = configuration.getBoolean("create-services")
-
-  val vampGatewayAgentId = configuration.getString("vamp-gateway-agent-id")
 }
 
 case class KubernetesDriverInfo(version: Any, paths: Any, api: Any, apis: Any)
@@ -101,7 +99,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
           case gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
         } map { gateway ⇒
           val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
-          createService(gateway.name, serviceType, vampGatewayAgentId, ports, update = false, gatewayService ++ Map("lookup_name" -> gateway.lookupName))
+          createService(gateway.name, serviceType, ports, update = false, gatewayService ++ Map("lookup_name" -> gateway.lookupName))
         }
 
         Future.sequence(created ++ deleted)
@@ -115,7 +113,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
         val ports = ds.docker.portMappings.map { pm ⇒
           KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort, pm.containerPort)
         }
-        createService(ds.name, st, ds.name, ports, update = false, daemonService)
+        createService(ds.name, st, ports, update = false, daemonService ++ Map("daemon" -> ds.name))
     } getOrElse Future.successful(response)
   }
 }
