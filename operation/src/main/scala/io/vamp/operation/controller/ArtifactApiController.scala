@@ -1,5 +1,7 @@
 package io.vamp.operation.controller
 
+import java.net.URLDecoder
+
 import _root_.io.vamp.common.notification.NotificationProvider
 import _root_.io.vamp.operation.gateway.GatewayActor
 import _root_.io.vamp.operation.workflow.WorkflowActor
@@ -121,6 +123,10 @@ trait ArtifactApiController extends ArtifactExpansionSupport {
   }
 
   class GatewayHandler extends PersistenceHandler[Gateway](GatewayReader) {
+
+    override def read(name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = {
+      actorFor[PersistenceActor] ? PersistenceActor.Read(URLDecoder.decode(name, "UTF-8"), `type`, expandReferences, onlyReferences)
+    }
 
     override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
       expandGateway(unmarshal(source)) flatMap {

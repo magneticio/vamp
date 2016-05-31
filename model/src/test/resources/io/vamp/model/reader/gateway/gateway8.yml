@@ -1,0 +1,11 @@
+name: sava
+port: 8080
+
+virtual_hosts: [
+  "a.b.c",
+  "test"
+]
+
+routes:
+  [external/1/2]:
+    weight: 100%

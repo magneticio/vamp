@@ -6,11 +6,10 @@ import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor.ContainerDriveMessage
 import io.vamp.container_driver._
-import io.vamp.container_driver.marathon.api.{ Docker, _ }
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
-import io.vamp.model.reader.MegaByte
-import org.json4s.{ DefaultFormats, Extraction, Formats }
+import io.vamp.model.reader.{ MegaByte, Quantity }
+import org.json4s._
 
 import scala.concurrent.Future
 
@@ -35,6 +34,7 @@ object MarathonDriverActor {
   case class RetrieveApp(app: String) extends ContainerDriveMessage
 
   case class UndeployApp(app: String) extends ContainerDriveMessage
+
 }
 
 case class MesosInfo(frameworks: Any, slaves: Any)
@@ -46,16 +46,25 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
   import ContainerDriverActor._
   import MarathonDriverActor._
 
+  private implicit val formats: Formats = DefaultFormats
+
+  protected val nameDelimiter = "/"
+
+  protected val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
+
+  protected def appId(deployment: Deployment, breed: Breed): String = s"$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
+
   def receive = {
-    case InfoRequest    ⇒ reply(info)
-    case All            ⇒ reply(all)
-    case d: Deploy      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
-    case u: Undeploy    ⇒ reply(undeploy(u.deployment, u.service))
-    case a: AllApps     ⇒ reply(allApps.map(_.filter(a.filter)))
-    case d: DeployApp   ⇒ reply(deploy(d.app, d.update))
-    case u: UndeployApp ⇒ reply(undeploy(u.app))
-    case r: RetrieveApp ⇒ reply(retrieve(r.app))
-    case any            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
+    case InfoRequest                ⇒ reply(info)
+    case All                        ⇒ reply(all)
+    case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
+    case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
+    case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
+    case a: AllApps                 ⇒ reply(allApps.map(_.filter(a.filter)))
+    case d: DeployApp               ⇒ reply(deploy(d.app, d.update))
+    case u: UndeployApp             ⇒ reply(undeploy(u.app))
+    case r: RetrieveApp             ⇒ reply(retrieve(r.app))
+    case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
   private def info: Future[Any] = for {
@@ -77,39 +86,42 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     RestClient.get[AppsResponse](s"$marathonUrl/v2/apps?embed=apps.tasks").map(apps ⇒ apps.apps.filter(app ⇒ processable(app.id)).map(app ⇒ containerService(app)))
   }
 
-  private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
+  private def processable(id: String): Boolean = id.split(nameDelimiter).length == 3
+
+  private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
     validateSchemaSupport(service.breed.deployable.schema, Schema)
 
     val id = appId(deployment, service.breed)
     if (update) log.info(s"marathon update app: $id") else log.info(s"marathon create app: $id")
 
-    val app = MarathonApp(id, container(deployment, cluster, service), service.scale.get.instances, service.scale.get.cpu, service.scale.get.memory.value, environment(deployment, cluster, service), cmd(deployment, cluster, service))
-    val payload = requestPayload(deployment, cluster, service, app)
+    val app = MarathonApp(id, container(deployment, cluster, service), service.scale.get.instances, service.scale.get.cpu.value, Math.round(service.scale.get.memory.value).toInt, environment(deployment, cluster, service), cmd(deployment, cluster, service))
 
-    if (update)
-      RestClient.put[Any](s"$marathonUrl/v2/apps/${app.id}", payload)
-    else
-      RestClient.post[Any](s"$marathonUrl/v2/apps", payload)
+    sendRequest(update, app.id, requestPayload(deployment, cluster, service, purge(app)))
   }
 
-  private def deploy(app: MarathonApp, update: Boolean) = {
-    // workaround - empty args may case Marathon to reject the request, so removing args altogether
-    val request = if (app.args.isEmpty) {
-      implicit val formats: Formats = DefaultFormats
-      Extraction.decompose(app).values match {
-        case map: Map[_, _] ⇒ map.filterNot { case (n, _) ⇒ n == "args" }
-        case any            ⇒ any
-      }
-    } else app
+  private def deploy(app: MarathonApp, update: Boolean): Future[Any] = {
+    sendRequest(update, app.id, Extraction.decompose(purge(app)))
+  }
 
-    if (update) RestClient.put[Any](s"$marathonUrl/v2/apps/${app.id}", request) else RestClient.post[Any](s"$marathonUrl/v2/apps", request)
+  private def purge(app: MarathonApp): MarathonApp = {
+    // workaround - empty args may cause Marathon to reject the request, so removing args altogether
+    if (app.args.isEmpty) app.copy(args = null) else app
+  }
+
+  private def sendRequest(update: Boolean, id: String, payload: JValue) = update match {
+    case true ⇒ RestClient.get[Any](s"$marathonUrl/v2/apps/$id").flatMap { response ⇒
+      val changed = Extraction.decompose(response).children.headOption match {
+        case Some(app) ⇒ app.diff(payload).changed
+        case None      ⇒ payload
+      }
+      RestClient.put[Any](s"$marathonUrl/v2/apps/$id", changed)
+    }
+
+    case false ⇒ RestClient.post[Any](s"$marathonUrl/v2/apps", payload)
   }
 
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = service.breed.deployable match {
-    case Deployable(schema, Some(definition)) if Schema.Docker.toString.compareToIgnoreCase(schema) == 0 ⇒
-      val (privileged, arguments) = service.arguments.partition(_.privileged)
-      val parameters = arguments.map(argument ⇒ DockerParameter(argument.key, argument.value))
-      Some(Container(Docker(definition, portMappings(deployment, cluster, service), parameters, privileged.headOption.exists(_.value.toBoolean))))
+    case Deployable(schema, Some(definition)) if Schema.Docker.toString.compareToIgnoreCase(schema) == 0 ⇒ Some(Container(docker(deployment, cluster, service, definition)))
     case _ ⇒ None
   }
 
@@ -118,7 +130,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     case _ ⇒ None
   }
 
-  private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, app: MarathonApp) = {
+  private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, app: MarathonApp): JValue = {
     val (local, dialect) = (cluster.dialects.get(Dialect.Marathon), service.dialects.get(Dialect.Marathon)) match {
       case (_, Some(d))    ⇒ Some(service) -> d
       case (Some(d), None) ⇒ None -> d
@@ -131,7 +143,6 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
       case _ ⇒
     }
 
-    implicit val formats: Formats = DefaultFormats
     Extraction.decompose(interpolate(deployment, local, dialect)) merge Extraction.decompose(app)
   }
 
@@ -147,7 +158,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
   }
 
   private def containerService(app: App): ContainerService = {
-    ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
+    ContainerService(nameMatcher(app.id), DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
   }
 
   private def allApps: Future[List[MarathonApp]] = {
@@ -161,8 +172,13 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     }
   }
 
-  override protected def artifactName2Id(artifact: Artifact): String = {
-    val id = super.artifactName2Id(artifact)
+  protected def artifactName2Id(artifact: Artifact): String = {
+
+    val id = artifact.name match {
+      case idMatcher(_*) ⇒ artifact.name
+      case _             ⇒ Hash.hexSha1(artifact.name).substring(0, 20)
+    }
+
     artifact match {
       case breed: Breed if breed.name != id ⇒ if (breed.name.matches("^[\\d\\p{L}].*$")) s"${breed.name.replaceAll("[^\\p{L}\\d]", "-")}-$id" else id
       case _                                ⇒ id

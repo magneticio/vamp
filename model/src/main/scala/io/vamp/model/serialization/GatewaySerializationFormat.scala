@@ -39,12 +39,23 @@ trait GatewayDecomposer extends ReferenceSerialization {
           case Some(value) ⇒ JString(value)
           case _           ⇒ JString(gateway.port.toValue)
         })
+
+        if (gateway.service.isDefined) {
+          val serviceHost = JField("host", JString(gateway.service.get.host))
+          val servicePort = JField("port", gateway.service.get.port.value match {
+            case Some(value) ⇒ JString(value)
+            case _           ⇒ JString(gateway.port.toValue)
+          })
+          list += JField("service", new JObject(serviceHost :: servicePort :: Nil))
+        }
+
         list += JField("deployed", JBool(gateway.deployed))
-      } else if (gateway.port.value.isDefined && gateway.port.name != gateway.port.value.get && !gateway.routes.forall(_.name.isEmpty)) {
+      } else if (gateway.port.value.isDefined && gateway.port.name != gateway.port.value.get) {
         list += JField("port", JString(gateway.port.value.get))
       }
 
       list += JField("sticky", if (gateway.sticky.isDefined) Extraction.decompose(gateway.sticky) else JString("none"))
+      list += JField("virtual_hosts", Extraction.decompose(gateway.virtualHosts))
       list += JField("routes", Extraction.decompose {
         gateway.routes.map { route ⇒
           (route.path.segments match {
@@ -74,6 +85,7 @@ class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerializat
       if (route.name.nonEmpty) list += JField("name", JString(route.name))
 
       list += JField("weight", if (route.weight.isDefined) JString(route.weight.get.normalized) else JNull)
+      list += JField("balance", if (route.balance.isDefined) JString(route.balance.get) else JString(DefaultRoute.defaultBalance))
       list += JField("filter_strength", if (route.filterStrength.isDefined) JString(route.filterStrength.get.normalized) else JNull)
       list += JField("filters", JArray(route.filters.map(serializeFilter(full = false))))
       list += JField("rewrites", Extraction.decompose(route.rewrites))

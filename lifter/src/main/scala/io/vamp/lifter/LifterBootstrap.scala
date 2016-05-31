@@ -3,10 +3,11 @@ package io.vamp.lifter
 import akka.actor.{ ActorRef, ActorSystem, Props }
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
+import io.vamp.container_driver.ContainerDriverBootstrap
 import io.vamp.lifter.kibana.KibanaDashboardInitializationActor
 import io.vamp.lifter.persistence.ElasticsearchPersistenceInitializationActor
 import io.vamp.lifter.pulse.PulseInitializationActor
-import io.vamp.lifter.vga.{ VgaMarathonSynchronizationActor, VgaMarathonSynchronizationSchedulerActor }
+import io.vamp.lifter.vga.{ VgaKubernetesSynchronizationActor, VgaKubernetesSynchronizationSchedulerActor, VgaMarathonSynchronizationActor, VgaMarathonSynchronizationSchedulerActor }
 import io.vamp.persistence.PersistenceBootstrap
 
 import scala.concurrent.duration._
@@ -37,11 +38,20 @@ object LifterBootstrap extends Bootstrap {
       }
     } else Nil
 
-    val vga = if (vampGatewayAgentEnabled) {
-      val actors = List(IoC.createActor(Props(classOf[VgaMarathonSynchronizationActor]).withMailbox(synchronizationMailbox)), IoC.createActor[VgaMarathonSynchronizationSchedulerActor])
-      IoC.actorFor[VgaMarathonSynchronizationSchedulerActor] ! SchedulerActor.Period(vgaSynchronizationPeriod, vgaSynchronizationInitialDelay)
-      actors
-    } else Nil
+    val vga = vgaSynchronization match {
+
+      case "marathon" ⇒
+        val actors = List(IoC.createActor(Props(classOf[VgaMarathonSynchronizationActor]).withMailbox(synchronizationMailbox)), IoC.createActor[VgaMarathonSynchronizationSchedulerActor])
+        IoC.actorFor[VgaMarathonSynchronizationSchedulerActor] ! SchedulerActor.Period(vgaSynchronizationPeriod, vgaSynchronizationInitialDelay)
+        actors
+
+      case "kubernetes" ⇒
+        val actors = List(IoC.createActor(Props(classOf[VgaKubernetesSynchronizationActor]).withMailbox(synchronizationMailbox)), IoC.createActor[VgaKubernetesSynchronizationSchedulerActor])
+        IoC.actorFor[VgaKubernetesSynchronizationSchedulerActor] ! SchedulerActor.Period(vgaSynchronizationPeriod, vgaSynchronizationInitialDelay)
+        actors
+
+      case _ ⇒ Nil
+    }
 
     val pulse = if (pulseEnabled)
       IoC.createActor[PulseInitializationActor] :: Nil
@@ -56,8 +66,14 @@ object LifterBootstrap extends Bootstrap {
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {
 
-    if (vampGatewayAgentEnabled) IoC.actorFor[VgaMarathonSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
+    vgaSynchronization match {
+      case "marathon"   ⇒ IoC.actorFor[VgaMarathonSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
+      case "kubernetes" ⇒ IoC.actorFor[VgaKubernetesSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
+      case _            ⇒
+    }
 
     super.shutdown(actorSystem)
   }
+
+  private def vgaSynchronization = if (vampGatewayAgentEnabled) ContainerDriverBootstrap.`type` else ""
 }

@@ -7,6 +7,7 @@ import io.vamp.model.artifact.DeploymentService.State.Intention.StateIntentionTy
 import io.vamp.model.artifact.DeploymentService.State.Step.{ Done, Initiated }
 
 import scala.language.implicitConversions
+import scala.language.postfixOps
 
 object DeploymentService {
 
@@ -78,8 +79,15 @@ case class DeploymentCluster(
     services: List[DeploymentService],
     routing: List[Gateway],
     sla: Option[Sla],
-    portMapping: Map[String, Int] = Map(),
     dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster {
+
+  def portBy(name: String): Option[Int] = {
+    routing.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } map { _.port.number }
+  }
+
+  def serviceBy(name: String): Option[GatewayService] = {
+    routing.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } flatMap { _.service }
+  }
 
   def route(service: DeploymentService, portName: String, short: Boolean = false): Option[DefaultRoute] = {
     routing.find(_.port.name == portName).flatMap(routing ⇒ routing.routes.find { route ⇒

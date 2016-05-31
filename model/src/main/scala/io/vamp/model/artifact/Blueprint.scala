@@ -1,6 +1,6 @@
 package io.vamp.model.artifact
 
-import io.vamp.model.reader.MegaByte
+import io.vamp.model.reader.{ MegaByte, Quantity }
 
 abstract class Blueprint extends Artifact
 
@@ -59,4 +59,4 @@ trait Scale extends Artifact
 
 case class ScaleReference(name: String) extends Reference with Scale
 
-case class DefaultScale(name: String, cpu: Double, memory: MegaByte, instances: Int) extends Scale
+case class DefaultScale(name: String, cpu: Quantity, memory: MegaByte, instances: Int) extends Scale

@@ -1,18 +1,15 @@
 package io.vamp.lifter.vga
 
 import akka.pattern.ask
-import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.marathon.MarathonDriverActor.{ DeployApp, RetrieveApp, UndeployApp }
-import io.vamp.container_driver.marathon.MarathonDriverInfo
-import io.vamp.container_driver.marathon.api.{ App, Container, Docker, MarathonApp }
-import io.vamp.container_driver.{ ContainerDriverActor, ContainerInfo }
+import io.vamp.container_driver.marathon._
+import io.vamp.container_driver.{ Container, ContainerDriverActor, ContainerInfo, Docker }
 import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.lifter.vga.VgaMarathonSynchronizationActor.SynchronizeAll
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport }
 
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.language.postfixOps
 
@@ -23,26 +20,17 @@ class VgaMarathonSynchronizationSchedulerActor extends SchedulerActor with Lifte
 
 object VgaMarathonSynchronizationActor {
 
-  sealed trait VgaMessages
+  sealed trait VgaMarathonMessages
 
-  object SynchronizeAll extends VgaMessages
+  object SynchronizeAll extends VgaMarathonMessages
 
-  case class Synchronize(info: MarathonDriverInfo, app: Option[App]) extends VgaMessages
+  case class Synchronize(info: MarathonDriverInfo, app: Option[App]) extends VgaMarathonMessages
 
 }
 
-class VgaMarathonSynchronizationActor extends CommonSupportForActors with ArtifactSupport with ArtifactPaginationSupport with LifterNotificationProvider {
+class VgaMarathonSynchronizationActor extends VgaSynchronizationActor with ArtifactSupport with ArtifactPaginationSupport {
 
   import VgaMarathonSynchronizationActor._
-
-  private implicit val timeout = ContainerDriverActor.timeout
-
-  private val configuration = ConfigFactory.load().getConfig("vamp.lifter.vamp-gateway-agent.synchronization")
-
-  private val id = "vamp/vamp-gateway-agent"
-
-  private val container = configuration.getString("container-image")
-  private val arguments = configuration.getStringList("container-arguments").asScala.toList
 
   def receive = {
     case SynchronizeAll         ⇒ synchronize()
@@ -89,7 +77,7 @@ class VgaMarathonSynchronizationActor extends CommonSupportForActors with Artifa
       Container(
         docker = Docker(
           image = container,
-          portMappings = Nil,
+          portMappings = ports,
           parameters = Nil,
           privileged = true,
           network = "HOST"
@@ -97,8 +85,8 @@ class VgaMarathonSynchronizationActor extends CommonSupportForActors with Artifa
       )
     ),
     instances = instances,
-    cpus = 0.1,
-    mem = 128,
+    cpus = cpu,
+    mem = mem,
     env = Map(),
     cmd = None,
     args = arguments,

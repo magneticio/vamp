@@ -77,4 +77,67 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
       'routes(List(DefaultRoute("", GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), None, Nil, Nil, None)))
     )
   }
+
+  it should "parse virtual hosts" in {
+    GatewayReader.read(res("gateway/gateway8.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080"))),
+      'virtualHosts(List("a.b.c", "test")),
+      'routes(List(DefaultRoute("", GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), None, Nil, Nil, None)))
+    )
+  }
+
+  it should "parse empty virtual hosts" in {
+    GatewayReader.read(res("gateway/gateway9.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080"))),
+      'virtualHosts(Nil),
+      'routes(List(DefaultRoute("", GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), None, Nil, Nil, None)))
+    )
+  }
+
+  it should "expand virtual hosts" in {
+    GatewayReader.read(res("gateway/gateway10.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080"))),
+      'virtualHosts(List("inline")),
+      'routes(List(DefaultRoute("", GatewayPath("[external/1/2]", List("[external/1/2]")), Some(Percentage(100)), None, Nil, Nil, None)))
+    )
+  }
+
+  it should "fail on invalid host" in {
+    expectedError[IllegalGatewayVirtualHosts.type]({
+      GatewayReader.read(res("gateway/gateway11.yml"))
+    })
+  }
+
+  it should "parse http service port" in {
+    GatewayReader.read(res("gateway/gateway12.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080/http"))),
+      'service(Option(GatewayService("127.0.0.1", Port("31234", None, Some("31234/http"))))),
+      'sticky(Some(Gateway.Sticky.Route)),
+      'routes(List(DefaultRoute("", GatewayPath("sava1", List("sava1")), Some(Percentage(50)), None, Nil, Nil, None), DefaultRoute("", GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), None, Nil, Nil, None)))
+    )
+  }
+
+  it should "parse tcp service port" in {
+    GatewayReader.read(res("gateway/gateway13.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080/http"))),
+      'service(Option(GatewayService("127.0.0.1", Port("31234", None, Some("31234/tcp"))))),
+      'sticky(Some(Gateway.Sticky.Route)),
+      'routes(List(DefaultRoute("", GatewayPath("sava1", List("sava1")), Some(Percentage(50)), None, Nil, Nil, None), DefaultRoute("", GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), None, Nil, Nil, None)))
+    )
+  }
+
+  it should "parse by default http service port" in {
+    GatewayReader.read(res("gateway/gateway14.yml")) should have(
+      'name("sava"),
+      'port(Port("8080", None, Some("8080/http"))),
+      'service(Option(GatewayService("127.0.0.1", Port("31234", None, Some("31234"))))),
+      'sticky(Some(Gateway.Sticky.Route)),
+      'routes(List(DefaultRoute("", GatewayPath("sava1", List("sava1")), Some(Percentage(50)), None, Nil, Nil, None), DefaultRoute("", GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), None, Nil, Nil, None)))
+    )
+  }
 }

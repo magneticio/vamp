@@ -9,7 +9,7 @@ private case class ReductionInput(terms: List[AstNode], value: Long, reduced: Bo
  */
 trait BooleanFlatter {
 
-  def flatten(node: AstNode): AstNode = reduce(node, map(node))
+  def flatten: AstNode ⇒ AstNode = { node ⇒ reduce(node, map(node)) }
 
   private[parser] def map(node: AstNode): List[ReductionInput] = {
     val ops = operands(node)

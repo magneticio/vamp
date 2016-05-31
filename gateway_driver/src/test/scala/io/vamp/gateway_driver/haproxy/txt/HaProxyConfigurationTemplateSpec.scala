@@ -19,6 +19,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
   override lazy val info = super[FlatSpec].info
 
+  override val virtualHosts: Boolean = true
+
   override val httpLogFormat = """{"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}"""
 
   override val tcpLogFormat = """{"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tw":%Tw,"Tc":%Tc,"Tt":%Tt,"B":%B,"ts":"%ts","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq}"""
@@ -95,14 +97,16 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       defaultBackend = backends.head
     ) :: Nil
 
-    compare(HaProxyConfigurationTemplate(HaProxy(frontends, backends, version, tcpLogFormat, httpLogFormat)).toString(), "configuration_1.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(version, frontends, backends, Nil, Nil, tcpLogFormat, httpLogFormat)).toString(), "configuration_1.txt")
   }
 
   it should "serialize single service http route to HAProxy configuration" in {
     val converted = convert(Gateway(
       name = "vamp/sava/port/_",
       port = Port(33000),
+      service = None,
       sticky = None,
+      virtualHosts = Nil,
       routes = DefaultRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
@@ -118,14 +122,16 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         ) :: Nil
       ) :: Nil))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, version, tcpLogFormat, httpLogFormat)).toString(), "configuration_2.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, tcpLogFormat, httpLogFormat)).toString(), "configuration_2.txt")
   }
 
   it should "serialize single service tcp route to HAProxy configuration" in {
     val converted = convert(Gateway(
       name = "vamp/sava/port/_",
       port = Port("33000/tcp"),
+      service = None,
       sticky = None,
+      virtualHosts = Nil,
       routes = DefaultRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
@@ -141,7 +147,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         ) :: Nil
       ) :: Nil))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, version, tcpLogFormat, httpLogFormat)).toString(), "configuration_3.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, tcpLogFormat, httpLogFormat)).toString(), "configuration_3.txt")
   }
 
   it should "serialize single service route with single endpoint to HAProxy configuration" in {
@@ -149,7 +155,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp/sava/port/_",
         port = Port("33002"),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
@@ -168,7 +176,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp/port/_/_",
         port = Port("9050/tcp"),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
@@ -186,7 +196,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       )
     ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, version, tcpLogFormat, httpLogFormat)).toString(), "configuration_4.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, tcpLogFormat, httpLogFormat)).toString(), "configuration_4.txt")
   }
 
   it should "serialize A/B services to HAProxy configuration" in {
@@ -194,7 +204,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp/sava/port/_",
         port = Port(33001),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = List(
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
@@ -241,7 +253,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp/port/_/_",
         port = Port("9050/http"),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
@@ -259,7 +273,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       )
     ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, version, tcpLogFormat, httpLogFormat)).toString(), "configuration_5.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, tcpLogFormat, httpLogFormat)).toString(), "configuration_5.txt")
   }
 
   it should "serialize services with dependency to HAProxy configuration" in {
@@ -267,7 +281,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp/backend/port",
         port = Port(33003),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/sava-backend:1.3.0/port",
           path = GatewayPath("vamp/sava/sava-backend:1.3.0/port"),
@@ -286,7 +302,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp/sava/port/_",
         port = Port("33002"),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/sava-frontend:1.3.0/port",
           path = GatewayPath("vamp/sava/sava-frontend:1.3.0/port"),
@@ -305,7 +323,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp/port/_/_",
         port = Port("9050/http"),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
@@ -323,7 +343,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       )
     ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, version, tcpLogFormat, httpLogFormat)).toString(), "configuration_6.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, tcpLogFormat, httpLogFormat)).toString(), "configuration_6.txt")
   }
 
   it should "convert filters" in {
@@ -331,6 +351,8 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     val backends = Backend("vamp://sava", "im_ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, Nil, sticky = false, "", Options()) :: Nil
 
     List(
+      ("user-agent = Firefox", "hdr_sub(user-agent) Firefox"),
+      ("user-agent = Safari", "hdr_sub(user-agent) Safari"),
       ("hdr_sub(user-agent) Android", "hdr_sub(user-agent) Android"),
       ("user-agent=Android", "hdr_sub(user-agent) Android"),
       ("user-agent!=Android", "hdr_sub(user-agent) Android"),
@@ -346,7 +368,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       ("has header X-SPECIAL", "hdr_cnt(X-SPECIAL) gt 0"),
       ("misses header X-SPECIAL", "hdr_cnt(X-SPECIAL) eq 0")
     ) foreach { input ⇒
-        filter(route.copy(filters = DefaultFilter("", input._1) :: Nil))(backends, Gateway("vamp", Port(0), None, Nil)) match {
+        filter(route.copy(filters = DefaultFilter("", input._1) :: Nil))(backends, Gateway("vamp", Port(0), None, None, Nil, Nil)) match {
           case HaProxyFilter(_, _, Some(acls)) ⇒
             acls.acls.head.definition shouldBe input._2
         }
@@ -358,7 +380,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp/sava/port/_",
         port = Port(33000),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
@@ -367,7 +391,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
           filters = List(
             DefaultFilter(
               name = "",
-              condition = "user-agent != ie"
+              condition = "user-agent != safari"
             ), DefaultFilter(
               name = "",
               condition = "user-agent = chrome"
@@ -397,7 +421,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         ) :: Nil)
     )
 
-    compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, version, tcpLogFormat, httpLogFormat)).toString(), "configuration_7.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, tcpLogFormat, httpLogFormat)).toString(), "configuration_7.txt")
   }
 
   it should "serialize A/B services to HAProxy configuration - sticky route" in {
@@ -405,7 +429,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp/sava/port/_",
         port = Port(33001),
+        service = None,
         sticky = Some(Gateway.Sticky.Route),
+        virtualHosts = Nil,
         routes = List(
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
@@ -452,7 +478,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp/port/_/_",
         port = Port("9050/http"),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
@@ -470,7 +498,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       )
     ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, version, tcpLogFormat, httpLogFormat)).toString(), "configuration_8.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, tcpLogFormat, httpLogFormat)).toString(), "configuration_8.txt")
   }
 
   it should "serialize A/B services to HAProxy configuration - sticky instance" in {
@@ -478,7 +506,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp/sava/port/_",
         port = Port(33001),
+        service = None,
         sticky = Some(Gateway.Sticky.Instance),
+        virtualHosts = Nil,
         routes = List(
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
@@ -525,7 +555,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp/port/_/_",
         port = Port("9050/http"),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
           path = GatewayPath("vamp/sava/port/_"),
@@ -543,7 +575,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       )
     ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, version, tcpLogFormat, httpLogFormat)).toString(), "configuration_9.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, tcpLogFormat, httpLogFormat)).toString(), "configuration_9.txt")
   }
 
   it should "serialize A/B testing on deployments" in {
@@ -551,7 +583,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp:1.x/sava/port",
         port = Port(33001),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp:1.x/sava/sava:1.0.0/port",
           path = GatewayPath("vamp:1.x/sava/sava:1.0.0/port"),
@@ -570,7 +604,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp:2.x/sava/port",
         port = Port(33001),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp:2.x/sava/sava:2.0.0/port",
           path = GatewayPath("vamp:2.x/sava/sava:2.0.0/port"),
@@ -589,7 +625,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp",
         port = Port("9050/http"),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = List(
           DefaultRoute(
             name = "vamp:1.x/sava/port",
@@ -622,7 +660,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
         ))
     ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, version, tcpLogFormat, httpLogFormat)).toString(), "configuration_10.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, tcpLogFormat, httpLogFormat)).toString(), "configuration_10.txt")
   }
 
   it should "serialize custom balance" in {
@@ -630,7 +668,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp:1.x/sava/port",
         port = Port(33001),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp:1.x/sava/sava:1.0.0/port",
           path = GatewayPath("vamp:1.x/sava/sava:1.0.0/port"),
@@ -649,7 +689,9 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       Gateway(
         name = "vamp:2.x/sava/port",
         port = Port(33001),
+        service = None,
         sticky = None,
+        virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp:2.x/sava/sava:2.0.0/port",
           path = GatewayPath("vamp:2.x/sava/sava:2.0.0/port"),
@@ -667,7 +709,57 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       )
     ))
 
-    compare(HaProxyConfigurationTemplate(HaProxy(converted.frontends, converted.backends, version, tcpLogFormat, httpLogFormat)).toString(), "configuration_11.txt")
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, tcpLogFormat, httpLogFormat)).toString(), "configuration_11.txt")
+  }
+
+  it should "serialize single service http route with virtual hosts" in {
+    val converted = convert(Gateway(
+      name = "deployment/cluster/port",
+      port = Port(33000),
+      service = None,
+      sticky = None,
+      virtualHosts = Nil,
+      routes = DefaultRoute(
+        name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
+        path = GatewayPath("vamp/sava/sava:1.0.0/port"),
+        weight = Option(Percentage(100)),
+        filterStrength = None,
+        filters = Nil,
+        rewrites = Nil,
+        balance = None,
+        targets = InternalRouteTarget(
+          name = "64435a223bddf1fa589135baa5e228090279c032",
+          host = "192.168.99.100",
+          port = 32768
+        ) :: Nil
+      ) :: Nil))
+
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, converted.virtualHostFrontends, converted.virtualHostBackends, tcpLogFormat, httpLogFormat)).toString(), "configuration_12.txt")
+  }
+
+  it should "serialize single service http route with explicit virtual hosts" in {
+    val converted = convert(Gateway(
+      name = "deployment/cluster/port",
+      port = Port(33000),
+      service = None,
+      sticky = None,
+      virtualHosts = List("a.b.c.d", "vamp.vamp"),
+      routes = DefaultRoute(
+        name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
+        path = GatewayPath("vamp/sava/sava:1.0.0/port"),
+        weight = Option(Percentage(100)),
+        filterStrength = None,
+        filters = Nil,
+        rewrites = Nil,
+        balance = None,
+        targets = InternalRouteTarget(
+          name = "64435a223bddf1fa589135baa5e228090279c032",
+          host = "192.168.99.100",
+          port = 32768
+        ) :: Nil
+      ) :: Nil))
+
+    compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, converted.virtualHostFrontends, converted.virtualHostBackends, tcpLogFormat, httpLogFormat)).toString(), "configuration_13.txt")
   }
 
   private def compare(config: String, resource: String) = {

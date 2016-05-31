@@ -20,10 +20,16 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
       }
       case _ ⇒
     }
+    <<?[Any]("virtual_hosts") match {
+      case Some(host: String) ⇒ >>("virtual_hosts" :: Nil, List(host))
+      case Some(_: List[_])   ⇒
+      case Some(any)          ⇒ >>("virtual_hosts" :: Nil, List(any))
+      case None               ⇒
+    }
     super.expand
   }
 
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, sticky("sticky"), routes(splitPath = true), deployed)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, service, sticky, virtualHosts, routes(splitPath = true), deployed)
 
   protected def port(implicit source: YamlSourceReader): Port = <<![Any]("port") match {
     case value: Int    ⇒ Port(value)
@@ -31,9 +37,27 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     case any           ⇒ throwException(UnexpectedTypeError("port", classOf[String], any.getClass))
   }
 
-  protected def sticky(path: YamlPath)(implicit source: YamlSourceReader) = <<?[String](path) match {
+  protected def service(implicit source: YamlSourceReader): Option[GatewayService] = <<?[YamlSourceReader]("service").map {
+    case _ ⇒
+      val host = <<![String]("service" :: "host")
+      val port = <<![Any]("service" :: "port") match {
+        case value: Int ⇒ Port(value)
+        case value      ⇒ Port(value.toString)
+      }
+      GatewayService(host, port)
+  }
+
+  protected def sticky(implicit source: YamlSourceReader) = <<?[String]("sticky") match {
     case Some(sticky) ⇒ if (sticky.toLowerCase == "none") None else Option(Gateway.Sticky.byName(sticky).getOrElse(throwException(IllegalGatewayStickyValue(sticky))))
     case None         ⇒ None
+  }
+
+  protected def virtualHosts(implicit source: YamlSourceReader): List[String] = <<?[List[_]]("virtual_hosts") match {
+    case Some(list) ⇒ list.map {
+      case host: String ⇒ host
+      case any          ⇒ throwException(IllegalGatewayVirtualHosts)
+    }
+    case None ⇒ Nil
   }
 
   protected def routes(splitPath: Boolean)(implicit source: YamlSourceReader): List[Route] = <<?[YamlSourceReader]("routes") match {
@@ -73,7 +97,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
 object GatewayReader extends AbstractGatewayReader
 
 object ClusterGatewayReader extends AbstractGatewayReader {
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), sticky("sticky"), routes(splitPath = false), deployed)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), service, sticky, virtualHosts, routes(splitPath = false), deployed)
 }
 
 object DeployedGatewayReader extends AbstractGatewayReader {
@@ -98,7 +122,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
 
   override protected def createDefault(implicit source: YamlSourceReader): Route = {
     source.flatten({ entry ⇒ entry == "instances" })
-    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), <<?[Percentage]("filter_strength"), filters, rewrites, <<?[String]("balance"))
+    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), <<?[Percentage]("filter_strength"), filters, rewrites, balance)
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
@@ -124,6 +148,11 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   protected def rewrites(implicit source: YamlSourceReader): List[Rewrite] = <<?[YamlList]("rewrites") match {
     case None                 ⇒ List.empty[Rewrite]
     case Some(list: YamlList) ⇒ list.map(RewriteReader.readReferenceOrAnonymous)
+  }
+
+  protected def balance(implicit source: YamlSourceReader) = <<?[String]("balance") match {
+    case Some(value) if value == DefaultRoute.defaultBalance ⇒ None
+    case other ⇒ other
   }
 
   override def validateName(name: String): String = if (GatewayPath.external(name)) name else super.validateName(name)

@@ -2,6 +2,41 @@
 @import io.vamp.gateway_driver.haproxy.Mode
 @(haproxy: HaProxy)
 # HAProxy @haproxy.version, Frontends & Backends managed by Vamp
+@if(haproxy.virtualHostFrontends.nonEmpty) {
+# Virtual hosts
+
+frontend virtual_hosts
+  bind 0.0.0.0:80
+  mode http
+  option httplog
+  log-format @haproxy.httpLogFormat
+
+  @for(frontend <- haproxy.virtualHostFrontends) {
+  @for(filter <- frontend.filters) {
+  @if(filter.acls.isDefined) {
+  # destination: @filter.destination.name
+  @for(acl <- filter.acls.get.acls) {acl @acl.name @acl.definition
+  }use_backend @filter.destination.lookup @if(filter.acls.get.condition.isDefined) {if @filter.acls.get.condition.get}}
+  }
+  }
+
+@for(backend <- haproxy.virtualHostBackends) {
+# backend: @backend.name
+backend @backend.lookup
+  balance roundrobin
+  mode http
+  option forwardfor
+  http-request set-header X-Forwarded-Port %[dst_port]
+  # http-request add-header X-Forwarded-Proto https if { ssl_fc }
+  @for(server <- backend.servers) {
+  # server: @server.name
+  server @server.lookup @server.url
+  }
+}
+}
+@if(haproxy.frontends.nonEmpty) {
+# Port mapping
+}
 @for(frontend <- haproxy.frontends) {
 # frontend: @frontend.name
 frontend @frontend.lookup

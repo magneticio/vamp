@@ -20,6 +20,8 @@ object RestClient {
 
   private val logger = Logger(LoggerFactory.getLogger(RestClient.getClass))
 
+  private lazy val httpClient = Http.configure(_ setFollowRedirects true)
+
   object Method extends Enumeration {
     val HEAD, GET, POST, PUT, DELETE, PATCH, TRACE, OPTIONS = Value
   }
@@ -41,7 +43,7 @@ object RestClient {
   }
 
   def delete(url: String, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext) = {
-    http(Method.DELETE, url, None, headers, logError)
+    http[Any](Method.DELETE, url, None, headers, logError)
   }
 
   def http[A](method: Method.Value, url: String, body: Any, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
@@ -59,7 +61,7 @@ object RestClient {
         requestWithHeaders
     }
 
-    Http(requestWithBody.toRequest -> new AsyncCompletionHandler[A] {
+    httpClient(requestWithBody.toRequest -> new AsyncCompletionHandler[A] {
       def onCompleted(response: Response) = response.getStatusCode match {
         case status if status / 100 == 2 && (classTag[A].runtimeClass == classOf[Nothing] || classTag[A].runtimeClass == classOf[String]) ⇒
           val body = response.getResponseBody

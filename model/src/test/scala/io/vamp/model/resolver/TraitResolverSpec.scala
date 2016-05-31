@@ -11,122 +11,98 @@ import scala.language.postfixOps
 class TraitResolverSpec extends FlatSpec with Matchers with TraitResolver {
 
   "TraitResolver" should "split into parts value with no references" in {
-    partsFor("abc") should have(
-      '_1(List("abc")),
-      '_2(Nil)
-    )
+    nodes("abc") shouldBe
+      List(StringNode("abc"))
   }
 
   it should "split into parts value with simple reference" in {
-    partsFor("$port") should have(
-      '_1(List("", "")),
-      '_2(List(LocalReference("port")))
-    )
+    nodes("$port") shouldBe
+      List(VariableNode(LocalReference("port")))
   }
 
   it should "split into parts value with simple reference and prefix" in {
-    partsFor("a$port") should have(
-      '_1(List("a", "")),
-      '_2(List(LocalReference("port")))
-    )
+    nodes("a$port") shouldBe
+      List(StringNode("a"), VariableNode(LocalReference("port")))
   }
 
   it should "split into parts value with simple reference and postfix" in {
-    partsFor("$port/") should have(
-      '_1(List("", "/")),
-      '_2(List(LocalReference("port")))
-    )
+    nodes("$port/") shouldBe
+      List(VariableNode(LocalReference("port")), StringNode("/"))
   }
 
   it should "split into parts value with simple reference, prefix and postfix" in {
-    partsFor(s"http://$${host}/") should have(
-      '_1(List("http://", "/")),
-      '_2(List(LocalReference("host")))
-    )
+    nodes(s"http://$${host}/") shouldBe
+      List(StringNode("http://"), VariableNode(LocalReference("host")), StringNode("/"))
   }
 
   it should "split into parts value with trait reference" in {
-    partsFor(s"$${port}") should have(
-      '_1(List("", "")),
-      '_2(List(LocalReference("port")))
-    )
+    nodes(s"$${port}") shouldBe
+      List(VariableNode(LocalReference("port")))
   }
 
   it should "split into parts value with trait reference and prefix" in {
-    partsFor(s"a$${db.host}") should have(
-      '_1(List("a", "")),
-      '_2(List(HostReference("db")))
-    )
+    nodes(s"a$${db.host}") shouldBe
+      List(StringNode("a"), VariableNode(HostReference("db")))
   }
 
   it should "split into parts value with trait reference and postfix" in {
-    partsFor(s"$${port}/") should have(
-      '_1(List("", "/")),
-      '_2(List(LocalReference("port")))
-    )
+    nodes(s"$${port}/") shouldBe
+      List(VariableNode(LocalReference("port")), StringNode("/"))
   }
 
   it should "split into parts value with trait reference, prefix and postfix" in {
-    partsFor(s"{$${es.constants.port}}") should have(
-      '_1(List("{", "}")),
-      '_2(List(TraitReference("es", "constants", "port")))
-    )
+    nodes(s"{$${es.constants.port}}") shouldBe
+      List(StringNode("{"), VariableNode(TraitReference("es", "constants", "port")), StringNode("}"))
   }
 
   it should "split into parts sequence" in {
-    partsFor("/$a$b$c/") should have(
-      '_1(List("/", "", "", "/")),
-      '_2(List(LocalReference("a"), LocalReference("b"), LocalReference("c")))
-    )
+    nodes("/$a$b$c/") shouldBe
+      List(StringNode("/"), VariableNode(LocalReference("a")), VariableNode(LocalReference("b")), VariableNode(LocalReference("c")), StringNode("/"))
   }
 
   it should "ignore $$" in {
-    partsFor("a$$b") should have(
-      '_1(List("a", "b")),
-      '_2(List(LocalReference("$")))
-    )
+    nodes("a$$b") shouldBe
+      List(StringNode("a$b"))
   }
 
   it should "ignore $$$$" in {
-    partsFor("a$$$$b") should have(
-      '_1(List("a", "", "b")),
-      '_2(List(LocalReference("$"), LocalReference("$")))
-    )
+    nodes("a$$$$b") shouldBe
+      List(StringNode("a$$b"))
   }
 
   it should "$$ with immediate reference" in {
-
-    partsFor("$$$d") should have(
-      '_1(List("", "", "")),
-      '_2(List(LocalReference("$"), LocalReference("d")))
-    )
+    nodes("$$$d") shouldBe
+      List(StringNode("$"), VariableNode(LocalReference("d")))
   }
 
   it should "ignore $$ with reference" in {
-    partsFor("a$$b$d") should have(
-      '_1(List("a", "b", "")),
-      '_2(List(LocalReference("$"), LocalReference("d")))
-    )
+    nodes("a$$b$d") shouldBe
+      List(StringNode("a$b"), VariableNode(LocalReference("d")))
   }
 
   it should "split multiple references" in {
-    partsFor(s"http://$${api.host}:$$port/api/$${api.constants.version}/$${resource}/$$id") should have(
-      '_1(List("http://", ":", "/api/", "/", "/", "")),
-      '_2(List(HostReference("api"), LocalReference("port"), TraitReference("api", "constants", "version"), LocalReference("resource"), LocalReference("id")))
-    )
+    nodes(s"http://$${api.host}:$$port/api/$${api.constants.version}/$${resource}/$$id") shouldBe
+      List(
+        StringNode("http://"),
+        VariableNode(HostReference("api")),
+        StringNode(":"),
+        VariableNode(LocalReference("port")),
+        StringNode("/api/"),
+        VariableNode(TraitReference("api", "constants", "version")),
+        StringNode("/"),
+        VariableNode(LocalReference("resource")),
+        StringNode("/"),
+        VariableNode(LocalReference("id"))
+      )
   }
 
   it should "split into parts host reference without {}" in {
-    partsFor("a$db.host:") should have(
-      '_1(List("a", ":")),
-      '_2(List(HostReference("db")))
-    )
+    nodes("a$db.host:") shouldBe
+      List(StringNode("a"), VariableNode(HostReference("db")), StringNode(":"))
   }
 
   it should "split into parts trait reference without {}" in {
-    partsFor("a$api.constants.version/") should have(
-      '_1(List("a", "/")),
-      '_2(List(TraitReference("api", "constants", "version")))
-    )
+    nodes("a$api.constants.version/") shouldBe
+      List(StringNode("a"), VariableNode(TraitReference("api", "constants", "version")), StringNode("/"))
   }
 }

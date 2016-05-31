@@ -25,7 +25,7 @@ trait FilterConditionParser extends BooleanParser {
   }
 
   override def ValueOperand: Rule1[AstNode] = rule {
-    OptionalWhiteSpace ~ "{" ~ oneOrMore(noneOf("{}")) ~> ((value: String) ⇒ Value(value.trim)) ~ "}"
+    OptionalWhiteSpace ~ "<" ~ oneOrMore(noneOf("<>")) ~> ((value: String) ⇒ Value(value.trim)) ~ ">"
   }
 
   def HostOperand = rule {

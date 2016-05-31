@@ -12,7 +12,6 @@ import io.vamp.gateway_driver.aggregation.MetricsActor
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor
 import io.vamp.model.artifact.DeploymentService.State.Intention._
-import io.vamp.model.artifact.DeploymentService.State.Step.Update
 import io.vamp.model.artifact.{ Deployment, Gateway }
 import io.vamp.operation.controller.DeploymentApiController
 import io.vamp.operation.deployment.DeploymentSynchronizationActor

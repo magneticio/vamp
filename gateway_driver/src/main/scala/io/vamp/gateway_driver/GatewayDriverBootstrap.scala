@@ -29,6 +29,11 @@ object GatewayDriverBootstrap extends Bootstrap {
 
     val actors = List(
       IoC.createActor[GatewayDriverActor](new HaProxyGatewayMarshaller() {
+
+        override def virtualHostDomain: String = gatewayDriverConfiguration.getString("virtual-hosts-domain")
+
+        override def virtualHosts: Boolean = gatewayDriverConfiguration.getBoolean("virtual-hosts")
+
         override def tcpLogFormat: String = haproxyConfiguration.getString("tcp-log-format")
 
         override def httpLogFormat: String = haproxyConfiguration.getString("http-log-format")

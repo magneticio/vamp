@@ -7,7 +7,7 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact.DefaultScale
 import io.vamp.model.event.Event
-import io.vamp.model.reader.MegaByte
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.workflow._
 import io.vamp.operation.OperationBootstrap
 import io.vamp.operation.notification._
@@ -30,7 +30,7 @@ object WorkflowActor {
   val containerImage = config.getString("container-image")
 
   val scale = config.getConfig("scale") match {
-    case c ⇒ DefaultScale("", c.getDouble("cpu"), MegaByte.of(c.getString("memory")), c.getInt("instances"))
+    case c ⇒ DefaultScale("", Quantity.of(c.getDouble("cpu")), MegaByte.of(c.getString("memory")), c.getInt("instances"))
   }
 
   object RescheduleAll

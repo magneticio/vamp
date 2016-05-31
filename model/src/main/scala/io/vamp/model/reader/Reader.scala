@@ -6,7 +6,7 @@ import io.vamp.common.notification.{ NotificationErrorException, NotificationPro
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
-import io.vamp.model.resolver.TraitResolver
+import io.vamp.model.resolver.TraitNameAliasResolver
 import org.json4s.native.Serialization
 import org.json4s.{ DefaultFormats, Formats }
 import org.yaml.snakeyaml.Yaml
@@ -254,7 +254,7 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] with AnonymousYamlReader[
   protected def asReferenceOf: String = getClass.getSimpleName.substring(0, getClass.getSimpleName.indexOf("Reader")).toLowerCase
 }
 
-trait TraitReader extends TraitResolver {
+trait TraitReader extends TraitNameAliasResolver {
   this: YamlReader[_] ⇒
 
   def parseTraits[A <: Trait](source: Option[YamlSourceReader], mapper: (String, Option[String], Option[String]) ⇒ A, alias: Boolean): List[A] = {
@@ -265,8 +265,8 @@ trait TraitReader extends TraitResolver {
           if (value.isInstanceOf[Map[_, _]] || value.isInstanceOf[List[_]])
             throwException(MalformedTraitError(name))
 
-          val nameAlias = resolveNameAlias(name)
-          mapper(nameAlias._1, if (alias) nameAlias._2 else None, if (value == null) None else Some(value.toString))
+          val (nameValue, aliasValue) = resolveNameAlias(name)
+          mapper(nameValue, if (alias) aliasValue else None, if (value == null) None else Some(value.toString))
       } toList
     }
   }

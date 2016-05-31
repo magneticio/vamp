@@ -1,0 +1,13 @@
+name: sava
+port: 8080/http
+service:
+  host: 127.0.0.1
+  port: 31234
+
+sticky: route
+
+routes:
+  sava1:
+    weight: 50%
+  sava2/v1:
+    weight: 50%

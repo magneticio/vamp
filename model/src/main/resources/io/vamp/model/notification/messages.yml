@@ -33,6 +33,7 @@ UnresolvedScaleEscalationTargetCluster : "Unresolved scale escalation target clu
 NoServiceError$                        : "Expected at least one service."
 MissingEnvironmentVariableError        : "Missing environment variable value for '{name}' in service '{breed.name}.'"
 IllegalGatewayStickyValue              : "Illegal routing sticky value: '{sticky}'."
+IllegalGatewayVirtualHosts$            : "Illegal gateway virtual hosts - only list of strings is supported."
 UnresolvedServiceRouteError            : "Unresolved service route for '{cluster.name}' and '{service}'."
 UnsupportedGatewayNameError            : "Unsupported gateway name: '{name}'. Must be either in format '$gateway', '$deployment/$port' or '$deployment/$cluster/$port'."
 UnsupportedRoutePathError              : "Unsupported route path: '{path.source}'. Must be one of: '$gateway', '$deployment/$port' or '$deployment/$cluster/$port'."

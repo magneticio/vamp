@@ -3,14 +3,19 @@ package io.vamp.operation.gateway
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
+import io.vamp.container_driver.ContainerDriverActor
+import io.vamp.container_driver.ContainerDriverActor.DeployedGateways
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor.Commit
 import io.vamp.model.artifact._
+import io.vamp.model.event.Event
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.PersistenceActor.{ Create, Update }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.persistence.operation.{ GatewayDeploymentStatus, GatewayPort, RouteTargets }
+import io.vamp.pulse.PulseActor
+import io.vamp.pulse.PulseActor.Publish
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -112,6 +117,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       }
 
       gateway.copy(routes = routes)
+
     } partition { gateway ⇒
       gateway.routes.forall {
         case route: DefaultRoute if route.targets.nonEmpty ⇒ targets(pipeline.deployable, deployments, route) == route.targets
@@ -159,7 +165,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
             }.flatMap {
               _.clusters.find(_.name == cluster)
             }.flatMap {
-              _.portMapping.get(port)
+              _.portBy(port)
             }.flatMap { port ⇒
               if (port != 0) Option(InternalRouteTarget(route.path.normalized, port)) else None
             } :: Nil
@@ -188,6 +194,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   }
 
   private def select: GatewayPipeline ⇒ List[Gateway] = { pipeline ⇒
+
     def byDeploymentName(gateways: List[Gateway]) = gateways.filter(_.inner).groupBy(gateway ⇒ GatewayPath(gateway.name).segments.head)
 
     val currentByDeployment = byDeploymentName(current)
@@ -200,18 +207,34 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       case (_, g) ⇒ g
     }
 
-    current = pipeline.deployable.filterNot(_.inner) ++ inner
+    val selected = pipeline.deployable.filterNot(_.inner) ++ inner
+
+    val currentAsMap = current.map(g ⇒ g.name -> g).toMap
+    val selectedAsMap = selected.map(g ⇒ g.name -> g).toMap
+
+    currentAsMap.keySet.diff(selectedAsMap.keySet).foreach(name ⇒ sendEvent(currentAsMap.get(name).get, "undeployed"))
+    selectedAsMap.keySet.diff(currentAsMap.keySet).foreach(name ⇒ sendEvent(selectedAsMap.get(name).get, "deployed"))
+
+    current = selected
     current
   }
 
   private def flush: List[Gateway] ⇒ Unit = { gateways ⇒
-    IoC.actorFor[GatewayDriverActor] ! Commit {
-      gateways sortWith { (gateway1, gateway2) ⇒
-        val len1 = GatewayPath(gateway1.name).segments.size
-        val len2 = GatewayPath(gateway2.name).segments.size
-        if (len1 == len2) gateway1.name.compareTo(gateway2.name) < 0
-        else len1 < len2
-      }
+
+    val sorted = gateways sortWith { (gateway1, gateway2) ⇒
+      val len1 = GatewayPath(gateway1.name).segments.size
+      val len2 = GatewayPath(gateway2.name).segments.size
+      if (len1 == len2) gateway1.name.compareTo(gateway2.name) < 0
+      else len1 < len2
     }
+
+    IoC.actorFor[GatewayDriverActor] ! Commit(sorted)
+    IoC.actorFor[ContainerDriverActor] ! DeployedGateways(sorted)
+  }
+
+  private def sendEvent(gateway: Gateway, event: String) = {
+    log.info(s"Gateway event: ${gateway.name} - $event")
+    val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event)
+    IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway), publishEventValue = true)
   }
 }

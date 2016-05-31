@@ -9,6 +9,7 @@ object Gateway {
   val anonymous = ""
 
   object Sticky extends Enumeration {
+
     val Route, Instance = Value
 
     def byName(sticky: String): Option[Sticky.Value] = Gateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
@@ -17,7 +18,9 @@ object Gateway {
   def inner(name: String) = GatewayPath(name).segments.size == 3
 }
 
-case class Gateway(name: String, port: Port, sticky: Option[Gateway.Sticky.Value], routes: List[Route], deployed: Boolean = false) extends Artifact with Lookup {
+case class GatewayService(host: String, port: Port)
+
+case class Gateway(name: String, port: Port, service: Option[GatewayService], sticky: Option[Gateway.Sticky.Value], virtualHosts: List[String], routes: List[Route], deployed: Boolean = false) extends Artifact with Lookup {
 
   def routeBy(path: GatewayPath) = routes.find(_.path == path)
 
@@ -78,6 +81,10 @@ sealed trait Route extends Artifact {
 
 case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
 
+object DefaultRoute {
+  val defaultBalance = "default"
+}
+
 case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filterStrength: Option[Percentage], filters: List[Filter], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
 
   def hasRoutingFilters: Boolean = filters.exists(_.isInstanceOf[DefaultFilter])
@@ -87,7 +94,7 @@ case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percenta
 
 object InternalRouteTarget {
 
-  val host = "localhost"
+  val host = "127.0.0.1"
 
   def apply(name: String, port: Int) = new InternalRouteTarget(name, host, port)
 }

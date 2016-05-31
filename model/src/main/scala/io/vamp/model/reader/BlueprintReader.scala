@@ -58,7 +58,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
                       case None      ⇒
                       case Some(ref) ⇒ >>("breed", ref)
                     }
-                    case Some(_) ⇒ >>("breed", source)
+                    case Some(_) ⇒ >>("breed", <<-())
                   }
                 case _ ⇒
               }
@@ -362,6 +362,6 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
   override protected def createReference(implicit source: YamlSourceReader): Scale = ScaleReference(reference)
 
   override protected def createDefault(implicit source: YamlSourceReader): Scale = {
-    DefaultScale(name, <<![Double]("cpu"), <<![MegaByte]("memory"), <<?[Int]("instances").getOrElse(1))
+    DefaultScale(name, <<![Quantity]("cpu"), <<![MegaByte]("memory"), <<?[Int]("instances").getOrElse(1))
   }
 }

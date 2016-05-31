@@ -1,0 +1,8 @@
+name: sava
+port: 8080
+
+virtual_hosts: "inline"
+
+routes:
+  [external/1/2]:
+    weight: 100%

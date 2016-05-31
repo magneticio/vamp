@@ -5,6 +5,8 @@ import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
 import io.vamp.model.artifact._
 
+import scala.language.postfixOps
+
 object HaProxyGatewayMarshaller {
 
   val version = ConfigFactory.load().getString("vamp.gateway-driver.haproxy.version").trim
@@ -28,6 +30,10 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   override lazy val info: AnyRef = s"HAProxy v$version.x"
 
+  def virtualHostDomain: String = ""
+
+  def virtualHosts: Boolean
+
   def tcpLogFormat: String
 
   def httpLogFormat: String
@@ -35,11 +41,24 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   override def marshall(gateways: List[Gateway]): String = HaProxyConfigurationTemplate(convert(gateways)).body.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n")
 
   private[haproxy] def convert(gateways: List[Gateway]): HaProxy = {
-    gateways.map(convert).reduceOption((m1, m2) ⇒ m1.copy(m1.frontends ++ m2.frontends, m1.backends ++ m2.backends)).getOrElse(HaProxy(Nil, Nil, version, tcpLogFormat, httpLogFormat))
+    gateways.map(convert).reduceOption((m1, m2) ⇒ m1.copy(
+      frontends = m1.frontends ++ m2.frontends,
+      backends = m1.backends ++ m2.backends,
+      virtualHostFrontends = m1.virtualHostFrontends ++ m2.virtualHostFrontends,
+      virtualHostBackends = m1.virtualHostBackends ++ m2.virtualHostBackends
+    )).getOrElse(
+      HaProxy(version, Nil, Nil, Nil, Nil, tcpLogFormat, httpLogFormat)
+    )
   }
 
-  private[haproxy] def convert(gateway: Gateway): HaProxy = backends(gateway) match {
-    case backend ⇒ HaProxy(frontends(backend, gateway), backend, version, tcpLogFormat, httpLogFormat)
+  private[haproxy] def convert(gateway: Gateway): HaProxy = {
+    val be = backends(gateway)
+    val fe = frontends(be, gateway)
+
+    val vbe = virtualHostsBackends(gateway)
+    val vfe = virtualHostsFrontends(vbe, gateway)
+
+    HaProxy(version, fe, be, vfe, vbe, tcpLogFormat, httpLogFormat)
   }
 
   private def frontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {
@@ -202,4 +221,80 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   private def mode(implicit gateway: Gateway) = if (gateway.port.`type` == Port.Type.Http) Mode.http else Mode.tcp
 
   private def unixSocket(id: String)(implicit gateway: Gateway) = s"$socketPath/$id.sock"
+
+  private def virtualHostsFrontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {
+
+    val default = virtualHosts match {
+      case true ⇒
+        val acl = Acl(s"hdr(host) -i $domain")
+        Frontend(
+          name = GatewayMarshaller.name(gateway),
+          lookup = GatewayMarshaller.lookup(gateway),
+          bindIp = None,
+          bindPort = None,
+          mode = mode,
+          unixSock = None,
+          sockProtocol = None,
+          options = Options(),
+          filters = Filter(
+            GatewayMarshaller.lookup(gateway),
+            backendFor(GatewayMarshaller.lookup(gateway)),
+            Option(HaProxyAcls(acl :: Nil, Option(acl.name)))
+          ) :: Nil,
+          defaultBackend = backendFor(GatewayMarshaller.lookup(gateway))
+        ) :: Nil
+
+      case false ⇒ Nil
+    }
+
+    val explicit = gateway.virtualHosts.map { virtualHost ⇒
+      val acl = Acl(s"hdr(host) -i $virtualHost")
+      Frontend(
+        name = GatewayMarshaller.name(gateway),
+        lookup = GatewayMarshaller.lookup(gateway),
+        bindIp = None,
+        bindPort = None,
+        mode = mode,
+        unixSock = None,
+        sockProtocol = None,
+        options = Options(),
+        filters = Filter(
+          GatewayMarshaller.lookup(gateway),
+          backendFor(GatewayMarshaller.lookup(gateway)),
+          Option(HaProxyAcls(acl :: Nil, Option(acl.name)))
+        ) :: Nil,
+        defaultBackend = backendFor(GatewayMarshaller.lookup(gateway))
+      )
+    }
+
+    default ++ explicit
+  }
+
+  private def virtualHostsBackends(implicit gateway: Gateway): List[Backend] = virtualHosts || gateway.virtualHosts.nonEmpty match {
+    case true ⇒
+      Backend(
+        name = GatewayMarshaller.name(gateway),
+        lookup = GatewayMarshaller.lookup(gateway),
+        mode = mode,
+        proxyServers = Nil,
+        servers = Server(
+          name = GatewayMarshaller.name(gateway),
+          lookup = GatewayMarshaller.lookup(gateway),
+          url = s"127.0.0.1:${gateway.port.number}",
+          weight = 100
+        ) :: Nil,
+        rewrites = Nil,
+        sticky = false,
+        balance = "",
+        options = Options()
+      ) :: Nil
+
+    case false ⇒ Nil
+  }
+
+  private def domain(implicit gateway: Gateway): String = {
+    (GatewayPath(gateway.name).segments.reverse ++ virtualHostDomain.split('.').toList).map(_.trim).filterNot(_.isEmpty).map({ domain ⇒
+      if (domain.matches("^[\\d\\p{L}].*$")) domain.replaceAll("[^\\p{L}\\d]", "-") else domain
+    }).mkString(".")
+  }
 }

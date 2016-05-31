@@ -6,8 +6,11 @@ import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
 import io.vamp.model.artifact._
+import io.vamp.persistence.db.PersistenceActor
+import io.vamp.persistence.operation.GatewayServiceAddress
 import io.vamp.pulse.notification.PulseFailureNotifier
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 object ContainerDriverActor {
@@ -22,6 +25,8 @@ object ContainerDriverActor {
 
   case class Undeploy(deployment: Deployment, service: DeploymentService) extends ContainerDriveMessage
 
+  case class DeployedGateways(gateway: List[Gateway]) extends ContainerDriveMessage
+
 }
 
 case class ContainerService(matching: (Deployment, Breed) ⇒ Boolean, scale: DefaultScale, instances: List[ContainerInstance])
@@ -33,6 +38,21 @@ case class ContainerInfo(`type`: String, container: Any)
 trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForActors with ContainerDriverNotificationProvider {
 
   implicit val timeout = ContainerDriverActor.timeout
+
+  val gatewayServiceIp = ConfigFactory.load().getString("vamp.gateway-driver.host")
+
+  protected def deployedGateways(gateways: List[Gateway]): Future[Any] = {
+    gateways.filter {
+      gateway ⇒ gateway.service.isEmpty && gateway.port.assigned
+    } foreach {
+      gateway ⇒ setGatewayService(gateway, gatewayServiceIp, gateway.port.number)
+    }
+    Future.successful(true)
+  }
+
+  protected def setGatewayService(gateway: Gateway, host: String, port: Int) = {
+    IoC.actorFor[PersistenceActor].forward(PersistenceActor.Create(GatewayServiceAddress(gateway.name, host, port)))
+  }
 
   override def errorNotificationClass = classOf[ContainerResponseError]
 

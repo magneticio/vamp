@@ -1,7 +1,5 @@
 package io.vamp.operation.deployment
 
-import java.util.UUID
-
 import akka.pattern.ask
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -32,7 +30,7 @@ object DeploymentActor {
   val gatewayHost = config.getString("vamp.gateway-driver.host")
 
   val defaultScale = config.getConfig("vamp.operation.deployment.scale") match {
-    case c ⇒ DefaultScale("", c.getDouble("cpu"), MegaByte.of(c.getString("memory")), c.getInt("instances"))
+    case c ⇒ DefaultScale("", Quantity.of(c.getDouble("cpu")), MegaByte.of(c.getString("memory")), c.getInt("instances"))
   }
 
   val defaultArguments: List[Argument] = {
@@ -72,7 +70,7 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
 
   def receive = {
     case Create(blueprint, source, validateOnly) ⇒ reply {
-      (merge(deploymentFor(blueprint), validateOnly) andThen commit(source, validateOnly))(deploymentFor())
+      (merge(deploymentFor(blueprint), validateOnly) andThen commit(source, validateOnly))(deploymentFor(blueprint.name, create = true))
     }
 
     case Merge(name, blueprint, source, validateOnly) ⇒ reply {
@@ -115,10 +113,6 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
 trait BlueprintSupport extends DeploymentValidator with NameValidator with BlueprintRoutingHelper with ArtifactExpansionSupport {
   this: ActorSystemProvider with ArtifactPaginationSupport with ExecutionContextProvider with NotificationProvider ⇒
 
-  private def uuid = UUID.randomUUID.toString
-
-  def deploymentFor(): Future[Deployment] = Future(Deployment(uuid, Nil, Nil, Nil, Nil, Nil))
-
   def deploymentFor(name: String, create: Boolean = false): Future[Deployment] = {
     if (!create) {
       artifactFor[Deployment](name)
@@ -149,7 +143,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
             routing ← expandGateways(cluster.routing)
 
           } yield {
-            DeploymentCluster(cluster.name, services, processAnonymousRouting(services, routing), cluster.sla, Map(), cluster.dialects)
+            DeploymentCluster(cluster.name, services, processAnonymousRouting(services, routing), cluster.sla, cluster.dialects)
           }
         }
 
@@ -157,7 +151,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
           c ← Future.sequence(clusters)
           g ← expandGateways(bp.gateways)
         } yield {
-          Deployment(uuid, c, g, Nil, bp.environmentVariables, Nil)
+          Deployment(blueprint.name, c, g, Nil, bp.environmentVariables, Nil)
         }
     }
   }
@@ -330,6 +324,7 @@ trait DeploymentGatewayOperation {
     actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[DeploymentServiceEnvironmentVariables])
 
     actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[GatewayPort])
+    actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[GatewayServiceAddress])
     actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[GatewayDeploymentStatus])
     actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[RouteTargets])
     actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[InnerGateway])
@@ -347,7 +342,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
   def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintRoutes
 
-  def resolveProperties = resolveHosts andThen resolveRouteMapping andThen validateEmptyVariables andThen resolveDependencyMapping
+  def resolveProperties = resolveHosts andThen validateEmptyVariables andThen resolveDependencyMapping
 
   def validateMerge = validateServices andThen validateRouting andThen validateScaleEscalations andThen validateGateways
 
@@ -407,7 +402,6 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
                 case services ⇒
                   val nc = deploymentCluster.copy(
                     services = services,
-                    portMapping = cluster.portMapping ++ deploymentCluster.portMapping,
                     dialects = deploymentCluster.dialects ++ cluster.dialects,
                     routing = if (cluster.routing.nonEmpty) cluster.routing else deploymentCluster.routing,
                     sla = if (cluster.sla.isDefined) cluster.sla else deploymentCluster.sla
@@ -510,10 +504,10 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
               case Some(route) ⇒ route
             }
           }
-          newRouting.copy(routes = routes)
+          newRouting.copy(routes = routes, port = newRouting.port.copy(`type` = port.`type`))
 
         case None ⇒
-          Gateway("", Port(port.name, None, None, 0, port.`type`), None, services.map { service ⇒
+          Gateway("", Port(port.name, None, None, 0, port.`type`), None, None, Nil, services.map { service ⇒
             DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, Nil, Nil, None)
           })
       }
@@ -532,20 +526,6 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
   def resolveHosts: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
     futureDeployment.map {
       case d ⇒ d.copy(hosts = d.clusters.map(cluster ⇒ Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(DeploymentActor.gatewayHost))))
-    }
-  }
-
-  def resolveRouteMapping: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
-    futureDeployment.map {
-      case deployment ⇒
-        val clusters = deployment.clusters.map { cluster ⇒
-          val portMapping: Map[String, Int] = cluster.services.map(_.breed).flatMap(_.ports).map(port ⇒ cluster.portMapping.get(port.name) match {
-            case None         ⇒ port.name -> 0
-            case Some(number) ⇒ port.name -> number
-          }).toMap
-          cluster.copy(portMapping = portMapping)
-        }
-        deployment.copy(clusters = clusters)
     }
   }
 

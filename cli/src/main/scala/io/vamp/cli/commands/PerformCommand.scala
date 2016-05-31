@@ -35,8 +35,12 @@ object PerformCommand extends Generate {
       VampHostCalls.getBreeds.foreach({ case b: DefaultBreed ⇒ println(s"${b.name.padTo(25, ' ')}${b.deployable.name}") })
 
     case Some("blueprints") ⇒
-      println("NAME".padTo(40, ' ').bold.cyan + "ENDPOINTS".bold.cyan)
+      println("NAME".padTo(40, ' ').bold.cyan + "GATEWAYS".bold.cyan)
       VampHostCalls.getBlueprints.foreach({ case blueprint: DefaultBlueprint ⇒ println(s"${blueprint.name.padTo(40, ' ')}${blueprint.gateways.map(e ⇒ s"${e.name} -> ...").mkString(", ")}") })
+
+    case Some("gateways") ⇒
+      println("NAME".padTo(40, ' ').bold.cyan + "PORT".bold.cyan)
+      VampHostCalls.getGateways.foreach({ case gateway: Gateway ⇒ println(s"${gateway.name.padTo(40, ' ')}${gateway.port.toValue}") })
 
     case Some("deployments") ⇒
       println("NAME".padTo(40, ' ').bold.cyan + "CLUSTERS".bold.cyan)
@@ -95,6 +99,7 @@ object PerformCommand extends Generate {
     val artifact: Option[Artifact] = subCommand match {
       case Some("breed")     ⇒ VampHostCalls.getBreed(getParameter(name))
       case Some("blueprint") ⇒ VampHostCalls.getBlueprint(getParameter(name))
+      case Some("gateway")   ⇒ VampHostCalls.getGateway(getParameter(name))
       case Some("deployment") ⇒ getOptionalParameter(as_blueprint) match {
         case Some(_) ⇒ VampHostCalls.getDeploymentAsBlueprint(getParameter(name))
         case None    ⇒ VampHostCalls.getDeployment(getParameter(name))
@@ -114,6 +119,7 @@ object PerformCommand extends Generate {
   private def doCreateCommand(subCommand: Option[String])(implicit vampHost: String, options: OptionMap) = subCommand match {
     case Some("breed")      ⇒ printArtifact(VampHostCalls.createBreed(readFileContent))
     case Some("blueprint")  ⇒ printArtifact(VampHostCalls.createBlueprint(readFileContent))
+    case Some("gateway")    ⇒ printArtifact(VampHostCalls.createGateway(readFileContent))
     case Some("escalation") ⇒ printArtifact(VampHostCalls.createEscalation(readFileContent))
     case Some("filter")     ⇒ printArtifact(VampHostCalls.createFilter(readFileContent))
     case Some("rewrite")    ⇒ printArtifact(VampHostCalls.createRewrite(readFileContent))
@@ -127,6 +133,7 @@ object PerformCommand extends Generate {
   private def doUpdateCommand(subCommand: Option[String])(implicit vampHost: String, options: OptionMap) = subCommand match {
     case Some("breed")      ⇒ printArtifact(VampHostCalls.updateBreed(getParameter(name), readFileContent))
     case Some("blueprint")  ⇒ printArtifact(VampHostCalls.updateBlueprint(getParameter(name), readFileContent))
+    case Some("gateway")    ⇒ printArtifact(VampHostCalls.updateGateway(getParameter(name), readFileContent))
     case Some("escalation") ⇒ printArtifact(VampHostCalls.updateEscalation(getParameter(name), readFileContent))
     case Some("filter")     ⇒ printArtifact(VampHostCalls.updateFilter(getParameter(name), readFileContent))
     case Some("rewrite")    ⇒ printArtifact(VampHostCalls.updateRewrite(getParameter(name), readFileContent))
@@ -140,6 +147,7 @@ object PerformCommand extends Generate {
   private def doDeleteCommand(subCommand: Option[String])(implicit vampHost: String, options: OptionMap) = subCommand match {
     case Some("breed")      ⇒ VampHostCalls.deleteBreed(getParameter(name))
     case Some("blueprint")  ⇒ VampHostCalls.deleteBlueprint(getParameter(name))
+    case Some("gateways")   ⇒ VampHostCalls.deleteGateway(getParameter(name))
     case Some("escalation") ⇒ VampHostCalls.deleteEscalation(getParameter(name))
     case Some("filter")     ⇒ VampHostCalls.deleteFilter(getParameter(name))
     case Some("rewrite")    ⇒ VampHostCalls.deleteRewrite(getParameter(name))

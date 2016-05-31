@@ -9,7 +9,7 @@ import io.vamp.model.artifact.DeploymentService.State.Step.Initiated
 import io.vamp.model.artifact._
 import io.vamp.model.event.{ EventQuery, TimeRange }
 import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
-import io.vamp.model.reader.MegaByte
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.operation.notification.{ InternalServerError, OperationNotificationProvider, UnsupportedEscalationType }
 import io.vamp.operation.sla.EscalationActor.EscalationProcessAll
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor }
@@ -58,19 +58,25 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
       allArtifacts[Deployment] map (check(_, from, to))
   }
 
-  private def check(deployments: List[Deployment], from: OffsetDateTime, to: OffsetDateTime) = {
+  private def check(deployments: List[Deployment], from: OffsetDateTime, to: OffsetDateTime): Unit = {
+
+    def escalation(deployment: Deployment, cluster: DeploymentCluster, sla: Sla, escalate: Boolean) = {
+      escalateToOne(deployment, cluster, ToOneEscalation("", sla.escalations), escalate) match {
+        case Some(d) ⇒ actorFor[PersistenceActor] ! PersistenceActor.Update(d)
+        case _       ⇒
+      }
+    }
+
     deployments.foreach(deployment ⇒ {
       try {
         deployment.clusters.foreach(cluster ⇒ cluster.sla match {
           case None ⇒
           case Some(sla) ⇒
-            sla.escalations.foreach { _ ⇒
-              querySlaEvents(deployment, cluster, from, to) map {
-                case escalationEvents ⇒ escalationEvents.foreach {
-                  case Escalate(d, c, _) if d.name == deployment.name && c.name == cluster.name ⇒ escalateToAll(deployment, cluster, sla.escalations, escalate = true)
-                  case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name ⇒ escalateToAll(deployment, cluster, sla.escalations, escalate = false)
-                  case _ ⇒
-                }
+            querySlaEvents(deployment, cluster, from, to) map {
+              case escalationEvents ⇒ escalationEvents.foreach {
+                case Escalate(d, c, _) if d.name == deployment.name && c.name == cluster.name ⇒ escalation(deployment, cluster, sla, escalate = true)
+                case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name ⇒ escalation(deployment, cluster, sla, escalate = false)
+                case _ ⇒
               }
             }
         })
@@ -97,37 +103,38 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
     }
   }
 
-  private def escalateToAll(deployment: Deployment, cluster: DeploymentCluster, escalations: List[Escalation], escalate: Boolean): Boolean = {
-    escalations.foldLeft(false)((result, escalation) ⇒ result || (escalation match {
-      case e: ScaleEscalation[_] ⇒
-        log.debug(s"scale escalation: ${deployment.name}/${cluster.name}")
-        scaleEscalation(deployment, cluster, e, escalate)
+  private def escalateToAll(deployment: Deployment, cluster: DeploymentCluster, escalations: List[Escalation], escalate: Boolean): Option[Deployment] = {
+    log.debug(s"to all escalation: ${deployment.name}/${cluster.name}")
+    escalations.foldLeft[Option[Deployment]](None)((op1, op2) ⇒ op1 match {
+      case Some(d) ⇒ escalateToOne(d, cluster, op2, escalate)
+      case None    ⇒ escalateToOne(deployment, cluster, op2, escalate)
+    })
+  }
 
-      case e: ToAllEscalation ⇒
-        log.debug(s"to all escalation: ${deployment.name}/${cluster.name}")
-        escalateToAll(deployment, cluster, e.escalations, escalate)
+  private def escalateToOne(deployment: Deployment, cluster: DeploymentCluster, escalation: Escalation, escalate: Boolean): Option[Deployment] = {
+    log.debug(s"to one escalation: ${deployment.name}/${cluster.name}")
+    escalation match {
 
-      case e: ToOneEscalation ⇒
-        log.debug(s"to one escalation: ${deployment.name}/${cluster.name}")
-        (if (escalate) e.escalations else e.escalations.reverse).find(escalation ⇒ escalateToAll(deployment, cluster, escalation :: Nil, escalate)) match {
-          case None    ⇒ false
-          case Some(_) ⇒ true
-        }
+      case e: ToAllEscalation    ⇒ escalateToAll(deployment, cluster, e.escalations, escalate)
+
+      case e: ToOneEscalation    ⇒ (if (escalate) e.escalations else e.escalations.reverse).foldLeft[Option[Deployment]](None)((op1, op2) ⇒ if (op1.isDefined) op1 else escalateToOne(deployment, cluster, op2, escalate))
+
+      case e: ScaleEscalation[_] ⇒ scaleEscalation(deployment, cluster, e, escalate)
 
       case e: GenericEscalation ⇒
         info(UnsupportedEscalationType(e.`type`))
-        false
+        None
 
-      case e: Escalation ⇒
-        throwException(UnsupportedEscalationType(e.name))
-        false
-    }))
+      case e: Escalation ⇒ throwException(UnsupportedEscalationType(e.name))
+    }
   }
 
-  private def scaleEscalation(deployment: Deployment, cluster: DeploymentCluster, escalation: ScaleEscalation[_], escalate: Boolean): Boolean = {
-    def commit(targetCluster: DeploymentCluster, scale: DefaultScale) = {
+  private def scaleEscalation(deployment: Deployment, cluster: DeploymentCluster, escalation: ScaleEscalation[_], escalate: Boolean): Option[Deployment] = {
+    log.debug(s"scale escalation: ${deployment.name}/${cluster.name}")
+
+    def commit(targetCluster: DeploymentCluster, scale: DefaultScale): Option[Deployment] = {
       // Scale only the first service.
-      actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(c ⇒ {
+      Option(deployment.copy(clusters = deployment.clusters.map(c ⇒ {
         if (c.name == targetCluster.name)
           c.copy(services = c.services match {
             case head :: tail ⇒ head.copy(scale = Some(scale), state = head.state.copy(step = Initiated())) :: tail
@@ -139,13 +146,13 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
     }
 
     (escalation.targetCluster match {
-      case None ⇒ Some(cluster)
+      case None ⇒ deployment.clusters.find(_.name == cluster.name)
       case Some(name) ⇒ deployment.clusters.find(_.name == name) match {
         case None    ⇒ None
         case Some(c) ⇒ Some(c)
       }
     }) match {
-      case None ⇒ false
+      case None ⇒ None
       case Some(targetCluster) ⇒
         // Scale only the first service.
         val scale = targetCluster.services.head.scale.get
@@ -156,21 +163,19 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
             if (instances <= maximum && instances >= minimum) {
               log.info(s"scale instances: ${deployment.name}/${targetCluster.name} to $instances")
               commit(targetCluster, scale.copy(instances = instances.toInt))
-              true
             } else {
               log.debug(s"scale instances not within boundaries: ${deployment.name}/${targetCluster.name} is already ${scale.instances}")
-              false
+              None
             }
 
           case ScaleCpuEscalation(_, minimum, maximum, scaleBy, _) ⇒
-            val cpu = if (escalate) scale.cpu + scaleBy else scale.cpu - scaleBy
+            val cpu = if (escalate) scale.cpu.value + scaleBy else scale.cpu.value - scaleBy
             if (cpu <= maximum && cpu >= minimum) {
               log.info(s"scale cpu: ${deployment.name}/${targetCluster.name} to $cpu")
-              commit(targetCluster, scale.copy(cpu = cpu))
-              true
+              commit(targetCluster, scale.copy(cpu = Quantity(cpu)))
             } else {
               log.debug(s"scale cpu not within boundaries: ${deployment.name}/${targetCluster.name} is already ${scale.cpu}")
-              false
+              None
             }
 
           case ScaleMemoryEscalation(_, minimum, maximum, scaleBy, _) ⇒
@@ -178,10 +183,9 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
             if (memory <= maximum && memory >= minimum) {
               log.info(s"scale memory: ${deployment.name}/${targetCluster.name} to $memory")
               commit(targetCluster, scale.copy(memory = MegaByte(memory)))
-              true
             } else {
               log.debug(s"scale memory not within boundaries: ${deployment.name}/${targetCluster.name} is already ${scale.memory}")
-              false
+              None
             }
         }
     }
