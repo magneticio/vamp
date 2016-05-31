@@ -1,22 +1,25 @@
 package io.vamp.container_driver.rancher
 
-import io.vamp.container_driver.rancher.api.{ Service ⇒ RancherService, LaunchConfig, RancherResponse, ServiceList, RancherContainer, RancherContainerPortList, ProjectInfo, ServiceContainersList, Stacks, UpdateService }
+import io.vamp.container_driver.rancher.api.{ LaunchConfig, ProjectInfo, RancherContainer, RancherContainerPortList, RancherResponse, ServiceContainersList, ServiceList, Stacks, UpdateService, Service ⇒ RancherService }
+
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 import io.vamp.common.http.RestClient
 import io.vamp.model.artifact._
-import io.vamp.container_driver.{ ContainerDriver, ContainerPortMapping, ContainerInfo, ContainerService, ContainerInstance }
-import io.vamp.container_driver.rancher.api.{ Stack }
-import io.vamp.model.reader.MegaByte
+import io.vamp.container_driver.{ ContainerDriver, ContainerInfo, ContainerInstance, ContainerPortMapping, ContainerService }
+import io.vamp.container_driver.rancher.api.Stack
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import org.json4s._
 import org.json4s.{ DefaultFormats, Extraction, Formats }
 import akka.pattern.after
-import akka.actor.{ Scheduler, ActorSystem }
+import akka.actor.{ ActorSystem, Scheduler }
 import com.typesafe.config.ConfigFactory
+
 import scala.language.postfixOps
 import org.joda.time.DateTime
 import com.google.common.io.BaseEncoding
 import com.google.common.base.Charsets
+import io.vamp.container_driver.docker.DockerDriverNameMatcher
 
 case class Task(id: String, name: String, host: String, ports: List[Int], startedAt: Option[String])
 case class App(id: String, instances: Int, cpus: Double, mem: Double, tasks: List[Task])
@@ -24,7 +27,7 @@ case class DockerParameter(key: String, value: String)
 case class Container(docker: Docker, `type`: String = "DOCKER")
 case class Docker(image: String, portMappings: List[ContainerPortMapping], parameters: List[DockerParameter], network: String = "BRIDGE")
 
-trait RancherDriver extends ContainerDriver {
+trait RancherDriver extends ContainerDriver with DockerDriverNameMatcher {
 
   override val nameDelimiter = "-"
   override def appId(deployment: Deployment, breed: Breed): String = s"vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
@@ -38,7 +41,7 @@ trait RancherDriver extends ContainerDriver {
 
   /** Duplicate code from Marathon **/
   private def containerService(app: App): ContainerService =
-    ContainerService(nameMatcher(app.id), DefaultScale("", app.cpus, MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
+    ContainerService(nameMatcher(app.id), DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
 
   private def retry[T](op: ⇒ Future[T], delay: FiniteDuration, retries: Int)(s: Scheduler): Future[T] =
     op recoverWith { case _ if retries > 0 ⇒ after(delay, s)(retry(op, delay, retries - 1)(s)) }
@@ -63,7 +66,7 @@ trait RancherDriver extends ContainerDriver {
   private[rancher] def getRancherService(environment: String, deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): RancherService = {
     val dockerContainer = container(deployment, cluster, service)
     val id = appId(deployment, service.breed)
-    val rs = RancherService(None, environment, None, id, Some(service.scale.get.instances), Some(LaunchConfig(s"docker:${dockerContainer.get.docker.image}", None, false, Some(service.scale.get.cpu.toInt.toString), Some(service.scale.get.memory.value.toString.replace("MB", "").toDouble.toInt.toString))), None)
+    val rs = RancherService(None, environment, None, id, Some(service.scale.get.instances), Some(LaunchConfig(s"docker:${dockerContainer.get.docker.image}", None, false, Some(service.scale.get.cpu.value.toInt.toString), Some(service.scale.get.memory.value.toString.replace("MB", "").toDouble.toInt.toString))), None)
     rs
   }
 
@@ -96,7 +99,8 @@ trait RancherDriver extends ContainerDriver {
     Future.sequence {
       serviceList map { service ⇒
         RestClient.get[ServiceContainersList](serviceContainersListUrl(service.id.get), List(authorization)) flatMap { list ⇒ getContainerPorts(list.data) } map {
-          conts ⇒ {
+          conts ⇒
+            {
               service.copy(containers = Some(conts))
             }
         }
@@ -201,7 +205,8 @@ trait RancherDriver extends ContainerDriver {
 
   private[rancher] def checkIfServiceExist(service: RancherService): Future[RancherService] = {
     RestClient.get[ServiceList](serviceListUrl, List(authorization)) map {
-      data ⇒ {
+      data ⇒
+        {
           val list = data.data filter (srv ⇒ srv.name == service.name)
           if (list != None && !list.isEmpty) {
             /* If service exists update scale parameters **/
@@ -223,7 +228,8 @@ trait RancherDriver extends ContainerDriver {
       stack ⇒
         /* Manage exception **/
         val rancherService = getRancherService(stack.id.get, deployment, cluster, service)
-        checkIfServiceExist(rancherService) flatMap { s ⇒ {
+        checkIfServiceExist(rancherService) flatMap { s ⇒
+          {
             if (s.id == None)
               publishService(rancherService, stack.id.get)
             else {
@@ -248,7 +254,7 @@ trait RancherDriver extends ContainerDriver {
     val foundService = getServicesList map { services ⇒ services.data filter { _.name == id } }
     foundService map { list ⇒
       list map { s ⇒
-        RestClient.delete(serviceUndeployUrl(s.id.get), List(authorization)) flatMap { r ⇒ checkIfServiceIsAlive(r) }
+        RestClient.delete(serviceUndeployUrl(s.id.get), List(authorization)) flatMap { _ ⇒ checkIfServiceIsAlive(s) }
       }
     }
   }

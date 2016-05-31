@@ -23,6 +23,10 @@ object ContainerDriverBootstrap extends Bootstrap with ContainerDriverNotificati
         IoC.alias[ContainerDriverActor, DockerDriverActor]
         IoC.createActor[DockerDriverActor]
 
+      case "kubernetes" ⇒
+        IoC.alias[ContainerDriverActor, KubernetesDriverActor]
+        IoC.createActor[KubernetesDriverActor]
+
       case "marathon" ⇒
         IoC.alias[ContainerDriverActor, MarathonDriverActor]
         IoC.createActor[MarathonDriverActor]
@@ -30,10 +34,6 @@ object ContainerDriverBootstrap extends Bootstrap with ContainerDriverNotificati
       case "rancher" ⇒
         IoC.alias[ContainerDriverActor, RancherDriverActor]
         IoC.createActor[RancherDriverActor]
-
-      case "kubernetes" ⇒
-        IoC.alias[ContainerDriverActor, KubernetesDriverActor]
-        IoC.createActor[KubernetesDriverActor]
 
       case value ⇒ throwException(UnsupportedContainerDriverError(value))
     }
