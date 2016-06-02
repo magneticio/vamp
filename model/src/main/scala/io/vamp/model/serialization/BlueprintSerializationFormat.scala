@@ -36,8 +36,6 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomp
 class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] with DialectSerializer with RoutingSerializer {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
     case ("name", _)                                ⇒ None
-    case ("portMapping", portMapping)               ⇒ None
-    case ("servicePortMapping", servicePortMapping) ⇒ None
     case ("routing", routing)                       ⇒ Some(("routing", serializeRoutings(routing.asInstanceOf[List[Gateway]])))
     case ("dialects", dialects)                     ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
   }
@@ -65,7 +63,7 @@ trait BlueprintScaleSerializer extends ReferenceSerialization {
       val list = new ArrayBuffer[JField]
       if (scale.name.nonEmpty && full)
         list += JField("name", JString(scale.name))
-      list += JField("cpu", JString(scale.cpu.normalized))
+      list += JField("cpu", JDouble(scale.cpu.normalized.toDouble))
       list += JField("memory", JString(scale.memory.normalized))
       list += JField("instances", JInt(scale.instances))
       new JObject(list.toList)
