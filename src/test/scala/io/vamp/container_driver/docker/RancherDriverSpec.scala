@@ -31,7 +31,7 @@ class RancherDriverSpec extends FlatSpec with Matchers with BeforeAndAfterAll wi
     println("RSULTADO: " + res2)
   }
   */
-  
+
   /*
   def fixture = new {
     //val ec = scala.concurrent.ExecutionContext.global 
