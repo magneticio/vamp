@@ -2,6 +2,7 @@ package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorLogging
 import io.vamp.common.http.RestClient
+import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver._
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
@@ -27,33 +28,42 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   protected def replicas(id: String) = s"$replicaSetUrl?${labelSelector(labels(id))}"
 
-  protected def allContainerServices: Future[List[ContainerService]] = {
+  protected def allContainerServices(deploymentServices: List[DeploymentServices]): Future[List[ContainerService]] = {
     log.debug(s"kubernetes get all")
-    RestClient.get[KubernetesApiResponse](deploymentUrl, apiHeaders).flatMap(deployments ⇒ containerServices(deployments))
+    RestClient.get[KubernetesApiResponse](deploymentUrl, apiHeaders).flatMap(deployments ⇒ containerServices(deploymentServices, deployments))
   }
 
-  private def containerServices(deployments: KubernetesApiResponse): Future[List[ContainerService]] = {
-    //    Future.sequence {
-    //      deployments.items.flatMap {
-    //        case item ⇒
-    //          val name = item.metadata.name
-    //          val scale: Option[DefaultScale] = item.spec.template.flatMap(_.spec.containers.headOption).map(_.resources.requests).map(request ⇒
-    //            DefaultScale("", Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1))
-    //          )
-    //          val ports = item.spec.template.flatMap(_.spec.containers.headOption).map(_.ports.map(_.containerPort)).getOrElse(Nil)
-    //
-    //          if (name.split(nameDelimiter).length == 2 && scale.isDefined) {
-    //            RestClient.get[KubernetesApiResponse](pods(name), apiHeaders).map { pods ⇒
-    //              val instances = pods.items.map { pod ⇒
-    //                ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
-    //              }
-    //              ContainerService(nameMatcher(name), scale.get, instances)
-    //            } :: Nil
-    //
-    //          } else Nil
-    //      }
-    //    }
-    Future.successful(Nil)
+  private def containerServices(deploymentServices: List[DeploymentServices], response: KubernetesApiResponse): Future[List[ContainerService]] = Future.sequence {
+
+    val deployed = response.items.map(item ⇒ item.metadata.name -> item).toMap
+
+    deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).flatMap {
+      case (deployment, service) ⇒
+
+        val id = appId(deployment, service.breed)
+
+        deployed.get(id) match {
+
+          case Some(item) ⇒
+
+            val ports = item.spec.template.flatMap(_.spec.containers.headOption).map(_.ports.map(_.containerPort)).getOrElse(Nil)
+            val scale: Option[DefaultScale] = item.spec.template.flatMap(_.spec.containers.headOption).map(_.resources.requests).map(request ⇒
+              DefaultScale("", Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1))
+            )
+
+            if (scale.isDefined) {
+              RestClient.get[KubernetesApiResponse](pods(id), apiHeaders).map { pods ⇒
+                val instances = pods.items.map { pod ⇒
+                  ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
+                }
+                ContainerService(deployment, service, Option(Containers(scale.get, instances)))
+              } :: Nil
+
+            } else Nil
+
+          case None ⇒ Future.successful(ContainerService(deployment, service, None)) :: Nil
+        }
+    }
   }
 
   protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {

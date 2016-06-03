@@ -21,8 +21,6 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
 
   protected def artifactName2Id(artifact: Artifact): String
 
-  protected def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
-
   protected def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[ContainerPortMapping] = {
     service.breed.ports.map(port ⇒
       port.value match {
