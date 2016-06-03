@@ -54,7 +54,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
   def receive = {
     case InfoRequest                ⇒ reply(info)
-    //case All                        ⇒ reply(allContainerServices)
+    case Get(services)              ⇒ get(services)
     case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
@@ -72,6 +72,11 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     version ← RestClient.get[Any](s"$apiUrl/version", apiHeaders)
   } yield {
     ContainerInfo("kubernetes", KubernetesDriverInfo(version, paths, api, apis))
+  }
+
+  protected def get(deploymentServices: List[DeploymentServices]) = {
+    val replyTo = sender()
+    allContainerServices(deploymentServices).map(_.foreach { replyTo ! _ })
   }
 
   protected override def deployedGateways(gateways: List[Gateway]) = {

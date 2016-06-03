@@ -36,7 +36,7 @@ trait DockerDriver extends ContainerDriver with DockerDriverNameMatcher {
 
   protected override def appId(deployment: Deployment, breed: Breed): String = s"vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
-  protected override def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
+  //protected override def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
 
   /** Duplicate code from Marathon **/
   //  private def containerService(app: App): ContainerService = {

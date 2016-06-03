@@ -31,7 +31,7 @@ trait RancherDriver extends ContainerDriver with DockerDriverNameMatcher {
 
   override val nameDelimiter = "-"
   override def appId(deployment: Deployment, breed: Breed): String = s"vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
-  override def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
+  //override def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
 
   private[rancher] def requestPayload[A](payload: A) = {
     implicit val formats: Formats = DefaultFormats
