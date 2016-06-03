@@ -28,10 +28,10 @@ class DockerDriverSpec extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val list = fixture.driver.all
     val containersList = Await.result(list, 5 seconds)
 
-    val containersList2 = containersList.filter { x ⇒ x.matching.apply(deployment2, fixture.breed) }
-
-    containersList2 should not be empty
-    containersList2 should have length 1
+    //    val containersList2 = containersList.filter { x ⇒ x.matching.apply(deployment2, fixture.breed) }
+    //
+    //    containersList2 should not be empty
+    //    containersList2 should have length 1
   }
 
   it should "kill available container" in {

@@ -1,8 +1,8 @@
 package io.vamp.operation.deployment
 
-import io.vamp.common.akka.{ IoC, CommonSupportForActors }
 import io.vamp.common.akka.IoC._
-import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService }
+import io.vamp.common.akka.{ CommonSupportForActors, IoC }
+import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService, Containers }
 import io.vamp.model.artifact.DeploymentService.State.Intention
 import io.vamp.model.artifact.DeploymentService.State.Step.{ Done, Update }
 import io.vamp.model.artifact._
@@ -19,7 +19,7 @@ import scala.language.postfixOps
 
 object SingleDeploymentSynchronizationActor {
 
-  case class Synchronize(deployment: Deployment, containerServices: List[ContainerService])
+  case class Synchronize(containerService: ContainerService)
 
 }
 
@@ -30,24 +30,30 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   import SingleDeploymentSynchronizationActor._
 
   def receive: Receive = {
-    case Synchronize(deployment, containerServices) ⇒ synchronize(deployment, containerServices)
-    case _ ⇒
+    case Synchronize(containerService) ⇒ synchronize(containerService)
+    case _                             ⇒
   }
 
-  private def synchronize(deployment: Deployment, containerServices: List[ContainerService]) = {
-    deployment.clusters.foreach { cluster ⇒
-      cluster.services.foreach { service ⇒
+  private def synchronize(containerService: ContainerService) = {
+
+    containerService.deployment.clusters.find { cluster ⇒ cluster.services.exists(_.breed.name == containerService.service.breed.name) } match {
+      case Some(cluster) ⇒
+
+        val service = containerService.service
+        val deployment = containerService.deployment
+
         service.state.intention match {
-          case Intention.Deploy if service.state.isDone ⇒ redeployIfNeeded(deployment, cluster, service, containerServices)
-          case Intention.Deploy                         ⇒ deploy(deployment, cluster, service, containerServices)
-          case Intention.Undeploy                       ⇒ undeploy(deployment, cluster, service, containerServices)
+          case Intention.Deploy if service.state.isDone ⇒ redeployIfNeeded(deployment, cluster, service, containerService.containers)
+          case Intention.Deploy                         ⇒ deploy(deployment, cluster, service, containerService.containers)
+          case Intention.Undeploy                       ⇒ undeploy(deployment, cluster, service, containerService.containers)
           case _                                        ⇒
         }
-      }
+
+      case _ ⇒
     }
   }
 
-  private def deploy(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService]) = {
+  private def deploy(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containers: Option[Containers]) = {
 
     def deployTo(update: Boolean) = actorFor[ContainerDriverActor] ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = update)
 
@@ -56,7 +62,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
       DeploymentInstance(server.name, server.host, ports.toMap, server.deployed)
     }
 
-    containerService(deployment, deploymentService, containerServices) match {
+    containers match {
       case None ⇒
         if (hasDependenciesDeployed(deployment, deploymentCluster, deploymentService)) {
           if (hasResolvedEnvironmentVariables(deployment, deploymentCluster, deploymentService))
@@ -116,48 +122,44 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     persist(DeploymentServiceEnvironmentVariables(serviceArtifactName(deployment, cluster, service), environmentVariables))
   }
 
-  private def redeployIfNeeded(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService]) = {
+  private def redeployIfNeeded(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containers: Option[Containers]) = {
 
     def redeploy() = {
       persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Update())))
       publishRedeploy(deployment, deploymentCluster, deploymentService)
-      deploy(deployment, deploymentCluster, deploymentService, containerServices)
+      deploy(deployment, deploymentCluster, deploymentService, containers)
     }
 
-    containerService(deployment, deploymentService, containerServices) match {
+    containers match {
       case None     ⇒ redeploy()
       case Some(cs) ⇒ if (!matchingServers(deploymentService, cs) || !matchingScale(deploymentService, cs)) redeploy()
     }
   }
 
-  private def undeploy(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerServices: List[ContainerService]) = {
-    containerService(deployment, deploymentService, containerServices) match {
-      case Some(cs) ⇒
+  private def undeploy(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containers: Option[Containers]) = {
+    containers match {
+      case Some(_) ⇒
         actorFor[ContainerDriverActor] ! ContainerDriverActor.Undeploy(deployment, deploymentService)
         persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Update())))
-      case _ ⇒
+      case None ⇒
         persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Done())))
         resetInnerRouteArtifacts(deployment, deploymentCluster, deploymentService)
         publishUndeployed(deployment, deploymentCluster, deploymentService)
     }
   }
 
-  private def containerService(deployment: Deployment, deploymentService: DeploymentService, containerServices: List[ContainerService]): Option[ContainerService] = {
-    containerServices.find(_.matching(deployment, deploymentService.breed))
-  }
-
-  private def matchingServers(deploymentService: DeploymentService, containerService: ContainerService) = {
-    deploymentService.instances.size == containerService.instances.size &&
+  private def matchingServers(deploymentService: DeploymentService, containers: Containers) = {
+    deploymentService.instances.size == containers.instances.size &&
       deploymentService.instances.forall { server ⇒
-        server.deployed && (containerService.instances.find(_.name == server.name) match {
+        server.deployed && (containers.instances.find(_.name == server.name) match {
           case None                  ⇒ false
           case Some(containerServer) ⇒ server.ports.size == containerServer.ports.size && server.ports.values.forall(port ⇒ containerServer.ports.contains(port))
         })
       }
   }
 
-  private def matchingScale(deploymentService: DeploymentService, containerService: ContainerService) = {
-    containerService.instances.size == deploymentService.scale.get.instances && containerService.scale.cpu == deploymentService.scale.get.cpu && containerService.scale.memory == deploymentService.scale.get.memory
+  private def matchingScale(deploymentService: DeploymentService, containers: Containers) = {
+    containers.instances.size == deploymentService.scale.get.instances && containers.scale.cpu == deploymentService.scale.get.cpu && containers.scale.memory == deploymentService.scale.get.memory
   }
 
   private def updateGateways(deployment: Deployment, cluster: DeploymentCluster) = cluster.routing.foreach { gateway ⇒

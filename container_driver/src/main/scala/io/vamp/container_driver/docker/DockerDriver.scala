@@ -39,45 +39,46 @@ trait DockerDriver extends ContainerDriver with DockerDriverNameMatcher {
   protected override def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
 
   /** Duplicate code from Marathon **/
-  private def containerService(app: App): ContainerService =
-    ContainerService(nameMatcher(app.id), DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
+  //  private def containerService(app: App): ContainerService = {
+  //    ContainerService(nameMatcher(app.id), DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
+  //  }
 
   private def parameters(service: DeploymentService): List[DockerParameter] = service.arguments.map { argument ⇒
     DockerParameter(argument.key, argument.value)
   }
 
-  private def getContainerInfo(container: ContainerService): ContainerService = {
-    val info = client.internalGetContainerInfo(Some(container.instances.head.name))
-    if (info != None) {
-      container.copy(instances = container.instances.map { x ⇒
-        x.copy(host = {
-          if (info.get.networkSettings().ipAddress() != null && !info.get.networkSettings().ipAddress().isEmpty())
-            info.get.networkSettings().ipAddress()
-          else ""
-        }, ports = { if (info.get.networkSettings().ports() != null && info.get.networkSettings().ports().size() > 0) info.get.networkSettings().ports().map(f ⇒ f._1.split("/")(0)).toList map { x ⇒ x.toInt } else List(0) })
-      })
-    } else container
-  }
+  //  private def getContainerInfo(container: ContainerService): ContainerService = {
+  //    val info = client.internalGetContainerInfo(Some(container.instances.head.name))
+  //    if (info != None) {
+  //      container.copy(instances = container.instances.map { x ⇒
+  //        x.copy(host = {
+  //          if (info.get.networkSettings().ipAddress() != null && !info.get.networkSettings().ipAddress().isEmpty())
+  //            info.get.networkSettings().ipAddress()
+  //          else ""
+  //        }, ports = { if (info.get.networkSettings().ports() != null && info.get.networkSettings().ports().size() > 0) info.get.networkSettings().ports().map(f ⇒ f._1.split("/")(0)).toList map { x ⇒ x.toInt } else List(0) })
+  //      })
+  //    } else container
+  //  }
 
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = service.breed.deployable match {
     case Deployable(schema, Some(definition)) ⇒ Some(Container(Docker(definition, portMappings(deployment, cluster, service), parameters(service))))
     case _                                    ⇒ None
   }
 
-  private def getRancherIp(list: List[ContainerService]): Future[List[ContainerService]] = {
-    Future {
-      if (isRancherEnvironment)
-        list.map { container ⇒
-          val x = client.internalCallCommand(Some(container.instances.head.name))
-          if (x != None && ipAdddr.pattern.matcher(x.get).matches()) {
-            container.copy(instances = container.instances.map { i ⇒ i.copy(host = x.get) })
-          } else {
-            container
-          }
-        }
-      else list
-    }
-  }
+  //  private def getRancherIp(list: List[ContainerService]): Future[List[ContainerService]] = {
+  //    Future {
+  //      if (isRancherEnvironment)
+  //        list.map { container ⇒
+  //          val x = client.internalCallCommand(Some(container.instances.head.name))
+  //          if (x != None && ipAdddr.pattern.matcher(x.get).matches()) {
+  //            container.copy(instances = container.instances.map { i ⇒ i.copy(host = x.get) })
+  //          } else {
+  //            container
+  //          }
+  //        }
+  //      else list
+  //    }
+  //  }
 
   def info: Future[ContainerInfo] = {
     client.asyncCall[Unit, Info](client.internalInfo).apply(None) map { x ⇒
@@ -93,12 +94,14 @@ trait DockerDriver extends ContainerDriver with DockerDriverNameMatcher {
   case object Complex extends Kind
 
   def all: Future[List[ContainerService]] = {
-    client.asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](client.internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { x ⇒
-      x match {
-        case Some(containers) ⇒ (containers.filter { x ⇒ x.status().startsWith("Up") } map (containerService _ compose translateFromspContainerToApp _)).toList map getContainerInfo
-        case None             ⇒ Nil
-      }
-    } flatMap getRancherIp
+    //    client.asyncCall[DockerClient.ListContainersParam, java.util.List[spContainer]](client.internalAllContainer).apply(Some(DockerClient.ListContainersParam.allContainers())) map { x ⇒
+    //      x match {
+    //        case Some(containers) ⇒ (containers.filter { x ⇒ x.status().startsWith("Up") } map (containerService _ compose translateFromspContainerToApp _)).toList map getContainerInfo
+    //        case None             ⇒ Nil
+    //      }
+    //    } flatMap getRancherIp
+
+    Future.successful(Nil)
   }
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {

@@ -4,11 +4,10 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
 import akka.actor.{ ActorRef, Props }
-import akka.pattern.ask
-import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerService }
 import io.vamp.model.artifact.DeploymentService.State.Intention
 import io.vamp.model.artifact.DeploymentService.State.Step._
@@ -16,10 +15,9 @@ import io.vamp.model.artifact.DeploymentService._
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
-import io.vamp.operation.notification.{ DeploymentServiceError, InternalServerError, OperationNotificationProvider }
+import io.vamp.operation.notification.{ DeploymentServiceError, OperationNotificationProvider }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 
-import scala.concurrent.Future
 import scala.language.postfixOps
 
 class DeploymentSynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
@@ -40,27 +38,26 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   import DeploymentSynchronizationActor._
 
   def receive: Receive = {
-    case SynchronizeAll          ⇒ synchronize()
-    case Synchronize(deployment) ⇒ synchronize(deployment :: Nil)
-    case _                       ⇒
+    case SynchronizeAll       ⇒ synchronize()
+    case cs: ContainerService ⇒ synchronize(cs)
+    case _                    ⇒
   }
 
-  private def synchronize(): Future[_] = {
+  private def synchronize() = {
     implicit val timeout = PersistenceActor.timeout
-    allArtifacts[Deployment] map synchronize
-  }
-
-  private def synchronize(deployments: List[Deployment]): Future[_] = {
-    implicit val timeout: Timeout = ContainerDriverActor.timeout
-    actorFor[ContainerDriverActor] ? ContainerDriverActor.All map {
-      case containerServices: List[_] ⇒ deployments.filterNot(withError).foreach(synchronize(_, containerServices.asInstanceOf[List[ContainerService]]))
-      case any                        ⇒ throwException(InternalServerError(any))
+    allArtifacts[Deployment] foreach { deployments ⇒
+      val deploymentServices = deployments.filterNot(withError).map { deployment ⇒
+        DeploymentServices(deployment, deployment.clusters.flatMap(_.services))
+      }
+      actorFor[ContainerDriverActor] ! ContainerDriverActor.Get(deploymentServices)
     }
   }
 
-  private def synchronize(deployment: Deployment, containerServices: List[ContainerService]): Unit = {
-    def sendTo(actor: ActorRef) = actor ! SingleDeploymentSynchronizationActor.Synchronize(deployment, containerServices)
-    val name = s"deployment-synchronization-${deployment.lookupName}"
+  private def synchronize(containerService: ContainerService): Unit = {
+
+    def sendTo(actor: ActorRef) = actor ! SingleDeploymentSynchronizationActor.Synchronize(containerService)
+
+    val name = s"deployment-synchronization-${containerService.deployment.lookupName}"
     context.child(name) match {
       case Some(actor) ⇒ sendTo(actor)
       case None        ⇒ sendTo(context.actorOf(Props(classOf[SingleDeploymentSynchronizationActor]), name))

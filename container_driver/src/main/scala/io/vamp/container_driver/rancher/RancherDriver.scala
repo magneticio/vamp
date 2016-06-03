@@ -40,8 +40,8 @@ trait RancherDriver extends ContainerDriver with DockerDriverNameMatcher {
   }
 
   /** Duplicate code from Marathon **/
-  private def containerService(app: App): ContainerService =
-    ContainerService(nameMatcher(app.id), DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
+  //  private def containerService(app: App): ContainerService =
+  //    ContainerService(nameMatcher(app.id), DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
 
   private def retry[T](op: ⇒ Future[T], delay: FiniteDuration, retries: Int)(s: Scheduler): Future[T] =
     op recoverWith { case _ if retries > 0 ⇒ after(delay, s)(retry(op, delay, retries - 1)(s)) }
@@ -197,8 +197,9 @@ trait RancherDriver extends ContainerDriver with DockerDriverNameMatcher {
     }
 
   def all: Future[List[ContainerService]] = {
-    val all = getServicesList map { list ⇒ list.data map { containerService _ compose translateServiceToApp _ } }
-    all
+    //    val all = getServicesList map { list ⇒ list.data map { containerService _ compose translateServiceToApp _ } }
+    //    all
+    Future.successful(Nil)
   }
 
   def allApps: Future[ServiceList] = getServicesList

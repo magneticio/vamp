@@ -56,7 +56,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
 
   def receive = {
     case InfoRequest                ⇒ reply(info)
-    case All                        ⇒ reply(all)
+    case Get(services)              ⇒ get(services)
     case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
@@ -81,12 +81,28 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     ContainerInfo("marathon", MarathonDriverInfo(MesosInfo(frameworks, s), marathon))
   }
 
-  private def all: Future[List[ContainerService]] = {
-    log.debug(s"marathon get all")
-    RestClient.get[AppsResponse](s"$marathonUrl/v2/apps?embed=apps.tasks").map(apps ⇒ apps.apps.filter(app ⇒ processable(app.id)).map(app ⇒ containerService(app)))
-  }
+  private def get(deploymentServices: List[DeploymentServices]): Unit = {
 
-  private def processable(id: String): Boolean = id.split(nameDelimiter).length == 3
+    log.debug(s"marathon get all")
+
+    val replyTo = sender()
+
+    RestClient.get[AppsResponse](s"$marathonUrl/v2/apps?embed=apps.tasks").map { apps ⇒
+
+      val deployed = apps.apps.map(app ⇒ app.id -> app).toMap
+
+      deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).map {
+        case (deployment, service) ⇒
+          deployed.get(appId(deployment, service.breed)) match {
+            case Some(app) ⇒
+              val scale = DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances)
+              val instances = app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined))
+              ContainerService(deployment, service, Option(Containers(scale, instances)))
+            case None ⇒ ContainerService(deployment, service, None)
+          }
+      } foreach { cs ⇒ replyTo ! cs }
+    }
+  }
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
     validateSchemaSupport(service.breed.deployable.schema, Schema)
@@ -155,10 +171,6 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
   private def undeploy(app: String) = {
     log.info(s"marathon delete app: $app")
     RestClient.delete(s"$marathonUrl/v2/apps/$app")
-  }
-
-  private def containerService(app: App): ContainerService = {
-    ContainerService(nameMatcher(app.id), DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances), app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)))
   }
 
   private def allApps: Future[List[MarathonApp]] = {

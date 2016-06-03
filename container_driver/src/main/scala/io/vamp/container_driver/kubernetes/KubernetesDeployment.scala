@@ -32,25 +32,28 @@ trait KubernetesDeployment extends KubernetesArtifact {
     RestClient.get[KubernetesApiResponse](deploymentUrl, apiHeaders).flatMap(deployments ⇒ containerServices(deployments))
   }
 
-  private def containerServices(deployments: KubernetesApiResponse): Future[List[ContainerService]] = Future.sequence {
-    deployments.items.flatMap {
-      case item ⇒
-        val name = item.metadata.name
-        val scale: Option[DefaultScale] = item.spec.template.flatMap(_.spec.containers.headOption).map(_.resources.requests).map(request ⇒
-          DefaultScale("", Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1))
-        )
-        val ports = item.spec.template.flatMap(_.spec.containers.headOption).map(_.ports.map(_.containerPort)).getOrElse(Nil)
-
-        if (name.split(nameDelimiter).length == 2 && scale.isDefined) {
-          RestClient.get[KubernetesApiResponse](pods(name), apiHeaders).map { pods ⇒
-            val instances = pods.items.map { pod ⇒
-              ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
-            }
-            ContainerService(nameMatcher(name), scale.get, instances)
-          } :: Nil
-
-        } else Nil
-    }
+  private def containerServices(deployments: KubernetesApiResponse): Future[List[ContainerService]] = {
+    //    Future.sequence {
+    //      deployments.items.flatMap {
+    //        case item ⇒
+    //          val name = item.metadata.name
+    //          val scale: Option[DefaultScale] = item.spec.template.flatMap(_.spec.containers.headOption).map(_.resources.requests).map(request ⇒
+    //            DefaultScale("", Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1))
+    //          )
+    //          val ports = item.spec.template.flatMap(_.spec.containers.headOption).map(_.ports.map(_.containerPort)).getOrElse(Nil)
+    //
+    //          if (name.split(nameDelimiter).length == 2 && scale.isDefined) {
+    //            RestClient.get[KubernetesApiResponse](pods(name), apiHeaders).map { pods ⇒
+    //              val instances = pods.items.map { pod ⇒
+    //                ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
+    //              }
+    //              ContainerService(nameMatcher(name), scale.get, instances)
+    //            } :: Nil
+    //
+    //          } else Nil
+    //      }
+    //    }
+    Future.successful(Nil)
   }
 
   protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
