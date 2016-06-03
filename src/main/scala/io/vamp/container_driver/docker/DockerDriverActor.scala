@@ -9,7 +9,7 @@ class DockerDriverActor extends DockerDriver with ContainerDriverActor {
 
   def receive = {
     case InfoRequest                ⇒ reply(info)
-    case All                        ⇒ reply(all)
+    //case All                        ⇒ reply(all)
     case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))

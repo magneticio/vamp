@@ -5,7 +5,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
-import io.vamp.model.artifact._
+import io.vamp.model.artifact.{ Deployment, _ }
 import io.vamp.persistence.db.PersistenceActor
 import io.vamp.persistence.operation.GatewayServiceAddress
 import io.vamp.pulse.notification.PulseFailureNotifier
@@ -19,7 +19,9 @@ object ContainerDriverActor {
 
   trait ContainerDriveMessage
 
-  object All extends ContainerDriveMessage
+  case class DeploymentServices(deployment: Deployment, services: List[DeploymentService])
+
+  case class Get(deploymentServices: List[DeploymentServices]) extends ContainerDriveMessage
 
   case class Deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) extends ContainerDriveMessage
 
@@ -29,7 +31,9 @@ object ContainerDriverActor {
 
 }
 
-case class ContainerService(matching: (Deployment, Breed) ⇒ Boolean, scale: DefaultScale, instances: List[ContainerInstance])
+case class Containers(scale: DefaultScale, instances: List[ContainerInstance])
+
+case class ContainerService(deployment: Deployment, service: DeploymentService, containers: Option[Containers])
 
 case class ContainerInstance(name: String, host: String, ports: List[Int], deployed: Boolean)
 

@@ -54,7 +54,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
   def receive = {
     case InfoRequest                ⇒ reply(info)
-    case All                        ⇒ reply(allContainerServices)
+    //case All                        ⇒ reply(allContainerServices)
     case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
