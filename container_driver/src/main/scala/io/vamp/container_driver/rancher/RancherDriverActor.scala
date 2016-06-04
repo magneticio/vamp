@@ -7,6 +7,7 @@ import io.vamp.container_driver.rancher.api.DeployApp
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import org.apache.commons.codec.Charsets
 import com.typesafe.config.ConfigFactory
+import io.vamp.model.artifact.Artifact
 
 private[rancher] object Credentials {
 
@@ -41,4 +42,6 @@ class RancherDriverActor extends RancherDriver with ContainerDriverActor {
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
+
+  override protected def artifactName2Id(artifact: Artifact): String = ???
 }

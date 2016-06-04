@@ -71,7 +71,7 @@ val spray = "io.spray" %% "spray-can" % "1.3.1" ::
   "io.spray" %% "spray-httpx" % "1.3.2" ::
   "io.spray" %% "spray-json" % "1.3.1" :: Nil
 
-val docker = "com.spotify" % "docker-client" % "3.5.12" :: Nil
+val docker = "com.spotify" % "docker-client" % "5.0.1" :: Nil
 
 val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.7" exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j")) :: Nil
 

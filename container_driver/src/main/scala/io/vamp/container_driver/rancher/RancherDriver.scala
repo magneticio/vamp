@@ -1,36 +1,34 @@
 package io.vamp.container_driver.rancher
 
-import io.vamp.container_driver.rancher.api.{ LaunchConfig, ProjectInfo, RancherContainer, RancherContainerPortList, RancherResponse, ServiceContainersList, ServiceList, Stacks, UpdateService, Service ⇒ RancherService }
-
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.concurrent.duration._
-import io.vamp.common.http.RestClient
-import io.vamp.model.artifact._
-import io.vamp.container_driver.{ ContainerDriver, ContainerInfo, ContainerInstance, ContainerPortMapping, ContainerService }
-import io.vamp.container_driver.rancher.api.Stack
-import io.vamp.model.reader.{ MegaByte, Quantity }
-import org.json4s._
-import org.json4s.{ DefaultFormats, Extraction, Formats }
-import akka.pattern.after
 import akka.actor.{ ActorSystem, Scheduler }
+import akka.pattern.after
 import com.typesafe.config.ConfigFactory
+import io.vamp.common.http.RestClient
+import io.vamp.container_driver.rancher.api.{ LaunchConfig, ProjectInfo, RancherContainer, RancherContainerPortList, ServiceContainersList, ServiceList, Stack, Stacks, UpdateService, Service ⇒ RancherService }
+import io.vamp.container_driver.{ ContainerDriver, ContainerInfo, ContainerPortMapping, ContainerService }
+import io.vamp.model.artifact._
+import org.json4s.{ DefaultFormats, Extraction, Formats }
 
+import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.language.postfixOps
-import org.joda.time.DateTime
-import com.google.common.io.BaseEncoding
-import com.google.common.base.Charsets
-import io.vamp.container_driver.docker.DockerDriverNameMatcher
 
 case class Task(id: String, name: String, host: String, ports: List[Int], startedAt: Option[String])
+
 case class App(id: String, instances: Int, cpus: Double, mem: Double, tasks: List[Task])
+
 case class DockerParameter(key: String, value: String)
+
 case class Container(docker: Docker, `type`: String = "DOCKER")
+
 case class Docker(image: String, portMappings: List[ContainerPortMapping], parameters: List[DockerParameter], network: String = "BRIDGE")
 
-trait RancherDriver extends ContainerDriver with DockerDriverNameMatcher {
+trait RancherDriver extends ContainerDriver {
 
   override val nameDelimiter = "-"
+
   override def appId(deployment: Deployment, breed: Breed): String = s"vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
+
   //override def nameMatcher(id: String): (Deployment, Breed) ⇒ Boolean = { (deployment: Deployment, breed: Breed) ⇒ id == appId(deployment, breed) }
 
   private[rancher] def requestPayload[A](payload: A) = {
@@ -72,7 +70,9 @@ trait RancherDriver extends ContainerDriver with DockerDriverNameMatcher {
 
   private[rancher] def publishService(rancherService: RancherService, environment: String): Future[RancherService] = {
     /* Check if is update or create */
-    RestClient.post[RancherService](s"${vampContainerDriverUrl}/environment/${environment}/services", { requestPayload(rancherService) }, List(authorization)).recover { case e: Exception ⇒ println("ERROR PUBLISH: " + e); UnitService("Error") }
+    RestClient.post[RancherService](s"${vampContainerDriverUrl}/environment/${environment}/services", {
+      requestPayload(rancherService)
+    }, List(authorization)).recover { case e: Exception ⇒ println("ERROR PUBLISH: " + e); UnitService("Error") }
   }
 
   private[rancher] def activateService(service: RancherService): Future[RancherService] = {
@@ -89,7 +89,10 @@ trait RancherDriver extends ContainerDriver with DockerDriverNameMatcher {
     Future.sequence {
       containers map { container ⇒
         RestClient.get[RancherContainerPortList](containerPortUrl(container.id), List(authorization)).map {
-          portsList ⇒ { container.copy(ports = portsList.data) }
+          portsList ⇒
+            {
+              container.copy(ports = portsList.data)
+            }
         }
       }
     }
@@ -112,15 +115,23 @@ trait RancherDriver extends ContainerDriver with DockerDriverNameMatcher {
 
   private[rancher] def getTasksFromServiceContainerslist(containers: List[RancherContainer]): List[Task] = containers map { container ⇒
     Task(container.id, container.name, container.primaryIpAddress, Nil, Some(container.created))
-    addPortsToTask(Task(container.id, container.name, { if (container.primaryIpAddress == null) "" else container.primaryIpAddress }, Nil, Some(container.created)), RancherContainerPortList(container.ports))
+    addPortsToTask(Task(container.id, container.name, {
+      if (container.primaryIpAddress == null) "" else container.primaryIpAddress
+    }, Nil, Some(container.created)), RancherContainerPortList(container.ports))
   }
 
   private[rancher] def translateServiceToApp(service: RancherService): App = {
-    App(service.name, service.scale.getOrElse(1), { if (service.launchConfig != None) service.launchConfig.get.cpuSet.getOrElse("0.0").toDouble else 0.0 }, { if (service.launchConfig != None) service.launchConfig.get.memoryMb.getOrElse("0.0").toDouble else 0.0 }, getTasksFromServiceContainerslist(service.containers.getOrElse(Nil)))
+    App(service.name, service.scale.getOrElse(1), {
+      if (service.launchConfig != None) service.launchConfig.get.cpuSet.getOrElse("0.0").toDouble else 0.0
+    }, {
+      if (service.launchConfig != None) service.launchConfig.get.memoryMb.getOrElse("0.0").toDouble else 0.0
+    }, getTasksFromServiceContainerslist(service.containers.getOrElse(Nil)))
   }
 
   private[rancher] def checkIfStackIsActive(stack: Stack): Future[Stack] = {
-    val s1 = after[Stack](1 seconds, as.scheduler) { RestClient.get[Stack](s"${environmentsUrl}/${stack.id.get}", List(authorization)) }
+    val s1 = after[Stack](1 seconds, as.scheduler) {
+      RestClient.get[Stack](s"${environmentsUrl}/${stack.id.get}", List(authorization))
+    }
     s1 flatMap { f ⇒
       f.state match {
         case Some("active") ⇒ s1
@@ -130,30 +141,44 @@ trait RancherDriver extends ContainerDriver with DockerDriverNameMatcher {
   }
 
   private[rancher] def checkIfServiceIsInactive(service: RancherService): Future[RancherService] = {
-    val s1 = after[RancherService](1 seconds, as.scheduler) { RestClient.get[RancherService](s"${serviceListUrl}/${service.id.get}", List(authorization)) }
+    val s1 = after[RancherService](1 seconds, as.scheduler) {
+      RestClient.get[RancherService](s"${serviceListUrl}/${service.id.get}", List(authorization))
+    }
     s1 flatMap { f ⇒
       f.state match {
-        case Some("inactive") ⇒ { activateService(service) }
-        case _                ⇒ checkIfServiceIsInactive(f)
+        case Some("inactive") ⇒ {
+          activateService(service)
+        }
+        case _ ⇒ checkIfServiceIsInactive(f)
       }
     }
   }
 
   private[rancher] def checkIfServiceIsActive(service: RancherService): Future[RancherService] = {
-    val s1 = after[RancherService](1 seconds, as.scheduler) { RestClient.get[RancherService](s"${serviceListUrl}/${service.id.get}", List(authorization)) }
+    val s1 = after[RancherService](1 seconds, as.scheduler) {
+      RestClient.get[RancherService](s"${serviceListUrl}/${service.id.get}", List(authorization))
+    }
     s1 flatMap { f ⇒
       f.state match {
-        case Some("active") ⇒ { s1 }
-        case _              ⇒ { checkIfServiceIsActive(f) }
+        case Some("active") ⇒ {
+          s1
+        }
+        case _ ⇒ {
+          checkIfServiceIsActive(f)
+        }
       }
     }
   }
 
   private[rancher] def checkIfServiceIsAlive(service: RancherService): Future[RancherService] = {
-    val s1 = after[RancherService](1 seconds, as.scheduler) { RestClient.get[RancherService](s"${serviceListUrl}/${service.id.get}", List(authorization)) }
+    val s1 = after[RancherService](1 seconds, as.scheduler) {
+      RestClient.get[RancherService](s"${serviceListUrl}/${service.id.get}", List(authorization))
+    }
     s1 flatMap { f: RancherService ⇒
       f.state match {
-        case _ ⇒ { checkIfServiceIsActive(f) }
+        case _ ⇒ {
+          checkIfServiceIsActive(f)
+        }
       }
     } recover {
       case e: Throwable ⇒ {
@@ -175,7 +200,9 @@ trait RancherDriver extends ContainerDriver with DockerDriverNameMatcher {
   private[rancher] def createStack(stack: Stack): Future[Stack] = {
     stack.id match {
       case Some(id) ⇒ Future(stack)
-      case _        ⇒ RestClient.post[Stack](s"$vampContainerDriverUrl/environment", { requestPayload(stack) }, List(authorization))
+      case _ ⇒ RestClient.post[Stack](s"$vampContainerDriverUrl/environment", {
+        requestPayload(stack)
+      }, List(authorization))
     }
   }
 
@@ -252,7 +279,11 @@ trait RancherDriver extends ContainerDriver with DockerDriverNameMatcher {
 
   def undeploy(deployment: Deployment, service: DeploymentService): Future[Any] = {
     val id = appId(deployment, service.breed)
-    val foundService = getServicesList map { services ⇒ services.data filter { _.name == id } }
+    val foundService = getServicesList map { services ⇒
+      services.data filter {
+        _.name == id
+      }
+    }
     foundService map { list ⇒
       list map { s ⇒
         RestClient.delete(serviceUndeployUrl(s.id.get), List(authorization)) flatMap { _ ⇒ checkIfServiceIsAlive(s) }
@@ -269,12 +300,18 @@ trait RancherDriver extends ContainerDriver with DockerDriverNameMatcher {
   private lazy val apiPassword = cFactory.getString("vamp.container-driver.rancher.password")
 
   private def serviceActivationUrl(serviceId: String) = s"${vampContainerDriverUrl}/services/${serviceId}/?action=activate"
+
   private def serviceUndeployUrl(serviceId: String) = s"${vampContainerDriverUrl}/services/${serviceId}/?action=remove"
+
   private def containerPortUrl(containerId: String) = s"${vampContainerDriverUrl}/containers/${containerId}/ports"
+
   private def serviceContainersListUrl(serviceId: String) = s"${vampContainerDriverUrl}/services/${serviceId}/instances"
+
   private val serviceListUrl = s"${vampContainerDriverUrl}/services"
   private val environmentsUrl = s"${vampContainerDriverUrl}/environments"
 
-  private def authorization: (String, String) = { if (!apiUser.isEmpty() && !apiPassword.isEmpty()) ("Authorization" -> ("Basic " + Credentials.credentials(apiUser, apiPassword))) else ("", "") }
+  private def authorization: (String, String) = {
+    if (!apiUser.isEmpty() && !apiPassword.isEmpty()) ("Authorization" -> ("Basic " + Credentials.credentials(apiUser, apiPassword))) else ("", "")
+  }
 
 }

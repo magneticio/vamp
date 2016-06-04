@@ -29,8 +29,9 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
       })
   }
 
-  protected def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] =
+  protected def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] = {
     service.environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) -> ev.interpolated.getOrElse("")).toMap
+  }
 
   protected def validateSchemaSupport(schema: String, enum: Enumeration) = {
     if (!enum.values.exists(en ⇒ en.toString.compareToIgnoreCase(schema) == 0))
