@@ -12,15 +12,15 @@ import io.vamp.model.artifact.DefaultScale
 object DefaultScaleProtocol extends DefaultJsonProtocol {
 
   implicit object DefaultScaleFormat extends RootJsonFormat[DefaultScale] {
-    def read(e: JsValue): DefaultScale = {
-      e.asJsObject().getFields("cpu", "instances", "memory", "name") match {
+
+    def read(entity: JsValue): DefaultScale = {
+      entity.asJsObject().getFields("cpu", "instances", "memory", "name") match {
         case Seq(JsNumber(cpu), JsNumber(instances), JsNumber(memory), JsString(name)) ⇒ DefaultScale(name, Quantity(cpu.toDouble), MegaByte(memory.toDouble), instances.toInt)
       }
     }
 
-    def write(e: DefaultScale): JsValue = {
-      JsObject("cpu" -> JsNumber(e.cpu.value), "instances" -> JsNumber(e.instances), "memory" -> JsNumber(e.memory.value), "name" -> JsString(e.name))
+    def write(entity: DefaultScale): JsValue = {
+      JsObject("cpu" -> JsNumber(entity.cpu.value), "instances" -> JsNumber(entity.instances), "memory" -> JsNumber(entity.memory.value), "name" -> JsString(entity.name))
     }
   }
-
 }
