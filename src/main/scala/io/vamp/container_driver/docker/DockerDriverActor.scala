@@ -2,6 +2,7 @@ package io.vamp.container_driver.docker
 
 import com.spotify.docker.client.DefaultDockerClient
 import com.spotify.docker.client.messages.{ Container ⇒ SpotifyContainer, ContainerInfo ⇒ _, _ }
+import com.typesafe.config.ConfigFactory
 import io.vamp.common.crypto.Hash
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
@@ -18,19 +19,33 @@ import scala.util.Try
 object DockerDriverActor {
 
   object Schema extends Enumeration {
-    val Docker, Cmd, Command = Value
+    val Docker = Value
   }
 
 }
 
 class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
 
-  //private val configuration = ConfigFactory.load().getConfig("vamp.container-driver.docker")
+  private val configuration = ConfigFactory.load().getConfig("vamp.container-driver.docker")
 
   protected val nameDelimiter = "_"
   protected val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
 
-  private val docker = DefaultDockerClient.fromEnv().build()
+  private val docker = {
+
+    val serverAddress = configuration.getString("repository.server-address")
+
+    if (serverAddress.nonEmpty) {
+
+      val email = configuration.getString("repository.email")
+      val username = configuration.getString("repository.username")
+      val password = configuration.getString("repository.password")
+
+      val authConfig = AuthConfig.builder().email(email).username(username).password(password).serverAddress(serverAddress).build()
+      DefaultDockerClient.fromEnv().authConfig(authConfig).build()
+
+    } else DefaultDockerClient.fromEnv().build()
+  }
 
   private val vampLabel = "deployment-service"
 
@@ -107,15 +122,6 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
 
-    val id = appId(deployment, service.breed)
-    val image = service.breed.deployable.definition.get
-
-    if (update) log.info(s"docker update container: $id") else log.info(s"docker create container: $id")
-
-    if (Try(docker.inspectImage(image)).isFailure) docker.pull(image)
-
-    val exists = find(deployment, service).isDefined
-
     def run() = {
       service.breed.deployable match {
         case Deployable(schema, Some(definition)) if DockerDriverActor.Schema.Docker.toString.compareToIgnoreCase(schema) == 0 ⇒
@@ -126,11 +132,24 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
       }
     }
 
-    if (!exists && !update) {
-      run()
-    } else if (exists && update) {
-      undeploy(deployment, service)
-      run()
+    val id = appId(deployment, service.breed)
+    val image = service.breed.deployable.definition.get
+
+    if (Try(docker.inspectImage(image)).isFailure) {
+      log.info(s"docker pull image: $image")
+      docker.pull(image)
+    } else {
+
+      val exists = find(deployment, service).isDefined
+
+      if (!exists && !update) {
+        log.info(s"docker create container: $id")
+        run()
+      } else if (exists && update) {
+        log.info(s"docker update container: $id")
+        undeploy(deployment, service)
+        run()
+      }
     }
   }
 
