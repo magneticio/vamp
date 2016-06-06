@@ -111,7 +111,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  common, persistence, model, operation, bootstrap, container_driver, workflow_driver, dictionary, pulse, rest_api, ui, gateway_driver, cli
+  common, persistence, model, operation, bootstrap, container_driver, workflow_driver, dictionary, pulse, rest_api, gateway_driver, cli
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
@@ -130,7 +130,7 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   // Runnable assembly jar lives in bootstrap/target/scala_2.11/
   // and is renamed to vamp assembly for consistent filename for downloading.
   assemblyJarName in assembly := s"vamp-assembly-${version.value}.jar"
-).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, dictionary, pulse, ui, rest_api, gateway_driver, lifter)
+).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, dictionary, pulse, rest_api, gateway_driver, lifter)
 
 lazy val lifter = project.settings(bintraySetting: _*).settings(
   description := "Lifter for Vamp",
@@ -145,11 +145,6 @@ lazy val rest_api = project.settings(bintraySetting: _*).settings(
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(operation).disablePlugins(sbtassembly.AssemblyPlugin)
-
-lazy val ui = project.settings(bintraySetting: _*).settings(
-  description := "UI frontend for Vamp",
-  name := "vamp-ui"
-).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",

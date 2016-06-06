@@ -1,6 +1,5 @@
 package io.vamp.rest_api
 
-import akka.event.Logging._
 import akka.util.Timeout
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.http.{ CorsSupport, RestApiBase }
@@ -9,13 +8,12 @@ import io.vamp.operation.controller.ArtifactApiController
 import io.vamp.persistence.db.ArtifactPaginationSupport
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
-import spray.http._
-import spray.routing.directives.LogEntry
 
 import scala.language.{ existentials, postfixOps }
 
 trait RestApiRoute
     extends RestApiBase
+    with UiRoute
     with ArtifactApiController
     with DeploymentApiRoute
     with EventApiRoute
@@ -87,22 +85,7 @@ trait RestApiRoute
             infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes
           }
         }
-      } ~ path("") {
-        logRequest(showRequest _) {
-          compressResponseIfRequested() {
-            // serve up static content from a JAR resource
-            getFromResource("vamp-ui/index.html")
-          }
-        }
-      } ~ pathPrefix("") {
-        logRequest(showRequest _) {
-          compressResponseIfRequested() {
-            getFromResourceDirectory("vamp-ui")
-          }
-        }
-      }
+      } ~ uiRoutes
     }
   }
-
-  def showRequest(request: HttpRequest) = LogEntry(s"${request.uri} - Headers: [${request.headers}]", InfoLevel)
 }
