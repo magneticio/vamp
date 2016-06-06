@@ -6,8 +6,6 @@ import akka.actor._
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.crypto.Hash
-import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.logstash.Logstash
 import io.vamp.gateway_driver.notification.GatewayDriverNotificationProvider
 import io.vamp.model.artifact._
@@ -32,13 +30,11 @@ object MetricsActor {
 }
 
 /**
- * Workaround for current (old) UI and showing metrics.
- * This is a naive implementation for aggregation of response time and request rate of gateways.
- * This should be removed once we have an updated UI.
+ * This should be implemented as a workflow.
  */
 class MetricsActor extends PulseEvent with ArtifactPaginationSupport with CommonSupportForActors with GatewayDriverNotificationProvider {
 
-  private case class Metrics(rate: Double, responseTime: Double)
+  private case class Metrics(count: Long, rate: Double, value: Double)
 
   import MetricsActor._
 
@@ -46,71 +42,28 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
 
   private val es = new ElasticsearchClient(PulseActor.elasticsearchUrl)
 
-  private val referenceMatcher = """^[a-zA-Z0-9][a-zA-Z0-9.\-_]{3,63}$""".r
-
   def receive: Receive = {
-    case MetricsUpdate ⇒ allArtifacts[Deployment] map (gateways andThen services)
+    case MetricsUpdate ⇒ allArtifacts[Gateway] map process
     case _             ⇒
   }
 
-  private def gateways: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
-    deployments.foreach { deployment ⇒
-      deployment.gateways.foreach { gateway ⇒
-        val name = nameFor(deployment, gateway.port)
-        query(gateway.lookupName) map {
-          case Metrics(rate, responseTime) ⇒
-            publish(s"gateways:$name" :: "metrics:rate" :: Nil, rate)
-            publish(s"gateways:$name" :: "metrics:responseTime" :: Nil, responseTime)
-        }
+  private def process: (List[Gateway] ⇒ Unit) = { gateways ⇒
+    gateways.foreach { gateway ⇒
+
+      healthMetrics(gateway.lookupName) map {
+        case Metrics(_, _, health) ⇒
+          publish(s"gateways:${gateway.lookupName}" :: "health" :: Nil, health)
+      }
+
+      responseMetrics(gateway.lookupName) map {
+        case Metrics(_, rate, responseTime) ⇒
+          publish(s"gateways:${gateway.lookupName}" :: "metrics:rate" :: Nil, rate)
+          publish(s"gateways:${gateway.lookupName}" :: "metrics:responseTime" :: Nil, responseTime)
       }
     }
-    deployments
   }
 
-  private def services: (List[Deployment] ⇒ List[Deployment]) = { (deployments: List[Deployment]) ⇒
-    deployments.foreach { deployment ⇒
-      deployment.clusters.foreach { cluster ⇒
-        cluster.services.filter(_.state.isDeployed).foreach { service ⇒
-          service.breed.ports.foreach { port ⇒
-            cluster.routingBy(port.name) foreach {
-              case gateway ⇒
-                gateway.routes.map(_.path.segments).map {
-                  case _ :: _ :: s :: _ :: Nil if s == service.breed.name ⇒ deployment.name :: cluster.name :: s :: port.name :: Nil
-                  case _ ⇒ Nil
-                } filter (_.nonEmpty) foreach {
-                  case segments ⇒ query(GatewayMarshaller.lookup(gateway, segments)) map {
-                    case Metrics(rate, responseTime) ⇒
-                      publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:rate" :: Nil, rate)
-                      publish(s"gateways:${deployment.name}_${cluster.name}_${port.name}" :: s"services:${service.breed.name}" :: "service" :: "metrics:responseTime" :: Nil, responseTime)
-                  }
-                }
-            }
-          }
-        }
-      }
-    }
-    deployments
-  }
-
-  private def nameFor(deployment: Deployment, port: Port): String = flatten(path2string(deployment.name :: port.name :: Nil))
-
-  private def path2string(path: GatewayPath): String = {
-    path.segments match {
-      case Nil                   ⇒ ""
-      case some if some.size < 4 ⇒ path2string(some :+ "_")
-      case some                  ⇒ some.mkString("/")
-    }
-  }
-
-  private def flatten(string: String) = {
-    val flatten = string.replaceAll("[^\\p{L}\\d_]", "_")
-    flatten match {
-      case referenceMatcher(_*) ⇒ flatten
-      case _                    ⇒ Hash.hexSha1(flatten)
-    }
-  }
-
-  private def query(lookup: String): Future[Metrics] = {
+  private def responseMetrics(lookup: String): Future[Metrics] = {
     es.search[Any](Logstash.index, Logstash.`type`,
       s"""
          |{
@@ -166,9 +119,70 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
 
           log.debug(s"Request count/rate/responseTime for $lookup: $count/$rate/$responseTime")
 
-          Metrics(rate, responseTime)
+          Metrics(count, rate, responseTime)
 
-        case _ ⇒ Metrics(0D, 0D)
+        case _ ⇒ Metrics(0, 0D, 0D)
+      }
+  }
+
+  private def healthMetrics(lookup: String): Future[Metrics] = {
+
+    val errorCode = 500
+
+    es.search[Any](Logstash.index, Logstash.`type`,
+      s"""
+         {
+         |  "query": {
+         |    "filtered": {
+         |      "query": {
+         |        "match_all": {}
+         |      },
+         |      "filter": {
+         |        "bool": {
+         |          "must": [
+         |            {
+         |              "term": {
+         |                "ft": "$lookup"
+         |              }
+         |            },
+         |            {
+         |              "range": {
+         |                "ST": {
+         |                  "gte": "$errorCode"
+         |                }
+         |              }
+         |            },
+         |            {
+         |              "range": {
+         |                "@timestamp": {
+         |                  "gt": "now-${window}s"
+         |                }
+         |              }
+         |            }
+         |          ]
+         |        }
+         |      }
+         |    }
+         |  },
+         |  "size": 0
+         |}
+        """.stripMargin) map {
+        case map: Map[_, _] ⇒
+
+          val count: Long = map.asInstanceOf[Map[String, _]].get("hits").flatMap(map ⇒ map.asInstanceOf[Map[String, _]].get("total")) match {
+            case Some(number: BigInt) ⇒ number.toLong
+            case _                    ⇒ 0L
+          }
+
+          val health = if (count > 0) 0 else 1
+
+          val rate: Double = count.toDouble / window
+
+          log.debug(s"Request 500 error count/rate/health for $lookup: $count/$rate/$health")
+
+          Metrics(count, rate, health)
+
+        case _ ⇒ Metrics(0, 0D, 1D)
       }
   }
 
