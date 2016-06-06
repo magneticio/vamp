@@ -63,8 +63,8 @@ lazy val bintraySetting = Seq(
 
 // Libraries
 
-val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.2" ::
-  "com.typesafe.akka" %% "akka-slf4j" % "2.4.2" :: Nil
+val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.7" ::
+  "com.typesafe.akka" %% "akka-slf4j" % "2.4.7" :: Nil
 
 val spray = "io.spray" %% "spray-can" % "1.3.1" ::
   "io.spray" %% "spray-routing" % "1.3.2" ::
