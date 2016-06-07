@@ -21,6 +21,7 @@ trait RestApiRoute
     with StatsRoute
     with MetricsRoute
     with HealthRoute
+    with JavascriptWorkflowRoute
     with ArtifactPaginationSupport
     with CorsSupport {
   this: CommonSupportForActors ⇒
@@ -82,7 +83,7 @@ trait RestApiRoute
       pathPrefix("api" / Artifact.version) {
         compressResponseIfRequested() {
           sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
-            infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes
+            infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ javascriptWorkflowRoute
           }
         }
       } ~ uiRoutes
