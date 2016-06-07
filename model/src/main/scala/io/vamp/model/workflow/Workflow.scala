@@ -14,8 +14,7 @@ case class DefaultWorkflow(
   name: String,
   containerImage: Option[String],
   script: Option[String],
-  command: Option[String],
-  scale: Option[Scale]) extends Workflow
+  command: Option[String]) extends Workflow
 
 sealed trait Trigger
 
@@ -62,4 +61,4 @@ case class EventTrigger(tags: Set[String]) extends Trigger
 
 object DaemonTrigger extends Trigger
 
-case class ScheduledWorkflow(name: String, workflow: Workflow, trigger: Trigger) extends Artifact with Lookup
+case class ScheduledWorkflow(name: String, workflow: Workflow, trigger: Trigger, scale: Option[Scale]) extends Artifact with Lookup

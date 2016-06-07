@@ -115,11 +115,10 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
   private def trigger(scheduledWorkflow: ScheduledWorkflow, data: Any = None) = for {
     workflow ← artifactFor[DefaultWorkflow](scheduledWorkflow.workflow)
-    scale ← if (workflow.scale.isDefined) artifactFor[DefaultScale](workflow.scale.get) else Future.successful(WorkflowActor.scale)
+    scale ← if (scheduledWorkflow.scale.isDefined) artifactFor[DefaultScale](scheduledWorkflow.scale.get) else Future.successful(WorkflowActor.scale)
   } yield {
 
     val expandedWorkflow = workflow.copy(
-      scale = Option(scale),
       command = Option(workflow.command.getOrElse(WorkflowActor.command)),
       containerImage = Option(workflow.containerImage.getOrElse(WorkflowActor.containerImage))
     )
@@ -127,7 +126,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
     val path = WorkflowDriver.path(scheduledWorkflow, workflow = true)
 
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, expandedWorkflow.script) map {
-      case _ ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(scheduledWorkflow.copy(workflow = expandedWorkflow), data)
+      case _ ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(scheduledWorkflow.copy(workflow = expandedWorkflow, scale = Option(scale)), data)
     }
   }
 

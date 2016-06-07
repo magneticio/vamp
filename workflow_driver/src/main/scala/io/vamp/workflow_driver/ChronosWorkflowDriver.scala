@@ -23,7 +23,7 @@ class ChronosWorkflowDriver(ec: ExecutionContext, url: String) extends WorkflowD
     case scheduledWorkflow if scheduledWorkflow.trigger != DaemonTrigger ⇒
 
       val workflow = scheduledWorkflow.workflow.asInstanceOf[DefaultWorkflow]
-      val scale = workflow.scale.get.asInstanceOf[DefaultScale]
+      val scale = scheduledWorkflow.scale.get.asInstanceOf[DefaultScale]
 
       val jobRequest = job(
         name = name(scheduledWorkflow),

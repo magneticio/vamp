@@ -32,8 +32,8 @@ trait ArtifactExpansion {
     case escalation: GenericEscalation        ⇒ Future.successful(escalation)
     case filter: DefaultFilter                ⇒ Future.successful(filter)
     case scale: DefaultScale                  ⇒ Future.successful(scale)
-    case workflow: DefaultWorkflow            ⇒ if (workflow.scale.isDefined) expandIfReference[DefaultScale, ScaleReference](workflow.scale.get).map(scale ⇒ workflow.copy(scale = Option(scale))) else Future.successful(workflow)
-    case scheduledWorkflow: ScheduledWorkflow ⇒ expandIfReference[DefaultWorkflow, WorkflowReference](scheduledWorkflow.workflow).map(workflow ⇒ scheduledWorkflow.copy(workflow = workflow))
+    case workflow: DefaultWorkflow            ⇒ Future.successful(workflow)
+    case scheduledWorkflow: ScheduledWorkflow ⇒ expandScheduledWorkflow(scheduledWorkflow)
     case _                                    ⇒ Future.successful(artifact)
   }
 
@@ -91,6 +91,13 @@ trait ArtifactExpansion {
       case s: EscalationOnlySla            ⇒ s.copy(escalations = escalations)
       case s: ResponseTimeSlidingWindowSla ⇒ s.copy(escalations = escalations)
     }
+  }
+
+  protected def expandScheduledWorkflow(scheduledWorkflow: ScheduledWorkflow): Future[ScheduledWorkflow] = for {
+    workflow ← expandIfReference[DefaultWorkflow, WorkflowReference](scheduledWorkflow.workflow)
+    scale ← if (scheduledWorkflow.scale.isDefined) expandIfReference[DefaultScale, ScaleReference](scheduledWorkflow.scale.get).map(Option(_)) else Future.successful(None)
+  } yield {
+    scheduledWorkflow.copy(scale = scale, workflow = workflow)
   }
 
   protected def expandIfReference[D <: Artifact: ClassTag, R <: Reference: ClassTag](artifact: Artifact): Future[D] = artifact match {

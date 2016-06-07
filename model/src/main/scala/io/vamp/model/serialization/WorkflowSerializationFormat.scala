@@ -31,9 +31,6 @@ class WorkflowSerializer() extends ArtifactSerializer[Workflow] with ReferenceSe
       if (workflow.command.isDefined)
         list += JField("command", JString(workflow.command.get))
 
-      if (workflow.scale.isDefined)
-        list += JField("scale", Extraction.decompose(workflow.scale.get))
-
       new JObject(list.toList)
   }
 }
@@ -65,10 +62,13 @@ class ScheduledWorkflowSerializer() extends ArtifactSerializer[ScheduledWorkflow
         case _ ⇒
       }
 
+      if (scheduledWorkflow.scale.isDefined)
+        list += JField("scale", Extraction.decompose(scheduledWorkflow.scale.get))
+
       scheduledWorkflow.workflow match {
-        case WorkflowReference(reference)              ⇒ list += JField("workflow", JString(reference))
-        case DefaultWorkflow(_, _, Some(script), _, _) ⇒ list += JField("script", JString(script))
-        case _                                         ⇒
+        case WorkflowReference(reference)           ⇒ list += JField("workflow", JString(reference))
+        case DefaultWorkflow(_, _, Some(script), _) ⇒ list += JField("script", JString(script))
+        case _                                      ⇒
       }
 
       new JObject(list.toList)

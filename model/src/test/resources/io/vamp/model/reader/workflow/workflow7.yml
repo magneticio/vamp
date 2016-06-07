@@ -1,3 +1,0 @@
-name: logger
-script: vamp.log("hi")
-scale: ~

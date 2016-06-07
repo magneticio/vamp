@@ -13,4 +13,4 @@ case class IllegalPeriod(period: String) extends Notification
 
 case class NoWorkflowRunnable(name: String) extends Notification
 
-case class InvalidWorkflowScale(scale: DefaultScale) extends Notification
+case class InvalidScheduledWorkflowScale(scale: DefaultScale) extends Notification

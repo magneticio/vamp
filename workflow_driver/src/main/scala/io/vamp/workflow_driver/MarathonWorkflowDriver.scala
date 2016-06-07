@@ -45,7 +45,7 @@ class MarathonWorkflowDriver(implicit actorSystem: ActorSystem) extends Workflow
   private def app(scheduledWorkflow: ScheduledWorkflow): MarathonApp = {
 
     val workflow = scheduledWorkflow.workflow.asInstanceOf[DefaultWorkflow]
-    val scale = workflow.scale.get.asInstanceOf[DefaultScale]
+    val scale = scheduledWorkflow.scale.get.asInstanceOf[DefaultScale]
 
     MarathonApp(
       id = s"$namePrefix${name(scheduledWorkflow)}",

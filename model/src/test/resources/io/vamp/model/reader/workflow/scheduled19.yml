@@ -1,5 +1,6 @@
 name: logger
-script: vamp.log("hi")
+workflow: logger
+daemon: true
 scale:
   cpu: 1
   memory: 512MB

@@ -21,13 +21,12 @@ object WorkflowReader extends YamlReader[Workflow] with ReferenceYamlReader[Work
   }
 
   override protected def parse(implicit source: YamlSourceReader): Workflow = {
-    DefaultWorkflow(name, <<?[String]("container-image"), <<?[String]("script"), <<?[String]("command"), ScaleReader.readOptionalReferenceOrAnonymous("scale"))
+    DefaultWorkflow(name, <<?[String]("container-image"), <<?[String]("script"), <<?[String]("command"))
   }
 
   override def validate(workflow: Workflow): Workflow = workflow match {
-    case DefaultWorkflow(_, None, None, None, _) ⇒ throwException(NoWorkflowRunnable(workflow.name))
-    case DefaultWorkflow(_, _, _, _, Some(scale: DefaultScale)) if scale.instances > 1 ⇒ throwException(InvalidWorkflowScale(scale))
-    case _ ⇒ workflow
+    case DefaultWorkflow(_, None, None, None) ⇒ throwException(NoWorkflowRunnable(workflow.name))
+    case _                                    ⇒ workflow
   }
 }
 
@@ -50,10 +49,15 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
     val workflow = <<?[Any]("workflow") match {
       case Some(w) if <<?[String]("script").isDefined ⇒ throwException(BothWorkflowAndScriptError)
       case Some(w) ⇒ WorkflowReader.readReference(w)
-      case _ ⇒ DefaultWorkflow("", None, Option(<<![String]("script")), None, None)
+      case _ ⇒ DefaultWorkflow("", None, Option(<<![String]("script")), None)
     }
 
-    ScheduledWorkflow(name, workflow, trigger)
+    ScheduledWorkflow(name, workflow, trigger, ScaleReader.readOptionalReferenceOrAnonymous("scale"))
+  }
+
+  override def validate(workflow: ScheduledWorkflow): ScheduledWorkflow = workflow.scale match {
+    case Some(scale: DefaultScale) if scale.instances > 1 ⇒ throwException(InvalidScheduledWorkflowScale(scale))
+    case _ ⇒ workflow
   }
 
   private def deploymentTrigger(implicit source: YamlSourceReader): Option[Trigger] = {
