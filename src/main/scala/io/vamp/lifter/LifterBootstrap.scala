@@ -4,6 +4,7 @@ import akka.actor.{ ActorRef, ActorSystem, Props }
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.container_driver.ContainerDriverBootstrap
+import io.vamp.lifter.artifact.ArtifactInitializationActor
 import io.vamp.lifter.kibana.KibanaDashboardInitializationActor
 import io.vamp.lifter.persistence.ElasticsearchPersistenceInitializationActor
 import io.vamp.lifter.pulse.PulseInitializationActor
@@ -28,6 +29,8 @@ object LifterBootstrap extends Bootstrap {
   val pulseEnabled = configuration.getBoolean("pulse.enabled")
 
   val kibanaEnabled = configuration.getBoolean("kibana.enabled")
+
+  val artifactEnabled = configuration.getBoolean("artifact.enabled")
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
@@ -61,7 +64,11 @@ object LifterBootstrap extends Bootstrap {
       IoC.createActor[KibanaDashboardInitializationActor] :: Nil
     else Nil
 
-    persistence ++ vga ++ pulse ++ kibana
+    val artifact = if (artifactEnabled)
+      IoC.createActor[ArtifactInitializationActor] :: Nil
+    else Nil
+
+    persistence ++ vga ++ pulse ++ kibana ++ artifact
   }
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {
