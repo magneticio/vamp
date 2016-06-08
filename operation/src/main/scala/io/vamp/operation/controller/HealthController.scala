@@ -1,24 +1,43 @@
 package io.vamp.operation.controller
 
+import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, ReplyActor }
 import io.vamp.common.notification.NotificationProvider
 
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-trait HealthController extends GatewayDeploymentResolver {
+trait HealthController extends GatewayDeploymentResolver with EventValue {
   this: ReplyActor with ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
 
-  def gatewayHealth(gateway: String): Future[Option[Double]] = gatewayFor(gateway) map {
-    _.map(_ ⇒ 0D)
+  private val window = ConfigFactory.load().getInt("vamp.operation.health.window")
+
+  def gatewayHealth(gateway: String): Future[Option[Double]] = gatewayFor(gateway) flatMap {
+
+    case Some(g) ⇒
+
+      last((s"gateways:${g.name}" :: s"health" :: Nil).toSet, window).map {
+        case Some(value) ⇒ Option(value.toString.toDouble)
+        case _           ⇒ None
+      }
+
+    case None ⇒ Future.successful(None)
   }
 
   def routeHealth(gateway: String, route: String) = gatewayFor(gateway) map {
     _.flatMap(g ⇒ g.routes.find(_.name == route).map(_ ⇒ 0D))
   }
 
-  def deploymentHealth(deployment: String) = deploymentFor(deployment) map {
-    _.map(_ ⇒ 0D)
+  def deploymentHealth(deployment: String) = deploymentFor(deployment) flatMap {
+
+    case Some(d) ⇒
+
+      last((s"deployments:${d.name}" :: s"health" :: Nil).toSet, window).map {
+        case Some(value) ⇒ Option(value.toString.toDouble)
+        case _           ⇒ None
+      }
+
+    case None ⇒ Future.successful(None)
   }
 
   def clusterHealth(deployment: String, cluster: String) = deploymentFor(deployment) map {

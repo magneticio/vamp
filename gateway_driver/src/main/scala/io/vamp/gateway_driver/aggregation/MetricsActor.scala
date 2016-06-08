@@ -43,23 +43,41 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
   private val es = new ElasticsearchClient(PulseActor.elasticsearchUrl)
 
   def receive: Receive = {
-    case MetricsUpdate ⇒ allArtifacts[Gateway] map process
-    case _             ⇒
+    case MetricsUpdate ⇒
+      for {
+        gateways ← allArtifacts[Gateway]
+        deployments ← allArtifacts[Deployment]
+      } yield {
+        processGateways(gateways)
+        processDeployments(deployments)
+      }
+
+    case _ ⇒
   }
 
-  private def process: (List[Gateway] ⇒ Unit) = { gateways ⇒
+  private def processGateways(gateways: List[Gateway]) = {
     gateways.foreach { gateway ⇒
 
       healthMetrics(gateway.lookupName) map {
         case Metrics(_, _, health) ⇒
-          publish(s"gateways:${gateway.lookupName}" :: "health" :: Nil, health)
+          publish(s"gateways:${gateway.name}" :: "health" :: Nil, health)
       }
 
       responseMetrics(gateway.lookupName) map {
         case Metrics(_, rate, responseTime) ⇒
-          publish(s"gateways:${gateway.lookupName}" :: "metrics:rate" :: Nil, rate)
-          publish(s"gateways:${gateway.lookupName}" :: "metrics:responseTime" :: Nil, responseTime)
+          publish(s"gateways:${gateway.name}" :: "metrics:rate" :: Nil, rate)
+          publish(s"gateways:${gateway.name}" :: "metrics:responseTime" :: Nil, responseTime)
       }
+    }
+  }
+
+  private def processDeployments(deployments: List[Deployment]) = {
+    deployments.foreach { deployment ⇒
+      Future.sequence {
+        deployment.clusters.flatMap(_.routing).map { routing ⇒
+          healthMetrics(routing.lookupName) map { case Metrics(_, _, health) ⇒ health }
+        }
+      } map { result ⇒ publish(s"deployments:${deployment.name}" :: "health" :: Nil, result.product) }
     }
   }
 
