@@ -1,4 +1,3 @@
-name: metrics
-
+name    : metrics
+daemon  : true
 workflow: metrics
-daemon: true

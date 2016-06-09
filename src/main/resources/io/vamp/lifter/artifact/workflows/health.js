@@ -1,100 +1,42 @@
+'use strict';
+
 var _ = require('lodash');
+var vamp = require('vamp-node-client');
 
-var elasticsearch = require('elasticsearch');
+var api = new vamp.Api();
+var metrics = new vamp.Metrics(api);
 
-var esClient = new elasticsearch.Client({
-  host: process.env.VAMP_ELASTICSEARCH_CONNECTION,
-  log: 'info'
-});
+var period = 5;  // seconds
+var window = 30; // seconds
 
-var index = function(tags, value) {
-  esClient.index({
-      index: 'vamp-pulse',
-      type: 'event',
-      body: {
-        tags: tags,
-        value: value
-      }
-    },
-    function (error, response) {}
-  );
+function health(lookupName, tag) {
+
+    var errorCode = 500;
+    var term = {ft: lookupName};
+    var range = {ST: {gte: errorCode}};
+
+    metrics.count(term, range, window, function (total) {
+        api.event([tag, 'health'], total > 0 ? 0 : 1);
+    });
 }
 
-var seconds = 30;
-var errorCode = 500;
+var process = function() {
 
-var metrics = function(gateways) {
-  _.forEach(gateways, function(gateway) {
+  api.gateways(function (gateways) {
+      _.forEach(gateways, function (gateway) {
+          health(gateway.lookup_name, 'gateways:' + gateway.name);
+      });
+  });
 
-    esClient.search({
-      index: 'logstash-*',
-      type: 'haproxy',
-      body: {
-        query: {
-          filtered: {
-            query: {
-              match_all: {}
-            },
-            filter: {
-              bool: {
-                must: [
-                  {
-                    term: {
-                      ft: gateway.lookup_name
-                    }
-                  },
-                  {
-                    range: {
-                    ST: {
-                      gte: errorCode
-                    }
-                  }
-                 },
-                  {
-                    range: {
-                      "@timestamp": {
-                        gt: "now-" + seconds + "s"
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        },
-        size: 0
-      }
-    }).then(function (resp) {
-
-        var total = resp.hits.total;
-        var health = total == 0 ? 1 : 0;
-
-        console.log("gateway : " + gateway.name);
-        console.log("total   : " + total);
-        console.log("health  : " + health);
-
-        index(["gateways", "gateways:" + gateway.lookup_name, "health"], health);
-
-    }, function (err) {
-        console.log(err.message);
-    });
+  api.deployments(function (deployments) {
+      _.forEach(deployments, function (deployment) {
+          _.forOwn(deployment.clusters, function (cluster) {
+              _.forOwn(cluster.routing, function (routing) {
+                  health(routing.lookup_name, 'deployments:' + deployment.name);
+              });
+          });
+      });
   });
 };
 
-var zookeeper = require('node-zookeeper-client');
-
-var zkClient = zookeeper.createClient(process.env.VAMP_KEY_VALUE_STORE_CONNECTION);
-var path = '/vamp/gateways';
-
-zkClient.once('connected', function () {
-  zkClient.getData(
-    path,
-    function () {},
-    function (err, data, stat) {
-      if (err) throw err;
-      if (data) metrics(JSON.parse(data.toString()));
-      zkClient.close();
-    });
-});
-
-zkClient.connect();
+setInterval(process, period * 1000);
