@@ -9,7 +9,6 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, ExecutionContextProvider, IoC }
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.gateway_driver.aggregation.MetricsActor
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor
 import io.vamp.model.artifact.DeploymentService.State.Intention._
@@ -56,10 +55,6 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
   } ~ path("kibana") {
     respondWithStatus(Accepted) {
       complete(kibana())
-    }
-  } ~ path("metrics") {
-    respondWithStatus(Accepted) {
-      complete(metrics())
     }
   } ~ path("haproxy") {
     onSuccess(haproxy()) { result ⇒
@@ -229,8 +224,6 @@ trait DevController {
   }
 
   def kibana(): Unit = IoC.actorFor[KibanaDashboardActor] ! KibanaDashboardActor.KibanaUpdate
-
-  def metrics(): Unit = IoC.actorFor[MetricsActor] ! MetricsActor.MetricsUpdate
 
   def haproxy(): Future[Any] = {
     implicit val timeout = KeyValueStoreActor.timeout

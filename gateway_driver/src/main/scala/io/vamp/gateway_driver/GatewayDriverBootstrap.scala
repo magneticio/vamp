@@ -3,7 +3,6 @@ package io.vamp.gateway_driver
 import akka.actor.{ ActorRef, ActorSystem }
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
-import io.vamp.gateway_driver.aggregation.{ MetricsActor, MetricsSchedulerActor }
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.gateway_driver.kibana.{ KibanaDashboardActor, KibanaDashboardSchedulerActor }
 
@@ -17,7 +16,6 @@ object GatewayDriverBootstrap extends Bootstrap {
   val haproxyConfiguration = gatewayDriverConfiguration.getConfig("haproxy")
 
   val kibanaSynchronizationPeriod = gatewayDriverConfiguration.getInt("kibana.synchronization.period") seconds
-  val aggregationPeriod = gatewayDriverConfiguration.getInt("aggregation.period") seconds
   val synchronizationInitialDelay = configuration.getInt("vamp.operation.synchronization.initial-delay") seconds
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
@@ -39,19 +37,15 @@ object GatewayDriverBootstrap extends Bootstrap {
         override def httpLogFormat: String = haproxyConfiguration.getString("http-log-format")
       }),
       IoC.createActor[KibanaDashboardActor],
-      IoC.createActor[KibanaDashboardSchedulerActor],
-      IoC.createActor[MetricsActor],
-      IoC.createActor[MetricsSchedulerActor]
+      IoC.createActor[KibanaDashboardSchedulerActor]
     )
 
-    IoC.actorFor[MetricsSchedulerActor] ! SchedulerActor.Period(aggregationPeriod, synchronizationInitialDelay)
     IoC.actorFor[KibanaDashboardSchedulerActor] ! SchedulerActor.Period(kibanaSynchronizationPeriod, synchronizationInitialDelay)
 
     actors
   }
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {
-    IoC.actorFor[MetricsSchedulerActor] ! SchedulerActor.Period(0 seconds)
     IoC.actorFor[KibanaDashboardSchedulerActor] ! SchedulerActor.Period(0 seconds)
     super.shutdown(actorSystem)
   }
