@@ -1,0 +1,4 @@
+name: metrics
+
+workflow: metrics
+daemon: true

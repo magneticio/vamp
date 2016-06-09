@@ -75,6 +75,10 @@ class ChronosWorkflowDriver(ec: ExecutionContext, url: String) extends WorkflowD
     |  "command": "$command",
     |  "environmentVariables": [
     |    {
+    |      "name": "VAMP_URL",
+    |      "value": "${WorkflowDriver.vampUrl}"
+    |    },
+    |    {
     |      "name": "VAMP_KEY_VALUE_STORE_ROOT_PATH",
     |      "value": "$rootPath"
     |    }

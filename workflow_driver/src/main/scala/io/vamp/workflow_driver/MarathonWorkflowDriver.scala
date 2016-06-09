@@ -63,7 +63,10 @@ class MarathonWorkflowDriver(implicit actorSystem: ActorSystem) extends Workflow
       instances = scale.instances,
       cpus = scale.cpu.value,
       mem = Math.round(scale.memory.value).toInt,
-      env = Map("VAMP_KEY_VALUE_STORE_ROOT_PATH" -> WorkflowDriver.pathToString(scheduledWorkflow)),
+      env = Map(
+        "VAMP_URL" -> WorkflowDriver.vampUrl,
+        "VAMP_KEY_VALUE_STORE_ROOT_PATH" -> WorkflowDriver.pathToString(scheduledWorkflow)
+      ),
       cmd = Option(workflow.command.get),
       args = Nil,
       constraints = Nil
