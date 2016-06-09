@@ -62,12 +62,6 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
         case Metrics(_, _, health) ⇒
           publish(s"gateways:${gateway.name}" :: "health" :: Nil, health)
       }
-
-      responseMetrics(gateway.lookupName) map {
-        case Metrics(_, rate, responseTime) ⇒
-          publish(s"gateways:${gateway.name}" :: "metrics:rate" :: Nil, rate)
-          publish(s"gateways:${gateway.name}" :: "metrics:responseTime" :: Nil, responseTime)
-      }
     }
   }
 
@@ -79,68 +73,6 @@ class MetricsActor extends PulseEvent with ArtifactPaginationSupport with Common
         }
       } map { result ⇒ publish(s"deployments:${deployment.name}" :: "health" :: Nil, result.product) }
     }
-  }
-
-  private def responseMetrics(lookup: String): Future[Metrics] = {
-    es.search[Any](Logstash.index, Logstash.`type`,
-      s"""
-         |{
-         |  "query": {
-         |    "filtered": {
-         |      "query": {
-         |        "match_all": {}
-         |      },
-         |      "filter": {
-         |        "bool": {
-         |          "must": [
-         |            {
-         |              "term": {
-         |                "ft": "$lookup"
-         |              }
-         |            },
-         |            {
-         |              "range": {
-         |                "@timestamp": {
-         |                  "gt": "now-${window}s"
-         |                }
-         |              }
-         |            }
-         |          ]
-         |        }
-         |      }
-         |    }
-         |  },
-         |  "aggregations": {
-         |    "Tt": {
-         |      "avg": {
-         |        "field": "Tt"
-         |      }
-         |    }
-         |  },
-         |  "size": 0
-         |}
-        """.stripMargin) map {
-        case map: Map[_, _] ⇒
-
-          val count: Long = map.asInstanceOf[Map[String, _]].get("hits").flatMap(map ⇒ map.asInstanceOf[Map[String, _]].get("total")) match {
-            case Some(number: BigInt) ⇒ number.toLong
-            case _                    ⇒ 0L
-          }
-
-          val rate: Double = count.toDouble / window
-
-          val responseTime: Double = map.asInstanceOf[Map[String, _]].get("aggregations").flatMap(map ⇒ map.asInstanceOf[Map[String, _]].get("Tt")).flatMap(map ⇒ map.asInstanceOf[Map[String, _]].get("value")) match {
-            case Some(number: BigInt)     ⇒ number.toDouble
-            case Some(number: BigDecimal) ⇒ number.toDouble
-            case _                        ⇒ 0D
-          }
-
-          log.debug(s"Request count/rate/responseTime for $lookup: $count/$rate/$responseTime")
-
-          Metrics(count, rate, responseTime)
-
-        case _ ⇒ Metrics(0, 0D, 0D)
-      }
   }
 
   private def healthMetrics(lookup: String): Future[Metrics] = {
