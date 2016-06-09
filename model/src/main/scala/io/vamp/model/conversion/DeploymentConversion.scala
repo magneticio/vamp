@@ -34,6 +34,6 @@ class DeploymentConversion(val deployment: Deployment) {
       }
     } map (_.copy(interpolated = None))
 
-    DefaultBlueprint(deployment.name, clusters, deployment.gateways, environmentVariables)
+    DefaultBlueprint(deployment.name, clusters, Nil, environmentVariables)
   }
 }

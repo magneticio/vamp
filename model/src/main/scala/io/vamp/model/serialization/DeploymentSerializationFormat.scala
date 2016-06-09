@@ -30,7 +30,6 @@ class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment]
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(deployment.name))
       list += JField("lookup_name", JString(deployment.lookupName))
-      list += JField("gateways", serializeGateways(deployment.gateways))
       list += JField("clusters", Extraction.decompose(deployment.clusters.map(cluster ⇒ cluster.name -> cluster).toMap))
       list += JField("ports", traits(deployment.ports))
 

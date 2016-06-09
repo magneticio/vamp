@@ -149,10 +149,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
             } :: Nil
 
           case deployment :: _ :: Nil ⇒
-            deployments.find {
-              _.name == deployment
-            }.flatMap {
-              _.gateways.find(_.name == route.path.normalized)
+            gateways.find { gateway ⇒
+              gateway.name == route.path.normalized && GatewayPath(gateway.name).segments.head == deployment
             }.flatMap { gateway ⇒
               Option {
                 InternalRouteTarget(route.path.normalized, gateway.port.number)

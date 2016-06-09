@@ -105,10 +105,6 @@ trait PersistenceMultiplexer {
 
   private def combine(deployment: Deployment): Future[Option[Deployment]] = {
     for {
-      gateways ← Future.sequence {
-        deployment.gateways.map(gateway ⇒ get(gateway.copy(name = Deployment.gatewayNameFor(deployment, gateway))))
-      }
-
       clusters ← Future.sequence {
         deployment.clusters.map { cluster ⇒
           for {
@@ -167,7 +163,7 @@ trait PersistenceMultiplexer {
           cluster.services.flatMap(_.environmentVariables).map(ev ⇒ ev.copy(name = TraitReference(cluster.name, TraitReference.groupFor(TraitReference.EnvironmentVariables), ev.name).toString))
         } map { p ⇒ p.name -> p } toMap
 
-        Option(deployment.copy(gateways = gateways.flatten, clusters = clusters, hosts = hosts, ports = ports.values.toList, environmentVariables = environmentVariables.values.toList))
+        Option(deployment.copy(gateways = Nil, clusters = clusters, hosts = hosts, ports = ports.values.toList, environmentVariables = environmentVariables.values.toList))
 
       } else None
     }
