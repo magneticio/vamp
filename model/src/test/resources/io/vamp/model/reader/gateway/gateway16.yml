@@ -1,0 +1,9 @@
+name: sava
+port: 8080/http
+sticky: route
+
+routes:
+  sava1:
+    weight: 50%
+  sava2:
+    weight: 60%

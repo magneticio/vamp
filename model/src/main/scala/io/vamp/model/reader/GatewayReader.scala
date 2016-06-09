@@ -1,12 +1,13 @@
 package io.vamp.model.reader
 
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
 
-trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader[Gateway] {
+trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader[Gateway] with GatewayRouteValidation {
 
   private val nameMatcher = """^[^\s\[\]]+$""".r
 
@@ -61,22 +62,27 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
   }
 
   protected def routes(splitPath: Boolean)(implicit source: YamlSourceReader): List[Route] = <<?[YamlSourceReader]("routes") match {
-    case Some(map) ⇒ map.pull().map {
-      case (name: String, _) ⇒ RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
-        case route: DefaultRoute   ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
-        case route: RouteReference ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
-        case route                 ⇒ route
-      }
-    } toList
+    case Some(map) ⇒
+      map.pull().map {
+        case (name: String, _) ⇒ RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
+          case route: DefaultRoute   ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
+          case route: RouteReference ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
+          case route                 ⇒ route
+        }
+      } toList
+
     case None ⇒ Nil
   }
 
   protected def deployed(implicit source: YamlSourceReader): Boolean = <<?[Boolean]("deployed").getOrElse(false)
 
   override protected def validate(gateway: Gateway): Gateway = {
+
     gateway.routes.foreach(route ⇒ if (route.length < 1 || route.length > 4) throwException(UnsupportedRoutePathError(route.path)))
+
     if (gateway.port.`type` != Port.Type.Http && gateway.sticky.isDefined) throwException(StickyPortTypeError(gateway.port.copy(name = gateway.port.value.get)))
-    gateway
+
+    (validateGatewayRouteWeights andThen validateGatewayRouteFilterStrengths)(gateway)
   }
 
   override def validateName(name: String): String = {
@@ -244,5 +250,29 @@ class RoutingReader(override val acceptPort: Boolean) extends GatewayMappingRead
 
   override protected def update(key: String, gateway: Gateway)(implicit source: YamlSourceReader): Gateway = {
     gateway.copy(port = gateway.port.copy(name = key))
+  }
+}
+
+trait GatewayRouteValidation {
+  this: NotificationProvider ⇒
+
+  protected def validateGatewayRouteWeights: Gateway ⇒ Gateway = { gateway ⇒
+
+    val defaultRoutes = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute])
+
+    val weight = defaultRoutes.flatMap(_.weight).map(_.value).sum
+
+    if (defaultRoutes.size == gateway.routes.size && weight != 0 && weight != 100) throwException(GatewayRouteWeightError(gateway))
+
+    gateway
+  }
+
+  protected def validateGatewayRouteFilterStrengths: Gateway ⇒ Gateway = { gateway ⇒
+
+    val strength = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.filterStrength)
+
+    if (strength.exists(_.value < 0) || strength.exists(_.value > 100)) throwException(GatewayRouteFilterStrengthError(gateway))
+
+    gateway
   }
 }

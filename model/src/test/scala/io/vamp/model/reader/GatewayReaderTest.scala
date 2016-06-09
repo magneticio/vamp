@@ -140,4 +140,16 @@ class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
       'routes(List(DefaultRoute("", GatewayPath("sava1", List("sava1")), Some(Percentage(50)), None, Nil, Nil, None), DefaultRoute("", GatewayPath("sava2/v1", List("sava2", "v1")), Some(Percentage(50)), None, Nil, Nil, None)))
     )
   }
+
+  it should "fail on invalid total weight != 0 or != 100" in {
+    expectedError[GatewayRouteWeightError]({
+      GatewayReader.read(res("gateway/gateway15.yml"))
+    })
+  }
+
+  it should "fail on multiple routes and invalid total weight != 0 or != 100" in {
+    expectedError[GatewayRouteWeightError]({
+      GatewayReader.read(res("gateway/gateway16.yml"))
+    })
+  }
 }

@@ -111,7 +111,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the route with weight" in {
     BlueprintReader.read(res("blueprint/blueprint12.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil)), List(Gateway("", Port("", None, None), None, None, Nil, List(DefaultRoute("", "nocturnal-viper", Some(Percentage(50)), None, Nil, Nil, None)))), None, Map()))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil)), List(Gateway("", Port("", None, None), None, None, Nil, List(DefaultRoute("", "nocturnal-viper", Some(Percentage(100)), None, Nil, Nil, None)))), None, Map()))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -138,7 +138,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "read the route with anonymous filter" in {
     BlueprintReader.read(res("blueprint/blueprint15.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil)), List(Gateway("", Port("", None, None), None, None, Nil, List(DefaultRoute("", "nocturnal-viper", Some(Percentage(10)), None, List(DefaultFilter("", "user.agent != ios")), Nil, None)))), None))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil)), List(Gateway("", Port("", None, None), None, None, Nil, List(DefaultRoute("", "nocturnal-viper", Some(Percentage(100)), None, List(DefaultFilter("", "user.agent != ios")), Nil, None)))), None))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -192,7 +192,7 @@ class BlueprintReaderTest extends FlatSpec with Matchers with ReaderTest {
   it should "expand the more complex blueprint" in {
     BlueprintReader.read(res("blueprint/blueprint21.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Nil, Some(DefaultScale("", Quantity(0.2), MegaByte(120), 2)), Nil), Service(BreedReference("remote-venus"), Nil, Some(ScaleReference("worthy")), Nil)), List(Gateway("", Port("", None, None), None, None, Nil, List(DefaultRoute("", "solid-barbershop", Some(Percentage(95)), None, List(DefaultFilter("", "ua = android")), Nil, None)))), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious"))))), Map("reborn" -> "red-swallow")))), Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), Nil, Nil, Nil, Nil, Map()), Nil, None, Nil)), Nil, None), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), Nil, Nil, Nil, Nil, Map()), Nil, None, Nil)), Nil, Some(SlaReference("fish-steamy", Nil))), Cluster("omega", List(Service(BreedReference("scary-lion"), Nil, None, Nil)), Nil, None))),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Nil, Some(DefaultScale("", Quantity(0.2), MegaByte(120), 2)), Nil), Service(BreedReference("remote-venus"), Nil, Some(ScaleReference("worthy")), Nil)), List(Gateway("", Port("", None, None), None, None, Nil, List(DefaultRoute("", "solid-barbershop", Some(Percentage(100)), None, List(DefaultFilter("", "ua = android")), Nil, None)))), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious"))))), Map("reborn" -> "red-swallow")))), Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), Nil, Nil, Nil, Nil, Map()), Nil, None, Nil)), Nil, None), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), Nil, Nil, Nil, Nil, Map()), Nil, None, Nil)), Nil, Some(SlaReference("fish-steamy", Nil))), Cluster("omega", List(Service(BreedReference("scary-lion"), Nil, None, Nil)), Nil, None))),
       'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, None, Nil, List(DefaultRoute("", "supersonic/port", None, None, Nil, Nil, None))))),
       'environmentVariables(List(EnvironmentVariable("omega.environment_variables.aspect", None, Some("thorium"))))
     )

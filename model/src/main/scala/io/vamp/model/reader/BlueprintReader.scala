@@ -14,6 +14,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     with ArgumentReader
     with DialectReader
     with BlueprintTraitValidator
+    with GatewayRouteValidation
     with BlueprintRoutingHelper {
 
   override def readReference: PartialFunction[Any, Blueprint] = {
@@ -115,8 +116,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       validateRouteServiceNames(blueprint)
       validateRouteWeights(blueprint)
       validateRouteFilterStrengths(blueprint)
-      validateGatewayRouteWeights(blueprint)
-      validateGatewayRouteFilterStrengths(blueprint)
+      blueprint.gateways.foreach((validateGatewayRouteWeights andThen validateGatewayRouteFilterStrengths)(_))
       validateBlueprintGateways(blueprint)
       validateRoutingAnonymousPortMapping(blueprint)
 
@@ -192,24 +192,6 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       }
     }).flatMap {
       case cluster ⇒ throwException(RouteFilterStrengthError(cluster))
-    }
-  }
-
-  protected def validateGatewayRouteWeights(blueprint: AbstractBlueprint): Unit = {
-    blueprint.gateways.find({ gateway ⇒
-      val weights = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
-      weights.exists(_.value < 0) || weights.map(_.value).sum > 100
-    }).flatMap {
-      case gateway ⇒ throwException(GatewayRouteWeightError(gateway))
-    }
-  }
-
-  protected def validateGatewayRouteFilterStrengths(blueprint: AbstractBlueprint): Unit = {
-    blueprint.gateways.find({ gateway ⇒
-      val strength = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.filterStrength)
-      strength.exists(_.value < 0) || strength.exists(_.value > 100)
-    }).flatMap {
-      case gateway ⇒ throwException(GatewayRouteFilterStrengthError(gateway))
     }
   }
 

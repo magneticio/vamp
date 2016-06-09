@@ -5,7 +5,7 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact._
 import io.vamp.model.notification.{ GatewayRouteFilterStrengthError, GatewayRouteWeightError }
-import io.vamp.model.reader.Percentage
+import io.vamp.model.reader.{ GatewayRouteValidation, Percentage }
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.persistence.operation.InnerGateway
@@ -30,7 +30,7 @@ object GatewayActor {
 
 }
 
-class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider {
+class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation {
 
   import GatewayActor._
 
@@ -142,18 +142,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     updatedWeights.copy(routes = routes)
   }
 
-  private def validate: Gateway ⇒ Gateway = { gateway ⇒
-
-    val defaultRoutes = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute])
-
-    val weights = defaultRoutes.flatMap(_.weight)
-
-    if (weights.exists(_.value < 0) || weights.map(_.value).sum > 100) throwException(GatewayRouteWeightError(gateway))
-
-    if (defaultRoutes.flatMap(_.filterStrength).exists(weight ⇒ weight.value < 0 || weight.value > 100)) throwException(GatewayRouteFilterStrengthError(gateway))
-
-    gateway
-  }
+  private def validate: Gateway ⇒ Gateway = validateGatewayRouteWeights andThen validateGatewayRouteFilterStrengths
 
   private def validateUniquePort: Gateway ⇒ Future[Gateway] = {
     case gateway if gateway.inner ⇒ Future.successful(gateway)
