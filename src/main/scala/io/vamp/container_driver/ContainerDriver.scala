@@ -5,14 +5,6 @@ import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvid
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentTraitResolver
 
-case class ContainerPortMapping(containerPort: Int, protocol: String = "tcp", hostPort: Int = 0)
-
-case class Container(docker: Docker, `type`: String = "DOCKER")
-
-case class Docker(image: String, portMappings: List[ContainerPortMapping], parameters: List[DockerParameter], privileged: Boolean = false, network: String = "BRIDGE")
-
-case class DockerParameter(key: String, value: String)
-
 trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotificationProvider with ExecutionContextProvider {
 
   protected def nameDelimiter: String
@@ -21,11 +13,11 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
 
   protected def artifactName2Id(artifact: Artifact): String
 
-  protected def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[ContainerPortMapping] = {
+  protected def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[DockerPortMapping] = {
     service.breed.ports.map(port ⇒
       port.value match {
-        case Some(_) ⇒ ContainerPortMapping(port.number)
-        case None    ⇒ ContainerPortMapping(deployment.ports.find(p ⇒ TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
+        case Some(_) ⇒ DockerPortMapping(port.number)
+        case None    ⇒ DockerPortMapping(deployment.ports.find(p ⇒ TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
       })
   }
 

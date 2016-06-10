@@ -6,9 +6,11 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.crypto.Hash
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
+import io.vamp.container_driver.DockerAppDriver.{ AllDockerApps, DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact._
+import io.vamp.model.reader.{ MegaByte, Quantity }
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.{ Map ⇒ MutableMap }
@@ -49,12 +51,18 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
 
   private val vampLabel = "deployment-service"
 
+  private val vampWorkflowLabel = "workflow"
+
   def receive = {
     case InfoRequest                ⇒ reply(info)
     case Get(services)              ⇒ get(services)
     case d: Deploy                  ⇒ reply(Future(deploy(d.deployment, d.cluster, d.service, d.update)))
     case u: Undeploy                ⇒ reply(Future(undeploy(u.deployment, u.service)))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
+    case a: AllDockerApps           ⇒ reply(allApps.map(_.filter(a.filter)))
+    case d: DeployDockerApp         ⇒ reply(Future.successful(deploy(d.app, d.update)))
+    case u: UndeployDockerApp       ⇒ reply(Future.successful(undeploy(u.app)))
+    case r: RetrieveDockerApp       ⇒ reply(Future.successful(retrieve(r.app)))
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
@@ -82,14 +90,14 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
 
     Future(docker.listContainers().asScala).map { containers ⇒
 
-      val deployed = containers.flatMap(container ⇒ id(container).map(_ -> container)).toMap
+      val deployed = containers.flatMap(container ⇒ id(container, vampLabel).map(_ -> container)).toMap
 
       deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).map {
         case (deployment, service) ⇒
 
           deployed.get(appId(deployment, service.breed)) match {
 
-            case Some(container) if processable(container) ⇒
+            case Some(container) if processable(container, vampLabel) ⇒
 
               val scale = container.labels().get("scale").parseJson.convertTo[DefaultScale]
 
@@ -112,12 +120,12 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
     }
   }
 
-  private def id(container: SpotifyContainer): Option[String] = {
-    if (container.labels().getOrDefault("vamp", "") == vampLabel) Option(container.labels().get("id")) else None
+  private def id(container: SpotifyContainer, label: String): Option[String] = {
+    if (container.labels().getOrDefault("vamp", "") == label) Option(container.labels().get("id")) else None
   }
 
-  private def processable(container: SpotifyContainer) = {
-    container.labels().getOrDefault("vamp", "") == vampLabel && container.status().startsWith("Up") && container.labels().containsKey("scale")
+  private def processable(container: SpotifyContainer, label: String) = {
+    container.labels().getOrDefault("vamp", "") == label && container.status().startsWith("Up") && container.labels().containsKey("scale")
   }
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
@@ -164,12 +172,12 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
     hostConfig.privileged(dockerDefinition.privileged)
     dockerDefinition.parameters.find(_.key == "security-opt").foreach { security ⇒ hostConfig.securityOpt(security.value) }
 
-    val container = Container(Docker(dockerDefinition.image, dockerDefinition.portMappings, dockerDefinition.parameters))
+    val docker = Docker(dockerDefinition.image, dockerDefinition.portMappings, dockerDefinition.parameters)
 
-    spotifyContainer.image(container.docker.image)
+    spotifyContainer.image(docker.image)
     val portBindings = new java.util.HashMap[String, java.util.List[PortBinding]]()
 
-    container.docker.portMappings.map(port ⇒ {
+    docker.portMappings.map(port ⇒ {
       val hostPorts = new java.util.ArrayList[PortBinding]()
       hostPorts.add(PortBinding.of("0.0.0.0", port.containerPort))
       portBindings.put(port.containerPort.toString, hostPorts)
@@ -227,6 +235,90 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
 
   private def find(deployment: Deployment, service: DeploymentService): Option[SpotifyContainer] = {
     val app = appId(deployment, service.breed)
-    docker.listContainers().asScala.find(container ⇒ id(container).contains(app))
+    docker.listContainers().asScala.find(container ⇒ id(container, vampLabel).contains(app))
+  }
+
+  private def allApps: Future[List[DockerApp]] = Future.successful(Nil)
+
+  private def deploy(app: DockerApp, update: Boolean) = if (app.container.isDefined) {
+
+    def run() = {
+      val container = docker.createContainer(containerConfiguration(app))
+      docker.startContainer(container.id())
+    }
+
+    val image = app.container.get.image
+
+    if (Try(docker.inspectImage(image)).isFailure) {
+      log.info(s"docker pull image: $image")
+      docker.pull(image)
+    }
+
+    val exists = retrieve(app.id).isDefined
+
+    if (!exists && !update) {
+      log.info(s"docker create app: ${app.id}")
+      run()
+    } else if (exists && update) {
+      log.info(s"docker update app: ${app.id}")
+      undeploy(app.id)
+      run()
+    }
+  }
+
+  private def undeploy(app: String) = retrieve(app) match {
+    case Some(_) ⇒
+      log.info(s"docker delete app: $app")
+      docker.killContainer(app)
+      docker.removeContainer(app)
+    case _ ⇒
+  }
+
+  private def retrieve(app: String): Option[SpotifyContainer] = {
+    docker.listContainers().asScala.find(container ⇒ id(container, vampWorkflowLabel).contains(app))
+  }
+
+  private def containerConfiguration(app: DockerApp): ContainerConfig = {
+
+    import DefaultScaleProtocol.DefaultScaleFormat
+    import spray.json._
+
+    val hostConfig = HostConfig.builder()
+    val spotifyContainer = ContainerConfig.builder()
+
+    val dockerDefinition = app.container.get
+    hostConfig.privileged(dockerDefinition.privileged)
+    dockerDefinition.parameters.find(_.key == "security-opt").foreach { security ⇒ hostConfig.securityOpt(security.value) }
+
+    val docker = Docker(dockerDefinition.image, dockerDefinition.portMappings, dockerDefinition.parameters)
+
+    spotifyContainer.image(docker.image)
+    val portBindings = new java.util.HashMap[String, java.util.List[PortBinding]]()
+
+    docker.portMappings.map(port ⇒ {
+      val hostPorts = new java.util.ArrayList[PortBinding]()
+      hostPorts.add(PortBinding.of("0.0.0.0", port.containerPort))
+      portBindings.put(port.containerPort.toString, hostPorts)
+    })
+
+    val labels: MutableMap[String, String] = MutableMap()
+    labels += ("vamp" -> vampWorkflowLabel)
+    labels += ("id" -> app.id)
+    labels += ("scale" -> DefaultScale("", Quantity(app.cpu), MegaByte(app.memory), app.instances).toJson.toString)
+
+    hostConfig.portBindings(portBindings).networkMode("bridge")
+
+    val env = app.environmentVariables.map {
+      case (key, value) ⇒ s"$key=$value"
+    } toList
+
+    spotifyContainer.env(env.asJava)
+
+    spotifyContainer.labels(labels.asJava)
+    spotifyContainer.hostConfig(hostConfig.build())
+
+    if (app.command.isDefined) spotifyContainer.cmd(app.command.get.split(" ").toList.asJava)
+
+    spotifyContainer.build()
   }
 }

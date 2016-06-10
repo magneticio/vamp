@@ -4,7 +4,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.crypto.Hash
 import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.container_driver.ContainerDriverActor.ContainerDriveMessage
+import io.vamp.container_driver.DockerAppDriver.{ AllDockerApps, DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
@@ -26,15 +26,6 @@ object MarathonDriverActor {
   }
 
   MarathonDriverActor.Schema.values
-
-  case class AllApps(filter: (MarathonApp) ⇒ Boolean) extends ContainerDriveMessage
-
-  case class DeployApp(app: MarathonApp, update: Boolean) extends ContainerDriveMessage
-
-  case class RetrieveApp(app: String) extends ContainerDriveMessage
-
-  case class UndeployApp(app: String) extends ContainerDriveMessage
-
 }
 
 case class MesosInfo(frameworks: Any, slaves: Any)
@@ -60,10 +51,10 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
-    case a: AllApps                 ⇒ reply(allApps.map(_.filter(a.filter)))
-    case d: DeployApp               ⇒ reply(deploy(d.app, d.update))
-    case u: UndeployApp             ⇒ reply(undeploy(u.app))
-    case r: RetrieveApp             ⇒ reply(retrieve(r.app))
+    case a: AllDockerApps           ⇒ reply(allApps.map(_.filter(a.filter)))
+    case d: DeployDockerApp         ⇒ reply(deploy(d.app, d.update))
+    case u: UndeployDockerApp       ⇒ reply(undeploy(u.app))
+    case r: RetrieveDockerApp       ⇒ reply(retrieve(r.app))
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
@@ -115,8 +106,9 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     sendRequest(update, app.id, requestPayload(deployment, cluster, service, purge(app)))
   }
 
-  private def deploy(app: MarathonApp, update: Boolean): Future[Any] = {
-    sendRequest(update, app.id, Extraction.decompose(purge(app)))
+  private def deploy(app: DockerApp, update: Boolean): Future[Any] = {
+    val marathonApp = MarathonApp(app.id, app.container.map(Container(_)), app.instances, app.cpu, app.memory, app.environmentVariables, app.command, app.arguments, app.constraints)
+    sendRequest(update, app.id, Extraction.decompose(purge(marathonApp)))
   }
 
   private def purge(app: MarathonApp): MarathonApp = {
@@ -173,9 +165,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     RestClient.delete(s"$marathonUrl/v2/apps/$app")
   }
 
-  private def allApps: Future[List[MarathonApp]] = {
-    Future.successful(Nil)
-  }
+  private def allApps: Future[List[DockerApp]] = Future.successful(Nil)
 
   private def retrieve(app: String): Future[Option[App]] = {
     RestClient.get[AppResponse](s"$marathonUrl/v2/apps/$app", RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
