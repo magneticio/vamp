@@ -30,7 +30,10 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     super.expand
   }
 
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, port, service, sticky, virtualHosts, routes(splitPath = true), deployed)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = {
+    source.find[String]("inner")
+    Gateway(name, port, service, sticky, virtualHosts, routes(splitPath = true), deployed)
+  }
 
   protected def port(implicit source: YamlSourceReader): Port = <<![Any]("port") match {
     case value: Int    ⇒ Port(value)
