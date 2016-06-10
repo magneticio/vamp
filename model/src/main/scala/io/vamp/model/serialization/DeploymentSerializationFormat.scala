@@ -29,7 +29,7 @@ class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment]
     case deployment: Deployment ⇒
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(deployment.name))
-      list += JField("lookup_name", JString(deployment.lookupName))
+      list += JField(Lookup.entry, JString(deployment.lookupName))
       list += JField("clusters", Extraction.decompose(deployment.clusters.map(cluster ⇒ cluster.name -> cluster).toMap))
       list += JField("ports", traits(deployment.ports))
 

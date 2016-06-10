@@ -16,6 +16,10 @@ trait Type {
   def `type`: String
 }
 
+object Lookup {
+  val entry = "lookup_name"
+}
+
 trait Lookup extends Artifact {
 
   def lookupName = lookup(name)

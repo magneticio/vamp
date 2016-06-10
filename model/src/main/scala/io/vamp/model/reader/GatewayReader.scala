@@ -201,8 +201,15 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
       case None        ⇒ >>("port", key)(yaml)
     }
 
-    reader.readAnonymous(yaml) match {
-      case artifact ⇒ update(key, artifact)
+    if (onlyAnonymous) {
+      reader.readAnonymous(yaml) match {
+        case artifact ⇒ update(key, artifact)
+      }
+    } else {
+      yaml.find[String](Lookup.entry)
+      reader.read(yaml) match {
+        case artifact ⇒ update(key, artifact)
+      }
     }
 
   } toList
@@ -212,6 +219,8 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
   protected def acceptPort: Boolean
 
   protected def update(key: String, artifact: T)(implicit source: YamlSourceReader): T = artifact
+
+  protected def onlyAnonymous = true
 }
 
 object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
@@ -239,7 +248,7 @@ object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
   }
 }
 
-class RoutingReader(override val acceptPort: Boolean) extends GatewayMappingReader[Gateway] {
+class RoutingReader(override val acceptPort: Boolean, override val onlyAnonymous: Boolean = true) extends GatewayMappingReader[Gateway] {
 
   protected val reader = ClusterGatewayReader
 

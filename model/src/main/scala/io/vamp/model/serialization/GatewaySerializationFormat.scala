@@ -33,7 +33,7 @@ trait GatewayDecomposer extends ReferenceSerialization {
       val list = new ArrayBuffer[JField]
 
       list += JField("name", JString(gateway.name))
-      list += JField("lookup_name", JString(gateway.lookupName))
+      list += JField(Lookup.entry, JString(gateway.lookupName))
 
       if (full) {
         list += JField("port", gateway.port.value match {
