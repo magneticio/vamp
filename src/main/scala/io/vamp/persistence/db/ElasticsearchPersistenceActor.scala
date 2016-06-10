@@ -83,7 +83,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
   private def readerOf(`type`: String): Option[YamlReader[_ <: Artifact]] = Map(
     "gateways" -> DeployedGatewayReader,
     "deployments" -> new AbstractDeploymentReader() {
-      override protected def routingReader = new RoutingReader(acceptPort = true)
+      override protected def routingReader = new RoutingReader(acceptPort = true, onlyAnonymous = false)
 
       override protected def validateEitherReferenceOrAnonymous = false
     },
@@ -127,7 +127,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "inner-gateway" -> new NoNameValidationYamlReader[InnerGateway] {
       override protected def parse(implicit source: YamlSourceReader) = {
         <<?[Any]("name")
-        <<?[Any]("gateway" :: "lookup_name" :: Nil)
+        <<?[Any]("gateway" :: Lookup.entry :: Nil)
         InnerGateway(DeployedGatewayReader.read(<<![YamlSourceReader]("gateway")))
       }
     },
