@@ -5,7 +5,7 @@ import akka.pattern.after
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.http.RestClient
 import io.vamp.container_driver.rancher.api.{ LaunchConfig, ProjectInfo, RancherContainer, RancherContainerPortList, ServiceContainersList, ServiceList, Stack, Stacks, UpdateService, Service ⇒ RancherService }
-import io.vamp.container_driver.{ ContainerDriver, ContainerInfo, ContainerPortMapping, ContainerService }
+import io.vamp.container_driver.{ ContainerDriver, ContainerInfo, DockerPortMapping, ContainerService }
 import io.vamp.model.artifact._
 import org.json4s.{ DefaultFormats, Extraction, Formats }
 
@@ -21,7 +21,7 @@ case class DockerParameter(key: String, value: String)
 
 case class Container(docker: Docker, `type`: String = "DOCKER")
 
-case class Docker(image: String, portMappings: List[ContainerPortMapping], parameters: List[DockerParameter], network: String = "BRIDGE")
+case class Docker(image: String, portMappings: List[DockerPortMapping], parameters: List[DockerParameter], network: String = "BRIDGE")
 
 trait RancherDriver extends ContainerDriver {
 

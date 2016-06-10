@@ -3,9 +3,9 @@ package io.vamp.lifter.vga
 import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.container_driver.marathon.MarathonDriverActor.{ DeployApp, RetrieveApp, UndeployApp }
+import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver.marathon._
-import io.vamp.container_driver.{ Container, ContainerDriverActor, ContainerInfo, Docker }
+import io.vamp.container_driver.{ ContainerDriverActor, ContainerInfo, Docker, DockerApp }
 import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.lifter.vga.VgaMarathonSynchronizationActor.SynchronizeAll
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport }
@@ -42,7 +42,7 @@ class VgaMarathonSynchronizationActor extends VgaSynchronizationActor with Artif
     val actor = self
     (IoC.actorFor[ContainerDriverActor] ? InfoRequest) flatMap {
       case ContainerInfo("marathon", info: MarathonDriverInfo) ⇒
-        (IoC.actorFor[ContainerDriverActor] ? RetrieveApp(id)) map {
+        (IoC.actorFor[ContainerDriverActor] ? RetrieveDockerApp(id)) map {
           case Some(app: App) ⇒ actor ! Synchronize(info, Option(app))
           case None           ⇒ actor ! Synchronize(info, None)
           case any            ⇒
@@ -65,31 +65,29 @@ class VgaMarathonSynchronizationActor extends VgaSynchronizationActor with Artif
       log.info(s"Initiating VGA deployment, number of instances: $count")
 
       if (count > 0)
-        IoC.actorFor[ContainerDriverActor] ! DeployApp(request(count), update = instances != 0)
+        IoC.actorFor[ContainerDriverActor] ! DeployDockerApp(request(count), update = instances != 0)
       else
-        IoC.actorFor[ContainerDriverActor] ! UndeployApp(id)
+        IoC.actorFor[ContainerDriverActor] ! UndeployDockerApp(id)
     }
   }
 
-  private def request(instances: Int) = MarathonApp(
+  private def request(instances: Int) = DockerApp(
     id = id,
     container = Option(
-      Container(
-        docker = Docker(
-          image = container,
-          portMappings = ports,
-          parameters = Nil,
-          privileged = true,
-          network = "HOST"
-        )
+      Docker(
+        image = container,
+        portMappings = ports,
+        parameters = Nil,
+        privileged = true,
+        network = "HOST"
       )
     ),
     instances = instances,
-    cpus = cpu,
-    mem = mem,
-    env = Map(),
-    cmd = None,
-    args = arguments,
+    cpu = cpu,
+    memory = mem,
+    environmentVariables = Map(),
+    command = None,
+    arguments = arguments,
     constraints = List(List("hostname", "UNIQUE"))
   )
 }
