@@ -6,7 +6,7 @@ import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
-import io.vamp.model.artifact.Gateway
+import io.vamp.model.artifact.{ Gateway, Lookup }
 
 import scala.concurrent.Future
 import scala.io.Source
@@ -88,7 +88,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
           _.service.isEmpty
         } foreach { gateway ⇒
           response.items.find {
-            item ⇒ item.metadata.labels.getOrElse("lookup_name", "") == gateway.lookupName
+            item ⇒ item.metadata.labels.getOrElse(Lookup.entry, "") == gateway.lookupName
           } flatMap {
             item ⇒ item.spec.clusterIP.flatMap(ip ⇒ item.spec.ports.find(port ⇒ port.port == gateway.port.number).map(port ⇒ ip -> port))
           } foreach {
@@ -96,7 +96,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
           }
         }
 
-        val items = response.items.flatMap { item ⇒ item.metadata.labels.get("lookup_name").map(_ -> item.metadata.name) } toMap
+        val items = response.items.flatMap { item ⇒ item.metadata.labels.get(Lookup.entry).map(_ -> item.metadata.name) } toMap
 
         // delete services
         val deleted = items.filter { case (l, _) ⇒ !gateways.exists(_.lookupName == l) } map { case (_, id) ⇒ deleteServiceById(id) }
@@ -106,7 +106,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
           case gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
         } map { gateway ⇒
           val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
-          createService(gateway.name, serviceType, vampGatewayAgentId, ports, update = false, gatewayService ++ Map("lookup_name" -> gateway.lookupName))
+          createService(gateway.name, serviceType, vampGatewayAgentId, ports, update = false, gatewayService ++ Map(Lookup.entry -> gateway.lookupName))
         }
 
         Future.sequence(created ++ deleted)
