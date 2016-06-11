@@ -7,7 +7,7 @@
         </encoder>
     </appender>
 
-    <logger name="io.vamp" level="TRACE"/>
+    <logger name="io.vamp" level="INFO"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

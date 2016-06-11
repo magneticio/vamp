@@ -46,7 +46,7 @@ abstract class DaemonWorkflowDriver(implicit actorSystem: ActorSystem) extends W
     val scale = scheduledWorkflow.scale.get.asInstanceOf[DefaultScale]
 
     DockerApp(
-      id = s"$namePrefix${name(scheduledWorkflow)}",
+      id = name(scheduledWorkflow),
       container = Option(
         Docker(
           image = workflow.containerImage.get,
@@ -70,6 +70,7 @@ abstract class DaemonWorkflowDriver(implicit actorSystem: ActorSystem) extends W
   }
 
   private def name(scheduledWorkflow: ScheduledWorkflow) = {
-    if (scheduledWorkflow.name.matches("^[\\w-]+$")) scheduledWorkflow.name else scheduledWorkflow.lookupName
+    val id = if (scheduledWorkflow.name.matches("^[\\w-]+$")) scheduledWorkflow.name else scheduledWorkflow.lookupName
+    s"$namePrefix$id"
   }
 }
