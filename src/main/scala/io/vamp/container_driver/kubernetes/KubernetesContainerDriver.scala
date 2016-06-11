@@ -15,7 +15,7 @@ trait KubernetesContainerDriver extends ContainerDriver {
 
   protected val nameDelimiter = "-"
 
-  protected val idMatcher = """^[a-z0-9]*$""".r
+  protected val idMatcher = """^[a-z0-9][a-z0-9-]*$""".r
 
   protected def appId(deployment: Deployment, breed: Breed): String = s"${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
@@ -31,14 +31,6 @@ trait KubernetesContainerDriver extends ContainerDriver {
       case _ ⇒ notExists()
     } map {
       case _ ⇒ exists()
-    }
-  }
-
-  protected def exists(url: String, name: String): Future[Boolean] = {
-    RestClient.get[KubernetesItem](s"$url/$name", apiHeaders, logError = false).recover {
-      case _ ⇒ false
-    } map {
-      case _ ⇒ true
     }
   }
 }

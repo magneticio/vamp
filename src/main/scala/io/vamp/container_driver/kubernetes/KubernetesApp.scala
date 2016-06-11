@@ -10,7 +10,7 @@ case class KubernetesApp(
     mem: Int,
     privileged: Boolean,
     env: Map[String, String],
-    cmd: Option[String],
+    cmd: List[String],
     args: List[String],
     labels: Map[String, String]) extends KubernetesArtifact {
 
@@ -35,7 +35,7 @@ case class KubernetesApp(
        |          "env": [${env.map({ case (n, v) ⇒ s"""{"name": "$n", "value": "$v"}""" }).mkString(", ")}],
        |          "ports": [${docker.portMappings.map(pm ⇒ s"""{"name": "p${pm.containerPort}", "containerPort": ${pm.containerPort}, "protocol": "${pm.protocol.toUpperCase}"}""").mkString(", ")}],
        |          "args": [${args.map(str ⇒ s""""$str"""").mkString(", ")}],
-       |          "command": ${if (cmd.isDefined) s"""["${cmd.get}"]""" else "[]"},
+       |          "command": [${cmd.map(str ⇒ s""""$str"""").mkString(", ")}],
        |          "resources": {
        |            "requests": {
        |              "cpu": $cpu,
