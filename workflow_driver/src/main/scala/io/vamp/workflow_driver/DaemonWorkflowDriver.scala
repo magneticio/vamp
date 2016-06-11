@@ -7,6 +7,7 @@ import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDocke
 import io.vamp.container_driver.{ ContainerDriverActor, Docker, DockerApp }
 import io.vamp.model.artifact.DefaultScale
 import io.vamp.model.workflow.{ DaemonTrigger, DefaultWorkflow, ScheduledWorkflow }
+import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 
 import scala.concurrent.Future
 
@@ -14,16 +15,18 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
 
   private implicit val timeout = ContainerDriverActor.timeout
 
-  protected def namePrefix: String
+  protected def namePrefixConfig: String
 
   protected def driverActor: ActorRef
 
-  //  override def all(): Future[List[WorkflowInstance]] = driverActor ? AllDockerApps(app ⇒ app.id.startsWith(namePrefix)) map {
-  //    case list: List[_] ⇒ list.filter(_.isInstanceOf[DockerApp]).map(app ⇒ WorkflowInstance(app.asInstanceOf[DockerApp].id))
-  //    case _             ⇒ Nil
-  //  }
+  private lazy val namePrefix = WorkflowDriver.config.getString(namePrefixConfig)
 
-  override def request(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]): Unit = {}
+  override def request(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]): Unit = scheduledWorkflows.foreach { scheduled ⇒
+    driverActor ? RetrieveDockerApp(name(scheduled)) map {
+      case Some(_) ⇒ replyTo ! Scheduled(scheduled, Option(WorkflowInstance(scheduled.name)))
+      case _       ⇒ replyTo ! Scheduled(scheduled, None)
+    }
+  }
 
   override def schedule(data: Any): PartialFunction[ScheduledWorkflow, Future[Any]] = {
     case workflow if workflow.trigger == DaemonTrigger ⇒

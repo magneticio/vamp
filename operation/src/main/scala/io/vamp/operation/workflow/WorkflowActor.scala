@@ -88,29 +88,24 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   }
 
   private def schedule(workflow: ScheduledWorkflow): Unit = {
-    unschedule(workflow, silent = true) map { _ ⇒
+    log.info(s"Scheduling workflow: '${workflow.name}'.")
 
-      log.debug(s"Scheduling workflow: '${workflow.name}'.")
-
-      workflow.trigger match {
-        case DaemonTrigger           ⇒ trigger(workflow)
-        case TimeTrigger(_, _, _)    ⇒ trigger(workflow)
-        case EventTrigger(tags)      ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
-        case DeploymentTrigger(name) ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
-        case trigger                 ⇒ log.warning(s"Unsupported trigger: '$trigger'.")
-      }
-
-      pulse(workflow, scheduled = true)
+    workflow.trigger match {
+      case DaemonTrigger           ⇒ trigger(workflow)
+      case TimeTrigger(_, _, _)    ⇒ trigger(workflow)
+      case EventTrigger(tags)      ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
+      case DeploymentTrigger(name) ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
+      case trigger                 ⇒ log.warning(s"Unsupported trigger: '$trigger'.")
     }
+
+    pulse(workflow, scheduled = true)
   }
 
-  private def unschedule(workflow: ScheduledWorkflow, silent: Boolean = false): Future[Any] = {
-    log.debug(s"Unscheduling workflow: '${workflow.name}'.")
+  private def unschedule(workflow: ScheduledWorkflow) = {
+    log.info(s"Unscheduling workflow: '${workflow.name}'.")
+
     IoC.actorFor[PulseActor] ! UnregisterPercolator(s"$percolator${workflow.name}")
-    IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) map { any ⇒
-      if (!silent) pulse(workflow, scheduled = false)
-      any
-    }
+    IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) foreach { _ ⇒ pulse(workflow, scheduled = false) }
   }
 
   private def trigger(scheduledWorkflow: ScheduledWorkflow, data: Any = None) = for {

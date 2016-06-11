@@ -11,7 +11,7 @@ case class WorkflowInstance(name: String)
 
 object WorkflowDriver {
 
-  private val config = ConfigFactory.load().getConfig("vamp.workflow-driver")
+  val config = ConfigFactory.load().getConfig("vamp.workflow-driver")
 
   val vampUrl = config.getString("vamp-url")
 

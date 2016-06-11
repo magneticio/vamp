@@ -6,7 +6,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.crypto.Hash
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
-import io.vamp.container_driver.DockerAppDriver.{ AllDockerApps, DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
+import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact._
@@ -59,7 +59,6 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
     case d: Deploy                  ⇒ reply(Future(deploy(d.deployment, d.cluster, d.service, d.update)))
     case u: Undeploy                ⇒ reply(Future(undeploy(u.deployment, u.service)))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
-    case a: AllDockerApps           ⇒ reply(allApps.map(_.filter(a.filter)))
     case d: DeployDockerApp         ⇒ reply(Future.successful(deploy(d.app, d.update)))
     case u: UndeployDockerApp       ⇒ reply(Future.successful(undeploy(u.app)))
     case r: RetrieveDockerApp       ⇒ reply(Future.successful(retrieve(r.app)))
@@ -237,8 +236,6 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
     val app = appId(deployment, service.breed)
     docker.listContainers().asScala.find(container ⇒ id(container, vampLabel).contains(app))
   }
-
-  private def allApps: Future[List[DockerApp]] = Future.successful(Nil)
 
   private def deploy(app: DockerApp, update: Boolean) = if (app.container.isDefined) {
 
