@@ -263,16 +263,16 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
     }
   }
 
-  private def undeploy(app: String) = retrieve(app) match {
-    case Some(_) ⇒
-      log.info(s"docker delete app: $app")
-      docker.killContainer(app)
-      docker.removeContainer(app)
+  private def undeploy(appId: String) = retrieve(appId) match {
+    case Some(container) ⇒
+      log.info(s"docker delete app: $appId")
+      docker.killContainer(container.id())
+      docker.removeContainer(container.id())
     case _ ⇒
   }
 
-  private def retrieve(app: String): Option[SpotifyContainer] = {
-    docker.listContainers().asScala.find(container ⇒ id(container, vampWorkflowLabel).contains(app))
+  private def retrieve(appId: String): Option[SpotifyContainer] = {
+    docker.listContainers().asScala.find(container ⇒ id(container, vampWorkflowLabel).contains(appId))
   }
 
   private def containerConfiguration(app: DockerApp): ContainerConfig = {
@@ -314,7 +314,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
     spotifyContainer.labels(labels.asJava)
     spotifyContainer.hostConfig(hostConfig.build())
 
-    if (app.command.isDefined) spotifyContainer.cmd(app.command.get.split(" ").toList.asJava)
+    if (app.command.isDefined) spotifyContainer.entrypoint(app.command.get.split(" ").toList.asJava)
 
     spotifyContainer.build()
   }
