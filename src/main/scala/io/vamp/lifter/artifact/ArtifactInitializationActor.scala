@@ -7,6 +7,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.akka.IoC._
 import io.vamp.lifter.notification.LifterNotificationProvider
+import io.vamp.model.reader.ScheduledWorkflowReader
 import io.vamp.model.workflow.DefaultWorkflow
 import io.vamp.operation.controller.ArtifactApiController
 import io.vamp.persistence.db.PersistenceActor
@@ -71,6 +72,8 @@ class ArtifactInitializationActor extends ArtifactApiController with CommonSuppo
   private def create(`type`: String, fileName: String, name: String, source: String) = {
     if (`type` == "workflows" && fileName.endsWith(".js"))
       actorFor[PersistenceActor] ? PersistenceActor.Update(DefaultWorkflow(name, None, Option(source), None), Some(source))
+    else if (`type` == "scheduled-workflows")
+      actorFor[PersistenceActor] ? PersistenceActor.Update(ScheduledWorkflowReader.read(source), Some(source))
     else
       updateArtifact(`type`, name, source, validateOnly = false)
   }
