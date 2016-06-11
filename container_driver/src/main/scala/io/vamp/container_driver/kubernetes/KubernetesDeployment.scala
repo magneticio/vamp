@@ -24,11 +24,11 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   protected def schema: Enumeration
 
-  protected def labels(id: String) = Map("vamp" -> deploymentServiceLabel, deploymentServiceLabel -> id)
+  protected def labels(id: String, value: String) = Map("vamp" -> value, value -> id)
 
-  protected def pods(id: String) = s"$podUrl?${labelSelector(labels(id))}"
+  protected def pods(id: String, value: String) = s"$podUrl?${labelSelector(labels(id, value))}"
 
-  protected def replicas(id: String) = s"$replicaSetUrl?${labelSelector(labels(id))}"
+  protected def replicas(id: String, value: String) = s"$replicaSetUrl?${labelSelector(labels(id, value))}"
 
   protected def allContainerServices(deploymentServices: List[DeploymentServices]): Future[List[ContainerService]] = {
     log.debug(s"kubernetes get all")
@@ -56,7 +56,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
             )
 
             if (scale.isDefined) {
-              RestClient.get[KubernetesApiResponse](pods(id), apiHeaders).map { pods ⇒
+              RestClient.get[KubernetesApiResponse](pods(id, deploymentServiceLabel), apiHeaders).map { pods ⇒
                 val instances = pods.items.map { pod ⇒
                   ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
                 }
@@ -87,9 +87,9 @@ trait KubernetesDeployment extends KubernetesArtifact {
       mem = Math.round(service.scale.get.memory.value).toInt,
       privileged = privileged,
       env = environment(deployment, cluster, service),
-      cmd = None,
+      cmd = Nil,
       args = Nil,
-      labels = labels(id)
+      labels = labels(id, deploymentServiceLabel)
     )
 
     if (update) RestClient.put[Any](s"$deploymentUrl/$id", app.toString, apiHeaders) else RestClient.post[Any](deploymentUrl, app.toString, apiHeaders)
@@ -105,13 +105,13 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
       deployment ← RestClient.delete(s"$deploymentUrl/$id", apiHeaders)
 
-      replicas ← RestClient.get[KubernetesApiResponse](replicas(id), apiHeaders).flatMap { replicas ⇒
+      replicas ← RestClient.get[KubernetesApiResponse](replicas(id, deploymentServiceLabel), apiHeaders).flatMap { replicas ⇒
         Future.sequence {
           replicas.items.map(item ⇒ RestClient.delete(s"$replicaSetUrl/${item.metadata.name}", apiHeaders))
         }
       }
 
-      pods ← RestClient.get[KubernetesApiResponse](pods(id), apiHeaders).flatMap { pods ⇒
+      pods ← RestClient.get[KubernetesApiResponse](pods(id, deploymentServiceLabel), apiHeaders).flatMap { pods ⇒
         Future.sequence {
           pods.items.map(item ⇒ RestClient.delete(s"$podUrl/${item.metadata.name}", apiHeaders))
         }
@@ -121,7 +121,12 @@ trait KubernetesDeployment extends KubernetesArtifact {
   }
 
   protected def retrieve(id: String): Future[Option[Any]] = {
-    exists(deploymentUrl, string2Id(id)).map(exists ⇒ if (exists) Option(true) else None)
+    RestClient.get[KubernetesItem](s"$deploymentUrl/${string2Id(id)}", apiHeaders, logError = false).recover {
+      case _ ⇒ None
+    } map {
+      case None ⇒ None
+      case item ⇒ Option(item)
+    }
   }
 
   protected def deploy(app: DockerApp, update: Boolean): Future[Any] = app.container match {
@@ -139,21 +144,17 @@ trait KubernetesDeployment extends KubernetesArtifact {
         mem = app.memory,
         privileged = docker.privileged,
         env = app.environmentVariables,
-        cmd = app.command,
+        cmd = app.command.map(_.split(" ").toList).getOrElse(Nil),
         args = app.arguments,
-        labels = Map("vamp" -> deploymentLabel, deploymentLabel -> id)
+        labels = labels(id, deploymentLabel)
       )
 
       if (update) {
-        log.info(s"kubernetes update app: ${app.id} as $id")
-        RestClient.put[Any](s"$deploymentUrl/$id", deployment.toString, apiHeaders, logError = false).recover {
-          case _ ⇒ RestClient.post[Any](deploymentUrl, deployment.toString, apiHeaders)
-        }
+        log.info(s"kubernetes update app: ${app.id} [$id]")
+        RestClient.put[Any](s"$deploymentUrl/$id", deployment.toString, apiHeaders)
       } else {
-        log.info(s"kubernetes create app: ${app.id} as $id")
-        RestClient.put[Any](s"$deploymentUrl/$id", deployment.toString, apiHeaders, logError = false).recover {
-          case _ ⇒ RestClient.post[Any](deploymentUrl, deployment.toString, apiHeaders)
-        }
+        log.info(s"kubernetes create app: ${app.id} [$id]")
+        RestClient.post[Any](s"$deploymentUrl", deployment.toString, apiHeaders)
       }
 
     case None ⇒ Future.successful(None)
@@ -163,28 +164,31 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
     val deploymentId = string2Id(id)
 
-    retrieve(deploymentUrl, deploymentId, () ⇒ {
+    retrieve(deploymentId).map {
 
-      log.info(s"kubernetes delete app: $id as $deploymentId")
+      case Some(_) ⇒
 
-      for {
+        log.info(s"kubernetes delete app: $id [$deploymentId]")
 
-        deployment ← RestClient.delete(s"$deploymentUrl/$deploymentId", apiHeaders, logError = false)
+        for {
 
-        replicas ← RestClient.get[KubernetesApiResponse](replicas(deploymentId), apiHeaders).flatMap { replicas ⇒
-          Future.sequence {
-            replicas.items.map(item ⇒ RestClient.delete(s"$replicaSetUrl/${item.metadata.name}", apiHeaders))
+          deployment ← RestClient.delete(s"$deploymentUrl/$deploymentId", apiHeaders, logError = false)
+
+          replicas ← RestClient.get[KubernetesApiResponse](replicas(deploymentId, deploymentLabel), apiHeaders).flatMap { replicas ⇒
+            Future.sequence {
+              replicas.items.map(item ⇒ RestClient.delete(s"$replicaSetUrl/${item.metadata.name}", apiHeaders))
+            }
           }
-        }
 
-        pods ← RestClient.get[KubernetesApiResponse](pods(deploymentId), apiHeaders).flatMap { pods ⇒
-          Future.sequence {
-            pods.items.map(item ⇒ RestClient.delete(s"$podUrl/${item.metadata.name}", apiHeaders))
+          pods ← RestClient.get[KubernetesApiResponse](pods(deploymentId, deploymentLabel), apiHeaders).flatMap { pods ⇒
+            Future.sequence {
+              pods.items.map(item ⇒ RestClient.delete(s"$podUrl/${item.metadata.name}", apiHeaders))
+            }
           }
-        }
 
-      } yield deployment :: replicas :: pods :: Nil
+        } yield deployment :: replicas :: pods :: Nil
 
-    }, () ⇒ { Future.successful(false) })
+      case _ ⇒
+    }
   }
 }
