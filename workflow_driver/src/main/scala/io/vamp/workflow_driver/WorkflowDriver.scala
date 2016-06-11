@@ -1,5 +1,6 @@
 package io.vamp.workflow_driver
 
+import akka.actor.ActorRef
 import com.typesafe.config.ConfigFactory
 import io.vamp.model.workflow.ScheduledWorkflow
 import io.vamp.persistence.kv.KeyValueStoreActor
@@ -25,7 +26,7 @@ trait WorkflowDriver {
 
   def info: Future[Map[_, _]]
 
-  def all(): Future[List[WorkflowInstance]]
+  def request(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]): Unit
 
   def schedule(data: Any): PartialFunction[ScheduledWorkflow, Future[Any]]
 

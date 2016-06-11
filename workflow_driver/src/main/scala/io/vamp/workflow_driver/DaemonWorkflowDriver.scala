@@ -1,27 +1,29 @@
 package io.vamp.workflow_driver
 
-import akka.actor.{ ActorRef, ActorSystem }
+import akka.actor.{ ActorRef, ActorRefFactory }
 import akka.pattern.ask
-import io.vamp.container_driver.DockerAppDriver.{ AllDockerApps, DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
+import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
+import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver.{ ContainerDriverActor, Docker, DockerApp }
 import io.vamp.model.artifact.DefaultScale
 import io.vamp.model.workflow.{ DaemonTrigger, DefaultWorkflow, ScheduledWorkflow }
 
 import scala.concurrent.Future
 
-abstract class DaemonWorkflowDriver(implicit actorSystem: ActorSystem) extends WorkflowDriver {
+abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: ActorRefFactory) extends WorkflowDriver with ActorRefFactoryExecutionContextProvider {
 
   private implicit val timeout = ContainerDriverActor.timeout
-  private implicit val executionContext = actorSystem.dispatcher
 
   protected def namePrefix: String
 
   protected def driverActor: ActorRef
 
-  override def all(): Future[List[WorkflowInstance]] = driverActor ? AllDockerApps(app ⇒ app.id.startsWith(namePrefix)) map {
-    case list: List[_] ⇒ list.filter(_.isInstanceOf[DockerApp]).map(app ⇒ WorkflowInstance(app.asInstanceOf[DockerApp].id))
-    case _             ⇒ Nil
-  }
+  //  override def all(): Future[List[WorkflowInstance]] = driverActor ? AllDockerApps(app ⇒ app.id.startsWith(namePrefix)) map {
+  //    case list: List[_] ⇒ list.filter(_.isInstanceOf[DockerApp]).map(app ⇒ WorkflowInstance(app.asInstanceOf[DockerApp].id))
+  //    case _             ⇒ Nil
+  //  }
+
+  override def request(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]): Unit = {}
 
   override def schedule(data: Any): PartialFunction[ScheduledWorkflow, Future[Any]] = {
     case workflow if workflow.trigger == DaemonTrigger ⇒

@@ -1,12 +1,11 @@
 package io.vamp.operation.workflow
 
-import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.model.workflow.{ DaemonTrigger, ScheduledWorkflow, TimeTrigger }
 import io.vamp.operation.notification._
 import io.vamp.operation.workflow.WorkflowSynchronizationActor.SynchronizeAll
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
-import io.vamp.workflow_driver.{ WorkflowDriverActor, WorkflowInstance }
+import io.vamp.workflow_driver.WorkflowDriverActor
 
 import scala.language.postfixOps
 
@@ -29,22 +28,18 @@ class WorkflowSynchronizationActor extends CommonSupportForActors with ArtifactS
 
   def receive = {
     case SynchronizeAll ⇒ synchronize()
-    case _              ⇒
+    case _ ⇒
   }
 
   private def synchronize() = {
     implicit val timeout = PersistenceActor.timeout
-    for {
-      scheduledWorkflows ← allArtifacts[ScheduledWorkflow]
-      workflowInstances ← checked[List[WorkflowInstance]](IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Scheduled)
-    } yield {
-      scheduledWorkflows.filter {
+    allArtifacts[ScheduledWorkflow] map { scheduledWorkflows ⇒
+
+      val workflows = scheduledWorkflows.filter {
         scheduled ⇒ scheduled.trigger.isInstanceOf[TimeTrigger] || scheduled.trigger == DaemonTrigger
-      } filterNot {
-        scheduled ⇒ workflowInstances.exists(_.name == scheduled.name)
-      } foreach {
-        scheduled ⇒ IoC.actorFor[WorkflowActor] ! WorkflowActor.Schedule(scheduled)
       }
+
+      IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.GetScheduled(workflows)
     }
   }
 }

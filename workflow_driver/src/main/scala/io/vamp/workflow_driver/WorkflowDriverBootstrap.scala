@@ -16,7 +16,7 @@ object WorkflowDriverBootstrap extends Bootstrap with WorkflowDriverNotification
     val drivers: List[WorkflowDriver] = config.getString("type").toLowerCase.split(',').map(_.trim).flatMap {
       case "none"       ⇒ Nil
       case "docker"     ⇒ new DockerWorkflowDriver :: Nil
-      case "chronos"    ⇒ new ChronosWorkflowDriver(actorSystem.dispatcher, config.getString("chronos.url")) :: Nil
+      case "chronos"    ⇒ new ChronosWorkflowDriver(config.getString("chronos.url")) :: Nil
       case "marathon"   ⇒ new MarathonWorkflowDriver :: Nil
       case "kubernetes" ⇒ new KubernetesWorkflowDriver :: Nil
       case value        ⇒ throwException(UnsupportedWorkflowDriverError(value))

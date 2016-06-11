@@ -1,22 +1,25 @@
 package io.vamp.workflow_driver
 
+import akka.actor.{ ActorRef, ActorRefFactory }
+import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
 import io.vamp.common.http.RestClient
 import io.vamp.model.artifact.DefaultScale
 import io.vamp.model.workflow.TimeTrigger.RepeatTimesCount
 import io.vamp.model.workflow.{ DaemonTrigger, DefaultWorkflow, ScheduledWorkflow, TimeTrigger }
+import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.Future
 
-class ChronosWorkflowDriver(ec: ExecutionContext, url: String) extends WorkflowDriver {
-  private implicit val executionContext = ec
+class ChronosWorkflowDriver(url: String)(implicit override val actorRefFactory: ActorRefFactory) extends WorkflowDriver with ActorRefFactoryExecutionContextProvider {
 
   override def info: Future[Map[_, _]] = RestClient.get[Any](s"$url/scheduler/jobs").map {
     _ ⇒ Map("chronos" -> Map("url" -> url))
   }
 
-  override def all(): Future[List[WorkflowInstance]] = RestClient.get[Any](s"$url/scheduler/jobs") map {
-    case list: List[_] ⇒ list.map(_.asInstanceOf[Map[String, String]].getOrElse("name", "")).filter(_.nonEmpty).map(WorkflowInstance)
-    case _             ⇒ Nil
+  override def request(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]): Unit = all() foreach { instances ⇒
+    scheduledWorkflows.foreach { scheduled ⇒
+      replyTo ! Scheduled(scheduled, instances.find(_.name == scheduled.name))
+    }
   }
 
   override def schedule(data: Any): PartialFunction[ScheduledWorkflow, Future[Any]] = {
@@ -48,6 +51,11 @@ class ChronosWorkflowDriver(ec: ExecutionContext, url: String) extends WorkflowD
       }
   }
 
+  private def all(): Future[List[WorkflowInstance]] = RestClient.get[Any](s"$url/scheduler/jobs") map {
+    case list: List[_] ⇒ list.map(_.asInstanceOf[Map[String, String]].getOrElse("name", "")).filter(_.nonEmpty).map(WorkflowInstance)
+    case _             ⇒ Nil
+  }
+
   private def name(workflow: ScheduledWorkflow) = {
     if (workflow.name.matches("^[\\w\\s#_-]+$")) workflow.name else workflow.lookupName
   }
@@ -60,29 +68,29 @@ class ChronosWorkflowDriver(ec: ExecutionContext, url: String) extends WorkflowD
 
   private def job(name: String, schedule: String, containerImage: String, command: String, rootPath: String, cpu: Double, memory: Double) =
     s"""
-    |{
-    |  "name": "$name",
-    |  "schedule": "$schedule",
-    |  "container": {
-    |    "type": "DOCKER",
-    |    "image": "$containerImage",
-    |    "network": "BRIDGE",
-    |    "volumes": []
-    |  },
-    |  "cpus": "$cpu",
-    |  "mem": "$memory",
-    |  "uris": [],
-    |  "command": "$command",
-    |  "environmentVariables": [
-    |    {
-    |      "name": "VAMP_URL",
-    |      "value": "${WorkflowDriver.vampUrl}"
-    |    },
-    |    {
-    |      "name": "VAMP_KEY_VALUE_STORE_ROOT_PATH",
-    |      "value": "$rootPath"
-    |    }
-    |  ]
-    |}
+       |{
+       |  "name": "$name",
+       |  "schedule": "$schedule",
+       |  "container": {
+       |    "type": "DOCKER",
+       |    "image": "$containerImage",
+       |    "network": "BRIDGE",
+       |    "volumes": []
+       |  },
+       |  "cpus": "$cpu",
+       |  "mem": "$memory",
+       |  "uris": [],
+       |  "command": "$command",
+       |  "environmentVariables": [
+       |    {
+       |      "name": "VAMP_URL",
+       |      "value": "${WorkflowDriver.vampUrl}"
+       |    },
+       |    {
+       |      "name": "VAMP_KEY_VALUE_STORE_ROOT_PATH",
+       |      "value": "$rootPath"
+       |    }
+       |  ]
+       |}
   """.stripMargin
 }

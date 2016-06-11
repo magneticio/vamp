@@ -1,4 +1,3 @@
 
 UnsupportedWorkflowDriverError   : "Unsupported container type: '{name}'."
-UnsupportedWorkflowDriverRequest : "Unsupported container driver request."
 WorkflowResponseError            : "Workflow response error."
