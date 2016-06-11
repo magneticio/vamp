@@ -4,7 +4,7 @@ import com.typesafe.config.ConfigFactory
 import io.vamp.common.crypto.Hash
 import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.container_driver.DockerAppDriver.{ AllDockerApps, DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
+import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
@@ -51,7 +51,6 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
-    case a: AllDockerApps           ⇒ reply(allApps.map(_.filter(a.filter)))
     case d: DeployDockerApp         ⇒ reply(deploy(d.app, d.update))
     case u: UndeployDockerApp       ⇒ reply(undeploy(u.app))
     case r: RetrieveDockerApp       ⇒ reply(retrieve(r.app))
@@ -164,8 +163,6 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     log.info(s"marathon delete app: $app")
     RestClient.delete(s"$marathonUrl/v2/apps/$app")
   }
-
-  private def allApps: Future[List[DockerApp]] = Future.successful(Nil)
 
   private def retrieve(app: String): Future[Option[App]] = {
     RestClient.get[AppResponse](s"$marathonUrl/v2/apps/$app", RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {

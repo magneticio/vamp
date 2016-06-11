@@ -30,8 +30,6 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   protected def replicas(id: String) = s"$replicaSetUrl?${labelSelector(labels(id))}"
 
-  protected def all(deploymentServices: List[String]): Future[List[String]] = Future.successful(Nil)
-
   protected def allContainerServices(deploymentServices: List[DeploymentServices]): Future[List[ContainerService]] = {
     log.debug(s"kubernetes get all")
     RestClient.get[KubernetesApiResponse](deploymentUrl, apiHeaders).flatMap { deployments ⇒
