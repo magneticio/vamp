@@ -1,4 +1,4 @@
-package io.vamp.container_driver.rancher.api
+package io.vamp.container_driver.rancher
 
 case object AllApps
 
@@ -8,11 +8,20 @@ case class RancherResponse(id: String, status: Int, links: Option[List[String]])
 
 case class Stack(state: Option[String], id: Option[String], name: String, actions: Option[Map[String, String]])
 
-case class LaunchConfig(imageUuid: String, labels: Option[Map[String, String]], startOnCreate: Boolean = false, cpuSet: Option[String] = None, memoryMb: Option[String] = None)
+case class LaunchConfig(
+  imageUuid: String,
+  labels: Option[Map[String, String]],
+  privileged: Option[Boolean],
+  startOnCreate: Boolean = false,
+  cpuShares: Option[Int] = None,
+  memoryMb: Option[Int] = None,
+  networkMode: String = "managed",
+  ports: List[String] = Nil,
+  environment: Map[String, String] = Map())
 
 case class ServiceContainersList(data: List[RancherContainer])
 
-case class RancherContainer(id: String, name: String, primaryIpAddress: String, ports: List[RancherContainerPort], created: String)
+case class RancherContainer(id: String, name: String, primaryIpAddress: String, ports: List[String], created: String, state: String)
 
 case class RancherContainerPortList(data: List[RancherContainerPort])
 
@@ -29,8 +38,8 @@ case class Service(state: Option[String],
                    scale: Option[Int],
                    launchConfig: Option[LaunchConfig],
                    actions: Option[Map[String, String]],
-                   containers: Option[List[RancherContainer]] = None,
-                   startOnCreate: Boolean = true)
+                   containers: Option[List[RancherContainer]],
+                   startOnCreate: Boolean)
 
 case class ProjectInfo(id: String, state: String)
 
