@@ -1,5 +1,6 @@
 package io.vamp.operation.deployment
 
+import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ CommonSupportForActors, IoC }
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService, Containers }
@@ -28,6 +29,14 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   import DeploymentPersistence._
   import PulseEventTags.Deployments._
   import SingleDeploymentSynchronizationActor._
+
+  private val config = ConfigFactory.load().getConfig("vamp.operation")
+
+  private val checkCpu = config.getBoolean("synchronization.check.cpu")
+
+  private val checkMemory = config.getBoolean("synchronization.check.memory")
+
+  private val checkInstances = config.getBoolean("synchronization.check.instances")
 
   def receive: Receive = {
     case Synchronize(containerService) ⇒ synchronize(containerService)
@@ -159,7 +168,12 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   }
 
   private def matchingScale(deploymentService: DeploymentService, containers: Containers) = {
-    containers.instances.size == deploymentService.scale.get.instances && containers.scale.cpu == deploymentService.scale.get.cpu && containers.scale.memory == deploymentService.scale.get.memory
+
+    val cpu = if (checkCpu) containers.scale.cpu == deploymentService.scale.get.cpu else true
+    val memory = if (checkMemory) containers.scale.memory == deploymentService.scale.get.memory else true
+    val instances = if (checkInstances) containers.instances.size == deploymentService.scale.get.instances else true
+
+    instances && cpu && memory
   }
 
   private def updateGateways(deployment: Deployment, cluster: DeploymentCluster) = cluster.routing.foreach { gateway ⇒
