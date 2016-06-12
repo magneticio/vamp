@@ -71,23 +71,25 @@ class VgaMarathonSynchronizationActor extends VgaSynchronizationActor with Artif
     }
   }
 
-  private def request(instances: Int) = DockerApp(
-    id = id,
-    container = Option(
-      Docker(
-        image = container,
-        portMappings = ports,
-        parameters = Nil,
-        privileged = true,
-        network = "HOST"
-      )
-    ),
-    instances = instances,
-    cpu = cpu,
-    memory = mem,
-    environmentVariables = Map(),
-    command = None,
-    arguments = arguments,
-    constraints = List(List("hostname", "UNIQUE"))
-  )
+  private def request(instances: Int) = {
+    DockerApp(
+      id = id,
+      container = Option(
+        Docker(
+          image = image,
+          portMappings = ports,
+          parameters = Nil,
+          privileged = true,
+          network = "HOST"
+        )
+      ),
+      instances = instances,
+      cpu = cpu,
+      memory = mem,
+      environmentVariables = Map(),
+      command = command,
+      arguments = Nil,
+      constraints = List(List("hostname", "UNIQUE"))
+    )
+  }
 }
