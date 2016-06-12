@@ -17,6 +17,7 @@ object WorkflowDriverBootstrap extends Bootstrap with WorkflowDriverNotification
       case "none"       ⇒ Nil
       case "docker"     ⇒ new DockerWorkflowDriver :: Nil
       case "chronos"    ⇒ new ChronosWorkflowDriver(config.getString("chronos.url")) :: Nil
+      case "rancher"    ⇒ new RancherWorkflowDriver :: Nil
       case "marathon"   ⇒ new MarathonWorkflowDriver :: Nil
       case "kubernetes" ⇒ new KubernetesWorkflowDriver :: Nil
       case value        ⇒ throwException(UnsupportedWorkflowDriverError(value))

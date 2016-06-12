@@ -18,6 +18,7 @@ import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
 import io.vamp.workflow_driver.{ WorkflowDriver, WorkflowDriverActor }
 
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.language.postfixOps
 
@@ -25,7 +26,7 @@ object WorkflowActor {
 
   private val config = ConfigFactory.load().getConfig("vamp.operation.workflow")
 
-  val command = config.getString("command")
+  val command = config.getStringList("command").asScala
 
   val containerImage = config.getString("container-image")
 
@@ -114,7 +115,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   } yield {
 
     val expandedWorkflow = workflow.copy(
-      command = Option(workflow.command.getOrElse(WorkflowActor.command)),
+      command = Option(workflow.command.getOrElse(WorkflowActor.command.mkString(" "))),
       containerImage = Option(workflow.containerImage.getOrElse(WorkflowActor.containerImage))
     )
 
