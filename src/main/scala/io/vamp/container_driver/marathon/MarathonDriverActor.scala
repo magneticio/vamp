@@ -46,14 +46,18 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
   protected def appId(deployment: Deployment, breed: Breed): String = s"$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
   def receive = {
+
     case InfoRequest                ⇒ reply(info)
+
     case Get(services)              ⇒ get(services)
     case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
+
     case d: DeployDockerApp         ⇒ reply(deploy(d.app, d.update))
     case u: UndeployDockerApp       ⇒ reply(undeploy(u.app))
     case r: RetrieveDockerApp       ⇒ reply(retrieve(r.app))
+
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
@@ -106,7 +110,17 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
   }
 
   private def deploy(app: DockerApp, update: Boolean): Future[Any] = {
-    val marathonApp = MarathonApp(app.id, app.container.map(Container(_)), app.instances, app.cpu, app.memory, app.environmentVariables, app.command, app.arguments, app.constraints)
+    val marathonApp = MarathonApp(
+      app.id,
+      app.container.map(Container(_)),
+      app.instances,
+      app.cpu,
+      app.memory,
+      app.environmentVariables,
+      if (app.command.nonEmpty) Option(app.command.mkString(" ")) else None,
+      app.arguments,
+      app.constraints
+    )
     sendRequest(update, app.id, Extraction.decompose(purge(marathonApp)))
   }
 

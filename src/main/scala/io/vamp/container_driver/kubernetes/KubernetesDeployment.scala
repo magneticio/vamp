@@ -144,7 +144,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
         mem = app.memory,
         privileged = docker.privileged,
         env = app.environmentVariables,
-        cmd = app.command.map(_.split(" ").toList).getOrElse(Nil),
+        cmd = app.command,
         args = app.arguments,
         labels = labels(id, deploymentLabel)
       )

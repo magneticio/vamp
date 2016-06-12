@@ -13,6 +13,7 @@ case class DockerApp(
   cpu: Double,
   memory: Int,
   environmentVariables: Map[String, String],
-  command: Option[String],
+  command: List[String] = Nil,
   arguments: List[String] = Nil,
+  labels: Map[String, String] = Map(),
   constraints: List[List[String]] = Nil)
