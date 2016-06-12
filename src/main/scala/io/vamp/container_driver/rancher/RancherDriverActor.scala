@@ -75,12 +75,9 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
                 val instances = containers.map { container ⇒
 
-                  val ports = container.ports.flatMap { port ⇒
-                    (port.indexOf(":"), port.indexOf("/")) match {
-                      case (i1, i2) if i1 <= i2 && i1 >= 0 ⇒ Option(port.substring(i1 + 1, i2))
-                      case _                               ⇒ None
-                    }
-                  } map (_.toInt)
+                  val ports = deployment.clusters.find(cluster ⇒ cluster.services.exists(_.breed.name == service.breed.name)).map { cluster ⇒
+                    portMappings(deployment, cluster, service).map(_.containerPort)
+                  } getOrElse Nil
 
                   ContainerInstance(container.id, container.primaryIpAddress, ports, container.state == "running")
                 }
@@ -129,7 +126,11 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
       val rs = services.data.find(service ⇒ service.name == serviceName && service.state != Option("removed")) match {
 
         case Some(s) ⇒
-          if (update) RestClient.put[Service](s.actions.get("update"), requestPayload(UpdateService(s.scale.get)), headers) else Future.successful(s)
+          if (update) {
+            log.info(s"Rancher driver - updating service: ${s.name}")
+            val instances = service.scale.map(_.instances).getOrElse(s.scale.getOrElse(1))
+            RestClient.put[Service](s.actions.get("update"), requestPayload(UpdateService(instances)), headers)
+          } else Future.successful(s)
 
         case None ⇒
           val rancherService = buildRancherService(deployment, cluster, service, stack.id.get)
@@ -147,6 +148,9 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
     val dockerContainer = docker(deployment, cluster, service, service.breed.deployable.definition.getOrElse(throwException(UndefinedDockerImage)))
 
+    val cpu = service.scale.map(_.cpu.value.toInt).getOrElse(0)
+    val memory = service.scale.map(_.memory.value.toInt).getOrElse(0)
+
     val id = appId(deployment, service.breed)
     RancherService(
       state = None,
@@ -159,9 +163,8 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
         labels = None,
         privileged = Option(dockerContainer.privileged),
         startOnCreate = false,
-        cpuShares = service.scale.map(_.cpu.value.toInt),
-        memoryMb = service.scale.map(_.memory.value.toInt),
-        ports = dockerContainer.portMappings.map(port ⇒ s"${port.containerPort}/${port.protocol.toLowerCase}"),
+        cpuShares = if (cpu > 0) Option(cpu) else None,
+        memoryMb = if (memory > 0) Option(memory) else None,
         environment = environment(deployment, cluster, service)
       )),
       actions = None,
