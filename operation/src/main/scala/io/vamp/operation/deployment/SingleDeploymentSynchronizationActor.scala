@@ -139,7 +139,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   private def undeploy(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containers: Option[Containers]) = {
     containers match {
       case Some(_) ⇒
-        actorFor[ContainerDriverActor] ! ContainerDriverActor.Undeploy(deployment, deploymentService)
+        actorFor[ContainerDriverActor] ! ContainerDriverActor.Undeploy(deployment, deploymentCluster, deploymentService)
         persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Update())))
       case None ⇒
         persist(DeploymentServiceState(serviceArtifactName(deployment, deploymentCluster, deploymentService), deploymentService.state.copy(step = Done())))

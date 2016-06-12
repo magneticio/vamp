@@ -3,12 +3,11 @@ package io.vamp.container_driver.docker
 import com.spotify.docker.client.DefaultDockerClient
 import com.spotify.docker.client.messages.{ Container ⇒ SpotifyContainer, ContainerInfo ⇒ _, _ }
 import com.typesafe.config.ConfigFactory
-import io.vamp.common.crypto.Hash
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver._
-import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
+import io.vamp.container_driver.notification.{ UndefinedDockerImage, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
 
@@ -26,12 +25,11 @@ object DockerDriverActor {
 
 }
 
-class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
+class DockerDriverActor extends ContainerDriverActor with ContainerDriver with DockerNameMatcher {
 
   private val configuration = ConfigFactory.load().getConfig("vamp.container-driver.docker")
 
   protected val nameDelimiter = "_"
-  protected val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
 
   private val docker = {
 
@@ -68,11 +66,6 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
   override def postStop() = docker.close()
 
   override protected def appId(deployment: Deployment, breed: Breed): String = s"vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
-
-  override protected def artifactName2Id(artifact: Artifact): String = artifact.name match {
-    case idMatcher(_*) ⇒ artifact.name
-    case _             ⇒ Hash.hexSha1(artifact.name).substring(0, 20)
-  }
 
   private def info: Future[ContainerInfo] = Future(docker.info()).map {
     case info ⇒ ContainerInfo("docker", info)
@@ -129,14 +122,14 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver {
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
 
+    validateSchemaSupport(service.breed.deployable.schema, DockerDriverActor.Schema)
+
+    if (service.breed.deployable.definition.isEmpty) throwException(UndefinedDockerImage)
+
     def run() = {
-      service.breed.deployable match {
-        case Deployable(schema, Some(definition)) if DockerDriverActor.Schema.Docker.toString.compareToIgnoreCase(schema) == 0 ⇒
-          val config = containerConfiguration(deployment, cluster, service, docker(deployment, cluster, service, definition))
-          val container = docker.createContainer(config)
-          docker.startContainer(container.id())
-        case _ ⇒ None
-      }
+      val config = containerConfiguration(deployment, cluster, service, docker(deployment, cluster, service, service.breed.deployable.definition.get))
+      val container = docker.createContainer(config)
+      docker.startContainer(container.id())
     }
 
     val id = appId(deployment, service.breed)
