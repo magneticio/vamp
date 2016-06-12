@@ -54,15 +54,20 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
   private val daemonService = Map("vamp" -> "daemon")
 
   def receive = {
+
     case InfoRequest                ⇒ reply(info)
+
     case Get(services)              ⇒ get(services)
     case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
-    case ds: DaemonSet              ⇒ reply(daemonSet(ds))
+
     case d: DeployDockerApp         ⇒ reply(deploy(d.app, d.update))
     case u: UndeployDockerApp       ⇒ reply(undeploy(u.app))
     case r: RetrieveDockerApp       ⇒ reply(retrieve(r.app))
+
+    case ds: DaemonSet              ⇒ reply(daemonSet(ds))
+
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 

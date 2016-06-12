@@ -37,7 +37,7 @@ class VgaKubernetesSynchronizationActor extends VgaSynchronizationActor {
     IoC.actorFor[ContainerDriverActor] ! DaemonSet(
       name = id,
       docker = Docker(
-        image = container,
+        image = image,
         portMappings = ports,
         parameters = Nil,
         privileged = true,
@@ -46,6 +46,6 @@ class VgaKubernetesSynchronizationActor extends VgaSynchronizationActor {
       cpu = cpu,
       mem = mem,
       serviceType = kubernetesServiceType,
-      args = arguments)
+      args = if (command.size > 1) command.tail else Nil)
   }
 }

@@ -17,6 +17,7 @@ case class LaunchConfig(
   memoryMb: Option[Int] = None,
   networkMode: String = "managed",
   ports: List[String] = Nil,
+  command: List[String] = Nil,
   environment: Map[String, String] = Map())
 
 case class ServiceContainersList(data: List[RancherContainer])
@@ -37,8 +38,8 @@ case class Service(state: Option[String],
                    name: String,
                    scale: Option[Int],
                    launchConfig: Option[LaunchConfig],
-                   actions: Option[Map[String, String]],
-                   containers: Option[List[RancherContainer]],
+                   actions: Map[String, String],
+                   containers: List[RancherContainer],
                    startOnCreate: Boolean)
 
 case class ProjectInfo(id: String, state: String)

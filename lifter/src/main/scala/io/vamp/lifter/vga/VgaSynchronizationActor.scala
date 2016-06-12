@@ -17,7 +17,7 @@ trait VgaSynchronizationActor extends CommonSupportForActors with LifterNotifica
   protected val configuration = ConfigFactory.load().getConfig("vamp.lifter.vamp-gateway-agent.synchronization")
 
   protected val id = configuration.getString("id")
-  protected val container = configuration.getString("container-image")
-  protected val arguments = configuration.getStringList("container-arguments").asScala.toList
-  protected val ports = configuration.getIntList("container-ports").asScala.toList.map(port ⇒ DockerPortMapping(port, "tcp", port))
+  protected val image = configuration.getString("container.image")
+  protected val command = configuration.getStringList("container.command").asScala.toList
+  protected val ports = configuration.getIntList("container.ports").asScala.toList.map(port ⇒ DockerPortMapping(port, "tcp", port))
 }

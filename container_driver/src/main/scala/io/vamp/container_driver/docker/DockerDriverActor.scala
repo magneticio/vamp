@@ -52,14 +52,18 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
   private val vampWorkflowLabel = "workflow"
 
   def receive = {
+
     case InfoRequest                ⇒ reply(info)
+
     case Get(services)              ⇒ get(services)
     case d: Deploy                  ⇒ reply(Future(deploy(d.deployment, d.cluster, d.service, d.update)))
     case u: Undeploy                ⇒ reply(Future(undeploy(u.deployment, u.service)))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
+
     case d: DeployDockerApp         ⇒ reply(Future.successful(deploy(d.app, d.update)))
     case u: UndeployDockerApp       ⇒ reply(Future.successful(undeploy(u.app)))
     case r: RetrieveDockerApp       ⇒ reply(Future.successful(retrieve(r.app)))
+
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
@@ -295,6 +299,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     labels += ("vamp" -> vampWorkflowLabel)
     labels += ("id" -> app.id)
     labels += ("scale" -> DefaultScale("", Quantity(app.cpu), MegaByte(app.memory), app.instances).toJson.toString)
+    labels ++= app.labels
 
     hostConfig.portBindings(portBindings).networkMode("bridge")
 
@@ -307,7 +312,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     spotifyContainer.labels(labels.asJava)
     spotifyContainer.hostConfig(hostConfig.build())
 
-    if (app.command.isDefined) spotifyContainer.entrypoint(app.command.get.split(" ").toList.asJava)
+    if (app.command.nonEmpty) spotifyContainer.entrypoint(app.command.asJava)
 
     spotifyContainer.build()
   }

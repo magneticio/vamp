@@ -68,7 +68,7 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
         "VAMP_URL" -> WorkflowDriver.vampUrl,
         "VAMP_KEY_VALUE_STORE_ROOT_PATH" -> WorkflowDriver.pathToString(scheduledWorkflow)
       ),
-      command = Option(workflow.command.get),
+      command = workflow.command.map(_.split(" ").toList).getOrElse(Nil),
       arguments = Nil,
       constraints = Nil
     )
