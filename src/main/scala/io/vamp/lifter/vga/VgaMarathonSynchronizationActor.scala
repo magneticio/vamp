@@ -87,8 +87,8 @@ class VgaMarathonSynchronizationActor extends VgaSynchronizationActor with Artif
       cpu = cpu,
       memory = mem,
       environmentVariables = Map(),
-      command = command,
-      arguments = Nil,
+      command = Nil,
+      arguments = command,
       constraints = List(List("hostname", "UNIQUE"))
     )
   }

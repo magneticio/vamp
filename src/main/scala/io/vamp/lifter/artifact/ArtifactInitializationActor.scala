@@ -9,7 +9,6 @@ import io.vamp.common.akka.IoC._
 import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.model.reader.ScheduledWorkflowReader
 import io.vamp.model.workflow.DefaultWorkflow
-import io.vamp.operation.OperationBootstrap
 import io.vamp.operation.controller.ArtifactApiController
 import io.vamp.operation.notification.InternalServerError
 import io.vamp.persistence.db.PersistenceActor
