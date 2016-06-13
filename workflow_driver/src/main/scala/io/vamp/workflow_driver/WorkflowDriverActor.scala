@@ -1,5 +1,6 @@
 package io.vamp.workflow_driver
 
+import akka.actor.ActorRef
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
@@ -18,7 +19,7 @@ object WorkflowDriverActor {
 
   sealed trait WorkflowDriveMessage
 
-  case class GetScheduled(scheduledWorkflows: List[ScheduledWorkflow]) extends WorkflowDriveMessage
+  case class GetScheduled(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]) extends WorkflowDriveMessage
 
   case class Scheduled(scheduledWorkflow: ScheduledWorkflow, workflowInstance: Option[WorkflowInstance]) extends WorkflowDriveMessage
 
@@ -37,17 +38,16 @@ class WorkflowDriverActor(drivers: List[WorkflowDriver]) extends PulseFailureNot
   override def errorNotificationClass = classOf[WorkflowResponseError]
 
   def receive = {
-    case InfoRequest                    ⇒ reply(info)
-    case GetScheduled(workflows)        ⇒ get(workflows)
-    case Scheduled(scheduled, instance) ⇒ if (instance.isEmpty) self ! Schedule(scheduled)
-    case Schedule(workflow, data)       ⇒ reply(schedule(data)(workflow))
-    case Unschedule(workflow)           ⇒ reply(unschedule()(workflow))
-    case _                              ⇒
+    case InfoRequest                      ⇒ reply(info)
+    case GetScheduled(replyTo, workflows) ⇒ get(replyTo, workflows)
+    case Schedule(workflow, data)         ⇒ reply(schedule(data)(workflow))
+    case Unschedule(workflow)             ⇒ reply(unschedule()(workflow))
+    case _                                ⇒
   }
 
   private def info: Future[Map[_, _]] = Future.sequence(drivers.map(_.info)).map(_.reduce(_ ++ _))
 
-  private def get(scheduledWorkflows: List[ScheduledWorkflow]) = drivers.foreach(_.request(self, scheduledWorkflows))
+  private def get(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]) = drivers.foreach(_.request(replyTo, scheduledWorkflows))
 
   private def schedule(data: Any): PartialFunction[ScheduledWorkflow, Future[Any]] = drivers.map(_.schedule(data)).reduce(_ orElse _)
 

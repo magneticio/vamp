@@ -18,7 +18,8 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorRefFactory: 
 
   override def request(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]): Unit = all() foreach { instances ⇒
     scheduledWorkflows.foreach { scheduled ⇒
-      replyTo ! Scheduled(scheduled, instances.find(_.name == scheduled.name))
+      if (scheduled.trigger != DaemonTrigger)
+        replyTo ! Scheduled(scheduled, instances.find(_.name == scheduled.name))
     }
   }
 

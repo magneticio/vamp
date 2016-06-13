@@ -22,9 +22,11 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
   private lazy val namePrefix = WorkflowDriver.config.getString(namePrefixConfig)
 
   override def request(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]): Unit = scheduledWorkflows.foreach { scheduled ⇒
-    driverActor ? RetrieveDockerApp(name(scheduled)) map {
-      case Some(_) ⇒ replyTo ! Scheduled(scheduled, Option(WorkflowInstance(scheduled.name)))
-      case _       ⇒ replyTo ! Scheduled(scheduled, None)
+    if (scheduled.trigger == DaemonTrigger) {
+      driverActor ? RetrieveDockerApp(name(scheduled)) map {
+        case Some(_) ⇒ replyTo ! Scheduled(scheduled, Option(WorkflowInstance(scheduled.name)))
+        case _       ⇒ replyTo ! Scheduled(scheduled, None)
+      }
     }
   }
 
@@ -45,7 +47,7 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
       }
   }
 
-  private def app(scheduledWorkflow: ScheduledWorkflow): DockerApp = {
+  protected def app(scheduledWorkflow: ScheduledWorkflow): DockerApp = {
 
     val workflow = scheduledWorkflow.workflow.asInstanceOf[DefaultWorkflow]
     val scale = scheduledWorkflow.scale.get.asInstanceOf[DefaultScale]
