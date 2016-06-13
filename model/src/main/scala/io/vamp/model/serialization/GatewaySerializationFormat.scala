@@ -32,8 +32,10 @@ trait GatewayDecomposer extends ReferenceSerialization {
     case gateway: Gateway ⇒
       val list = new ArrayBuffer[JField]
 
-      list += JField("name", JString(gateway.name))
-      list += JField(Lookup.entry, JString(gateway.lookupName))
+      if (gateway.name.nonEmpty) {
+        list += JField("name", JString(gateway.name))
+        list += JField(Lookup.entry, JString(gateway.lookupName))
+      }
 
       if (full) {
         list += JField("port", gateway.port.value match {
