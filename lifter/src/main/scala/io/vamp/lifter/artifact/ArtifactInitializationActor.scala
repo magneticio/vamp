@@ -9,12 +9,16 @@ import io.vamp.common.akka.IoC._
 import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.model.reader.ScheduledWorkflowReader
 import io.vamp.model.workflow.DefaultWorkflow
+import io.vamp.operation.OperationBootstrap
 import io.vamp.operation.controller.ArtifactApiController
+import io.vamp.operation.notification.InternalServerError
 import io.vamp.persistence.db.PersistenceActor
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.io.Source
+import scala.language.postfixOps
 
 object ArtifactInitializationActor {
 
@@ -32,6 +36,8 @@ class ArtifactInitializationActor extends ArtifactApiController with CommonSuppo
 
   private val force = config.getBoolean("override")
 
+  private val postpone = config.getInt("postpone") seconds
+
   private val resources = config.getStringList("resources").asScala
 
   def receive = {
@@ -39,7 +45,13 @@ class ArtifactInitializationActor extends ArtifactApiController with CommonSuppo
     case _    ⇒
   }
 
-  override def preStart(): Unit = self ! Load
+  override def preStart(): Unit = {
+    try {
+      context.system.scheduler.scheduleOnce(postpone, self, Load)
+    } catch {
+      case t: Throwable ⇒ reportException(InternalServerError(t))
+    }
+  }
 
   private def load() = resources.map(Paths.get(_)).foreach { path ⇒
 

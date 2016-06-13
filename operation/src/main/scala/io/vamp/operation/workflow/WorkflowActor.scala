@@ -74,10 +74,12 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
     case _ ⇒
   }
 
-  override def preStart() = try {
-    context.system.scheduler.scheduleOnce(OperationBootstrap.synchronizationInitialDelay, self, RescheduleAll)
-  } catch {
-    case t: Throwable ⇒ reportException(InternalServerError(t))
+  override def preStart() = {
+    try {
+      context.system.scheduler.scheduleOnce(OperationBootstrap.synchronizationInitialDelay, self, RescheduleAll)
+    } catch {
+      case t: Throwable ⇒ reportException(InternalServerError(t))
+    }
   }
 
   private def reschedule() = {
