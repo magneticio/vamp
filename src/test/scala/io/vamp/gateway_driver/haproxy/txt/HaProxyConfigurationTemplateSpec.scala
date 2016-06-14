@@ -19,8 +19,6 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
 
   override lazy val info = super[FlatSpec].info
 
-  override val virtualHosts: Boolean = true
-
   override val httpLogFormat = """{"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}"""
 
   override val tcpLogFormat = """{"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tw":%Tw,"Tc":%Tc,"Tt":%Tt,"B":%B,"ts":"%ts","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq}"""
@@ -718,7 +716,7 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
       port = Port(33000),
       service = None,
       sticky = None,
-      virtualHosts = Nil,
+      virtualHosts = "port.cluster.deployment" :: Nil,
       routes = DefaultRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
@@ -737,13 +735,13 @@ class HaProxyConfigurationTemplateSpec extends FlatSpec with Matchers with HaPro
     compare(HaProxyConfigurationTemplate(HaProxy(version, converted.frontends, converted.backends, converted.virtualHostFrontends, converted.virtualHostBackends, tcpLogFormat, httpLogFormat)).toString(), "configuration_12.txt")
   }
 
-  it should "serialize single service http route with explicit virtual hosts" in {
+  it should "serialize single service http route with multiple virtual hosts" in {
     val converted = convert(Gateway(
       name = "deployment/cluster/port",
       port = Port(33000),
       service = None,
       sticky = None,
-      virtualHosts = List("a.b.c.d", "vamp.vamp"),
+      virtualHosts = "port.cluster.deployment" :: "a.b.c.d" :: "vamp.vamp" :: Nil,
       routes = DefaultRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
