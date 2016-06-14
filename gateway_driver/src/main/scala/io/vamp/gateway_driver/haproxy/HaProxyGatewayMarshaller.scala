@@ -30,10 +30,6 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   override lazy val info: AnyRef = s"HAProxy v$version.x"
 
-  def virtualHostDomain: String = ""
-
-  def virtualHosts: Boolean
-
   def tcpLogFormat: String
 
   def httpLogFormat: String
@@ -223,31 +219,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   private def unixSocket(id: String)(implicit gateway: Gateway) = s"$socketPath/$id.sock"
 
   private def virtualHostsFrontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {
-
-    val default = virtualHosts match {
-      case true ⇒
-        val acl = Acl(s"hdr(host) -i $domain")
-        Frontend(
-          name = GatewayMarshaller.name(gateway),
-          lookup = GatewayMarshaller.lookup(gateway),
-          bindIp = None,
-          bindPort = None,
-          mode = mode,
-          unixSock = None,
-          sockProtocol = None,
-          options = Options(),
-          filters = Filter(
-            GatewayMarshaller.lookup(gateway),
-            backendFor(GatewayMarshaller.lookup(gateway)),
-            Option(HaProxyAcls(acl :: Nil, Option(acl.name)))
-          ) :: Nil,
-          defaultBackend = backendFor(GatewayMarshaller.lookup(gateway))
-        ) :: Nil
-
-      case false ⇒ Nil
-    }
-
-    val explicit = gateway.virtualHosts.map { virtualHost ⇒
+    gateway.virtualHosts.map { virtualHost ⇒
       val acl = Acl(s"hdr(host) -i $virtualHost")
       Frontend(
         name = GatewayMarshaller.name(gateway),
@@ -266,11 +238,9 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
         defaultBackend = backendFor(GatewayMarshaller.lookup(gateway))
       )
     }
-
-    default ++ explicit
   }
 
-  private def virtualHostsBackends(implicit gateway: Gateway): List[Backend] = virtualHosts || gateway.virtualHosts.nonEmpty match {
+  private def virtualHostsBackends(implicit gateway: Gateway): List[Backend] = gateway.virtualHosts.nonEmpty match {
     case true ⇒
       Backend(
         name = GatewayMarshaller.name(gateway),
@@ -290,11 +260,5 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       ) :: Nil
 
     case false ⇒ Nil
-  }
-
-  private def domain(implicit gateway: Gateway): String = {
-    (GatewayPath(gateway.name).segments.reverse ++ virtualHostDomain.split('.').toList).map(_.trim).filterNot(_.isEmpty).map({ domain ⇒
-      if (domain.matches("^[\\d\\p{L}].*$")) domain.replaceAll("[^\\p{L}\\d]", "-") else domain
-    }).mkString(".")
   }
 }

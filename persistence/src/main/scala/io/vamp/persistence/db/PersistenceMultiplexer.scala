@@ -58,8 +58,10 @@ trait PersistenceMultiplexer {
     for {
       port ← if (!gateway.port.assigned) {
         get(gateway.name, classOf[GatewayPort]).map {
-          case Some(gp) ⇒ gateway.port.copy(number = gp.asInstanceOf[GatewayPort].port) match { case p ⇒ p.copy(value = Option(p.toValue)) }
-          case _        ⇒ gateway.port
+          case Some(gp) ⇒ gateway.port.copy(number = gp.asInstanceOf[GatewayPort].port) match {
+            case p ⇒ p.copy(value = Option(p.toValue))
+          }
+          case _ ⇒ gateway.port
         }
       } else {
         Future.successful(gateway.port)

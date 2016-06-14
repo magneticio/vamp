@@ -1,6 +1,7 @@
 package io.vamp.operation.gateway
 
 import akka.pattern.ask
+import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact._
@@ -17,6 +18,12 @@ import scala.util.Try
 object GatewayActor {
 
   implicit val timeout = PersistenceActor.timeout
+
+  private val configuration = ConfigFactory.load().getConfig("vamp.operation.gateway")
+
+  val virtualHostsEnabled: Boolean = configuration.getBoolean("virtual-hosts")
+
+  val virtualHostRootDomain: String = configuration.getString("virtual-hosts-domain")
 
   trait GatewayMessage
 
@@ -163,11 +170,16 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
   }
 
   private def persist(source: Option[String], create: Boolean, promote: Boolean): Gateway ⇒ Future[Any] = { gateway ⇒
+
+    val virtualHosts = if (virtualHostsEnabled) gateway.domain(virtualHostRootDomain) :: gateway.virtualHosts else gateway.virtualHosts
+
+    val g = gateway.copy(virtualHosts = virtualHosts.distinct)
+
     val requests = {
-      val artifacts = (gateway.inner, promote) match {
-        case (true, true)  ⇒ InnerGateway(gateway) :: gateway :: Nil
-        case (true, false) ⇒ InnerGateway(gateway) :: Nil
-        case _             ⇒ gateway :: Nil
+      val artifacts = (g.inner, promote) match {
+        case (true, true)  ⇒ InnerGateway(g) :: g :: Nil
+        case (true, false) ⇒ InnerGateway(g) :: Nil
+        case _             ⇒ g :: Nil
       }
 
       artifacts.map {
@@ -177,6 +189,6 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
     Future.sequence(requests.map {
       request ⇒ actorFor[PersistenceActor] ? request
-    }).map(_ ⇒ gateway)
+    }).map(_ ⇒ g)
   }
 }
