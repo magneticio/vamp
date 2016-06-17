@@ -2,7 +2,7 @@ package io.vamp.persistence.kv
 
 import java.net.URLEncoder
 
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.http.RestClient
 
 import scala.concurrent.Future
@@ -11,7 +11,7 @@ import scala.util.Try
 
 class EtcdStoreActor extends KeyValueStoreActor {
 
-  private val url = ConfigFactory.load().getString("vamp.persistence.key-value-store.etcd.url")
+  private val url = Config.string("vamp.persistence.key-value-store.etcd.url")
 
   override protected def info(): Future[Any] = for {
     version ← RestClient.get[Any](s"$url/version")

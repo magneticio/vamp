@@ -3,7 +3,7 @@ package io.vamp.persistence.kv
 import java.io._
 import java.net.Socket
 
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka._
 import io.vamp.persistence.kv.AsyncResponse.{ DataResponse, FailedAsyncResponse }
 import org.apache.zookeeper.KeeperException.Code
@@ -14,9 +14,9 @@ import scala.language.postfixOps
 class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
   import KeyValueStoreActor._
 
-  private val config = ConfigFactory.load().getConfig("vamp.persistence.key-value-store.zookeeper")
+  private val config = Config.config("vamp.persistence.key-value-store.zookeeper")
 
-  private val servers = config.getString("servers")
+  private val servers = config.string("servers")
 
   private var zooKeeperClient: Option[AsyncZooKeeperClient] = None
 
@@ -84,8 +84,8 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
   private def initClient() = zooKeeperClient = Option {
     AsyncZooKeeperClient(
       servers = servers,
-      sessionTimeout = config.getInt("session-timeout"),
-      connectTimeout = config.getInt("connect-timeout"),
+      sessionTimeout = config.int("session-timeout"),
+      connectTimeout = config.int("connect-timeout"),
       basePath = "",
       watcher = None,
       eCtx = actorSystem.dispatcher

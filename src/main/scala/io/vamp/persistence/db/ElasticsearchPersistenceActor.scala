@@ -1,6 +1,6 @@
 package io.vamp.persistence.db
 
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.model.artifact._
 import io.vamp.model.reader._
 import io.vamp.model.serialization.CoreSerializationFormat
@@ -13,9 +13,9 @@ import scala.concurrent.Future
 
 object ElasticsearchPersistenceActor {
 
-  lazy val index = ConfigFactory.load().getString("vamp.persistence.database.elasticsearch.index")
+  lazy val index = Config.string("vamp.persistence.database.elasticsearch.index")
 
-  lazy val elasticsearchUrl: String = ConfigFactory.load().getString("vamp.persistence.database.elasticsearch.url")
+  lazy val elasticsearchUrl: String = Config.string("vamp.persistence.database.elasticsearch.url")
 }
 
 case class ElasticsearchArtifact(artifact: String)
