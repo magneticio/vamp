@@ -1,0 +1,109 @@
+# HAProxy {{ haproxy.version }}, Frontends & Backends managed by Vamp
+
+{% if (haproxy.virtualHostFrontends.size > 0) -%}
+# Virtual hosts
+
+frontend virtual_hosts
+  bind {{ haproxy.config.virtualHostsIp -}} : {{- haproxy.config.virtualHostsPort }}
+  mode http
+  option httplog
+  log-format {{ haproxy.config.httpLogFormat }}
+
+  {%- for frontend in haproxy.virtualHostFrontends %}
+  {%- for condition in frontend.filters %}
+  {% if (condition.acls.isDefined) %}
+  # destination: {{ condition.destination.name }}
+  {%- for acl in condition.acls.get.acls %}
+  acl {{ acl.name }} {{ acl.definition }}
+  {% endfor %}
+  use_backend {{ condition.destination.lookup }} {% if (condition.acls.get.condition.isDefined) %} if {{ condition.acls.get.condition.get }} {% endif %}
+  {% endif -%}
+  {% endfor -%}
+  {% endfor -%}
+
+{% for backend in haproxy.virtualHostBackends %}
+# backend: {{ backend.name }}
+backend {{ backend.lookup }}
+  balance roundrobin
+  mode http
+  option forwardfor
+  http-request set-header X-Forwarded-Port %[dst_port]
+  {% for server in backend.servers %}
+  # server: {{ server.name }}
+  server {{ server.lookup }} {{ server.url }}
+  {% endfor -%}
+{% endfor %}
+{% endif -%}
+
+{% if (haproxy.frontends.size > 0) -%}
+# Port mapping
+{% endif -%}
+
+{% for frontend in haproxy.frontends %}
+# frontend: {{ frontend.name }}
+frontend {{ frontend.lookup }}
+  {% if (frontend.bindIp.isDefined and frontend.bindPort.isDefined) -%}
+  bind {{ frontend.bindIp.get -}} : {{- frontend.bindPort.get }}
+  {% endif -%}
+
+  {% if (frontend.mode.toString == "http") %}
+  option httplog
+  log-format {{ haproxy.config.httpLogFormat }}
+  {% endif -%}
+
+  {% if (frontend.mode.toString == "tcp") %}
+  option tcplog
+  log-format {{ haproxy.config.tcpLogFormat }}
+  {% endif -%}
+
+  {%- if (frontend.unixSock.isDefined and frontend.sockProtocol.isDefined) %}
+  bind unix@ {{- frontend.unixSock.get }} {{ frontend.sockProtocol.get }}
+  {%- endif %}
+
+  mode {{ frontend.mode }}
+
+  {%- for condition in frontend.filters %}
+  {% if (condition.acls.isDefined) %}
+  # destination: {{ condition.destination.name }}
+  {%- for acl in condition.acls.get.acls %}
+  acl {{ acl.name }} {{ acl.definition }}
+  {%- endfor %}
+  use_backend {{ condition.destination.lookup }} {% if (condition.acls.get.condition.isDefined) -%} if {{ condition.acls.get.condition.get }} {%- endif %}
+  {%- endif %}
+  {%- endfor %}
+
+  # backend: {{ frontend.defaultBackend.name }}
+  default_backend {{ frontend.defaultBackend.lookup }}
+{% endfor -%}
+
+{% for backend in haproxy.backends %}
+# backend: {{ backend.name }}
+backend {{ backend.lookup }}
+
+  mode {{ backend.mode }}
+  balance {{ backend.balance }}
+  {% if (backend.sticky) %}
+  cookie {{ backend.lookup }} insert indirect nocache
+  {% endif -%}
+
+  {% for rewrite in backend.rewrites %}
+  http-request set-path {{ rewrite.path }} if {{ rewrite.condition }}
+  {% endfor -%}
+
+  {% for server in backend.proxyServers %}
+  # server: {{ server.name }}
+  server {{ server.lookup }} unix@ {{- server.unixSock }} send-proxy weight {{ server.weight }} {% if (backend.sticky) -%} check cookie {{ server.lookup -}} {% endif %}
+  {% endfor -%}
+
+  {% if (backend.servers.size > 0) %}
+  option forwardfor
+
+  {%- for server in backend.servers %}
+  # server: {{ server.name }}
+  server {{ server.lookup }} {{ server.url }}
+  {%- if (backend.mode == "http") %} cookie {{ server.lookup -}} {% endif %} weight {{ server.weight }}
+  {%- if (server.checkInterval.isDefined) %} check inter {{ server.checkInterval.get }} {% endif %} {% if (backend.sticky) %} check cookie {{ server.lookup }} {% endif %}
+  {% endfor %}
+  {%- endif %}
+
+{%- endfor %}

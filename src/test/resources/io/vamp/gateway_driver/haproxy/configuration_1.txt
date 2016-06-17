@@ -5,7 +5,6 @@ frontend name
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
-  option http-server-close                                     
   bind unix@/tmp/vamp_test_be_1_a.sock accept-proxy 
 
   mode http
@@ -37,15 +36,3 @@ backend name2
   
   # server: test_be1_a_2
   server test_be1_a_2 192.168.59.103:8082 cookie test_be1_a_2 weight 100 check inter 10 
-
-  option abortonclose      
-  option allbackups        
-  option checkcache        
-  option forwardfor        
-  option http-server-close 
-  option httpchk           
-  option ssl-hello-chk     
-  option tcpka             
-  option tcp-smart-accept  
-  option tcp-smart-connect 
-  option tcplog

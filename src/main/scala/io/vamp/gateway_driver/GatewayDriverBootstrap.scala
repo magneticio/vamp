@@ -3,7 +3,7 @@ package io.vamp.gateway_driver
 import akka.actor.{ ActorRef, ActorSystem }
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.common.config.Config
-import io.vamp.gateway_driver.haproxy.{ HaProxyConfig, HaProxyGatewayMarshaller }
+import io.vamp.gateway_driver.haproxy.{ HaProxyConfig, HaProxyGatewayMarshaller, JTwigHaProxyGatewayMarshaller }
 import io.vamp.gateway_driver.kibana.{ KibanaDashboardActor, KibanaDashboardSchedulerActor }
 
 import scala.concurrent.duration._
@@ -23,7 +23,7 @@ object GatewayDriverBootstrap extends Bootstrap {
     }
 
     val actors = List(
-      IoC.createActor[GatewayDriverActor](new HaProxyGatewayMarshaller() {
+      IoC.createActor[GatewayDriverActor](new JTwigHaProxyGatewayMarshaller() {
         override def haProxyConfig = HaProxyConfig(
           haproxyConfig.string("virtual-hosts.ip"),
           haproxyConfig.int("virtual-hosts.port"),
