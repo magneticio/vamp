@@ -22,8 +22,7 @@ case class Frontend(name: String,
                     unixSock: Option[String],
                     sockProtocol: Option[String],
                     filters: List[Filter],
-                    defaultBackend: Backend,
-                    options: Options)
+                    defaultBackend: Backend)
 
 case class Backend(name: String,
                    lookup: String,
@@ -32,8 +31,7 @@ case class Backend(name: String,
                    servers: List[Server],
                    rewrites: List[Rewrite],
                    sticky: Boolean,
-                   balance: String,
-                   options: Options)
+                   balance: String)
 
 object Mode extends Enumeration {
   val http, tcp = Value
@@ -52,15 +50,3 @@ case class Rewrite(path: String, condition: String)
 case class ProxyServer(name: String, lookup: String, unixSock: String, weight: Int)
 
 case class Server(name: String, lookup: String, url: String, weight: Int, checkInterval: Option[Int] = None)
-
-case class Options(abortOnClose: Boolean = false,
-                   allBackups: Boolean = false,
-                   checkCache: Boolean = false,
-                   forwardFor: Boolean = false,
-                   httpClose: Boolean = false,
-                   httpCheck: Boolean = false,
-                   sslHelloCheck: Boolean = false,
-                   tcpKeepAlive: Boolean = false,
-                   tcpSmartAccept: Boolean = false,
-                   tcpSmartConnect: Boolean = false,
-                   tcpLog: Boolean = false)
