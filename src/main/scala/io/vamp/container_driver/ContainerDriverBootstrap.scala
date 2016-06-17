@@ -1,7 +1,7 @@
 package io.vamp.container_driver
 
 import akka.actor.ActorSystem
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka.{ Bootstrap, IoC }
 import io.vamp.container_driver.docker.DockerDriverActor
 import io.vamp.container_driver.kubernetes.KubernetesDriverActor
@@ -11,9 +11,9 @@ import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvid
 
 object ContainerDriverBootstrap extends Bootstrap with ContainerDriverNotificationProvider {
 
-  private val configuration = ConfigFactory.load().getConfig("vamp.container-driver")
+  private val configuration = Config.config("vamp.container-driver")
 
-  val `type` = configuration.getString("type").toLowerCase
+  val `type` = configuration.string("type").toLowerCase
 
   def createActors(implicit actorSystem: ActorSystem) = {
 

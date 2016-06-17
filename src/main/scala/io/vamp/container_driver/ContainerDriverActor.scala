@@ -1,8 +1,9 @@
 package io.vamp.container_driver
 
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka._
+import io.vamp.common.config.Config
 import io.vamp.common.notification.Notification
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
 import io.vamp.model.artifact.{ Deployment, _ }
@@ -15,7 +16,7 @@ import scala.concurrent.duration._
 
 object ContainerDriverActor {
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.container-driver.response-timeout").seconds)
+  lazy val timeout = Timeout(Config.int("vamp.container-driver.response-timeout").seconds)
 
   trait ContainerDriveMessage
 
@@ -43,7 +44,7 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
 
   implicit val timeout = ContainerDriverActor.timeout
 
-  val gatewayServiceIp = ConfigFactory.load().getString("vamp.gateway-driver.host")
+  val gatewayServiceIp = Config.string("vamp.gateway-driver.host")
 
   protected def deployedGateways(gateways: List[Gateway]): Future[Any] = {
     gateways.filter {

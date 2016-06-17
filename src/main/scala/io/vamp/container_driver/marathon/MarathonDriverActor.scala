@@ -1,6 +1,6 @@
 package io.vamp.container_driver.marathon
 
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.crypto.Hash
 import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
@@ -15,11 +15,11 @@ import scala.concurrent.Future
 
 object MarathonDriverActor {
 
-  private val configuration = ConfigFactory.load().getConfig("vamp.container-driver")
+  private val configuration = Config.config("vamp.container-driver")
 
-  val mesosUrl = configuration.getString("mesos.url")
+  val mesosUrl = configuration.string("mesos.url")
 
-  val marathonUrl = configuration.getString("marathon.url")
+  val marathonUrl = configuration.string("marathon.url")
 
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value

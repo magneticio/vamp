@@ -1,6 +1,6 @@
 package io.vamp.container_driver.rancher
 
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
@@ -19,12 +19,12 @@ import scala.language.postfixOps
 
 object RancherDriverActor {
 
-  private val configuration = ConfigFactory.load().getConfig("vamp.container-driver.rancher")
+  private val configuration = Config.config("vamp.container-driver.rancher")
 
-  val rancherUrl = configuration.getString("url")
-  val apiUser = configuration.getString("user")
-  val apiPassword = configuration.getString("password")
-  val environmentPrefix = configuration.getString("environment-prefix")
+  val rancherUrl = configuration.string("url")
+  val apiUser = configuration.string("user")
+  val apiPassword = configuration.string("password")
+  val environmentPrefix = configuration.string("environment-prefix")
 }
 
 class RancherDriverActor extends ContainerDriverActor with ContainerDriver with DockerNameMatcher {

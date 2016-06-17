@@ -1,6 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
@@ -20,17 +20,17 @@ object KubernetesDriverActor {
     val Docker = Value
   }
 
-  private val configuration = ConfigFactory.load().getConfig("vamp.container-driver.kubernetes")
+  private val config = Config.config("vamp.container-driver.kubernetes")
 
-  val url = configuration.getString("url")
+  val url = config.string("url")
 
-  val token = configuration.getString("token")
+  val token = config.string("token")
 
-  val serviceType = KubernetesServiceType.withName(configuration.getString("service-type"))
+  val serviceType = KubernetesServiceType.withName(config.string("service-type"))
 
-  val createServices = configuration.getBoolean("create-services")
+  val createServices = config.boolean("create-services")
 
-  val vampGatewayAgentId = configuration.getString("vamp-gateway-agent-id")
+  val vampGatewayAgentId = config.string("vamp-gateway-agent-id")
 }
 
 case class KubernetesDriverInfo(version: Any, paths: Any, api: Any, apis: Any)
