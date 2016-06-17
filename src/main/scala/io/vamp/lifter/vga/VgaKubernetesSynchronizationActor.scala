@@ -26,7 +26,7 @@ class VgaKubernetesSynchronizationActor extends VgaSynchronizationActor {
 
   import VgaKubernetesSynchronizationActor._
 
-  val kubernetesServiceType = Try(KubernetesServiceType.withName(configuration.getString("kubernetes.service-type"))).map(Option(_)).getOrElse(None)
+  val kubernetesServiceType = Try(KubernetesServiceType.withName(config.string("kubernetes.service-type"))).map(Option(_)).getOrElse(None)
 
   def receive = {
     case Synchronize ⇒ synchronize()
