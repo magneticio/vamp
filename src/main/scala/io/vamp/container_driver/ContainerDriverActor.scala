@@ -1,7 +1,6 @@
 package io.vamp.container_driver
 
 import akka.util.Timeout
-import io.vamp.common.config.Config
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
 import io.vamp.common.notification.Notification
@@ -12,11 +11,10 @@ import io.vamp.persistence.operation.GatewayServiceAddress
 import io.vamp.pulse.notification.PulseFailureNotifier
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
 object ContainerDriverActor {
 
-  lazy val timeout = Timeout(Config.int("vamp.container-driver.response-timeout").seconds)
+  lazy val timeout = Config.timeout("vamp.container-driver.response-timeout")
 
   trait ContainerDriveMessage
 
