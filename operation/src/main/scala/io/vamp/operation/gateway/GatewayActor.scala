@@ -1,7 +1,7 @@
 package io.vamp.operation.gateway
 
 import akka.pattern.ask
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact._
@@ -19,11 +19,11 @@ object GatewayActor {
 
   implicit val timeout = PersistenceActor.timeout
 
-  private val configuration = ConfigFactory.load().getConfig("vamp.operation.gateway")
+  private val config = Config.config("vamp.operation.gateway")
 
-  val virtualHostsEnabled: Boolean = configuration.getBoolean("virtual-hosts")
+  val virtualHostsEnabled: Boolean = config.boolean("virtual-hosts")
 
-  val virtualHostRootDomain: String = configuration.getString("virtual-hosts-domain")
+  val virtualHostRootDomain: String = config.string("virtual-hosts-domain")
 
   trait GatewayMessage
 

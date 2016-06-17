@@ -3,7 +3,7 @@ package io.vamp.operation.controller
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ ActorSystemProvider, DataRetrieval, ExecutionContextProvider }
 import io.vamp.common.vitals.{ JmxVitalsProvider, StatsRequest }
@@ -21,7 +21,7 @@ trait StatsController extends DataRetrieval with JmxVitalsProvider {
 
   implicit def timeout: Timeout
 
-  private val dataRetrievalTimeout = Timeout(ConfigFactory.load().getInt("vamp.stats.timeout") seconds)
+  private val dataRetrievalTimeout = Timeout(Config.int("vamp.stats.timeout") seconds)
 
   def stats: Future[StatsMessage] = {
 

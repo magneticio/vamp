@@ -2,7 +2,7 @@ package io.vamp.container_driver.docker
 
 import com.spotify.docker.client.DefaultDockerClient
 import com.spotify.docker.client.messages.{ Container ⇒ SpotifyContainer, ContainerInfo ⇒ _, _ }
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
@@ -27,19 +27,19 @@ object DockerDriverActor {
 
 class DockerDriverActor extends ContainerDriverActor with ContainerDriver with DockerNameMatcher {
 
-  private val configuration = ConfigFactory.load().getConfig("vamp.container-driver.docker")
+  private val configuration = Config.config("vamp.container-driver.docker")
 
   protected val nameDelimiter = "_"
 
   private val docker = {
 
-    val serverAddress = configuration.getString("repository.server-address")
+    val serverAddress = configuration.string("repository.server-address")
 
     if (serverAddress.nonEmpty) {
 
-      val email = configuration.getString("repository.email")
-      val username = configuration.getString("repository.username")
-      val password = configuration.getString("repository.password")
+      val email = configuration.string("repository.email")
+      val username = configuration.string("repository.username")
+      val password = configuration.string("repository.password")
 
       val authConfig = AuthConfig.builder().email(email).username(username).password(password).serverAddress(serverAddress).build()
       DefaultDockerClient.fromEnv().authConfig(authConfig).build()

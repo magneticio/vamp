@@ -3,9 +3,9 @@ package io.vamp.lifter.artifact
 import java.nio.file.Paths
 
 import akka.pattern.ask
-import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.akka.IoC._
+import io.vamp.common.config.Config
 import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.model.reader.ScheduledWorkflowReader
 import io.vamp.model.workflow.DefaultWorkflow
@@ -13,7 +13,6 @@ import io.vamp.operation.controller.ArtifactApiController
 import io.vamp.operation.notification.InternalServerError
 import io.vamp.persistence.db.PersistenceActor
 
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.io.Source
@@ -31,13 +30,13 @@ class ArtifactInitializationActor extends ArtifactApiController with CommonSuppo
 
   private implicit val timeout = PersistenceActor.timeout
 
-  private val config = ConfigFactory.load().getConfig("vamp.lifter.artifact")
+  private val config = Config.config("vamp.lifter.artifact")
 
-  private val force = config.getBoolean("override")
+  private val force = config.boolean("override")
 
-  private val postpone = config.getInt("postpone") seconds
+  private val postpone = config.int("postpone") seconds
 
-  private val resources = config.getStringList("resources").asScala
+  private val resources = config.stringList("resources")
 
   def receive = {
     case Load ⇒ load()

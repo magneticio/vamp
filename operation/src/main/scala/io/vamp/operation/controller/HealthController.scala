@@ -1,6 +1,6 @@
 package io.vamp.operation.controller
 
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, ReplyActor }
 import io.vamp.common.notification.NotificationProvider
 
@@ -10,7 +10,7 @@ import scala.language.postfixOps
 trait HealthController extends GatewayDeploymentResolver with EventValue {
   this: ReplyActor with ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
 
-  private val window = ConfigFactory.load().getInt("vamp.operation.health.window")
+  private val window = Config.int("vamp.operation.health.window")
 
   def gatewayHealth(gateway: String): Future[Option[Double]] = gatewayFor(gateway) flatMap {
 

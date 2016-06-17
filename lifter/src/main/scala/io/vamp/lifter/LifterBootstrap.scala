@@ -1,7 +1,7 @@
 package io.vamp.lifter
 
 import akka.actor.{ ActorRef, ActorSystem, Props }
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.container_driver.ContainerDriverBootstrap
 import io.vamp.lifter.artifact.ArtifactInitializationActor
@@ -16,25 +16,25 @@ import scala.language.postfixOps
 
 object LifterBootstrap extends Bootstrap {
 
-  val configuration = ConfigFactory.load().getConfig("vamp.lifter")
+  val config = Config.config("vamp.lifter")
 
   val synchronizationMailbox = "vamp.lifter.vamp-gateway-agent.synchronization.mailbox"
 
-  val vgaSynchronizationPeriod = configuration.getInt("vamp-gateway-agent.synchronization.period") seconds
+  val vgaSynchronizationPeriod = config.int("vamp-gateway-agent.synchronization.period") seconds
 
-  val vgaSynchronizationInitialDelay = configuration.getInt("vamp-gateway-agent.synchronization.initial-delay") seconds
+  val vgaSynchronizationInitialDelay = config.int("vamp-gateway-agent.synchronization.initial-delay") seconds
 
-  val vampGatewayAgentEnabled = configuration.getBoolean("vamp-gateway-agent.enabled")
+  val vampGatewayAgentEnabled = config.boolean("vamp-gateway-agent.enabled")
 
-  val pulseEnabled = configuration.getBoolean("pulse.enabled")
+  val pulseEnabled = config.boolean("pulse.enabled")
 
-  val kibanaEnabled = configuration.getBoolean("kibana.enabled")
+  val kibanaEnabled = config.boolean("kibana.enabled")
 
-  val artifactEnabled = configuration.getBoolean("artifact.enabled")
+  val artifactEnabled = config.boolean("artifact.enabled")
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
-    val persistence = if (configuration.getBoolean("persistence.enabled")) {
+    val persistence = if (config.boolean("persistence.enabled")) {
       PersistenceBootstrap.databaseType match {
         case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
         case _               ⇒ Nil

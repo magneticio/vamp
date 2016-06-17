@@ -2,9 +2,9 @@ package io.vamp.operation.deployment
 
 import akka.pattern.ask
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.common.config.Config
 import io.vamp.common.notification.{ NotificationErrorException, NotificationProvider }
 import io.vamp.model.artifact.DeploymentService.State.Intention._
 import io.vamp.model.artifact._
@@ -18,23 +18,22 @@ import io.vamp.persistence.db._
 import io.vamp.persistence.operation.DeploymentPersistence._
 import io.vamp.persistence.operation._
 
-import scala.collection.JavaConversions._
 import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }
 import scala.util.Try
 
 object DeploymentActor {
 
-  private val config = ConfigFactory.load()
+  private val config = Config
 
-  val gatewayHost = config.getString("vamp.gateway-driver.host")
+  val gatewayHost = config.string("vamp.gateway-driver.host")
 
-  val defaultScale = config.getConfig("vamp.operation.deployment.scale") match {
-    case c ⇒ DefaultScale("", Quantity.of(c.getDouble("cpu")), MegaByte.of(c.getString("memory")), c.getInt("instances"))
+  val defaultScale = config.config("vamp.operation.deployment.scale") match {
+    case c ⇒ DefaultScale("", Quantity.of(c.double("cpu")), MegaByte.of(c.string("memory")), c.int("instances"))
   }
 
   val defaultArguments: List[Argument] = {
-    val arguments = config.getStringList("vamp.operation.deployment.arguments").toList.map {
+    val arguments = config.stringList("vamp.operation.deployment.arguments").toList.map {
       _.split("=", 2).toList match {
         case key :: value :: Nil ⇒ Argument(key.trim, value.trim)
         case any                 ⇒ throw NotificationErrorException(InvalidArgumentError, if (any != null) any.toString else "")

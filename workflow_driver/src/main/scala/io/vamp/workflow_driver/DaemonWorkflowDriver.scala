@@ -19,7 +19,7 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
 
   protected def driverActor: ActorRef
 
-  private lazy val namePrefix = WorkflowDriver.config.getString(namePrefixConfig)
+  private lazy val namePrefix = WorkflowDriver.config.string(namePrefixConfig)
 
   override def request(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]): Unit = scheduledWorkflows.foreach { scheduled ⇒
     if (scheduled.trigger == DaemonTrigger) {

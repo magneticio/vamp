@@ -1,7 +1,7 @@
 package io.vamp.operation
 
 import akka.actor.{ ActorRef, ActorSystem, Props }
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.operation.deployment.{ DeploymentActor, DeploymentSynchronizationActor, DeploymentSynchronizationSchedulerActor }
 import io.vamp.operation.gateway.{ GatewayActor, GatewaySynchronizationActor, GatewaySynchronizationSchedulerActor }
@@ -15,17 +15,17 @@ import scala.language.postfixOps
 
 object OperationBootstrap extends Bootstrap {
 
-  val configuration = ConfigFactory.load().getConfig("vamp.operation")
+  val configuration = Config.config("vamp.operation")
 
   val synchronizationMailbox = "vamp.operation.synchronization.mailbox"
 
-  val slaPeriod = configuration.getInt("sla.period") seconds
+  val slaPeriod = configuration.int("sla.period") seconds
 
-  val escalationPeriod = configuration.getInt("escalation.period") seconds
+  val escalationPeriod = configuration.int("escalation.period") seconds
 
-  val synchronizationPeriod = configuration.getInt("synchronization.period") seconds
+  val synchronizationPeriod = configuration.int("synchronization.period") seconds
 
-  val synchronizationInitialDelay = configuration.getInt("synchronization.initial-delay") seconds
+  val synchronizationInitialDelay = configuration.int("synchronization.initial-delay") seconds
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 

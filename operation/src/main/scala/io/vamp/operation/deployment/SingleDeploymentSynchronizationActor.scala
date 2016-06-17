@@ -1,6 +1,6 @@
 package io.vamp.operation.deployment
 
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ CommonSupportForActors, IoC }
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService, Containers }
@@ -30,13 +30,13 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   import PulseEventTags.Deployments._
   import SingleDeploymentSynchronizationActor._
 
-  private val config = ConfigFactory.load().getConfig("vamp.operation")
+  private val config = Config.config("vamp.operation")
 
-  private val checkCpu = config.getBoolean("synchronization.check.cpu")
+  private val checkCpu = config.boolean("synchronization.check.cpu")
 
-  private val checkMemory = config.getBoolean("synchronization.check.memory")
+  private val checkMemory = config.boolean("synchronization.check.memory")
 
-  private val checkInstances = config.getBoolean("synchronization.check.instances")
+  private val checkInstances = config.boolean("synchronization.check.instances")
 
   def receive: Receive = {
     case Synchronize(containerService) ⇒ synchronize(containerService)

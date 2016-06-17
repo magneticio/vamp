@@ -2,7 +2,7 @@ package io.vamp.persistence.kv
 
 import java.util.Base64
 
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.http.RestClient
 
 import scala.concurrent.Future
@@ -10,7 +10,7 @@ import scala.language.postfixOps
 
 class ConsulStoreActor extends KeyValueStoreActor {
 
-  private val url = ConfigFactory.load().getString("vamp.persistence.key-value-store.consul.url")
+  private val url = Config.string("vamp.persistence.key-value-store.consul.url")
 
   override protected def info(): Future[Any] = RestClient.get[Any](s"$url/v1/agent/self") map {
     case consul ⇒ Map(

@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
 import akka.actor.{ ActorRef, Props }
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
@@ -66,9 +66,9 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
   private def withError(deployment: Deployment): Boolean = {
     lazy val now = OffsetDateTime.now()
-    lazy val config = ConfigFactory.load().getConfig("vamp.operation.synchronization.timeout")
-    lazy val deploymentTimeout = config.getInt("ready-for-deployment")
-    lazy val undeploymentTimeout = config.getInt("ready-for-undeployment")
+    lazy val config = Config.config("vamp.operation.synchronization.timeout")
+    lazy val deploymentTimeout = config.int("ready-for-deployment")
+    lazy val undeploymentTimeout = config.int("ready-for-undeployment")
 
     def handleTimeout(service: DeploymentService) = {
       val notification = DeploymentServiceError(deployment, service)

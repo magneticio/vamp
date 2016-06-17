@@ -1,7 +1,7 @@
 package io.vamp.workflow_driver
 
 import akka.actor.ActorRef
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.model.workflow.ScheduledWorkflow
 import io.vamp.persistence.kv.KeyValueStoreActor
 
@@ -11,9 +11,9 @@ case class WorkflowInstance(name: String)
 
 object WorkflowDriver {
 
-  val config = ConfigFactory.load().getConfig("vamp.workflow-driver")
+  val config = Config.config("vamp.workflow-driver")
 
-  val vampUrl = config.getString("vamp-url")
+  val vampUrl = config.string("vamp-url")
 
   def path(scheduledWorkflow: ScheduledWorkflow, workflow: Boolean = false) = {
     if (workflow) "scheduled-workflow" :: scheduledWorkflow.name :: "workflow" :: Nil else "scheduled-workflow" :: scheduledWorkflow.name :: Nil

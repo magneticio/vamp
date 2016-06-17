@@ -1,7 +1,7 @@
 package io.vamp.rest_api
 
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.http.HttpServerBaseActor
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.rest_api.notification.RestApiNotificationProvider
@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 
 object HttpServerActor {
 
-  lazy val timeout = Timeout(ConfigFactory.load().getInt("vamp.rest-api.response-timeout").seconds)
+  lazy val timeout = Timeout(Config.int("vamp.rest-api.response-timeout").seconds)
 
 }
 

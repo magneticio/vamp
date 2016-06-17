@@ -1,6 +1,6 @@
 package io.vamp.gateway_driver.haproxy
 
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
 import io.vamp.model.artifact._
@@ -9,7 +9,7 @@ import scala.language.postfixOps
 
 object HaProxyGatewayMarshaller {
 
-  val version = ConfigFactory.load().getString("vamp.gateway-driver.haproxy.version").trim
+  val version = Config.string("vamp.gateway-driver.haproxy.version").trim
 
   val path: List[String] = "haproxy" :: version :: Nil
 }

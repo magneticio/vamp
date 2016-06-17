@@ -3,7 +3,7 @@ package io.vamp.operation.controller
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ ActorSystemProvider, DataRetrieval, ExecutionContextProvider }
 import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
@@ -34,9 +34,9 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
 
   implicit def timeout: Timeout
 
-  val infoMessage = ConfigFactory.load().getString("vamp.info.message")
+  val infoMessage = Config.string("vamp.info.message")
 
-  private val dataRetrievalTimeout = Timeout(ConfigFactory.load().getInt("vamp.info.timeout") seconds)
+  private val dataRetrievalTimeout = Timeout(Config.int("vamp.info.timeout") seconds)
 
   def info: Future[JvmInfoMessage] = {
 

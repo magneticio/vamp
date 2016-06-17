@@ -1,6 +1,6 @@
 package io.vamp.persistence.kv
 
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
@@ -14,7 +14,7 @@ object KeyValueStoreActor {
 
   val timeout = PersistenceActor.timeout
 
-  private val basePath = ConfigFactory.load().getString("vamp.persistence.key-value-store.base-path").stripMargin('/')
+  private val basePath = Config.string("vamp.persistence.key-value-store.base-path").stripMargin('/')
 
   def pathToString(path: List[String]) = s"/${(basePath :: path).mkString("/")}"
 

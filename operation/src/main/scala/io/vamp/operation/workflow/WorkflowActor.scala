@@ -2,9 +2,9 @@ package io.vamp.operation.workflow
 
 import akka.actor._
 import akka.pattern.ask
-import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.common.config.Config
 import io.vamp.model.artifact.DefaultScale
 import io.vamp.model.event.Event
 import io.vamp.model.reader.{ MegaByte, Quantity }
@@ -18,20 +18,19 @@ import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
 import io.vamp.workflow_driver.{ WorkflowDriver, WorkflowDriverActor }
 
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.language.postfixOps
 
 object WorkflowActor {
 
-  private val config = ConfigFactory.load().getConfig("vamp.operation.workflow")
+  private val config = Config.config("vamp.operation.workflow")
 
-  val command = config.getStringList("command").asScala
+  val command = config.stringList("command")
 
-  val containerImage = config.getString("container-image")
+  val containerImage = config.string("container-image")
 
-  val scale = config.getConfig("scale") match {
-    case c ⇒ DefaultScale("", Quantity.of(c.getDouble("cpu")), MegaByte.of(c.getString("memory")), c.getInt("instances"))
+  val scale = config.config("scale") match {
+    case c ⇒ DefaultScale("", Quantity.of(c.double("cpu")), MegaByte.of(c.string("memory")), c.int("instances"))
   }
 
   object RescheduleAll

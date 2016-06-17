@@ -5,8 +5,8 @@ import java.time.temporal.ChronoUnit
 
 import akka.pattern.ask
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, ExecutionContextProvider, IoC }
+import io.vamp.common.config.Config
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
@@ -25,7 +25,6 @@ import io.vamp.persistence.operation.DeploymentServiceState
 import spray.http.StatusCodes._
 import spray.http._
 
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }
 
@@ -234,10 +233,8 @@ trait DevController {
   }
 
   def configuration() = Future.successful {
-    ConfigFactory.load().entrySet().asScala.map {
-      case entry ⇒ entry.getKey -> entry.getValue.unwrapped()
-    } filter {
+    Config.entries().filter {
       case (key, _) ⇒ key.startsWith("vamp.")
-    } toMap
+    }
   }
 }
