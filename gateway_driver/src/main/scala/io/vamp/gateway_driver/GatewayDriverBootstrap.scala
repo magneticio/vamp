@@ -3,7 +3,7 @@ package io.vamp.gateway_driver
 import akka.actor.{ ActorRef, ActorSystem }
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.common.config.Config
-import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
+import io.vamp.gateway_driver.haproxy.{ HaProxyConfig, HaProxyGatewayMarshaller }
 import io.vamp.gateway_driver.kibana.{ KibanaDashboardActor, KibanaDashboardSchedulerActor }
 
 import scala.concurrent.duration._
@@ -11,12 +11,9 @@ import scala.language.postfixOps
 
 object GatewayDriverBootstrap extends Bootstrap {
 
-  val configuration = Config
-  val gatewayDriverConfiguration = configuration.config("vamp.gateway-driver")
-  val haproxyConfiguration = gatewayDriverConfiguration.config("haproxy")
-
-  val kibanaSynchronizationPeriod = gatewayDriverConfiguration.duration("kibana.synchronization.period")
-  val synchronizationInitialDelay = configuration.duration("vamp.operation.synchronization.initial-delay")
+  val haproxyConfig = Config.config("vamp.gateway-driver.haproxy")
+  val kibanaSynchronizationPeriod = Config.duration("vamp.gateway-driver.kibana.synchronization.period")
+  val synchronizationInitialDelay = Config.duration("vamp.operation.synchronization.initial-delay")
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
@@ -27,9 +24,12 @@ object GatewayDriverBootstrap extends Bootstrap {
 
     val actors = List(
       IoC.createActor[GatewayDriverActor](new HaProxyGatewayMarshaller() {
-        override def tcpLogFormat: String = haproxyConfiguration.string("tcp-log-format")
-
-        override def httpLogFormat: String = haproxyConfiguration.string("http-log-format")
+        override def haProxyConfig = HaProxyConfig(
+          haproxyConfig.string("virtual-hosts.ip"),
+          haproxyConfig.int("virtual-hosts.port"),
+          haproxyConfig.string("tcp-log-format"),
+          haproxyConfig.string("http-log-format")
+        )
       }),
       IoC.createActor[KibanaDashboardActor],
       IoC.createActor[KibanaDashboardSchedulerActor]

@@ -30,9 +30,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   override lazy val info: AnyRef = s"HAProxy v$version.x"
 
-  def tcpLogFormat: String
-
-  def httpLogFormat: String
+  def haProxyConfig: HaProxyConfig
 
   override def marshall(gateways: List[Gateway]): String = HaProxyConfigurationTemplate(convert(gateways)).body.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n")
 
@@ -43,7 +41,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       virtualHostFrontends = m1.virtualHostFrontends ++ m2.virtualHostFrontends,
       virtualHostBackends = m1.virtualHostBackends ++ m2.virtualHostBackends
     )).getOrElse(
-      HaProxy(version, Nil, Nil, Nil, Nil, tcpLogFormat, httpLogFormat)
+      HaProxy(version, Nil, Nil, Nil, Nil, haProxyConfig)
     )
   }
 
@@ -54,7 +52,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     val vbe = virtualHostsBackends(gateway)
     val vfe = virtualHostsFrontends(vbe, gateway)
 
-    HaProxy(version, fe, be, vfe, vbe, tcpLogFormat, httpLogFormat)
+    HaProxy(version, fe, be, vfe, vbe, haProxyConfig)
   }
 
   private def frontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {

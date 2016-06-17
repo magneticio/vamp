@@ -6,10 +6,10 @@
 # Virtual hosts
 
 frontend virtual_hosts
-  bind 0.0.0.0:80
+  bind @haproxy.config.virtualHostsIp:@haproxy.config.virtualHostsPort
   mode http
   option httplog
-  log-format @haproxy.httpLogFormat
+  log-format @haproxy.config.httpLogFormat
 
   @for(frontend <- haproxy.virtualHostFrontends) {
   @for(filter <- frontend.filters) {
@@ -43,11 +43,11 @@ frontend @frontend.lookup
   @if(frontend.bindIp.isDefined && frontend.bindPort.isDefined)       {bind @frontend.bindIp.get:@frontend.bindPort.get             }
   @if(frontend.mode == Mode.http) {
   option httplog
-  log-format @haproxy.httpLogFormat
+  log-format @haproxy.config.httpLogFormat
   }
   @if(frontend.mode == Mode.tcp) {
   option tcplog
-  log-format @haproxy.tcpLogFormat
+  log-format @haproxy.config.tcpLogFormat
   }
 
   @if(frontend.options.httpClose)                                     {option http-server-close                                     }

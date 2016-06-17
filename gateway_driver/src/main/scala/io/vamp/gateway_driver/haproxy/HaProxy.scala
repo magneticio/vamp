@@ -7,8 +7,12 @@ case class HaProxy(version: String,
                    backends: List[Backend],
                    virtualHostFrontends: List[Frontend],
                    virtualHostBackends: List[Backend],
-                   tcpLogFormat: String,
-                   httpLogFormat: String)
+                   config: HaProxyConfig)
+
+case class HaProxyConfig(virtualHostsIp: String,
+                         virtualHostsPort: Int,
+                         tcpLogFormat: String,
+                         httpLogFormat: String)
 
 case class Frontend(name: String,
                     lookup: String,
