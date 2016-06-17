@@ -66,7 +66,6 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       mode = mode,
       unixSock = None,
       sockProtocol = None,
-      options = Options(),
       filters = filters(),
       defaultBackend = backendFor(other, GatewayMarshaller.lookup(gateway))
     )
@@ -79,7 +78,6 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       mode = mode,
       unixSock = Option(unixSocket(s"$other${GatewayMarshaller.lookup(gateway)}")),
       sockProtocol = Option("accept-proxy"),
-      options = Options(),
       filters = Nil,
       defaultBackend = backendFor(other, GatewayMarshaller.lookup(gateway))
     )
@@ -93,7 +91,6 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
         mode = mode,
         unixSock = Option(unixSocket(GatewayMarshaller.lookup(gateway, route.path.segments))),
         sockProtocol = Option("accept-proxy"),
-        options = Options(),
         filters = Nil,
         defaultBackend = backendFor(GatewayMarshaller.lookup(gateway, route.path.segments))
       )
@@ -131,8 +128,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
           servers = Nil,
           rewrites = Nil,
           sticky = gateway.sticky.contains(Gateway.Sticky.Route) || gateway.sticky.contains(Gateway.Sticky.Instance),
-          balance = gateway.defaultBalance,
-          options = Options())
+          balance = gateway.defaultBalance)
       case route ⇒ unsupported(route)
     }
 
@@ -153,8 +149,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       servers = Nil,
       rewrites = Nil,
       sticky = gateway.sticky.contains(Gateway.Sticky.Route) || gateway.sticky.contains(Gateway.Sticky.Instance),
-      balance = gateway.defaultBalance,
-      options = Options()
+      balance = gateway.defaultBalance
     )
 
     val routeBackends = gateway.routes.map {
@@ -182,8 +177,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
           },
           rewrites = rewrites(route),
           sticky = gateway.sticky.contains(Gateway.Sticky.Instance),
-          balance = route.balance.getOrElse(gateway.defaultBalance),
-          options = Options())
+          balance = route.balance.getOrElse(gateway.defaultBalance))
       case route ⇒ unsupported(route)
     }
 
@@ -228,7 +222,6 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
         mode = mode,
         unixSock = None,
         sockProtocol = None,
-        options = Options(),
         filters = Filter(
           GatewayMarshaller.lookup(gateway),
           backendFor(GatewayMarshaller.lookup(gateway)),
@@ -254,8 +247,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
         ) :: Nil,
         rewrites = Nil,
         sticky = false,
-        balance = "",
-        options = Options()
+        balance = ""
       ) :: Nil
 
     case false ⇒ Nil
