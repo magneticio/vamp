@@ -163,7 +163,8 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
       instances = service.scale.map(_.instances).getOrElse(1),
       cpu = service.scale.map(_.cpu.value).getOrElse(0),
       memory = service.scale.map(_.memory.value.toInt).getOrElse(0),
-      environmentVariables = environment(deployment, cluster, service)
+      environmentVariables = environment(deployment, cluster, service),
+      labels = labels(deployment, cluster, service)
     )
 
     buildRancherService(stack, dockerApp)
@@ -281,7 +282,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
       scale = Option(dockerApp.instances),
       launchConfig = Some(LaunchConfig(
         imageUuid = s"docker:${dockerContainer.image}",
-        labels = None,
+        labels = if (dockerApp.labels.isEmpty) None else Option(dockerApp.labels),
         privileged = Option(dockerContainer.privileged),
         startOnCreate = false,
         cpuShares = if (dockerApp.cpu.toInt > 0) Option(dockerApp.cpu.toInt) else None,

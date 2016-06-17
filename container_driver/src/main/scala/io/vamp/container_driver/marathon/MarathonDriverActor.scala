@@ -104,7 +104,16 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     val id = appId(deployment, service.breed)
     if (update) log.info(s"marathon update app: $id") else log.info(s"marathon create app: $id")
 
-    val app = MarathonApp(id, container(deployment, cluster, service), service.scale.get.instances, service.scale.get.cpu.value, Math.round(service.scale.get.memory.value).toInt, environment(deployment, cluster, service), cmd(deployment, cluster, service))
+    val app = MarathonApp(
+      id,
+      container(deployment, cluster, service),
+      service.scale.get.instances,
+      service.scale.get.cpu.value,
+      Math.round(service.scale.get.memory.value).toInt,
+      environment(deployment, cluster, service),
+      cmd(deployment, cluster, service),
+      labels = labels(deployment, cluster, service)
+    )
 
     sendRequest(update, app.id, requestPayload(deployment, cluster, service, purge(app)))
   }
@@ -119,6 +128,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
       app.environmentVariables,
       if (app.command.nonEmpty) Option(app.command.mkString(" ")) else None,
       app.arguments,
+      app.labels,
       app.constraints
     )
     sendRequest(update, app.id, Extraction.decompose(purge(marathonApp)))

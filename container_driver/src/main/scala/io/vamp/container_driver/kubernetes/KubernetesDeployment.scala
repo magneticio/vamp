@@ -89,7 +89,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
       env = environment(deployment, cluster, service),
       cmd = Nil,
       args = Nil,
-      labels = labels(id, deploymentServiceLabel)
+      labels = labels(id, deploymentServiceLabel) ++ labels(deployment, cluster, service)
     )
 
     if (update) RestClient.put[Any](s"$deploymentUrl/$id", app.toString, apiHeaders) else RestClient.post[Any](deploymentUrl, app.toString, apiHeaders)
@@ -146,7 +146,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
         env = app.environmentVariables,
         cmd = app.command,
         args = app.arguments,
-        labels = labels(id, deploymentLabel)
+        labels = labels(id, deploymentLabel) ++ app.labels
       )
 
       if (update) {

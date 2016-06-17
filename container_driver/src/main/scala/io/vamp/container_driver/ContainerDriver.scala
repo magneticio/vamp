@@ -48,4 +48,8 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
     val parameters = arguments.map(argument ⇒ DockerParameter(argument.key, argument.value))
     Docker(definition, portMappings(deployment, cluster, service), parameters, privileged.headOption.exists(_.value.toBoolean))
   }
+
+  protected def labels(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
+    Map("deployment" -> deployment.name, "cluster" -> cluster.name, "service" -> service.breed.name)
+  }
 }

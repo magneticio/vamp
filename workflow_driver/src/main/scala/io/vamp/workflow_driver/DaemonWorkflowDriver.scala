@@ -72,6 +72,7 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
       ),
       command = workflow.command.map(_.split(" ").toList).getOrElse(Nil),
       arguments = Nil,
+      labels = Map("scheduled" -> scheduledWorkflow.name, "workflow" -> workflow.name),
       constraints = Nil
     )
   }
