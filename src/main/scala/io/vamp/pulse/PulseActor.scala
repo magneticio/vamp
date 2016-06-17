@@ -4,8 +4,8 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
 import io.vamp.common.akka._
+import io.vamp.common.config.Config
 import io.vamp.common.http.{ OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope }
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.notification.Notification
@@ -19,7 +19,6 @@ import org.json4s.DefaultFormats
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
 
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -34,17 +33,15 @@ case class EventResponseEnvelope(response: List[Event], total: Long, page: Int, 
 
 object PulseActor {
 
-  val configuration = ConfigFactory.load().getConfig("vamp.pulse")
+  val configuration = Config.config("vamp.pulse")
 
-  val timeout = Timeout(configuration.getInt("response-timeout").seconds)
+  val timeout = Timeout(configuration.int("response-timeout").seconds)
 
-  val elasticsearchUrl = configuration.getString("elasticsearch.url")
+  val elasticsearchUrl = configuration.string("elasticsearch.url")
 
-  val indexName = configuration.getString("elasticsearch.index.name")
+  val indexName = configuration.string("elasticsearch.index.name")
 
-  val indexTimeFormat: Map[String, String] = configuration.getConfig("elasticsearch.index.time-format").entrySet.asScala.map { entry ⇒
-    entry.getKey -> entry.getValue.unwrapped.toString
-  } toMap
+  val indexTimeFormat: Map[String, String] = configuration.entries("elasticsearch.index.time-format").map { case (key, value) ⇒ key -> value.toString }
 
   trait PulseMessage
 
