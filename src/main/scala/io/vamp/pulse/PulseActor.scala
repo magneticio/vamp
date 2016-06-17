@@ -3,7 +3,6 @@ package io.vamp.pulse
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
-import akka.util.Timeout
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
 import io.vamp.common.http.{ OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope }
@@ -20,7 +19,6 @@ import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object EventRequestEnvelope {
@@ -35,7 +33,7 @@ object PulseActor {
 
   val config = Config.config("vamp.pulse")
 
-  val timeout = Timeout(config.int("response-timeout").seconds)
+  val timeout = config.timeout("response-timeout")
 
   val elasticsearchUrl = config.string("elasticsearch.url")
 
