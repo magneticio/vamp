@@ -1,8 +1,8 @@
 package io.vamp.gateway_driver
 
 import akka.actor.{ ActorRef, ActorSystem }
-import io.vamp.common.config.Config
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
+import io.vamp.common.config.Config
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.gateway_driver.kibana.{ KibanaDashboardActor, KibanaDashboardSchedulerActor }
 
@@ -15,8 +15,8 @@ object GatewayDriverBootstrap extends Bootstrap {
   val gatewayDriverConfiguration = configuration.config("vamp.gateway-driver")
   val haproxyConfiguration = gatewayDriverConfiguration.config("haproxy")
 
-  val kibanaSynchronizationPeriod = gatewayDriverConfiguration.int("kibana.synchronization.period") seconds
-  val synchronizationInitialDelay = configuration.int("vamp.operation.synchronization.initial-delay") seconds
+  val kibanaSynchronizationPeriod = gatewayDriverConfiguration.duration("kibana.synchronization.period")
+  val synchronizationInitialDelay = configuration.duration("vamp.operation.synchronization.initial-delay")
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 

@@ -33,7 +33,7 @@ object DeploymentActor {
   }
 
   val defaultArguments: List[Argument] = {
-    val arguments = config.stringList("vamp.operation.deployment.arguments").toList.map {
+    val arguments = config.stringList("vamp.operation.deployment.arguments").map {
       _.split("=", 2).toList match {
         case key :: value :: Nil ⇒ Argument(key.trim, value.trim)
         case any                 ⇒ throw NotificationErrorException(InvalidArgumentError, if (any != null) any.toString else "")

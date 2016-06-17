@@ -1,5 +1,6 @@
 package io.vamp.common.config
 
+import akka.util.Timeout
 import com.typesafe.config.{ ConfigFactory, Config ⇒ TypesafeConfig }
 
 import scala.collection.JavaConverters._
@@ -21,6 +22,8 @@ private[config] class Config(config: TypesafeConfig, root: String) {
   def intList(path: String) = read(path).getIntList(path).asScala.toList
 
   def stringList(path: String) = read(path).getStringList(path).asScala.toList
+
+  def timeout(path: String) = Timeout(duration(path))
 
   def duration(path: String) = FiniteDuration(read(path).getDuration(path, MILLISECONDS), MILLISECONDS)
 

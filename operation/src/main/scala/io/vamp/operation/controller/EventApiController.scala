@@ -17,6 +17,7 @@ import io.vamp.pulse.PulseActor.{ Publish, Query }
 import io.vamp.pulse.{ EventRequestEnvelope, EventResponseEnvelope, PulseActor }
 
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 import scala.language.{ existentials, postfixOps }
 
 trait EventApiController {
@@ -41,7 +42,7 @@ trait EventValue {
 
   implicit def timeout: Timeout
 
-  def last(tags: Set[String], window: Long): Future[Option[AnyRef]] = {
+  def last(tags: Set[String], window: FiniteDuration): Future[Option[AnyRef]] = {
 
     val eventQuery = EventQuery(tags, Option(timeRange(window)), None)
 
@@ -51,10 +52,10 @@ trait EventValue {
     }
   }
 
-  protected def timeRange(window: Long) = {
+  protected def timeRange(window: FiniteDuration) = {
 
     val now = OffsetDateTime.now()
-    val from = now.minus(window, ChronoUnit.SECONDS)
+    val from = now.minus(window.toSeconds, ChronoUnit.SECONDS)
 
     TimeRange(Some(from), Some(now), includeLower = true, includeUpper = true)
   }

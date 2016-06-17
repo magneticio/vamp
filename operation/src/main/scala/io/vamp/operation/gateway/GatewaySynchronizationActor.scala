@@ -1,8 +1,7 @@
 package io.vamp.operation.gateway
 
-import akka.util.Timeout
-import io.vamp.common.config.Config
 import io.vamp.common.akka._
+import io.vamp.common.config.Config
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.container_driver.ContainerDriverActor.DeployedGateways
 import io.vamp.gateway_driver.GatewayDriverActor
@@ -17,7 +16,6 @@ import io.vamp.persistence.operation.{ GatewayDeploymentStatus, GatewayPort, Rou
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 
-import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
@@ -28,12 +26,12 @@ class GatewaySynchronizationSchedulerActor extends SchedulerActor with Operation
 
 object GatewaySynchronizationActor {
 
-  val configuration = Config.config("vamp.operation.gateway")
+  val config = Config.config("vamp.operation.gateway")
 
-  val timeout = Timeout(configuration.int("response-timeout") seconds)
+  val timeout = config.timeout("response-timeout")
 
   val (portRangeLower: Int, portRangeUpper: Int) = {
-    val portRange = configuration.string("port-range").split("-").map(_.toInt)
+    val portRange = config.string("port-range").split("-").map(_.toInt)
     (portRange(0), portRange(1))
   }
 

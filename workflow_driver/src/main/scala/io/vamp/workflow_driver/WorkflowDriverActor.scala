@@ -1,9 +1,8 @@
 package io.vamp.workflow_driver
 
 import akka.actor.ActorRef
-import akka.util.Timeout
-import io.vamp.common.config.Config
 import io.vamp.common.akka._
+import io.vamp.common.config.Config
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.model.workflow.ScheduledWorkflow
@@ -11,11 +10,10 @@ import io.vamp.pulse.notification.PulseFailureNotifier
 import io.vamp.workflow_driver.notification.{ WorkflowDriverNotificationProvider, WorkflowResponseError }
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
 object WorkflowDriverActor {
 
-  lazy val timeout = Timeout(Config.int("vamp.workflow-driver.response-timeout").seconds)
+  lazy val timeout = Config.timeout("vamp.workflow-driver.response-timeout")
 
   sealed trait WorkflowDriveMessage
 

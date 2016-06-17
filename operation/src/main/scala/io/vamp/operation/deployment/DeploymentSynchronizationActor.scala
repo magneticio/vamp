@@ -4,9 +4,9 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
 import akka.actor.{ ActorRef, Props }
-import io.vamp.common.config.Config
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.common.config.Config
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerService }
 import io.vamp.model.artifact.DeploymentService.State.Intention
@@ -67,8 +67,8 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   private def withError(deployment: Deployment): Boolean = {
     lazy val now = OffsetDateTime.now()
     lazy val config = Config.config("vamp.operation.synchronization.timeout")
-    lazy val deploymentTimeout = config.int("ready-for-deployment")
-    lazy val undeploymentTimeout = config.int("ready-for-undeployment")
+    lazy val deploymentTimeout = config.duration("ready-for-deployment")
+    lazy val undeploymentTimeout = config.duration("ready-for-undeployment")
 
     def handleTimeout(service: DeploymentService) = {
       val notification = DeploymentServiceError(deployment, service)
@@ -83,8 +83,8 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
     deployment.clusters.flatMap(_.services).exists { service ⇒
       service.state.intention match {
-        case Intention.Deploy   ⇒ if (!service.state.isDone && now.minus(deploymentTimeout, ChronoUnit.SECONDS).isAfter(service.state.since)) handleTimeout(service) else false
-        case Intention.Undeploy ⇒ if (!service.state.isDone && now.minus(undeploymentTimeout, ChronoUnit.SECONDS).isAfter(service.state.since)) handleTimeout(service) else false
+        case Intention.Deploy   ⇒ if (!service.state.isDone && now.minus(deploymentTimeout.toSeconds, ChronoUnit.SECONDS).isAfter(service.state.since)) handleTimeout(service) else false
+        case Intention.Undeploy ⇒ if (!service.state.isDone && now.minus(undeploymentTimeout.toSeconds, ChronoUnit.SECONDS).isAfter(service.state.since)) handleTimeout(service) else false
         case _                  ⇒ service.state.step.isInstanceOf[Failure]
       }
     }

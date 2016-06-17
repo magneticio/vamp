@@ -3,9 +3,9 @@ package io.vamp.operation.controller
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.config.Config
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ ActorSystemProvider, DataRetrieval, ExecutionContextProvider }
+import io.vamp.common.config.Config
 import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
@@ -15,7 +15,6 @@ import io.vamp.pulse.PulseActor
 import io.vamp.workflow_driver.WorkflowDriverActor
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 case class InfoMessage(message: String,
@@ -36,7 +35,7 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
 
   val infoMessage = Config.string("vamp.info.message")
 
-  private val dataRetrievalTimeout = Timeout(Config.int("vamp.info.timeout") seconds)
+  private val dataRetrievalTimeout = Config.timeout("vamp.info.timeout")
 
   def info: Future[JvmInfoMessage] = {
 

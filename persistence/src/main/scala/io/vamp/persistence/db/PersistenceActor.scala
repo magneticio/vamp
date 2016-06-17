@@ -2,8 +2,8 @@ package io.vamp.persistence.db
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.config.Config
 import io.vamp.common.akka._
+import io.vamp.common.config.Config
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
@@ -13,7 +13,6 @@ import io.vamp.persistence.notification._
 import io.vamp.pulse.notification.PulseFailureNotifier
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.language.existentials
 import scala.reflect._
 
@@ -25,7 +24,7 @@ case class ArtifactResponseEnvelope(response: List[Artifact], total: Long, page:
 
 object PersistenceActor {
 
-  val timeout = Timeout(Config.int("vamp.persistence.response-timeout").seconds)
+  val timeout = Config.timeout("vamp.persistence.response-timeout")
 
   trait PersistenceMessages
 

@@ -14,7 +14,6 @@ import io.vamp.operation.notification.InternalServerError
 import io.vamp.persistence.db.PersistenceActor
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.io.Source
 import scala.language.postfixOps
 
@@ -34,7 +33,7 @@ class ArtifactInitializationActor extends ArtifactApiController with CommonSuppo
 
   private val force = config.boolean("override")
 
-  private val postpone = config.int("postpone") seconds
+  private val postpone = config.duration("postpone")
 
   private val resources = config.stringList("resources")
 

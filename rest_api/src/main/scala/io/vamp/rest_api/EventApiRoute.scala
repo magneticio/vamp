@@ -3,13 +3,13 @@ package io.vamp.rest_api
 import akka.actor.ActorRef
 import akka.util.Timeout
 import io.vamp.common.akka.CommonSupportForActors
+import io.vamp.common.config.Config
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.http.SseDirectives._
 import io.vamp.model.reader.EventQueryReader
 import io.vamp.operation.controller.EventApiController
 import spray.http.StatusCodes._
 
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 trait EventApiRoute extends EventApiController {
@@ -17,7 +17,7 @@ trait EventApiRoute extends EventApiController {
 
   implicit def timeout: Timeout
 
-  val sseKeepAliveTimeout = context.system.settings.config.getInt("vamp.rest-api.sse.keep-alive-timeout") seconds
+  val sseKeepAliveTimeout = Config.duration("vamp.rest-api.sse.keep-alive-timeout")
 
   val eventRoutes = pathPrefix("events") {
     pathEndOrSingleSlash {

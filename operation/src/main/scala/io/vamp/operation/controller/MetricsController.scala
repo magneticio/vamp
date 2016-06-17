@@ -10,7 +10,7 @@ import scala.language.postfixOps
 trait MetricsController extends GatewayDeploymentResolver with EventValue {
   this: ReplyActor with ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
 
-  private val window = Config.int("vamp.operation.metrics.window")
+  private val window = Config.duration("vamp.operation.metrics.window")
 
   def gatewayMetrics(gateway: String, metrics: String): Future[Option[Double]] = gatewayFor(gateway).flatMap {
 
