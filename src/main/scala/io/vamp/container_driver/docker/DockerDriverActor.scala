@@ -180,10 +180,8 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     })
 
     val labels: MutableMap[String, String] = MutableMap()
+    labels ++= this.labels(deployment, cluster, service)
     labels += ("vamp" -> vampLabel)
-    labels += ("deployment" -> deployment.name)
-    labels += ("cluster" -> cluster.name)
-    labels += ("service" -> service.breed.name)
     labels += ("id" -> appId(deployment, service.breed))
 
     if (service.scale.isDefined)
