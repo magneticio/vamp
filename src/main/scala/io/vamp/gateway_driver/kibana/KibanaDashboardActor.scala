@@ -1,7 +1,7 @@
 package io.vamp.gateway_driver.kibana
 
 import akka.actor._
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka._
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.gateway_driver.GatewayMarshaller
@@ -27,11 +27,11 @@ object KibanaDashboardActor {
 
   val kibanaIndex = ".kibana"
 
-  val configuration = ConfigFactory.load().getConfig("vamp.gateway-driver.kibana")
+  val configuration = Config.config("vamp.gateway-driver.kibana")
 
-  val enabled = configuration.getBoolean("enabled")
+  val enabled = configuration.boolean("enabled")
 
-  val elasticsearchUrl = configuration.getString("elasticsearch.url")
+  val elasticsearchUrl = configuration.string("elasticsearch.url")
 }
 
 class KibanaDashboardActor extends ArtifactPaginationSupport with CommonSupportForActors with GatewayDriverNotificationProvider {

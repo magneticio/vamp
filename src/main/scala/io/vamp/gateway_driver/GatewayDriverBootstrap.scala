@@ -1,7 +1,7 @@
 package io.vamp.gateway_driver
 
 import akka.actor.{ ActorRef, ActorSystem }
-import com.typesafe.config.ConfigFactory
+import io.vamp.common.config.Config
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.gateway_driver.kibana.{ KibanaDashboardActor, KibanaDashboardSchedulerActor }
@@ -11,12 +11,12 @@ import scala.language.postfixOps
 
 object GatewayDriverBootstrap extends Bootstrap {
 
-  val configuration = ConfigFactory.load()
-  val gatewayDriverConfiguration = configuration.getConfig("vamp.gateway-driver")
-  val haproxyConfiguration = gatewayDriverConfiguration.getConfig("haproxy")
+  val configuration = Config
+  val gatewayDriverConfiguration = configuration.config("vamp.gateway-driver")
+  val haproxyConfiguration = gatewayDriverConfiguration.config("haproxy")
 
-  val kibanaSynchronizationPeriod = gatewayDriverConfiguration.getInt("kibana.synchronization.period") seconds
-  val synchronizationInitialDelay = configuration.getInt("vamp.operation.synchronization.initial-delay") seconds
+  val kibanaSynchronizationPeriod = gatewayDriverConfiguration.int("kibana.synchronization.period") seconds
+  val synchronizationInitialDelay = configuration.int("vamp.operation.synchronization.initial-delay") seconds
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
@@ -27,9 +27,9 @@ object GatewayDriverBootstrap extends Bootstrap {
 
     val actors = List(
       IoC.createActor[GatewayDriverActor](new HaProxyGatewayMarshaller() {
-        override def tcpLogFormat: String = haproxyConfiguration.getString("tcp-log-format")
+        override def tcpLogFormat: String = haproxyConfiguration.string("tcp-log-format")
 
-        override def httpLogFormat: String = haproxyConfiguration.getString("http-log-format")
+        override def httpLogFormat: String = haproxyConfiguration.string("http-log-format")
       }),
       IoC.createActor[KibanaDashboardActor],
       IoC.createActor[KibanaDashboardSchedulerActor]
