@@ -61,18 +61,29 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
-  private def info: Future[Any] = for {
-    slaves ← RestClient.get[Any](s"$mesosUrl/master/slaves")
-    frameworks ← RestClient.get[Any](s"$mesosUrl/master/frameworks")
-    marathon ← RestClient.get[Any](s"$marathonUrl/v2/info")
-  } yield {
+  private def info: Future[Any] = {
 
-    val s: Any = slaves match {
-      case s: Map[_, _] ⇒ s.asInstanceOf[Map[String, _]].getOrElse("slaves", Nil)
-      case _            ⇒ Nil
+    def remove(key: String): Any ⇒ Any = {
+      case m: Map[_, _] ⇒ m.asInstanceOf[Map[String, _]].filterNot { case (k, v) ⇒ k == key } map { case (k, v) ⇒ k -> remove(key)(v) }
+      case l: List[_]   ⇒ l.map(remove(key))
+      case any          ⇒ any
     }
 
-    ContainerInfo("marathon", MarathonDriverInfo(MesosInfo(frameworks, s), marathon))
+    for {
+      slaves ← RestClient.get[Any](s"$mesosUrl/master/slaves")
+      frameworks ← RestClient.get[Any](s"$mesosUrl/master/frameworks")
+      marathon ← RestClient.get[Any](s"$marathonUrl/v2/info")
+    } yield {
+
+      val s: Any = slaves match {
+        case s: Map[_, _] ⇒ s.asInstanceOf[Map[String, _]].getOrElse("slaves", Nil)
+        case _            ⇒ Nil
+      }
+
+      val f = (remove("tasks") andThen remove("completed_tasks"))(frameworks)
+
+      ContainerInfo("marathon", MarathonDriverInfo(MesosInfo(f, s), marathon))
+    }
   }
 
   private def get(deploymentServices: List[DeploymentServices]): Unit = {
