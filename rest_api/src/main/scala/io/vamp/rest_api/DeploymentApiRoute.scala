@@ -60,8 +60,14 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
       respondWith(OK, result)
     }
   } ~ pathPrefix("configuration" | "config") {
-    pathEndOrSingleSlash {
-      get {
+    get {
+      path(Segment) { key: String ⇒
+        pathEndOrSingleSlash {
+          onSuccess(configuration(key)) { result ⇒
+            respondWith(OK, result)
+          }
+        }
+      } ~ pathEndOrSingleSlash {
         onSuccess(configuration()) { result ⇒
           respondWith(OK, result)
         }
@@ -232,9 +238,10 @@ trait DevController {
     }
   }
 
-  def configuration() = Future.successful {
-    Config.entries().filter {
-      case (key, _) ⇒ key.startsWith("vamp.")
+  def configuration(key: String = "") = Future.successful {
+    val entries = Config.entries().filter {
+      case (k, _) ⇒ k.startsWith("vamp.")
     }
+    if (key.nonEmpty) entries.get(key) else entries
   }
 }

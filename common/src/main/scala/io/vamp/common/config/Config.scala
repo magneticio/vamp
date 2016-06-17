@@ -1,30 +1,57 @@
 package io.vamp.common.config
 
-import com.typesafe.config.ConfigFactory
-import net.ceedubs.ficus.Ficus._
+import com.typesafe.config.{ ConfigFactory, Config ⇒ TypesafeConfig }
 
 import scala.collection.JavaConverters._
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
-object Config extends Config(ConfigFactory.load())
+object Config extends Config(ConfigFactory.load(), "")
 
-private[config] class Config(config: com.typesafe.config.Config) {
+private[config] class Config(config: TypesafeConfig, root: String) {
 
-  def int(path: String) = config.as[Int](path)
+  def int(path: String) = read(path).getInt(path)
 
-  def double(path: String) = config.as[Double](path)
+  def double(path: String) = read(path).getDouble(path)
 
-  def string(path: String) = config.as[String](path)
+  def string(path: String) = read(path).getString(path)
 
-  def boolean(path: String) = config.as[Boolean](path)
+  def boolean(path: String) = read(path).getBoolean(path)
 
-  def intList(path: String) = config.as[List[Int]](path)
+  def intList(path: String) = read(path).getIntList(path).asScala.toList
 
-  def stringList(path: String) = config.as[List[String]](path)
+  def stringList(path: String) = read(path).getStringList(path).asScala.toList
+
+  def duration(path: String) = FiniteDuration(read(path).getDuration(path, MILLISECONDS), MILLISECONDS)
+
+  def config(path: String): Config = new Config(config.getConfig(path), absolutePath(path))
 
   def entries(path: String = ""): Map[String, AnyRef] = {
-    config.getConfig(path).entrySet().asScala.map { entry ⇒ entry.getKey -> entry.getValue.unwrapped } toMap
+
+    val cfg = if (path.nonEmpty) config.getConfig(path) else config
+
+    cfg.entrySet.asScala.map { entry ⇒
+
+      val key = entry.getKey
+
+      val value = environment(absolutePath(path, key)).map {
+        value ⇒ ConfigFactory.parseString(s"$key:$value").withFallback(config)
+      } getOrElse cfg getAnyRef key
+
+      key -> value
+
+    } toMap
   }
 
-  def config(path: String): Config = new Config(config.getConfig(path))
+  private def read(path: String): TypesafeConfig = {
+    environment(absolutePath(path)).map {
+      value ⇒ ConfigFactory.parseString(s"$path:$value").withFallback(config)
+    } getOrElse config
+  }
+
+  private def environment(path: String): Option[String] = sys.env.get(path.replaceAll("[^\\p{L}\\d]", "_").toUpperCase)
+
+  private def mergePaths(paths: String*): String = paths.toList.filter(_.nonEmpty).mkString(".")
+
+  private def absolutePath(paths: String*): String = mergePaths(root :: paths.toList: _*)
 }
