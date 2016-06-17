@@ -4,28 +4,30 @@
 # Virtual hosts
 
 frontend virtual_hosts
+
   bind {{ haproxy.config.virtualHostsIp -}} : {{- haproxy.config.virtualHostsPort }}
   mode http
+
   option httplog
   log-format {{ haproxy.config.httpLogFormat }}
-
-  {%- for frontend in haproxy.virtualHostFrontends %}
+  {% for frontend in haproxy.virtualHostFrontends %}
   {%- for condition in frontend.filters %}
-  {% if (condition.acls.isDefined) %}
+  {%- if (condition.acls.isDefined) %}
   # destination: {{ condition.destination.name }}
   {%- for acl in condition.acls.get.acls %}
   acl {{ acl.name }} {{ acl.definition }}
-  {% endfor %}
-  use_backend {{ condition.destination.lookup }} {% if (condition.acls.get.condition.isDefined) %} if {{ condition.acls.get.condition.get }} {% endif %}
-  {% endif -%}
+  {% endfor -%}
+  use_backend {{ condition.destination.lookup }} {% if (condition.acls.get.condition.isDefined) %} if {{ condition.acls.get.condition.get }} {% endif %} {% endif %}
   {% endfor -%}
   {% endfor -%}
 
 {% for backend in haproxy.virtualHostBackends %}
 # backend: {{ backend.name }}
 backend {{ backend.lookup }}
+
   balance roundrobin
   mode http
+
   option forwardfor
   http-request set-header X-Forwarded-Port %[dst_port]
   {% for server in backend.servers %}
@@ -42,7 +44,7 @@ backend {{ backend.lookup }}
 {% for frontend in haproxy.frontends %}
 # frontend: {{ frontend.name }}
 frontend {{ frontend.lookup }}
-  {% if (frontend.bindIp.isDefined and frontend.bindPort.isDefined) -%}
+  {% if (frontend.bindIp.isDefined and frontend.bindPort.isDefined) %}
   bind {{ frontend.bindIp.get -}} : {{- frontend.bindPort.get }}
   {% endif -%}
 
@@ -58,7 +60,7 @@ frontend {{ frontend.lookup }}
 
   {%- if (frontend.unixSock.isDefined and frontend.sockProtocol.isDefined) %}
   bind unix@ {{- frontend.unixSock.get }} {{ frontend.sockProtocol.get }}
-  {%- endif %}
+  {% endif -%}
 
   mode {{ frontend.mode }}
 

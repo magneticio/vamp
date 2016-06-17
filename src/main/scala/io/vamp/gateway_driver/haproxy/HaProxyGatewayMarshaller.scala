@@ -27,8 +27,6 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   override lazy val path = HaProxyGatewayMarshaller.path
 
-  override lazy val info: AnyRef = s"HAProxy v$version.x"
-
   def haProxyConfig: HaProxyConfig
 
   override def marshall(gateways: List[Gateway]): String = marshall(convert(gateways))
