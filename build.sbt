@@ -79,7 +79,8 @@ val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
 val dispatch = "net.databinder.dispatch" %% "dispatch-core" % "0.11.2" ::
   "net.databinder.dispatch" %% "dispatch-json4s-native" % "0.11.2" :: Nil
 
-val twirl = "com.typesafe.play" %% "twirl-api" % "1.1.1" :: Nil
+val jtwig = "org.jtwig" % "jtwig-core" % "5.57" :: Nil
+
 val json4s = "org.json4s" %% "json4s-native" % "3.2.11" ::
   "org.json4s" %% "json4s-core" % "3.2.11" ::
   "org.json4s" %% "json4s-ext" % "3.2.11" ::
@@ -163,8 +164,8 @@ lazy val gateway_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to Vamp Gateway Agent",
   name := "vamp-gateway_driver",
   formatting,
-  libraryDependencies ++= twirl ++ testing
-).dependsOn(model, pulse, persistence).enablePlugins(SbtTwirl).disablePlugins(sbtassembly.AssemblyPlugin)
+  libraryDependencies ++= jtwig ++ testing
+).dependsOn(model, pulse, persistence).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val container_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to container managers",

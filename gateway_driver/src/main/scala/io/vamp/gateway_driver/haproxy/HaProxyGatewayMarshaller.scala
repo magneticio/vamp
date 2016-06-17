@@ -2,7 +2,6 @@ package io.vamp.gateway_driver.haproxy
 
 import io.vamp.common.config.Config
 import io.vamp.gateway_driver.GatewayMarshaller
-import io.vamp.gateway_driver.haproxy.txt.HaProxyConfigurationTemplate
 import io.vamp.model.artifact._
 
 import scala.language.postfixOps
@@ -32,7 +31,9 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   def haProxyConfig: HaProxyConfig
 
-  override def marshall(gateways: List[Gateway]): String = HaProxyConfigurationTemplate(convert(gateways)).body.replaceAll("\\\n\\s*\\\n\\s*\\\n", "\n\n")
+  override def marshall(gateways: List[Gateway]): String = marshall(convert(gateways))
+
+  private[haproxy] def marshall(haProxy: HaProxy): String
 
   private[haproxy] def convert(gateways: List[Gateway]): HaProxy = {
     gateways.map(convert).reduceOption((m1, m2) ⇒ m1.copy(

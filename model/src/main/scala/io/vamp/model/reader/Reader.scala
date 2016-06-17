@@ -3,6 +3,7 @@ package io.vamp.model.reader
 import java.io.{ File, InputStream, Reader, StringReader }
 
 import io.vamp.common.notification.{ NotificationErrorException, NotificationProvider }
+import io.vamp.common.util.ObjectUtil
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
@@ -353,8 +354,8 @@ trait ArgumentReader {
         case yaml: YamlSourceReader ⇒
           if (yaml.size != 1) throwException(InvalidArgumentError)
           yaml.pull().head match {
-            case (key, value) if isPrimitive(value) ⇒ Argument(key, value.toString)
-            case _                                  ⇒ throwException(InvalidArgumentError)
+            case (key, value) if ObjectUtil.isPrimitive(value) ⇒ Argument(key, value.toString)
+            case _ ⇒ throwException(InvalidArgumentError)
           }
         case _ ⇒ throwException(InvalidArgumentError)
       }
@@ -364,19 +365,6 @@ trait ArgumentReader {
 
   def validateArguments(argument: List[Argument]) = argument.foreach { argument ⇒
     if (argument.privileged && Try(argument.value.toBoolean).isFailure) throwException(InvalidArgumentValueError(argument))
-  }
-
-  private def isPrimitive(any: Any) = any match {
-    case _: Boolean ⇒ true
-    case _: Byte    ⇒ true
-    case _: Char    ⇒ true
-    case _: Short   ⇒ true
-    case _: Int     ⇒ true
-    case _: Long    ⇒ true
-    case _: Float   ⇒ true
-    case _: Double  ⇒ true
-    case _: String  ⇒ true
-    case _          ⇒ false
   }
 }
 
