@@ -33,15 +33,15 @@ case class EventResponseEnvelope(response: List[Event], total: Long, page: Int, 
 
 object PulseActor {
 
-  val configuration = Config.config("vamp.pulse")
+  val config = Config.config("vamp.pulse")
 
-  val timeout = Timeout(configuration.int("response-timeout").seconds)
+  val timeout = Timeout(config.int("response-timeout").seconds)
 
-  val elasticsearchUrl = configuration.string("elasticsearch.url")
+  val elasticsearchUrl = config.string("elasticsearch.url")
 
-  val indexName = configuration.string("elasticsearch.index.name")
+  val indexName = config.string("elasticsearch.index.name")
 
-  val indexTimeFormat: Map[String, String] = configuration.entries("elasticsearch.index.time-format").map { case (key, value) ⇒ key -> value.toString }
+  val indexTimeFormat: Map[String, String] = config.entries("elasticsearch.index.time-format").map { case (key, value) ⇒ key -> value.toString }
 
   trait PulseMessage
 
