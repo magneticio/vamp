@@ -1,8 +1,8 @@
 package io.vamp.lifter
 
 import akka.actor.{ ActorRef, ActorSystem, Props }
-import io.vamp.common.config.Config
 import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
+import io.vamp.common.config.Config
 import io.vamp.container_driver.ContainerDriverBootstrap
 import io.vamp.lifter.artifact.ArtifactInitializationActor
 import io.vamp.lifter.kibana.KibanaDashboardInitializationActor
@@ -20,9 +20,9 @@ object LifterBootstrap extends Bootstrap {
 
   val synchronizationMailbox = "vamp.lifter.vamp-gateway-agent.synchronization.mailbox"
 
-  val vgaSynchronizationPeriod = config.int("vamp-gateway-agent.synchronization.period") seconds
+  val vgaSynchronizationPeriod = config.duration("vamp-gateway-agent.synchronization.period")
 
-  val vgaSynchronizationInitialDelay = config.int("vamp-gateway-agent.synchronization.initial-delay") seconds
+  val vgaSynchronizationInitialDelay = config.duration("vamp-gateway-agent.synchronization.initial-delay")
 
   val vampGatewayAgentEnabled = config.boolean("vamp-gateway-agent.enabled")
 
