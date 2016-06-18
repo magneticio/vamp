@@ -48,7 +48,7 @@ private[config] class Config(config: TypesafeConfig, root: String) {
 
   private def read(path: String): TypesafeConfig = {
     environment(absolutePath(path)).map {
-      value ⇒ ConfigFactory.parseString(s"$path:$value").withFallback(config)
+      value ⇒ ConfigFactory.parseString(s"""$path = "$value"""").withFallback(config)
     } getOrElse config
   }
 

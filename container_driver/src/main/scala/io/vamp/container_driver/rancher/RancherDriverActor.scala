@@ -19,12 +19,12 @@ import scala.language.postfixOps
 
 object RancherDriverActor {
 
-  private val configuration = Config.config("vamp.container-driver.rancher")
+  private val config = Config.config("vamp.container-driver.rancher")
 
-  val rancherUrl = configuration.string("url")
-  val apiUser = configuration.string("user")
-  val apiPassword = configuration.string("password")
-  val environmentPrefix = configuration.string("environment-prefix")
+  val rancherUrl = config.string("url")
+  val apiUser = config.string("user")
+  val apiPassword = config.string("password")
+  val environmentPrefix = config.string("environment-prefix")
 }
 
 class RancherDriverActor extends ContainerDriverActor with ContainerDriver with DockerNameMatcher {
