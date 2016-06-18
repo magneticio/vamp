@@ -94,7 +94,7 @@ backend {{ backend.lookup }}
 
   {% for server in backend.proxyServers %}
   # server: {{ server.name }}
-  server {{ server.lookup }} unix@ {{- server.unixSock }} send-proxy weight {{ server.weight }} {% if (backend.sticky) -%} check cookie {{ server.lookup -}} {% endif %}
+  server {{ server.lookup }} unix@ {{- server.unixSock }} send-proxy weight {{ server.weight }} check {% if (backend.sticky) -%} cookie {{ server.lookup -}} {% endif %}
   {% endfor -%}
 
   {% if (backend.servers.size > 0) %}
@@ -104,7 +104,7 @@ backend {{ backend.lookup }}
   # server: {{ server.name }}
   server {{ server.lookup }} {{ server.url }}
   {%- if (backend.mode == "http") %} cookie {{ server.lookup -}} {% endif %} weight {{ server.weight }}
-  {%- if (server.checkInterval.isDefined) %} check inter {{ server.checkInterval.get }} {% endif %} {% if (backend.sticky) %} check cookie {{ server.lookup }} {% endif %}
+  {%- if (server.checkInterval.isDefined) %} check inter {{ server.checkInterval.get }} {%- else %} check {% endif %} {% if (backend.sticky) %} cookie {{ server.lookup }} {% endif %}
   {% endfor %}
   {%- endif %}
 

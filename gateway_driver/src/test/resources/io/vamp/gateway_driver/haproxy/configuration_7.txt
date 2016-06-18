@@ -52,7 +52,7 @@ backend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   balance roundrobin
 
   # server: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
-  server 62a11db802baf59987a3ece9e10d8754eca16a09 unix@/opt/vamp/62a11db802baf59987a3ece9e10d8754eca16a09.sock send-proxy weight 100
+  server 62a11db802baf59987a3ece9e10d8754eca16a09 unix@/opt/vamp/62a11db802baf59987a3ece9e10d8754eca16a09.sock send-proxy weight 100 check
 
 # backend: intermediate vamp/sava/port/_//vamp/sava/sava:1.0.0/port
 backend im_62a11db802baf59987a3ece9e10d8754eca16a09
@@ -60,10 +60,10 @@ backend im_62a11db802baf59987a3ece9e10d8754eca16a09
   balance roundrobin
 
   # server: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
-  server 62a11db802baf59987a3ece9e10d8754eca16a09 unix@/opt/vamp/62a11db802baf59987a3ece9e10d8754eca16a09.sock send-proxy weight 100
+  server 62a11db802baf59987a3ece9e10d8754eca16a09 unix@/opt/vamp/62a11db802baf59987a3ece9e10d8754eca16a09.sock send-proxy weight 100 check
 
   # server: other vamp/sava/port/_
-  server o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb unix@/opt/vamp/o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb.sock send-proxy weight 0
+  server o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb unix@/opt/vamp/o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb.sock send-proxy weight 0 check
 
 # backend: vamp/sava/port/_//vamp/sava/sava:1.0.0/port
 backend 62a11db802baf59987a3ece9e10d8754eca16a09
@@ -77,4 +77,4 @@ backend 62a11db802baf59987a3ece9e10d8754eca16a09
   option forwardfor
 
   # server: 64435a223bddf1fa589135baa5e228090279c032
-  server f52646a39457170e02fb276840a696267e0815eb 192.168.99.100:32776 cookie f52646a39457170e02fb276840a696267e0815eb weight 100
+  server f52646a39457170e02fb276840a696267e0815eb 192.168.99.100:32776 cookie f52646a39457170e02fb276840a696267e0815eb weight 100 check
