@@ -56,26 +56,22 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     case None         ⇒ None
   }
 
-  protected def virtualHosts(implicit source: YamlSourceReader): List[String] = <<?[List[_]]("virtual_hosts") match {
-    case Some(list) ⇒ list.map {
+  protected def virtualHosts(implicit source: YamlSourceReader): List[String] = <<?[List[_]]("virtual_hosts") map {
+    _.map {
       case host: String ⇒ host
       case any          ⇒ throwException(IllegalGatewayVirtualHosts)
     }
-    case None ⇒ Nil
-  }
+  } getOrElse Nil
 
-  protected def routes(splitPath: Boolean)(implicit source: YamlSourceReader): List[Route] = <<?[YamlSourceReader]("routes") match {
-    case Some(map) ⇒
-      map.pull().map {
-        case (name: String, _) ⇒ RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
-          case route: DefaultRoute   ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
-          case route: RouteReference ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
-          case route                 ⇒ route
-        }
-      } toList
-
-    case None ⇒ Nil
-  }
+  protected def routes(splitPath: Boolean)(implicit source: YamlSourceReader): List[Route] = <<?[YamlSourceReader]("routes") map {
+    _.pull().map {
+      case (name: String, _) ⇒ RouteReader.readReferenceOrAnonymous(<<![Any]("routes" :: name :: Nil)) match {
+        case route: DefaultRoute   ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
+        case route: RouteReference ⇒ route.copy(path = if (splitPath) name else GatewayPath(name :: Nil))
+        case route                 ⇒ route
+      }
+    } toList
+  } getOrElse Nil
 
   protected def deployed(implicit source: YamlSourceReader): Boolean = <<?[Boolean]("deployed").getOrElse(false)
 
@@ -191,10 +187,7 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
 
   import YamlSourceReader._
 
-  def mapping(entry: String)(implicit source: YamlSourceReader): List[T] = <<?[YamlSourceReader](entry) match {
-    case Some(yaml) ⇒ read(yaml)
-    case None       ⇒ Nil
-  }
+  def mapping(entry: String)(implicit source: YamlSourceReader): List[T] = <<?[YamlSourceReader](entry).map(read(_)).getOrElse(Nil)
 
   protected def parse(implicit source: YamlSourceReader): List[T] = source.pull().keySet.map { key ⇒
     val yaml = <<![YamlSourceReader](key :: Nil)

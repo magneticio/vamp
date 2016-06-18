@@ -182,9 +182,8 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     otherBackend :: imBackends ++ routeBackends
   }
 
-  private def filters()(implicit backends: List[Backend], gateway: Gateway): List[Filter] = gateway.routes.flatMap {
-    case route: DefaultRoute ⇒ if (route.filters.nonEmpty) filter(route) :: Nil else Nil
-    case _                   ⇒ Nil
+  private def filters()(implicit backends: List[Backend], gateway: Gateway): List[Filter] = gateway.routes.collect {
+    case route: DefaultRoute if route.filters.nonEmpty ⇒ filter(route)
   }
 
   private[haproxy] def filter(route: DefaultRoute)(implicit backends: List[Backend], gateway: Gateway): Filter = {
@@ -196,9 +195,8 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     }
   }
 
-  private def rewrites(route: DefaultRoute): List[Rewrite] = route.rewrites.flatMap {
-    case PathRewrite(_, p, c) ⇒ Rewrite(p, if (c.matches("^\\s*\\{.*\\}\\s*$")) c else s"{ $c }") :: Nil
-    case _                    ⇒ Nil
+  private def rewrites(route: DefaultRoute): List[Rewrite] = route.rewrites.collect {
+    case PathRewrite(_, p, c) ⇒ Rewrite(p, if (c.matches("^\\s*\\{.*\\}\\s*$")) c else s"{ $c }")
   }
 
   private def backendFor(lookup: String*)(implicit backends: List[Backend]): Backend = lookup.mkString match {

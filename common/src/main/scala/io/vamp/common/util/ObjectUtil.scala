@@ -30,7 +30,7 @@ object ObjectUtil {
     case None                 ⇒ None
     case any ⇒
       val reflection = currentMirror.reflect(any)
-      currentMirror.reflect(any).symbol.typeSignature.members.toStream
+      currentMirror.reflect(any).symbol.typeSignature.members.toList
         .collect { case s: TermSymbol if !s.isMethod ⇒ reflection.reflectField(s) }
         .map(r ⇒ r.symbol.name.toString.trim -> unwrap(r.get))
         .toMap

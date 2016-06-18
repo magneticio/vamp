@@ -54,10 +54,7 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
   }
 
   def parseInstances(implicit source: YamlSourceReader): List[DeploymentInstance] = {
-    <<?[List[YamlSourceReader]]("instances") match {
-      case None       ⇒ Nil
-      case Some(list) ⇒ list.map(parseInstance(_))
-    }
+    <<?[List[YamlSourceReader]]("instances").map(_.map(parseInstance(_))).getOrElse(Nil)
   }
 
   private def parseInstance(implicit source: YamlSourceReader): DeploymentInstance = {
@@ -67,11 +64,10 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
   private def portMapping(name: String = "ports")(implicit source: YamlSourceReader): Map[String, Int] = {
     <<?[YamlSourceReader](name) match {
       case None ⇒ Map()
-      case Some(yaml: YamlSourceReader) ⇒ yaml.pull().flatMap {
-        case (key, value: Int)    ⇒ (key.toString -> value) :: Nil
-        case (key, value: BigInt) ⇒ (key.toString -> value.toInt) :: Nil
-        case (key, value: String) ⇒ (key.toString -> value.toInt) :: Nil
-        case _                    ⇒ Nil
+      case Some(yaml: YamlSourceReader) ⇒ yaml.pull().collect {
+        case (key, value: Int)    ⇒ key.toString -> value
+        case (key, value: BigInt) ⇒ key.toString -> value.toInt
+        case (key, value: String) ⇒ key.toString -> value.toInt
       }
     }
   }
@@ -79,9 +75,8 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
   private def dependencies(name: String = "dependencies")(implicit source: YamlSourceReader): Map[String, String] = {
     <<?[YamlSourceReader](name) match {
       case None ⇒ Map()
-      case Some(yaml: YamlSourceReader) ⇒ yaml.pull().flatMap {
-        case (key, value: String) ⇒ (key -> value) :: Nil
-        case _                    ⇒ Nil
+      case Some(yaml: YamlSourceReader) ⇒ yaml.pull().collect {
+        case (key, value: String) ⇒ key -> value
       }
     }
   }
