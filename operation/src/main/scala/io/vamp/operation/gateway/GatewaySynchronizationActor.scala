@@ -177,7 +177,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
               service.instances.map {
                 instance ⇒
                   Option {
-                    InternalRouteTarget(instance.name, instance.host, instance.ports.get(port).get)
+                    InternalRouteTarget(instance.name, Option(instance.host), instance.ports.get(port).get)
                   }
               }
             }.getOrElse(Nil)

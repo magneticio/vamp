@@ -28,6 +28,7 @@ object GatewayDriverBootstrap extends Bootstrap {
         override val templateFile: String = Config.string("vamp.gateway-driver.haproxy.template")
 
         override def haProxyConfig = HaProxyConfig(
+          haproxyConfig.string("ip"),
           haproxyConfig.string("virtual-hosts.ip"),
           haproxyConfig.int("virtual-hosts.port"),
           haproxyConfig.string("tcp-log-format"),

@@ -106,14 +106,12 @@ case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percenta
 
 object InternalRouteTarget {
 
-  val host = "127.0.0.1"
-
-  def apply(name: String, port: Int) = new InternalRouteTarget(name, host, port)
+  def apply(name: String, port: Int) = new InternalRouteTarget(name, None, port)
 }
 
 sealed trait RouteTarget extends Artifact with Lookup
 
-case class InternalRouteTarget(name: String, host: String, port: Int) extends RouteTarget
+case class InternalRouteTarget(name: String, host: Option[String], port: Int) extends RouteTarget
 
 case class ExternalRouteTarget(url: String) extends RouteTarget {
   val name = url

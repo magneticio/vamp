@@ -29,7 +29,7 @@ backend 541edef1fa775e786b31ce139a045182afe8e2b
   # http-request add-header X-Forwarded-Proto https if { ssl_fc }
 
   # server: deployment/cluster/port
-  server 541edef1fa775e786b31ce139a045182afe8e2b 127.0.0.1:33000
+  server 541edef1fa775e786b31ce139a045182afe8e2b 111.222.333.444:33000
 
 # Port mapping
 
@@ -87,5 +87,5 @@ backend 58fc2b1bc3ab2ed40372458ddf81d4b1b3d2646c
   option forwardfor
 
   # server: 64435a223bddf1fa589135baa5e228090279c032
-  server f52646a39457170e02fb276840a696267e0815eb 192.168.99.100:32768 cookie f52646a39457170e02fb276840a696267e0815eb weight 100 check
+  server f52646a39457170e02fb276840a696267e0815eb 111.222.333.444:32768 cookie f52646a39457170e02fb276840a696267e0815eb weight 100 check
 
