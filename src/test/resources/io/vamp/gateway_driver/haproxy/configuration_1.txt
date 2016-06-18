@@ -23,7 +23,7 @@ backend name1
   balance roundrobin       
 
   # server: server1
-  server server1 unix@/tmp/vamp_test_be_1_a.sock send-proxy weight 100 
+  server server1 unix@/tmp/vamp_test_be_1_a.sock send-proxy weight 100 check
 
 # backend: name2
 backend name2
