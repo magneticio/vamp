@@ -9,7 +9,8 @@ case class HaProxy(version: String,
                    virtualHostBackends: List[Backend],
                    config: HaProxyConfig)
 
-case class HaProxyConfig(virtualHostsIp: String,
+case class HaProxyConfig(ip: String,
+                         virtualHostsIp: String,
                          virtualHostsPort: Int,
                          tcpLogFormat: String,
                          httpLogFormat: String)

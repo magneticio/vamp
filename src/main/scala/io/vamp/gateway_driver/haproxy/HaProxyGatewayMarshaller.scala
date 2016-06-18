@@ -162,7 +162,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
               Server(
                 name = GatewayMarshaller.name(internal),
                 lookup = GatewayMarshaller.lookup(internal),
-                url = s"${internal.host}:${internal.port}",
+                url = s"${internal.host.getOrElse(haProxyConfig.ip)}:${internal.port}",
                 weight = 100
               )
             case external: ExternalRouteTarget ⇒
@@ -238,7 +238,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
         servers = Server(
           name = GatewayMarshaller.name(gateway),
           lookup = GatewayMarshaller.lookup(gateway),
-          url = s"127.0.0.1:${gateway.port.number}",
+          url = s"${haProxyConfig.ip}:${gateway.port.number}",
           weight = 100
         ) :: Nil,
         rewrites = Nil,
