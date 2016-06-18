@@ -106,7 +106,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
               implicit val source = yaml
               (<<?[String]("name"), <<?[String]("url")) match {
                 case (_, Some(url))  ⇒ ExternalRouteTarget(url) :: Nil
-                case (Some(name), _) ⇒ InternalRouteTarget(name, <<![String]("host"), <<![Int]("port")) :: Nil
+                case (Some(name), _) ⇒ InternalRouteTarget(name, <<?[String]("host"), <<![Int]("port")) :: Nil
                 case _               ⇒ Nil
               }
           }
