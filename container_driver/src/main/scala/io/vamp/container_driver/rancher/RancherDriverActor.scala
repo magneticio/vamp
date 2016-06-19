@@ -24,7 +24,8 @@ object RancherDriverActor {
   val rancherUrl = config.string("url")
   val apiUser = config.string("user")
   val apiPassword = config.string("password")
-  val environmentPrefix = config.string("environment-prefix")
+  val environmentName = config.string("environment.name")
+  val deploymentEnvironmentNamePrefix = config.string("environment.deployment.name-prefix")
 }
 
 class RancherDriverActor extends ContainerDriverActor with ContainerDriver with DockerNameMatcher {
@@ -103,7 +104,10 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
   }
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
-    createStack(s"$environmentPrefix-${deployment.name}-${cluster.name}") map {
+
+    val stackName = if (deploymentEnvironmentNamePrefix.nonEmpty) s"$deploymentEnvironmentNamePrefix${deployment.name}" else deployment.name
+
+    createStack(stackName) map {
       case Some(stack) ⇒ createService(deployment, cluster, service, update, stack)
       case _           ⇒
     }
@@ -217,7 +221,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
   }
 
   private def deploy(app: DockerApp, update: Boolean): Future[Any] = {
-    createStack(environmentPrefix).flatMap {
+    createStack(environmentName).flatMap {
       case Some(stack) ⇒ createService(stack, buildRancherService(stack.id.get, app), (s) ⇒ { Future.successful(s) })
       case _           ⇒ Future.successful(None)
     }
