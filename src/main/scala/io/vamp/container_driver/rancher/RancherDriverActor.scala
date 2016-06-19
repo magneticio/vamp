@@ -168,7 +168,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
       cpu = service.scale.map(_.cpu.value).getOrElse(0),
       memory = service.scale.map(_.memory.value.toInt).getOrElse(0),
       environmentVariables = environment(deployment, cluster, service),
-      labels = labels(deployment, cluster, service),
+      labels = labels(deployment, cluster, service)
     )
 
     buildRancherService(stack, dockerApp)
