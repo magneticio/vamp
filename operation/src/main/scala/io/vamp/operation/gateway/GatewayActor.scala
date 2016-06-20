@@ -1,11 +1,10 @@
 package io.vamp.operation.gateway
 
 import akka.pattern.ask
-import io.vamp.common.config.Config
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.common.config.Config
 import io.vamp.model.artifact._
-import io.vamp.model.notification.{ GatewayRouteFilterStrengthError, GatewayRouteWeightError }
 import io.vamp.model.reader.{ GatewayRouteValidation, Percentage }
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
@@ -21,9 +20,11 @@ object GatewayActor {
 
   private val config = Config.config("vamp.operation.gateway")
 
-  val virtualHostsEnabled: Boolean = config.boolean("virtual-hosts")
+  val virtualHostsEnabled: Boolean = config.boolean("virtual-hosts.enabled")
 
-  val virtualHostRootDomain: String = config.string("virtual-hosts-domain")
+  val virtualHostsFormat1: String = config.string("virtual-hosts.formats.gateway")
+  val virtualHostsFormat2: String = config.string("virtual-hosts.formats.deployment-port")
+  val virtualHostsFormat3: String = config.string("virtual-hosts.formats.deployment-cluster-port")
 
   trait GatewayMessage
 
@@ -171,7 +172,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
   private def persist(source: Option[String], create: Boolean, promote: Boolean): Gateway ⇒ Future[Any] = { gateway ⇒
 
-    val virtualHosts = if (virtualHostsEnabled) gateway.domain(virtualHostRootDomain) :: gateway.virtualHosts else gateway.virtualHosts
+    val virtualHosts = if (virtualHostsEnabled) defaultVirtualHosts(gateway) ++ gateway.virtualHosts else gateway.virtualHosts
 
     val g = gateway.copy(virtualHosts = virtualHosts.distinct)
 
@@ -190,5 +191,14 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     Future.sequence(requests.map {
       request ⇒ actorFor[PersistenceActor] ? request
     }).map(_ ⇒ g)
+  }
+
+  private def defaultVirtualHosts(gateway: Gateway): List[String] = GatewayPath(gateway.name).segments.map { domain ⇒
+    if (domain.matches("^[\\d\\p{L}].*$")) domain.replaceAll("[^\\p{L}\\d]", "-") else domain
+  } match {
+    case g :: Nil           ⇒ virtualHostsFormat1.replaceAllLiterally(s"$$gateway", g) :: Nil
+    case d :: p :: Nil      ⇒ virtualHostsFormat2.replaceAllLiterally(s"$$deployment", d).replaceAllLiterally(s"$$port", p) :: Nil
+    case d :: c :: p :: Nil ⇒ virtualHostsFormat3.replaceAllLiterally(s"$$deployment", d).replaceAllLiterally(s"$$cluster", c).replaceAllLiterally(s"$$port", p) :: Nil
+    case _                  ⇒ Nil
   }
 }

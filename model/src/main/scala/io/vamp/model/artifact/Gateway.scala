@@ -38,12 +38,6 @@ case class Gateway(name: String,
     case r: DefaultRoute ⇒ r.targets.nonEmpty
     case r               ⇒ false
   }
-
-  def domain(root: String): String = {
-    (GatewayPath(name).segments.reverse ++ root.split('.').toList).map(_.trim).filterNot(_.isEmpty).map({ domain ⇒
-      if (domain.matches("^[\\d\\p{L}].*$")) domain.replaceAll("[^\\p{L}\\d]", "-") else domain
-    }).mkString(".")
-  }
 }
 
 object GatewayPath {
