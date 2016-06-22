@@ -18,7 +18,7 @@ gateways:
 
 clusters:
   notorious:
-    routing:
+    gateways:
       web:
         virtual_hosts: "route"
 

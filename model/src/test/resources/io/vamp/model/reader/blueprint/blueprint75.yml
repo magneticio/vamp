@@ -2,7 +2,7 @@ name: nomadic-frostbite
 
 clusters:
   notorious:
-    routing:
+    gateways:
       web:
         port: 8080
         sticky: route

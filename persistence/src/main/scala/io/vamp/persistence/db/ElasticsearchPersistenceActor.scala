@@ -83,7 +83,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
   private def readerOf(`type`: String): Option[YamlReader[_ <: Artifact]] = Map(
     "gateways" -> DeployedGatewayReader,
     "deployments" -> new AbstractDeploymentReader() {
-      override protected def routingReader = new RoutingReader(acceptPort = true, onlyAnonymous = false)
+      override protected def routingReader = new InnerGatewayReader(acceptPort = true, onlyAnonymous = false)
 
       override protected def validateEitherReferenceOrAnonymous = false
     },

@@ -2,7 +2,7 @@ name: nomadic-frostbite
 
 clusters:
   sava:
-    routing:
+    gateways:
       web:
         sticky: route
       admin:

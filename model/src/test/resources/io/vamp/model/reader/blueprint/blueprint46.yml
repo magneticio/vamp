@@ -7,7 +7,7 @@ clusters:
   supersonic:
     breed: sava1
     scale: large
-    routing:
+    gateways:
       routes:
         sava1:
           filters:

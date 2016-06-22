@@ -111,7 +111,7 @@ trait PersistenceMultiplexer {
         deployment.clusters.map { cluster ⇒
           for {
             routing ← Future.sequence {
-              cluster.routing.map { gateway ⇒
+              cluster.gateways.map { gateway ⇒
                 val name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port)
                 get(name, classOf[InnerGateway]).flatMap {
                   case Some(InnerGateway(g)) ⇒ combine(g).map(_.getOrElse(gateway))
@@ -138,7 +138,7 @@ trait PersistenceMultiplexer {
               }
             }
           } yield {
-            cluster.copy(services = services.filterNot(_.state.isUndeployed), routing = routing)
+            cluster.copy(services = services.filterNot(_.state.isUndeployed), gateways = routing)
           }
         }
       } map {

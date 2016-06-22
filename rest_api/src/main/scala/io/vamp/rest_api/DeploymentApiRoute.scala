@@ -168,7 +168,7 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
     }
 
   private val routingRoute =
-    path("deployments" / Segment / "clusters" / Segment / "routing") { (deployment: String, cluster: String) ⇒
+    path("deployments" / Segment / "clusters" / Segment / "gateways") { (deployment: String, cluster: String) ⇒
       pathEndOrSingleSlash {
         get {
           onSuccess(routing(deployment, cluster)) { result ⇒

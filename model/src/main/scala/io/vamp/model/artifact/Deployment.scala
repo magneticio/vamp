@@ -77,20 +77,20 @@ object DeploymentCluster {
 case class DeploymentCluster(
     name: String,
     services: List[DeploymentService],
-    routing: List[Gateway],
+    gateways: List[Gateway],
     sla: Option[Sla],
     dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster {
 
   def portBy(name: String): Option[Int] = {
-    routing.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } map { _.port.number }
+    gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } map { _.port.number }
   }
 
   def serviceBy(name: String): Option[GatewayService] = {
-    routing.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } flatMap { _.service }
+    gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } flatMap { _.service }
   }
 
   def route(service: DeploymentService, portName: String, short: Boolean = false): Option[DefaultRoute] = {
-    routing.find(_.port.name == portName).flatMap(routing ⇒ routing.routes.find { route ⇒
+    gateways.find(_.port.name == portName).flatMap(routing ⇒ routing.routes.find { route ⇒
       route.path.segments match {
         case s :: Nil if short                 ⇒ s == service.breed.name
         case _ :: _ :: s :: _ :: Nil if !short ⇒ s == service.breed.name

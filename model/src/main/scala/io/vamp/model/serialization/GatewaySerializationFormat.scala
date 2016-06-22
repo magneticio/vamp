@@ -11,7 +11,7 @@ object GatewaySerializationFormat extends io.vamp.common.json.SerializationForma
 
   override def customSerializers = super.customSerializers :+
     new GatewaySerializer() :+
-    new RoutingStickySerializer() :+
+    new GatewayStickySerializer() :+
     new RouteSerializer() :+
     new ExternalRouteTargetSerializer() :+
     new FilterSerializer() :+
@@ -75,7 +75,7 @@ trait GatewayDecomposer extends ReferenceSerialization {
   }
 }
 
-class RoutingStickySerializer extends CustomSerializer[Gateway.Sticky.Value](format ⇒ ({
+class GatewayStickySerializer extends CustomSerializer[Gateway.Sticky.Value](format ⇒ ({
   case JString(sticky) ⇒ Gateway.Sticky.byName(sticky).getOrElse(throw new UnsupportedOperationException(s"Cannot deserialize sticky value: $sticky"))
 }, {
   case sticky: Gateway.Sticky.Value ⇒ JString(sticky.toString.toLowerCase)

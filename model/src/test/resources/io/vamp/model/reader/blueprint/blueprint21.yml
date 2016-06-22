@@ -6,7 +6,7 @@ gateways:
 clusters:
 
   supersonic:
-    routing:
+    gateways:
       routes:
         solid-barbershop:
           weight: 100%

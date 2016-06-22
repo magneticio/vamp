@@ -156,7 +156,7 @@ trait DeploymentApiController extends ArtifactShrinkage {
 
   def routing(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
     (actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result ⇒
-      result.asInstanceOf[Option[Deployment]].flatMap(deployment ⇒ deployment.clusters.find(_.name == clusterName).flatMap(cluster ⇒ Some(cluster.routing)))
+      result.asInstanceOf[Option[Deployment]].flatMap(deployment ⇒ deployment.clusters.find(_.name == clusterName).flatMap(cluster ⇒ Some(cluster.gateways)))
     }
 
   def routingUpdate(deploymentName: String, clusterName: String, request: String)(implicit timeout: Timeout) =
@@ -164,7 +164,7 @@ trait DeploymentApiController extends ArtifactShrinkage {
       case Some(deployment: Deployment) ⇒
         deployment.clusters.find(_.name == clusterName) match {
           case None          ⇒ Future(None)
-          case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateRouting(deployment, cluster, new RoutingReader(acceptPort = false).read(request), request)
+          case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateGateways(deployment, cluster, new InnerGatewayReader(acceptPort = false).read(request), request)
         }
       case _ ⇒ Future(None)
     }

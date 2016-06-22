@@ -30,16 +30,16 @@ object Dialect extends Enumeration {
 abstract class AbstractCluster extends Artifact {
   def services: List[AbstractService]
 
-  def routing: List[Gateway]
+  def gateways: List[Gateway]
 
   def sla: Option[Sla]
 
   def dialects: Map[Dialect.Value, Any]
 
-  def routingBy(portName: String): Option[Gateway] = routing.find(_.port.name == portName)
+  def gatewayBy(portName: String): Option[Gateway] = gateways.find(_.port.name == portName)
 }
 
-case class Cluster(name: String, services: List[Service], routing: List[Gateway], sla: Option[Sla], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
+case class Cluster(name: String, services: List[Service], gateways: List[Gateway], sla: Option[Sla], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
 
 abstract class AbstractService {
   def breed: Breed

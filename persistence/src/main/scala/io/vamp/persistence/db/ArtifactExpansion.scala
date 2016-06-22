@@ -28,7 +28,7 @@ trait ArtifactExpansion {
     case blueprint: DefaultBlueprint          ⇒ expandClusters(blueprint.clusters).map(clusters ⇒ blueprint.copy(clusters = clusters))
     case breed: DefaultBreed                  ⇒ expandBreed(breed)
     case sla: Sla                             ⇒ expandSla(sla)
-    case routing: DefaultRoute                ⇒ Future.sequence(routing.filters.map(expandIfReference[DefaultFilter, FilterReference])).map(filters ⇒ routing.copy(filters = filters))
+    case route: DefaultRoute                  ⇒ Future.sequence(route.filters.map(expandIfReference[DefaultFilter, FilterReference])).map(filters ⇒ route.copy(filters = filters))
     case escalation: GenericEscalation        ⇒ Future.successful(escalation)
     case filter: DefaultFilter                ⇒ Future.successful(filter)
     case scale: DefaultScale                  ⇒ Future.successful(scale)
@@ -55,8 +55,8 @@ trait ArtifactExpansion {
           case Some(sla) ⇒ Future.successful(Some(sla))
           case None      ⇒ Future.successful(None)
         }
-        routing ← expandGateways(cluster.routing)
-      } yield cluster.copy(services = services, sla = sla, routing = routing)
+        routing ← expandGateways(cluster.gateways)
+      } yield cluster.copy(services = services, sla = sla, gateways = routing)
     }
   }
 

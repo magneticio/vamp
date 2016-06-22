@@ -2,7 +2,7 @@ name: sava
 
 clusters:
   sava:
-    routing:
+    gateways:
       port1:
         routes: sava:1.0.0
 

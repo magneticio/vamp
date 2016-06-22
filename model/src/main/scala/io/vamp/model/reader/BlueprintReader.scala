@@ -15,7 +15,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     with DialectReader
     with BlueprintTraitValidator
     with GatewayRouteValidation
-    with BlueprintRoutingHelper {
+    with BlueprintGatewayHelper {
 
   override def readReference: PartialFunction[Any, Blueprint] = {
     case string: String ⇒ BlueprintReference(string)
@@ -42,7 +42,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
         case (name: String, cluster: YamlSourceReader) ⇒
           implicit val source = cluster
           <<?[Any]("services") match {
-            case None                ⇒ >>("services", List(<<-("sla", "routing")))
+            case None                ⇒ >>("services", List(<<-("sla", "gateways")))
             case Some(list: List[_]) ⇒
             case Some(breed: String) ⇒ >>("services", List(YamlSourceReader("breed" -> breed)))
             case Some(m)             ⇒ >>("services", List(m))
@@ -96,7 +96,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
             case None ⇒ Cluster(name, List(), Nil, sla, dialects)
             case Some(list) ⇒
               val services = list.map(parseService(_))
-              Cluster(name, services, processAnonymousRouting(services, routingReader.mapping("routing")), sla, dialects)
+              Cluster(name, services, processAnonymousInnerGateways(services, innerGatewayReader.mapping("gateways")), sla, dialects)
           }
       } toList
     }
@@ -118,7 +118,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       validateRouteFilterStrengths(blueprint)
       blueprint.gateways.foreach((validateGatewayRouteWeights andThen validateGatewayRouteFilterStrengths)(_))
       validateBlueprintGateways(blueprint)
-      validateRoutingAnonymousPortMapping(blueprint)
+      validateInnerGatewayAnonymousPortMapping(blueprint)
 
       if (blueprint.clusters.flatMap(_.services).count(_ ⇒ true) == 0) throwException(NoServiceError)
 
@@ -164,8 +164,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 
   protected def validateRouteServiceNames(blueprint: DefaultBlueprint): Unit = {
     blueprint.clusters.foreach { cluster ⇒
-      cluster.routing.foreach { routing ⇒
-        routing.routes.foreach { route ⇒
+      cluster.gateways.foreach { gateways ⇒
+        gateways.routes.foreach { route ⇒
           if (!cluster.services.exists(_.breed.name == route.path.normalized))
             throwException(UnresolvedServiceRouteError(cluster, route.path.source))
         }
@@ -175,8 +175,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 
   protected def validateRouteWeights(blueprint: AbstractBlueprint): Unit = {
     blueprint.clusters.find({ cluster ⇒
-      cluster.routing.exists { routing ⇒
-        val weights = routing.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
+      cluster.gateways.exists { gateways ⇒
+        val weights = gateways.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
         weights.exists(_.value < 0) || weights.map(_.value).sum > 100
       }
     }).flatMap {
@@ -186,8 +186,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 
   protected def validateRouteFilterStrengths(blueprint: AbstractBlueprint): Unit = {
     blueprint.clusters.find({ cluster ⇒
-      cluster.routing.exists { routing ⇒
-        val strength = routing.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.filterStrength)
+      cluster.gateways.exists { gateways ⇒
+        val strength = gateways.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.filterStrength)
         strength.exists(_.value < 0) || strength.exists(_.value > 100)
       }
     }).flatMap {
@@ -200,24 +200,24 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
   }
 }
 
-trait BlueprintRoutingHelper {
+trait BlueprintGatewayHelper {
   this: NotificationProvider ⇒
 
-  protected def processAnonymousRouting(services: List[AbstractService], routing: List[Gateway]): List[Gateway] = {
-    if (routing.exists(_.port.name == Gateway.anonymous)) {
+  protected def processAnonymousInnerGateways(services: List[AbstractService], gateways: List[Gateway]): List[Gateway] = {
+    if (gateways.exists(_.port.name == Gateway.anonymous)) {
       val ports = services.map(_.breed).flatMap({
         case breed: DefaultBreed ⇒ breed.ports.map(_.name)
         case _                   ⇒ Nil
       }).toSet
       if (ports.size == 1)
-        routing.find(_.port.name == Gateway.anonymous).get.copy(port = Port(ports.head, None, None)) :: Nil
-      else routing
-    } else routing
+        gateways.find(_.port.name == Gateway.anonymous).get.copy(port = Port(ports.head, None, None)) :: Nil
+      else gateways
+    } else gateways
   }
 
-  protected def validateRoutingAnonymousPortMapping[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
+  protected def validateInnerGatewayAnonymousPortMapping[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.clusters.foreach { cluster ⇒
-      if (cluster.routingBy(Gateway.anonymous).isDefined) {
+      if (cluster.gatewayBy(Gateway.anonymous).isDefined) {
         cluster.services.foreach { service ⇒
           service.breed match {
             case breed: DefaultBreed ⇒ if (breed.ports.size > 1) throwException(IllegalAnonymousRoutingPortMappingError(breed))
@@ -230,14 +230,14 @@ trait BlueprintRoutingHelper {
   }
 
   protected def validateBlueprintGateways[T <: AbstractBlueprint]: T ⇒ T =
-    validateStickiness[T] andThen validateFilterConditions[T] andThen validateGatewayPorts[T] andThen validateGatewayRoutingPorts[T]
+    validateStickiness[T] andThen validateFilterConditions[T] andThen validateGatewayPorts[T] andThen validateInnerGatewayPorts[T]
 
   private def validateStickiness[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.clusters.foreach { cluster ⇒
       cluster.services.foreach { service ⇒
         service.breed match {
           case breed: DefaultBreed ⇒ breed.ports.foreach { port ⇒
-            if (port.`type` != Port.Type.Http && cluster.routingBy(port.name).flatMap(_.sticky).isDefined) throwException(StickyPortTypeError(port))
+            if (port.`type` != Port.Type.Http && cluster.gatewayBy(port.name).flatMap(_.sticky).isDefined) throwException(StickyPortTypeError(port))
           }
           case _ ⇒
         }
@@ -253,8 +253,8 @@ trait BlueprintRoutingHelper {
           case breed: DefaultBreed ⇒
             breed.ports.foreach { port ⇒
               if (port.`type` != Port.Type.Http) {
-                cluster.routingBy(port.name) match {
-                  case Some(routing) ⇒ routing.routes.foreach {
+                cluster.gatewayBy(port.name) match {
+                  case Some(gateways) ⇒ gateways.routes.foreach {
                     case route: DefaultRoute ⇒ route.filters.foreach(filter ⇒ if (filter.isInstanceOf[DefaultFilter]) throwException(FilterPortTypeError(port, filter)))
                     case _                   ⇒
                   }
@@ -281,7 +281,7 @@ trait BlueprintRoutingHelper {
     blueprint
   }
 
-  private def validateGatewayRoutingPorts[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
+  private def validateInnerGatewayPorts[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     val breeds = blueprint.clusters.flatMap(_.services).map(_.breed)
 
     if (breeds.forall(_.isInstanceOf[DefaultBreed])) {
@@ -290,7 +290,7 @@ trait BlueprintRoutingHelper {
         case _                   ⇒ Nil
       } distinct
 
-      blueprint.clusters.flatMap(_.routing).map(_.port).foreach { port ⇒
+      blueprint.clusters.flatMap(_.gateways).map(_.port).foreach { port ⇒
         if (!(port.name.isEmpty || ports.contains(port.name)))
           throwException(UnresolvedGatewayPortError(port.name, ""))
       }
@@ -299,7 +299,7 @@ trait BlueprintRoutingHelper {
     blueprint
   }
 
-  protected def routingReader: GatewayMappingReader[Gateway] = new RoutingReader(acceptPort = false)
+  protected def innerGatewayReader: GatewayMappingReader[Gateway] = new InnerGatewayReader(acceptPort = false)
 }
 
 object BlueprintReader extends AbstractBlueprintReader {

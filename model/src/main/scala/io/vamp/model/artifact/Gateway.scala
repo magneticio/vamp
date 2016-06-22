@@ -93,7 +93,7 @@ object DefaultRoute {
 
 case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filterStrength: Option[Percentage], filters: List[Filter], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
 
-  def hasRoutingFilters: Boolean = filters.exists(_.isInstanceOf[DefaultFilter])
+  def hasFilters: Boolean = filters.exists(_.isInstanceOf[DefaultFilter])
 
   def external = path.external.isDefined
 }

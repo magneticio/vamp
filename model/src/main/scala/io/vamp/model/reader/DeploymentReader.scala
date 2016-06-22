@@ -22,7 +22,7 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
 
           <<?[List[YamlSourceReader]]("services") match {
             case None       ⇒ DeploymentCluster(name, Nil, Nil, sla, dialects)
-            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), routingReader.mapping("routing"), sla, dialects)
+            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), routingReader.mapping("gateways"), sla, dialects)
           }
       } toList
     }
@@ -94,7 +94,7 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
 }
 
 object DeploymentReader extends AbstractDeploymentReader {
-  protected def routingReader: GatewayMappingReader[Gateway] = new RoutingReader(acceptPort = false)
+  protected def routingReader: GatewayMappingReader[Gateway] = new InnerGatewayReader(acceptPort = false)
 }
 
 object DeploymentServiceStateReader extends YamlReader[DeploymentService.State] {

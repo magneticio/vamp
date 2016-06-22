@@ -176,7 +176,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     instances && cpu && memory
   }
 
-  private def updateGateways(deployment: Deployment, cluster: DeploymentCluster) = cluster.routing.foreach { gateway ⇒
+  private def updateGateways(deployment: Deployment, cluster: DeploymentCluster) = cluster.gateways.foreach { gateway ⇒
     IoC.actorFor[GatewayActor] ! GatewayActor.PromoteInner(gateway)
   }
 

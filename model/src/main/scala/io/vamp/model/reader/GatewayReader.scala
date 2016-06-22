@@ -244,7 +244,7 @@ object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
   }
 }
 
-class RoutingReader(override val acceptPort: Boolean, override val onlyAnonymous: Boolean = true) extends GatewayMappingReader[Gateway] {
+class InnerGatewayReader(override val acceptPort: Boolean, override val onlyAnonymous: Boolean = true) extends GatewayMappingReader[Gateway] {
 
   protected val reader = ClusterGatewayReader
 

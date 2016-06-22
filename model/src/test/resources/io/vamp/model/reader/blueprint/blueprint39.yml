@@ -5,7 +5,7 @@ gateways:
 
 clusters:
   supersonic:
-    routing:
+    gateways:
       routes:
         sava1:
           filters:
