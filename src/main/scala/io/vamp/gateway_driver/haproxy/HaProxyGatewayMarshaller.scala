@@ -102,7 +102,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     def unsupported(route: Route) = throw new IllegalArgumentException(s"Unsupported route: $route")
 
     val imRoutes = gateway.routes.filter {
-      case route: DefaultRoute ⇒ route.hasRoutingFilters
+      case route: DefaultRoute ⇒ route.hasFilters
       case route               ⇒ unsupported(route)
     }
 
