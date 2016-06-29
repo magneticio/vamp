@@ -11,7 +11,7 @@ case class AclNode(value: String) extends Operand
 
 case class HaProxyAcls(acls: List[Acl], condition: Option[String])
 
-trait HaProxyAclResolver extends FilterConditionParser with BooleanFlatter {
+trait HaProxyAclResolver extends ConditionDefinitionParser with BooleanFlatter {
 
   private val userAgents = {
     val reader = Source.fromURL(getClass.getResource("/io/vamp/gateway_driver/haproxy/user-agents.yml")).bufferedReader()

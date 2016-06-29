@@ -5,9 +5,9 @@ import org.scalatest.junit.JUnitRunner
 import org.scalatest.{ FlatSpec, Matchers }
 
 @RunWith(classOf[JUnitRunner])
-class HaProxyFilterResolverSpec extends FlatSpec with Matchers with HaProxyAclResolver {
+class HaProxyResolverSpec extends FlatSpec with Matchers with HaProxyAclResolver {
 
-  "FilterConditionResolver" should "resolve single" in {
+  "ConditionDefinitionResolver" should "resolve single" in {
 
     resolve("User-Agent is Firefox" :: Nil) shouldBe Some {
       HaProxyAcls(List(Acl("af31629d4c4c8e71", "hdr_sub(user-agent) Firefox")), Some("af31629d4c4c8e71"))
