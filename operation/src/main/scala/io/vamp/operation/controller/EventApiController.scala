@@ -28,8 +28,15 @@ trait EventApiController {
     actorFor[PulseActor] ? Publish(event) map (_ ⇒ event)
   }
 
-  def query(request: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = {
-    actorFor[PulseActor] ? Query(EventRequestEnvelope(EventQueryReader.read(request), page, perPage))
+  def query(parameters: Map[String, List[String]], request: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = {
+
+    val query = if (request.isEmpty) {
+      EventQuery(parameters.getOrElse("tags", Nil).toSet, None)
+    } else {
+      EventQueryReader.read(request)
+    }
+
+    actorFor[PulseActor] ? Query(EventRequestEnvelope(query, page, perPage))
   }
 
   def openStream(to: ActorRef, tags: Set[String]) = actorFor[EventStreamingActor] ! OpenStream(to, tags)

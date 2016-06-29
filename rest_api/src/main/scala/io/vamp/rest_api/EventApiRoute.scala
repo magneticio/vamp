@@ -27,13 +27,11 @@ trait EventApiRoute extends EventApiController {
             respondWith(Created, result)
           }
         }
-      }
-    } ~ path("get") {
-      pathEndOrSingleSlash {
-        post {
-          pageAndPerPage() { (page, perPage) ⇒
+      } ~ get {
+        pageAndPerPage() { (page, perPage) ⇒
+          parameterMultiMap { parameters ⇒
             entity(as[String]) { request ⇒
-              onSuccess(query(request)(page, perPage)) { response ⇒
+              onSuccess(query(parameters, request)(page, perPage)) { response ⇒
                 respondWith(OK, response)
               }
             }
