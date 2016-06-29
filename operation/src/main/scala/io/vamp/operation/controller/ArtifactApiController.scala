@@ -57,7 +57,7 @@ trait ArtifactApiController extends ArtifactExpansionSupport {
     ("scales" -> new PersistenceHandler[Scale](ScaleReader)) +
     ("escalations" -> new PersistenceHandler[Escalation](EscalationReader)) +
     ("routes" -> new PersistenceHandler[Route](RouteReader)) +
-    ("filters" -> new PersistenceHandler[Filter](FilterReader)) +
+    ("conditions" -> new PersistenceHandler[Condition](ConditionReader)) +
     ("rewrites" -> new PersistenceHandler[Rewrite](RewriteReader)) +
     ("workflows" -> new PersistenceHandler[Workflow](WorkflowReader)) +
     ("scheduled-workflows" -> new ScheduledWorkflowHandler()) +

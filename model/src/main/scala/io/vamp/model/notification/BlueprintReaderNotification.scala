@@ -15,11 +15,11 @@ case class UnresolvedServiceRouteError(cluster: AbstractCluster, service: String
 
 case class RouteWeightError(cluster: AbstractCluster) extends Notification
 
-case class RouteFilterStrengthError(cluster: AbstractCluster) extends Notification
+case class RouteConditionStrengthError(cluster: AbstractCluster) extends Notification
 
 case class GatewayRouteWeightError(gateway: Gateway) extends Notification
 
-case class GatewayRouteFilterStrengthError(gateway: Gateway) extends Notification
+case class GatewayRouteConditionStrengthError(gateway: Gateway) extends Notification
 
 case class UnresolvedScaleEscalationTargetCluster(cluster: AbstractCluster, target: String) extends Notification
 
@@ -39,7 +39,7 @@ object IllegalGatewayVirtualHosts extends Notification
 
 case class StickyPortTypeError(port: Port) extends Notification
 
-case class FilterPortTypeError(port: Port, filter: Filter) extends Notification
+case class ConditionPortTypeError(port: Port, condition: Condition) extends Notification
 
 case class DuplicateGatewayPortError(port: Int) extends Notification
 

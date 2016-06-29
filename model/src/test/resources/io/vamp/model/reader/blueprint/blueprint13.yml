@@ -5,7 +5,7 @@ clusters:
     gateways:
       routes:
         nocturnal-viper:
-          filters:
+          conditions:
             - android
 
     services:

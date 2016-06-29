@@ -6,7 +6,7 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class BreedReaderTest extends ReaderTest {
+class BreedReaderSpec extends ReaderSpec {
 
   "BreedReader" should "read the simplest YAML (name/deployable only)" in {
     BreedReader.read(res("breed/breed1.yml")) should have(

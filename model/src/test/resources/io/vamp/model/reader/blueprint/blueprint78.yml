@@ -7,8 +7,8 @@ gateways:
         weight: 90%
       notorious/port2:
         weight: 10%
-        filter_strength: 10%
-        filters:
+        condition_strength: 10%
+        conditions:
         - condition: user-agent = firefox
 
 clusters:

@@ -10,5 +10,5 @@ clusters:
         route:
           name: !ios
           weight: 10
-          filters:
+          conditions:
             - condition: user.agent != ios

@@ -2,7 +2,7 @@ package io.vamp.model.workflow
 
 import java.time.{ Duration, Period }
 
-import io.vamp.model.reader.ReaderTest
+import io.vamp.model.reader.ReaderSpec
 import io.vamp.model.workflow.TimeTrigger.{ RepeatForever, RepeatPeriod }
 import org.junit.runner.RunWith
 import org.scalatest._
@@ -11,7 +11,7 @@ import org.scalatest.junit.JUnitRunner
 import scala.language.postfixOps
 
 @RunWith(classOf[JUnitRunner])
-class TimeTriggerSpec extends FlatSpec with Matchers with ReaderTest {
+class TimeTriggerSpec extends FlatSpec with Matchers with ReaderSpec {
 
   "TimeTrigger" should "read an empty period" in {
     TimeTrigger("") should have(

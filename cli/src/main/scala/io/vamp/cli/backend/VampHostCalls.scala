@@ -55,10 +55,10 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     }
   }
 
-  def createFilter(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Filter] = {
-    sendAndWaitYaml(s"POST $vampHost/api/v1/filters", Some(definition)) match {
-      case Some(filter) ⇒ Some(FilterReader.read(filter))
-      case _            ⇒ terminateWithError("Filter not created")
+  def createCondition(definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Condition] = {
+    sendAndWaitYaml(s"POST $vampHost/api/v1/conditions", Some(definition)) match {
+      case Some(condition) ⇒ Some(ConditionReader.read(condition))
+      case _               ⇒ terminateWithError("Condition not created")
     }
   }
 
@@ -118,17 +118,17 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
     }
   }
 
-  def updateFilter(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Filter] = {
-    sendAndWaitYaml(s"PUT $vampHost/api/v1/filters/$name", Some(definition)) match {
-      case Some(filter) ⇒ Some(FilterReader.read(filter))
-      case _            ⇒ terminateWithError("Filter not updated")
+  def updateCondition(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Condition] = {
+    sendAndWaitYaml(s"PUT $vampHost/api/v1/conditions/$name", Some(definition)) match {
+      case Some(condition) ⇒ Some(ConditionReader.read(condition))
+      case _               ⇒ terminateWithError("Condition not updated")
     }
   }
 
   def updateRewrite(name: String, definition: String, jsonOutput: Boolean = false)(implicit vampHost: String): Option[Rewrite] = {
     sendAndWaitYaml(s"PUT $vampHost/api/v1/rewrites/$name", Some(definition)) match {
       case Some(rewrite) ⇒ Some(RewriteReader.read(rewrite))
-      case _             ⇒ terminateWithError("Filter not updated")
+      case _             ⇒ terminateWithError("Condition not updated")
     }
   }
 
@@ -165,8 +165,8 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
   def deleteEscalation(name: String)(implicit vampHost: String) =
     sendAndWaitYaml(s"DELETE $vampHost/api/v1/escalations/$name", None)
 
-  def deleteFilter(name: String)(implicit vampHost: String) =
-    sendAndWaitYaml(s"DELETE $vampHost/api/v1/filters/$name", None)
+  def deleteCondition(name: String)(implicit vampHost: String) =
+    sendAndWaitYaml(s"DELETE $vampHost/api/v1/conditions/$name", None)
 
   def deleteRewrite(name: String)(implicit vampHost: String) =
     sendAndWaitYaml(s"DELETE $vampHost/api/v1/rewrites/$name", None)
@@ -217,9 +217,9 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
       case None      ⇒ List.empty
     }
 
-  def getFilters(implicit vampHost: String): List[Filter] =
-    sendAndWaitYaml(s"GET $vampHost/api/v1/filters") match {
-      case Some(ser) ⇒ yamArrayListToList(ser).map(a ⇒ FilterReader.read(a))
+  def getConditions(implicit vampHost: String): List[Condition] =
+    sendAndWaitYaml(s"GET $vampHost/api/v1/conditions") match {
+      case Some(ser) ⇒ yamArrayListToList(ser).map(a ⇒ ConditionReader.read(a))
       case None      ⇒ List.empty
     }
 
@@ -268,8 +268,8 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
   def getEscalation(name: String)(implicit vampHost: String): Option[Escalation] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/escalations/$name").map(EscalationReader.read(_))
 
-  def getFilter(filterId: String)(implicit vampHost: String): Option[Filter] =
-    sendAndWaitYaml(s"GET $vampHost/api/v1/filters/$filterId").map(FilterReader.read(_))
+  def getCondition(conditionId: String)(implicit vampHost: String): Option[Condition] =
+    sendAndWaitYaml(s"GET $vampHost/api/v1/conditions/$conditionId").map(ConditionReader.read(_))
 
   def getRewrite(rewriteId: String)(implicit vampHost: String): Option[Rewrite] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/rewrites/$rewriteId").map(RewriteReader.read(_))

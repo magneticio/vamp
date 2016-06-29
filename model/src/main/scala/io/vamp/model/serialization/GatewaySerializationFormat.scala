@@ -14,7 +14,7 @@ object GatewaySerializationFormat extends io.vamp.common.json.SerializationForma
     new GatewayStickySerializer() :+
     new RouteSerializer() :+
     new ExternalRouteTargetSerializer() :+
-    new FilterSerializer() :+
+    new ConditionSerializer() :+
     new RewriteSerializer()
 }
 
@@ -81,7 +81,7 @@ class GatewayStickySerializer extends CustomSerializer[Gateway.Sticky.Value](for
   case sticky: Gateway.Sticky.Value ⇒ JString(sticky.toString.toLowerCase)
 }))
 
-class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerialization with FilterDecomposer {
+class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerialization with ConditionDecomposer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case route: RouteReference ⇒ serializeReference(route)
     case route: DefaultRoute ⇒
@@ -91,8 +91,8 @@ class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerializat
 
       list += JField("weight", if (route.weight.isDefined) JString(route.weight.get.normalized) else JNull)
       list += JField("balance", if (route.balance.isDefined) JString(route.balance.get) else JString(DefaultRoute.defaultBalance))
-      list += JField("filter_strength", if (route.filterStrength.isDefined) JString(route.filterStrength.get.normalized) else JNull)
-      list += JField("filters", JArray(route.filters.map(serializeFilter(full = false))))
+      list += JField("condition_strength", if (route.conditionStrength.isDefined) JString(route.conditionStrength.get.normalized) else JNull)
+      list += JField("conditions", JArray(route.conditions.map(serializeCondition(full = false))))
       list += JField("rewrites", Extraction.decompose(route.rewrites))
 
       if (route.targets.nonEmpty) list += JField("instances", Extraction.decompose(route.targets))
@@ -110,18 +110,18 @@ class ExternalRouteTargetSerializer extends ArtifactSerializer[ExternalRouteTarg
   }
 }
 
-class FilterSerializer extends ArtifactSerializer[Filter] with FilterDecomposer {
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeFilter(full = true)
+class ConditionSerializer extends ArtifactSerializer[Condition] with ConditionDecomposer {
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeCondition(full = true)
 }
 
-trait FilterDecomposer extends ReferenceSerialization {
+trait ConditionDecomposer extends ReferenceSerialization {
 
-  def serializeFilter(full: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case filter: FilterReference ⇒ serializeReference(filter)
-    case filter: DefaultFilter ⇒
+  def serializeCondition(full: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = {
+    case condition: ConditionReference ⇒ serializeReference(condition)
+    case condition: DefaultCondition ⇒
       val list = new ArrayBuffer[JField]
-      if (filter.name.nonEmpty && full) list += JField("name", JString(filter.name))
-      list += JField("condition", JString(filter.condition))
+      if (condition.name.nonEmpty && full) list += JField("name", JString(condition.name))
+      list += JField("condition", JString(condition.definition))
       new JObject(list.toList)
   }
 }

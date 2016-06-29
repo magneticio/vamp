@@ -11,7 +11,7 @@ frontend virtual_hosts
   option httplog
   log-format {{ haproxy.config.httpLogFormat }}
   {% for frontend in haproxy.virtualHostFrontends %}
-  {%- for condition in frontend.filters %}
+  {%- for condition in frontend.conditions %}
   {%- if (condition.acls.isDefined) %}
   # destination: {{ condition.destination.name }}
   {%- for acl in condition.acls.get.acls %}
@@ -64,7 +64,7 @@ frontend {{ frontend.lookup }}
 
   mode {{ frontend.mode }}
 
-  {%- for condition in frontend.filters %}
+  {%- for condition in frontend.conditions %}
   {% if (condition.acls.isDefined) %}
   # destination: {{ condition.destination.name }}
   {%- for acl in condition.acls.get.acls %}

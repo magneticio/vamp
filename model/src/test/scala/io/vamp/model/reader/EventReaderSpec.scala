@@ -11,7 +11,7 @@ import org.scalatest.junit.JUnitRunner
 import scala.language.postfixOps
 
 @RunWith(classOf[JUnitRunner])
-class EventReaderTest extends FlatSpec with Matchers with ReaderTest {
+class EventReaderSpec extends FlatSpec with Matchers with ReaderSpec {
 
   "EventReader" should "read the event" in {
     EventReader.read(res("event/event1.yml")) should have(

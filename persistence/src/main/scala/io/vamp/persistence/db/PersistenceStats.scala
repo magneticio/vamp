@@ -31,7 +31,7 @@ trait PersistenceStats extends ArtifactPaginationSupport {
       classOf[Scale],
       classOf[Escalation],
       classOf[Route],
-      classOf[Filter],
+      classOf[Condition],
       classOf[Rewrite],
       classOf[Workflow],
       classOf[ScheduledWorkflow]

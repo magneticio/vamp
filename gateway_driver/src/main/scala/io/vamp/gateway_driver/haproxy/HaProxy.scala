@@ -22,7 +22,7 @@ case class Frontend(name: String,
                     mode: Mode.Value,
                     unixSock: Option[String],
                     sockProtocol: Option[String],
-                    filters: List[Filter],
+                    conditions: List[Condition],
                     defaultBackend: Backend)
 
 case class Backend(name: String,
@@ -38,7 +38,7 @@ object Mode extends Enumeration {
   val http, tcp = Value
 }
 
-case class Filter(name: String, destination: Backend, acls: Option[HaProxyAcls])
+case class Condition(name: String, destination: Backend, acls: Option[HaProxyAcls])
 
 object Acl {
   def apply(definition: String): Acl = Acl(Hash.hexSha1(definition).substring(0, 16), definition)

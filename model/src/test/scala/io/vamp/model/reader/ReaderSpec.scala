@@ -10,7 +10,7 @@ import scala.io.Source
 import scala.reflect._
 import YamlSourceReader._
 
-trait ReaderTest extends FlatSpec with Matchers {
+trait ReaderSpec extends FlatSpec with Matchers {
   protected def res(path: String): String = Source.fromURL(getClass.getResource(path)).mkString
 
   protected def expectedError[A <: Any: ClassTag](f: ⇒ Any): A = {
@@ -22,7 +22,7 @@ trait ReaderTest extends FlatSpec with Matchers {
 }
 
 @RunWith(classOf[JUnitRunner])
-class YamlReaderTest extends ReaderTest {
+class YamlReaderSpec extends ReaderSpec {
 
   "YamlReader" should "fail on invalid YAML" in {
     expectedError[YamlParsingError]({

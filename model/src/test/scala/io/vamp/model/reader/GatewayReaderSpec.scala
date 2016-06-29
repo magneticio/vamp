@@ -9,7 +9,7 @@ import org.scalatest.junit.JUnitRunner
 import scala.language.postfixOps
 
 @RunWith(classOf[JUnitRunner])
-class GatewayReaderTest extends FlatSpec with Matchers with ReaderTest {
+class GatewayReaderSpec extends FlatSpec with Matchers with ReaderSpec {
 
   "GatewayReader" should "read a gateway" in {
     GatewayReader.read(res("gateway/gateway1.yml")) should have(

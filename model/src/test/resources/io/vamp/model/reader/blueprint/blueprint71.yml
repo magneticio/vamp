@@ -4,7 +4,7 @@ gateways:
   8080/tcp:
     routes:
       notorious/web:
-        filters:
+        conditions:
         - condition: user.agent != ios
 
 clusters:

@@ -115,8 +115,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 
       validateRouteServiceNames(blueprint)
       validateRouteWeights(blueprint)
-      validateRouteFilterStrengths(blueprint)
-      blueprint.gateways.foreach((validateGatewayRouteWeights andThen validateGatewayRouteFilterStrengths)(_))
+      validateRouteConditionStrengths(blueprint)
+      blueprint.gateways.foreach((validateGatewayRouteWeights andThen validateGatewayRouteConditionStrengths)(_))
       validateBlueprintGateways(blueprint)
       validateInnerGatewayAnonymousPortMapping(blueprint)
 
@@ -184,14 +184,14 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     }
   }
 
-  protected def validateRouteFilterStrengths(blueprint: AbstractBlueprint): Unit = {
+  protected def validateRouteConditionStrengths(blueprint: AbstractBlueprint): Unit = {
     blueprint.clusters.find({ cluster ⇒
       cluster.gateways.exists { gateways ⇒
-        val strength = gateways.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.filterStrength)
+        val strength = gateways.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.conditionStrength)
         strength.exists(_.value < 0) || strength.exists(_.value > 100)
       }
     }).flatMap {
-      case cluster ⇒ throwException(RouteFilterStrengthError(cluster))
+      case cluster ⇒ throwException(RouteConditionStrengthError(cluster))
     }
   }
 
@@ -230,7 +230,7 @@ trait BlueprintGatewayHelper {
   }
 
   protected def validateBlueprintGateways[T <: AbstractBlueprint]: T ⇒ T =
-    validateStickiness[T] andThen validateFilterConditions[T] andThen validateGatewayPorts[T] andThen validateInnerGatewayPorts[T]
+    validateStickiness[T] andThen validateConditionConditions[T] andThen validateGatewayPorts[T] andThen validateInnerGatewayPorts[T]
 
   private def validateStickiness[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.clusters.foreach { cluster ⇒
@@ -246,7 +246,7 @@ trait BlueprintGatewayHelper {
     blueprint
   }
 
-  private def validateFilterConditions[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
+  private def validateConditionConditions[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.clusters.foreach { cluster ⇒
       cluster.services.foreach { service ⇒
         service.breed match {
@@ -255,7 +255,7 @@ trait BlueprintGatewayHelper {
               if (port.`type` != Port.Type.Http) {
                 cluster.gatewayBy(port.name) match {
                   case Some(gateways) ⇒ gateways.routes.foreach {
-                    case route: DefaultRoute ⇒ route.filters.foreach(filter ⇒ if (filter.isInstanceOf[DefaultFilter]) throwException(FilterPortTypeError(port, filter)))
+                    case route: DefaultRoute ⇒ route.conditions.foreach(condition ⇒ if (condition.isInstanceOf[DefaultCondition]) throwException(ConditionPortTypeError(port, condition)))
                     case _                   ⇒
                   }
                   case None ⇒
@@ -264,7 +264,7 @@ trait BlueprintGatewayHelper {
 
               blueprint.gateways.foreach { gateway ⇒
                 gateway.routeBy(cluster.name :: port.name :: Nil) match {
-                  case Some(route: DefaultRoute) ⇒ if (gateway.port.`type` != Port.Type.Http) route.filters.foreach(filter ⇒ if (filter.isInstanceOf[DefaultFilter]) throwException(FilterPortTypeError(gateway.port.copy(name = route.path.source), filter)))
+                  case Some(route: DefaultRoute) ⇒ if (gateway.port.`type` != Port.Type.Http) route.conditions.foreach(condition ⇒ if (condition.isInstanceOf[DefaultCondition]) throwException(ConditionPortTypeError(gateway.port.copy(name = route.path.source), condition)))
                   case _                         ⇒
                 }
               }

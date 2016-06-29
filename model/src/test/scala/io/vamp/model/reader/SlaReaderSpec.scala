@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 @RunWith(classOf[JUnitRunner])
-class SlaReaderTest extends FlatSpec with Matchers with ReaderTest {
+class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
 
   "SlaReader" should "read the generic SLA" in {
     SlaReader.read(res("sla/sla1.yml")) should have(

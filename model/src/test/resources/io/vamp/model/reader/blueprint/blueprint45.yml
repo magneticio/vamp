@@ -8,6 +8,6 @@ clusters:
     gateways:
       routes:
         sava1:
-          filters: android
+          conditions: android
     breed: sava1
 

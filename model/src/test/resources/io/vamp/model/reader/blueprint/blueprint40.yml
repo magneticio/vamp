@@ -8,7 +8,7 @@ clusters:
     gateways:
       routes:
         sava1:
-          filters: android
+          conditions: android
     breed:
       name: sava1
       deployable: magneticio/sava:latest

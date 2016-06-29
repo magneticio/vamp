@@ -96,15 +96,15 @@ trait Generate extends Parameters with IoUtils {
         }
 
       case Some("filter") ⇒
-        readArtifactStartingPoint[Filter](fileContent, FilterReader, emptyFilter) match {
-          case df: DefaultFilter ⇒ Some(df.copy(name = replaceValueString(name, df.name)))
-          case other             ⇒ Some(other)
+        readArtifactStartingPoint[Condition](fileContent, ConditionReader, emptyCondition) match {
+          case df: DefaultCondition ⇒ Some(df.copy(name = replaceValueString(name, df.name)))
+          case other                ⇒ Some(other)
         }
 
       case Some("rewrite") ⇒
         readArtifactStartingPoint[Rewrite](fileContent, RewriteReader, emptyRewrite) match {
-          case df: DefaultFilter ⇒ Some(df.copy(name = replaceValueString(name, df.name)))
-          case other             ⇒ Some(other)
+          case df: DefaultCondition ⇒ Some(df.copy(name = replaceValueString(name, df.name)))
+          case other                ⇒ Some(other)
         }
 
       case Some("routes") ⇒
@@ -190,9 +190,9 @@ trait Generate extends Parameters with IoUtils {
 
   private def emptyScale = DefaultScale(name = "", cpu = Quantity(0.0), memory = MegaByte(0.0), instances = 0)
 
-  private def emptyRouting = DefaultRoute(name = "", path = "", weight = None, filterStrength = None, filters = List.empty, rewrites = List.empty, balance = None)
+  private def emptyRouting = DefaultRoute(name = "", path = "", weight = None, conditionStrength = None, conditions = List.empty, rewrites = List.empty, balance = None)
 
-  private def emptyFilter = DefaultFilter(name = "", condition = "")
+  private def emptyCondition = DefaultCondition(name = "", definition = "")
 
   private def emptyRewrite = PathRewrite(name = "", path = "", condition = "")
 

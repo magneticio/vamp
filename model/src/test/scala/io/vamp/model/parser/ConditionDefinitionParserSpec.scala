@@ -7,9 +7,9 @@ import org.scalatest.junit.JUnitRunner
 import scala.language.postfixOps
 
 @RunWith(classOf[JUnitRunner])
-class FilterConditionParserSpec extends FlatSpec with Matchers with FilterConditionParser {
+class ConditionDefinitionParserSpec extends FlatSpec with Matchers with ConditionDefinitionParser {
 
-  "FilterCondition" should "parse" in {
+  "ConditionDefinition" should "parse" in {
     parse("user-agent == a and user-agent != b") shouldBe {
       And(UserAgent("a"), Negation(UserAgent("b")))
     }

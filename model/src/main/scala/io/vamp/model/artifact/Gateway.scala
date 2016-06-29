@@ -91,9 +91,9 @@ object DefaultRoute {
   val defaultBalance = "default"
 }
 
-case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], filterStrength: Option[Percentage], filters: List[Filter], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
+case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], conditionStrength: Option[Percentage], conditions: List[Condition], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
 
-  def hasFilters: Boolean = filters.exists(_.isInstanceOf[DefaultFilter])
+  def hasConditions: Boolean = conditions.exists(_.isInstanceOf[DefaultCondition])
 
   def external = path.external.isDefined
 }
@@ -111,11 +111,11 @@ case class ExternalRouteTarget(url: String) extends RouteTarget {
   val name = url
 }
 
-sealed trait Filter extends Artifact
+sealed trait Condition extends Artifact
 
-case class FilterReference(name: String) extends Reference with Filter
+case class ConditionReference(name: String) extends Reference with Condition
 
-case class DefaultFilter(name: String, condition: String) extends Filter
+case class DefaultCondition(name: String, definition: String) extends Condition
 
 sealed trait Rewrite extends Artifact
 

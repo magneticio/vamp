@@ -81,7 +81,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
 
     if (gateway.port.`type` != Port.Type.Http && gateway.sticky.isDefined) throwException(StickyPortTypeError(gateway.port.copy(name = gateway.port.value.get)))
 
-    (validateGatewayRouteWeights andThen validateGatewayRouteFilterStrengths)(gateway)
+    (validateGatewayRouteWeights andThen validateGatewayRouteConditionStrengths)(gateway)
   }
 
   override def validateName(name: String): String = {
@@ -127,7 +127,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
 
   override protected def createDefault(implicit source: YamlSourceReader): Route = {
     source.flatten({ entry ⇒ entry == "instances" })
-    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), <<?[Percentage]("filter_strength"), filters, rewrites, balance)
+    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), <<?[Percentage]("condition_strength"), conditions, rewrites, balance)
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
@@ -139,15 +139,15 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
       case _                   ⇒
     }
 
-    list("filters")
+    list("conditions")
     list("rewrites")
 
     super.expand
   }
 
-  protected def filters(implicit source: YamlSourceReader): List[Filter] = <<?[YamlList]("filters") match {
-    case None                 ⇒ List.empty[Filter]
-    case Some(list: YamlList) ⇒ list.map(FilterReader.readReferenceOrAnonymous)
+  protected def conditions(implicit source: YamlSourceReader): List[Condition] = <<?[YamlList]("conditions") match {
+    case None                 ⇒ List.empty[Condition]
+    case Some(list: YamlList) ⇒ list.map(ConditionReader.readReferenceOrAnonymous)
   }
 
   protected def rewrites(implicit source: YamlSourceReader): List[Rewrite] = <<?[YamlList]("rewrites") match {
@@ -163,11 +163,11 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   override def validateName(name: String): String = if (GatewayPath.external(name)) name else super.validateName(name)
 }
 
-object FilterReader extends YamlReader[Filter] with WeakReferenceYamlReader[Filter] {
+object ConditionReader extends YamlReader[Condition] with WeakReferenceYamlReader[Condition] {
 
-  override protected def createReference(implicit source: YamlSourceReader): Filter = FilterReference(reference)
+  override protected def createReference(implicit source: YamlSourceReader): Condition = ConditionReference(reference)
 
-  override protected def createDefault(implicit source: YamlSourceReader): Filter = DefaultFilter(name, <<![String]("condition"))
+  override protected def createDefault(implicit source: YamlSourceReader): Condition = DefaultCondition(name, <<![String]("condition"))
 }
 
 object RewriteReader extends YamlReader[Rewrite] with WeakReferenceYamlReader[Rewrite] {
@@ -272,11 +272,11 @@ trait GatewayRouteValidation {
     gateway
   }
 
-  protected def validateGatewayRouteFilterStrengths: Gateway ⇒ Gateway = { gateway ⇒
+  protected def validateGatewayRouteConditionStrengths: Gateway ⇒ Gateway = { gateway ⇒
 
-    val strength = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.filterStrength)
+    val strength = gateway.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.conditionStrength)
 
-    if (strength.exists(_.value < 0) || strength.exists(_.value > 100)) throwException(GatewayRouteFilterStrengthError(gateway))
+    if (strength.exists(_.value < 0) || strength.exists(_.value > 100)) throwException(GatewayRouteConditionStrengthError(gateway))
 
     gateway
   }

@@ -4,21 +4,21 @@ import org.parboiled.scala._
 
 import scala.language.implicitConversions
 
-sealed trait FilterConditionOperand extends Operand
+sealed trait ConditionDefinitionOperand extends Operand
 
-case class Host(value: String) extends FilterConditionOperand
+case class Host(value: String) extends ConditionDefinitionOperand
 
-case class Cookie(value: String) extends FilterConditionOperand
+case class Cookie(value: String) extends ConditionDefinitionOperand
 
-case class Header(value: String) extends FilterConditionOperand
+case class Header(value: String) extends ConditionDefinitionOperand
 
-case class UserAgent(value: String) extends FilterConditionOperand
+case class UserAgent(value: String) extends ConditionDefinitionOperand
 
-case class CookieContains(name: String, value: String) extends FilterConditionOperand
+case class CookieContains(name: String, value: String) extends ConditionDefinitionOperand
 
-case class HeaderContains(name: String, value: String) extends FilterConditionOperand
+case class HeaderContains(name: String, value: String) extends ConditionDefinitionOperand
 
-trait FilterConditionParser extends BooleanParser {
+trait ConditionDefinitionParser extends BooleanParser {
 
   override def Operand: Rule1[AstNode] = rule {
     HostOperand | UserAgentOperand | HeaderOperand | CookieOperand | CookieContainsOperand | HeaderContainsOperand | ValueOperand

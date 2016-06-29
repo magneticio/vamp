@@ -6,7 +6,7 @@ clusters:
       web:
         routes:
           nocturnal-viper:
-            filters:
+            conditions:
             - condition: user.agent != ios
 
     services:

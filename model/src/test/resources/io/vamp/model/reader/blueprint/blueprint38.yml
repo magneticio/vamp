@@ -8,7 +8,7 @@ clusters:
     gateways:
       routes:
         sava1:
-          filters:
+          conditions:
           - android
 
     services:

@@ -13,7 +13,7 @@ import org.scalatest.junit.JUnitRunner
 import scala.language.postfixOps
 
 @RunWith(classOf[JUnitRunner])
-class WorkflowReaderTest extends FlatSpec with Matchers with ReaderTest {
+class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
 
   "WorkflowReader" should "read the workflow" in {
     WorkflowReader.read(res("workflow/workflow1.yml")) should have(

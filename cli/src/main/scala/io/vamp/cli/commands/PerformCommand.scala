@@ -56,11 +56,11 @@ object PerformCommand extends Generate {
         case x                           ⇒ println(x)
       })
 
-    case Some("filters") ⇒
+    case Some("conditions") ⇒
       println("NAME".padTo(25, ' ').bold.cyan + "CONDITION".bold.cyan)
-      VampHostCalls.getFilters.foreach({
-        case b: DefaultFilter ⇒ println(s"${b.name.padTo(25, ' ')}${b.condition}")
-        case _                ⇒
+      VampHostCalls.getConditions.foreach({
+        case b: DefaultCondition ⇒ println(s"${b.name.padTo(25, ' ')}${b.definition}")
+        case _                   ⇒
       })
 
     case Some("rewrites") ⇒
@@ -74,9 +74,9 @@ object PerformCommand extends Generate {
       println("NAME".padTo(25, ' ').bold.cyan + "FILTERS".bold.cyan)
       VampHostCalls.getRoutings.foreach({
         case b: DefaultRoute ⇒ println(s"${b.name.padTo(25, ' ')}${
-          b.filters.map({
-            case d: DefaultFilter ⇒ s"${d.condition}"
-            case _                ⇒ ""
+          b.conditions.map({
+            case d: DefaultCondition ⇒ s"${d.definition}"
+            case _                   ⇒ ""
           }).mkString(", ")
         }")
         case _ ⇒
@@ -105,7 +105,7 @@ object PerformCommand extends Generate {
         case None    ⇒ VampHostCalls.getDeployment(getParameter(name))
       }
       case Some("escalation") ⇒ VampHostCalls.getEscalation(getParameter(name))
-      case Some("filter")     ⇒ VampHostCalls.getFilter(getParameter(name))
+      case Some("filter")     ⇒ VampHostCalls.getCondition(getParameter(name))
       case Some("rewrite")    ⇒ VampHostCalls.getRewrite(getParameter(name))
       case Some("route")      ⇒ VampHostCalls.getRoute(getParameter(name))
       case Some("scale")      ⇒ VampHostCalls.getScale(getParameter(name))
@@ -121,7 +121,7 @@ object PerformCommand extends Generate {
     case Some("blueprint")  ⇒ printArtifact(VampHostCalls.createBlueprint(readFileContent))
     case Some("gateway")    ⇒ printArtifact(VampHostCalls.createGateway(readFileContent))
     case Some("escalation") ⇒ printArtifact(VampHostCalls.createEscalation(readFileContent))
-    case Some("filter")     ⇒ printArtifact(VampHostCalls.createFilter(readFileContent))
+    case Some("filter")     ⇒ printArtifact(VampHostCalls.createCondition(readFileContent))
     case Some("rewrite")    ⇒ printArtifact(VampHostCalls.createRewrite(readFileContent))
     case Some("routes")     ⇒ printArtifact(VampHostCalls.createRoute(readFileContent))
     case Some("scale")      ⇒ printArtifact(VampHostCalls.createScale(readFileContent))
@@ -135,7 +135,7 @@ object PerformCommand extends Generate {
     case Some("blueprint")  ⇒ printArtifact(VampHostCalls.updateBlueprint(getParameter(name), readFileContent))
     case Some("gateway")    ⇒ printArtifact(VampHostCalls.updateGateway(getParameter(name), readFileContent))
     case Some("escalation") ⇒ printArtifact(VampHostCalls.updateEscalation(getParameter(name), readFileContent))
-    case Some("filter")     ⇒ printArtifact(VampHostCalls.updateFilter(getParameter(name), readFileContent))
+    case Some("filter")     ⇒ printArtifact(VampHostCalls.updateCondition(getParameter(name), readFileContent))
     case Some("rewrite")    ⇒ printArtifact(VampHostCalls.updateRewrite(getParameter(name), readFileContent))
     case Some("routes")     ⇒ printArtifact(VampHostCalls.updateRoute(getParameter(name), readFileContent))
     case Some("scale")      ⇒ printArtifact(VampHostCalls.updateScale(getParameter(name), readFileContent))
@@ -149,7 +149,7 @@ object PerformCommand extends Generate {
     case Some("blueprint")  ⇒ VampHostCalls.deleteBlueprint(getParameter(name))
     case Some("gateways")   ⇒ VampHostCalls.deleteGateway(getParameter(name))
     case Some("escalation") ⇒ VampHostCalls.deleteEscalation(getParameter(name))
-    case Some("filter")     ⇒ VampHostCalls.deleteFilter(getParameter(name))
+    case Some("filter")     ⇒ VampHostCalls.deleteCondition(getParameter(name))
     case Some("rewrite")    ⇒ VampHostCalls.deleteRewrite(getParameter(name))
     case Some("routes")     ⇒ VampHostCalls.deleteRoute(getParameter(name))
     case Some("scale")      ⇒ VampHostCalls.deleteScale(getParameter(name))
