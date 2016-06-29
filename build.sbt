@@ -73,9 +73,10 @@ val spray = "io.spray" %% "spray-can" % "1.3.1" ::
 
 val docker = "com.spotify" % "docker-client" % "5.0.1" :: Nil
 
-val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.7" exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j")) :: Nil
+val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.8" exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j")) :: Nil
 
 val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
+
 val dispatch = "net.databinder.dispatch" %% "dispatch-core" % "0.11.2" ::
   "net.databinder.dispatch" %% "dispatch-json4s-native" % "0.11.2" :: Nil
 
@@ -85,11 +86,12 @@ val json4s = "org.json4s" %% "json4s-native" % "3.2.11" ::
   "org.json4s" %% "json4s-core" % "3.2.11" ::
   "org.json4s" %% "json4s-ext" % "3.2.11" ::
   "org.json4s" %% "json4s-native" % "3.2.11" :: Nil
+
 val snakeYaml = "org.yaml" % "snakeyaml" % "1.16" :: Nil
 
-val logging = "org.slf4j" % "slf4j-api" % "1.7.10" ::
+val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
   "ch.qos.logback" % "logback-classic" % "1.1.2" ::
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0" :: Nil
+  ("com.typesafe.scala-logging" %% "scala-logging" % "3.1.0" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val testing = "junit" % "junit" % "4.11" % "test" ::
   "org.scalatest" %% "scalatest" % "3.0.0-M10" % "test" ::
