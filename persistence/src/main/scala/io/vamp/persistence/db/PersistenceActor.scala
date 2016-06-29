@@ -1,14 +1,11 @@
 package io.vamp.persistence.db
 
-import akka.pattern.ask
-import akka.util.Timeout
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.model.artifact._
-import io.vamp.persistence.kv.KeyValueStoreActor
 import io.vamp.persistence.notification._
 import io.vamp.pulse.notification.PulseFailureNotifier
 
@@ -61,10 +58,8 @@ trait PersistenceActor extends PersistenceMultiplexer with PersistenceArchive wi
   def receive = {
 
     case InfoRequest ⇒ reply {
-      info() flatMap {
-        case persistenceInfo ⇒ IoC.actorFor[KeyValueStoreActor] ? InfoRequest map {
-          case keyValueInfo ⇒ Map("database" -> persistenceInfo, "keyValue" -> keyValueInfo, "archive" -> true)
-        }
+      info() map {
+        case persistenceInfo ⇒ Map("database" -> persistenceInfo, "archive" -> true)
       }
     }
 
