@@ -1,7 +1,7 @@
 package io.vamp.lifter
 
 import akka.actor.{ ActorRef, ActorSystem, Props }
-import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
+import io.vamp.common.akka.{ ActorBootstrap, IoC, SchedulerActor }
 import io.vamp.common.config.Config
 import io.vamp.container_driver.ContainerDriverBootstrap
 import io.vamp.lifter.artifact.ArtifactInitializationActor
@@ -14,7 +14,7 @@ import io.vamp.persistence.PersistenceBootstrap
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-object LifterBootstrap extends Bootstrap {
+object LifterBootstrap extends ActorBootstrap {
 
   val config = Config.config("vamp.lifter")
 
