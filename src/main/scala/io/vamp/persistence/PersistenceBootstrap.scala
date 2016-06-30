@@ -2,11 +2,11 @@ package io.vamp.persistence
 
 import akka.actor.{ ActorRef, ActorSystem }
 import io.vamp.common.config.Config
-import io.vamp.common.akka.{ Bootstrap, IoC }
+import io.vamp.common.akka.{ ActorBootstrap, IoC }
 import io.vamp.persistence.db.{ ElasticsearchPersistenceActor, InMemoryPersistenceActor, PersistenceActor }
 import io.vamp.persistence.kv.{ ConsulStoreActor, EtcdStoreActor, KeyValueStoreActor, ZooKeeperStoreActor }
 
-object PersistenceBootstrap extends Bootstrap {
+object PersistenceBootstrap extends ActorBootstrap {
 
   val databaseType = Config.string("vamp.persistence.database.type")
 
