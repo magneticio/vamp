@@ -1,10 +1,11 @@
 package io.vamp.operation
 
 import akka.actor.{ ActorRef, ActorSystem, Props }
-import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
+import io.vamp.common.akka.{ ActorBootstrap, IoC, SchedulerActor }
 import io.vamp.common.config.Config
 import io.vamp.operation.deployment.{ DeploymentActor, DeploymentSynchronizationActor, DeploymentSynchronizationSchedulerActor }
 import io.vamp.operation.gateway.{ GatewayActor, GatewaySynchronizationActor, GatewaySynchronizationSchedulerActor }
+import io.vamp.operation.metrics.KamonMetricsActor
 import io.vamp.operation.persistence.{ KeyValueSchedulerActor, KeyValueSynchronizationActor }
 import io.vamp.operation.sla.{ EscalationActor, EscalationSchedulerActor, SlaActor, SlaSchedulerActor }
 import io.vamp.operation.sse.EventStreamingActor
@@ -13,7 +14,7 @@ import io.vamp.operation.workflow.{ WorkflowActor, WorkflowSynchronizationActor,
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-object OperationBootstrap extends Bootstrap {
+object OperationBootstrap extends ActorBootstrap {
 
   val configuration = Config.config("vamp.operation")
 
@@ -30,6 +31,8 @@ object OperationBootstrap extends Bootstrap {
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
     val actors = List(
+      IoC.createActor[KamonMetricsActor],
+
       IoC.createActor[DeploymentActor],
 
       IoC.createActor(Props(classOf[DeploymentSynchronizationActor]).withMailbox(synchronizationMailbox)),

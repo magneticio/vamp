@@ -2,14 +2,14 @@ package io.vamp.container_driver
 
 import akka.actor.ActorSystem
 import io.vamp.common.config.Config
-import io.vamp.common.akka.{ Bootstrap, IoC }
+import io.vamp.common.akka.{ ActorBootstrap, IoC }
 import io.vamp.container_driver.docker.DockerDriverActor
 import io.vamp.container_driver.kubernetes.KubernetesDriverActor
 import io.vamp.container_driver.marathon.MarathonDriverActor
 import io.vamp.container_driver.rancher.RancherDriverActor
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UnsupportedContainerDriverError }
 
-object ContainerDriverBootstrap extends Bootstrap with ContainerDriverNotificationProvider {
+object ContainerDriverBootstrap extends ActorBootstrap with ContainerDriverNotificationProvider {
 
   private val configuration = Config.config("vamp.container-driver")
 

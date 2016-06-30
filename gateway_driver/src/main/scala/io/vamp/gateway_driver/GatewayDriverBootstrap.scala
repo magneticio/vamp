@@ -1,7 +1,7 @@
 package io.vamp.gateway_driver
 
 import akka.actor.{ ActorRef, ActorSystem }
-import io.vamp.common.akka.{ Bootstrap, IoC, SchedulerActor }
+import io.vamp.common.akka.{ ActorBootstrap, IoC, SchedulerActor }
 import io.vamp.common.config.Config
 import io.vamp.gateway_driver.haproxy.{ HaProxyConfig, HaProxyGatewayMarshaller, JTwigHaProxyGatewayMarshaller }
 import io.vamp.gateway_driver.kibana.{ KibanaDashboardActor, KibanaDashboardSchedulerActor }
@@ -9,7 +9,7 @@ import io.vamp.gateway_driver.kibana.{ KibanaDashboardActor, KibanaDashboardSche
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-object GatewayDriverBootstrap extends Bootstrap {
+object GatewayDriverBootstrap extends ActorBootstrap {
 
   val haproxyConfig = Config.config("vamp.gateway-driver.haproxy")
   val kibanaSynchronizationPeriod = Config.duration("vamp.gateway-driver.kibana.synchronization.period")

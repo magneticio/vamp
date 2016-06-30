@@ -6,14 +6,15 @@ import akka.util.Timeout
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ ActorSystemProvider, DataRetrieval, ExecutionContextProvider }
 import io.vamp.common.config.Config
-import io.vamp.common.vitals.{ JmxVitalsProvider, StatsRequest }
+import io.vamp.common.vitals.{ JmxVitalsProvider, JvmVitals, StatsRequest }
+import io.vamp.operation.metrics.KamonMetricsActor
 import io.vamp.persistence.db.PersistenceActor
 import io.vamp.pulse.PulseActor
 
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-case class StatsMessage(persistence: Any, pulse: Any)
+case class StatsMessage(jvm: JvmVitals, system: Any, persistence: Any, pulse: Any)
 
 trait StatsController extends DataRetrieval with JmxVitalsProvider {
   this: ExecutionContextProvider with ActorSystemProvider ⇒
@@ -24,12 +25,14 @@ trait StatsController extends DataRetrieval with JmxVitalsProvider {
 
   def stats: Future[StatsMessage] = {
 
-    val actors = List(classOf[PersistenceActor], classOf[PulseActor]) map {
+    val actors = List(classOf[KamonMetricsActor], classOf[PersistenceActor], classOf[PulseActor]) map {
       _.asInstanceOf[Class[Actor]]
     }
 
     retrieve(actors, actor ⇒ actorFor(actor) ? StatsRequest, dataRetrievalTimeout) map { result ⇒
       StatsMessage(
+        jvmVitals(),
+        result.get(classOf[KamonMetricsActor].asInstanceOf[Class[Actor]]),
         result.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
         result.get(classOf[PulseActor].asInstanceOf[Class[Actor]])
       )

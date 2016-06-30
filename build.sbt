@@ -89,6 +89,10 @@ val json4s = "org.json4s" %% "json4s-native" % "3.2.11" ::
 
 val snakeYaml = "org.yaml" % "snakeyaml" % "1.16" :: Nil
 
+val kamon = "io.kamon" %% "kamon-core" % "0.6.1" ::
+  "io.kamon" %% "kamon-system-metrics" % "0.6.1" ::
+  "org.slf4j" % "jul-to-slf4j" % "1.7.21" :: Nil
+
 val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
   "ch.qos.logback" % "logback-classic" % "1.1.2" ::
   ("com.typesafe.scala-logging" %% "scala-logging" % "3.1.0" exclude("org.slf4j", "slf4j-api")) :: Nil
@@ -216,7 +220,7 @@ lazy val common = project.settings(bintraySetting: _*).settings(
   description := "Vamp common",
   name := "vamp-common",
   formatting,
-  libraryDependencies ++= akka ++ spray ++ dispatch ++ json4s ++ snakeYaml ++ logging ++ testing
+  libraryDependencies ++= akka ++ spray ++ dispatch ++ json4s ++ snakeYaml ++ kamon ++ logging ++ testing
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 // Java version and encoding requirements

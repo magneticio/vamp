@@ -2,12 +2,12 @@ package io.vamp.workflow_driver
 
 import akka.actor.ActorSystem
 import io.vamp.common.config.Config
-import io.vamp.common.akka.{ Bootstrap, IoC }
+import io.vamp.common.akka.{ ActorBootstrap, IoC }
 import io.vamp.workflow_driver.notification.{ UnsupportedWorkflowDriverError, WorkflowDriverNotificationProvider }
 
 import scala.language.postfixOps
 
-object WorkflowDriverBootstrap extends Bootstrap with WorkflowDriverNotificationProvider {
+object WorkflowDriverBootstrap extends ActorBootstrap with WorkflowDriverNotificationProvider {
 
   def createActors(implicit actorSystem: ActorSystem) = {
 

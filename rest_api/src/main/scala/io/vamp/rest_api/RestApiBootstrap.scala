@@ -4,10 +4,10 @@ import akka.actor.ActorSystem
 import akka.io.IO
 import akka.pattern.ask
 import io.vamp.common.config.Config
-import io.vamp.common.akka.{ Bootstrap, IoC }
+import io.vamp.common.akka.{ ActorBootstrap, IoC }
 import spray.can.Http
 
-object RestApiBootstrap extends Bootstrap {
+object RestApiBootstrap extends ActorBootstrap {
 
   def createActors(implicit actorSystem: ActorSystem) = IoC.createActor[HttpServerActor] :: Nil
 
