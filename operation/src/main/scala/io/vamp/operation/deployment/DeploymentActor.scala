@@ -110,7 +110,7 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
 }
 
 trait BlueprintSupport extends DeploymentValidator with NameValidator with BlueprintGatewayHelper with ArtifactExpansionSupport {
-  this: ActorSystemProvider with ArtifactPaginationSupport with ExecutionContextProvider with NotificationProvider ⇒
+  this: DeploymentTraitResolver with ActorSystemProvider with ArtifactPaginationSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   def deploymentFor(name: String, create: Boolean = false): Future[Deployment] = {
     if (!create) {
@@ -165,7 +165,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
 }
 
 trait DeploymentValidator {
-  this: BlueprintGatewayHelper with ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
+  this: BlueprintGatewayHelper with DeploymentTraitResolver with ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   def validateServices: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
     val services = deployment.clusters.flatMap(_.services).filterNot(_.state.intention == Undeploy)
@@ -176,12 +176,12 @@ trait DeploymentValidator {
       case (name, list) if list.size > 1 ⇒ throwException(NonUniqueBreedReferenceError(list.head))
     }
 
-    val breedNames = breeds.map(_.name.toString).toSet
-    breeds.foreach {
-      breed ⇒
-        breed.dependencies.values.find(dependency ⇒ !breedNames.contains(dependency.name)).flatMap {
-          dependency ⇒ throwException(UnresolvedDependencyError(breed, dependency))
-        }
+    breeds.foreach { breed ⇒
+      breed.dependencies.values.find { dependency ⇒
+        !breeds.filterNot(_.name == breed.name).exists(matchDependency(dependency))
+      } flatMap { dependency ⇒
+        throwException(UnresolvedDependencyError(breed, dependency))
+      }
     }
 
     breeds.foreach(BreedReader.validateNonRecursiveDependencies)

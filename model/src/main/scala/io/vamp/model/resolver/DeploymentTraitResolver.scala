@@ -45,9 +45,18 @@ trait DeploymentTraitResolver extends TraitResolver {
     })
   }
 
+  def matchDependency(dependency: Breed)(breed: Breed): Boolean = {
+    if (breed.name != dependency.name) {
+      if (dependency.name.endsWith("*")) {
+        val startsWith = dependency.name.substring(0, dependency.name.length - 1)
+        breed.name.startsWith(startsWith)
+      } else false
+    } else true
+  }
+
   def valueForWithDependencyReplacement(deployment: Deployment, service: DeploymentService)(reference: ValueReference): String = {
     val aliases = service.breed.dependencies.map {
-      case (alias, dependency) ⇒ alias -> (deployment.clusters.find(_.services.exists(_.breed.name == dependency.name)) match {
+      case (alias, dependency) ⇒ alias -> (deployment.clusters.find(_.services.exists(service ⇒ matchDependency(dependency)(service.breed))) match {
         case Some(cluster) ⇒ cluster.name
         case None          ⇒ throwException(UnresolvedDependencyError(service.breed, dependency))
       })
