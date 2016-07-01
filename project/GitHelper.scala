@@ -10,16 +10,16 @@ object GitHelper {
 
   def headShaProcess = Process("git rev-parse --short HEAD")
 
-  def headSha(): String = headShaProcess.!!.stripLineEnd
+  def describe: String = Process("git describe").!!.stripLineEnd
 
-  def commitRangeCount(start: String, end: String): Int =
-    Process(s"git rev-list ${start}..${end}").lines.size
+  def headSha: String = headShaProcess.!!.stripLineEnd
 
-  def revisionFromBranch(branch: String, commitish: String): Int = {
+  def commitRangeCount(start: String, end: String): Int = Process(s"git rev-list $start..$end").lines.size
+
+  def revisionFromBranch(branch: String, commit: String): Int = {
     abbrevRefProcess.!!.stripLineEnd match {
-      case `branch` => 0
-      case _ =>
-        commitRangeCount(branch, commitish)
+      case `branch` ⇒ 0
+      case _        ⇒ commitRangeCount(branch, commit)
     }
   }
 }

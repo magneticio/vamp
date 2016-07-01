@@ -8,9 +8,9 @@ organization in ThisBuild := "io.vamp"
 
 name := """vamp"""
 
-version in ThisBuild := "0.8.5" + VersionHelper.versionSuffix
+version in ThisBuild := VersionHelper.versionByTag // version based on "git describe"
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.8"
 
 scalaVersion in ThisBuild := scalaVersion.value
 
