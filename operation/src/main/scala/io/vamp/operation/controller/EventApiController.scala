@@ -23,6 +23,8 @@ import scala.language.{ existentials, postfixOps }
 trait EventApiController {
   this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
 
+  private val tagParameter = "tag"
+
   def publish(request: String)(implicit timeout: Timeout) = {
     val event = EventReader.read(request)
     actorFor[PulseActor] ? Publish(event) map (_ ⇒ event)
@@ -31,7 +33,7 @@ trait EventApiController {
   def query(parameters: Map[String, List[String]], request: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = {
 
     val query = if (request.isEmpty) {
-      EventQuery(parameters.getOrElse("tags", Nil).toSet, None)
+      EventQuery(parameters.getOrElse(tagParameter, Nil).toSet, None)
     } else {
       EventQueryReader.read(request)
     }
@@ -39,7 +41,16 @@ trait EventApiController {
     actorFor[PulseActor] ? Query(EventRequestEnvelope(query, page, perPage))
   }
 
-  def openStream(to: ActorRef, tags: Set[String]) = actorFor[EventStreamingActor] ! OpenStream(to, tags)
+  def openStream(channel: ActorRef, parameters: Map[String, List[String]], request: String) = {
+
+    val tags = if (request.isEmpty) {
+      parameters.getOrElse(tagParameter, Nil).toSet
+    } else {
+      EventQueryReader.read(request).tags
+    }
+
+    actorFor[EventStreamingActor] ! OpenStream(channel, tags)
+  }
 
   def closeStream(to: ActorRef) = actorFor[EventStreamingActor] ! CloseStream(to)
 }

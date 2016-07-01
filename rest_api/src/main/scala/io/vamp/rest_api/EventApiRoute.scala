@@ -45,22 +45,21 @@ trait EventApiRoute extends EventApiController {
     pathEndOrSingleSlash {
       get {
         parameterMultiMap { parameters ⇒
-          sse { channel ⇒ openStream(channel, parameters.getOrElse("tags", Nil).toSet) }
-        }
-      } ~ post {
-        entity(as[String]) { request ⇒
-          sse { channel ⇒ openStream(channel, if (request.isEmpty) Set[String]() else EventQueryReader.read(request).tags) }
+          entity(as[String]) { request ⇒
+            sse { channel ⇒ openStream(channel, parameters, request) }
+          }
         }
       }
     }
   }
 
-  override def openStream(channel: ActorRef, tags: Set[String]) = {
+  override def openStream(channel: ActorRef, parameters: Map[String, List[String]], request: String) = {
     log.debug("SSE connection open.")
     registerClosedHandler(channel, { () ⇒
       closeStream(channel)
       log.debug("SSE connection closed.")
     })
-    super.openStream(channel, tags)
+
+    super.openStream(channel, parameters, request)
   }
 }
