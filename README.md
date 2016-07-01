@@ -1,4 +1,4 @@
-![logo](http://vamp.io/img/vamp_logo_blue_circle.svg)
+[![logo](http://vamp.io/img/vamp_logo_blue_circle.svg)](http://vamp.io/img/vamp_logo_blue_circle.svg)
 
 [Website](http://vamp.io) |
 [Documentation](http://vamp.io/documentation/) |
