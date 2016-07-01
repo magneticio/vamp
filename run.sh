@@ -5,11 +5,33 @@ dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 reset=`tput sgr0`
 red=`tput setaf 1`
 green=`tput setaf 2`
+yellow=`tput setaf 3`
 
 jar=$(find "${dir}/bootstrap/target/scala-2.11" -name 'vamp-assembly-*.jar' | sort | tail -1)
 
+for key in "$@"
+do
+case ${key} in
+    -h|--help)
+    echo
+    echo "${green}Usage: $0 [options] ${reset}"
+    echo
+    echo "${yellow}  -h|--help   ${green}show help message end exit${reset}"
+    echo "${yellow}  -c|--clean  ${green}rebuild Vamp binary before run${reset}"
+    echo
+    exit 0
+    ;;
+    -c|--clean)
+    rm ${jar} 2> /dev/null
+    jar=""
+    ;;
+    *)
+    ;;
+esac
+done
+
 if [ -z "${jar}" ]; then
-    echo "${green}Vamp binary not found, building Vamp...${reset}"
+    echo "${green}Building Vamp binary...${reset}"
     sbt test assembly
     response_code=$?
     if [[ ${response_code} != 0 ]]; then
