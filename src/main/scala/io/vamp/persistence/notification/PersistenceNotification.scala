@@ -2,7 +2,6 @@ package io.vamp.persistence.notification
 
 import io.vamp.common.akka.RequestError
 import io.vamp.common.notification.{ ErrorNotification, Notification }
-import io.vamp.model.artifact.Artifact
 
 import scala.language.existentials
 
