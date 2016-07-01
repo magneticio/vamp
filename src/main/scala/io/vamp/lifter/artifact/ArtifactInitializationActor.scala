@@ -15,7 +15,6 @@ import io.vamp.persistence.db.PersistenceActor
 
 import scala.concurrent.Future
 import scala.io.Source
-import scala.language.postfixOps
 
 object ArtifactInitializationActor {
 

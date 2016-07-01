@@ -8,8 +8,6 @@ import io.vamp.container_driver.{ ContainerDriverActor, Docker, DockerApp }
 import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.lifter.vga.VgaRancherSynchronizationActor.Synchronize
 
-import scala.language.postfixOps
-
 class VgaRancherSynchronizationSchedulerActor extends SchedulerActor with LifterNotificationProvider {
 
   def tick() = IoC.actorFor[VgaRancherSynchronizationActor] ! Synchronize
