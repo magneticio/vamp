@@ -6,7 +6,6 @@ import io.vamp.model.reader.Percentage
 import org.scalatest.{ FlatSpec, Informer, Matchers }
 
 import scala.io.Source
-import scala.language.postfixOps
 
 trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGatewayMarshaller {
 

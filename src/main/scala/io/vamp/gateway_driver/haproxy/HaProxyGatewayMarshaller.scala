@@ -4,8 +4,6 @@ import io.vamp.common.config.Config
 import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.model.artifact._
 
-import scala.language.postfixOps
-
 object HaProxyGatewayMarshaller {
 
   val version = Config.string("vamp.gateway-driver.haproxy.version").trim
