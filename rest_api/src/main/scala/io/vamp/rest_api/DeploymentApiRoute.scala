@@ -157,7 +157,7 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
           onSuccess(scale(deployment, cluster, breed)) { result ⇒
             respondWith(OK, result)
           }
-        } ~ (post | put) {
+        } ~ put {
           entity(as[String]) { request ⇒
             onSuccess(scaleUpdate(deployment, cluster, breed, request)) { result ⇒
               respondWith(Accepted, result)
@@ -167,24 +167,7 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
       }
     }
 
-  private val routingRoute =
-    path("deployments" / Segment / "clusters" / Segment / "gateways") { (deployment: String, cluster: String) ⇒
-      pathEndOrSingleSlash {
-        get {
-          onSuccess(routing(deployment, cluster)) { result ⇒
-            respondWith(OK, result)
-          }
-        } ~ (post | put) {
-          entity(as[String]) { request ⇒
-            onSuccess(routingUpdate(deployment, cluster, request)) { result ⇒
-              respondWith(OK, result)
-            }
-          }
-        }
-      }
-    }
-
-  val deploymentRoutes = helperRoutes ~ deploymentRoute ~ slaRoute ~ scaleRoute ~ routingRoute
+  val deploymentRoutes = helperRoutes ~ deploymentRoute ~ slaRoute ~ scaleRoute
 }
 
 trait DevController {

@@ -59,8 +59,6 @@ object DeploymentActor {
 
   case class UpdateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) extends DeploymentMessage
 
-  case class UpdateGateways(deployment: Deployment, cluster: DeploymentCluster, gateways: List[Gateway], source: String) extends DeploymentMessage
-
 }
 
 class DeploymentActor extends CommonSupportForActors with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
@@ -86,10 +84,6 @@ class DeploymentActor extends CommonSupportForActors with BlueprintSupport with 
 
     case UpdateScale(deployment, cluster, service, scale, source) ⇒ reply {
       updateScale(deployment, cluster, service, scale, source)
-    }
-
-    case UpdateGateways(deployment, cluster, routing, source) ⇒ reply {
-      updateInnerGateways(deployment, cluster, routing, source)
     }
 
     case any ⇒ unsupported(UnsupportedDeploymentRequest(any))
@@ -650,10 +644,5 @@ trait DeploymentUpdate {
     lazy val services = cluster.services.map(s ⇒ if (s.breed.name == service.breed.name) service.copy(scale = Some(scale), state = Deploy) else s)
     val clusters = deployment.clusters.map(c ⇒ if (c.name == cluster.name) c.copy(services = services) else c)
     actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
-  }
-
-  def updateInnerGateways(deployment: Deployment, cluster: DeploymentCluster, gateways: List[Gateway], source: String) = {
-    val clusters = deployment.clusters.map(c ⇒ if (c.name == cluster.name) c.copy(gateways = gateways) else c)
-    actorFor[PersistenceActor] ? PersistenceActor.Update(validateInnerGateways(deployment.copy(clusters = clusters)), Some(source))
   }
 }

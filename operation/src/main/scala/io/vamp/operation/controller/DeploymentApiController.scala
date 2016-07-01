@@ -14,7 +14,6 @@ import io.vamp.persistence.notification.PersistenceOperationFailure
 
 import scala.concurrent.Future
 import scala.language.{ existentials, postfixOps }
-import scala.util.Try
 
 trait DeploymentApiController extends ArtifactShrinkage {
   this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
@@ -150,21 +149,6 @@ trait DeploymentApiController extends ArtifactShrinkage {
                 case _                   ⇒ Future(None)
               }
           }
-        }
-      case _ ⇒ Future(None)
-    }
-
-  def routing(deploymentName: String, clusterName: String)(implicit timeout: Timeout) =
-    (actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result ⇒
-      result.asInstanceOf[Option[Deployment]].flatMap(deployment ⇒ deployment.clusters.find(_.name == clusterName).flatMap(cluster ⇒ Some(cluster.gateways)))
-    }
-
-  def routingUpdate(deploymentName: String, clusterName: String, request: String)(implicit timeout: Timeout) =
-    actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment]) flatMap {
-      case Some(deployment: Deployment) ⇒
-        deployment.clusters.find(_.name == clusterName) match {
-          case None          ⇒ Future(None)
-          case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateGateways(deployment, cluster, new InnerGatewayReader(acceptPort = false).read(request), request)
         }
       case _ ⇒ Future(None)
     }
