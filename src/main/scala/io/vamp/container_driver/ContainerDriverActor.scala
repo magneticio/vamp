@@ -1,6 +1,5 @@
 package io.vamp.container_driver
 
-import akka.util.Timeout
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
 import io.vamp.common.notification.Notification
