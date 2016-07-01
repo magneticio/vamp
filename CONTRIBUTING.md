@@ -1,4 +1,4 @@
-[![logo](http://vamp.io/img/vamp_logo_blue.svg)](http://vamp.io/img/vamp_logo_blue.svg)
+![](https://raw.githubusercontent.com/magneticio/vamp.io/master/static/img/vamp_logo_blue_circle.png)
 
 Vamp is actively developed by [Magnetic.io](http://magnetic.io) but is an open source project. 
 We encourage anyone to pitch in with pull requests, issues etc.
