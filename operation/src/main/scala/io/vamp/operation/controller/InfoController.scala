@@ -16,7 +16,6 @@ import io.vamp.pulse.PulseActor
 import io.vamp.workflow_driver.WorkflowDriverActor
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 case class InfoMessage(message: String,
                        version: String,

@@ -5,7 +5,6 @@ import io.vamp.common.config.Config
 import io.vamp.common.notification.NotificationProvider
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 trait HealthController extends GatewayDeploymentResolver with EventValue {
   this: ReplyActor with ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒

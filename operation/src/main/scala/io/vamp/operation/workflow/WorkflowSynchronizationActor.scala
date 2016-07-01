@@ -9,8 +9,6 @@ import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, Pers
 import io.vamp.workflow_driver.WorkflowDriverActor
 import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 
-import scala.language.postfixOps
-
 class WorkflowSynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
   def tick() = IoC.actorFor[WorkflowSynchronizationActor] ! SynchronizeAll

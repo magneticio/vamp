@@ -9,7 +9,6 @@ import io.vamp.persistence.kv.AsyncResponse.{ DataResponse, FailedAsyncResponse 
 import org.apache.zookeeper.KeeperException.Code
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
   import KeyValueStoreActor._

@@ -14,7 +14,6 @@ import io.vamp.pulse.ElasticsearchClient
 import io.vamp.pulse.ElasticsearchClient.ElasticsearchGetResponse
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 class KibanaDashboardSchedulerActor extends SchedulerActor with GatewayDriverNotificationProvider {
 

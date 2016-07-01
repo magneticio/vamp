@@ -1,7 +1,6 @@
 package io.vamp.common.util
 
 import scala.collection.JavaConverters._
-import scala.language.postfixOps
 import scala.reflect.runtime.currentMirror
 import scala.reflect.runtime.universe._
 
@@ -37,8 +36,8 @@ object ObjectUtil {
   }
 
   def java: Any ⇒ Any = {
-    case l: List[_]   ⇒ l.map(java) asJava
-    case m: Map[_, _] ⇒ m.map { case (k, v) ⇒ k -> java(v) } asJava
+    case l: List[_]   ⇒ l.map(java).asJava
+    case m: Map[_, _] ⇒ m.map({ case (k, v) ⇒ k -> java(v) }).asJava
     case Some(s)      ⇒ Option(java(s))
     case any          ⇒ any
   }

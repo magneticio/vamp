@@ -6,7 +6,6 @@ import io.vamp.container_driver.{ ContainerDriverActor, Docker }
 import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.lifter.vga.VgaKubernetesSynchronizationActor.Synchronize
 
-import scala.language.postfixOps
 import scala.util.Try
 
 class VgaKubernetesSynchronizationSchedulerActor extends SchedulerActor with LifterNotificationProvider {

@@ -16,8 +16,6 @@ import io.vamp.persistence.operation.{ DeploymentPersistence, DeploymentServiceE
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
 
-import scala.language.postfixOps
-
 object SingleDeploymentSynchronizationActor {
 
   case class Synchronize(containerService: ContainerService)

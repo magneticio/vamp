@@ -5,8 +5,6 @@ import io.vamp.model.artifact._
 import io.vamp.model.notification.{ UnresolvedDependencyInTraitValueError, UnresolvedEnvironmentVariableError, UnresolvedGatewayPortError }
 import io.vamp.model.resolver.TraitResolver
 
-import scala.language.postfixOps
-
 trait BreedTraitValueValidator extends TraitResolver {
   this: NotificationProvider ⇒
 

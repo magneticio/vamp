@@ -19,7 +19,6 @@ import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 object EventRequestEnvelope {
   val maxPerPage = 30

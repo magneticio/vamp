@@ -1,7 +1,7 @@
 package io.vamp.model.artifact
 
-import org.scalatest.prop.{ GeneratorDrivenPropertyChecks, PropertyChecks }
-import org.scalatest.{ OptionValues, Matchers, WordSpec }
+import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import org.scalatest.{ Matchers, OptionValues, WordSpec }
 
 class TraitReferenceSpec extends WordSpec with Matchers with OptionValues with GeneratorDrivenPropertyChecks {
 

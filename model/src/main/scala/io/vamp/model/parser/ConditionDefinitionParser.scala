@@ -2,8 +2,6 @@ package io.vamp.model.parser
 
 import org.parboiled.scala._
 
-import scala.language.implicitConversions
-
 sealed trait ConditionDefinitionOperand extends Operand
 
 case class Host(value: String) extends ConditionDefinitionOperand

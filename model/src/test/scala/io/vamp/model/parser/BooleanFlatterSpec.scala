@@ -4,8 +4,6 @@ import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 
-import scala.language.postfixOps
-
 @RunWith(classOf[JUnitRunner])
 class BooleanFlatterSpec extends FlatSpec with Matchers with BooleanFlatter with BooleanParser {
 

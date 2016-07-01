@@ -10,8 +10,6 @@ import io.vamp.model.artifact._
 import io.vamp.persistence.kv.KeyValueStoreActor
 import io.vamp.pulse.notification.PulseFailureNotifier
 
-import scala.language.postfixOps
-
 object GatewayDriverActor {
 
   sealed trait GatewayDriverMessage

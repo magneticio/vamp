@@ -5,7 +5,6 @@ import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, Repl
 import io.vamp.common.notification.NotificationProvider
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 trait MetricsController extends GatewayDeploymentResolver with EventValue {
   this: ReplyActor with ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒

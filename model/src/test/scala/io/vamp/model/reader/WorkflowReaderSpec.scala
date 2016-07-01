@@ -10,8 +10,6 @@ import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 
-import scala.language.postfixOps
-
 @RunWith(classOf[JUnitRunner])
 class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
 

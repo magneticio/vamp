@@ -19,7 +19,6 @@ import io.vamp.persistence.operation.DeploymentPersistence._
 import io.vamp.persistence.operation._
 
 import scala.concurrent.Future
-import scala.language.{ existentials, postfixOps }
 import scala.util.Try
 
 object DeploymentActor {

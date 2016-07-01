@@ -11,7 +11,6 @@ import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.persistence.operation.InnerGateway
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 import scala.util.Try
 
 object GatewayActor {

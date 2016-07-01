@@ -26,7 +26,6 @@ import spray.http.StatusCodes._
 import spray.http._
 
 import scala.concurrent.Future
-import scala.language.{ existentials, postfixOps }
 
 trait DeploymentApiRoute extends DeploymentApiController with DevController {
   this: ArtifactPaginationSupport with CommonSupportForActors with RestApiBase ⇒

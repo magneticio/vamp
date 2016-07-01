@@ -6,7 +6,6 @@ import io.vamp.model.event.{ Aggregator, Event, EventQuery, TimeRange }
 import io.vamp.model.notification.{ EventTimestampError, UnsupportedAggregatorError }
 import io.vamp.model.validator.EventValidator
 
-import scala.language.postfixOps
 import YamlSourceReader._
 
 object EventReader extends YamlReader[Event] with EventValidator {

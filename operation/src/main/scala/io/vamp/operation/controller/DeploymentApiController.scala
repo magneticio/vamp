@@ -13,7 +13,6 @@ import io.vamp.persistence.db.{ ArtifactResponseEnvelope, ArtifactShrinkage, Per
 import io.vamp.persistence.notification.PersistenceOperationFailure
 
 import scala.concurrent.Future
-import scala.language.{ existentials, postfixOps }
 
 trait DeploymentApiController extends ArtifactShrinkage {
   this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒

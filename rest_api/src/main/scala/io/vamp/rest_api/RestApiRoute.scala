@@ -9,8 +9,6 @@ import io.vamp.persistence.db.ArtifactPaginationSupport
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
 
-import scala.language.{ existentials, postfixOps }
-
 trait RestApiRoute
     extends RestApiBase
     with UiRoute

@@ -10,8 +10,6 @@ import io.vamp.model.event.Event
 import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
 import io.vamp.pulse.PulseActor
 
-import scala.language.postfixOps
-
 object PersistenceArchive {
 
   val archiveCreateTag = "archive:create"

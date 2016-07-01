@@ -18,7 +18,6 @@ import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 class SlaSchedulerActor extends SchedulerActor with OperationNotificationProvider {
   def tick() = IoC.actorFor[SlaActor] ! SlaProcessAll

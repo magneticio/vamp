@@ -6,8 +6,6 @@ import io.vamp.common.config.Config
 import io.vamp.common.http.RestClient
 
 import scala.concurrent.Future
-import scala.language.postfixOps
-import scala.util.Try
 
 class EtcdStoreActor extends KeyValueStoreActor {
 

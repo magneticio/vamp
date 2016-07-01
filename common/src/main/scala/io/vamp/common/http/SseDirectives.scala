@@ -9,7 +9,7 @@ import spray.routing.Directives._
 import spray.routing._
 
 import scala.concurrent.duration._
-import scala.language.{ implicitConversions, postfixOps }
+import scala.language.postfixOps
 
 /**
  * @see https://github.com/siriux/spray_sse

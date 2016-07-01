@@ -18,7 +18,6 @@ import io.vamp.pulse.{ EventRequestEnvelope, EventResponseEnvelope, PulseActor }
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-import scala.language.{ existentials, postfixOps }
 
 trait EventApiController {
   this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒

@@ -6,11 +6,8 @@ import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.config.Config
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.http.SseDirectives._
-import io.vamp.model.reader.EventQueryReader
 import io.vamp.operation.controller.EventApiController
 import spray.http.StatusCodes._
-
-import scala.language.postfixOps
 
 trait EventApiRoute extends EventApiController {
   this: CommonSupportForActors with RestApiBase ⇒

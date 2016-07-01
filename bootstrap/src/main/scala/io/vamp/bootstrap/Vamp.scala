@@ -1,7 +1,5 @@
 package io.vamp.bootstrap
 
-import scala.language.{ implicitConversions, postfixOps }
-
 trait Vamp extends App {
 
   private def bootstrap = {

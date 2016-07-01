@@ -1,6 +1,5 @@
 package io.vamp.model.reader
 
-import scala.language.implicitConversions
 import scala.reflect._
 import scala.util.{ Failure, Try }
 

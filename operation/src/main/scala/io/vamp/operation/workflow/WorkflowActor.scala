@@ -19,7 +19,6 @@ import io.vamp.pulse.{ PulseActor, PulseEventTags }
 import io.vamp.workflow_driver.{ WorkflowDriver, WorkflowDriverActor }
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 object WorkflowActor {
 

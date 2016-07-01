@@ -6,7 +6,6 @@ import org.json4s.JsonAST.{ JObject, JString }
 import org.json4s._
 
 import scala.collection.mutable.ArrayBuffer
-import scala.language.postfixOps
 
 object BlueprintSerializationFormat extends io.vamp.common.json.SerializationFormat {
 

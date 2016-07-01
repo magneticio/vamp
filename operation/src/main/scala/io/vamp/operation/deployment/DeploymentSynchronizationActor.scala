@@ -18,8 +18,6 @@ import io.vamp.operation.deployment.DeploymentSynchronizationActor.SynchronizeAl
 import io.vamp.operation.notification.{ DeploymentServiceError, OperationNotificationProvider }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 
-import scala.language.postfixOps
-
 class DeploymentSynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
   def tick() = IoC.actorFor[DeploymentSynchronizationActor] ! SynchronizeAll

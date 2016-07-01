@@ -11,7 +11,6 @@ import io.vamp.lifter.vga.VgaMarathonSynchronizationActor.SynchronizeAll
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport }
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 class VgaMarathonSynchronizationSchedulerActor extends SchedulerActor with LifterNotificationProvider {
 

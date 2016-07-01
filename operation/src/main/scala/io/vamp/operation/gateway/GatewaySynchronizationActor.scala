@@ -16,7 +16,6 @@ import io.vamp.persistence.operation.{ GatewayDeploymentStatus, GatewayPort, Rou
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 
-import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
 class GatewaySynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {

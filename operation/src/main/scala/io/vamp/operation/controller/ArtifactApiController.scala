@@ -17,7 +17,6 @@ import io.vamp.persistence.db._
 import io.vamp.persistence.notification.PersistenceOperationFailure
 
 import scala.concurrent.Future
-import scala.language.{ existentials, postfixOps }
 import scala.reflect._
 
 trait ArtifactApiController extends ArtifactExpansionSupport {

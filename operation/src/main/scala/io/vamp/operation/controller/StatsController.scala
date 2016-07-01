@@ -12,7 +12,6 @@ import io.vamp.persistence.db.PersistenceActor
 import io.vamp.pulse.PulseActor
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 case class StatsMessage(jvm: JvmVitals, system: Any, persistence: Any, pulse: Any)
 

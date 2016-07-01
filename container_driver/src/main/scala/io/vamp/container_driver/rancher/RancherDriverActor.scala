@@ -15,7 +15,6 @@ import org.apache.commons.codec.Charsets
 import org.json4s.{ DefaultFormats, Extraction, Formats }
 
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 object RancherDriverActor {
 

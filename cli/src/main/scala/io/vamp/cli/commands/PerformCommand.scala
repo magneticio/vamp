@@ -5,8 +5,6 @@ import io.vamp.cli.commandline.ConsoleHelper
 import io.vamp.model.artifact._
 import io.vamp.model.reader._
 
-import scala.language.{ implicitConversions, postfixOps }
-
 object PerformCommand extends Generate {
 
   import ConsoleHelper._

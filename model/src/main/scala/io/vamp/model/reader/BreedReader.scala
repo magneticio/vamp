@@ -5,8 +5,6 @@ import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.validator.BreedTraitValueValidator
 
-import scala.language.postfixOps
-
 object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader with ArgumentReader with BreedTraitValueValidator {
 
   override def readReference: PartialFunction[Any, Breed] = {

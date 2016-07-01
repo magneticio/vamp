@@ -7,7 +7,6 @@ import io.vamp.model.artifact.DeploymentService.State.Intention.StateIntentionTy
 import io.vamp.model.artifact.DeploymentService.State.Step.{ Done, Initiated }
 
 import scala.language.implicitConversions
-import scala.language.postfixOps
 
 object DeploymentService {
 

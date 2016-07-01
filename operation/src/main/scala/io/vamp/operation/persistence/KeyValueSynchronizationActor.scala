@@ -10,7 +10,6 @@ import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, Pers
 import io.vamp.persistence.kv.KeyValueStoreActor
 import org.json4s.native.Serialization._
 
-import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Success
 

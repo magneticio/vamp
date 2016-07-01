@@ -17,7 +17,6 @@ import io.vamp.pulse.PulseActor
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-import scala.language.postfixOps
 
 class EscalationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
