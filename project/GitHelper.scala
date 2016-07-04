@@ -10,7 +10,7 @@ object GitHelper {
 
   def headShaProcess = Process("git rev-parse --short HEAD")
 
-  def describe: String = Process("git describe").!!.stripLineEnd
+  def describe: String = Process("git describe --tags").!!.stripLineEnd
 
   def headSha: String = headShaProcess.!!.stripLineEnd
 

@@ -23,7 +23,7 @@ function publish {
    https://api.bintray.com/content/magnetic-io/downloads/${PACKAGE}/${DISTRIBUTABLE}
 }
 
-version="$( git describe )"
+version="$( git describe --tags)"
 
 vamp_jar=vamp-${version}.jar
 vamp_cli_jar=vamp-cli.jar

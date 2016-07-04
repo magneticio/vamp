@@ -21,7 +21,7 @@ script:
 - "sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M clean coverage test"
 - find $HOME/.sbt -name "*.lock" | xargs rm
 after_success:
-- if [ -n "TRAVIS_TAG" ] && [ "$(git describe)" = "$(git describe --abbrev=0)" ]; then sh "$TRAVIS_BUILD_DIR/.travis-ci-publish.sh"; fi
+- if [ -n "TRAVIS_TAG" ] && [ "$(git describe --tags)" = "$(git describe --abbrev=0)" ]; then sh "$TRAVIS_BUILD_DIR/.travis-ci-publish.sh"; fi
 notifications:
   slack:
     secure: PtU8WrGwOkhyzaSlfUC+JkSZbwkhNQYFll4gWYueSxjC2EXCSo3GyWoZs3jlCmjVIhyiA32Wh/BduuGH6CUNbjqx+DQH+WYAgsO2/u2NtRPT87wP0DY0X9c7+OBIKZfnCsfIgWlYSrW3WKjiOFAZvu40ihgV/3ZUADF0n5UyUss=
