@@ -45,6 +45,7 @@ class VgaKubernetesSynchronizationActor extends VgaSynchronizationActor {
       cpu = cpu,
       mem = mem,
       serviceType = kubernetesServiceType,
-      args = if (command.size > 1) command.tail else Nil)
+      args = command
+    )
   }
 }
