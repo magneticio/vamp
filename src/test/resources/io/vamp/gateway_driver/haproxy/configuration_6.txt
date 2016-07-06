@@ -18,7 +18,7 @@ frontend o_d2b6fbfab1d760f6bbf9ec3cec297e5f477b778e
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
-  bind unix@/opt/vamp/o_d2b6fbfab1d760f6bbf9ec3cec297e5f477b778e.sock accept-proxy 
+  bind unix@/usr/local/vamp/o_d2b6fbfab1d760f6bbf9ec3cec297e5f477b778e.sock accept-proxy
 
   mode http
 
@@ -31,7 +31,7 @@ frontend 82fdbb8655a82a4fc1e34b2abc80ef672d041367
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
-  bind unix@/opt/vamp/82fdbb8655a82a4fc1e34b2abc80ef672d041367.sock accept-proxy 
+  bind unix@/usr/local/vamp/82fdbb8655a82a4fc1e34b2abc80ef672d041367.sock accept-proxy
 
   mode http
 
@@ -56,7 +56,7 @@ frontend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
-  bind unix@/opt/vamp/o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb.sock accept-proxy 
+  bind unix@/usr/local/vamp/o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb.sock accept-proxy
 
   mode http
 
@@ -69,7 +69,7 @@ frontend fd3538270c3c3c288a61dab21c82bdd7750e8fa4
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
-  bind unix@/opt/vamp/fd3538270c3c3c288a61dab21c82bdd7750e8fa4.sock accept-proxy 
+  bind unix@/usr/local/vamp/fd3538270c3c3c288a61dab21c82bdd7750e8fa4.sock accept-proxy
 
   mode http
 
@@ -94,7 +94,7 @@ frontend o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
-  bind unix@/opt/vamp/o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c.sock accept-proxy 
+  bind unix@/usr/local/vamp/o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c.sock accept-proxy
 
   mode http
 
@@ -107,7 +107,7 @@ frontend a0f840f005123ef8acf4b0f9586420a540f8caf8
   option httplog
   log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
-  bind unix@/opt/vamp/a0f840f005123ef8acf4b0f9586420a540f8caf8.sock accept-proxy 
+  bind unix@/usr/local/vamp/a0f840f005123ef8acf4b0f9586420a540f8caf8.sock accept-proxy
 
   mode http
 
@@ -120,7 +120,7 @@ backend o_d2b6fbfab1d760f6bbf9ec3cec297e5f477b778e
   balance roundrobin
 
   # server: vamp/backend/port//vamp/sava/sava-backend:1.3.0/port
-  server 82fdbb8655a82a4fc1e34b2abc80ef672d041367 unix@/opt/vamp/82fdbb8655a82a4fc1e34b2abc80ef672d041367.sock send-proxy weight 100 check
+  server 82fdbb8655a82a4fc1e34b2abc80ef672d041367 unix@/usr/local/vamp/82fdbb8655a82a4fc1e34b2abc80ef672d041367.sock send-proxy weight 100 check
 
 # backend: vamp/backend/port//vamp/sava/sava-backend:1.3.0/port
 backend 82fdbb8655a82a4fc1e34b2abc80ef672d041367
@@ -138,7 +138,7 @@ backend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   balance roundrobin
 
   # server: vamp/sava/port/_//vamp/sava/sava-frontend:1.3.0/port
-  server fd3538270c3c3c288a61dab21c82bdd7750e8fa4 unix@/opt/vamp/fd3538270c3c3c288a61dab21c82bdd7750e8fa4.sock send-proxy weight 100 check
+  server fd3538270c3c3c288a61dab21c82bdd7750e8fa4 unix@/usr/local/vamp/fd3538270c3c3c288a61dab21c82bdd7750e8fa4.sock send-proxy weight 100 check
 
 # backend: vamp/sava/port/_//vamp/sava/sava-frontend:1.3.0/port
 backend fd3538270c3c3c288a61dab21c82bdd7750e8fa4
@@ -156,7 +156,7 @@ backend o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c
   balance roundrobin
 
   # server: vamp/port/_/_//vamp/sava/port/_
-  server a0f840f005123ef8acf4b0f9586420a540f8caf8 unix@/opt/vamp/a0f840f005123ef8acf4b0f9586420a540f8caf8.sock send-proxy weight 100 check
+  server a0f840f005123ef8acf4b0f9586420a540f8caf8 unix@/usr/local/vamp/a0f840f005123ef8acf4b0f9586420a540f8caf8.sock send-proxy weight 100 check
 
 # backend: vamp/port/_/_//vamp/sava/port/_
 backend a0f840f005123ef8acf4b0f9586420a540f8caf8
