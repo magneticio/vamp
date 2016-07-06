@@ -582,12 +582,11 @@ trait DeploymentSlicer extends DeploymentOperation {
         val newClusters = stable.clusters.map(cluster ⇒
           blueprint.clusters.find(_.name == cluster.name).map { bpc ⇒
 
-            bpc.services.foreach { service ⇒
-              if (!validateOnly) resetServiceArtifacts(stable, bpc, service)
-            }
-
             val services = cluster.services.map { service ⇒
-              service.copy(state = if (bpc.services.exists(service.breed.name == _.breed.name)) Undeploy else service.state)
+              if (bpc.services.exists(service.breed.name == _.breed.name)) {
+                if (!validateOnly) resetServiceArtifacts(stable, bpc, service, Undeploy)
+                service.copy(state = Undeploy)
+              } else service
             }
 
             val routing = cluster.gateways.map { gateway ⇒
