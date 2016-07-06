@@ -13,6 +13,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
 
   override lazy val version = "1.6"
 
+  override lazy val socketPath = "/usr/local/vamp"
+
   override def info = new Informer {
     override def apply(message: String, payload: Option[Any]): Unit = {}
   }

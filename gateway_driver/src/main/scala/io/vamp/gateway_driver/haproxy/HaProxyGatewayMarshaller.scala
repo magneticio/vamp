@@ -8,12 +8,12 @@ object HaProxyGatewayMarshaller {
 
   val version = Config.string("vamp.gateway-driver.haproxy.version").trim
 
+  val socketPath = Config.string("vamp.gateway-driver.haproxy.socket-path").trim
+
   val path: List[String] = "haproxy" :: version :: Nil
 }
 
 trait HaProxyGatewayMarshaller extends GatewayMarshaller {
-
-  private val socketPath = "/opt/vamp"
 
   private val other = "o_"
 
@@ -21,7 +21,9 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   private val aclResolver = new HaProxyAclResolver() {}
 
-  lazy val version = HaProxyGatewayMarshaller.version
+  protected lazy val version = HaProxyGatewayMarshaller.version
+
+  protected lazy val socketPath = HaProxyGatewayMarshaller.socketPath
 
   override lazy val path = HaProxyGatewayMarshaller.path
 
