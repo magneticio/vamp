@@ -25,7 +25,7 @@ class LoggingBootstrap extends Bootstrap {
          |╚██╗ ██╔╝██╔══██║██║╚██╔╝██║██╔═══╝
          | ╚████╔╝ ██║  ██║██║ ╚═╝ ██║██║
          |  ╚═══╝  ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝
-         |                       ${if (Model.version.isDefined) s"version ${Model.version.get}" else ""}
+         |                       ${if (Model.version.nonEmpty) s"version ${Model.version}" else ""}
          |                       by magnetic.io
          |
     """.stripMargin)

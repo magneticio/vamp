@@ -53,7 +53,7 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
 
     retrieve(actors, actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout) map { result ⇒
       InfoMessage(infoMessage,
-        Model.version.orNull,
+        Model.version,
         Model.uuid,
         Model.runningSince,
         jvmVitals(),
