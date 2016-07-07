@@ -16,7 +16,7 @@ class KamonMetricsActor extends KamonSupport with CommonSupportForActors with Op
 
     case tick: TickMetricSnapshot ⇒ metricSnapshot(tick)
 
-    case StatsRequest             ⇒ reply(Future.successful(SystemMetrics(cpu, network, processCpu, contextSwitches)))
+    case StatsRequest             ⇒ reply(Future.successful(None))
   }
 
   override def preStart() = subscriptions.foreach(subscription ⇒ Kamon.metrics.subscribe(subscription, "**", self, permanently = true))

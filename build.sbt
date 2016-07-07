@@ -90,7 +90,6 @@ val json4s = "org.json4s" %% "json4s-native" % "3.2.11" ::
 val snakeYaml = "org.yaml" % "snakeyaml" % "1.16" :: Nil
 
 val kamon = "io.kamon" %% "kamon-core" % "0.6.1" ::
-  "io.kamon" %% "kamon-system-metrics" % "0.6.1" ::
   "org.slf4j" % "jul-to-slf4j" % "1.7.21" :: Nil
 
 val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
