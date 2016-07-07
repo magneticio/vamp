@@ -32,7 +32,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
          |          "image": "${ds.docker.image}",
          |          "name": "${ds.name}",
          |          "ports": [${ds.docker.portMappings.map(pm ⇒ s"""{"containerPort": ${pm.containerPort}, "name": "p${pm.containerPort}"}""").mkString(", ")}],
-         |          "cmd": [${ds.cmd.map(str ⇒ s""""$str"""").mkString(", ")}],
+         |          "command": [${ds.command.map(str ⇒ s""""$str"""").mkString(", ")}],
          |          "resources": {
          |            "request": {
          |              "cpu": ${ds.cpu},

@@ -45,7 +45,7 @@ class VgaKubernetesSynchronizationActor extends VgaSynchronizationActor {
       cpu = cpu,
       mem = mem,
       serviceType = kubernetesServiceType,
-      cmd = command
+      command = command
     )
   }
 }
