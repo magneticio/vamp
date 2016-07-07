@@ -60,7 +60,7 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
           portMappings = Nil,
           parameters = Nil,
           privileged = true,
-          network = "BRIDGE"
+          network = WorkflowDriver.network
         )
       ),
       instances = scale.instances,

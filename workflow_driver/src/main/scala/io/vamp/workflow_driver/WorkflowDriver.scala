@@ -15,6 +15,8 @@ object WorkflowDriver {
 
   val vampUrl = config.string("vamp-url")
 
+  val network = config.string("network")
+
   def path(scheduledWorkflow: ScheduledWorkflow, workflow: Boolean = false) = {
     if (workflow) "scheduled-workflow" :: scheduledWorkflow.name :: "workflow" :: Nil else "scheduled-workflow" :: scheduledWorkflow.name :: Nil
   }
