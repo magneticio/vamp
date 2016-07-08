@@ -3,7 +3,6 @@ package io.vamp.lifter.vga
 import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp }
-import io.vamp.container_driver.rancher.LaunchConfig
 import io.vamp.container_driver.{ ContainerDriverActor, Docker, DockerApp }
 import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.lifter.vga.VgaRancherSynchronizationActor.Synchronize
@@ -27,15 +26,15 @@ class VgaRancherSynchronizationActor extends VgaSynchronizationActor {
 
   def receive = {
     case Synchronize ⇒ synchronize()
-    case _           ⇒
+    case _ ⇒
   }
 
   private def synchronize() = {
     val actor = IoC.actorFor[ContainerDriverActor]
     actor ? RetrieveDockerApp(id) map {
       case Some(_) ⇒
-      case None    ⇒ actor ! DeployDockerApp(request, update = false)
-      case _       ⇒
+      case None ⇒ actor ! DeployDockerApp(request, update = false)
+      case _ ⇒
     }
   }
 
@@ -48,7 +47,7 @@ class VgaRancherSynchronizationActor extends VgaSynchronizationActor {
           portMappings = ports,
           parameters = Nil,
           privileged = true,
-          network = LaunchConfig.defaultNetworkMode
+          network = network
         )
       ),
       instances = 1,

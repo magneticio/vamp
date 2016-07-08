@@ -79,7 +79,7 @@ class VgaMarathonSynchronizationActor extends VgaSynchronizationActor with Artif
           portMappings = ports,
           parameters = Nil,
           privileged = true,
-          network = "HOST"
+          network = network
         )
       ),
       instances = instances,
