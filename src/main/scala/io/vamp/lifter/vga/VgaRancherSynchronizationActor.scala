@@ -26,15 +26,15 @@ class VgaRancherSynchronizationActor extends VgaSynchronizationActor {
 
   def receive = {
     case Synchronize ⇒ synchronize()
-    case _ ⇒
+    case _           ⇒
   }
 
   private def synchronize() = {
     val actor = IoC.actorFor[ContainerDriverActor]
     actor ? RetrieveDockerApp(id) map {
       case Some(_) ⇒
-      case None ⇒ actor ! DeployDockerApp(request, update = false)
-      case _ ⇒
+      case None    ⇒ actor ! DeployDockerApp(request, update = false)
+      case _       ⇒
     }
   }
 
