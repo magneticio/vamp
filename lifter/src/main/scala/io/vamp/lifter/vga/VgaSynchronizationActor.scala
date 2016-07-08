@@ -16,6 +16,7 @@ trait VgaSynchronizationActor extends CommonSupportForActors with LifterNotifica
 
   protected val id = config.string("id")
   protected val image = config.string("container.image")
+  protected val network = config.string("container.network")
   protected val command = config.stringList("container.command")
   protected val ports = config.intList("container.ports").map(port ⇒ DockerPortMapping(port, "tcp", port))
 }

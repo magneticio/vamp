@@ -8,10 +8,6 @@ case class RancherResponse(id: String, status: Int, links: Option[List[String]])
 
 case class Stack(state: Option[String], id: Option[String], name: String, actions: Option[Map[String, String]])
 
-object LaunchConfig {
-  val defaultNetworkMode = "managed"
-}
-
 case class LaunchConfig(
   imageUuid: String,
   labels: Option[Map[String, String]],
@@ -19,7 +15,7 @@ case class LaunchConfig(
   startOnCreate: Boolean = false,
   cpuShares: Option[Int] = None,
   memoryMb: Option[Int] = None,
-  networkMode: String = LaunchConfig.defaultNetworkMode,
+  networkMode: String,
   ports: List[String] = Nil,
   command: List[String] = Nil,
   environment: Map[String, String] = Map())

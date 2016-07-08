@@ -40,7 +40,7 @@ class VgaKubernetesSynchronizationActor extends VgaSynchronizationActor {
         portMappings = ports,
         parameters = Nil,
         privileged = true,
-        network = "HOST"
+        network = network
       ),
       cpu = cpu,
       mem = mem,
