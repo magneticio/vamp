@@ -34,10 +34,12 @@ class ArtifactInitializationActor extends ArtifactApiController with CommonSuppo
 
   private val postpone = config.duration("postpone")
 
+  private val files = config.stringList("files")
+
   private val resources = config.stringList("resources")
 
   def receive = {
-    case Load ⇒ load()
+    case Load ⇒ (loadFiles andThen loadResources)(Unit)
     case _    ⇒
   }
 
@@ -49,24 +51,34 @@ class ArtifactInitializationActor extends ArtifactApiController with CommonSuppo
     }
   }
 
-  private def load() = resources.map(Paths.get(_)).foreach { path ⇒
+  private def loadFiles: Unit ⇒ Unit = { _ ⇒
+    files.foreach { file ⇒
+      log.info(s"Creating/updating artifacts using file: $file")
+      updateArtifacts(Source.fromFile(file).mkString, validateOnly = false)
+    }
+  }
 
-    val `type` = path.getParent.toString
-    val fileName = path.getFileName.toString
-    val name = fileName.substring(0, fileName.lastIndexOf("."))
-    val source = Source.fromInputStream(getClass.getResourceAsStream(path.toString)).mkString
+  private def loadResources: Unit ⇒ Unit = { _ ⇒
 
-    exists(`type`, name).map {
-      case true ⇒
-        if (force) {
-          log.info(s"Updating artifact: ${`type`}/$name")
+    resources.map(Paths.get(_)).foreach { path ⇒
+
+      val `type` = path.getParent.toString
+      val fileName = path.getFileName.toString
+      val name = fileName.substring(0, fileName.lastIndexOf("."))
+      val source = Source.fromInputStream(getClass.getResourceAsStream(path.toString)).mkString
+
+      exists(`type`, name).map {
+        case true ⇒
+          if (force) {
+            log.info(s"Updating artifact: ${`type`}/$name")
+            create(`type`, fileName, name, source)
+          } else
+            log.info(s"Ignoring creation of artifact because it exists: ${`type`}/$name")
+
+        case false ⇒
+          log.info(s"Creating artifact: ${`type`}/$name")
           create(`type`, fileName, name, source)
-        } else
-          log.info(s"Ignoring creation of artifact because it exists: ${`type`}/$name")
-
-      case false ⇒
-        log.info(s"Creating artifact: ${`type`}/$name")
-        create(`type`, fileName, name, source)
+      }
     }
   }
 
