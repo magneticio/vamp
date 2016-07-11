@@ -5,172 +5,146 @@ import java.net.URLDecoder
 import _root_.io.vamp.common.notification.NotificationProvider
 import _root_.io.vamp.operation.gateway.GatewayActor
 import _root_.io.vamp.operation.workflow.WorkflowActor
+import _root_.io.vamp.operation.workflow.WorkflowActor.Schedule
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.model.artifact._
-import io.vamp.model.reader._
+import io.vamp.model.reader.{ YamlReader, _ }
 import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
 import io.vamp.operation.notification.{ InconsistentArtifactName, UnexpectedArtifact }
 import io.vamp.persistence.db._
 import io.vamp.persistence.notification.PersistenceOperationFailure
 
 import scala.concurrent.Future
-import scala.reflect._
 
 trait ArtifactApiController extends ArtifactExpansionSupport {
   this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
 
-  def background(artifact: String): Boolean = mapping.get(artifact).exists(_.background)
+  def background(artifact: String): Boolean = !crud(artifact)
 
-  def allArtifacts(artifact: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[ArtifactResponseEnvelope] = mapping.get(artifact) match {
-    case Some(controller) ⇒ controller.all(page, perPage, expandReferences, onlyReferences)
-    case None             ⇒ throwException(UnexpectedArtifact(artifact))
-  }
-
-  def createArtifact(artifact: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) ⇒ controller.create(content, validateOnly)
-    case None             ⇒ throwException(UnexpectedArtifact(artifact))
-  }
-
-  def readArtifact(artifact: String, name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) ⇒ controller.read(name, expandReferences, onlyReferences)
-    case None             ⇒ throwException(UnexpectedArtifact(artifact))
-  }
-
-  def updateArtifact(artifact: String, name: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) ⇒ controller.update(name, content, validateOnly)
-    case None             ⇒ throwException(UnexpectedArtifact(artifact))
-  }
-
-  def deleteArtifact(artifact: String, name: String, content: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = mapping.get(artifact) match {
-    case Some(controller) ⇒ controller.delete(name, validateOnly)
-    case None             ⇒ throwException(UnexpectedArtifact(artifact))
-  }
-
-  private val mapping: Map[String, Handler] = Map() +
-    ("breeds" -> new PersistenceHandler[Breed](BreedReader)) +
-    ("blueprints" -> new PersistenceHandler[Blueprint](BlueprintReader)) +
-    ("slas" -> new PersistenceHandler[Sla](SlaReader)) +
-    ("scales" -> new PersistenceHandler[Scale](ScaleReader)) +
-    ("escalations" -> new PersistenceHandler[Escalation](EscalationReader)) +
-    ("routes" -> new PersistenceHandler[Route](RouteReader)) +
-    ("conditions" -> new PersistenceHandler[Condition](ConditionReader)) +
-    ("rewrites" -> new PersistenceHandler[Rewrite](RewriteReader)) +
-    ("workflows" -> new PersistenceHandler[Workflow](WorkflowReader)) +
-    ("scheduled-workflows" -> new ScheduledWorkflowHandler()) +
-    ("gateways" -> new GatewayHandler() {
-      override def background = true
-    }) +
-    // workaround for None response.
-    ("deployments" -> new Handler())
-
-  class Handler {
-
-    def all(page: Int, perPage: Int, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[ArtifactResponseEnvelope] = Future(ArtifactResponseEnvelope(Nil, 0, 1, ArtifactResponseEnvelope.maxPerPage))
-
-    def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = throwException(UnexpectedArtifact(source))
-
-    def read(name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[Any] = Future(None)
-
-    def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = throwException(UnexpectedArtifact(source))
-
-    def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = Future(None)
-
-    def background: Boolean = false
-  }
-
-  class PersistenceHandler[T <: Artifact: ClassTag](unmarshaller: YamlReader[T]) extends Handler {
-
-    val `type` = classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]]
-
-    override def all(page: Int, perPage: Int, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = {
-      actorFor[PersistenceActor] ? PersistenceActor.All(`type`, page, perPage, expandReferences, onlyReferences) map {
+  def allArtifacts(kind: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[ArtifactResponseEnvelope] = `type`(kind) match {
+    case (t, _) if t == classOf[Deployment] ⇒ Future(ArtifactResponseEnvelope(Nil, 0, 1, ArtifactResponseEnvelope.maxPerPage))
+    case (t, _) ⇒
+      actorFor[PersistenceActor] ? PersistenceActor.All(t, page, perPage, expandReferences, onlyReferences) map {
         case envelope: ArtifactResponseEnvelope ⇒ envelope
         case other                              ⇒ throwException(PersistenceOperationFailure(other))
       }
-    }
-
-    override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
-      (unmarshal andThen validate)(source) flatMap {
-        case artifact ⇒ if (validateOnly) Future(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Create(artifact, Some(source))
-      }
-    }
-
-    override def read(name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = {
-      actorFor[PersistenceActor] ? PersistenceActor.Read(name, `type`, expandReferences, onlyReferences)
-    }
-
-    override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
-      (unmarshal andThen validate)(source) flatMap {
-        case artifact ⇒
-          if (name != artifact.name)
-            throwException(InconsistentArtifactName(name, artifact))
-
-          if (validateOnly) Future(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Update(artifact, Some(source))
-      }
-    }
-
-    override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
-      if (validateOnly) Future(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, `type`)
-    }
-
-    protected def unmarshal: (String ⇒ T) = { (source: String) ⇒ unmarshaller.read(source) }
-
-    protected def validate: (T ⇒ Future[T]) = { (artifact: T) ⇒ Future(artifact) }
   }
 
-  class GatewayHandler extends PersistenceHandler[Gateway](GatewayReader) {
-
-    override def read(name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = {
-      actorFor[PersistenceActor] ? PersistenceActor.Read(URLDecoder.decode(name, "UTF-8"), `type`, expandReferences, onlyReferences)
-    }
-
-    override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
-      expandGateway(unmarshal(source)) flatMap {
+  def createArtifact(kind: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
+    case (t, r) if t == classOf[Gateway] ⇒
+      expandGateway(r.read(source).asInstanceOf[Gateway]) flatMap {
         case gateway ⇒ actorFor[GatewayActor] ? GatewayActor.Create(gateway, Option(source), validateOnly)
       }
-    }
 
-    override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
-      expandGateway(unmarshal(source)) flatMap {
+    case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
+
+    case (t, r) if t == classOf[ScheduledWorkflow] ⇒
+      create(r, source, validateOnly).map {
+        case list: List[_] ⇒
+          list.filter(_.isInstanceOf[ScheduledWorkflow]).foreach(workflow ⇒ actorFor[WorkflowActor] ! Schedule(workflow.asInstanceOf[ScheduledWorkflow]))
+          list
+        case any ⇒ any
+      }
+
+    case (_, r) ⇒ create(r, source, validateOnly)
+  }
+
+  def readArtifact(kind: String, name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
+    case (t, _) if t == classOf[Gateway]    ⇒ actorFor[PersistenceActor] ? PersistenceActor.Read(URLDecoder.decode(name, "UTF-8"), t, expandReferences, onlyReferences)
+    case (t, _) if t == classOf[Deployment] ⇒ Future.successful(None)
+    case (t, _)                             ⇒ read(t, name, expandReferences, onlyReferences)
+  }
+
+  def updateArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
+    case (t, r) if t == classOf[Gateway] ⇒
+
+      expandGateway(r.read(source).asInstanceOf[Gateway]) flatMap {
         case gateway ⇒
           if (name != gateway.name) throwException(InconsistentArtifactName(name, gateway))
           actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly, promote = true)
       }
-    }
 
-    override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+    case (t, r) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
+
+    case (t, r) if t == classOf[ScheduledWorkflow] ⇒
+
+      update(r, name, source, validateOnly).map {
+        case list: List[_] ⇒
+          list.filter(_.isInstanceOf[ScheduledWorkflow]).foreach(workflow ⇒ actorFor[WorkflowActor] ! Schedule(workflow.asInstanceOf[ScheduledWorkflow]))
+          list
+        case any ⇒ any
+      }
+
+    case (_, r) ⇒ update(r, name, source, validateOnly)
+  }
+
+  def deleteArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
+    case (t, r) if t == classOf[Gateway] ⇒
       actorFor[GatewayActor] ? GatewayActor.Delete(name, validateOnly)
+
+    case (t, r) if t == classOf[Deployment] ⇒ Future.successful(None)
+
+    case (t, r) if t == classOf[ScheduledWorkflow] ⇒
+      read(t, name, expandReferences = false, onlyReferences = false) map {
+        case Some(workflow: ScheduledWorkflow) ⇒
+          delete(t, name, validateOnly).map { result ⇒
+            actorFor[WorkflowActor] ! WorkflowActor.Unschedule(workflow)
+            result
+          }
+        case _ ⇒ false
+      }
+
+    case (t, r) ⇒
+      if (validateOnly) Future(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, t)
+  }
+
+  private def read(`type`: Class[_ <: Artifact], name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = {
+    actorFor[PersistenceActor] ? PersistenceActor.Read(name, `type`, expandReferences, onlyReferences)
+  }
+
+  private def create(reader: YamlReader[_ <: Artifact], source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+    reader.read(source) match {
+      case artifact ⇒ if (validateOnly) Future(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Create(artifact, Option(source))
     }
   }
 
-  class ScheduledWorkflowHandler extends PersistenceHandler[ScheduledWorkflow](ScheduledWorkflowReader) {
+  private def update(reader: YamlReader[_ <: Artifact], name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+    reader.read(source) match {
+      case artifact ⇒
+        if (name != artifact.name)
+          throwException(InconsistentArtifactName(name, artifact))
 
-    import WorkflowActor._
-
-    override def create(source: String, validateOnly: Boolean)(implicit timeout: Timeout) = super.create(source, validateOnly).map {
-      case list: List[_] ⇒
-        list.filter(_.isInstanceOf[ScheduledWorkflow]).foreach(workflow ⇒ actorFor[WorkflowActor] ! Schedule(workflow.asInstanceOf[ScheduledWorkflow]))
-        list
-      case any ⇒ any
+        if (validateOnly) Future(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Update(artifact, Some(source))
     }
+  }
 
-    override def update(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = super.update(name, source, validateOnly).map {
-      case list: List[_] ⇒
-        list.filter(_.isInstanceOf[ScheduledWorkflow]).foreach(workflow ⇒ actorFor[WorkflowActor] ! Schedule(workflow.asInstanceOf[ScheduledWorkflow]))
-        list
-      case any ⇒ any
-    }
+  private def delete(`type`: Class[_ <: Artifact], name: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+    if (validateOnly) Future(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, `type`)
+  }
 
-    override def delete(name: String, validateOnly: Boolean)(implicit timeout: Timeout) = read(name, expandReferences = false, onlyReferences = false) map {
-      case Some(workflow: ScheduledWorkflow) ⇒
-        super.delete(name, validateOnly).map { result ⇒
-          actorFor[WorkflowActor] ! Unschedule(workflow)
-          result
-        }
-      case _ ⇒ false
-    }
+  private def crud(kind: String): Boolean = `type`(kind) match {
+    case (t, _) if t == classOf[Gateway]           ⇒ false
+    case (t, _) if t == classOf[Deployment]        ⇒ false
+    case (t, _) if t == classOf[ScheduledWorkflow] ⇒ false
+    case _                                         ⇒ true
+  }
+
+  private def `type`(kind: String): (Class[_ <: Artifact], YamlReader[_ <: Artifact]) = kind match {
+    case "breeds"              ⇒ (classOf[Breed], BreedReader)
+    case "blueprints"          ⇒ (classOf[Blueprint], BlueprintReader)
+    case "slas"                ⇒ (classOf[Sla], SlaReader)
+    case "scales"              ⇒ (classOf[Scale], ScaleReader)
+    case "escalations"         ⇒ (classOf[Escalation], EscalationReader)
+    case "routes"              ⇒ (classOf[Route], RouteReader)
+    case "conditions"          ⇒ (classOf[Condition], ConditionReader)
+    case "rewrites"            ⇒ (classOf[Rewrite], RewriteReader)
+    case "workflows"           ⇒ (classOf[Workflow], WorkflowReader)
+    case "scheduled-workflows" ⇒ (classOf[ScheduledWorkflow], ScheduledWorkflowReader)
+    case "gateways"            ⇒ (classOf[Gateway], GatewayReader)
+    case "deployments"         ⇒ (classOf[Deployment], DeploymentReader)
+    case _                     ⇒ throwException(UnexpectedArtifact(kind))
   }
 }
