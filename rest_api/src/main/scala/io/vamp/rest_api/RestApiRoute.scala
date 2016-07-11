@@ -26,49 +26,75 @@ trait RestApiRoute
 
   implicit def timeout: Timeout
 
-  val crudRoutes = path(Segment) { artifact: String ⇒
-    pathEndOrSingleSlash {
-      get {
-        pageAndPerPage() { (page, perPage) ⇒
-          expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
-            onSuccess(allArtifacts(artifact, expandReferences, onlyReferences)(page, perPage)) { result ⇒
-              respondWith(OK, result)
-            }
+  val crudRoutes = {
+    post {
+      entity(as[String]) { request ⇒
+        validateOnly { validateOnly ⇒
+          onSuccess(createArtifacts(request, validateOnly)) { result ⇒
+            respondWith(Accepted, result)
           }
         }
-      } ~ post {
-        entity(as[String]) { request ⇒
-          validateOnly { validateOnly ⇒
-            onSuccess(createArtifact(artifact, request, validateOnly)) { result ⇒
-              respondWith(if (background(artifact)) Accepted else Created, result)
+      }
+    } ~ put {
+      entity(as[String]) { request ⇒
+        validateOnly { validateOnly ⇒
+          onSuccess(updateArtifacts(request, validateOnly)) { result ⇒
+            respondWith(Accepted, result)
+          }
+        }
+      }
+    } ~ delete {
+      entity(as[String]) { request ⇒
+        validateOnly { validateOnly ⇒
+          onSuccess(deleteArtifacts(request, validateOnly)) { result ⇒
+            respondWith(Accepted, result)
+          }
+        }
+      }
+    } ~ path(Segment) { artifact: String ⇒
+      pathEndOrSingleSlash {
+        get {
+          pageAndPerPage() { (page, perPage) ⇒
+            expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
+              onSuccess(readArtifacts(artifact, expandReferences, onlyReferences)(page, perPage)) { result ⇒
+                respondWith(OK, result)
+              }
+            }
+          }
+        } ~ post {
+          entity(as[String]) { request ⇒
+            validateOnly { validateOnly ⇒
+              onSuccess(createArtifact(artifact, request, validateOnly)) { result ⇒
+                respondWith(if (background(artifact)) Accepted else Created, result)
+              }
             }
           }
         }
       }
-    }
-  } ~ path(Segment / Rest) { (artifact: String, name: String) ⇒
-    pathEndOrSingleSlash {
-      get {
-        rejectEmptyResponse {
-          expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
-            onSuccess(readArtifact(artifact, name, expandReferences, onlyReferences)) { result ⇒
-              respondWith(OK, result)
+    } ~ path(Segment / Rest) { (artifact: String, name: String) ⇒
+      pathEndOrSingleSlash {
+        get {
+          rejectEmptyResponse {
+            expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
+              onSuccess(readArtifact(artifact, name, expandReferences, onlyReferences)) { result ⇒
+                respondWith(OK, result)
+              }
             }
           }
-        }
-      } ~ put {
-        entity(as[String]) { request ⇒
-          validateOnly { validateOnly ⇒
-            onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result ⇒
-              respondWith(if (background(artifact)) Accepted else OK, result)
+        } ~ put {
+          entity(as[String]) { request ⇒
+            validateOnly { validateOnly ⇒
+              onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result ⇒
+                respondWith(if (background(artifact)) Accepted else OK, result)
+              }
             }
           }
-        }
-      } ~ delete {
-        entity(as[String]) { request ⇒
-          validateOnly { validateOnly ⇒
-            onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result ⇒
-              respondWith(if (background(artifact)) Accepted else NoContent, None)
+        } ~ delete {
+          entity(as[String]) { request ⇒
+            validateOnly { validateOnly ⇒
+              onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result ⇒
+                respondWith(if (background(artifact)) Accepted else NoContent, None)
+              }
             }
           }
         }

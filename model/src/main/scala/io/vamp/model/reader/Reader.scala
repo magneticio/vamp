@@ -50,29 +50,36 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
     case FileSource(file)     ⇒ readSource(Source.fromFile(file).bufferedReader())
   }
 
-  private def readSource(reader: Reader): T = load(reader, {
-    case yaml: YamlSourceReader ⇒ read(yaml)
-    case any                    ⇒ throwException(UnexpectedTypeError("/", classOf[YamlSourceReader], if (any != null) any.getClass else classOf[Object]))
-  })
+  protected def unmarshal(input: YamlSource): Either[YamlSourceReader, List[YamlSourceReader]] = {
 
-  protected def load(reader: Reader, process: PartialFunction[Any, T]): T = {
-    def convert(any: Any): Any = any match {
-      case source: java.util.Map[_, _] ⇒
-        // keeping the order
-        val map = new mutable.LinkedHashMap[String, Any]()
-        source.entrySet().asScala.foreach(entry ⇒ map += entry.getKey.toString -> convert(entry.getValue))
-        map
-      case source: java.util.List[_] ⇒ source.asScala.map(convert).toList
-      case source                    ⇒ source
+    def unmarshal(reader: Reader): Either[YamlSourceReader, List[YamlSourceReader]] = load(reader) match {
+      case yaml: YamlSourceReader ⇒ Left(yaml)
+      case list: List[_] ⇒
+        Right(list.map {
+          case yaml: YamlSourceReader ⇒ yaml
+          case any                    ⇒ error(any, classOf[YamlSourceReader])
+        })
+      case any ⇒ error(any, classOf[List[YamlSourceReader]])
     }
 
+    input match {
+      case ReaderSource(reader) ⇒ unmarshal(reader)
+      case StreamSource(stream) ⇒ unmarshal(Source.fromInputStream(stream).bufferedReader())
+      case StringSource(string) ⇒ unmarshal(new StringReader(string))
+      case FileSource(file)     ⇒ unmarshal(Source.fromFile(file).bufferedReader())
+    }
+  }
+
+  private def readSource(reader: Reader): T = load(reader, {
+    case yaml: YamlSourceReader ⇒ read(yaml)
+    case any                    ⇒ error(any, classOf[YamlSourceReader])
+  })
+
+  private def error(any: Any, expected: Class[_]) = throwException(UnexpectedTypeError("/", expected, if (any != null) any.getClass else classOf[Object]))
+
+  protected def load(reader: Reader, process: PartialFunction[Any, T]): T = {
     try {
-
-      val source = convert(yaml.load(reader)) match {
-        case map: collection.Map[_, _] ⇒ YamlSourceReader(map.toMap.asInstanceOf[Map[String, _]])
-        case any                       ⇒ any
-      }
-
+      val source = load(reader)
       val result = process(source)
 
       source match {
@@ -93,6 +100,29 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
       case e: YAMLException              ⇒ throwException(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
     } finally {
       reader.close()
+    }
+  }
+
+  private def load(reader: Reader): Any = {
+
+    def convert(any: Any): Any = any match {
+      case source: java.util.Map[_, _] ⇒
+        // keeping the order
+        val map = new mutable.LinkedHashMap[String, Any]()
+        source.entrySet().asScala.foreach(entry ⇒ map += entry.getKey.toString -> convert(entry.getValue))
+        map
+      case source: java.util.List[_] ⇒ source.asScala.map(convert).toList
+      case source                    ⇒ source
+    }
+
+    convert(yaml.load(reader)) match {
+      case map: collection.Map[_, _] ⇒ YamlSourceReader(map.toMap.asInstanceOf[Map[String, _]])
+      case list: List[_] ⇒
+        list.map {
+          case map: collection.Map[_, _] ⇒ YamlSourceReader(map.toMap.asInstanceOf[Map[String, _]])
+          case any                       ⇒ any
+        }
+      case any ⇒ any
     }
   }
 
@@ -117,10 +147,7 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
 
   protected def validate(any: T): T = any
 
-  protected def <<![V <: Any: ClassTag](path: YamlPath)(implicit source: YamlSourceReader): V = <<?[V](path) match {
-    case None    ⇒ throwException(MissingPathValueError(path mkString "/"))
-    case Some(v) ⇒ v
-  }
+  protected def <<![V <: Any: ClassTag](path: YamlPath)(implicit source: YamlSourceReader): V = source.get[V](path)
 
   protected def <<?[V <: Any: ClassTag](path: YamlPath)(implicit source: YamlSourceReader): Option[V] = source.find[V](path)
 

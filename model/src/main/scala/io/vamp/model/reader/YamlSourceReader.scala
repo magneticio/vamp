@@ -1,6 +1,6 @@
 package io.vamp.model.reader
 
-import io.vamp.model.notification.{ ModelNotificationProvider, UnexpectedInnerElementError, UnexpectedTypeError }
+import io.vamp.model.notification.{ MissingPathValueError, ModelNotificationProvider, UnexpectedInnerElementError, UnexpectedTypeError }
 
 import scala.collection.immutable.::
 import scala.collection.mutable
@@ -36,6 +36,11 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
   private val _consumed = new mutable.LinkedHashMap[String, Any]()
 
   def find[V <: Any: ClassTag](path: YamlPath): Option[V] = find[V](this, path)
+
+  def get[V <: Any: ClassTag](path: YamlPath): V = find[V](this, path) match {
+    case None    ⇒ throwException(MissingPathValueError(path mkString "/"))
+    case Some(v) ⇒ v
+  }
 
   def set(path: YamlPath, value: Option[Any]): Option[Any] = set(this, path, value)
 
