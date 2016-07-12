@@ -27,27 +27,29 @@ trait RestApiRoute
   implicit def timeout: Timeout
 
   val crudRoutes = {
-    post {
-      entity(as[String]) { request ⇒
-        validateOnly { validateOnly ⇒
-          onSuccess(createArtifacts(request, validateOnly)) { result ⇒
-            respondWith(Accepted, result)
+    pathEndOrSingleSlash {
+      post {
+        entity(as[String]) { request ⇒
+          validateOnly { validateOnly ⇒
+            onSuccess(createArtifacts(request, validateOnly)) { result ⇒
+              respondWith(Accepted, result)
+            }
           }
         }
-      }
-    } ~ put {
-      entity(as[String]) { request ⇒
-        validateOnly { validateOnly ⇒
-          onSuccess(updateArtifacts(request, validateOnly)) { result ⇒
-            respondWith(Accepted, result)
+      } ~ put {
+        entity(as[String]) { request ⇒
+          validateOnly { validateOnly ⇒
+            onSuccess(updateArtifacts(request, validateOnly)) { result ⇒
+              respondWith(Accepted, result)
+            }
           }
         }
-      }
-    } ~ delete {
-      entity(as[String]) { request ⇒
-        validateOnly { validateOnly ⇒
-          onSuccess(deleteArtifacts(request, validateOnly)) { result ⇒
-            respondWith(Accepted, result)
+      } ~ delete {
+        entity(as[String]) { request ⇒
+          validateOnly { validateOnly ⇒
+            onSuccess(deleteArtifacts(request, validateOnly)) { result ⇒
+              respondWith(Accepted, result)
+            }
           }
         }
       }
