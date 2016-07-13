@@ -14,9 +14,11 @@ trait InfoRoute extends InfoController with ExecutionContextProvider {
   val infoRoute = pathPrefix("information" | "info") {
     pathEndOrSingleSlash {
       get {
-        onSuccess(info) { result ⇒
-          respondWithStatus(OK) {
-            complete(result)
+        parameterMultiMap { parameters ⇒
+          onSuccess(infoMessage(parameters.getOrElse("for", Nil).toSet)) { result ⇒
+            respondWithStatus(OK) {
+              complete(result)
+            }
           }
         }
       }
