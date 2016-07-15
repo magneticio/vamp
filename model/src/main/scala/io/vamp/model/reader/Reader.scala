@@ -72,17 +72,16 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
 
   private def readSource(reader: Reader): T = load(reader, {
     case yaml: YamlSourceReader ⇒ read(yaml)
-    case any                    ⇒ error(any, classOf[YamlSourceReader])
+    case list: List[_] if list.length == 1 && list.head.isInstanceOf[YamlSourceReader] ⇒ read(list.head.asInstanceOf[YamlSourceReader])
+    case any ⇒ error(any, classOf[YamlSourceReader])
   })
 
   private def error(any: Any, expected: Class[_]) = throwException(UnexpectedTypeError("/", expected, if (any != null) any.getClass else classOf[Object]))
 
   protected def load(reader: Reader, process: PartialFunction[Any, T]): T = {
     try {
-      val source = load(reader)
-      val result = process(source)
 
-      source match {
+      def validateConsumed(source: Any, result: T): Unit = source match {
         case yaml: YamlSourceReader ⇒
           if (result.isInstanceOf[Lookup]) yaml.find[String](Lookup.entry)
           val nonConsumed = yaml.notConsumed
@@ -90,9 +89,14 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
             implicit val formats: Formats = DefaultFormats
             throwException(UnexpectedElement(nonConsumed, Serialization.write(nonConsumed)))
           }
-        case _ ⇒
+        case list: List[_] ⇒ list.foreach(validateConsumed(_, result))
+        case _             ⇒
       }
 
+      val source = load(reader)
+      val result = process(source)
+
+      validateConsumed(source, result)
       result
 
     } catch {
@@ -111,11 +115,14 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
         val map = new mutable.LinkedHashMap[String, Any]()
         source.entrySet().asScala.foreach(entry ⇒ map += entry.getKey.toString -> convert(entry.getValue))
         map
-      case source: java.util.List[_] ⇒ source.asScala.map(convert).toList
-      case source                    ⇒ source
+      case source: java.util.List[_]     ⇒ source.asScala.map(convert).toList
+      case source: java.lang.Iterable[_] ⇒ source.asScala.map(convert).toList
+      case source                        ⇒ source
     }
 
-    convert(yaml.load(reader)) match {
+    val parsed = convert(yaml.loadAll(reader))
+
+    val result = parsed match {
       case map: collection.Map[_, _] ⇒ YamlSourceReader(map.toMap.asInstanceOf[Map[String, _]])
       case list: List[_] ⇒
         list.map {
@@ -124,6 +131,8 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
         }
       case any ⇒ any
     }
+
+    result
   }
 
   private def yaml = {

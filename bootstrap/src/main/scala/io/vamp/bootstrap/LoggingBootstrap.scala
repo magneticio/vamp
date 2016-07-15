@@ -25,11 +25,13 @@ class LoggingBootstrap extends Bootstrap {
          |╚██╗ ██╔╝██╔══██║██║╚██╔╝██║██╔═══╝
          | ╚████╔╝ ██║  ██║██║ ╚═╝ ██║██║
          |  ╚═══╝  ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝
-         |                       ${if (Model.version.nonEmpty) s"version ${Model.version}" else ""}
-         |                       by magnetic.io
+         |                                    $version
+         |                                    by magnetic.io
          |
     """.stripMargin)
   }
+
+  private lazy val version = if (Model.version.nonEmpty) s"version ${Model.version}" else ""
 
   override def shutdown() = if (SLF4JBridgeHandler.isInstalled) SLF4JBridgeHandler.uninstall()
 }

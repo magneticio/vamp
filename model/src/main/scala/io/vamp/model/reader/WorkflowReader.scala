@@ -61,9 +61,7 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
   }
 
   private def deploymentTrigger(implicit source: YamlSourceReader): Option[Trigger] = {
-    <<?[String]("deployment").map {
-      case deployment ⇒ DeploymentTrigger(deployment)
-    }
+    <<?[String]("deployment").map(DeploymentTrigger)
   }
 
   private def timeTrigger(implicit source: YamlSourceReader): Option[Trigger] = {
@@ -81,9 +79,7 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
   }
 
   private def eventTrigger(implicit source: YamlSourceReader): Option[Trigger] = {
-    <<?[List[String]]("tags").map {
-      case tags ⇒ EventTrigger(tags.toSet)
-    }
+    <<?[List[String]]("tags").map(tags ⇒ EventTrigger(tags.toSet))
   }
 
   private def daemonTrigger(implicit source: YamlSourceReader): Option[Trigger] = {

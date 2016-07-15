@@ -89,14 +89,13 @@ private object ArtifactListReader extends YamlReader[List[ArtifactSource]] {
     (unmarshal(input) match {
       case Left(item)   ⇒ List(item)
       case Right(items) ⇒ items
-    }) map {
-      case item ⇒
+    }) map { item ⇒
 
-        val kind = item.get[String]("kind")
-        val name = item.get[String]("name")
-        val source = item.flatten({ str ⇒ str != "kind" })
+      val kind = item.get[String]("kind")
+      val name = item.get[String]("name")
+      val source = item.flatten({ str ⇒ str != "kind" })
 
-        ArtifactSource(if (kind.endsWith("s")) kind else s"${kind}s", name, write(source)(DefaultFormats))
+      ArtifactSource(if (kind.endsWith("s")) kind else s"${kind}s", name, write(source)(DefaultFormats))
     }
   }
 
@@ -108,8 +107,8 @@ trait SingleArtifactApiController {
 
   def createArtifact(kind: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, r) if t == classOf[Gateway] ⇒
-      expandGateway(r.read(source).asInstanceOf[Gateway]) flatMap {
-        case gateway ⇒ actorFor[GatewayActor] ? GatewayActor.Create(gateway, Option(source), validateOnly)
+      expandGateway(r.read(source).asInstanceOf[Gateway]) flatMap { gateway ⇒
+        actorFor[GatewayActor] ? GatewayActor.Create(gateway, Option(source), validateOnly)
       }
 
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
@@ -134,10 +133,9 @@ trait SingleArtifactApiController {
   def updateArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, r) if t == classOf[Gateway] ⇒
 
-      expandGateway(r.read(source).asInstanceOf[Gateway]) flatMap {
-        case gateway ⇒
-          if (name != gateway.name) throwException(InconsistentArtifactName(name, gateway))
-          actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly, promote = true)
+      expandGateway(r.read(source).asInstanceOf[Gateway]) flatMap { gateway ⇒
+        if (name != gateway.name) throwException(InconsistentArtifactName(name, gateway))
+        actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly, promote = true)
       }
 
     case (t, r) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
