@@ -5,7 +5,7 @@ import java.time.format.DateTimeFormatter
 
 import io.vamp.model.artifact.DeploymentService.State.Step
 import io.vamp.model.artifact._
-import io.vamp.model.notification.{ UnexpectedInnerElementError, NotificationMessageNotRestored, UndefinedStateIntentionError, UndefinedStateStepError }
+import io.vamp.model.notification.{ NotificationMessageNotRestored, UndefinedStateIntentionError, UndefinedStateStepError }
 import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
@@ -85,7 +85,6 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
 
   override def readReference: PartialFunction[Any, Deployment] = {
     case yaml: YamlSourceReader if yaml.size > 1 ⇒ read(yaml)
-    case _                                       ⇒ throwException(UnexpectedInnerElementError("/", classOf[YamlSourceReader]))
   }
 
   protected def routingReader: GatewayMappingReader[Gateway]

@@ -21,11 +21,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     case string: String ⇒ BlueprintReference(string)
     case yaml: YamlSourceReader ⇒
       implicit val source = yaml
-      if (source.size > 1)
-        read(source)
-      else
-        BlueprintReference(name)
-    case _ ⇒ throwException(UnexpectedInnerElementError("/", classOf[YamlSourceReader]))
+      if (source.size > 1) read(source) else BlueprintReference(name)
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
@@ -179,9 +175,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
         val weights = gateways.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.weight)
         weights.exists(_.value < 0) || weights.map(_.value).sum > 100
       }
-    }).flatMap {
-      case cluster ⇒ throwException(RouteWeightError(cluster))
-    }
+    }).flatMap { cluster ⇒ throwException(RouteWeightError(cluster)) }
   }
 
   protected def validateRouteConditionStrengths(blueprint: AbstractBlueprint): Unit = {
@@ -190,9 +184,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
         val strength = gateways.routes.filter(_.isInstanceOf[DefaultRoute]).map(_.asInstanceOf[DefaultRoute]).flatMap(_.conditionStrength)
         strength.exists(_.value < 0) || strength.exists(_.value > 100)
       }
-    }).flatMap {
-      case cluster ⇒ throwException(RouteConditionStrengthError(cluster))
-    }
+    }).flatMap { cluster ⇒ throwException(RouteConditionStrengthError(cluster)) }
   }
 
   private def parseService(implicit source: YamlSourceReader): Service = {

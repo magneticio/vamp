@@ -50,7 +50,7 @@ trait DeploymentApiController extends ArtifactShrinkage {
         val futures = {
           if (!validateOnly)
             blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
-              case breed ⇒ actorFor[PersistenceActor] ? PersistenceActor.Create(breed, Some(request))
+              breed ⇒ actorFor[PersistenceActor] ? PersistenceActor.Create(breed, Some(request))
             }
           else Nil
         } :+ default(blueprint)
@@ -95,7 +95,7 @@ trait DeploymentApiController extends ArtifactShrinkage {
   def deleteDeployment(name: String, request: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = {
     if (request.nonEmpty) {
       processBlueprint(request, {
-        case blueprint ⇒ actorFor[DeploymentActor] ? DeploymentActor.Slice(name, blueprint, request, validateOnly)
+        blueprint ⇒ actorFor[DeploymentActor] ? DeploymentActor.Slice(name, blueprint, request, validateOnly)
       })
     } else {
       actorFor[PersistenceActor] ? PersistenceActor.Read(name, classOf[Deployment])

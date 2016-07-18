@@ -159,7 +159,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
         case Some(app) ⇒ app.diff(payload).changed
         case None      ⇒ payload
       }
-      RestClient.put[Any](s"$marathonUrl/v2/apps/$id", changed)
+      if (payload != JNothing) RestClient.put[Any](s"$marathonUrl/v2/apps/$id", changed) else Future.successful(false)
     }
 
     case false ⇒ RestClient.post[Any](s"$marathonUrl/v2/apps", payload)

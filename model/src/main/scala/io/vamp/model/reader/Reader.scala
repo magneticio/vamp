@@ -219,7 +219,10 @@ trait ReferenceYamlReader[T] extends YamlReader[T] {
 
   def readReference: PartialFunction[Any, T]
 
-  def readReferenceFromSource(any: Any): T = load(new StringReader(any.toString), readReference)
+  def readReferenceFromSource(any: Any): T = load(new StringReader(any.toString), {
+    case list: List[_] if list.size == 1 && list.head.isInstanceOf[YamlSourceReader] ⇒ readReference(list.head)
+    case other ⇒ readReference.applyOrElse(other, throwException(UnexpectedInnerElementError("/", classOf[YamlSourceReader])))
+  })
 }
 
 object AnonymousYamlReader {
