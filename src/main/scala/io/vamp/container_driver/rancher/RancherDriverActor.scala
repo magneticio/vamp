@@ -6,8 +6,8 @@ import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver._
-import io.vamp.container_driver.docker.{ DockerDriverActor, DockerNameMatcher }
-import io.vamp.container_driver.notification.{ UndefinedDockerImage, UnsupportedContainerDriverRequest }
+import io.vamp.container_driver.docker.DockerNameMatcher
+import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.container_driver.rancher.{ Service ⇒ RancherService }
 import io.vamp.model.artifact.{ Deployment, DeploymentCluster, DeploymentService, _ }
 import io.vamp.model.reader.{ MegaByte, Quantity }
@@ -52,6 +52,8 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
+
+  override protected def supportedDeployableTypes = DockerDeployable :: Nil
 
   private def info: Future[ContainerInfo] = {
     RestClient.get[ProjectInfo](rancherUrl, headers).map { project ⇒
@@ -125,7 +127,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
           RestClient.post[Stack](environmentsUrl, requestPayload(Stack(None, None, stackName, None)), headers)
       }
 
-      stack.map { case s ⇒ if (s.state.contains("active")) Option(s) else None }
+      stack.map { s ⇒ if (s.state.contains("active")) Option(s) else None }
     }
   }
 
@@ -150,15 +152,15 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
           log.info(s"Rancher driver - creating service: ${service.name}")
           RestClient.post[Service](s"$rancherUrl/environment/${stack.id.get}/services", requestPayload(service), headers)
       }
-      rs.flatMap(activateService(_))
+      rs.flatMap(activateService)
     }
   }
 
   private def buildRancherService(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, stack: String): Service = {
 
-    validateSchemaSupport(service.breed.deployable.schema, DockerDriverActor.Schema)
+    validateDeployable(service.breed.deployable)
 
-    val dockerContainer = docker(deployment, cluster, service, service.breed.deployable.definition.getOrElse(throwException(UndefinedDockerImage)))
+    val dockerContainer = docker(deployment, cluster, service, service.breed.deployable.definition)
 
     val dockerApp = DockerApp(
       id = appId(deployment, service.breed),
@@ -198,31 +200,32 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
           RestClient.delete(s"$rancherUrl/services/${s.id.get}/?action=remove", headers)
         }
         Future.sequence(deletes)
-      } flatMap {
-        case some ⇒
+      } flatMap { some ⇒
 
-          if (cluster.services.size == 1 && cluster.services.head.breed == service.breed) {
+        if (cluster.services.size == 1 && cluster.services.head.breed == service.breed) {
 
-            val stackName = string2Id(s"vamp-${deployment.name}-${cluster.name}")
+          val stackName = string2Id(s"vamp-${deployment.name}-${cluster.name}")
 
-            RestClient.get[Stacks](s"$environmentsUrl?name=$stackName", headers).flatMap { stacks ⇒
+          RestClient.get[Stacks](s"$environmentsUrl?name=$stackName", headers).flatMap { stacks ⇒
 
-              stacks.data.find(_.name == stackName) match {
-                case Some(s) ⇒
-                  log.info(s"Rancher driver - removing stack: $stackName")
-                  RestClient.delete(s"$environmentsUrl/${s.id.get}/?action=remove", headers)
+            stacks.data.find(_.name == stackName) match {
+              case Some(s) ⇒
+                log.info(s"Rancher driver - removing stack: $stackName")
+                RestClient.delete(s"$environmentsUrl/${s.id.get}/?action=remove", headers)
 
-                case None ⇒ Future.successful(some)
-              }
+              case None ⇒ Future.successful(some)
             }
-          } else Future.successful(some)
+          }
+        } else Future.successful(some)
       }
   }
 
   private def deploy(app: DockerApp, update: Boolean): Future[Any] = {
     createStack(environmentName).flatMap {
-      case Some(stack) ⇒ createService(stack, buildRancherService(stack.id.get, app), (s) ⇒ { Future.successful(s) })
-      case _           ⇒ Future.successful(None)
+      case Some(stack) ⇒ createService(stack, buildRancherService(stack.id.get, app), (s) ⇒ {
+        Future.successful(s)
+      })
+      case _ ⇒ Future.successful(None)
     }
   }
 

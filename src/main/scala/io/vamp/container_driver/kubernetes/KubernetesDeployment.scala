@@ -22,6 +22,8 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   private lazy val deploymentUrl = s"$apiUrl/apis/extensions/v1beta1/namespaces/default/deployments"
 
+  override protected def supportedDeployableTypes = List(DockerDeployable)
+
   protected def schema: Enumeration
 
   protected def labels(id: String, value: String) = Map("vamp" -> value, value -> id)
@@ -72,7 +74,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
 
-    validateSchemaSupport(service.breed.deployable.schema, schema)
+    validateDeployable(service.breed.deployable)
 
     val id = appId(deployment, service.breed)
     if (update) log.info(s"kubernetes update app: $id") else log.info(s"kubernetes create app: $id")
@@ -81,7 +83,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
     val app = KubernetesApp(
       name = id,
-      docker = docker(deployment, cluster, service, service.breed.deployable.definition.get),
+      docker = docker(deployment, cluster, service, service.breed.deployable.definition),
       replicas = service.scale.get.instances,
       cpu = service.scale.get.cpu.value,
       mem = Math.round(service.scale.get.memory.value).toInt,

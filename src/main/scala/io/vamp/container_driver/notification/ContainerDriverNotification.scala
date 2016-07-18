@@ -9,7 +9,7 @@ case class UnsupportedContainerDriverRequest(request: Any) extends Notification 
 
 case class ContainerResponseError(reason: Any) extends Notification with ErrorNotification
 
-case class UnsupportedDeployableSchema(schema: String, supported: String) extends Notification
+case class UnsupportedDeployableType(schema: String, supported: String) extends Notification
 
 object UndefinedDockerImage extends Notification
 
