@@ -3,7 +3,7 @@ package io.vamp.model.workflow
 import java.time.{ Duration, OffsetDateTime, Period }
 
 import io.vamp.model.artifact.{ Artifact, Lookup, Reference, Scale }
-import io.vamp.model.workflow.TimeTrigger.{ RepeatForever, RepeatPeriod, RepeatTimes }
+import io.vamp.model.workflow.TimeSchedule.{ RepeatForever, RepeatPeriod, Repeat }
 
 import scala.language.implicitConversions
 
@@ -20,18 +20,18 @@ case class DefaultWorkflow(
 case class ScheduledWorkflow(
   name: String,
   workflow: Workflow,
-  trigger: Trigger,
+  schedule: Schedule,
   scale: Option[Scale]) extends Artifact with Lookup
 
-sealed trait Trigger
+sealed trait Schedule
 
-object TimeTrigger {
+object TimeSchedule {
 
-  sealed trait RepeatTimes
+  sealed trait Repeat
 
-  object RepeatForever extends RepeatTimes
+  object RepeatForever extends Repeat
 
-  case class RepeatTimesCount(count: Int) extends RepeatTimes
+  case class RepeatCount(count: Int) extends Repeat
 
   case class RepeatPeriod(days: Option[Period], time: Option[Duration]) {
 
@@ -43,7 +43,7 @@ object TimeTrigger {
     override def toString = format
   }
 
-  implicit def int2repeat(count: Int): RepeatTimes = RepeatTimesCount(count)
+  implicit def int2repeat(count: Int): Repeat = RepeatCount(count)
 
   implicit def string2period(period: String): RepeatPeriod = {
     val trimmed = period.trim
@@ -60,11 +60,8 @@ object TimeTrigger {
   }
 }
 
-case class TimeTrigger(period: RepeatPeriod, repeatTimes: RepeatTimes = RepeatForever, startTime: Option[OffsetDateTime] = None) extends Trigger
+case class TimeSchedule(period: RepeatPeriod, repeat: Repeat = RepeatForever, start: Option[OffsetDateTime] = None) extends Schedule
 
-case class DeploymentTrigger(deployment: String) extends Trigger
+case class EventSchedule(tags: Set[String]) extends Schedule
 
-case class EventTrigger(tags: Set[String]) extends Trigger
-
-object DaemonTrigger extends Trigger
-
+object DaemonSchedule extends Schedule

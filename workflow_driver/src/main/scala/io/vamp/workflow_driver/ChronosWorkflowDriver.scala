@@ -4,8 +4,8 @@ import akka.actor.{ ActorRef, ActorRefFactory }
 import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
 import io.vamp.common.http.RestClient
 import io.vamp.model.artifact.DefaultScale
-import io.vamp.model.workflow.TimeTrigger.RepeatTimesCount
-import io.vamp.model.workflow.{ DaemonTrigger, DefaultWorkflow, ScheduledWorkflow, TimeTrigger }
+import io.vamp.model.workflow.TimeSchedule.RepeatCount
+import io.vamp.model.workflow.{ DaemonSchedule, DefaultWorkflow, ScheduledWorkflow, TimeSchedule }
 import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 
 import scala.concurrent.Future
@@ -18,13 +18,13 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorRefFactory: 
 
   override def request(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]): Unit = all() foreach { instances ⇒
     scheduledWorkflows.foreach { scheduled ⇒
-      if (scheduled.trigger != DaemonTrigger)
+      if (scheduled.schedule != DaemonSchedule)
         replyTo ! Scheduled(scheduled, instances.find(_.name == scheduled.name))
     }
   }
 
   override def schedule(data: Any): PartialFunction[ScheduledWorkflow, Future[Any]] = {
-    case scheduledWorkflow if scheduledWorkflow.trigger != DaemonTrigger ⇒
+    case scheduledWorkflow if scheduledWorkflow.schedule != DaemonSchedule ⇒
 
       val workflow = scheduledWorkflow.workflow.asInstanceOf[DefaultWorkflow]
       val scale = scheduledWorkflow.scale.get.asInstanceOf[DefaultScale]
@@ -43,7 +43,7 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorRefFactory: 
   }
 
   override def unschedule(): PartialFunction[ScheduledWorkflow, Future[Any]] = {
-    case scheduledWorkflow if scheduledWorkflow.trigger != DaemonTrigger ⇒
+    case scheduledWorkflow if scheduledWorkflow.schedule != DaemonSchedule ⇒
       all() flatMap {
         case list ⇒ list.find(_.name == name(scheduledWorkflow)) match {
           case Some(_) ⇒ RestClient.delete(s"$url/scheduler/job/${name(scheduledWorkflow)}")
@@ -61,9 +61,9 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorRefFactory: 
     if (workflow.name.matches("^[\\w\\s#_-]+$")) workflow.name else workflow.lookupName
   }
 
-  private def period(workflow: ScheduledWorkflow) = workflow.trigger match {
-    case TimeTrigger(period, RepeatTimesCount(count), start) ⇒ s"R$count/${start.getOrElse("")}/${period.format}"
-    case TimeTrigger(period, _, start) ⇒ s"R/${start.getOrElse("")}/${period.format}"
+  private def period(workflow: ScheduledWorkflow) = workflow.schedule match {
+    case TimeSchedule(period, RepeatCount(count), start) ⇒ s"R$count/${start.getOrElse("")}/${period.format}"
+    case TimeSchedule(period, _, start) ⇒ s"R/${start.getOrElse("")}/${period.format}"
     case _ ⇒ "R1//PT1S"
   }
 

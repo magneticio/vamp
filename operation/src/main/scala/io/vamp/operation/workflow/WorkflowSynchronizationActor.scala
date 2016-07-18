@@ -1,7 +1,7 @@
 package io.vamp.operation.workflow
 
 import io.vamp.common.akka._
-import io.vamp.model.workflow.{ DaemonTrigger, ScheduledWorkflow, TimeTrigger }
+import io.vamp.model.workflow.{ DaemonSchedule, ScheduledWorkflow, TimeSchedule }
 import io.vamp.operation.notification._
 import io.vamp.operation.workflow.WorkflowActor.Schedule
 import io.vamp.operation.workflow.WorkflowSynchronizationActor.SynchronizeAll
@@ -37,7 +37,7 @@ class WorkflowSynchronizationActor extends CommonSupportForActors with ArtifactS
     allArtifacts[ScheduledWorkflow] map { scheduledWorkflows ⇒
 
       val workflows = scheduledWorkflows.filter {
-        scheduled ⇒ scheduled.trigger.isInstanceOf[TimeTrigger] || scheduled.trigger == DaemonTrigger
+        scheduled ⇒ scheduled.schedule.isInstanceOf[TimeSchedule] || scheduled.schedule == DaemonSchedule
       }
 
       IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.GetScheduled(self, workflows)

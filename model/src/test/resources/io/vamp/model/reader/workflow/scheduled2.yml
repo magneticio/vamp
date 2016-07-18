@@ -1,3 +1,0 @@
-name: logger-schedule
-workflow: logger
-deployment: deployment/cluster?create|update|delete

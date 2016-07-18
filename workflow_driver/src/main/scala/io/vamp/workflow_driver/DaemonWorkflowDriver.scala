@@ -6,7 +6,7 @@ import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
 import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver.{ ContainerDriverActor, Docker, DockerApp }
 import io.vamp.model.artifact.DefaultScale
-import io.vamp.model.workflow.{ DaemonTrigger, DefaultWorkflow, ScheduledWorkflow }
+import io.vamp.model.workflow.{ DaemonSchedule, DefaultWorkflow, ScheduledWorkflow }
 import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 
 import scala.concurrent.Future
@@ -22,7 +22,7 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
   private lazy val namePrefix = WorkflowDriver.config.string(namePrefixConfig)
 
   override def request(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]): Unit = scheduledWorkflows.foreach { scheduled ⇒
-    if (scheduled.trigger == DaemonTrigger) {
+    if (scheduled.schedule == DaemonSchedule) {
       driverActor ? RetrieveDockerApp(name(scheduled)) map {
         case Some(_) ⇒ replyTo ! Scheduled(scheduled, Option(WorkflowInstance(scheduled.name)))
         case _       ⇒ replyTo ! Scheduled(scheduled, None)
@@ -31,7 +31,7 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
   }
 
   override def schedule(data: Any): PartialFunction[ScheduledWorkflow, Future[Any]] = {
-    case workflow if workflow.trigger == DaemonTrigger ⇒
+    case workflow if workflow.schedule == DaemonSchedule ⇒
       val dockerApp = app(workflow)
       driverActor ? RetrieveDockerApp(dockerApp.id) map {
         case Some(_) ⇒ driverActor ? DeployDockerApp(dockerApp, update = true)
@@ -40,7 +40,7 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
   }
 
   override def unschedule(): PartialFunction[ScheduledWorkflow, Future[Any]] = {
-    case workflow if workflow.trigger == DaemonTrigger ⇒
+    case workflow if workflow.schedule == DaemonSchedule ⇒
       driverActor ? RetrieveDockerApp(name(workflow)) map {
         case Some(_) ⇒ driverActor ? UndeployDockerApp(name(workflow))
         case _       ⇒ Future.successful(true)

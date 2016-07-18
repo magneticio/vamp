@@ -4,7 +4,7 @@ import java.time.OffsetDateTime
 
 import io.vamp.model.artifact.{ DefaultScale, ScaleReference }
 import io.vamp.model.notification._
-import io.vamp.model.workflow.TimeTrigger.RepeatForever
+import io.vamp.model.workflow.TimeSchedule.RepeatForever
 import io.vamp.model.workflow._
 import org.junit.runner.RunWith
 import org.scalatest._
@@ -70,16 +70,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     ScheduledWorkflowReader.read(res("workflow/scheduled1.yml")) should have(
       'name("logger-schedule"),
       'workflow(WorkflowReference("logger")),
-      'trigger(TimeTrigger("P1Y2M3DT4H5M6S")),
-      'scale(None)
-    )
-  }
-
-  it should "read the scheduled workflow with deployment trigger" in {
-    ScheduledWorkflowReader.read(res("workflow/scheduled2.yml")) should have(
-      'name("logger-schedule"),
-      'workflow(WorkflowReference("logger")),
-      'trigger(DeploymentTrigger("deployment/cluster?create|update|delete")),
+      'schedule(TimeSchedule("P1Y2M3DT4H5M6S")),
       'scale(None)
     )
   }
@@ -88,16 +79,8 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     ScheduledWorkflowReader.read(res("workflow/scheduled3.yml")) should have(
       'name("logger-schedule"),
       'workflow(WorkflowReference("logger")),
-      'trigger(EventTrigger(Set("deployment", "cluster"))),
+      'schedule(EventSchedule(Set("deployment", "cluster"))),
       'scale(None)
-    )
-  }
-
-  it should "read the deployment trigger with the highest precedence" in {
-    expectedError[UnexpectedElement]({
-      ScheduledWorkflowReader.read(res("workflow/scheduled4.yml"))
-    }) should have(
-      'element(Map("period" -> "P1Y2M3DT4H5M6S"))
     )
   }
 
@@ -105,7 +88,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     ScheduledWorkflowReader.read(res("workflow/scheduled5.yml")) should have(
       'name("logger-schedule"),
       'workflow(WorkflowReference("logger")),
-      'trigger(TimeTrigger("P1Y2M3DT4H5M6S")),
+      'schedule(TimeSchedule("P1Y2M3DT4H5M6S")),
       'scale(None)
     )
   }
@@ -120,7 +103,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     ScheduledWorkflowReader.read(res("workflow/scheduled7.yml")) should have(
       'name("logger-schedule"),
       'workflow(WorkflowReference("logger")),
-      'trigger(EventTrigger(Set("deployment"))),
+      'schedule(EventSchedule(Set("deployment"))),
       'scale(None)
     )
   }
@@ -135,7 +118,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     ScheduledWorkflowReader.read(res("workflow/scheduled9.yml")) should have(
       'name("kill-vamp"),
       'workflow(DefaultWorkflow("", None, Option("vamp.exit()"), None)),
-      'trigger(TimeTrigger("P1Y2M3DT4H5M6S")),
+      'schedule(TimeSchedule("P1Y2M3DT4H5M6S")),
       'scale(None)
     )
   }
@@ -144,7 +127,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     ScheduledWorkflowReader.read(res("workflow/scheduled10.yml")) should have(
       'name("kill-vamp"),
       'workflow(DefaultWorkflow("", None, Option("vamp.exit()"), None)),
-      'trigger(TimeTrigger("P1Y2M3DT4H5M6S", RepeatForever, Option(OffsetDateTime.parse("2007-12-03T08:15:30Z")))),
+      'schedule(TimeSchedule("P1Y2M3DT4H5M6S", RepeatForever, Option(OffsetDateTime.parse("2007-12-03T08:15:30Z")))),
       'scale(None)
     )
   }
@@ -153,7 +136,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     ScheduledWorkflowReader.read(res("workflow/scheduled11.yml")) should have(
       'name("kill-vamp"),
       'workflow(DefaultWorkflow("", None, Option("vamp.exit()"), None)),
-      'trigger(TimeTrigger("P1Y2M3DT4H5M6S", 5, Option(OffsetDateTime.parse("2012-10-01T05:52Z")))),
+      'schedule(TimeSchedule("P1Y2M3DT4H5M6S", 5, Option(OffsetDateTime.parse("2012-10-01T05:52Z")))),
       'scale(None)
     )
   }
@@ -170,7 +153,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     ScheduledWorkflowReader.read(res("workflow/scheduled13.yml")) should have(
       'name("logger-schedule"),
       'workflow(WorkflowReference("logger")),
-      'trigger(DaemonTrigger),
+      'schedule(DaemonSchedule),
       'scale(None)
     )
   }
@@ -185,7 +168,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     ScheduledWorkflowReader.read(res("workflow/scheduled15.yml")) should have(
       'name("logger"),
       'workflow(WorkflowReference("logger")),
-      'trigger(DaemonTrigger)
+      'schedule(DaemonSchedule)
     )
   }
 
@@ -193,7 +176,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     ScheduledWorkflowReader.read(res("workflow/scheduled16.yml")) should have(
       'name("logger"),
       'workflow(WorkflowReference("logger")),
-      'trigger(DaemonTrigger),
+      'schedule(DaemonSchedule),
       'scale(Option(ScaleReference("small")))
     )
   }
@@ -202,7 +185,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     ScheduledWorkflowReader.read(res("workflow/scheduled17.yml")) should have(
       'name("logger"),
       'workflow(WorkflowReference("logger")),
-      'trigger(DaemonTrigger),
+      'schedule(DaemonSchedule),
       'scale(Option(DefaultScale("", Quantity(1), MegaByte.of("512MB"), 1)))
     )
   }
@@ -211,7 +194,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     ScheduledWorkflowReader.read(res("workflow/scheduled18.yml")) should have(
       'name("logger"),
       'workflow(WorkflowReference("logger")),
-      'trigger(DaemonTrigger),
+      'schedule(DaemonSchedule),
       'scale(Option(DefaultScale("", Quantity(1), MegaByte.of("512MB"), 1)))
     )
   }

@@ -1,5 +1,5 @@
 name: kill-vamp
 period: P1Y2M3DT4H5M6S
-startTime: 2012-10-01T05:52:00Z
-repeatCount: 5
+start: 2012-10-01T05:52:00Z
+repeat: 5
 script: vamp.exit()

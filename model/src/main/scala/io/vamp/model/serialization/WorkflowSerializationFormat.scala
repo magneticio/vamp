@@ -2,7 +2,7 @@ package io.vamp.model.serialization
 
 import java.time.format.DateTimeFormatter._
 
-import io.vamp.model.workflow.TimeTrigger.RepeatTimesCount
+import io.vamp.model.workflow.TimeSchedule.RepeatCount
 import io.vamp.model.workflow._
 import org.json4s.JsonAST.JString
 import org.json4s._
@@ -41,22 +41,19 @@ class ScheduledWorkflowSerializer() extends ArtifactSerializer[ScheduledWorkflow
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(scheduledWorkflow.name))
 
-      scheduledWorkflow.trigger match {
-        case DeploymentTrigger(deployment) ⇒
-          list += JField("deployment", JString(deployment))
-
-        case TimeTrigger(period, repeatTimes, startTime) ⇒
+      scheduledWorkflow.schedule match {
+        case TimeSchedule(period, repeatTimes, start) ⇒
           list += JField("period", JString(period.format))
           repeatTimes match {
-            case RepeatTimesCount(count) ⇒ list += JField("repeatCount", JInt(count))
-            case _                       ⇒
+            case RepeatCount(count) ⇒ list += JField("repeat", JInt(count))
+            case _                  ⇒
           }
-          startTime.foreach(start ⇒ list += JField("startTime", JString(start.format(ISO_OFFSET_DATE_TIME))))
+          start.foreach(start ⇒ list += JField("start", JString(start.format(ISO_OFFSET_DATE_TIME))))
 
-        case EventTrigger(tags) ⇒
+        case EventSchedule(tags) ⇒
           list += JField("tags", Extraction.decompose(tags))
 
-        case DaemonTrigger ⇒
+        case DaemonSchedule ⇒
           list += JField("daemon", JBool(true))
 
         case _ ⇒

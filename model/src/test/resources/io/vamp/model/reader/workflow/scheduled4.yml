@@ -1,7 +1,0 @@
-name: logger-schedule
-workflow: logger
-period: P1Y2M3DT4H5M6S
-deployment: deployment/cluster?create|update|delete
-tags:
-- deployment
-- cluster

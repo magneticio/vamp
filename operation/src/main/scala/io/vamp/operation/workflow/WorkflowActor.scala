@@ -91,12 +91,11 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   private def schedule(workflow: ScheduledWorkflow): Unit = {
     log.info(s"Scheduling workflow: '${workflow.name}'.")
 
-    workflow.trigger match {
-      case DaemonTrigger           ⇒ trigger(workflow)
-      case TimeTrigger(_, _, _)    ⇒ trigger(workflow)
-      case EventTrigger(tags)      ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
-      case DeploymentTrigger(name) ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", Set("deployments", s"deployments:$name"), RunWorkflow(workflow))
-      case trigger                 ⇒ log.warning(s"Unsupported trigger: '$trigger'.")
+    workflow.schedule match {
+      case DaemonSchedule        ⇒ trigger(workflow)
+      case TimeSchedule(_, _, _) ⇒ trigger(workflow)
+      case EventSchedule(tags)   ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
+      case trigger               ⇒ log.warning(s"Unsupported trigger: '$trigger'.")
     }
 
     pulse(workflow, scheduled = true)
@@ -122,7 +121,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
     val path = WorkflowDriver.path(scheduledWorkflow, workflow = true)
 
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, expandedWorkflow.script) map {
-      case _ ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(scheduledWorkflow.copy(workflow = expandedWorkflow, scale = Option(scale)), data)
+      _ ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(scheduledWorkflow.copy(workflow = expandedWorkflow, scale = Option(scale)), data)
     }
   }
 

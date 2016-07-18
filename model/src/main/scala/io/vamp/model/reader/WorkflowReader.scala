@@ -6,8 +6,8 @@ import java.util.Date
 import io.vamp.model.artifact.DefaultScale
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
-import io.vamp.model.workflow.TimeTrigger.{ RepeatForever, RepeatTimesCount }
-import io.vamp.model.workflow.{ DaemonTrigger, _ }
+import io.vamp.model.workflow.TimeSchedule.{ RepeatCount, RepeatForever }
+import io.vamp.model.workflow._
 
 import scala.util.Try
 
@@ -38,11 +38,9 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
   }
 
   override protected def parse(implicit source: YamlSourceReader): ScheduledWorkflow = {
-    val trigger = deploymentTrigger getOrElse {
-      timeTrigger getOrElse {
-        eventTrigger getOrElse {
-          daemonTrigger getOrElse throwException(UndefinedWorkflowTriggerError)
-        }
+    val trigger = timeTrigger getOrElse {
+      eventTrigger getOrElse {
+        daemonTrigger getOrElse throwException(UndefinedWorkflowTriggerError)
       }
     }
 
@@ -60,31 +58,27 @@ object ScheduledWorkflowReader extends YamlReader[ScheduledWorkflow] {
     case _ ⇒ workflow
   }
 
-  private def deploymentTrigger(implicit source: YamlSourceReader): Option[Trigger] = {
-    <<?[String]("deployment").map(DeploymentTrigger)
-  }
-
-  private def timeTrigger(implicit source: YamlSourceReader): Option[Trigger] = {
+  private def timeTrigger(implicit source: YamlSourceReader): Option[Schedule] = {
     <<?[String]("period") map { period ⇒
 
-      val repeatTimes = <<?[Int]("repeatCount") match {
+      val repeat = <<?[Int]("repeat") match {
         case None        ⇒ RepeatForever
-        case Some(count) ⇒ RepeatTimesCount(count)
+        case Some(count) ⇒ RepeatCount(count)
       }
 
-      val startTime = <<?[Date]("startTime") map (time ⇒ OffsetDateTime.from(time.toInstant.atZone(ZoneId.of("UTC"))))
+      val start = <<?[Date]("start") map (time ⇒ OffsetDateTime.from(time.toInstant.atZone(ZoneId.of("UTC"))))
 
-      Try(TimeTrigger(period, repeatTimes, startTime)).getOrElse(throwException(IllegalPeriod(period)))
+      Try(TimeSchedule(period, repeat, start)).getOrElse(throwException(IllegalPeriod(period)))
     }
   }
 
-  private def eventTrigger(implicit source: YamlSourceReader): Option[Trigger] = {
-    <<?[List[String]]("tags").map(tags ⇒ EventTrigger(tags.toSet))
+  private def eventTrigger(implicit source: YamlSourceReader): Option[Schedule] = {
+    <<?[List[String]]("tags").map(tags ⇒ EventSchedule(tags.toSet))
   }
 
-  private def daemonTrigger(implicit source: YamlSourceReader): Option[Trigger] = {
+  private def daemonTrigger(implicit source: YamlSourceReader): Option[Schedule] = {
     <<?[Boolean]("daemon") match {
-      case Some(daemon) if daemon ⇒ Option(DaemonTrigger)
+      case Some(daemon) if daemon ⇒ Option(DaemonSchedule)
       case _                      ⇒ None
     }
   }
