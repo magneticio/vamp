@@ -1,9 +1,10 @@
 package io.vamp.model.workflow
 
-import java.time.{ Period, Duration, OffsetDateTime }
+import java.time.{ Duration, OffsetDateTime, Period }
 
-import io.vamp.model.artifact.{ Scale, Lookup, Artifact, Reference }
-import io.vamp.model.workflow.TimeTrigger.{ RepeatTimes, RepeatPeriod, RepeatForever }
+import io.vamp.model.artifact.{ Artifact, Lookup, Reference, Scale }
+import io.vamp.model.workflow.TimeTrigger.{ RepeatForever, RepeatPeriod, RepeatTimes }
+
 import scala.language.implicitConversions
 
 trait Workflow extends Artifact
@@ -15,6 +16,12 @@ case class DefaultWorkflow(
   containerImage: Option[String],
   script: Option[String],
   command: Option[String]) extends Workflow
+
+case class ScheduledWorkflow(
+  name: String,
+  workflow: Workflow,
+  trigger: Trigger,
+  scale: Option[Scale]) extends Artifact with Lookup
 
 sealed trait Trigger
 
@@ -61,4 +68,3 @@ case class EventTrigger(tags: Set[String]) extends Trigger
 
 object DaemonTrigger extends Trigger
 
-case class ScheduledWorkflow(name: String, workflow: Workflow, trigger: Trigger, scale: Option[Scale]) extends Artifact with Lookup

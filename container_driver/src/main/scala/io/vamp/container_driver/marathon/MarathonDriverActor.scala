@@ -45,6 +45,8 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
 
   protected def appId(deployment: Deployment, breed: Breed): String = s"$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
+  override protected def supportedDeployableTypes = DockerDeployable :: CommandDeployable :: Nil
+
   def receive = {
 
     case InfoRequest                ⇒ reply(info)
@@ -110,7 +112,8 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
   }
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
-    validateSchemaSupport(service.breed.deployable.schema, Schema)
+
+    validateDeployable(service.breed.deployable)
 
     val id = appId(deployment, service.breed)
     if (update) log.info(s"marathon update app: $id") else log.info(s"marathon create app: $id")
@@ -162,14 +165,15 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     case false ⇒ RestClient.post[Any](s"$marathonUrl/v2/apps", payload)
   }
 
-  private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = service.breed.deployable match {
-    case Deployable(schema, Some(definition)) if Schema.Docker.toString.compareToIgnoreCase(schema) == 0 ⇒ Some(Container(docker(deployment, cluster, service, definition)))
-    case _ ⇒ None
+  private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = {
+    if (DockerDeployable.is(service.breed.deployable.`type`))
+      Some(Container(docker(deployment, cluster, service, service.breed.deployable.definition)))
+    else
+      None
   }
 
-  private def cmd(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[String] = service.breed.deployable match {
-    case Deployable(schema, Some(definition)) if Schema.Cmd.toString.compareToIgnoreCase(schema) == 0 || Schema.Command.toString.compareToIgnoreCase(schema) == 0 ⇒ Some(definition)
-    case _ ⇒ None
+  private def cmd(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[String] = {
+    if (CommandDeployable.is(service.breed.deployable.`type`)) Some(service.breed.deployable.definition) else None
   }
 
   private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, app: MarathonApp): JValue = {

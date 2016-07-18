@@ -13,7 +13,6 @@ object BreedSerializationFormat extends io.vamp.common.json.SerializationFormat 
 
   override def customSerializers = super.customSerializers :+
     new BreedSerializer() :+
-    new DeployableSerializer() :+
     new ArgumentSerializer
 
   override def fieldSerializers = super.fieldSerializers :+
@@ -64,12 +63,6 @@ class BreedSerializer extends ArtifactSerializer[Breed] with TraitDecomposer wit
       list += JField("dependencies", new JObject(dependencies))
 
       new JObject(list.toList)
-  }
-}
-
-class DeployableSerializer extends ArtifactSerializer[Deployable] {
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case d: Deployable ⇒ JString(d.name)
   }
 }
 

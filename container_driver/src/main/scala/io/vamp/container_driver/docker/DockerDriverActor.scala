@@ -7,7 +7,7 @@ import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver._
-import io.vamp.container_driver.notification.{ UndefinedDockerImage, UnsupportedContainerDriverRequest }
+import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
 
@@ -16,14 +16,6 @@ import scala.collection.mutable.{ Map ⇒ MutableMap }
 import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.util.Try
-
-object DockerDriverActor {
-
-  object Schema extends Enumeration {
-    val Docker = Value
-  }
-
-}
 
 class DockerDriverActor extends ContainerDriverActor with ContainerDriver with DockerNameMatcher {
 
@@ -71,9 +63,9 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
   override protected def appId(deployment: Deployment, breed: Breed): String = s"vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
-  private def info: Future[ContainerInfo] = Future(docker.info()).map {
-    case info ⇒ ContainerInfo("docker", info)
-  }
+  override protected def supportedDeployableTypes = DockerDeployable :: Nil
+
+  private def info: Future[ContainerInfo] = Future(docker.info()).map(info ⇒ ContainerInfo("docker", info))
 
   private def get(deploymentServices: List[DeploymentServices]) = {
 
@@ -126,18 +118,16 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
 
-    validateSchemaSupport(service.breed.deployable.schema, DockerDriverActor.Schema)
-
-    if (service.breed.deployable.definition.isEmpty) throwException(UndefinedDockerImage)
+    validateDeployable(service.breed.deployable)
 
     def run() = {
-      val config = containerConfiguration(deployment, cluster, service, docker(deployment, cluster, service, service.breed.deployable.definition.get))
+      val config = containerConfiguration(deployment, cluster, service, docker(deployment, cluster, service, service.breed.deployable.definition))
       val container = docker.createContainer(config)
       docker.startContainer(container.id())
     }
 
     val id = appId(deployment, service.breed)
-    val image = service.breed.deployable.definition.get
+    val image = service.breed.deployable.definition
 
     if (Try(docker.inspectImage(image)).isFailure) {
       log.info(s"docker pull image: $image")

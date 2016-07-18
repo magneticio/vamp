@@ -30,7 +30,12 @@ object PerformCommand extends Generate {
   private def doListCommand(subCommand: Option[String])(implicit vampHost: String, options: OptionMap) = subCommand match {
     case Some("breeds") ⇒
       println("NAME".padTo(25, ' ').bold.cyan + "DEPLOYABLE".bold.cyan)
-      VampHostCalls.getBreeds.foreach({ case b: DefaultBreed ⇒ println(s"${b.name.padTo(25, ' ')}${b.deployable.name}") })
+      def deployable(breed: DefaultBreed) = {
+        val `type` = breed.deployable.`type`
+        val definition = if (breed.deployable.definition.length > 28) s"${breed.deployable.definition.substring(0, 24)} ..." else breed.deployable.definition
+        s"${`type`} $definition"
+      }
+      VampHostCalls.getBreeds.foreach({ case b: DefaultBreed ⇒ println(s"${b.name.padTo(25, ' ')}${deployable(b)}") })
 
     case Some("blueprints") ⇒
       println("NAME".padTo(40, ' ').bold.cyan + "GATEWAYS".bold.cyan)
@@ -38,7 +43,7 @@ object PerformCommand extends Generate {
 
     case Some("gateways") ⇒
       println("NAME".padTo(40, ' ').bold.cyan + "PORT".bold.cyan)
-      VampHostCalls.getGateways.foreach({ case gateway: Gateway ⇒ println(s"${gateway.name.padTo(40, ' ')}${gateway.port.toValue}") })
+      VampHostCalls.getGateways.foreach({ gateway ⇒ println(s"${gateway.name.padTo(40, ' ')}${gateway.port.toValue}") })
 
     case Some("deployments") ⇒
       println("NAME".padTo(40, ' ').bold.cyan + "CLUSTERS".bold.cyan)

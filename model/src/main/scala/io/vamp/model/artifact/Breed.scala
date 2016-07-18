@@ -15,6 +15,7 @@ case class DefaultBreed(
     constants: List[Constant],
     arguments: List[Argument],
     dependencies: Map[String, Breed]) extends Breed {
+
   def traitsFor(group: String): List[Trait] = traitsFor(TraitReference.groupFor(group))
 
   def traitsFor(group: Option[TraitReference.Value]): List[Trait] = group match {
@@ -29,26 +30,12 @@ case class DefaultBreed(
 
 case class BreedReference(name: String) extends Reference with Breed
 
-case class Deployable(schema: String, definition: Option[String]) extends Artifact {
-  def name = Deployable.nameOf(this)
-}
-
 object Deployable {
 
-  val schemaDelimiter = "://"
-
-  val defaultSchema = "docker"
-
-  def apply(name: String): Deployable = name.indexOf(schemaDelimiter) match {
-    case -1    ⇒ Deployable(defaultSchema, Some(name))
-    case index ⇒ Deployable(name.substring(0, index).trim, Some(name.substring(index + schemaDelimiter.length).trim))
-  }
-
-  def nameOf(deployable: Deployable) = deployable match {
-    case Deployable(schema, None)             ⇒ schema
-    case Deployable(schema, Some(definition)) ⇒ s"$schema$schemaDelimiter$definition"
-  }
+  def apply(definition: String): Deployable = Deployable("container/docker", definition)
 }
+
+case class Deployable(`type`: String, definition: String)
 
 trait Trait {
 
@@ -119,7 +106,9 @@ object Port {
 
   def apply(number: Int): Port = Port(number.toString, None, Some(number.toString))
 
-  def apply(value: String): Port = Port("", None, Some(value)) match { case port ⇒ port.copy(name = port.number.toString) }
+  def apply(value: String): Port = Port("", None, Some(value)) match {
+    case port ⇒ port.copy(name = port.number.toString)
+  }
 
   def apply(number: Int, `type`: Port.Type.Value): Port = Port(number.toString, None, Option(s"$number${Port.Type.toTypeString(`type`)}"))
 

@@ -1,0 +1,4 @@
+name: monarch
+deployable:
+  type: container/rkt
+  definition: magneticio/vamp:latest

@@ -1,2 +1,2 @@
 name: monarch
-deployable: docker://magneticio/vamp:latest
+deployable: magneticio/vamp:latest

@@ -1,7 +1,7 @@
 package io.vamp.container_driver
 
 import io.vamp.common.akka.ExecutionContextProvider
-import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UnsupportedDeployableSchema }
+import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentTraitResolver
 
@@ -12,6 +12,8 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
   protected def appId(deployment: Deployment, breed: Breed): String
 
   protected def artifactName2Id(artifact: Artifact): String
+
+  protected def supportedDeployableTypes: List[DeployableType]
 
   protected def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[DockerPortMapping] = {
     service.breed.ports.map(port ⇒
@@ -25,9 +27,12 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
     service.environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) -> ev.interpolated.getOrElse("")).toMap
   }
 
-  protected def validateSchemaSupport(schema: String, enum: Enumeration) = {
-    if (!enum.values.exists(en ⇒ en.toString.compareToIgnoreCase(schema) == 0))
-      throwException(UnsupportedDeployableSchema(schema, enum.values.map(_.toString.toLowerCase).mkString(", ")))
+  protected def validateDeployable(deployable: Deployable) = {
+    if (!supportedDeployableTypes.exists(_.is(deployable.`type`)))
+      throwException(UnsupportedDeployableType(deployable.`type`, supportedDeployableTypes.map(_.`type`).mkString(", ")))
+
+    if (DockerDeployable.is(deployable.`type`) && deployable.definition.isEmpty)
+      throwException(UndefinedDockerImage)
   }
 
   protected def interpolate[T](deployment: Deployment, service: Option[DeploymentService], dialect: T): T = {

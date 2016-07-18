@@ -15,6 +15,12 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
+
+    <<?[Any]("deployable") match {
+      case Some(str: String) ⇒ >>("deployable", YamlSourceReader("definition" -> str))
+      case _                 ⇒
+    }
+
     <<?[YamlSourceReader]("dependencies") match {
       case None ⇒
       case Some(yaml) ⇒ yaml.pull().map {
@@ -37,7 +43,10 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
 
   override protected def parse(implicit source: YamlSourceReader): Breed = {
 
-    val deployable = Deployable(<<![String]("deployable"))
+    val deployable = <<?[String]("deployable" :: "type" :: Nil) match {
+      case Some(t) ⇒ Deployable(t, <<![String]("deployable" :: "definition" :: Nil))
+      case None    ⇒ Deployable(<<![String]("deployable" :: "definition" :: Nil))
+    }
 
     val dependencies = <<?[YamlSourceReader]("dependencies") match {
       case None ⇒ Map[String, Breed]()
