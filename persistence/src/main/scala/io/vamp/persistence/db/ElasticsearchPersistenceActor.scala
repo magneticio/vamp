@@ -52,14 +52,14 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
          |  "size": $perPage
          |}
         """.stripMargin) map {
-        case response ⇒ ArtifactResponseEnvelope(response.hits.hits.flatMap { hit ⇒ read(`type`, hit._source) }, response.hits.total, from, perPage)
+        response ⇒ ArtifactResponseEnvelope(response.hits.hits.flatMap { hit ⇒ read(`type`, hit._source) }, response.hits.total, from, perPage)
       }
   }
 
   protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = {
     log.debug(s"${getClass.getSimpleName}: read [${type2string(`type`)}] - $name}")
     es.get[ElasticsearchGetResponse](index, `type`, name) map {
-      case hit ⇒ if (hit.found) read(`type`, hit._source) else None
+      hit ⇒ if (hit.found) read(`type`, hit._source) else None
     }
   }
 
@@ -96,19 +96,17 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "conditions" -> ConditionReader,
     "rewrites" -> RewriteReader,
     "workflows" -> WorkflowReader,
-    "scheduled-workflows" -> ScheduledWorkflowReader,
     // gateway persistence
     "route-targets" -> new NoNameValidationYamlReader[RouteTargets] {
       override protected def parse(implicit source: YamlSourceReader) = {
         val targets = <<?[YamlList]("targets") match {
-          case Some(list) ⇒ list.flatMap {
-            case yaml ⇒
-              implicit val source = yaml
-              (<<?[String]("name"), <<?[String]("url")) match {
-                case (_, Some(url))  ⇒ ExternalRouteTarget(url) :: Nil
-                case (Some(name), _) ⇒ InternalRouteTarget(name, <<?[String]("host"), <<![Int]("port")) :: Nil
-                case _               ⇒ Nil
-              }
+          case Some(list) ⇒ list.flatMap { yaml ⇒
+            implicit val source = yaml
+            (<<?[String]("name"), <<?[String]("url")) match {
+              case (_, Some(url))  ⇒ ExternalRouteTarget(url) :: Nil
+              case (Some(name), _) ⇒ InternalRouteTarget(name, <<?[String]("host"), <<![Int]("port")) :: Nil
+              case _               ⇒ Nil
+            }
           }
           case _ ⇒ Nil
         }

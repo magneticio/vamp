@@ -1,0 +1,4 @@
+name: metrics
+breedd: metrics
+schedule:
+  type: daemon

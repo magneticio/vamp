@@ -7,7 +7,7 @@ import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.event.{ Aggregator, EventQuery, LongValueAggregationResult }
-import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
+import io.vamp.model.workflow.Workflow
 import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
 
 import scala.concurrent.Future
@@ -33,8 +33,7 @@ trait PersistenceStats extends ArtifactPaginationSupport {
       classOf[Route],
       classOf[Condition],
       classOf[Rewrite],
-      classOf[Workflow],
-      classOf[ScheduledWorkflow]
+      classOf[Workflow]
     )
 
     for {
@@ -48,22 +47,21 @@ trait PersistenceStats extends ArtifactPaginationSupport {
   }
 
   private def artifact(`type`: Class[_ <: Artifact]): Option[Future[Map[String, _]]] = {
-    PersistenceArchive.tagFor(`type`).map {
-      case tag ⇒
-        def count(archiveTag: String): Future[Long] = {
-          (actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(EventQuery(Set(tag, archiveTag), None, Some(Aggregator(Aggregator.count))), 1, 1))) map {
-            case LongValueAggregationResult(count) ⇒ count
-            case _                                 ⇒ 0
-          }
+    PersistenceArchive.tagFor(`type`).map { tag ⇒
+      def count(archiveTag: String): Future[Long] = {
+        (actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(EventQuery(Set(tag, archiveTag), None, Some(Aggregator(Aggregator.count))), 1, 1))) map {
+          case LongValueAggregationResult(count) ⇒ count
+          case _                                 ⇒ 0
         }
-        for {
-          currentCount ← all(`type`, 1, 1).map(_.total)
-          created ← count(PersistenceArchive.archiveCreateTag)
-          updated ← count(PersistenceArchive.archiveUpdateTag)
-          deleted ← count(PersistenceArchive.archiveDeleteTag)
-        } yield Map(
-          tag -> Map("count" -> currentCount, "created" -> created, "updated" -> updated, "deleted" -> deleted)
-        )
+      }
+      for {
+        currentCount ← all(`type`, 1, 1).map(_.total)
+        created ← count(PersistenceArchive.archiveCreateTag)
+        updated ← count(PersistenceArchive.archiveUpdateTag)
+        deleted ← count(PersistenceArchive.archiveDeleteTag)
+      } yield Map(
+        tag -> Map("count" -> currentCount, "created" -> created, "updated" -> updated, "deleted" -> deleted)
+      )
     }
   }
 }

@@ -1,3 +1,0 @@
-name: logger-schedule
-workflow: logger
-daemon: true

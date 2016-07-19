@@ -5,8 +5,8 @@ import akka.pattern.ask
 import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
 import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver.{ ContainerDriverActor, Docker, DockerApp }
-import io.vamp.model.artifact.DefaultScale
-import io.vamp.model.workflow.{ DaemonSchedule, DefaultWorkflow, ScheduledWorkflow }
+import io.vamp.model.artifact.{ DefaultBreed, DefaultScale }
+import io.vamp.model.workflow.{ DaemonSchedule, Workflow }
 import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 
 import scala.concurrent.Future
@@ -21,7 +21,7 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
 
   private lazy val namePrefix = WorkflowDriver.config.string(namePrefixConfig)
 
-  override def request(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]): Unit = scheduledWorkflows.foreach { scheduled ⇒
+  override def request(replyTo: ActorRef, workflows: List[Workflow]): Unit = workflows.foreach { scheduled ⇒
     if (scheduled.schedule == DaemonSchedule) {
       driverActor ? RetrieveDockerApp(name(scheduled)) map {
         case Some(_) ⇒ replyTo ! Scheduled(scheduled, Option(WorkflowInstance(scheduled.name)))
@@ -30,7 +30,7 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
     }
   }
 
-  override def schedule(data: Any): PartialFunction[ScheduledWorkflow, Future[Any]] = {
+  override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
     case workflow if workflow.schedule == DaemonSchedule ⇒
       val dockerApp = app(workflow)
       driverActor ? RetrieveDockerApp(dockerApp.id) map {
@@ -39,7 +39,7 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
       }
   }
 
-  override def unschedule(): PartialFunction[ScheduledWorkflow, Future[Any]] = {
+  override def unschedule(): PartialFunction[Workflow, Future[Any]] = {
     case workflow if workflow.schedule == DaemonSchedule ⇒
       driverActor ? RetrieveDockerApp(name(workflow)) map {
         case Some(_) ⇒ driverActor ? UndeployDockerApp(name(workflow))
@@ -47,16 +47,15 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
       }
   }
 
-  protected def app(scheduledWorkflow: ScheduledWorkflow): DockerApp = {
+  protected def app(workflow: Workflow): DockerApp = {
 
-    val workflow = scheduledWorkflow.workflow.asInstanceOf[DefaultWorkflow]
-    val scale = scheduledWorkflow.scale.get.asInstanceOf[DefaultScale]
+    val scale = workflow.scale.get.asInstanceOf[DefaultScale]
 
     DockerApp(
-      id = name(scheduledWorkflow),
+      id = name(workflow),
       container = Option(
         Docker(
-          image = workflow.containerImage.get,
+          image = workflow.breed.asInstanceOf[DefaultBreed].deployable.definition,
           portMappings = Nil,
           parameters = Nil,
           privileged = true,
@@ -68,16 +67,16 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
       memory = Math.round(scale.memory.value).toInt,
       environmentVariables = Map(
         "VAMP_URL" -> WorkflowDriver.vampUrl,
-        "VAMP_KEY_VALUE_STORE_ROOT_PATH" -> WorkflowDriver.pathToString(scheduledWorkflow)
+        "VAMP_KEY_VALUE_STORE_ROOT_PATH" -> WorkflowDriver.pathToString(workflow)
       ),
-      command = workflow.command.map(_.split(" ").toList).getOrElse(Nil),
+      command = Nil,
       arguments = Nil,
-      labels = Map("scheduled" -> scheduledWorkflow.name, "workflow" -> workflow.name),
+      labels = Map("scheduled" -> workflow.name, "workflow" -> workflow.name),
       constraints = Nil
     )
   }
 
-  private def name(scheduledWorkflow: ScheduledWorkflow) = {
+  private def name(scheduledWorkflow: Workflow) = {
     val id = if (scheduledWorkflow.name.matches("^[\\w-]+$")) scheduledWorkflow.name else scheduledWorkflow.lookupName
     s"$namePrefix$id"
   }

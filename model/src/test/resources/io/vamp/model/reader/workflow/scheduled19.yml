@@ -1,7 +1,0 @@
-name: logger
-workflow: logger
-daemon: true
-scale:
-  cpu: 1
-  memory: 512MB
-  instances: 2

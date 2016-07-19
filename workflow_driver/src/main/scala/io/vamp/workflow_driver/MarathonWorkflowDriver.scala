@@ -4,7 +4,7 @@ import akka.actor.{ ActorRef, ActorSystem }
 import io.vamp.common.akka.IoC
 import io.vamp.container_driver.DockerApp
 import io.vamp.container_driver.marathon.MarathonDriverActor
-import io.vamp.model.workflow.ScheduledWorkflow
+import io.vamp.model.workflow.Workflow
 
 import scala.concurrent.Future
 
@@ -16,8 +16,8 @@ class MarathonWorkflowDriver(implicit actorSystem: ActorSystem) extends DaemonWo
 
   override protected def driverActor: ActorRef = IoC.actorFor[MarathonDriverActor]
 
-  override protected def app(scheduledWorkflow: ScheduledWorkflow): DockerApp = {
-    val app = super.app(scheduledWorkflow)
+  override protected def app(workflow: Workflow): DockerApp = {
+    val app = super.app(workflow)
     app.copy(arguments = app.command, command = Nil)
   }
 }

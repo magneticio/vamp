@@ -2,24 +2,14 @@ package io.vamp.model.workflow
 
 import java.time.{ Duration, OffsetDateTime, Period }
 
-import io.vamp.model.artifact.{ Artifact, Lookup, Reference, Scale }
-import io.vamp.model.workflow.TimeSchedule.{ RepeatForever, RepeatPeriod, Repeat }
+import io.vamp.model.artifact._
+import io.vamp.model.workflow.TimeSchedule.{ Repeat, RepeatForever, RepeatPeriod }
 
 import scala.language.implicitConversions
 
-trait Workflow extends Artifact
-
-case class WorkflowReference(name: String) extends Reference with Workflow
-
-case class DefaultWorkflow(
+case class Workflow(
   name: String,
-  containerImage: Option[String],
-  script: Option[String],
-  command: Option[String]) extends Workflow
-
-case class ScheduledWorkflow(
-  name: String,
-  workflow: Workflow,
+  breed: Breed,
   schedule: Schedule,
   scale: Option[Scale]) extends Artifact with Lookup
 

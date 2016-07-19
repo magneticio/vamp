@@ -1,1 +1,5 @@
 name: logger
+breed:
+  name: metrics
+  deployable: magneticio/metrics:latest
+schedule: daemon

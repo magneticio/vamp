@@ -1,3 +1,4 @@
 name: logger
 breed: metrics
 schedule: daemon
+scale: small

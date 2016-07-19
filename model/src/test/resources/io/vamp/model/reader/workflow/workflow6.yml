@@ -1,2 +1,4 @@
 name: logger
-command: bash -c echo 5
+breed: metrics
+schedule:
+  event: a

@@ -3,9 +3,9 @@ package io.vamp.workflow_driver
 import akka.actor.{ ActorRef, ActorRefFactory }
 import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
 import io.vamp.common.http.RestClient
-import io.vamp.model.artifact.DefaultScale
+import io.vamp.model.artifact.{ DefaultBreed, DefaultScale }
 import io.vamp.model.workflow.TimeSchedule.RepeatCount
-import io.vamp.model.workflow.{ DaemonSchedule, DefaultWorkflow, ScheduledWorkflow, TimeSchedule }
+import io.vamp.model.workflow.{ DaemonSchedule, TimeSchedule, Workflow }
 import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 
 import scala.concurrent.Future
@@ -16,25 +16,23 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorRefFactory: 
     _ ⇒ Map("chronos" -> Map("url" -> url))
   }
 
-  override def request(replyTo: ActorRef, scheduledWorkflows: List[ScheduledWorkflow]): Unit = all() foreach { instances ⇒
-    scheduledWorkflows.foreach { scheduled ⇒
-      if (scheduled.schedule != DaemonSchedule)
-        replyTo ! Scheduled(scheduled, instances.find(_.name == scheduled.name))
+  override def request(replyTo: ActorRef, workflows: List[Workflow]): Unit = all() foreach { instances ⇒
+    workflows.foreach { workflow ⇒
+      if (workflow.schedule != DaemonSchedule)
+        replyTo ! Scheduled(workflow, instances.find(_.name == workflow.name))
     }
   }
 
-  override def schedule(data: Any): PartialFunction[ScheduledWorkflow, Future[Any]] = {
-    case scheduledWorkflow if scheduledWorkflow.schedule != DaemonSchedule ⇒
+  override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
+    case workflow if workflow.schedule != DaemonSchedule ⇒
 
-      val workflow = scheduledWorkflow.workflow.asInstanceOf[DefaultWorkflow]
-      val scale = scheduledWorkflow.scale.get.asInstanceOf[DefaultScale]
+      val scale = workflow.scale.get.asInstanceOf[DefaultScale]
 
       val jobRequest = job(
-        name = name(scheduledWorkflow),
-        schedule = period(scheduledWorkflow),
-        containerImage = workflow.containerImage.get,
-        command = workflow.command.get,
-        rootPath = WorkflowDriver.pathToString(scheduledWorkflow),
+        name = name(workflow),
+        schedule = period(workflow),
+        containerImage = workflow.breed.asInstanceOf[DefaultBreed].deployable.definition,
+        rootPath = WorkflowDriver.pathToString(workflow),
         cpu = scale.cpu.value,
         memory = scale.memory.value
       )
@@ -42,13 +40,14 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorRefFactory: 
       RestClient.post[Any](s"$url/scheduler/iso8601", jobRequest)
   }
 
-  override def unschedule(): PartialFunction[ScheduledWorkflow, Future[Any]] = {
-    case scheduledWorkflow if scheduledWorkflow.schedule != DaemonSchedule ⇒
+  override def unschedule(): PartialFunction[Workflow, Future[Any]] = {
+    case workflow if workflow.schedule != DaemonSchedule ⇒
       all() flatMap {
-        case list ⇒ list.find(_.name == name(scheduledWorkflow)) match {
-          case Some(_) ⇒ RestClient.delete(s"$url/scheduler/job/${name(scheduledWorkflow)}")
-          case _       ⇒ Future.successful(false)
-        }
+        list ⇒
+          list.find(_.name == name(workflow)) match {
+            case Some(_) ⇒ RestClient.delete(s"$url/scheduler/job/${name(workflow)}")
+            case _       ⇒ Future.successful(false)
+          }
       }
   }
 
@@ -57,17 +56,17 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorRefFactory: 
     case _             ⇒ Nil
   }
 
-  private def name(workflow: ScheduledWorkflow) = {
+  private def name(workflow: Workflow) = {
     if (workflow.name.matches("^[\\w\\s#_-]+$")) workflow.name else workflow.lookupName
   }
 
-  private def period(workflow: ScheduledWorkflow) = workflow.schedule match {
+  private def period(workflow: Workflow) = workflow.schedule match {
     case TimeSchedule(period, RepeatCount(count), start) ⇒ s"R$count/${start.getOrElse("")}/${period.format}"
     case TimeSchedule(period, _, start) ⇒ s"R/${start.getOrElse("")}/${period.format}"
     case _ ⇒ "R1//PT1S"
   }
 
-  private def job(name: String, schedule: String, containerImage: String, command: String, rootPath: String, cpu: Double, memory: Double) =
+  private def job(name: String, schedule: String, containerImage: String, rootPath: String, cpu: Double, memory: Double) =
     s"""
        |{
        |  "name": "$name",
@@ -81,7 +80,6 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorRefFactory: 
        |  "cpus": "$cpu",
        |  "mem": "$memory",
        |  "uris": [],
-       |  "command": "$command",
        |  "environmentVariables": [
        |    {
        |      "name": "VAMP_URL",

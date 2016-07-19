@@ -9,9 +9,9 @@ import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class TimeTriggerSpec extends FlatSpec with Matchers with ReaderSpec {
+class TimeScheduleSpec extends FlatSpec with Matchers with ReaderSpec {
 
-  "TimeTrigger" should "read an empty period" in {
+  "TimeSchedule" should "read an empty period" in {
     TimeSchedule("") should have(
       'period(RepeatPeriod(None, None)),
       'repeat(RepeatForever),

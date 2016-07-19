@@ -1,4 +1,0 @@
-name: kill-vamp
-period: P1Y2M3DT4H5M6S
-start: 2007-12-03T10:15:30+02:00
-script: vamp.exit()

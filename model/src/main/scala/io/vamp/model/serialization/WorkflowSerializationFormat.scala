@@ -11,64 +11,41 @@ import scala.collection.mutable.ArrayBuffer
 
 object WorkflowSerializationFormat extends io.vamp.common.json.SerializationFormat {
   override def customSerializers = super.customSerializers :+
-    new WorkflowSerializer() :+
-    new ScheduledWorkflowSerializer()
+    new WorkflowSerializer()
 }
 
 class WorkflowSerializer() extends ArtifactSerializer[Workflow] with ReferenceSerialization {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case workflow: WorkflowReference ⇒ serializeReference(workflow)
-    case workflow: DefaultWorkflow ⇒
+    case workflow: Workflow ⇒
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(workflow.name))
+      list += JField("breed", Extraction.decompose(workflow.breed))
 
-      if (workflow.containerImage.isDefined)
-        list += JField("container-image", JString(workflow.containerImage.get))
-
-      if (workflow.script.isDefined)
-        list += JField("script", JString(workflow.script.get))
-
-      if (workflow.command.isDefined)
-        list += JField("command", JString(workflow.command.get))
-
-      new JObject(list.toList)
-  }
-}
-
-class ScheduledWorkflowSerializer() extends ArtifactSerializer[ScheduledWorkflow] {
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case scheduledWorkflow: ScheduledWorkflow ⇒
-      val list = new ArrayBuffer[JField]
-      list += JField("name", JString(scheduledWorkflow.name))
-
-      scheduledWorkflow.schedule match {
+      workflow.schedule match {
         case TimeSchedule(period, repeatTimes, start) ⇒
-          list += JField("period", JString(period.format))
+          val time = new ArrayBuffer[JField]
+          time += JField("period", JString(period.format))
           repeatTimes match {
-            case RepeatCount(count) ⇒ list += JField("repeat", JInt(count))
+            case RepeatCount(count) ⇒ time += JField("repeat", JInt(count))
             case _                  ⇒
           }
-          start.foreach(start ⇒ list += JField("start", JString(start.format(ISO_OFFSET_DATE_TIME))))
+          start.foreach(start ⇒ time += JField("start", JString(start.format(ISO_OFFSET_DATE_TIME))))
+          list += JField("time", new JObject(time.toList))
 
         case EventSchedule(tags) ⇒
-          list += JField("tags", Extraction.decompose(tags))
+          val tagList = JField("tags", Extraction.decompose(tags)) :: Nil
+          val event = JField("event", new JObject(tagList)) :: Nil
+          list += JField("schedule", new JObject(event))
 
         case DaemonSchedule ⇒
-          list += JField("daemon", JBool(true))
+          list += JField("schedule", JString("daemon"))
 
         case _ ⇒
       }
 
-      if (scheduledWorkflow.scale.isDefined)
-        list += JField("scale", Extraction.decompose(scheduledWorkflow.scale.get))
-
-      scheduledWorkflow.workflow match {
-        case WorkflowReference(reference)           ⇒ list += JField("workflow", JString(reference))
-        case DefaultWorkflow(_, _, Some(script), _) ⇒ list += JField("script", JString(script))
-        case _                                      ⇒
-      }
+      if (workflow.scale.isDefined)
+        list += JField("scale", Extraction.decompose(workflow.scale.get))
 
       new JObject(list.toList)
   }
 }
-

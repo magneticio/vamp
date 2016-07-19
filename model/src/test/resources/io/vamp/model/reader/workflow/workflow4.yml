@@ -1,3 +1,5 @@
 name: logger
-container-image: magneticio/vamp-workflow-agent:latest
-command: bash -c echo 5
+breed: metrics
+schedule:
+  event:
+    tags: a

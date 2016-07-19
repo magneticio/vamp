@@ -1,3 +1,3 @@
 name: logger
 breed: metrics
-schedule: daemon
+schedule: test

@@ -1,7 +1,4 @@
 name: logger
 breed: metrics
 schedule:
-  event:
-    tags:
-    - a
-    - b
+  time: P1Y2M3DT4H5M6S

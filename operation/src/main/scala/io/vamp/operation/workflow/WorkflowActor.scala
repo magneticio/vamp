@@ -5,7 +5,7 @@ import akka.pattern.ask
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
-import io.vamp.model.artifact.DefaultScale
+import io.vamp.model.artifact.{ DefaultBreed, DefaultScale }
 import io.vamp.model.event.Event
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.workflow._
@@ -34,11 +34,11 @@ object WorkflowActor {
 
   object RescheduleAll
 
-  case class Schedule(workflow: ScheduledWorkflow)
+  case class Schedule(workflow: Workflow)
 
-  case class Unschedule(workflow: ScheduledWorkflow)
+  case class Unschedule(workflow: Workflow)
 
-  case class RunWorkflow(workflow: ScheduledWorkflow)
+  case class RunWorkflow(workflow: Workflow)
 
 }
 
@@ -82,50 +82,50 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
   private def reschedule() = {
     implicit val timeout = PersistenceActor.timeout
-    allArtifacts[ScheduledWorkflow] map {
+    allArtifacts[Workflow] map {
       case workflows: List[_] ⇒ workflows.foreach(workflow ⇒ self ! Schedule(workflow))
       case any                ⇒ reportException(InternalServerError(any))
     }
   }
 
-  private def schedule(workflow: ScheduledWorkflow): Unit = {
+  private def schedule(workflow: Workflow): Unit = {
     log.info(s"Scheduling workflow: '${workflow.name}'.")
 
     workflow.schedule match {
       case DaemonSchedule        ⇒ trigger(workflow)
       case TimeSchedule(_, _, _) ⇒ trigger(workflow)
       case EventSchedule(tags)   ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
-      case trigger               ⇒ log.warning(s"Unsupported trigger: '$trigger'.")
+      case schedule              ⇒ log.warning(s"Unsupported schedule: '$schedule'.")
     }
 
     pulse(workflow, scheduled = true)
   }
 
-  private def unschedule(workflow: ScheduledWorkflow) = {
+  private def unschedule(workflow: Workflow) = {
     log.info(s"Unscheduling workflow: '${workflow.name}'.")
 
     IoC.actorFor[PulseActor] ! UnregisterPercolator(s"$percolator${workflow.name}")
     IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) foreach { _ ⇒ pulse(workflow, scheduled = false) }
   }
 
-  private def trigger(scheduledWorkflow: ScheduledWorkflow, data: Any = None) = for {
-    workflow ← artifactFor[DefaultWorkflow](scheduledWorkflow.workflow)
-    scale ← if (scheduledWorkflow.scale.isDefined) artifactFor[DefaultScale](scheduledWorkflow.scale.get) else Future.successful(WorkflowActor.scale)
+  private def trigger(workflow: Workflow, data: Any = None) = for {
+    breed ← artifactFor[DefaultBreed](workflow.breed)
+    scale ← if (workflow.scale.isDefined) artifactFor[DefaultScale](workflow.scale.get) else Future.successful(WorkflowActor.scale)
   } yield {
 
     val expandedWorkflow = workflow.copy(
-      command = Option(workflow.command.getOrElse(WorkflowActor.command.mkString(" "))),
-      containerImage = Option(workflow.containerImage.getOrElse(WorkflowActor.containerImage))
+      breed = breed,
+      scale = Option(scale)
     )
 
-    val path = WorkflowDriver.path(scheduledWorkflow, workflow = true)
+    val path = WorkflowDriver.path(workflow)
 
-    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, expandedWorkflow.script) map {
-      _ ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(scheduledWorkflow.copy(workflow = expandedWorkflow, scale = Option(scale)), data)
+    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, Option("")) map {
+      _ ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(expandedWorkflow, data)
     }
   }
 
-  private def pulse(workflow: ScheduledWorkflow, scheduled: Boolean) = {
+  private def pulse(workflow: Workflow, scheduled: Boolean) = {
     actorFor[PulseActor] ! Publish(Event(Set(s"workflows${Event.tagDelimiter}${workflow.name}", if (scheduled) scheduledTag else unscheduledTag), workflow), publishEventValue = false)
   }
 }

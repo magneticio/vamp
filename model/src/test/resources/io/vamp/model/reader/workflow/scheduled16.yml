@@ -1,4 +1,0 @@
-name: logger
-daemon: true
-workflow: logger
-scale: small

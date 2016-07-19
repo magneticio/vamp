@@ -12,7 +12,7 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ YamlReader, _ }
-import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
+import io.vamp.model.workflow.Workflow
 import io.vamp.operation.notification.{ InconsistentArtifactName, UnexpectedArtifact }
 import io.vamp.persistence.db._
 import io.vamp.persistence.notification.PersistenceOperationFailure
@@ -36,26 +36,25 @@ trait ArtifactApiController extends MultipleArtifactApiController with SingleArt
   }
 
   protected def crud(kind: String): Boolean = `type`(kind) match {
-    case (t, _) if t == classOf[Gateway]           ⇒ false
-    case (t, _) if t == classOf[Deployment]        ⇒ false
-    case (t, _) if t == classOf[ScheduledWorkflow] ⇒ false
-    case _                                         ⇒ true
+    case (t, _) if t == classOf[Gateway]    ⇒ false
+    case (t, _) if t == classOf[Deployment] ⇒ false
+    case (t, _) if t == classOf[Workflow]   ⇒ false
+    case _                                  ⇒ true
   }
 
   protected def `type`(kind: String): (Class[_ <: Artifact], YamlReader[_ <: Artifact]) = kind match {
-    case "breeds"              ⇒ (classOf[Breed], BreedReader)
-    case "blueprints"          ⇒ (classOf[Blueprint], BlueprintReader)
-    case "slas"                ⇒ (classOf[Sla], SlaReader)
-    case "scales"              ⇒ (classOf[Scale], ScaleReader)
-    case "escalations"         ⇒ (classOf[Escalation], EscalationReader)
-    case "routes"              ⇒ (classOf[Route], RouteReader)
-    case "conditions"          ⇒ (classOf[Condition], ConditionReader)
-    case "rewrites"            ⇒ (classOf[Rewrite], RewriteReader)
-    case "workflows"           ⇒ (classOf[Workflow], WorkflowReader)
-    case "scheduled-workflows" ⇒ (classOf[ScheduledWorkflow], ScheduledWorkflowReader)
-    case "gateways"            ⇒ (classOf[Gateway], GatewayReader)
-    case "deployments"         ⇒ (classOf[Deployment], DeploymentReader)
-    case _                     ⇒ throwException(UnexpectedArtifact(kind))
+    case "breeds"      ⇒ (classOf[Breed], BreedReader)
+    case "blueprints"  ⇒ (classOf[Blueprint], BlueprintReader)
+    case "slas"        ⇒ (classOf[Sla], SlaReader)
+    case "scales"      ⇒ (classOf[Scale], ScaleReader)
+    case "escalations" ⇒ (classOf[Escalation], EscalationReader)
+    case "routes"      ⇒ (classOf[Route], RouteReader)
+    case "conditions"  ⇒ (classOf[Condition], ConditionReader)
+    case "rewrites"    ⇒ (classOf[Rewrite], RewriteReader)
+    case "workflows"   ⇒ (classOf[Workflow], WorkflowReader)
+    case "gateways"    ⇒ (classOf[Gateway], GatewayReader)
+    case "deployments" ⇒ (classOf[Deployment], DeploymentReader)
+    case _             ⇒ throwException(UnexpectedArtifact(kind))
   }
 }
 
@@ -113,10 +112,10 @@ trait SingleArtifactApiController {
 
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
 
-    case (t, r) if t == classOf[ScheduledWorkflow] ⇒
+    case (t, r) if t == classOf[Workflow] ⇒
       create(r, source, validateOnly).map {
         case list: List[_] ⇒
-          list.filter(_.isInstanceOf[ScheduledWorkflow]).foreach(workflow ⇒ actorFor[WorkflowActor] ! Schedule(workflow.asInstanceOf[ScheduledWorkflow]))
+          list.foreach { case workflow: Workflow ⇒ actorFor[WorkflowActor] ! Schedule(workflow) }
           list
         case any ⇒ any
       }
@@ -140,11 +139,11 @@ trait SingleArtifactApiController {
 
     case (t, r) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
 
-    case (t, r) if t == classOf[ScheduledWorkflow] ⇒
+    case (t, r) if t == classOf[Workflow] ⇒
 
       update(r, name, source, validateOnly).map {
         case list: List[_] ⇒
-          list.filter(_.isInstanceOf[ScheduledWorkflow]).foreach(workflow ⇒ actorFor[WorkflowActor] ! Schedule(workflow.asInstanceOf[ScheduledWorkflow]))
+          list.foreach { case workflow: Workflow ⇒ actorFor[WorkflowActor] ! Schedule(workflow) }
           list
         case any ⇒ any
       }
@@ -158,9 +157,9 @@ trait SingleArtifactApiController {
 
     case (t, r) if t == classOf[Deployment] ⇒ Future.successful(None)
 
-    case (t, r) if t == classOf[ScheduledWorkflow] ⇒
+    case (t, r) if t == classOf[Workflow] ⇒
       read(t, name, expandReferences = false, onlyReferences = false) map {
-        case Some(workflow: ScheduledWorkflow) ⇒
+        case Some(workflow: Workflow) ⇒
           delete(t, name, validateOnly).map { result ⇒
             actorFor[WorkflowActor] ! WorkflowActor.Unschedule(workflow)
             result

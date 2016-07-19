@@ -1,0 +1,7 @@
+name: logger
+breed: metrics
+schedule: daemon
+scale:
+  cpu: 1
+  memory: 128MB
+  instances: 2

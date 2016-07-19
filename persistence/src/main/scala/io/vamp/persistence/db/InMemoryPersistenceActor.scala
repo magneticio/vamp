@@ -5,7 +5,7 @@ import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.serialization.CoreSerializationFormat
-import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
+import io.vamp.model.workflow.Workflow
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, UnsupportedPersistenceRequest }
 import io.vamp.persistence.operation._
 import org.json4s.native.Serialization._
@@ -78,11 +78,10 @@ class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with Persistence
   }
 
   def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
-    store.get(`type`) flatMap {
-      case map ⇒
-        val artifact = map.remove(name)
-        if (artifact.isEmpty) log.debug(s"Artifact not found for deletion: ${type2string(`type`)}:$name")
-        artifact
+    store.get(`type`) flatMap { map ⇒
+      val artifact = map.remove(name)
+      if (artifact.isEmpty) log.debug(s"Artifact not found for deletion: ${type2string(`type`)}:$name")
+      artifact
     }
   }
 
@@ -127,7 +126,6 @@ trait TypeOfArtifact {
     case t if classOf[Condition].isAssignableFrom(t) ⇒ "conditions"
     case t if classOf[Rewrite].isAssignableFrom(t) ⇒ "rewrites"
     case t if classOf[Workflow].isAssignableFrom(t) ⇒ "workflows"
-    case t if classOf[ScheduledWorkflow].isAssignableFrom(t) ⇒ "scheduled-workflows"
     case _ ⇒ throwException(UnsupportedPersistenceRequest(`type`))
   }
 }

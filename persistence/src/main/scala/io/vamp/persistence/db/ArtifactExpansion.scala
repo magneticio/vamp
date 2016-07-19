@@ -3,7 +3,7 @@ package io.vamp.persistence.db
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
-import io.vamp.model.workflow.{ DefaultWorkflow, ScheduledWorkflow, WorkflowReference }
+import io.vamp.model.workflow.Workflow
 import io.vamp.persistence.notification.ArtifactNotFound
 
 import scala.concurrent.Future
@@ -24,23 +24,22 @@ trait ArtifactExpansion {
     if (artifact.isDefined) expandReferences(artifact.get).map(Option(_)) else Future.successful(None)
 
   protected def expandReferences(artifact: Artifact): Future[Artifact] = artifact match {
-    case deployment: Deployment               ⇒ Future.successful(deployment)
-    case blueprint: DefaultBlueprint          ⇒ expandClusters(blueprint.clusters).map(clusters ⇒ blueprint.copy(clusters = clusters))
-    case breed: DefaultBreed                  ⇒ expandBreed(breed)
-    case sla: Sla                             ⇒ expandSla(sla)
-    case route: DefaultRoute                  ⇒ Future.sequence(route.conditions.map(expandIfReference[DefaultCondition, ConditionReference])).map(conditions ⇒ route.copy(conditions = conditions))
-    case escalation: GenericEscalation        ⇒ Future.successful(escalation)
-    case condition: DefaultCondition          ⇒ Future.successful(condition)
-    case scale: DefaultScale                  ⇒ Future.successful(scale)
-    case workflow: DefaultWorkflow            ⇒ Future.successful(workflow)
-    case scheduledWorkflow: ScheduledWorkflow ⇒ expandScheduledWorkflow(scheduledWorkflow)
-    case _                                    ⇒ Future.successful(artifact)
+    case deployment: Deployment        ⇒ Future.successful(deployment)
+    case blueprint: DefaultBlueprint   ⇒ expandClusters(blueprint.clusters).map(clusters ⇒ blueprint.copy(clusters = clusters))
+    case breed: DefaultBreed           ⇒ expandBreed(breed)
+    case sla: Sla                      ⇒ expandSla(sla)
+    case route: DefaultRoute           ⇒ Future.sequence(route.conditions.map(expandIfReference[DefaultCondition, ConditionReference])).map(conditions ⇒ route.copy(conditions = conditions))
+    case escalation: GenericEscalation ⇒ Future.successful(escalation)
+    case condition: DefaultCondition   ⇒ Future.successful(condition)
+    case scale: DefaultScale           ⇒ Future.successful(scale)
+    case workflow: Workflow            ⇒ expandWorkflow(workflow)
+    case _                             ⇒ Future.successful(artifact)
   }
 
   protected def expandBreed(breed: DefaultBreed): Future[DefaultBreed] = Future.sequence {
     breed.dependencies.map(item ⇒ expandIfReference[DefaultBreed, BreedReference](item._2).map(breed ⇒ (item._1, breed)))
   } map {
-    case result ⇒ breed.copy(dependencies = result.toMap)
+    result ⇒ breed.copy(dependencies = result.toMap)
   }
 
   protected def expandClusters(clusters: List[Cluster]): Future[List[Cluster]] = Future.sequence {
@@ -65,7 +64,7 @@ trait ArtifactExpansion {
   }
 
   protected def expandGateway(gateway: Gateway): Future[Gateway] = {
-    expandRoutes(gateway.routes).map { case routes ⇒ gateway.copy(routes = routes) }
+    expandRoutes(gateway.routes).map { routes ⇒ gateway.copy(routes = routes) }
   }
 
   protected def expandRoutes(routes: List[Route]): Future[List[Route]] = Future.sequence {
@@ -86,18 +85,19 @@ trait ArtifactExpansion {
   protected def expandSla(sla: Sla): Future[Sla] = Future.sequence {
     sla.escalations.map(expandIfReference[GenericEscalation, EscalationReference])
   } map {
-    case escalations ⇒ sla match {
-      case s: GenericSla                   ⇒ s.copy(escalations = escalations)
-      case s: EscalationOnlySla            ⇒ s.copy(escalations = escalations)
-      case s: ResponseTimeSlidingWindowSla ⇒ s.copy(escalations = escalations)
-    }
+    escalations ⇒
+      sla match {
+        case s: GenericSla                   ⇒ s.copy(escalations = escalations)
+        case s: EscalationOnlySla            ⇒ s.copy(escalations = escalations)
+        case s: ResponseTimeSlidingWindowSla ⇒ s.copy(escalations = escalations)
+      }
   }
 
-  protected def expandScheduledWorkflow(scheduledWorkflow: ScheduledWorkflow): Future[ScheduledWorkflow] = for {
-    workflow ← expandIfReference[DefaultWorkflow, WorkflowReference](scheduledWorkflow.workflow)
-    scale ← if (scheduledWorkflow.scale.isDefined) expandIfReference[DefaultScale, ScaleReference](scheduledWorkflow.scale.get).map(Option(_)) else Future.successful(None)
+  protected def expandWorkflow(workflow: Workflow): Future[Workflow] = for {
+    breed ← expandIfReference[DefaultBreed, BreedReference](workflow.breed)
+    scale ← if (workflow.scale.isDefined) expandIfReference[DefaultScale, ScaleReference](workflow.scale.get).map(Option(_)) else Future.successful(None)
   } yield {
-    scheduledWorkflow.copy(scale = scale, workflow = workflow)
+    workflow.copy(scale = scale, breed = breed)
   }
 
   protected def expandIfReference[D <: Artifact: ClassTag, R <: Reference: ClassTag](artifact: Artifact): Future[D] = artifact match {

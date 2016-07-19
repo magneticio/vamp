@@ -1,16 +1,9 @@
 package io.vamp.model.notification
 
 import io.vamp.common.notification.Notification
-import io.vamp.model.artifact.DefaultScale
 
 trait WorkflowNotification extends Notification
 
-object UndefinedWorkflowTriggerError extends WorkflowNotification
+object UndefinedWorkflowScheduleError extends WorkflowNotification
 
-object BothWorkflowAndScriptError extends WorkflowNotification
-
-case class IllegalPeriod(period: String) extends Notification
-
-case class NoWorkflowRunnable(name: String) extends Notification
-
-case class InvalidScheduledWorkflowScale(scale: DefaultScale) extends Notification
+case class IllegalWorkflowSchedulePeriod(period: String) extends Notification

@@ -42,7 +42,8 @@ trait JavascriptBreedRoute {
       environmentVariables = Nil,
       constants = Nil,
       arguments = Nil,
-      dependencies = Map())
+      dependencies = Map()
+    )
 
     if (validateOnly) Future(breed) else actorFor[PersistenceActor] ? PersistenceActor.Update(breed, Some(source))
   }

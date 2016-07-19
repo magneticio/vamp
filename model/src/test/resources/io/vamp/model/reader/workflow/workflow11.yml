@@ -1,0 +1,7 @@
+name: logger
+breed: metrics
+schedule:
+  time:
+    period: P1Y2M3DT4H5M6S
+    repeat: 10
+    start:  2007-12-03T08:15:30Z

@@ -1,2 +1,6 @@
 name: logger
-container-image: magneticio/vamp-workflow-agent:latest
+breed: metrics
+schedule:
+  event:
+  - a
+  - b
