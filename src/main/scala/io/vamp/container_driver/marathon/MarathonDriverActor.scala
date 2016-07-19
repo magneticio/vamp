@@ -4,11 +4,11 @@ import io.vamp.common.config.Config
 import io.vamp.common.crypto.Hash
 import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.workflow.Workflow
 import org.json4s._
 
 import scala.concurrent.Future
@@ -20,6 +20,8 @@ object MarathonDriverActor {
   val mesosUrl = configuration.string("mesos.url")
 
   val marathonUrl = configuration.string("marathon.url")
+
+  val workflowNamePrefix = configuration.string("marathon.workflow-name-prefix")
 
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
@@ -43,6 +45,8 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
 
   protected val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
 
+  protected def appId(workflow: Workflow): String = s"$workflowNamePrefix${artifactName2Id(workflow)}"
+
   protected def appId(deployment: Deployment, breed: Breed): String = s"$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
   override protected def supportedDeployableTypes = DockerDeployable :: CommandDeployable :: Nil
@@ -56,9 +60,9 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
 
-    case d: DeployDockerApp         ⇒ reply(deploy(d.app, d.update))
-    case u: UndeployDockerApp       ⇒ reply(undeploy(u.app))
-    case r: RetrieveDockerApp       ⇒ reply(retrieve(r.app))
+    case GetWorkflow(workflow)      ⇒ reply(retrieve(workflow))
+    case d: DeployWorkflow          ⇒ reply(deploy(d.workflow, d.update))
+    case u: UndeployWorkflow        ⇒ reply(undeploy(u.workflow))
 
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
@@ -116,7 +120,8 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     validateDeployable(service.breed.deployable)
 
     val id = appId(deployment, service.breed)
-    if (update) log.info(s"marathon update app: $id") else log.info(s"marathon create app: $id")
+    val name = s"${deployment.name} / ${service.breed.deployable.definition}"
+    if (update) log.info(s"marathon update service: $name") else log.info(s"marathon create service: $name")
 
     val app = MarathonApp(
       id,
@@ -129,23 +134,29 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
       labels = labels(deployment, cluster, service)
     )
 
-    sendRequest(update, app.id, requestPayload(deployment, cluster, service, purge(app)))
+    sendRequest(update, id, requestPayload(deployment, cluster, service, purge(app)))
   }
 
-  private def deploy(app: DockerApp, update: Boolean): Future[Any] = {
+  private def deploy(workflow: Workflow, update: Boolean): Future[Any] = {
+
+    validateDeployable(workflow.breed.asInstanceOf[DefaultBreed].deployable)
+
+    val id = appId(workflow)
+    if (update) log.info(s"marathon update workflow: ${workflow.name}") else log.info(s"marathon create workflow: ${workflow.name}")
+    val scale = workflow.scale.get.asInstanceOf[DefaultScale]
+
     val marathonApp = MarathonApp(
-      app.id,
-      app.container.map(Container(_)),
-      app.instances,
-      app.cpu,
-      app.memory,
-      app.environmentVariables,
-      if (app.command.nonEmpty) Option(app.command.mkString(" ")) else None,
-      app.arguments,
-      app.labels,
-      app.constraints
+      id,
+      container(workflow),
+      scale.instances,
+      scale.cpu.value,
+      Math.round(scale.memory.value).toInt,
+      environment(workflow),
+      cmd(workflow),
+      labels = labels(workflow)
     )
-    sendRequest(update, app.id, Extraction.decompose(purge(marathonApp)))
+
+    sendRequest(update, id, Extraction.decompose(purge(marathonApp)))
   }
 
   private def purge(app: MarathonApp): MarathonApp = {
@@ -165,15 +176,20 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     case false ⇒ RestClient.post[Any](s"$marathonUrl/v2/apps", payload)
   }
 
+  private def container(workflow: Workflow): Option[Container] = {
+    if (DockerDeployable.matches(workflow.breed.asInstanceOf[DefaultBreed].deployable)) Some(Container(docker(workflow))) else None
+  }
+
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = {
-    if (DockerDeployable.is(service.breed.deployable.`type`))
-      Some(Container(docker(deployment, cluster, service, service.breed.deployable.definition)))
-    else
-      None
+    if (DockerDeployable.matches(service.breed.deployable)) Some(Container(docker(deployment, cluster, service))) else None
+  }
+
+  private def cmd(workflow: Workflow): Option[String] = {
+    if (CommandDeployable.matches(workflow.breed.asInstanceOf[DefaultBreed].deployable)) Some(workflow.breed.asInstanceOf[DefaultBreed].deployable.definition) else None
   }
 
   private def cmd(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[String] = {
-    if (CommandDeployable.is(service.breed.deployable.`type`)) Some(service.breed.deployable.definition) else None
+    if (CommandDeployable.matches(service.breed.deployable)) Some(service.breed.deployable.definition) else None
   }
 
   private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, app: MarathonApp): JValue = {
@@ -198,13 +214,15 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     RestClient.delete(s"$marathonUrl/v2/apps/$id")
   }
 
-  private def undeploy(app: String) = {
-    log.info(s"marathon delete app: $app")
-    RestClient.delete(s"$marathonUrl/v2/apps/$app")
+  private def undeploy(workflow: Workflow) = {
+    val id = appId(workflow)
+    log.info(s"marathon delete workflow: ${workflow.name}")
+    RestClient.delete(s"$marathonUrl/v2/apps/$id")
   }
 
-  private def retrieve(app: String): Future[Option[App]] = {
-    RestClient.get[AppResponse](s"$marathonUrl/v2/apps/$app", RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
+  private def retrieve(workflow: Workflow): Future[Option[App]] = {
+    val id = appId(workflow)
+    RestClient.get[AppResponse](s"$marathonUrl/v2/apps/$id", RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
       case AppResponse(response) ⇒ Option(response)
       case _                     ⇒ None
     }

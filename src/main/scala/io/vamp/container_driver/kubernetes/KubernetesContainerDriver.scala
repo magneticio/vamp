@@ -4,6 +4,7 @@ import io.vamp.common.crypto.Hash
 import io.vamp.common.http.RestClient
 import io.vamp.container_driver.ContainerDriver
 import io.vamp.model.artifact._
+import io.vamp.model.workflow.Workflow
 
 import scala.concurrent.Future
 
@@ -16,6 +17,10 @@ trait KubernetesContainerDriver extends ContainerDriver {
   protected val nameDelimiter = "-"
 
   protected val idMatcher = """^[a-z0-9][a-z0-9-]*$""".r
+
+  protected def workflowNamePrefix: String
+
+  protected def appId(workflow: Workflow): String = s"$workflowNamePrefix${artifactName2Id(workflow)}"
 
   protected def appId(deployment: Deployment, breed: Breed): String = s"${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 

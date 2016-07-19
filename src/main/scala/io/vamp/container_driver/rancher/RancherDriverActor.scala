@@ -4,13 +4,13 @@ import io.vamp.common.config.Config
 import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
-import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver._
 import io.vamp.container_driver.docker.DockerNameMatcher
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.container_driver.rancher.{ Service ⇒ RancherService }
 import io.vamp.model.artifact.{ Deployment, DeploymentCluster, DeploymentService, _ }
 import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.workflow.Workflow
 import org.apache.commons.codec.Charsets
 import org.json4s.{ DefaultFormats, Extraction, Formats }
 
@@ -21,6 +21,7 @@ object RancherDriverActor {
   private val config = Config.config("vamp.container-driver.rancher")
 
   val rancherUrl = config.string("url")
+  val workflowNamePrefix = config.string("workflow-name-prefix")
   val apiUser = config.string("user")
   val apiPassword = config.string("password")
   val environmentName = config.string("environment.name")
@@ -46,9 +47,9 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.cluster, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
 
-    case d: DeployDockerApp         ⇒ reply(deploy(d.app, d.update))
-    case u: UndeployDockerApp       ⇒ reply(undeploy(u.app))
-    case r: RetrieveDockerApp       ⇒ reply(retrieve(r.app))
+    //    case d: DeployDockerApp         ⇒ reply(deploy(d.app, d.update))
+    //    case u: UndeployDockerApp       ⇒ reply(undeploy(u.app))
+    //    case r: RetrieveDockerApp       ⇒ reply(retrieve(r.app))
 
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
@@ -160,7 +161,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
     validateDeployable(service.breed.deployable)
 
-    val dockerContainer = docker(deployment, cluster, service, service.breed.deployable.definition)
+    val dockerContainer = docker(deployment, cluster, service)
 
     val dockerApp = DockerApp(
       id = appId(deployment, service.breed),
@@ -220,39 +221,41 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
       }
   }
 
-  private def deploy(app: DockerApp, update: Boolean): Future[Any] = {
-    createStack(environmentName).flatMap {
-      case Some(stack) ⇒ createService(stack, buildRancherService(stack.id.get, app), (s) ⇒ {
-        Future.successful(s)
-      })
-      case _ ⇒ Future.successful(None)
-    }
-  }
+  //  private def deploy(app: DockerApp, update: Boolean): Future[Any] = {
+  //    createStack(environmentName).flatMap {
+  //      case Some(stack) ⇒ createService(stack, buildRancherService(stack.id.get, app), (s) ⇒ {
+  //        Future.successful(s)
+  //      })
+  //      case _ ⇒ Future.successful(None)
+  //    }
+  //  }
+  //
+  //  private def undeploy(name: String) = {
+  //
+  //    val serviceName = string2Id(name)
+  //
+  //    RestClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).map {
+  //      _.data.filter(_.name == serviceName)
+  //    } flatMap { services ⇒
+  //      val deletes = services.map { s ⇒
+  //        log.info(s"Rancher driver - removing service: ${s.name}")
+  //        RestClient.delete(s"$rancherUrl/services/${s.id.get}/?action=remove", headers)
+  //      }
+  //      Future.sequence(deletes)
+  //    }
+  //  }
+  //
+  //  private def retrieve(name: String): Future[Option[Service]] = {
+  //
+  //    val serviceName = string2Id(name)
+  //
+  //    RestClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).map {
+  //      case ServiceList(Nil)  ⇒ None
+  //      case ServiceList(list) ⇒ Option(list.head)
+  //    }
+  //  }
 
-  private def undeploy(name: String) = {
-
-    val serviceName = string2Id(name)
-
-    RestClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).map {
-      _.data.filter(_.name == serviceName)
-    } flatMap { services ⇒
-      val deletes = services.map { s ⇒
-        log.info(s"Rancher driver - removing service: ${s.name}")
-        RestClient.delete(s"$rancherUrl/services/${s.id.get}/?action=remove", headers)
-      }
-      Future.sequence(deletes)
-    }
-  }
-
-  private def retrieve(name: String): Future[Option[Service]] = {
-
-    val serviceName = string2Id(name)
-
-    RestClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).map {
-      case ServiceList(Nil)  ⇒ None
-      case ServiceList(list) ⇒ Option(list.head)
-    }
-  }
+  protected def appId(workflow: Workflow): String = s"$workflowNamePrefix${artifactName2Id(workflow)}"
 
   protected def appId(deployment: Deployment, breed: Breed): String = artifactName2Id(breed)
 
