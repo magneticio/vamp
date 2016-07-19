@@ -1,0 +1,4 @@
+name: health
+breed: health
+schedule:
+  type: daemon
