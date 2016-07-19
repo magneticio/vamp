@@ -5,6 +5,7 @@ import io.vamp.common.config.Config
 import io.vamp.common.notification.Notification
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
 import io.vamp.model.artifact.{ Deployment, _ }
+import io.vamp.model.workflow.Workflow
 import io.vamp.persistence.db.PersistenceActor
 import io.vamp.persistence.operation.GatewayServiceAddress
 import io.vamp.pulse.notification.PulseFailureNotifier
@@ -15,9 +16,11 @@ object ContainerDriverActor {
 
   lazy val timeout = Config.timeout("vamp.container-driver.response-timeout")
 
-  trait ContainerDriveMessage
-
   case class DeploymentServices(deployment: Deployment, services: List[DeploymentService])
+
+  //
+
+  sealed trait ContainerDriveMessage
 
   case class Get(deploymentServices: List[DeploymentServices]) extends ContainerDriveMessage
 
@@ -27,6 +30,11 @@ object ContainerDriverActor {
 
   case class DeployedGateways(gateway: List[Gateway]) extends ContainerDriveMessage
 
+  case class GetWorkflow(workflow: Workflow) extends ContainerDriveMessage
+
+  case class DeployWorkflow(workflow: Workflow, update: Boolean) extends ContainerDriveMessage
+
+  case class UndeployWorkflow(workflow: Workflow) extends ContainerDriveMessage
 }
 
 case class Containers(scale: DefaultScale, instances: List[ContainerInstance])

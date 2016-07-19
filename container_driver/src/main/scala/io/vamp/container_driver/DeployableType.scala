@@ -1,11 +1,13 @@
 package io.vamp.container_driver
 
-sealed abstract class DeployableType(val `type`: String) {
-  def is(some: String) = some == `type`
+import io.vamp.model.artifact.Deployable
+
+abstract class DeployableType(val `type`: String) {
+  def matches(some: Deployable) = some.`type` == `type`
 }
 
 object DockerDeployable extends DeployableType("container/docker")
 
 object CommandDeployable extends DeployableType("command") {
-  override def is(some: String) = super.is(some) || some == "cmd"
+  override def matches(some: Deployable) = super.matches(some) || some.`type` == "cmd"
 }

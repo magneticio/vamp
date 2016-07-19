@@ -4,10 +4,8 @@ import akka.actor._
 import akka.pattern.ask
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.config.Config
 import io.vamp.model.artifact.{ DefaultBreed, DefaultScale }
 import io.vamp.model.event.Event
-import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.workflow._
 import io.vamp.operation.OperationBootstrap
 import io.vamp.operation.notification._
@@ -16,21 +14,11 @@ import io.vamp.persistence.kv.KeyValueStoreActor
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
-import io.vamp.workflow_driver.{ WorkflowDriver, WorkflowDriverActor }
+import io.vamp.workflow_driver.{ WorkflowDeployable, WorkflowDriver, WorkflowDriverActor }
 
 import scala.concurrent.Future
 
 object WorkflowActor {
-
-  private val config = Config.config("vamp.operation.workflow")
-
-  val command = config.stringList("command")
-
-  val containerImage = config.string("container-image")
-
-  val scale = config.config("scale") match {
-    case c ⇒ DefaultScale("", Quantity.of(c.double("cpu")), MegaByte.of(c.string("memory")), c.int("instances"))
-  }
 
   object RescheduleAll
 
@@ -110,18 +98,16 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
   private def trigger(workflow: Workflow, data: Any = None) = for {
     breed ← artifactFor[DefaultBreed](workflow.breed)
-    scale ← if (workflow.scale.isDefined) artifactFor[DefaultScale](workflow.scale.get) else Future.successful(WorkflowActor.scale)
+    scale ← if (workflow.scale.isDefined) artifactFor[DefaultScale](workflow.scale.get).map(Option(_)) else Future.successful(None)
   } yield {
 
-    val expandedWorkflow = workflow.copy(
-      breed = breed,
-      scale = Option(scale)
-    )
-
-    val path = WorkflowDriver.path(workflow)
-
-    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, Option("")) map {
-      _ ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(expandedWorkflow, data)
+    if (WorkflowDeployable.matches(breed.deployable)) {
+      val path = WorkflowDriver.path(workflow)
+      IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, Option(breed.deployable.definition)) map {
+        _ ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
+      }
+    } else {
+      IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
     }
   }
 

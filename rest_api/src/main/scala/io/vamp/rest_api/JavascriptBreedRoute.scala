@@ -7,6 +7,7 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.http.RestApiBase
 import io.vamp.model.artifact.{ DefaultBreed, Deployable }
 import io.vamp.persistence.db.PersistenceActor
+import io.vamp.workflow_driver.WorkflowDeployable
 import spray.http.HttpMethods._
 import spray.http.MediaTypes._
 import spray.http.StatusCodes._
@@ -37,7 +38,7 @@ trait JavascriptBreedRoute {
 
     val breed = DefaultBreed(
       name = name,
-      deployable = Deployable("application/javascript", source),
+      deployable = Deployable(WorkflowDeployable.`type`, source),
       ports = Nil,
       environmentVariables = Nil,
       constants = Nil,

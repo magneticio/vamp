@@ -74,7 +74,7 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorRefFactory: 
        |  "container": {
        |    "type": "DOCKER",
        |    "image": "$containerImage",
-       |    "network": ${WorkflowDriver.network},
+       |    "network": "BRIDGE",
        |    "volumes": []
        |  },
        |  "cpus": "$cpu",

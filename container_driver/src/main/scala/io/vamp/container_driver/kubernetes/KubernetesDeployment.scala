@@ -83,7 +83,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
     val app = KubernetesApp(
       name = id,
-      docker = docker(deployment, cluster, service, service.breed.deployable.definition),
+      docker = docker(deployment, cluster, service),
       replicas = service.scale.get.instances,
       cpu = service.scale.get.cpu.value,
       mem = Math.round(service.scale.get.memory.value).toInt,

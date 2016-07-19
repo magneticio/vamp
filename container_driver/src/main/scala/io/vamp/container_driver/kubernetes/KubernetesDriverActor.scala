@@ -4,7 +4,6 @@ import io.vamp.common.config.Config
 import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
-import io.vamp.container_driver.DockerAppDriver.{ DeployDockerApp, RetrieveDockerApp, UndeployDockerApp }
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact.{ Gateway, Lookup }
@@ -23,6 +22,8 @@ object KubernetesDriverActor {
   private val config = Config.config("vamp.container-driver.kubernetes")
 
   val url = config.string("url")
+
+  val workflowNamePrefix = config.string("workflow-name-prefix")
 
   val token = config.string("token")
 
@@ -45,13 +46,15 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
   protected val apiHeaders = {
     Try(Source.fromFile(token).mkString).map {
-      case bearer ⇒ ("Authorization" -> s"Bearer $bearer") :: RestClient.jsonHeaders
+      bearer ⇒ ("Authorization" -> s"Bearer $bearer") :: RestClient.jsonHeaders
     } getOrElse RestClient.jsonHeaders
   }
 
   private val gatewayService = Map("vamp" -> "gateway")
 
   private val daemonService = Map("vamp" -> "daemon")
+
+  override protected def workflowNamePrefix: String = KubernetesDriverActor.workflowNamePrefix
 
   def receive = {
 
@@ -62,9 +65,9 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
 
-    case d: DeployDockerApp         ⇒ reply(deploy(d.app, d.update))
-    case u: UndeployDockerApp       ⇒ reply(undeploy(u.app))
-    case r: RetrieveDockerApp       ⇒ reply(retrieve(r.app))
+    //    case d: DeployDockerApp         ⇒ reply(deploy(d.app, d.update))
+    //    case u: UndeployDockerApp       ⇒ reply(undeploy(u.app))
+    //    case r: RetrieveDockerApp       ⇒ reply(retrieve(r.app))
 
     case ds: DaemonSet              ⇒ reply(daemonSet(ds))
 
@@ -114,7 +117,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
         // create services
         val created = gateways.filter {
-          case gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
+          gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
         } map { gateway ⇒
           val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
           createService(gateway.name, serviceType, vampGatewayAgentId, ports, update = false, gatewayService ++ Map(Lookup.entry -> gateway.lookupName))
@@ -126,12 +129,11 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
   }
 
   private def daemonSet(ds: DaemonSet) = createDaemonSet(ds).flatMap { response ⇒
-    ds.serviceType.map {
-      case st ⇒
-        val ports = ds.docker.portMappings.map { pm ⇒
-          KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort, pm.containerPort)
-        }
-        createService(ds.name, st, ds.name, ports, update = false, daemonService)
+    ds.serviceType.map { st ⇒
+      val ports = ds.docker.portMappings.map { pm ⇒
+        KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort, pm.containerPort)
+      }
+      createService(ds.name, st, ds.name, ports, update = false, daemonService)
     } getOrElse Future.successful(response)
   }
 }
