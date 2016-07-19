@@ -7,7 +7,7 @@ import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
-import io.vamp.model.workflow.{ ScheduledWorkflow, Workflow }
+import io.vamp.model.workflow.Workflow
 import io.vamp.pulse.PulseActor
 
 object PersistenceArchive {
@@ -20,17 +20,16 @@ object PersistenceArchive {
 
   def tagFor(`type`: Class[_]): Option[String] = `type` match {
     case t if classOf[Deployment].isAssignableFrom(t) ⇒ Option("deployments")
-    case t if classOf[Gateway].isAssignableFrom(t) ⇒ Option("gateways")
-    case t if classOf[Breed].isAssignableFrom(t) ⇒ Option("breeds")
-    case t if classOf[Blueprint].isAssignableFrom(t) ⇒ Option("blueprints")
-    case t if classOf[Sla].isAssignableFrom(t) ⇒ Option("slas")
-    case t if classOf[Scale].isAssignableFrom(t) ⇒ Option("scales")
+    case t if classOf[Gateway].isAssignableFrom(t)    ⇒ Option("gateways")
+    case t if classOf[Breed].isAssignableFrom(t)      ⇒ Option("breeds")
+    case t if classOf[Blueprint].isAssignableFrom(t)  ⇒ Option("blueprints")
+    case t if classOf[Sla].isAssignableFrom(t)        ⇒ Option("slas")
+    case t if classOf[Scale].isAssignableFrom(t)      ⇒ Option("scales")
     case t if classOf[Escalation].isAssignableFrom(t) ⇒ Option("escalations")
-    case t if classOf[Route].isAssignableFrom(t) ⇒ Option("routes")
-    case t if classOf[Condition].isAssignableFrom(t) ⇒ Option("conditions")
-    case t if classOf[Workflow].isAssignableFrom(t) ⇒ Option("workflows")
-    case t if classOf[ScheduledWorkflow].isAssignableFrom(t) ⇒ Option("scheduled-workflows")
-    case request ⇒ None
+    case t if classOf[Route].isAssignableFrom(t)      ⇒ Option("routes")
+    case t if classOf[Condition].isAssignableFrom(t)  ⇒ Option("conditions")
+    case t if classOf[Workflow].isAssignableFrom(t)   ⇒ Option("workflows")
+    case request                                      ⇒ None
   }
 }
 
@@ -63,7 +62,7 @@ trait PersistenceArchive {
     }
   }
 
-  private def tagFor(name: String, `type`: Class[_ <: Artifact]): Option[String] = PersistenceArchive.tagFor(`type`) map {
-    case tag ⇒ s"$tag:$name"
+  private def tagFor(name: String, `type`: Class[_ <: Artifact]): Option[String] = {
+    PersistenceArchive.tagFor(`type`) map { tag ⇒ s"$tag:$name" }
   }
 }
