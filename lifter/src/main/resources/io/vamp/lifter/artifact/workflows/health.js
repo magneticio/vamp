@@ -31,8 +31,8 @@ var process = function() {
   api.deployments(function (deployments) {
       _.forEach(deployments, function (deployment) {
           _.forOwn(deployment.clusters, function (cluster) {
-              _.forOwn(cluster.routing, function (routing) {
-                  health(routing.lookup_name, 'deployments:' + deployment.name);
+              _.forOwn(cluster.gateways, function (gateway) {
+                  health(gateway.lookup_name, 'deployments:' + deployment.name);
               });
           });
       });
