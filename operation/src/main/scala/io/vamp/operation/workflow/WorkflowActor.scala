@@ -102,7 +102,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   } yield {
 
     if (WorkflowDeployable.matches(breed.deployable)) {
-      val path = WorkflowDriver.path(workflow)
+      val path = WorkflowDriver.path(workflow, script = true)
       IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, Option(breed.deployable.definition)) map {
         _ ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
       }
