@@ -3,7 +3,7 @@
 Vamp is actively developed by [Magnetic.io](http://magnetic.io) but is an open source project. 
 We encourage anyone to pitch in with pull requests, issues etc.
 
-Note: We are currently in alpha. This means the API will change, features will be added/removed and there will be bugs. Having said that:
+Note: We are currently in beta. This means the API will change, features will be added/removed and there will be bugs. Having said that:
 
 
 *Vamp is split into separate repos and projects, just like actual microservices...* :metal:
@@ -11,6 +11,7 @@ Note: We are currently in alpha. This means the API will change, features will b
 1. [Vamp](https://github.com/magneticio/vamp) : the brains of the organization.
 2. [Vamp UI](https://github.com/magneticio/vamp-ui) : the Vamp UI.
 3. [Vamp Gateway Agent](https://github.com/magneticio/vamp-gateway-agent) : serves as an intermediary agent between supported config stores (ZooKeeper, etcd, Consul) and HAProxy, and routes HAProxy logs to Logstash.
+4. [Vamp Workflow Agent](https://github.com/magneticio/vamp-workflow-agent) : simple agent(s) that perform management, maintenance and job related tasks for applications, e.g. auto scaling, analytics aggregation, SLA... 
 
 *We accept bug reports and pull requests on the GitHub repo for each project*.
 
