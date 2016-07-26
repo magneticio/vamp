@@ -9,7 +9,7 @@ import io.vamp.common.config.Config
 import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.model.artifact.{ DefaultBreed, Deployable }
 import io.vamp.model.reader.WorkflowReader
-import io.vamp.operation.controller.ArtifactApiController
+import io.vamp.operation.controller.{ ArtifactApiController, DeploymentApiController }
 import io.vamp.operation.notification.InternalServerError
 import io.vamp.persistence.db.PersistenceActor
 import io.vamp.workflow_driver.WorkflowDeployable
@@ -23,7 +23,7 @@ object ArtifactInitializationActor {
 
 }
 
-class ArtifactInitializationActor extends ArtifactApiController with CommonSupportForActors with LifterNotificationProvider {
+class ArtifactInitializationActor extends ArtifactApiController with DeploymentApiController with CommonSupportForActors with LifterNotificationProvider {
 
   import ArtifactInitializationActor._
 

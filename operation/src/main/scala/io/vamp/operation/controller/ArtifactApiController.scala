@@ -16,13 +16,11 @@ import io.vamp.model.workflow.Workflow
 import io.vamp.operation.notification.{ InconsistentArtifactName, UnexpectedArtifact }
 import io.vamp.persistence.db._
 import io.vamp.persistence.notification.PersistenceOperationFailure
-import org.json4s.DefaultFormats
-import org.json4s.native.Serialization._
 
 import scala.concurrent.Future
 
 trait ArtifactApiController extends MultipleArtifactApiController with SingleArtifactApiController with ArtifactExpansionSupport {
-  this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
+  this: DeploymentApiController with ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
 
   def background(artifact: String): Boolean = !crud(artifact)
 
@@ -34,71 +32,6 @@ trait ArtifactApiController extends MultipleArtifactApiController with SingleArt
         case other                              ⇒ throwException(PersistenceOperationFailure(other))
       }
   }
-
-  protected def crud(kind: String): Boolean = `type`(kind) match {
-    case (t, _) if t == classOf[Gateway]    ⇒ false
-    case (t, _) if t == classOf[Deployment] ⇒ false
-    case (t, _) if t == classOf[Workflow]   ⇒ false
-    case _                                  ⇒ true
-  }
-
-  protected def `type`(kind: String): (Class[_ <: Artifact], YamlReader[_ <: Artifact]) = kind match {
-    case "breeds"      ⇒ (classOf[Breed], BreedReader)
-    case "blueprints"  ⇒ (classOf[Blueprint], BlueprintReader)
-    case "slas"        ⇒ (classOf[Sla], SlaReader)
-    case "scales"      ⇒ (classOf[Scale], ScaleReader)
-    case "escalations" ⇒ (classOf[Escalation], EscalationReader)
-    case "routes"      ⇒ (classOf[Route], RouteReader)
-    case "conditions"  ⇒ (classOf[Condition], ConditionReader)
-    case "rewrites"    ⇒ (classOf[Rewrite], RewriteReader)
-    case "workflows"   ⇒ (classOf[Workflow], WorkflowReader)
-    case "gateways"    ⇒ (classOf[Gateway], GatewayReader)
-    case "deployments" ⇒ (classOf[Deployment], DeploymentReader)
-    case _             ⇒ throwException(UnexpectedArtifact(kind))
-  }
-}
-
-trait MultipleArtifactApiController {
-  this: SingleArtifactApiController with ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
-
-  def createArtifacts(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = process(source, {
-    item ⇒ createArtifact(item.kind, item.input, validateOnly)
-  })
-
-  def updateArtifacts(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = process(source, {
-    item ⇒ updateArtifact(item.kind, item.name, item.input, validateOnly)
-  })
-
-  def deleteArtifacts(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = process(source, {
-    item ⇒ deleteArtifact(item.kind, item.name, item.input, validateOnly)
-  })
-
-  private def process(source: String, execute: ArtifactSource ⇒ Future[Any]) = Future.sequence {
-    ArtifactListReader.read(source).map(execute)
-  }
-}
-
-private case class ArtifactSource(kind: String, name: String, input: String)
-
-private object ArtifactListReader extends YamlReader[List[ArtifactSource]] {
-
-  import YamlSourceReader._
-
-  override def read(input: YamlSource): List[ArtifactSource] = {
-    (unmarshal(input) match {
-      case Left(item)   ⇒ List(item)
-      case Right(items) ⇒ items
-    }) map { item ⇒
-
-      val kind = item.get[String]("kind")
-      val name = item.get[String]("name")
-      val source = item.flatten({ str ⇒ str != "kind" })
-
-      ArtifactSource(if (kind.endsWith("s")) kind else s"${kind}s", name, write(source)(DefaultFormats))
-    }
-  }
-
-  override protected def parse(implicit source: YamlSourceReader): List[ArtifactSource] = throw new NotImplementedError
 }
 
 trait SingleArtifactApiController {
@@ -169,6 +102,28 @@ trait SingleArtifactApiController {
 
     case (t, r) ⇒
       if (validateOnly) Future(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, t)
+  }
+
+  protected def crud(kind: String): Boolean = `type`(kind) match {
+    case (t, _) if t == classOf[Gateway]    ⇒ false
+    case (t, _) if t == classOf[Deployment] ⇒ false
+    case (t, _) if t == classOf[Workflow]   ⇒ false
+    case _                                  ⇒ true
+  }
+
+  protected def `type`(kind: String): (Class[_ <: Artifact], YamlReader[_ <: Artifact]) = kind match {
+    case "breeds"      ⇒ (classOf[Breed], BreedReader)
+    case "blueprints"  ⇒ (classOf[Blueprint], BlueprintReader)
+    case "slas"        ⇒ (classOf[Sla], SlaReader)
+    case "scales"      ⇒ (classOf[Scale], ScaleReader)
+    case "escalations" ⇒ (classOf[Escalation], EscalationReader)
+    case "routes"      ⇒ (classOf[Route], RouteReader)
+    case "conditions"  ⇒ (classOf[Condition], ConditionReader)
+    case "rewrites"    ⇒ (classOf[Rewrite], RewriteReader)
+    case "workflows"   ⇒ (classOf[Workflow], WorkflowReader)
+    case "gateways"    ⇒ (classOf[Gateway], GatewayReader)
+    case "deployments" ⇒ (classOf[Deployment], DeploymentReader)
+    case _             ⇒ throwException(UnexpectedArtifact(kind))
   }
 
   private def read(`type`: Class[_ <: Artifact], name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = {
