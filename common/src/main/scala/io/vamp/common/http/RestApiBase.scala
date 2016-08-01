@@ -38,7 +38,7 @@ trait RestApiBase extends HttpServiceBase with RestApiPagination with RestApiMar
   }
 
   protected def contentTypeOnly(mt: MediaType*): Directive0 = extract(_.request.headers).flatMap[HNil] {
-    case headers ⇒ if (headers.exists({
+    headers ⇒ if (headers.exists({
       case `Content-Type`(ContentType(mediaType: MediaType, _)) ⇒ mt.exists(_.value == mediaType.value)
       case _ ⇒ false
     })) pass
@@ -87,7 +87,9 @@ trait RestApiPagination {
           requestUri { uri ⇒
             respondWithHeader(links(uri, envelope)) {
               respondWithHeader(RawHeader("X-Total-Count", s"${envelope.total}")) {
-                complete(envelope.response)
+                respondWithHeader(RawHeader("Access-Control-Expose-Headers", "Link, X-Total-Count")) {
+                  complete(envelope.response)
+                }
               }
             }
           }
