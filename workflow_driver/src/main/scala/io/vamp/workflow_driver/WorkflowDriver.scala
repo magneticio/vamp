@@ -40,6 +40,8 @@ trait WorkflowDriver {
     case c ⇒ DefaultScale("", Quantity.of(c.double("cpu")), MegaByte.of(c.string("memory")), c.int("instances"))
   }
 
+  val defaultNetwork = config.string("workflow.network")
+
   def info: Future[Map[_, _]]
 
   def request(replyTo: ActorRef, scheduledWorkflows: List[Workflow]): Unit
@@ -61,7 +63,11 @@ trait WorkflowDriver {
       case d                                  ⇒ d
     }
 
-    workflow.copy(breed = breed.copy(deployable = deployable, environmentVariables = environmentVariables), scale = Option(workflow.scale.getOrElse(defaultScale)))
+    workflow.copy(
+      breed = breed.copy(deployable = deployable, environmentVariables = environmentVariables),
+      scale = Option(workflow.scale.getOrElse(defaultScale)),
+      network = workflow.network.orElse(Option(defaultNetwork))
+    )
   }
 
   private def environmentVariable(name: String, value: String) = EnvironmentVariable(name, None, Option(value), Option(value))

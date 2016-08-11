@@ -11,7 +11,8 @@ case class Workflow(
   name: String,
   breed: Breed,
   schedule: Schedule,
-  scale: Option[Scale]) extends Artifact with Lookup
+  scale: Option[Scale],
+  network: Option[String]) extends Artifact with Lookup
 
 sealed trait Schedule
 
