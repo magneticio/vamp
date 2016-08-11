@@ -62,7 +62,13 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
   }
 
   protected def docker(workflow: Workflow): Docker = {
-    Docker(workflow.breed.asInstanceOf[DefaultBreed].deployable.definition, portMappings(workflow), Nil, privileged = false)
+    Docker(
+      image = workflow.breed.asInstanceOf[DefaultBreed].deployable.definition,
+      portMappings = portMappings(workflow),
+      parameters = Nil,
+      privileged = false,
+      network = workflow.network.getOrElse(Docker.network)
+    )
   }
 
   protected def docker(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Docker = {
