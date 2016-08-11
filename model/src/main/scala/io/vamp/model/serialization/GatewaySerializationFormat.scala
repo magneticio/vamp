@@ -22,7 +22,7 @@ class GatewaySerializer extends ArtifactSerializer[Gateway] with GatewayDecompos
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeGateway
 }
 
-trait GatewayDecomposer extends ReferenceSerialization {
+trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
 
   def serializeGateway(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = true)
 
@@ -32,12 +32,12 @@ trait GatewayDecomposer extends ReferenceSerialization {
     case gateway: Gateway ⇒
       val list = new ArrayBuffer[JField]
 
-      if (gateway.name.nonEmpty) {
-        list += JField("name", JString(gateway.name))
-        list += JField(Lookup.entry, JString(gateway.lookupName))
-      }
-
       if (full) {
+
+        if (gateway.name.nonEmpty) list += JField("name", JString(gateway.name))
+
+        list += JField(Lookup.entry, JString(gateway.lookupName))
+
         list += JField("port", gateway.port.value match {
           case Some(value) ⇒ JString(value)
           case _           ⇒ JString(gateway.port.toValue)
@@ -55,8 +55,6 @@ trait GatewayDecomposer extends ReferenceSerialization {
         }
 
         list += JField("deployed", JBool(gateway.deployed))
-      } else if (gateway.port.value.isDefined && gateway.port.name != gateway.port.value.get) {
-        list += JField("port", JString(gateway.port.value.get))
       }
 
       list += JField("sticky", if (gateway.sticky.isDefined) Extraction.decompose(gateway.sticky) else JString("none"))
@@ -67,7 +65,7 @@ trait GatewayDecomposer extends ReferenceSerialization {
             case _ :: _ :: s :: _ :: Nil if !full ⇒ s
             case _ :: _ :: _ :: Nil if !full      ⇒ GatewayPath(route.path.segments.tail).normalized
             case _                                ⇒ route.path.source
-          }) -> route
+          }) -> serializeRoute(full)(format)(route)
         } toMap
       })
 
@@ -81,8 +79,9 @@ class GatewayStickySerializer extends CustomSerializer[Gateway.Sticky.Value](for
   case sticky: Gateway.Sticky.Value ⇒ JString(sticky.toString.toLowerCase)
 }))
 
-class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerialization with ConditionDecomposer {
-  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+trait RouteDecomposer extends ReferenceSerialization with ConditionDecomposer {
+
+  def serializeRoute(full: Boolean = true)(implicit format: Formats): PartialFunction[Any, JValue] = {
     case route: RouteReference ⇒ serializeReference(route)
     case route: DefaultRoute ⇒
       val list = new ArrayBuffer[JField]
@@ -95,10 +94,14 @@ class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerializat
       list += JField("conditions", JArray(route.conditions.map(serializeCondition(full = false))))
       list += JField("rewrites", Extraction.decompose(route.rewrites))
 
-      if (route.targets.nonEmpty) list += JField("instances", Extraction.decompose(route.targets))
+      if (full && route.targets.nonEmpty) list += JField("instances", Extraction.decompose(route.targets))
 
       new JObject(list.toList)
   }
+}
+
+class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerialization with RouteDecomposer {
+  override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeRoute(full = true)
 }
 
 class ExternalRouteTargetSerializer extends ArtifactSerializer[ExternalRouteTarget] {

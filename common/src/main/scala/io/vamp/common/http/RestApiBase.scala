@@ -38,11 +38,12 @@ trait RestApiBase extends HttpServiceBase with RestApiPagination with RestApiMar
   }
 
   protected def contentTypeOnly(mt: MediaType*): Directive0 = extract(_.request.headers).flatMap[HNil] {
-    headers ⇒ if (headers.exists({
-      case `Content-Type`(ContentType(mediaType: MediaType, _)) ⇒ mt.exists(_.value == mediaType.value)
-      case _ ⇒ false
-    })) pass
-    else reject(MalformedHeaderRejection("Content-Type", s"Only the following media types are supported: ${mt.mkString(", ")}"))
+    headers ⇒
+      if (headers.exists({
+        case `Content-Type`(ContentType(mediaType: MediaType, _)) ⇒ mt.exists(_.value == mediaType.value)
+        case _ ⇒ false
+      })) pass
+      else reject(MalformedHeaderRejection("Content-Type", s"Only the following media types are supported: ${mt.mkString(", ")}"))
 
   } & cancelAllRejections(ofType[MalformedHeaderRejection])
 
