@@ -22,7 +22,12 @@ function health(lookupName, tag) {
 
 var process = function() {
 
+  var allGateways = [];
+
   api.gateways(function (gateways) {
+
+      allGateways = gateways;
+
       _.forEach(gateways, function (gateway) {
           health(gateway.lookup_name, 'gateways:' + gateway.name);
       });
@@ -30,9 +35,10 @@ var process = function() {
 
   api.deployments(function (deployments) {
       _.forEach(deployments, function (deployment) {
-          _.forOwn(deployment.clusters, function (cluster) {
-              _.forOwn(cluster.gateways, function (gateway) {
-                  health(gateway.lookup_name, 'deployments:' + deployment.name);
+          _.forOwn(deployment.clusters, function (cluster, clusterName) {
+              _.forOwn(cluster.gateways, function (gateway, gatewayName) {
+                  var gateway = _.find(allGateways, function(item) { return item.name === deployment.name + '/' + clusterName + '/' + gatewayName; });
+                  if (gateway) health(gateway.lookup_name, 'deployments:' + deployment.name);
               });
           });
       });
