@@ -11,23 +11,19 @@ import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.gateway_driver.kibana.KibanaDashboardActor
-import io.vamp.model.artifact.DeploymentService.State.Intention._
-import io.vamp.model.artifact.{ Deployment, Gateway }
 import io.vamp.operation.controller.DeploymentApiController
 import io.vamp.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.operation.gateway.GatewaySynchronizationActor
 import io.vamp.operation.sla.{ EscalationActor, SlaActor }
 import io.vamp.operation.workflow.WorkflowSynchronizationActor
-import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.persistence.db.ArtifactPaginationSupport
 import io.vamp.persistence.kv.KeyValueStoreActor
-import io.vamp.persistence.operation.DeploymentPersistence._
-import io.vamp.persistence.operation.DeploymentServiceState
 import spray.http.StatusCodes._
 import spray.http._
 
 import scala.concurrent.Future
 
-trait DeploymentApiRoute extends DeploymentApiController with DevController {
+trait DeploymentApiRoute extends DeploymentApiController with SystemController with DevController {
   this: ArtifactPaginationSupport with CommonSupportForActors with RestApiBase ⇒
 
   implicit def timeout: Timeout
@@ -45,10 +41,6 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
   } ~ path("escalation") {
     respondWithStatus(Accepted) {
       complete(slaEscalation())
-    }
-  } ~ path("reset") {
-    respondWithStatus(Accepted) {
-      complete(reset())
     }
   } ~ path("kibana") {
     respondWithStatus(Accepted) {
@@ -169,6 +161,25 @@ trait DeploymentApiRoute extends DeploymentApiController with DevController {
   val deploymentRoutes = helperRoutes ~ deploymentRoute ~ slaRoute ~ scaleRoute
 }
 
+trait SystemController {
+  this: ArtifactPaginationSupport with NotificationProvider with ExecutionContextProvider with ActorSystemProvider ⇒
+
+  def haproxy(): Future[Any] = {
+    implicit val timeout = KeyValueStoreActor.timeout
+    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(HaProxyGatewayMarshaller.path) map {
+      case Some(result: String) ⇒ HttpEntity(result)
+      case _                    ⇒ HttpEntity("")
+    }
+  }
+
+  def configuration(key: String = "") = Future.successful {
+    val entries = Config.entries().filter {
+      case (k, _) ⇒ k.startsWith("vamp.")
+    }
+    if (key.nonEmpty) entries.get(key) else entries
+  }
+}
+
 trait DevController {
   this: ArtifactPaginationSupport with NotificationProvider with ExecutionContextProvider with ActorSystemProvider ⇒
 
@@ -187,43 +198,5 @@ trait DevController {
     IoC.actorFor[EscalationActor] ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }
 
-  def reset()(implicit timeout: Timeout): Unit = {
-    allArtifacts[Deployment] map { deployments ⇒
-      Future.sequence {
-        deployments.flatMap { deployment ⇒
-          deployment.clusters.flatMap { cluster ⇒
-            cluster.services.map { service ⇒
-              IoC.actorFor[PersistenceActor] ? PersistenceActor.Update(DeploymentServiceState(serviceArtifactName(deployment, cluster, service), Undeploy))
-            }
-          }
-        }
-      } onComplete {
-        case _ ⇒
-          allArtifacts[Gateway] map { gateways ⇒
-            Future.sequence {
-              gateways.map { gateway ⇒
-                IoC.actorFor[PersistenceActor] ? PersistenceActor.Delete(gateway.name, gateway.getClass)
-              }
-            }
-          }
-      }
-    }
-  }
-
   def kibana(): Unit = IoC.actorFor[KibanaDashboardActor] ! KibanaDashboardActor.KibanaUpdate
-
-  def haproxy(): Future[Any] = {
-    implicit val timeout = KeyValueStoreActor.timeout
-    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(HaProxyGatewayMarshaller.path) map {
-      case Some(result: String) ⇒ HttpEntity(result)
-      case _                    ⇒ HttpEntity("")
-    }
-  }
-
-  def configuration(key: String = "") = Future.successful {
-    val entries = Config.entries().filter {
-      case (k, _) ⇒ k.startsWith("vamp.")
-    }
-    if (key.nonEmpty) entries.get(key) else entries
-  }
 }
