@@ -101,7 +101,7 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
 
     } catch {
       case e: NotificationErrorException ⇒ throw e
-      case e: YAMLException              ⇒ throwException(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
+      case e: YAMLException              ⇒ invalidYaml(e)
     } finally {
       reader.close()
     }
@@ -120,7 +120,9 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
       case source                        ⇒ source
     }
 
-    val parsed = convert(yaml.loadAll(reader))
+    val parsed = Try(convert(yaml.loadAll(reader))).recover {
+      case e: Exception ⇒ invalidYaml(e)
+    } get
 
     val result = parsed match {
       case map: collection.Map[_, _] ⇒ YamlSourceReader(map.toMap.asInstanceOf[Map[String, _]])
@@ -134,6 +136,8 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
 
     result
   }
+
+  private def invalidYaml(e: Exception) = throwException(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
 
   private def yaml = {
     new Yaml(new Constructor() {
