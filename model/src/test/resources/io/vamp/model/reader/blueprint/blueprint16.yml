@@ -7,8 +7,7 @@ clusters:
         nocturnal-viper:
           name: "!ios"
           weight: 10 %
-          conditions:
-          - condition: user.agent != ios
+          condition: user.agent != ios
 
     services:
     - breed: nocturnal-viper

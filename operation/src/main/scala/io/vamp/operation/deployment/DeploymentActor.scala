@@ -492,7 +492,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
         case Some(newRouting) ⇒
           val routes = services.map { service ⇒
             routeBy(newRouting, service, port) match {
-              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, Nil, Nil, None)
+              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
               case Some(route) ⇒ route
             }
           }
@@ -500,7 +500,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
         case None ⇒
           Gateway("", Port(port.name, None, None, 0, port.`type`), None, None, Nil, services.map { service ⇒
-            DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, Nil, Nil, None)
+            DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
           })
       }
     }
@@ -517,13 +517,13 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
   def resolveHosts: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
     futureDeployment.map {
-      case d ⇒ d.copy(hosts = d.clusters.map(cluster ⇒ Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(DeploymentActor.gatewayHost))))
+      d ⇒ d.copy(hosts = d.clusters.map(cluster ⇒ Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(DeploymentActor.gatewayHost))))
     }
   }
 
   def validateEmptyVariables: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
     futureDeployment.map {
-      case deployment ⇒
+      deployment ⇒
         deployment.clusters.flatMap({ cluster ⇒
           cluster.services.flatMap(service ⇒ {
             service.breed.ports.filter(_.value.isEmpty).map(port ⇒ {

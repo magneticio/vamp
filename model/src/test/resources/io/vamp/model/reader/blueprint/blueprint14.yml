@@ -5,9 +5,8 @@ clusters:
     gateways:
       routes:
         nocturnal-viper:
-          conditions:
-            - android
-            - reference: ios
+          condition:
+            reference: ios
 
     services:
       -

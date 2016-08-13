@@ -91,9 +91,9 @@ object DefaultRoute {
   val defaultBalance = "default"
 }
 
-case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], conditionStrength: Option[Percentage], conditions: List[Condition], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
+case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], condition: Option[Condition], conditionStrength: Option[Percentage], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
 
-  def hasConditions: Boolean = conditions.exists(_.isInstanceOf[DefaultCondition])
+  def definedCondition: Boolean = condition.isDefined && condition.forall(_.isInstanceOf[DefaultCondition])
 
   def external = path.external.isDefined
 }

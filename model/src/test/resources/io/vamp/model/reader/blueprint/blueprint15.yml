@@ -6,8 +6,7 @@ clusters:
       routes:
         nocturnal-viper:
           weight: 100%
-          conditions:
-          - condition: user.agent != ios
+          condition: user.agent != ios
 
     services:
     - breed: nocturnal-viper

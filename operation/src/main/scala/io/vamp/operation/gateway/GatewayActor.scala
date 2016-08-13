@@ -142,7 +142,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     } else gateway
 
     val routes = updatedWeights.routes.map(_.asInstanceOf[DefaultRoute]).map { route ⇒
-      val default = if (route.hasConditions) 100 else 0
+      val default = if (route.definedCondition) 100 else 0
       route.copy(conditionStrength = Option(route.conditionStrength.getOrElse(Percentage(default))))
     }
 

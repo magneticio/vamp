@@ -222,7 +222,7 @@ trait BlueprintGatewayHelper {
   }
 
   protected def validateBlueprintGateways[T <: AbstractBlueprint]: T ⇒ T =
-    validateStickiness[T] andThen validateConditionConditions[T] andThen validateGatewayPorts[T] andThen validateInnerGatewayPorts[T]
+    validateStickiness[T] andThen validateRouteCondition[T] andThen validateGatewayPorts[T] andThen validateInnerGatewayPorts[T]
 
   private def validateStickiness[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.clusters.foreach { cluster ⇒
@@ -238,7 +238,7 @@ trait BlueprintGatewayHelper {
     blueprint
   }
 
-  private def validateConditionConditions[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
+  private def validateRouteCondition[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.clusters.foreach { cluster ⇒
       cluster.services.foreach { service ⇒
         service.breed match {
@@ -247,7 +247,7 @@ trait BlueprintGatewayHelper {
               if (port.`type` != Port.Type.Http) {
                 cluster.gatewayBy(port.name) match {
                   case Some(gateways) ⇒ gateways.routes.foreach {
-                    case route: DefaultRoute ⇒ route.conditions.foreach(condition ⇒ if (condition.isInstanceOf[DefaultCondition]) throwException(ConditionPortTypeError(port, condition)))
+                    case route: DefaultRoute ⇒ if (route.definedCondition) throwException(ConditionPortTypeError(port, route.condition.get))
                     case _                   ⇒
                   }
                   case None ⇒
@@ -256,7 +256,7 @@ trait BlueprintGatewayHelper {
 
               blueprint.gateways.foreach { gateway ⇒
                 gateway.routeBy(cluster.name :: port.name :: Nil) match {
-                  case Some(route: DefaultRoute) ⇒ if (gateway.port.`type` != Port.Type.Http) route.conditions.foreach(condition ⇒ if (condition.isInstanceOf[DefaultCondition]) throwException(ConditionPortTypeError(gateway.port.copy(name = route.path.source), condition)))
+                  case Some(route: DefaultRoute) ⇒ if (gateway.port.`type` != Port.Type.Http) if (route.definedCondition) throwException(ConditionPortTypeError(gateway.port.copy(name = route.path.source), route.condition.get))
                   case _                         ⇒
                 }
               }

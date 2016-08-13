@@ -77,7 +77,7 @@ object PerformCommand extends Generate {
       println("NAME".padTo(25, ' ').bold.cyan + "FILTERS".bold.cyan)
       VampHostCalls.getRoutings.foreach({
         case b: DefaultRoute ⇒ println(s"${b.name.padTo(25, ' ')}${
-          b.conditions.map({
+          b.condition.map({
             case d: DefaultCondition ⇒ s"${d.definition}"
             case _                   ⇒ ""
           }).mkString(", ")

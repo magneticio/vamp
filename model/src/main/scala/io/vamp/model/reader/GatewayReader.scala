@@ -41,14 +41,13 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     case any           ⇒ throwException(UnexpectedTypeError("port", classOf[String], any.getClass))
   }
 
-  protected def service(implicit source: YamlSourceReader): Option[GatewayService] = <<?[YamlSourceReader]("service").map {
-    case _ ⇒
-      val host = <<![String]("service" :: "host")
-      val port = <<![Any]("service" :: "port") match {
-        case value: Int ⇒ Port(value)
-        case value      ⇒ Port(value.toString)
-      }
-      GatewayService(host, port)
+  protected def service(implicit source: YamlSourceReader): Option[GatewayService] = <<?[YamlSourceReader]("service").map { _ ⇒
+    val host = <<![String]("service" :: "host")
+    val port = <<![Any]("service" :: "port") match {
+      case value: Int ⇒ Port(value)
+      case value      ⇒ Port(value.toString)
+    }
+    GatewayService(host, port)
   }
 
   protected def sticky(implicit source: YamlSourceReader) = <<?[String]("sticky") match {
@@ -127,7 +126,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
 
   override protected def createDefault(implicit source: YamlSourceReader): Route = {
     source.flatten({ entry ⇒ entry == "instances" })
-    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), <<?[Percentage]("condition_strength"), conditions, rewrites, balance)
+    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), condition, <<?[Percentage]("condition_strength"), rewrites, balance)
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
@@ -139,15 +138,17 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
       case _                   ⇒
     }
 
-    list("conditions")
+    <<?[Any]("condition") collect {
+      case condition: String ⇒ >>("condition", YamlSourceReader(Map("condition" -> condition)))
+    }
+
     list("rewrites")
 
     super.expand
   }
 
-  protected def conditions(implicit source: YamlSourceReader): List[Condition] = <<?[YamlList]("conditions") match {
-    case None                 ⇒ List.empty[Condition]
-    case Some(list: YamlList) ⇒ list.map(ConditionReader.readReferenceOrAnonymous)
+  protected def condition(implicit source: YamlSourceReader): Option[Condition] = {
+    <<?[Any]("condition") map ConditionReader.readReferenceOrAnonymous
   }
 
   protected def rewrites(implicit source: YamlSourceReader): List[Rewrite] = <<?[YamlList]("rewrites") match {

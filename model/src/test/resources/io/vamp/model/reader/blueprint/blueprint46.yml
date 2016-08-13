@@ -10,5 +10,4 @@ clusters:
     gateways:
       routes:
         sava1:
-          conditions:
-            condition: "user.agent == android"
+          condition: "user.agent == android"

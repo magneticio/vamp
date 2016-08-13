@@ -90,8 +90,8 @@ trait RouteDecomposer extends ReferenceSerialization with ConditionDecomposer {
 
       list += JField("weight", if (route.weight.isDefined) JString(route.weight.get.normalized) else JNull)
       list += JField("balance", if (route.balance.isDefined) JString(route.balance.get) else JString(DefaultRoute.defaultBalance))
+      list += JField("condition", if (route.condition.isDefined) serializeCondition(full = false)(format)(route.condition.get) else JNull)
       list += JField("condition_strength", if (route.conditionStrength.isDefined) JString(route.conditionStrength.get.normalized) else JNull)
-      list += JField("conditions", JArray(route.conditions.map(serializeCondition(full = false))))
       list += JField("rewrites", Extraction.decompose(route.rewrites))
 
       if (full && route.targets.nonEmpty) list += JField("instances", Extraction.decompose(route.targets))
