@@ -22,6 +22,6 @@ object WorkflowDriverBootstrap extends ActorBootstrap with WorkflowDriverNotific
       case value if value != "none" ⇒ throwException(UnsupportedWorkflowDriverError(value))
     } toList
 
-    IoC.createActor[WorkflowDriverActor](drivers :+ NoneWorkflowDriver) :: Nil
+    IoC.createActor[WorkflowDriverActor](drivers :+ new NoneWorkflowDriver) :: Nil
   }
 }

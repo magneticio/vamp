@@ -6,7 +6,7 @@ import io.vamp.container_driver.rancher.RancherDriverActor
 
 import scala.concurrent.Future
 
-class RancherWorkflowDriver(implicit actorSystem: ActorSystem) extends DaemonWorkflowDriver {
+class RancherWorkflowDriver(implicit override val actorSystem: ActorSystem) extends DaemonWorkflowDriver {
 
   override def info: Future[Map[_, _]] = Future.successful(Map("rancher" -> Map("url" -> RancherDriverActor.rancherUrl)))
 

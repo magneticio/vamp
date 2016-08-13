@@ -2,6 +2,7 @@ package io.vamp.persistence.db
 
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.model.artifact._
+import io.vamp.model.workflow.Workflow
 import io.vamp.persistence.operation._
 
 import scala.concurrent.Future
@@ -27,13 +28,14 @@ trait PersistenceMultiplexer {
   }
 
   protected def combine(artifacts: ArtifactResponseEnvelope): Future[ArtifactResponseEnvelope] = {
-    Future.sequence(artifacts.response.map(combine)).map { case response ⇒ artifacts.copy(response = response.flatten) }
+    Future.sequence(artifacts.response.map(combine)).map { response ⇒ artifacts.copy(response = response.flatten) }
   }
 
   protected def combine(artifact: Artifact): Future[Option[Artifact]] = artifact match {
     case gateway: Gateway            ⇒ combine(gateway)
     case deployment: Deployment      ⇒ combine(deployment)
     case blueprint: DefaultBlueprint ⇒ combine(blueprint)
+    case workflow: Workflow          ⇒ combine(workflow)
     case _                           ⇒ Future.successful(Option(artifact))
   }
 
@@ -95,7 +97,7 @@ trait PersistenceMultiplexer {
               case b: DefaultBreed ⇒ get(b).map { result ⇒ result.getOrElse(BreedReference(b.name)) }
               case b               ⇒ Future.successful(b)
             }).map {
-              case breed ⇒ service.copy(breed = breed)
+              breed ⇒ service.copy(breed = breed)
             }
           }
         }
@@ -169,6 +171,13 @@ trait PersistenceMultiplexer {
 
       } else None
     }
+  }
+
+  private def combine(workflow: Workflow): Future[Option[Workflow]] = {
+    get(workflow.name, classOf[WorkflowNetwork]).asInstanceOf[Future[Option[WorkflowNetwork]]].map {
+      case Some(result) ⇒ workflow.copy(network = Option(result.network))
+      case _            ⇒ workflow
+    } map (Option(_))
   }
 
   private def get[A <: Artifact](artifact: A): Future[Option[A]] = get(artifact.name, artifact.getClass).asInstanceOf[Future[Option[A]]]

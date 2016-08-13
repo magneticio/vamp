@@ -1,0 +1,4 @@
+name: metrics
+breed: metrics
+schedule: daemon
+network: managed

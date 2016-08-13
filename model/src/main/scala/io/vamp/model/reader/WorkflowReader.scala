@@ -42,7 +42,7 @@ object WorkflowReader extends YamlReader[Workflow] {
     val breed = BreedReader.readReference(<<![Any]("breed"))
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale")
 
-    Workflow(name, breed, schedule, scale, None)
+    Workflow(name, breed, schedule, scale, <<?[String]("network"))
   }
 
   private def schedule(implicit source: YamlSourceReader): Schedule = {

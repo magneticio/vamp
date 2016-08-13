@@ -1,12 +1,15 @@
 package io.vamp.workflow_driver
 
-import akka.actor.ActorRef
+import akka.actor.{ ActorRef, ActorSystem }
+import io.vamp.common.akka.IoC._
 import io.vamp.common.config.Config
 import io.vamp.container_driver.DeployableType
 import io.vamp.model.artifact.{ DefaultBreed, DefaultScale, Deployable, EnvironmentVariable }
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.workflow.Workflow
+import io.vamp.persistence.db.PersistenceActor
 import io.vamp.persistence.kv.KeyValueStoreActor
+import io.vamp.persistence.operation.WorkflowNetwork
 
 import scala.concurrent.Future
 
@@ -28,6 +31,8 @@ object WorkflowDriver {
 trait WorkflowDriver {
 
   import WorkflowDriver._
+
+  implicit def actorSystem: ActorSystem
 
   val defaultDeployable = Deployable(config.string("workflow.deployable.type"), config.string("workflow.deployable.definition"))
 
@@ -63,10 +68,13 @@ trait WorkflowDriver {
       case d                                  ⇒ d
     }
 
+    val network = workflow.network.getOrElse(defaultNetwork)
+    actorFor[PersistenceActor] ! PersistenceActor.Update(WorkflowNetwork(workflow.name, network))
+
     workflow.copy(
       breed = breed.copy(deployable = deployable, environmentVariables = environmentVariables),
       scale = Option(workflow.scale.getOrElse(defaultScale)),
-      network = workflow.network.orElse(Option(defaultNetwork))
+      network = Option(network)
     )
   }
 

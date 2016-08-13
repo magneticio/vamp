@@ -1,6 +1,6 @@
 package io.vamp.workflow_driver
 
-import akka.actor.{ ActorRef, ActorRefFactory }
+import akka.actor.{ ActorRef, ActorRefFactory, ActorSystem }
 import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
 import io.vamp.common.http.RestClient
 import io.vamp.model.artifact.{ DefaultBreed, DefaultScale }
@@ -10,7 +10,9 @@ import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 
 import scala.concurrent.Future
 
-class ChronosWorkflowDriver(url: String)(implicit override val actorRefFactory: ActorRefFactory) extends WorkflowDriver with ActorRefFactoryExecutionContextProvider {
+class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: ActorSystem) extends WorkflowDriver with ActorRefFactoryExecutionContextProvider {
+
+  implicit def actorRefFactory: ActorRefFactory = actorSystem
 
   override def info: Future[Map[_, _]] = RestClient.get[Any](s"$url/scheduler/jobs").map {
     _ ⇒ Map("chronos" -> Map("url" -> url))

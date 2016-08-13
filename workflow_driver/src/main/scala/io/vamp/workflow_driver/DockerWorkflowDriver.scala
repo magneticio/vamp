@@ -6,7 +6,7 @@ import io.vamp.container_driver.docker.DockerDriverActor
 
 import scala.concurrent.Future
 
-class DockerWorkflowDriver(implicit actorSystem: ActorSystem) extends DaemonWorkflowDriver {
+class DockerWorkflowDriver(implicit override val actorSystem: ActorSystem) extends DaemonWorkflowDriver {
 
   override def info: Future[Map[_, _]] = Future.successful(Map("docker" -> None))
 

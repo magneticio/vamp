@@ -151,4 +151,13 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'path("start")
     )
   }
+
+  it should "read network" in {
+    WorkflowReader.read(res("workflow/workflow17.yml")) should have(
+      'name("metrics"),
+      'breed(BreedReference("metrics")),
+      'schedule(DaemonSchedule),
+      'network(Some("managed"))
+    )
+  }
 }

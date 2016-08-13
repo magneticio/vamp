@@ -6,7 +6,7 @@ import io.vamp.container_driver.kubernetes.KubernetesDriverActor
 
 import scala.concurrent.Future
 
-class KubernetesWorkflowDriver(implicit actorSystem: ActorSystem) extends DaemonWorkflowDriver {
+class KubernetesWorkflowDriver(implicit override val actorSystem: ActorSystem) extends DaemonWorkflowDriver {
 
   override def info: Future[Map[_, _]] = Future.successful(Map("kubernetes" -> Map("url" -> KubernetesDriverActor.url)))
 

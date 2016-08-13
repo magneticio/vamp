@@ -46,6 +46,9 @@ class WorkflowSerializer() extends ArtifactSerializer[Workflow] with ReferenceSe
       if (workflow.scale.isDefined)
         list += JField("scale", Extraction.decompose(workflow.scale.get))
 
+      if (workflow.network.isDefined)
+        list += JField("network", Extraction.decompose(workflow.network.get))
+
       new JObject(list.toList)
   }
 }

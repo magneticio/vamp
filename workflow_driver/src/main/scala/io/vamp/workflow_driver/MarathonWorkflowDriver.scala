@@ -6,7 +6,7 @@ import io.vamp.container_driver.marathon.MarathonDriverActor
 
 import scala.concurrent.Future
 
-class MarathonWorkflowDriver(implicit actorSystem: ActorSystem) extends DaemonWorkflowDriver {
+class MarathonWorkflowDriver(implicit override val actorSystem: ActorSystem) extends DaemonWorkflowDriver {
 
   override def info: Future[Map[_, _]] = Future.successful(Map("marathon" -> Map("url" -> MarathonDriverActor.marathonUrl)))
 
