@@ -147,6 +147,10 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
         }
         case _ ⇒ Nil
       }
+    },
+    // workflow persistence
+    "workflow-network" -> new NoNameValidationYamlReader[WorkflowNetwork] {
+      override protected def parse(implicit source: YamlSourceReader) = WorkflowNetwork(name, <<![String]("network"))
     }
   ).get(`type`)
 }
