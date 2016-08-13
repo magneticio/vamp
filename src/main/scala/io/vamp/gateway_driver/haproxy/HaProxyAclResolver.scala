@@ -22,20 +22,15 @@ trait HaProxyAclResolver extends ConditionDefinitionParser with BooleanFlatter {
     }
   }
 
-  def resolve(conditions: List[String]): Option[HaProxyAcls] = conditions match {
-    case Nil ⇒ None
-    case _ ⇒
-
-      val root = conditions.map(load).reduce { (op1, op2) ⇒ And(op1, op2) }
-
-      (expand andThen flatten)(root) match {
-        case False ⇒ None
-        case True  ⇒ Option(HaProxyAcls(Nil, None))
-        case node  ⇒ acls(node) match { case acls ⇒ Option(HaProxyAcls(operands(acls).distinct, Option(condition(acls)))) }
-      }
+  def resolve(value: String): Option[HaProxyAcls] = {
+    (load andThen expand andThen flatten)(value) match {
+      case False ⇒ None
+      case True  ⇒ Option(HaProxyAcls(Nil, None))
+      case node  ⇒ acls(node) match { case acls ⇒ Option(HaProxyAcls(operands(acls).distinct, Option(condition(acls)))) }
+    }
   }
 
-  private def load(value: String) = Try(parse(value)).getOrElse(Value(value))
+  private def load: String ⇒ AstNode = value ⇒ Try(parse(value)).getOrElse(Value(value))
 
   private def acls(node: AstNode): AstNode = node match {
     case Host(value)                 ⇒ AclNode(s"hdr_str(host) $value")

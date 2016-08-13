@@ -4,6 +4,8 @@ import io.vamp.common.config.Config
 import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.model.artifact._
 
+import scala.language.postfixOps
+
 object HaProxyGatewayMarshaller {
 
   val version = Config.string("vamp.gateway-driver.haproxy.version").trim
@@ -102,7 +104,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     def unsupported(route: Route) = throw new IllegalArgumentException(s"Unsupported route: $route")
 
     val imRoutes = gateway.routes.filter {
-      case route: DefaultRoute ⇒ route.hasConditions
+      case route: DefaultRoute ⇒ route.definedCondition
       case route               ⇒ unsupported(route)
     }
 
@@ -183,14 +185,14 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   }
 
   private def conditions()(implicit backends: List[Backend], gateway: Gateway): List[Condition] = gateway.routes.collect {
-    case route: DefaultRoute if route.conditions.nonEmpty ⇒ filter(route)
-  }
+    case route: DefaultRoute if route.condition.nonEmpty ⇒ filter(route)
+  } flatten
 
-  private[haproxy] def filter(route: DefaultRoute)(implicit backends: List[Backend], gateway: Gateway): Condition = {
-    route.conditions.filter(_.isInstanceOf[DefaultCondition]).map(_.asInstanceOf[DefaultCondition].definition) match {
-      case conditions ⇒
+  private[haproxy] def filter(route: DefaultRoute)(implicit backends: List[Backend], gateway: Gateway): Option[Condition] = {
+    route.condition.filter(_.isInstanceOf[DefaultCondition]).map(_.asInstanceOf[DefaultCondition].definition) map {
+      condition ⇒
         backendFor(intermediate, GatewayMarshaller.lookup(gateway, route.path.segments)) match {
-          case backend ⇒ Condition(backend.lookup, backend, aclResolver.resolve(conditions))
+          case backend ⇒ Condition(backend.lookup, backend, aclResolver.resolve(condition))
         }
     }
   }
