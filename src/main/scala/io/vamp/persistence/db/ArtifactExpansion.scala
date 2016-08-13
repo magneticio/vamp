@@ -28,7 +28,7 @@ trait ArtifactExpansion {
     case blueprint: DefaultBlueprint   ⇒ expandClusters(blueprint.clusters).map(clusters ⇒ blueprint.copy(clusters = clusters))
     case breed: DefaultBreed           ⇒ expandBreed(breed)
     case sla: Sla                      ⇒ expandSla(sla)
-    case route: DefaultRoute           ⇒ Future.sequence(route.conditions.map(expandIfReference[DefaultCondition, ConditionReference])).map(conditions ⇒ route.copy(conditions = conditions))
+    case route: DefaultRoute           ⇒ expandRoute(route)
     case escalation: GenericEscalation ⇒ Future.successful(escalation)
     case condition: DefaultCondition   ⇒ Future.successful(condition)
     case scale: DefaultScale           ⇒ Future.successful(scale)
@@ -91,6 +91,11 @@ trait ArtifactExpansion {
         case s: EscalationOnlySla            ⇒ s.copy(escalations = escalations)
         case s: ResponseTimeSlidingWindowSla ⇒ s.copy(escalations = escalations)
       }
+  }
+
+  protected def expandRoute(route: DefaultRoute): Future[DefaultRoute] = route.condition match {
+    case Some(condition) ⇒ expandIfReference[DefaultCondition, ConditionReference](condition).map(condition ⇒ route.copy(condition = Option(condition)))
+    case _               ⇒ Future.successful(route)
   }
 
   protected def expandWorkflow(workflow: Workflow): Future[Workflow] = for {
