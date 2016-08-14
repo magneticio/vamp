@@ -4,12 +4,12 @@ import akka.actor.{ ActorRef, ActorSystem }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.config.Config
 import io.vamp.container_driver.DeployableType
-import io.vamp.model.artifact.{ DefaultBreed, DefaultScale, Deployable, EnvironmentVariable }
+import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.workflow.Workflow
 import io.vamp.persistence.db.PersistenceActor
 import io.vamp.persistence.kv.KeyValueStoreActor
-import io.vamp.persistence.operation.WorkflowNetwork
+import io.vamp.persistence.operation.{ WorkflowArguments, WorkflowNetwork }
 
 import scala.concurrent.Future
 
@@ -45,6 +45,8 @@ trait WorkflowDriver {
     case c ⇒ DefaultScale("", Quantity.of(c.double("cpu")), MegaByte.of(c.string("memory")), c.int("instances"))
   }
 
+  val defaultArguments: List[Argument] = config.stringList("workflow.arguments").map(Argument(_))
+
   val defaultNetwork = config.string("workflow.network")
 
   def info: Future[Map[_, _]]
@@ -61,7 +63,7 @@ trait WorkflowDriver {
 
     val environmentVariables = (additionalEnvironmentVariables ++ List(environmentVariable("VAMP_URL", WorkflowDriver.vampUrl),
       environmentVariable("VAMP_KEY_VALUE_STORE_ROOT_PATH", WorkflowDriver.pathToString(workflow))) ++
-      breed.environmentVariables).map(env ⇒ env.name -> env).toMap.values.toList
+      breed.environmentVariables ++ workflow.environmentVariables).map(env ⇒ env.name -> env.copy(interpolated = env.value)).toMap.values.toList
 
     val deployable = breed.deployable match {
       case d if WorkflowDeployable.matches(d) ⇒ defaultDeployable
@@ -71,9 +73,13 @@ trait WorkflowDriver {
     val network = workflow.network.getOrElse(defaultNetwork)
     actorFor[PersistenceActor] ! PersistenceActor.Update(WorkflowNetwork(workflow.name, network))
 
+    val arguments = (defaultArguments ++ breed.arguments ++ workflow.arguments).map(arg ⇒ arg.key -> arg).toMap.values.toList
+    actorFor[PersistenceActor] ! PersistenceActor.Update(WorkflowArguments(workflow.name, arguments))
+
     workflow.copy(
       breed = breed.copy(deployable = deployable, environmentVariables = environmentVariables),
       scale = Option(workflow.scale.getOrElse(defaultScale)),
+      arguments = arguments,
       network = Option(network)
     )
   }

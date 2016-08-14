@@ -4,7 +4,7 @@ import io.vamp.common.notification.{ Notification, NotificationErrorException, N
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
-import io.vamp.model.validator.BlueprintTraitValidator
+import io.vamp.model.validator.{ BlueprintTraitValidator, BreedTraitValueValidator }
 
 import scala.language.postfixOps
 
@@ -13,6 +13,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     with TraitReader
     with ArgumentReader
     with DialectReader
+    with BreedTraitValueValidator
     with BlueprintTraitValidator
     with GatewayRouteValidation
     with BlueprintGatewayHelper {
@@ -137,13 +138,9 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     }
   }
 
-  protected def validateServiceEnvironmentVariables(services: List[Service]) = services.foreach { service ⇒
-    service.breed match {
-      case breed: DefaultBreed ⇒ service.environmentVariables.foreach { environmentVariable ⇒
-        if (environmentVariable.value.isEmpty) throwException(MissingEnvironmentVariableError(breed, environmentVariable.name))
-        if (!breed.environmentVariables.exists(_.name == environmentVariable.name)) throwException(UnresolvedDependencyInTraitValueError(breed, environmentVariable.name))
-      }
-      case _ ⇒
+  protected def validateServiceEnvironmentVariables(services: List[Service]) = {
+    services.foreach { service ⇒
+      validateEnvironmentVariablesAgainstBreed(service.environmentVariables, service.breed)
     }
   }
 

@@ -1,0 +1,5 @@
+name: metrics
+breed: metrics
+schedule: daemon
+arguments:
+  test: abcd

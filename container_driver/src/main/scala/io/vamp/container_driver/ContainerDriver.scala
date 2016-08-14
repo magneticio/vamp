@@ -62,19 +62,34 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
   }
 
   protected def docker(workflow: Workflow): Docker = {
+
+    val (privileged, parameters) = privilegedAndParameters(workflow.arguments)
+
     Docker(
       image = workflow.breed.asInstanceOf[DefaultBreed].deployable.definition,
       portMappings = portMappings(workflow),
-      parameters = Nil,
-      privileged = false,
+      parameters = parameters,
+      privileged = privileged,
       network = workflow.network.getOrElse(Docker.network)
     )
   }
 
   protected def docker(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Docker = {
-    val (privileged, arguments) = service.arguments.partition(_.privileged)
-    val parameters = arguments.map(argument ⇒ DockerParameter(argument.key, argument.value))
-    Docker(service.breed.deployable.definition, portMappings(deployment, cluster, service), parameters, privileged.headOption.exists(_.value.toBoolean))
+
+    val (privileged, parameters) = privilegedAndParameters(service.arguments)
+
+    Docker(
+      image = service.breed.deployable.definition,
+      portMappings = portMappings(deployment, cluster, service),
+      parameters = parameters,
+      privileged = privileged
+    )
+  }
+
+  private def privilegedAndParameters(arguments: List[Argument]): (Boolean, List[DockerParameter]) = {
+    val (privileged, args) = arguments.partition(_.privileged)
+    val parameters = args.map(argument ⇒ DockerParameter(argument.key, argument.value))
+    (privileged.headOption.exists(_.value.toBoolean), parameters)
   }
 
   protected def labels(workflow: Workflow) = {

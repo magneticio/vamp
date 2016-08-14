@@ -2,7 +2,7 @@ package io.vamp.model.validator
 
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
-import io.vamp.model.notification.{ UnresolvedDependencyInTraitValueError, UnresolvedEnvironmentVariableError, UnresolvedGatewayPortError }
+import io.vamp.model.notification.{ MissingEnvironmentVariableError, UnresolvedDependencyInTraitValueError, UnresolvedEnvironmentVariableError, UnresolvedGatewayPortError }
 import io.vamp.model.resolver.TraitResolver
 
 trait BreedTraitValueValidator extends TraitResolver {
@@ -35,6 +35,14 @@ trait BreedTraitValueValidator extends TraitResolver {
         case _ ⇒
       }))
     }
+  }
+
+  def validateEnvironmentVariablesAgainstBreed(environmentVariables: List[EnvironmentVariable], breed: Breed) = breed match {
+    case breed: DefaultBreed ⇒ environmentVariables.foreach { environmentVariable ⇒
+      if (environmentVariable.value.isEmpty) throwException(MissingEnvironmentVariableError(breed, environmentVariable.name))
+      if (!breed.environmentVariables.exists(_.name == environmentVariable.name)) throwException(UnresolvedDependencyInTraitValueError(breed, environmentVariable.name))
+    }
+    case _ ⇒
   }
 }
 

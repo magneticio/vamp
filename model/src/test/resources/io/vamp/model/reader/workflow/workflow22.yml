@@ -1,0 +1,9 @@
+name: metrics
+breed:
+  name: metrics
+  deployable: metrics
+  env:
+    HEAP: ~
+schedule: daemon
+environment_variables:
+  HEAP: ~

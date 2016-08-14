@@ -2,6 +2,9 @@ package io.vamp.model.artifact
 
 import java.util.regex.Pattern
 
+import io.vamp.common.notification.NotificationErrorException
+import io.vamp.model.notification.{ InvalidArgumentError, InvalidArgumentValueError }
+
 import scala.language.implicitConversions
 import scala.util.Try
 
@@ -145,7 +148,20 @@ case class EnvironmentVariable(name: String, alias: Option[String], value: Optio
 case class Constant(name: String, alias: Option[String], value: Option[String]) extends Trait
 
 object Argument {
+
   val privileged = "privileged"
+
+  def apply(argument: String): Argument = {
+
+    val result = argument.split("=", 2).toList match {
+      case key :: value :: Nil ⇒ Argument(key.trim, value.trim)
+      case any                 ⇒ throw NotificationErrorException(InvalidArgumentError, if (any != null) any.toString else "")
+    }
+
+    if (result.privileged && Try(result.value.toBoolean).isFailure) throw NotificationErrorException(InvalidArgumentValueError(result), s"${result.key} -> ${result.value}")
+
+    result
+  }
 }
 
 case class Argument(key: String, value: String) {

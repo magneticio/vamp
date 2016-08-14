@@ -1,0 +1,5 @@
+name: metrics
+breed: metrics
+schedule: daemon
+env:
+  HEAP: 1024MB

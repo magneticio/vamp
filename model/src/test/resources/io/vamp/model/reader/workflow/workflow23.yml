@@ -1,0 +1,9 @@
+name: metrics
+breed:
+  name: metrics
+  deployable: metrics
+  env:
+    HEAP: 128MB
+schedule: daemon
+environment_variables:
+  THEME: dark

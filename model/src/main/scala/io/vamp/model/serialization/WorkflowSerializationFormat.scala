@@ -2,6 +2,7 @@ package io.vamp.model.serialization
 
 import java.time.format.DateTimeFormatter._
 
+import io.vamp.model.artifact.Trait
 import io.vamp.model.workflow.TimeSchedule.RepeatCount
 import io.vamp.model.workflow._
 import org.json4s.JsonAST.JString
@@ -14,7 +15,7 @@ object WorkflowSerializationFormat extends io.vamp.common.json.SerializationForm
     new WorkflowSerializer()
 }
 
-class WorkflowSerializer() extends ArtifactSerializer[Workflow] with ReferenceSerialization {
+class WorkflowSerializer() extends ArtifactSerializer[Workflow] with ReferenceSerialization with ArgumentListSerializer with TraitDecomposer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case workflow: Workflow ⇒
       val list = new ArrayBuffer[JField]
@@ -43,11 +44,15 @@ class WorkflowSerializer() extends ArtifactSerializer[Workflow] with ReferenceSe
         case _ ⇒
       }
 
+      list += JField("environment_variables", traits(workflow.environmentVariables.asInstanceOf[List[Trait]]))
+
       if (workflow.scale.isDefined)
         list += JField("scale", Extraction.decompose(workflow.scale.get))
 
       if (workflow.network.isDefined)
         list += JField("network", Extraction.decompose(workflow.network.get))
+
+      list += JField("arguments", serializeArguments(workflow.arguments))
 
       new JObject(list.toList)
   }

@@ -3,7 +3,7 @@ package io.vamp.model.reader
 import java.time.OffsetDateTime
 
 import io.vamp.model.artifact._
-import io.vamp.model.notification.{ IllegalWorkflowSchedulePeriod, UndefinedWorkflowScheduleError, UnexpectedTypeError }
+import io.vamp.model.notification._
 import io.vamp.model.workflow.TimeSchedule.{ RepeatCount, RepeatForever }
 import io.vamp.model.workflow.{ DaemonSchedule, EventSchedule, TimeSchedule }
 import org.junit.runner.RunWith
@@ -158,6 +158,59 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'breed(BreedReference("metrics")),
       'schedule(DaemonSchedule),
       'network(Some("managed"))
+    )
+  }
+
+  it should "read arguments" in {
+    WorkflowReader.read(res("workflow/workflow18.yml")) should have(
+      'name("metrics"),
+      'breed(BreedReference("metrics")),
+      'schedule(DaemonSchedule),
+      'arguments(List(Argument("test", "abcd")))
+    )
+  }
+
+  it should "read expand arguments" in {
+    WorkflowReader.read(res("workflow/workflow19.yml")) should have(
+      'name("metrics"),
+      'breed(BreedReference("metrics")),
+      'schedule(DaemonSchedule),
+      'arguments(List(Argument("test", "abcd")))
+    )
+  }
+
+  it should "read fail on non boolean privileged argument" in {
+    expectedError[InvalidArgumentValueError]({
+      WorkflowReader.read(res("workflow/workflow20.yml"))
+    }) should have(
+      'argument(Argument("privileged", "abcd"))
+    )
+  }
+
+  it should "read environment variables" in {
+    WorkflowReader.read(res("workflow/workflow21.yml")) should have(
+      'name("metrics"),
+      'breed(BreedReference("metrics")),
+      'schedule(DaemonSchedule),
+      'environmentVariables(List(EnvironmentVariable("HEAP", None, Some("1024MB"), None)))
+    )
+  }
+
+  it should "fail on no environment variable value" in {
+    expectedError[MissingEnvironmentVariableError]({
+      WorkflowReader.read(res("workflow/workflow22.yml"))
+    }) should have(
+      'breed(DefaultBreed("metrics", Deployable("container/docker", "metrics"), Nil, List(EnvironmentVariable("HEAP", None, None, None)), Nil, Nil, Map())),
+      'name("HEAP")
+    )
+  }
+
+  it should "fail on non existing environment variable" in {
+    expectedError[UnresolvedDependencyInTraitValueError]({
+      WorkflowReader.read(res("workflow/workflow23.yml"))
+    }) should have(
+      'breed(DefaultBreed("metrics", Deployable("container/docker", "metrics"), Nil, List(EnvironmentVariable("HEAP", None, Option("128MB"), None)), Nil, Nil, Map())),
+      'reference("THEME")
     )
   }
 }

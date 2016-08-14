@@ -5,12 +5,13 @@ import java.util.Date
 
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
+import io.vamp.model.validator.BreedTraitValueValidator
 import io.vamp.model.workflow.TimeSchedule.{ RepeatCount, RepeatForever }
 import io.vamp.model.workflow._
 
 import scala.util.Try
 
-object WorkflowReader extends YamlReader[Workflow] {
+object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with TraitReader with BreedTraitValueValidator {
 
   override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
 
@@ -34,6 +35,8 @@ object WorkflowReader extends YamlReader[Workflow] {
       case _ ⇒
     }
 
+    expandArguments()
+
     source
   }
 
@@ -42,7 +45,13 @@ object WorkflowReader extends YamlReader[Workflow] {
     val breed = BreedReader.readReference(<<![Any]("breed"))
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale")
 
-    Workflow(name, breed, schedule, scale, <<?[String]("network"))
+    Workflow(name, breed, schedule, scale, environmentVariables(alias = false), arguments(), <<?[String]("network"))
+  }
+
+  override protected def validate(workflow: Workflow): Workflow = {
+    validateEnvironmentVariablesAgainstBreed(workflow.environmentVariables, workflow.breed)
+    validateArguments(workflow.arguments)
+    workflow
   }
 
   private def schedule(implicit source: YamlSourceReader): Schedule = {

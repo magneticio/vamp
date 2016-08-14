@@ -174,10 +174,14 @@ trait PersistenceMultiplexer {
   }
 
   private def combine(workflow: Workflow): Future[Option[Workflow]] = {
-    get(workflow.name, classOf[WorkflowNetwork]).asInstanceOf[Future[Option[WorkflowNetwork]]].map {
-      case Some(result) ⇒ workflow.copy(network = Option(result.network))
-      case _            ⇒ workflow
-    } map (Option(_))
+    for {
+      network ← get(workflow.name, classOf[WorkflowNetwork]).asInstanceOf[Future[Option[WorkflowNetwork]]].map {
+        _.map(_.network).orElse(workflow.network)
+      }
+      arguments ← get(workflow.name, classOf[WorkflowArguments]).asInstanceOf[Future[Option[WorkflowArguments]]].map {
+        _.map(_.arguments).getOrElse(workflow.arguments)
+      }
+    } yield Option(workflow.copy(network = network, arguments = arguments))
   }
 
   private def get[A <: Artifact](artifact: A): Future[Option[A]] = get(artifact.name, artifact.getClass).asInstanceOf[Future[Option[A]]]
