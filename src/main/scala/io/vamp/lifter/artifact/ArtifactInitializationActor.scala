@@ -2,10 +2,13 @@ package io.vamp.lifter.artifact
 
 import java.nio.file.Paths
 
+import akka.event.LoggingAdapter
 import akka.pattern.ask
-import io.vamp.common.akka.CommonSupportForActors
+import akka.util.Timeout
 import io.vamp.common.akka.IoC._
+import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, ExecutionContextProvider }
 import io.vamp.common.config.Config
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.model.artifact.{ DefaultBreed, Deployable }
 import io.vamp.model.reader.WorkflowReader
@@ -23,11 +26,11 @@ object ArtifactInitializationActor {
 
 }
 
-class ArtifactInitializationActor extends ArtifactApiController with DeploymentApiController with CommonSupportForActors with LifterNotificationProvider {
+class ArtifactInitializationActor extends ArtifactLoader with CommonSupportForActors with LifterNotificationProvider {
 
   import ArtifactInitializationActor._
 
-  private implicit val timeout = PersistenceActor.timeout
+  implicit val timeout = PersistenceActor.timeout
 
   private val config = Config.config("vamp.lifter.artifact")
 
@@ -40,7 +43,7 @@ class ArtifactInitializationActor extends ArtifactApiController with DeploymentA
   private val resources = config.stringList("resources")
 
   def receive = {
-    case Load ⇒ (loadFiles andThen loadResources)(Unit)
+    case Load ⇒ (fileLoad andThen resourceLoad)(Unit)
     case _    ⇒
   }
 
@@ -52,14 +55,26 @@ class ArtifactInitializationActor extends ArtifactApiController with DeploymentA
     }
   }
 
-  private def loadFiles: Unit ⇒ Unit = { _ ⇒
+  private def fileLoad: Unit ⇒ Unit = { _ ⇒ loadFiles()(files) }
+
+  private def resourceLoad: Unit ⇒ Unit = { _ ⇒ loadResources(force)(resources) }
+}
+
+trait ArtifactLoader extends ArtifactApiController with DeploymentApiController {
+  this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
+
+  def log: LoggingAdapter
+
+  implicit def timeout: Timeout
+
+  protected def loadFiles(): List[String] ⇒ Unit = { files ⇒
     files.foreach { file ⇒
       log.info(s"Creating/updating artifacts using file: $file")
       updateArtifacts(Source.fromFile(file).mkString, validateOnly = false)
     }
   }
 
-  private def loadResources: Unit ⇒ Unit = { _ ⇒
+  protected def loadResources(force: Boolean = false): List[String] ⇒ Unit = { resources ⇒
 
     resources.map(Paths.get(_)).foreach { path ⇒
 
