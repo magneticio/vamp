@@ -10,7 +10,6 @@ import io.vamp.common.config.Config
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
-import io.vamp.gateway_driver.kibana.KibanaDashboardActor
 import io.vamp.operation.controller.DeploymentApiController
 import io.vamp.operation.deployment.DeploymentSynchronizationActor
 import io.vamp.operation.gateway.GatewaySynchronizationActor
@@ -41,10 +40,6 @@ trait DeploymentApiRoute extends DeploymentApiController with SystemController w
   } ~ path("escalation") {
     respondWithStatus(Accepted) {
       complete(slaEscalation())
-    }
-  } ~ path("kibana") {
-    respondWithStatus(Accepted) {
-      complete(kibana())
     }
   } ~ path("haproxy") {
     onSuccess(haproxy()) { result ⇒
@@ -197,6 +192,4 @@ trait DevController {
     val now = OffsetDateTime.now()
     IoC.actorFor[EscalationActor] ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }
-
-  def kibana(): Unit = IoC.actorFor[KibanaDashboardActor] ! KibanaDashboardActor.KibanaUpdate
 }

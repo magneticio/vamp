@@ -4,11 +4,12 @@ import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.gateway_driver.kibana.KibanaDashboardActor
 import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.persistence.kv.KeyValueStoreActor
 import io.vamp.pulse.notification.PulseFailureNotifier
+
+import scala.concurrent.Future
 
 object GatewayDriverActor {
 
@@ -36,9 +37,7 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PulseFailureNoti
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 
-  private def info = IoC.actorFor[KibanaDashboardActor] ? InfoRequest map {
-    case kibana ⇒ Map("marshaller" -> marshaller.info, "kibana" -> kibana)
-  }
+  private def info = Future.successful(Map("marshaller" -> marshaller.info))
 
   private def commit(gateways: List[Gateway]) = {
     implicit val timeout = KeyValueStoreActor.timeout
