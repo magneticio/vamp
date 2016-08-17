@@ -1,0 +1,3 @@
+name    : vga-marathon
+breed   : vga-marathon
+schedule: daemon
