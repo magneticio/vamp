@@ -176,7 +176,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
               service.instances.map {
                 instance ⇒
                   Option {
-                    InternalRouteTarget(instance.name, Option(instance.host), instance.ports.get(port).get)
+                    InternalRouteTarget(instance.name, Option(instance.host), instance.ports(port))
                   }
               }
             }.getOrElse(Nil)
@@ -190,25 +190,13 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   private def select: GatewayPipeline ⇒ List[Gateway] = { pipeline ⇒
 
-    def byDeploymentName(gateways: List[Gateway]) = gateways.filter(_.inner).groupBy(gateway ⇒ GatewayPath(gateway.name).segments.head)
-
-    val currentByDeployment = byDeploymentName(current)
-    val deployable = byDeploymentName(pipeline.deployable)
-    val nonDeployable = byDeploymentName(pipeline.nonDeployable)
-
-    val inner = byDeploymentName(pipeline.all).toList.flatMap {
-      case (d, g) if deployable.contains(d) && !nonDeployable.contains(d) ⇒ g
-      case (d, g) if nonDeployable.contains(d) ⇒ currentByDeployment.getOrElse(d, Nil)
-      case (_, g) ⇒ g
-    }
-
-    val selected = pipeline.deployable.filterNot(_.inner) ++ inner
+    val selected = pipeline.deployable
 
     val currentAsMap = current.map(g ⇒ g.name -> g).toMap
     val selectedAsMap = selected.map(g ⇒ g.name -> g).toMap
 
-    currentAsMap.keySet.diff(selectedAsMap.keySet).foreach(name ⇒ sendEvent(currentAsMap.get(name).get, "undeployed"))
-    selectedAsMap.keySet.diff(currentAsMap.keySet).foreach(name ⇒ sendEvent(selectedAsMap.get(name).get, "deployed"))
+    currentAsMap.keySet.diff(selectedAsMap.keySet).foreach(name ⇒ sendEvent(currentAsMap(name), "undeployed"))
+    selectedAsMap.keySet.diff(currentAsMap.keySet).foreach(name ⇒ sendEvent(selectedAsMap(name), "deployed"))
 
     current = selected
     current
