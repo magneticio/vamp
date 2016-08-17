@@ -1,3 +1,0 @@
-name    : vamp-gateway-agent-marathon
-breed   : vamp-gateway-agent-marathon
-schedule: daemon

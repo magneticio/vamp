@@ -7,14 +7,11 @@ import io.vamp.lifter.artifact.ArtifactInitializationActor
 import io.vamp.lifter.kibana.KibanaDashboardInitializationActor
 import io.vamp.lifter.persistence.ElasticsearchPersistenceInitializationActor
 import io.vamp.lifter.pulse.PulseInitializationActor
-import io.vamp.lifter.vga._
 import io.vamp.persistence.PersistenceBootstrap
 
 object LifterBootstrap extends ActorBootstrap {
 
   val config = Config.config("vamp.lifter")
-
-  val vampGatewayAgentEnabled = config.boolean("vamp-gateway-agent.enabled")
 
   val pulseEnabled = config.boolean("pulse.enabled")
 
@@ -31,10 +28,6 @@ object LifterBootstrap extends ActorBootstrap {
       }
     } else Nil
 
-    val vga = if (config.boolean("vamp-gateway-agent.enabled"))
-      IoC.createActor[VgaInitializationActor] :: Nil
-    else Nil
-
     val pulse = if (pulseEnabled)
       IoC.createActor[PulseInitializationActor] :: Nil
     else Nil
@@ -47,6 +40,6 @@ object LifterBootstrap extends ActorBootstrap {
       IoC.createActor[ArtifactInitializationActor] :: Nil
     else Nil
 
-    persistence ++ vga ++ pulse ++ kibana ++ artifact
+    persistence ++ pulse ++ kibana ++ artifact
   }
 }
