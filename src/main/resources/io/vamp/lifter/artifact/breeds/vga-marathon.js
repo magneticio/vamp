@@ -40,7 +40,7 @@ function run() {
                 "type": "DOCKER",
                 "docker": {
                     "image": "magneticio/vamp-gateway-agent:0.9.0",
-                    "network": "BRIDGE",
+                    "network": "HOST",
                     "portMappings": [],
                     "privileged": true,
                     "parameters": []
