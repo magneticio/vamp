@@ -47,14 +47,22 @@ private[config] class Config(config: TypesafeConfig, root: String) {
   }
 
   private def read(path: String): TypesafeConfig = {
-    environment(absolutePath(path)).map {
-      value ⇒ ConfigFactory.parseString(s"""$path = "$value"""").withFallback(config)
+    environment(absolutePath(path)).map { value ⇒
+      if (value.startsWith("[") && value.endsWith("]")) value else s""""$value""""
+    } map { value ⇒
+      ConfigFactory.parseString(s"$path = $value").withFallback(config)
     } getOrElse config
   }
 
-  private def environment(path: String): Option[String] = sys.env.get(path.replaceAll("[^\\p{L}\\d]", "_").toUpperCase)
+  private def environment(path: String): Option[String] = {
+    sys.env.get(path.replaceAll("[^\\p{L}\\d]", "_").toUpperCase).map(_.trim)
+  }
 
-  private def mergePaths(paths: String*): String = paths.toList.filter(_.nonEmpty).mkString(".")
+  private def mergePaths(paths: String*): String = {
+    paths.toList.filter(_.nonEmpty).mkString(".")
+  }
 
-  private def absolutePath(paths: String*): String = mergePaths(root :: paths.toList: _*)
+  private def absolutePath(paths: String*): String = {
+    mergePaths(root :: paths.toList: _*)
+  }
 }
