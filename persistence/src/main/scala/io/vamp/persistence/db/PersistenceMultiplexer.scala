@@ -163,9 +163,9 @@ trait PersistenceMultiplexer {
           })
         } map { p ⇒ p.name -> p } toMap
 
-        val environmentVariables = clusters.flatMap { cluster ⇒
+        val environmentVariables = (deployment.environmentVariables ++ clusters.flatMap { cluster ⇒
           cluster.services.flatMap(_.environmentVariables).map(ev ⇒ ev.copy(name = TraitReference(cluster.name, TraitReference.groupFor(TraitReference.EnvironmentVariables), ev.name).toString))
-        } map { p ⇒ p.name -> p } toMap
+        }) map { p ⇒ p.name -> p } toMap
 
         Option(deployment.copy(gateways = Nil, clusters = clusters, hosts = hosts, ports = ports.values.toList, environmentVariables = environmentVariables.values.toList))
 

@@ -507,8 +507,10 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
             })
 
             service.breed.environmentVariables.filter(_.value.isEmpty).map(environmentVariable ⇒ {
-              val name = TraitReference(cluster.name, TraitReference.EnvironmentVariables, environmentVariable.name).toString
-              deployment.environmentVariables.find(_.name == name).getOrElse(throwException(UnresolvedVariableValueError(service.breed, environmentVariable.name)))
+              service.environmentVariables.find(_.name == environmentVariable.name).orElse {
+                val name = TraitReference(cluster.name, TraitReference.EnvironmentVariables, environmentVariable.name).toString
+                deployment.environmentVariables.find(_.name == name)
+              } getOrElse throwException(UnresolvedVariableValueError(service.breed, environmentVariable.name))
             })
           })
         })
