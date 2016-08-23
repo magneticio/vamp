@@ -83,7 +83,10 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
 
       def validateConsumed(source: Any, result: T): Unit = source match {
         case yaml: YamlSourceReader ⇒
+
+          if (result.isInstanceOf[Artifact]) yaml.find[String](Artifact.kind)
           if (result.isInstanceOf[Lookup]) yaml.find[String](Lookup.entry)
+
           val nonConsumed = yaml.notConsumed
           if (nonConsumed.nonEmpty) {
             implicit val formats: Formats = DefaultFormats
@@ -146,19 +149,27 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
   }
 
   def read(implicit source: YamlSourceReader): T = {
+
     val expanded = expand(source)
-    validate(expanded)
     val parsed = parse(expanded)
-    validate(parsed)
+    val validated = validate(parsed)
+
+    consistent(validated)
   }
 
   protected def expand(implicit source: YamlSourceReader): YamlSourceReader = source
 
-  protected def validate(implicit source: YamlSourceReader): YamlSourceReader = source
-
   protected def parse(implicit source: YamlSourceReader): T
 
   protected def validate(any: T): T = any
+
+  protected def consistent(any: T)(implicit source: YamlSourceReader): T = {
+    (any, <<?[String](Artifact.kind)) match {
+      case (artifact: Artifact, Some(kind)) if kind != artifact.kind ⇒ throwException(InconsistentArtifactKind(kind, artifact))
+      case _ ⇒
+    }
+    any
+  }
 
   protected def <<![V <: Any: ClassTag](path: YamlPath)(implicit source: YamlSourceReader): V = source.get[V](path)
 

@@ -20,6 +20,7 @@ class WorkflowSerializer() extends ArtifactSerializer[Workflow] with ReferenceSe
     case workflow: Workflow ⇒
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(workflow.name))
+      list += JField("kind", JString(workflow.kind))
       list += JField("breed", Extraction.decompose(workflow.breed))
 
       workflow.schedule match {

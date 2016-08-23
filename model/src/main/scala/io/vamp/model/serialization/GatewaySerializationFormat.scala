@@ -16,6 +16,9 @@ object GatewaySerializationFormat extends io.vamp.common.json.SerializationForma
     new ExternalRouteTargetSerializer() :+
     new ConditionSerializer() :+
     new RewriteSerializer()
+
+  override def fieldSerializers = super.fieldSerializers :+
+    new RouteTargetFieldSerializer()
 }
 
 class GatewaySerializer extends ArtifactSerializer[Gateway] with GatewayDecomposer {
@@ -34,7 +37,10 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
 
       if (full) {
 
-        if (gateway.name.nonEmpty) list += JField("name", JString(gateway.name))
+        if (gateway.name.nonEmpty) {
+          list += JField("name", JString(gateway.name))
+          list += JField("kind", JString(gateway.kind))
+        }
 
         list += JField(Lookup.entry, JString(gateway.lookupName))
 
@@ -86,7 +92,10 @@ trait RouteDecomposer extends ReferenceSerialization with ConditionDecomposer {
     case route: DefaultRoute ⇒
       val list = new ArrayBuffer[JField]
 
-      if (route.name.nonEmpty) list += JField("name", JString(route.name))
+      if (route.name.nonEmpty) {
+        list += JField("name", JString(route.name))
+        list += JField("kind", JString(route.kind))
+      }
 
       list += JField("weight", if (route.weight.isDefined) JString(route.weight.get.normalized) else JNull)
       list += JField("balance", if (route.balance.isDefined) JString(route.balance.get) else JString(DefaultRoute.defaultBalance))
@@ -94,7 +103,7 @@ trait RouteDecomposer extends ReferenceSerialization with ConditionDecomposer {
       list += JField("condition_strength", if (route.conditionStrength.isDefined) JString(route.conditionStrength.get.normalized) else JNull)
       list += JField("rewrites", Extraction.decompose(route.rewrites))
 
-      if (full && route.targets.nonEmpty) list += JField("instances", Extraction.decompose(route.targets))
+      if (full && route.targets.nonEmpty) list += JField("targets", Extraction.decompose(route.targets))
 
       new JObject(list.toList)
   }
@@ -102,6 +111,12 @@ trait RouteDecomposer extends ReferenceSerialization with ConditionDecomposer {
 
 class RouteSerializer extends ArtifactSerializer[Route] with ReferenceSerialization with RouteDecomposer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = serializeRoute(full = true)
+}
+
+class RouteTargetFieldSerializer extends ArtifactFieldSerializer[RouteTarget] {
+  override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
+    case ("kind", _) ⇒ None
+  }
 }
 
 class ExternalRouteTargetSerializer extends ArtifactSerializer[ExternalRouteTarget] {
@@ -123,7 +138,10 @@ trait ConditionDecomposer extends ReferenceSerialization {
     case condition: ConditionReference ⇒ serializeReference(condition)
     case condition: DefaultCondition ⇒
       val list = new ArrayBuffer[JField]
-      if (condition.name.nonEmpty && full) list += JField("name", JString(condition.name))
+      if (condition.name.nonEmpty && full) {
+        list += JField("name", JString(condition.name))
+        list += JField("kind", JString(condition.kind))
+      }
       list += JField("condition", JString(condition.definition))
       new JObject(list.toList)
   }
@@ -134,8 +152,10 @@ class RewriteSerializer extends ArtifactSerializer[Rewrite] with ReferenceSerial
     case rewrite: RewriteReference ⇒ serializeReference(rewrite)
     case rewrite: PathRewrite ⇒
       val list = new ArrayBuffer[JField]
-      if (rewrite.name.nonEmpty)
+      if (rewrite.name.nonEmpty) {
         list += JField("name", JString(rewrite.name))
+        list += JField("kind", JString(rewrite.kind))
+      }
       list += JField("path", JString(rewrite.definition))
       new JObject(list.toList)
   }

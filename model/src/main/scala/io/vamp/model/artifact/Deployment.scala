@@ -66,6 +66,9 @@ case class Deployment(
     ports: List[Port],
     environmentVariables: List[EnvironmentVariable],
     hosts: List[Host]) extends AbstractBlueprint with Lookup {
+
+  override val kind = "deployment"
+
   lazy val traits = ports ++ environmentVariables ++ hosts
 }
 
@@ -109,7 +112,9 @@ case class DeploymentService(
   dependencies: Map[String, String] = Map(),
   dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService with DeploymentState
 
-case class DeploymentInstance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact
+case class DeploymentInstance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact {
+  val kind = "instance"
+}
 
 object Host {
   val host = "host"

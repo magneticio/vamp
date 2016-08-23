@@ -36,8 +36,6 @@ case class WorkflowExecutionError(reason: Any) extends Notification with ErrorNo
 
 case class UnexpectedArtifact(artifact: String) extends Notification
 
-case class InconsistentArtifactName(parameter: String, artifact: Artifact) extends Notification
-
 case class InvalidTimeTriggerError(pattern: String) extends Notification
 
 case class MissingRequiredVariableError(required: String) extends Notification

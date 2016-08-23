@@ -3,6 +3,9 @@ package io.vamp.model.artifact
 import scala.concurrent.duration.FiniteDuration
 
 trait Sla extends Artifact {
+
+  val kind = "sla"
+
   def escalations: List[Escalation]
 }
 
@@ -26,7 +29,9 @@ trait SlidingWindowSla[T] extends Sla {
 
 case class ResponseTimeSlidingWindowSla(name: String, upper: FiniteDuration, lower: FiniteDuration, interval: FiniteDuration, cooldown: FiniteDuration, escalations: List[Escalation]) extends SlidingWindowSla[FiniteDuration]
 
-trait Escalation extends Artifact
+trait Escalation extends Artifact {
+  val kind = "escalation"
+}
 
 case class EscalationReference(name: String) extends Reference with Escalation
 

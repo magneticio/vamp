@@ -11,9 +11,10 @@ import akka.util.Timeout
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.model.artifact._
+import io.vamp.model.notification.InconsistentArtifactName
 import io.vamp.model.reader.{ YamlReader, _ }
 import io.vamp.model.workflow.Workflow
-import io.vamp.operation.notification.{ InconsistentArtifactName, UnexpectedArtifact }
+import io.vamp.operation.notification.UnexpectedArtifact
 import io.vamp.persistence.db._
 import io.vamp.persistence.notification.PersistenceOperationFailure
 

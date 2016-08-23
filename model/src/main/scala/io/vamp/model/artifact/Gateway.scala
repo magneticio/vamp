@@ -28,6 +28,8 @@ case class Gateway(name: String,
                    routes: List[Route],
                    deployed: Boolean = false) extends Artifact with Lookup {
 
+  val kind = "gateway"
+
   def routeBy(path: GatewayPath) = routes.find(_.path == path)
 
   def defaultBalance = if (port.`type` == Port.Type.Http) "roundrobin" else "leastconn"
@@ -80,6 +82,8 @@ object Route {
 
 sealed trait Route extends Artifact {
 
+  val kind = "route"
+
   def path: GatewayPath
 
   val length = path.segments.size
@@ -103,7 +107,9 @@ object InternalRouteTarget {
   def apply(name: String, port: Int) = new InternalRouteTarget(name, None, port)
 }
 
-sealed trait RouteTarget extends Artifact with Lookup
+sealed trait RouteTarget extends Artifact with Lookup {
+  val kind = "target"
+}
 
 case class InternalRouteTarget(name: String, host: Option[String], port: Int) extends RouteTarget
 
@@ -111,13 +117,17 @@ case class ExternalRouteTarget(url: String) extends RouteTarget {
   val name = url
 }
 
-sealed trait Condition extends Artifact
+sealed trait Condition extends Artifact {
+  val kind = "condition"
+}
 
 case class ConditionReference(name: String) extends Reference with Condition
 
 case class DefaultCondition(name: String, definition: String) extends Condition
 
-sealed trait Rewrite extends Artifact
+sealed trait Rewrite extends Artifact {
+  val kind = "rewrite"
+}
 
 case class RewriteReference(name: String) extends Reference with Rewrite
 

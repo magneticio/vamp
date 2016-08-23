@@ -14,7 +14,6 @@ UnavailableGatewayPortError     : "Gateway port '{port.value}' is/was in use by 
 WorkflowSchedulingError         : "Workflow scheduling error."
 WorkflowExecutionError          : "Workflow execution error."
 
-InconsistentArtifactName        : "Inconsistent resource name: parameter is '{parameter}' but in the request body found '{artifact.name}'."
 UnexpectedArtifact              : "Unexpected resource: '{artifact}'."
 InvalidTimeTriggerError         : "Not a valid time trigger patter: '{pattern}'."
 MissingRequiredVariableError    : "Required variable '{required}' not found in the storage."

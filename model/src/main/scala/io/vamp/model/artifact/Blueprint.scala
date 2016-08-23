@@ -2,7 +2,9 @@ package io.vamp.model.artifact
 
 import io.vamp.model.reader.{ MegaByte, Quantity }
 
-abstract class Blueprint extends Artifact
+abstract class Blueprint extends Artifact {
+  val kind = "blueprint"
+}
 
 trait AbstractBlueprint extends Blueprint {
   def name: String
@@ -28,6 +30,9 @@ object Dialect extends Enumeration {
 }
 
 abstract class AbstractCluster extends Artifact {
+
+  val kind = "cluster"
+
   def services: List[AbstractService]
 
   def gateways: List[Gateway]
@@ -42,6 +47,9 @@ abstract class AbstractCluster extends Artifact {
 case class Cluster(name: String, services: List[Service], gateways: List[Gateway], sla: Option[Sla], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
 
 abstract class AbstractService {
+
+  val kind = "service"
+
   def breed: Breed
 
   def environmentVariables: List[EnvironmentVariable]
@@ -55,7 +63,9 @@ abstract class AbstractService {
 
 case class Service(breed: Breed, environmentVariables: List[EnvironmentVariable], scale: Option[Scale], arguments: List[Argument], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
 
-trait Scale extends Artifact
+trait Scale extends Artifact {
+  val kind = "scale"
+}
 
 case class ScaleReference(name: String) extends Reference with Scale
 

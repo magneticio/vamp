@@ -314,4 +314,12 @@ class BreedReaderSpec extends ReaderSpec {
       'deployable(Deployable("container/rkt", "magneticio/vamp:latest"))
     )
   }
+
+  it should "fail on invalid kind" in {
+    expectedError[InconsistentArtifactKind]({
+      BreedReader.read(res("breed/breed36.yml"))
+    }) should have(
+      'given("blueprint")
+    )
+  }
 }

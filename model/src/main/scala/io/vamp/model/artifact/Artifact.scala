@@ -3,11 +3,16 @@ package io.vamp.model.artifact
 import io.vamp.common.crypto.Hash
 
 object Artifact {
+
   val version = "v1"
+
+  val kind = "kind"
 }
 
 trait Artifact {
   def name: String
+
+  def kind: String
 }
 
 trait Reference extends Artifact

@@ -1,6 +1,7 @@
 package io.vamp.model.notification
 
 import io.vamp.common.notification.Notification
+import io.vamp.model.artifact.Artifact
 
 import scala.language.existentials
 
@@ -21,3 +22,7 @@ case class UnexpectedElement(element: Map[String, _], message: String) extends N
 case class IllegalName(name: String) extends Notification
 
 case class IllegalStrictName(name: String) extends Notification
+
+case class InconsistentArtifactName(given: String, artifact: Artifact) extends Notification
+
+case class InconsistentArtifactKind(given: String, artifact: Artifact) extends Notification

@@ -8,7 +8,9 @@ import io.vamp.model.notification.{ InvalidArgumentError, InvalidArgumentValueEr
 import scala.language.implicitConversions
 import scala.util.Try
 
-trait Breed extends Artifact
+trait Breed extends Artifact {
+  val kind = "breed"
+}
 
 case class DefaultBreed(
     name: String,

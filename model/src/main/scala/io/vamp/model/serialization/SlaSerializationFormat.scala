@@ -19,8 +19,10 @@ class SlaSerializer extends ArtifactSerializer[Sla] with ReferenceSerialization 
 
     case sla: ResponseTimeSlidingWindowSla ⇒
       val list = new ArrayBuffer[JField]
-      if (sla.name.nonEmpty)
+      if (sla.name.nonEmpty) {
         list += JField("name", JString(sla.name))
+        list += JField("kind", JString(sla.kind))
+      }
       list += JField("type", JString("response_time_sliding_window"))
       list += JField("window", Extraction.decompose(Map("interval" -> sla.interval.toSeconds, "cooldown" -> sla.cooldown.toSeconds)))
       list += JField("threshold", Extraction.decompose(Map("upper" -> sla.upper.toMillis, "lower" -> sla.lower.toMillis)))
@@ -29,8 +31,10 @@ class SlaSerializer extends ArtifactSerializer[Sla] with ReferenceSerialization 
 
     case sla: GenericSla ⇒
       val list = new ArrayBuffer[JField]
-      if (sla.name.nonEmpty)
+      if (sla.name.nonEmpty) {
         list += JField("name", JString(sla.name))
+        list += JField("kind", JString(sla.kind))
+      }
       list += JField("type", JString(sla.`type`))
       list += JField("parameters", Extraction.decompose(sla.parameters))
       list += JField("escalations", Extraction.decompose(sla.escalations))
@@ -38,8 +42,10 @@ class SlaSerializer extends ArtifactSerializer[Sla] with ReferenceSerialization 
 
     case sla: EscalationOnlySla ⇒
       val list = new ArrayBuffer[JField]
-      if (sla.name.nonEmpty)
+      if (sla.name.nonEmpty) {
         list += JField("name", JString(sla.name))
+        list += JField("kind", JString(sla.kind))
+      }
       list += JField("type", JString(sla.`type`))
       list += JField("escalations", Extraction.decompose(sla.escalations))
       new JObject(list.toList)
@@ -52,16 +58,20 @@ class EscalationSerializer extends ArtifactSerializer[Escalation] with Reference
 
     case escalation: GroupEscalation ⇒
       val list = new ArrayBuffer[JField]
-      if (escalation.name.nonEmpty)
+      if (escalation.name.nonEmpty) {
         list += JField("name", JString(escalation.name))
+        list += JField("kind", JString(escalation.kind))
+      }
       list += JField("type", JString(escalation.`type`))
       list += JField("escalations", Extraction.decompose(escalation.escalations))
       new JObject(list.toList)
 
     case escalation: ScaleEscalation[_] ⇒
       val list = new ArrayBuffer[JField]
-      if (escalation.name.nonEmpty)
+      if (escalation.name.nonEmpty) {
         list += JField("name", JString(escalation.name))
+        list += JField("kind", JString(escalation.kind))
+      }
 
       list += JField("type", JString(escalation.`type`))
 
@@ -75,8 +85,10 @@ class EscalationSerializer extends ArtifactSerializer[Escalation] with Reference
 
     case escalation: Escalation ⇒
       val list = new ArrayBuffer[JField]
-      if (escalation.name.nonEmpty)
+      if (escalation.name.nonEmpty) {
         list += JField("name", JString(escalation.name))
+        list += JField("kind", JString(escalation.kind))
+      }
       escalation match {
         case g: GenericEscalation ⇒
           list += JField("type", JString(g.`type`))

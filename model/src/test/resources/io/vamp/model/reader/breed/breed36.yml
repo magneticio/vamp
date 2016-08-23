@@ -1,3 +1,3 @@
 name: monarch
-kind: breed
+kind: blueprint
 deployable: magneticio/monarch:latest

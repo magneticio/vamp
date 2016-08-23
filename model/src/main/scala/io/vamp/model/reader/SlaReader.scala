@@ -18,8 +18,7 @@ object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
   }
 
   override protected def validateEitherReferenceOrAnonymous(implicit source: YamlSourceReader): YamlSourceReader = {
-    if (source.pull(k ⇒ k != "name" && k != "escalations").nonEmpty) super.validate
-    source
+    if (source.pull(k ⇒ k != "name" && k != "escalations").nonEmpty) super.validateEitherReferenceOrAnonymous else source
   }
 
   override protected def createReference(implicit source: YamlSourceReader): Sla = SlaReference(reference, escalations)

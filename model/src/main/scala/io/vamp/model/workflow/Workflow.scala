@@ -8,13 +8,16 @@ import io.vamp.model.workflow.TimeSchedule.{ Repeat, RepeatForever, RepeatPeriod
 import scala.language.implicitConversions
 
 case class Workflow(
-  name: String,
-  breed: Breed,
-  schedule: Schedule,
-  scale: Option[Scale],
-  environmentVariables: List[EnvironmentVariable],
-  arguments: List[Argument],
-  network: Option[String]) extends Artifact with Lookup
+    name: String,
+    breed: Breed,
+    schedule: Schedule,
+    scale: Option[Scale],
+    environmentVariables: List[EnvironmentVariable],
+    arguments: List[Argument],
+    network: Option[String]) extends Artifact with Lookup {
+
+  val kind = "workflow"
+}
 
 sealed trait Schedule
 

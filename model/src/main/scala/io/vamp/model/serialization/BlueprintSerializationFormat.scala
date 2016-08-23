@@ -16,7 +16,8 @@ object BlueprintSerializationFormat extends io.vamp.common.json.SerializationFor
 
   override def fieldSerializers = super.fieldSerializers :+
     new ClusterFieldSerializer() :+
-    new ServiceFieldSerializer()
+    new ServiceFieldSerializer() :+
+    new InstanceFieldSerializer()
 }
 
 class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomposer with ReferenceSerialization with BlueprintGatewaySerializer {
@@ -25,6 +26,7 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomp
     case blueprint: AbstractBlueprint ⇒
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(blueprint.name))
+      list += JField("kind", JString(blueprint.kind))
       list += JField("gateways", serializeGateways(blueprint.gateways))
       list += JField("clusters", Extraction.decompose(blueprint.clusters.map(cluster ⇒ cluster.name -> cluster).toMap))
       list += JField("environment_variables", traits(blueprint.environmentVariables))
@@ -35,6 +37,7 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomp
 class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] with DialectSerializer with InnerGatewaySerializer {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
     case ("name", _)            ⇒ None
+    case ("kind", _)            ⇒ None
     case ("gateways", gateways) ⇒ Some(("gateways", serializeGateways(gateways.asInstanceOf[List[Gateway]])))
     case ("dialects", dialects) ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
   }
@@ -42,10 +45,17 @@ class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] wi
 
 class ServiceFieldSerializer extends ArtifactFieldSerializer[AbstractService] with ArgumentListSerializer with DialectSerializer with TraitDecomposer with BlueprintScaleSerializer {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
+    case ("kind", _)                                    ⇒ None
     case ("environmentVariables", environmentVariables) ⇒ Some(("environment_variables", traits(environmentVariables.asInstanceOf[List[Trait]])))
     case ("arguments", arguments)                       ⇒ Some(("arguments", serializeArguments(arguments.asInstanceOf[List[Argument]])))
     case ("dialects", dialects)                         ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
     case ("scale", Some(scale: Scale))                  ⇒ Some(("scale", serializerScale(scale, full = false)))
+  }
+}
+
+class InstanceFieldSerializer extends ArtifactFieldSerializer[DeploymentInstance] {
+  override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
+    case ("kind", _) ⇒ None
   }
 }
 
@@ -60,8 +70,11 @@ trait BlueprintScaleSerializer extends ReferenceSerialization {
     case scale: ScaleReference ⇒ serializeReference(scale)
     case scale: DefaultScale ⇒
       val list = new ArrayBuffer[JField]
-      if (scale.name.nonEmpty && full)
+      if (scale.name.nonEmpty && full) {
         list += JField("name", JString(scale.name))
+        list += JField("kind", JString(scale.kind))
+      }
+
       list += JField("cpu", JDouble(scale.cpu.normalized.toDouble))
       list += JField("memory", JString(scale.memory.normalized))
       list += JField("instances", JInt(scale.instances))
