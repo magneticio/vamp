@@ -13,8 +13,14 @@ object DeploymentPersistence {
   }
 }
 
-case class DeploymentServiceState(name: String, state: DeploymentService.State) extends Artifact
+case class DeploymentServiceState(name: String, state: DeploymentService.State) extends Artifact {
+  val kind = "deployment-service-state"
+}
 
-case class DeploymentServiceInstances(name: String, instances: List[DeploymentInstance]) extends Artifact
+case class DeploymentServiceInstances(name: String, instances: List[DeploymentInstance]) extends Artifact {
+  val kind = "deployment-service-instances"
+}
 
-case class DeploymentServiceEnvironmentVariables(name: String, environmentVariables: List[EnvironmentVariable]) extends Artifact
+case class DeploymentServiceEnvironmentVariables(name: String, environmentVariables: List[EnvironmentVariable]) extends Artifact {
+  val kind = "deployment-service-environment-variables"
+}
