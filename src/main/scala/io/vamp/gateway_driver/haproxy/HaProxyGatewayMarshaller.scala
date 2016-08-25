@@ -59,40 +59,40 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   private def frontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {
 
     val gatewayFrontend = Frontend(
-      name = GatewayMarshaller.name(gateway),
-      lookup = GatewayMarshaller.lookup(gateway),
+      name = GatewayLookup.name(gateway),
+      lookup = GatewayLookup.lookup(gateway),
       bindIp = Option("0.0.0.0"),
       bindPort = Option(gateway.port.number),
       mode = mode,
       unixSock = None,
       sockProtocol = None,
       conditions = conditions(),
-      defaultBackend = backendFor(other, GatewayMarshaller.lookup(gateway))
+      defaultBackend = backendFor(other, GatewayLookup.lookup(gateway))
     )
 
     val otherFrontend = Frontend(
-      name = s"other ${GatewayMarshaller.name(gateway)}",
-      lookup = s"$other${GatewayMarshaller.lookup(gateway)}",
+      name = s"other ${GatewayLookup.name(gateway)}",
+      lookup = s"$other${GatewayLookup.lookup(gateway)}",
       bindIp = None,
       bindPort = None,
       mode = mode,
-      unixSock = Option(unixSocket(s"$other${GatewayMarshaller.lookup(gateway)}")),
+      unixSock = Option(unixSocket(s"$other${GatewayLookup.lookup(gateway)}")),
       sockProtocol = Option("accept-proxy"),
       conditions = Nil,
-      defaultBackend = backendFor(other, GatewayMarshaller.lookup(gateway))
+      defaultBackend = backendFor(other, GatewayLookup.lookup(gateway))
     )
 
     val routeFrontends = gateway.routes.map { route ⇒
       Frontend(
-        name = GatewayMarshaller.name(gateway, route.path.segments),
-        lookup = GatewayMarshaller.lookup(gateway, route.path.segments),
+        name = GatewayLookup.name(gateway, route.path.segments),
+        lookup = GatewayLookup.lookup(gateway, route.path.segments),
         bindIp = None,
         bindPort = None,
         mode = mode,
-        unixSock = Option(unixSocket(GatewayMarshaller.lookup(gateway, route.path.segments))),
+        unixSock = Option(unixSocket(GatewayLookup.lookup(gateway, route.path.segments))),
         sockProtocol = Option("accept-proxy"),
         conditions = Nil,
-        defaultBackend = backendFor(GatewayMarshaller.lookup(gateway, route.path.segments))
+        defaultBackend = backendFor(GatewayLookup.lookup(gateway, route.path.segments))
       )
     }
 
@@ -111,18 +111,18 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     val imBackends = imRoutes.map {
       case route: DefaultRoute ⇒
         Backend(
-          name = s"intermediate ${GatewayMarshaller.name(gateway, route.path.segments)}",
-          lookup = s"$intermediate${GatewayMarshaller.lookup(gateway, route.path.segments)}",
+          name = s"intermediate ${GatewayLookup.name(gateway, route.path.segments)}",
+          lookup = s"$intermediate${GatewayLookup.lookup(gateway, route.path.segments)}",
           mode = mode,
           proxyServers = ProxyServer(
-            name = GatewayMarshaller.name(gateway, route.path.segments),
-            lookup = GatewayMarshaller.lookup(gateway, route.path.segments),
-            unixSock = unixSocket(GatewayMarshaller.lookup(gateway, route.path.segments)),
+            name = GatewayLookup.name(gateway, route.path.segments),
+            lookup = GatewayLookup.lookup(gateway, route.path.segments),
+            unixSock = unixSocket(GatewayLookup.lookup(gateway, route.path.segments)),
             weight = route.conditionStrength.get.value
           ) :: ProxyServer(
-              name = s"other ${GatewayMarshaller.name(gateway)}",
-              lookup = s"$other${GatewayMarshaller.lookup(gateway)}",
-              unixSock = unixSocket(s"$other${GatewayMarshaller.lookup(gateway)}"),
+              name = s"other ${GatewayLookup.name(gateway)}",
+              lookup = s"$other${GatewayLookup.lookup(gateway)}",
+              unixSock = unixSocket(s"$other${GatewayLookup.lookup(gateway)}"),
               weight = 100 - route.conditionStrength.get.value
             ) :: Nil,
           servers = Nil,
@@ -133,15 +133,15 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     }
 
     val otherBackend = Backend(
-      name = s"other ${GatewayMarshaller.name(gateway)}",
-      lookup = s"$other${GatewayMarshaller.lookup(gateway)}",
+      name = s"other ${GatewayLookup.name(gateway)}",
+      lookup = s"$other${GatewayLookup.lookup(gateway)}",
       mode = mode,
       proxyServers = gateway.routes.map {
         case route: DefaultRoute ⇒
           ProxyServer(
-            name = GatewayMarshaller.name(gateway, route.path.segments),
-            lookup = GatewayMarshaller.lookup(gateway, route.path.segments),
-            unixSock = unixSocket(GatewayMarshaller.lookup(gateway, route.path.segments)),
+            name = GatewayLookup.name(gateway, route.path.segments),
+            lookup = GatewayLookup.lookup(gateway, route.path.segments),
+            unixSock = unixSocket(GatewayLookup.lookup(gateway, route.path.segments)),
             weight = route.weight.get.value
           )
         case route ⇒ unsupported(route)
@@ -155,22 +155,22 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     val routeBackends = gateway.routes.map {
       case route: DefaultRoute ⇒
         Backend(
-          name = GatewayMarshaller.name(gateway, route.path.segments),
-          lookup = GatewayMarshaller.lookup(gateway, route.path.segments),
+          name = GatewayLookup.name(gateway, route.path.segments),
+          lookup = GatewayLookup.lookup(gateway, route.path.segments),
           mode = mode,
           proxyServers = Nil,
           servers = route.targets.map {
             case internal: InternalRouteTarget ⇒
               Server(
-                name = GatewayMarshaller.name(internal),
-                lookup = GatewayMarshaller.lookup(internal),
+                name = GatewayLookup.name(internal),
+                lookup = GatewayLookup.lookup(internal),
                 url = s"${internal.host.getOrElse(haProxyConfig.ip)}:${internal.port}",
                 weight = 100
               )
             case external: ExternalRouteTarget ⇒
               Server(
-                name = GatewayMarshaller.name(external),
-                lookup = GatewayMarshaller.lookup(external),
+                name = GatewayLookup.name(external),
+                lookup = GatewayLookup.lookup(external),
                 url = external.url,
                 weight = 100
               )
@@ -191,7 +191,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   private[haproxy] def filter(route: DefaultRoute)(implicit backends: List[Backend], gateway: Gateway): Option[Condition] = {
     route.condition.filter(_.isInstanceOf[DefaultCondition]).map(_.asInstanceOf[DefaultCondition].definition) map {
       condition ⇒
-        backendFor(intermediate, GatewayMarshaller.lookup(gateway, route.path.segments)) match {
+        backendFor(intermediate, GatewayLookup.lookup(gateway, route.path.segments)) match {
           case backend ⇒ Condition(backend.lookup, backend, aclResolver.resolve(condition))
         }
     }
@@ -213,19 +213,19 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     gateway.virtualHosts.map { virtualHost ⇒
       val acl = Acl(s"hdr(host) -i $virtualHost")
       Frontend(
-        name = GatewayMarshaller.name(gateway),
-        lookup = GatewayMarshaller.lookup(gateway),
+        name = GatewayLookup.name(gateway),
+        lookup = GatewayLookup.lookup(gateway),
         bindIp = None,
         bindPort = None,
         mode = mode,
         unixSock = None,
         sockProtocol = None,
         conditions = Condition(
-          GatewayMarshaller.lookup(gateway),
-          backendFor(GatewayMarshaller.lookup(gateway)),
+          GatewayLookup.lookup(gateway),
+          backendFor(GatewayLookup.lookup(gateway)),
           Option(HaProxyAcls(acl :: Nil, Option(acl.name)))
         ) :: Nil,
-        defaultBackend = backendFor(GatewayMarshaller.lookup(gateway))
+        defaultBackend = backendFor(GatewayLookup.lookup(gateway))
       )
     }
   }
@@ -233,13 +233,13 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
   private def virtualHostsBackends(implicit gateway: Gateway): List[Backend] = gateway.virtualHosts.nonEmpty match {
     case true ⇒
       Backend(
-        name = GatewayMarshaller.name(gateway),
-        lookup = GatewayMarshaller.lookup(gateway),
+        name = GatewayLookup.name(gateway),
+        lookup = GatewayLookup.lookup(gateway),
         mode = mode,
         proxyServers = Nil,
         servers = Server(
-          name = GatewayMarshaller.name(gateway),
-          lookup = GatewayMarshaller.lookup(gateway),
+          name = GatewayLookup.name(gateway),
+          lookup = GatewayLookup.lookup(gateway),
           url = s"${haProxyConfig.ip}:${gateway.port.number}",
           weight = 100
         ) :: Nil,
