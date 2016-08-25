@@ -35,7 +35,7 @@ trait KubernetesContainerDriver extends ContainerDriver {
     RestClient.get[KubernetesItem](s"$url/$name", apiHeaders, logError = false).recover {
       case _ ⇒ notExists()
     } map {
-      case _ ⇒ exists()
+      _ ⇒ exists()
     }
   }
 }

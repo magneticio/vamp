@@ -1,12 +1,13 @@
 package io.vamp.container_driver
 
 import io.vamp.common.akka.ExecutionContextProvider
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.model.workflow.Workflow
 
-trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotificationProvider with ExecutionContextProvider {
+trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with ExecutionContextProvider {
 
   protected def nameDelimiter: String
 
@@ -15,8 +16,6 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
   protected def appId(deployment: Deployment, breed: Breed): String
 
   protected def artifactName2Id(artifact: Artifact): String
-
-  protected def supportedDeployableTypes: List[DeployableType]
 
   protected def portMappings(workflow: Workflow): List[DockerPortMapping] = {
     workflow.breed.asInstanceOf[DefaultBreed].ports.collect {
@@ -38,14 +37,6 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
 
   protected def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] = {
     service.environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) -> ev.interpolated.getOrElse("")).toMap
-  }
-
-  protected def validateDeployable(deployable: Deployable) = {
-    if (!supportedDeployableTypes.exists(_.matches(deployable)))
-      throwException(UnsupportedDeployableType(deployable.`type`, supportedDeployableTypes.map(_.`type`).mkString(", ")))
-
-    if (DockerDeployable.matches(deployable) && deployable.definition.isEmpty)
-      throwException(UndefinedDockerImage)
   }
 
   protected def interpolate[T](deployment: Deployment, service: Option[DeploymentService], dialect: T): T = {
@@ -98,5 +89,19 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverNotifi
 
   protected def labels(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
     Map("deployment" -> deployment.name, "cluster" -> cluster.name, "service" -> service.breed.name)
+  }
+}
+
+trait ContainerDriverValidation {
+  this: NotificationProvider ⇒
+
+  protected def supportedDeployableTypes: List[DeployableType]
+
+  protected def validateDeployable(deployable: Deployable) = {
+    if (!supportedDeployableTypes.exists(_.matches(deployable)))
+      throwException(UnsupportedDeployableType(deployable.`type`, supportedDeployableTypes.map(_.`type`).mkString(", ")))
+
+    if (DockerDeployable.matches(deployable) && deployable.definition.isEmpty)
+      throwException(UndefinedDockerImage)
   }
 }

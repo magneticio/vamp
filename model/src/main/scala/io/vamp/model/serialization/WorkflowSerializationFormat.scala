@@ -32,7 +32,7 @@ class WorkflowSerializer() extends ArtifactSerializer[Workflow] with ReferenceSe
             case _                  ⇒
           }
           start.foreach(start ⇒ time += JField("start", JString(start.format(ISO_OFFSET_DATE_TIME))))
-          list += JField("time", new JObject(time.toList))
+          list += JField("schedule", new JObject(JField("time", new JObject(time.toList)) :: Nil))
 
         case EventSchedule(tags) ⇒
           val tagList = JField("tags", Extraction.decompose(tags)) :: Nil

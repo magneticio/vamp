@@ -3,16 +3,20 @@ package io.vamp.workflow_driver
 import akka.actor.{ ActorRef, ActorRefFactory, ActorSystem }
 import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
 import io.vamp.common.http.RestClient
-import io.vamp.model.artifact.{ DefaultBreed, DefaultScale }
+import io.vamp.container_driver._
+import io.vamp.model.artifact._
 import io.vamp.model.workflow.TimeSchedule.RepeatCount
 import io.vamp.model.workflow.{ DaemonSchedule, TimeSchedule, Workflow }
 import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
+import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 
 import scala.concurrent.Future
 
-class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: ActorSystem) extends WorkflowDriver with ActorRefFactoryExecutionContextProvider {
+class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: ActorSystem) extends WorkflowDriver with ContainerDriverValidation with ActorRefFactoryExecutionContextProvider with WorkflowDriverNotificationProvider {
 
   implicit def actorRefFactory: ActorRefFactory = actorSystem
+
+  override protected def supportedDeployableTypes = DockerDeployable :: Nil
 
   override def info: Future[Map[_, _]] = RestClient.get[Any](s"$url/scheduler/jobs").map {
     _ ⇒ Map("chronos" -> Map("url" -> url))
@@ -26,17 +30,20 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: Acto
   }
 
   override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
-    case workflow if workflow.schedule != DaemonSchedule ⇒
+    case w if w.schedule != DaemonSchedule ⇒
 
-      val scale = workflow.scale.get.asInstanceOf[DefaultScale]
+      val workflow = enrich(w)
+      val breed = workflow.breed.asInstanceOf[DefaultBreed]
+
+      validateDeployable(workflow.breed.asInstanceOf[DefaultBreed].deployable)
 
       val jobRequest = job(
         name = name(workflow),
         schedule = period(workflow),
-        containerImage = workflow.breed.asInstanceOf[DefaultBreed].deployable.definition,
-        rootPath = WorkflowDriver.pathToString(workflow),
-        cpu = scale.cpu.value,
-        memory = scale.memory.value
+        containerImage = breed.deployable.definition,
+        environmentVariables = breed.environmentVariables,
+        scale = workflow.scale.get.asInstanceOf[DefaultScale],
+        network = workflow.network.getOrElse(Docker.network)
       )
 
       RestClient.post[Any](s"$url/scheduler/iso8601", jobRequest)
@@ -68,7 +75,12 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: Acto
     case _ ⇒ "R1//PT1S"
   }
 
-  private def job(name: String, schedule: String, containerImage: String, rootPath: String, cpu: Double, memory: Double) =
+  private def job(name: String, schedule: String, containerImage: String, environmentVariables: List[EnvironmentVariable], scale: DefaultScale, network: String) = {
+
+    val vars = environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) -> ev.interpolated.getOrElse("")).map {
+      case (n, v) ⇒ s"""{ "name": "$n", "value": "$v" }"""
+    } mkString ","
+
     s"""
        |{
        |  "name": "$name",
@@ -76,22 +88,15 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: Acto
        |  "container": {
        |    "type": "DOCKER",
        |    "image": "$containerImage",
-       |    "network": "BRIDGE",
+       |    "network": "$network",
        |    "volumes": []
        |  },
-       |  "cpus": "$cpu",
-       |  "mem": "$memory",
+       |  "cpus": "${scale.cpu.value}",
+       |  "mem": "${scale.memory.value}",
        |  "uris": [],
-       |  "environmentVariables": [
-       |    {
-       |      "name": "VAMP_URL",
-       |      "value": "${WorkflowDriver.vampUrl}"
-       |    },
-       |    {
-       |      "name": "VAMP_KEY_VALUE_STORE_ROOT_PATH",
-       |      "value": "$rootPath"
-       |    }
-       |  ]
+       |  "environmentVariables": [ $vars ],
+       |  "command": "$defaultCommand"
        |}
   """.stripMargin
+  }
 }

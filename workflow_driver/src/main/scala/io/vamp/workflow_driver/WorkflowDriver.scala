@@ -49,6 +49,8 @@ trait WorkflowDriver {
 
   val defaultNetwork = config.string("workflow.network")
 
+  val defaultCommand = config.string("workflow.command")
+
   def info: Future[Map[_, _]]
 
   def request(replyTo: ActorRef, scheduledWorkflows: List[Workflow]): Unit

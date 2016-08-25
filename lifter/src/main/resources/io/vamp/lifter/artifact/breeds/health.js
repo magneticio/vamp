@@ -45,4 +45,6 @@ var process = function() {
   });
 };
 
+process();
+
 setInterval(process, period * 1000);
