@@ -6,15 +6,16 @@ import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver._
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.workflow.Workflow
 
 import scala.concurrent.Future
 
 trait KubernetesDeployment extends KubernetesArtifact {
   this: KubernetesContainerDriver with ActorLogging ⇒
 
-  private val deploymentLabel = "deployment"
+  private val deploymentServiceIdLabel = "deployment-service-id"
 
-  private val deploymentServiceLabel = "deployment-service"
+  private val workflowIdLabel = "workflow-id"
 
   private lazy val podUrl = s"$apiUrl/api/v1/namespaces/default/pods"
 
@@ -58,7 +59,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
             )
 
             if (scale.isDefined) {
-              RestClient.get[KubernetesApiResponse](pods(id, deploymentServiceLabel), apiHeaders).map { pods ⇒
+              RestClient.get[KubernetesApiResponse](pods(id, deploymentServiceIdLabel), apiHeaders).map { pods ⇒
                 val instances = pods.items.map { pod ⇒
                   ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
                 }
@@ -79,47 +80,13 @@ trait KubernetesDeployment extends KubernetesArtifact {
     val id = appId(deployment, service.breed)
     if (update) log.info(s"kubernetes update app: $id") else log.info(s"kubernetes create app: $id")
 
-    val privileged = service.arguments.find(_.privileged).exists(_.value.toBoolean)
-
-    val app = KubernetesApp(
-      name = id,
-      docker = docker(deployment, cluster, service),
-      replicas = service.scale.get.instances,
-      cpu = service.scale.get.cpu.value,
-      mem = Math.round(service.scale.get.memory.value).toInt,
-      privileged = privileged,
-      env = environment(deployment, cluster, service),
-      cmd = Nil,
-      args = Nil,
-      labels = labels(id, deploymentServiceLabel) ++ labels(deployment, cluster, service)
-    )
-
-    if (update) RestClient.put[Any](s"$deploymentUrl/$id", app.toString, apiHeaders) else RestClient.post[Any](deploymentUrl, app.toString, apiHeaders)
+    deploy(id, docker(deployment, cluster, service), service.scale.get, environment(deployment, cluster, service), labels(id, deploymentServiceIdLabel) ++ labels(deployment, cluster, service), update)
   }
 
-  protected def undeploy(deployment: Deployment, service: DeploymentService) = {
-
+  protected def undeploy(deployment: Deployment, service: DeploymentService): Future[Any] = {
     val id = appId(deployment, service.breed)
-
     log.info(s"kubernetes delete app: $id")
-
-    for {
-
-      deployment ← RestClient.delete(s"$deploymentUrl/$id", apiHeaders)
-
-      replicas ← RestClient.get[KubernetesApiResponse](replicas(id, deploymentServiceLabel), apiHeaders).flatMap { replicas ⇒
-        Future.sequence {
-          replicas.items.map(item ⇒ RestClient.delete(s"$replicaSetUrl/${item.metadata.name}", apiHeaders))
-        }
-      }
-
-      pods ← RestClient.get[KubernetesApiResponse](pods(id, deploymentServiceLabel), apiHeaders).flatMap { pods ⇒
-        Future.sequence {
-          pods.items.map(item ⇒ RestClient.delete(s"$podUrl/${item.metadata.name}", apiHeaders))
-        }
-      }
-
-    } yield deployment :: replicas :: pods :: Nil
+    undeploy(id, deploymentServiceIdLabel)
   }
 
   protected def retrieve(id: String): Future[Option[Any]] = {
@@ -131,66 +98,61 @@ trait KubernetesDeployment extends KubernetesArtifact {
     }
   }
 
-  protected def deploy(app: DockerApp, update: Boolean): Future[Any] = app.container match {
-    case Some(docker) ⇒
+  protected def retrieve(workflow: Workflow): Future[Option[Any]] = retrieve(appId(workflow))
 
-      val id = string2Id(app.id)
+  protected def deploy(workflow: Workflow, update: Boolean): Future[Any] = {
 
-      val docker = app.container.get
+    validateDeployable(workflow.breed.asInstanceOf[DefaultBreed].deployable)
 
-      val deployment = KubernetesApp(
-        name = id,
-        docker = docker,
-        replicas = app.instances,
-        cpu = app.cpu,
-        mem = app.memory,
-        privileged = docker.privileged,
-        env = app.environmentVariables,
-        cmd = app.command,
-        args = app.arguments,
-        labels = labels(id, deploymentLabel) ++ app.labels
-      )
+    val id = appId(workflow)
+    if (update) log.info(s"kubernetes update workflow: ${workflow.name}") else log.info(s"kubernetes create workflow: ${workflow.name}")
 
-      if (update) {
-        log.info(s"kubernetes update app: ${app.id} [$id]")
-        RestClient.put[Any](s"$deploymentUrl/$id", deployment.toString, apiHeaders)
-      } else {
-        log.info(s"kubernetes create app: ${app.id} [$id]")
-        RestClient.post[Any](s"$deploymentUrl", deployment.toString, apiHeaders)
-      }
+    val scale = workflow.scale.get.asInstanceOf[DefaultScale]
 
-    case None ⇒ Future.successful(None)
+    deploy(id, docker(workflow), scale, environment(workflow), labels(id, workflowIdLabel) ++ labels(workflow), update)
   }
 
-  protected def undeploy(id: String) = {
+  protected def undeploy(workflow: Workflow): Future[Any] = {
+    val id = appId(workflow)
+    log.info(s"kubernetes delete workflow: ${workflow.name}")
+    undeploy(id, workflowIdLabel)
+  }
 
-    val deploymentId = string2Id(id)
+  private def deploy(id: String, docker: Docker, scale: DefaultScale, environmentVariables: Map[String, String], labels: Map[String, String], update: Boolean): Future[Any] = {
 
-    retrieve(deploymentId).map {
+    val app = KubernetesApp(
+      name = id,
+      docker = docker,
+      replicas = scale.instances,
+      cpu = scale.cpu.value,
+      mem = Math.round(scale.memory.value).toInt,
+      privileged = docker.privileged,
+      env = environmentVariables,
+      cmd = Nil,
+      args = Nil,
+      labels = labels
+    )
 
-      case Some(_) ⇒
+    if (update) RestClient.put[Any](s"$deploymentUrl/$id", app.toString, apiHeaders) else RestClient.post[Any](deploymentUrl, app.toString, apiHeaders)
+  }
 
-        log.info(s"kubernetes delete app: $id [$deploymentId]")
+  private def undeploy(id: String, selector: String): Future[Any] = {
+    for {
 
-        for {
+      deployment ← RestClient.delete(s"$deploymentUrl/$id", apiHeaders)
 
-          deployment ← RestClient.delete(s"$deploymentUrl/$deploymentId", apiHeaders, logError = false)
+      replicas ← RestClient.get[KubernetesApiResponse](replicas(id, selector), apiHeaders).flatMap { replicas ⇒
+        Future.sequence {
+          replicas.items.map(item ⇒ RestClient.delete(s"$replicaSetUrl/${item.metadata.name}", apiHeaders))
+        }
+      }
 
-          replicas ← RestClient.get[KubernetesApiResponse](replicas(deploymentId, deploymentLabel), apiHeaders).flatMap { replicas ⇒
-            Future.sequence {
-              replicas.items.map(item ⇒ RestClient.delete(s"$replicaSetUrl/${item.metadata.name}", apiHeaders))
-            }
-          }
+      pods ← RestClient.get[KubernetesApiResponse](pods(id, selector), apiHeaders).flatMap { pods ⇒
+        Future.sequence {
+          pods.items.map(item ⇒ RestClient.delete(s"$podUrl/${item.metadata.name}", apiHeaders))
+        }
+      }
 
-          pods ← RestClient.get[KubernetesApiResponse](pods(deploymentId, deploymentLabel), apiHeaders).flatMap { pods ⇒
-            Future.sequence {
-              pods.items.map(item ⇒ RestClient.delete(s"$podUrl/${item.metadata.name}", apiHeaders))
-            }
-          }
-
-        } yield deployment :: replicas :: pods :: Nil
-
-      case _ ⇒
-    }
+    } yield deployment :: replicas :: pods :: Nil
   }
 }

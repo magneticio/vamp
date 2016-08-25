@@ -65,9 +65,9 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
 
-    //    case d: DeployDockerApp         ⇒ reply(deploy(d.app, d.update))
-    //    case u: UndeployDockerApp       ⇒ reply(undeploy(u.app))
-    //    case r: RetrieveDockerApp       ⇒ reply(retrieve(r.app))
+    case GetWorkflow(workflow)      ⇒ reply(retrieve(workflow))
+    case d: DeployWorkflow          ⇒ reply(deploy(d.workflow, d.update))
+    case u: UndeployWorkflow        ⇒ reply(undeploy(u.workflow))
 
     case ds: DaemonSet              ⇒ reply(daemonSet(ds))
 
