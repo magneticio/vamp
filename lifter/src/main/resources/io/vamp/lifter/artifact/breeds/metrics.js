@@ -18,10 +18,10 @@ var process = function() {
           });
 
           _.forOwn(gateway.routes, function (route, routeName) {
-            metrics.average({ ft: route.lookup_name }, 'Tt', window, function(total, rate, responseTime) {
-                api.event(['gateways:' + gateway.name, 'routes:' + routeName, 'metrics:rate'], rate);
-                api.event(['gateways:' + gateway.name, 'routes:' + routeName, 'metrics:responseTime'], responseTime);
-            });
+              metrics.average({ ft: route.lookup_name }, 'Tt', window, function(total, rate, responseTime) {
+                  api.event(['gateways:' + gateway.name, 'routes:' + routeName, 'metrics:rate'], rate);
+                  api.event(['gateways:' + gateway.name, 'routes:' + routeName, 'metrics:responseTime'], responseTime);
+              });
           });
       });
   });
