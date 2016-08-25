@@ -80,7 +80,7 @@ object Route {
   val noPath = GatewayPath()
 }
 
-sealed trait Route extends Artifact {
+sealed trait Route extends Artifact with Lookup {
 
   val kind = "route"
 
@@ -143,4 +143,27 @@ object PathRewrite {
 
 case class PathRewrite(name: String, path: String, condition: String) extends Rewrite {
   val definition = s"$path if $condition"
+}
+
+object GatewayLookup {
+
+  def name(artifact: Lookup, path: List[String] = Nil): String = path match {
+    case Nil ⇒ artifact.name
+    case _   ⇒ s"${artifact.name}//${path.mkString("/")}"
+  }
+
+  def lookup(artifact: Lookup, path: List[String] = Nil): String = path match {
+    case Nil ⇒ artifact.lookupName
+    case _   ⇒ artifact.lookup(expand(artifact, path))
+  }
+
+  private def expand(artifact: Lookup, path: List[String]): String = (path match {
+    case Nil ⇒ expand(artifact.name :: Nil)
+    case _   ⇒ expand(artifact.name :: Nil) ++ expand(path)
+  }).mkString("/")
+
+  private def expand(path: List[String]): List[String] = path match {
+    case some if some.size < 4 ⇒ expand(some :+ "*")
+    case _                     ⇒ path
+  }
 }

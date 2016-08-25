@@ -71,7 +71,7 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
             case _ :: _ :: s :: _ :: Nil if !full ⇒ s
             case _ :: _ :: _ :: Nil if !full      ⇒ GatewayPath(route.path.segments.tail).normalized
             case _                                ⇒ route.path.source
-          }) -> serializeRoute(full)(format)(route)
+          }) -> serializeRoute(full, () ⇒ { Option(GatewayLookup.lookup(gateway, route.path.segments)) })(format)(route)
         } toMap
       })
 
@@ -87,7 +87,7 @@ class GatewayStickySerializer extends CustomSerializer[Gateway.Sticky.Value](for
 
 trait RouteDecomposer extends ReferenceSerialization with ConditionDecomposer {
 
-  def serializeRoute(full: Boolean = true)(implicit format: Formats): PartialFunction[Any, JValue] = {
+  def serializeRoute(full: Boolean = true, lookup: () ⇒ Option[String] = () ⇒ None)(implicit format: Formats): PartialFunction[Any, JValue] = {
     case route: RouteReference ⇒ serializeReference(route)
     case route: DefaultRoute ⇒
       val list = new ArrayBuffer[JField]
@@ -97,6 +97,7 @@ trait RouteDecomposer extends ReferenceSerialization with ConditionDecomposer {
         list += JField("kind", JString(route.kind))
       }
 
+      list += JField(Lookup.entry, JString(lookup().getOrElse(route.lookupName)))
       list += JField("weight", if (route.weight.isDefined) JString(route.weight.get.normalized) else JNull)
       list += JField("balance", if (route.balance.isDefined) JString(route.balance.get) else JString(DefaultRoute.defaultBalance))
       list += JField("condition", if (route.condition.isDefined) serializeCondition(full = false)(format)(route.condition.get) else JNull)
