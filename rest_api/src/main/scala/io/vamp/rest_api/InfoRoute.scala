@@ -15,7 +15,7 @@ trait InfoRoute extends InfoController with ExecutionContextProvider {
     pathEndOrSingleSlash {
       get {
         parameterMultiMap { parameters ⇒
-          onSuccess(infoMessage(parameters.getOrElse("for", Nil).toSet)) { result ⇒
+          onSuccess(infoMessage(parameters.getOrElse("on", Nil).toSet)) { result ⇒
             respondWithStatus(OK) {
               complete(result)
             }

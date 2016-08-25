@@ -39,14 +39,14 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
 
   private val dataRetrievalTimeout = Config.timeout("vamp.info.timeout")
 
-  def infoMessage(`for`: Set[String]): Future[JvmInfoMessage] = {
+  def infoMessage(on: Set[String]): Future[JvmInfoMessage] = {
 
-    retrieve(actors(`for`), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout) map { result ⇒
+    retrieve(actors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout) map { result ⇒
       InfoMessage(infoMessage,
         Model.version,
         Model.uuid,
         Model.runningSince,
-        if (`for`.isEmpty || `for`.contains("jvm")) Option(jvmVitals()) else None,
+        if (on.isEmpty || on.contains("jvm")) Option(jvmVitals()) else None,
         result.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
         result.get(classOf[KeyValueStoreActor].asInstanceOf[Class[Actor]]),
         result.get(classOf[PulseActor].asInstanceOf[Class[Actor]]),
@@ -57,8 +57,8 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
     }
   }
 
-  private def actors(`for`: Set[String]): List[Class[Actor]] = {
-    val list = if (`for`.isEmpty) {
+  private def actors(on: Set[String]): List[Class[Actor]] = {
+    val list = if (on.isEmpty) {
       List(
         classOf[PersistenceActor],
         classOf[KeyValueStoreActor],
@@ -67,7 +67,7 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
         classOf[ContainerDriverActor],
         classOf[WorkflowDriverActor]
       )
-    } else `for`.map(_.toLowerCase).collect {
+    } else on.map(_.toLowerCase).collect {
       case "persistence"      ⇒ classOf[PersistenceActor]
       case "key_value"        ⇒ classOf[KeyValueStoreActor]
       case "pulse"            ⇒ classOf[PulseActor]
