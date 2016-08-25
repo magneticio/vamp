@@ -34,9 +34,9 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
          |          "ports": [${ds.docker.portMappings.map(pm ⇒ s"""{"containerPort": ${pm.containerPort}, "name": "p${pm.containerPort}"}""").mkString(", ")}],
          |          "command": [${ds.command.map(str ⇒ s""""$str"""").mkString(", ")}],
          |          "resources": {
-         |            "request": {
+         |            "requests": {
          |              "cpu": ${ds.cpu},
-         |              "mem": ${ds.mem}
+         |              "memory": ${ds.mem}
          |            }
          |          }
          |        }]
