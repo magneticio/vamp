@@ -38,7 +38,9 @@ private[config] class Config(config: TypesafeConfig, root: String) {
       val key = entry.getKey
 
       val value = environment(absolutePath(path, key)).map {
-        value ⇒ ConfigFactory.parseString(s"$key:$value").withFallback(config)
+        value ⇒ if (value.startsWith("[") && value.endsWith("]")) value else s""""$value""""
+      } map {
+        value ⇒ ConfigFactory.parseString(s"$key = $value").withFallback(config)
       } getOrElse cfg getAnyRef key
 
       key -> value
@@ -47,8 +49,8 @@ private[config] class Config(config: TypesafeConfig, root: String) {
   }
 
   private def read(path: String): TypesafeConfig = {
-    environment(absolutePath(path)).map { value ⇒
-      if (value.startsWith("[") && value.endsWith("]")) value else s""""$value""""
+    environment(absolutePath(path)).map {
+      value ⇒ if (value.startsWith("[") && value.endsWith("]")) value else s""""$value""""
     } map { value ⇒
       ConfigFactory.parseString(s"$path = $value").withFallback(config)
     } getOrElse config
