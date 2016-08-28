@@ -13,14 +13,14 @@ var process = function() {
   api.gateways(function (gateways) {
       _.forEach(gateways, function(gateway) {
           metrics.average({ ft: gateway.lookup_name }, 'Tt', window, function(total, rate, responseTime) {
-              api.event(['gateways:' + gateway.name, 'gateway', 'metrics:rate'], rate);
-              api.event(['gateways:' + gateway.name, 'gateway', 'metrics:responseTime'], responseTime);
+              api.event(['gateways:' + gateway.name, 'gateway', 'metrics:rate'], rate, 'metrics');
+              api.event(['gateways:' + gateway.name, 'gateway', 'metrics:responseTime'], responseTime, 'metrics');
           });
 
           _.forOwn(gateway.routes, function (route, routeName) {
               metrics.average({ ft: route.lookup_name }, 'Tt', window, function(total, rate, responseTime) {
-                  api.event(['gateways:' + gateway.name, 'routes:' + routeName, 'route', 'metrics:rate'], rate);
-                  api.event(['gateways:' + gateway.name, 'routes:' + routeName, 'route', 'metrics:responseTime'], responseTime);
+                  api.event(['gateways:' + gateway.name, 'routes:' + routeName, 'route', 'metrics:rate'], rate, 'metrics');
+                  api.event(['gateways:' + gateway.name, 'routes:' + routeName, 'route', 'metrics:responseTime'], responseTime, 'metrics');
               });
           });
       });
