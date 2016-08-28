@@ -14,7 +14,7 @@ import io.vamp.model.event._
 import io.vamp.model.validator.EventValidator
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.notification._
-import org.json4s.DefaultFormats
+import org.json4s.{ DefaultFormats, Extraction }
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
 
@@ -76,22 +76,22 @@ class PulseActor extends PulseStats with PulseEvent with PulseFailureNotifier wi
     case any                                     ⇒ unsupported(UnsupportedPulseRequest(any))
   }
 
-  private def info = es.health map {
-    case health ⇒ Map[String, Any]("elasticsearch" -> health)
-  }
+  private def info = es.health map { health ⇒ Map[String, Any]("elasticsearch" -> health) }
 
   private def publish(publishEventValue: Boolean)(event: Event) = {
     implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (indexName, typeName) = indexTypeName(event.`type`)
     log.debug(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
 
-    val eventToSend = (publishEventValue, event.value) match {
-      case (true, str: String) ⇒ event
-      case (true, any)         ⇒ event.copy(value = write(any)(DefaultFormats))
-      case (false, _)          ⇒ event.copy(value = "")
+    val attachment = (publishEventValue, event.value) match {
+      case (true, str: String) ⇒ Map(typeName -> str)
+      case (true, any)         ⇒ Map("value" -> write(any)(DefaultFormats), typeName -> any)
+      case (false, _)          ⇒ Map("value" -> "")
     }
 
-    es.index[ElasticsearchIndexResponse](indexName, typeName, eventToSend) map {
+    val data = Extraction.decompose(event) merge Extraction.decompose(attachment)
+
+    es.index[ElasticsearchIndexResponse](indexName, typeName, data) map {
       case response: ElasticsearchIndexResponse ⇒ response
       case other ⇒
         log.error(s"Unexpected index result: ${other.toString}.")

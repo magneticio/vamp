@@ -71,8 +71,8 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
         deployment.clusters.foreach(cluster ⇒ cluster.sla match {
           case None ⇒
           case Some(sla) ⇒
-            querySlaEvents(deployment, cluster, from, to) map {
-              case escalationEvents ⇒ escalationEvents.foreach {
+            querySlaEvents(deployment, cluster, from, to) map { escalationEvents ⇒
+              escalationEvents.foreach {
                 case Escalate(d, c, _) if d.name == deployment.name && c.name == cluster.name ⇒ escalation(deployment, cluster, sla, escalate = true)
                 case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name ⇒ escalation(deployment, cluster, sla, escalate = false)
                 case _ ⇒
@@ -89,16 +89,15 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
     implicit val timeout = PulseActor.timeout
     val eventQuery = EventQuery(SlaEvent.slaTags(deployment, cluster), Some(TimeRange(Some(from), Some(to), includeLower = false, includeUpper = true)))
 
-    allEvents(eventQuery) map {
-      case events ⇒
-        events.flatMap { event ⇒
-          if (Escalate.tags.forall(event.tags.contains))
-            Escalate(deployment, cluster, event.timestamp) :: Nil
-          else if (DeEscalate.tags.forall(event.tags.contains))
-            DeEscalate(deployment, cluster, event.timestamp) :: Nil
-          else
-            Nil
-        }
+    allEvents(eventQuery) map { events ⇒
+      events.flatMap { event ⇒
+        if (Escalate.tags.forall(event.tags.contains))
+          Escalate(deployment, cluster, event.timestamp) :: Nil
+        else if (DeEscalate.tags.forall(event.tags.contains))
+          DeEscalate(deployment, cluster, event.timestamp) :: Nil
+        else
+          Nil
+      }
     }
   }
 

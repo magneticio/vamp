@@ -80,17 +80,16 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
 
           Future.sequence(portMapping.map({ portName ⇒
             responseTime(deployment, cluster, portName, from, to)
-          })) map {
-            case optionalResponseTimes ⇒
-              val responseTimes = optionalResponseTimes.flatten
-              if (responseTimes.nonEmpty) {
-                val maxResponseTimes = responseTimes.max
-                log.debug(s"escalation max response time for ${deployment.name}/${cluster.name}: $maxResponseTimes.")
-                if (maxResponseTimes > sla.upper.toMillis)
-                  info(Escalate(deployment, cluster))
-                else if (maxResponseTimes < sla.lower.toMillis)
-                  info(DeEscalate(deployment, cluster))
-              }
+          })) map { optionalResponseTimes ⇒
+            val responseTimes = optionalResponseTimes.flatten
+            if (responseTimes.nonEmpty) {
+              val maxResponseTimes = responseTimes.max
+              log.debug(s"escalation max response time for ${deployment.name}/${cluster.name}: $maxResponseTimes.")
+              if (maxResponseTimes > sla.upper.toMillis)
+                info(Escalate(deployment, cluster))
+              else if (maxResponseTimes < sla.lower.toMillis)
+                info(DeEscalate(deployment, cluster))
+            }
           }
       }
     }
@@ -103,9 +102,7 @@ trait SlaPulse {
   implicit val timeout = PulseActor.timeout
 
   def eventExists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime): Future[Boolean] = {
-    eventCount(SlaEvent.slaTags(deployment, cluster), from, OffsetDateTime.now(), 1) map {
-      case count ⇒ count > 0
-    }
+    eventCount(SlaEvent.slaTags(deployment, cluster), from, OffsetDateTime.now(), 1) map { count ⇒ count > 0 }
   }
 
   def responseTime(deployment: Deployment, cluster: DeploymentCluster, portName: String, from: OffsetDateTime, to: OffsetDateTime): Future[Option[Double]] = {
@@ -113,7 +110,7 @@ trait SlaPulse {
 
     eventCount(tags, from, to, -1) flatMap {
       case count if count >= 0 ⇒
-        val eventQuery = EventQuery(tags, Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average)))
+        val eventQuery = EventQuery(tags, Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average, Option("metrics"))))
         actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
           case DoubleValueAggregationResult(value) ⇒ Some(value)
           case other                               ⇒ log.error(other.toString); None
