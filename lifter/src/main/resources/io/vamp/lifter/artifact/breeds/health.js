@@ -16,7 +16,7 @@ function health(lookupName, tags) {
     var range = {ST: {gte: errorCode}};
 
     metrics.count(term, range, window, function (total) {
-        api.event(tags, total > 0 ? 0 : 1);
+        api.event(tags, total > 0 ? 0 : 1, 'health');
     });
 }
 
@@ -26,10 +26,10 @@ var process = function() {
 
       _.forEach(gateways, function (gateway) {
 
-          health(gateway.lookup_name, ['gateways:' + gateway.name, 'gateway', 'health'], 'health');
+          health(gateway.lookup_name, ['gateways:' + gateway.name, 'gateway', 'health']);
 
           _.forOwn(gateway.routes, function (route, routeName) {
-              health(route.lookup_name, ['gateways:' + gateway.name, 'routes:' + routeName, 'route', 'health'], 'health');
+              health(route.lookup_name, ['gateways:' + gateway.name, 'routes:' + routeName, 'route', 'health']);
           });
       });
 
@@ -40,7 +40,7 @@ var process = function() {
                       _.forOwn(cluster.gateways, function (gateway, gatewayName) {
                           _.forOwn(gateway.routes, function (route, routeName) {
                               if (routeName === service.breed.name)
-                                  health(route.lookup_name, ['deployments:' + deployment.name, 'clusters:' + clusterName, 'services:' + service.breed.name, 'service', 'health'], 'health');
+                                  health(route.lookup_name, ['deployments:' + deployment.name, 'clusters:' + clusterName, 'services:' + service.breed.name, 'service', 'health']);
                           });
                       });
                   });
