@@ -29,7 +29,7 @@ object ElasticsearchClient {
 
   case class ElasticsearchAggregations(aggregation: ElasticsearchAggregationValue)
 
-  case class ElasticsearchAggregationValue(value: Double)
+  case class ElasticsearchAggregationValue(value: Double = 0)
 
 }
 
