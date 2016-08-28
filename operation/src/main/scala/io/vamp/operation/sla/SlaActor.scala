@@ -106,16 +106,24 @@ trait SlaPulse {
   }
 
   def responseTime(deployment: Deployment, cluster: DeploymentCluster, portName: String, from: OffsetDateTime, to: OffsetDateTime): Future[Option[Double]] = {
-    val tags = Set(s"gateways:${deployment.name}_${cluster.name}_$portName", "metrics:responseTime")
 
-    eventCount(tags, from, to, -1) flatMap {
-      case count if count >= 0 ⇒
-        val eventQuery = EventQuery(tags, Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average, Option("metrics"))))
-        actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
-          case DoubleValueAggregationResult(value) ⇒ Some(value)
-          case other                               ⇒ log.error(other.toString); None
+    cluster.gateways.find(gateway ⇒ GatewayPath(gateway.name).segments.last == portName) match {
+
+      case Some(gateway) ⇒
+
+        val tags = Set(s"gateways:${gateway.name}", "metrics:responseTime")
+
+        eventCount(tags, from, to, -1) flatMap {
+          case count if count >= 0 ⇒
+            val eventQuery = EventQuery(tags, Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average, Option("metrics"))))
+            actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
+              case DoubleValueAggregationResult(value) ⇒ Some(value)
+              case other                               ⇒ log.error(other.toString); None
+            }
+          case _ ⇒ Future.successful(None)
         }
-      case _ ⇒ Future.successful(None)
+
+      case None ⇒ Future.successful(None)
     }
   }
 

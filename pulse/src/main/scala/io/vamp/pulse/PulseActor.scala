@@ -14,9 +14,9 @@ import io.vamp.model.event._
 import io.vamp.model.validator.EventValidator
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.notification._
-import org.json4s.{ DefaultFormats, Extraction }
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
+import org.json4s.{ DefaultFormats, Extraction }
 
 import scala.concurrent.Future
 
@@ -85,7 +85,7 @@ class PulseActor extends PulseStats with PulseEvent with PulseFailureNotifier wi
 
     val attachment = (publishEventValue, event.value) match {
       case (true, str: String) ⇒ Map(typeName -> str)
-      case (true, any)         ⇒ Map("value" -> write(any)(DefaultFormats), typeName -> any)
+      case (true, any)         ⇒ Map("value" -> write(any)(DefaultFormats), typeName -> (if (typeName == Event.defaultType) "" else any))
       case (false, _)          ⇒ Map("value" -> "")
     }
 
@@ -178,11 +178,9 @@ class PulseActor extends PulseStats with PulseEvent with PulseFailureNotifier wi
       case _                  ⇒ aggregator.toString
     }
 
-    val aggregationField = List("value", field.getOrElse("")).filter(_.nonEmpty).mkString(".")
-
     constructQuery(eventQuery) +
       ("size" -> 0) +
-      ("aggs" -> Map("aggregation" -> Map(s"$aggregation" -> Map("field" -> aggregationField))))
+      ("aggs" -> Map("aggregation" -> Map(s"$aggregation" -> Map("field" -> field.getOrElse("value")))))
   }
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = {
@@ -195,8 +193,8 @@ trait PulseEvent {
 
   import PulseActor._
 
-  def indexTypeName(schema: String = "event"): (String, String) = {
-    val format = indexTimeFormat.getOrElse(schema, indexTimeFormat.getOrElse("event", "YYYY-MM-dd"))
+  def indexTypeName(schema: String = Event.defaultType): (String, String) = {
+    val format = indexTimeFormat.getOrElse(schema, indexTimeFormat.getOrElse(Event.defaultType, "YYYY-MM-dd"))
     val time = OffsetDateTime.now().format(DateTimeFormatter.ofPattern(format))
     s"$indexName-$schema-$time" -> schema
   }

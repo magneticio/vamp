@@ -29,7 +29,7 @@ object EventReader extends YamlReader[Event] with EventValidator {
       }
     }
 
-    val `type` = <<?[String]("type").getOrElse("event")
+    val `type` = <<?[String]("type").getOrElse(Event.defaultType)
 
     Event(tags, value, timestamp, `type`)
   }
