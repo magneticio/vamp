@@ -1,0 +1,9 @@
+name: nomadic-frostbite
+
+clusters:
+  supersonic:
+    gateways:
+      routes:
+        sava:
+          condition: ""
+    breed: sava

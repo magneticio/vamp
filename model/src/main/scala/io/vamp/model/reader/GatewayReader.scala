@@ -140,7 +140,8 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
     }
 
     <<?[Any]("condition") collect {
-      case condition: String ⇒ >>("condition", YamlSourceReader(Map("condition" -> condition)))
+      case condition: String ⇒ if (!condition.isEmpty) >>("condition", YamlSourceReader(Map("condition" -> condition))) else >>("condition", None)
+      case yaml: YamlSourceReader if yaml.find[String]("condition").exists(_.isEmpty) ⇒ >>("condition", None)
     }
 
     list("rewrites")

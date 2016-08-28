@@ -727,4 +727,18 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil, Map())), List(Gateway("", Port("web", None, None, 0, Port.Type.Http), None, None, List("route"), Nil)), None, Map())))
     )
   }
+
+  it should "parse an empty condition as no condition" in {
+    BlueprintReader.read(res("blueprint/blueprint83.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava"), Nil, None, Nil)), List(Gateway("", Port("", None, None), None, None, Nil, List(DefaultRoute("", "sava", None, None, None, Nil, None)))), None)))
+    )
+  }
+
+  it should "parse an expanded empty condition as no condition" in {
+    BlueprintReader.read(res("blueprint/blueprint84.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava"), Nil, None, Nil)), List(Gateway("", Port("", None, None), None, None, Nil, List(DefaultRoute("", "sava", None, None, None, Nil, None)))), None)))
+    )
+  }
 }
