@@ -1,0 +1,3 @@
+name    : vga
+breed   : vga
+schedule: daemon
