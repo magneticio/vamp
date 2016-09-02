@@ -17,6 +17,10 @@ case class DeploymentServiceState(name: String, state: DeploymentService.State) 
   val kind = "deployment-service-state"
 }
 
+case class DeploymentServiceScale(name: String, scale: DefaultScale) extends Artifact {
+  val kind = "deployment-service-scale"
+}
+
 case class DeploymentServiceInstances(name: String, instances: List[DeploymentInstance]) extends Artifact {
   val kind = "deployment-service-instances"
 }

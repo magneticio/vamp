@@ -112,6 +112,7 @@ trait TypeOfArtifact {
     case t if classOf[InnerGateway].isAssignableFrom(t) ⇒ "inner-gateway"
     // deployment persistence
     case t if classOf[DeploymentServiceState].isAssignableFrom(t) ⇒ "deployment-service-states"
+    case t if classOf[DeploymentServiceScale].isAssignableFrom(t) ⇒ "deployment-service-scales"
     case t if classOf[DeploymentServiceInstances].isAssignableFrom(t) ⇒ "deployment-service-instances"
     case t if classOf[DeploymentServiceEnvironmentVariables].isAssignableFrom(t) ⇒ "deployment-service-environment-variables"
     // workflow persistence

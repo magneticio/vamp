@@ -130,13 +130,16 @@ trait PersistenceMultiplexer {
                   state ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceState]).map {
                     _.getOrElse(DeploymentServiceState("", service.state)).asInstanceOf[DeploymentServiceState].state
                   }
+                  scale ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceScale]).map {
+                    _.orElse(service.scale.map(DeploymentServiceScale("", _))).asInstanceOf[Option[DeploymentServiceScale]].map(_.scale)
+                  }
                   instances ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceInstances]).map {
                     _.getOrElse(DeploymentServiceInstances("", service.instances)).asInstanceOf[DeploymentServiceInstances].instances
                   }
                   environmentVariables ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceEnvironmentVariables]).map {
                     _.getOrElse(DeploymentServiceEnvironmentVariables("", service.environmentVariables)).asInstanceOf[DeploymentServiceEnvironmentVariables].environmentVariables
                   }
-                } yield service.copy(state = state, instances = instances, environmentVariables = environmentVariables)
+                } yield service.copy(state = state, scale = scale, instances = instances, environmentVariables = environmentVariables)
               }
             }
           } yield {

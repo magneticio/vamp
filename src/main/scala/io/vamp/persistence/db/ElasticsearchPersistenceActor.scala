@@ -133,6 +133,9 @@ class ElasticsearchPersistenceActor extends PersistenceActor with TypeOfArtifact
     "deployment-service-states" -> new NoNameValidationYamlReader[DeploymentServiceState] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceState(name, DeploymentServiceStateReader.read(<<![YamlSourceReader]("state")))
     },
+    "deployment-service-scales" -> new NoNameValidationYamlReader[DeploymentServiceScale] {
+      override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceScale(name, ScaleReader.read(<<![YamlSourceReader]("scale")).asInstanceOf[DefaultScale])
+    },
     "deployment-service-instances" -> new NoNameValidationYamlReader[DeploymentServiceInstances] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceInstances(name, DeploymentReader.parseInstances)
     },
