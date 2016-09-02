@@ -46,10 +46,11 @@ class EventReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     })
   }
 
-  it should "fail on missing value" in {
-    expectedError[MissingPathValueError]({
-      EventReader.read(res("event/event6.yml"))
-    })
+  it should "parse no value" in {
+    EventReader.read(res("event/event6.yml")) should have(
+      'tags(Set("server")),
+      'value(None)
+    )
   }
 
   "EventQueryReader" should "read the query" in {
