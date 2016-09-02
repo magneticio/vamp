@@ -4,9 +4,8 @@ import java.time.OffsetDateTime
 
 import io.vamp.model.event.{ Aggregator, Event, EventQuery, TimeRange }
 import io.vamp.model.notification.{ EventTimestampError, UnsupportedAggregatorError }
+import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.validator.EventValidator
-
-import YamlSourceReader._
 
 object EventReader extends YamlReader[Event] with EventValidator {
 
@@ -17,9 +16,10 @@ object EventReader extends YamlReader[Event] with EventValidator {
 
   override protected def parse(implicit source: YamlSourceReader): Event = {
     val tags = <<![List[String]]("tags").toSet
-    val value = <<![AnyRef]("value") match {
-      case yaml: YamlSourceReader ⇒ yaml.flatten()
-      case any                    ⇒ any
+    val value = <<?[AnyRef]("value") match {
+      case None                         ⇒ None
+      case Some(yaml: YamlSourceReader) ⇒ yaml.flatten()
+      case Some(any)                    ⇒ any
     }
 
     val timestamp = <<?[String]("timestamp") match {
