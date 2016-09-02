@@ -14,7 +14,7 @@ import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
-import io.vamp.persistence.db._
+import io.vamp.persistence.db.{ PersistenceActor, _ }
 import io.vamp.persistence.operation.DeploymentPersistence._
 import io.vamp.persistence.operation._
 
@@ -46,7 +46,16 @@ object DeploymentActor {
 
 }
 
-class DeploymentActor extends CommonSupportForActors with BlueprintSupport with DeploymentValidator with DeploymentMerger with DeploymentSlicer with DeploymentUpdate with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
+class DeploymentActor
+    extends CommonSupportForActors
+    with BlueprintSupport
+    with DeploymentValidator
+    with DeploymentMerger
+    with DeploymentSlicer
+    with DeploymentUpdate
+    with ArtifactSupport
+    with ArtifactPaginationSupport
+    with OperationNotificationProvider {
 
   import DeploymentActor._
 
@@ -290,18 +299,21 @@ trait DeploymentGatewayOperation {
   }
 
   def resetServiceArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.State = Deploy) = {
-    actorFor[PersistenceActor] ! PersistenceActor.Update(DeploymentServiceState(serviceArtifactName(deployment, cluster, service), state))
 
     val name = serviceArtifactName(deployment, cluster, service)
+    val persistenceActor = actorFor[PersistenceActor]
 
-    actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[DeploymentServiceInstances])
-    actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[DeploymentServiceEnvironmentVariables])
+    persistenceActor ! PersistenceActor.Update(DeploymentServiceState(name, state))
 
-    actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[GatewayPort])
-    actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[GatewayServiceAddress])
-    actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[GatewayDeploymentStatus])
-    actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[RouteTargets])
-    actorFor[PersistenceActor] ! PersistenceActor.Delete(name, classOf[InnerGateway])
+    persistenceActor ! PersistenceActor.Delete(name, classOf[DeploymentServiceScale])
+    persistenceActor ! PersistenceActor.Delete(name, classOf[DeploymentServiceInstances])
+    persistenceActor ! PersistenceActor.Delete(name, classOf[DeploymentServiceEnvironmentVariables])
+
+    persistenceActor ! PersistenceActor.Delete(name, classOf[GatewayPort])
+    persistenceActor ! PersistenceActor.Delete(name, classOf[GatewayServiceAddress])
+    persistenceActor ! PersistenceActor.Delete(name, classOf[GatewayDeploymentStatus])
+    persistenceActor ! PersistenceActor.Delete(name, classOf[RouteTargets])
+    persistenceActor ! PersistenceActor.Delete(name, classOf[InnerGateway])
   }
 
   def resetInnerRouteArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
@@ -613,7 +625,7 @@ trait DeploymentSlicer extends DeploymentOperation {
 }
 
 trait DeploymentUpdate {
-  this: DeploymentValidator with ActorSystemProvider ⇒
+  this: DeploymentValidator with ActorSystemProvider with ExecutionContextProvider ⇒
 
   private implicit val timeout = PersistenceActor.timeout
 
@@ -623,8 +635,13 @@ trait DeploymentUpdate {
   }
 
   def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) = {
-    lazy val services = cluster.services.map(s ⇒ if (s.breed.name == service.breed.name) service.copy(scale = Some(scale), state = Deploy) else s)
-    val clusters = deployment.clusters.map(c ⇒ if (c.name == cluster.name) c.copy(services = services) else c)
-    actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
+    cluster.services.find(_.breed.name == service.breed.name) match {
+      case Some(_) ⇒
+        val name = serviceArtifactName(deployment, cluster, service)
+        (actorFor[PersistenceActor] ? PersistenceActor.Update(DeploymentServiceScale(name, scale))).flatMap {
+          _ ⇒ actorFor[PersistenceActor] ? PersistenceActor.Update(DeploymentServiceState(name, Deploy))
+        }
+      case _ ⇒ Future.successful(None)
+    }
   }
 }
