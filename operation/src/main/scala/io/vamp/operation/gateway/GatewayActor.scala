@@ -86,7 +86,14 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
   private def delete(name: String, validateOnly: Boolean, force: Boolean): Future[Any] = {
 
-    def default = if (validateOnly) Future.successful(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, classOf[Gateway])
+    def default = {
+      if (validateOnly) Future.successful(None)
+      else {
+        (actorFor[PersistenceActor] ? PersistenceActor.Delete(name, classOf[Gateway])).flatMap {
+          _ ⇒ actorFor[PersistenceActor] ? PersistenceActor.Delete(name, classOf[InnerGateway])
+        }
+      }
+    }
 
     if (Gateway.inner(name) && !force) deploymentExists(name) flatMap {
       case true  ⇒ Future.failed(reportException(InnerGatewayRemoveError(name)))
@@ -108,7 +115,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
   private def deploymentExists(name: String): Future[Boolean] = {
     checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(GatewayPath(name).segments.head, classOf[Deployment])) map {
-      case result ⇒ result.isDefined
+      result ⇒ result.isDefined
     }
   }
 
@@ -165,7 +172,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
   private def persistFuture(source: Option[String], create: Boolean, promote: Boolean): Future[Gateway] ⇒ Future[Any] = { future ⇒
     future flatMap {
-      case gateway ⇒ persist(source, create, promote)(gateway)
+      gateway ⇒ persist(source, create, promote)(gateway)
     }
   }
 
@@ -183,7 +190,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
       }
 
       artifacts.map {
-        case artifact ⇒ if (create) PersistenceActor.Create(artifact, source) else PersistenceActor.Update(artifact, source)
+        artifact ⇒ if (create) PersistenceActor.Create(artifact, source) else PersistenceActor.Update(artifact, source)
       }
     }
 

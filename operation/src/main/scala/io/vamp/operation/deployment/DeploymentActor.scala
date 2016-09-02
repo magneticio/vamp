@@ -587,15 +587,23 @@ trait DeploymentSlicer extends DeploymentOperation {
         Future.sequence {
           deleteRouting.flatMap { cluster ⇒
             stable.clusters.find(_.name == cluster.name) match {
-              case Some(c) ⇒ c.services.flatMap(_.breed.ports).map(_.name).distinct.map { portName ⇒
-                actorFor[GatewayActor] ? GatewayActor.Delete(GatewayPath(deployment.name :: cluster.name :: portName :: Nil).normalized, validateOnly = validateOnly, force = true)
-              }
+              case Some(c) ⇒
+                c.services.flatMap(_.breed.ports).map(_.name).distinct.map { portName ⇒
+                  actorFor[GatewayActor] ? GatewayActor.Delete(GatewayPath(deployment.name :: cluster.name :: portName :: Nil).normalized, validateOnly = validateOnly, force = true)
+                }
               case None ⇒ List.empty[Future[_]]
             }
           } ++ updateRouting.flatMap { cluster ⇒
             stable.clusters.find(_.name == cluster.name) match {
-              case Some(_) ⇒ cluster.gateways.map(updateRoutePaths(stable, cluster, _)).map { routing ⇒ actorFor[GatewayActor] ? GatewayActor.Update(routing, None, validateOnly = validateOnly, promote = true, force = true) }
-              case None    ⇒ List.empty[Future[_]]
+              case Some(_) ⇒
+                cluster.gateways.map(updateRoutePaths(stable, cluster, _)).map {
+                  gateway ⇒
+                    if (gateway.routes.isEmpty)
+                      actorFor[GatewayActor] ? GatewayActor.Delete(gateway.name, validateOnly = validateOnly, force = true)
+                    else
+                      actorFor[GatewayActor] ? GatewayActor.Update(gateway, None, validateOnly = validateOnly, promote = true, force = true)
+                }
+              case None ⇒ List.empty[Future[_]]
             }
           }
         } map { _ ⇒ deployment }
