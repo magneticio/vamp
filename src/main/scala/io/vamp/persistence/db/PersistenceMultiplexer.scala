@@ -113,7 +113,7 @@ trait PersistenceMultiplexer {
         deployment.clusters.map { cluster ⇒
           for {
             routing ← Future.sequence {
-              cluster.gateways.map { gateway ⇒
+              cluster.gateways.filter(_.routes.nonEmpty).map { gateway ⇒
                 val name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port)
                 get(name, classOf[InnerGateway]).flatMap {
                   case Some(InnerGateway(g)) ⇒ combine(g).map(_.getOrElse(gateway))
