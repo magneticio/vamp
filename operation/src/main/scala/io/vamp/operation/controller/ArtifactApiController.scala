@@ -67,7 +67,7 @@ trait SingleArtifactApiController {
     case (t, r) if t == classOf[Gateway] ⇒
 
       expandGateway(r.read(source).asInstanceOf[Gateway]) flatMap { gateway ⇒
-        if (name != gateway.name) throwException(InconsistentArtifactName(name, gateway))
+        if (name != gateway.name) throwException(InconsistentArtifactName(name, gateway.name))
         actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly, promote = true)
       }
 
@@ -141,7 +141,7 @@ trait SingleArtifactApiController {
     reader.read(source) match {
       case artifact ⇒
         if (name != artifact.name)
-          throwException(InconsistentArtifactName(name, artifact))
+          throwException(InconsistentArtifactName(name, artifact.name))
 
         if (validateOnly) Future(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Update(artifact, Some(source))
     }

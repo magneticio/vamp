@@ -9,8 +9,8 @@ NotAnonymousError                      : "Expected an anonimous artifact, not on
 UnexpectedElement                      : "Unexpected in DSL: {message}"
 IllegalName                            : "Illegal name or reference - white space characters, '/', '[' and ']' are not allowed: {name}"
 IllegalStrictName                      : "Illegal name - white space characters, '.', '/', '[' and ']' are not allowed: {name}"
-InconsistentArtifactName               : "Inconsistent name: given '{given}' but found '{artifact.name}'."
-InconsistentArtifactKind               : "Inconsistent kind: given '{given}' but found '{artifact.kind}'."
+InconsistentArtifactName               : "Inconsistent name: given '{given}' but found '{found}'."
+InconsistentArtifactKind               : "Inconsistent kind: given '{given}' but found '{found}'."
 
 # Breed Reader
 

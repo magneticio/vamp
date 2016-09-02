@@ -165,7 +165,7 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
 
   protected def consistent(any: T)(implicit source: YamlSourceReader): T = {
     (any, <<?[String](Artifact.kind)) match {
-      case (artifact: Artifact, Some(kind)) if kind != artifact.kind ⇒ throwException(InconsistentArtifactKind(kind, artifact))
+      case (artifact: Artifact, Some(kind)) if kind != artifact.kind ⇒ throwException(InconsistentArtifactKind(kind, artifact.kind))
       case _ ⇒
     }
     any
