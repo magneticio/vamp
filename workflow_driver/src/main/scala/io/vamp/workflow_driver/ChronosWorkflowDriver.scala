@@ -16,9 +16,11 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: Acto
 
   implicit def actorRefFactory: ActorRefFactory = actorSystem
 
+  private val restClient = new RestClient
+
   override protected def supportedDeployableTypes = DockerDeployable :: Nil
 
-  override def info: Future[Map[_, _]] = RestClient.get[Any](s"$url/scheduler/jobs").map {
+  override def info: Future[Map[_, _]] = restClient.get[Any](s"$url/scheduler/jobs").map {
     _ ⇒ Map("chronos" -> Map("url" -> url))
   }
 
@@ -46,7 +48,7 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: Acto
         network = workflow.network.getOrElse(Docker.network)
       )
 
-      RestClient.post[Any](s"$url/scheduler/iso8601", jobRequest)
+      restClient.post[Any](s"$url/scheduler/iso8601", jobRequest)
   }
 
   override def unschedule(): PartialFunction[Workflow, Future[Any]] = {
@@ -54,13 +56,13 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: Acto
       all() flatMap {
         list ⇒
           list.find(_.name == name(workflow)) match {
-            case Some(_) ⇒ RestClient.delete(s"$url/scheduler/job/${name(workflow)}")
+            case Some(_) ⇒ restClient.delete(s"$url/scheduler/job/${name(workflow)}")
             case _       ⇒ Future.successful(false)
           }
       }
   }
 
-  private def all(): Future[List[WorkflowInstance]] = RestClient.get[Any](s"$url/scheduler/jobs") map {
+  private def all(): Future[List[WorkflowInstance]] = restClient.get[Any](s"$url/scheduler/jobs") map {
     case list: List[_] ⇒ list.map(_.asInstanceOf[Map[String, String]].getOrElse("name", "")).filter(_.nonEmpty).map(WorkflowInstance)
     case _             ⇒ Nil
   }

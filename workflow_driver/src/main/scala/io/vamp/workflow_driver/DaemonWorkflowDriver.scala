@@ -3,7 +3,6 @@ package io.vamp.workflow_driver
 import akka.actor.{ ActorRef, ActorRefFactory }
 import akka.pattern.ask
 import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
-import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.container_driver.ContainerDriverActor.{ DeployWorkflow, GetWorkflow, UndeployWorkflow }
 import io.vamp.model.workflow.{ DaemonSchedule, Workflow }
 import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
@@ -11,8 +10,6 @@ import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 import scala.concurrent.Future
 
 abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: ActorRefFactory) extends WorkflowDriver with ActorRefFactoryExecutionContextProvider {
-
-  private implicit val timeout = ContainerDriverActor.timeout
 
   protected def driverActor: ActorRef
 

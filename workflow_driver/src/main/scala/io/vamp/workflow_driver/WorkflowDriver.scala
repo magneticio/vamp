@@ -3,7 +3,7 @@ package io.vamp.workflow_driver
 import akka.actor.{ ActorRef, ActorSystem }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.config.Config
-import io.vamp.container_driver.DeployableType
+import io.vamp.container_driver.{ ContainerDriverActor, DeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.workflow.Workflow
@@ -33,6 +33,8 @@ trait WorkflowDriver {
   import WorkflowDriver._
 
   implicit def actorSystem: ActorSystem
+
+  implicit val timeout = ContainerDriverActor.timeout
 
   val defaultDeployable = Deployable(config.string("workflow.deployable.type"), config.string("workflow.deployable.definition"))
 

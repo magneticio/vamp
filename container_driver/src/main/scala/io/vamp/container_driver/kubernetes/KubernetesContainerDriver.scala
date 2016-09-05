@@ -1,7 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
 import io.vamp.common.crypto.Hash
-import io.vamp.common.http.RestClient
 import io.vamp.container_driver.ContainerDriver
 import io.vamp.model.artifact._
 import io.vamp.model.workflow.Workflow
@@ -32,7 +31,7 @@ trait KubernetesContainerDriver extends ContainerDriver {
   }
 
   protected def retrieve(url: String, name: String, exists: () ⇒ Future[Any], notExists: () ⇒ Future[Any]): Future[Any] = {
-    RestClient.get[KubernetesItem](s"$url/$name", apiHeaders, logError = false).recover {
+    restClient.get[KubernetesItem](s"$url/$name", apiHeaders, logError = false).recover {
       case _ ⇒ notExists()
     } map {
       _ ⇒ exists()

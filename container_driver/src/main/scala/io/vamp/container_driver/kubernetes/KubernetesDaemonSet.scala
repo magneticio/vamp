@@ -1,7 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorLogging
-import io.vamp.common.http.RestClient
 
 import scala.concurrent.Future
 
@@ -53,7 +52,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
       },
       () ⇒ {
         log.info(s"Creating daemon set: ${ds.name}")
-        RestClient.post[Any](url, request, apiHeaders)
+        restClient.post[Any](url, request, apiHeaders)
       }
     )
   }

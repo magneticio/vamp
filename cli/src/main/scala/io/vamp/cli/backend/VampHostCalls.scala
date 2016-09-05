@@ -2,9 +2,11 @@ package io.vamp.cli.backend
 
 import java.util
 
+import akka.actor.ActorSystem
+import akka.http.scaladsl.model.HttpMethods
+import akka.util.Timeout
 import io.vamp.cli.commandline.CommandLineBasics
 import io.vamp.cli.commands.IoUtils
-import io.vamp.common.http.RestClient.Method
 import io.vamp.common.http.{ RestApiContentTypes, RestApiMarshaller, RestClient, RestClientException }
 import io.vamp.model.artifact._
 import io.vamp.model.reader._
@@ -14,16 +16,16 @@ import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.nodes.Tag
 
 import scala.collection.JavaConverters._
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
-import scala.util.{ Failure, Success }
-
 import scala.language.postfixOps
+import scala.util.{ Failure, Success }
 
 object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiContentTypes with CommandLineBasics with IoUtils {
 
-  val timeout = 30 seconds
+  val system = ActorSystem()
+
+  val timeout = Timeout(30 seconds)
 
   def getDeploymentAsBlueprint(deploymentId: String)(implicit vampHost: String): Option[Blueprint] =
     sendAndWaitYaml(s"GET $vampHost/api/v1/deployments/$deploymentId?as_blueprint=true").map(BlueprintReader.read(_))
@@ -292,21 +294,26 @@ object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiCont
 trait RestSupport {
   this: CommandLineBasics ⇒
 
-  def timeout: Duration
+  implicit def timeout: Timeout
 
-  def sendAndWaitYaml(request: String, body: Option[String] = None)(implicit m: Manifest[String]): Option[String] =
+  implicit def system: ActorSystem
+
+  def sendAndWaitYaml(request: String, body: Option[String] = None)(implicit m: Manifest[String]): Option[String] = {
     sendAndWait(request, body, List("Accept" -> "application/x-yaml", "Content-Type" -> "application/x-yaml", RestClient.acceptEncodingIdentity))
+  }
 
   private def sendAndWait(request: String, body: AnyRef, headers: List[(String, String)])(implicit m: Manifest[String]): Option[String] = {
+    import HttpMethods._
+
     try {
       val upper = request.toUpperCase
-      val method = Method.values.find(method ⇒ upper.startsWith(s"${method.toString} ")).getOrElse(Method.GET)
-      val url = if (upper.startsWith(s"${method.toString} ")) request.substring(s"${method.toString} ".length) else request
+      val method = List(GET, POST, PUT, DELETE).find(method ⇒ upper.startsWith(s"${method.toString} ")).getOrElse(GET)
+      val url = if (upper.startsWith(s"${method.value} ")) request.substring(s"${method.toString} ".length) else request
 
-      val futureResult: Future[String] = RestClient.http[String](method, url, body, headers)
+      val futureResult: Future[String] = new RestClient().http[String](method, url, body, headers)
 
       // Block until response ready (nothing else to do anyway)
-      Await.result(futureResult, timeout)
+      Await.result(futureResult, timeout.duration)
       futureResult.value.get match {
         case Success(result) ⇒ Some(result)
         case Failure(error)  ⇒ terminateWithError(prettyError(error))

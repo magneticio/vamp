@@ -76,9 +76,9 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     }
 
     for {
-      slaves ← RestClient.get[Any](s"$mesosUrl/master/slaves")
-      frameworks ← RestClient.get[Any](s"$mesosUrl/master/frameworks")
-      marathon ← RestClient.get[Any](s"$marathonUrl/v2/info")
+      slaves ← restClient.get[Any](s"$mesosUrl/master/slaves")
+      frameworks ← restClient.get[Any](s"$mesosUrl/master/frameworks")
+      marathon ← restClient.get[Any](s"$marathonUrl/v2/info")
     } yield {
 
       val s: Any = slaves match {
@@ -98,7 +98,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
 
     val replyTo = sender()
 
-    RestClient.get[AppsResponse](s"$marathonUrl/v2/apps?embed=apps.tasks").map { apps ⇒
+    restClient.get[AppsResponse](s"$marathonUrl/v2/apps?embed=apps.tasks").map { apps ⇒
 
       val deployed = apps.apps.map(app ⇒ app.id -> app).toMap
 
@@ -165,15 +165,15 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
   }
 
   private def sendRequest(update: Boolean, id: String, payload: JValue) = update match {
-    case true ⇒ RestClient.get[Any](s"$marathonUrl/v2/apps/$id").flatMap { response ⇒
+    case true ⇒ restClient.get[Any](s"$marathonUrl/v2/apps/$id").flatMap { response ⇒
       val changed = Extraction.decompose(response).children.headOption match {
         case Some(app) ⇒ app.diff(payload).changed
         case None      ⇒ payload
       }
-      if (changed != JNothing) RestClient.put[Any](s"$marathonUrl/v2/apps/$id", changed) else Future.successful(false)
+      if (changed != JNothing) restClient.put[Any](s"$marathonUrl/v2/apps/$id", changed) else Future.successful(false)
     }
 
-    case false ⇒ RestClient.post[Any](s"$marathonUrl/v2/apps", payload)
+    case false ⇒ restClient.post[Any](s"$marathonUrl/v2/apps", payload)
   }
 
   private def container(workflow: Workflow): Option[Container] = {
@@ -211,18 +211,18 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
   private def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
-    RestClient.delete(s"$marathonUrl/v2/apps/$id")
+    restClient.delete(s"$marathonUrl/v2/apps/$id")
   }
 
   private def undeploy(workflow: Workflow) = {
     val id = appId(workflow)
     log.info(s"marathon delete workflow: ${workflow.name}")
-    RestClient.delete(s"$marathonUrl/v2/apps/$id")
+    restClient.delete(s"$marathonUrl/v2/apps/$id")
   }
 
   private def retrieve(workflow: Workflow): Future[Option[App]] = {
     val id = appId(workflow)
-    RestClient.get[AppResponse](s"$marathonUrl/v2/apps/$id", RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
+    restClient.get[AppResponse](s"$marathonUrl/v2/apps/$id", RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
       case AppResponse(response) ⇒ Option(response)
       case _                     ⇒ None
     }

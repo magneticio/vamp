@@ -1,6 +1,7 @@
 package io.vamp.container_driver
 
 import io.vamp.common.akka.ExecutionContextProvider
+import io.vamp.common.http.RestClient
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType }
 import io.vamp.model.artifact._
@@ -8,6 +9,8 @@ import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.model.workflow.Workflow
 
 trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with ExecutionContextProvider {
+
+  protected def restClient: RestClient
 
   protected def nameDelimiter: String
 
