@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-function publish {
+function publish() {
   # Check bintray credentials
   : ${BINTRAY_USER:?"No BINTRAY_USER set"}
   : ${BINTRAY_API_KEY:?"No BINTRAY_API_KEY set"}
@@ -23,7 +23,7 @@ function publish {
    https://api.bintray.com/content/magnetic-io/downloads/${PACKAGE}/${DISTRIBUTABLE}
 }
 
-version="$( git describe --tags)"
+version="$( git describe --tags )"
 
 vamp_jar=vamp-${version}.jar
 vamp_cli_jar=vamp-cli.jar
