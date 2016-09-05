@@ -43,7 +43,9 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
   def elasticsearchUrl: String
 
-  lazy val timeout = PulseActor.timeout
+  lazy implicit val timeout = PulseActor.timeout
+
+  private val restClient = new RestClient
 
   def done() = goto(Done) using 0
 
@@ -97,12 +99,12 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
     def createTemplate(definition: TemplateDefinition) = {
       receiver ! WaitForOne
-      RestClient.put[Any](s"$elasticsearchUrl/_template/${definition.name}", definition.template) onComplete {
-        case _ ⇒ receiver ! DoneWithOne
+      restClient.put[Any](s"$elasticsearchUrl/_template/${definition.name}", definition.template) onComplete {
+        _ ⇒ receiver ! DoneWithOne
       }
     }
 
-    RestClient.get[Any](s"$elasticsearchUrl/_template") onComplete {
+    restClient.get[Any](s"$elasticsearchUrl/_template") onComplete {
       case Success(response) ⇒
         response match {
           case map: Map[_, _] ⇒ templates.filterNot(definition ⇒ map.asInstanceOf[Map[String, Any]].contains(definition.name)).foreach(createTemplate)
@@ -126,7 +128,7 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
         case false ⇒
           receiver ! WaitForOne
           es.index[Any](definition.index, definition.`type`, definition.id, definition.document) onComplete {
-            case _ ⇒ receiver ! DoneWithOne
+            _ ⇒ receiver ! DoneWithOne
           }
       }
     }
@@ -140,12 +142,12 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
   protected def initializeIndex(indexName: String): Unit = {
     val receiver = self
-    RestClient.get[Any](s"$elasticsearchUrl/$indexName", RestClient.jsonHeaders, logError = false) onComplete {
+    restClient.get[Any](s"$elasticsearchUrl/$indexName", RestClient.jsonHeaders, logError = false) onComplete {
       case Success(_) ⇒
       case _ ⇒
         receiver ! WaitForOne
-        RestClient.put[Any](s"$elasticsearchUrl/$indexName", "") onComplete {
-          case _ ⇒ receiver ! DoneWithOne
+        restClient.put[Any](s"$elasticsearchUrl/$indexName", "") onComplete {
+          _ ⇒ receiver ! DoneWithOne
         }
     }
   }
