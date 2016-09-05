@@ -1,6 +1,6 @@
 package io.vamp.lifter.artifact
 
-import java.nio.file.Paths
+import java.nio.file.{ Path, Paths }
 
 import akka.event.LoggingAdapter
 import akka.pattern.ask
@@ -43,8 +43,8 @@ class ArtifactInitializationActor extends ArtifactLoader with CommonSupportForAc
   private val resources = config.stringList("resources")
 
   def receive = {
-    case Load ⇒ (fileLoad andThen resourceLoad)(Unit)
-    case _    ⇒
+    case Load ⇒ (fileLoad andThen resourceLoad) (Unit)
+    case _ ⇒
   }
 
   override def preStart(): Unit = {
@@ -55,7 +55,7 @@ class ArtifactInitializationActor extends ArtifactLoader with CommonSupportForAc
     }
   }
 
-  private def fileLoad: Unit ⇒ Unit = { _ ⇒ loadFiles()(files) }
+  private def fileLoad: Unit ⇒ Unit = { _ ⇒ loadFiles(force)(files) }
 
   private def resourceLoad: Unit ⇒ Unit = { _ ⇒ loadResources(force)(resources) }
 }
@@ -67,41 +67,38 @@ trait ArtifactLoader extends ArtifactApiController with DeploymentApiController 
 
   implicit def timeout: Timeout
 
-  protected def loadFiles(): List[String] ⇒ Unit = { files ⇒
-    files.foreach { file ⇒
-      log.info(s"Creating/updating artifacts using file: $file")
-      updateArtifacts(Source.fromFile(file).mkString, validateOnly = false)
-    }
+  protected def loadFiles(force: Boolean = false): List[String] ⇒ Unit = {
+    _.foreach(file ⇒ load(Paths.get(file), Source.fromFile(file).mkString, force))
   }
 
-  protected def loadResources(force: Boolean = false): List[String] ⇒ Unit = { resources ⇒
+  protected def loadResources(force: Boolean = false): List[String] ⇒ Unit = {
+    _.map(Paths.get(_)).foreach(path ⇒ load(path, Source.fromInputStream(getClass.getResourceAsStream(path.toString)).mkString, force))
+  }
 
-    resources.map(Paths.get(_)).foreach { path ⇒
+  private def load(path: Path, source: String, force: Boolean = false): Unit = {
 
-      val `type` = path.getParent.toString
-      val fileName = path.getFileName.toString
-      val name = fileName.substring(0, fileName.lastIndexOf("."))
-      val source = Source.fromInputStream(getClass.getResourceAsStream(path.toString)).mkString
+    val `type` = path.getParent.getFileName.toString
+    val fileName = path.getFileName.toString
+    val name = fileName.substring(0, fileName.lastIndexOf("."))
 
-      exists(`type`, name).map {
-        case true ⇒
-          if (force) {
-            log.info(s"Updating artifact: ${`type`}/$name")
-            create(`type`, fileName, name, source)
-          } else
-            log.info(s"Ignoring creation of artifact because it exists: ${`type`}/$name")
-
-        case false ⇒
-          log.info(s"Creating artifact: ${`type`}/$name")
+    exists(`type`, name).map {
+      case true ⇒
+        if (force) {
+          log.info(s"Updating artifact: ${`type`}/$name")
           create(`type`, fileName, name, source)
-      }
+        } else
+          log.info(s"Ignoring creation of artifact because it exists: ${`type`}/$name")
+
+      case false ⇒
+        log.info(s"Creating artifact: ${`type`}/$name")
+        create(`type`, fileName, name, source)
     }
   }
 
   private def exists(`type`: String, name: String): Future[Boolean] = {
     readArtifact(`type`, name, expandReferences = false, onlyReferences = false).map {
       case Some(_) ⇒ true
-      case _       ⇒ false
+      case _ ⇒ false
     }
   }
 
