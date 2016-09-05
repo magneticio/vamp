@@ -1,7 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorLogging
-import io.vamp.common.http.RestClient
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver._
 import io.vamp.model.artifact._
@@ -35,7 +34,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   protected def allContainerServices(deploymentServices: List[DeploymentServices]): Future[List[ContainerService]] = {
     log.debug(s"kubernetes get all")
-    RestClient.get[KubernetesApiResponse](deploymentUrl, apiHeaders).flatMap { deployments ⇒
+    restClient.get[KubernetesApiResponse](deploymentUrl, apiHeaders).flatMap { deployments ⇒
       containerServices(deploymentServices, deployments)
     }
   }
@@ -59,7 +58,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
             )
 
             if (scale.isDefined) {
-              RestClient.get[KubernetesApiResponse](pods(id, deploymentServiceIdLabel), apiHeaders).map { pods ⇒
+              restClient.get[KubernetesApiResponse](pods(id, deploymentServiceIdLabel), apiHeaders).map { pods ⇒
                 val instances = pods.items.map { pod ⇒
                   ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
                 }
@@ -90,7 +89,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
   }
 
   protected def retrieve(id: String): Future[Option[Any]] = {
-    RestClient.get[KubernetesItem](s"$deploymentUrl/${string2Id(id)}", apiHeaders, logError = false).recover {
+    restClient.get[KubernetesItem](s"$deploymentUrl/${string2Id(id)}", apiHeaders, logError = false).recover {
       case _ ⇒ None
     } map {
       case None ⇒ None
@@ -133,23 +132,23 @@ trait KubernetesDeployment extends KubernetesArtifact {
       labels = labels
     )
 
-    if (update) RestClient.put[Any](s"$deploymentUrl/$id", app.toString, apiHeaders) else RestClient.post[Any](deploymentUrl, app.toString, apiHeaders)
+    if (update) restClient.put[Any](s"$deploymentUrl/$id", app.toString, apiHeaders) else restClient.post[Any](deploymentUrl, app.toString, apiHeaders)
   }
 
   private def undeploy(id: String, selector: String): Future[Any] = {
     for {
 
-      deployment ← RestClient.delete(s"$deploymentUrl/$id", apiHeaders)
+      deployment ← restClient.delete(s"$deploymentUrl/$id", apiHeaders)
 
-      replicas ← RestClient.get[KubernetesApiResponse](replicas(id, selector), apiHeaders).flatMap { replicas ⇒
+      replicas ← restClient.get[KubernetesApiResponse](replicas(id, selector), apiHeaders).flatMap { replicas ⇒
         Future.sequence {
-          replicas.items.map(item ⇒ RestClient.delete(s"$replicaSetUrl/${item.metadata.name}", apiHeaders))
+          replicas.items.map(item ⇒ restClient.delete(s"$replicaSetUrl/${item.metadata.name}", apiHeaders))
         }
       }
 
-      pods ← RestClient.get[KubernetesApiResponse](pods(id, selector), apiHeaders).flatMap { pods ⇒
+      pods ← restClient.get[KubernetesApiResponse](pods(id, selector), apiHeaders).flatMap { pods ⇒
         Future.sequence {
-          pods.items.map(item ⇒ RestClient.delete(s"$podUrl/${item.metadata.name}", apiHeaders))
+          pods.items.map(item ⇒ restClient.delete(s"$podUrl/${item.metadata.name}", apiHeaders))
         }
       }
 

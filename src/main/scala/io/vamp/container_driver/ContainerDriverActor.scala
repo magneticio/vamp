@@ -2,6 +2,7 @@ package io.vamp.container_driver
 
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
+import io.vamp.common.http.RestClient
 import io.vamp.common.notification.Notification
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
 import io.vamp.model.artifact.{ Deployment, _ }
@@ -35,6 +36,7 @@ object ContainerDriverActor {
   case class DeployWorkflow(workflow: Workflow, update: Boolean) extends ContainerDriveMessage
 
   case class UndeployWorkflow(workflow: Workflow) extends ContainerDriveMessage
+
 }
 
 case class Containers(scale: DefaultScale, instances: List[ContainerInstance])
@@ -48,6 +50,8 @@ case class ContainerInfo(`type`: String, container: Any)
 trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForActors with ContainerDriverNotificationProvider {
 
   implicit val timeout = ContainerDriverActor.timeout
+
+  lazy protected val restClient = new RestClient
 
   val gatewayServiceIp = Config.string("vamp.gateway-driver.host")
 

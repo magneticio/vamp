@@ -2,7 +2,6 @@ package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorLogging
 import io.vamp.common.crypto.Hash
-import io.vamp.common.http.RestClient
 
 import scala.concurrent.Future
 
@@ -20,7 +19,7 @@ trait KubernetesService extends KubernetesArtifact {
   private val nameMatcher = """^[a-z]([-a-z0-9]*[a-z0-9])?$""".r
 
   protected def services(labels: Map[String, String] = Map()): Future[KubernetesApiResponse] = {
-    def request(u: String) = RestClient.get[KubernetesApiResponse](u, apiHeaders)
+    def request(u: String) = restClient.get[KubernetesApiResponse](u, apiHeaders)
     if (labels.isEmpty) request(url) else request(s"$url?${labelSelector(labels)}")
   }
 
@@ -49,7 +48,7 @@ trait KubernetesService extends KubernetesArtifact {
       () ⇒ {
         if (update) {
           log.info(s"Updating service: $name")
-          RestClient.put[Any](s"$url/$id", request, apiHeaders)
+          restClient.put[Any](s"$url/$id", request, apiHeaders)
         } else {
           log.debug(s"Service exists: $name")
           Future.successful(false)
@@ -57,7 +56,7 @@ trait KubernetesService extends KubernetesArtifact {
       },
       () ⇒ {
         log.info(s"Creating service: $name")
-        RestClient.post[Any](url, request, apiHeaders)
+        restClient.post[Any](url, request, apiHeaders)
       }
     )
   }
@@ -66,7 +65,7 @@ trait KubernetesService extends KubernetesArtifact {
     retrieve(url, id,
       () ⇒ {
         log.info(s"Deleting service: $id")
-        RestClient.delete(s"$url/$id", apiHeaders)
+        restClient.delete(s"$url/$id", apiHeaders)
       },
       () ⇒ {
         log.debug(s"Service does not exist: $id")

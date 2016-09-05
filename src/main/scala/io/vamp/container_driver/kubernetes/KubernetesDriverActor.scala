@@ -75,13 +75,13 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
   }
 
   private def info: Future[Any] = for {
-    paths ← RestClient.get[Any](s"$apiUrl", apiHeaders) map {
+    paths ← restClient.get[Any](s"$apiUrl", apiHeaders) map {
       case map: Map[_, _] ⇒ map.headOption.map { case (_, value) ⇒ value }
       case any            ⇒ any
     }
-    api ← RestClient.get[Any](s"$apiUrl/api", apiHeaders)
-    apis ← RestClient.get[Any](s"$apiUrl/apis", apiHeaders)
-    version ← RestClient.get[Any](s"$apiUrl/version", apiHeaders)
+    api ← restClient.get[Any](s"$apiUrl/api", apiHeaders)
+    apis ← restClient.get[Any](s"$apiUrl/apis", apiHeaders)
+    version ← restClient.get[Any](s"$apiUrl/version", apiHeaders)
   } yield {
     ContainerInfo("kubernetes", KubernetesDriverInfo(version, paths, api, apis))
   }
