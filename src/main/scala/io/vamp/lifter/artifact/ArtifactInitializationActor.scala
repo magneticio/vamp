@@ -43,8 +43,8 @@ class ArtifactInitializationActor extends ArtifactLoader with CommonSupportForAc
   private val resources = config.stringList("resources")
 
   def receive = {
-    case Load ⇒ (fileLoad andThen resourceLoad) (Unit)
-    case _ ⇒
+    case Load ⇒ (fileLoad andThen resourceLoad)(Unit)
+    case _    ⇒
   }
 
   override def preStart(): Unit = {
@@ -75,7 +75,7 @@ trait ArtifactLoader extends ArtifactApiController with DeploymentApiController 
     _.map(Paths.get(_)).foreach(path ⇒ load(path, Source.fromInputStream(getClass.getResourceAsStream(path.toString)).mkString, force))
   }
 
-  private def load(path: Path, source: String, force: Boolean = false): Unit = {
+  private def load(path: Path, source: String, force: Boolean): Unit = {
 
     val `type` = path.getParent.getFileName.toString
     val fileName = path.getFileName.toString
@@ -98,7 +98,7 @@ trait ArtifactLoader extends ArtifactApiController with DeploymentApiController 
   private def exists(`type`: String, name: String): Future[Boolean] = {
     readArtifact(`type`, name, expandReferences = false, onlyReferences = false).map {
       case Some(_) ⇒ true
-      case _ ⇒ false
+      case _       ⇒ false
     }
   }
 
