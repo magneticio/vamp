@@ -1,11 +1,11 @@
 package io.vamp.rest_api
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
 import akka.io.IO
 import akka.pattern.ask
-import io.vamp.common.config.Config
 import io.vamp.common.akka.{ ActorBootstrap, IoC }
-import spray.can.Http
+import io.vamp.common.config.Config
 
 object RestApiBootstrap extends ActorBootstrap {
 
@@ -23,6 +23,11 @@ object RestApiBootstrap extends ActorBootstrap {
 
     implicit val timeout = HttpServerActor.timeout
 
-    IO(Http)(actorSystem) ? Http.Bind(server, interface, port)
+    IO(spray.can.Http)(actorSystem) ? spray.can.Http.Bind(server, interface, port)
+  }
+
+  override def shutdown(implicit actorSystem: ActorSystem): Unit = {
+    super.shutdown
+    Http().shutdownAllConnectionPools()
   }
 }

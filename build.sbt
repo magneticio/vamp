@@ -63,8 +63,12 @@ lazy val bintraySetting = Seq(
 
 // Libraries
 
-val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.7" ::
-  "com.typesafe.akka" %% "akka-slf4j" % "2.4.7" :: Nil
+val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.9" ::
+  "com.typesafe.akka" %% "akka-agent" % "2.4.9" ::
+  "com.typesafe.akka" %% "akka-http-core" % "2.4.9" ::
+  "com.typesafe.akka" %% "akka-http-experimental" % "2.4.9" ::
+  ("de.heikoseeberger" %% "akka-sse" % "1.8.1" exclude("com.typesafe.akka", "akka-http-experimental")) ::
+  ("com.typesafe.akka" %% "akka-slf4j" % "2.4.9" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val spray = "io.spray" %% "spray-can" % "1.3.1" ::
   "io.spray" %% "spray-routing" % "1.3.2" ::
@@ -93,13 +97,13 @@ val kamon = "io.kamon" %% "kamon-core" % "0.6.1" ::
   "org.slf4j" % "jul-to-slf4j" % "1.7.21" :: Nil
 
 val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
-  "ch.qos.logback" % "logback-classic" % "1.1.2" ::
+  "ch.qos.logback" % "logback-classic" % "1.1.7" ::
   ("com.typesafe.scala-logging" %% "scala-logging" % "3.1.0" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val testing = "junit" % "junit" % "4.11" % "test" ::
   "org.scalatest" %% "scalatest" % "3.0.0-M10" % "test" ::
   "org.scalacheck" %% "scalacheck" % "1.12.4" % "test" ::
-  "com.typesafe.akka" %% "akka-testkit" % "2.4.0" % "test" :: Nil
+  "com.typesafe.akka" %% "akka-testkit" % "2.4.9" % "test" :: Nil
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
