@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.HttpMethods
 import akka.util.Timeout
 import io.vamp.cli.commandline.CommandLineBasics
 import io.vamp.cli.commands.IoUtils
-import io.vamp.common.http.{ RestApiContentTypes, RestApiMarshaller, RestClient, RestClientException }
+import io.vamp.common.http.{ RestClient, RestClientException }
 import io.vamp.model.artifact._
 import io.vamp.model.reader._
 import org.json4s.native._
@@ -21,7 +21,7 @@ import scala.concurrent.{ Await, Future }
 import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
-object VampHostCalls extends RestSupport with RestApiMarshaller with RestApiContentTypes with CommandLineBasics with IoUtils {
+object VampHostCalls extends RestSupport with CommandLineBasics with IoUtils {
 
   val system = ActorSystem()
 

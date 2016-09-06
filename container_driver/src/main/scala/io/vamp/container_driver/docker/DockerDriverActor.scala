@@ -8,7 +8,11 @@ import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact._
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.workflow.Workflow
+import org.json4s.DefaultFormats
+import org.json4s.native.JsonMethods._
+import org.json4s.native.Serialization._
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.{ Map ⇒ MutableMap }
@@ -44,6 +48,8 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
   private val vampWorkflowLabel = "workflow"
 
+  private implicit val formats = DefaultFormats
+
   def receive = {
 
     case InfoRequest                ⇒ reply(info)
@@ -72,9 +78,6 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
   private def get(deploymentServices: List[DeploymentServices]) = {
 
-    import DefaultScaleProtocol.DefaultScaleFormat
-    import spray.json._
-
     log.debug(s"docker get all")
 
     val replyTo = sender()
@@ -90,7 +93,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
             case Some(container) if processable(container, vampLabel) ⇒
 
-              val scale = container.labels().get("scale").parseJson.convertTo[DefaultScale]
+              val scale = parse(container.labels().get("scale"), useBigDecimalForDouble = true).extract[DockerServiceScale].toScale
 
               val host = container.networkSettings().networks().asScala.values.headOption.map {
                 attachedNetwork ⇒ attachedNetwork.ipAddress()
@@ -152,9 +155,6 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
   private def containerConfiguration(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, dockerDefinition: Docker): ContainerConfig = {
 
-    import DefaultScaleProtocol.DefaultScaleFormat
-    import spray.json._
-
     val hostConfig = HostConfig.builder()
     val spotifyContainer = ContainerConfig.builder()
 
@@ -178,7 +178,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     labels += ("id" -> appId(deployment, service.breed))
 
     if (service.scale.isDefined)
-      labels += ("scale" -> service.scale.get.toJson.toString)
+      labels += ("scale" -> write(service.scale))
 
     if (service.dialects.contains(Dialect.Docker)) {
       service.dialects.get(Dialect.Docker).map { dialect ⇒
@@ -271,9 +271,6 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
   private def containerConfiguration(workflow: Workflow): ContainerConfig = {
 
-    import DefaultScaleProtocol.DefaultScaleFormat
-    import spray.json._
-
     val id = appId(workflow)
     val scale = workflow.scale.get.asInstanceOf[DefaultScale]
 
@@ -298,7 +295,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     val labels: MutableMap[String, String] = MutableMap()
     labels += ("vamp" -> vampWorkflowLabel)
     labels += ("id" -> id)
-    labels += ("scale" -> DefaultScale("", scale.cpu, scale.memory, scale.instances).toJson.toString)
+    labels += ("scale" -> write(DefaultScale("", scale.cpu, scale.memory, scale.instances)))
 
     hostConfig.portBindings(portBindings).networkMode("bridge")
 
@@ -313,4 +310,13 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
     spotifyContainer.build()
   }
+}
+
+private[docker] object DockerServiceScale {
+
+  def apply(scale: DefaultScale): DockerServiceScale = DockerServiceScale(scale.name, scale.instances, scale.cpu.value, scale.memory.value)
+}
+
+private[docker] case class DockerServiceScale(name: String, instances: Int, cpu: Double, memory: Double) {
+  val toScale = DefaultScale(name, Quantity(cpu), MegaByte(memory), instances)
 }

@@ -1,13 +1,13 @@
 package io.vamp.operation.controller
 
+import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.config.Config
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, ReplyActor }
 import io.vamp.common.notification.NotificationProvider
 
 import scala.concurrent.Future
 
 trait MetricsController extends GatewayDeploymentResolver with EventValue {
-  this: ReplyActor with ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
+  this: ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
 
   private val window = Config.duration("vamp.operation.metrics.window")
 

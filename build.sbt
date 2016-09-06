@@ -70,16 +70,13 @@ val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.9" ::
   ("de.heikoseeberger" %% "akka-sse" % "1.8.1" exclude("com.typesafe.akka", "akka-http-experimental")) ::
   ("com.typesafe.akka" %% "akka-slf4j" % "2.4.9" exclude("org.slf4j", "slf4j-api")) :: Nil
 
-val spray = "io.spray" %% "spray-can" % "1.3.1" ::
-  "io.spray" %% "spray-routing" % "1.3.2" ::
-  "io.spray" %% "spray-httpx" % "1.3.2" ::
-  "io.spray" %% "spray-json" % "1.3.1" :: Nil
-
 val docker = "com.spotify" % "docker-client" % "5.0.1" :: Nil
 
 val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.8" exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j")) :: Nil
 
 val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
+
+val parboiled = "org.parboiled" %% "parboiled-scala" % "1.1.7" :: Nil
 
 val jtwig = "org.jtwig" % "jtwig-core" % "5.57" :: Nil
 
@@ -213,14 +210,14 @@ lazy val model = project.settings(bintraySetting: _*).settings(
   description := "Definitions of Vamp artifacts",
   name := "vamp-model",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= parboiled ++ testing
 ).dependsOn(common).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val common = project.settings(bintraySetting: _*).settings(
   description := "Vamp common",
   name := "vamp-common",
   formatting,
-  libraryDependencies ++= akka ++ spray ++ json4s ++ snakeYaml ++ kamon ++ logging ++ testing
+  libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ testing
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 // Java version and encoding requirements

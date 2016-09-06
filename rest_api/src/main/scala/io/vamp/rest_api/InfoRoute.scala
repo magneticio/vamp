@@ -1,13 +1,13 @@
 package io.vamp.rest_api
 
+import akka.http.scaladsl.model.StatusCodes.OK
 import akka.util.Timeout
-import io.vamp.common.akka.{ CommonSupportForActors, _ }
+import io.vamp.common.akka._
 import io.vamp.common.http.RestApiBase
 import io.vamp.operation.controller.InfoController
-import spray.http.StatusCodes.OK
 
 trait InfoRoute extends InfoController with ExecutionContextProvider {
-  this: CommonSupportForActors with RestApiBase ⇒
+  this: ExecutionContextProvider with ActorSystemProvider with RestApiBase ⇒
 
   implicit def timeout: Timeout
 
@@ -16,9 +16,7 @@ trait InfoRoute extends InfoController with ExecutionContextProvider {
       get {
         parameterMultiMap { parameters ⇒
           onSuccess(infoMessage(parameters.getOrElse("on", Nil).toSet)) { result ⇒
-            respondWithStatus(OK) {
-              complete(result)
-            }
+            respondWith(OK, result)
           }
         }
       }

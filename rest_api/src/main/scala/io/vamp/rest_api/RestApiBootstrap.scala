@@ -2,32 +2,38 @@ package io.vamp.rest_api
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.io.IO
-import akka.pattern.ask
-import io.vamp.common.akka.{ ActorBootstrap, IoC }
+import akka.http.scaladsl.Http.ServerBinding
+import akka.stream.ActorMaterializer
+import io.vamp.common.akka.ActorBootstrap
 import io.vamp.common.config.Config
+
+import scala.concurrent.{ ExecutionContext, Future }
 
 object RestApiBootstrap extends ActorBootstrap {
 
-  def createActors(implicit actorSystem: ActorSystem) = IoC.createActor[HttpServerActor] :: Nil
+  private var binding: Option[Future[ServerBinding]] = None
+
+  def createActors(implicit actorSystem: ActorSystem) = Nil
 
   override def run(implicit actorSystem: ActorSystem) = {
 
-    super.run(actorSystem)
+    implicit lazy val materializer = ActorMaterializer()
 
-    val config = Config.config("vamp.rest-api")
-    val interface = config.string("interface")
-    val port = config.int("port")
+    implicit lazy val executionContext = actorSystem.dispatcher
 
-    val server = IoC.actorFor[HttpServerActor]
-
-    implicit val timeout = HttpServerActor.timeout
-
-    IO(spray.can.Http)(actorSystem) ? spray.can.Http.Bind(server, interface, port)
+    binding = Option {
+      Http().bindAndHandle(
+        handler = { new RestApiRoute().routes },
+        interface = Config.string("vamp.rest-api.interface"),
+        port = Config.int("vamp.rest-api.port")
+      )
+    }
   }
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {
-    super.shutdown
-    Http().shutdownAllConnectionPools()
+
+    implicit val executionContext: ExecutionContext = actorSystem.dispatcher
+
+    binding.foreach(_.foreach(_.unbind().foreach(_ ⇒ Http().shutdownAllConnectionPools())))
   }
 }

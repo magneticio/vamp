@@ -1,15 +1,24 @@
 package io.vamp.rest_api
 
-import akka.util.Timeout
-import io.vamp.common.akka.CommonSupportForActors
-import io.vamp.common.http.{ CorsSupport, RestApiBase }
+import akka.actor.ActorSystem
+import akka.http.scaladsl.model.MediaTypes._
+import akka.http.scaladsl.model.StatusCodes._
+import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
+import io.vamp.common.config.Config
+import io.vamp.common.http.RestApiBase
 import io.vamp.model.artifact.Artifact
 import io.vamp.operation.controller.ArtifactApiController
 import io.vamp.persistence.db.ArtifactPaginationSupport
-import spray.http.MediaTypes._
-import spray.http.StatusCodes._
+import io.vamp.rest_api.notification.RestApiNotificationProvider
+import org.json4s.{ DefaultFormats, Formats }
 
-trait RestApiRoute
+import scala.concurrent.ExecutionContext
+
+object RestApiRoute {
+  val timeout = Config.timeout("vamp.rest-api.response-timeout")
+}
+
+class RestApiRoute(implicit val actorSystem: ActorSystem)
     extends RestApiBase
     with UiRoute
     with ArtifactApiController
@@ -21,10 +30,15 @@ trait RestApiRoute
     with HealthRoute
     with JavascriptBreedRoute
     with ArtifactPaginationSupport
-    with CorsSupport {
-  this: CommonSupportForActors ⇒
+    with ExecutionContextProvider
+    with ActorSystemProvider
+    with RestApiNotificationProvider {
 
-  implicit def timeout: Timeout
+  implicit val timeout = RestApiRoute.timeout
+
+  implicit val formats: Formats = DefaultFormats
+
+  implicit val executionContext: ExecutionContext = actorSystem.dispatcher
 
   val crudRoutes = {
     pathEndOrSingleSlash {
@@ -73,29 +87,31 @@ trait RestApiRoute
           }
         }
       }
-    } ~ path(Segment / Rest) { (artifact: String, name: String) ⇒
-      pathEndOrSingleSlash {
-        get {
-          rejectEmptyResponse {
-            expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
-              onSuccess(readArtifact(artifact, name, expandReferences, onlyReferences)) { result ⇒
-                respondWith(OK, result)
+    } ~ path(Segment) { artifact ⇒
+      extractUnmatchedPath { remaining ⇒
+        pathEndOrSingleSlash {
+          get {
+            rejectEmptyResponse {
+              expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
+                onSuccess(readArtifact(artifact, remaining.toString, expandReferences, onlyReferences)) { result ⇒
+                  respondWith(OK, result)
+                }
               }
             }
-          }
-        } ~ put {
-          entity(as[String]) { request ⇒
-            validateOnly { validateOnly ⇒
-              onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result ⇒
-                respondWith(if (background(artifact)) Accepted else OK, result)
+          } ~ put {
+            entity(as[String]) { request ⇒
+              validateOnly { validateOnly ⇒
+                onSuccess(updateArtifact(artifact, remaining.toString, request, validateOnly)) { result ⇒
+                  respondWith(if (background(artifact)) Accepted else OK, result)
+                }
               }
             }
-          }
-        } ~ delete {
-          entity(as[String]) { request ⇒
-            validateOnly { validateOnly ⇒
-              onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result ⇒
-                respondWith(if (background(artifact)) Accepted else NoContent, None)
+          } ~ delete {
+            entity(as[String]) { request ⇒
+              validateOnly { validateOnly ⇒
+                onSuccess(deleteArtifact(artifact, remaining.toString, request, validateOnly)) { result ⇒
+                  respondWith(if (background(artifact)) Accepted else NoContent, None)
+                }
               }
             }
           }
@@ -104,15 +120,17 @@ trait RestApiRoute
     }
   }
 
-  val route = cors {
-    noCachingAllowed {
-      pathPrefix("api" / Artifact.version) {
-        compressResponseIfRequested() {
-          sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
-            infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ javascriptBreedRoute
+  val routes = //cors {
+    withRequestTimeout(timeout.duration) {
+      noCachingAllowed {
+        pathPrefix("api" / Artifact.version) {
+          encodeResponse {
+            /*sseRoutes ~*/ accept(`application/json`, `application/x-yaml`) {
+              infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ javascriptBreedRoute
+            }
           }
-        }
-      } ~ uiRoutes
+        } ~ uiRoutes
+      }
     }
-  }
+  //}
 }

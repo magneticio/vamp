@@ -3,9 +3,11 @@ package io.vamp.rest_api
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
+import akka.http.scaladsl.model.HttpEntity
+import akka.http.scaladsl.model.StatusCodes._
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, ExecutionContextProvider, IoC }
+import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, IoC }
 import io.vamp.common.config.Config
 import io.vamp.common.http.RestApiBase
 import io.vamp.common.notification.NotificationProvider
@@ -17,29 +19,27 @@ import io.vamp.operation.sla.{ EscalationActor, SlaActor }
 import io.vamp.operation.workflow.WorkflowSynchronizationActor
 import io.vamp.persistence.db.ArtifactPaginationSupport
 import io.vamp.persistence.kv.KeyValueStoreActor
-import spray.http.StatusCodes._
-import spray.http._
 
 import scala.concurrent.Future
 
 trait DeploymentApiRoute extends DeploymentApiController with SystemController with DevController {
-  this: ArtifactPaginationSupport with CommonSupportForActors with RestApiBase ⇒
+  this: ArtifactPaginationSupport with ExecutionContextProvider with ActorSystemProvider with RestApiBase with NotificationProvider ⇒
 
   implicit def timeout: Timeout
 
   private def asBlueprint = parameters('as_blueprint.as[Boolean] ? false)
 
   private val helperRoutes = pathPrefix("sync") {
-    respondWithStatus(Accepted) {
-      complete(sync())
+    onComplete(sync()) { _ ⇒
+      complete(Accepted)
     }
   } ~ path("sla") {
-    respondWithStatus(Accepted) {
-      complete(slaCheck())
+    onComplete(slaCheck()) { _ ⇒
+      complete(Accepted)
     }
   } ~ path("escalation") {
-    respondWithStatus(Accepted) {
-      complete(slaEscalation())
+    onComplete(slaEscalation()) { _ ⇒
+      complete(Accepted)
     }
   } ~ path("haproxy") {
     onSuccess(haproxy()) { result ⇒
@@ -178,7 +178,7 @@ trait SystemController {
 trait DevController {
   this: ArtifactPaginationSupport with NotificationProvider with ExecutionContextProvider with ActorSystemProvider ⇒
 
-  def sync(): Unit = Future {
+  def sync() = Future.successful {
     IoC.actorFor[DeploymentSynchronizationActor] ! DeploymentSynchronizationActor.SynchronizeAll
     Thread.sleep(1000)
     IoC.actorFor[GatewaySynchronizationActor] ! GatewaySynchronizationActor.SynchronizeAll
@@ -186,9 +186,11 @@ trait DevController {
     IoC.actorFor[WorkflowSynchronizationActor] ! WorkflowSynchronizationActor.SynchronizeAll
   }
 
-  def slaCheck() = IoC.actorFor[SlaActor] ! SlaActor.SlaProcessAll
+  def slaCheck() = Future.successful {
+    IoC.actorFor[SlaActor] ! SlaActor.SlaProcessAll
+  }
 
-  def slaEscalation() = {
+  def slaEscalation() = Future.successful {
     val now = OffsetDateTime.now()
     IoC.actorFor[EscalationActor] ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }

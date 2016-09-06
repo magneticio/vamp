@@ -2,14 +2,15 @@ package io.vamp.operation.controller
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ ActorSystemProvider, IoC, ReplyActor }
+import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, IoC, ReplyCheck }
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact.{ Deployment, Gateway }
 import io.vamp.persistence.db.PersistenceActor
 
 import scala.concurrent.Future
 
-trait GatewayDeploymentResolver {
-  this: ReplyActor with ActorSystemProvider ⇒
+trait GatewayDeploymentResolver extends ReplyCheck {
+  this: ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
 
   implicit def timeout: Timeout
 
