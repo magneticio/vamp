@@ -59,7 +59,7 @@ trait PersistenceActor extends PersistenceMultiplexer with PersistenceArchive wi
 
     case InfoRequest ⇒ reply {
       info() map {
-        case persistenceInfo ⇒ Map("database" -> persistenceInfo, "archive" -> true)
+        persistenceInfo ⇒ Map("database" -> persistenceInfo, "archive" -> true)
       }
     }
 
@@ -68,18 +68,19 @@ trait PersistenceActor extends PersistenceMultiplexer with PersistenceArchive wi
     }
 
     case All(ofType, page, perPage, expandRef, onlyRef) ⇒ reply {
-      all(ofType, page, perPage).flatMap(combine).flatMap {
-        case artifacts ⇒ (expandRef, onlyRef) match {
-          case (true, false) ⇒ Future.sequence(artifacts.response.map(expandReferences)).map { case response ⇒ artifacts.copy(response = response) }
-          case (false, true) ⇒ Future.successful(artifacts.copy(response = artifacts.response.map(onlyReferences)))
-          case _             ⇒ Future.successful(artifacts)
-        }
+      all(ofType, if (page > 0) page else 1, if (perPage > 0) perPage else ArtifactResponseEnvelope.maxPerPage).flatMap(combine).flatMap {
+        artifacts ⇒
+          (expandRef, onlyRef) match {
+            case (true, false) ⇒ Future.sequence(artifacts.response.map(expandReferences)).map { response ⇒ artifacts.copy(response = response) }
+            case (false, true) ⇒ Future.successful(artifacts.copy(response = artifacts.response.map(onlyReferences)))
+            case _             ⇒ Future.successful(artifacts)
+          }
       }
     }
 
     case Read(name, ofType, expandRef, onlyRef) ⇒ reply {
       get(name, ofType).flatMap(combine).flatMap {
-        case artifact ⇒
+        artifact ⇒
           (expandRef, onlyRef) match {
             case (true, false) ⇒ expandReferences(artifact)
             case (false, true) ⇒ Future.successful(onlyReferences(artifact))

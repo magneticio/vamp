@@ -87,31 +87,29 @@ class RestApiRoute(implicit val actorSystem: ActorSystem)
           }
         }
       }
-    } ~ path(Segment) { artifact ⇒
-      extractUnmatchedPath { remaining ⇒
-        pathEndOrSingleSlash {
-          get {
-            rejectEmptyResponse {
-              expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
-                onSuccess(readArtifact(artifact, remaining.toString, expandReferences, onlyReferences)) { result ⇒
-                  respondWith(OK, result)
-                }
+    } ~ pathPrefix(Segment / Remaining) { (artifact, name) ⇒
+      pathEndOrSingleSlash {
+        get {
+          rejectEmptyResponse {
+            expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
+              onSuccess(readArtifact(artifact, name, expandReferences, onlyReferences)) {
+                result ⇒ respondWith(if (result == None) NotFound else OK, result)
               }
             }
-          } ~ put {
-            entity(as[String]) { request ⇒
-              validateOnly { validateOnly ⇒
-                onSuccess(updateArtifact(artifact, remaining.toString, request, validateOnly)) { result ⇒
-                  respondWith(if (background(artifact)) Accepted else OK, result)
-                }
+          }
+        } ~ put {
+          entity(as[String]) { request ⇒
+            validateOnly { validateOnly ⇒
+              onSuccess(updateArtifact(artifact, name, request, validateOnly)) { result ⇒
+                respondWith(if (background(artifact)) Accepted else OK, result)
               }
             }
-          } ~ delete {
-            entity(as[String]) { request ⇒
-              validateOnly { validateOnly ⇒
-                onSuccess(deleteArtifact(artifact, remaining.toString, request, validateOnly)) { result ⇒
-                  respondWith(if (background(artifact)) Accepted else NoContent, None)
-                }
+          }
+        } ~ delete {
+          entity(as[String]) { request ⇒
+            validateOnly { validateOnly ⇒
+              onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result ⇒
+                respondWith(if (background(artifact)) Accepted else NoContent, None)
               }
             }
           }

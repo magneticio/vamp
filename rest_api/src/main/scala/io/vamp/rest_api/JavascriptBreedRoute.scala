@@ -21,15 +21,13 @@ trait JavascriptBreedRoute {
   implicit def timeout: Timeout
 
   val javascriptBreedRoute =
-    path("breeds") {
-      extractUnmatchedPath { remaining ⇒
-        pathEndOrSingleSlash {
-          (method(PUT) & contentTypeOnly(`application/javascript`)) {
-            entity(as[String]) { request ⇒
-              validateOnly { validateOnly ⇒
-                onSuccess(create(remaining.toString, request, validateOnly)) { result ⇒
-                  respondWith(OK, result)
-                }
+    path("breeds" / Remaining) { name ⇒
+      pathEndOrSingleSlash {
+        (method(PUT) & contentTypeOnly(`application/javascript`)) {
+          entity(as[String]) { request ⇒
+            validateOnly { validateOnly ⇒
+              onSuccess(create(name, request, validateOnly)) { result ⇒
+                respondWith(OK, result)
               }
             }
           }
