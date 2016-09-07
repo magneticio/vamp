@@ -6,6 +6,8 @@ jdk:
 sudo: false
 git:
   depth: 200
+install:
+- sh "$TRAVIS_BUILD_DIR/.travis-ci-bintray-credentials.sh"
 cache:
   directories:
   - "$HOME/.m2/repository"

@@ -47,3 +47,5 @@ curl -v -T ${target}/brew/${vamp_cli_zip} \
 echo "sbt publish"
 
 sbt publish
+
+rm -f ~/.bintray/.credentials
