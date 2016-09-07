@@ -1,5 +1,7 @@
 package io.vamp.container_driver.marathon
 
+import akka.actor.ActorRef
+import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.config.Config
 import io.vamp.common.crypto.Hash
 import io.vamp.common.http.RestClient
@@ -21,6 +23,8 @@ object MarathonDriverActor {
 
   val marathonUrl = configuration.string("marathon.url")
 
+  val marathonSse = configuration.boolean("marathon.sse")
+
   val workflowNamePrefix = configuration.string("marathon.workflow-name-prefix")
 
   object Schema extends Enumeration {
@@ -34,7 +38,7 @@ case class MesosInfo(frameworks: Any, slaves: Any)
 
 case class MarathonDriverInfo(mesos: MesosInfo, marathon: Any)
 
-class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
+class MarathonDriverActor extends ContainerDriverActor with MarathonSse with ActorExecutionContextProvider with ContainerDriver {
 
   import ContainerDriverActor._
   import MarathonDriverActor._
@@ -51,6 +55,8 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
 
   override protected def supportedDeployableTypes = DockerDeployable :: CommandDeployable :: Nil
 
+  private var watch: (ActorRef, List[DeploymentServices]) = ActorRef.noSender -> Nil
+
   def receive = {
 
     case InfoRequest                ⇒ reply(info)
@@ -64,7 +70,18 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     case d: DeployWorkflow          ⇒ reply(deploy(d.workflow, d.update))
     case u: UndeployWorkflow        ⇒ reply(undeploy(u.workflow))
 
+    case e: MarathonEvent           ⇒ onSse(e.`type`, e.ids)
+
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
+  }
+
+  @scala.throws[Exception](classOf[Exception])
+  override def preStart(): Unit = {
+    super.preStart()
+    if (marathonSse) {
+      log.info(s"Marathon SSE enabled")
+      sse(marathonUrl)
+    }
   }
 
   private def info: Future[Any] = {
@@ -98,19 +115,14 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
 
     val replyTo = sender()
 
+    watch = replyTo -> deploymentServices
+
     restClient.get[AppsResponse](s"$marathonUrl/v2/apps?embed=apps.tasks").map { apps ⇒
 
       val deployed = apps.apps.map(app ⇒ app.id -> app).toMap
 
       deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).map {
-        case (deployment, service) ⇒
-          deployed.get(appId(deployment, service.breed)) match {
-            case Some(app) ⇒
-              val scale = DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances)
-              val instances = app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined))
-              ContainerService(deployment, service, Option(Containers(scale, instances)))
-            case None ⇒ ContainerService(deployment, service, None)
-          }
+        case (deployment, service) ⇒ containerService(deployment, service, deployed.get(appId(deployment, service.breed)))
       } foreach { cs ⇒ replyTo ! cs }
     }
   }
@@ -157,6 +169,31 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerDriver {
     )
 
     sendRequest(update, id, Extraction.decompose(purge(marathonApp)))
+  }
+
+  private def onSse(`type`: String, ids: List[String]) = if (`type` == "deployment_success") {
+    watch._2.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
+
+      case (deployment, service) ⇒
+
+        val id = appId(deployment, service.breed)
+
+        if (ids.contains(id))
+          restClient.get[AppResponse](s"$marathonUrl/v2/apps/$id?embed=apps.tasks", logError = false)
+            .map { response ⇒ containerService(deployment, service, Option(response.app)) }
+            .foreach { cs ⇒
+              log.info(s"marathon event for: ${deployment.name} [$id]")
+              watch._1 ! cs
+            }
+    }
+  }
+
+  private def containerService(deployment: Deployment, service: DeploymentService, response: Option[App]): ContainerService = response match {
+    case Some(app) ⇒
+      val scale = DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances)
+      val instances = app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined))
+      ContainerService(deployment, service, Option(Containers(scale, instances)))
+    case None ⇒ ContainerService(deployment, service, None)
   }
 
   private def purge(app: MarathonApp): MarathonApp = {
