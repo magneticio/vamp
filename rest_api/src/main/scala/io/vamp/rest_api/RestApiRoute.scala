@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.config.Config
-import io.vamp.common.http.RestApiBase
+import io.vamp.common.http.{ RestApiDirectives, RestApiHandlers }
 import io.vamp.model.artifact.Artifact
 import io.vamp.operation.controller.ArtifactApiController
 import io.vamp.persistence.db.ArtifactPaginationSupport
@@ -19,7 +19,8 @@ object RestApiRoute {
 }
 
 class RestApiRoute(implicit val actorSystem: ActorSystem)
-    extends RestApiBase
+    extends RestApiDirectives
+    with RestApiHandlers
     with UiRoute
     with ArtifactApiController
     with DeploymentApiRoute
@@ -119,15 +120,19 @@ class RestApiRoute(implicit val actorSystem: ActorSystem)
   }
 
   val routes = //cors {
-    withRequestTimeout(timeout.duration) {
-      noCachingAllowed {
-        pathPrefix("api" / Artifact.version) {
-          encodeResponse {
-            /*sseRoutes ~*/ accept(`application/json`, `application/x-yaml`) {
-              infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ javascriptBreedRoute
-            }
+    handleExceptions(exceptionHandler) {
+      handleRejections(rejectionHandler) {
+        withRequestTimeout(timeout.duration) {
+          noCachingAllowed {
+            pathPrefix("api" / Artifact.version) {
+              encodeResponse {
+                /*sseRoutes ~*/ accept(`application/json`, `application/x-yaml`) {
+                  infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ javascriptBreedRoute
+                }
+              }
+            } ~ uiRoutes
           }
-        } ~ uiRoutes
+        }
       }
     }
   //}

@@ -5,10 +5,10 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{ HttpEntity, HttpRequest }
 import akka.http.scaladsl.server.directives.LogEntry
 import io.vamp.common.config.Config
-import io.vamp.common.http.RestApiBase
+import io.vamp.common.http.RestApiDirectives
 
 trait UiRoute {
-  this: RestApiBase ⇒
+  this: RestApiDirectives ⇒
 
   private val config = Config.config("vamp.rest-api.ui")
 

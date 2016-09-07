@@ -16,7 +16,7 @@ import org.yaml.snakeyaml.DumperOptions.FlowStyle
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.nodes.Tag
 
-trait RestApiBase extends Directives {
+trait RestApiDirectives extends Directives {
 
   implicit val formats: Formats
 
@@ -100,7 +100,7 @@ trait RestApiBase extends Directives {
     case _ ⇒
 
       val contentType = request.headers.find(_.name == "Accept") match {
-        case Some(header) if header.value == `application/x-yaml`.value ⇒ `application/x-yaml`
+        case Some(header) if header.value.startsWith(`application/x-yaml`.value) ⇒ `application/x-yaml`
         case _ ⇒ `application/json`
       }
 

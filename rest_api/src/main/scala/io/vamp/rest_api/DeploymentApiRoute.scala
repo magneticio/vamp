@@ -5,11 +5,12 @@ import java.time.temporal.ChronoUnit
 
 import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.server.Directives
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, IoC }
 import io.vamp.common.config.Config
-import io.vamp.common.http.RestApiBase
+import io.vamp.common.http.RestApiDirectives
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.operation.controller.DeploymentApiController
@@ -23,7 +24,7 @@ import io.vamp.persistence.kv.KeyValueStoreActor
 import scala.concurrent.Future
 
 trait DeploymentApiRoute extends DeploymentApiController with SystemController with DevController {
-  this: ArtifactPaginationSupport with ExecutionContextProvider with ActorSystemProvider with RestApiBase with NotificationProvider ⇒
+  this: ArtifactPaginationSupport with ExecutionContextProvider with ActorSystemProvider with RestApiDirectives with NotificationProvider ⇒
 
   implicit def timeout: Timeout
 

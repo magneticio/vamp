@@ -3,11 +3,11 @@ package io.vamp.rest_api
 import akka.http.scaladsl.model.StatusCodes.OK
 import akka.util.Timeout
 import io.vamp.common.akka._
-import io.vamp.common.http.RestApiBase
+import io.vamp.common.http.RestApiDirectives
 import io.vamp.operation.controller.StatsController
 
 trait StatsRoute extends StatsController {
-  this: ExecutionContextProvider with ActorSystemProvider with RestApiBase ⇒
+  this: ExecutionContextProvider with ActorSystemProvider with RestApiDirectives ⇒
 
   implicit def timeout: Timeout
 

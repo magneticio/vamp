@@ -3,12 +3,12 @@ package io.vamp.rest_api
 import akka.http.scaladsl.model.StatusCodes.{ NotFound, OK }
 import akka.util.Timeout
 import io.vamp.common.akka._
-import io.vamp.common.http.RestApiBase
+import io.vamp.common.http.RestApiDirectives
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.operation.controller.MetricsController
 
 trait MetricsRoute extends MetricsController {
-  this: ExecutionContextProvider with ActorSystemProvider with RestApiBase with NotificationProvider ⇒
+  this: ExecutionContextProvider with ActorSystemProvider with RestApiDirectives with NotificationProvider ⇒
 
   implicit def timeout: Timeout
 
