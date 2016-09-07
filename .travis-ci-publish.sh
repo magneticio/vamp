@@ -2,30 +2,9 @@
 
 set -e
 
-function publish {
-  # Check bintray credentials
-  : ${BINTRAY_USER:?"No BINTRAY_USER set"}
-  : ${BINTRAY_API_KEY:?"No BINTRAY_API_KEY set"}
-
-  PACKAGE=$1
-  DISTRIBUTABLE=$2
-  SOURCEPATH=$3
-  VERSION=$4
-
-  : ${PACKAGE:?"Not set"}
-  : ${DISTRIBUTABLE:?"Not set"}
-  : ${SOURCEPATH:?"Not set"}
-  : ${VERSION:?"Not set"}
-
-  echo "Bintray upload: ${DISTRIBUTABLE}"
-
-  curl -v -T $SOURCEPATH/${DISTRIBUTABLE} \
-   -u${BINTRAY_USER}:${BINTRAY_API_KEY} \
-   -H "X-Bintray-Package:${PACKAGE}" \
-   -H "X-Bintray-Version:${VERSION}" \
-   -H "X-Bintray-Publish:1" \
-   https://api.bintray.com/content/magnetic-io/downloads/${PACKAGE}/${DISTRIBUTABLE}
-}
+# Check bintray credentials
+: ${BINTRAY_USER:?"No BINTRAY_USER set"}
+: ${BINTRAY_API_KEY:?"No BINTRAY_API_KEY set"}
 
 if [ -z "${TRAVIS_BUILD_DIR}" ]; then
   TRAVIS_BUILD_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -49,8 +28,22 @@ cd ${target}/brew
 zip -r ${vamp_cli_zip} *
 cd ${TRAVIS_BUILD_DIR}
 
-publish vamp ${vamp_jar} ${target} ${version}
+echo "Bintray publish"
 
-publish vamp-cli ${vamp_cli_zip} ${target}/brew ${version}
+curl -v -T ${target}/${vamp_jar} \
+   -u${BINTRAY_USER}:${BINTRAY_API_KEY} \
+   -H "X-Bintray-Package:vamp" \
+   -H "X-Bintray-Version:${version}" \
+   -H "X-Bintray-Publish:1" \
+   https://api.bintray.com/content/magnetic-io/downloads/vamp/${vamp_jar}
+
+curl -v -T ${target}/brew/${vamp_cli_zip} \
+   -u${BINTRAY_USER}:${BINTRAY_API_KEY} \
+   -H "X-Bintray-Package:vamp-cli" \
+   -H "X-Bintray-Version:${version}" \
+   -H "X-Bintray-Publish:1" \
+   https://api.bintray.com/content/magnetic-io/downloads/vamp-cli/${vamp_cli_zip}
+
+echo "sbt publish"
 
 sbt publish
