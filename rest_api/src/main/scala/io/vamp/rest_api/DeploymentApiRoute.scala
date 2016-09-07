@@ -5,7 +5,6 @@ import java.time.temporal.ChronoUnit
 
 import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.server.Directives
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, IoC }

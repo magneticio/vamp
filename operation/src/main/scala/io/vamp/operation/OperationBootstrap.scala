@@ -8,7 +8,6 @@ import io.vamp.operation.gateway.{ GatewayActor, GatewaySynchronizationActor, Ga
 import io.vamp.operation.metrics.KamonMetricsActor
 import io.vamp.operation.persistence.{ KeyValueSchedulerActor, KeyValueSynchronizationActor }
 import io.vamp.operation.sla.{ EscalationActor, EscalationSchedulerActor, SlaActor, SlaSchedulerActor }
-import io.vamp.operation.sse.EventStreamingActor
 import io.vamp.operation.workflow.{ WorkflowActor, WorkflowSynchronizationActor, WorkflowSynchronizationSchedulerActor }
 
 import scala.concurrent.duration._
@@ -51,8 +50,6 @@ object OperationBootstrap extends ActorBootstrap {
 
       IoC.createActor[EscalationActor],
       IoC.createActor[EscalationSchedulerActor],
-
-      IoC.createActor[EventStreamingActor],
 
       IoC.createActor[WorkflowActor],
       IoC.createActor[WorkflowSynchronizationActor],

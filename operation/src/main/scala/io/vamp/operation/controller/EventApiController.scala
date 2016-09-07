@@ -3,18 +3,23 @@ package io.vamp.operation.controller
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
-import akka.actor.ActorRef
+import akka.actor.{ ActorRef, Props }
 import akka.pattern.ask
+import akka.stream.actor.ActorPublisher
+import akka.stream.actor.ActorPublisherMessage.{ Cancel, Request }
+import akka.stream.scaladsl.Source
 import akka.util.Timeout
+import de.heikoseeberger.akkasse.{ EventStreamElement, ServerSentEvent }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.event.{ Event, EventQuery, TimeRange }
 import io.vamp.model.reader._
-import io.vamp.operation.sse.EventStreamingActor
-import io.vamp.operation.sse.EventStreamingActor.{ CloseStream, OpenStream }
+import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.PulseActor.{ Publish, Query }
 import io.vamp.pulse.{ EventRequestEnvelope, EventResponseEnvelope, PulseActor }
+import org.json4s.native.Serialization._
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -23,6 +28,18 @@ trait EventApiController {
   this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
 
   private val tagParameter = "tag"
+
+  def source(parameters: Map[String, List[String]], request: String, keepAlivePeriod: FiniteDuration) = {
+    Source.actorPublisher[EventStreamElement](Props(new ActorPublisher[EventStreamElement] {
+      def receive = {
+        case Request(n)           ⇒ openStream(self, parameters, request)
+        case Cancel               ⇒ closeStream(self)
+        case (None, event: Event) ⇒ if (totalDemand > 0) onNext(ServerSentEvent(write(event)(SerializationFormat(OffsetDateTimeSerializer)), event.`type`))
+        case _                    ⇒
+
+      }
+    })).keepAlive(keepAlivePeriod, () ⇒ ServerSentEvent.Heartbeat)
+  }
 
   def publish(request: String)(implicit timeout: Timeout) = {
     val event = EventReader.read(request)
@@ -40,18 +57,16 @@ trait EventApiController {
     actorFor[PulseActor] ? Query(EventRequestEnvelope(query, page, perPage))
   }
 
-  def openStream(channel: ActorRef, parameters: Map[String, List[String]], request: String) = {
+  def openStream(to: ActorRef, parameters: Map[String, List[String]], request: String) = {
 
-    val tags = if (request.isEmpty) {
-      parameters.getOrElse(tagParameter, Nil).toSet
-    } else {
-      EventQueryReader.read(request).tags
-    }
+    val tags = if (request.isEmpty) parameters.getOrElse(tagParameter, Nil).toSet else EventQueryReader.read(request).tags
 
-    actorFor[EventStreamingActor] ! OpenStream(channel, tags)
+    actorFor[PulseActor].tell(RegisterPercolator(percolator(to), tags, None), to)
   }
 
-  def closeStream(to: ActorRef) = actorFor[EventStreamingActor] ! CloseStream(to)
+  def closeStream(to: ActorRef) = actorFor[PulseActor].tell(UnregisterPercolator(percolator(to)), to)
+
+  private def percolator(channel: ActorRef) = s"stream://${channel.path.elements.mkString("/")}"
 }
 
 trait EventValue {
@@ -77,3 +92,4 @@ trait EventValue {
     TimeRange(Some(from), Some(now), includeLower = true, includeUpper = true)
   }
 }
+

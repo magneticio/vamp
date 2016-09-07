@@ -126,7 +126,7 @@ class RestApiRoute(implicit val actorSystem: ActorSystem)
           noCachingAllowed {
             pathPrefix("api" / Artifact.version) {
               encodeResponse {
-                /*sseRoutes ~*/ accept(`application/json`, `application/x-yaml`) {
+                sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
                   infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ javascriptBreedRoute
                 }
               }

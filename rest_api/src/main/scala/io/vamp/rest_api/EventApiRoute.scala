@@ -1,15 +1,15 @@
 package io.vamp.rest_api
 
-import akka.actor.ActorRef
 import akka.http.scaladsl.model.StatusCodes._
 import akka.util.Timeout
+import de.heikoseeberger.akkasse.EventStreamMarshalling
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.config.Config
 import io.vamp.common.http.RestApiDirectives
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.operation.controller.EventApiController
 
-trait EventApiRoute extends EventApiController {
+trait EventApiRoute extends EventApiController with EventStreamMarshalling {
   this: ExecutionContextProvider with ActorSystemProvider with RestApiDirectives with NotificationProvider ⇒
 
   implicit def timeout: Timeout
@@ -38,25 +38,15 @@ trait EventApiRoute extends EventApiController {
     }
   }
 
-  //  val sseRoutes = path("events" / "stream") {
-  //    pathEndOrSingleSlash {
-  //      get {
-  //        parameterMultiMap { parameters ⇒
-  //          entity(as[String]) { request ⇒
-  //            sse { channel ⇒ openStream(channel, parameters, request) }
-  //          }
-  //        }
-  //      }
-  //    }
-  //  }
-
-  override def openStream(channel: ActorRef, parameters: Map[String, List[String]], request: String) = {
-    //    log.debug("SSE connection open.")
-    //    registerClosedHandler(channel, { () ⇒
-    //      closeStream(channel)
-    //      log.debug("SSE connection closed.")
-    //    })
-
-    super.openStream(channel, parameters, request)
+  val sseRoutes = path("events" / "stream") {
+    pathEndOrSingleSlash {
+      get {
+        parameterMultiMap { parameters ⇒
+          entity(as[String]) { request ⇒
+            complete(source(parameters, request, sseKeepAliveTimeout))
+          }
+        }
+      }
+    }
   }
 }

@@ -63,12 +63,12 @@ lazy val bintraySetting = Seq(
 
 // Libraries
 
-val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.9" ::
-  "com.typesafe.akka" %% "akka-agent" % "2.4.9" ::
-  "com.typesafe.akka" %% "akka-http-core" % "2.4.9" ::
-  "com.typesafe.akka" %% "akka-http-experimental" % "2.4.9" ::
-  ("de.heikoseeberger" %% "akka-sse" % "1.8.1" exclude("com.typesafe.akka", "akka-http-experimental")) ::
-  ("com.typesafe.akka" %% "akka-slf4j" % "2.4.9" exclude("org.slf4j", "slf4j-api")) :: Nil
+val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.10" ::
+  "com.typesafe.akka" %% "akka-agent" % "2.4.10" ::
+  "com.typesafe.akka" %% "akka-http-core" % "2.4.10" ::
+  "com.typesafe.akka" %% "akka-http-experimental" % "2.4.10" ::
+  ("de.heikoseeberger" %% "akka-sse" % "1.10.0" exclude("com.typesafe.akka", "akka-http-experimental")) ::
+  ("com.typesafe.akka" %% "akka-slf4j" % "2.4.10" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val docker = "com.spotify" % "docker-client" % "5.0.1" :: Nil
 
@@ -97,7 +97,7 @@ val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
 val testing = "junit" % "junit" % "4.11" % "test" ::
   "org.scalatest" %% "scalatest" % "3.0.0-M10" % "test" ::
   "org.scalacheck" %% "scalacheck" % "1.12.4" % "test" ::
-  "com.typesafe.akka" %% "akka-testkit" % "2.4.9" % "test" :: Nil
+  "com.typesafe.akka" %% "akka-testkit" % "2.4.10" % "test" :: Nil
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
