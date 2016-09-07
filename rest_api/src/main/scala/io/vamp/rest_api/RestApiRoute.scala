@@ -7,10 +7,11 @@ import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.config.Config
 import io.vamp.common.http.{ RestApiDirectives, RestApiHandlers }
 import io.vamp.model.artifact.Artifact
+import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.operation.controller.ArtifactApiController
 import io.vamp.persistence.db.ArtifactPaginationSupport
 import io.vamp.rest_api.notification.RestApiNotificationProvider
-import org.json4s.{ DefaultFormats, Formats }
+import org.json4s.Formats
 
 import scala.concurrent.ExecutionContext
 
@@ -37,7 +38,7 @@ class RestApiRoute(implicit val actorSystem: ActorSystem)
 
   implicit val timeout = RestApiRoute.timeout
 
-  implicit val formats: Formats = DefaultFormats
+  implicit val formats: Formats = CoreSerializationFormat.default
 
   implicit val executionContext: ExecutionContext = actorSystem.dispatcher
 
@@ -119,21 +120,22 @@ class RestApiRoute(implicit val actorSystem: ActorSystem)
     }
   }
 
-  val routes = //cors {
+  val routes =
     handleExceptions(exceptionHandler) {
       handleRejections(rejectionHandler) {
         withRequestTimeout(timeout.duration) {
           noCachingAllowed {
-            pathPrefix("api" / Artifact.version) {
-              encodeResponse {
-                sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
-                  infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ javascriptBreedRoute
+            cors() {
+              pathPrefix("api" / Artifact.version) {
+                encodeResponse {
+                  sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
+                    infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ javascriptBreedRoute
+                  }
                 }
               }
-            } ~ uiRoutes
-          }
+            }
+          } ~ uiRoutes
         }
       }
     }
-  //}
 }

@@ -68,6 +68,7 @@ val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.10" ::
   "com.typesafe.akka" %% "akka-http-core" % "2.4.10" ::
   "com.typesafe.akka" %% "akka-http-experimental" % "2.4.10" ::
   ("de.heikoseeberger" %% "akka-sse" % "1.10.0" exclude("com.typesafe.akka", "akka-http-experimental")) ::
+  "ch.megard" %% "akka-http-cors" % "0.1.5" ::
   ("com.typesafe.akka" %% "akka-slf4j" % "2.4.10" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val docker = "com.spotify" % "docker-client" % "5.0.1" :: Nil

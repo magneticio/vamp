@@ -1,5 +1,6 @@
 package io.vamp.common.http
 
+import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.MediaType.Compressible
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
@@ -15,8 +16,11 @@ import org.json4s.native.Serialization._
 import org.yaml.snakeyaml.DumperOptions.FlowStyle
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.nodes.Tag
+import ch.megard.akka.http.cors.{ CorsDirectives, CorsSettings, HttpHeaderRange }
 
-trait RestApiDirectives extends Directives {
+import scala.collection.immutable.Seq
+
+trait RestApiDirectives extends Directives with CorsDirectives {
 
   implicit val formats: Formats
 
@@ -51,6 +55,19 @@ trait RestApiDirectives extends Directives {
 
   override def post: Directive0 = super.post & contentTypeForModification
 
+  def cors(): Directive0 = {
+    cors(
+      CorsSettings.Default(
+        allowGenericHttpRequests = true,
+        allowCredentials = false,
+        allowedOrigins = HttpOriginRange.*,
+        allowedHeaders = HttpHeaderRange.*,
+        allowedMethods = Seq(GET, POST, HEAD, OPTIONS, DELETE, PUT),
+        exposedHeaders = List("Link", "X-Total-Count"),
+        maxAge = Some(30 * 60)
+      ))
+  }
+
   // TODO: implement as a directive
   protected def respondWith(status: StatusCode, response: Any): Route = {
 
@@ -77,9 +94,7 @@ trait RestApiDirectives extends Directives {
         extractRequest { request ⇒
           respondWithHeader(links(request.uri, envelope)) {
             respondWithHeader(RawHeader("X-Total-Count", s"${envelope.total}")) {
-              respondWithHeader(RawHeader("Access-Control-Expose-Headers", "Link, X-Total-Count")) {
-                complete(marshal(request, status, envelope.response))
-              }
+              complete(marshal(request, status, envelope.response))
             }
           }
         }
