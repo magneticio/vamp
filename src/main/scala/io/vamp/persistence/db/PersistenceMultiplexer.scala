@@ -3,15 +3,12 @@ package io.vamp.persistence.db
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.model.artifact._
 import io.vamp.model.workflow.Workflow
-import io.vamp.persistence.operation._
 
 import scala.concurrent.Future
 import scala.language.postfixOps
 
 trait PersistenceMultiplexer {
   this: ExecutionContextProvider ⇒
-
-  import DeploymentPersistence._
 
   protected def split(artifact: Artifact, each: Artifact ⇒ Future[Artifact]): Future[List[Artifact]] = artifact match {
     case blueprint: DefaultBlueprint ⇒ split(blueprint, each)
@@ -108,6 +105,8 @@ trait PersistenceMultiplexer {
   }
 
   private def combine(deployment: Deployment): Future[Option[Deployment]] = {
+    import DevelopmentPersistenceOperations._
+
     for {
       clusters ← Future.sequence {
         deployment.clusters.map { cluster ⇒
