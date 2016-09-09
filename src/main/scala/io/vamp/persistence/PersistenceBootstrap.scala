@@ -1,9 +1,9 @@
 package io.vamp.persistence
 
 import akka.actor.{ ActorRef, ActorSystem }
-import io.vamp.common.config.Config
 import io.vamp.common.akka.{ ActorBootstrap, IoC }
-import io.vamp.persistence.db.{ ElasticsearchPersistenceActor, InMemoryPersistenceActor, PersistenceActor }
+import io.vamp.common.config.Config
+import io.vamp.persistence.db.{ ElasticsearchPersistenceActor, InMemoryPersistenceActor, KeyValuePersistenceActor, PersistenceActor }
 import io.vamp.persistence.kv.{ ConsulStoreActor, EtcdStoreActor, KeyValueStoreActor, ZooKeeperStoreActor }
 
 object PersistenceBootstrap extends ActorBootstrap {
@@ -20,6 +20,10 @@ object PersistenceBootstrap extends ActorBootstrap {
       case "in-memory" ⇒
         IoC.alias[PersistenceActor, InMemoryPersistenceActor]
         IoC.createActor[InMemoryPersistenceActor]
+
+      case "key-value" ⇒
+        IoC.alias[PersistenceActor, KeyValuePersistenceActor]
+        IoC.createActor[KeyValuePersistenceActor]
 
       case "elasticsearch" ⇒
         IoC.alias[PersistenceActor, ElasticsearchPersistenceActor]
