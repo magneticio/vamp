@@ -41,19 +41,19 @@ class RestClient(implicit val timeout: Timeout, val system: ActorSystem, formats
 
   implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(system))
 
-  def get[A](url: String, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
+  def get[A](url: String, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
     http[A](HttpMethods.GET, url, None, headers, jsonContentType, logError)
   }
 
-  def post[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
+  def post[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
     http[A](HttpMethods.POST, url, body, headers, jsonContentType, logError)
   }
 
-  def put[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
+  def put[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
     http[A](HttpMethods.PUT, url, body, headers, jsonContentType, logError)
   }
 
-  def delete(url: String, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext) = {
+  def delete(url: String, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit executor: ExecutionContext) = {
     http[Any](HttpMethods.DELETE, url, None, headers, jsonContentType, logError)
   }
 
@@ -102,7 +102,7 @@ class RestClient(implicit val timeout: Timeout, val system: ActorSystem, formats
       .mapAsync(1)({
         case HttpResponse(status, _, entity, _) ⇒ status.intValue() match {
 
-          case code if code / 100 == 2 && (classTag[A].runtimeClass == classOf[Nothing] || classTag[A].runtimeClass == classOf[String]) ⇒
+          case code if code / 100 == 2 && (classTag[A].runtimeClass == classOf[Any] || classTag[A].runtimeClass == classOf[Nothing] || classTag[A].runtimeClass == classOf[String]) ⇒
             decode(entity).map { body ⇒
               logger.trace(s"rsp $requestLog - $body")
               body.asInstanceOf[A]

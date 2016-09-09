@@ -41,8 +41,8 @@ trait DeploymentApiRoute extends DeploymentApiController with SystemController w
     onComplete(slaEscalation()) { _ ⇒
       complete(Accepted)
     }
-  } ~ path("haproxy") {
-    onSuccess(haproxy()) { result ⇒
+  } ~ path("haproxy" / Segment) { version ⇒
+    onSuccess(haproxy(version)) { result ⇒
       respondWith(OK, result)
     }
   } ~ pathPrefix("configuration" | "config") {
@@ -159,12 +159,14 @@ trait DeploymentApiRoute extends DeploymentApiController with SystemController w
 trait SystemController {
   this: ArtifactPaginationSupport with NotificationProvider with ExecutionContextProvider with ActorSystemProvider ⇒
 
-  def haproxy(): Future[Any] = {
-    implicit val timeout = KeyValueStoreActor.timeout
-    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(HaProxyGatewayMarshaller.path) map {
-      case Some(result: String) ⇒ HttpEntity(result)
-      case _                    ⇒ HttpEntity("")
-    }
+  def haproxy(version: String): Future[Any] = {
+    if (HaProxyGatewayMarshaller.path.last == version) {
+      implicit val timeout = KeyValueStoreActor.timeout
+      IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(HaProxyGatewayMarshaller.path) map {
+        case Some(result: String) ⇒ HttpEntity(result)
+        case _                    ⇒ HttpEntity("")
+      }
+    } else Future.successful(HttpEntity(""))
   }
 
   def configuration(key: String = "") = Future.successful {

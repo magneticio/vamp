@@ -22,7 +22,7 @@ object WorkflowDriver {
 
   val vampUrl = config.string("vamp-url")
 
-  def path(workflow: Workflow, script: Boolean) = "workflow" :: workflow.name :: (if (script) "workflow" :: Nil else Nil)
+  def path(workflow: Workflow, script: Boolean) = "workflows" :: workflow.name :: (if (script) "script" :: Nil else Nil)
 
   def pathToString(workflow: Workflow) = KeyValueStoreActor.pathToString(path(workflow, script = false))
 }

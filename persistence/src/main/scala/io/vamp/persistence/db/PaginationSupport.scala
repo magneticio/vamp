@@ -18,12 +18,11 @@ trait PaginationSupport {
   this: ExecutionContextProvider ⇒
 
   def allPages[T](onePage: (Int, Int) ⇒ Future[_ <: OffsetResponseEnvelope[T]], perPage: Int = 10): Future[List[T]] = onePage(1, perPage) flatMap {
-    case envelope: OffsetResponseEnvelope[T] ⇒
+    envelope: OffsetResponseEnvelope[T] ⇒
       val (total, pageList) = envelope.total -> envelope.response
       if (total > pageList.size) {
         val futures = Future(pageList) :: (2 to (total / perPage + (if (total % perPage == 0) 0 else 1)).toInt).map({
-          case i ⇒
-            onePage(i, perPage).map(_.response)
+          i ⇒ onePage(i, perPage).map(_.response)
         }).toList
         Future.sequence(futures.map(_.map(Success(_)).recover({ case x ⇒ Failure(x) }))).map(_.filter(_.isSuccess).flatMap(_.get))
       } else Future(pageList)

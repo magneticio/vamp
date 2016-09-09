@@ -6,7 +6,6 @@ import io.vamp.common.config.Config
 import io.vamp.operation.deployment.{ DeploymentActor, DeploymentSynchronizationActor, DeploymentSynchronizationSchedulerActor }
 import io.vamp.operation.gateway.{ GatewayActor, GatewaySynchronizationActor, GatewaySynchronizationSchedulerActor }
 import io.vamp.operation.metrics.KamonMetricsActor
-import io.vamp.operation.persistence.{ KeyValueSchedulerActor, KeyValueSynchronizationActor }
 import io.vamp.operation.sla.{ EscalationActor, EscalationSchedulerActor, SlaActor, SlaSchedulerActor }
 import io.vamp.operation.workflow.{ WorkflowActor, WorkflowSynchronizationActor, WorkflowSynchronizationSchedulerActor }
 
@@ -42,9 +41,6 @@ object OperationBootstrap extends ActorBootstrap {
       IoC.createActor(Props(classOf[GatewaySynchronizationActor]).withMailbox(synchronizationMailbox)),
       IoC.createActor[GatewaySynchronizationSchedulerActor],
 
-      IoC.createActor(Props(classOf[KeyValueSynchronizationActor]).withMailbox(synchronizationMailbox)),
-      IoC.createActor[KeyValueSchedulerActor],
-
       IoC.createActor[SlaActor],
       IoC.createActor[SlaSchedulerActor],
 
@@ -56,10 +52,9 @@ object OperationBootstrap extends ActorBootstrap {
       IoC.createActor[WorkflowSynchronizationSchedulerActor]
     )
 
-    IoC.actorFor[KeyValueSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay)
-    IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + synchronizationPeriod / 4)
-    IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + 2 * synchronizationPeriod / 4)
-    IoC.actorFor[WorkflowSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + 3 * synchronizationPeriod / 4)
+    IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay / 3)
+    IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + 1 * synchronizationPeriod / 3)
+    IoC.actorFor[WorkflowSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + 2 * synchronizationPeriod / 3)
 
     IoC.actorFor[SlaSchedulerActor] ! SchedulerActor.Period(slaPeriod, synchronizationInitialDelay)
     IoC.actorFor[EscalationSchedulerActor] ! SchedulerActor.Period(escalationPeriod, synchronizationInitialDelay)
@@ -69,7 +64,6 @@ object OperationBootstrap extends ActorBootstrap {
 
   override def shutdown(implicit actorSystem: ActorSystem): Unit = {
 
-    IoC.actorFor[KeyValueSchedulerActor] ! SchedulerActor.Period(0 seconds)
     IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
     IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
     IoC.actorFor[WorkflowSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)

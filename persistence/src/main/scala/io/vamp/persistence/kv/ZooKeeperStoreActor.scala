@@ -20,30 +20,31 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
   private var zooKeeperClient: Option[AsyncZooKeeperClient] = None
 
   override protected def info(): Future[Any] = zooKeeperClient match {
-    case Some(zk) ⇒ zkVersion(servers) map {
-      case version ⇒
-        Map(
-          "type" -> "zookeeper",
-          "zookeeper" -> (Map("version" -> version) ++ (zk.underlying match {
-            case Some(zookeeper) ⇒
-              val state = zookeeper.getState
-              Map(
-                "client" -> Map(
-                  "servers" -> servers,
-                  "state" -> state.toString,
-                  "session" -> zookeeper.getSessionId,
-                  "timeout" -> (if (state.isConnected) zookeeper.getSessionTimeout else "")
-                )
+    case Some(zk) ⇒ zkVersion(servers) map { version ⇒
+      Map(
+        "type" -> "zookeeper",
+        "zookeeper" -> (Map("version" -> version) ++ (zk.underlying match {
+          case Some(zookeeper) ⇒
+            val state = zookeeper.getState
+            Map(
+              "client" -> Map(
+                "servers" -> servers,
+                "state" -> state.toString,
+                "session" -> zookeeper.getSessionId,
+                "timeout" -> (if (state.isConnected) zookeeper.getSessionTimeout else "")
               )
+            )
 
-            case _ ⇒ Map("error" -> "no connection")
-          }))
-        )
+          case _ ⇒ Map("error" -> "no connection")
+        }))
+      )
     }
     case None ⇒ Future.successful {
       None
     }
   }
+
+  override protected def all(path: List[String]): Future[List[String]] = ???
 
   override protected def get(path: List[String]): Future[Option[String]] = zooKeeperClient match {
     case Some(zk) ⇒ zk.get(pathToString(path)) recoverWith {
@@ -70,8 +71,8 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
     case Some(zk) ⇒
       zk.get(pathToString(path)) recoverWith {
         case _ ⇒ zk.createPath(pathToString(path))
-      } flatMap {
-        case _ ⇒ zk.set(pathToString(path), data.map(_.getBytes)) recoverWith {
+      } flatMap { _ ⇒
+        zk.set(pathToString(path), data.map(_.getBytes)) recoverWith {
           case failure ⇒
             log.error(failure, failure.getMessage)
             Future.failed(failure)

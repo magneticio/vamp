@@ -17,9 +17,13 @@ object KeyValueStoreActor {
 
   private val basePath = Config.string("vamp.persistence.key-value-store.base-path").stripMargin('/')
 
+  def stringToPath(string: String): List[String] = string.split('/').toList
+
   def pathToString(path: List[String]) = s"/${(basePath :: path).mkString("/")}"
 
   sealed trait KeyValueStoreMessage
+
+  case class All(path: List[String]) extends KeyValueStoreMessage
 
   case class Get(path: List[String]) extends KeyValueStoreMessage
 
@@ -37,12 +41,15 @@ trait KeyValueStoreActor extends PulseFailureNotifier with CommonSupportForActor
 
   def receive = {
     case InfoRequest     ⇒ reply(info())
+    case All(path)       ⇒ reply(all(path))
     case Get(path)       ⇒ reply(get(path))
     case Set(path, data) ⇒ reply(set(path, data))
     case any             ⇒ unsupported(UnsupportedPersistenceRequest(any))
   }
 
   protected def info(): Future[Any]
+
+  protected def all(path: List[String]): Future[List[String]]
 
   protected def get(path: List[String]): Future[Option[String]]
 
