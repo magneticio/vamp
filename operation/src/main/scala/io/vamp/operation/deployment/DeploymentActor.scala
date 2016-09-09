@@ -15,8 +15,6 @@ import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ PersistenceActor, _ }
-import io.vamp.persistence.operation.DeploymentPersistence._
-import io.vamp.persistence.operation._
 
 import scala.concurrent.Future
 
@@ -299,26 +297,14 @@ trait DeploymentGatewayOperation {
   }
 
   def resetServiceArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.State = Deploy) = {
-
-    val name = serviceArtifactName(deployment, cluster, service)
-    val persistenceActor = actorFor[PersistenceActor]
-
-    persistenceActor ! PersistenceActor.Update(DeploymentServiceState(name, state))
-
-    persistenceActor ! PersistenceActor.Delete(name, classOf[DeploymentServiceScale])
-    persistenceActor ! PersistenceActor.Delete(name, classOf[DeploymentServiceInstances])
-    persistenceActor ! PersistenceActor.Delete(name, classOf[DeploymentServiceEnvironmentVariables])
-
-    persistenceActor ! PersistenceActor.Delete(name, classOf[GatewayPort])
-    persistenceActor ! PersistenceActor.Delete(name, classOf[GatewayServiceAddress])
-    persistenceActor ! PersistenceActor.Delete(name, classOf[GatewayDeploymentStatus])
-    persistenceActor ! PersistenceActor.Delete(name, classOf[RouteTargets])
-    persistenceActor ! PersistenceActor.Delete(name, classOf[InnerGateway])
+    actorFor[PersistenceActor] ! PersistenceActor.UpdateDeploymentServiceState(deployment, cluster, service, state)
+    actorFor[PersistenceActor] ! PersistenceActor.ResetDeploymentService(deployment, cluster, service)
+    actorFor[PersistenceActor] ! PersistenceActor.ResetGateway(deployment, cluster, service)
   }
 
   def resetInnerRouteArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
     service.breed.ports.foreach { port ⇒
-      actorFor[PersistenceActor] ! PersistenceActor.Delete(servicePortArtifactName(deployment, cluster, service, port), classOf[RouteTargets])
+      actorFor[PersistenceActor] ! PersistenceActor.DeleteGatewayRouteTargets(deployment, cluster, service, port)
     }
   }
 }
@@ -637,9 +623,8 @@ trait DeploymentUpdate {
   def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) = {
     cluster.services.find(_.breed.name == service.breed.name) match {
       case Some(_) ⇒
-        val name = serviceArtifactName(deployment, cluster, service)
-        (actorFor[PersistenceActor] ? PersistenceActor.Update(DeploymentServiceScale(name, scale))).flatMap {
-          _ ⇒ actorFor[PersistenceActor] ? PersistenceActor.Update(DeploymentServiceState(name, Deploy))
+        actorFor[PersistenceActor] ? PersistenceActor.UpdateDeploymentServiceScale(deployment, cluster, service, scale) flatMap {
+          _ ⇒ actorFor[PersistenceActor] ? PersistenceActor.UpdateDeploymentServiceState(deployment, cluster, service, Deploy)
         }
       case _ ⇒ Future.successful(None)
     }

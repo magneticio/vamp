@@ -8,7 +8,6 @@ import io.vamp.model.artifact._
 import io.vamp.model.reader.{ GatewayRouteValidation, Percentage }
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
-import io.vamp.persistence.operation.InnerGateway
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -90,7 +89,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
       if (validateOnly) Future.successful(None)
       else {
         (actorFor[PersistenceActor] ? PersistenceActor.Delete(name, classOf[Gateway])).flatMap {
-          _ ⇒ actorFor[PersistenceActor] ? PersistenceActor.Delete(name, classOf[InnerGateway])
+          _ ⇒ actorFor[PersistenceActor] ? PersistenceActor.DeleteInnerGateway(name)
         }
       }
     }
@@ -183,14 +182,20 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     val g = gateway.copy(virtualHosts = virtualHosts.distinct)
 
     val requests = {
-      val artifacts = (g.inner, promote) match {
-        case (true, true)  ⇒ InnerGateway(g) :: g :: Nil
-        case (true, false) ⇒ InnerGateway(g) :: Nil
-        case _             ⇒ g :: Nil
-      }
 
-      artifacts.map {
-        artifact ⇒ if (create) PersistenceActor.Create(artifact, source) else PersistenceActor.Update(artifact, source)
+      (g.inner, promote) match {
+
+        case (true, true) ⇒
+          if (create)
+            PersistenceActor.Create(g, source) :: PersistenceActor.CreateInnerGateway(g) :: Nil
+          else
+            PersistenceActor.Update(g, source) :: PersistenceActor.UpdateInnerGateway(g) :: Nil
+
+        case (true, false) ⇒
+          if (create) PersistenceActor.CreateInnerGateway(g) :: Nil else PersistenceActor.UpdateInnerGateway(g) :: Nil
+
+        case _ ⇒
+          if (create) PersistenceActor.Create(g, source) :: Nil else PersistenceActor.Update(g, source) :: Nil
       }
     }
 

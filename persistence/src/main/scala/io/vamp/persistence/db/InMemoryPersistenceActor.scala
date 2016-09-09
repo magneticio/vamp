@@ -7,7 +7,6 @@ import io.vamp.model.artifact._
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.model.workflow.Workflow
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, UnsupportedPersistenceRequest }
-import io.vamp.persistence.operation._
 import org.json4s.native.Serialization._
 
 import scala.collection.mutable

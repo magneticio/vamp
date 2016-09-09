@@ -4,7 +4,6 @@ import io.vamp.common.config.Config
 import io.vamp.model.artifact._
 import io.vamp.model.reader._
 import io.vamp.model.serialization.CoreSerializationFormat
-import io.vamp.persistence.operation._
 import io.vamp.pulse.ElasticsearchClient
 import io.vamp.pulse.ElasticsearchClient.{ ElasticsearchGetResponse, ElasticsearchSearchResponse }
 import org.json4s.native.Serialization._

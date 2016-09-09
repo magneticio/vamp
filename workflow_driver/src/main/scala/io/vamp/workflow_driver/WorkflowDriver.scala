@@ -9,7 +9,6 @@ import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.workflow.Workflow
 import io.vamp.persistence.db.PersistenceActor
 import io.vamp.persistence.kv.KeyValueStoreActor
-import io.vamp.persistence.operation.{ WorkflowArguments, WorkflowNetwork }
 
 import scala.concurrent.Future
 
@@ -75,10 +74,10 @@ trait WorkflowDriver {
     }
 
     val network = workflow.network.getOrElse(defaultNetwork)
-    actorFor[PersistenceActor] ! PersistenceActor.Update(WorkflowNetwork(workflow.name, network))
+    actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowNetwork(workflow, network)
 
     val arguments = (defaultArguments ++ breed.arguments ++ workflow.arguments).map(arg ⇒ arg.key -> arg).toMap.values.toList
-    actorFor[PersistenceActor] ! PersistenceActor.Update(WorkflowArguments(workflow.name, arguments))
+    actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowArguments(workflow, arguments)
 
     workflow.copy(
       breed = breed.copy(deployable = deployable, environmentVariables = environmentVariables),

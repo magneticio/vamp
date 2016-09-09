@@ -10,9 +10,8 @@ import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
-import io.vamp.persistence.db.PersistenceActor.{ Create, Update }
+import io.vamp.persistence.db.GatewayPersistenceMessages.{ CreateGatewayPort, UpdateGatewayDeploymentStatus, UpdateGatewayRouteTargets }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
-import io.vamp.persistence.operation.{ GatewayDeploymentStatus, GatewayPort, RouteTargets }
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 
@@ -94,8 +93,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     val (noPortGateways, otherGateways) = gateways.partition { gateway ⇒ !gateway.port.assigned }
 
     noPortGateways foreach { gateway ⇒
-      IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = false))
-      IoC.actorFor[PersistenceActor] ! Create(GatewayPort(gateway.name, availablePort))
+      IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = false)
+      IoC.actorFor[PersistenceActor] ! CreateGatewayPort(gateway, availablePort)
     }
 
     GatewayPipeline(otherGateways, noPortGateways)
@@ -108,7 +107,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
         case route: DefaultRoute ⇒
           val routeTargets = targets(pipeline.deployable, deployments, route)
           val targetMatch = routeTargets == route.targets
-          if (!targetMatch) IoC.actorFor[PersistenceActor] ! Update(RouteTargets(route.path.normalized, routeTargets))
+          if (!targetMatch) IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(route, routeTargets)
           route.copy(targets = routeTargets)
         case route ⇒ route
       }
@@ -122,9 +121,9 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       } || !gateway.inner
     }
 
-    passThrough foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = true)) }
+    passThrough foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = true) }
 
-    withoutRoutes foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! Update(GatewayDeploymentStatus(gateway.name, deployed = false)) }
+    withoutRoutes foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = false) }
 
     GatewayPipeline(passThrough, pipeline.nonDeployable ++ withoutRoutes)
   }
