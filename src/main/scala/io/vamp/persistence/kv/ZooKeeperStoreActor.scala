@@ -3,14 +3,15 @@ package io.vamp.persistence.kv
 import java.io._
 import java.net.Socket
 
-import io.vamp.common.config.Config
 import io.vamp.common.akka._
-import io.vamp.persistence.kv.AsyncResponse.{ DataResponse, FailedAsyncResponse }
+import io.vamp.common.config.Config
+import io.vamp.persistence.kv.AsyncResponse.{ ChildrenResponse, DataResponse, FailedAsyncResponse }
 import org.apache.zookeeper.KeeperException.Code
 
 import scala.concurrent.Future
 
 class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
+
   import KeyValueStoreActor._
 
   private val config = Config.config("vamp.persistence.key-value-store.zookeeper")
@@ -39,32 +40,37 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
         }))
       )
     }
-    case None ⇒ Future.successful {
-      None
-    }
+    case None ⇒ Future.successful(None)
   }
 
-  override protected def all(path: List[String]): Future[List[String]] = ???
+  override protected def all(path: List[String]): Future[List[String]] = zooKeeperClient match {
+    case Some(zk) ⇒
+
+      def collect(path: List[String]): Future[List[String]] = {
+        zk.getChildren(pathToString(path)) recoverWith recoverRetrieval(Nil) flatMap {
+          case response: ChildrenResponse ⇒ Future.sequence {
+            response.children.map { child ⇒
+              collect(path :+ child).map {
+                case children if children.isEmpty ⇒ child :: Nil
+                case children                     ⇒ child +: children.map(c ⇒ s"$child/$c")
+              }
+            }
+          }.map(_.flatten.toList)
+          case _ ⇒ Future.successful(Nil)
+        }
+      }
+
+      collect(path)
+
+    case None ⇒ Future.successful(Nil)
+  }
 
   override protected def get(path: List[String]): Future[Option[String]] = zooKeeperClient match {
-    case Some(zk) ⇒ zk.get(pathToString(path)) recoverWith {
-      case failure: FailedAsyncResponse if failure.code == Code.NONODE ⇒ Future.successful {
-        None
-      }
-      case failure ⇒
-        // something is going wrong with the connection
-        initClient()
-        Future.successful {
-          None
-        }
-    } map {
-      case None                   ⇒ None
+    case Some(zk) ⇒ zk.get(pathToString(path)) recoverWith recoverRetrieval(None) map {
       case response: DataResponse ⇒ response.data.map(new String(_))
+      case _                      ⇒ None
     }
-
-    case None ⇒ Future.successful {
-      None
-    }
+    case None ⇒ Future.successful(None)
   }
 
   override protected def set(path: List[String], data: Option[String]): Future[Any] = zooKeeperClient match {
@@ -81,6 +87,14 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
     case _ ⇒ Future.successful(None)
   }
 
+  private def recoverRetrieval[T](default: T): PartialFunction[Throwable, Future[T]] = {
+    case failure: FailedAsyncResponse if failure.code == Code.NONODE ⇒ Future.successful(default)
+    case failure ⇒
+      // something is going wrong with the connection
+      initClient()
+      Future.successful(default)
+  }
+
   private def initClient() = zooKeeperClient = Option {
     AsyncZooKeeperClient(
       servers = servers,
@@ -94,9 +108,7 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
 
   override def preStart() = initClient()
 
-  override def postStop() = zooKeeperClient.foreach {
-    _.close()
-  }
+  override def postStop() = zooKeeperClient.foreach(_.close())
 }
 
 trait ZooKeeperServerStatistics {
@@ -119,17 +131,12 @@ trait ZooKeeperServerStatistics {
           reader = new BufferedReader(new InputStreamReader(sock.getInputStream))
           val marker = "Zookeeper version: "
           var line: String = reader.readLine
-          while (line != null && !line.startsWith(marker)) {
-            line = reader.readLine
-          }
-
+          while (line != null && !line.startsWith(marker)) line = reader.readLine
           if (line == null) "" else line.substring(marker.length)
 
         } finally {
           sock.close()
-          if (reader != null) {
-            reader.close()
-          }
+          if (reader != null) reader.close()
         }
       case _ ⇒ ""
     }
