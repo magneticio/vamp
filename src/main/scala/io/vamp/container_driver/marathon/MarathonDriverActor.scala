@@ -4,7 +4,6 @@ import akka.actor.ActorRef
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.config.Config
 import io.vamp.common.crypto.Hash
-import io.vamp.common.http.RestClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
@@ -259,7 +258,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
   private def retrieve(workflow: Workflow): Future[Option[App]] = {
     val id = appId(workflow)
-    restClient.get[AppResponse](s"$marathonUrl/v2/apps/$id", RestClient.jsonHeaders, logError = false) recover { case _ ⇒ None } map {
+    restClient.get[AppResponse](s"$marathonUrl/v2/apps/$id", logError = false) recover { case _ ⇒ None } map {
       case AppResponse(response) ⇒ Option(response)
       case _                     ⇒ None
     }
