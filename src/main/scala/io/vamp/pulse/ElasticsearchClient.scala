@@ -61,14 +61,14 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val system
   }
 
   def exists(index: String, `type`: String, id: String): Future[Boolean] = {
-    restClient.get[Any](urlOf(url, index, `type`, id), RestClient.jsonHeaders, logError = false) map {
+    restClient.get[Any](urlOf(url, index, `type`, id), logError = false) map {
       case response: Map[_, _] ⇒ Try(response.asInstanceOf[Map[String, Boolean]].getOrElse("found", false)).getOrElse(false)
       case _                   ⇒ false
     }
   }
 
   def get[A](index: String, `type`: String, id: String)(implicit mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
-    restClient.get[A](urlOf(url, index, `type`, id), RestClient.jsonHeaders, logError = false).recover {
+    restClient.get[A](urlOf(url, index, `type`, id), logError = false).recover {
       case RestClientException(Some(404), body) ⇒ parse(StringInput(body), useBigDecimalForDouble = true).extract[A](formats, mf)
     }
   }
@@ -80,7 +80,7 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val system
     restClient.post[A](urlOf(url, index, `type`, id), document)
 
   def delete(index: String, `type`: String, id: String): Future[_] = {
-    restClient.delete(urlOf(url, index, `type`, id), RestClient.jsonHeaders, logError = false).recover {
+    restClient.delete(urlOf(url, index, `type`, id), logError = false).recover {
       case _ ⇒ None
     }
   }
