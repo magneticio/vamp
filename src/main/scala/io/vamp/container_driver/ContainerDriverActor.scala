@@ -8,7 +8,6 @@ import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvid
 import io.vamp.model.artifact.{ Deployment, _ }
 import io.vamp.model.workflow.Workflow
 import io.vamp.persistence.db.PersistenceActor
-import io.vamp.persistence.operation.GatewayServiceAddress
 import io.vamp.pulse.notification.PulseFailureNotifier
 
 import scala.concurrent.Future
@@ -65,7 +64,7 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
   }
 
   protected def setGatewayService(gateway: Gateway, host: String, port: Int) = {
-    IoC.actorFor[PersistenceActor].forward(PersistenceActor.Create(GatewayServiceAddress(gateway.name, host, port)))
+    IoC.actorFor[PersistenceActor].forward(PersistenceActor.CreateGatewayServiceAddress(gateway, host, port))
   }
 
   override def errorNotificationClass = classOf[ContainerResponseError]
