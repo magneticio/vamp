@@ -3,12 +3,13 @@ package io.vamp.common.http
 import java.util.concurrent.ExecutionException
 
 import akka.actor.ActorSystem
+import akka.http.javadsl.model.RequestEntity
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpHeader.ParsingResult
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
-import akka.util.Timeout
+import akka.util.{ ByteString, Timeout }
 import com.typesafe.scalalogging.Logger
 import org.json4s._
 import org.json4s.native.JsonMethods._
@@ -58,23 +59,25 @@ class RestClient(implicit val timeout: Timeout, val system: ActorSystem, formats
   }
 
   def http[A](method: HttpMethod, uri: String, body: Any, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit mf: scala.reflect.Manifest[A]): Future[A] = {
+    httpWithEntity[A](method, uri, bodyAsString(body).map(some ⇒ HttpEntity.Strict(contentType, ByteString(some))), headers, logError)
+  }
+
+  def httpWithEntity[A](method: HttpMethod, uri: String, body: Option[RequestEntity], headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit mf: scala.reflect.Manifest[A]): Future[A] = {
 
     val requestLog = s"[${method.toString} $uri]"
 
     val requestUri = Uri(uri)
 
-    val requestHeaders = headers.map { header ⇒
-      HttpHeader.parse(header._1, header._2)
-    } collect {
+    val requestHeaders = headers.map { header ⇒ HttpHeader.parse(header._1, header._2) } collect {
       case ParsingResult.Ok(h, _) ⇒ h
     }
 
     val request = HttpRequest(uri = requestUri.toRelative, method = method, headers = requestHeaders)
 
-    val requestWithBody = bodyAsString(body) match {
-      case Some(some) ⇒
-        logger.trace(s"req $requestLog - $some")
-        request.withEntity(contentType, some.getBytes)
+    val requestWithEntity = body match {
+      case Some(entity) ⇒
+        logger.trace(s"req $requestLog - $entity")
+        request.withEntity(entity)
       case None ⇒
         logger.trace(s"req $requestLog")
         request
@@ -96,7 +99,7 @@ class RestClient(implicit val timeout: Timeout, val system: ActorSystem, formats
 
     def decode(entity: ResponseEntity): Future[String] = entity.toStrict(timeout.duration).map(_.data.decodeString("UTF-8"))
 
-    Source.single(requestWithBody)
+    Source.single(requestWithEntity)
       .via(Http().outgoingConnection(requestUri.authority.host.address, requestUri.authority.port))
       .recover(recoverWith)
       .mapAsync(1)({
