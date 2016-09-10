@@ -1,12 +1,13 @@
 package io.vamp.persistence.kv
 
-import java.net.URLEncoder
-
-import akka.http.scaladsl.model.ContentType.WithCharset
-import akka.http.scaladsl.model.{ HttpCharsets, MediaTypes }
+import akka.http.scaladsl.model._
 import io.vamp.common.config.Config
 
 import scala.concurrent.Future
+
+case class EtcdKeyValue(node: EtcdNode)
+
+case class EtcdNode(key: Option[String] = None, value: Option[String] = None, nodes: List[EtcdNode] = Nil)
 
 class EtcdStoreActor extends KeyValueStoreActor {
 
@@ -25,18 +26,21 @@ class EtcdStoreActor extends KeyValueStoreActor {
     )
   )
 
-  override protected def all(path: List[String]): Future[List[String]] = ???
+  override protected def all(path: List[String]): Future[List[String]] = {
+    restClient.get[EtcdKeyValue](urlOf(path), logError = true) recover { case _ ⇒ EtcdKeyValue(EtcdNode()) } map {
+      entry ⇒ entry.node.nodes.flatMap(node ⇒ node.key.map(_.substring(entry.node.key.getOrElse("").length + 1)))
+    }
+  }
 
   override protected def get(path: List[String]): Future[Option[String]] = {
-    restClient.get[Any](urlOf(path), logError = false) recover { case _ ⇒ None } map {
-      case map: Map[_, _] ⇒ map.asInstanceOf[Map[String, _]].get("node").map(_.asInstanceOf[Map[String, _]]).getOrElse(Map()).get("value").map(_.toString)
-      case _              ⇒ None
+    restClient.get[Option[EtcdKeyValue]](urlOf(path), logError = false) recover { case _ ⇒ None } map {
+      _.flatMap(_.node.value)
     }
   }
 
   override protected def set(path: List[String], data: Option[String]): Future[Any] = data match {
     case None        ⇒ restClient.delete(urlOf(path), logError = false)
-    case Some(value) ⇒ restClient.put[Any](urlOf(path), s"value=${URLEncoder.encode(value, "UTF-8")}", contentType = WithCharset(MediaTypes.`application/x-www-form-urlencoded`, HttpCharsets.`UTF-8`))
+    case Some(value) ⇒ restClient.httpWithEntity[Any](HttpMethods.PUT, urlOf(path), Option(FormData("value" -> value).toEntity), logError = false)
   }
 
   private def urlOf(path: List[String], recursive: Boolean = false) = s"$url/v2/keys${KeyValueStoreActor.pathToString(path)}${if (recursive) "?recursive=true" else ""}"
