@@ -83,7 +83,7 @@ class RestClient(implicit val timeout: Timeout, val system: ActorSystem, formats
         request
     }
 
-    def recoverWith: PartialFunction[Throwable, AnyRef] = {
+    def recoverWith[T]: PartialFunction[Throwable, T] = {
       case exception: RestClientException ⇒ throw exception
       case exception: ExecutionException if exception.getCause != null && exception.getCause.getClass == classOf[RestClientException] ⇒ throw exception.getCause
       case exception ⇒
