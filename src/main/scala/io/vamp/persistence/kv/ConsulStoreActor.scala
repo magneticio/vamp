@@ -25,7 +25,7 @@ class ConsulStoreActor extends KeyValueStoreActor {
   override protected def get(path: List[String]): Future[Option[String]] = {
     restClient.get[List[_]](urlOf(path), logError = false) recover { case _ ⇒ None } map {
       case head :: Nil ⇒ Option(result(head.asInstanceOf[Map[_, _]]))
-      case some        ⇒ None
+      case _           ⇒ None
     }
   }
 
