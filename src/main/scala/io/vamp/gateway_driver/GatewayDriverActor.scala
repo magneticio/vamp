@@ -6,6 +6,7 @@ import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
 import io.vamp.model.artifact._
+import io.vamp.persistence.db.PersistenceMarshaller
 import io.vamp.persistence.kv.KeyValueStoreActor
 import io.vamp.pulse.notification.PulseFailureNotifier
 
@@ -17,22 +18,22 @@ object GatewayDriverActor {
 
   sealed trait GatewayDriverMessage
 
-  case class Commit(gateways: List[Gateway]) extends GatewayDriverMessage
+  object Pull extends GatewayDriverMessage
 
+  case class Push(gateways: List[Gateway]) extends GatewayDriverMessage
 }
 
-class GatewayDriverActor(marshaller: GatewayMarshaller) extends PulseFailureNotifier with CommonSupportForActors with GatewayDriverNotificationProvider {
+class GatewayDriverActor(marshaller: GatewayMarshaller) extends PersistenceMarshaller with PulseFailureNotifier with CommonSupportForActors with GatewayDriverNotificationProvider {
 
   import GatewayDriverActor._
 
   lazy implicit val timeout = KeyValueStoreActor.timeout
 
-  private def path = root +: marshaller.path
-
   def receive = {
-    case InfoRequest      ⇒ reply(info)
-    case Commit(gateways) ⇒ commit(gateways)
-    case other            ⇒ unsupported(UnsupportedGatewayDriverRequest(other))
+    case InfoRequest    ⇒ reply(info)
+    case Pull           ⇒ reply(pull())
+    case Push(gateways) ⇒ push(gateways)
+    case other          ⇒ unsupported(UnsupportedGatewayDriverRequest(other))
   }
 
   override def errorNotificationClass = classOf[GatewayDriverResponseError]
@@ -41,16 +42,23 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PulseFailureNoti
 
   private def info = Future.successful(Map("marshaller" -> marshaller.info))
 
-  private def commit(gateways: List[Gateway]) = {
-    implicit val timeout = KeyValueStoreActor.timeout
-
-    def send(value: String) = IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, Option(value))
-
-    val content = marshaller.marshall(gateways)
-
-    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(path) map {
-      case Some(value: String) ⇒ if (value != content) send(content)
-      case _                   ⇒ send(content)
+  private def pull(): Future[List[Gateway]] = {
+    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(root :: Nil) map {
+      case Some(content: String) ⇒ unmarshall[Gateway](content)
+      case _                     ⇒ Nil
     }
+  }
+
+  private def push(gateways: List[Gateway]) = {
+
+    def send(path: List[String], value: String) = {
+      IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(path) map {
+        case Some(content: String) if value == content ⇒
+        case _                                         ⇒ IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, Option(value))
+      }
+    }
+
+    send(root :: Nil, marshall(gateways))
+    send(root +: marshaller.path, marshaller.marshall(gateways))
   }
 }
