@@ -151,3 +151,35 @@ trait SingleArtifactApiController {
     if (validateOnly) Future(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, `type`)
   }
 }
+
+trait MultipleArtifactApiController {
+  this: SingleArtifactApiController with DeploymentApiController with ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
+
+  def createArtifacts(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = process(source, {
+    item ⇒
+      `type`(item.kind) match {
+        case (t, _) if t == classOf[Deployment] ⇒ createDeployment(item.toString, validateOnly)
+        case _                                  ⇒ createArtifact(item.kind, item.toString, validateOnly)
+      }
+  })
+
+  def updateArtifacts(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = process(source, {
+    item ⇒
+      `type`(item.kind) match {
+        case (t, _) if t == classOf[Deployment] ⇒ updateDeployment(item.name, item.toString, validateOnly)
+        case _                                  ⇒ updateArtifact(item.kind, item.name, item.toString, validateOnly)
+      }
+  })
+
+  def deleteArtifacts(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = process(source, {
+    item ⇒
+      `type`(item.kind) match {
+        case (t, _) if t == classOf[Deployment] ⇒ deleteDeployment(item.name, item.toString, validateOnly)
+        case _                                  ⇒ deleteArtifact(item.kind, item.name, item.toString, validateOnly)
+      }
+  })
+
+  private def process(source: String, execute: ArtifactSource ⇒ Future[Any]) = Future.sequence {
+    ArtifactListReader.read(source).map(execute)
+  }
+}

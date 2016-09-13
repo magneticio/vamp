@@ -9,6 +9,7 @@ import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.resolver.TraitNameAliasResolver
 import org.json4s.native.Serialization
+import org.json4s.native.Serialization._
 import org.json4s.{ DefaultFormats, Formats }
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.constructor.Constructor
@@ -123,7 +124,20 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
       case source                        ⇒ source
     }
 
-    val parsed = Try(convert(yaml.loadAll(reader))).recover {
+    def flatten(any: Any, acc: List[Any]): List[Any] = any match {
+      case l: List[_] ⇒ l.flatMap(flatten(_, acc))
+      case other      ⇒ acc :+ other
+    }
+
+    val parsed = Try {
+      flatten(
+        convert(
+          yaml.loadAll(
+            reader
+          )
+        ), Nil
+      )
+    } recover {
       case e: Exception ⇒ invalidYaml(e)
     } get
 
@@ -422,3 +436,26 @@ trait ArgumentReader {
   }
 }
 
+case class ArtifactSource(kind: String, name: String, source: YamlSourceReader) {
+  override lazy val toString: String = write(source.flatten())(DefaultFormats)
+}
+
+object ArtifactListReader extends YamlReader[List[ArtifactSource]] {
+
+  import YamlSourceReader._
+
+  override def read(input: YamlSource): List[ArtifactSource] = {
+    (unmarshal(input) match {
+      case Left(item)   ⇒ List(item)
+      case Right(items) ⇒ items
+    }) map { item ⇒
+
+      val kind = item.get[String]("kind")
+      val name = item.get[String]("name")
+
+      ArtifactSource(if (kind.endsWith("s")) kind else s"${kind}s", name, item)
+    }
+  }
+
+  override protected def parse(implicit source: YamlSourceReader): List[ArtifactSource] = throw new NotImplementedError
+}

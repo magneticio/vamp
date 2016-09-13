@@ -1,11 +1,12 @@
 package io.vamp.operation.gateway
 
+import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.container_driver.ContainerDriverActor.DeployedGateways
 import io.vamp.gateway_driver.GatewayDriverActor
-import io.vamp.gateway_driver.GatewayDriverActor.Commit
+import io.vamp.gateway_driver.GatewayDriverActor.{ Pull, Push }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
@@ -37,7 +38,7 @@ object GatewaySynchronizationActor {
 
   object SynchronizeAll extends GatewayMessages
 
-  case class Synchronize(gateways: List[Gateway], deployments: List[Deployment]) extends GatewayMessages
+  case class Synchronize(gateways: List[Gateway], deployments: List[Deployment], marshalled: List[Gateway]) extends GatewayMessages
 
 }
 
@@ -49,13 +50,10 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   import GatewaySynchronizationActor._
 
-  // TODO current gateways should be retrieved from key-value store
-  private var current: List[Gateway] = Nil
-
   def receive = {
-    case SynchronizeAll                     ⇒ synchronize()
-    case Synchronize(gateways, deployments) ⇒ synchronize(gateways, deployments)
-    case _                                  ⇒
+    case SynchronizeAll ⇒ synchronize()
+    case s: Synchronize ⇒ synchronize(s.gateways, s.deployments, s.marshalled)
+    case _              ⇒
   }
 
   private def synchronize() = {
@@ -64,14 +62,15 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     (for {
       gateways ← allArtifacts[Gateway]
       deployments ← allArtifacts[Deployment]
-    } yield (gateways, deployments)) onComplete {
-      case Success((gateways, deployments)) ⇒ sendTo ! Synchronize(gateways, deployments)
-      case Failure(error)                   ⇒ reportException(InternalServerError(error))
+      marshalled ← checked[List[Gateway]](IoC.actorFor[GatewayDriverActor] ? Pull)
+    } yield (gateways, deployments, marshalled)) onComplete {
+      case Success((gateways, deployments, marshalled)) ⇒ sendTo ! Synchronize(gateways, deployments, marshalled)
+      case Failure(error)                               ⇒ reportException(InternalServerError(error))
     }
   }
 
-  private def synchronize(gateways: List[Gateway], deployments: List[Deployment]) = {
-    (portAssignment(deployments) andThen instanceUpdate(deployments) andThen select andThen flush)(gateways)
+  private def synchronize(gateways: List[Gateway], deployments: List[Deployment], marshalled: List[Gateway]) = {
+    (portAssignment(deployments) andThen instanceUpdate(deployments) andThen select(marshalled) andThen flush)(gateways)
   }
 
   private def portAssignment(deployments: List[Deployment]): List[Gateway] ⇒ GatewayPipeline = { gateways ⇒
@@ -187,18 +186,17 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     }
   }
 
-  private def select: GatewayPipeline ⇒ List[Gateway] = { pipeline ⇒
+  private def select(marshalled: List[Gateway]): GatewayPipeline ⇒ List[Gateway] = { pipeline ⇒
 
     val selected = pipeline.deployable
 
-    val currentAsMap = current.map(g ⇒ g.name -> g).toMap
+    val currentAsMap = marshalled.map(g ⇒ g.name -> g).toMap
     val selectedAsMap = selected.map(g ⇒ g.name -> g).toMap
 
     currentAsMap.keySet.diff(selectedAsMap.keySet).foreach(name ⇒ sendEvent(currentAsMap(name), "undeployed"))
     selectedAsMap.keySet.diff(currentAsMap.keySet).foreach(name ⇒ sendEvent(selectedAsMap(name), "deployed"))
 
-    current = selected
-    current
+    selected
   }
 
   private def flush: List[Gateway] ⇒ Unit = { gateways ⇒
@@ -210,7 +208,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       else len1 < len2
     }
 
-    IoC.actorFor[GatewayDriverActor] ! Commit(sorted)
+    IoC.actorFor[GatewayDriverActor] ! Push(sorted)
     IoC.actorFor[ContainerDriverActor] ! DeployedGateways(sorted)
   }
 

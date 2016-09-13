@@ -3,7 +3,6 @@ package io.vamp.model.reader
 import java.time.{ OffsetDateTime, ZoneId }
 import java.util.Date
 
-import io.vamp.common.notification.{ Notification, NotificationErrorException }
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.validator.BreedTraitValueValidator
@@ -12,7 +11,7 @@ import io.vamp.model.workflow._
 
 import scala.util.Try
 
-trait AbstractWorkflowReader extends YamlReader[Workflow] with ArgumentReader with TraitReader with BreedTraitValueValidator {
+object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with TraitReader with BreedTraitValueValidator {
 
   override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
 
@@ -81,10 +80,4 @@ trait AbstractWorkflowReader extends YamlReader[Workflow] with ArgumentReader wi
   private def eventSchedule(implicit source: YamlSourceReader): Schedule = {
     <<?[List[String]]("event" :: "tags" :: Nil).map(tags ⇒ EventSchedule(tags.toSet)).getOrElse(EventSchedule(Set()))
   }
-}
-
-object WorkflowReader extends AbstractWorkflowReader
-
-object SilentWorkflowReader extends AbstractWorkflowReader {
-  override def reportException(notification: Notification): Exception = NotificationErrorException(notification, message(notification))
 }

@@ -1,11 +1,13 @@
 package io.vamp.persistence.db
 
+import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
-import io.vamp.model.reader._
 import io.vamp.model.reader.YamlSourceReader._
+import io.vamp.model.reader._
 import io.vamp.model.serialization.CoreSerializationFormat
 import org.json4s.native.Serialization._
 
+import scala.reflect._
 import scala.util.Try
 
 trait NoNameValidationYamlReader[T] extends YamlReader[T] {
@@ -15,10 +17,17 @@ trait NoNameValidationYamlReader[T] extends YamlReader[T] {
   override protected def name(implicit source: YamlSourceReader): String = <<![String]("name")
 }
 
-trait PersistenceMarshaller {
+trait PersistenceMarshaller extends TypeOfArtifact {
+  this: NotificationProvider ⇒
 
-  def marshall(artifact: Artifact): String = {
-    write(artifact)(CoreSerializationFormat.full)
+  def marshall(input: AnyRef): String = {
+    write(input)(CoreSerializationFormat.full)
+  }
+
+  def unmarshall[T <: Artifact: ClassTag](source: String): List[T] = {
+    ArtifactListReader.read(source).flatMap { item ⇒
+      Try(readers.get(type2string(classTag[T].runtimeClass)).map(_.read(item.source).asInstanceOf[T])).getOrElse(None)
+    }
   }
 
   def unmarshall(`type`: String, source: String): Option[Artifact] = {
@@ -40,7 +49,7 @@ trait PersistenceMarshaller {
     "routes" -> RouteReader,
     "conditions" -> ConditionReader,
     "rewrites" -> RewriteReader,
-    "workflows" -> SilentWorkflowReader,
+    "workflows" -> WorkflowReader,
     // gateway persistence
     "route-targets" -> new NoNameValidationYamlReader[RouteTargets] {
       override protected def parse(implicit source: YamlSourceReader) = {
