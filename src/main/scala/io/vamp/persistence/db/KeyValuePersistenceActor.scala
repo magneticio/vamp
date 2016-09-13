@@ -7,6 +7,10 @@ import io.vamp.persistence.kv.KeyValueStoreActor
 
 import scala.concurrent.Future
 
+object KeyValuePersistenceActor {
+  val root = "persistence"
+}
+
 class KeyValuePersistenceActor extends PersistenceActor with PersistenceMarshaller with TypeOfArtifact {
 
   protected def info(): Future[Any] = Future.successful(Map("type" -> "key-value"))
@@ -17,7 +21,7 @@ class KeyValuePersistenceActor extends PersistenceActor with PersistenceMarshall
 
     log.debug(s"${getClass.getSimpleName}: all [$as] of $page per $perPage")
 
-    checked[List[String]](IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.All(as :: Nil)) flatMap { list ⇒
+    checked[List[String]](IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.All(path(as))) flatMap { list ⇒
       val from = (page - 1) * perPage
 
       if (from < 0 || from >= list.size) {
@@ -27,7 +31,7 @@ class KeyValuePersistenceActor extends PersistenceActor with PersistenceMarshall
 
         Future.sequence {
           list.slice(from, until).map {
-            name ⇒ checked[Option[String]](IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(as :: name :: Nil))
+            name ⇒ checked[Option[String]](IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(path(as, name)))
           }
         } map {
           artifacts ⇒ ArtifactResponseEnvelope(artifacts.flatten.flatMap(unmarshall(as, _)), list.size, page, perPage)
@@ -40,7 +44,7 @@ class KeyValuePersistenceActor extends PersistenceActor with PersistenceMarshall
     val as = type2string(`type`)
     log.debug(s"${getClass.getSimpleName}: read [$as] - $name}")
 
-    checked[Option[String]](IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(as :: name :: Nil)) map {
+    checked[Option[String]](IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(path(as, name))) map {
       case Some(response) ⇒ unmarshall(as, response)
       case _              ⇒ None
     }
@@ -50,12 +54,14 @@ class KeyValuePersistenceActor extends PersistenceActor with PersistenceMarshall
     val json = marshall(artifact)
     val as = type2string(artifact.getClass)
     log.debug(s"${getClass.getSimpleName}: set [$as] - $json")
-    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(as :: artifact.name :: Nil, Option(json)) map (_ ⇒ artifact)
+    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path(as, artifact.name), Option(json)) map (_ ⇒ artifact)
   }
 
   protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = {
     val as = type2string(`type`)
     log.debug(s"${getClass.getSimpleName}: delete [$as] - $name}")
-    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(as :: name :: Nil, None) map (_ ⇒ true)
+    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path(as, name), None) map (_ ⇒ true)
   }
+
+  private def path(keys: String*) = KeyValuePersistenceActor.root +: keys.toList
 }
