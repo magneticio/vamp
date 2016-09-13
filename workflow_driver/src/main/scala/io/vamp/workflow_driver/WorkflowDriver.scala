@@ -65,7 +65,7 @@ trait WorkflowDriver {
     val breed = workflow.breed.asInstanceOf[DefaultBreed]
 
     val environmentVariables = (additionalEnvironmentVariables ++ List(environmentVariable("VAMP_URL", WorkflowDriver.vampUrl),
-      environmentVariable("VAMP_KEY_VALUE_STORE_ROOT_PATH", KeyValueStoreActor.pathToString(WorkflowDriver.path(workflow)))) ++
+      environmentVariable("VAMP_KEY_VALUE_STORE_PATH", KeyValueStoreActor.pathToString(WorkflowDriver.path(workflow)))) ++
       breed.environmentVariables ++ workflow.environmentVariables).map(env ⇒ env.name -> env.copy(interpolated = env.value)).toMap.values.toList
 
     val deployable = breed.deployable match {
