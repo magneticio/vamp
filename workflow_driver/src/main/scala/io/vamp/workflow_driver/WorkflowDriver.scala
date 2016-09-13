@@ -18,13 +18,13 @@ object WorkflowDeployable extends DeployableType("application/javascript")
 
 object WorkflowDriver {
 
+  val root = "workflows"
+
   val config = Config.config("vamp.workflow-driver")
 
   val vampUrl = config.string("vamp-url")
 
-  def path(workflow: Workflow, script: Boolean) = "workflows" :: workflow.name :: (if (script) "script" :: Nil else Nil)
-
-  def pathToString(workflow: Workflow) = KeyValueStoreActor.pathToString(path(workflow, script = false))
+  def path(workflow: Workflow) = root :: workflow.name :: Nil
 }
 
 trait WorkflowDriver {
@@ -65,7 +65,7 @@ trait WorkflowDriver {
     val breed = workflow.breed.asInstanceOf[DefaultBreed]
 
     val environmentVariables = (additionalEnvironmentVariables ++ List(environmentVariable("VAMP_URL", WorkflowDriver.vampUrl),
-      environmentVariable("VAMP_KEY_VALUE_STORE_ROOT_PATH", WorkflowDriver.pathToString(workflow))) ++
+      environmentVariable("VAMP_KEY_VALUE_STORE_ROOT_PATH", KeyValueStoreActor.pathToString(WorkflowDriver.path(workflow)))) ++
       breed.environmentVariables ++ workflow.environmentVariables).map(env ⇒ env.name -> env.copy(interpolated = env.value)).toMap.values.toList
 
     val deployable = breed.deployable match {

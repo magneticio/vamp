@@ -13,6 +13,8 @@ import scala.concurrent.Future
 
 object GatewayDriverActor {
 
+  val root = "gateways"
+
   sealed trait GatewayDriverMessage
 
   case class Commit(gateways: List[Gateway]) extends GatewayDriverMessage
@@ -25,7 +27,7 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PulseFailureNoti
 
   lazy implicit val timeout = KeyValueStoreActor.timeout
 
-  private def path = marshaller.path
+  private def path = root +: marshaller.path
 
   def receive = {
     case InfoRequest      ⇒ reply(info)
