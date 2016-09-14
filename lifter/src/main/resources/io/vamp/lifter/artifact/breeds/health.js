@@ -1,6 +1,6 @@
 'use strict';
 
-var _ = require('lodash');
+var _ = require('highland');
 var vamp = require('vamp-node-client');
 
 var api = new vamp.Api();
@@ -11,45 +11,60 @@ var window = 30; // seconds
 
 function health(lookupName, tags) {
 
-    var errorCode = 500;
-    var term = {ft: lookupName};
-    var range = {ST: {gte: errorCode}};
+  var errorCode = 500;
+  var term = {ft: lookupName};
+  var range = {ST: {gte: errorCode}};
 
-    metrics.count(term, range, window, function (total) {
-        api.event(tags, total > 0 ? 0 : 1, 'health');
-    });
+  return metrics.count(term, range, window).map(function (total) {
+    return total > 0 ? 0 : 1;
+  }).tap(function (health) {
+    publish(tags, health);
+  });
 }
 
-var process = function() {
+function publish(tags, health) {
+  api.event(tags, health, "health");
+}
 
-  api.gateways(function (gateways) {
+var run = function () {
 
-      _.forEach(gateways, function (gateway) {
+  var collectHealth = function (x1, x2) {
+    return x1 * x2;
+  };
 
-          health(gateway.lookup_name, ['gateways:' + gateway.name, 'gateway', 'health']);
+  api.gateways().each(function (gateway) {
+    // gateway health
+    health(gateway.lookup_name, ['gateways:' + gateway.name, 'gateway', 'health']);
 
-          _.forOwn(gateway.routes, function (route, routeName) {
-              health(route.lookup_name, ['gateways:' + gateway.name, 'routes:' + routeName, 'route', 'health']);
+    api.namify(gateway.routes).each(function (route) {
+      // route health
+      health(route.lookup_name, ['gateways:' + gateway.name, 'route', 'routes:' + route.name, 'health']);
+    });
+  });
+
+  api.deployments().each(function (deployment) {
+    api.namify(deployment.clusters).flatMap(function (cluster) {
+      return api.namify(cluster.gateways).flatMap(function (gateway) {
+        return _(cluster.services).flatMap(function (service) {
+          return api.namify(gateway.routes).find(function (route) {
+            return route.name === service.breed.name;
+          }).flatMap(function (route) {
+            // service health based on corresponding route health
+            return health(route.lookup_name, ['deployments:' + deployment.name, 'clusters:' + cluster.name, 'service', 'services:' + service.breed.name, 'health']);
           });
+        });
+      }).reduce1(collectHealth).tap(function (health) {
+        // cluster health
+        publish(['deployments:' + deployment.name, 'clusters:' + cluster.name, 'cluster', 'health'], health);
       });
-
-      api.deployments(function (deployments) {
-          _.forEach(deployments, function (deployment) {
-              _.forOwn(deployment.clusters, function (cluster, clusterName) {
-                  _.forEach(cluster.services, function (service) {
-                      _.forOwn(cluster.gateways, function (gateway, gatewayName) {
-                          _.forOwn(gateway.routes, function (route, routeName) {
-                              if (routeName === service.breed.name)
-                                  health(route.lookup_name, ['deployments:' + deployment.name, 'clusters:' + clusterName, 'services:' + service.breed.name, 'service', 'health']);
-                          });
-                      });
-                  });
-              });
-          });
-      });
+    }).reduce1(collectHealth).tap(function (health) {
+      // deployment health
+      publish(['deployments:' + deployment.name, 'deployment', 'health'], health);
+    }).done(function () {
+    });
   });
 };
 
-process();
+run();
 
-setInterval(process, period * 1000);
+setInterval(run, period * 1000);
