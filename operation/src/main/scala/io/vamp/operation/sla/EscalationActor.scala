@@ -7,7 +7,7 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact.DeploymentService.State.Step.Initiated
 import io.vamp.model.artifact._
-import io.vamp.model.event.{ EventQuery, TimeRange }
+import io.vamp.model.event.{ Event, EventQuery, TimeRange }
 import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.operation.notification.{ InternalServerError, OperationNotificationProvider, UnsupportedEscalationType }
@@ -54,10 +54,10 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
   def receive: Receive = {
     case EscalationProcessAll(from, to) ⇒
       implicit val timeout = PersistenceActor.timeout
-      allArtifacts[Deployment] map (check(_, from, to))
+      forAll(allArtifacts[Deployment], check(from, to))
   }
 
-  private def check(deployments: List[Deployment], from: OffsetDateTime, to: OffsetDateTime): Unit = {
+  private def check(from: OffsetDateTime, to: OffsetDateTime)(deployments: List[Deployment]): Unit = {
 
     def escalation(deployment: Deployment, cluster: DeploymentCluster, sla: Sla, escalate: Boolean) = {
       escalateToOne(deployment, cluster, ToOneEscalation("", sla.escalations), escalate) match {
@@ -71,13 +71,11 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
         deployment.clusters.foreach(cluster ⇒ cluster.sla match {
           case None ⇒
           case Some(sla) ⇒
-            querySlaEvents(deployment, cluster, from, to) map { escalationEvents ⇒
-              escalationEvents.foreach {
-                case Escalate(d, c, _) if d.name == deployment.name && c.name == cluster.name ⇒ escalation(deployment, cluster, sla, escalate = true)
-                case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name ⇒ escalation(deployment, cluster, sla, escalate = false)
-                case _ ⇒
-              }
-            }
+            forEach(querySlaEvents(deployment, cluster, from, to), {
+              case Escalate(d, c, _) if d.name == deployment.name && c.name == cluster.name ⇒ escalation(deployment, cluster, sla, escalate = true)
+              case DeEscalate(d, c, _) if d.name == deployment.name && c.name == cluster.name ⇒ escalation(deployment, cluster, sla, escalate = false)
+              case _ ⇒
+            }: (SlaEvent) ⇒ Unit)
         })
       } catch {
         case any: Throwable ⇒ reportException(InternalServerError(any))
@@ -85,20 +83,14 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
     })
   }
 
-  private def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime): Future[List[SlaEvent]] = {
+  private def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime): Future[Stream[Future[List[SlaEvent]]]] = {
     implicit val timeout = PulseActor.timeout
     val eventQuery = EventQuery(SlaEvent.slaTags(deployment, cluster), Some(TimeRange(Some(from), Some(to), includeLower = false, includeUpper = true)))
 
-    allEvents(eventQuery) map { events ⇒
-      events.flatMap { event ⇒
-        if (Escalate.tags.forall(event.tags.contains))
-          Escalate(deployment, cluster, event.timestamp) :: Nil
-        else if (DeEscalate.tags.forall(event.tags.contains))
-          DeEscalate(deployment, cluster, event.timestamp) :: Nil
-        else
-          Nil
-      }
-    }
+    collectEach[Event, SlaEvent](allEvents(eventQuery), {
+      case event if Escalate.tags.forall(event.tags.contains)   ⇒ Escalate(deployment, cluster, event.timestamp)
+      case event if DeEscalate.tags.forall(event.tags.contains) ⇒ DeEscalate(deployment, cluster, event.timestamp)
+    })
   }
 
   private def escalateToAll(deployment: Deployment, cluster: DeploymentCluster, escalations: List[Escalation], escalate: Boolean): Option[Deployment] = {

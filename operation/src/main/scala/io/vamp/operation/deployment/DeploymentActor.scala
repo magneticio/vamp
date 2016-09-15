@@ -231,7 +231,9 @@ trait DeploymentValidator {
   def validateGateways: (Deployment ⇒ Future[Deployment]) = { (deployment: Deployment) ⇒
     // Availability check.
     implicit val timeout = PersistenceActor.timeout
-    allArtifacts[Gateway] map { gateways ⇒
+
+    consume(allArtifacts[Gateway]) map { gateways ⇒
+
       val otherGateways = gateways.filter(gateway ⇒ GatewayPath(gateway.name).segments.head != deployment.name)
 
       deployment.gateways.map { gateway ⇒

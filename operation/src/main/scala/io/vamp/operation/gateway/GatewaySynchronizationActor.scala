@@ -60,8 +60,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     val sendTo = self
     implicit val timeout = PersistenceActor.timeout
     (for {
-      gateways ← allArtifacts[Gateway]
-      deployments ← allArtifacts[Deployment]
+      gateways ← consume(allArtifacts[Gateway])
+      deployments ← consume(allArtifacts[Deployment])
       marshalled ← checked[List[Gateway]](IoC.actorFor[GatewayDriverActor] ? Pull)
     } yield (gateways, deployments, marshalled)) onComplete {
       case Success((gateways, deployments, marshalled)) ⇒ sendTo ! Synchronize(gateways, deployments, marshalled)

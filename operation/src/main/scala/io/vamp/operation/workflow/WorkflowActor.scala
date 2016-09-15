@@ -68,10 +68,9 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
   private def reschedule() = {
     implicit val timeout = PersistenceActor.timeout
-    allArtifacts[Workflow] map {
-      case workflows: List[_] ⇒ workflows.foreach(workflow ⇒ self ! Schedule(workflow))
-      case any                ⇒ reportException(InternalServerError(any))
-    }
+    forEach[Workflow](allArtifacts[Workflow], {
+      workflow ⇒ self ! Schedule(workflow)
+    })
   }
 
   private def schedule(workflow: Workflow): Unit = {

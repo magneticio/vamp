@@ -43,12 +43,12 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
   private def synchronize() = {
     implicit val timeout = PersistenceActor.timeout
-    allArtifacts[Deployment] foreach { deployments ⇒
+    forAll(allArtifacts[Deployment], { deployments ⇒
       val deploymentServices = deployments.filterNot(withError).map { deployment ⇒
         DeploymentServices(deployment, deployment.clusters.flatMap(_.services))
       }
       actorFor[ContainerDriverActor] ! ContainerDriverActor.Get(deploymentServices)
-    }
+    }: (List[Deployment]) ⇒ Unit)
   }
 
   private def synchronize(containerService: ContainerService): Unit = {

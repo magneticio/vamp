@@ -160,11 +160,10 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
   private def validateUniquePort: Gateway ⇒ Future[Gateway] = {
     case gateway if gateway.inner ⇒ Future.successful(gateway)
     case gateway ⇒
-      allArtifacts[Gateway] map {
+      consume(allArtifacts[Gateway]) map {
         case gateways if gateway.port.number != 0 ⇒
           gateways.find(_.port.number == gateway.port.number).map(g ⇒ throwException(UnavailableGatewayPortError(gateway.port, g)))
           gateway
-
         case _ ⇒ gateway
       }
   }
