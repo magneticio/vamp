@@ -12,6 +12,8 @@ import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
 
 import scala.concurrent.Future
 
+private case class DeploymentsStatistics(count: Int, clusters: Int, services: Int)
+
 trait PersistenceStats extends ArtifactPaginationSupport {
   this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
 
@@ -38,11 +40,9 @@ trait PersistenceStats extends ArtifactPaginationSupport {
 
     for {
       map ← Future.sequence(types.flatMap(artifact)).map(list ⇒ list.reduce((m1, m2) ⇒ m1 ++ m2))
-      deployments ← allArtifacts[Deployment]
+      deployments ← deployments()
     } yield {
-      val clusters = deployments.flatMap(_.clusters)
-      val services = clusters.flatMap(_.services)
-      map + ("deployments" -> Map("count" -> deployments.size, "clusters" -> clusters.size, "services" -> services.size))
+      map + ("deployments" -> Map("count" -> deployments.count, "clusters" -> deployments.clusters, "services" -> deployments.services))
     }
   }
 
@@ -63,5 +63,20 @@ trait PersistenceStats extends ArtifactPaginationSupport {
         tag -> Map("count" -> currentCount, "created" -> created, "updated" -> updated, "deleted" -> deleted)
       )
     }
+  }
+
+  private def deployments(): Future[DeploymentsStatistics] = {
+
+    def stats: Deployment ⇒ DeploymentsStatistics = {
+      deployment ⇒ DeploymentsStatistics(1, deployment.clusters.size, deployment.clusters.flatMap(_.services).size)
+    }
+
+    def reduce: (DeploymentsStatistics, DeploymentsStatistics) ⇒ DeploymentsStatistics = {
+      (s1, s2) ⇒ DeploymentsStatistics(s1.count + s2.count, s1.clusters + s2.clusters, s1.services + s2.services)
+    }
+
+    collectAll[Deployment, DeploymentsStatistics](allArtifacts[Deployment], {
+      case deployments ⇒ deployments.map(stats).reduce(reduce)
+    }).flatMap(stream ⇒ Future.sequence(stream.toList).map(_.reduce(reduce)))
   }
 }
