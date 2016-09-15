@@ -1,7 +1,7 @@
 package io.vamp.common.http
 
-import akka.http.scaladsl.model.StatusCode
 import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.model.{ ExceptionWithErrorInfo, StatusCode }
 import akka.http.scaladsl.server._
 import com.typesafe.scalalogging.Logger
 import io.vamp.common.notification.NotificationErrorException
@@ -20,7 +20,10 @@ trait RestApiHandlers {
     case e: Exception ⇒
       extractUri { uri ⇒
         logger.error("Request to {} could not be handled normally: {}", uri, e.getMessage)
-        respondWithError(InternalServerError)
+        e match {
+          case _: ExceptionWithErrorInfo ⇒ respondWithError(BadRequest)
+          case _                         ⇒ respondWithError(InternalServerError)
+        }
       }
   }
 
