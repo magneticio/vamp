@@ -1,7 +1,7 @@
 package io.vamp.container_driver.rancher
 
 import io.vamp.common.config.Config
-import io.vamp.common.http.RestClient
+import io.vamp.common.http.HttpClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
@@ -57,7 +57,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
   override protected def supportedDeployableTypes = DockerDeployable :: Nil
 
   private def info: Future[ContainerInfo] = {
-    restClient.get[ProjectInfo](rancherUrl, headers).map { project ⇒
+    httpClient.get[ProjectInfo](rancherUrl, headers).map { project ⇒
       ContainerInfo("rancher", Map("url" -> rancherUrl, "project" -> project.id, "active" -> project.state))
     }
   }
@@ -74,7 +74,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
         val serviceName = appId(deployment, service.breed)
 
-        restClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).map { services ⇒
+        httpClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).map { services ⇒
 
           services.data.find(service ⇒ service.name == serviceName && service.state == Option("active")) match {
 
@@ -83,7 +83,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
               val cpu = Quantity(s.launchConfig.flatMap(_.cpuShares).getOrElse(0).toDouble)
               val memory = MegaByte(s.launchConfig.flatMap(_.memoryMb).getOrElse(0).toDouble)
 
-              restClient.get[ServiceContainersList](s"$rancherUrl/services/${s.id.get}/instances", headers).map(_.data).map { containers ⇒
+              httpClient.get[ServiceContainersList](s"$rancherUrl/services/${s.id.get}/instances", headers).map(_.data).map { containers ⇒
 
                 val instances = containers.map { container ⇒
 
@@ -119,13 +119,13 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
     val stackName = string2Id(name)
 
-    restClient.get[Stacks](s"$environmentsUrl?name=$stackName", headers).flatMap { stacks ⇒
+    httpClient.get[Stacks](s"$environmentsUrl?name=$stackName", headers).flatMap { stacks ⇒
 
       val stack: Future[Stack] = stacks.data.find(_.name == stackName) match {
         case Some(s) ⇒ Future.successful(s)
         case None ⇒
           log.info(s"Rancher driver - creating stack: $stackName")
-          restClient.post[Stack](environmentsUrl, requestPayload(Stack(None, None, stackName, None)), headers)
+          httpClient.post[Stack](environmentsUrl, requestPayload(Stack(None, None, stackName, None)), headers)
       }
 
       stack.map { s ⇒ if (s.state.contains("active")) Option(s) else None }
@@ -138,7 +138,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
         log.info(s"Rancher driver - updating service: ${s.name}")
         val instances = service.scale.map(_.instances).getOrElse(s.scale.getOrElse(1))
         s.actions.get("update") match {
-          case Some(url) ⇒ restClient.put[Service](url, requestPayload(UpdateService(instances)), headers)
+          case Some(url) ⇒ httpClient.put[Service](url, requestPayload(UpdateService(instances)), headers)
           case _         ⇒ Future.successful(s)
         }
       } else Future.successful(s)
@@ -146,12 +146,12 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
   }
 
   private def createService(stack: Stack, service: Service, update: Service ⇒ Future[Service]): Future[Service] = {
-    restClient.get[ServiceList](s"$serviceListUrl?name=${service.name}", headers) flatMap { services ⇒
+    httpClient.get[ServiceList](s"$serviceListUrl?name=${service.name}", headers) flatMap { services ⇒
       val rs = services.data.find(s ⇒ s.name == service.name && s.state != Option("removed")) match {
         case Some(s) ⇒ update(s)
         case None ⇒
           log.info(s"Rancher driver - creating service: ${service.name}")
-          restClient.post[Service](s"$rancherUrl/environment/${stack.id.get}/services", requestPayload(service), headers)
+          httpClient.post[Service](s"$rancherUrl/environment/${stack.id.get}/services", requestPayload(service), headers)
       }
       rs.flatMap(activateService)
     }
@@ -177,11 +177,11 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
   }
 
   private def activateService(service: Service): Future[Service] = {
-    restClient.get[Service](s"$serviceListUrl/${service.id.get}", headers).flatMap { rancherService ⇒
+    httpClient.get[Service](s"$serviceListUrl/${service.id.get}", headers).flatMap { rancherService ⇒
       rancherService.state match {
         case Some(state) if state != "active" ⇒
           service.actions.get("activate") match {
-            case Some(_) ⇒ restClient.post[Service](s"$rancherUrl/services/${service.id.get}/?action=activate", None, headers)
+            case Some(_) ⇒ httpClient.post[Service](s"$rancherUrl/services/${service.id.get}/?action=activate", None, headers)
             case _       ⇒ Future.successful(service)
           }
         case _ ⇒ Future.successful(service)
@@ -193,12 +193,12 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
     val serviceName = appId(deployment, service.breed)
 
-    restClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).
+    httpClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).
       map(_.data.filter(_.name == serviceName)).
       flatMap { services ⇒
         val deletes = services.map { s ⇒
           log.info(s"Rancher driver - removing service: ${s.name}")
-          restClient.delete(s"$rancherUrl/services/${s.id.get}/?action=remove", headers)
+          httpClient.delete(s"$rancherUrl/services/${s.id.get}/?action=remove", headers)
         }
         Future.sequence(deletes)
       } flatMap { some ⇒
@@ -207,12 +207,12 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
           val stackName = string2Id(s"vamp-${deployment.name}-${cluster.name}")
 
-          restClient.get[Stacks](s"$environmentsUrl?name=$stackName", headers).flatMap { stacks ⇒
+          httpClient.get[Stacks](s"$environmentsUrl?name=$stackName", headers).flatMap { stacks ⇒
 
             stacks.data.find(_.name == stackName) match {
               case Some(s) ⇒
                 log.info(s"Rancher driver - removing stack: $stackName")
-                restClient.delete(s"$environmentsUrl/${s.id.get}/?action=remove", headers)
+                httpClient.delete(s"$environmentsUrl/${s.id.get}/?action=remove", headers)
 
               case None ⇒ Future.successful(some)
             }
@@ -253,12 +253,12 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
     val serviceName = appId(workflow)
 
-    restClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).map {
+    httpClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).map {
       _.data.filter(_.name == serviceName)
     } flatMap { services ⇒
       val deletes = services.map { s ⇒
         log.info(s"Rancher driver - removing workflow: ${workflow.name}")
-        restClient.delete(s"$rancherUrl/services/${s.id.get}/?action=remove", headers)
+        httpClient.delete(s"$rancherUrl/services/${s.id.get}/?action=remove", headers)
       }
       Future.sequence(deletes)
     }
@@ -268,7 +268,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
     val serviceName = appId(workflow)
 
-    restClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).map {
+    httpClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).map {
       case ServiceList(Nil)  ⇒ None
       case ServiceList(list) ⇒ Option(list.head)
     }
@@ -280,9 +280,9 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
   private def headers: List[(String, String)] = {
     if (!apiUser.isEmpty && !apiPassword.isEmpty)
-      "Authorization" -> ("Basic " + credentials(apiUser, apiPassword)) :: RestClient.jsonHeaders
+      "Authorization" -> ("Basic " + credentials(apiUser, apiPassword)) :: HttpClient.jsonHeaders
     else
-      RestClient.jsonHeaders
+      HttpClient.jsonHeaders
   }
 
   private def credentials(user: String, password: String): String = {

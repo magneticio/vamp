@@ -2,7 +2,7 @@ package io.vamp.container_driver
 
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
-import io.vamp.common.http.RestClient
+import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.Notification
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
 import io.vamp.model.artifact.{ Deployment, _ }
@@ -50,7 +50,7 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
 
   implicit val timeout = ContainerDriverActor.timeout
 
-  lazy protected val restClient = new RestClient
+  lazy protected val httpClient = new HttpClient
 
   val gatewayServiceIp = Config.string("vamp.gateway-driver.host")
 

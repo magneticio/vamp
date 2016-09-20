@@ -52,7 +52,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
       },
       () ⇒ {
         log.info(s"Creating daemon set: ${ds.name}")
-        restClient.post[Any](url, request, apiHeaders)
+        httpClient.post[Any](url, request, apiHeaders)
       }
     )
   }
