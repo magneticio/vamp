@@ -2,7 +2,7 @@ package io.vamp.lifter.elasticsearch
 
 import akka.actor.{ FSM, _ }
 import io.vamp.common.akka._
-import io.vamp.common.http.RestClient
+import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.lifter.notification.ElasticsearchInitializationTimeoutError
 import io.vamp.pulse.{ ElasticsearchClient, PulseActor }
@@ -45,7 +45,7 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
   lazy implicit val timeout = PulseActor.timeout
 
-  private val restClient = new RestClient
+  private val httpClient = new HttpClient
 
   def done() = goto(Done) using 0
 
@@ -99,12 +99,12 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
     def createTemplate(definition: TemplateDefinition) = {
       receiver ! WaitForOne
-      restClient.put[Any](s"$elasticsearchUrl/_template/${definition.name}", definition.template) onComplete {
+      httpClient.put[Any](s"$elasticsearchUrl/_template/${definition.name}", definition.template) onComplete {
         _ ⇒ receiver ! DoneWithOne
       }
     }
 
-    restClient.get[Any](s"$elasticsearchUrl/_template") onComplete {
+    httpClient.get[Any](s"$elasticsearchUrl/_template") onComplete {
       case Success(response) ⇒
         response match {
           case map: Map[_, _] ⇒ templates.filterNot(definition ⇒ map.asInstanceOf[Map[String, Any]].contains(definition.name)).foreach(createTemplate)
@@ -142,11 +142,11 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
   protected def initializeIndex(indexName: String): Unit = {
     val receiver = self
-    restClient.get[Any](s"$elasticsearchUrl/$indexName", logError = false) onComplete {
+    httpClient.get[Any](s"$elasticsearchUrl/$indexName", logError = false) onComplete {
       case Success(_) ⇒
       case _ ⇒
         receiver ! WaitForOne
-        restClient.put[Any](s"$elasticsearchUrl/$indexName", "") onComplete {
+        httpClient.put[Any](s"$elasticsearchUrl/$indexName", "") onComplete {
           _ ⇒ receiver ! DoneWithOne
         }
     }
