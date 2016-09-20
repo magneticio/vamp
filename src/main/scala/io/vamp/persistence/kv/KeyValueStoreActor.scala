@@ -2,7 +2,7 @@ package io.vamp.persistence.kv
 
 import io.vamp.common.config.Config
 import io.vamp.common.akka._
-import io.vamp.common.http.RestClient
+import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.persistence.db.PersistenceActor
@@ -37,7 +37,7 @@ trait KeyValueStoreActor extends PulseFailureNotifier with CommonSupportForActor
 
   lazy implicit val timeout = KeyValueStoreActor.timeout
 
-  lazy val restClient = new RestClient
+  lazy val httpClient = new HttpClient
 
   def receive = {
     case InfoRequest     ⇒ reply(info())
