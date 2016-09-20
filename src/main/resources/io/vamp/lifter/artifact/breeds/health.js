@@ -32,14 +32,15 @@ var run = function () {
     return x1 * x2;
   };
 
-  api.gateways().each(function (gateway) {
+  api.gateways().flatMap(function (gateway) {
     // gateway health
-    health(gateway.lookup_name, ['gateways:' + gateway.name, 'gateway', 'health']);
-
-    api.namify(gateway.routes).each(function (route) {
-      // route health
-      health(route.lookup_name, ['gateways:' + gateway.name, 'route', 'routes:' + route.name, 'health']);
+    return health(gateway.lookup_name, ['gateways:' + gateway.name, 'gateway', 'health']).flatMap(function () {
+      return api.namify(gateway.routes).flatMap(function (route) {
+        // route health
+        return health(route.lookup_name, ['gateways:' + gateway.name, 'route', 'routes:' + route.name, 'health']);
+      });
     });
+  }).done(function () {
   });
 
   api.deployments().each(function (deployment) {
