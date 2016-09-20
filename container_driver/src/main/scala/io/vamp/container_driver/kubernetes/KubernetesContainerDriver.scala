@@ -31,7 +31,7 @@ trait KubernetesContainerDriver extends ContainerDriver {
   }
 
   protected def retrieve(url: String, name: String, exists: () ⇒ Future[Any], notExists: () ⇒ Future[Any]): Future[Any] = {
-    restClient.get[KubernetesItem](s"$url/$name", apiHeaders, logError = false).recover {
+    httpClient.get[KubernetesItem](s"$url/$name", apiHeaders, logError = false).recover {
       case _ ⇒ notExists()
     } map {
       _ ⇒ exists()

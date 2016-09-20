@@ -9,7 +9,7 @@ import io.vamp.lifter.LifterBootstrap
 import io.vamp.operation.OperationBootstrap
 import io.vamp.persistence.PersistenceBootstrap
 import io.vamp.pulse.PulseBootstrap
-import io.vamp.rest_api.RestApiBootstrap
+import io.vamp.http_api.HttpApiBootstrap
 import io.vamp.workflow_driver.WorkflowDriverBootstrap
 
 class ActorBootstrap extends Bootstrap {
@@ -32,7 +32,7 @@ class ActorBootstrap extends Bootstrap {
       GatewayDriverBootstrap :+
       WorkflowDriverBootstrap :+
       OperationBootstrap :+
-      RestApiBootstrap :+
+      HttpApiBootstrap :+
       LifterBootstrap
   }
 }

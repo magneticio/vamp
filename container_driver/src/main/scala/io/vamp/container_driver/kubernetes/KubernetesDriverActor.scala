@@ -1,7 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
 import io.vamp.common.config.Config
-import io.vamp.common.http.RestClient
+import io.vamp.common.http.HttpClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
@@ -46,8 +46,8 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
   protected val apiHeaders = {
     Try(Source.fromFile(token).mkString).map {
-      bearer ⇒ ("Authorization" -> s"Bearer $bearer") :: RestClient.jsonHeaders
-    } getOrElse RestClient.jsonHeaders
+      bearer ⇒ ("Authorization" -> s"Bearer $bearer") :: HttpClient.jsonHeaders
+    } getOrElse HttpClient.jsonHeaders
   }
 
   private val gatewayService = Map("vamp" -> "gateway")
@@ -75,13 +75,13 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
   }
 
   private def info: Future[Any] = for {
-    paths ← restClient.get[Any](s"$apiUrl", apiHeaders) map {
+    paths ← httpClient.get[Any](s"$apiUrl", apiHeaders) map {
       case map: Map[_, _] ⇒ map.headOption.map { case (_, value) ⇒ value }
       case any            ⇒ any
     }
-    api ← restClient.get[Any](s"$apiUrl/api", apiHeaders)
-    apis ← restClient.get[Any](s"$apiUrl/apis", apiHeaders)
-    version ← restClient.get[Any](s"$apiUrl/version", apiHeaders)
+    api ← httpClient.get[Any](s"$apiUrl/api", apiHeaders)
+    apis ← httpClient.get[Any](s"$apiUrl/apis", apiHeaders)
+    version ← httpClient.get[Any](s"$apiUrl/version", apiHeaders)
   } yield {
     ContainerInfo("kubernetes", KubernetesDriverInfo(version, paths, api, apis))
   }

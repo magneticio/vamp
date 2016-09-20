@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.HttpMethods
 import akka.util.Timeout
 import io.vamp.cli.commandline.CommandLineBasics
 import io.vamp.cli.commands.IoUtils
-import io.vamp.common.http.{ RestClient, RestClientException }
+import io.vamp.common.http.{ HttpClient, HttpClientException }
 import io.vamp.model.artifact._
 import io.vamp.model.reader._
 import org.json4s.native._
@@ -299,7 +299,7 @@ trait RestSupport {
   implicit def system: ActorSystem
 
   def sendAndWaitYaml(request: String, body: Option[String] = None)(implicit m: Manifest[String]): Option[String] = {
-    sendAndWait(request, body, List("Accept" -> "application/x-yaml", "Content-Type" -> "application/x-yaml", RestClient.acceptEncodingIdentity))
+    sendAndWait(request, body, List("Accept" -> "application/x-yaml", "Content-Type" -> "application/x-yaml", HttpClient.acceptEncodingIdentity))
   }
 
   private def sendAndWait(request: String, body: AnyRef, headers: List[(String, String)])(implicit m: Manifest[String]): Option[String] = {
@@ -310,7 +310,7 @@ trait RestSupport {
       val method = List(GET, POST, PUT, DELETE).find(method ⇒ upper.startsWith(s"${method.toString} ")).getOrElse(GET)
       val url = if (upper.startsWith(s"${method.value} ")) request.substring(s"${method.toString} ".length) else request
 
-      val futureResult: Future[String] = new RestClient().http[String](method, url, body, headers)
+      val futureResult: Future[String] = new HttpClient().http[String](method, url, body, headers)
 
       // Block until response ready (nothing else to do anyway)
       Await.result(futureResult, timeout.duration)
@@ -324,7 +324,7 @@ trait RestSupport {
   }
 
   private def prettyError(error: Throwable): String = error match {
-    case e: RestClientException ⇒
+    case e: HttpClientException ⇒
       e.statusCode match {
         case Some(code) ⇒ s"$code - ${extractExceptionMessage(e)}"
         case None       ⇒ s"${extractExceptionMessage(e)}"
@@ -332,7 +332,7 @@ trait RestSupport {
     case e: Exception ⇒ e.getMessage
   }
 
-  private def extractExceptionMessage(e: RestClientException): String = {
+  private def extractExceptionMessage(e: HttpClientException): String = {
     """\{\"message\":\"(.*)\"\}""".r findFirstMatchIn e.message match {
       case Some(extracted) if extracted.groupCount == 1 ⇒ extracted.group(1)
       case _ ⇒ e.getMessage

@@ -16,9 +16,9 @@ class EtcdStoreActor extends KeyValueStoreActor {
   private val valueNode = "value"
 
   override protected def info(): Future[Any] = for {
-    version ← restClient.get[Any](s"$url/version")
-    self ← restClient.get[Any](s"$url/v2/stats/self")
-    store ← restClient.get[Any](s"$url/v2/stats/store")
+    version ← httpClient.get[Any](s"$url/version")
+    self ← httpClient.get[Any](s"$url/v2/stats/self")
+    store ← httpClient.get[Any](s"$url/v2/stats/store")
   } yield Map(
     "type" -> "etcd",
     "etcd" -> Map(
@@ -33,7 +33,7 @@ class EtcdStoreActor extends KeyValueStoreActor {
     val key = KeyValueStoreActor.pathToString(path)
 
     def collect(childPath: List[String]): Future[List[String]] = {
-      restClient.get[EtcdKeyValue](urlOf(childPath), logError = false).recover { case _ ⇒ EtcdKeyValue(EtcdNode()) } flatMap { entry ⇒
+      httpClient.get[EtcdKeyValue](urlOf(childPath), logError = false).recover { case _ ⇒ EtcdKeyValue(EtcdNode()) } flatMap { entry ⇒
         entry.node.value match {
           case Some(_) ⇒
             Future.successful {
@@ -52,14 +52,14 @@ class EtcdStoreActor extends KeyValueStoreActor {
   }
 
   override protected def get(path: List[String]): Future[Option[String]] = {
-    restClient.get[Option[EtcdKeyValue]](urlOfValue(path), logError = false).recover { case _ ⇒ None } map {
+    httpClient.get[Option[EtcdKeyValue]](urlOfValue(path), logError = false).recover { case _ ⇒ None } map {
       _.flatMap(_.node.value)
     }
   }
 
   override protected def set(path: List[String], data: Option[String]): Future[Any] = data match {
-    case None        ⇒ restClient.delete(urlOfValue(path), logError = false).recover { case _ ⇒ false }
-    case Some(value) ⇒ restClient.httpWithEntity[Any](HttpMethods.PUT, urlOfValue(path), Option(FormData("value" -> value).toEntity), logError = false)
+    case None        ⇒ httpClient.delete(urlOfValue(path), logError = false).recover { case _ ⇒ false }
+    case Some(value) ⇒ httpClient.httpWithEntity[Any](HttpMethods.PUT, urlOfValue(path), Option(FormData("value" -> value).toEntity), logError = false)
   }
 
   private def urlOfValue(path: List[String]) = s"${urlOf(path, recursive = false)}/$valueNode"

@@ -1,14 +1,14 @@
-package io.vamp.rest_api
+package io.vamp.http_api
 
 import akka.http.scaladsl.model.StatusCodes.{ NotFound, OK }
 import akka.util.Timeout
 import io.vamp.common.akka._
-import io.vamp.common.http.RestApiDirectives
+import io.vamp.common.http.HttpApiDirectives
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.operation.controller.HealthController
 
 trait HealthRoute extends HealthController {
-  this: ExecutionContextProvider with ActorSystemProvider with RestApiDirectives with NotificationProvider ⇒
+  this: ExecutionContextProvider with ActorSystemProvider with HttpApiDirectives with NotificationProvider ⇒
 
   implicit def timeout: Timeout
 

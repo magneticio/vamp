@@ -21,9 +21,9 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.reflect._
 import scala.util.Try
 
-case class RestClientException(statusCode: Option[Int], message: String) extends RuntimeException(message) {}
+case class HttpClientException(statusCode: Option[Int], message: String) extends RuntimeException(message) {}
 
-object RestClient {
+object HttpClient {
 
   val acceptEncodingIdentity: (String, String) = "accept-encoding" -> "identity"
 
@@ -32,9 +32,9 @@ object RestClient {
   val jsonContentType = ContentTypes.`application/json`
 }
 
-class RestClient(implicit val timeout: Timeout, val system: ActorSystem, formats: Formats = DefaultFormats) {
+class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, formats: Formats = DefaultFormats) {
 
-  import RestClient._
+  import HttpClient._
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 
@@ -84,8 +84,8 @@ class RestClient(implicit val timeout: Timeout, val system: ActorSystem, formats
     }
 
     def recoverWith[T]: PartialFunction[Throwable, T] = {
-      case exception: RestClientException ⇒ throw exception
-      case exception: ExecutionException if exception.getCause != null && exception.getCause.getClass == classOf[RestClientException] ⇒ throw exception.getCause
+      case exception: HttpClientException ⇒ throw exception
+      case exception: ExecutionException if exception.getCause != null && exception.getCause.getClass == classOf[HttpClientException] ⇒ throw exception.getCause
       case exception ⇒
         val message = s"rsp $requestLog - exception: ${exception.getMessage}"
 
@@ -94,7 +94,7 @@ class RestClient(implicit val timeout: Timeout, val system: ActorSystem, formats
           logger.trace(message, exception)
         }
 
-        throw RestClientException(None, exception.getMessage).initCause(if (exception.getCause != null) exception.getCause else exception)
+        throw HttpClientException(None, exception.getMessage).initCause(if (exception.getCause != null) exception.getCause else exception)
     }
 
     def decode(entity: ResponseEntity): Future[String] = entity.toStrict(timeout.duration).map(_.data.decodeString("UTF-8"))
@@ -123,7 +123,7 @@ class RestClient(implicit val timeout: Timeout, val system: ActorSystem, formats
               val message = s"rsp $requestLog - unexpected status code: $code"
               if (logError) logger.error(message)
               logger.trace(s"$message, for response: $body")
-              throw RestClientException(Some(code), body)
+              throw HttpClientException(Some(code), body)
             }
         }
 

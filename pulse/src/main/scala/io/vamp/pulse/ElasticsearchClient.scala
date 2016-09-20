@@ -6,7 +6,7 @@ import java.time.{ Instant, ZoneId, ZonedDateTime }
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
-import io.vamp.common.http.{ RestClient, RestClientException }
+import io.vamp.common.http.{ HttpClient, HttpClientException }
 import org.json4s.native.JsonMethods._
 import org.json4s.{ DefaultFormats, Formats, StringInput }
 
@@ -39,13 +39,13 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val system
 
   import ElasticsearchClient._
 
-  private val restClient = new RestClient
+  private val httpClient = new HttpClient
 
   implicit val executionContext = system.dispatcher
 
-  def health = restClient.get[Any](urlOf(url, "_cluster", "health"))
+  def health = httpClient.get[Any](urlOf(url, "_cluster", "health"))
 
-  def creationTime(index: String): Future[String] = restClient.get[Any](urlOf(url, index)) map {
+  def creationTime(index: String): Future[String] = httpClient.get[Any](urlOf(url, index)) map {
     case response: Map[_, _] ⇒ Try {
       response.asInstanceOf[Map[String, _]].get(index).flatMap {
         _.asInstanceOf[Map[String, _]].get("settings")
@@ -61,41 +61,41 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val system
   }
 
   def exists(index: String, `type`: String, id: String): Future[Boolean] = {
-    restClient.get[Any](urlOf(url, index, `type`, id), logError = false) map {
+    httpClient.get[Any](urlOf(url, index, `type`, id), logError = false) map {
       case response: Map[_, _] ⇒ Try(response.asInstanceOf[Map[String, Boolean]].getOrElse("found", false)).getOrElse(false)
       case _                   ⇒ false
     }
   }
 
   def get[A](index: String, `type`: String, id: String)(implicit mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
-    restClient.get[A](urlOf(url, index, `type`, id), logError = false).recover {
-      case RestClientException(Some(404), body) ⇒ parse(StringInput(body), useBigDecimalForDouble = true).extract[A](formats, mf)
+    httpClient.get[A](urlOf(url, index, `type`, id), logError = false).recover {
+      case HttpClientException(Some(404), body) ⇒ parse(StringInput(body), useBigDecimalForDouble = true).extract[A](formats, mf)
     }
   }
 
   def index[A](index: String, `type`: String, document: AnyRef)(implicit mf: scala.reflect.Manifest[A], formats: Formats): Future[A] =
-    restClient.post[A](urlOf(url, index, `type`), document)
+    httpClient.post[A](urlOf(url, index, `type`), document)
 
   def index[A](index: String, `type`: String, id: String, document: AnyRef)(implicit mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] =
-    restClient.post[A](urlOf(url, index, `type`, id), document)
+    httpClient.post[A](urlOf(url, index, `type`, id), document)
 
   def delete(index: String, `type`: String, id: String): Future[_] = {
-    restClient.delete(urlOf(url, index, `type`, id), logError = false).recover {
+    httpClient.delete(urlOf(url, index, `type`, id), logError = false).recover {
       case _ ⇒ None
     }
   }
 
   def search[A](index: String, query: Any)(implicit mf: scala.reflect.Manifest[A], formats: Formats): Future[A] =
-    restClient.post[A](urlOf(url, index, "_search"), query)
+    httpClient.post[A](urlOf(url, index, "_search"), query)
 
   def search[A](index: String, `type`: String, query: Any)(implicit mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] =
-    restClient.post[A](urlOf(url, index, `type`, "_search"), query)
+    httpClient.post[A](urlOf(url, index, `type`, "_search"), query)
 
   def count(index: String, query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchCountResponse] =
-    restClient.post[ElasticsearchCountResponse](urlOf(url, index, "_count"), query)
+    httpClient.post[ElasticsearchCountResponse](urlOf(url, index, "_count"), query)
 
   def aggregate(index: String, query: Any)(implicit formats: Formats = DefaultFormats): Future[ElasticsearchAggregationResponse] =
-    restClient.post[ElasticsearchAggregationResponse](urlOf(url, index, "_search"), query)
+    httpClient.post[ElasticsearchAggregationResponse](urlOf(url, index, "_search"), query)
 
   private def urlOf(url: String, paths: String*) = (url :: paths.map(path ⇒ URLEncoder.encode(path, "UTF-8")).toList) mkString "/"
 }

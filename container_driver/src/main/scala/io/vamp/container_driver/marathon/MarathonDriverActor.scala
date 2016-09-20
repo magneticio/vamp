@@ -92,9 +92,9 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
     }
 
     for {
-      slaves ← restClient.get[Any](s"$mesosUrl/master/slaves")
-      frameworks ← restClient.get[Any](s"$mesosUrl/master/frameworks")
-      marathon ← restClient.get[Any](s"$marathonUrl/v2/info")
+      slaves ← httpClient.get[Any](s"$mesosUrl/master/slaves")
+      frameworks ← httpClient.get[Any](s"$mesosUrl/master/frameworks")
+      marathon ← httpClient.get[Any](s"$marathonUrl/v2/info")
     } yield {
 
       val s: Any = slaves match {
@@ -116,7 +116,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
     watch = replyTo -> deploymentServices
 
-    restClient.get[AppsResponse](s"$marathonUrl/v2/apps?embed=apps.tasks").map { apps ⇒
+    httpClient.get[AppsResponse](s"$marathonUrl/v2/apps?embed=apps.tasks").map { apps ⇒
 
       val deployed = apps.apps.map(app ⇒ app.id -> app).toMap
 
@@ -178,7 +178,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
         val id = appId(deployment, service.breed)
 
         if (ids.contains(id))
-          restClient.get[AppResponse](s"$marathonUrl/v2/apps/$id?embed=apps.tasks", logError = false)
+          httpClient.get[AppResponse](s"$marathonUrl/v2/apps/$id?embed=apps.tasks", logError = false)
             .map { response ⇒ containerService(deployment, service, Option(response.app)) }
             .foreach { cs ⇒
               log.info(s"marathon event for: ${deployment.name} [$id]")
@@ -201,15 +201,15 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   }
 
   private def sendRequest(update: Boolean, id: String, payload: JValue) = update match {
-    case true ⇒ restClient.get[Any](s"$marathonUrl/v2/apps/$id").flatMap { response ⇒
+    case true ⇒ httpClient.get[Any](s"$marathonUrl/v2/apps/$id").flatMap { response ⇒
       val changed = Extraction.decompose(response).children.headOption match {
         case Some(app) ⇒ app.diff(payload).changed
         case None      ⇒ payload
       }
-      if (changed != JNothing) restClient.put[Any](s"$marathonUrl/v2/apps/$id", changed) else Future.successful(false)
+      if (changed != JNothing) httpClient.put[Any](s"$marathonUrl/v2/apps/$id", changed) else Future.successful(false)
     }
 
-    case false ⇒ restClient.post[Any](s"$marathonUrl/v2/apps", payload)
+    case false ⇒ httpClient.post[Any](s"$marathonUrl/v2/apps", payload)
   }
 
   private def container(workflow: Workflow): Option[Container] = {
@@ -247,18 +247,18 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   private def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
-    restClient.delete(s"$marathonUrl/v2/apps/$id")
+    httpClient.delete(s"$marathonUrl/v2/apps/$id")
   }
 
   private def undeploy(workflow: Workflow) = {
     val id = appId(workflow)
     log.info(s"marathon delete workflow: ${workflow.name}")
-    restClient.delete(s"$marathonUrl/v2/apps/$id")
+    httpClient.delete(s"$marathonUrl/v2/apps/$id")
   }
 
   private def retrieve(workflow: Workflow): Future[Option[App]] = {
     val id = appId(workflow)
-    restClient.get[AppResponse](s"$marathonUrl/v2/apps/$id", logError = false) recover { case _ ⇒ None } map {
+    httpClient.get[AppResponse](s"$marathonUrl/v2/apps/$id", logError = false) recover { case _ ⇒ None } map {
       case AppResponse(response) ⇒ Option(response)
       case _                     ⇒ None
     }

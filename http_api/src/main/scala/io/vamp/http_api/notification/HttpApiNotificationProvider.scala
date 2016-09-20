@@ -1,0 +1,5 @@
+package io.vamp.http_api.notification
+
+import io.vamp.common.notification.{ DefaultPackageMessageResolverProvider, LoggingNotificationProvider }
+
+trait HttpApiNotificationProvider extends LoggingNotificationProvider with DefaultPackageMessageResolverProvider

@@ -20,7 +20,7 @@ import ch.megard.akka.http.cors.{ CorsDirectives, CorsSettings, HttpHeaderRange 
 
 import scala.collection.immutable.Seq
 
-trait RestApiDirectives extends Directives with CorsDirectives {
+trait HttpApiDirectives extends Directives with CorsDirectives {
 
   implicit val formats: Formats
 

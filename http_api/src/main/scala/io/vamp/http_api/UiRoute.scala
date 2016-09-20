@@ -1,16 +1,16 @@
-package io.vamp.rest_api
+package io.vamp.http_api
 
 import akka.event.Logging._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{ HttpEntity, HttpRequest }
 import akka.http.scaladsl.server.directives.LogEntry
 import io.vamp.common.config.Config
-import io.vamp.common.http.RestApiDirectives
+import io.vamp.common.http.HttpApiDirectives
 
 trait UiRoute {
-  this: RestApiDirectives ⇒
+  this: HttpApiDirectives ⇒
 
-  private val config = Config.config("vamp.rest-api.ui")
+  private val config = Config.config("vamp.http-api.ui")
 
   private val index = config.string("index")
   private val directory = config.string("directory")

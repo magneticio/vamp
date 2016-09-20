@@ -7,8 +7,8 @@ import com.typesafe.scalalogging.Logger
 import io.vamp.common.notification.NotificationErrorException
 import org.slf4j.LoggerFactory
 
-trait RestApiHandlers {
-  this: RestApiDirectives ⇒
+trait HttpApiHandlers {
+  this: HttpApiDirectives ⇒
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 

@@ -1,4 +1,4 @@
-package io.vamp.rest_api
+package io.vamp.http_api
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -11,13 +11,13 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-object RestApiBootstrap extends ActorBootstrap {
+object HttpApiBootstrap extends ActorBootstrap {
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 
   private var binding: Option[Future[ServerBinding]] = None
 
-  private val (interface, port) = (Config.string("vamp.rest-api.interface"), Config.int("vamp.rest-api.port"))
+  private val (interface, port) = (Config.string("vamp.http-api.interface"), Config.int("vamp.http-api.port"))
 
   def createActors(implicit actorSystem: ActorSystem) = Nil
 
@@ -30,7 +30,7 @@ object RestApiBootstrap extends ActorBootstrap {
     logger.info(s"Binding: $interface:$port")
 
     binding = Option {
-      Http().bindAndHandle(new RestApiRoute().routes, interface, port)
+      Http().bindAndHandle(new HttpApiRoute().routes, interface, port)
     }
   }
 

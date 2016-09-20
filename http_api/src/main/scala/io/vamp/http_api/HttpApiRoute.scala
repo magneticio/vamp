@@ -1,27 +1,28 @@
-package io.vamp.rest_api
+package io.vamp.http_api
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.config.Config
-import io.vamp.common.http.{ RestApiDirectives, RestApiHandlers }
+import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers }
+import io.vamp.http_api.notification.HttpApiNotificationProvider
 import io.vamp.model.artifact.Artifact
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.operation.controller.ArtifactApiController
 import io.vamp.persistence.db.ArtifactPaginationSupport
-import io.vamp.rest_api.notification.RestApiNotificationProvider
 import org.json4s.Formats
 
 import scala.concurrent.ExecutionContext
 
-object RestApiRoute {
-  val timeout = Config.timeout("vamp.rest-api.response-timeout")
+object HttpApiRoute {
+  val timeout = Config.timeout("vamp.http-api.response-timeout")
 }
 
-class RestApiRoute(implicit val actorSystem: ActorSystem)
-    extends RestApiDirectives
-    with RestApiHandlers
+class HttpApiRoute(implicit val actorSystem: ActorSystem)
+    extends HttpApiDirectives
+    with HttpApiHandlers
+    with WebSocketApi
     with UiRoute
     with ArtifactApiController
     with DeploymentApiRoute
@@ -34,9 +35,9 @@ class RestApiRoute(implicit val actorSystem: ActorSystem)
     with ArtifactPaginationSupport
     with ExecutionContextProvider
     with ActorSystemProvider
-    with RestApiNotificationProvider {
+    with HttpApiNotificationProvider {
 
-  implicit val timeout = RestApiRoute.timeout
+  implicit val timeout = HttpApiRoute.timeout
 
   implicit val formats: Formats = CoreSerializationFormat.default
 
@@ -133,6 +134,10 @@ class RestApiRoute(implicit val actorSystem: ActorSystem)
                   }
                 }
               }
+            }
+          } ~ path("websocket") {
+            get {
+              handleWebSocketMessages(websocket)
             }
           } ~ uiRoutes
         }

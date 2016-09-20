@@ -2,7 +2,7 @@ package io.vamp.workflow_driver
 
 import akka.actor.{ ActorRef, ActorRefFactory, ActorSystem }
 import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
-import io.vamp.common.http.RestClient
+import io.vamp.common.http.HttpClient
 import io.vamp.container_driver._
 import io.vamp.model.artifact._
 import io.vamp.model.workflow.TimeSchedule.RepeatCount
@@ -16,11 +16,11 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: Acto
 
   implicit def actorRefFactory: ActorRefFactory = actorSystem
 
-  private val restClient = new RestClient
+  private val httpClient = new HttpClient
 
   override protected def supportedDeployableTypes = DockerDeployable :: Nil
 
-  override def info: Future[Map[_, _]] = restClient.get[Any](s"$url/scheduler/jobs").map {
+  override def info: Future[Map[_, _]] = httpClient.get[Any](s"$url/scheduler/jobs").map {
     _ ⇒ Map("chronos" -> Map("url" -> url))
   }
 
@@ -48,7 +48,7 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: Acto
         network = workflow.network.getOrElse(Docker.network)
       )
 
-      restClient.post[Any](s"$url/scheduler/iso8601", jobRequest)
+      httpClient.post[Any](s"$url/scheduler/iso8601", jobRequest)
   }
 
   override def unschedule(): PartialFunction[Workflow, Future[Any]] = {
@@ -56,13 +56,13 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: Acto
       all() flatMap {
         list ⇒
           list.find(_.name == name(workflow)) match {
-            case Some(_) ⇒ restClient.delete(s"$url/scheduler/job/${name(workflow)}")
+            case Some(_) ⇒ httpClient.delete(s"$url/scheduler/job/${name(workflow)}")
             case _       ⇒ Future.successful(false)
           }
       }
   }
 
-  private def all(): Future[List[WorkflowInstance]] = restClient.get[Any](s"$url/scheduler/jobs") map {
+  private def all(): Future[List[WorkflowInstance]] = httpClient.get[Any](s"$url/scheduler/jobs") map {
     case list: List[_] ⇒ list.map(_.asInstanceOf[Map[String, String]].getOrElse("name", "")).filter(_.nonEmpty).map(WorkflowInstance)
     case _             ⇒ Nil
   }

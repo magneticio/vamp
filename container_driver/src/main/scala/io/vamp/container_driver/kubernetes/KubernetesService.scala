@@ -19,7 +19,7 @@ trait KubernetesService extends KubernetesArtifact {
   private val nameMatcher = """^[a-z]([-a-z0-9]*[a-z0-9])?$""".r
 
   protected def services(labels: Map[String, String] = Map()): Future[KubernetesApiResponse] = {
-    def request(u: String) = restClient.get[KubernetesApiResponse](u, apiHeaders)
+    def request(u: String) = httpClient.get[KubernetesApiResponse](u, apiHeaders)
     if (labels.isEmpty) request(url) else request(s"$url?${labelSelector(labels)}")
   }
 
@@ -48,7 +48,7 @@ trait KubernetesService extends KubernetesArtifact {
       () ⇒ {
         if (update) {
           log.info(s"Updating service: $name")
-          restClient.put[Any](s"$url/$id", request, apiHeaders)
+          httpClient.put[Any](s"$url/$id", request, apiHeaders)
         } else {
           log.debug(s"Service exists: $name")
           Future.successful(false)
@@ -56,7 +56,7 @@ trait KubernetesService extends KubernetesArtifact {
       },
       () ⇒ {
         log.info(s"Creating service: $name")
-        restClient.post[Any](url, request, apiHeaders)
+        httpClient.post[Any](url, request, apiHeaders)
       }
     )
   }
@@ -65,7 +65,7 @@ trait KubernetesService extends KubernetesArtifact {
     retrieve(url, id,
       () ⇒ {
         log.info(s"Deleting service: $id")
-        restClient.delete(s"$url/$id", apiHeaders)
+        httpClient.delete(s"$url/$id", apiHeaders)
       },
       () ⇒ {
         log.debug(s"Service does not exist: $id")
