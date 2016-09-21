@@ -22,7 +22,7 @@ object HttpApiRoute {
 class HttpApiRoute(implicit val actorSystem: ActorSystem)
     extends HttpApiDirectives
     with HttpApiHandlers
-    with WebSocketApi
+    with WebSocketRoute
     with UiRoute
     with ArtifactApiController
     with DeploymentApiRoute
@@ -135,11 +135,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem)
                 }
               }
             }
-          } ~ path("websocket") {
-            get {
-              handleWebSocketMessages(websocket)
-            }
-          } ~ uiRoutes
+          } ~ path("websocket")(websocketRoute) ~ uiRoutes
         }
       }
     }
