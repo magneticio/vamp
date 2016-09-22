@@ -4,9 +4,6 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import io.vamp.common.akka._
-import io.vamp.operation.http.WebSocketActor.Action.ActionType
-import io.vamp.operation.http.WebSocketActor.Content.ContentType
-import io.vamp.operation.http.WebSocketActor.Status.StatusType
 import io.vamp.operation.notification._
 
 import scala.collection.mutable
@@ -19,43 +16,7 @@ object WebSocketActor {
 
   case class SessionClosed(id: UUID) extends SessionEvent
 
-  case class SessionRequest(id: UUID, request: Request) extends SessionEvent
-
-  case class Request(api: String,
-                     path: String,
-                     action: ActionType,
-                     accept: ContentType,
-                     content: ContentType,
-                     transaction: String,
-                     data: Option[String],
-                     parameters: Map[String, AnyRef] = Map())
-
-  case class Response(api: String,
-                      path: String,
-                      action: ActionType,
-                      status: StatusType,
-                      content: ContentType,
-                      transaction: String,
-                      data: Option[String],
-                      parameters: Map[String, AnyRef] = Map())
-
-  object Action extends Enumeration {
-    type ActionType = Value
-
-    val Peek, Put, Remove = Value
-  }
-
-  object Content extends Enumeration {
-    type ContentType = Value
-
-    val Json, Yaml, Javascript = Value
-  }
-
-  object Status extends Enumeration {
-    type StatusType = Value
-
-    val Ok, Accepted, NoContent, Error = Value
-  }
+  case class SessionRequest(id: UUID, request: WebSocketRequest) extends SessionEvent
 
 }
 
@@ -83,8 +44,8 @@ class WebSocketActor extends CommonSupportForActors with OperationNotificationPr
     sessions.remove(id)
   }
 
-  private def sessionRequest(id: UUID, request: Request) = {
+  private def sessionRequest(id: UUID, request: WebSocketRequest) = {
     log.info(s"Session request [$id]: $request")
-    sessions.get(id).foreach(_ ! Response(request.api, request.path, request.action, Status.Ok, request.content, request.transaction, request.data.map(x ⇒ s"response: $x")))
+    sessions.get(id).foreach(_ ! WebSocketResponse(request.api, request.path, request.action, Status.Ok, request.content, request.transaction, request.data.map(x ⇒ s"response: $x")))
   }
 }
