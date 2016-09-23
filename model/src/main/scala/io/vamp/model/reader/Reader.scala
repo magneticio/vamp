@@ -42,24 +42,23 @@ object YamlSource {
   implicit def file2YamlInput(file: File): YamlSource = FileSource(file)
 }
 
-trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
+trait YamlLoader {
+  this: NotificationProvider ⇒
 
-  def read(input: YamlSource): T = input match {
-    case ReaderSource(reader) ⇒ readSource(reader)
-    case StreamSource(stream) ⇒ readSource(Source.fromInputStream(stream).bufferedReader())
-    case StringSource(string) ⇒ readSource(new StringReader(string))
-    case FileSource(file)     ⇒ readSource(Source.fromFile(file).bufferedReader())
+  protected def yaml: Yaml = {
+    new Yaml(new Constructor() {
+      override def getClassForName(name: String): Class[_] = throw new YAMLException("Not supported.")
+    })
   }
 
   protected def unmarshal(input: YamlSource): Either[YamlSourceReader, List[YamlSourceReader]] = {
 
     def unmarshal(reader: Reader): Either[YamlSourceReader, List[YamlSourceReader]] = load(reader) match {
       case yaml: YamlSourceReader ⇒ Left(yaml)
-      case list: List[_] ⇒
-        Right(list.map {
-          case yaml: YamlSourceReader ⇒ yaml
-          case any                    ⇒ error(any, classOf[YamlSourceReader])
-        })
+      case list: List[_] ⇒ Right(list.map {
+        case yaml: YamlSourceReader ⇒ yaml
+        case any                    ⇒ error(any, classOf[YamlSourceReader])
+      })
       case any ⇒ error(any, classOf[List[YamlSourceReader]])
     }
 
@@ -71,47 +70,7 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
     }
   }
 
-  private def readSource(reader: Reader): T = load(reader, {
-    case yaml: YamlSourceReader ⇒ read(yaml)
-    case list: List[_] if list.length == 1 && list.head.isInstanceOf[YamlSourceReader] ⇒ read(list.head.asInstanceOf[YamlSourceReader])
-    case any ⇒ error(any, classOf[YamlSourceReader])
-  })
-
-  private def error(any: Any, expected: Class[_]) = throwException(UnexpectedTypeError("/", expected, if (any != null) any.getClass else classOf[Object]))
-
-  protected def load(reader: Reader, process: PartialFunction[Any, T]): T = {
-    try {
-
-      def validateConsumed(source: Any, result: T): Unit = source match {
-        case yaml: YamlSourceReader ⇒
-
-          if (result.isInstanceOf[Artifact]) yaml.find[String](Artifact.kind)
-          if (result.isInstanceOf[Lookup]) yaml.find[String](Lookup.entry)
-
-          val nonConsumed = yaml.notConsumed
-          if (nonConsumed.nonEmpty) {
-            implicit val formats: Formats = DefaultFormats
-            throwException(UnexpectedElement(nonConsumed, Serialization.write(nonConsumed)))
-          }
-        case list: List[_] ⇒ list.foreach(validateConsumed(_, result))
-        case _             ⇒
-      }
-
-      val source = load(reader)
-      val result = process(source)
-
-      validateConsumed(source, result)
-      result
-
-    } catch {
-      case e: NotificationErrorException ⇒ throw e
-      case e: YAMLException              ⇒ invalidYaml(e)
-    } finally {
-      reader.close()
-    }
-  }
-
-  private def load(reader: Reader): Any = {
+  protected def load(reader: Reader): Any = {
 
     def convert(any: Any): Any = any match {
       case source: java.util.Map[_, _] ⇒
@@ -154,12 +113,58 @@ trait YamlReader[T] extends ModelNotificationProvider with NameValidator {
     result
   }
 
-  private def invalidYaml(e: Exception) = throwException(YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e))
+  protected def invalidYaml(e: Exception) = throwException(invalidYamlException(e))
 
-  private def yaml = {
-    new Yaml(new Constructor() {
-      override def getClassForName(name: String): Class[_] = throw new YAMLException("Not supported.")
-    })
+  protected def invalidYamlException(e: Exception) = YamlParsingError(e.getMessage.replaceAll("java object", "resource"), e)
+
+  protected def error(any: Any, expected: Class[_]) = throwException(UnexpectedTypeError("/", expected, if (any != null) any.getClass else classOf[Object]))
+}
+
+trait YamlReader[T] extends YamlLoader with ModelNotificationProvider with NameValidator {
+
+  def read(input: YamlSource): T = input match {
+    case ReaderSource(reader) ⇒ readSource(reader)
+    case StreamSource(stream) ⇒ readSource(Source.fromInputStream(stream).bufferedReader())
+    case StringSource(string) ⇒ readSource(new StringReader(string))
+    case FileSource(file)     ⇒ readSource(Source.fromFile(file).bufferedReader())
+  }
+
+  private def readSource(reader: Reader): T = load(reader, {
+    case yaml: YamlSourceReader ⇒ read(yaml)
+    case list: List[_] if list.length == 1 && list.head.isInstanceOf[YamlSourceReader] ⇒ read(list.head.asInstanceOf[YamlSourceReader])
+    case any ⇒ error(any, classOf[YamlSourceReader])
+  })
+
+  protected def load(reader: Reader, process: PartialFunction[Any, T]): T = {
+    try {
+
+      def validateConsumed(source: Any, result: T): Unit = source match {
+        case yaml: YamlSourceReader ⇒
+
+          if (result.isInstanceOf[Artifact]) yaml.find[String](Artifact.kind)
+          if (result.isInstanceOf[Lookup]) yaml.find[String](Lookup.entry)
+
+          val nonConsumed = yaml.notConsumed
+          if (nonConsumed.nonEmpty) {
+            implicit val formats: Formats = DefaultFormats
+            throwException(UnexpectedElement(nonConsumed, Serialization.write(nonConsumed)))
+          }
+        case list: List[_] ⇒ list.foreach(validateConsumed(_, result))
+        case _             ⇒
+      }
+
+      val source = load(reader)
+      val result = process(source)
+
+      validateConsumed(source, result)
+      result
+
+    } catch {
+      case e: NotificationErrorException ⇒ throw e
+      case e: YAMLException              ⇒ invalidYaml(e)
+    } finally {
+      reader.close()
+    }
   }
 
   def read(implicit source: YamlSourceReader): T = {

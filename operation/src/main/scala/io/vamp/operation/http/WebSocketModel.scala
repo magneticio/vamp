@@ -1,5 +1,6 @@
 package io.vamp.operation.http
 
+import io.vamp.common.notification.Notification
 import io.vamp.operation.http.Action.ActionType
 import io.vamp.operation.http.Content.ContentType
 import io.vamp.operation.http.Status.StatusType
@@ -18,14 +19,12 @@ sealed trait WebSocketValidMessage extends WebSocketMessage {
 
   def transaction: String
 
-  def data: Option[String]
+  def data: Option[AnyRef]
 
   def parameters: Map[String, AnyRef]
 }
 
-case class WebSocketError(message: String) extends WebSocketMessage {
-  val status = Status.Error
-}
+case class WebSocketError(error: Notification) extends WebSocketMessage
 
 case class WebSocketRequest(api: String,
                             path: String,
@@ -34,7 +33,7 @@ case class WebSocketRequest(api: String,
                             content: ContentType,
                             transaction: String,
                             data: Option[String],
-                            parameters: Map[String, AnyRef] = Map()) extends WebSocketValidMessage
+                            parameters: Map[String, AnyRef]) extends WebSocketValidMessage
 
 case class WebSocketResponse(api: String,
                              path: String,
@@ -43,7 +42,7 @@ case class WebSocketResponse(api: String,
                              content: ContentType,
                              transaction: String,
                              data: Option[String],
-                             parameters: Map[String, AnyRef] = Map()) extends WebSocketValidMessage
+                             parameters: Map[String, AnyRef]) extends WebSocketValidMessage
 
 object Action extends Enumeration {
   type ActionType = Value
@@ -54,7 +53,7 @@ object Action extends Enumeration {
 object Content extends Enumeration {
   type ContentType = Value
 
-  val Json, Yaml, Javascript = Value
+  val Json, Yaml, PlainText, Javascript = Value
 }
 
 object Status extends Enumeration {

@@ -16,7 +16,7 @@ object WebSocketActor {
 
   case class SessionClosed(id: UUID) extends SessionEvent
 
-  case class SessionRequest(id: UUID, request: WebSocketRequest) extends SessionEvent
+  case class SessionRequest(id: UUID, request: WebSocketMessage) extends SessionEvent
 
 }
 
@@ -34,18 +34,23 @@ class WebSocketActor extends CommonSupportForActors with OperationNotificationPr
   }
 
   private def sessionOpened(id: UUID, actor: ActorRef) = {
-    log.info(s"Session opened [$id]: $actor}")
+    log.debug(s"WebSocket session opened [$id]: $actor}")
     context.watch(actor)
     sessions += (id -> actor)
   }
 
   private def sessionClosed(id: UUID) = {
-    log.info(s"Session closed [$id]")
+    log.debug(s"WebSocket session closed [$id]")
     sessions.remove(id)
   }
 
-  private def sessionRequest(id: UUID, request: WebSocketRequest) = {
-    log.info(s"Session request [$id]: $request")
-    sessions.get(id).foreach(_ ! WebSocketResponse(request.api, request.path, request.action, Status.Ok, request.content, request.transaction, request.data.map(x ⇒ s"response: $x")))
+  private def sessionRequest(id: UUID, request: WebSocketMessage) = {
+    log.debug(s"WebSocket session request [$id]: $request")
+    val response = request match {
+      case WebSocketRequest(api, path, action, accept, content, transaction, data, _) ⇒
+        WebSocketResponse(api, path, action, Status.Error, accept, transaction, Option("Not implemented"), Map())
+      case _ ⇒ request
+    }
+    sessions.get(id).foreach(_ ! response)
   }
 }
