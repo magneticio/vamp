@@ -105,7 +105,7 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, formats
       .mapAsync(1)({
         case HttpResponse(status, _, entity, _) ⇒ status.intValue() match {
 
-          case code if code / 100 == 2 && (classTag[A].runtimeClass == classOf[Any] || classTag[A].runtimeClass == classOf[Nothing] || classTag[A].runtimeClass == classOf[String]) ⇒
+          case code if code / 100 == 2 && (classTag[A].runtimeClass == classOf[Nothing] || classTag[A].runtimeClass == classOf[String]) ⇒
             decode(entity).map { body ⇒
               logger.trace(s"rsp $requestLog - $body")
               body.asInstanceOf[A]
@@ -113,7 +113,7 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, formats
 
           case code if code / 100 == 2 ⇒
             decode(entity).map({ body ⇒
-              val json = parse(StringInput(body), useBigDecimalForDouble = true)
+              val json = Try(parse(StringInput(body), useBigDecimalForDouble = true)).getOrElse(JString(body))
               Try(logger.trace(s"rsp $requestLog - ${Serialization.writePretty(json)}"))
               json.extract[A](formats, mf)
             })
