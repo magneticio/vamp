@@ -16,7 +16,10 @@ import org.json4s.Formats
 import scala.concurrent.ExecutionContext
 
 object HttpApiRoute {
+
   val timeout = Config.timeout("vamp.http-api.response-timeout")
+
+  val stripPathSegments = Config.int("vamp.http-api.strip-path-segments")
 }
 
 class HttpApiRoute(implicit val actorSystem: ActorSystem)
@@ -121,22 +124,27 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem)
     }
   }
 
-  val routes =
+  val api = {
+    noCachingAllowed {
+      cors() {
+        pathPrefix("api" / Artifact.version) {
+          encodeResponse {
+            sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
+              infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ javascriptBreedRoute
+            }
+          }
+        }
+      }
+    } ~ path("websocket")(websocketRoute) ~ uiRoutes
+  }
+
+  val routes = {
     handleExceptions(exceptionHandler) {
       handleRejections(rejectionHandler) {
         withRequestTimeout(timeout.duration) {
-          noCachingAllowed {
-            cors() {
-              pathPrefix("api" / Artifact.version) {
-                encodeResponse {
-                  sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
-                    infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ javascriptBreedRoute
-                  }
-                }
-              }
-            }
-          } ~ path("websocket")(websocketRoute) ~ uiRoutes
+          if (HttpApiRoute.stripPathSegments > 0) pathPrefix(Segments(HttpApiRoute.stripPathSegments)) { _ ⇒ api } else api
         }
       }
     }
+  }
 }
