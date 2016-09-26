@@ -53,37 +53,31 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
 
   private def sessionRequest(apiHandler: HttpRequest ⇒ Future[HttpResponse], id: UUID, request: WebSocketMessage) = {
     log.debug(s"WebSocket session request [$id]: $request")
-
-    def send: WebSocketMessage ⇒ Unit = response ⇒ sessions.get(id).foreach(_ ! response)
-
     request match {
-      case req: WebSocketRequest ⇒ handle(id, req, apiHandler, send)
-      case other                 ⇒ send(other)
+      case req: WebSocketRequest ⇒ handle(id, req, apiHandler)
+      case other                 ⇒ sessions.get(id).foreach(_ ! other)
     }
   }
 
-  private def handle(id: UUID, request: WebSocketRequest, apiHandler: HttpRequest ⇒ Future[HttpResponse], send: WebSocketMessage ⇒ Unit) = {
+  private def handle(id: UUID, request: WebSocketRequest, apiHandler: HttpRequest ⇒ Future[HttpResponse]) = sessions.get(id).foreach { receiver ⇒
 
     if (request.eventStream) {
 
-      sessions.get(id).foreach { to ⇒
+      val params = request.parameters.filter {
+        case (_, v: List[_]) ⇒ v.forall(_.isInstanceOf[String])
+        case _               ⇒ false
+      }.asInstanceOf[Map[String, List[String]]]
 
-        val params = request.parameters.filter {
-          case (_, v: List[_]) ⇒ v.forall(_.isInstanceOf[String])
-          case _               ⇒ false
-        }.asInstanceOf[Map[String, List[String]]]
+      val message = WebSocketResponse(request.api, request.path, request.action, Status.Ok, request.accept, request.transaction, None, Map())
 
-        val message = WebSocketResponse(request.api, request.path, request.action, Status.Ok, request.accept, request.transaction, None, Map())
-
-        openStream(to, params, request.data.getOrElse(""), message)
-      }
+      openStream(receiver, params, request.data.getOrElse(""), message)
 
     } else {
 
       val httpRequest = new HttpRequest(toMethod(request), toUri(request), toHeaders(request), toEntity(request), HttpProtocols.`HTTP/1.1`)
 
       apiHandler(httpRequest).map {
-        case response: HttpResponse ⇒ toResponse(request, response).foreach(send)
+        case response: HttpResponse ⇒ toResponse(request, response).foreach(receiver ! _)
         case _                      ⇒
       }
     }
@@ -117,7 +111,7 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
   }) :: Nil
 
   private def toEntity(request: WebSocketRequest): RequestEntity = {
-    val `type`: ContentType = request.content match {
+    val `type` = request.content match {
       case Content.PlainText  ⇒ ContentTypes.`text/plain(UTF-8)`
       case Content.Json       ⇒ ContentTypes.`application/json`
       case Content.Javascript ⇒ ContentType(MediaTypes.`application/javascript`, HttpCharsets.`UTF-8`)
@@ -129,6 +123,7 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
   private def toResponse(request: WebSocketRequest, response: HttpResponse): Option[WebSocketResponse] = response.entity match {
 
     case HttpEntity.Strict(_, d) ⇒
+
       val status = response.status match {
         case StatusCodes.OK        ⇒ Status.Ok
         case StatusCodes.Accepted  ⇒ Status.Accepted
