@@ -1,11 +1,11 @@
-package io.vamp.operation.http
+package io.vamp.http_api.ws
 
 import io.vamp.common.notification.{ NotificationErrorException, NotificationProvider }
+import io.vamp.http_api.notification.BadRequestError
+import io.vamp.http_api.ws.Content.ContentType
 import io.vamp.model.artifact.Artifact
 import io.vamp.model.reader.{ YamlLoader, YamlSourceReader }
 import io.vamp.model.serialization.CoreSerializationFormat
-import io.vamp.operation.http.Content.ContentType
-import io.vamp.operation.notification.BadRequestError
 import org.json4s._
 import org.json4s.native.Serialization._
 import org.yaml.snakeyaml.DumperOptions.FlowStyle

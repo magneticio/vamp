@@ -1,9 +1,9 @@
-package io.vamp.operation.http
+package io.vamp.http_api.ws
 
 import io.vamp.common.notification.Notification
-import io.vamp.operation.http.Action.ActionType
-import io.vamp.operation.http.Content.ContentType
-import io.vamp.operation.http.Status.StatusType
+import io.vamp.http_api.ws.Action.ActionType
+import io.vamp.http_api.ws.Content.ContentType
+import io.vamp.http_api.ws.Status.StatusType
 
 sealed trait WebSocketMessage
 

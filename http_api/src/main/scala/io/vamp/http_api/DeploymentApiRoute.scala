@@ -1,65 +1,19 @@
 package io.vamp.http_api
 
-import java.time.OffsetDateTime
-import java.time.temporal.ChronoUnit
-
-import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.StatusCodes._
-import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, IoC }
-import io.vamp.common.config.Config
+import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.operation.controller.DeploymentApiController
-import io.vamp.operation.deployment.DeploymentSynchronizationActor
-import io.vamp.operation.gateway.GatewaySynchronizationActor
-import io.vamp.operation.sla.{ EscalationActor, SlaActor }
-import io.vamp.operation.workflow.WorkflowSynchronizationActor
 import io.vamp.persistence.db.ArtifactPaginationSupport
-import io.vamp.persistence.kv.KeyValueStoreActor
 
-import scala.concurrent.Future
-
-trait DeploymentApiRoute extends DeploymentApiController with SystemController with DevController {
+trait DeploymentApiRoute extends DeploymentApiController {
   this: ArtifactPaginationSupport with ExecutionContextProvider with ActorSystemProvider with HttpApiDirectives with NotificationProvider ⇒
 
   implicit def timeout: Timeout
 
   private def asBlueprint = parameters('as_blueprint.as[Boolean] ? false)
-
-  private val helperRoutes = pathPrefix("sync") {
-    onComplete(sync()) { _ ⇒
-      complete(Accepted)
-    }
-  } ~ path("sla") {
-    onComplete(slaCheck()) { _ ⇒
-      complete(Accepted)
-    }
-  } ~ path("escalation") {
-    onComplete(slaEscalation()) { _ ⇒
-      complete(Accepted)
-    }
-  } ~ path("haproxy" / Segment) { version ⇒
-    onSuccess(haproxy(version)) { result ⇒
-      respondWith(OK, result)
-    }
-  } ~ pathPrefix("configuration" | "config") {
-    get {
-      path(Segment) { key: String ⇒
-        pathEndOrSingleSlash {
-          onSuccess(configuration(key)) { result ⇒
-            respondWith(OK, result)
-          }
-        }
-      } ~ pathEndOrSingleSlash {
-        onSuccess(configuration()) { result ⇒
-          respondWith(OK, result)
-        }
-      }
-    }
-  }
 
   private val deploymentRoute = pathPrefix("deployments") {
     pathEndOrSingleSlash {
@@ -153,47 +107,5 @@ trait DeploymentApiRoute extends DeploymentApiController with SystemController w
       }
     }
 
-  val deploymentRoutes = helperRoutes ~ deploymentRoute ~ slaRoute ~ scaleRoute
-}
-
-trait SystemController {
-  this: ArtifactPaginationSupport with NotificationProvider with ExecutionContextProvider with ActorSystemProvider ⇒
-
-  def haproxy(version: String): Future[Any] = {
-    if (HaProxyGatewayMarshaller.path.last == version) {
-      implicit val timeout = KeyValueStoreActor.timeout
-      IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(HaProxyGatewayMarshaller.path) map {
-        case Some(result: String) ⇒ HttpEntity(result)
-        case _                    ⇒ HttpEntity("")
-      }
-    } else Future.successful(HttpEntity(""))
-  }
-
-  def configuration(key: String = "") = Future.successful {
-    val entries = Config.entries().filter {
-      case (k, _) ⇒ k.startsWith("vamp.")
-    }
-    if (key.nonEmpty) entries.get(key) else entries
-  }
-}
-
-trait DevController {
-  this: ArtifactPaginationSupport with NotificationProvider with ExecutionContextProvider with ActorSystemProvider ⇒
-
-  def sync() = Future.successful {
-    IoC.actorFor[DeploymentSynchronizationActor] ! DeploymentSynchronizationActor.SynchronizeAll
-    Thread.sleep(1000)
-    IoC.actorFor[GatewaySynchronizationActor] ! GatewaySynchronizationActor.SynchronizeAll
-    Thread.sleep(1000)
-    IoC.actorFor[WorkflowSynchronizationActor] ! WorkflowSynchronizationActor.SynchronizeAll
-  }
-
-  def slaCheck() = Future.successful {
-    IoC.actorFor[SlaActor] ! SlaActor.SlaProcessAll
-  }
-
-  def slaEscalation() = Future.successful {
-    val now = OffsetDateTime.now()
-    IoC.actorFor[EscalationActor] ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
-  }
+  val deploymentRoutes = deploymentRoute ~ slaRoute ~ scaleRoute
 }

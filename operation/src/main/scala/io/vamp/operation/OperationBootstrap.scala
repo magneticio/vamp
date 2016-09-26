@@ -5,7 +5,6 @@ import io.vamp.common.akka.{ ActorBootstrap, IoC, SchedulerActor }
 import io.vamp.common.config.Config
 import io.vamp.operation.deployment.{ DeploymentActor, DeploymentSynchronizationActor, DeploymentSynchronizationSchedulerActor }
 import io.vamp.operation.gateway.{ GatewayActor, GatewaySynchronizationActor, GatewaySynchronizationSchedulerActor }
-import io.vamp.operation.http.WebSocketActor
 import io.vamp.operation.metrics.KamonMetricsActor
 import io.vamp.operation.sla.{ EscalationActor, EscalationSchedulerActor, SlaActor, SlaSchedulerActor }
 import io.vamp.operation.workflow.{ WorkflowActor, WorkflowSynchronizationActor, WorkflowSynchronizationSchedulerActor }
@@ -50,9 +49,7 @@ object OperationBootstrap extends ActorBootstrap {
 
       IoC.createActor[WorkflowActor],
       IoC.createActor[WorkflowSynchronizationActor],
-      IoC.createActor[WorkflowSynchronizationSchedulerActor],
-
-      IoC.createActor[WebSocketActor]
+      IoC.createActor[WorkflowSynchronizationSchedulerActor]
     )
 
     IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay / 3)

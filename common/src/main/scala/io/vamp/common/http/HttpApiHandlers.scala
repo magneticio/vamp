@@ -12,7 +12,7 @@ trait HttpApiHandlers {
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 
-  def exceptionHandler = ExceptionHandler {
+  implicit def exceptionHandler = ExceptionHandler {
 
     case e: NotificationErrorException ⇒
       respondWithError(BadRequest, s"${e.message}")
@@ -27,7 +27,7 @@ trait HttpApiHandlers {
       }
   }
 
-  def rejectionHandler: RejectionHandler = RejectionHandler.newBuilder()
+  implicit def rejectionHandler: RejectionHandler = RejectionHandler.newBuilder()
     .handle {
       case MalformedRequestContentRejection(message, e: NotificationErrorException) ⇒
         respondWithError(BadRequest, s"$message")

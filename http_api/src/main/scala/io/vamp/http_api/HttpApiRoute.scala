@@ -3,6 +3,7 @@ package io.vamp.http_api
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
+import akka.stream.Materializer
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.config.Config
 import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers }
@@ -22,7 +23,7 @@ object HttpApiRoute {
   val stripPathSegments = Config.int("vamp.http-api.strip-path-segments")
 }
 
-class HttpApiRoute(implicit val actorSystem: ActorSystem)
+class HttpApiRoute(implicit val actorSystem: ActorSystem, m: Materializer)
     extends HttpApiDirectives
     with HttpApiHandlers
     with WebSocketRoute
@@ -35,10 +36,14 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem)
     with MetricsRoute
     with HealthRoute
     with JavascriptBreedRoute
+    with SystemRoute
+    with DebugRoute
     with ArtifactPaginationSupport
     with ExecutionContextProvider
     with ActorSystemProvider
     with HttpApiNotificationProvider {
+
+  implicit val materializer = m
 
   implicit val timeout = HttpApiRoute.timeout
 
@@ -124,25 +129,25 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem)
     }
   }
 
-  val api = {
-    noCachingAllowed {
-      cors() {
-        pathPrefix("api" / Artifact.version) {
-          encodeResponse {
-            sseRoutes ~ accept(`application/json`, `application/x-yaml`) {
-              infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ javascriptBreedRoute
-            }
+  val restfulRoutes = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ systemRoutes ~ debugRoutes ~ javascriptBreedRoute
+
+  val apiRoutes = noCachingAllowed {
+    cors() {
+      pathPrefix("api" / Artifact.version) {
+        encodeResponse {
+          sseRoutes ~ accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
+            restfulRoutes
           }
         }
       }
-    } ~ path("websocket")(websocketRoute) ~ uiRoutes
-  }
+    }
+  } ~ path("websocket")(websocketRoutes) ~ uiRoutes
 
-  val routes = {
+  val allRoutes = {
     handleExceptions(exceptionHandler) {
       handleRejections(rejectionHandler) {
         withRequestTimeout(timeout.duration) {
-          if (HttpApiRoute.stripPathSegments > 0) pathPrefix(Segments(HttpApiRoute.stripPathSegments)) { _ ⇒ api } else api
+          if (HttpApiRoute.stripPathSegments > 0) pathPrefix(Segments(HttpApiRoute.stripPathSegments)) { _ ⇒ apiRoutes } else apiRoutes
         }
       }
     }

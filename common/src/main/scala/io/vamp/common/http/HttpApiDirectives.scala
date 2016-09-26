@@ -9,6 +9,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.CacheDirectives._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.{ Directive0, Directives, MalformedHeaderRejection, Route }
+import ch.megard.akka.http.cors.{ CorsDirectives, CorsSettings, HttpHeaderRange }
 import io.vamp.common.json.PrettyJson
 import io.vamp.common.notification.NotificationErrorException
 import org.json4s.Formats
@@ -16,15 +17,18 @@ import org.json4s.native.Serialization._
 import org.yaml.snakeyaml.DumperOptions.FlowStyle
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.nodes.Tag
-import ch.megard.akka.http.cors.{ CorsDirectives, CorsSettings, HttpHeaderRange }
 
 import scala.collection.immutable.Seq
 
+object HttpApiDirectives {
+  val `application/x-yaml` = MediaType.customBinary(mainType = "application", subType = "x-yaml", Compressible, fileExtensions = List("yaml"))
+}
+
 trait HttpApiDirectives extends Directives with CorsDirectives {
 
-  implicit val formats: Formats
+  import HttpApiDirectives._
 
-  protected val `application/x-yaml` = MediaType.customBinary(mainType = "application", subType = "x-yaml", Compressible, fileExtensions = List("yaml"))
+  implicit val formats: Formats
 
   protected def validateOnly = parameters('validate_only.as[Boolean] ? false)
 
@@ -55,18 +59,17 @@ trait HttpApiDirectives extends Directives with CorsDirectives {
 
   override def post: Directive0 = super.post & contentTypeForModification
 
-  def cors(): Directive0 = {
-    cors(
-      CorsSettings.Default(
-        allowGenericHttpRequests = true,
-        allowCredentials = false,
-        allowedOrigins = HttpOriginRange.*,
-        allowedHeaders = HttpHeaderRange.*,
-        allowedMethods = Seq(GET, POST, HEAD, OPTIONS, DELETE, PUT),
-        exposedHeaders = List("Link", "X-Total-Count"),
-        maxAge = Some(30 * 60)
-      ))
-  }
+  def cors(): Directive0 = cors(
+    CorsSettings.Default(
+      allowGenericHttpRequests = true,
+      allowCredentials = false,
+      allowedOrigins = HttpOriginRange.*,
+      allowedHeaders = HttpHeaderRange.*,
+      allowedMethods = Seq(GET, POST, HEAD, OPTIONS, DELETE, PUT),
+      exposedHeaders = List("Link", "X-Total-Count"),
+      maxAge = Some(30 * 60)
+    )
+  )
 
   // TODO: implement as a directive
   protected def respondWith(status: StatusCode, response: Any): Route = {

@@ -1,0 +1,3 @@
+
+InternalServerError : "Internal server error."
+BadRequestError     : "Bad request. {message}"
