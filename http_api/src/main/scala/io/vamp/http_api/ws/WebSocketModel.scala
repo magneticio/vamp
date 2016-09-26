@@ -33,7 +33,10 @@ case class WebSocketRequest(api: String,
                             content: ContentType,
                             transaction: String,
                             data: Option[String],
-                            parameters: Map[String, AnyRef]) extends WebSocketValidMessage
+                            parameters: Map[String, AnyRef]) extends WebSocketValidMessage {
+
+  val eventStream = action == Action.Peek && path == "/events/stream"
+}
 
 case class WebSocketResponse(api: String,
                              path: String,
@@ -41,7 +44,7 @@ case class WebSocketResponse(api: String,
                              status: StatusType,
                              content: ContentType,
                              transaction: String,
-                             data: Option[String],
+                             data: Option[AnyRef],
                              parameters: Map[String, AnyRef]) extends WebSocketValidMessage
 
 object Action extends Enumeration {

@@ -57,11 +57,11 @@ trait EventApiController {
     actorFor[PulseActor] ? Query(EventRequestEnvelope(query, page, perPage))
   }
 
-  def openStream(to: ActorRef, parameters: Map[String, List[String]], request: String) = {
+  def openStream(to: ActorRef, parameters: Map[String, List[String]], request: String, message: Any = None) = {
 
     val tags = if (request.isEmpty) parameters.getOrElse(tagParameter, Nil).toSet else EventQueryReader.read(request).tags
 
-    actorFor[PulseActor].tell(RegisterPercolator(percolator(to), tags, None), to)
+    actorFor[PulseActor].tell(RegisterPercolator(percolator(to), tags, message), to)
   }
 
   def closeStream(to: ActorRef) = actorFor[PulseActor].tell(UnregisterPercolator(percolator(to)), to)

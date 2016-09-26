@@ -4,6 +4,7 @@ import io.vamp.common.notification.{ NotificationErrorException, NotificationPro
 import io.vamp.http_api.notification.BadRequestError
 import io.vamp.http_api.ws.Content.ContentType
 import io.vamp.model.artifact.Artifact
+import io.vamp.model.event.Event
 import io.vamp.model.reader.{ YamlLoader, YamlSourceReader }
 import io.vamp.model.serialization.CoreSerializationFormat
 import org.json4s._
@@ -33,7 +34,7 @@ trait WebSocketMarshaller extends YamlLoader {
     case e: Exception                     ⇒ WebSocketError(invalidYamlException(e)) :: Nil
   }
 
-  def marshall(response: WebSocketMessage): String = {
+  def marshall(response: AnyRef): String = {
 
     def marshall(any: AnyRef, as: Option[ContentType] = None): String = as match {
       case Some(Content.Json) ⇒ write(any)
@@ -43,8 +44,10 @@ trait WebSocketMarshaller extends YamlLoader {
     }
 
     response match {
-      case e: WebSocketError        ⇒ marshall(Map("status" -> Status.Error.toString.toUpperCase, "error" -> message(e.error)))
-      case r: WebSocketValidMessage ⇒ marshall(r, Option(r.content))
+      case e: WebSocketError                ⇒ marshall(Map("status" -> Status.Error.toString.toUpperCase, "error" -> message(e.error)))
+      case r: WebSocketValidMessage         ⇒ marshall(r, Option(r.content))
+      case (r: WebSocketResponse, e: Event) ⇒ marshall(r.copy(data = Option(e)), Option(r.content))
+      case _                                ⇒ marshall(Map("status" -> Status.Error.toString.toUpperCase, "error" -> "unsupported"))
     }
   }
 
@@ -59,12 +62,13 @@ trait WebSocketMarshaller extends YamlLoader {
     }
 
     val api = source.get[String]("api")
+    val path = source.get[String]("path")
 
     if (api != Artifact.version) throwException(BadRequestError(s"Unsupported API: $api"))
 
     WebSocketRequest(
       api = api,
-      path = source.get[String]("path"),
+      path = if (path.startsWith("/")) path else s"/$path",
       action = extract("action", Action),
       accept = extract("accept", Content),
       content = extract("content", Content),

@@ -1,4 +1,4 @@
-package io.vamp.http_api
+package io.vamp.http_api.ws
 
 import java.util.UUID
 
@@ -12,7 +12,6 @@ import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.http_api.ws.WebSocketActor.{ SessionClosed, SessionEvent, SessionOpened, SessionRequest }
-import io.vamp.http_api.ws.{ WebSocketActor, WebSocketMarshaller, WebSocketMessage }
 
 import scala.concurrent.Future
 
@@ -23,7 +22,7 @@ trait WebSocketRoute extends WebSocketMarshaller with HttpApiHandlers {
 
   def restfulRoutes: Route
 
-  private def handler: HttpRequest ⇒ Future[HttpResponse] = Route.asyncHandler(restfulRoutes)
+  private def apiHandler: HttpRequest ⇒ Future[HttpResponse] = Route.asyncHandler(restfulRoutes)
 
   val websocketRoutes = {
     get {
@@ -40,10 +39,10 @@ trait WebSocketRoute extends WebSocketMarshaller with HttpApiHandlers {
     val in = Flow[AnyRef].collect {
       case TextMessage.Strict(message) ⇒ message
     }.mapConcat(unmarshall)
-      .map(SessionRequest(handler, id, _))
+      .map(SessionRequest(apiHandler, id, _))
       .to(Sink.actorRef[SessionEvent](actorFor[WebSocketActor], SessionClosed(id)))
 
-    val out = Source.actorRef[WebSocketMessage](16, OverflowStrategy.dropHead)
+    val out = Source.actorRef[AnyRef](16, OverflowStrategy.dropHead)
       .mapMaterializedValue(actorFor[WebSocketActor] ! SessionOpened(id, _))
       .map(message ⇒ TextMessage.Strict(marshall(message)))
 

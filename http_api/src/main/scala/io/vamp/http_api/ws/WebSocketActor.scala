@@ -6,10 +6,11 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.headers.Accept
-import akka.http.scaladsl.model.{ ContentType, ContentTypes, HttpCharsets, HttpMethods, _ }
+import akka.http.scaladsl.model.{ ContentType, ContentTypes, HttpCharsets, HttpMethods, HttpResponse, _ }
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.http_api.notification.HttpApiNotificationProvider
+import io.vamp.operation.controller.EventApiController
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -22,11 +23,11 @@ object WebSocketActor {
 
   case class SessionClosed(id: UUID) extends SessionEvent
 
-  case class SessionRequest(handler: HttpRequest ⇒ Future[HttpResponse], id: UUID, request: WebSocketMessage) extends SessionEvent
+  case class SessionRequest(apiHandler: HttpRequest ⇒ Future[HttpResponse], id: UUID, request: WebSocketMessage) extends SessionEvent
 
 }
 
-class WebSocketActor extends CommonSupportForActors with HttpApiNotificationProvider {
+class WebSocketActor extends EventApiController with CommonSupportForActors with HttpApiNotificationProvider {
 
   import WebSocketActor._
 
@@ -47,45 +48,45 @@ class WebSocketActor extends CommonSupportForActors with HttpApiNotificationProv
 
   private def sessionClosed(id: UUID) = {
     log.info(s"WebSocket session closed [$id]")
-    sessions.remove(id)
+    sessions.remove(id).foreach(closeStream)
   }
 
-  private def sessionRequest(handler: HttpRequest ⇒ Future[HttpResponse], id: UUID, request: WebSocketMessage) = {
+  private def sessionRequest(apiHandler: HttpRequest ⇒ Future[HttpResponse], id: UUID, request: WebSocketMessage) = {
     log.debug(s"WebSocket session request [$id]: $request")
 
-    def send(response: WebSocketMessage) = sessions.get(id).foreach(_ ! response)
+    def send: WebSocketMessage ⇒ Unit = response ⇒ sessions.get(id).foreach(_ ! response)
 
     request match {
-      case req: WebSocketRequest ⇒ handler(asHttp(req)).map {
-        case HttpResponse(s, h, HttpEntity.Strict(_, d), _) ⇒
-
-          val status = s match {
-            case StatusCodes.OK        ⇒ Status.Ok
-            case StatusCodes.Accepted  ⇒ Status.Accepted
-            case StatusCodes.NoContent ⇒ Status.NoContent
-            case _                     ⇒ Status.Error
-          }
-
-          val params = h.map(header ⇒ header.name() -> header.value()).toMap
-
-          val data = if (d.isEmpty) None else Option(d.utf8String)
-
-          send(WebSocketResponse(req.api, req.path, req.action, status, req.accept, req.transaction, data, params))
-
-        case _ ⇒
-      }
-      case other ⇒ send(other)
+      case req: WebSocketRequest ⇒ handle(id, req, apiHandler, send)
+      case other                 ⇒ send(other)
     }
   }
 
-  private def asHttp(request: WebSocketRequest): HttpRequest = {
-    new HttpRequest(
-      method = toMethod(request),
-      uri = toUri(request),
-      headers = toHeaders(request),
-      entity = toEntity(request),
-      protocol = HttpProtocols.`HTTP/1.1`
-    )
+  private def handle(id: UUID, request: WebSocketRequest, apiHandler: HttpRequest ⇒ Future[HttpResponse], send: WebSocketMessage ⇒ Unit) = {
+
+    if (request.eventStream) {
+
+      sessions.get(id).foreach { to ⇒
+
+        val params = request.parameters.filter {
+          case (_, v: List[_]) ⇒ v.forall(_.isInstanceOf[String])
+          case _               ⇒ false
+        }.asInstanceOf[Map[String, List[String]]]
+
+        val message = WebSocketResponse(request.api, request.path, request.action, Status.Ok, request.accept, request.transaction, None, Map())
+
+        openStream(to, params, request.data.getOrElse(""), message)
+      }
+
+    } else {
+
+      val httpRequest = new HttpRequest(toMethod(request), toUri(request), toHeaders(request), toEntity(request), HttpProtocols.`HTTP/1.1`)
+
+      apiHandler(httpRequest).map {
+        case response: HttpResponse ⇒ toResponse(request, response).foreach(send)
+        case _                      ⇒
+      }
+    }
   }
 
   private def toMethod(request: WebSocketRequest): HttpMethod = request.action match {
@@ -105,7 +106,7 @@ class WebSocketActor extends CommonSupportForActors with HttpApiNotificationProv
       s"?$flatten"
     } else ""
 
-    Uri(if (request.path.startsWith("/")) s"${request.path}$params" else s"/${request.path}$params")
+    Uri(s"${request.path}$params")
   }
 
   private def toHeaders(request: WebSocketRequest): List[HttpHeader] = (request.accept match {
@@ -123,5 +124,23 @@ class WebSocketActor extends CommonSupportForActors with HttpApiNotificationProv
       case Content.Yaml       ⇒ ContentType(HttpApiDirectives.`application/x-yaml`)
     }
     HttpEntity(`type`, request.data.getOrElse("").getBytes("UTF-8"))
+  }
+
+  private def toResponse(request: WebSocketRequest, response: HttpResponse): Option[WebSocketResponse] = response.entity match {
+
+    case HttpEntity.Strict(_, d) ⇒
+      val status = response.status match {
+        case StatusCodes.OK        ⇒ Status.Ok
+        case StatusCodes.Accepted  ⇒ Status.Accepted
+        case StatusCodes.NoContent ⇒ Status.NoContent
+        case _                     ⇒ Status.Error
+      }
+
+      val params = response.headers.map(header ⇒ header.name() -> header.value()).toMap
+      val data = if (d.isEmpty) None else Option(d.utf8String)
+
+      Option(WebSocketResponse(request.api, request.path, request.action, status, request.accept, request.transaction, data, params))
+
+    case _ ⇒ None
   }
 }

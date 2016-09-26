@@ -8,6 +8,7 @@ import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.config.Config
 import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers }
 import io.vamp.http_api.notification.HttpApiNotificationProvider
+import io.vamp.http_api.ws.WebSocketRoute
 import io.vamp.model.artifact.Artifact
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.operation.controller.ArtifactApiController
