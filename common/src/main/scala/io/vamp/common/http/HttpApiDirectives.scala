@@ -5,9 +5,9 @@ import akka.http.scaladsl.model.MediaType.Compressible
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.Uri.Query
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.CacheDirectives._
 import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.model.{ HttpEntity, _ }
 import akka.http.scaladsl.server.{ Directive0, Directives, MalformedHeaderRejection, Route }
 import ch.megard.akka.http.cors.{ CorsDirectives, CorsSettings, HttpHeaderRange }
 import io.vamp.common.json.PrettyJson
@@ -101,6 +101,8 @@ trait HttpApiDirectives extends Directives with CorsDirectives {
             }
           }
         }
+
+      case entity: ResponseEntity ⇒ complete(HttpResponse(status = status, entity = entity))
 
       case _ ⇒
         extractRequest { request ⇒

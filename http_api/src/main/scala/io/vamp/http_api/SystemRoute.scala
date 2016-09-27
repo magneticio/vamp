@@ -8,7 +8,9 @@ import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, IoC 
 import io.vamp.common.config.Config
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.common.notification.NotificationProvider
+import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
+import io.vamp.http_api.notification.BadRequestError
 import io.vamp.persistence.kv.KeyValueStoreActor
 
 import scala.concurrent.Future
@@ -19,9 +21,13 @@ trait SystemRoute extends SystemController {
   implicit def timeout: Timeout
 
   val systemRoutes = {
-    path("haproxy" / Segment) { version ⇒
-      onSuccess(haproxy(version)) { result ⇒
-        respondWith(OK, result)
+    pathPrefix("haproxy") {
+      pathEndOrSingleSlash {
+        failWith(reportException(BadRequestError("No HAProxy version specified.")))
+      } ~ pathPrefix(Segment) { version ⇒
+        onSuccess(haproxy(version)) { result ⇒
+          respondWith(OK, result)
+        }
       }
     } ~ pathPrefix("configuration" | "config") {
       get {
@@ -47,9 +53,9 @@ trait SystemController {
   def haproxy(version: String): Future[Any] = {
     if (HaProxyGatewayMarshaller.path.last == version) {
       implicit val timeout = KeyValueStoreActor.timeout
-      IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(HaProxyGatewayMarshaller.path) map {
+      IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(GatewayDriverActor.root :: HaProxyGatewayMarshaller.path) map {
         case Some(result: String) ⇒ HttpEntity(result)
-        case _                    ⇒ HttpEntity("")
+        case other                ⇒ HttpEntity("")
       }
     } else Future.successful(HttpEntity(""))
   }

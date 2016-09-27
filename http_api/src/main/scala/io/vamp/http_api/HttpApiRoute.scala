@@ -130,7 +130,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, m: Materializer)
     }
   }
 
-  val restfulRoutes = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ crudRoutes ~ systemRoutes ~ debugRoutes ~ javascriptBreedRoute
+  val restfulRoutes = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ debugRoutes ~ crudRoutes ~ javascriptBreedRoute
 
   val apiRoutes = noCachingAllowed {
     cors() {

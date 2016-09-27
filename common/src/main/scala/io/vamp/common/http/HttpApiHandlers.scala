@@ -45,6 +45,10 @@ trait HttpApiHandlers {
       case MalformedHeaderRejection(_, message, _) ⇒
         respondWithError(BadRequest, s"$message")
     }
+    .handle {
+      case ValidationRejection(message, _) ⇒
+        respondWithError(BadRequest, s"$message")
+    }
     .result().withFallback(RejectionHandler.default)
 
   private def respondWithError(status: StatusCode, message: String = "") = {
