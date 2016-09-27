@@ -209,7 +209,12 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
       if (changed != JNothing) httpClient.put[Any](s"$marathonUrl/v2/apps/$id", changed) else Future.successful(false)
     }
 
-    case false ⇒ httpClient.post[Any](s"$marathonUrl/v2/apps", payload)
+    case false ⇒ httpClient.post[Any](s"$marathonUrl/v2/apps", payload, logError = false).recover {
+      case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
+      case t ⇒
+        log.error(t, t.getMessage)
+        Future.failed(t)
+    }
   }
 
   private def container(workflow: Workflow): Option[Container] = {
