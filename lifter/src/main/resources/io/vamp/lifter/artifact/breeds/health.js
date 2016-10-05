@@ -23,7 +23,8 @@ function health(lookupName, tags) {
 }
 
 function publish(tags, health) {
-  api.event(tags, health, "health");
+  console.log('health: [' + JSON.stringify(tags) + '] - ' + health);
+  api.event(tags, health, 'health');
 }
 
 var run = function () {
