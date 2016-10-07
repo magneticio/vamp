@@ -45,8 +45,8 @@ trait WebSocketMarshaller extends YamlLoader {
 
     response match {
       case e: WebSocketError                ⇒ marshall(Map("status" -> Status.Error.toString.toUpperCase, "error" -> message(e.error)))
-      case r: WebSocketValidMessage         ⇒ marshall(r, Option(r.content))
-      case (r: WebSocketResponse, e: Event) ⇒ marshall(r.copy(data = Option(marshall(e, Option(r.content)))), Option(r.content))
+      case r: WebSocketValidMessage         ⇒ marshall(r)
+      case (r: WebSocketResponse, e: Event) ⇒ marshall(r.copy(data = Option(marshall(e, Option(r.content)))))
       case _                                ⇒ marshall(Map("status" -> Status.Error.toString.toUpperCase, "error" -> "unsupported"))
     }
   }
