@@ -54,7 +54,7 @@ trait HttpApiHandlers {
   private def respondWithError(status: StatusCode, message: String = "") = {
     respondWith(
       status = status,
-      response = "message" -> (if (status == InternalServerError) "Internal server error." else s"The request content was malformed. $message")
+      response = "message" -> (if (status == InternalServerError) "Internal server error." else message)
     )
   }
 }
