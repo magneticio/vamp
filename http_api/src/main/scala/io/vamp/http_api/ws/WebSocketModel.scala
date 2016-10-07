@@ -5,6 +5,10 @@ import io.vamp.http_api.ws.Action.ActionType
 import io.vamp.http_api.ws.Content.ContentType
 import io.vamp.http_api.ws.Status.StatusType
 
+object WebSocketMessage {
+  val pathDelimiter = '/'
+}
+
 sealed trait WebSocketMessage
 
 sealed trait WebSocketValidMessage extends WebSocketMessage {

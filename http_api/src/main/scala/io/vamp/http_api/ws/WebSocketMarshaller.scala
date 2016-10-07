@@ -68,7 +68,7 @@ trait WebSocketMarshaller extends YamlLoader {
 
     WebSocketRequest(
       api = api,
-      path = if (path.startsWith("/")) path else s"/$path",
+      path = if (path.startsWith(WebSocketMessage.pathDelimiter.toString)) path else s"${WebSocketMessage.pathDelimiter}$path",
       action = extract("action", Action),
       accept = extract("accept", Content),
       content = extract("content", Content),

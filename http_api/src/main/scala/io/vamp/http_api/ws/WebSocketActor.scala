@@ -85,7 +85,7 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
 
   private def toMethod(request: WebSocketRequest): HttpMethod = request.action match {
     case Action.Peek   ⇒ HttpMethods.GET
-    case Action.Put    ⇒ HttpMethods.PUT
+    case Action.Put    ⇒ if (request.path.split(WebSocketMessage.pathDelimiter).length == 2) HttpMethods.POST else HttpMethods.PUT
     case Action.Remove ⇒ HttpMethods.DELETE
   }
 
@@ -126,6 +126,7 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
 
       val status = response.status match {
         case StatusCodes.OK        ⇒ Status.Ok
+        case StatusCodes.Created   ⇒ Status.Ok
         case StatusCodes.Accepted  ⇒ Status.Accepted
         case StatusCodes.NoContent ⇒ Status.NoContent
         case _                     ⇒ Status.Error
