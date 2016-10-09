@@ -12,6 +12,8 @@ import io.vamp.pulse.PulseActor
 
 object PersistenceArchive {
 
+  val eventType = "archive"
+
   val archiveCreateTag = "archive:create"
 
   val archiveUpdateTag = "archive:update"
@@ -55,7 +57,7 @@ trait PersistenceArchive {
   private def archive(name: String, `type`: Class[_ <: Artifact], source: Option[String], archiveTag: String): Unit = {
     tagFor(name, `type`) match {
       case Some(artifactTag) ⇒
-        val event = Event(Set(artifactTag, archiveTag), source)
+        val event = Event(Set(artifactTag, archiveTag), source, `type` = eventType)
         log.debug(s"Archive event with tags: ${event.tags}")
         IoC.actorFor[PulseActor] ? PulseActor.Publish(event)
       case _ ⇒
