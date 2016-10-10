@@ -51,7 +51,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
   }
 
   protected def sticky(implicit source: YamlSourceReader) = <<?[String]("sticky") match {
-    case Some(sticky) ⇒ if (sticky.toLowerCase == "none") None else Option(Gateway.Sticky.byName(sticky).getOrElse(throwException(IllegalGatewayStickyValue(sticky))))
+    case Some(sticky) ⇒ Option(Gateway.Sticky.byName(sticky).getOrElse(throwException(IllegalGatewayStickyValue(sticky))))
     case None         ⇒ None
   }
 

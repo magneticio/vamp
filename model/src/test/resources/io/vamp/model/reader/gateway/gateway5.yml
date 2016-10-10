@@ -1,6 +1,6 @@
 name: sava/web
 port: 8080/tcp
-sticky: none
+sticky:
 
 routes:
   web/port1:

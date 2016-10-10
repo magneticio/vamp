@@ -560,11 +560,11 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
-  it should "read sticky none" in {
-    BlueprintReader.read(res("blueprint/blueprint62.yml")) should have(
-      'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil, Map())), List(Gateway("", Port("", None, None), None, None, Nil, Nil)), None, Map()))),
-      'environmentVariables(Nil)
+  it should "fail on invalid sticky value" in {
+    expectedError[IllegalGatewayStickyValue]({
+      BlueprintReader.read(res("blueprint/blueprint62.yml"))
+    }) should have(
+      'sticky("none")
     )
   }
 

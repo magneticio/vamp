@@ -63,7 +63,7 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
         list += JField("deployed", JBool(gateway.deployed))
       }
 
-      list += JField("sticky", if (gateway.sticky.isDefined) Extraction.decompose(gateway.sticky) else JString("none"))
+      list += JField("sticky", if (gateway.sticky.isDefined) Extraction.decompose(gateway.sticky) else JNull)
       list += JField("virtual_hosts", Extraction.decompose(gateway.virtualHosts))
       list += JField("routes", Extraction.decompose {
         gateway.routes.map { route ⇒
