@@ -117,7 +117,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       gateway.routes.forall {
         case route: DefaultRoute if route.targets.nonEmpty ⇒ targets(pipeline.deployable, deployments, route) == route.targets
         case _ ⇒ false
-      } || !gateway.inner
+      } || !gateway.internal
     }
 
     passThrough foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = true) }

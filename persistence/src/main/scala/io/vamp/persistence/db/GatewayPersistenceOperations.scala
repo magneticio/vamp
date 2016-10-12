@@ -12,7 +12,7 @@ object GatewayPersistenceMessages extends GatewayPersistenceMessages
 
 trait GatewayPersistenceMessages {
 
-  case class CreateInnerGateway(gateway: Gateway) extends PersistenceActor.PersistenceMessages
+  case class CreateInternalGateway(gateway: Gateway) extends PersistenceActor.PersistenceMessages
 
   case class CreateGatewayServiceAddress(gateway: Gateway, host: String, port: Int) extends PersistenceActor.PersistenceMessages
 
@@ -24,9 +24,9 @@ trait GatewayPersistenceMessages {
 
   case class UpdateGatewayRouteTargets(route: DefaultRoute, targets: List[RouteTarget]) extends PersistenceActor.PersistenceMessages
 
-  case class UpdateInnerGateway(gateway: Gateway) extends PersistenceActor.PersistenceMessages
+  case class UpdateInternalGateway(gateway: Gateway) extends PersistenceActor.PersistenceMessages
 
-  case class DeleteInnerGateway(name: String) extends PersistenceActor.PersistenceMessages
+  case class DeleteInternalGateway(name: String) extends PersistenceActor.PersistenceMessages
 
   case class DeleteGatewayRouteTargets(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, port: Port) extends PersistenceActor.PersistenceMessages
 
@@ -44,7 +44,7 @@ trait GatewayPersistenceOperations {
 
   protected def receiveGateway: Actor.Receive = {
 
-    case o: CreateInnerGateway            ⇒ createInnerGateway(o.gateway)
+    case o: CreateInternalGateway         ⇒ createInternalGateway(o.gateway)
 
     case o: CreateGatewayServiceAddress   ⇒ createGatewayServiceAddress(o.gateway, o.host, o.port)
 
@@ -56,17 +56,17 @@ trait GatewayPersistenceOperations {
 
     case o: UpdateGatewayRouteTargets     ⇒ updateGatewayRouteTargets(o.route, o.targets)
 
-    case o: UpdateInnerGateway            ⇒ updateInnerGateway(o.gateway)
+    case o: UpdateInternalGateway         ⇒ updateInternalGateway(o.gateway)
 
-    case o: DeleteInnerGateway            ⇒ deleteInnerGateway(o.name)
+    case o: DeleteInternalGateway         ⇒ deleteInternalGateway(o.name)
 
     case o: DeleteGatewayRouteTargets     ⇒ deleteGatewayRouteTargets(o.deployment, o.cluster, o.service, o.port)
 
     case o: ResetGateway                  ⇒ resetGateway(o.deployment, o.cluster, o.service)
   }
 
-  private def createInnerGateway(gateway: Gateway) = reply {
-    self ? PersistenceActor.Create(InnerGateway(gateway))
+  private def createInternalGateway(gateway: Gateway) = reply {
+    self ? PersistenceActor.Create(InternalGateway(gateway))
   }
 
   private def createGatewayServiceAddress(gateway: Gateway, host: String, port: Int) = reply {
@@ -89,12 +89,12 @@ trait GatewayPersistenceOperations {
     self ? PersistenceActor.Update(RouteTargets(route.path.normalized, targets))
   }
 
-  private def updateInnerGateway(gateway: Gateway) = reply {
-    self ? PersistenceActor.Update(InnerGateway(gateway))
+  private def updateInternalGateway(gateway: Gateway) = reply {
+    self ? PersistenceActor.Update(InternalGateway(gateway))
   }
 
-  private def deleteInnerGateway(name: String) = reply {
-    self ? PersistenceActor.Delete(name, classOf[InnerGateway])
+  private def deleteInternalGateway(name: String) = reply {
+    self ? PersistenceActor.Delete(name, classOf[InternalGateway])
   }
 
   private def deleteGatewayRouteTargets(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, port: Port) = reply {
@@ -108,7 +108,7 @@ trait GatewayPersistenceOperations {
       PersistenceActor.Delete(name, classOf[GatewayServiceAddress]) ::
       PersistenceActor.Delete(name, classOf[GatewayDeploymentStatus]) ::
       PersistenceActor.Delete(name, classOf[RouteTargets]) ::
-      PersistenceActor.Delete(name, classOf[InnerGateway]) :: Nil
+      PersistenceActor.Delete(name, classOf[InternalGateway]) :: Nil
 
     Future.sequence(messages.map(self ? _))
   }
@@ -130,8 +130,8 @@ private[persistence] case class RouteTargets(name: String, targets: List[RouteTa
   val kind = "route-targets"
 }
 
-private[persistence] case class InnerGateway(gateway: Gateway) extends Artifact {
+private[persistence] case class InternalGateway(gateway: Gateway) extends Artifact {
   val name = gateway.name
 
-  val kind = "inner-gateway"
+  val kind = "internal-gateway"
 }

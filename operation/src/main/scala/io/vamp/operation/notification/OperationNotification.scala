@@ -42,8 +42,8 @@ case class MissingRequiredVariableError(required: String) extends Notification
 
 case class NoAvailablePortError(begin: Int, end: Int) extends Notification
 
-case class InnerGatewayCreateError(name: String) extends Notification
+case class InternalGatewayCreateError(name: String) extends Notification
 
-case class InnerGatewayUpdateError(name: String) extends Notification
+case class InternalGatewayUpdateError(name: String) extends Notification
 
-case class InnerGatewayRemoveError(name: String) extends Notification
+case class InternalGatewayRemoveError(name: String) extends Notification

@@ -49,7 +49,7 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
           case _           ⇒ JString(gateway.port.toValue)
         })
 
-        list += JField("inner", JBool(gateway.inner))
+        list += JField("internal", JBool(gateway.internal))
 
         if (gateway.service.isDefined) {
           val serviceHost = JField("host", JString(gateway.service.get.host))

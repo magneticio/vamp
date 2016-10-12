@@ -37,7 +37,7 @@ trait PersistenceMarshaller extends TypeOfArtifact {
   private val readers = Map(
     "gateways" -> DeployedGatewayReader,
     "deployments" -> new AbstractDeploymentReader() {
-      override protected def routingReader = new InnerGatewayReader(acceptPort = true, onlyAnonymous = false)
+      override protected def routingReader = new InternalGatewayReader(acceptPort = true, onlyAnonymous = false)
 
       override protected def validateEitherReferenceOrAnonymous = false
     },
@@ -76,11 +76,11 @@ trait PersistenceMarshaller extends TypeOfArtifact {
     "gateway-deployment-statuses" -> new NoNameValidationYamlReader[GatewayDeploymentStatus] {
       override protected def parse(implicit source: YamlSourceReader) = GatewayDeploymentStatus(name, <<![Boolean]("deployed"))
     },
-    "inner-gateway" -> new NoNameValidationYamlReader[InnerGateway] {
+    "internal-gateway" -> new NoNameValidationYamlReader[InternalGateway] {
       override protected def parse(implicit source: YamlSourceReader) = {
         <<?[Any]("name")
         <<?[Any]("gateway" :: Lookup.entry :: Nil)
-        InnerGateway(DeployedGatewayReader.read(<<![YamlSourceReader]("gateway")))
+        InternalGateway(DeployedGatewayReader.read(<<![YamlSourceReader]("gateway")))
       }
     },
     // deployment persistence

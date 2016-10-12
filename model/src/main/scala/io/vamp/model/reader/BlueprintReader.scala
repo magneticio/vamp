@@ -93,7 +93,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
             case None ⇒ Cluster(name, List(), Nil, sla, dialects)
             case Some(list) ⇒
               val services = list.map(parseService(_))
-              Cluster(name, services, processAnonymousInnerGateways(services, innerGatewayReader.mapping("gateways")), sla, dialects)
+              Cluster(name, services, processAnonymousInternalGateways(services, internalGatewayReader.mapping("gateways")), sla, dialects)
           }
       } toList
     }
@@ -115,7 +115,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       validateRouteConditionStrengths(blueprint)
       blueprint.gateways.foreach((validateGatewayRouteWeights andThen validateGatewayRouteConditionStrengths)(_))
       validateBlueprintGateways(blueprint)
-      validateInnerGatewayAnonymousPortMapping(blueprint)
+      validateInternalGatewayAnonymousPortMapping(blueprint)
 
       if (blueprint.clusters.flatMap(_.services).count(_ ⇒ true) == 0) throwException(NoServiceError)
 
@@ -192,7 +192,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 trait BlueprintGatewayHelper {
   this: NotificationProvider ⇒
 
-  protected def processAnonymousInnerGateways(services: List[AbstractService], gateways: List[Gateway]): List[Gateway] = {
+  protected def processAnonymousInternalGateways(services: List[AbstractService], gateways: List[Gateway]): List[Gateway] = {
     if (gateways.exists(_.port.name == Gateway.anonymous)) {
       val ports = services.map(_.breed).flatMap({
         case breed: DefaultBreed ⇒ breed.ports.map(_.name)
@@ -204,7 +204,7 @@ trait BlueprintGatewayHelper {
     } else gateways
   }
 
-  protected def validateInnerGatewayAnonymousPortMapping[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
+  protected def validateInternalGatewayAnonymousPortMapping[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.clusters.foreach { cluster ⇒
       if (cluster.gatewayBy(Gateway.anonymous).isDefined) {
         cluster.services.foreach { service ⇒
@@ -219,7 +219,7 @@ trait BlueprintGatewayHelper {
   }
 
   protected def validateBlueprintGateways[T <: AbstractBlueprint]: T ⇒ T =
-    validateStickiness[T] andThen validateRouteCondition[T] andThen validateGatewayPorts[T] andThen validateInnerGatewayPorts[T]
+    validateStickiness[T] andThen validateRouteCondition[T] andThen validateGatewayPorts[T] andThen validateInternalGatewayPorts[T]
 
   private def validateStickiness[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     blueprint.clusters.foreach { cluster ⇒
@@ -270,7 +270,7 @@ trait BlueprintGatewayHelper {
     blueprint
   }
 
-  private def validateInnerGatewayPorts[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
+  private def validateInternalGatewayPorts[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
     val breeds = blueprint.clusters.flatMap(_.services).map(_.breed)
 
     if (breeds.forall(_.isInstanceOf[DefaultBreed])) {
@@ -288,7 +288,7 @@ trait BlueprintGatewayHelper {
     blueprint
   }
 
-  protected def innerGatewayReader: GatewayMappingReader[Gateway] = new InnerGatewayReader(acceptPort = false)
+  protected def internalGatewayReader: GatewayMappingReader[Gateway] = new InternalGatewayReader(acceptPort = false)
 }
 
 object BlueprintReader extends AbstractBlueprintReader {

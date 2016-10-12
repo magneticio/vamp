@@ -32,7 +32,7 @@ object GatewayActor {
 
   case class Delete(name: String, validateOnly: Boolean, force: Boolean = false) extends GatewayMessage
 
-  case class PromoteInner(gateway: Gateway) extends GatewayMessage
+  case class PromoteInternal(gateway: Gateway) extends GatewayMessage
 
 }
 
@@ -54,15 +54,15 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
       delete(name, validateOnly, force)
     }
 
-    case PromoteInner(gateway) ⇒ reply {
+    case PromoteInternal(gateway) ⇒ reply {
       promote(gateway)
     }
 
     case any ⇒ unsupported(UnsupportedGatewayRequest(any))
   }
 
-  private def create(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean): Future[Any] = (gateway.inner, force, validateOnly) match {
-    case (true, false, _) ⇒ Future.failed(reportException(InnerGatewayCreateError(gateway.name)))
+  private def create(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean): Future[Any] = (gateway.internal, force, validateOnly) match {
+    case (true, false, _) ⇒ Future.failed(reportException(InternalGatewayCreateError(gateway.name)))
     case (_, _, true)     ⇒ Try((process andThen validate andThen validateUniquePort)(gateway) :: Nil).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
     case _                ⇒ Try((process andThen validate andThen validateUniquePort andThen persistFuture(source, create = true, promote = false))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
   }
@@ -76,8 +76,8 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
         Try((process andThen validate andThen persist(source, create = false, promote))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
     }
 
-    if (gateway.inner && !force) routeChanged(gateway) flatMap {
-      case true  ⇒ Future.failed(reportException(InnerGatewayUpdateError(gateway.name)))
+    if (gateway.internal && !force) routeChanged(gateway) flatMap {
+      case true  ⇒ Future.failed(reportException(InternalGatewayUpdateError(gateway.name)))
       case false ⇒ default
     }
     else default
@@ -89,13 +89,13 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
       if (validateOnly) Future.successful(None)
       else {
         (actorFor[PersistenceActor] ? PersistenceActor.Delete(name, classOf[Gateway])).flatMap {
-          _ ⇒ actorFor[PersistenceActor] ? PersistenceActor.DeleteInnerGateway(name)
+          _ ⇒ actorFor[PersistenceActor] ? PersistenceActor.DeleteInternalGateway(name)
         }
       }
     }
 
-    if (Gateway.inner(name) && !force) deploymentExists(name) flatMap {
-      case true  ⇒ Future.failed(reportException(InnerGatewayRemoveError(name)))
+    if (Gateway.internal(name) && !force) deploymentExists(name) flatMap {
+      case true  ⇒ Future.failed(reportException(InternalGatewayRemoveError(name)))
       case false ⇒ default
     }
     else default
@@ -158,7 +158,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
   private def validate: Gateway ⇒ Gateway = validateGatewayRouteWeights andThen validateGatewayRouteConditionStrengths
 
   private def validateUniquePort: Gateway ⇒ Future[Gateway] = {
-    case gateway if gateway.inner ⇒ Future.successful(gateway)
+    case gateway if gateway.internal ⇒ Future.successful(gateway)
     case gateway ⇒
       consume(allArtifacts[Gateway]) map {
         case gateways if gateway.port.number != 0 ⇒
@@ -182,16 +182,16 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
     val requests = {
 
-      (g.inner, promote) match {
+      (g.internal, promote) match {
 
         case (true, true) ⇒
           if (create)
-            PersistenceActor.Create(g, source) :: PersistenceActor.CreateInnerGateway(g) :: Nil
+            PersistenceActor.Create(g, source) :: PersistenceActor.CreateInternalGateway(g) :: Nil
           else
-            PersistenceActor.Update(g, source) :: PersistenceActor.UpdateInnerGateway(g) :: Nil
+            PersistenceActor.Update(g, source) :: PersistenceActor.UpdateInternalGateway(g) :: Nil
 
         case (true, false) ⇒
-          if (create) PersistenceActor.CreateInnerGateway(g) :: Nil else PersistenceActor.UpdateInnerGateway(g) :: Nil
+          if (create) PersistenceActor.CreateInternalGateway(g) :: Nil else PersistenceActor.UpdateInternalGateway(g) :: Nil
 
         case _ ⇒
           if (create) PersistenceActor.Create(g, source) :: Nil else PersistenceActor.Update(g, source) :: Nil

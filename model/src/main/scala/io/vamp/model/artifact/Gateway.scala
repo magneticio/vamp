@@ -15,7 +15,7 @@ object Gateway {
     def byName(sticky: String): Option[Sticky.Value] = Gateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
   }
 
-  def inner(name: String) = GatewayPath(name).segments.size == 3
+  def internal(name: String) = GatewayPath(name).segments.size == 3
 }
 
 case class GatewayService(host: String, port: Port)
@@ -34,7 +34,7 @@ case class Gateway(name: String,
 
   def defaultBalance = if (port.`type` == Port.Type.Http) "roundrobin" else "leastconn"
 
-  def inner = Gateway.inner(name)
+  def internal = Gateway.internal(name)
 
   def hasRouteTargets = routes.exists {
     case r: DefaultRoute ⇒ r.targets.nonEmpty

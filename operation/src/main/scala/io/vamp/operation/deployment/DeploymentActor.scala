@@ -125,7 +125,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
           gateways ← expandGateways(cluster.gateways)
 
         } yield {
-          DeploymentCluster(cluster.name, services, processAnonymousInnerGateways(services, gateways), cluster.sla, cluster.dialects)
+          DeploymentCluster(cluster.name, services, processAnonymousInternalGateways(services, gateways), cluster.sla, cluster.dialects)
         }
       }
 
@@ -178,7 +178,7 @@ trait DeploymentValidator {
     deployment
   }
 
-  def validateInnerGateways: (Deployment ⇒ Deployment) = validateRouteWeights andThen validateBlueprintGateways andThen validateInnerGatewayAnonymousPortMapping
+  def validateInternalGateways: (Deployment ⇒ Deployment) = validateRouteWeights andThen validateBlueprintGateways andThen validateInternalGatewayAnonymousPortMapping
 
   def validateRouteWeights: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
     deployment.clusters.map(cluster ⇒
@@ -304,7 +304,7 @@ trait DeploymentGatewayOperation {
     actorFor[PersistenceActor] ! PersistenceActor.ResetGateway(deployment, cluster, service)
   }
 
-  def resetInnerRouteArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
+  def resetInternalRouteArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
     service.breed.ports.foreach { port ⇒
       actorFor[PersistenceActor] ! PersistenceActor.DeleteGatewayRouteTargets(deployment, cluster, service, port)
     }
@@ -318,7 +318,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
   def resolveProperties = resolveHosts andThen validateEmptyVariables andThen resolveDependencyMapping
 
-  def validateMerge = validateServices andThen validateInnerGateways andThen validateScaleEscalations andThen validateGateways
+  def validateMerge = validateServices andThen validateInternalGateways andThen validateScaleEscalations andThen validateGateways
 
   def merge(blueprint: Future[Deployment], validateOnly: Boolean): (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
     futureDeployment.flatMap { deployment ⇒
@@ -579,7 +579,7 @@ trait DeploymentSlicer extends DeploymentOperation {
           } getOrElse cluster
         )
 
-        val deployment = (validateServices andThen validateInnerGateways andThen validateScaleEscalations)(stable.copy(clusters = newClusters.filter(_.services.nonEmpty)))
+        val deployment = (validateServices andThen validateInternalGateways andThen validateScaleEscalations)(stable.copy(clusters = newClusters.filter(_.services.nonEmpty)))
 
         val (deleteRouting, updateRouting) = newClusters.partition(cluster ⇒ cluster.services.isEmpty || cluster.services.forall(_.state.intention == Undeploy))
 

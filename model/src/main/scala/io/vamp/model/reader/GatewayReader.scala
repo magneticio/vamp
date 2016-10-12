@@ -31,7 +31,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
   }
 
   override protected def parse(implicit source: YamlSourceReader): Gateway = {
-    source.find[String]("inner")
+    source.find[String]("internal")
     Gateway(name, port, service, sticky, virtualHosts, routes(splitPath = true), deployed)
   }
 
@@ -253,7 +253,7 @@ object BlueprintGatewayReader extends GatewayMappingReader[Gateway] {
   }
 }
 
-class InnerGatewayReader(override val acceptPort: Boolean, override val onlyAnonymous: Boolean = true, override val ignoreError: Boolean = false) extends GatewayMappingReader[Gateway] {
+class InternalGatewayReader(override val acceptPort: Boolean, override val onlyAnonymous: Boolean = true, override val ignoreError: Boolean = false) extends GatewayMappingReader[Gateway] {
 
   protected val reader = ClusterGatewayReader
 

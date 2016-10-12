@@ -93,7 +93,7 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
 }
 
 object DeploymentReader extends AbstractDeploymentReader {
-  protected def routingReader: GatewayMappingReader[Gateway] = new InnerGatewayReader(acceptPort = false, onlyAnonymous = true, ignoreError = true)
+  protected def routingReader: GatewayMappingReader[Gateway] = new InternalGatewayReader(acceptPort = false, onlyAnonymous = true, ignoreError = true)
 }
 
 object DeploymentServiceStateReader extends YamlReader[DeploymentService.State] {
