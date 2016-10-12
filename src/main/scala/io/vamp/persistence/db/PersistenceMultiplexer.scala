@@ -114,8 +114,8 @@ trait PersistenceMultiplexer {
             routing ← Future.sequence {
               cluster.gateways.filter(_.routes.nonEmpty).map { gateway ⇒
                 val name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port)
-                get(name, classOf[InnerGateway]).flatMap {
-                  case Some(InnerGateway(g)) ⇒ combine(g).map(_.getOrElse(gateway))
+                get(name, classOf[InternalGateway]).flatMap {
+                  case Some(InternalGateway(g)) ⇒ combine(g).map(_.getOrElse(gateway))
                   case _                     ⇒ Future.successful(gateway)
                 } map { g ⇒
                   g.copy(name = name, port = g.port.copy(name = gateway.port.name))
