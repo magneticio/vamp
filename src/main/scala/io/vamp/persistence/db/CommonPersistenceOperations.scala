@@ -25,7 +25,7 @@ trait CommonPersistenceMessages {
 
 }
 
-trait CommonPersistenceOperations extends PersistenceMultiplexer with PersistenceArchive with ArtifactExpansion with ArtifactShrinkage {
+trait CommonPersistenceOperations extends PersistenceMultiplexer with PersistenceArchive with ArtifactExpansion with ArtifactShrinkage with ArtifactCaching {
   this: CommonSupportForActors with NotificationProvider ⇒
 
   import CommonPersistenceMessages._
@@ -38,52 +38,58 @@ trait CommonPersistenceOperations extends PersistenceMultiplexer with Persistenc
 
   protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean]
 
-  protected def receiveCommon: Actor.Receive = {
+  protected def receiveCommon(caching: Boolean): Actor.Receive = {
 
     case All(ofType, page, perPage, expandRef, onlyRef) ⇒ reply {
-      all(ofType, if (page > 0) page else 1, if (perPage > 0) perPage else ArtifactResponseEnvelope.maxPerPage).flatMap(combine).flatMap {
-        artifacts ⇒
+      cacheAll(caching)(ofType, page, perPage) { () ⇒ all(ofType, if (page > 0) page else 1, if (perPage > 0) perPage else ArtifactResponseEnvelope.maxPerPage) }
+        .flatMap(combine).flatMap { artifacts ⇒
           (expandRef, onlyRef) match {
             case (true, false) ⇒ Future.sequence(artifacts.response.map(expandReferences)).map { response ⇒ artifacts.copy(response = response) }
             case (false, true) ⇒ Future.successful(artifacts.copy(response = artifacts.response.map(onlyReferences)))
             case _             ⇒ Future.successful(artifacts)
           }
-      }
+        }
     }
 
     case Read(name, ofType, expandRef, onlyRef) ⇒ reply {
-      get(name, ofType).flatMap(combine).flatMap {
-        artifact ⇒
+      cacheGet(caching)(name, ofType) { () ⇒ get(name, ofType) }
+        .flatMap(combine).flatMap { artifact ⇒
           (expandRef, onlyRef) match {
             case (true, false) ⇒ expandReferences(artifact)
             case (false, true) ⇒ Future.successful(onlyReferences(artifact))
             case _             ⇒ Future.successful(artifact)
           }
-      }
+        }
     }
 
     case Create(artifact, source) ⇒ reply {
       split(artifact, { artifact: Artifact ⇒
-        set(artifact) map {
-          archiveCreate(_, source)
+        cacheSet(caching)(artifact) { () ⇒
+          set(artifact) map {
+            archiveCreate(_, source)
+          }
         }
       })
     }
 
     case Update(artifact, source) ⇒ reply {
       split(artifact, { artifact: Artifact ⇒
-        set(artifact) map {
-          archiveUpdate(_, source)
+        cacheSet(caching)(artifact) { () ⇒
+          set(artifact) map {
+            archiveUpdate(_, source)
+          }
         }
       })
     }
 
     case Delete(name, ofType) ⇒ reply {
       remove(name, ofType, { (name, ofType) ⇒
-        delete(name, ofType) map {
-          result ⇒
-            if (result) archiveDelete(name, ofType)
-            result
+        cacheDelete(caching)(name, ofType) { () ⇒
+          delete(name, ofType) map {
+            result ⇒
+              if (result) archiveDelete(name, ofType)
+              result
+          }
         }
       })
     }
