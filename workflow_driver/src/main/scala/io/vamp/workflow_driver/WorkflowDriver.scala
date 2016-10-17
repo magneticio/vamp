@@ -73,6 +73,9 @@ trait WorkflowDriver {
       case d                                  ⇒ d
     }
 
+    val scale = workflow.scale.getOrElse(defaultScale).asInstanceOf[DefaultScale]
+    actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowScale(workflow, scale)
+
     val network = workflow.network.getOrElse(defaultNetwork)
     actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowNetwork(workflow, network)
 
@@ -81,7 +84,7 @@ trait WorkflowDriver {
 
     workflow.copy(
       breed = breed.copy(deployable = deployable, environmentVariables = environmentVariables),
-      scale = Option(workflow.scale.getOrElse(defaultScale)),
+      scale = Option(scale),
       arguments = arguments,
       network = Option(network)
     )
