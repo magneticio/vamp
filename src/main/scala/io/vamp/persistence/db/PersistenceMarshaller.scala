@@ -57,9 +57,9 @@ trait PersistenceMarshaller extends TypeOfArtifact {
           case Some(list) ⇒ list.flatMap { yaml ⇒
             implicit val source = yaml
             (<<?[String]("name"), <<?[String]("url")) match {
-              case (_, Some(url))  ⇒ ExternalRouteTarget(url) :: Nil
+              case (_, Some(url)) ⇒ ExternalRouteTarget(url) :: Nil
               case (Some(name), _) ⇒ InternalRouteTarget(name, <<?[String]("host"), <<![Int]("port")) :: Nil
-              case _               ⇒ Nil
+              case _ ⇒ Nil
             }
           }
           case _ ⇒ Nil
@@ -84,6 +84,9 @@ trait PersistenceMarshaller extends TypeOfArtifact {
       }
     },
     // deployment persistence
+    "deployment-cluster-slas" -> new NoNameValidationYamlReader[DeploymentClusterSla] {
+      override protected def parse(implicit source: YamlSourceReader) = DeploymentClusterSla(name, SlaReader.readOptionalAnonymous("sla"))
+    },
     "deployment-service-statuses" -> new NoNameValidationYamlReader[DeploymentServiceStatus] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceStatus(name, DeploymentServiceStatusReader.read(<<![YamlSourceReader]("status")))
     },

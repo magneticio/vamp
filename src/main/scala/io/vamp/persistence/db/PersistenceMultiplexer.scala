@@ -141,8 +141,10 @@ trait PersistenceMultiplexer {
                 } yield service.copy(status = status, scale = scale, instances = instances, environmentVariables = environmentVariables)
               }
             }
+
+            sla ← get(clusterArtifactName(deployment, cluster), classOf[DeploymentClusterSla]).asInstanceOf[Future[Option[DeploymentClusterSla]]]
           } yield {
-            cluster.copy(services = services.filterNot(_.status.isUndeployed), gateways = routing)
+            cluster.copy(services = services.filterNot(_.status.isUndeployed), gateways = routing, sla = sla.flatMap(_.sla))
           }
         }
       } map {
