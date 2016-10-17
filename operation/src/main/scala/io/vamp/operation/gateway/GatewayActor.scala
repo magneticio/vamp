@@ -71,7 +71,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
     def default = {
       if (validateOnly)
-        Try((process andThen validate)(gateway) :: Nil).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
+        Try((process andThen validate)(gateway)).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
       else
         Try((process andThen validate andThen persist(source, create = false, promote))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
     }
