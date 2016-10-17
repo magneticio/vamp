@@ -28,7 +28,7 @@ trait WorkflowPersistenceOperations {
 
   protected def receiveWorkflow: Actor.Receive = {
 
-    case o: UpdateWorkflowScale   ⇒ updateWorkflowScale(o.workflow, o.scale)
+    case o: UpdateWorkflowScale     ⇒ updateWorkflowScale(o.workflow, o.scale)
 
     case o: UpdateWorkflowNetwork   ⇒ updateWorkflowNetwork(o.workflow, o.network)
 
