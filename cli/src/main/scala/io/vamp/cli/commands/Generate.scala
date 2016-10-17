@@ -146,7 +146,8 @@ trait Generate extends Parameters with IoUtils {
     getOptionalParameter(parameterName) match {
       case Some(v) ⇒ try {
         v.toDouble
-      } catch {
+      }
+      catch {
         case e: Exception ⇒ terminateWithError(s"Invalid value $v for ${parameterName.name}", 0L)
       }
       case None ⇒ originalValue
@@ -156,7 +157,8 @@ trait Generate extends Parameters with IoUtils {
     getOptionalParameter(parameterName) match {
       case Some(v) ⇒ try {
         FiniteDuration(length = v.toInt, unit = unit)
-      } catch {
+      }
+      catch {
         case e: Exception ⇒ terminateWithError(s"Invalid value $v for ${parameterName.name}", FiniteDuration(0, "ms"))
       }
       case None ⇒ originalValue
@@ -166,7 +168,8 @@ trait Generate extends Parameters with IoUtils {
     getOptionalParameter(parameterName) match {
       case Some(v) ⇒ try {
         v.toInt
-      } catch {
+      }
+      catch {
         case e: Exception ⇒ terminateWithError(s"Invalid value $v for ${parameterName.name}", 0)
       }
       case None ⇒ originalValue

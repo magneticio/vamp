@@ -29,7 +29,7 @@ object PerformCommand extends Generate {
 
   private def doListCommand(subCommand: Option[String])(implicit vampHost: String, options: OptionMap) = subCommand match {
     case Some("breeds") ⇒
-      println("NAME".padTo(25, ' ').bold.cyan + "DEPLOYABLE".bold.cyan)
+      println("NAME".padTo(25, ' ').bold.cyan+"DEPLOYABLE".bold.cyan)
       def deployable(breed: DefaultBreed) = {
         val `type` = breed.deployable.`type`
         val definition = if (breed.deployable.definition.length > 28) s"${breed.deployable.definition.substring(0, 24)} ..." else breed.deployable.definition
@@ -38,19 +38,19 @@ object PerformCommand extends Generate {
       VampHostCalls.getBreeds.foreach({ case b: DefaultBreed ⇒ println(s"${b.name.padTo(25, ' ')}${deployable(b)}") })
 
     case Some("blueprints") ⇒
-      println("NAME".padTo(40, ' ').bold.cyan + "GATEWAYS".bold.cyan)
+      println("NAME".padTo(40, ' ').bold.cyan+"GATEWAYS".bold.cyan)
       VampHostCalls.getBlueprints.foreach({ case blueprint: DefaultBlueprint ⇒ println(s"${blueprint.name.padTo(40, ' ')}${blueprint.gateways.map(e ⇒ s"${e.name} -> ...").mkString(", ")}") })
 
     case Some("gateways") ⇒
-      println("NAME".padTo(40, ' ').bold.cyan + "PORT".bold.cyan)
+      println("NAME".padTo(40, ' ').bold.cyan+"PORT".bold.cyan)
       VampHostCalls.getGateways.foreach({ gateway ⇒ println(s"${gateway.name.padTo(40, ' ')}${gateway.port.toValue}") })
 
     case Some("deployments") ⇒
-      println("NAME".padTo(40, ' ').bold.cyan + "CLUSTERS".bold.cyan)
+      println("NAME".padTo(40, ' ').bold.cyan+"CLUSTERS".bold.cyan)
       VampHostCalls.getDeployments.foreach(deployment ⇒ println(s"${deployment.name.padTo(40, ' ')}${deployment.clusters.map(c ⇒ s"${c.name}").mkString(", ")}"))
 
     case Some("escalations") ⇒
-      println("NAME".padTo(25, ' ').bold.cyan + "TYPE".padTo(20, ' ').bold.cyan + "SETTINGS".bold.cyan)
+      println("NAME".padTo(25, ' ').bold.cyan+"TYPE".padTo(20, ' ').bold.cyan+"SETTINGS".bold.cyan)
       VampHostCalls.getEscalations.foreach({
         case b: ScaleInstancesEscalation ⇒ println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
         case b: ScaleCpuEscalation       ⇒ println(s"${b.name.padTo(25, ' ')}${b.`type`.padTo(20, ' ')}[${b.minimum}..${b.maximum}(${b.scaleBy})] => ${b.targetCluster.getOrElse("")}")
@@ -60,21 +60,21 @@ object PerformCommand extends Generate {
       })
 
     case Some("conditions") ⇒
-      println("NAME".padTo(25, ' ').bold.cyan + "CONDITION".bold.cyan)
+      println("NAME".padTo(25, ' ').bold.cyan+"CONDITION".bold.cyan)
       VampHostCalls.getConditions.foreach({
         case b: DefaultCondition ⇒ println(s"${b.name.padTo(25, ' ')}${b.definition}")
         case _                   ⇒
       })
 
     case Some("rewrites") ⇒
-      println("NAME".padTo(25, ' ').bold.cyan + "CONDITION".bold.cyan)
+      println("NAME".padTo(25, ' ').bold.cyan+"CONDITION".bold.cyan)
       VampHostCalls.getRewrites.foreach({
         case b: PathRewrite ⇒ println(s"${b.name.padTo(25, ' ')}${b.definition}")
         case _              ⇒
       })
 
     case Some("routings") ⇒
-      println("NAME".padTo(25, ' ').bold.cyan + "FILTERS".bold.cyan)
+      println("NAME".padTo(25, ' ').bold.cyan+"FILTERS".bold.cyan)
       VampHostCalls.getRoutings.foreach({
         case b: DefaultRoute ⇒ println(s"${b.name.padTo(25, ' ')}${
           b.condition.map({
@@ -86,7 +86,7 @@ object PerformCommand extends Generate {
       })
 
     case Some("scales") ⇒
-      println("NAME".padTo(25, ' ').bold.cyan + "CPU".padTo(7, ' ').bold.cyan + "MEMORY".padTo(10, ' ').bold.cyan + "INSTANCES".bold.cyan)
+      println("NAME".padTo(25, ' ').bold.cyan+"CPU".padTo(7, ' ').bold.cyan+"MEMORY".padTo(10, ' ').bold.cyan+"INSTANCES".bold.cyan)
       VampHostCalls.getScales.foreach({ case b: DefaultScale ⇒ println(s"${b.name.padTo(25, ' ')}${b.cpu.toString.padTo(7, ' ')}${b.memory.toString.padTo(10, ' ')}${b.instances}") })
 
     case Some("slas") ⇒
@@ -220,7 +220,7 @@ object PerformCommand extends Generate {
   private def doOtherCommand(command: CliCommand)(implicit vampHost: String, options: OptionMap) = command match {
     case _: InfoCommand    ⇒ println(VampHostCalls.info.getOrElse(""))
     case _: HelpCommand    ⇒ showHelp(HelpCommand())
-    case _: VersionCommand ⇒ println(s"CLI version: " + s"${getClass.getPackage.getImplementationVersion}".yellow.bold)
+    case _: VersionCommand ⇒ println(s"CLI version: "+s"${getClass.getPackage.getImplementationVersion}".yellow.bold)
     case x: UnknownCommand ⇒ terminateWithError(s"Unknown command '${x.name}'")
     case _                 ⇒ unhandledCommand _
   }

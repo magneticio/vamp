@@ -41,7 +41,8 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
       val authConfig = AuthConfig.builder().email(email).username(username).password(password).serverAddress(serverAddress).build()
       DefaultDockerClient.fromEnv().authConfig(authConfig).build()
 
-    } else DefaultDockerClient.fromEnv().build()
+    }
+    else DefaultDockerClient.fromEnv().build()
   }
 
   private val vampLabel = "deployment-service"
@@ -138,14 +139,16 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     if (Try(docker.inspectImage(image)).isFailure) {
       log.info(s"docker pull image: $image")
       docker.pull(image)
-    } else {
+    }
+    else {
 
       val exists = find(deployment, service).isDefined
 
       if (!exists && !update) {
         log.info(s"docker create container: $id")
         run()
-      } else if (exists && update) {
+      }
+      else if (exists && update) {
         log.info(s"docker update container: $id")
         undeploy(deployment, service)
         run()
@@ -198,7 +201,8 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
         else
           hostConfig.portBindings(portBindings).networkMode("bridge")
       }
-    } else {
+    }
+    else {
       hostConfig.portBindings(portBindings).networkMode("bridge")
     }
 
@@ -248,7 +252,8 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     if (!exists && !update) {
       log.info(s"docker create workflow: ${workflow.name}")
       run()
-    } else if (exists && update) {
+    }
+    else if (exists && update) {
       log.info(s"docker update workflow: ${workflow.name}")
       undeploy(workflow)
       run()

@@ -50,8 +50,10 @@ trait DeploymentTraitResolver extends TraitResolver {
       if (dependency.name.endsWith("*")) {
         val startsWith = dependency.name.substring(0, dependency.name.length - 1)
         breed.name.startsWith(startsWith)
-      } else false
-    } else true
+      }
+      else false
+    }
+    else true
   }
 
   def valueForWithDependencyReplacement(deployment: Deployment, service: DeploymentService)(reference: ValueReference): String = {

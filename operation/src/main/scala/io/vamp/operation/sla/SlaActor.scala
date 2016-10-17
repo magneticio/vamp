@@ -56,7 +56,8 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
             case Some(s: Sla)                            ⇒ throwException(UnsupportedSlaType(s.name))
             case None                                    ⇒
           })
-      } catch {
+      }
+      catch {
         case any: Throwable ⇒ reportException(InternalServerError(any))
       }
     })

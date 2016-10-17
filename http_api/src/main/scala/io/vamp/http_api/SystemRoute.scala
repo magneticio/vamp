@@ -57,7 +57,8 @@ trait SystemController {
         case Some(result: String) ⇒ HttpEntity(result)
         case other                ⇒ HttpEntity("")
       }
-    } else Future.successful(HttpEntity(""))
+    }
+    else Future.successful(HttpEntity(""))
   }
 
   def configuration(key: String = "") = Future.successful {

@@ -36,7 +36,8 @@ trait ScheduleSupport {
     timer = if (period.toNanos > 0) {
       this.period = period
       Some(context.system.scheduler.schedule(initialDelay, period, self, Tick))
-    } else {
+    }
+    else {
       this.period = 0.seconds
       None
     }

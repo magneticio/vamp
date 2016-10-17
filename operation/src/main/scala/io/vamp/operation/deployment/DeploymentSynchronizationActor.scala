@@ -74,7 +74,8 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
       actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster ⇒ cluster.copy(services = cluster.services.map({ s ⇒
         if (s.breed.name == service.breed.name) {
           s.copy(status = Status(s.status.intention, Failed(notification)))
-        } else s
+        }
+        else s
       })))))
       true
     }

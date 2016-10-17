@@ -19,7 +19,8 @@ trait VampCli extends Parameters {
     val subCmd: Option[String] = {
       if (cmd.requiresArtifact) {
         Some(args.tail.head)
-      } else {
+      }
+      else {
         None
       }
     }

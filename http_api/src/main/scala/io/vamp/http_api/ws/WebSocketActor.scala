@@ -72,7 +72,8 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
 
       openStream(receiver, params, request.data.getOrElse(""), message)
 
-    } else {
+    }
+    else {
 
       val httpRequest = new HttpRequest(toMethod(request), toUri(request), toHeaders(request), toEntity(request), HttpProtocols.`HTTP/1.1`)
 
@@ -98,7 +99,8 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
         case (k, v) ⇒ s"${encode(k)}=${encode(v.toString)}"
       } mkString "&"
       s"?$flatten"
-    } else ""
+    }
+    else ""
 
     Uri(s"${request.path}$params")
   }

@@ -7,7 +7,7 @@ trait CommandLineBasics {
   import ConsoleHelper._
 
   def terminateWithError[A](msg: String, returnValue: A = None): A = {
-    println(s"ERROR: ".red.bold + "" + s"$msg".red)
+    println(s"ERROR: ".red.bold+""+s"$msg".red)
     sys.exit(1)
     returnValue
   }
@@ -34,7 +34,7 @@ trait CommandLineBasics {
   def showHelp(command: CliCommand): Unit = {
     command match {
       case _: HelpCommand ⇒ {
-        println(s"Usage: ".bold + "" + s"$appName COMMAND [args..]")
+        println(s"Usage: ".bold+""+s"$appName COMMAND [args..]")
         println("")
         println("Commands:")
         showGeneralUsage(CreateCommand())
@@ -50,14 +50,15 @@ trait CommandLineBasics {
         showGeneralUsage(UpdateCommand())
         showGeneralUsage(VersionCommand())
         println("".reset)
-        println(s"Run " + s"$appName COMMMAND --help".bold + "" + "  for additional help about the different command options")
+        println(s"Run "+s"$appName COMMMAND --help".bold+""+"  for additional help about the different command options")
       }
 
       case _ ⇒ {
         if (command.allowedArtifacts.isEmpty) {
-          println(s"Usage: ".bold + "" + s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
-        } else {
-          println(s"Usage: ".bold + "" + s"$appName ${command.name} ${command.allowedArtifacts.mkString("|")} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
+          println(s"Usage: ".bold+""+s"$appName ${command.name} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
+        }
+        else {
+          println(s"Usage: ".bold+""+s"$appName ${command.name} ${command.allowedArtifacts.mkString("|")} ${if (command.requiresName) "NAME " else ""}${if (command.additionalParams.nonEmpty) command.additionalParams else ""} ")
         }
 
         if (command.usage.nonEmpty) {
@@ -74,7 +75,7 @@ trait CommandLineBasics {
   }
 
   private def showGeneralUsage(command: CliCommand): Unit = {
-    println(s"  ${command.name.padTo(20, ' ')}".bold + "" + s"${command.description}".yellow + "")
+    println(s"  ${command.name.padTo(20, ' ')}".bold+""+s"${command.description}".yellow+"")
   }
 
 }

@@ -296,13 +296,12 @@ class AsyncZooKeeperClientImpl(
     try {
       isAliveSync
       Await.result(createPath(""), 10 seconds)
-    } catch {
+    }
+    catch {
       case e: Exception ⇒
-        log.error("Could not connect to zookeeper ensemble: " + servers
-          + ". Connection timed out after " + connectTimeout + " milliseconds!", e)
+        log.error("Could not connect to zookeeper ensemble: "+servers+". Connection timed out after "+connectTimeout+" milliseconds!", e)
 
-        throw new RuntimeException("Could not connect to zookeeper ensemble: " + servers
-          + ". Connection timed out after " + connectTimeout + " milliseconds!", e)
+        throw new RuntimeException("Could not connect to zookeeper ensemble: "+servers+". Connection timed out after "+connectTimeout+" milliseconds!", e)
     }
   }
 
@@ -374,7 +373,8 @@ class AsyncZooKeeperClientImpl(
   override def isAliveSync: Boolean = try {
     zk.exists("/", false)
     true
-  } catch {
+  }
+  catch {
     case e: Exception ⇒
       log.warn("ZK not connected in isAliveSync", e)
       false
@@ -452,7 +452,8 @@ class AsyncZooKeeperClientImpl(
       deleteChildren(path, ctx) flatMap {
         _ ⇒ delete(path, version, ctx, force = false)
       }
-    } else {
+    }
+    else {
       val p = Promise[VoidResponse]()
       zk.delete(mkPath(path), version, new VoidCallback {
         def processResult(rc: Int, path: String, ignore: Any) {
@@ -472,7 +473,7 @@ class AsyncZooKeeperClientImpl(
           Future.sequence {
             response.children.map {
               child ⇒
-                recurse(mkPath(p) + "/" + child)
+                recurse(mkPath(p)+"/"+child)
             }
           }
       } flatMap {

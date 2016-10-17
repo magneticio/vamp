@@ -92,7 +92,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     val (noPortGateways, otherGateways) = gateways.partition { gateway ⇒ !gateway.port.assigned }
 
     noPortGateways foreach { gateway ⇒
-      IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = false)
+      if (gateway.deployed) IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = false)
       IoC.actorFor[PersistenceActor] ! CreateGatewayPort(gateway, availablePort)
     }
 
@@ -120,9 +120,9 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       } || !gateway.internal
     }
 
-    passThrough foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = true) }
+    passThrough filter (!_.deployed) foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = true) }
 
-    withoutRoutes foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = false) }
+    withoutRoutes filter (_.deployed) foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = false) }
 
     GatewayPipeline(passThrough, pipeline.nonDeployable ++ withoutRoutes)
   }
@@ -190,8 +190,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
     val selected = pipeline.deployable
 
-    val currentAsMap = marshalled.map(g ⇒ g.name -> g).toMap
-    val selectedAsMap = selected.map(g ⇒ g.name -> g).toMap
+    val currentAsMap = marshalled.map(g ⇒ g.name → g).toMap
+    val selectedAsMap = selected.map(g ⇒ g.name → g).toMap
 
     currentAsMap.keySet.diff(selectedAsMap.keySet).foreach(name ⇒ sendEvent(currentAsMap(name), "undeployed"))
     selectedAsMap.keySet.diff(currentAsMap.keySet).foreach(name ⇒ sendEvent(selectedAsMap(name), "deployed"))

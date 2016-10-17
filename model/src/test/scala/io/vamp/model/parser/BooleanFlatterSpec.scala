@@ -64,6 +64,7 @@ class BooleanFlatterSpec extends FlatSpec with Matchers with BooleanFlatter with
       } reduce {
         (op1, op2) ⇒ Or(op1, op2)
       }
-    } else False
+    }
+    else False
   }
 }

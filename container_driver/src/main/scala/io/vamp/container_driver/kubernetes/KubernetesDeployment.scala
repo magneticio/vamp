@@ -65,7 +65,8 @@ trait KubernetesDeployment extends KubernetesArtifact {
                 ContainerService(deployment, service, Option(Containers(scale.get, instances)))
               } :: Nil
 
-            } else Nil
+            }
+            else Nil
 
           case None ⇒ Future.successful(ContainerService(deployment, service, None)) :: Nil
         }

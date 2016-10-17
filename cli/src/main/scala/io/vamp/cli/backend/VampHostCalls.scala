@@ -318,7 +318,8 @@ trait RestSupport {
         case Success(result) ⇒ Some(result)
         case Failure(error)  ⇒ terminateWithError(prettyError(error))
       }
-    } catch {
+    }
+    catch {
       case e: Exception ⇒ terminateWithError(prettyError(e))
     }
   }

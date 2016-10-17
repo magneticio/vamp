@@ -77,7 +77,8 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
               case _ ⇒
             }: (SlaEvent) ⇒ Unit)
         })
-      } catch {
+      }
+      catch {
         case any: Throwable ⇒ reportException(InternalServerError(any))
       }
     })
@@ -153,7 +154,8 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
             if (instances <= maximum && instances >= minimum) {
               log.info(s"scale instances: ${deployment.name}/${targetCluster.name} to $instances")
               commit(targetCluster, scale.copy(instances = instances.toInt))
-            } else {
+            }
+            else {
               log.debug(s"scale instances not within boundaries: ${deployment.name}/${targetCluster.name} is already ${scale.instances}")
               None
             }
@@ -163,7 +165,8 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
             if (cpu <= maximum && cpu >= minimum) {
               log.info(s"scale cpu: ${deployment.name}/${targetCluster.name} to $cpu")
               commit(targetCluster, scale.copy(cpu = Quantity(cpu)))
-            } else {
+            }
+            else {
               log.debug(s"scale cpu not within boundaries: ${deployment.name}/${targetCluster.name} is already ${scale.cpu}")
               None
             }
@@ -173,7 +176,8 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
             if (memory <= maximum && memory >= minimum) {
               log.info(s"scale memory: ${deployment.name}/${targetCluster.name} to $memory")
               commit(targetCluster, scale.copy(memory = MegaByte(memory)))
-            } else {
+            }
+            else {
               log.debug(s"scale memory not within boundaries: ${deployment.name}/${targetCluster.name} is already ${scale.memory}")
               None
             }

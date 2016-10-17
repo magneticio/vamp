@@ -42,7 +42,8 @@ trait DefaultPackageMessageResolverProvider extends MessageResolverProvider {
             messageSource.put(name, message)
             resolveMessageValue(message)
         }
-      } catch {
+      }
+      catch {
         case e: NoSuchMethodException ⇒
           val field = e.getMessage.substring(e.getMessage.lastIndexOf('.') + 1, e.getMessage.length - 2)
           logger.error(s"Message mapping error: field '$field' not defined for ${notification.getClass}")
@@ -64,7 +65,8 @@ trait DefaultPackageMessageResolverProvider extends MessageResolverProvider {
             val input = new Yaml().load(reader).asInstanceOf[java.util.Map[String, Any]].asScala
             messages.put(packageName, input)
             input
-          } finally {
+          }
+          finally {
             reader.close()
           }
         case Some(map) ⇒ map

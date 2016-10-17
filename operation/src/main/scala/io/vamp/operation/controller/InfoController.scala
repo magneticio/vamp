@@ -67,7 +67,8 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
         classOf[ContainerDriverActor],
         classOf[WorkflowDriverActor]
       )
-    } else on.map(_.toLowerCase).collect {
+    }
+    else on.map(_.toLowerCase).collect {
       case "persistence"      ⇒ classOf[PersistenceActor]
       case "key_value"        ⇒ classOf[KeyValueStoreActor]
       case "pulse"            ⇒ classOf[PulseActor]

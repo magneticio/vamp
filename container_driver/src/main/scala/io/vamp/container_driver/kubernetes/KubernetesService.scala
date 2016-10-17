@@ -49,7 +49,8 @@ trait KubernetesService extends KubernetesArtifact {
         if (update) {
           log.info(s"Updating service: $name")
           httpClient.put[Any](s"$url/$id", request, apiHeaders)
-        } else {
+        }
+        else {
           log.debug(s"Service exists: $name")
           Future.successful(false)
         }

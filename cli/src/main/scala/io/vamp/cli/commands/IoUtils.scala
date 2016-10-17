@@ -24,7 +24,8 @@ trait IoUtils extends Parameters {
   protected def readOptionalFileContent(implicit options: OptionMap): Option[String] = getOptionalParameter('file) match {
     case Some(fileName) ⇒ if (java.nio.file.Files.exists(new File(fileName).toPath)) {
       Some(Source.fromFile(fileName).getLines().mkString("\n"))
-    } else {
+    }
+    else {
       terminateWithError(s"File '$fileName' not found")
     }
     case None ⇒ getOptionalParameter('stdin) match {

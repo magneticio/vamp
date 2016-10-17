@@ -24,7 +24,8 @@ trait BooleanFlatter {
         if (calculate(node, map)) ReductionInput(terms(map), value) :: Nil else Nil
       } toList
 
-    } else ReductionInput((if (calculate(node, Nil)) True else False) :: Nil, 0) :: Nil
+    }
+    else ReductionInput((if (calculate(node, Nil)) True else False) :: Nil, 0) :: Nil
   }
 
   private[parser] def reduce(node: AstNode, terms: List[ReductionInput]): AstNode = {
@@ -45,7 +46,8 @@ trait BooleanFlatter {
       } reduce {
         (op1, op2) ⇒ Or(op1, op2)
       }
-    } else False
+    }
+    else False
   }
 
   private def operands(node: AstNode): Set[Operand] = node match {
@@ -83,7 +85,8 @@ trait BooleanFlatter {
       if (powerOf2(comparison) && term.terms.size == node.terms.size) {
         shrank += shrink(node, comparison)
         term.copy(reduced = true)
-      } else term
+      }
+      else term
     }
 
     shrank.toList ++ shrink(tail)

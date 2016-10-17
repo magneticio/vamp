@@ -62,7 +62,8 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
   override def preStart() = try {
     context.system.scheduler.scheduleOnce(OperationBootstrap.synchronizationInitialDelay, self, RescheduleAll)
-  } catch {
+  }
+  catch {
     case t: Throwable ⇒ reportException(InternalServerError(t))
   }
 
@@ -102,7 +103,8 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
       IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition)) map {
         _ ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
       }
-    } else {
+    }
+    else {
       IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
     }
   }

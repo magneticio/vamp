@@ -120,12 +120,13 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
 
 
 lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.preferences.value
+  .setPreference(CompactControlReadability, true)
+  .setPreference(CompactStringConcatenation, true)
   .setPreference(AlignParameters, true)
   .setPreference(AlignSingleLineCaseStatements, true)
   .setPreference(DoubleIndentClassDeclaration, true)
   .setPreference(PreserveDanglingCloseParenthesis, true)
   .setPreference(RewriteArrowSymbols, true))
-
 
 lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   description := "Bootstrap for Vamp",

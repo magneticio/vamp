@@ -50,7 +50,8 @@ trait EventApiController {
 
     val query = if (request.isEmpty) {
       EventQuery(parameters.getOrElse(tagParameter, Nil).toSet, None)
-    } else {
+    }
+    else {
       EventQueryReader.read(request)
     }
 

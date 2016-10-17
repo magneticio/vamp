@@ -85,7 +85,8 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
           deployTo(update = true)
         else if (!matchingServers(deploymentService, cs)) {
           actorFor[PersistenceActor] ! UpdateDeploymentServiceInstances(deployment, deploymentCluster, deploymentService, cs.instances.map(convert))
-        } else {
+        }
+        else {
           actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Done()))
           updateGateways(deployment, deploymentCluster)
           publishDeployed(deployment, deploymentCluster, deploymentService)

@@ -36,7 +36,8 @@ trait DeploymentApiController extends ArtifactShrinkage {
     if (asBlueprint) {
       val blueprint = deployment.asBlueprint
       if (onlyRef) onlyReferences(blueprint) else blueprint
-    } else deployment
+    }
+    else deployment
   }
 
   def createDeployment(request: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
@@ -83,11 +84,13 @@ trait DeploymentApiController extends ArtifactShrinkage {
     process {
       DeploymentBlueprintReader.readReferenceFromSource(request)
     }
-  } catch {
+  }
+  catch {
     case e: NotificationErrorException ⇒
       try {
         process(DeploymentReader.readReferenceFromSource(request).asBlueprint)
-      } catch {
+      }
+      catch {
         case _: Exception ⇒ throw e
       }
   }
@@ -97,7 +100,8 @@ trait DeploymentApiController extends ArtifactShrinkage {
       processBlueprint(request, {
         blueprint ⇒ actorFor[DeploymentActor] ? DeploymentActor.Slice(name, blueprint, request, validateOnly)
       })
-    } else {
+    }
+    else {
       actorFor[PersistenceActor] ? PersistenceActor.Read(name, classOf[Deployment])
     }
   }
