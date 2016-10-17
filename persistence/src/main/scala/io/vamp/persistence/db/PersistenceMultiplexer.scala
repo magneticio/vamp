@@ -126,8 +126,8 @@ trait PersistenceMultiplexer {
             services ← Future.sequence {
               cluster.services.map { service ⇒
                 for {
-                  state ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceState]).map {
-                    _.getOrElse(DeploymentServiceState("", service.state)).asInstanceOf[DeploymentServiceState].state
+                  status ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceStatus]).map {
+                    _.getOrElse(DeploymentServiceStatus("", service.status)).asInstanceOf[DeploymentServiceStatus].status
                   }
                   scale ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceScale]).map {
                     _.orElse(service.scale.map(DeploymentServiceScale("", _))).asInstanceOf[Option[DeploymentServiceScale]].map(_.scale)
@@ -138,16 +138,16 @@ trait PersistenceMultiplexer {
                   environmentVariables ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceEnvironmentVariables]).map {
                     _.getOrElse(DeploymentServiceEnvironmentVariables("", service.environmentVariables)).asInstanceOf[DeploymentServiceEnvironmentVariables].environmentVariables
                   }
-                } yield service.copy(state = state, scale = scale, instances = instances, environmentVariables = environmentVariables)
+                } yield service.copy(status = status, scale = scale, instances = instances, environmentVariables = environmentVariables)
               }
             }
           } yield {
-            cluster.copy(services = services.filterNot(_.state.isUndeployed), gateways = routing)
+            cluster.copy(services = services.filterNot(_.status.isUndeployed), gateways = routing)
           }
         }
       } map {
         _.flatMap { cluster ⇒
-          val services = cluster.services.filterNot(_.state.isUndeployed)
+          val services = cluster.services.filterNot(_.status.isUndeployed)
           if (services.isEmpty) Nil else cluster.copy(services = services) :: Nil
         }
       }

@@ -2,7 +2,7 @@ package io.vamp.model.serialization
 
 import java.time.format.DateTimeFormatter
 
-import io.vamp.model.artifact.DeploymentService.State.Step.Failure
+import io.vamp.model.artifact.DeploymentService.Status.Phase.Failed
 import io.vamp.model.artifact._
 import io.vamp.model.notification.ModelNotificationProvider
 import org.json4s.JsonAST.JString
@@ -42,22 +42,22 @@ class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment]
   }
 }
 
-class DeploymentServiceStateSerializer extends ArtifactSerializer[DeploymentService.State] {
+class DeploymentServiceStateSerializer extends ArtifactSerializer[DeploymentService.Status] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case state: DeploymentService.State ⇒
+    case status: DeploymentService.Status ⇒
       val list = new ArrayBuffer[JField]
 
-      list += JField("intention", JString(state.intention.toString))
-      list += JField("since", JString(state.since.format(DateTimeFormatter.ISO_DATE_TIME)))
-      list += JField("step", Extraction.decompose(state.step))
+      list += JField("intention", JString(status.intention.toString))
+      list += JField("since", JString(status.since.format(DateTimeFormatter.ISO_DATE_TIME)))
+      list += JField("phase", Extraction.decompose(status.phase))
 
       new JObject(list.toList)
   }
 }
 
-class DeploymentServiceStateStepSerializer extends ArtifactSerializer[DeploymentService.State.Step] with ModelNotificationProvider {
+class DeploymentServiceStateStepSerializer extends ArtifactSerializer[DeploymentService.Status.Phase] with ModelNotificationProvider {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case step: DeploymentService.State.Step ⇒
+    case step: DeploymentService.Status.Phase ⇒
 
       val list = new ArrayBuffer[JField]
 
@@ -65,8 +65,8 @@ class DeploymentServiceStateStepSerializer extends ArtifactSerializer[Deployment
       list += JField("since", JString(step.since.format(DateTimeFormatter.ISO_DATE_TIME)))
 
       step match {
-        case failure: Failure ⇒ list += JField("notification", JString(message(failure.notification)))
-        case _                ⇒
+        case failure: Failed ⇒ list += JField("notification", JString(message(failure.notification)))
+        case _               ⇒
       }
 
       new JObject(list.toList)

@@ -4,14 +4,14 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ CommonSupportForActors, IoC }
 import io.vamp.common.config.Config
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService, Containers }
-import io.vamp.model.artifact.DeploymentService.State.Intention
-import io.vamp.model.artifact.DeploymentService.State.Step.{ Done, Update }
+import io.vamp.model.artifact.DeploymentService.Status.Intention
+import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated, Updating }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification.OperationNotificationProvider
-import io.vamp.persistence.db.DevelopmentPersistenceMessages.{ UpdateDeploymentServiceEnvironmentVariables, UpdateDeploymentServiceInstances, UpdateDeploymentServiceState }
+import io.vamp.persistence.db.DevelopmentPersistenceMessages.{ UpdateDeploymentServiceEnvironmentVariables, UpdateDeploymentServiceInstances, UpdateDeploymentServiceStatus }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
@@ -48,11 +48,11 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         val service = containerService.service
         val deployment = containerService.deployment
 
-        service.state.intention match {
-          case Intention.Deploy if service.state.isDone ⇒ redeployIfNeeded(deployment, cluster, service, containerService.containers)
-          case Intention.Deploy                         ⇒ deploy(deployment, cluster, service, containerService.containers)
-          case Intention.Undeploy                       ⇒ undeploy(deployment, cluster, service, containerService.containers)
-          case _                                        ⇒
+        service.status.intention match {
+          case Intention.Deployment if service.status.isDone ⇒ redeployIfNeeded(deployment, cluster, service, containerService.containers)
+          case Intention.Deployment ⇒ deploy(deployment, cluster, service, containerService.containers)
+          case Intention.Undeployment ⇒ undeploy(deployment, cluster, service, containerService.containers)
+          case _ ⇒
         }
 
       case _ ⇒
@@ -67,6 +67,9 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
       val ports = deploymentService.breed.ports.map(_.name) zip server.ports
       DeploymentInstance(server.name, server.host, ports.toMap, server.deployed)
     }
+
+    if (deploymentService.status.phase.isInstanceOf[Initiated])
+      actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
 
     containers match {
       case None ⇒
@@ -83,7 +86,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         else if (!matchingServers(deploymentService, cs)) {
           actorFor[PersistenceActor] ! UpdateDeploymentServiceInstances(deployment, deploymentCluster, deploymentService, cs.instances.map(convert))
         } else {
-          actorFor[PersistenceActor] ! UpdateDeploymentServiceState(deployment, deploymentCluster, deploymentService, deploymentService.state.copy(step = Done()))
+          actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Done()))
           updateGateways(deployment, deploymentCluster)
           publishDeployed(deployment, deploymentCluster, deploymentService)
         }
@@ -96,7 +99,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         deployment.clusters.exists { cluster ⇒
           cluster.services.find(s ⇒ matchDependency(d)(s.breed)) match {
             case None ⇒ false
-            case Some(service) ⇒ service.state.isDeployed && service.breed.ports.forall {
+            case Some(service) ⇒ service.status.isDeployed && service.breed.ports.forall {
               port ⇒ cluster.serviceBy(port.name).isDefined
             }
           }
@@ -131,7 +134,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   private def redeployIfNeeded(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containers: Option[Containers]) = {
 
     def redeploy() = {
-      actorFor[PersistenceActor] ! UpdateDeploymentServiceState(deployment, deploymentCluster, deploymentService, deploymentService.state.copy(step = Update()))
+      actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
       publishRedeploy(deployment, deploymentCluster, deploymentService)
       deploy(deployment, deploymentCluster, deploymentService, containers)
     }
@@ -146,9 +149,9 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     containers match {
       case Some(_) ⇒
         actorFor[ContainerDriverActor] ! ContainerDriverActor.Undeploy(deployment, deploymentCluster, deploymentService)
-        actorFor[PersistenceActor] ! UpdateDeploymentServiceState(deployment, deploymentCluster, deploymentService, deploymentService.state.copy(step = Update()))
+        actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
       case None ⇒
-        actorFor[PersistenceActor] ! UpdateDeploymentServiceState(deployment, deploymentCluster, deploymentService, deploymentService.state.copy(step = Done()))
+        actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Done()))
         resetInternalRouteArtifacts(deployment, deploymentCluster, deploymentService)
         publishUndeployed(deployment, deploymentCluster, deploymentService)
     }

@@ -3,21 +3,21 @@ package io.vamp.model.artifact
 import java.time.OffsetDateTime
 
 import io.vamp.common.notification.Notification
-import io.vamp.model.artifact.DeploymentService.State.Intention.StateIntentionType
-import io.vamp.model.artifact.DeploymentService.State.Step.{ Done, Initiated }
+import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
+import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated }
 
 import scala.language.implicitConversions
 
 object DeploymentService {
 
-  object State {
+  object Status {
 
     object Intention extends Enumeration {
-      type StateIntentionType = Value
-      val Deploy, Undeploy = Value
+      type StatusIntentionType = Value
+      val Deployment, Undeployment = Value
     }
 
-    sealed trait Step {
+    sealed trait Phase {
       def since: OffsetDateTime
 
       def name: String = {
@@ -26,33 +26,33 @@ object DeploymentService {
       }
     }
 
-    object Step {
+    object Phase {
 
-      case class Initiated(since: OffsetDateTime = OffsetDateTime.now()) extends Step
+      case class Initiated(since: OffsetDateTime = OffsetDateTime.now()) extends Phase
 
-      case class Update(since: OffsetDateTime = OffsetDateTime.now()) extends Step
+      case class Updating(since: OffsetDateTime = OffsetDateTime.now()) extends Phase
 
-      case class Done(since: OffsetDateTime = OffsetDateTime.now()) extends Step
+      case class Done(since: OffsetDateTime = OffsetDateTime.now()) extends Phase
 
-      case class Failure(notification: Notification, since: OffsetDateTime = OffsetDateTime.now()) extends Step
+      case class Failed(notification: Notification, since: OffsetDateTime = OffsetDateTime.now()) extends Phase
 
     }
 
   }
 
-  case class State(intention: StateIntentionType, step: State.Step = Initiated(), since: OffsetDateTime = OffsetDateTime.now()) {
-    def isDone = step.isInstanceOf[Done]
+  case class Status(intention: StatusIntentionType, phase: Status.Phase = Initiated(), since: OffsetDateTime = OffsetDateTime.now()) {
+    def isDone = phase.isInstanceOf[Done]
 
-    def isDeployed = intention == State.Intention.Deploy && isDone
+    def isDeployed = intention == Status.Intention.Deployment && isDone
 
-    def isUndeployed = intention == State.Intention.Undeploy && isDone
+    def isUndeployed = intention == Status.Intention.Undeployment && isDone
   }
 
-  implicit def step2state(intention: StateIntentionType): State = State(intention)
+  implicit def step2state(intention: StatusIntentionType): Status = Status(intention)
 }
 
-trait DeploymentState {
-  def state: DeploymentService.State
+trait DeploymentStatus {
+  def status: DeploymentService.Status
 }
 
 object Deployment {
@@ -103,14 +103,14 @@ case class DeploymentCluster(
 }
 
 case class DeploymentService(
-  state: DeploymentService.State,
+  status: DeploymentService.Status,
   breed: DefaultBreed,
   environmentVariables: List[EnvironmentVariable],
   scale: Option[DefaultScale],
   instances: List[DeploymentInstance],
   arguments: List[Argument],
   dependencies: Map[String, String] = Map(),
-  dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService with DeploymentState
+  dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService with DeploymentStatus
 
 case class DeploymentInstance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact {
   val kind = "instance"

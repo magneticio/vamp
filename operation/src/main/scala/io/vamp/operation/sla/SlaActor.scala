@@ -65,7 +65,7 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
   private def responseTimeSlidingWindow(deployment: Deployment, cluster: DeploymentCluster, sla: ResponseTimeSlidingWindowSla) = {
     log.debug(s"response time sliding window sla check for: ${deployment.name}/${cluster.name}")
 
-    if (cluster.services.forall(_.state.isDone)) {
+    if (cluster.services.forall(_.status.isDone)) {
       val from = OffsetDateTime.now().minus((sla.interval + sla.cooldown).toSeconds, ChronoUnit.SECONDS)
 
       eventExists(deployment, cluster, from) map {

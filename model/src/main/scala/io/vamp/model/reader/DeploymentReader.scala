@@ -3,7 +3,7 @@ package io.vamp.model.reader
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
-import io.vamp.model.artifact.DeploymentService.State.Step
+import io.vamp.model.artifact.DeploymentService.Status.Phase
 import io.vamp.model.artifact._
 import io.vamp.model.notification.{ NotificationMessageNotRestored, UndefinedStateIntentionError, UndefinedStateStepError }
 import io.vamp.model.reader.YamlSourceReader._
@@ -50,7 +50,7 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
     val breed = BreedReader.readReference(<<![Any]("breed")).asInstanceOf[DefaultBreed]
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale", validateEitherReferenceOrAnonymous).asInstanceOf[Option[DefaultScale]]
 
-    DeploymentService(state(<<![YamlSourceReader]("state")), breed, environmentVariables(), scale, parseInstances, arguments(), dependencies(), dialects)
+    DeploymentService(status(<<![YamlSourceReader]("status")), breed, environmentVariables(), scale, parseInstances, arguments(), dependencies(), dialects)
   }
 
   def parseInstances(implicit source: YamlSourceReader): List[DeploymentInstance] = {
@@ -81,7 +81,7 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
     }
   }
 
-  private def state(implicit source: YamlSourceReader): DeploymentService.State = DeploymentServiceStateReader.read
+  private def status(implicit source: YamlSourceReader): DeploymentService.Status = DeploymentServiceStatusReader.read
 
   override def readReference: PartialFunction[Any, Deployment] = {
     case yaml: YamlSourceReader if yaml.size > 1 ⇒ read(yaml)
@@ -96,23 +96,23 @@ object DeploymentReader extends AbstractDeploymentReader {
   protected def routingReader: GatewayMappingReader[Gateway] = new InternalGatewayReader(acceptPort = false, onlyAnonymous = true, ignoreError = true)
 }
 
-object DeploymentServiceStateReader extends YamlReader[DeploymentService.State] {
+object DeploymentServiceStatusReader extends YamlReader[DeploymentService.Status] {
 
   override protected def parse(implicit source: YamlSourceReader) = {
     def since(string: String) = OffsetDateTime.parse(string, DateTimeFormatter.ISO_DATE_TIME)
 
     val intentionName = <<![String]("intention")
-    val intention = DeploymentService.State.Intention.values.find(_.toString == intentionName).getOrElse(
+    val intention = DeploymentService.Status.Intention.values.find(_.toString == intentionName).getOrElse(
       throwException(UndefinedStateIntentionError(intentionName)))
 
-    val step = <<![String]("step" :: "name") match {
-      case n if Step.Failure.getClass.getName.endsWith(s"$n$$") ⇒ Step.Failure(since = since(<<![String]("step" :: "since")), notification = NotificationMessageNotRestored(<<?[String]("step" :: "notification").getOrElse("")))
-      case n if Step.Update.getClass.getName.endsWith(s"$n$$") ⇒ Step.Update(since(<<![String]("step" :: "since")))
-      case n if Step.Initiated.getClass.getName.endsWith(s"$n$$") ⇒ Step.Initiated(since(<<![String]("step" :: "since")))
-      case n if Step.Done.getClass.getName.endsWith(s"$n$$") ⇒ Step.Done(since(<<![String]("step" :: "since")))
+    val phase = <<![String]("phase" :: "name") match {
+      case n if Phase.Failed.getClass.getName.endsWith(s"$n$$") ⇒ Phase.Failed(since = since(<<![String]("phase" :: "since")), notification = NotificationMessageNotRestored(<<?[String]("phase" :: "notification").getOrElse("")))
+      case n if Phase.Updating.getClass.getName.endsWith(s"$n$$") ⇒ Phase.Updating(since(<<![String]("phase" :: "since")))
+      case n if Phase.Initiated.getClass.getName.endsWith(s"$n$$") ⇒ Phase.Initiated(since(<<![String]("phase" :: "since")))
+      case n if Phase.Done.getClass.getName.endsWith(s"$n$$") ⇒ Phase.Done(since(<<![String]("phase" :: "since")))
       case n ⇒ throwException(UndefinedStateStepError(n))
     }
 
-    DeploymentService.State(intention, step, since(<<![String]("since")))
+    DeploymentService.Status(intention, phase, since(<<![String]("since")))
   }
 }
