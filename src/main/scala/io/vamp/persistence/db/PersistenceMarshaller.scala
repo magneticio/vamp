@@ -106,6 +106,9 @@ trait PersistenceMarshaller extends TypeOfArtifact {
       }
     },
     // workflow persistence
+    "workflow-scale" -> new NoNameValidationYamlReader[WorkflowScale] {
+      override protected def parse(implicit source: YamlSourceReader) = WorkflowScale(name, ScaleReader.read(<<![YamlSourceReader]("scale")).asInstanceOf[DefaultScale])
+    },
     "workflow-network" -> new NoNameValidationYamlReader[WorkflowNetwork] {
       override protected def parse(implicit source: YamlSourceReader) = WorkflowNetwork(name, <<![String]("network"))
     },
