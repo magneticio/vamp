@@ -12,7 +12,7 @@ object DevelopmentPersistenceMessages extends DevelopmentPersistenceMessages
 
 trait DevelopmentPersistenceMessages {
 
-  case class UpdateDeploymentServiceState(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.State) extends PersistenceActor.PersistenceMessages
+  case class UpdateDeploymentServiceStatus(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, status: DeploymentService.Status) extends PersistenceActor.PersistenceMessages
 
   case class UpdateDeploymentServiceScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale) extends PersistenceActor.PersistenceMessages
 
@@ -45,34 +45,34 @@ trait DevelopmentPersistenceOperations {
 
   protected def receiveDevelopment: Actor.Receive = {
 
-    case o: UpdateDeploymentServiceState                ⇒ updateDeploymentServiceState(o.deployment, o.cluster, o.service, o.state)
+    case o: UpdateDeploymentServiceStatus               ⇒ updateStatus(o.deployment, o.cluster, o.service, o.status)
 
-    case o: UpdateDeploymentServiceScale                ⇒ updateUpdateDeploymentServiceScale(o.deployment, o.cluster, o.service, o.scale)
+    case o: UpdateDeploymentServiceScale                ⇒ updateServiceScale(o.deployment, o.cluster, o.service, o.scale)
 
-    case o: UpdateDeploymentServiceInstances            ⇒ updateUpdateDeploymentServiceInstances(o.deployment, o.cluster, o.service, o.instances)
+    case o: UpdateDeploymentServiceInstances            ⇒ updateServiceInstances(o.deployment, o.cluster, o.service, o.instances)
 
-    case o: UpdateDeploymentServiceEnvironmentVariables ⇒ updateDeploymentServiceEnvironmentVariables(o.deployment, o.cluster, o.service, o.environmentVariables)
+    case o: UpdateDeploymentServiceEnvironmentVariables ⇒ updateEnvironmentVariables(o.deployment, o.cluster, o.service, o.environmentVariables)
 
-    case o: ResetDeploymentService                      ⇒ resetDeploymentService(o.deployment, o.cluster, o.service)
+    case o: ResetDeploymentService                      ⇒ reset(o.deployment, o.cluster, o.service)
   }
 
-  private def updateDeploymentServiceState(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.State) = reply {
-    self ? PersistenceActor.Update(DeploymentServiceState(serviceArtifactName(deployment, cluster, service), state))
+  private def updateStatus(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, status: DeploymentService.Status) = reply {
+    self ? PersistenceActor.Update(DeploymentServiceStatus(serviceArtifactName(deployment, cluster, service), status))
   }
 
-  private def updateUpdateDeploymentServiceScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale) = reply {
+  private def updateServiceScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale) = reply {
     self ? PersistenceActor.Update(DeploymentServiceScale(serviceArtifactName(deployment, cluster, service), scale))
   }
 
-  private def updateUpdateDeploymentServiceInstances(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, instances: List[DeploymentInstance]) = reply {
+  private def updateServiceInstances(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, instances: List[DeploymentInstance]) = reply {
     self ? PersistenceActor.Update(DeploymentServiceInstances(serviceArtifactName(deployment, cluster, service), instances))
   }
 
-  private def updateDeploymentServiceEnvironmentVariables(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, environmentVariables: List[EnvironmentVariable]) = reply {
+  private def updateEnvironmentVariables(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, environmentVariables: List[EnvironmentVariable]) = reply {
     self ? PersistenceActor.Update(DeploymentServiceEnvironmentVariables(serviceArtifactName(deployment, cluster, service), environmentVariables))
   }
 
-  private def resetDeploymentService(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = reply {
+  private def reset(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = reply {
     val name = serviceArtifactName(deployment, cluster, service)
 
     val messages = PersistenceActor.Delete(name, classOf[DeploymentServiceScale]) ::
@@ -83,8 +83,8 @@ trait DevelopmentPersistenceOperations {
   }
 }
 
-private[persistence] case class DeploymentServiceState(name: String, state: DeploymentService.State) extends Artifact {
-  val kind = "deployment-service-state"
+private[persistence] case class DeploymentServiceStatus(name: String, status: DeploymentService.Status) extends Artifact {
+  val kind = "deployment-service-statuses"
 }
 
 private[persistence] case class DeploymentServiceScale(name: String, scale: DefaultScale) extends Artifact {

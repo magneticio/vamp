@@ -84,8 +84,8 @@ trait PersistenceMarshaller extends TypeOfArtifact {
       }
     },
     // deployment persistence
-    "deployment-service-states" -> new NoNameValidationYamlReader[DeploymentServiceState] {
-      override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceState(name, DeploymentServiceStateReader.read(<<![YamlSourceReader]("state")))
+    "deployment-service-statuses" -> new NoNameValidationYamlReader[DeploymentServiceStatus] {
+      override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceStatus(name, DeploymentServiceStatusReader.read(<<![YamlSourceReader]("status")))
     },
     "deployment-service-scales" -> new NoNameValidationYamlReader[DeploymentServiceScale] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceScale(name, ScaleReader.read(<<![YamlSourceReader]("scale")).asInstanceOf[DefaultScale])
