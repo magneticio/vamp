@@ -181,15 +181,15 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   }
 
   private def publishDeployed(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
-    actorFor[PulseActor] ! Publish(Event(tags(deployedTag, deployment, cluster, service), (deployment, cluster, service)), publishEventValue = false)
+    actorFor[PulseActor] ! Publish(Event(tags(deployedTag, deployment, cluster, service), (deployment, cluster, service), `type` = deploymentEventType), publishEventValue = false)
   }
 
   private def publishRedeploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
-    actorFor[PulseActor] ! Publish(Event(tags(redeployTag, deployment, cluster, service), (deployment, cluster, service)), publishEventValue = false)
+    actorFor[PulseActor] ! Publish(Event(tags(redeployTag, deployment, cluster, service), (deployment, cluster, service), `type` = deploymentEventType), publishEventValue = false)
   }
 
   private def publishUndeployed(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
-    actorFor[PulseActor] ! Publish(Event(tags(undeployedTag, deployment, cluster, service), (deployment, cluster)), publishEventValue = false)
+    actorFor[PulseActor] ! Publish(Event(tags(undeployedTag, deployment, cluster, service), (deployment, cluster), `type` = deploymentEventType), publishEventValue = false)
   }
 
   private def tags(tag: String, deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {

@@ -2,7 +2,6 @@ package io.vamp.persistence.db
 
 import akka.actor.Actor
 import akka.pattern.ask
-import akka.util.Timeout
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.model.artifact._
 
@@ -12,9 +11,11 @@ object DevelopmentPersistenceMessages extends DevelopmentPersistenceMessages
 
 trait DevelopmentPersistenceMessages {
 
+  case class UpdateDeploymentClusterSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: Option[String] = None) extends PersistenceActor.PersistenceMessages
+
   case class UpdateDeploymentServiceStatus(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, status: DeploymentService.Status) extends PersistenceActor.PersistenceMessages
 
-  case class UpdateDeploymentServiceScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale) extends PersistenceActor.PersistenceMessages
+  case class UpdateDeploymentServiceScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) extends PersistenceActor.PersistenceMessages
 
   case class UpdateDeploymentServiceInstances(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, instances: List[DeploymentInstance]) extends PersistenceActor.PersistenceMessages
 
@@ -26,6 +27,10 @@ trait DevelopmentPersistenceMessages {
 
 private[persistence] object DevelopmentPersistenceOperations {
 
+  def clusterArtifactName(deployment: Deployment, cluster: DeploymentCluster) = {
+    GatewayPath(deployment.name :: cluster.name :: Nil).normalized
+  }
+
   def serviceArtifactName(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
     GatewayPath(deployment.name :: cluster.name :: service.breed.name :: Nil).normalized
   }
@@ -36,35 +41,45 @@ private[persistence] object DevelopmentPersistenceOperations {
 }
 
 trait DevelopmentPersistenceOperations {
-  this: CommonSupportForActors ⇒
+  this: CommonSupportForActors with PersistenceArchive ⇒
 
   import DevelopmentPersistenceMessages._
   import DevelopmentPersistenceOperations._
 
-  implicit def timeout: Timeout
-
   protected def receiveDevelopment: Actor.Receive = {
+
+    case o: UpdateDeploymentClusterSla                  ⇒ updateSla(o.deployment, o.cluster, o.sla, o.source)
 
     case o: UpdateDeploymentServiceStatus               ⇒ updateStatus(o.deployment, o.cluster, o.service, o.status)
 
-    case o: UpdateDeploymentServiceScale                ⇒ updateServiceScale(o.deployment, o.cluster, o.service, o.scale)
+    case o: UpdateDeploymentServiceScale                ⇒ updateScale(o.deployment, o.cluster, o.service, o.scale, o.source)
 
-    case o: UpdateDeploymentServiceInstances            ⇒ updateServiceInstances(o.deployment, o.cluster, o.service, o.instances)
+    case o: UpdateDeploymentServiceInstances            ⇒ updateInstances(o.deployment, o.cluster, o.service, o.instances)
 
     case o: UpdateDeploymentServiceEnvironmentVariables ⇒ updateEnvironmentVariables(o.deployment, o.cluster, o.service, o.environmentVariables)
 
     case o: ResetDeploymentService                      ⇒ reset(o.deployment, o.cluster, o.service)
   }
 
+  private def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: Option[String]) = reply {
+    val artifact = DeploymentClusterSla(clusterArtifactName(deployment, cluster), sla)
+    (self ? PersistenceActor.Update(artifact)) map { _ ⇒
+      archiveUpdate(artifact, source)
+    }
+  }
+
   private def updateStatus(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, status: DeploymentService.Status) = reply {
     self ? PersistenceActor.Update(DeploymentServiceStatus(serviceArtifactName(deployment, cluster, service), status))
   }
 
-  private def updateServiceScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale) = reply {
-    self ? PersistenceActor.Update(DeploymentServiceScale(serviceArtifactName(deployment, cluster, service), scale))
+  private def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) = reply {
+    val artifact = DeploymentServiceScale(serviceArtifactName(deployment, cluster, service), scale)
+    (self ? PersistenceActor.Update(artifact)) map { _ ⇒
+      archiveUpdate(artifact, Option(source))
+    }
   }
 
-  private def updateServiceInstances(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, instances: List[DeploymentInstance]) = reply {
+  private def updateInstances(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, instances: List[DeploymentInstance]) = reply {
     self ? PersistenceActor.Update(DeploymentServiceInstances(serviceArtifactName(deployment, cluster, service), instances))
   }
 
@@ -83,12 +98,16 @@ trait DevelopmentPersistenceOperations {
   }
 }
 
+private[persistence] case class DeploymentClusterSla(name: String, sla: Option[Sla]) extends Artifact {
+  val kind = "deployment-cluster-slas"
+}
+
 private[persistence] case class DeploymentServiceStatus(name: String, status: DeploymentService.Status) extends Artifact {
   val kind = "deployment-service-statuses"
 }
 
 private[persistence] case class DeploymentServiceScale(name: String, scale: DefaultScale) extends Artifact {
-  val kind = "deployment-service-scale"
+  val kind = "deployment-service-scales"
 }
 
 private[persistence] case class DeploymentServiceInstances(name: String, instances: List[DeploymentInstance]) extends Artifact {

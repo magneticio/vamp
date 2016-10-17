@@ -616,14 +616,13 @@ trait DeploymentUpdate {
   private implicit val timeout = PersistenceActor.timeout
 
   def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String) = {
-    val clusters = deployment.clusters.map(c ⇒ if (cluster.name == c.name) c.copy(sla = sla) else c)
-    actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
+    actorFor[PersistenceActor] ? PersistenceActor.UpdateDeploymentClusterSla(deployment, cluster, sla, Some(source))
   }
 
   def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) = {
     cluster.services.find(_.breed.name == service.breed.name) match {
       case Some(_) ⇒
-        actorFor[PersistenceActor] ? PersistenceActor.UpdateDeploymentServiceScale(deployment, cluster, service, scale) flatMap {
+        actorFor[PersistenceActor] ? PersistenceActor.UpdateDeploymentServiceScale(deployment, cluster, service, scale, source) flatMap {
           _ ⇒ actorFor[PersistenceActor] ? PersistenceActor.UpdateDeploymentServiceStatus(deployment, cluster, service, Intention.Deployment)
         }
       case _ ⇒ Future.successful(None)

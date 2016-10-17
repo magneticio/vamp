@@ -6,6 +6,8 @@ object PulseEventTags {
 
   object Deployments {
 
+    val deploymentEventType = "synchronization"
+
     val deployedTag = s"synchronization${Event.tagDelimiter}deployed"
 
     val redeployTag = s"synchronization${Event.tagDelimiter}redeploy"
@@ -17,6 +19,6 @@ object PulseEventTags {
 
     val scheduledTag = "scheduled"
 
-    val unscheduledTag = s"unscheduled"
+    val unscheduledTag = "unscheduled"
   }
 }

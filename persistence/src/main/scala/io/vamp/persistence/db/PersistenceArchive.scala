@@ -22,16 +22,18 @@ object PersistenceArchive {
 
   def tagFor(`type`: Class[_]): Option[String] = `type` match {
     case t if classOf[Deployment].isAssignableFrom(t) ⇒ Option("deployments")
-    case t if classOf[Gateway].isAssignableFrom(t)    ⇒ Option("gateways")
-    case t if classOf[Breed].isAssignableFrom(t)      ⇒ Option("breeds")
-    case t if classOf[Blueprint].isAssignableFrom(t)  ⇒ Option("blueprints")
-    case t if classOf[Sla].isAssignableFrom(t)        ⇒ Option("slas")
-    case t if classOf[Scale].isAssignableFrom(t)      ⇒ Option("scales")
+    case t if classOf[DeploymentClusterSla].isAssignableFrom(t) ⇒ Option("deployment-cluster-slas")
+    case t if classOf[DeploymentServiceScale].isAssignableFrom(t) ⇒ Option("deployment-service-scales")
+    case t if classOf[Gateway].isAssignableFrom(t) ⇒ Option("gateways")
+    case t if classOf[Breed].isAssignableFrom(t) ⇒ Option("breeds")
+    case t if classOf[Blueprint].isAssignableFrom(t) ⇒ Option("blueprints")
+    case t if classOf[Sla].isAssignableFrom(t) ⇒ Option("slas")
+    case t if classOf[Scale].isAssignableFrom(t) ⇒ Option("scales")
     case t if classOf[Escalation].isAssignableFrom(t) ⇒ Option("escalations")
-    case t if classOf[Route].isAssignableFrom(t)      ⇒ Option("routes")
-    case t if classOf[Condition].isAssignableFrom(t)  ⇒ Option("conditions")
-    case t if classOf[Workflow].isAssignableFrom(t)   ⇒ Option("workflows")
-    case request                                      ⇒ None
+    case t if classOf[Route].isAssignableFrom(t) ⇒ Option("routes")
+    case t if classOf[Condition].isAssignableFrom(t) ⇒ Option("conditions")
+    case t if classOf[Workflow].isAssignableFrom(t) ⇒ Option("workflows")
+    case request ⇒ None
   }
 }
 
