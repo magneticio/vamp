@@ -141,7 +141,8 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
           case Some(url) ⇒ httpClient.put[Service](url, requestPayload(UpdateService(instances)), headers)
           case _         ⇒ Future.successful(s)
         }
-      } else Future.successful(s)
+      }
+      else Future.successful(s)
     )
   }
 
@@ -217,7 +218,8 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
               case None ⇒ Future.successful(some)
             }
           }
-        } else Future.successful(some)
+        }
+        else Future.successful(some)
       }
   }
 
@@ -280,7 +282,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
   private def headers: List[(String, String)] = {
     if (!apiUser.isEmpty && !apiPassword.isEmpty)
-      "Authorization" -> ("Basic " + credentials(apiUser, apiPassword)) :: HttpClient.jsonHeaders
+      "Authorization" -> ("Basic "+credentials(apiUser, apiPassword)) :: HttpClient.jsonHeaders
     else
       HttpClient.jsonHeaders
   }
