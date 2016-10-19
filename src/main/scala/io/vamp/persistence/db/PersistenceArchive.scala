@@ -22,7 +22,6 @@ object PersistenceArchive {
 
   def tagFor(`type`: Class[_]): Option[String] = `type` match {
     case t if classOf[Deployment].isAssignableFrom(t) ⇒ Option("deployments")
-    case t if classOf[DeploymentClusterSla].isAssignableFrom(t) ⇒ Option("deployment-cluster-slas")
     case t if classOf[DeploymentServiceScale].isAssignableFrom(t) ⇒ Option("deployment-service-scales")
     case t if classOf[Gateway].isAssignableFrom(t) ⇒ Option("gateways")
     case t if classOf[Breed].isAssignableFrom(t) ⇒ Option("breeds")

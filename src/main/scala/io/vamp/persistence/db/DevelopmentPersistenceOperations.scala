@@ -11,8 +11,6 @@ object DevelopmentPersistenceMessages extends DevelopmentPersistenceMessages
 
 trait DevelopmentPersistenceMessages {
 
-  case class UpdateDeploymentClusterSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: Option[String] = None) extends PersistenceActor.PersistenceMessages
-
   case class UpdateDeploymentServiceStatus(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, status: DeploymentService.Status) extends PersistenceActor.PersistenceMessages
 
   case class UpdateDeploymentServiceScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) extends PersistenceActor.PersistenceMessages
@@ -48,8 +46,6 @@ trait DevelopmentPersistenceOperations {
 
   protected def receiveDevelopment: Actor.Receive = {
 
-    case o: UpdateDeploymentClusterSla                  ⇒ updateSla(o.deployment, o.cluster, o.sla, o.source)
-
     case o: UpdateDeploymentServiceStatus               ⇒ updateStatus(o.deployment, o.cluster, o.service, o.status)
 
     case o: UpdateDeploymentServiceScale                ⇒ updateScale(o.deployment, o.cluster, o.service, o.scale, o.source)
@@ -59,13 +55,6 @@ trait DevelopmentPersistenceOperations {
     case o: UpdateDeploymentServiceEnvironmentVariables ⇒ updateEnvironmentVariables(o.deployment, o.cluster, o.service, o.environmentVariables)
 
     case o: ResetDeploymentService                      ⇒ reset(o.deployment, o.cluster, o.service)
-  }
-
-  private def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: Option[String]) = reply {
-    val artifact = DeploymentClusterSla(clusterArtifactName(deployment, cluster), sla)
-    (self ? PersistenceActor.Update(artifact)) map { _ ⇒
-      archiveUpdate(artifact, source)
-    }
   }
 
   private def updateStatus(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, status: DeploymentService.Status) = reply {
@@ -96,10 +85,6 @@ trait DevelopmentPersistenceOperations {
 
     Future.sequence(messages.map(self ? _))
   }
-}
-
-private[persistence] case class DeploymentClusterSla(name: String, sla: Option[Sla]) extends Artifact {
-  val kind = "deployment-cluster-slas"
 }
 
 private[persistence] case class DeploymentServiceStatus(name: String, status: DeploymentService.Status) extends Artifact {

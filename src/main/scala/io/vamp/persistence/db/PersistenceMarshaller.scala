@@ -84,9 +84,6 @@ trait PersistenceMarshaller extends TypeOfArtifact {
       }
     },
     // deployment persistence
-    "deployment-cluster-slas" -> new NoNameValidationYamlReader[DeploymentClusterSla] {
-      override protected def parse(implicit source: YamlSourceReader) = DeploymentClusterSla(name, SlaReader.readOptionalAnonymous("sla"))
-    },
     "deployment-service-statuses" -> new NoNameValidationYamlReader[DeploymentServiceStatus] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceStatus(name, DeploymentServiceStatusReader.read(<<![YamlSourceReader]("status")))
     },
