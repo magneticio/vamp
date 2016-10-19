@@ -1,6 +1,6 @@
 package io.vamp.operation.controller
 
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
+import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider}
 import io.vamp.common.config.Config
 import io.vamp.common.notification.NotificationProvider
 
@@ -12,14 +12,10 @@ trait MetricsController extends GatewayDeploymentResolver with EventValue {
   private val window = Config.duration("vamp.operation.metrics.window")
 
   def gatewayMetrics(gateway: String, metrics: String): Future[Option[Double]] = gatewayFor(gateway).flatMap {
-
-    case Some(g) ⇒
-
-      last((s"gateways:${g.name}" :: s"metrics:$metrics" :: Nil).toSet, window).map {
-        case Some(value) ⇒ Option(value.toString.toDouble)
-        case _           ⇒ None
-      }
-
+    case Some(g) ⇒ last((s"gateways:${g.name}" :: s"metrics:$metrics" :: Nil).toSet, window).map {
+      case Some(value) ⇒ Option(value.toString.toDouble)
+      case _           ⇒ None
+    }
     case None ⇒ Future.successful(None)
   }
 

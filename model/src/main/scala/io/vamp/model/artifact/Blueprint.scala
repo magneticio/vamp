@@ -2,8 +2,12 @@ package io.vamp.model.artifact
 
 import io.vamp.model.reader.{ MegaByte, Quantity }
 
-abstract class Blueprint extends Artifact {
+object Blueprint {
   val kind = "blueprint"
+}
+
+abstract class Blueprint extends Artifact {
+  val kind = Blueprint.kind
 }
 
 trait AbstractBlueprint extends Blueprint {

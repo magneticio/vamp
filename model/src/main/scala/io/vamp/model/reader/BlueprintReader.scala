@@ -1,10 +1,10 @@
 package io.vamp.model.reader
 
-import io.vamp.common.notification.{ Notification, NotificationErrorException, NotificationProvider }
+import io.vamp.common.notification.{Notification, NotificationErrorException, NotificationProvider}
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
-import io.vamp.model.validator.{ BlueprintTraitValidator, BreedTraitValueValidator }
+import io.vamp.model.validator.{BlueprintTraitValidator, BreedTraitValueValidator}
 
 import scala.language.postfixOps
 
@@ -28,7 +28,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
   override protected def expand(implicit source: YamlSourceReader) = {
     <<?[YamlSourceReader]("clusters") match {
       case Some(yaml) ⇒ yaml.pull().map {
-        case (name: String, breed: String) ⇒ >>("clusters" :: name :: "services", List(YamlSourceReader("breed" -> breed)))
+        case (name: String, breed: String) ⇒ >>("clusters" :: name :: "services", List(YamlSourceReader("breed" → breed)))
         case (name: String, list: List[_]) ⇒ >>("clusters" :: name :: "services", list)
         case _                             ⇒
       }
@@ -41,13 +41,14 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
           <<?[Any]("services") match {
             case None                ⇒ >>("services", List(<<-("sla", "gateways")))
             case Some(list: List[_]) ⇒
-            case Some(breed: String) ⇒ >>("services", List(YamlSourceReader("breed" -> breed)))
+            case Some(breed: String) ⇒ >>("services", List(YamlSourceReader("breed" → breed)))
             case Some(m)             ⇒ >>("services", List(m))
           }
           >>("services", <<![List[_]]("services").map { element ⇒
             if (element.isInstanceOf[String]) {
-              YamlSourceReader("breed" -> YamlSourceReader("reference" -> element))
-            } else {
+              YamlSourceReader("breed" → YamlSourceReader("reference" → element))
+            }
+            else {
               implicit val source = element.asInstanceOf[YamlSourceReader]
               <<?[Any]("breed") match {
                 case None ⇒
@@ -76,7 +77,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 
   private def expandDialect()(implicit source: YamlSourceReader) = {
     <<?[Any]("dialects") match {
-      case None ⇒ >>("dialects", YamlSourceReader(dialectValues.map { case (k, v) ⇒ k.toString.toLowerCase -> v }))
+      case None ⇒ >>("dialects", YamlSourceReader(dialectValues.map { case (k, v) ⇒ k.toString.toLowerCase → v }))
       case _    ⇒
     }
   }
@@ -201,7 +202,8 @@ trait BlueprintGatewayHelper {
       if (ports.size == 1)
         gateways.find(_.port.name == Gateway.anonymous).get.copy(port = Port(ports.head, None, None)) :: Nil
       else gateways
-    } else gateways
+    }
+    else gateways
   }
 
   protected def validateInternalGatewayAnonymousPortMapping[T <: AbstractBlueprint]: T ⇒ T = { blueprint ⇒
@@ -326,6 +328,13 @@ object DeploymentBlueprintReader extends AbstractBlueprintReader {
   override protected def validateDependencies(breeds: List[Breed]): Unit = {}
 
   override def reportException(notification: Notification): Exception = NotificationErrorException(notification, message(notification))
+
+  override protected def consistent(blueprint: Blueprint)(implicit source: YamlSourceReader): Blueprint = {
+    <<?[String](Artifact.kind) match {
+      case Some(kind) if kind == Blueprint.kind || kind == Deployment.kind ⇒ blueprint
+      case _ ⇒ super.consistent(blueprint)
+    }
+  }
 }
 
 object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale] {
