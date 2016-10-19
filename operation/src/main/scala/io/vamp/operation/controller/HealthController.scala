@@ -6,48 +6,32 @@ import io.vamp.common.notification.NotificationProvider
 
 import scala.concurrent.Future
 
-trait HealthController extends GatewayDeploymentResolver with EventValue {
+trait HealthController extends EventPeekController {
   this: ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
 
   private val window = Config.duration("vamp.operation.health.window")
 
-  def gatewayHealth(gateway: String): Future[Option[Double]] = gatewayFor(gateway) flatMap {
-
-    case Some(g) ⇒
-
-      last((s"gateways:${g.name}" :: s"health" :: Nil).toSet, window).map {
-        case Some(value) ⇒ Option(value.toString.toDouble)
-        case _           ⇒ None
-      }
-
-    case None ⇒ Future.successful(None)
+  def gatewayHealth(gatewayName: String) = {
+    peek(s"gateways:$gatewayName" :: "health" :: Nil, window)
   }
 
-  def routeHealth(gateway: String, route: String) = gatewayFor(gateway) map {
-    _.flatMap(g ⇒ g.routes.find(_.name == route).map(_ ⇒ 0D))
+  def routeHealth(gatewayName: String, routeName: String) = {
+    peek(s"gateways:$gatewayName" :: s"routes:$routeName" :: "health" :: Nil, window)
   }
 
-  def deploymentHealth(deployment: String) = deploymentFor(deployment) flatMap {
-
-    case Some(d) ⇒
-
-      last((s"deployments:${d.name}" :: s"health" :: Nil).toSet, window).map {
-        case Some(value) ⇒ Option(value.toString.toDouble)
-        case _           ⇒ None
-      }
-
-    case None ⇒ Future.successful(None)
+  def deploymentHealth(deploymentName: String) = {
+    peek(s"deployments:$deploymentName" :: "health" :: Nil, window)
   }
 
-  def clusterHealth(deployment: String, cluster: String) = deploymentFor(deployment) map {
-    _.flatMap(d ⇒ d.clusters.find(_.name == cluster).map(_ ⇒ 0D))
+  def clusterHealth(deploymentName: String, clusterName: String) = {
+    peek(s"deployments:$deploymentName" :: s"clusters:$clusterName" :: "health" :: Nil, window)
   }
 
-  def serviceHealth(deployment: String, cluster: String, service: String) = deploymentFor(deployment) map {
-    _.flatMap(d ⇒ d.clusters.find(_.name == cluster).flatMap(c ⇒ c.services.find(_.breed.name == service).map(_ ⇒ 0D)))
+  def serviceHealth(deploymentName: String, clusterName: String, serviceName: String) = {
+    peek(s"deployments:$deploymentName" :: s"clusters:$clusterName" :: s"services:$serviceName" :: "health" :: Nil, window)
   }
 
-  def instanceHealth(deployment: String, cluster: String, service: String, instance: String) = deploymentFor(deployment) map {
-    _.flatMap(d ⇒ d.clusters.find(_.name == cluster).flatMap(c ⇒ c.services.find(_.breed.name == service).flatMap(s ⇒ s.instances.find(_.name == instance).map(_ ⇒ 0D))))
+  def instanceHealth(deploymentName: String, clusterName: String, serviceName: String, instanceName: String): Future[Option[Double]] = {
+    Future.successful(None)
   }
 }
