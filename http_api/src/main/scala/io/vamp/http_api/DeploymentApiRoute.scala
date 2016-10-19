@@ -78,13 +78,17 @@ trait DeploymentApiRoute extends DeploymentApiController {
           }
         } ~ (post | put) {
           entity(as[String]) { request ⇒
-            onSuccess(slaUpdate(deployment, cluster, request)) { result ⇒
-              respondWith(Accepted, result)
+            validateOnly { validateOnly ⇒
+              onSuccess(slaUpdate(deployment, cluster, request, validateOnly)) { result ⇒
+                respondWith(Accepted, result)
+              }
             }
           }
         } ~ delete {
-          onSuccess(slaDelete(deployment, cluster)) { result ⇒
-            respondWith(NoContent, None)
+          validateOnly { validateOnly ⇒
+            onSuccess(slaDelete(deployment, cluster, validateOnly)) { result ⇒
+              respondWith(NoContent, None)
+            }
           }
         }
       }
@@ -99,8 +103,10 @@ trait DeploymentApiRoute extends DeploymentApiController {
           }
         } ~ put {
           entity(as[String]) { request ⇒
-            onSuccess(scaleUpdate(deployment, cluster, breed, request)) { result ⇒
-              respondWith(Accepted, result)
+            validateOnly { validateOnly ⇒
+              onSuccess(scaleUpdate(deployment, cluster, breed, request, validateOnly)) { result ⇒
+                respondWith(Accepted, result)
+              }
             }
           }
         }

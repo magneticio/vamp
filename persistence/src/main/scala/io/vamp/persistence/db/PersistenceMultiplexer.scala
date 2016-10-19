@@ -62,7 +62,8 @@ trait PersistenceMultiplexer {
           }
           case _ ⇒ gateway.port
         }
-      } else {
+      }
+      else {
         Future.successful(gateway.port)
       }
 
@@ -111,12 +112,12 @@ trait PersistenceMultiplexer {
       clusters ← Future.sequence {
         deployment.clusters.map { cluster ⇒
           for {
-            routing ← Future.sequence {
+            gateways ← Future.sequence {
               cluster.gateways.filter(_.routes.nonEmpty).map { gateway ⇒
                 val name = DeploymentCluster.gatewayNameFor(deployment, cluster, gateway.port)
                 get(name, classOf[InternalGateway]).flatMap {
                   case Some(InternalGateway(g)) ⇒ combine(g).map(_.getOrElse(gateway))
-                  case _                     ⇒ Future.successful(gateway)
+                  case _                        ⇒ Future.successful(gateway)
                 } map { g ⇒
                   g.copy(name = name, port = g.port.copy(name = gateway.port.name))
                 }
@@ -141,10 +142,8 @@ trait PersistenceMultiplexer {
                 } yield service.copy(status = status, scale = scale, instances = instances, environmentVariables = environmentVariables)
               }
             }
-
-            sla ← get(clusterArtifactName(deployment, cluster), classOf[DeploymentClusterSla]).asInstanceOf[Future[Option[DeploymentClusterSla]]]
           } yield {
-            cluster.copy(services = services.filterNot(_.status.isUndeployed), gateways = routing, sla = sla.flatMap(_.sla))
+            cluster.copy(services = services.filterNot(_.status.isUndeployed), gateways = gateways)
           }
         }
       } map {
@@ -165,15 +164,16 @@ trait PersistenceMultiplexer {
           cluster.services.map(_.breed).flatMap(_.ports).map({ port ⇒
             Port(TraitReference(cluster.name, TraitReference.groupFor(TraitReference.Ports), port.name).toString, None, cluster.portBy(port.name).flatMap(n ⇒ Some(n.toString)))
           })
-        } map { p ⇒ p.name -> p } toMap
+        } map { p ⇒ p.name → p } toMap
 
         val environmentVariables = (deployment.environmentVariables ++ clusters.flatMap { cluster ⇒
           cluster.services.flatMap(_.environmentVariables).map(ev ⇒ ev.copy(name = TraitReference(cluster.name, TraitReference.groupFor(TraitReference.EnvironmentVariables), ev.name).toString))
-        }) map { p ⇒ p.name -> p } toMap
+        }) map { p ⇒ p.name → p } toMap
 
         Option(deployment.copy(gateways = Nil, clusters = clusters, hosts = hosts, ports = ports.values.toList, environmentVariables = environmentVariables.values.toList))
 
-      } else None
+      }
+      else None
     }
   }
 
