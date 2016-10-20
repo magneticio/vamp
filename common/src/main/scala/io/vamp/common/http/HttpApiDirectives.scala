@@ -77,7 +77,7 @@ trait HttpApiDirectives extends Directives with CorsDirectives {
     def links(uri: Uri, envelope: OffsetResponseEnvelope[_]) = {
 
       def link(page: Long, param: LinkParam) = {
-        val query = Query(uri.query().toMap + ("per_page" -> s"${envelope.perPage}") + ("page" -> s"$page"))
+        val query = Query(uri.query().toMap + ("per_page" → s"${envelope.perPage}") + ("page" → s"$page"))
         LinkValue(uri.withoutFragment.withQuery(query), param)
       }
 
@@ -112,29 +112,26 @@ trait HttpApiDirectives extends Directives with CorsDirectives {
   }
 
   private def marshal(request: HttpRequest, status: StatusCode, some: Any): HttpResponse = status match {
-
     case NotFound  ⇒ HttpResponse(status = NotFound)
-
     case NoContent ⇒ HttpResponse(status = NoContent)
-
     case _ ⇒
-
       val contentType = request.headers.find(_.name == "Accept") match {
         case Some(header) if header.value.startsWith(`application/x-yaml`.value) ⇒ `application/x-yaml`
         case _ ⇒ `application/json`
       }
-
       val (as: ContentType, data: String) = contentType match {
-        case `application/x-yaml` ⇒ ContentType(`application/x-yaml`) -> toYaml(some)
-        case _                    ⇒ ContentTypes.`application/json` -> toJson(some)
+        case `application/x-yaml` ⇒ ContentType(`application/x-yaml`) → toYaml(some)
+        case _                    ⇒ ContentTypes.`application/json` → toJson(some)
       }
-
       HttpResponse(status = status, entity = HttpEntity(as, data.getBytes))
   }
 
   private def toYaml(some: Any) = {
-    val yaml = new Yaml()
-    yaml.dumpAs(yaml.load(toJson(some)), if (some.isInstanceOf[List[_]]) Tag.SEQ else Tag.MAP, FlowStyle.BLOCK)
+    if (some != None) {
+      val yaml = new Yaml()
+      yaml.dumpAs(yaml.load(toJson(some)), if (some.isInstanceOf[List[_]]) Tag.SEQ else Tag.MAP, FlowStyle.BLOCK)
+    }
+    else ""
   }
 
   private def toJson(some: Any) = some match {

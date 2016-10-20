@@ -29,7 +29,7 @@ trait DeploymentApiController extends ArtifactShrinkage {
 
   def deployment(name: String, asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[Any] = (actorFor[PersistenceActor] ? PersistenceActor.Read(name, classOf[Deployment], expandReferences, onlyReferences)).map {
     case Some(deployment: Deployment) ⇒ transform(deployment, asBlueprint, onlyReferences)
-    case any                          ⇒ any
+    case other                        ⇒ other
   }
 
   private def transform(deployment: Deployment, asBlueprint: Boolean, onlyRef: Boolean) = {
