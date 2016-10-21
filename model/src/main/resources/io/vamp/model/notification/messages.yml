@@ -18,7 +18,7 @@ MalformedTraitError                    : "Malformed entry for port, environment 
 MissingPortValueError                  : "Missing port value for '{port.name}' and breed '{breed.name} -> {breed.deployable.name}'."
 MissingConstantValueError              : "Missing constant value for '{constant.name}' and breed '{breed.name} -> {breed.deployable.name}'."
 RecursiveDependenciesError             : "Recursive (cyclic) dependency detected for breed '{breed.name}'"
-UnresolvedDependencyInTraitValueError  : "Unresolved reference '{reference}' in breed '{breed.name} -> {breed.deployable.name}'. Check if breed dependency is declared."
+UnresolvedDependencyInTraitValueError  : "Unresolved reference '{reference}' in breed '{breed.name} -> {breed.deployable.definition}'. Check if breed dependency is declared."
 InvalidArgumentError$                  : "Invalid argument - argument must be in form of 'key: value'."
 InvalidArgumentValueError              : "Argument {argument.key} has an invalid value: {argument.value}."
 UnresolvedDependencyError              : "Unresolved dependency '{dependency.name}' for breed '{breed.name}'."
