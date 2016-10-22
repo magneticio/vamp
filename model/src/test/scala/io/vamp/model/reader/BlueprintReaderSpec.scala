@@ -564,7 +564,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[IllegalGatewayStickyValue]({
       BlueprintReader.read(res("blueprint/blueprint62.yml"))
     }) should have(
-      'sticky("none")
+      'sticky("nothing")
     )
   }
 
