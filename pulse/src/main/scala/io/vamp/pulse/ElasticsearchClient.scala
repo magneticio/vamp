@@ -85,6 +85,8 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val system
     }
   }
 
+  def refresh(index: String): Future[_] = httpClient.post(urlOf(url, index, "_refresh"), "")
+
   def search[A](index: String, query: Any)(implicit mf: scala.reflect.Manifest[A], formats: Formats): Future[A] =
     httpClient.post[A](urlOf(url, index, "_search"), query)
 
