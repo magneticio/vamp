@@ -3,7 +3,7 @@ package io.vamp.persistence.db
 import io.vamp.common.config.Config
 import io.vamp.model.artifact._
 import io.vamp.pulse.ElasticsearchClient
-import io.vamp.pulse.ElasticsearchClient.{ ElasticsearchGetResponse, ElasticsearchSearchResponse }
+import io.vamp.pulse.ElasticsearchClient.{ElasticsearchGetResponse, ElasticsearchSearchResponse}
 
 import scala.concurrent.Future
 
@@ -47,8 +47,8 @@ class ElasticsearchPersistenceActor extends PersistenceActor with PersistenceMar
          |  "size": $perPage
          |}
         """.stripMargin) map {
-        response ⇒ ArtifactResponseEnvelope(response.hits.hits.flatMap { hit ⇒ read(`type`, hit._source) }, response.hits.total, from, perPage)
-      }
+      response ⇒ ArtifactResponseEnvelope(response.hits.hits.flatMap { hit ⇒ read(`type`, hit._source) }, response.hits.total, from, perPage)
+    }
   }
 
   protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = {
@@ -61,12 +61,12 @@ class ElasticsearchPersistenceActor extends PersistenceActor with PersistenceMar
   protected def set(artifact: Artifact): Future[Artifact] = {
     val json = marshall(artifact)
     log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - $json")
-    es.index[Any](index, artifact.getClass, artifact.name, ElasticsearchArtifact(json)).map(_ ⇒ artifact)
+    es.index[Any](index, artifact.getClass, artifact.name, ElasticsearchArtifact(json)).flatMap(_ ⇒ es.refresh(index)).map(_ ⇒ artifact)
   }
 
   protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
-    es.delete(index, `type`, name).map(_ != None)
+    es.delete(index, `type`, name).flatMap(r ⇒ es.refresh(index).map(_ ⇒ r != None))
   }
 
   private def read(`type`: String, source: Map[String, Any]): Option[Artifact] = {
