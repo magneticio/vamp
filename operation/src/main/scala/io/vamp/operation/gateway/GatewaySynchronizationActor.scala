@@ -50,6 +50,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   import GatewaySynchronizationActor._
 
+  private var currentPort = portRangeLower - 1
+
   def receive = {
     case SynchronizeAll ⇒ synchronize()
     case s: Synchronize ⇒ synchronize(s.gateways, s.deployments, s.marshalled)
@@ -74,18 +76,13 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   }
 
   private def portAssignment(deployments: List[Deployment]): List[Gateway] ⇒ GatewayPipeline = { gateways ⇒
-
-    var currentPort = portRangeLower - 1
     val used = gateways.map(_.port.number).toSet
 
     def availablePort = {
       currentPort += 1
-
-      while (used.contains(currentPort) && currentPort < portRangeUpper) currentPort += 1
-
-      if (currentPort == portRangeUpper)
-        reportException(NoAvailablePortError(portRangeLower, portRangeUpper))
-
+      while (used.contains(currentPort)) currentPort += 1
+      if (currentPort > portRangeUpper)
+        throwException(NoAvailablePortError(portRangeLower, portRangeUpper))
       currentPort
     }
 
