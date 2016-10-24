@@ -12,17 +12,17 @@ object KeyValuePersistenceActor {
 
   val root = "persistence"
 
-  val cacheEnabled = Config.boolean("vamp.persistence.database.key-value.cache")
+  val caching = Config.boolean("vamp.persistence.database.key-value.caching")
 }
 
 class KeyValuePersistenceActor extends PersistenceActor with PersistenceMarshaller with ArtifactCaching {
 
   import KeyValuePersistenceActor._
 
-  protected def info(): Future[Any] = Future.successful(Map("type" → "key-value", "cache" → cacheEnabled))
+  protected def info(): Future[Any] = Future.successful(Map("type" → "key-value", "caching" → caching))
 
   protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] = {
-    cacheAll(cacheEnabled)(`type`, page, perPage) { () ⇒
+    cacheAll(caching)(`type`, page, perPage) { () ⇒
       val as = type2string(`type`)
       log.debug(s"${getClass.getSimpleName}: all [$as] of $page per $perPage")
 
@@ -46,7 +46,7 @@ class KeyValuePersistenceActor extends PersistenceActor with PersistenceMarshall
   }
 
   protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = {
-    cacheGet(cacheEnabled)(name, `type`) { () ⇒
+    cacheGet(caching)(name, `type`) { () ⇒
       val as = type2string(`type`)
       log.debug(s"${getClass.getSimpleName}: read [$as] - $name}")
 
@@ -58,7 +58,7 @@ class KeyValuePersistenceActor extends PersistenceActor with PersistenceMarshall
   }
 
   protected def set(artifact: Artifact): Future[Artifact] = {
-    cacheSet(cacheEnabled)(artifact) { () ⇒
+    cacheSet(caching)(artifact) { () ⇒
       val json = marshall(artifact)
       val as = type2string(artifact.getClass)
       log.debug(s"${getClass.getSimpleName}: set [$as] - $json")
@@ -68,7 +68,7 @@ class KeyValuePersistenceActor extends PersistenceActor with PersistenceMarshall
   }
 
   protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = {
-    cacheDelete(cacheEnabled)(name, `type`) { () ⇒
+    cacheDelete(caching)(name, `type`) { () ⇒
       val as = type2string(`type`)
       log.debug(s"${getClass.getSimpleName}: delete [$as] - $name}")
 
