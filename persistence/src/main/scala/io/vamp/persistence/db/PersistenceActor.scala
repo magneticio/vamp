@@ -22,8 +22,6 @@ object PersistenceActor extends CommonPersistenceMessages with DevelopmentPersis
   trait PersistenceMessages
 
   val timeout = Config.timeout("vamp.persistence.response-timeout")
-
-  val caching = Config.boolean("vamp.persistence.caching")
 }
 
 trait PersistenceActor
@@ -42,8 +40,8 @@ trait PersistenceActor
 
   override def errorNotificationClass = classOf[PersistenceOperationFailure]
 
-  def receive = receiveCommon(caching = PersistenceActor.caching) orElse receiveDevelopment orElse receiveGateway orElse receiveWorkflow orElse {
-    case InfoRequest  ⇒ reply(info() map { persistenceInfo ⇒ Map("database" -> persistenceInfo, "archiving" -> true, "caching" -> PersistenceActor.caching) })
+  def receive = receiveCommon orElse receiveDevelopment orElse receiveGateway orElse receiveWorkflow orElse {
+    case InfoRequest  ⇒ reply(info() map { persistenceInfo ⇒ Map("database" -> persistenceInfo, "archiving" -> true) })
     case StatsRequest ⇒ reply(stats())
     case any          ⇒ unsupported(UnsupportedPersistenceRequest(any))
   }
@@ -52,4 +50,3 @@ trait PersistenceActor
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 }
-
