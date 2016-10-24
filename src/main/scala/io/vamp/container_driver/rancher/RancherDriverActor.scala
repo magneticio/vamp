@@ -11,7 +11,6 @@ import io.vamp.container_driver.rancher.{ Service ⇒ RancherService }
 import io.vamp.model.artifact.{ Deployment, DeploymentCluster, DeploymentService, _ }
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.workflow.Workflow
-import org.apache.commons.codec.Charsets
 import org.json4s.{ DefaultFormats, Extraction, Formats }
 
 import scala.concurrent.Future
@@ -38,6 +37,8 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
   private val environmentsUrl = s"$rancherUrl/environments"
 
+  private val headers: List[(String, String)] = HttpClient.basicAuthorization(apiUser, apiPassword)
+
   def receive = {
 
     case InfoRequest                ⇒ reply(info)
@@ -58,7 +59,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
   private def info: Future[ContainerInfo] = {
     httpClient.get[ProjectInfo](rancherUrl, headers).map { project ⇒
-      ContainerInfo("rancher", Map("url" -> rancherUrl, "project" -> project.id, "active" -> project.state))
+      ContainerInfo("rancher", Map("url" → rancherUrl, "project" → project.id, "active" → project.state))
     }
   }
 
@@ -142,8 +143,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
           case _         ⇒ Future.successful(s)
         }
       }
-      else Future.successful(s)
-    )
+      else Future.successful(s))
   }
 
   private def createService(stack: Stack, service: Service, update: Service ⇒ Future[Service]): Future[Service] = {
@@ -279,19 +279,6 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
   protected def appId(workflow: Workflow): String = s"$workflowNamePrefix${artifactName2Id(workflow)}"
 
   protected def appId(deployment: Deployment, breed: Breed): String = artifactName2Id(breed)
-
-  private def headers: List[(String, String)] = {
-    if (!apiUser.isEmpty && !apiPassword.isEmpty)
-      "Authorization" -> ("Basic "+credentials(apiUser, apiPassword)) :: HttpClient.jsonHeaders
-    else
-      HttpClient.jsonHeaders
-  }
-
-  private def credentials(user: String, password: String): String = {
-    val encoder = new sun.misc.BASE64Encoder
-    val base64Auth = s"$user:$password"
-    encoder.encode(base64Auth.getBytes(Charsets.UTF_8)).replace("\n", "")
-  }
 
   private def requestPayload[A](payload: A) = {
     implicit val formats: Formats = DefaultFormats

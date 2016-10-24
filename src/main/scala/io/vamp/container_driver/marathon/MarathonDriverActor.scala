@@ -4,6 +4,7 @@ import akka.actor.ActorRef
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.config.Config
 import io.vamp.common.crypto.Hash
+import io.vamp.common.http.HttpClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
@@ -16,15 +17,15 @@ import scala.concurrent.Future
 
 object MarathonDriverActor {
 
-  private val configuration = Config.config("vamp.container-driver")
+  private val config = Config.config("vamp.container-driver")
 
-  val mesosUrl = configuration.string("mesos.url")
+  val mesosUrl = config.string("mesos.url")
+  val marathonUrl = config.string("marathon.url")
+  val marathonSse = config.boolean("marathon.sse")
+  val apiUser = config.string("marathon.user")
+  val apiPassword = config.string("marathon.password")
 
-  val marathonUrl = configuration.string("marathon.url")
-
-  val marathonSse = configuration.boolean("marathon.sse")
-
-  val workflowNamePrefix = configuration.string("marathon.workflow-name-prefix")
+  val workflowNamePrefix = config.string("marathon.workflow-name-prefix")
 
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
@@ -44,6 +45,8 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
   private implicit val formats: Formats = DefaultFormats
 
+  private val headers: List[(String, String)] = HttpClient.basicAuthorization(apiUser, apiPassword)
+
   protected val nameDelimiter = "/"
 
   protected val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
@@ -54,7 +57,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
   override protected def supportedDeployableTypes = DockerDeployable :: CommandDeployable :: Nil
 
-  private var watch: (ActorRef, List[DeploymentServices]) = ActorRef.noSender -> Nil
+  private var watch: (ActorRef, List[DeploymentServices]) = ActorRef.noSender → Nil
 
   def receive = {
 
@@ -86,7 +89,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   private def info: Future[Any] = {
 
     def remove(key: String): Any ⇒ Any = {
-      case m: Map[_, _] ⇒ m.asInstanceOf[Map[String, _]].filterNot { case (k, v) ⇒ k == key } map { case (k, v) ⇒ k -> remove(key)(v) }
+      case m: Map[_, _] ⇒ m.asInstanceOf[Map[String, _]].filterNot { case (k, v) ⇒ k == key } map { case (k, v) ⇒ k → remove(key)(v) }
       case l: List[_]   ⇒ l.map(remove(key))
       case any          ⇒ any
     }
@@ -94,7 +97,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
     for {
       slaves ← httpClient.get[Any](s"$mesosUrl/master/slaves")
       frameworks ← httpClient.get[Any](s"$mesosUrl/master/frameworks")
-      marathon ← httpClient.get[Any](s"$marathonUrl/v2/info")
+      marathon ← httpClient.get[Any](s"$marathonUrl/v2/info", headers)
     } yield {
 
       val s: Any = slaves match {
@@ -114,11 +117,11 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
     val replyTo = sender()
 
-    watch = replyTo -> deploymentServices
+    watch = replyTo → deploymentServices
 
-    httpClient.get[AppsResponse](s"$marathonUrl/v2/apps?embed=apps.tasks").map { apps ⇒
+    httpClient.get[AppsResponse](s"$marathonUrl/v2/apps?embed=apps.tasks", headers).map { apps ⇒
 
-      val deployed = apps.apps.map(app ⇒ app.id -> app).toMap
+      val deployed = apps.apps.map(app ⇒ app.id → app).toMap
 
       deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).map {
         case (deployment, service) ⇒ containerService(deployment, service, deployed.get(appId(deployment, service.breed)))
@@ -178,7 +181,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
         val id = appId(deployment, service.breed)
 
         if (ids.contains(id))
-          httpClient.get[AppResponse](s"$marathonUrl/v2/apps/$id?embed=apps.tasks", logError = false)
+          httpClient.get[AppResponse](s"$marathonUrl/v2/apps/$id?embed=apps.tasks", headers, logError = false)
             .map { response ⇒ containerService(deployment, service, Option(response.app)) }
             .foreach { cs ⇒
               log.info(s"marathon event for: ${deployment.name} [$id]")
@@ -201,15 +204,15 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   }
 
   private def sendRequest(update: Boolean, id: String, payload: JValue) = update match {
-    case true ⇒ httpClient.get[Any](s"$marathonUrl/v2/apps/$id").flatMap { response ⇒
+    case true ⇒ httpClient.get[Any](s"$marathonUrl/v2/apps/$id", headers).flatMap { response ⇒
       val changed = Extraction.decompose(response).children.headOption match {
         case Some(app) ⇒ app.diff(payload).changed
         case None      ⇒ payload
       }
-      if (changed != JNothing) httpClient.put[Any](s"$marathonUrl/v2/apps/$id", changed) else Future.successful(false)
+      if (changed != JNothing) httpClient.put[Any](s"$marathonUrl/v2/apps/$id", changed, headers) else Future.successful(false)
     }
 
-    case false ⇒ httpClient.post[Any](s"$marathonUrl/v2/apps", payload, logError = false).recover {
+    case false ⇒ httpClient.post[Any](s"$marathonUrl/v2/apps", payload, headers, logError = false).recover {
       case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
       case t ⇒
         log.error(t, t.getMessage)
@@ -235,9 +238,9 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
   private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, app: MarathonApp): JValue = {
     val (local, dialect) = (cluster.dialects.get(Dialect.Marathon), service.dialects.get(Dialect.Marathon)) match {
-      case (_, Some(d))    ⇒ Some(service) -> d
-      case (Some(d), None) ⇒ None -> d
-      case _               ⇒ None -> Map()
+      case (_, Some(d))    ⇒ Some(service) → d
+      case (Some(d), None) ⇒ None → d
+      case _               ⇒ None → Map()
     }
 
     (app.container, app.cmd, dialect) match {
@@ -252,18 +255,18 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   private def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
-    httpClient.delete(s"$marathonUrl/v2/apps/$id")
+    httpClient.delete(s"$marathonUrl/v2/apps/$id", headers)
   }
 
   private def undeploy(workflow: Workflow) = {
     val id = appId(workflow)
     log.info(s"marathon delete workflow: ${workflow.name}")
-    httpClient.delete(s"$marathonUrl/v2/apps/$id")
+    httpClient.delete(s"$marathonUrl/v2/apps/$id", headers)
   }
 
   private def retrieve(workflow: Workflow): Future[Option[App]] = {
     val id = appId(workflow)
-    httpClient.get[AppResponse](s"$marathonUrl/v2/apps/$id", logError = false) recover { case _ ⇒ None } map {
+    httpClient.get[AppResponse](s"$marathonUrl/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None } map {
       case AppResponse(response) ⇒ Option(response)
       case _                     ⇒ None
     }
