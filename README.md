@@ -1,4 +1,4 @@
-![](https://raw.githubusercontent.com/magneticio/vamp.io/master/static/img/vamp_logo_blue_circle.png)
+<img src="http://vamp.io/images/logo.svg" width="250px" />
 
 [Website](http://vamp.io) |
 [Documentation](http://vamp.io/documentation/how-vamp-works/architecture-and-components/) |
