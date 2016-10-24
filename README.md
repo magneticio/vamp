@@ -1,8 +1,8 @@
-![](https://raw.githubusercontent.com/magneticio/vamp.io/master/static/img/vamp_logo_blue_circle.png)
+<img src="http://vamp.io/images/logo.svg" width="250px" />
 
 [Website](http://vamp.io) |
-[Documentation](http://vamp.io/documentation/) |
-[Installation Guide](http://vamp.io/installation/) |
+[Documentation](http://vamp.io/documentation/how-vamp-works/architecture-and-components/) |
+[Installation Guide](http://vamp.io/documentation/installation/) |
 
 [![Build Status](https://travis-ci.org/magneticio/vamp.svg?branch=master)](https://travis-ci.org/magneticio/vamp-core) [ ![Download](https://api.bintray.com/packages/magnetic-io/downloads/vamp/images/download.svg) ](https://bintray.com/magnetic-io/downloads/vamp/_latestVersion) [![Join the chat at https://gitter.im/magneticio/vamp](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/magneticio/vamp?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -13,12 +13,12 @@ parts in Go.
 
 ## Deploy Vamp on your laptop
 
-Vamp can run on your laptop with one command. Check out our [quick start](http://vamp.io/getting-started). This should be enough to kick the tires.
+Vamp can run on your laptop with one command. Check out our [Hello World quick start](http://vamp.io/documentation/installation/hello-world/). This should be enough to kick the tires.
 
 ## Using Vamp and more
 
-For documentation on using Vamp and all other info please check [vamp.io](http://vamp.io/documentation/using-vamp) and
-take some time to walk through the [getting started](http://vamp.io/documentation/guides/).
+For documentation on using Vamp and all other info please check [vamp.io](http://vamp.io/documentation/using-vamp/artifacts/) and
+take some time to walk through the [getting started](http://vamp.io/documentation/tutorials/).
 
 ## Contributing
 
