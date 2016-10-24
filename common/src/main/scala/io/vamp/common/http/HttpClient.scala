@@ -1,5 +1,7 @@
 package io.vamp.common.http
 
+import java.nio.charset.StandardCharsets
+import java.util.Base64
 import java.util.concurrent.ExecutionException
 
 import akka.actor.ActorSystem
@@ -25,11 +27,19 @@ case class HttpClientException(statusCode: Option[Int], message: String) extends
 
 object HttpClient {
 
-  val acceptEncodingIdentity: (String, String) = "accept-encoding" -> "identity"
+  val acceptEncodingIdentity: (String, String) = "accept-encoding" → "identity"
 
-  val jsonHeaders: List[(String, String)] = List("Accept" -> "application/json")
+  val jsonHeaders: List[(String, String)] = List("Accept" → "application/json")
 
   val jsonContentType = ContentTypes.`application/json`
+
+  def basicAuthorization(user: String, password: String, headers: List[(String, String)] = jsonHeaders): List[(String, String)] = {
+    if (!user.isEmpty && !password.isEmpty) {
+      val credentials = Base64.getEncoder.encodeToString(s"$user:$password".getBytes(StandardCharsets.UTF_8))
+      ("Authorization" → s"Basic $credentials") :: headers
+    }
+    else headers
+  }
 }
 
 class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, formats: Formats = DefaultFormats) {
