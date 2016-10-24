@@ -25,7 +25,7 @@ trait CommonPersistenceMessages {
 
 }
 
-trait CommonPersistenceOperations extends PersistenceMultiplexer with PersistenceArchive with ArtifactExpansion with ArtifactShrinkage with ArtifactCaching {
+trait CommonPersistenceOperations extends PersistenceMultiplexer with PersistenceArchive with ArtifactExpansion with ArtifactShrinkage {
   this: CommonSupportForActors with NotificationProvider ⇒
 
   import CommonPersistenceMessages._
@@ -38,10 +38,10 @@ trait CommonPersistenceOperations extends PersistenceMultiplexer with Persistenc
 
   protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean]
 
-  protected def receiveCommon(caching: Boolean): Actor.Receive = {
+  protected def receiveCommon: Actor.Receive = {
 
     case All(ofType, page, perPage, expandRef, onlyRef) ⇒ reply {
-      cacheAll(caching)(ofType, page, perPage) { () ⇒ all(ofType, if (page > 0) page else 1, if (perPage > 0) perPage else ArtifactResponseEnvelope.maxPerPage) }
+      all(ofType, if (page > 0) page else 1, if (perPage > 0) perPage else ArtifactResponseEnvelope.maxPerPage)
         .flatMap(combine).flatMap { artifacts ⇒
           (expandRef, onlyRef) match {
             case (true, false) ⇒ Future.sequence(artifacts.response.map(expandReferences)).map { response ⇒ artifacts.copy(response = response) }
@@ -52,7 +52,7 @@ trait CommonPersistenceOperations extends PersistenceMultiplexer with Persistenc
     }
 
     case Read(name, ofType, expandRef, onlyRef) ⇒ reply {
-      cacheGet(caching)(name, ofType) { () ⇒ get(name, ofType) }
+      get(name, ofType)
         .flatMap(combine).flatMap { artifact ⇒
           (expandRef, onlyRef) match {
             case (true, false) ⇒ expandReferences(artifact)
@@ -64,32 +64,26 @@ trait CommonPersistenceOperations extends PersistenceMultiplexer with Persistenc
 
     case Create(artifact, source) ⇒ reply {
       split(artifact, { artifact: Artifact ⇒
-        cacheSet(caching)(artifact) { () ⇒
-          set(artifact) map {
-            archiveCreate(_, source)
-          }
+        set(artifact) map {
+          archiveCreate(_, source)
         }
       })
     }
 
     case Update(artifact, source) ⇒ reply {
       split(artifact, { artifact: Artifact ⇒
-        cacheSet(caching)(artifact) { () ⇒
-          set(artifact) map {
-            archiveUpdate(_, source)
-          }
+        set(artifact) map {
+          archiveUpdate(_, source)
         }
       })
     }
 
     case Delete(name, ofType) ⇒ reply {
       remove(name, ofType, { (name, ofType) ⇒
-        cacheDelete(caching)(name, ofType) { () ⇒
-          delete(name, ofType) map {
-            result ⇒
-              if (result) archiveDelete(name, ofType)
-              result
-          }
+        delete(name, ofType) map {
+          result ⇒
+            if (result) archiveDelete(name, ofType)
+            result
         }
       })
     }
