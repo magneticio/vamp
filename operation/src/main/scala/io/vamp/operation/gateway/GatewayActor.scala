@@ -63,7 +63,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
   private def create(gateway: Gateway, source: Option[String], validateOnly: Boolean, force: Boolean): Future[Any] = (gateway.internal, force, validateOnly) match {
     case (true, false, _) ⇒ Future.failed(reportException(InternalGatewayCreateError(gateway.name)))
-    case (_, _, true)     ⇒ Try((process andThen validate andThen validateUniquePort)(gateway) :: Nil).recover({ case e ⇒ Future.failed(e) }).map(Future.successful).get
+    case (_, _, true)     ⇒ Try((process andThen validate andThen validateUniquePort)(gateway)).recover({ case e ⇒ Future.failed(e) }).get
     case _                ⇒ Try((process andThen validate andThen validateUniquePort andThen persistFuture(source, create = true, promote = false))(gateway)).recover({ case e ⇒ Future.failed(e) }).get
   }
 
