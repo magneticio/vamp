@@ -92,12 +92,12 @@ trait DialectSerializer {
 
 trait BlueprintGatewaySerializer extends GatewayDecomposer {
   def serializeGateways(gateways: List[Gateway]) = Extraction.decompose {
-    gateways.map(gateway ⇒ gateway.port.name -> serializeAnonymousGateway(CoreSerializationFormat.default)(gateway)).toMap
+    gateways.map(gateway ⇒ gateway.port.name -> serializeAnonymousGateway(port = true)(CoreSerializationFormat.default)(gateway)).toMap
   }(DefaultFormats)
 }
 
 trait InternalGatewaySerializer extends GatewayDecomposer {
   def serializeGateways(gateways: List[Gateway]) = Extraction.decompose {
-    gateways.map(gateway ⇒ gateway.port.name -> serializeAnonymousGateway(CoreSerializationFormat.default)(gateway)).toMap
+    gateways.map(gateway ⇒ gateway.port.name -> serializeAnonymousGateway(port = false)(CoreSerializationFormat.default)(gateway)).toMap
   }(DefaultFormats)
 }

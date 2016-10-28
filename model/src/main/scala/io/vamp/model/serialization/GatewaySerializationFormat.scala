@@ -27,11 +27,11 @@ class GatewaySerializer extends ArtifactSerializer[Gateway] with GatewayDecompos
 
 trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
 
-  def serializeGateway(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = true)
+  def serializeGateway(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = true, port = true)
 
-  def serializeAnonymousGateway(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = false)
+  def serializeAnonymousGateway(port: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = serialize(full = false, port)
 
-  private def serialize(full: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = {
+  private def serialize(full: Boolean, port: Boolean)(implicit format: Formats): PartialFunction[Any, JValue] = {
     case gateway: Gateway ⇒
       val list = new ArrayBuffer[JField]
 
@@ -43,12 +43,6 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
         }
 
         list += JField(Lookup.entry, JString(gateway.lookupName))
-
-        list += JField("port", gateway.port.value match {
-          case Some(value) ⇒ JString(value)
-          case _           ⇒ JString(gateway.port.toValue)
-        })
-
         list += JField("internal", JBool(gateway.internal))
 
         if (gateway.service.isDefined) {
@@ -61,6 +55,13 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
         }
 
         list += JField("deployed", JBool(gateway.deployed))
+      }
+
+      if (full || port) {
+        list += JField("port", gateway.port.value match {
+          case Some(value) ⇒ JString(value)
+          case _           ⇒ JString(gateway.port.toValue)
+        })
       }
 
       list += JField("sticky", if (gateway.sticky.isDefined) Extraction.decompose(gateway.sticky) else JNull)
