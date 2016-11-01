@@ -5,7 +5,6 @@ import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver._
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
-import io.vamp.model.workflow.Workflow
 
 import scala.concurrent.Future
 

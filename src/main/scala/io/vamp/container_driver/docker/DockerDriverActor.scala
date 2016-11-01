@@ -9,7 +9,6 @@ import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
-import io.vamp.model.workflow.Workflow
 import org.json4s.DefaultFormats
 import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization._
