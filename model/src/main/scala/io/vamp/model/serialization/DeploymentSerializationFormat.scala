@@ -13,15 +13,15 @@ import scala.collection.mutable.ArrayBuffer
 object DeploymentSerializationFormat extends io.vamp.common.json.SerializationFormat {
   override def customSerializers = super.customSerializers :+
     new DeploymentSerializer(full = false) :+
-    new DeploymentServiceStateSerializer() :+
-    new DeploymentServiceStateStepSerializer()
+    new DeploymentServiceStatusSerializer() :+
+    new DeploymentServiceStatusPhaseSerializer()
 }
 
 object FullDeploymentSerializationFormat extends io.vamp.common.json.SerializationFormat {
   override def customSerializers = super.customSerializers :+
     new DeploymentSerializer(full = true) :+
-    new DeploymentServiceStateSerializer() :+
-    new DeploymentServiceStateStepSerializer()
+    new DeploymentServiceStatusSerializer() :+
+    new DeploymentServiceStatusPhaseSerializer()
 }
 
 class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment] with TraitDecomposer with BlueprintGatewaySerializer {
@@ -42,7 +42,7 @@ class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment]
   }
 }
 
-class DeploymentServiceStateSerializer extends ArtifactSerializer[DeploymentService.Status] {
+class DeploymentServiceStatusSerializer extends ArtifactSerializer[DeploymentService.Status] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case status: DeploymentService.Status ⇒
       val list = new ArrayBuffer[JField]
@@ -55,7 +55,7 @@ class DeploymentServiceStateSerializer extends ArtifactSerializer[DeploymentServ
   }
 }
 
-class DeploymentServiceStateStepSerializer extends ArtifactSerializer[DeploymentService.Status.Phase] with ModelNotificationProvider {
+class DeploymentServiceStatusPhaseSerializer extends ArtifactSerializer[DeploymentService.Status.Phase] with ModelNotificationProvider {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case step: DeploymentService.Status.Phase ⇒
 

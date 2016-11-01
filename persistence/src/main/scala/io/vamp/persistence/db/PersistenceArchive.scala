@@ -7,7 +7,6 @@ import io.vamp.common.akka._
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
-import io.vamp.model.workflow.Workflow
 import io.vamp.pulse.PulseActor
 
 object PersistenceArchive {

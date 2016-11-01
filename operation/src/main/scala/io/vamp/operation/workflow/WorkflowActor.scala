@@ -4,9 +4,8 @@ import akka.actor._
 import akka.pattern.ask
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.model.artifact.{ DefaultBreed, DefaultScale }
+import io.vamp.model.artifact._
 import io.vamp.model.event.Event
-import io.vamp.model.workflow._
 import io.vamp.operation.OperationBootstrap
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }

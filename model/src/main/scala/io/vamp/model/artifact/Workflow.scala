@@ -1,15 +1,37 @@
-package io.vamp.model.workflow
+package io.vamp.model.artifact
 
 import java.time.{ Duration, OffsetDateTime, Period }
 
-import io.vamp.model.artifact._
-import io.vamp.model.workflow.TimeSchedule.{ Repeat, RepeatForever, RepeatPeriod }
+import io.vamp.model.artifact.TimeSchedule.{ Repeat, RepeatForever, RepeatPeriod }
+import io.vamp.model.artifact.Workflow.Status.RestartingPhase.RestartingPhaseType
 
 import scala.language.implicitConversions
+
+object Workflow {
+
+  sealed trait Status extends ClassToName
+
+  object Status {
+
+    object Active extends Status
+
+    object Suspended extends Status
+
+    object RestartingPhase extends Enumeration {
+      type RestartingPhaseType = Value with ClassToName
+      val Stopping, Starting = Value
+    }
+
+    case class Restarting(phase: RestartingPhaseType) extends Status
+
+  }
+
+}
 
 case class Workflow(
     name: String,
     breed: Breed,
+    status: Workflow.Status,
     schedule: Schedule,
     scale: Option[Scale],
     environmentVariables: List[EnvironmentVariable],

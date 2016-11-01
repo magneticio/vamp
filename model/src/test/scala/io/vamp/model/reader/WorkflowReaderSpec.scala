@@ -4,8 +4,8 @@ import java.time.OffsetDateTime
 
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
-import io.vamp.model.workflow.TimeSchedule.{ RepeatCount, RepeatForever }
-import io.vamp.model.workflow.{ DaemonSchedule, EventSchedule, TimeSchedule }
+import TimeSchedule.{ RepeatCount, RepeatForever }
+import io.vamp.model.artifact.DaemonSchedule
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner

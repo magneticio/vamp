@@ -2,9 +2,8 @@ package io.vamp.model.serialization
 
 import java.time.format.DateTimeFormatter._
 
-import io.vamp.model.artifact.Trait
-import io.vamp.model.workflow.TimeSchedule.RepeatCount
-import io.vamp.model.workflow._
+import io.vamp.model.artifact.TimeSchedule.RepeatCount
+import io.vamp.model.artifact._
 import org.json4s.JsonAST.JString
 import org.json4s._
 
@@ -15,13 +14,14 @@ object WorkflowSerializationFormat extends io.vamp.common.json.SerializationForm
     new WorkflowSerializer()
 }
 
-class WorkflowSerializer() extends ArtifactSerializer[Workflow] with ReferenceSerialization with ArgumentListSerializer with TraitDecomposer {
+class WorkflowSerializer extends ArtifactSerializer[Workflow] with ReferenceSerialization with ArgumentListSerializer with TraitDecomposer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case workflow: Workflow ⇒
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(workflow.name))
       list += JField("kind", JString(workflow.kind))
       list += JField("breed", Extraction.decompose(workflow.breed))
+      list += JField("status", JString(workflow.status.name))
 
       workflow.schedule match {
         case TimeSchedule(period, repeatTimes, start) ⇒

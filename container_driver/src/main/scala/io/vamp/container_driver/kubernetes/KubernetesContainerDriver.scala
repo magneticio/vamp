@@ -3,7 +3,6 @@ package io.vamp.container_driver.kubernetes
 import io.vamp.common.crypto.Hash
 import io.vamp.container_driver.ContainerDriver
 import io.vamp.model.artifact._
-import io.vamp.model.workflow.Workflow
 
 import scala.concurrent.Future
 

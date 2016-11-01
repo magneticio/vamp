@@ -5,7 +5,6 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.model.artifact._
-import io.vamp.model.workflow.Workflow
 
 object WorkflowPersistenceMessages extends WorkflowPersistenceMessages
 

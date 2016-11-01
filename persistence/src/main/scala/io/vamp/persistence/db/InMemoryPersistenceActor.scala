@@ -5,7 +5,6 @@ import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.serialization.CoreSerializationFormat
-import io.vamp.model.workflow.Workflow
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, UnsupportedPersistenceRequest }
 import org.json4s.native.Serialization._
 

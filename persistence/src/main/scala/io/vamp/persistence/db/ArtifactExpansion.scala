@@ -3,7 +3,6 @@ package io.vamp.persistence.db
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
-import io.vamp.model.workflow.Workflow
 import io.vamp.persistence.notification.ArtifactNotFound
 
 import scala.concurrent.Future

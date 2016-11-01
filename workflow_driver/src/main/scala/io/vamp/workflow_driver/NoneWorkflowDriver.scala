@@ -1,7 +1,7 @@
 package io.vamp.workflow_driver
 
 import akka.actor.{ ActorRef, ActorSystem }
-import io.vamp.model.workflow.Workflow
+import io.vamp.model.artifact.Workflow
 
 import scala.concurrent.Future
 

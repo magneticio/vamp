@@ -10,7 +10,6 @@ import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.container_driver.rancher.{ Service ⇒ RancherService }
 import io.vamp.model.artifact.{ Deployment, DeploymentCluster, DeploymentService, _ }
 import io.vamp.model.reader.{ MegaByte, Quantity }
-import io.vamp.model.workflow.Workflow
 import org.json4s.{ DefaultFormats, Extraction, Formats }
 
 import scala.concurrent.Future

@@ -31,3 +31,10 @@ trait Lookup extends Artifact {
 
   def lookup(string: String) = Hash.hexSha1(s"$getClass@$string", Artifact.version)
 }
+
+trait ClassToName {
+  def name: String = {
+    val clazz = getClass.toString
+    clazz.substring(clazz.lastIndexOf('$') + 1)
+  }
+}

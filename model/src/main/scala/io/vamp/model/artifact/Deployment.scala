@@ -17,13 +17,8 @@ object DeploymentService {
       val Deployment, Undeployment = Value
     }
 
-    sealed trait Phase {
+    sealed trait Phase extends ClassToName {
       def since: OffsetDateTime
-
-      def name: String = {
-        val clazz = getClass.toString
-        clazz.substring(clazz.lastIndexOf('$') + 1)
-      }
     }
 
     object Phase {
@@ -48,11 +43,7 @@ object DeploymentService {
     def isUndeployed = intention == Status.Intention.Undeployment && isDone
   }
 
-  implicit def step2state(intention: StatusIntentionType): Status = Status(intention)
-}
-
-trait DeploymentStatus {
-  def status: DeploymentService.Status
+  implicit def intention2status(intention: StatusIntentionType): Status = Status(intention)
 }
 
 object Deployment {
@@ -111,7 +102,7 @@ case class DeploymentService(
   instances: List[DeploymentInstance],
   arguments: List[Argument],
   dependencies: Map[String, String] = Map(),
-  dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService with DeploymentStatus
+  dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
 
 case class DeploymentInstance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact {
   val kind = "instance"

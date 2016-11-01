@@ -5,7 +5,7 @@ import io.vamp.common.akka._
 import io.vamp.common.config.Config
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.model.workflow.Workflow
+import io.vamp.model.artifact.Workflow
 import io.vamp.pulse.notification.PulseFailureNotifier
 import io.vamp.workflow_driver.notification.{ WorkflowDriverNotificationProvider, WorkflowResponseError }
 

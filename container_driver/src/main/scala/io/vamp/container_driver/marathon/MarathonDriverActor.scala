@@ -10,7 +10,6 @@ import io.vamp.container_driver._
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
-import io.vamp.model.workflow.Workflow
 import org.json4s._
 
 import scala.concurrent.Future

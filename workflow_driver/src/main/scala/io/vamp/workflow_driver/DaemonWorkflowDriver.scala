@@ -4,7 +4,7 @@ import akka.actor.{ ActorRef, ActorRefFactory }
 import akka.pattern.ask
 import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
 import io.vamp.container_driver.ContainerDriverActor.{ DeployWorkflow, GetWorkflow, UndeployWorkflow }
-import io.vamp.model.workflow.{ DaemonSchedule, Workflow }
+import io.vamp.model.artifact.{ DaemonSchedule, Workflow }
 import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 
 import scala.concurrent.Future

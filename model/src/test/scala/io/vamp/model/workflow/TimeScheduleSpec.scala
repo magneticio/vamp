@@ -2,8 +2,9 @@ package io.vamp.model.workflow
 
 import java.time.{ Duration, Period }
 
+import io.vamp.model.artifact.TimeSchedule
 import io.vamp.model.reader.ReaderSpec
-import io.vamp.model.workflow.TimeSchedule.{ RepeatForever, RepeatPeriod }
+import io.vamp.model.artifact.TimeSchedule.{ RepeatForever, RepeatPeriod }
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner

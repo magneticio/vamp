@@ -5,8 +5,7 @@ import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
 import io.vamp.common.http.HttpClient
 import io.vamp.container_driver._
 import io.vamp.model.artifact._
-import io.vamp.model.workflow.TimeSchedule.RepeatCount
-import io.vamp.model.workflow.{ DaemonSchedule, TimeSchedule, Workflow }
+import TimeSchedule.RepeatCount
 import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 
