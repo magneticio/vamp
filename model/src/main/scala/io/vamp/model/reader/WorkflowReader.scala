@@ -55,7 +55,23 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
   }
 
   private def status(implicit source: YamlSourceReader): Workflow.Status = {
-    Workflow.Status.Active
+    <<?[String]("status") match {
+      case Some(status) if status.toLowerCase == "active"    ⇒ Workflow.Status.Active
+
+      case Some(status) if status.toLowerCase == "suspended" ⇒ Workflow.Status.Suspended
+
+      case Some(status) if status.toLowerCase == "restarting" ⇒
+        <<?[String]("phase") match {
+          case Some(phase) if phase.toLowerCase == "starting" ⇒ Workflow.Status.Restarting(Workflow.Status.RestartingPhase.Starting)
+          case Some(phase) if phase.toLowerCase == "stopping" ⇒ Workflow.Status.Restarting(Workflow.Status.RestartingPhase.Stopping)
+          case Some(phase) ⇒ throwException(IllegalWorkflowStatusPhase(phase))
+          case None ⇒ Workflow.Status.Restarting(Workflow.Status.RestartingPhase.Stopping)
+        }
+
+      case Some(status) ⇒ throwException(IllegalWorkflowStatus(status))
+
+      case None         ⇒ Workflow.Status.Active
+    }
   }
 
   private def schedule(implicit source: YamlSourceReader): Schedule = {

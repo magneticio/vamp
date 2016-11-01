@@ -17,8 +17,13 @@ object DeploymentService {
       val Deployment, Undeployment = Value
     }
 
-    sealed trait Phase extends ClassToName {
+    sealed trait Phase {
       def since: OffsetDateTime
+
+      def name: String = {
+        val clazz = getClass.toString
+        clazz.substring(clazz.lastIndexOf('$') + 1)
+      }
     }
 
     object Phase {
@@ -48,6 +53,7 @@ object DeploymentService {
 
 object Deployment {
   val kind = "deployment"
+
   def gatewayNameFor(deployment: Deployment, gateway: Gateway) = GatewayPath(deployment.name :: gateway.port.name :: Nil).normalized
 }
 
@@ -76,11 +82,15 @@ case class DeploymentCluster(
     dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster {
 
   def portBy(name: String): Option[Int] = {
-    gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } map { _.port.number }
+    gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } map {
+      _.port.number
+    }
   }
 
   def serviceBy(name: String): Option[GatewayService] = {
-    gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } flatMap { _.service }
+    gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } flatMap {
+      _.service
+    }
   }
 
   def route(service: DeploymentService, portName: String, short: Boolean = false): Option[DefaultRoute] = {

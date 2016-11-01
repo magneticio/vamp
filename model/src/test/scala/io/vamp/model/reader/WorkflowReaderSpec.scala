@@ -18,7 +18,8 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'name("logger"),
       'breed(BreedReference("metrics")),
       'schedule(DaemonSchedule),
-      'scale(None)
+      'scale(None),
+      'status(Workflow.Status.Active)
     )
   }
 
@@ -211,6 +212,57 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     }) should have(
       'breed(DefaultBreed("metrics", Deployable("container/docker", "metrics"), Nil, List(EnvironmentVariable("HEAP", None, Option("128MB"), None)), Nil, Nil, Map())),
       'reference("THEME")
+    )
+  }
+
+  it should "read active status" in {
+    WorkflowReader.read(res("workflow/workflow24.yml")) should have(
+      'name("logger"),
+      'status(Workflow.Status.Active)
+    )
+  }
+
+  it should "read suspended status" in {
+    WorkflowReader.read(res("workflow/workflow25.yml")) should have(
+      'name("logger"),
+      'status(Workflow.Status.Suspended)
+    )
+  }
+
+  it should "read restarting status" in {
+    WorkflowReader.read(res("workflow/workflow26.yml")) should have(
+      'name("logger"),
+      'status(Workflow.Status.Restarting(Workflow.Status.RestartingPhase.Stopping))
+    )
+  }
+
+  it should "read restarting status and phase stopping" in {
+    WorkflowReader.read(res("workflow/workflow27.yml")) should have(
+      'name("logger"),
+      'status(Workflow.Status.Restarting(Workflow.Status.RestartingPhase.Stopping))
+    )
+  }
+
+  it should "read restarting status and phase starting" in {
+    WorkflowReader.read(res("workflow/workflow28.yml")) should have(
+      'name("logger"),
+      'status(Workflow.Status.Restarting(Workflow.Status.RestartingPhase.Starting))
+    )
+  }
+
+  it should "fail on non existing status" in {
+    expectedError[IllegalWorkflowStatus]({
+      WorkflowReader.read(res("workflow/workflow29.yml"))
+    }) should have(
+      'status("running")
+    )
+  }
+
+  it should "fail on non existing status phase" in {
+    expectedError[IllegalWorkflowStatusPhase]({
+      WorkflowReader.read(res("workflow/workflow30.yml"))
+    }) should have(
+      'phase("complete")
     )
   }
 }

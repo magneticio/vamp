@@ -3,29 +3,31 @@ package io.vamp.model.artifact
 import java.time.{ Duration, OffsetDateTime, Period }
 
 import io.vamp.model.artifact.TimeSchedule.{ Repeat, RepeatForever, RepeatPeriod }
-import io.vamp.model.artifact.Workflow.Status.RestartingPhase.RestartingPhaseType
 
 import scala.language.implicitConversions
 
 object Workflow {
 
-  sealed trait Status extends ClassToName
+  sealed trait Status
 
   object Status {
 
-    object Active extends Status
+    object Active extends Status {
+      override def toString: String = "active"
+    }
 
-    object Suspended extends Status
+    object Suspended extends Status {
+      override def toString: String = "suspended"
+    }
 
     object RestartingPhase extends Enumeration {
-      type RestartingPhaseType = Value with ClassToName
       val Stopping, Starting = Value
     }
 
-    case class Restarting(phase: RestartingPhaseType) extends Status
-
+    case class Restarting(phase: RestartingPhase.Value) extends Status {
+      override def toString: String = "restarting"
+    }
   }
-
 }
 
 case class Workflow(

@@ -1,0 +1,5 @@
+name: logger
+breed: metrics
+schedule: daemon
+status: restarting
+phase: starting
