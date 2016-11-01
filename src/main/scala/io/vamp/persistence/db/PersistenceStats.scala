@@ -7,7 +7,6 @@ import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.event.{ Aggregator, EventQuery, LongValueAggregationResult }
-import io.vamp.model.workflow.Workflow
 import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
 
 import scala.concurrent.Future

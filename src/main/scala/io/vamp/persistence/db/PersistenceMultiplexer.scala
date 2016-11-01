@@ -2,7 +2,6 @@ package io.vamp.persistence.db
 
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.model.artifact._
-import io.vamp.model.workflow.Workflow
 
 import scala.concurrent.Future
 import scala.language.postfixOps
