@@ -9,5 +9,3 @@ object UndefinedWorkflowScheduleError extends WorkflowNotification
 case class IllegalWorkflowSchedulePeriod(period: String) extends Notification
 
 case class IllegalWorkflowStatus(status: String) extends Notification
-
-case class IllegalWorkflowStatusPhase(phase: String) extends Notification

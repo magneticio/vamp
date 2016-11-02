@@ -23,11 +23,6 @@ class WorkflowSerializer extends ArtifactSerializer[Workflow] with ReferenceSeri
       list += JField("breed", Extraction.decompose(workflow.breed))
       list += JField("status", JString(workflow.status.toString))
 
-      workflow.status match {
-        case r: Workflow.Status.Restarting ⇒ list += JField("phase", JString(r.phase.toString.toLowerCase))
-        case _                             ⇒
-      }
-
       workflow.schedule match {
         case TimeSchedule(period, repeatTimes, start) ⇒
           val time = new ArrayBuffer[JField]

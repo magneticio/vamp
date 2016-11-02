@@ -10,7 +10,7 @@ import io.vamp.operation.OperationBootstrap
 import io.vamp.operation.notification._
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.persistence.kv.KeyValueStoreActor
-import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
+import io.vamp.pulse.Percolator.RegisterPercolator
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
 import io.vamp.workflow_driver.{ WorkflowDeployable, WorkflowDriver, WorkflowDriverActor }
@@ -21,11 +21,9 @@ object WorkflowActor {
 
   object RescheduleAll
 
-  case class Schedule(workflow: Workflow)
+  case class Update(workflow: Workflow)
 
-  case class Unschedule(workflow: Workflow)
-
-  case class RunWorkflow(workflow: Workflow)
+  case class Trigger(workflow: Workflow)
 
 }
 
@@ -44,15 +42,11 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
       case t: Throwable ⇒ reportException(WorkflowSchedulingError(t))
     }
 
-    case Schedule(workflow) ⇒ try schedule(workflow) catch {
+    case Update(workflow) ⇒ try schedule(workflow) catch {
       case t: Throwable ⇒ reportException(WorkflowSchedulingError(t))
     }
 
-    case Unschedule(workflow) ⇒ try unschedule(workflow) catch {
-      case t: Throwable ⇒ reportException(WorkflowSchedulingError(t))
-    }
-
-    case (RunWorkflow(workflow), event: Event) ⇒ try trigger(workflow, event.tags) catch {
+    case (Trigger(workflow), event: Event) ⇒ try trigger(workflow, event.tags) catch {
       case t: Throwable ⇒ reportException(WorkflowExecutionError(t))
     }
 
@@ -69,7 +63,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   private def reschedule() = {
     implicit val timeout = PersistenceActor.timeout
     forEach[Workflow](allArtifacts[Workflow], {
-      workflow ⇒ self ! Schedule(workflow)
+      workflow ⇒ self ! Update(workflow)
     })
   }
 
@@ -79,19 +73,19 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
     workflow.schedule match {
       case DaemonSchedule        ⇒ trigger(workflow)
       case TimeSchedule(_, _, _) ⇒ trigger(workflow)
-      case EventSchedule(tags)   ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", tags, RunWorkflow(workflow))
+      case EventSchedule(tags)   ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", tags, Trigger(workflow))
       case schedule              ⇒ log.warning(s"Unsupported schedule: '$schedule'.")
     }
 
     pulse(workflow, scheduled = true)
   }
 
-  private def unschedule(workflow: Workflow) = {
-    log.info(s"Unscheduling workflow: '${workflow.name}'.")
-
-    IoC.actorFor[PulseActor] ! UnregisterPercolator(s"$percolator${workflow.name}")
-    IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) foreach { _ ⇒ pulse(workflow, scheduled = false) }
-  }
+  //  private def unschedule(workflow: Workflow) = {
+  //    log.info(s"Unscheduling workflow: '${workflow.name}'.")
+  //
+  //    IoC.actorFor[PulseActor] ! UnregisterPercolator(s"$percolator${workflow.name}")
+  //    IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) foreach { _ ⇒ pulse(workflow, scheduled = false) }
+  //  }
 
   private def trigger(workflow: Workflow, data: Any = None) = for {
     breed ← artifactFor[DefaultBreed](workflow.breed)

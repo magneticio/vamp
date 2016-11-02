@@ -1,5 +1,4 @@
 name: logger
 breed: metrics
 schedule: daemon
-status: restarting
-phase: stopping
+status: suspending

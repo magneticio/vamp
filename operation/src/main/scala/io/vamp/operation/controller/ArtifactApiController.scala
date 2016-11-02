@@ -2,17 +2,17 @@ package io.vamp.operation.controller
 
 import java.net.URLDecoder
 
-import _root_.io.vamp.common.notification.NotificationProvider
-import _root_.io.vamp.operation.gateway.GatewayActor
-import _root_.io.vamp.operation.workflow.WorkflowActor
-import _root_.io.vamp.operation.workflow.WorkflowActor.Schedule
+import io.vamp.common.notification.NotificationProvider
+import io.vamp.operation.gateway.GatewayActor
+import io.vamp.operation.workflow.WorkflowActor
+import io.vamp.operation.workflow.WorkflowActor.Update
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
+import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider}
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InconsistentArtifactName
-import io.vamp.model.reader.{ YamlReader, _ }
+import io.vamp.model.reader.{YamlReader, _}
 import io.vamp.operation.notification.UnexpectedArtifact
 import io.vamp.persistence.db._
 import io.vamp.persistence.notification.PersistenceOperationFailure
@@ -48,7 +48,7 @@ trait SingleArtifactApiController {
     case (t, r) if t == classOf[Workflow] ⇒
       create(r, source, validateOnly).map {
         case list: List[_] ⇒
-          list.foreach { case workflow: Workflow ⇒ actorFor[WorkflowActor] ! Schedule(workflow) }
+          list.foreach { case workflow: Workflow ⇒ actorFor[WorkflowActor] ! Update(workflow) }
           list
         case any ⇒ any
       }
@@ -76,7 +76,7 @@ trait SingleArtifactApiController {
 
       update(r, name, source, validateOnly).map {
         case list: List[_] ⇒
-          list.foreach { case workflow: Workflow ⇒ actorFor[WorkflowActor] ! Schedule(workflow) }
+          list.foreach { case workflow: Workflow ⇒ actorFor[WorkflowActor] ! Update(workflow) }
           list
         case any ⇒ any
       }
@@ -93,15 +93,18 @@ trait SingleArtifactApiController {
     case (t, r) if t == classOf[Workflow] ⇒
       read(t, name, expandReferences = false, onlyReferences = false) map {
         case Some(workflow: Workflow) ⇒
-          delete(t, name, validateOnly).map { result ⇒
-            actorFor[WorkflowActor] ! WorkflowActor.Unschedule(workflow)
-            result
+          if (validateOnly) Future(None)
+          else {
+            (actorFor[PersistenceActor] ? PersistenceActor.Update(workflow.copy(status = Workflow.Status.Stopping))).map {
+              result ⇒
+                actorFor[WorkflowActor] ! WorkflowActor.Update(workflow)
+                result
+            }
           }
         case _ ⇒ false
       }
 
-    case (t, r) ⇒
-      if (validateOnly) Future(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, t)
+    case (t, r) ⇒ delete(t, name, validateOnly)
   }
 
   protected def crud(kind: String): Boolean = `type`(kind) match {

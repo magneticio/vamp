@@ -8,24 +8,30 @@ import scala.language.implicitConversions
 
 object Workflow {
 
-  sealed trait Status
+  sealed trait Status {
+    override def toString: String = {
+      val clazz = getClass.toString
+      val clean = if (clazz.endsWith("$")) clazz.substring(0, clazz.length - 1) else clazz
+      clean.substring(clean.lastIndexOf('$') + 1).toLowerCase
+    }
+  }
 
   object Status {
 
-    object Active extends Status {
-      override def toString: String = "active"
-    }
+    object Starting extends Status
 
-    object Suspended extends Status {
-      override def toString: String = "suspended"
-    }
+    object Stopping extends Status
+
+    object Running extends Status
+
+    object Suspended extends Status
+
+    object Suspending extends Status
+
+    case class Restarting(phase: Option[RestartingPhase.Value]) extends Status
 
     object RestartingPhase extends Enumeration {
       val Stopping, Starting = Value
-    }
-
-    case class Restarting(phase: RestartingPhase.Value) extends Status {
-      override def toString: String = "restarting"
     }
   }
 }

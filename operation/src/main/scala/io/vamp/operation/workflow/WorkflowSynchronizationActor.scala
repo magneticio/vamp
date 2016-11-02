@@ -3,7 +3,7 @@ package io.vamp.operation.workflow
 import io.vamp.common.akka._
 import io.vamp.model.artifact.{ DaemonSchedule, TimeSchedule, Workflow }
 import io.vamp.operation.notification._
-import io.vamp.operation.workflow.WorkflowActor.Schedule
+import io.vamp.operation.workflow.WorkflowActor.Update
 import io.vamp.operation.workflow.WorkflowSynchronizationActor.SynchronizeAll
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.workflow_driver.WorkflowDriverActor
@@ -28,7 +28,7 @@ class WorkflowSynchronizationActor extends CommonSupportForActors with ArtifactS
 
   def receive = {
     case SynchronizeAll                 ⇒ synchronize()
-    case Scheduled(scheduled, instance) ⇒ if (instance.isEmpty) IoC.actorFor[WorkflowActor] ! Schedule(scheduled)
+    case Scheduled(scheduled, instance) ⇒ if (instance.isEmpty) IoC.actorFor[WorkflowActor] ! Update(scheduled)
     case _                              ⇒
   }
 

@@ -19,7 +19,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'breed(BreedReference("metrics")),
       'schedule(DaemonSchedule),
       'scale(None),
-      'status(Workflow.Status.Active)
+      'status(Workflow.Status.Starting)
     )
   }
 
@@ -215,54 +215,53 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
-  it should "read active status" in {
+  it should "read starting status" in {
     WorkflowReader.read(res("workflow/workflow24.yml")) should have(
       'name("logger"),
-      'status(Workflow.Status.Active)
+      'status(Workflow.Status.Starting)
+    )
+  }
+
+  it should "read running status" in {
+    WorkflowReader.read(res("workflow/workflow25.yml")) should have(
+      'name("logger"),
+      'status(Workflow.Status.Running)
     )
   }
 
   it should "read suspended status" in {
-    WorkflowReader.read(res("workflow/workflow25.yml")) should have(
+    WorkflowReader.read(res("workflow/workflow26.yml")) should have(
       'name("logger"),
       'status(Workflow.Status.Suspended)
     )
   }
 
-  it should "read restarting status" in {
-    WorkflowReader.read(res("workflow/workflow26.yml")) should have(
-      'name("logger"),
-      'status(Workflow.Status.Restarting(Workflow.Status.RestartingPhase.Stopping))
-    )
-  }
-
-  it should "read restarting status and phase stopping" in {
+  it should "read suspending status" in {
     WorkflowReader.read(res("workflow/workflow27.yml")) should have(
       'name("logger"),
-      'status(Workflow.Status.Restarting(Workflow.Status.RestartingPhase.Stopping))
+      'status(Workflow.Status.Suspending)
     )
   }
 
-  it should "read restarting status and phase starting" in {
+  it should "read stopping status" in {
     WorkflowReader.read(res("workflow/workflow28.yml")) should have(
       'name("logger"),
-      'status(Workflow.Status.Restarting(Workflow.Status.RestartingPhase.Starting))
+      'status(Workflow.Status.Stopping)
+    )
+  }
+
+  it should "read restarting status" in {
+    WorkflowReader.read(res("workflow/workflow29.yml")) should have(
+      'name("logger"),
+      'status(Workflow.Status.Restarting(None))
     )
   }
 
   it should "fail on non existing status" in {
     expectedError[IllegalWorkflowStatus]({
-      WorkflowReader.read(res("workflow/workflow29.yml"))
-    }) should have(
-      'status("running")
-    )
-  }
-
-  it should "fail on non existing status phase" in {
-    expectedError[IllegalWorkflowStatusPhase]({
       WorkflowReader.read(res("workflow/workflow30.yml"))
     }) should have(
-      'phase("complete")
+      'status("active")
     )
   }
 }
