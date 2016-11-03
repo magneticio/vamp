@@ -35,31 +35,31 @@ trait PersistenceMarshaller extends TypeOfArtifact {
   }
 
   private val readers = Map(
-    "gateways" -> DeployedGatewayReader,
-    "deployments" -> new AbstractDeploymentReader() {
+    "gateways" → DeployedGatewayReader,
+    "deployments" → new AbstractDeploymentReader() {
       override protected def routingReader = new InternalGatewayReader(acceptPort = true, onlyAnonymous = false)
 
       override protected def validateEitherReferenceOrAnonymous = false
     },
-    "breeds" -> BreedReader,
-    "blueprints" -> BlueprintReader,
-    "slas" -> SlaReader,
-    "scales" -> ScaleReader,
-    "escalations" -> EscalationReader,
-    "routes" -> RouteReader,
-    "conditions" -> ConditionReader,
-    "rewrites" -> RewriteReader,
-    "workflows" -> WorkflowReader,
+    "breeds" → BreedReader,
+    "blueprints" → BlueprintReader,
+    "slas" → SlaReader,
+    "scales" → ScaleReader,
+    "escalations" → EscalationReader,
+    "routes" → RouteReader,
+    "conditions" → ConditionReader,
+    "rewrites" → RewriteReader,
+    "workflows" → WorkflowReader,
     // gateway persistence
-    "route-targets" -> new NoNameValidationYamlReader[RouteTargets] {
+    "route-targets" → new NoNameValidationYamlReader[RouteTargets] {
       override protected def parse(implicit source: YamlSourceReader) = {
         val targets = <<?[YamlList]("targets") match {
           case Some(list) ⇒ list.flatMap { yaml ⇒
             implicit val source = yaml
             (<<?[String]("name"), <<?[String]("url")) match {
-              case (_, Some(url)) ⇒ ExternalRouteTarget(url) :: Nil
+              case (_, Some(url))  ⇒ ExternalRouteTarget(url) :: Nil
               case (Some(name), _) ⇒ InternalRouteTarget(name, <<?[String]("host"), <<![Int]("port")) :: Nil
-              case _ ⇒ Nil
+              case _               ⇒ Nil
             }
           }
           case _ ⇒ Nil
@@ -67,16 +67,16 @@ trait PersistenceMarshaller extends TypeOfArtifact {
         RouteTargets(<<![String]("name"), targets)
       }
     },
-    "gateway-ports" -> new NoNameValidationYamlReader[GatewayPort] {
+    "gateway-ports" → new NoNameValidationYamlReader[GatewayPort] {
       override protected def parse(implicit source: YamlSourceReader) = GatewayPort(name, <<![Int]("port"))
     },
-    "gateway-services" -> new NoNameValidationYamlReader[GatewayServiceAddress] {
+    "gateway-services" → new NoNameValidationYamlReader[GatewayServiceAddress] {
       override protected def parse(implicit source: YamlSourceReader) = GatewayServiceAddress(name, <<![String]("host"), <<![Int]("port"))
     },
-    "gateway-deployment-statuses" -> new NoNameValidationYamlReader[GatewayDeploymentStatus] {
+    "gateway-deployment-statuses" → new NoNameValidationYamlReader[GatewayDeploymentStatus] {
       override protected def parse(implicit source: YamlSourceReader) = GatewayDeploymentStatus(name, <<![Boolean]("deployed"))
     },
-    "internal-gateway" -> new NoNameValidationYamlReader[InternalGateway] {
+    "internal-gateway" → new NoNameValidationYamlReader[InternalGateway] {
       override protected def parse(implicit source: YamlSourceReader) = {
         <<?[Any]("name")
         <<?[Any]("gateway" :: Lookup.entry :: Nil)
@@ -84,16 +84,16 @@ trait PersistenceMarshaller extends TypeOfArtifact {
       }
     },
     // deployment persistence
-    "deployment-service-statuses" -> new NoNameValidationYamlReader[DeploymentServiceStatus] {
+    "deployment-service-statuses" → new NoNameValidationYamlReader[DeploymentServiceStatus] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceStatus(name, DeploymentServiceStatusReader.read(<<![YamlSourceReader]("status")))
     },
-    "deployment-service-scales" -> new NoNameValidationYamlReader[DeploymentServiceScale] {
+    "deployment-service-scales" → new NoNameValidationYamlReader[DeploymentServiceScale] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceScale(name, ScaleReader.read(<<![YamlSourceReader]("scale")).asInstanceOf[DefaultScale])
     },
-    "deployment-service-instances" -> new NoNameValidationYamlReader[DeploymentServiceInstances] {
+    "deployment-service-instances" → new NoNameValidationYamlReader[DeploymentServiceInstances] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceInstances(name, DeploymentReader.parseInstances)
     },
-    "deployment-service-environment-variables" -> new NoNameValidationYamlReader[DeploymentServiceEnvironmentVariables] {
+    "deployment-service-environment-variables" → new NoNameValidationYamlReader[DeploymentServiceEnvironmentVariables] {
 
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceEnvironmentVariables(name, environmentVariables)
 
@@ -106,13 +106,22 @@ trait PersistenceMarshaller extends TypeOfArtifact {
       }
     },
     // workflow persistence
-    "workflow-scale" -> new NoNameValidationYamlReader[WorkflowScale] {
+    "workflow-status" → new NoNameValidationYamlReader[WorkflowStatus] {
+      override protected def parse(implicit source: YamlSourceReader) = {
+        val status = <<![String]("status")
+        WorkflowStatusReader.status(status) match {
+          case _: Workflow.Status.Restarting ⇒ WorkflowStatus(name, status, <<?[String]("phase"))
+          case _                             ⇒ WorkflowStatus(name, status, None)
+        }
+      }
+    },
+    "workflow-scale" → new NoNameValidationYamlReader[WorkflowScale] {
       override protected def parse(implicit source: YamlSourceReader) = WorkflowScale(name, ScaleReader.read(<<![YamlSourceReader]("scale")).asInstanceOf[DefaultScale])
     },
-    "workflow-network" -> new NoNameValidationYamlReader[WorkflowNetwork] {
+    "workflow-network" → new NoNameValidationYamlReader[WorkflowNetwork] {
       override protected def parse(implicit source: YamlSourceReader) = WorkflowNetwork(name, <<![String]("network"))
     },
-    "workflow-arguments" -> new NoNameValidationYamlReader[WorkflowArguments] with ArgumentReader {
+    "workflow-arguments" → new NoNameValidationYamlReader[WorkflowArguments] with ArgumentReader {
       override protected def parse(implicit source: YamlSourceReader) = WorkflowArguments(name, arguments())
     }
   )
