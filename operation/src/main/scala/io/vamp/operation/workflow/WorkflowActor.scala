@@ -4,13 +4,14 @@ import akka.actor._
 import akka.pattern.ask
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
-import io.vamp.operation.OperationBootstrap
 import io.vamp.operation.notification._
+import io.vamp.persistence.db.WorkflowPersistenceMessages.{ ResetWorkflow, UpdateWorkflowStatus }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.persistence.kv.KeyValueStoreActor
-import io.vamp.pulse.Percolator.RegisterPercolator
+import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
 import io.vamp.workflow_driver.{ WorkflowDeployable, WorkflowDriver, WorkflowDriverActor }
@@ -19,9 +20,7 @@ import scala.concurrent.Future
 
 object WorkflowActor {
 
-  object RescheduleAll
-
-  case class Update(workflow: Workflow)
+  case class Update(workflow: Workflow, running: Boolean)
 
   case class Trigger(workflow: Workflow)
 
@@ -38,11 +37,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
   def receive: Receive = {
 
-    case RescheduleAll ⇒ try reschedule() catch {
-      case t: Throwable ⇒ reportException(WorkflowSchedulingError(t))
-    }
-
-    case Update(workflow) ⇒ try schedule(workflow) catch {
+    case Update(workflow, running) ⇒ try update(workflow, running) catch {
       case t: Throwable ⇒ reportException(WorkflowSchedulingError(t))
     }
 
@@ -53,52 +48,100 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
     case _ ⇒
   }
 
-  override def preStart() = try {
-    context.system.scheduler.scheduleOnce(OperationBootstrap.synchronizationInitialDelay, self, RescheduleAll)
-  }
-  catch {
-    case t: Throwable ⇒ reportException(InternalServerError(t))
+  private def update(workflow: Workflow, running: Boolean): Unit = workflow.status match {
+
+    case Workflow.Status.Starting      ⇒ run(workflow, running)
+
+    case Workflow.Status.Stopping      ⇒ stop(workflow, running)
+
+    case Workflow.Status.Running       ⇒ run(workflow, running)
+
+    case Workflow.Status.Suspended     ⇒ suspend(workflow, running)
+
+    case Workflow.Status.Suspending    ⇒ suspend(workflow, running)
+
+    case _: Workflow.Status.Restarting ⇒ restart(workflow, running)
   }
 
-  private def reschedule() = {
-    implicit val timeout = PersistenceActor.timeout
-    forEach[Workflow](allArtifacts[Workflow], {
-      workflow ⇒ self ! Update(workflow)
+  private def run(workflow: Workflow, running: Boolean): Unit = {
+    deploy(workflow, running, () ⇒ {
+      if (workflow.status != Workflow.Status.Running)
+        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
+          pulse(workflow, scheduled = true)
+        }
     })
   }
 
-  private def schedule(workflow: Workflow): Unit = {
-    log.info(s"Scheduling workflow: '${workflow.name}'.")
-
-    workflow.schedule match {
-      case DaemonSchedule        ⇒ trigger(workflow)
-      case TimeSchedule(_, _, _) ⇒ trigger(workflow)
-      case EventSchedule(tags)   ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(s"$percolator${workflow.name}", tags, Trigger(workflow))
-      case schedule              ⇒ log.warning(s"Unsupported schedule: '$schedule'.")
-    }
-
-    pulse(workflow, scheduled = true)
+  private def stop(workflow: Workflow, running: Boolean): Unit = {
+    undeploy(workflow, running, () ⇒ {
+      (actorFor[PersistenceActor] ? PersistenceActor.Delete(workflow.name, classOf[Workflow])).map { _ ⇒
+        actorFor[PersistenceActor] ! ResetWorkflow(workflow)
+        pulse(workflow, scheduled = false)
+      }
+    })
   }
 
-  //  private def unschedule(workflow: Workflow) = {
-  //    log.info(s"Unscheduling workflow: '${workflow.name}'.")
-  //
-  //    IoC.actorFor[PulseActor] ! UnregisterPercolator(s"$percolator${workflow.name}")
-  //    IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) foreach { _ ⇒ pulse(workflow, scheduled = false) }
-  //  }
+  private def suspend(workflow: Workflow, running: Boolean): Unit = {
+    undeploy(workflow, running, () ⇒ {
+      if (workflow.status != Workflow.Status.Suspended)
+        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Suspended)).map { _ ⇒
+          pulse(workflow, scheduled = false)
+        }
+    })
+  }
 
-  private def trigger(workflow: Workflow, data: Any = None) = for {
-    breed ← artifactFor[DefaultBreed](workflow.breed)
-    scale ← if (workflow.scale.isDefined) artifactFor[DefaultScale](workflow.scale.get).map(Option(_)) else Future.successful(None)
-  } yield {
+  private def restart(workflow: Workflow, running: Boolean): Unit = {
+    workflow.status match {
+      case Workflow.Status.Restarting(Some(RestartingPhase.Starting)) ⇒ deploy(workflow, running, () ⇒ {
+        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
+          pulse(workflow, scheduled = true)
+        }
+      })
+      case _ ⇒ undeploy(workflow, running, () ⇒ {
+        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Restarting(Option(RestartingPhase.Starting)))).map { _ ⇒
+          pulse(workflow, scheduled = false)
+        }
+      })
+    }
+  }
 
-    if (WorkflowDeployable.matches(breed.deployable)) {
-      IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition)) map {
-        _ ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
+  private def deploy(workflow: Workflow, running: Boolean, update: () ⇒ Unit) = {
+    if (running) update()
+    else {
+      workflow.schedule match {
+        case DaemonSchedule        ⇒ trigger(workflow)
+        case TimeSchedule(_, _, _) ⇒ trigger(workflow)
+        case EventSchedule(tags)   ⇒ (IoC.actorFor[PulseActor] ? RegisterPercolator(s"$percolator${workflow.name}", tags, Trigger(workflow))).map(_ ⇒ update())
+        case _                     ⇒
       }
     }
-    else {
-      IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
+  }
+
+  private def undeploy(workflow: Workflow, running: Boolean, update: () ⇒ Unit) = {
+    workflow.schedule match {
+      case DaemonSchedule        ⇒ if (running) IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) else update()
+      case TimeSchedule(_, _, _) ⇒ if (running) IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) else update()
+      case EventSchedule(tags)   ⇒ (IoC.actorFor[PulseActor] ? UnregisterPercolator(s"$percolator${workflow.name}")).map(_ ⇒ update())
+      case _                     ⇒
+    }
+  }
+
+  private def trigger(workflow: Workflow, data: Any = None): Future[_] = {
+    log.info(s"Triggering workflow: '${workflow.name}'.")
+
+    artifactFor[DefaultBreed](workflow.breed).flatMap { breed ⇒
+
+      (if (workflow.scale.isDefined) artifactFor[DefaultScale](workflow.scale.get).map(Option(_)) else Future.successful(None)).flatMap { scale ⇒
+
+        if (WorkflowDeployable.matches(breed.deployable)) {
+          IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition)) flatMap {
+            _ ⇒ IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
+          }
+        }
+        else {
+          IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
+        }
+      }
     }
   }
 

@@ -54,18 +54,7 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
     workflow
   }
 
-  private def status(implicit source: YamlSourceReader): Workflow.Status = {
-    <<?[String]("status") match {
-      case Some(status) if status.toLowerCase == "starting" ⇒ Workflow.Status.Starting
-      case Some(status) if status.toLowerCase == "running" ⇒ Workflow.Status.Running
-      case Some(status) if status.toLowerCase == "stopping" ⇒ Workflow.Status.Stopping
-      case Some(status) if status.toLowerCase == "suspended" ⇒ Workflow.Status.Suspended
-      case Some(status) if status.toLowerCase == "suspending" ⇒ Workflow.Status.Suspending
-      case Some(status) if status.toLowerCase == "restarting" ⇒ Workflow.Status.Restarting(None)
-      case Some(status) ⇒ throwException(IllegalWorkflowStatus(status))
-      case None ⇒ Workflow.Status.Starting
-    }
-  }
+  private def status(implicit source: YamlSourceReader): Workflow.Status = WorkflowStatusReader.status(<<?[String]("status"))
 
   private def schedule(implicit source: YamlSourceReader): Schedule = {
     <<![Any]("schedule") match {
@@ -92,5 +81,29 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
 
   private def eventSchedule(implicit source: YamlSourceReader): Schedule = {
     <<?[List[String]]("event" :: "tags" :: Nil).map(tags ⇒ EventSchedule(tags.toSet)).getOrElse(EventSchedule(Set()))
+  }
+}
+
+object WorkflowStatusReader extends ModelNotificationProvider {
+
+  def status(value: String): Workflow.Status = value match {
+    case s if s.toLowerCase == "starting"   ⇒ Workflow.Status.Starting
+    case s if s.toLowerCase == "running"    ⇒ Workflow.Status.Running
+    case s if s.toLowerCase == "stopping"   ⇒ Workflow.Status.Stopping
+    case s if s.toLowerCase == "suspended"  ⇒ Workflow.Status.Suspended
+    case s if s.toLowerCase == "suspending" ⇒ Workflow.Status.Suspending
+    case s if s.toLowerCase == "restarting" ⇒ Workflow.Status.Restarting(None)
+    case s                                  ⇒ throwException(IllegalWorkflowStatus(s))
+  }
+
+  def status(value: Option[String]): Workflow.Status = value match {
+    case Some(s) ⇒ status(s)
+    case None    ⇒ Workflow.Status.Starting
+  }
+
+  def phase(value: Option[String]): Option[Workflow.Status.RestartingPhase.Value] = value.flatMap {
+    case "Stopping" ⇒ Option(Workflow.Status.RestartingPhase.Stopping)
+    case "Starting" ⇒ Option(Workflow.Status.RestartingPhase.Starting)
+    case _          ⇒ None
   }
 }
