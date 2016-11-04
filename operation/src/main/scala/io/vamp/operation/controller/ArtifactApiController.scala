@@ -91,7 +91,11 @@ trait SingleArtifactApiController {
     case (t, r) if t == classOf[Workflow] ⇒
       read(t, name, expandReferences = false, onlyReferences = false) map {
         case Some(workflow: Workflow) ⇒
-          if (validateOnly) Future.successful(true) else actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Stopping)
+          if (validateOnly) Future.successful(true)
+          else
+            (actorFor[PersistenceActor] ? PersistenceActor.Update(workflow.copy(status = Workflow.Status.Stopping), Some(source))).flatMap { _ ⇒
+              actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Stopping)
+            }
         case _ ⇒ false
       }
 
