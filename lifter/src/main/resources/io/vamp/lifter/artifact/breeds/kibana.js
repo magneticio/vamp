@@ -6,8 +6,6 @@ var vamp = require('vamp-node-client');
 
 var api = new vamp.Api();
 
-var interval = 30; // seconds
-
 var index = 'logstash-*';
 
 var httpStatus = function (url) {
@@ -18,7 +16,6 @@ var httpStatus = function (url) {
 
 var createKibanaIndex = function (elasticsearch) {
   return _(http(elasticsearch + '/.kibana/config/_search').promise().then(JSON.parse)).flatMap(function (response) {
-
     var kibana;
 
     for (var i = 0; i < response.hits.hits.length; i++) {
@@ -115,18 +112,10 @@ var updateKibanaGateways = function (elasticsearch) {
   });
 };
 
-function run() {
-  api.config().flatMap(function (config) {
-
-    var elasticsearch = config['vamp.pulse.elasticsearch.url'];
-
-    return createKibanaIndex(elasticsearch).flatMap(function (exists) {
-      return exists ? updateKibanaGateways(elasticsearch) : _([true]);
-    });
-  }).each(function () {
+api.config().flatMap(function (config) {
+  var elasticsearch = config['vamp.pulse.elasticsearch.url'];
+  return createKibanaIndex(elasticsearch).flatMap(function (exists) {
+    return exists ? updateKibanaGateways(elasticsearch) : _([true]);
   });
-}
-
-run();
-
-setInterval(run, interval * 1000);
+}).each(function () {
+});
