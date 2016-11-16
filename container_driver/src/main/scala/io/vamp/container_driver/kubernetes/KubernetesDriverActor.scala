@@ -44,6 +44,8 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
   protected val apiUrl = KubernetesDriverActor.url
 
+  protected val token = KubernetesDriverActor.token
+
   protected val apiHeaders = {
     Try(Source.fromFile(token).mkString).map {
       bearer ⇒ ("Authorization" -> s"Bearer $bearer") :: HttpClient.jsonHeaders
