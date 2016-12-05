@@ -194,8 +194,9 @@ trait PulseEvent {
   import PulseActor._
 
   def indexTypeName(schema: String = Event.defaultType): (String, String) = {
-    val format = indexTimeFormat.getOrElse(schema, indexTimeFormat.getOrElse(Event.defaultType, "YYYY-MM-dd"))
+    val base = schema.toLowerCase
+    val format = indexTimeFormat.getOrElse(base, indexTimeFormat.getOrElse(Event.defaultType, "YYYY-MM-dd"))
     val time = OffsetDateTime.now().format(DateTimeFormatter.ofPattern(format))
-    s"$indexName-$schema-$time" -> schema
+    s"$indexName-$base-$time" -> base
   }
 }
