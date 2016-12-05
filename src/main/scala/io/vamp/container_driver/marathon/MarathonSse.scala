@@ -17,9 +17,9 @@ case class MarathonEvent(`type`: String, ids: List[String])
 trait MarathonSse {
   this: Actor with ExecutionContextProvider ⇒
 
-  import de.heikoseeberger.akkasse.EventStreamUnmarshalling._
+  import de.heikoseeberger.akkasse.client.EventStreamUnmarshalling._
 
-  def sse(uri: Uri) = {
+  def sse(uri: Uri): Unit = {
 
     implicit val formats = DefaultFormats
     implicit val actorMaterializer = ActorMaterializer()(context)
@@ -28,11 +28,12 @@ trait MarathonSse {
       .via(Http()(context.system).outgoingConnection(uri.authority.host.address, uri.authority.port))
       .mapAsync(1)(Unmarshal(_).to[Source[ServerSentEvent, Any]])
       .runForeach(_.runForeach { event ⇒
-        event.eventType.foreach {
-          self ! MarathonEvent(
-            _, (parse(StringInput(event.data), useBigDecimalForDouble = true) \ "plan" \ "steps" \\ "actions" \ "app").extract[List[String]]
-          )
-        }
+        for {
+          t ← event.eventType
+          d ← event.data
+        } yield self ! MarathonEvent(
+          t, (parse(StringInput(d), useBigDecimalForDouble = true) \ "plan" \ "steps" \\ "actions" \ "app").extract[List[String]]
+        )
       })
   }
 }
