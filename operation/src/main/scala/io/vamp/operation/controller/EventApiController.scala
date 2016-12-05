@@ -43,7 +43,7 @@ trait EventApiController {
 
   def publish(request: String)(implicit timeout: Timeout) = {
     val event = EventReader.read(request)
-    actorFor[PulseActor] ? Publish(event) map (_ ⇒ event)
+    actorFor[PulseActor] ? Publish(event)
   }
 
   def query(parameters: Map[String, List[String]], request: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = {
