@@ -9,9 +9,9 @@ import akka.http.javadsl.model.RequestEntity
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpHeader.ParsingResult
 import akka.http.scaladsl.model._
-import akka.stream.scaladsl.{ Sink, Source }
-import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
-import akka.util.{ ByteString, Timeout }
+import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
+import akka.util.{ByteString, Timeout}
 import com.typesafe.scalalogging.Logger
 import org.json4s._
 import org.json4s.native.JsonMethods._
@@ -19,7 +19,7 @@ import org.json4s.native.Serialization
 import org.json4s.native.Serialization._
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect._
 import scala.util.Try
 

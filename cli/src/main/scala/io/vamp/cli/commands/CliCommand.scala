@@ -41,7 +41,7 @@ case class InspectCommand() extends CliCommand {
     """Shows the details of the specified artifact.
     """.stripMargin
   override val additionalParams = "[--as_blueprint][--json]"
-  override val parameters = jsonOutput+
+  override val parameters = jsonOutput +
     """
                               |  --as_blueprint       Returns a blueprint (only for inspect deployment) [Optional]
                             """.stripMargin

@@ -57,19 +57,18 @@ resolvers in ThisBuild ++= Seq(
 
 lazy val bintraySetting = Seq(
   bintrayOrganization := Some("magnetic-io"),
-  licenses +=("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+  licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
   bintrayRepository := "vamp"
 )
 
 // Libraries
 
-val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.10" ::
-  "com.typesafe.akka" %% "akka-agent" % "2.4.10" ::
-  "com.typesafe.akka" %% "akka-http-core" % "2.4.10" ::
-  "com.typesafe.akka" %% "akka-http-experimental" % "2.4.10" ::
-  ("de.heikoseeberger" %% "akka-sse" % "1.10.0" exclude("com.typesafe.akka", "akka-http-experimental")) ::
-  "ch.megard" %% "akka-http-cors" % "0.1.5" ::
-  ("com.typesafe.akka" %% "akka-slf4j" % "2.4.10" exclude("org.slf4j", "slf4j-api")) :: Nil
+val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.14" ::
+  "com.typesafe.akka" %% "akka-agent" % "2.4.14" ::
+  "com.typesafe.akka" %% "akka-http" % "10.0.0" ::
+  ("de.heikoseeberger" %% "akka-sse" % "2.0.0-M6" excludeAll ExclusionRule(organization = "com.typesafe.akka")) ::
+  "ch.megard" %% "akka-http-cors" % "0.1.10" ::
+  ("com.typesafe.akka" %% "akka-slf4j" % "2.4.14" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val docker = "com.spotify" % "docker-client" % "5.0.1" :: Nil
 
@@ -81,24 +80,24 @@ val parboiled = "org.parboiled" %% "parboiled-scala" % "1.1.7" :: Nil
 
 val jtwig = "org.jtwig" % "jtwig-core" % "5.57" :: Nil
 
-val json4s = "org.json4s" %% "json4s-native" % "3.4.0" ::
-  "org.json4s" %% "json4s-core" % "3.4.0" ::
-  "org.json4s" %% "json4s-ext" % "3.4.0" ::
-  "org.json4s" %% "json4s-native" % "3.4.0" :: Nil
+val json4s = "org.json4s" %% "json4s-native" % "3.5.0" ::
+  "org.json4s" %% "json4s-core" % "3.5.0" ::
+  "org.json4s" %% "json4s-ext" % "3.5.0" ::
+  "org.json4s" %% "json4s-native" % "3.5.0" :: Nil
 
 val snakeYaml = "org.yaml" % "snakeyaml" % "1.16" :: Nil
 
-val kamon = "io.kamon" %% "kamon-core" % "0.6.1" ::
+val kamon = ("io.kamon" %% "kamon-core" % "0.6.3" excludeAll ExclusionRule(organization = "com.typesafe.akka")) :: // update to 2.12 when available
   "org.slf4j" % "jul-to-slf4j" % "1.7.21" :: Nil
 
 val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
   "ch.qos.logback" % "logback-classic" % "1.1.7" ::
-  ("com.typesafe.scala-logging" %% "scala-logging" % "3.1.0" exclude("org.slf4j", "slf4j-api")) :: Nil
+  ("com.typesafe.scala-logging" %% "scala-logging" % "3.5.0" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val testing = "junit" % "junit" % "4.11" % "test" ::
-  "org.scalatest" %% "scalatest" % "3.0.0-M10" % "test" ::
-  "org.scalacheck" %% "scalacheck" % "1.12.4" % "test" ::
-  "com.typesafe.akka" %% "akka-testkit" % "2.4.10" % "test" :: Nil
+  "org.scalatest" %% "scalatest" % "3.0.1" % "test" ::
+  "org.scalacheck" %% "scalacheck" % "1.13.4" % "test" ::
+  "com.typesafe.akka" %% "akka-testkit" % "2.4.14" % "test" :: Nil
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
@@ -121,7 +120,6 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
 
 lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(CompactControlReadability, true)
-  .setPreference(CompactStringConcatenation, true)
   .setPreference(AlignParameters, true)
   .setPreference(AlignSingleLineCaseStatements, true)
   .setPreference(DoubleIndentClassDeclaration, true)

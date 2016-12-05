@@ -299,9 +299,9 @@ class AsyncZooKeeperClientImpl(
     }
     catch {
       case e: Exception ⇒
-        log.error("Could not connect to zookeeper ensemble: "+servers+". Connection timed out after "+connectTimeout+" milliseconds!", e)
+        log.error("Could not connect to zookeeper ensemble: " + servers + ". Connection timed out after " + connectTimeout + " milliseconds!", e)
 
-        throw new RuntimeException("Could not connect to zookeeper ensemble: "+servers+". Connection timed out after "+connectTimeout+" milliseconds!", e)
+        throw new RuntimeException("Could not connect to zookeeper ensemble: " + servers + ". Connection timed out after " + connectTimeout + " milliseconds!", e)
     }
   }
 
@@ -473,7 +473,7 @@ class AsyncZooKeeperClientImpl(
           Future.sequence {
             response.children.map {
               child ⇒
-                recurse(mkPath(p)+"/"+child)
+                recurse(mkPath(p) + "/" + child)
             }
           }
       } flatMap {

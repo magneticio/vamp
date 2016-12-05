@@ -83,7 +83,7 @@ trait Parameters extends CommandLineBasics {
       case "--cooldown" :: value :: tail       ⇒ nextOption(map ++ Map(cooldown -> value), tail)
 
       case option :: tail if isSwitch(option) ⇒
-        terminateWithError("Unknown option "+option, Map.empty)
+        terminateWithError("Unknown option " + option, Map.empty)
       case string :: tail ⇒
         if (!map.contains(name)) {
           nextOption(map ++ Map(name -> string), list.tail)

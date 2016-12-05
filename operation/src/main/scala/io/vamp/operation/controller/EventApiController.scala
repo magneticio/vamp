@@ -9,7 +9,7 @@ import akka.stream.actor.ActorPublisher
 import akka.stream.actor.ActorPublisherMessage.{ Cancel, Request }
 import akka.stream.scaladsl.Source
 import akka.util.Timeout
-import de.heikoseeberger.akkasse.{ EventStreamElement, ServerSentEvent }
+import de.heikoseeberger.akkasse.ServerSentEvent
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
@@ -30,7 +30,7 @@ trait EventApiController {
   private val tagParameter = "tag"
 
   def source(parameters: Map[String, List[String]], request: String, keepAlivePeriod: FiniteDuration) = {
-    Source.actorPublisher[EventStreamElement](Props(new ActorPublisher[EventStreamElement] {
+    Source.actorPublisher[ServerSentEvent](Props(new ActorPublisher[ServerSentEvent] {
       def receive = {
         case Request(n)           ⇒ openStream(self, parameters, request)
         case Cancel               ⇒ closeStream(self)
@@ -38,7 +38,7 @@ trait EventApiController {
         case _                    ⇒
 
       }
-    })).keepAlive(keepAlivePeriod, () ⇒ ServerSentEvent.Heartbeat)
+    })).keepAlive(keepAlivePeriod, () ⇒ ServerSentEvent.heartbeat)
   }
 
   def publish(request: String)(implicit timeout: Timeout) = {
