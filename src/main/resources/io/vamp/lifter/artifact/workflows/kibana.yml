@@ -2,5 +2,5 @@ name    : kibana
 breed   : kibana
 schedule: daemon
 environment_variables:
-  WORKFLOW_EXEUTION_PERIOD:  30
-  WORKFLOW_EXEUTION_TIMEOUT: 5
+  WORKFLOW_EXECUTION_PERIOD:  30
+  WORKFLOW_EXECUTION_TIMEOUT: 5
