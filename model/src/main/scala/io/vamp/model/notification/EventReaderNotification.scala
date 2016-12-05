@@ -4,6 +4,8 @@ import io.vamp.common.notification.Notification
 
 object NoTagEventError extends Notification
 
+case class EventTypeError(`type`: String) extends Notification
+
 case class EventTimestampError(timestamp: String) extends Notification
 
 object EventQueryTimeError extends Notification

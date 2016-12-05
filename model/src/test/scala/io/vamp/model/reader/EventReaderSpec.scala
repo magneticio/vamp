@@ -53,6 +53,12 @@ class EventReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
+  it should "fail on unsupported type" in {
+    expectedError[EventTypeError]({
+      EventReader.read(res("event/event7.yml"))
+    })
+  }
+
   "EventQueryReader" should "read the query" in {
     EventQueryReader.read(res("event/query1.yml")) should have(
       'tags(Set("server", "service")),
