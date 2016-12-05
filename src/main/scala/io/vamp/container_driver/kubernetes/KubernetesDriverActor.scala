@@ -27,6 +27,8 @@ object KubernetesDriverActor {
 
   val token = config.string("token")
 
+  val bearer = config.string("bearer")
+
   val serviceType = KubernetesServiceType.withName(config.string("service-type"))
 
   val createServices = config.boolean("create-services")
@@ -45,14 +47,15 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
   protected val apiUrl = KubernetesDriverActor.url
 
   protected val apiHeaders = {
-    Try(Source.fromFile(token).mkString).map {
-      bearer ⇒ ("Authorization" -> s"Bearer $bearer") :: HttpClient.jsonHeaders
-    } getOrElse HttpClient.jsonHeaders
+    def headers(bearer: String) = ("Authorization" → s"Bearer $bearer") :: HttpClient.jsonHeaders
+
+    if (bearer.nonEmpty) headers(bearer)
+    else Try(Source.fromFile(token).mkString).map(headers).getOrElse(HttpClient.jsonHeaders)
   }
 
-  private val gatewayService = Map("vamp" -> "gateway")
+  private val gatewayService = Map("vamp" → "gateway")
 
-  private val daemonService = Map("vamp" -> "daemon")
+  private val daemonService = Map("vamp" → "daemon")
 
   override protected def workflowNamePrefix: String = KubernetesDriverActor.workflowNamePrefix
 
@@ -104,13 +107,13 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
           response.items.find {
             item ⇒ item.metadata.labels.getOrElse(Lookup.entry, "") == gateway.lookupName
           } flatMap {
-            item ⇒ item.spec.clusterIP.flatMap(ip ⇒ item.spec.ports.find(port ⇒ port.port == gateway.port.number).map(port ⇒ ip -> port))
+            item ⇒ item.spec.clusterIP.flatMap(ip ⇒ item.spec.ports.find(port ⇒ port.port == gateway.port.number).map(port ⇒ ip → port))
           } foreach {
             case (ip, port) ⇒ setGatewayService(gateway, ip, port.nodePort)
           }
         }
 
-        val items = response.items.flatMap { item ⇒ item.metadata.labels.get(Lookup.entry).map(_ -> item.metadata.name) } toMap
+        val items = response.items.flatMap { item ⇒ item.metadata.labels.get(Lookup.entry).map(_ → item.metadata.name) } toMap
 
         // delete services
         val deleted = items.filter { case (l, _) ⇒ !gateways.exists(_.lookupName == l) } map { case (_, id) ⇒ deleteServiceById(id) }
@@ -120,7 +123,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
           gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
         } map { gateway ⇒
           val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
-          createService(gateway.name, serviceType, vampGatewayAgentId, ports, update = false, gatewayService ++ Map(Lookup.entry -> gateway.lookupName))
+          createService(gateway.name, serviceType, vampGatewayAgentId, ports, update = false, gatewayService ++ Map(Lookup.entry → gateway.lookupName))
         }
 
         Future.sequence(created ++ deleted)
