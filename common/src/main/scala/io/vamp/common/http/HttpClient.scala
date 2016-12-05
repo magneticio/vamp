@@ -7,7 +7,7 @@ import java.util.concurrent.ExecutionException
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
 import akka.util.Timeout
-import com.ning.http.client.{AsyncCompletionHandler, Response}
+import com.ning.http.client.{ AsyncCompletionHandler, Response }
 import com.typesafe.scalalogging.Logger
 import dispatch.Http
 import org.json4s._
@@ -15,7 +15,7 @@ import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization._
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.reflect._
 import scala.util.Try
 
