@@ -3,6 +3,7 @@ package io.vamp.gateway_driver.haproxy
 import io.vamp.gateway_driver.haproxy.{ Condition ⇒ HaProxyCondition, Server ⇒ HaProxyServer }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.Percentage
+import org.scalactic.source
 import org.scalatest.{ FlatSpec, Informer, Matchers }
 
 import scala.io.Source
@@ -16,7 +17,7 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
   override lazy val socketPath = "/usr/local/vamp"
 
   override def info = new Informer {
-    override def apply(message: String, payload: Option[Any]): Unit = {}
+    override def apply(message: String, payload: Option[Any] = None)(implicit pos: source.Position): Unit = {}
   }
 
   override val haProxyConfig = HaProxyConfig(
