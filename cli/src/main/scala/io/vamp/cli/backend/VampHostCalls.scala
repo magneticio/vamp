@@ -297,6 +297,7 @@ trait RestSupport {
   implicit def timeout: Timeout
 
   implicit def system: ActorSystem
+  implicit def executionContext = system.dispatcher
 
   def sendAndWaitYaml(request: String, body: Option[String] = None)(implicit m: Manifest[String]): Option[String] = {
     sendAndWait(request, body, List("Accept" -> "application/x-yaml", "Content-Type" -> "application/x-yaml", HttpClient.acceptEncodingIdentity))

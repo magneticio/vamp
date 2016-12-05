@@ -78,12 +78,15 @@ val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
 
 val parboiled = "org.parboiled" %% "parboiled-scala" % "1.1.7" :: Nil
 
+val dispatch = "net.databinder.dispatch" %% "dispatch-core" % "0.11.2" ::
+  "net.databinder.dispatch" %% "dispatch-json4s-native" % "0.11.2" :: Nil
+
 val jtwig = "org.jtwig" % "jtwig-core" % "5.57" :: Nil
 
-val json4s = "org.json4s" %% "json4s-native" % "3.5.0" ::
-  "org.json4s" %% "json4s-core" % "3.5.0" ::
-  "org.json4s" %% "json4s-ext" % "3.5.0" ::
-  "org.json4s" %% "json4s-native" % "3.5.0" :: Nil
+val json4s = "org.json4s" %% "json4s-native" % "3.2.11" ::
+  "org.json4s" %% "json4s-core" % "3.2.11" ::
+  "org.json4s" %% "json4s-ext" % "3.2.11" ::
+  "org.json4s" %% "json4s-native" % "3.2.11" :: Nil
 
 val snakeYaml = "org.yaml" % "snakeyaml" % "1.16" :: Nil
 
@@ -217,7 +220,7 @@ lazy val common = project.settings(bintraySetting: _*).settings(
   description := "Vamp common",
   name := "vamp-common",
   formatting,
-  libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ testing
+  libraryDependencies ++= akka ++ dispatch ++ json4s ++ snakeYaml ++ kamon ++ logging ++ testing
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 // Java version and encoding requirements

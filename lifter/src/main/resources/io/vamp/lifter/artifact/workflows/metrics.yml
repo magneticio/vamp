@@ -2,5 +2,5 @@ name    : metrics
 breed   : metrics
 schedule: daemon
 environment_variables:
-  WORKFLOW_EXEUTION_PERIOD:  5
-  WORKFLOW_EXEUTION_TIMEOUT: 4
+  WORKFLOW_EXECUTION_PERIOD:  5
+  WORKFLOW_EXECUTION_TIMEOUT: 4

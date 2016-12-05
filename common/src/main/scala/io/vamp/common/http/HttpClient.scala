@@ -5,17 +5,13 @@ import java.util.Base64
 import java.util.concurrent.ExecutionException
 
 import akka.actor.ActorSystem
-import akka.http.javadsl.model.RequestEntity
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.HttpHeader.ParsingResult
 import akka.http.scaladsl.model._
-import akka.stream.scaladsl.{Sink, Source}
-import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
-import akka.util.{ByteString, Timeout}
+import akka.util.Timeout
+import com.ning.http.client.{AsyncCompletionHandler, Response}
 import com.typesafe.scalalogging.Logger
+import dispatch.Http
 import org.json4s._
 import org.json4s.native.JsonMethods._
-import org.json4s.native.Serialization
 import org.json4s.native.Serialization._
 import org.slf4j.LoggerFactory
 
@@ -29,9 +25,7 @@ object HttpClient {
 
   val acceptEncodingIdentity: (String, String) = "accept-encoding" → "identity"
 
-  val jsonHeaders: List[(String, String)] = List("Accept" → "application/json")
-
-  val jsonContentType = ContentTypes.`application/json`
+  val jsonHeaders: List[(String, String)] = List("Accept" → "application/json", "Content-Type" → "application/json")
 
   def basicAuthorization(user: String, password: String, headers: List[(String, String)] = jsonHeaders): List[(String, String)] = {
     if (!user.isEmpty && !password.isEmpty) {
@@ -48,52 +42,56 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, formats
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 
-  implicit val executionContext = system.dispatcher
+  private lazy val httpClient = Http.configure(_ setFollowRedirects true)
 
-  implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(system))
-
-  def get[A](url: String, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
-    http[A](HttpMethods.GET, url, None, headers, jsonContentType, logError)
+  def get[A](url: String, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
+    http[A](HttpMethods.GET, url, None, headers, logError)
   }
 
-  def post[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
-    http[A](HttpMethods.POST, url, body, headers, jsonContentType, logError)
+  def post[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
+    http[A](HttpMethods.POST, url, body, headers, logError)
   }
 
-  def put[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
-    http[A](HttpMethods.PUT, url, body, headers, jsonContentType, logError)
+  def put[A](url: String, body: Any, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A], formats: Formats = DefaultFormats): Future[A] = {
+    http[A](HttpMethods.PUT, url, body, headers, logError)
   }
 
-  def delete(url: String, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit executor: ExecutionContext) = {
-    http[Any](HttpMethods.DELETE, url, None, headers, jsonContentType, logError)
+  def delete(url: String, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext) = {
+    http[Any](HttpMethods.DELETE, url, None, headers, logError)
   }
 
-  def http[A](method: HttpMethod, uri: String, body: Any, headers: List[(String, String)] = jsonHeaders, contentType: ContentType = jsonContentType, logError: Boolean = true)(implicit mf: scala.reflect.Manifest[A]): Future[A] = {
-    httpWithEntity[A](method, uri, bodyAsString(body).map(some ⇒ HttpEntity.Strict(contentType, ByteString(some))), headers, logError)
-  }
-
-  def httpWithEntity[A](method: HttpMethod, uri: String, body: Option[RequestEntity], headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit mf: scala.reflect.Manifest[A]): Future[A] = {
-
-    val requestLog = s"[${method.toString} $uri]"
-
-    val requestUri = Uri(uri)
-
-    val requestHeaders = headers.map { header ⇒ HttpHeader.parse(header._1, header._2) } collect {
-      case ParsingResult.Ok(h, _) ⇒ h
-    }
-
-    val request = HttpRequest(uri = requestUri.toRelative, method = method, headers = requestHeaders)
-
-    val requestWithEntity = body match {
-      case Some(entity) ⇒
-        logger.trace(s"req $requestLog - $entity")
-        request.withEntity(entity)
+  def http[A](method: HttpMethod, uri: String, body: Any, headers: List[(String, String)] = jsonHeaders, logError: Boolean = true)(implicit executor: ExecutionContext, mf: scala.reflect.Manifest[A]): Future[A] = {
+    val requestLog = s"[${method.value} $uri]"
+    val requestWithUrl = dispatch.url(uri).setMethod(method.value)
+    val requestWithHeaders = headers.foldLeft(requestWithUrl)((http, header) ⇒ http.setHeader(header._1, header._2))
+    val requestWithBody = bodyAsString(body) match {
+      case Some(some) ⇒
+        logger.trace(s"req $requestLog - $some")
+        requestWithHeaders.setBody(some.toString)
       case None ⇒
         logger.trace(s"req $requestLog")
-        request
+        requestWithHeaders
     }
 
-    def recoverWith[T]: PartialFunction[Throwable, T] = {
+    httpClient(requestWithBody.toRequest → new AsyncCompletionHandler[A] {
+      def onCompleted(response: Response) = response.getStatusCode match {
+        case status if status / 100 == 2 && (classTag[A].runtimeClass == classOf[Nothing] || classTag[A].runtimeClass == classOf[String]) ⇒
+          val body = response.getResponseBody
+          logger.trace(s"rsp $requestLog - $body")
+          body.asInstanceOf[A]
+
+        case status if status / 100 == 2 ⇒
+          val json = dispatch.as.json4s.Json(response)
+          Try(logger.trace(s"rsp $requestLog - ${compact(render(json))}"))
+          json.extract[A](formats, mf)
+
+        case status ⇒
+          val message = s"rsp $requestLog - unexpected status code: $status"
+          if (logError) logger.error(message)
+          logger.trace(s"$message, for response: ${response.getResponseBody}")
+          throw HttpClientException(Some(status), response.getResponseBody)
+      }
+    }).recover {
       case exception: HttpClientException ⇒ throw exception
       case exception: ExecutionException if exception.getCause != null && exception.getCause.getClass == classOf[HttpClientException] ⇒ throw exception.getCause
       case exception ⇒
@@ -106,40 +104,6 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, formats
 
         throw HttpClientException(None, exception.getMessage).initCause(if (exception.getCause != null) exception.getCause else exception)
     }
-
-    def decode(entity: ResponseEntity): Future[String] = entity.toStrict(timeout.duration).map(_.data.decodeString("UTF-8"))
-
-    Source.single(requestWithEntity)
-      .via(Http().outgoingConnection(requestUri.authority.host.address, requestUri.authority.port))
-      .recover(recoverWith)
-      .mapAsync(1)({
-        case HttpResponse(status, _, entity, _) ⇒ status.intValue() match {
-
-          case code if code / 100 == 2 && (classTag[A].runtimeClass == classOf[Nothing] || classTag[A].runtimeClass == classOf[String]) ⇒
-            decode(entity).map { body ⇒
-              logger.trace(s"rsp $requestLog - $body")
-              body.asInstanceOf[A]
-            }
-
-          case code if code / 100 == 2 ⇒
-            decode(entity).map({ body ⇒
-              val json = Try(parse(StringInput(body), useBigDecimalForDouble = true)).getOrElse(JString(body))
-              Try(logger.trace(s"rsp $requestLog - ${Serialization.writePretty(json)}"))
-              json.extract[A](formats, mf)
-            })
-
-          case code ⇒
-            decode(entity).map { body ⇒
-              val message = s"rsp $requestLog - unexpected status code: $code"
-              if (logError) logger.error(message)
-              logger.trace(s"$message, for response: $body")
-              throw HttpClientException(Some(code), body)
-            }
-        }
-
-        case other: AnyRef ⇒ throw new RuntimeException(other.toString)
-
-      }).runWith(Sink.head)
   }
 
   private def bodyAsString(body: Any)(implicit formats: Formats): Option[String] = body match {

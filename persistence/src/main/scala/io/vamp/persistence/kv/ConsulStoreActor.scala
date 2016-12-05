@@ -2,7 +2,6 @@ package io.vamp.persistence.kv
 
 import java.util.Base64
 
-import akka.http.scaladsl.model.ContentTypes
 import io.vamp.common.config.Config
 
 import scala.concurrent.Future
@@ -12,7 +11,7 @@ class ConsulStoreActor extends KeyValueStoreActor {
   private val url = Config.string("vamp.persistence.key-value-store.consul.url")
 
   override protected def info(): Future[Any] = httpClient.get[Any](s"$url/v1/agent/self") map { consul ⇒
-    Map("type" -> "consul", "consul" -> consul)
+    Map("type" → "consul", "consul" → consul)
   }
 
   override protected def all(path: List[String]): Future[List[String]] = {
@@ -31,7 +30,7 @@ class ConsulStoreActor extends KeyValueStoreActor {
 
   override protected def set(path: List[String], data: Option[String]): Future[Any] = data match {
     case None        ⇒ httpClient.delete(urlOf(path), logError = false)
-    case Some(value) ⇒ httpClient.put[Any](urlOf(path), value, contentType = ContentTypes.`text/plain(UTF-8)`)
+    case Some(value) ⇒ httpClient.put[String](urlOf(path), value, List("Accept" → "application/json", "Content-Type" → "text/plain"))
   }
 
   private def urlOf(path: List[String], keys: Boolean = false) = {
