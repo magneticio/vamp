@@ -9,14 +9,16 @@ import io.vamp.common.akka._
 import io.vamp.common.config.Config
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerService }
+import io.vamp.model.artifact.DeploymentService.Status
 import io.vamp.model.artifact.DeploymentService.Status.Intention
 import io.vamp.model.artifact.DeploymentService.Status.Phase._
-import io.vamp.model.artifact.DeploymentService._
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification.{ DeploymentServiceError, OperationNotificationProvider }
-import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.persistence.db.{ ArtifactPaginationSupport, DevelopmentPersistenceMessages, PersistenceActor }
+
+import scala.concurrent.duration.FiniteDuration
 
 class DeploymentSynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
@@ -29,6 +31,9 @@ object DeploymentSynchronizationActor {
 
   case class Synchronize(deployment: Deployment)
 
+  val config = Config.config("vamp.operation.synchronization.timeout")
+  val deploymentTimeout = config.duration("ready-for-deployment")
+  val undeploymentTimeout = config.duration("ready-for-undeployment")
 }
 
 class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
@@ -44,15 +49,22 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   private def synchronize() = {
     implicit val timeout = PersistenceActor.timeout
     forAll(allArtifacts[Deployment], { deployments ⇒
-      val deploymentServices = deployments.filterNot(withError).map { deployment ⇒
-        DeploymentServices(deployment, deployment.clusters.flatMap(_.services))
+
+      val deploymentServices = deployments.map { deployment ⇒
+        val services = deployment.clusters.flatMap { cluster ⇒
+          cluster.services.collect {
+            case service if !withError(service) && !timedOut(deployment, cluster, service) ⇒ service
+          }
+        }
+        DeploymentServices(deployment, services)
       }
+
       actorFor[ContainerDriverActor] ! ContainerDriverActor.Get(deploymentServices)
+
     }: (List[Deployment]) ⇒ Unit)
   }
 
   private def synchronize(containerService: ContainerService): Unit = {
-
     def sendTo(actor: ActorRef) = actor ! SingleDeploymentSynchronizationActor.Synchronize(containerService)
 
     val name = s"deployment-synchronization-${containerService.deployment.lookupName}"
@@ -62,30 +74,24 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
     }
   }
 
-  private def withError(deployment: Deployment): Boolean = {
-    lazy val now = OffsetDateTime.now()
-    lazy val config = Config.config("vamp.operation.synchronization.timeout")
-    lazy val deploymentTimeout = config.duration("ready-for-deployment")
-    lazy val undeploymentTimeout = config.duration("ready-for-undeployment")
+  private def withError(service: DeploymentService): Boolean = service.status.phase.isInstanceOf[Failed]
 
-    def handleTimeout(service: DeploymentService) = {
-      val notification = DeploymentServiceError(deployment, service)
-      reportException(notification)
-      actorFor[PersistenceActor] ! PersistenceActor.Update(deployment.copy(clusters = deployment.clusters.map(cluster ⇒ cluster.copy(services = cluster.services.map({ s ⇒
-        if (s.breed.name == service.breed.name) {
-          s.copy(status = Status(s.status.intention, Failed(notification)))
-        }
-        else s
-      })))))
-      true
-    }
+  private def timedOut(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Boolean = {
 
-    deployment.clusters.flatMap(_.services).exists { service ⇒
-      service.status.intention match {
-        case Intention.Deployment   ⇒ if (!service.status.isDone && now.minus(deploymentTimeout.toSeconds, ChronoUnit.SECONDS).isAfter(service.status.since)) handleTimeout(service) else false
-        case Intention.Undeployment ⇒ if (!service.status.isDone && now.minus(undeploymentTimeout.toSeconds, ChronoUnit.SECONDS).isAfter(service.status.since)) handleTimeout(service) else false
-        case _                      ⇒ service.status.phase.isInstanceOf[Failed]
+    def checkTimeout(duration: FiniteDuration) = {
+      val timed = duration.toNanos != 0 && OffsetDateTime.now().minus(duration.toSeconds, ChronoUnit.SECONDS).isAfter(service.status.since)
+      if (timed) {
+        val notification = DeploymentServiceError(deployment, service)
+        reportException(notification)
+        actorFor[PersistenceActor] ! DevelopmentPersistenceMessages.UpdateDeploymentServiceStatus(deployment, cluster, service, Status(service.status.intention, Failed(notification)))
       }
+      timed
     }
+
+    !service.status.isDone && (service.status.intention match {
+      case Intention.Deployment   ⇒ checkTimeout(deploymentTimeout)
+      case Intention.Undeployment ⇒ checkTimeout(undeploymentTimeout)
+      case _                      ⇒ false
+    })
   }
 }
