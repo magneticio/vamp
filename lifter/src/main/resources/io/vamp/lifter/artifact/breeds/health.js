@@ -1,17 +1,17 @@
 'use strict';
 
-var _ = require('highland');
-var vamp = require('vamp-node-client');
+let _ = require('highland');
+let vamp = require('vamp-node-client');
 
-var api = new vamp.Api();
-var metrics = new vamp.Metrics(api);
+let api = new vamp.Api();
+let metrics = new vamp.ElasticsearchMetrics(api);
 
-var window = 30; // seconds
+let window = 30; // seconds
 
 function health(lookupName, tags) {
-  var errorCode = 500;
-  var term = {ft: lookupName};
-  var range = {ST: {gte: errorCode}};
+  let errorCode = 500;
+  let term = {ft: lookupName};
+  let range = {ST: {gte: errorCode}};
 
   return metrics.count(term, range, window).map(function (total) {
     return total > 0 ? 0 : 1;
@@ -25,7 +25,7 @@ function publish(tags, health) {
   api.event(tags, health, 'health');
 }
 
-var collectHealth = function (x1, x2) {
+let collectHealth = function (x1, x2) {
   return x1 * x2;
 };
 

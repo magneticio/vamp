@@ -1,12 +1,12 @@
 'use strict';
 
-var _ = require('highland');
-var vamp = require('vamp-node-client');
+let _ = require('highland');
+let vamp = require('vamp-node-client');
 
-var api = new vamp.Api();
-var metrics = new vamp.Metrics(api);
+let api = new vamp.Api();
+let metrics = new vamp.ElasticsearchMetrics(api);
 
-var window = 30; // seconds
+let window = 30; // seconds
 
 function publish(tags, metrics) {
   api.log('metrics: [' + JSON.stringify(tags) + '] - ' + metrics);
