@@ -1,4 +1,4 @@
-
+UnsupportedPulseDriverError             : "Unsupported pulse driver: {name}."
 UnsupportedPulseRequest                 : "Unsupported pulse request."
 PulseResponseError                      : "Pulse response error."
 
