@@ -5,18 +5,18 @@ import java.time.format.DateTimeFormatter
 
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
-import io.vamp.common.http.{ OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope }
-import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
+import io.vamp.common.http.{OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope}
+import io.vamp.common.json.{OffsetDateTimeSerializer, SerializationFormat}
 import io.vamp.common.notification.Notification
-import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
+import io.vamp.common.vitals.{InfoRequest, StatsRequest}
 import io.vamp.model.event.Aggregator.AggregatorType
 import io.vamp.model.event._
 import io.vamp.model.validator.EventValidator
-import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
+import io.vamp.pulse.Percolator.{RegisterPercolator, UnregisterPercolator}
 import io.vamp.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
-import org.json4s.{ DefaultFormats, Extraction }
+import org.json4s.{DefaultFormats, Extraction}
 
 import scala.concurrent.Future
 
@@ -38,7 +38,7 @@ object PulseActor {
 
   val indexName = config.string("elasticsearch.index.name")
 
-  val indexTimeFormat: Map[String, String] = config.entries("elasticsearch.index.time-format").map { case (key, value) ⇒ key -> value.toString }
+  val indexTimeFormat: Map[String, String] = config.entries("elasticsearch.index.time-format").map { case (key, value) ⇒ key → value.toString }
 
   trait PulseMessage
 
@@ -76,7 +76,7 @@ class PulseActor extends PulseStats with PulseEvent with PulseFailureNotifier wi
     case any                                     ⇒ unsupported(UnsupportedPulseRequest(any))
   }
 
-  private def info = es.health map { health ⇒ Map[String, Any]("elasticsearch" -> health) }
+  private def info = es.health map { health ⇒ Map[String, Any]("type" → "elasticsearch", "elasticsearch" → health) }
 
   private def publish(publishEventValue: Boolean)(event: Event) = {
     implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
@@ -84,9 +84,9 @@ class PulseActor extends PulseStats with PulseEvent with PulseFailureNotifier wi
     log.debug(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
 
     val attachment = (publishEventValue, event.value) match {
-      case (true, str: String) ⇒ Map(typeName -> str)
-      case (true, any)         ⇒ Map("value" -> write(any)(DefaultFormats), typeName -> (if (typeName == Event.defaultType) "" else any))
-      case (false, _)          ⇒ Map("value" -> "")
+      case (true, str: String) ⇒ Map(typeName → str)
+      case (true, any)         ⇒ Map("value" → write(any)(DefaultFormats), typeName → (if (typeName == Event.defaultType) "" else any))
+      case (false, _)          ⇒ Map("value" → "")
     }
 
     val data = Extraction.decompose(event) merge Extraction.decompose(attachment)
@@ -127,40 +127,34 @@ class PulseActor extends PulseStats with PulseEvent with PulseFailureNotifier wi
 
   private def constructSearch(eventQuery: EventQuery, page: Int, perPage: Int): Map[Any, Any] = {
     constructQuery(eventQuery) +
-      ("from" -> (page - 1) * perPage) +
-      ("size" -> perPage) +
-      ("sort" -> Map("timestamp" -> Map("order" -> "desc")))
+      ("from" → ((page - 1) * perPage)) +
+      ("size" → perPage) +
+      ("sort" → Map("timestamp" → Map("order" → "desc")))
   }
 
   private def constructQuery(eventQuery: EventQuery): Map[Any, Any] = {
-    Map("query" ->
-      Map("filtered" ->
+    Map("query" →
+      Map("filtered" →
         Map(
-          "query" -> Map("match_all" -> Map()),
-          "filter" -> Map("bool" ->
-            Map("must" -> List(constructTagQuery(eventQuery.tags), constructTimeRange(eventQuery.timestamp)).filter(_.isDefined).map(_.get))
-          )
-        )
-      )
-    )
+          "query" → Map("match_all" → Map()),
+          "filter" → Map("bool" →
+            Map("must" → List(constructTagQuery(eventQuery.tags), constructTimeRange(eventQuery.timestamp)).filter(_.isDefined).map(_.get)))
+        )))
   }
 
-  private def constructTagQuery(tags: Set[String]): Option[List[Map[String, Any]]] = tags.isEmpty match {
-    case true ⇒ None
-    case _ ⇒ Some(
-      (for (tag ← tags) yield Map("term" -> Map("tags" -> tag))).toList
-    )
+  private def constructTagQuery(tags: Set[String]): Option[List[Map[String, Any]]] = {
+    if (tags.nonEmpty) Option((for (tag ← tags) yield Map("term" → Map("tags" → tag))).toList) else None
   }
 
   private def constructTimeRange(timeRange: Option[TimeRange]): Option[Map[Any, Any]] = timeRange match {
     case Some(tr) ⇒
       val query = Map(
-        "lt" -> tr.lt,
-        "lte" -> tr.lte,
-        "gt" -> tr.gt,
-        "gte" -> tr.gte
-      ).filter(_._2.isDefined).map { case (k, v) ⇒ k -> v.get }
-      if (query.isEmpty) None else Some(Map("range" -> Map("timestamp" -> query)))
+        "lt" → tr.lt,
+        "lte" → tr.lte,
+        "gt" → tr.gt,
+        "gte" → tr.gte
+      ).filter(_._2.isDefined).map { case (k, v) ⇒ k → v.get }
+      if (query.isEmpty) None else Some(Map("range" → Map("timestamp" → query)))
 
     case _ ⇒ None
   }
@@ -179,8 +173,8 @@ class PulseActor extends PulseStats with PulseEvent with PulseFailureNotifier wi
     }
 
     constructQuery(eventQuery) +
-      ("size" -> 0) +
-      ("aggs" -> Map("aggregation" -> Map(s"$aggregation" -> Map("field" -> field.getOrElse("value")))))
+      ("size" → 0) +
+      ("aggs" → Map("aggregation" → Map(s"$aggregation" → Map("field" → field.getOrElse("value")))))
   }
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = {
@@ -197,6 +191,6 @@ trait PulseEvent {
     val base = schema.toLowerCase
     val format = indexTimeFormat.getOrElse(base, indexTimeFormat.getOrElse(Event.defaultType, "YYYY-MM-dd"))
     val time = OffsetDateTime.now().format(DateTimeFormatter.ofPattern(format))
-    s"$indexName-$base-$time" -> base
+    s"$indexName-$base-$time" → base
   }
 }
