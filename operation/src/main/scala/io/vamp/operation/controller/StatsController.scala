@@ -31,9 +31,9 @@ trait StatsController extends DataRetrieval with JmxVitalsProvider {
     retrieve(actors, actor ⇒ actorFor(actor) ? StatsRequest, dataRetrievalTimeout) map { result ⇒
       StatsMessage(
         jvmVitals(),
-        result.get(classOf[KamonMetricsActor].asInstanceOf[Class[Actor]]),
-        result.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
-        result.get(classOf[PulseActor].asInstanceOf[Class[Actor]])
+        result.data.get(classOf[KamonMetricsActor].asInstanceOf[Class[Actor]]),
+        result.data.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
+        result.data.get(classOf[PulseActor].asInstanceOf[Class[Actor]])
       )
     }
   }

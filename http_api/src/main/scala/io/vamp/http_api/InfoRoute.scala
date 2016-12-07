@@ -1,6 +1,6 @@
 package io.vamp.http_api
 
-import akka.http.scaladsl.model.StatusCodes.OK
+import akka.http.scaladsl.model.StatusCodes.{ InternalServerError, OK }
 import akka.util.Timeout
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpApiDirectives
@@ -15,8 +15,8 @@ trait InfoRoute extends InfoController with ExecutionContextProvider {
     pathEndOrSingleSlash {
       get {
         parameterMultiMap { parameters ⇒
-          onSuccess(infoMessage(parameters.getOrElse("on", Nil).toSet)) { result ⇒
-            respondWith(OK, result)
+          onSuccess(infoMessage(parameters.getOrElse("on", Nil).toSet)) {
+            case (result, succeeded) ⇒ respondWith(if (succeeded) OK else InternalServerError, result)
           }
         }
       }

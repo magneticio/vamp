@@ -18,17 +18,18 @@ import io.vamp.workflow_driver.WorkflowDriverActor
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-case class InfoMessage(message: String,
-                       version: String,
-                       uuid: String,
-                       runningSince: String,
-                       jvm: Option[JvmVitals],
-                       persistence: Option[Any],
-                       keyValue: Option[Any],
-                       pulse: Option[Any],
-                       gatewayDriver: Option[Any],
-                       containerDriver: Option[Any],
-                       workflowDriver: Option[Any]) extends JvmInfoMessage
+case class InfoMessage(
+  message: String,
+  version: String,
+  uuid: String,
+  runningSince: String,
+  jvm: Option[JvmVitals],
+  persistence: Option[Any],
+  keyValue: Option[Any],
+  pulse: Option[Any],
+  gatewayDriver: Option[Any],
+  containerDriver: Option[Any],
+  workflowDriver: Option[Any]) extends JvmInfoMessage
 
 trait InfoController extends DataRetrieval with JmxVitalsProvider {
   this: ExecutionContextProvider with ActorSystemProvider ⇒
@@ -39,21 +40,21 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
 
   private val dataRetrievalTimeout = Config.timeout("vamp.info.timeout")
 
-  def infoMessage(on: Set[String]): Future[JvmInfoMessage] = {
-
+  def infoMessage(on: Set[String]): Future[(InfoMessage, Boolean)] = {
     retrieve(actors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout) map { result ⇒
-      InfoMessage(infoMessage,
+      InfoMessage(
+        infoMessage,
         Model.version,
         Model.uuid,
         Model.runningSince,
         if (on.isEmpty || on.contains("jvm")) Option(jvmVitals()) else None,
-        result.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
-        result.get(classOf[KeyValueStoreActor].asInstanceOf[Class[Actor]]),
-        result.get(classOf[PulseActor].asInstanceOf[Class[Actor]]),
-        result.get(classOf[GatewayDriverActor].asInstanceOf[Class[Actor]]),
-        result.get(classOf[ContainerDriverActor].asInstanceOf[Class[Actor]]),
-        result.get(classOf[WorkflowDriverActor].asInstanceOf[Class[Actor]])
-      )
+        result.data.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
+        result.data.get(classOf[KeyValueStoreActor].asInstanceOf[Class[Actor]]),
+        result.data.get(classOf[PulseActor].asInstanceOf[Class[Actor]]),
+        result.data.get(classOf[GatewayDriverActor].asInstanceOf[Class[Actor]]),
+        result.data.get(classOf[ContainerDriverActor].asInstanceOf[Class[Actor]]),
+        result.data.get(classOf[WorkflowDriverActor].asInstanceOf[Class[Actor]])
+      ) → result.succeeded
     }
   }
 
