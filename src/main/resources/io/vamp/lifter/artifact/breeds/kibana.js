@@ -1,25 +1,25 @@
 'use strict';
 
-var _ = require('highland');
-var http = require('request-promise');
-var vamp = require('vamp-node-client');
+let _ = require('highland');
+let http = require('request-promise');
+let vamp = require('vamp-node-client');
 
-var api = new vamp.Api();
+let api = new vamp.Api();
 
-var index = 'logstash-*';
+let index = 'logstash-*';
 
-var httpStatus = function (url) {
+let httpStatus = function (url) {
   return _(http(url).promise().catch(function (response) {
     return response.statusCode != 404;
   }));
 };
 
-var createKibanaIndex = function (elasticsearch) {
+let createKibanaIndex = function (elasticsearch) {
   return _(http(elasticsearch + '/.kibana/config/_search').promise().then(JSON.parse)).flatMap(function (response) {
-    var kibana;
+    let kibana;
 
-    for (var i = 0; i < response.hits.hits.length; i++) {
-      var hit = response.hits.hits[i];
+    for (let i = 0; i < response.hits.hits.length; i++) {
+      let hit = response.hits.hits[i];
       if (hit._index === '.kibana') {
         kibana = hit;
         break;
@@ -50,7 +50,7 @@ var createKibanaIndex = function (elasticsearch) {
   });
 };
 
-var updateKibanaGateways = function (elasticsearch) {
+let updateKibanaGateways = function (elasticsearch) {
   return api.gateways().flatMap(function (gateway) {
     return httpStatus(elasticsearch + '/.kibana/search/' + gateway.lookup_name).flatMap(function (exists) {
       return exists ? _([true]) : _(http({
@@ -113,7 +113,7 @@ var updateKibanaGateways = function (elasticsearch) {
 };
 
 api.config().flatMap(function (config) {
-  var elasticsearch = config['vamp.pulse.elasticsearch.url'];
+  let elasticsearch = config['vamp.pulse.elasticsearch.url'];
   return createKibanaIndex(elasticsearch).flatMap(function (exists) {
     return exists ? updateKibanaGateways(elasticsearch) : _([true]);
   });
