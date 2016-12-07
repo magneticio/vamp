@@ -78,10 +78,7 @@ trait BlueprintTraitValidator extends TraitResolver {
           blueprint.clusters.find(_.name == cluster) match {
             case None ⇒ fail(`trait`)
             case Some(c) ⇒
-              if (c.services.exists(_.breed match {
-                case _: DefaultBreed ⇒ true
-                case _               ⇒ false
-              }) && !c.services.exists({
+              if (c.services.forall(_.breed.isInstanceOf[DefaultBreed]) && !c.services.exists({
                 service ⇒
                   service.breed match {
                     case breed: DefaultBreed ⇒ breed.traitsFor(group).exists(_.name.toString == name)

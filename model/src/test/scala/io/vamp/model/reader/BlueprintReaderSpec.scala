@@ -48,7 +48,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "read the reference sla with escalations" in {
     BlueprintReader.read(res("blueprint/blueprint5.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil)), Nil, Some(SlaReference("strong-mountain", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious")))))))))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil)), Nil, Some(SlaReference("strong-mountain", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" → "furious")))))))))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -57,7 +57,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "read the anonymous sla" in {
     BlueprintReader.read(res("blueprint/blueprint6.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil)), Nil, Some(GenericSla("", "vital-cloud", Nil, Map("reborn" -> "red-swallow")))))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil)), Nil, Some(GenericSla("", "vital-cloud", Nil, Map("reborn" → "red-swallow")))))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -66,7 +66,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "read the anonymous sla with escalations" in {
     BlueprintReader.read(res("blueprint/blueprint7.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil)), Nil, Some(GenericSla("", "vital-cloud", List(EscalationReference("red-flag")), Map("reborn" -> "red-swallow")))))),
+      'clusters(List(Cluster("notorious", List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil)), Nil, Some(GenericSla("", "vital-cloud", List(EscalationReference("red-flag")), Map("reborn" → "red-swallow")))))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -192,7 +192,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "expand the more complex blueprint" in {
     BlueprintReader.read(res("blueprint/blueprint21.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Nil, Some(DefaultScale("", Quantity(0.2), MegaByte(120), 2)), Nil), Service(BreedReference("remote-venus"), Nil, Some(ScaleReference("worthy")), Nil)), List(Gateway("", Port("", None, None), None, None, Nil, List(DefaultRoute("", "solid-barbershop", Some(Percentage(100)), Option(DefaultCondition("", "ua = android")), None, Nil, None)))), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" -> "furious"))))), Map("reborn" -> "red-swallow")))), Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), Nil, Nil, Nil, Nil, Map()), Nil, None, Nil)), Nil, None), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), Nil, Nil, Nil, Nil, Map()), Nil, None, Nil)), Nil, Some(SlaReference("fish-steamy", Nil))), Cluster("omega", List(Service(BreedReference("scary-lion"), Nil, None, Nil)), Nil, None))),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("solid-barbershop"), Nil, Some(DefaultScale("", Quantity(0.2), MegaByte(120), 2)), Nil), Service(BreedReference("remote-venus"), Nil, Some(ScaleReference("worthy")), Nil)), List(Gateway("", Port("", None, None), None, None, Nil, List(DefaultRoute("", "solid-barbershop", Some(Percentage(100)), Option(DefaultCondition("", "ua = android")), None, Nil, None)))), Some(GenericSla("", "vital-cloud", List(ToAllEscalation("", List(EscalationReference("red-flag"), EscalationReference("hideous-screaming"), GenericEscalation("", "cloud-beam", Map("sound" → "furious"))))), Map("reborn" → "red-swallow")))), Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("anaconda"), Nil, Nil, Nil, Nil, Map()), Nil, None, Nil)), Nil, None), Cluster("needless", List(Service(DefaultBreed("hideous-canal", Deployable("old/crystal"), Nil, Nil, Nil, Nil, Map()), Nil, None, Nil)), Nil, Some(SlaReference("fish-steamy", Nil))), Cluster("omega", List(Service(BreedReference("scary-lion"), Nil, None, Nil)), Nil, None))),
       'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, None, Nil, List(DefaultRoute("", "supersonic/port", None, None, None, Nil, None))))),
       'environmentVariables(List(EnvironmentVariable("omega.environment_variables.aspect", None, Some("thorium"))))
     )
@@ -307,7 +307,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "validate breed cross dependencies - inline and valid" in {
     BlueprintReader.read(res("blueprint/blueprint34.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("solid/barbershop"), Nil, Nil, Nil, Nil, Map("es" -> BreedReference("elastic-search"))), Nil, None, Nil)), Nil, None), Cluster("notorious", List(Service(BreedReference("elastic-search"), Nil, None, Nil)), Nil, None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("solid/barbershop"), Nil, Nil, Nil, Nil, Map("es" → BreedReference("elastic-search"))), Nil, None, Nil)), Nil, None), Cluster("notorious", List(Service(BreedReference("elastic-search"), Nil, None, Nil)), Nil, None))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -317,8 +317,8 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[UnresolvedBreedDependencyError]({
       BlueprintReader.read(res("blueprint/blueprint35.yml"))
     }) should have(
-      'breed(DefaultBreed("solid-barbershop", Deployable("solid/barbershop"), Nil, Nil, Nil, Nil, Map("es" -> BreedReference("elastic-search")))),
-      'dependency("es" -> BreedReference("elastic-search"))
+      'breed(DefaultBreed("solid-barbershop", Deployable("solid/barbershop"), Nil, Nil, Nil, Nil, Map("es" → BreedReference("elastic-search")))),
+      'dependency("es" → BreedReference("elastic-search"))
     )
   }
 
@@ -389,7 +389,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[RecursiveDependenciesError]({
       BlueprintReader.read(res("blueprint/blueprint43.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), Nil, Nil, Nil, Nil, Map("db" -> BreedReference("monarch"))))
+      'breed(DefaultBreed("monarch", Deployable("magneticio/monarch:latest"), Nil, Nil, Nil, Nil, Map("db" → BreedReference("monarch"))))
     )
   }
 
@@ -397,7 +397,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[RecursiveDependenciesError]({
       BlueprintReader.read(res("blueprint/blueprint44.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch2", Deployable("magneticio/monarch2:latest"), Nil, Nil, Nil, Nil, Map("db" -> BreedReference("monarch1"))))
+      'breed(DefaultBreed("monarch2", Deployable("magneticio/monarch2:latest"), Nil, Nil, Nil, Nil, Map("db" → BreedReference("monarch1"))))
     )
   }
 
@@ -422,7 +422,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "parse dialects" in {
     BlueprintReader.read(res("blueprint/blueprint47.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), Nil, None, Nil, Map(Dialect.Marathon -> Map("a" -> "b"), Dialect.Docker -> Map("c" -> "d"))), Service(BreedReference("sava2"), Nil, None, Nil, Map())), Nil, None, Map(Dialect.Marathon -> Map("r" -> "t"), Dialect.Docker -> Map("q" -> "w", "o" -> "p"))), Cluster("viper", List(Service(BreedReference("sava3"), Nil, None, Nil, Map()), Service(BreedReference("sava4"), Nil, None, Nil, Map())), Nil, None, Map(Dialect.Marathon -> Map("u" -> "i"))))),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), Nil, None, Nil, Map(Dialect.Marathon → Map("a" → "b"), Dialect.Docker → Map("c" → "d"))), Service(BreedReference("sava2"), Nil, None, Nil, Map())), Nil, None, Map(Dialect.Marathon → Map("r" → "t"), Dialect.Docker → Map("q" → "w", "o" → "p"))), Cluster("viper", List(Service(BreedReference("sava3"), Nil, None, Nil, Map()), Service(BreedReference("sava4"), Nil, None, Nil, Map())), Nil, None, Map(Dialect.Marathon → Map("u" → "i"))))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -431,7 +431,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "expand and parse dialects" in {
     BlueprintReader.read(res("blueprint/blueprint48.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), Nil, None, Nil, Map(Dialect.Marathon -> Map("a" -> "b"), Dialect.Docker -> Map("c" -> "d"))), Service(BreedReference("sava2"), Nil, None, Nil, Map())), Nil, None, Map(Dialect.Marathon -> Map("r" -> "t"), Dialect.Docker -> Map("q" -> "w", "o" -> "p"))), Cluster("viper", List(Service(BreedReference("sava3"), Nil, None, Nil, Map()), Service(BreedReference("sava4"), Nil, None, Nil, Map())), Nil, None, Map(Dialect.Marathon -> Map("u" -> "i"))))),
+      'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava1"), Nil, None, Nil, Map(Dialect.Marathon → Map("a" → "b"), Dialect.Docker → Map("c" → "d"))), Service(BreedReference("sava2"), Nil, None, Nil, Map())), Nil, None, Map(Dialect.Marathon → Map("r" → "t"), Dialect.Docker → Map("q" → "w", "o" → "p"))), Cluster("viper", List(Service(BreedReference("sava3"), Nil, None, Nil, Map()), Service(BreedReference("sava4"), Nil, None, Nil, Map())), Nil, None, Map(Dialect.Marathon → Map("u" → "i"))))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -507,7 +507,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[UnexpectedElement]({
       BlueprintReader.read(res("blueprint/blueprint55.yml"))
     }) should have(
-      'element(Map("clusters" -> Map("supersonic" -> Map("services" -> List(Map("dialects" -> Map("google" -> Map("e" -> "f")))), "dialects" -> Map("google" -> Map("w" -> "e", "e" -> "r"))))))
+      'element(Map("clusters" → Map("supersonic" → Map("services" → List(Map("dialects" → Map("google" → Map("e" → "f")))), "dialects" → Map("google" → Map("w" → "e", "e" → "r"))))))
     )
   }
 
@@ -515,7 +515,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[UnexpectedElement]({
       BlueprintReader.read(res("blueprint/blueprint56.yml"))
     }) should have(
-      'element(Map("clusters" -> Map("sava" -> Map("services" -> List(Map("scala" -> Map("cpu" -> 0.2, "memory" -> 128, "instances" -> 1)))))))
+      'element(Map("clusters" → Map("sava" → Map("services" → List(Map("scala" → Map("cpu" → 0.2, "memory" → 128, "instances" → 1)))))))
     )
   }
 
@@ -621,7 +621,8 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     BlueprintReader.read(res("blueprint/blueprint69.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", List(Service(DefaultBreed("nocturnal-viper", Deployable("container/docker", "anaconda"), List(Port("web", None, Some("9050")), Port("admin", None, Some("9060"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Map())), List(Gateway("", Port("web", None, None), None, Some(Gateway.Sticky.Route), Nil, Nil)), None, Map()))),
-      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, None, Nil, List(DefaultRoute("", GatewayPath("notorious/web", List("notorious", "web")), None, None, None, Nil, None))), Gateway("", Port("8081", None, Some("8081")), None, Some(Gateway.Sticky.Route), Nil, List(DefaultRoute("", GatewayPath("notorious/admin", List("notorious", "admin")), None, None, None, Nil, None))))))
+      'gateways(List(Gateway("", Port("8080", None, Some("8080")), None, None, Nil, List(DefaultRoute("", GatewayPath("notorious/web", List("notorious", "web")), None, None, None, Nil, None))), Gateway("", Port("8081", None, Some("8081")), None, Some(Gateway.Sticky.Route), Nil, List(DefaultRoute("", GatewayPath("notorious/admin", List("notorious", "admin")), None, None, None, Nil, None)))))
+    )
   }
 
   it should "not allow sticky tcp gateway" in {
@@ -669,7 +670,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[UnexpectedElement]({
       BlueprintReader.read(res("blueprint/blueprint75.yml"))
     }) should have(
-      'element(Map("web" -> "port"))
+      'element(Map("web" → "port"))
     )
   }
 
@@ -739,6 +740,22 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     BlueprintReader.read(res("blueprint/blueprint84.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("supersonic", List(Service(BreedReference("sava"), Nil, None, Nil)), List(Gateway("", Port("", None, None), None, None, Nil, List(DefaultRoute("", "sava", None, None, None, Nil, None)))), None)))
+    )
+  }
+
+  it should "not fail on non existing port if any breed reference" in {
+    BlueprintReader.read(res("blueprint/blueprint85.yml")) should have(
+      'name("nomadic-frostbite"),
+      'gateways(List(Gateway("", Port("8080", None, Some("8080"), 8080, Port.Type.Http), None, None, Nil, List(DefaultRoute("", GatewayPath("supersonic/http", List("supersonic", "http")), None, None, None, Nil, None, Nil))))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("container/docker", "vamp/solid-barbershop"), List(Port("port", None, Some("80/http"), 80, Port.Type.Http)), Nil, Nil, Nil, Map()), Nil, None, Nil, Map()), Service(BreedReference("barbershop"), Nil, None, Nil, Map())), Nil, None, Map())))
+    )
+  }
+
+  it should "not fail on non existing environment variables if any breed reference" in {
+    BlueprintReader.read(res("blueprint/blueprint86.yml")) should have(
+      'name("nomadic-frostbite"),
+      'environmentVariables(List(EnvironmentVariable("supersonic.environment_variables.http", None, Some("80"), None))),
+      'clusters(List(Cluster("supersonic", List(Service(DefaultBreed("solid-barbershop", Deployable("container/docker", "vamp/solid-barbershop"), Nil, List(EnvironmentVariable("port", None, Some("80/http"), None)), Nil, Nil, Map()), Nil, None, Nil, Map()), Service(BreedReference("barbershop"), Nil, None, Nil, Map())), Nil, None, Map())))
     )
   }
 }

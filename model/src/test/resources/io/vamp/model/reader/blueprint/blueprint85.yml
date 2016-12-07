@@ -1,0 +1,15 @@
+name: nomadic-frostbite
+
+gateways:
+  8080: supersonic/http
+
+clusters:
+  supersonic:
+    services:
+    - breed:
+        name: solid-barbershop
+        deployable: vamp/solid-barbershop
+        ports:
+          port: 80/http
+
+    - breed: barbershop
