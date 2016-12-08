@@ -50,7 +50,8 @@ class ArtifactInitializationActor extends ArtifactLoader with CommonSupportForAc
   override def preStart(): Unit = {
     try {
       context.system.scheduler.scheduleOnce(postpone, self, Load)
-    } catch {
+    }
+    catch {
       case t: Throwable ⇒ reportException(InternalServerError(t))
     }
   }
@@ -86,7 +87,8 @@ trait ArtifactLoader extends ArtifactApiController with DeploymentApiController 
         if (force) {
           log.info(s"Updating artifact: ${`type`}/$name")
           create(`type`, fileName, name, source)
-        } else
+        }
+        else
           log.info(s"Ignoring creation of artifact because it exists: ${`type`}/$name")
 
       case false ⇒
@@ -104,7 +106,7 @@ trait ArtifactLoader extends ArtifactApiController with DeploymentApiController 
 
   private def create(`type`: String, fileName: String, name: String, source: String) = {
     if (`type` == "breeds" && fileName.endsWith(".js"))
-      actorFor[PersistenceActor] ? PersistenceActor.Update(DefaultBreed(name, Deployable(WorkflowDeployable.`type`, source), Nil, Nil, Nil, Nil, Map()), Some(source))
+      actorFor[PersistenceActor] ? PersistenceActor.Update(DefaultBreed(name, Deployable(WorkflowDeployable.javascript, source), Nil, Nil, Nil, Nil, Map()), Some(source))
     else if (`type` == "workflows")
       actorFor[PersistenceActor] ? PersistenceActor.Update(WorkflowReader.read(source), Some(source))
     else

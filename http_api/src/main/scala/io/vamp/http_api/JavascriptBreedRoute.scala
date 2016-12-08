@@ -39,7 +39,7 @@ trait JavascriptBreedRoute {
 
     val breed = DefaultBreed(
       name = name,
-      deployable = Deployable(WorkflowDeployable.`type`, source),
+      deployable = Deployable(WorkflowDeployable.javascript, source),
       ports = Nil,
       environmentVariables = Nil,
       constants = Nil,

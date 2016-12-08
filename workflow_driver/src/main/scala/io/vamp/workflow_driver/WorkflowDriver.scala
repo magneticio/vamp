@@ -3,17 +3,29 @@ package io.vamp.workflow_driver
 import akka.actor.{ ActorRef, ActorSystem }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.config.Config
-import io.vamp.container_driver.{ ContainerDriverActor, DeployableType }
+import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.persistence.db.PersistenceActor
 import io.vamp.persistence.kv.KeyValueStoreActor
+import io.vamp.workflow_driver.WorkflowDriver.config
 
 import scala.concurrent.Future
 
 case class WorkflowInstance(name: String)
 
-object WorkflowDeployable extends DeployableType("application/javascript")
+object WorkflowDeployable {
+
+  val javascript = "application/javascript"
+
+  private val deployables = config.config("workflow.deployables")
+
+  private lazy val javascriptDeployable = Deployable(deployables.string("application/javascript.type"), deployables.string("application/javascript.definition"))
+
+  def matches(some: Deployable): Boolean = some.`type` == javascript
+
+  def provide(some: Deployable): Deployable = javascriptDeployable
+}
 
 object WorkflowDriver {
 
@@ -33,8 +45,6 @@ trait WorkflowDriver {
   implicit def actorSystem: ActorSystem
 
   implicit val timeout = ContainerDriverActor.timeout
-
-  val defaultDeployable = Deployable(config.string("workflow.deployable.type"), config.string("workflow.deployable.definition"))
 
   val additionalEnvironmentVariables: List[EnvironmentVariable] = config.stringList("workflow.environment-variables").map { env ⇒
     val index = env.indexOf('=')
@@ -63,13 +73,15 @@ trait WorkflowDriver {
 
     val breed = workflow.breed.asInstanceOf[DefaultBreed]
 
-    val environmentVariables = (additionalEnvironmentVariables ++ List(environmentVariable("VAMP_URL", WorkflowDriver.vampUrl),
-      environmentVariable("VAMP_KEY_VALUE_STORE_PATH", KeyValueStoreActor.pathToString(WorkflowDriver.path(workflow)))) ++
-      breed.environmentVariables ++ workflow.environmentVariables).map(env ⇒ env.name -> env.copy(interpolated = env.value)).toMap.values.toList
+    val environmentVariables = (additionalEnvironmentVariables ++ List(
+      environmentVariable("VAMP_URL", WorkflowDriver.vampUrl),
+      environmentVariable("VAMP_KEY_VALUE_STORE_PATH", KeyValueStoreActor.pathToString(WorkflowDriver.path(workflow)))
+    ) ++
+      breed.environmentVariables ++ workflow.environmentVariables).map(env ⇒ env.name → env.copy(interpolated = env.value)).toMap.values.toList
     actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowEnvironmentVariables(workflow, environmentVariables)
 
     val deployable = breed.deployable match {
-      case d if WorkflowDeployable.matches(d) ⇒ defaultDeployable
+      case d if WorkflowDeployable.matches(d) ⇒ WorkflowDeployable.provide(d)
       case d                                  ⇒ d
     }
 
@@ -79,7 +91,7 @@ trait WorkflowDriver {
     val network = workflow.network.getOrElse(defaultNetwork)
     actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowNetwork(workflow, network)
 
-    val arguments = (defaultArguments ++ breed.arguments ++ workflow.arguments).map(arg ⇒ arg.key -> arg).toMap.values.toList
+    val arguments = (defaultArguments ++ breed.arguments ++ workflow.arguments).map(arg ⇒ arg.key → arg).toMap.values.toList
     actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowArguments(workflow, arguments)
 
     workflow.copy(
