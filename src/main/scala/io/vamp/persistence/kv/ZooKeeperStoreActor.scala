@@ -23,20 +23,20 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
   override protected def info(): Future[Any] = zooKeeperClient match {
     case Some(zk) ⇒ zkVersion(servers) map { version ⇒
       Map(
-        "type" -> "zookeeper",
-        "zookeeper" -> (Map("version" -> version) ++ (zk.underlying match {
+        "type" → "zookeeper",
+        "zookeeper" → (Map("version" → version) ++ (zk.underlying match {
           case Some(zookeeper) ⇒
             val state = zookeeper.getState
             Map(
-              "client" -> Map(
-                "servers" -> servers,
-                "state" -> state.toString,
-                "session" -> zookeeper.getSessionId,
-                "timeout" -> (if (state.isConnected) zookeeper.getSessionTimeout else "")
+              "client" → Map(
+                "servers" → servers,
+                "state" → state.toString,
+                "session" → zookeeper.getSessionId,
+                "timeout" → (if (state.isConnected) zookeeper.getSessionTimeout else "")
               )
             )
 
-          case _ ⇒ Map("error" -> "no connection")
+          case _ ⇒ Map("error" → "no connection")
         }))
       )
     }
@@ -46,13 +46,13 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
   override protected def all(path: List[String]): Future[List[String]] = zooKeeperClient match {
     case Some(zk) ⇒
 
-      def collect(path: List[String]): Future[List[String]] = {
+      def collect(path: List[String]): Future[List[(String, Boolean)]] = {
         zk.getChildren(pathToString(path)) recoverWith recoverRetrieval(Nil) flatMap {
           case response: ChildrenResponse ⇒ Future.sequence {
             response.children.map { child ⇒
               collect(path :+ child).map {
-                case children if children.isEmpty ⇒ child :: Nil
-                case children                     ⇒ child +: children.map(c ⇒ s"$child/$c")
+                case children if children.isEmpty ⇒ (child, true) :: Nil
+                case children                     ⇒ (child, false) +: children.map(c ⇒ (s"$child/${c._1}", c._2))
               }
             }
           }.map(_.flatten.toList)
@@ -60,7 +60,7 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
         }
       }
 
-      collect(path)
+      collect(path).map(_.filter(_._2).map(_._1))
 
     case None ⇒ Future.successful(Nil)
   }
