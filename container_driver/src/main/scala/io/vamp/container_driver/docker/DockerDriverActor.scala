@@ -84,7 +84,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
     Future(docker.listContainers().asScala).map { containers ⇒
 
-      val deployed = containers.flatMap(container ⇒ id(container, vampLabel).map(_ -> container)).toMap
+      val deployed = containers.flatMap(container ⇒ id(container, vampLabel).map(_ → container)).toMap
 
       deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).map {
         case (deployment, service) ⇒
@@ -176,11 +176,11 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
     val labels: MutableMap[String, String] = MutableMap()
     labels ++= this.labels(deployment, cluster, service)
-    labels += ("vamp" -> vampLabel)
-    labels += ("id" -> appId(deployment, service.breed))
+    labels += ("vamp" → vampLabel)
+    labels += ("id" → appId(deployment, service.breed))
 
     if (service.scale.isDefined)
-      labels += ("scale" -> write(service.scale))
+      labels += ("scale" → write(DockerServiceScale(service.scale.get)))
 
     if (service.dialects.contains(Dialect.Docker)) {
       service.dialects.get(Dialect.Docker).map { dialect ⇒
@@ -297,9 +297,9 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     })
 
     val labels: MutableMap[String, String] = MutableMap()
-    labels += ("vamp" -> vampWorkflowLabel)
-    labels += ("id" -> id)
-    labels += ("scale" -> write(DefaultScale("", scale.cpu, scale.memory, scale.instances)))
+    labels += ("vamp" → vampWorkflowLabel)
+    labels += ("id" → id)
+    labels += ("scale" → write(DockerServiceScale("", scale.instances, scale.cpu.value, scale.memory.value)))
 
     hostConfig.portBindings(portBindings).networkMode("bridge")
 
@@ -317,7 +317,6 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 }
 
 private[docker] object DockerServiceScale {
-
   def apply(scale: DefaultScale): DockerServiceScale = DockerServiceScale(scale.name, scale.instances, scale.cpu.value, scale.memory.value)
 }
 
