@@ -118,6 +118,7 @@ trait TypeOfArtifact {
     case t if classOf[WorkflowScale].isAssignableFrom(t) ⇒ "workflow-scale"
     case t if classOf[WorkflowNetwork].isAssignableFrom(t) ⇒ "workflow-network"
     case t if classOf[WorkflowArguments].isAssignableFrom(t) ⇒ "workflow-arguments"
+    case t if classOf[WorkflowEnvironmentVariables].isAssignableFrom(t) ⇒ "workflow-environment-variables"
     //
     case t if classOf[Gateway].isAssignableFrom(t) ⇒ "gateways"
     case t if classOf[Deployment].isAssignableFrom(t) ⇒ "deployments"

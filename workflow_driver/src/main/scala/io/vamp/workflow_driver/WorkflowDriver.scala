@@ -66,6 +66,7 @@ trait WorkflowDriver {
     val environmentVariables = (additionalEnvironmentVariables ++ List(environmentVariable("VAMP_URL", WorkflowDriver.vampUrl),
       environmentVariable("VAMP_KEY_VALUE_STORE_PATH", KeyValueStoreActor.pathToString(WorkflowDriver.path(workflow)))) ++
       breed.environmentVariables ++ workflow.environmentVariables).map(env ⇒ env.name -> env.copy(interpolated = env.value)).toMap.values.toList
+    actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowEnvironmentVariables(workflow, environmentVariables)
 
     val deployable = breed.deployable match {
       case d if WorkflowDeployable.matches(d) ⇒ defaultDeployable
@@ -85,7 +86,8 @@ trait WorkflowDriver {
       breed = breed.copy(deployable = deployable, environmentVariables = environmentVariables),
       scale = Option(scale),
       arguments = arguments,
-      network = Option(network)
+      network = Option(network),
+      environmentVariables = environmentVariables
     )
   }
 

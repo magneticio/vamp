@@ -21,6 +21,8 @@ trait WorkflowPersistenceMessages {
 
   case class UpdateWorkflowArguments(workflow: Workflow, arguments: List[Argument]) extends PersistenceActor.PersistenceMessages
 
+  case class UpdateWorkflowEnvironmentVariables(workflow: Workflow, environmentVariables: List[EnvironmentVariable]) extends PersistenceActor.PersistenceMessages
+
   case class ResetWorkflow(workflow: Workflow) extends PersistenceActor.PersistenceMessages
 
 }
@@ -34,15 +36,17 @@ trait WorkflowPersistenceOperations {
 
   protected def receiveWorkflow: Actor.Receive = {
 
-    case o: UpdateWorkflowStatus    ⇒ updateWorkflowStatus(o.workflow, o.status)
+    case o: UpdateWorkflowStatus               ⇒ updateWorkflowStatus(o.workflow, o.status)
 
-    case o: UpdateWorkflowScale     ⇒ updateWorkflowScale(o.workflow, o.scale)
+    case o: UpdateWorkflowScale                ⇒ updateWorkflowScale(o.workflow, o.scale)
 
-    case o: UpdateWorkflowNetwork   ⇒ updateWorkflowNetwork(o.workflow, o.network)
+    case o: UpdateWorkflowNetwork              ⇒ updateWorkflowNetwork(o.workflow, o.network)
 
-    case o: UpdateWorkflowArguments ⇒ updateWorkflowArguments(o.workflow, o.arguments)
+    case o: UpdateWorkflowArguments            ⇒ updateWorkflowArguments(o.workflow, o.arguments)
 
-    case o: ResetWorkflow           ⇒ resetWorkflow(o.workflow)
+    case o: UpdateWorkflowEnvironmentVariables ⇒ updateWorkflowEnvironmentVariables(o.workflow, o.environmentVariables)
+
+    case o: ResetWorkflow                      ⇒ resetWorkflow(o.workflow)
   }
 
   private def updateWorkflowStatus(workflow: Workflow, status: Workflow.Status) = reply {
@@ -65,17 +69,23 @@ trait WorkflowPersistenceOperations {
     self ? PersistenceActor.Update(WorkflowArguments(workflow.name, arguments))
   }
 
+  private def updateWorkflowEnvironmentVariables(workflow: Workflow, environmentVariables: List[EnvironmentVariable]) = reply {
+    self ? PersistenceActor.Update(WorkflowEnvironmentVariables(workflow.name, environmentVariables))
+  }
+
   private def resetWorkflow(workflow: Workflow) = reply {
     val messages = PersistenceActor.Delete(workflow.name, classOf[WorkflowStatus]) ::
       PersistenceActor.Delete(workflow.name, classOf[WorkflowScale]) ::
       PersistenceActor.Delete(workflow.name, classOf[WorkflowNetwork]) ::
-      PersistenceActor.Delete(workflow.name, classOf[WorkflowArguments]) :: Nil
+      PersistenceActor.Delete(workflow.name, classOf[WorkflowArguments]) ::
+      PersistenceActor.Delete(workflow.name, classOf[WorkflowEnvironmentVariables]) :: Nil
     Future.sequence(messages.map(self ? _))
   }
 }
 
 private[persistence] case class WorkflowStatus(name: String, status: String, phase: Option[String]) extends Artifact {
   val kind = "workflow-status"
+
   def unmarshall = WorkflowStatusReader.status(status) match {
     case r: Workflow.Status.Restarting ⇒ r.copy(phase = WorkflowStatusReader.phase(phase))
     case other                         ⇒ other
@@ -92,4 +102,8 @@ private[persistence] case class WorkflowNetwork(name: String, network: String) e
 
 private[persistence] case class WorkflowArguments(name: String, arguments: List[Argument]) extends Artifact {
   val kind = "workflow-arguments"
+}
+
+private[persistence] case class WorkflowEnvironmentVariables(name: String, environmentVariables: List[EnvironmentVariable]) extends Artifact {
+  val kind = "workflow-environment-variables"
 }
