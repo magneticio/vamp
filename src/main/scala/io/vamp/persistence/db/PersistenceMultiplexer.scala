@@ -190,7 +190,10 @@ trait PersistenceMultiplexer {
       arguments ← get(workflow.name, classOf[WorkflowArguments]).asInstanceOf[Future[Option[WorkflowArguments]]].map {
         _.map(_.arguments).getOrElse(workflow.arguments)
       }
-    } yield Option(workflow.copy(status = status, scale = scale, network = network, arguments = arguments))
+      environmentVariables ← get(workflow.name, classOf[WorkflowEnvironmentVariables]).asInstanceOf[Future[Option[WorkflowEnvironmentVariables]]].map {
+        _.map(_.environmentVariables).getOrElse(workflow.environmentVariables)
+      }
+    } yield Option(workflow.copy(status = status, scale = scale, network = network, arguments = arguments, environmentVariables = environmentVariables))
   }
 
   private def get[A <: Artifact](artifact: A): Future[Option[A]] = get(artifact.name, artifact.getClass).asInstanceOf[Future[Option[A]]]

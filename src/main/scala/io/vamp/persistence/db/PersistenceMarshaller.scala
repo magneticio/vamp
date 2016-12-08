@@ -123,6 +123,18 @@ trait PersistenceMarshaller extends TypeOfArtifact {
     },
     "workflow-arguments" → new NoNameValidationYamlReader[WorkflowArguments] with ArgumentReader {
       override protected def parse(implicit source: YamlSourceReader) = WorkflowArguments(name, arguments())
+    },
+    "workflow-environment-variables" → new NoNameValidationYamlReader[WorkflowEnvironmentVariables] {
+
+      override protected def parse(implicit source: YamlSourceReader) = WorkflowEnvironmentVariables(name, environmentVariables)
+
+      private def environmentVariables(implicit source: YamlSourceReader): List[EnvironmentVariable] = first[Any]("environment_variables", "env") match {
+        case Some(list: List[_]) ⇒ list.map { el ⇒
+          implicit val source = el.asInstanceOf[YamlSourceReader]
+          EnvironmentVariable(<<![String]("name"), <<?[String]("alias"), <<?[String]("value"), <<?[String]("interpolated"))
+        }
+        case _ ⇒ Nil
+      }
     }
   )
 }
