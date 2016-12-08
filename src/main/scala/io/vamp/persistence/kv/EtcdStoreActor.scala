@@ -1,7 +1,5 @@
 package io.vamp.persistence.kv
 
-import java.net.URLEncoder
-
 import akka.http.scaladsl.model._
 import io.vamp.common.config.Config
 
@@ -61,7 +59,7 @@ class EtcdStoreActor extends KeyValueStoreActor {
 
   override protected def set(path: List[String], data: Option[String]): Future[Any] = data match {
     case None        ⇒ httpClient.delete(urlOfValue(path), logError = false).recover { case _ ⇒ false }
-    case Some(value) ⇒ httpClient.http[Any](HttpMethods.PUT, urlOfValue(path), Option(s"value=${URLEncoder.encode(value, "UTF-8")}"), List("Accept" -> "application/json", "Content-Type" -> "application/x-www-form-urlencoded"))
+    case Some(value) ⇒ httpClient.httpWithEntity[Any](HttpMethods.PUT, urlOfValue(path), Option(FormData("value" -> value).toEntity), logError = false)
   }
 
   private def urlOfValue(path: List[String]) = s"${urlOf(path)}/$valueNode"
