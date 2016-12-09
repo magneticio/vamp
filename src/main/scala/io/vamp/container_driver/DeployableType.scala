@@ -2,12 +2,12 @@ package io.vamp.container_driver
 
 import io.vamp.model.artifact.Deployable
 
-abstract class DeployableType(val `type`: String) {
-  def matches(some: Deployable) = some.`type` == `type`
+abstract class DeployableType(val types: String*) {
+  def matches(deployable: Deployable): Boolean = types.contains(deployable.`type`)
 }
 
-object DockerDeployable extends DeployableType("container/docker")
+object CommandDeployable extends DeployableType("command", "cmd")
 
-object CommandDeployable extends DeployableType("command") {
-  override def matches(some: Deployable) = super.matches(some) || some.`type` == "cmd"
-}
+object RktDeployable extends DeployableType("container/rkt", "rkt")
+
+object DockerDeployable extends DeployableType("container/docker", "docker")

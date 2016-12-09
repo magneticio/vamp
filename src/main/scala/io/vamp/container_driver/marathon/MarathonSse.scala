@@ -17,7 +17,7 @@ case class MarathonEvent(`type`: String, ids: List[String])
 trait MarathonSse {
   this: Actor with ExecutionContextProvider ⇒
 
-  import de.heikoseeberger.akkasse.client.EventStreamUnmarshalling._
+  import de.heikoseeberger.akkasse.EventStreamUnmarshalling._
 
   def sse(uri: Uri): Unit = {
 
@@ -29,7 +29,7 @@ trait MarathonSse {
       .mapAsync(1)(Unmarshal(_).to[Source[ServerSentEvent, Any]])
       .runForeach(_.runForeach { event ⇒
         for {
-          t ← event.eventType
+          t ← event.`type`
           d ← event.data
         } yield self ! MarathonEvent(
           t, (parse(StringInput(d), useBigDecimalForDouble = true) \ "plan" \ "steps" \\ "actions" \ "app").extract[List[String]]
