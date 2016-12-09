@@ -1,6 +1,6 @@
 package io.vamp.model.parser
 
-import org.parboiled.scala._
+import akka.parboiled2.{ParserInput, Rule1}
 
 sealed trait ConditionDefinitionOperand extends Operand
 
@@ -17,37 +17,45 @@ case class CookieContains(name: String, value: String) extends ConditionDefiniti
 case class HeaderContains(name: String, value: String) extends ConditionDefinitionOperand
 
 trait ConditionDefinitionParser extends BooleanParser {
+  override def parser(expression: String) = new ConditionDefinitionParboiledParser(expression)
+}
+
+class ConditionDefinitionParboiledParser(override val input: ParserInput) extends BooleanParboiledParser(input) {
 
   override def Operand: Rule1[AstNode] = rule {
     HostOperand | UserAgentOperand | HeaderOperand | CookieOperand | CookieContainsOperand | HeaderContainsOperand | ValueOperand
   }
 
-  override def ValueOperand: Rule1[AstNode] = rule {
-    OptionalWhiteSpace ~ "<" ~ oneOrMore(noneOf("<>")) ~> ((value: String) ⇒ Value(value.trim)) ~ ">"
+  override def ValueOperand = rule {
+    "<" ~ capture(oneOrMore(noneOf("<>"))) ~ ">" ~> ((value: String) ⇒ Value(value.trim))
   }
 
   def HostOperand = rule {
-    HostString ~ ComparisonOperator ~ String ~~> ((equal: Boolean, value: String) ⇒ if (equal) Host(value) else Negation(Host(value)))
+    (HostString ~ ComparisonOperator ~ capture(String)) ~>
+      ((equal: Boolean, value: String) ⇒ if (equal) Host(value) else Negation(Host(value)))
   }
 
   def HostString = rule {
-    OptionalWhiteSpace ~ ignoreCase("host") ~ OptionalWhiteSpace
+    ignoreCase("host")
   }
 
   def UserAgentOperand = rule {
-    UserAgentString ~ ComparisonOperator ~ String ~~> ((equal: Boolean, value: String) ⇒ if (equal) UserAgent(value) else Negation(UserAgent(value)))
+    (UserAgentString ~ ComparisonOperator ~ capture(String)) ~>
+      ((equal: Boolean, value: String) ⇒ if (equal) UserAgent(value) else Negation(UserAgent(value)))
   }
 
   def UserAgentString = rule {
-    OptionalWhiteSpace ~ ignoreCase("user") ~ optional(anyOf("-.")) ~ ignoreCase("agent") ~ OptionalWhiteSpace
+    ignoreCase("user") ~ optional(anyOf("-.")) ~ ignoreCase("agent")
   }
 
   def CookieOperand = rule {
-    OptionalWhiteSpace ~ ContainsOperator ~ CookieString ~ WhiteSpace ~ String ~~> ((equal: Boolean, value: String) ⇒ if (equal) Cookie(value) else Negation(Cookie(value)))
+    (ContainsOperator ~ CookieString ~ WS ~ capture(String)) ~>
+      ((equal: Boolean, value: String) ⇒ if (equal) Cookie(value) else Negation(Cookie(value)))
   }
 
   def CookieContainsOperand = rule {
-    OptionalWhiteSpace ~ CookieString ~ WhiteSpace ~ String ~ WhiteSpace ~ ContainsOperator ~ String ~~> ((name: String, equal: Boolean, value: String) ⇒ if (equal) CookieContains(name, value) else Negation(CookieContains(name, value)))
+    (CookieString ~ WS ~ capture(String) ~ WS ~ ContainsOperator ~ capture(String)) ~>
+      ((name: String, equal: Boolean, value: String) ⇒ if (equal) CookieContains(name, value) else Negation(CookieContains(name, value)))
   }
 
   def CookieString = rule {
@@ -55,19 +63,21 @@ trait ConditionDefinitionParser extends BooleanParser {
   }
 
   def HeaderOperand = rule {
-    OptionalWhiteSpace ~ ContainsOperator ~ HeaderString ~ WhiteSpace ~ String ~~> ((equal: Boolean, value: String) ⇒ if (equal) Header(value) else Negation(Header(value)))
+    ContainsOperator ~ HeaderString ~ WS ~ capture(String) ~>
+      ((equal: Boolean, value: String) ⇒ if (equal) Header(value) else Negation(Header(value)))
   }
 
   def HeaderContainsOperand = rule {
-    OptionalWhiteSpace ~ HeaderString ~ WhiteSpace ~ String ~ WhiteSpace ~ ContainsOperator ~ String ~~> ((name: String, equal: Boolean, value: String) ⇒ if (equal) HeaderContains(name, value) else Negation(HeaderContains(name, value)))
+    (HeaderString ~ WS ~ capture(String) ~ WS ~ ContainsOperator ~ capture(String)) ~>
+      ((name: String, equal: Boolean, value: String) ⇒ if (equal) HeaderContains(name, value) else Negation(HeaderContains(name, value)))
   }
 
   def HeaderString = rule {
     ignoreCase("header")
   }
 
-  def ComparisonOperator = rule {
-    Equal | NonEqual | Has | Is | Misses | (Not ~> (_ ⇒ false))
+  def ComparisonOperator: Rule1[Boolean] = rule {
+    Equal | NonEqual | Has | Is | Misses
   }
 
   def ContainsOperator = rule {
@@ -75,26 +85,26 @@ trait ConditionDefinitionParser extends BooleanParser {
   }
 
   def Is = rule {
-    ignoreCase("is") ~ WhiteSpace ~> (_ ⇒ true)
+    WS ~ ignoreCase("is") ~ WS ~> (() ⇒ true)
   }
 
   def Has = rule {
-    (ignoreCase("has") | ignoreCase("contains")) ~ WhiteSpace ~> (_ ⇒ true)
+    OWS ~ (ignoreCase("has") | ignoreCase("contains")) ~ WS ~> (() ⇒ true)
   }
 
   def Misses = rule {
-    ignoreCase("misses") ~ WhiteSpace ~> (_ ⇒ false)
+    OWS ~ ignoreCase("misses") ~ WS ~> (() ⇒ false)
   }
 
   def NonEqual = rule {
-    ("!=" | "!") ~> (_ ⇒ false)
+    ((OWS ~ ("!=" | "!") ~ OWS) | (WS ~ "not" ~ WS)) ~> (() ⇒ false)
   }
 
   def Equal = rule {
-    ("==" | "=") ~> (_ ⇒ true)
+    OWS ~ ("==" | "=") ~ OWS ~> (() ⇒ true)
   }
 
   def String = rule {
-    OptionalWhiteSpace ~ oneOrMore(noneOf(" \n\r\t\f")) ~> (value ⇒ value)
+    oneOrMore(noneOf(" \n\r\t\f"))
   }
 }

@@ -77,8 +77,6 @@ val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.8" exclude("org.slf
 
 val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
 
-val parboiled = "org.parboiled" %% "parboiled-scala" % "1.1.7" :: Nil
-
 val jtwig = "org.jtwig" % "jtwig-core" % "5.57" :: Nil
 
 val json4s = "org.json4s" %% "json4s-native" % "3.5.0" ::
@@ -211,7 +209,7 @@ lazy val model = project.settings(bintraySetting: _*).settings(
   description := "Definitions of Vamp artifacts",
   name := "vamp-model",
   formatting,
-  libraryDependencies ++= parboiled ++ testing
+  libraryDependencies ++= testing
 ).dependsOn(common).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val common = project.settings(bintraySetting: _*).settings(
