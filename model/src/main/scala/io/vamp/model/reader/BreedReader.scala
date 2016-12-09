@@ -1,11 +1,17 @@
 package io.vamp.model.reader
 
+import io.vamp.common.config.Config
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.validator.BreedTraitValueValidator
 
 object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader with ArgumentReader with BreedTraitValueValidator {
+
+  lazy val defaultDeployableType = {
+    if (Config.hasPathOrNull("vamp.model.default-deployable-type")) Config.string("vamp.model.default-deployable-type")
+    else Deployable.defaultType
+  }
 
   override def readReference: PartialFunction[Any, Breed] = {
     case reference: String ⇒ BreedReference(reference)
@@ -17,7 +23,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
   override protected def expand(implicit source: YamlSourceReader) = {
 
     <<?[Any]("deployable") match {
-      case Some(str: String) ⇒ >>("deployable", YamlSourceReader("definition" -> str))
+      case Some(str: String) ⇒ >>("deployable", YamlSourceReader("definition" → str))
       case _                 ⇒
     }
 
@@ -45,7 +51,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
 
     val deployable = <<?[String]("deployable" :: "type" :: Nil) match {
       case Some(t) ⇒ Deployable(t, <<![String]("deployable" :: "definition" :: Nil))
-      case None    ⇒ Deployable(<<![String]("deployable" :: "definition" :: Nil))
+      case None    ⇒ Deployable(defaultDeployableType, <<![String]("deployable" :: "definition" :: Nil))
     }
 
     val dependencies = <<?[YamlSourceReader]("dependencies") match {

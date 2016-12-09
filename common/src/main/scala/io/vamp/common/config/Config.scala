@@ -27,6 +27,12 @@ private[config] class Config(config: TypesafeConfig, root: String) {
 
   def duration(path: String) = FiniteDuration(read(path).getDuration(path, MILLISECONDS), MILLISECONDS)
 
+  def isNull(path: String) = read(path).getIsNull(path)
+
+  def hasPath(path: String) = read(path).hasPath(path)
+
+  def hasPathOrNull(path: String) = read(path).hasPathOrNull(path)
+
   def config(path: String): Config = new Config(config.getConfig(path), absolutePath(path))
 
   def entries(path: String = ""): Map[String, AnyRef] = {

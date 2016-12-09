@@ -37,7 +37,9 @@ case class BreedReference(name: String) extends Reference with Breed
 
 object Deployable {
 
-  def apply(definition: String): Deployable = Deployable("container/docker", definition)
+  val defaultType = "container/docker"
+
+  def apply(definition: String): Deployable = Deployable(defaultType, definition)
 }
 
 case class Deployable(`type`: String, definition: String)

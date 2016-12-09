@@ -66,7 +66,8 @@ lazy val bintraySetting = Seq(
 val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.14" ::
   "com.typesafe.akka" %% "akka-agent" % "2.4.14" ::
   "com.typesafe.akka" %% "akka-http" % "10.0.0" ::
-  ("de.heikoseeberger" %% "akka-sse" % "2.0.0-M6" excludeAll ExclusionRule(organization = "com.typesafe.akka")) ::
+  "com.typesafe.akka" %% "akka-parsing" % "10.0.0" ::
+  ("de.heikoseeberger" %% "akka-sse" % "2.0.0-RC3" excludeAll ExclusionRule(organization = "com.typesafe.akka")) ::
   "ch.megard" %% "akka-http-cors" % "0.1.10" ::
   ("com.typesafe.akka" %% "akka-slf4j" % "2.4.14" exclude("org.slf4j", "slf4j-api")) :: Nil
 
