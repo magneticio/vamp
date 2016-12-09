@@ -3,23 +3,12 @@ package io.vamp.model.parser
 import akka.parboiled2._
 
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
 
-trait BooleanParser {
-
-  def parse(expression: String): AstNode = {
-    val p = parser(expression)
-    p.Input.run() match {
-      case Success(node)          ⇒ node
-      case Failure(e: ParseError) ⇒ throw new RuntimeException(s"can't parse: '$expression'\n${p.formatError(e, new ErrorFormatter(showPosition = false))}")
-      case Failure(_)             ⇒ throw new RuntimeException(s"can't parse: '$expression'")
-    }
-  }
-
+trait BooleanParser extends Parser[AstNode] {
   def parser(expression: String) = new BooleanParboiledParser(expression)
 }
 
-class BooleanParboiledParser(val input: ParserInput) extends Parser {
+class BooleanParboiledParser(val input: ParserInput) extends ParboiledParser[AstNode] {
 
   def Input = rule {
     Expression ~ EOI
@@ -59,13 +48,5 @@ class BooleanParboiledParser(val input: ParserInput) extends Parser {
 
   def ValueOperand = rule {
     capture(noneOf(" \n\r\t\f()|&!") +) ~> Value
-  }
-
-  def OWS = rule {
-    WS ?
-  }
-
-  def WS = rule {
-    CharPredicate(" \n\r\t\f") +
   }
 }

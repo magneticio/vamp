@@ -1,6 +1,7 @@
 package io.vamp.model.resolver
 
 import io.vamp.model.artifact._
+import io.vamp.model.parser.Parser
 
 import scala.language.postfixOps
 
@@ -19,5 +20,18 @@ trait TraitResolver {
     case VariableNode(reference) ⇒ provider(reference)
   } mkString
 
-  private[resolver] def nodes(value: String): List[TraitResolverNode] = new TraitResolverParser().parse(value)
+  private[resolver] def nodes(value: String): List[TraitResolverNode] = {
+
+    val parser = new Parser[Seq[TraitResolverNode]] {
+      override def parser(expression: String) = new TraitResolverParser(expression)
+    }
+
+    def compact(nodes: List[TraitResolverNode]): List[TraitResolverNode] = nodes match {
+      case StringNode(string1) :: StringNode(string2) :: tail ⇒ compact(StringNode(s"$string1$string2") :: tail)
+      case head :: tail ⇒ head :: compact(tail)
+      case Nil ⇒ Nil
+    }
+
+    compact(parser.parse(value).toList)
+  }
 }

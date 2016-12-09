@@ -1,6 +1,6 @@
 package io.vamp.model.parser
 
-import akka.parboiled2.{ParserInput, Rule1}
+import akka.parboiled2.{ ParserInput, Rule1 }
 
 sealed trait ConditionDefinitionOperand extends Operand
 
@@ -16,7 +16,7 @@ case class CookieContains(name: String, value: String) extends ConditionDefiniti
 
 case class HeaderContains(name: String, value: String) extends ConditionDefinitionOperand
 
-trait ConditionDefinitionParser extends BooleanParser {
+trait ConditionDefinitionParser extends Parser[AstNode] {
   override def parser(expression: String) = new ConditionDefinitionParboiledParser(expression)
 }
 
