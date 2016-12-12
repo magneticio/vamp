@@ -14,6 +14,13 @@ import org.json4s._
 
 import scala.concurrent.Future
 
+class MarathonDriverServiceMapper extends ContainerDriverServiceMapper {
+
+  override def name = "marathon"
+
+  override def clazz = classOf[MarathonDriverActor]
+}
+
 object MarathonDriverActor {
 
   private val config = Config.config("vamp.container-driver")

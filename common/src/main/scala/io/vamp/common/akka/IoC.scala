@@ -34,7 +34,9 @@ object IoC {
     actorRef
   }
 
-  def createActor[ACTOR: ClassTag](implicit actorSystem: ActorSystem): ActorRef = createActor(Props(classTag[ACTOR].runtimeClass))
+  def createActor(clazz: Class[_])(implicit actorSystem: ActorSystem): ActorRef = createActor(Props(clazz))
+
+  def createActor[ACTOR: ClassTag](implicit actorSystem: ActorSystem): ActorRef = createActor(classTag[ACTOR].runtimeClass)
 
   def createActor[ACTOR: ClassTag](arg: Any, args: Any*)(implicit actorSystem: ActorSystem): ActorRef = createActor(Props(classTag[ACTOR].runtimeClass, arg :: args.toList: _*))
 

@@ -14,6 +14,13 @@ import org.json4s.{ DefaultFormats, Extraction, Formats }
 
 import scala.concurrent.Future
 
+class RancherDriverServiceMapper extends ContainerDriverServiceMapper {
+
+  override def name = "rancher"
+
+  override def clazz = classOf[RancherDriverActor]
+}
+
 object RancherDriverActor {
 
   private val config = Config.config("vamp.container-driver.rancher")
