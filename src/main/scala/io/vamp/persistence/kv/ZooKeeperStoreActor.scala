@@ -46,21 +46,26 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
   override protected def all(path: List[String]): Future[List[String]] = zooKeeperClient match {
     case Some(zk) ⇒
 
-      def collect(path: List[String]): Future[List[(String, Boolean)]] = {
+      def collect(path: List[String], addRoot: Boolean = false): Future[List[ChildrenResponse]] = {
         zk.getChildren(pathToString(path)) recoverWith recoverRetrieval(Nil) flatMap {
-          case response: ChildrenResponse ⇒ Future.sequence {
-            response.children.map { child ⇒
-              collect(path :+ child).map {
-                case children if children.isEmpty ⇒ (child, true) :: Nil
-                case children                     ⇒ (child, false) +: children.map(c ⇒ (s"$child/${c._1}", c._2))
-              }
-            }
-          }.map(_.flatten.toList)
+          case node: ChildrenResponse ⇒
+            val children = Future.sequence {
+              node.children.map { child ⇒ collect(path :+ child, addRoot = true) }
+            }.map(_.flatten.toList)
+
+            if (addRoot) children.map { children ⇒ node +: children } else children
+
           case _ ⇒ Future.successful(Nil)
         }
       }
 
-      collect(path).map(_.filter(_._2).map(_._1))
+      val rootLength = pathToString(path).length + 1
+
+      collect(path).map {
+        _.collect {
+          case node if node.stat.getDataLength > 0 ⇒ node.path.substring(rootLength)
+        }
+      }
 
     case None ⇒ Future.successful(Nil)
   }
