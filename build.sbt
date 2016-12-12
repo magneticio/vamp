@@ -113,7 +113,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  common, persistence, model, operation, bootstrap, container_driver, workflow_driver, dictionary, pulse, http_api, gateway_driver, cli
+  common, persistence, model, operation, bootstrap, container_driver, workflow_driver, pulse, http_api, gateway_driver, cli
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 
@@ -132,7 +132,7 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   // Runnable assembly jar lives in bootstrap/target/scala_2.11/
   // and is renamed to vamp assembly for consistent filename for downloading.
   assemblyJarName in assembly := s"vamp-assembly-${version.value}.jar"
-).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, dictionary, pulse, http_api, gateway_driver, lifter)
+).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, pulse, http_api, gateway_driver, lifter)
 
 lazy val lifter = project.settings(bintraySetting: _*).settings(
   description := "Lifter for Vamp",
@@ -153,7 +153,7 @@ lazy val operation = project.settings(bintraySetting: _*).settings(
   name := "vamp-operation",
   formatting,
   libraryDependencies ++= testing
-).dependsOn(persistence, container_driver, workflow_driver, gateway_driver, dictionary, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
+).dependsOn(persistence, container_driver, workflow_driver, gateway_driver, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val pulse = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
@@ -197,13 +197,6 @@ lazy val cli = project.settings(bintraySetting: _*).settings(
   libraryDependencies ++= testing,
   assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
 ).dependsOn(model)
-
-lazy val dictionary = project.settings(bintraySetting: _*).settings(
-  description := "Dictionary for Vamp",
-  name := "vamp-dictionary",
-  formatting,
-  libraryDependencies ++= testing
-).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val model = project.settings(bintraySetting: _*).settings(
   description := "Definitions of Vamp artifacts",

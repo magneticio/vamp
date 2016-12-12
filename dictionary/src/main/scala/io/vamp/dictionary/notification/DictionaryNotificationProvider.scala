@@ -1,5 +1,0 @@
-package io.vamp.dictionary.notification
-
-import io.vamp.common.notification.{ DefaultPackageMessageResolverProvider, LoggingNotificationProvider }
-
-trait DictionaryNotificationProvider extends LoggingNotificationProvider with DefaultPackageMessageResolverProvider
