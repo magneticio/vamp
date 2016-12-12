@@ -16,10 +16,11 @@ let httpStatus = function (url) {
 
 let createKibanaIndex = function (elasticsearch) {
   return _(http(elasticsearch + '/.kibana/config/_search').promise().then(JSON.parse)).flatMap(function (response) {
+    let hit;
     let kibana;
 
     for (let i = 0; i < response.hits.hits.length; i++) {
-      let hit = response.hits.hits[i];
+      hit = response.hits.hits[i];
       if (hit._index === '.kibana') {
         kibana = hit;
         break;
