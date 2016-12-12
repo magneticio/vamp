@@ -19,6 +19,13 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.util.Try
 
+class DockerDriverServiceMapper extends ContainerDriverServiceMapper {
+
+  override def name = "docker"
+
+  override def clazz = classOf[DockerDriverActor]
+}
+
 class DockerDriverActor extends ContainerDriverActor with ContainerDriver with DockerNameMatcher {
 
   private val configuration = Config.config("vamp.container-driver.docker")

@@ -13,6 +13,13 @@ import scala.io.Source
 import scala.language.postfixOps
 import scala.util.Try
 
+class KubernetesDriverServiceMapper extends ContainerDriverServiceMapper {
+
+  override def name = "kubernetes"
+
+  override def clazz = classOf[KubernetesDriverActor]
+}
+
 object KubernetesDriverActor {
 
   object Schema extends Enumeration {
