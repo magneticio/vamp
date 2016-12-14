@@ -5,14 +5,14 @@ import java.net.URLDecoder
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider}
+import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InconsistentArtifactName
-import io.vamp.model.reader.{YamlReader, _}
+import io.vamp.model.reader.{ YamlReader, _ }
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification.UnexpectedArtifact
-import io.vamp.persistence.db.WorkflowPersistenceMessages.UpdateWorkflowStatus
+import io.vamp.persistence.db.WorkflowPersistenceMessages.{ ResetWorkflow, UpdateWorkflowStatus }
 import io.vamp.persistence.db._
 import io.vamp.persistence.notification.PersistenceOperationFailure
 
@@ -47,7 +47,7 @@ trait SingleArtifactApiController {
     case (t, r) if t == classOf[Workflow] ⇒
       create(r, source, validateOnly).map {
         case list: List[_] ⇒
-          if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, workflow.status) }
+          if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? ResetWorkflow(workflow) }
           list
         case any ⇒ any
       }
@@ -74,7 +74,7 @@ trait SingleArtifactApiController {
     case (t, r) if t == classOf[Workflow] ⇒
       update(r, name, source, validateOnly).map {
         case list: List[_] ⇒
-          if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, workflow.status) }
+          if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? ResetWorkflow(workflow) }
           list
         case any ⇒ any
       }
