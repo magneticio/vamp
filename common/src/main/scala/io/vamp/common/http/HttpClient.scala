@@ -162,12 +162,19 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, formats
       }).runWith(Sink.head)
   }
 
-  private def outgoingConnection(uri: Uri) = {
-    if (uri.scheme == "https") {
-      if (tlsCheck) Http().outgoingConnectionHttps(uri.authority.host.address, uri.authority.port)
-      else Http().outgoingConnectionHttps(uri.authority.host.address, uri.authority.port, connectionContext = noCheckHttpsConnectionContext)
-    }
-    else Http().outgoingConnection(uri.authority.host.address, uri.authority.port)
+  private def outgoingConnection(uri: Uri) = uri.scheme match {
+    case "https" ⇒
+      val host = uri.authority.host.address
+      val port = if (uri.authority.port > 0) uri.authority.port else 443
+      if (tlsCheck)
+        Http().outgoingConnectionHttps(host, port)
+      else
+        Http().outgoingConnectionHttps(host, port, connectionContext = noCheckHttpsConnectionContext)
+
+    case _ ⇒
+      val host = uri.authority.host.address
+      val port = if (uri.authority.port > 0) uri.authority.port else 80
+      Http().outgoingConnection(host, port)
   }
 
   private def bodyAsString(body: Any)(implicit formats: Formats): Option[String] = body match {
