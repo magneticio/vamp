@@ -6,8 +6,8 @@ import io.vamp.common.config.Config
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.resolver.TraitResolver
 import io.vamp.persistence.db.PersistenceActor
-import io.vamp.persistence.kv.KeyValueStoreActor
 import io.vamp.workflow_driver.WorkflowDriver.config
 
 import scala.concurrent.Future
@@ -33,12 +33,10 @@ object WorkflowDriver {
 
   val config = Config.config("vamp.workflow-driver")
 
-  val vampUrl = config.string("vamp-url")
-
   def path(workflow: Workflow) = root :: workflow.name :: Nil
 }
 
-trait WorkflowDriver {
+trait WorkflowDriver extends TraitResolver {
 
   import WorkflowDriver._
 
@@ -46,9 +44,9 @@ trait WorkflowDriver {
 
   implicit val timeout = ContainerDriverActor.timeout
 
-  val additionalEnvironmentVariables: List[EnvironmentVariable] = config.stringList("workflow.environment-variables").map { env ⇒
+  val globalEnvironmentVariables: List[EnvironmentVariable] = config.stringList("workflow.environment-variables").map { env ⇒
     val index = env.indexOf('=')
-    environmentVariable(env.substring(0, index), env.substring(index + 1))
+    EnvironmentVariable(env.substring(0, index), None, Option(env.substring(index + 1)), None)
   }
 
   val defaultScale = config.config("workflow.scale") match {
@@ -73,11 +71,10 @@ trait WorkflowDriver {
 
     val breed = workflow.breed.asInstanceOf[DefaultBreed]
 
-    val environmentVariables = (additionalEnvironmentVariables ++ List(
-      environmentVariable("VAMP_URL", WorkflowDriver.vampUrl),
-      environmentVariable("VAMP_KEY_VALUE_STORE_PATH", KeyValueStoreActor.pathToString(WorkflowDriver.path(workflow)))
-    ) ++
-      breed.environmentVariables ++ workflow.environmentVariables).map(env ⇒ env.name → env.copy(interpolated = env.value)).toMap.values.toList
+    val environmentVariables = {
+      resolveGlobal(workflow) ++ breed.environmentVariables ++ workflow.environmentVariables
+    }.map(env ⇒ env.name → env.copy(interpolated = env.value)).toMap.values.toList
+
     actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowEnvironmentVariables(workflow, environmentVariables)
 
     val deployable = breed.deployable match {
@@ -103,5 +100,14 @@ trait WorkflowDriver {
     )
   }
 
-  private def environmentVariable(name: String, value: String) = EnvironmentVariable(name, None, Option(value), Option(value))
+  private def resolveGlobal(workflow: Workflow): List[EnvironmentVariable] = {
+    def interpolated: ValueReference ⇒ String = {
+      case ref: LocalReference if ref.name == "workflow" ⇒ workflow.name
+      case _ ⇒ ""
+    }
+    globalEnvironmentVariables.map { env ⇒
+      val value = resolve(env.value.getOrElse(""), interpolated)
+      env.copy(value = Option(value), interpolated = Option(value))
+    }
+  }
 }
