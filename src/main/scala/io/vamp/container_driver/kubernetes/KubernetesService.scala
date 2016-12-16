@@ -58,8 +58,7 @@ trait KubernetesService extends KubernetesArtifact {
       () ⇒ {
         log.info(s"Creating service: $name")
         httpClient.post[Any](url, request, apiHeaders)
-      }
-    )
+      })
   }
 
   protected def deleteServiceById(id: String): Future[Any] = {
@@ -71,8 +70,7 @@ trait KubernetesService extends KubernetesArtifact {
       () ⇒ {
         log.debug(s"Service does not exist: $id")
         Future.successful(false)
-      }
-    )
+      })
   }
 
   private def toId(name: String): String = name match {
