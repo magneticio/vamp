@@ -11,9 +11,9 @@ import scala.concurrent.Future
 trait KubernetesDeployment extends KubernetesArtifact {
   this: KubernetesContainerDriver with ActorLogging ⇒
 
-  private val deploymentServiceIdLabel = "deployment-service-id"
+  private val deploymentServiceIdLabel = "deployment-service"
 
-  private val workflowIdLabel = "workflow-id"
+  private val workflowIdLabel = "workflow"
 
   private lazy val podUrl = s"$apiUrl/api/v1/namespaces/default/pods"
 

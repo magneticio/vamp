@@ -16,14 +16,13 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
          |  "apiVersion": "extensions/v1beta1",
          |  "kind": "DaemonSet",
          |  "metadata": {
-         |    "name": "${ds.name}",
-         |    ${labels2json(labels)}
+         |    ${labels2json(labels + ("name" → ds.name))}
          |  },
          |  "spec": {
          |    "template": {
          |      "metadata": {
          |        "labels": {
-         |          "vamp": "${ds.name}"
+         |          ${labels2json(Map("vamp" → "daemon-set", "daemon-set" → ds.name))}
          |        }
          |      },
          |      "spec": {
@@ -53,7 +52,6 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
       () ⇒ {
         log.info(s"Creating daemon set: ${ds.name}")
         httpClient.post[Any](url, request, apiHeaders)
-      }
-    )
+      })
   }
 }
