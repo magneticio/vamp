@@ -130,7 +130,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
           gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
         } map { gateway ⇒
           val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
-          createService(gateway.name, serviceType, vampGatewayAgentId, ports, update = false, gatewayService ++ Map("name" → gateway.name, Lookup.entry → gateway.lookupName))
+          createService(gateway.name, serviceType, vampGatewayAgentId, ports, update = false, gatewayService ++ Map("gateway" → gateway.name, Lookup.entry → gateway.lookupName))
         }
 
         Future.sequence(created ++ deleted)
