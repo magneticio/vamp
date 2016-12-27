@@ -3,8 +3,6 @@ package io.vamp.persistence.notification
 import io.vamp.common.akka.RequestError
 import io.vamp.common.notification.{ ErrorNotification, Notification }
 
-import scala.language.existentials
-
 case class UnsupportedPersistenceRequest(request: Any) extends Notification with RequestError
 
 case class ArtifactNotFound(name: String, `type`: Class[_]) extends Notification

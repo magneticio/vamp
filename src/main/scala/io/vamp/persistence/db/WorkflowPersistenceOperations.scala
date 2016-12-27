@@ -9,8 +9,6 @@ import io.vamp.model.reader.WorkflowStatusReader
 
 import scala.concurrent.Future
 
-object WorkflowPersistenceMessages extends WorkflowPersistenceMessages
-
 trait WorkflowPersistenceMessages {
 
   case class UpdateWorkflowStatus(workflow: Workflow, status: Workflow.Status) extends PersistenceActor.PersistenceMessages
@@ -30,7 +28,7 @@ trait WorkflowPersistenceMessages {
 trait WorkflowPersistenceOperations {
   this: CommonSupportForActors ⇒
 
-  import WorkflowPersistenceMessages._
+  import PersistenceActor._
 
   implicit def timeout: Timeout
 

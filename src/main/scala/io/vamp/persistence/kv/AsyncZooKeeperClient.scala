@@ -11,7 +11,7 @@ import org.apache.zookeeper._
 import org.apache.zookeeper.data.Stat
 import org.slf4j.LoggerFactory
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, ExecutionContext, Future, Promise }
 import scala.language.{ implicitConversions, postfixOps }
@@ -20,7 +20,6 @@ import scala.util.{ Failure, Success }
 /**
  * @see https://github.com/bigtoast/async-zookeeper-client
  *
- *      Move to Scala 2.11, eventually we may fork the project
  */
 
 sealed trait AsyncResponse {
@@ -139,6 +138,7 @@ trait AsyncZooKeeperClient {
 
   /**
    * Create a path with OPEN_ACL_UNSAFE hardcoded
+   *
    * @see <a target="_blank" href="http://zookeeper.apache.org/doc/r3.4.1/api/org/apache/zookeeper/ZooKeeper.html#create(java.lang.String, byte[], java.util.List, org.apache.zookeeper.CreateMode, org.apache.zookeeper.AsyncCallback.StringCallback, java.lang.Object)">
    *      http://zookeeper.apache.org/doc/r3.4.1/api/org/apache/zookeeper/ZooKeeper.html#create(java.lang.String, byte[], java.util.List, org.apache.zookeeper.CreateMode, org.apache.zookeeper.AsyncCallback.StringCallback, java.lang.Object)
    *      </a>
@@ -160,6 +160,7 @@ trait AsyncZooKeeperClient {
 
   /**
    * Wrapper around zk getData method. Watch is hardcoded to false.
+   *
    * @see <a target="_blank" href="http://zookeeper.apache.org/doc/r3.4.1/api/org/apache/zookeeper/ZooKeeper.html#getData(java.lang.String, boolean, org.apache.zookeeper.AsyncCallback.DataCallback, java.lang.Object)">
    *      http://zookeeper.apache.org/doc/r3.4.1/api/org/apache/zookeeper/ZooKeeper.html#getData(java.lang.String, boolean, org.apache.zookeeper.AsyncCallback.DataCallback, java.lang.Object)
    *      </a>
@@ -168,6 +169,7 @@ trait AsyncZooKeeperClient {
 
   /**
    * Wrapper around the zk setData method.
+   *
    * @see <a target="_blank" href="http://zookeeper.apache.org/doc/r3.4.1/api/org/apache/zookeeper/ZooKeeper.html#setData(java.lang.String, byte[], int, org.apache.zookeeper.AsyncCallback.StatCallback, java.lang.Object)">
    *      http://zookeeper.apache.org/doc/r3.4.1/api/org/apache/zookeeper/ZooKeeper.html#setData(java.lang.String, byte[], int, org.apache.zookeeper.AsyncCallback.StatCallback, java.lang.Object)
    *      </a>
@@ -176,13 +178,13 @@ trait AsyncZooKeeperClient {
 
   /**
    * Wrapper around zk delete method.
+   *
    * @see <a target="_blank" href="http://zookeeper.apache.org/doc/r3.4.1/api/org/apache/zookeeper/ZooKeeper.html#delete(java.lang.String, int, org.apache.zookeeper.AsyncCallback.VoidCallback, java.lang.Object)">
    *      http://zookeeper.apache.org/doc/r3.4.1/api/org/apache/zookeeper/ZooKeeper.html#delete(java.lang.String, int, org.apache.zookeeper.AsyncCallback.VoidCallback, java.lang.Object)
    *      </a>
    *
    *      The version only applies to the node indicated by the path. If force is true all children will be deleted even if the
    *      version doesn't match.
-   *
    * @param force Delete all children of this node
    */
   def delete(path: String, version: Int = -1, ctx: Option[Any] = None, force: Boolean = false): Future[VoidResponse]
@@ -192,6 +194,7 @@ trait AsyncZooKeeperClient {
 
   /**
    * Set a persistent watch on data.
+   *
    * @see watchData
    */
   def watchData(path: String)(onData: (String, Option[DataResponse]) ⇒ Unit): Future[DataResponse]
@@ -214,6 +217,7 @@ trait AsyncZooKeeperClient {
 
   /**
    * Sets a persistent child watch.
+   *
    * @see watchChildren
    */
   def watchChildren(path: String)(onKids: ChildrenResponse ⇒ Unit): Future[ChildrenResponse]
@@ -248,7 +252,7 @@ class AsyncZooKeeperClientImpl(
 
   @volatile private var clientWatcher: Option[Watcher] = None
 
-  @volatile private var zk: ZooKeeper = null
+  @volatile private var zk: ZooKeeper = _
 
   def this(servers: String, sessionTimeout: Int, connectTimeout: Int, basePath: String, eCtx: ExecutionContext) =
     this(servers, sessionTimeout, connectTimeout, basePath, None, eCtx)
@@ -277,17 +281,16 @@ class AsyncZooKeeperClientImpl(
       zk.close()
     }
 
-    zk = new ZooKeeper(servers, sessionTimeout, new Watcher {
-      def process(event: WatchedEvent) = {
-        assignLatch.await()
-        event.getState match {
-          case SyncConnected ⇒ connectionLatch.countDown()
-          case Expired       ⇒ connect()
-          case _             ⇒
-        }
-        clientWatcher.foreach {
-          _.process(event)
-        }
+    zk = new ZooKeeper(servers, sessionTimeout, (event: WatchedEvent) ⇒ {
+      assignLatch.await()
+      event.getState match {
+        case SyncConnected ⇒ connectionLatch.countDown()
+        case Expired       ⇒ connect()
+        case _             ⇒
+      }
+      clientWatcher.foreach {
+        _.process(event)
+
       }
     })
     assignLatch.countDown()
@@ -323,12 +326,12 @@ class AsyncZooKeeperClientImpl(
    * @param path relative or absolute path
    * @return absolute zk path
    */
-  private[kv] def mkPath(path: String) = (path startsWith "/" match {
-    case true  ⇒ path
-    case false ⇒ "%s/%s".format(basePath, path)
-  }).replaceAll("//", "/") match {
-    case str if str.length > 1 ⇒ str.stripSuffix("/")
-    case str                   ⇒ str
+  private[kv] def mkPath(path: String) = {
+    val absolute = if (path startsWith "/") path else "%s/%s".format(basePath, path)
+    absolute.replaceAll("//", "/") match {
+      case str if str.length > 1 ⇒ str.stripSuffix("/")
+      case str                   ⇒ str
+    }
   }
 
   override def handleResponse[T](rc: Int, path: String, p: Promise[T], stat: Stat, cxt: Option[Any])(f: ⇒ T): Future[T] = {
@@ -357,14 +360,14 @@ class AsyncZooKeeperClientImpl(
     zk.getChildren(mkPath(path), watch.orNull, new Children2Callback {
       def processResult(rc: Int, path: String, ignore: Any, children: util.List[String], stat: Stat) {
         handleResponse(rc, path, p, stat, ctx) {
-          ChildrenResponse(children.toSeq, path, stat, ctx)
+          ChildrenResponse(children.asScala, path, stat, ctx)
         }
       }
     }, ctx)
     p.future
   }
 
-  override def close() = zk.close()
+  override def close(): Unit = zk.close()
 
   override def isAlive: Future[Boolean] = exists("/") map {
     _.stat.getVersion >= 0
@@ -397,11 +400,9 @@ class AsyncZooKeeperClientImpl(
 
   override def create(path: String, data: Option[Array[Byte]], createMode: CreateMode, ctx: Option[Any] = None): Future[StringResponse] = {
     val p = Promise[StringResponse]()
-    zk.create(mkPath(path), handleNull(data), Ids.OPEN_ACL_UNSAFE, createMode, new StringCallback {
-      def processResult(rc: Int, path: String, ignore: Any, name: String) {
-        handleResponse(rc, path, p, null, ctx) {
-          StringResponse(name, path, ctx)
-        }
+    zk.create(mkPath(path), handleNull(data), Ids.OPEN_ACL_UNSAFE, createMode, (rc: Int, path: String, ignore: Any, name: String) ⇒ {
+      handleResponse(rc, path, p, null, ctx) {
+        StringResponse(name, path, ctx)
       }
     }, ctx)
     p.future
@@ -437,11 +438,9 @@ class AsyncZooKeeperClientImpl(
 
   override def set(path: String, data: Option[Array[Byte]], version: Int = -1, ctx: Option[Any] = None): Future[StatResponse] = {
     val p = Promise[StatResponse]()
-    zk.setData(mkPath(path), handleNull(data), version, new StatCallback {
-      def processResult(rc: Int, path: String, ignore: Any, stat: Stat) {
-        handleResponse(rc, path, p, stat, ctx) {
-          StatResponse(path, stat, ctx)
-        }
+    zk.setData(mkPath(path), handleNull(data), version, (rc: Int, path: String, ignore: Any, stat: Stat) ⇒ {
+      handleResponse(rc, path, p, stat, ctx) {
+        StatResponse(path, stat, ctx)
       }
     }, ctx)
     p.future
@@ -450,16 +449,14 @@ class AsyncZooKeeperClientImpl(
   override def delete(path: String, version: Int = -1, ctx: Option[Any] = None, force: Boolean = false): Future[VoidResponse] = {
     if (force) {
       deleteChildren(path, ctx) flatMap {
-        _ ⇒ delete(path, version, ctx, force = false)
+        _ ⇒ delete(path, version, ctx)
       }
     }
     else {
       val p = Promise[VoidResponse]()
-      zk.delete(mkPath(path), version, new VoidCallback {
-        def processResult(rc: Int, path: String, ignore: Any) {
-          handleResponse(rc, path, p, null, ctx) {
-            VoidResponse(path, ctx)
-          }
+      zk.delete(mkPath(path), version, (rc: Int, path: String, ignore: Any) ⇒ {
+        handleResponse(rc, path, p, null, ctx) {
+          VoidResponse(path, ctx)
         }
       }, ctx)
       p.future
@@ -484,6 +481,7 @@ class AsyncZooKeeperClientImpl(
             delete(p, -1, ctx)
       }
     }
+
     recurse(path)
   }
 

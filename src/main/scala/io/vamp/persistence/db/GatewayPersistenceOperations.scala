@@ -8,8 +8,6 @@ import io.vamp.model.artifact.{ DefaultRoute, _ }
 
 import scala.concurrent.Future
 
-object GatewayPersistenceMessages extends GatewayPersistenceMessages
-
 trait GatewayPersistenceMessages {
 
   case class CreateInternalGateway(gateway: Gateway) extends PersistenceActor.PersistenceMessages
@@ -38,7 +36,7 @@ trait GatewayPersistenceOperations {
   this: CommonSupportForActors ⇒
 
   import DevelopmentPersistenceOperations._
-  import GatewayPersistenceMessages._
+  import PersistenceActor._
 
   implicit def timeout: Timeout
 

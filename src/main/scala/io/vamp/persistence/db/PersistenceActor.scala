@@ -1,10 +1,11 @@
 package io.vamp.persistence.db
 
+import akka.actor.Actor
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.Notification
-import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
+import io.vamp.common.vitals.{InfoRequest, StatsRequest}
 import io.vamp.model.artifact._
 import io.vamp.persistence.notification._
 import io.vamp.pulse.notification.PulseFailureNotifier
@@ -40,10 +41,12 @@ trait PersistenceActor
 
   override def errorNotificationClass = classOf[PersistenceOperationFailure]
 
-  def receive = receiveCommon orElse receiveDevelopment orElse receiveGateway orElse receiveWorkflow orElse {
-    case InfoRequest  ⇒ reply(info() map { persistenceInfo ⇒ Map("database" -> persistenceInfo, "archiving" -> true) })
+  def receive = receiveCommon orElse receiveDevelopment orElse receiveGateway orElse receiveWorkflow orElse receiveDefault
+
+  private def receiveDefault: Actor.Receive = {
+    case InfoRequest  ⇒ reply(info() map { persistenceInfo ⇒ Map("database" → persistenceInfo, "archiving" → true) })
     case StatsRequest ⇒ reply(stats())
-    case any          ⇒ unsupported(UnsupportedPersistenceRequest(any))
+    case other        ⇒ unsupported(UnsupportedPersistenceRequest(other))
   }
 
   override def typeName = "persistence"
