@@ -19,10 +19,10 @@ vamp_cli_zip=vamp-cli-${version}.zip
 
 sbt assembly
 
-cp $(find "${TRAVIS_BUILD_DIR}/bootstrap/target/scala-2.11" -name 'vamp-assembly-*.jar' | sort | tail -1) ${target}/${vamp_jar}
+cp $(find "${TRAVIS_BUILD_DIR}/bootstrap/target/scala-2.12" -name 'vamp-assembly-*.jar' | sort | tail -1) ${target}/${vamp_jar}
 
 mkdir -p ${target}/brew/brew
-cp $(find "${TRAVIS_BUILD_DIR}/cli/target/scala-2.11" -name 'vamp-cli-*.jar' | sort | tail -1) ${target}/brew/${vamp_cli_jar}
+cp $(find "${TRAVIS_BUILD_DIR}/cli/target/scala-2.12" -name 'vamp-cli-*.jar' | sort | tail -1) ${target}/brew/${vamp_cli_jar}
 cp ${TRAVIS_BUILD_DIR}/.travis-ci-brew.sh ${target}/brew/brew/vamp
 cd ${target}/brew
 zip -r ${vamp_cli_zip} *

@@ -7,8 +7,6 @@ import io.vamp.model.artifact._
 
 import scala.concurrent.Future
 
-object DevelopmentPersistenceMessages extends DevelopmentPersistenceMessages
-
 trait DevelopmentPersistenceMessages {
 
   case class UpdateDeploymentServiceStatus(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, status: DeploymentService.Status) extends PersistenceActor.PersistenceMessages
@@ -41,7 +39,7 @@ private[persistence] object DevelopmentPersistenceOperations {
 trait DevelopmentPersistenceOperations {
   this: CommonSupportForActors with PersistenceArchive ⇒
 
-  import DevelopmentPersistenceMessages._
+  import PersistenceActor._
   import DevelopmentPersistenceOperations._
 
   protected def receiveDevelopment: Actor.Receive = {

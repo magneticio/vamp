@@ -11,7 +11,6 @@ import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
-import io.vamp.persistence.db.GatewayPersistenceMessages.{ CreateGatewayPort, UpdateGatewayDeploymentStatus, UpdateGatewayRouteTargets }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
@@ -48,6 +47,7 @@ private case class GatewayPipeline(deployable: List[Gateway], nonDeployable: Lis
 
 class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
 
+  import PersistenceActor._
   import GatewaySynchronizationActor._
 
   private var currentPort = portRangeLower - 1

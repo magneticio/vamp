@@ -56,7 +56,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
 
     val dependencies = <<?[YamlSourceReader]("dependencies") match {
       case None ⇒ Map[String, Breed]()
-      case Some(yaml) ⇒ yaml.pull().map {
+      case Some(yaml) ⇒ yaml.pull().collect {
         case (alias: String, dependency: YamlSourceReader) ⇒
           (alias, readReference(dependency.find[Any]("breed").get))
       }

@@ -10,7 +10,7 @@ name := """vamp"""
 
 version in ThisBuild := VersionHelper.versionByTag // version based on "git describe"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.1"
 
 scalaVersion in ThisBuild := scalaVersion.value
 
@@ -86,7 +86,7 @@ val json4s = "org.json4s" %% "json4s-native" % "3.5.0" ::
 
 val snakeYaml = "org.yaml" % "snakeyaml" % "1.16" :: Nil
 
-val kamon = ("io.kamon" %% "kamon-core" % "0.6.3" excludeAll ExclusionRule(organization = "com.typesafe.akka")) :: // update to 2.12 when available
+val kamon = ("io.kamon" %% "kamon-core" % "0.6.4" excludeAll ExclusionRule(organization = "com.typesafe.akka")) ::
   "org.slf4j" % "jul-to-slf4j" % "1.7.21" :: Nil
 
 val logging = "org.slf4j" % "slf4j-api" % "1.7.21" ::
@@ -129,7 +129,7 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   description := "Bootstrap for Vamp",
   name := "vamp-bootstrap",
   formatting,
-  // Runnable assembly jar lives in bootstrap/target/scala_2.11/
+  // Runnable assembly jar lives in bootstrap/target/scala_2.12/
   // and is renamed to vamp assembly for consistent filename for downloading.
   assemblyJarName in assembly := s"vamp-assembly-${version.value}.jar"
 ).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, pulse, http_api, gateway_driver, lifter)

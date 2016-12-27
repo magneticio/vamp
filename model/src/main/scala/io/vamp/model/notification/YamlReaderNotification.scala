@@ -2,8 +2,6 @@ package io.vamp.model.notification
 
 import io.vamp.common.notification.Notification
 
-import scala.language.existentials
-
 case class YamlParsingError(message: String, exception: Exception) extends Notification
 
 case class MissingPathValueError(path: String) extends Notification

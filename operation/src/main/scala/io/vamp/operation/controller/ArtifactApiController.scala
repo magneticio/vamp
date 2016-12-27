@@ -5,14 +5,13 @@ import java.net.URLDecoder
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
+import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider}
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InconsistentArtifactName
-import io.vamp.model.reader.{ YamlReader, _ }
+import io.vamp.model.reader.{YamlReader, _}
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification.UnexpectedArtifact
-import io.vamp.persistence.db.WorkflowPersistenceMessages.{ ResetWorkflow, UpdateWorkflowStatus }
 import io.vamp.persistence.db._
 import io.vamp.persistence.notification.PersistenceOperationFailure
 
@@ -35,6 +34,8 @@ trait ArtifactApiController extends MultipleArtifactApiController with SingleArt
 
 trait SingleArtifactApiController {
   this: ArtifactApiController with ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
+
+  import PersistenceActor._
 
   def createArtifact(kind: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, r) if t == classOf[Gateway] ⇒

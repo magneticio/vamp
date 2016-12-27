@@ -15,7 +15,7 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
   override protected def parse(implicit source: YamlSourceReader): Deployment = {
     val clusters = <<?[YamlSourceReader]("clusters") match {
       case None ⇒ List[DeploymentCluster]()
-      case Some(yaml) ⇒ yaml.pull().map {
+      case Some(yaml) ⇒ yaml.pull().collect {
         case (name: String, cluster: YamlSourceReader) ⇒
           implicit val source = cluster
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla", validateEitherReferenceOrAnonymous)

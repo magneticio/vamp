@@ -85,7 +85,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
   override def parse(implicit source: YamlSourceReader): Blueprint = {
     val clusters = <<?[YamlSourceReader]("clusters") match {
       case None ⇒ List[Cluster]()
-      case Some(yaml) ⇒ yaml.pull().map {
+      case Some(yaml) ⇒ yaml.pull().collect {
         case (name: String, cluster: YamlSourceReader) ⇒
           implicit val source = cluster
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")

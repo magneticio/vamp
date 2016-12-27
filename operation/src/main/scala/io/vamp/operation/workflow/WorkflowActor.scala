@@ -8,7 +8,6 @@ import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.operation.notification._
-import io.vamp.persistence.db.WorkflowPersistenceMessages.{ ResetWorkflow, UpdateWorkflowStatus }
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.persistence.kv.KeyValueStoreActor
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
@@ -66,7 +65,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   private def run(workflow: Workflow, running: Boolean): Unit = {
     deploy(workflow, running, () ⇒ {
       if (workflow.status != Workflow.Status.Running)
-        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
+        (actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
           pulse(workflow, scheduled = true)
         }
     })
@@ -75,7 +74,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   private def stop(workflow: Workflow, running: Boolean): Unit = {
     undeploy(workflow, running, () ⇒ {
       (actorFor[PersistenceActor] ? PersistenceActor.Delete(workflow.name, classOf[Workflow])).map { _ ⇒
-        actorFor[PersistenceActor] ! ResetWorkflow(workflow)
+        actorFor[PersistenceActor] ! PersistenceActor.ResetWorkflow(workflow)
         pulse(workflow, scheduled = false)
       }
     })
@@ -84,7 +83,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   private def suspend(workflow: Workflow, running: Boolean): Unit = {
     undeploy(workflow, running, () ⇒ {
       if (workflow.status != Workflow.Status.Suspended)
-        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Suspended)).map { _ ⇒
+        (actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowStatus(workflow, Workflow.Status.Suspended)).map { _ ⇒
           pulse(workflow, scheduled = false)
         }
     })
@@ -93,12 +92,12 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   private def restart(workflow: Workflow, running: Boolean): Unit = {
     workflow.status match {
       case Workflow.Status.Restarting(Some(RestartingPhase.Starting)) ⇒ deploy(workflow, running, () ⇒ {
-        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
+        (actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
           pulse(workflow, scheduled = true)
         }
       })
       case _ ⇒ undeploy(workflow, running, () ⇒ {
-        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Restarting(Option(RestartingPhase.Starting)))).map { _ ⇒
+        (actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowStatus(workflow, Workflow.Status.Restarting(Option(RestartingPhase.Starting)))).map { _ ⇒
           pulse(workflow, scheduled = false)
         }
       })

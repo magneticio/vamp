@@ -71,7 +71,6 @@ trait HttpApiDirectives extends Directives with CorsDirectives {
     )
   )
 
-  // TODO: implement as a directive
   protected def respondWith(status: StatusCode, response: Any): Route = {
 
     def links(uri: Uri, envelope: OffsetResponseEnvelope[_]) = {

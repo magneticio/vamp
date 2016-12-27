@@ -6,10 +6,7 @@ import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact.Artifact
 
 import scala.concurrent.Future
-import scala.language.existentials
 import scala.reflect._
-
-object CommonPersistenceMessages extends CommonPersistenceMessages
 
 trait CommonPersistenceMessages {
 
@@ -28,7 +25,7 @@ trait CommonPersistenceMessages {
 trait CommonPersistenceOperations extends PersistenceMultiplexer with PersistenceArchive with ArtifactExpansion with ArtifactShrinkage {
   this: CommonSupportForActors with NotificationProvider ⇒
 
-  import CommonPersistenceMessages._
+  import PersistenceActor._
 
   protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope]
 

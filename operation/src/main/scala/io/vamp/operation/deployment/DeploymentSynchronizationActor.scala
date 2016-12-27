@@ -16,7 +16,7 @@ import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification.{ DeploymentServiceError, OperationNotificationProvider }
-import io.vamp.persistence.db.{ ArtifactPaginationSupport, DevelopmentPersistenceMessages, PersistenceActor }
+import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -83,7 +83,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
       if (timed) {
         val notification = DeploymentServiceError(deployment, service)
         reportException(notification)
-        actorFor[PersistenceActor] ! DevelopmentPersistenceMessages.UpdateDeploymentServiceStatus(deployment, cluster, service, Status(service.status.intention, Failed(notification)))
+        actorFor[PersistenceActor] ! PersistenceActor.UpdateDeploymentServiceStatus(deployment, cluster, service, Status(service.status.intention, Failed(notification)))
       }
       timed
     }
