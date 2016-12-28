@@ -112,7 +112,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  common, persistence, model, operation, bootstrap, container_driver, workflow_driver, pulse, http_api, gateway_driver, cli
+  common, persistence, model, operation, bootstrap, container_driver, workflow_driver, pulse, http_api, gateway_driver
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
 lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.preferences.value
@@ -120,7 +120,7 @@ lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := 
   .setPreference(AlignParameters, true)
   .setPreference(AlignSingleLineCaseStatements, true)
   .setPreference(DoubleIndentClassDeclaration, true)
-  .setPreference(PreserveDanglingCloseParenthesis, true)
+  .setPreference(DanglingCloseParenthesis, Preserve)
   .setPreference(RewriteArrowSymbols, true))
 
 lazy val bootstrap = project.settings(bintraySetting: _*).settings(
@@ -187,14 +187,6 @@ lazy val persistence = project.settings(bintraySetting: _*).settings(
   formatting,
   libraryDependencies ++= zookeeper ++ testing
 ).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
-
-lazy val cli = project.settings(bintraySetting: _*).settings(
-  description := "Command Line Interface for Vamp",
-  name := "vamp-cli",
-  formatting,
-  libraryDependencies ++= testing,
-  assemblyJarName in assembly := s"vamp-cli-${version.value}.jar"
-).dependsOn(model)
 
 lazy val model = project.settings(bintraySetting: _*).settings(
   description := "Definitions of Vamp artifacts",
