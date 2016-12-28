@@ -54,11 +54,11 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
   initializeTemplates()
 
   onTransition {
-    case Phase1 -> Phase2 ⇒ initializeDocuments()
+    case (Phase1, Phase2) ⇒ initializeDocuments()
   }
 
   onTransition {
-    case Phase2 -> Phase3 ⇒ initializeCustom()
+    case (Phase2, Phase3) ⇒ initializeCustom()
   }
 
   when(Phase1, stateTimeout = timeout.duration) {
