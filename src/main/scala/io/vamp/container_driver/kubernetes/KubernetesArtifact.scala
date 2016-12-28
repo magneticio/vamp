@@ -10,7 +10,7 @@ trait KubernetesArtifact {
     } filter {
       case (_, v) ⇒ v.isEmpty || (v.matches("^[a-zA-Z0-9].*[a-zA-Z0-9]$") && v.length < 64)
     } map {
-      case (k, v) ⇒ k -> v.replaceAll("[^a-zA-Z0-9\\._-]", "_")
+      case (k, v) ⇒ k → v.replaceAll("[^a-zA-Z0-9\\._-]", "_")
     } map {
       case (k, v) ⇒ s""""$k": "$v""""
     } mkString ", "

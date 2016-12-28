@@ -9,16 +9,17 @@ case class RancherResponse(id: String, status: Int, links: Option[List[String]])
 case class Stack(state: Option[String], id: Option[String], name: String, actions: Option[Map[String, String]])
 
 case class LaunchConfig(
-  imageUuid: String,
-  labels: Option[Map[String, String]],
-  privileged: Option[Boolean],
-  startOnCreate: Boolean = false,
-  cpuShares: Option[Int] = None,
-  memoryMb: Option[Int] = None,
-  networkMode: String,
-  ports: List[String] = Nil,
-  command: List[String] = Nil,
-  environment: Map[String, String] = Map())
+  imageUuid:     String,
+  labels:        Option[Map[String, String]],
+  privileged:    Option[Boolean],
+  startOnCreate: Boolean                     = false,
+  cpuShares:     Option[Int]                 = None,
+  memoryMb:      Option[Int]                 = None,
+  networkMode:   String,
+  ports:         List[String]                = Nil,
+  command:       List[String]                = Nil,
+  environment:   Map[String, String]         = Map()
+)
 
 case class ServiceContainersList(data: List[RancherContainer])
 
@@ -32,15 +33,17 @@ case class ServiceList(data: List[Service])
 
 case class UpdateService(scale: Int)
 
-case class Service(state: Option[String],
-                   environmentId: String,
-                   id: Option[String],
-                   name: String,
-                   scale: Option[Int],
-                   launchConfig: Option[LaunchConfig],
-                   actions: Map[String, String],
-                   containers: List[RancherContainer],
-                   startOnCreate: Boolean)
+case class Service(
+  state:         Option[String],
+  environmentId: String,
+  id:            Option[String],
+  name:          String,
+  scale:         Option[Int],
+  launchConfig:  Option[LaunchConfig],
+  actions:       Map[String, String],
+  containers:    List[RancherContainer],
+  startOnCreate: Boolean
+)
 
 case class ProjectInfo(id: String, state: String)
 
