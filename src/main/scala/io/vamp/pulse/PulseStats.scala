@@ -19,13 +19,13 @@ trait PulseStats {
       scheduled ← count(Set(PulseEventTags.Workflows.scheduledTag))
       unscheduled ← count(Set(PulseEventTags.Workflows.unscheduledTag))
     } yield Map(
-      "escalation-count" -> escalations,
-      "de-escalation-count" -> deescalations,
-      "deployed-services" -> deployed,
-      "redeployed-services" -> redeploy,
-      "undeployed-services" -> undeployed,
-      "scheduled-workflows" -> scheduled,
-      "unscheduled-workflows" -> unscheduled
+      "escalation-count" → escalations,
+      "de-escalation-count" → deescalations,
+      "deployed-services" → deployed,
+      "redeployed-services" → redeploy,
+      "undeployed-services" → undeployed,
+      "scheduled-workflows" → scheduled,
+      "unscheduled-workflows" → unscheduled
     )
   }
 

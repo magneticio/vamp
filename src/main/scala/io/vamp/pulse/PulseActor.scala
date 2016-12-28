@@ -5,18 +5,18 @@ import java.time.format.DateTimeFormatter
 
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
-import io.vamp.common.http.{OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope}
-import io.vamp.common.json.{OffsetDateTimeSerializer, SerializationFormat}
+import io.vamp.common.http.{ OffsetEnvelope, OffsetRequestEnvelope, OffsetResponseEnvelope }
+import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.notification.Notification
-import io.vamp.common.vitals.{InfoRequest, StatsRequest}
+import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.model.event.Aggregator.AggregatorType
 import io.vamp.model.event._
 import io.vamp.model.validator.EventValidator
-import io.vamp.pulse.Percolator.{RegisterPercolator, UnregisterPercolator}
+import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization._
-import org.json4s.{DefaultFormats, Extraction}
+import org.json4s.{ DefaultFormats, Extraction }
 
 import scala.concurrent.Future
 
