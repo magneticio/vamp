@@ -65,12 +65,13 @@ object AsyncZooKeeperClient {
   implicit def toDeserializer(bytes: Array[Byte]): Deserializer = new Deserializer(bytes)
 
   def apply(
-    servers: String,
+    servers:        String,
     sessionTimeout: Int,
     connectTimeout: Int,
-    basePath: String,
-    watcher: Option[AsyncZooKeeperClient ⇒ Unit],
-    eCtx: ExecutionContext): AsyncZooKeeperClient = new AsyncZooKeeperClientImpl(servers, sessionTimeout, connectTimeout, basePath, watcher, eCtx)
+    basePath:       String,
+    watcher:        Option[AsyncZooKeeperClient ⇒ Unit],
+    eCtx:           ExecutionContext
+  ): AsyncZooKeeperClient = new AsyncZooKeeperClientImpl(servers, sessionTimeout, connectTimeout, basePath, watcher, eCtx)
 }
 
 /**
@@ -237,12 +238,13 @@ trait AsyncZooKeeperClient {
 }
 
 class AsyncZooKeeperClientImpl(
-    val servers: String,
+    val servers:        String,
     val sessionTimeout: Int,
     val connectTimeout: Int,
-    val basePath: String,
-    watcher: Option[AsyncZooKeeperClient ⇒ Unit],
-    eCtx: ExecutionContext) extends AsyncZooKeeperClient {
+    val basePath:       String,
+    watcher:            Option[AsyncZooKeeperClient ⇒ Unit],
+    eCtx:               ExecutionContext
+) extends AsyncZooKeeperClient {
 
   import AsyncResponse._
 

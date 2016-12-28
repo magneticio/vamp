@@ -3,7 +3,7 @@ package io.vamp.persistence.db
 import io.vamp.common.config.Config
 import io.vamp.model.artifact._
 import io.vamp.pulse.ElasticsearchClient
-import io.vamp.pulse.ElasticsearchClient.{ElasticsearchGetResponse, ElasticsearchSearchResponse}
+import io.vamp.pulse.ElasticsearchClient.{ ElasticsearchGetResponse, ElasticsearchSearchResponse }
 
 import scala.concurrent.Future
 
