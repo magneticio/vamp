@@ -115,20 +115,21 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
           lookup = s"$intermediate${GatewayLookup.lookup(gateway, route.path.segments)}",
           mode = mode,
           proxyServers = ProxyServer(
-            name = GatewayLookup.name(gateway, route.path.segments),
-            lookup = GatewayLookup.lookup(gateway, route.path.segments),
-            unixSock = unixSocket(GatewayLookup.lookup(gateway, route.path.segments)),
-            weight = route.conditionStrength.get.value
-          ) :: ProxyServer(
-              name = s"other ${GatewayLookup.name(gateway)}",
-              lookup = s"$other${GatewayLookup.lookup(gateway)}",
-              unixSock = unixSocket(s"$other${GatewayLookup.lookup(gateway)}"),
-              weight = 100 - route.conditionStrength.get.value
-            ) :: Nil,
+          name = GatewayLookup.name(gateway, route.path.segments),
+          lookup = GatewayLookup.lookup(gateway, route.path.segments),
+          unixSock = unixSocket(GatewayLookup.lookup(gateway, route.path.segments)),
+          weight = route.conditionStrength.get.value
+        ) :: ProxyServer(
+            name = s"other ${GatewayLookup.name(gateway)}",
+            lookup = s"$other${GatewayLookup.lookup(gateway)}",
+            unixSock = unixSocket(s"$other${GatewayLookup.lookup(gateway)}"),
+            weight = 100 - route.conditionStrength.get.value
+          ) :: Nil,
           servers = Nil,
           rewrites = Nil,
           sticky = gateway.sticky.contains(Gateway.Sticky.Route) || gateway.sticky.contains(Gateway.Sticky.Instance),
-          balance = gateway.defaultBalance)
+          balance = gateway.defaultBalance
+        )
       case route ⇒ unsupported(route)
     }
 
@@ -177,7 +178,8 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
           },
           rewrites = rewrites(route),
           sticky = gateway.sticky.contains(Gateway.Sticky.Instance),
-          balance = route.balance.getOrElse(gateway.defaultBalance))
+          balance = route.balance.getOrElse(gateway.defaultBalance)
+        )
       case route ⇒ unsupported(route)
     }
 

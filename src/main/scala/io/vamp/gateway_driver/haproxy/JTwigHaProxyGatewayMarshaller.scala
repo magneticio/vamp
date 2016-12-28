@@ -8,8 +8,8 @@ trait JTwigHaProxyGatewayMarshaller extends HaProxyGatewayMarshaller {
   def templateFile: String = ""
 
   override lazy val info: AnyRef = Map(
-    "HAProxy" -> s"$version.x",
-    "template" -> (if (templateFile.isEmpty) "default" else templateFile)
+    "HAProxy" → s"$version.x",
+    "template" → (if (templateFile.isEmpty) "default" else templateFile)
   )
 
   override private[haproxy] def marshall(haProxy: HaProxy): String = {
