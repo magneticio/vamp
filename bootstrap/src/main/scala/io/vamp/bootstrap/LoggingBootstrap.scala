@@ -28,7 +28,8 @@ class LoggingBootstrap extends Bootstrap {
          |                                    $version
          |                                    by magnetic.io
          |
-    """.stripMargin)
+    """.stripMargin
+    )
   }
 
   private lazy val version = if (Model.version.nonEmpty) s"version ${Model.version}" else ""

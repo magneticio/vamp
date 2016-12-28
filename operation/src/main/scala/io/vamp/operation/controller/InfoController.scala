@@ -19,17 +19,18 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 
 case class InfoMessage(
-  message: String,
-  version: String,
-  uuid: String,
-  runningSince: String,
-  jvm: Option[JvmVitals],
-  persistence: Option[Any],
-  keyValue: Option[Any],
-  pulse: Option[Any],
-  gatewayDriver: Option[Any],
+  message:         String,
+  version:         String,
+  uuid:            String,
+  runningSince:    String,
+  jvm:             Option[JvmVitals],
+  persistence:     Option[Any],
+  keyValue:        Option[Any],
+  pulse:           Option[Any],
+  gatewayDriver:   Option[Any],
   containerDriver: Option[Any],
-  workflowDriver: Option[Any]) extends JvmInfoMessage
+  workflowDriver:  Option[Any]
+) extends JvmInfoMessage
 
 trait InfoController extends DataRetrieval with JmxVitalsProvider {
   this: ExecutionContextProvider with ActorSystemProvider ⇒

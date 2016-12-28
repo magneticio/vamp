@@ -25,7 +25,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   protected def schema: Enumeration
 
-  protected def labels(id: String, value: String) = Map("vamp" -> value, value -> id)
+  protected def labels(id: String, value: String) = Map("vamp" → value, value → id)
 
   protected def pods(id: String, value: String) = s"$podUrl?${labelSelector(labels(id, value))}"
 
@@ -40,7 +40,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   private def containerServices(deploymentServices: List[DeploymentServices], response: KubernetesApiResponse): Future[List[ContainerService]] = Future.sequence {
 
-    val deployed = response.items.map(item ⇒ item.metadata.name -> item).toMap
+    val deployed = response.items.map(item ⇒ item.metadata.name → item).toMap
 
     deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).flatMap {
       case (deployment, service) ⇒
@@ -53,8 +53,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
             val ports = item.spec.template.flatMap(_.spec.containers.headOption).map(_.ports.map(_.containerPort)).getOrElse(Nil)
             val scale: Option[DefaultScale] = item.spec.template.flatMap(_.spec.containers.headOption).map(_.resources.requests).map(request ⇒
-              DefaultScale("", Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1))
-            )
+              DefaultScale("", Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1)))
 
             if (scale.isDefined) {
               httpClient.get[KubernetesApiResponse](pods(id, deploymentServiceIdLabel), apiHeaders).map { pods ⇒

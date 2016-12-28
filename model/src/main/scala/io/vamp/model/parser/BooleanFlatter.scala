@@ -18,7 +18,7 @@ trait BooleanFlatter {
 
       (0L until 1 << ops.size) flatMap { value ⇒
         val map = ops.zipWithIndex.map {
-          case (op, index) ⇒ op -> ((value & 1 << index) > 0)
+          case (op, index) ⇒ op → ((value & 1 << index) > 0)
         } toList
 
         if (calculate(node, map)) ReductionInput(terms(map), value) :: Nil else Nil

@@ -23,7 +23,7 @@ object ObjectUtil {
     case p if isPrimitive(p)  ⇒ p
     case e: Enumeration#Value ⇒ e
     case l: List[_]           ⇒ l.map(unwrap)
-    case m: Map[_, _]         ⇒ m.map { case (k, v) ⇒ k -> unwrap(v) }
+    case m: Map[_, _]         ⇒ m.map { case (k, v) ⇒ k → unwrap(v) }
     case null                 ⇒ None
     case Some(s)              ⇒ Option(unwrap(s))
     case None                 ⇒ None
@@ -31,13 +31,13 @@ object ObjectUtil {
       val reflection = currentMirror.reflect(any)
       currentMirror.reflect(any).symbol.typeSignature.members.toList
         .collect { case s: TermSymbol if !s.isMethod ⇒ reflection.reflectField(s) }
-        .map(r ⇒ r.symbol.name.toString.trim -> unwrap(r.get))
+        .map(r ⇒ r.symbol.name.toString.trim → unwrap(r.get))
         .toMap
   }
 
   def java: Any ⇒ Any = {
     case l: List[_]   ⇒ l.map(java).asJava
-    case m: Map[_, _] ⇒ m.map({ case (k, v) ⇒ k -> java(v) }).asJava
+    case m: Map[_, _] ⇒ m.map({ case (k, v) ⇒ k → java(v) }).asJava
     case Some(s)      ⇒ Option(java(s))
     case any          ⇒ any
   }

@@ -40,7 +40,7 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PersistenceMarsh
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 
-  private def info = Future.successful(Map("marshaller" -> marshaller.info))
+  private def info = Future.successful(Map("marshaller" → marshaller.info))
 
   private def pull(): Future[List[Gateway]] = {
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(root :: Nil) map {

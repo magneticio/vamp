@@ -11,7 +11,7 @@ object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
   override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
     <<?[Any]("escalations") match {
       case None                ⇒
-      case Some(list: List[_]) ⇒ if (list.size > 1) >>("escalations", List(YamlSourceReader("type" -> "to_all", "escalations" -> list)))
+      case Some(list: List[_]) ⇒ if (list.size > 1) >>("escalations", List(YamlSourceReader("type" → "to_all", "escalations" → list)))
       case Some(any)           ⇒ >>("escalations", List(any))
     }
     source

@@ -43,7 +43,7 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
   private def sessionOpened(id: UUID, actor: ActorRef) = {
     log.info(s"WebSocket session opened [$id]: $actor}")
     context.watch(actor)
-    sessions += (id -> actor)
+    sessions += (id → actor)
   }
 
   private def sessionClosed(id: UUID) = {
@@ -134,7 +134,7 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
         case _                     ⇒ Status.Error
       }
 
-      val params = response.headers.map(header ⇒ header.name() -> header.value()).toMap
+      val params = response.headers.map(header ⇒ header.name() → header.value()).toMap
       val data = if (d.isEmpty) None else Option(d.utf8String)
 
       Option(WebSocketResponse(request.api, request.path, request.action, status, request.accept, request.transaction, data, params))

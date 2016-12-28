@@ -37,14 +37,15 @@ object Workflow {
 }
 
 case class Workflow(
-    name: String,
-    breed: Breed,
-    status: Workflow.Status,
-    schedule: Schedule,
-    scale: Option[Scale],
+    name:                 String,
+    breed:                Breed,
+    status:               Workflow.Status,
+    schedule:             Schedule,
+    scale:                Option[Scale],
     environmentVariables: List[EnvironmentVariable],
-    arguments: List[Argument],
-    network: Option[String]) extends Artifact with Lookup {
+    arguments:            List[Argument],
+    network:              Option[String]
+) extends Artifact with Lookup {
 
   val kind = "workflow"
 }

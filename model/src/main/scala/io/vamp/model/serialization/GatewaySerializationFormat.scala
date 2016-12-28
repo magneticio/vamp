@@ -72,7 +72,7 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
             case _ :: _ :: s :: _ :: Nil if !full ⇒ s
             case _ :: _ :: _ :: Nil if !full      ⇒ GatewayPath(route.path.segments.tail).normalized
             case _                                ⇒ route.path.source
-          }) -> serializeRoute(full, () ⇒ { Option(GatewayLookup.lookup(gateway, route.path.segments)) })(format)(route)
+          }) → serializeRoute(full, () ⇒ { Option(GatewayLookup.lookup(gateway, route.path.segments)) })(format)(route)
         } toMap
       })
 

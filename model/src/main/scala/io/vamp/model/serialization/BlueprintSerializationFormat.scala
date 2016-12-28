@@ -28,7 +28,7 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomp
       list += JField("name", JString(blueprint.name))
       list += JField("kind", JString(blueprint.kind))
       list += JField("gateways", serializeGateways(blueprint.gateways))
-      list += JField("clusters", Extraction.decompose(blueprint.clusters.map(cluster ⇒ cluster.name -> cluster).toMap))
+      list += JField("clusters", Extraction.decompose(blueprint.clusters.map(cluster ⇒ cluster.name → cluster).toMap))
       list += JField("environment_variables", traits(blueprint.environmentVariables))
       new JObject(list.toList)
   }
@@ -87,17 +87,17 @@ trait ArgumentListSerializer {
 }
 
 trait DialectSerializer {
-  def serializeDialects(dialects: Map[Dialect.Value, Any]) = Extraction.decompose(dialects.map({ case (k, v) ⇒ k.toString.toLowerCase -> v }))(DefaultFormats)
+  def serializeDialects(dialects: Map[Dialect.Value, Any]) = Extraction.decompose(dialects.map({ case (k, v) ⇒ k.toString.toLowerCase → v }))(DefaultFormats)
 }
 
 trait BlueprintGatewaySerializer extends GatewayDecomposer {
   def serializeGateways(gateways: List[Gateway]) = Extraction.decompose {
-    gateways.map(gateway ⇒ gateway.port.name -> serializeAnonymousGateway(port = true)(CoreSerializationFormat.default)(gateway)).toMap
+    gateways.map(gateway ⇒ gateway.port.name → serializeAnonymousGateway(port = true)(CoreSerializationFormat.default)(gateway)).toMap
   }(DefaultFormats)
 }
 
 trait InternalGatewaySerializer extends GatewayDecomposer {
   def serializeGateways(gateways: List[Gateway]) = Extraction.decompose {
-    gateways.map(gateway ⇒ gateway.port.name -> serializeAnonymousGateway(port = false)(CoreSerializationFormat.default)(gateway)).toMap
+    gateways.map(gateway ⇒ gateway.port.name → serializeAnonymousGateway(port = false)(CoreSerializationFormat.default)(gateway)).toMap
   }(DefaultFormats)
 }

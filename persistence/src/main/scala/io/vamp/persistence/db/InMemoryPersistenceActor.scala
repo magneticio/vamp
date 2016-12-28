@@ -48,10 +48,11 @@ class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with Persistence
   private val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
   def info() = Map[String, Any](
-    "type" -> "in-memory [no persistence]",
-    "artifacts" -> (store.map {
-      case (key, value) ⇒ key -> Map[String, Any]("count" -> value.values.size)
-    } toMap))
+    "type" → "in-memory [no persistence]",
+    "artifacts" → (store.map {
+      case (key, value) ⇒ key → Map[String, Any]("count" → value.values.size)
+    } toMap)
+  )
 
   def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
     val artifacts = store.get(`type`) match {

@@ -59,7 +59,7 @@ class EtcdStoreActor extends KeyValueStoreActor {
 
   override protected def set(path: List[String], data: Option[String]): Future[Any] = data match {
     case None        ⇒ httpClient.delete(urlOfValue(path), logError = false).recover { case _ ⇒ false }
-    case Some(value) ⇒ httpClient.httpWithEntity[Any](HttpMethods.PUT, urlOfValue(path), Option(FormData("value" -> value).toEntity), logError = false)
+    case Some(value) ⇒ httpClient.httpWithEntity[Any](HttpMethods.PUT, urlOfValue(path), Option(FormData("value" → value).toEntity), logError = false)
   }
 
   private def urlOfValue(path: List[String]) = s"${urlOf(path)}/$valueNode"

@@ -8,7 +8,7 @@ import scala.concurrent.Future
 
 class KubernetesWorkflowDriver(implicit override val actorSystem: ActorSystem) extends DaemonWorkflowDriver {
 
-  override def info: Future[Map[_, _]] = Future.successful(Map("kubernetes" -> Map("url" -> KubernetesDriverActor.url)))
+  override def info: Future[Map[_, _]] = Future.successful(Map("kubernetes" → Map("url" → KubernetesDriverActor.url)))
 
   override protected def driverActor: ActorRef = IoC.actorFor[KubernetesDriverActor]
 }

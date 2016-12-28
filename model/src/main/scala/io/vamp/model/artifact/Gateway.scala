@@ -20,13 +20,15 @@ object Gateway {
 
 case class GatewayService(host: String, port: Port)
 
-case class Gateway(name: String,
-                   port: Port,
-                   service: Option[GatewayService],
-                   sticky: Option[Gateway.Sticky.Value],
-                   virtualHosts: List[String],
-                   routes: List[Route],
-                   deployed: Boolean = false) extends Artifact with Lookup {
+case class Gateway(
+    name:         String,
+    port:         Port,
+    service:      Option[GatewayService],
+    sticky:       Option[Gateway.Sticky.Value],
+    virtualHosts: List[String],
+    routes:       List[Route],
+    deployed:     Boolean                      = false
+) extends Artifact with Lookup {
 
   val kind = "gateway"
 

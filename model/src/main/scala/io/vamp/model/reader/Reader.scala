@@ -76,7 +76,7 @@ trait YamlLoader {
       case source: java.util.Map[_, _] ⇒
         // keeping the order
         val map = new mutable.LinkedHashMap[String, Any]()
-        source.entrySet().asScala.foreach(entry ⇒ map += entry.getKey.toString -> convert(entry.getValue))
+        source.entrySet().asScala.foreach(entry ⇒ map += entry.getKey.toString → convert(entry.getValue))
         map
       case source: java.util.List[_]     ⇒ source.asScala.map(convert).toList
       case source: java.lang.Iterable[_] ⇒ source.asScala.map(convert).toList
@@ -159,10 +159,12 @@ trait YamlReader[T] extends YamlLoader with ModelNotificationProvider with NameV
       validateConsumed(source, result)
       result
 
-    } catch {
+    }
+    catch {
       case e: NotificationErrorException ⇒ throw e
       case e: YAMLException              ⇒ invalidYaml(e)
-    } finally {
+    }
+    finally {
       reader.close()
     }
   }
@@ -295,7 +297,7 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] with AnonymousYamlReader[
   def readReferenceOrAnonymous(any: Any): T = readReferenceOrAnonymous(any, validateReference = true)
 
   def readReferenceOrAnonymous(any: Any, validateReference: Boolean): T = any match {
-    case string: String                              ⇒ createReference(YamlSourceReader("reference" -> string))
+    case string: String                              ⇒ createReference(YamlSourceReader("reference" → string))
     case yaml: YamlSourceReader if validateReference ⇒ read(validateEitherReferenceOrAnonymous(yaml))
     case yaml: YamlSourceReader                      ⇒ read(yaml)
   }
@@ -352,7 +354,8 @@ trait TraitReader extends TraitNameAliasResolver {
           case Some(ref) ⇒ ref.asTraitReference(TraitReference.Ports)
           case None      ⇒ name
         }
-      } else name
+      }
+      else name
       Port(reference, alias, value)
     }, false)
   }
@@ -364,7 +367,8 @@ trait TraitReader extends TraitNameAliasResolver {
           case Some(ref) ⇒ ref.asTraitReference(TraitReference.EnvironmentVariables)
           case None      ⇒ name
         }
-      } else name
+      }
+      else name
       EnvironmentVariable(reference, alias, value)
     }, alias)
   }
@@ -376,7 +380,8 @@ trait TraitReader extends TraitNameAliasResolver {
           case Some(ref) ⇒ ref.asTraitReference(TraitReference.EnvironmentVariables)
           case None      ⇒ name
         }
-      } else name
+      }
+      else name
       Constant(reference, alias, value)
     }, false)
   }
@@ -402,8 +407,8 @@ trait DialectReader {
     Dialect.values.toList.flatMap { dialect ⇒
       <<?[Any](dialect.toString.toLowerCase) match {
         case None                      ⇒ Nil
-        case Some(d: YamlSourceReader) ⇒ (dialect -> d.flatten()) :: Nil
-        case Some(d)                   ⇒ (dialect -> Map()) :: Nil
+        case Some(d: YamlSourceReader) ⇒ (dialect → d.flatten()) :: Nil
+        case Some(d)                   ⇒ (dialect → Map()) :: Nil
       }
     } toMap
   }

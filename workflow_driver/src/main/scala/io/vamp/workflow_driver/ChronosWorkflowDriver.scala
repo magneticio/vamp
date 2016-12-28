@@ -20,7 +20,7 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: Acto
   override protected def supportedDeployableTypes = DockerDeployable :: Nil
 
   override def info: Future[Map[_, _]] = httpClient.get[Any](s"$url/scheduler/jobs").map {
-    _ ⇒ Map("chronos" -> Map("url" -> url))
+    _ ⇒ Map("chronos" → Map("url" → url))
   }
 
   override def request(replyTo: ActorRef, workflows: List[Workflow]): Unit = all() foreach { instances ⇒
@@ -78,7 +78,7 @@ class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: Acto
 
   private def job(name: String, schedule: String, containerImage: String, environmentVariables: List[EnvironmentVariable], scale: DefaultScale, network: String) = {
 
-    val vars = environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) -> ev.interpolated.getOrElse("")).map {
+    val vars = environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) → ev.interpolated.getOrElse("")).map {
       case (n, v) ⇒ s"""{ "name": "$n", "value": "$v" }"""
     } mkString ","
 

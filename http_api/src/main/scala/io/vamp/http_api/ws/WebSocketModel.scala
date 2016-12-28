@@ -30,26 +30,30 @@ sealed trait WebSocketValidMessage extends WebSocketMessage {
 
 case class WebSocketError(error: Notification) extends WebSocketMessage
 
-case class WebSocketRequest(api: String,
-                            path: String,
-                            action: ActionType,
-                            accept: ContentType,
-                            content: ContentType,
-                            transaction: String,
-                            data: Option[String],
-                            parameters: Map[String, AnyRef]) extends WebSocketValidMessage {
+case class WebSocketRequest(
+    api:         String,
+    path:        String,
+    action:      ActionType,
+    accept:      ContentType,
+    content:     ContentType,
+    transaction: String,
+    data:        Option[String],
+    parameters:  Map[String, AnyRef]
+) extends WebSocketValidMessage {
 
   val eventStream = action == Action.Peek && path == "/events/stream"
 }
 
-case class WebSocketResponse(api: String,
-                             path: String,
-                             action: ActionType,
-                             status: StatusType,
-                             content: ContentType,
-                             transaction: String,
-                             data: Option[AnyRef],
-                             parameters: Map[String, AnyRef]) extends WebSocketValidMessage
+case class WebSocketResponse(
+  api:         String,
+  path:        String,
+  action:      ActionType,
+  status:      StatusType,
+  content:     ContentType,
+  transaction: String,
+  data:        Option[AnyRef],
+  parameters:  Map[String, AnyRef]
+) extends WebSocketValidMessage
 
 object Action extends Enumeration {
   type ActionType = Value

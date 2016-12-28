@@ -28,6 +28,7 @@ trait JmxVitalsProvider {
       MemoryUsageVitals(memory.getHeapMemoryUsage.getInit, memory.getHeapMemoryUsage.getMax, memory.getHeapMemoryUsage.getCommitted, memory.getHeapMemoryUsage.getUsed),
       MemoryUsageVitals(memory.getNonHeapMemoryUsage.getInit, memory.getNonHeapMemoryUsage.getMax, memory.getNonHeapMemoryUsage.getCommitted, memory.getNonHeapMemoryUsage.getUsed)
     ),
-    ThreadVitals(thread.getThreadCount, thread.getPeakThreadCount, thread.getDaemonThreadCount, thread.getTotalStartedThreadCount))
+    ThreadVitals(thread.getThreadCount, thread.getPeakThreadCount, thread.getDaemonThreadCount, thread.getTotalStartedThreadCount)
+  )
 }
 

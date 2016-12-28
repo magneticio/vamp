@@ -29,7 +29,8 @@ trait WebSocketMarshaller extends YamlLoader {
       case Right(r) ⇒ r
       case Left(r)  ⇒ r :: Nil
     }).map(unmarshall)
-  } catch {
+  }
+  catch {
     case NotificationErrorException(n, _) ⇒ WebSocketError(n) :: Nil
     case e: Exception                     ⇒ WebSocketError(invalidYamlException(e)) :: Nil
   }
@@ -44,10 +45,10 @@ trait WebSocketMarshaller extends YamlLoader {
     }
 
     response match {
-      case e: WebSocketError                ⇒ marshall(Map("status" -> Status.Error.toString.toUpperCase, "error" -> message(e.error)))
+      case e: WebSocketError                ⇒ marshall(Map("status" → Status.Error.toString.toUpperCase, "error" → message(e.error)))
       case r: WebSocketValidMessage         ⇒ marshall(r)
       case (r: WebSocketResponse, e: Event) ⇒ marshall(r.copy(data = Option(marshall(e, Option(r.content)))))
-      case _                                ⇒ marshall(Map("status" -> Status.Error.toString.toUpperCase, "error" -> "unsupported"))
+      case _                                ⇒ marshall(Map("status" → Status.Error.toString.toUpperCase, "error" → "unsupported"))
     }
   }
 

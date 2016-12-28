@@ -58,7 +58,7 @@ trait DeploymentTraitResolver extends TraitResolver {
 
   def valueForWithDependencyReplacement(deployment: Deployment, service: DeploymentService)(reference: ValueReference): String = {
     val aliases = service.breed.dependencies.map {
-      case (alias, dependency) ⇒ alias -> (deployment.clusters.find(_.services.exists(service ⇒ matchDependency(dependency)(service.breed))) match {
+      case (alias, dependency) ⇒ alias → (deployment.clusters.find(_.services.exists(service ⇒ matchDependency(dependency)(service.breed))) match {
         case Some(cluster) ⇒ cluster.name
         case None          ⇒ throwException(UnresolvedDependencyError(service.breed, dependency))
       })

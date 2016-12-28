@@ -28,7 +28,7 @@ trait TraitDecomposer extends TraitNameAliasResolver {
       case None ⇒ name
     }
 
-    new JObject(traits.map(t ⇒ t.name -> t).toMap.values.map { t ⇒
+    new JObject(traits.map(t ⇒ t.name → t).toMap.values.map { t ⇒
       val name = traitName(if (alias) asName(t.name, t.alias) else t.name)
       val value = if (t.value == null || t.value.isEmpty) JNull
       else {

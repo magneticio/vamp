@@ -55,15 +55,15 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
       sticky = false,
       balance = "roundrobin"
     ) :: Backend(
-        name = "name2",
-        lookup = "name2",
-        mode = Mode.http,
-        proxyServers = Nil,
-        servers = servers2,
-        rewrites = Rewrite("/images/%[path]", "p_ext_jpg path_end -i .jpg") :: Nil,
-        sticky = false,
-        balance = "roundrobin"
-      ) :: Nil
+      name = "name2",
+      lookup = "name2",
+      mode = Mode.http,
+      proxyServers = Nil,
+      servers = servers2,
+      rewrites = Rewrite("/images/%[path]", "p_ext_jpg path_end -i .jpg") :: Nil,
+      sticky = false,
+      balance = "roundrobin"
+    ) :: Nil
 
     val conditions = HaProxyCondition(
       name = "ie",
@@ -106,7 +106,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           host = Some("aaa.bbb.ccc"),
           port = 32768
         ) :: Nil
-      ) :: Nil))
+      ) :: Nil
+    ))
 
     compare(marshall(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, haProxyConfig)), "configuration_2.txt")
   }
@@ -130,7 +131,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           name = "64435a223bddf1fa589135baa5e228090279c032",
           port = 32768
         ) :: Nil
-      ) :: Nil))
+      ) :: Nil
+    ))
 
     compare(marshall(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, haProxyConfig)), "configuration_3.txt")
   }
@@ -154,7 +156,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             port = 32770
-          ) :: Nil)
+          ) :: Nil
+        )
           :: Nil
       ),
       Gateway(
@@ -174,7 +177,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             port = 33002
-          ) :: Nil)
+          ) :: Nil
+        )
           :: Nil
       )
     ))
@@ -209,7 +213,9 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
               ), InternalRouteTarget(
                 name = "5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7",
                 port = 32772
-              ))),
+              )
+            )
+          ),
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
@@ -225,7 +231,9 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
               ), InternalRouteTarget(
                 name = "49594c26c89754450bd4f562946a69070a4aa887",
                 port = 32773
-              )))
+              )
+            )
+          )
         )
       ),
       Gateway(
@@ -245,7 +253,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             port = 33002
-          ) :: Nil)
+          ) :: Nil
+        )
           :: Nil
       )
     ))
@@ -272,7 +281,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           targets = InternalRouteTarget(
             name = "57c4e3d2cbb8f0db907f5e16ceed9a4241d7e117",
             port = 32770
-          ) :: Nil)
+          ) :: Nil
+        )
           :: Nil
       ),
       Gateway(
@@ -292,7 +302,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           targets = InternalRouteTarget(
             name = "f1638245acf2ebe6db56984a85b48f6db8c74607",
             port = 32771
-          ) :: Nil)
+          ) :: Nil
+        )
           :: Nil
       ),
       Gateway(
@@ -312,7 +323,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             port = 33002
-          ) :: Nil)
+          ) :: Nil
+        )
           :: Nil
       )
     ))
@@ -374,13 +386,15 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
               name = "",
               path = "/img/%[path]",
               condition = "{ p_ext_jpg path_end -i .jpg } !{ p_folder_images path_beg -i /images/ }"
-            )),
+            )
+          ),
           balance = None,
           targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             port = 32776
           ) :: Nil
-        ) :: Nil)
+        ) :: Nil
+      )
     )
 
     compare(marshall(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, haProxyConfig)), "configuration_7.txt")
@@ -413,7 +427,9 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
               ), InternalRouteTarget(
                 name = "5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7",
                 port = 32772
-              ))),
+              )
+            )
+          ),
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
@@ -429,7 +445,9 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
               ), InternalRouteTarget(
                 name = "49594c26c89754450bd4f562946a69070a4aa887",
                 port = 32773
-              )))
+              )
+            )
+          )
         )
       ),
       Gateway(
@@ -449,7 +467,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             port = 33002
-          ) :: Nil)
+          ) :: Nil
+        )
           :: Nil
       )
     ))
@@ -484,7 +503,9 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
               ), InternalRouteTarget(
                 name = "5ccec1ae37f9c8f9e8eb1267bc176155541ceeb7",
                 port = 32772
-              ))),
+              )
+            )
+          ),
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
@@ -500,7 +521,9 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
               ), InternalRouteTarget(
                 name = "49594c26c89754450bd4f562946a69070a4aa887",
                 port = 32773
-              )))
+              )
+            )
+          )
         )
       ),
       Gateway(
@@ -520,7 +543,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             port = 33002
-          ) :: Nil)
+          ) :: Nil
+        )
           :: Nil
       )
     ))
@@ -547,7 +571,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             port = 32770
-          ) :: Nil)
+          ) :: Nil
+        )
           :: Nil
       ),
       Gateway(
@@ -567,7 +592,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             port = 32771
-          ) :: Nil)
+          ) :: Nil
+        )
           :: Nil
       ),
       Gateway(
@@ -589,7 +615,9 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
               InternalRouteTarget(
                 name = "64435a223bddf1fa589135baa5e228090279c032",
                 port = 32772
-              ))),
+              )
+            )
+          ),
           DefaultRoute(
             name = "vamp:2.x/sava/port",
             path = GatewayPath("vamp:2.x/sava/port"),
@@ -602,8 +630,11 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
               InternalRouteTarget(
                 name = "9019c00f1f7f641c4efc7a02c6f44e9f90d7750",
                 port = 32773
-              )))
-        ))
+              )
+            )
+          )
+        )
+      )
     ))
 
     compare(marshall(HaProxy(version, converted.frontends, converted.backends, Nil, Nil, haProxyConfig)), "configuration_10.txt")
@@ -628,7 +659,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             port = 32770
-          ) :: Nil)
+          ) :: Nil
+        )
           :: Nil
       ),
       Gateway(
@@ -648,7 +680,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           targets = InternalRouteTarget(
             name = "64435a223bddf1fa589135baa5e228090279c032",
             port = 32771
-          ) :: Nil)
+          ) :: Nil
+        )
           :: Nil
       )
     ))
@@ -675,7 +708,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           name = "64435a223bddf1fa589135baa5e228090279c032",
           port = 32768
         ) :: Nil
-      ) :: Nil))
+      ) :: Nil
+    ))
 
     compare(marshall(HaProxy(version, converted.frontends, converted.backends, converted.virtualHostFrontends, converted.virtualHostBackends, haProxyConfig)), "configuration_12.txt")
   }
@@ -699,7 +733,8 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
           name = "64435a223bddf1fa589135baa5e228090279c032",
           port = 32768
         ) :: Nil
-      ) :: Nil))
+      ) :: Nil
+    ))
 
     compare(marshall(HaProxy(version, converted.frontends, converted.backends, converted.virtualHostFrontends, converted.virtualHostBackends, haProxyConfig)), "configuration_13.txt")
   }

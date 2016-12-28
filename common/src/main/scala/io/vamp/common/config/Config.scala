@@ -49,7 +49,7 @@ private[config] class Config(config: TypesafeConfig, root: String) {
         value ⇒ ConfigFactory.parseString(s"$key = $value").withFallback(config)
       } getOrElse cfg getAnyRef key
 
-      key -> value
+      key → value
 
     } toMap
   }

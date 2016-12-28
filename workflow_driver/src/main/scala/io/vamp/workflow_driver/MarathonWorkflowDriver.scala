@@ -8,7 +8,7 @@ import scala.concurrent.Future
 
 class MarathonWorkflowDriver(implicit override val actorSystem: ActorSystem) extends DaemonWorkflowDriver {
 
-  override def info: Future[Map[_, _]] = Future.successful(Map("marathon" -> Map("url" -> MarathonDriverActor.marathonUrl)))
+  override def info: Future[Map[_, _]] = Future.successful(Map("marathon" → Map("url" → MarathonDriverActor.marathonUrl)))
 
   override protected def driverActor: ActorRef = IoC.actorFor[MarathonDriverActor]
 }

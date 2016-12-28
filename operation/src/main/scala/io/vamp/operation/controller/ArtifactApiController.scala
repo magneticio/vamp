@@ -5,11 +5,11 @@ import java.net.URLDecoder
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ActorSystemProvider, ExecutionContextProvider}
+import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InconsistentArtifactName
-import io.vamp.model.reader.{YamlReader, _}
+import io.vamp.model.reader.{ YamlReader, _ }
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification.UnexpectedArtifact
 import io.vamp.persistence.db._

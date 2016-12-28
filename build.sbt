@@ -1,4 +1,4 @@
-import com.typesafe.sbt.SbtScalariform._
+import com.typesafe.sbt.SbtScalariform.ScalariformKeys
 import sbt.Keys._
 
 import scala.language.postfixOps
@@ -16,7 +16,6 @@ scalaVersion in ThisBuild := scalaVersion.value
 
 publishMavenStyle in ThisBuild := false
 
-// This has to be overridden for sub-modules to have different description
 description in ThisBuild := """Vamp"""
 
 pomExtra in ThisBuild := <url>http://vamp.io</url>
@@ -115,7 +114,6 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
 ).aggregate(
   common, persistence, model, operation, bootstrap, container_driver, workflow_driver, pulse, http_api, gateway_driver, cli
 ).disablePlugins(sbtassembly.AssemblyPlugin)
-
 
 lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(CompactControlReadability, true)

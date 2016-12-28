@@ -37,11 +37,11 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValida
   }
 
   protected def environment(workflow: Workflow): Map[String, String] = {
-    workflow.breed.asInstanceOf[DefaultBreed].environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) -> ev.interpolated.getOrElse("")).toMap
+    workflow.breed.asInstanceOf[DefaultBreed].environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) → ev.interpolated.getOrElse("")).toMap
   }
 
   protected def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] = {
-    service.environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) -> ev.interpolated.getOrElse("")).toMap
+    service.environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) → ev.interpolated.getOrElse("")).toMap
   }
 
   protected def interpolate[T](deployment: Deployment, service: Option[DeploymentService], dialect: T): T = {
@@ -49,7 +49,7 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValida
       case value: String ⇒ resolve(value, valueFor(deployment, service))
       case list: List[_] ⇒ list.map(visit)
       case map: Map[_, _] ⇒ map.map {
-        case (key, value) ⇒ key -> visit(value)
+        case (key, value) ⇒ key → visit(value)
       }
       case _ ⇒ any
     }
@@ -89,11 +89,11 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValida
   }
 
   protected def labels(workflow: Workflow) = {
-    Map("workflow" -> workflow.name, "breed" -> workflow.breed.name)
+    Map("workflow" → workflow.name, "breed" → workflow.breed.name)
   }
 
   protected def labels(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
-    Map("deployment" -> deployment.name, "cluster" -> cluster.name, "service" -> service.breed.name)
+    Map("deployment" → deployment.name, "cluster" → cluster.name, "service" → service.breed.name)
   }
 }
 

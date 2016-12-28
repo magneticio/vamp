@@ -65,9 +65,9 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
     <<?[YamlSourceReader](name) match {
       case None ⇒ Map()
       case Some(yaml: YamlSourceReader) ⇒ yaml.pull().collect {
-        case (key, value: Int)    ⇒ key.toString -> value
-        case (key, value: BigInt) ⇒ key.toString -> value.toInt
-        case (key, value: String) ⇒ key.toString -> value.toInt
+        case (key, value: Int)    ⇒ key.toString → value
+        case (key, value: BigInt) ⇒ key.toString → value.toInt
+        case (key, value: String) ⇒ key.toString → value.toInt
       }
     }
   }
@@ -76,7 +76,7 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
     <<?[YamlSourceReader](name) match {
       case None ⇒ Map()
       case Some(yaml: YamlSourceReader) ⇒ yaml.pull().collect {
-        case (key, value: String) ⇒ key -> value
+        case (key, value: String) ⇒ key → value
       }
     }
   }
@@ -103,7 +103,8 @@ object DeploymentServiceStatusReader extends YamlReader[DeploymentService.Status
 
     val intentionName = <<![String]("intention")
     val intention = DeploymentService.Status.Intention.values.find(_.toString == intentionName).getOrElse(
-      throwException(UndefinedStateIntentionError(intentionName)))
+      throwException(UndefinedStateIntentionError(intentionName))
+    )
 
     val phase = <<![String]("phase" :: "name") match {
       case n if Phase.Failed.getClass.getName.endsWith(s"$n$$") ⇒ Phase.Failed(since = since(<<![String]("phase" :: "since")), notification = NotificationMessageNotRestored(<<?[String]("phase" :: "notification").getOrElse("")))

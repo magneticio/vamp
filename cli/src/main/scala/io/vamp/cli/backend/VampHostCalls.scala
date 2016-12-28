@@ -299,7 +299,7 @@ trait RestSupport {
   implicit def system: ActorSystem
 
   def sendAndWaitYaml(request: String, body: Option[String] = None)(implicit m: Manifest[String]): Option[String] = {
-    sendAndWait(request, body, List("Accept" -> "application/x-yaml", "Content-Type" -> "application/x-yaml", HttpClient.acceptEncodingIdentity))
+    sendAndWait(request, body, List("Accept" → "application/x-yaml", "Content-Type" → "application/x-yaml", HttpClient.acceptEncodingIdentity))
   }
 
   private def sendAndWait(request: String, body: AnyRef, headers: List[(String, String)])(implicit m: Manifest[String]): Option[String] = {

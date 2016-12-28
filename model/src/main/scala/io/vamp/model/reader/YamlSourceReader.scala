@@ -30,7 +30,7 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
       case any                         ⇒ any
     }
 
-    new mutable.LinkedHashMap[String, Any]() ++= map.map { case (key, value) ⇒ key -> transform(value) }
+    new mutable.LinkedHashMap[String, Any]() ++= map.map { case (key, value) ⇒ key → transform(value) }
   }
 
   private val _consumed = new mutable.LinkedHashMap[String, Any]()
@@ -50,13 +50,13 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
 
   def flatten(accept: (String) ⇒ Boolean = (String) ⇒ true): Map[String, Any] = {
     source.filterKeys(accept).map(consume).map {
-      case (key, value: YamlSourceReader) ⇒ key -> value.flatten((String) ⇒ true)
+      case (key, value: YamlSourceReader) ⇒ key → value.flatten((String) ⇒ true)
       case (key, value: List[_]) ⇒
-        key -> value.map {
+        key → value.map {
           case yaml: YamlSourceReader ⇒ yaml.flatten((String) ⇒ true)
           case any                    ⇒ any
         }
-      case (key, value) ⇒ key -> value
+      case (key, value) ⇒ key → value
     } toMap
   }
 
@@ -66,7 +66,7 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
     case (key, value: YamlSourceReader) ⇒
       val map = value.consumed
 
-      if (map.isEmpty) Nil else (key -> map) :: Nil
+      if (map.isEmpty) Nil else (key → map) :: Nil
 
     case (key, value: List[_]) ⇒
       val list = value.flatMap {
@@ -76,9 +76,9 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
         case any ⇒ any :: Nil
       }
 
-      if (list.isEmpty) Nil else (key -> list) :: Nil
+      if (list.isEmpty) Nil else (key → list) :: Nil
 
-    case (key, value) ⇒ (key -> value) :: Nil
+    case (key, value) ⇒ (key → value) :: Nil
   }).toMap
 
   def notConsumed: Map[String, _] = notConsumed(source, _consumed)
@@ -158,8 +158,8 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
         cons.get(key) match {
           case Some(yaml: YamlSourceReader) ⇒
             val map = yaml.notConsumed
-            if (map.isEmpty) Nil else (key -> yaml.notConsumed) :: Nil
-          case _ ⇒ (key -> value) :: Nil
+            if (map.isEmpty) Nil else (key → yaml.notConsumed) :: Nil
+          case _ ⇒ (key → value) :: Nil
         }
 
       case (key, value: List[_]) if cons.get(key).nonEmpty ⇒
@@ -171,20 +171,19 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
           case any ⇒ Nil
         }
 
-        if (list.isEmpty) Nil else (key -> list) :: Nil
+        if (list.isEmpty) Nil else (key → list) :: Nil
 
       case (key, value) if cons.get(key).isEmpty ⇒
         value match {
-          case y: YamlSourceReader ⇒ (key -> y.notConsumed) :: Nil
-          case l: List[_] ⇒ (key ->
+          case y: YamlSourceReader ⇒ (key → y.notConsumed) :: Nil
+          case l: List[_] ⇒ (key →
             l.flatMap {
               case yaml: YamlSourceReader ⇒
                 val c = yaml.consumed
                 if (c.isEmpty) Nil else c :: Nil
               case any ⇒ any :: Nil
-            }
-          ) :: Nil
-          case _ ⇒ (key -> value) :: Nil
+            }) :: Nil
+          case _ ⇒ (key → value) :: Nil
         }
       case _ ⇒ Nil
     } toMap

@@ -141,7 +141,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
     }
 
     <<?[Any]("condition") collect {
-      case condition: String ⇒ if (!condition.isEmpty) >>("condition", YamlSourceReader(Map("condition" -> condition))) else >>("condition", None)
+      case condition: String ⇒ if (!condition.isEmpty) >>("condition", YamlSourceReader(Map("condition" → condition))) else >>("condition", None)
       case yaml: YamlSourceReader if yaml.find[String]("condition").exists(_.isEmpty) ⇒ >>("condition", None)
     }
 
@@ -197,7 +197,7 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
     val yaml = <<![YamlSourceReader](key :: Nil)
 
     <<?[Any](key :: "port") match {
-      case Some(value) ⇒ if (!acceptPort && !ignoreError) throwException(UnexpectedElement(Map[String, Any](key -> "port"), value.toString))
+      case Some(value) ⇒ if (!acceptPort && !ignoreError) throwException(UnexpectedElement(Map[String, Any](key → "port"), value.toString))
       case None        ⇒ >>("port", key)(yaml)
     }
 
@@ -209,7 +209,8 @@ trait GatewayMappingReader[T <: Artifact] extends YamlReader[List[T]] {
       reader.readAnonymous(yaml) match {
         case artifact ⇒ update(key, artifact)
       }
-    } else {
+    }
+    else {
       yaml.find[String](Lookup.entry)
       reader.read(yaml) match {
         case artifact ⇒ update(key, artifact)

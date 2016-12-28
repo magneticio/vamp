@@ -1,10 +1,10 @@
 package io.vamp.model.reader
 
-import io.vamp.common.notification.{Notification, NotificationErrorException, NotificationProvider}
+import io.vamp.common.notification.{ Notification, NotificationErrorException, NotificationProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
-import io.vamp.model.validator.{BlueprintTraitValidator, BreedTraitValueValidator}
+import io.vamp.model.validator.{ BlueprintTraitValidator, BreedTraitValueValidator }
 
 import scala.language.postfixOps
 

@@ -11,13 +11,14 @@ case class Docker(image: String, portMappings: List[DockerPortMapping], paramete
 case class DockerParameter(key: String, value: String)
 
 case class DockerApp(
-  id: String,
-  container: Option[Docker],
-  instances: Int,
-  cpu: Double,
-  memory: Int,
+  id:                   String,
+  container:            Option[Docker],
+  instances:            Int,
+  cpu:                  Double,
+  memory:               Int,
   environmentVariables: Map[String, String],
-  command: List[String] = Nil,
-  arguments: List[String] = Nil,
-  labels: Map[String, String] = Map(),
-  constraints: List[List[String]] = Nil)
+  command:              List[String]        = Nil,
+  arguments:            List[String]        = Nil,
+  labels:               Map[String, String] = Map(),
+  constraints:          List[List[String]]  = Nil
+)

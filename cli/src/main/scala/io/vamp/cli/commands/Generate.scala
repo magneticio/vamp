@@ -27,8 +27,8 @@ trait Generate extends Parameters with IoUtils {
                 deployable = getOptionalParameter(deployable) match {
                   case Some(dep: String) ⇒ Deployable(dep)
                   case None              ⇒ db.deployable
-                })
-            )
+                }
+              ))
           case other ⇒ Some(other)
         }
 
@@ -40,13 +40,11 @@ trait Generate extends Parameters with IoUtils {
           case bp: DefaultBlueprint ⇒
             val newCluster = getOptionalParameter(cluster) flatMap (clusterName ⇒
               getOptionalParameter(breed) flatMap (breedName ⇒
-                Some(List(Cluster(name = clusterName, services = List(Service(breed = BreedReference(breedName), Nil, scale = myScale, Nil)), gateways = Nil, sla = mySla)))
-              )
-            )
+                Some(List(Cluster(name = clusterName, services = List(Service(breed = BreedReference(breedName), Nil, scale = myScale, Nil)), gateways = Nil, sla = mySla)))))
             Some(bp.copy(
               name = replaceValueString(name, bp.name),
-              clusters = bp.clusters ++ newCluster.getOrElse(List.empty))
-            )
+              clusters = bp.clusters ++ newCluster.getOrElse(List.empty)
+            ))
           case other ⇒ Some(other)
         }
 
@@ -128,13 +126,13 @@ trait Generate extends Parameters with IoUtils {
               upper = replaceValueFiniteDuration(upper, sla.upper, TimeUnit.MILLISECONDS),
               interval = replaceValueFiniteDuration(interval, sla.interval, TimeUnit.SECONDS),
               cooldown = replaceValueFiniteDuration(cooldown, sla.cooldown, TimeUnit.SECONDS)
-            ))
+            )
+          )
         }
 
       case Some(invalid) ⇒ terminateWithError(s"Unsupported artifact '$invalid'")
       case None          ⇒ terminateWithError("Please specify an artifact type")
-    }
-    )
+    })
   }
 
   private def readArtifactStartingPoint[A](fileContent: Option[String], reader: YamlReader[A], alternative: A) = fileContent match {

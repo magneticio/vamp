@@ -13,13 +13,14 @@ trait Breed extends Artifact {
 }
 
 case class DefaultBreed(
-    name: String,
-    deployable: Deployable,
-    ports: List[Port],
+    name:                 String,
+    deployable:           Deployable,
+    ports:                List[Port],
     environmentVariables: List[EnvironmentVariable],
-    constants: List[Constant],
-    arguments: List[Argument],
-    dependencies: Map[String, Breed]) extends Breed {
+    constants:            List[Constant],
+    arguments:            List[Argument],
+    dependencies:         Map[String, Breed]
+) extends Breed {
 
   def traitsFor(group: String): List[Trait] = traitsFor(TraitReference.groupFor(group))
 

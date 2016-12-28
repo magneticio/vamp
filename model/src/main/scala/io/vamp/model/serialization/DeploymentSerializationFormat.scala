@@ -31,7 +31,7 @@ class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment]
       list += JField("name", JString(deployment.name))
       list += JField("kind", JString(deployment.kind))
       list += JField(Lookup.entry, JString(deployment.lookupName))
-      list += JField("clusters", Extraction.decompose(deployment.clusters.map(cluster ⇒ cluster.name -> cluster).toMap))
+      list += JField("clusters", Extraction.decompose(deployment.clusters.map(cluster ⇒ cluster.name → cluster).toMap))
       list += JField("ports", traits(deployment.ports))
 
       if (full) list += JField("environment_variables", Extraction.decompose(deployment.environmentVariables))

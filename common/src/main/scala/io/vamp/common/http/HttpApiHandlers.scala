@@ -54,7 +54,7 @@ trait HttpApiHandlers {
   private def respondWithError(status: StatusCode, message: String = "") = {
     respondWith(
       status = status,
-      response = "message" -> (if (status == InternalServerError) "Internal server error." else message)
+      response = "message" → (if (status == InternalServerError) "Internal server error." else message)
     )
   }
 }

@@ -11,18 +11,18 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
   "YamlSourceReaderTest" should "consume for find" in {
 
     val yaml = YamlSourceReader(Map(
-      "a" -> "b",
-      "c" -> Map(
-        "d" -> "e",
-        "f" -> "g"
+      "a" → "b",
+      "c" → Map(
+        "d" → "e",
+        "f" → "g"
       ),
-      "h" -> "i",
-      "j" -> Map(
-        "k" -> "l",
-        "m" -> "n"
+      "h" → "i",
+      "j" → Map(
+        "k" → "l",
+        "m" → "n"
       ),
-      "o" -> List("p", "q"),
-      "s" -> List("t", "v")
+      "o" → List("p", "q"),
+      "s" → List("t", "v")
     ))
 
     yaml.find[String]("a")
@@ -31,25 +31,25 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
 
     yaml.consumed should be(
       Map(
-        "a" -> "b",
-        "c" -> Map(
-          "d" -> "e"
+        "a" → "b",
+        "c" → Map(
+          "d" → "e"
         ),
-        "o" -> List("p", "q")
+        "o" → List("p", "q")
       )
     )
 
     yaml.notConsumed should be(
       Map(
-        "c" -> Map(
-          "f" -> "g"
+        "c" → Map(
+          "f" → "g"
         ),
-        "h" -> "i",
-        "j" -> Map(
-          "k" -> "l",
-          "m" -> "n"
+        "h" → "i",
+        "j" → Map(
+          "k" → "l",
+          "m" → "n"
         ),
-        "s" -> List("t", "v")
+        "s" → List("t", "v")
       )
     )
   }
@@ -57,9 +57,9 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
   it should "consume for find and set" in {
 
     val yaml = YamlSourceReader(Map(
-      "a" -> "b",
-      "j" -> Map(
-        "m" -> "n"
+      "a" → "b",
+      "j" → Map(
+        "m" → "n"
       )
     ))
 
@@ -73,22 +73,22 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
 
     yaml.consumed should be(
       Map(
-        "a" -> "b",
-        "c" -> Map(
-          "d" -> "e"
+        "a" → "b",
+        "c" → Map(
+          "d" → "e"
         )
       )
     )
 
     yaml.notConsumed should be(
       Map(
-        "c" -> Map(
-          "f" -> "g"
+        "c" → Map(
+          "f" → "g"
         ),
-        "h" -> "i",
-        "j" -> Map(
-          "k" -> "l",
-          "m" -> "n"
+        "h" → "i",
+        "j" → Map(
+          "k" → "l",
+          "m" → "n"
         )
       )
     )
@@ -97,17 +97,17 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
   it should "consume for pull" in {
 
     val yaml = YamlSourceReader(Map(
-      "a" -> "b",
-      "c" -> Map(
-        "d" -> "e",
-        "f" -> "g"
+      "a" → "b",
+      "c" → Map(
+        "d" → "e",
+        "f" → "g"
       ),
-      "h" -> "i",
-      "j" -> Map(
-        "k" -> "l",
-        "m" -> "n",
-        "o" -> Map(
-          "p" -> "q"
+      "h" → "i",
+      "j" → Map(
+        "k" → "l",
+        "m" → "n",
+        "o" → Map(
+          "p" → "q"
         )
       )
     ))
@@ -118,26 +118,26 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
 
     yaml.consumed should be(
       Map(
-        "a" -> "b",
-        "c" -> Map(
-          "d" -> "e"
+        "a" → "b",
+        "c" → Map(
+          "d" → "e"
         ),
-        "j" -> Map(
-          "k" -> "l",
-          "m" -> "n"
+        "j" → Map(
+          "k" → "l",
+          "m" → "n"
         )
       )
     )
 
     yaml.notConsumed should be(
       Map(
-        "c" -> Map(
-          "f" -> "g"
+        "c" → Map(
+          "f" → "g"
         ),
-        "h" -> "i",
-        "j" -> Map(
-          "o" -> Map(
-            "p" -> "q"
+        "h" → "i",
+        "j" → Map(
+          "o" → Map(
+            "p" → "q"
           )
         )
       )
@@ -147,15 +147,15 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
   it should "consume for flatten" in {
 
     val yaml = YamlSourceReader(Map(
-      "a" -> "b",
-      "c" -> Map(
-        "d" -> "e",
-        "f" -> "g"
+      "a" → "b",
+      "c" → Map(
+        "d" → "e",
+        "f" → "g"
       ),
-      "h" -> "i",
-      "j" -> Map(
-        "k" -> "l",
-        "m" -> "n"
+      "h" → "i",
+      "j" → Map(
+        "k" → "l",
+        "m" → "n"
       )
     ))
 
@@ -165,23 +165,23 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
 
     yaml.consumed should be(
       Map(
-        "a" -> "b",
-        "c" -> Map(
-          "d" -> "e"
+        "a" → "b",
+        "c" → Map(
+          "d" → "e"
         ),
-        "j" -> Map(
-          "k" -> "l",
-          "m" -> "n"
+        "j" → Map(
+          "k" → "l",
+          "m" → "n"
         )
       )
     )
 
     yaml.notConsumed should be(
       Map(
-        "c" -> Map(
-          "f" -> "g"
+        "c" → Map(
+          "f" → "g"
         ),
-        "h" -> "i"
+        "h" → "i"
       )
     )
   }
@@ -189,15 +189,15 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
   it should "consume for flatten all" in {
 
     val yaml = YamlSourceReader(Map(
-      "a" -> "b",
-      "c" -> Map(
-        "d" -> "e",
-        "f" -> "g"
+      "a" → "b",
+      "c" → Map(
+        "d" → "e",
+        "f" → "g"
       ),
-      "h" -> "i",
-      "j" -> Map(
-        "k" -> "l",
-        "m" -> "n"
+      "h" → "i",
+      "j" → Map(
+        "k" → "l",
+        "m" → "n"
       )
     ))
 
@@ -205,15 +205,15 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
 
     yaml.consumed should be(
       Map(
-        "a" -> "b",
-        "c" -> Map(
-          "d" -> "e",
-          "f" -> "g"
+        "a" → "b",
+        "c" → Map(
+          "d" → "e",
+          "f" → "g"
         ),
-        "h" -> "i",
-        "j" -> Map(
-          "k" -> "l",
-          "m" -> "n"
+        "h" → "i",
+        "j" → Map(
+          "k" → "l",
+          "m" → "n"
         )
       )
     )
@@ -224,15 +224,15 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
   it should "consume for flatten all, exclude keys" in {
 
     val yaml = YamlSourceReader(Map(
-      "a" -> "b",
-      "c" -> Map(
-        "d" -> "e",
-        "f" -> "g"
+      "a" → "b",
+      "c" → Map(
+        "d" → "e",
+        "f" → "g"
       ),
-      "h" -> "i",
-      "j" -> Map(
-        "k" -> "l",
-        "m" -> "n"
+      "h" → "i",
+      "j" → Map(
+        "k" → "l",
+        "m" → "n"
       )
     ))
 
@@ -240,59 +240,61 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
 
     yaml.consumed should be(
       Map(
-        "c" -> Map(
-          "d" -> "e",
-          "f" -> "g"
+        "c" → Map(
+          "d" → "e",
+          "f" → "g"
         ),
-        "h" -> "i",
-        "j" -> Map(
-          "k" -> "l",
-          "m" -> "n"
+        "h" → "i",
+        "j" → Map(
+          "k" → "l",
+          "m" → "n"
         )
       )
     )
 
-    yaml.notConsumed should be(Map("a" -> "b"))
+    yaml.notConsumed should be(Map("a" → "b"))
   }
 
   it should "consume list but not elements" in {
 
     val yaml = YamlSourceReader(Map(
-      "services" -> List(
+      "services" → List(
         Map(
-          "breed" -> Map(
-            "ref" -> "sava:1.0.0"
+          "breed" → Map(
+            "ref" → "sava:1.0.0"
           ),
-          "scale" -> Map(
-            "cpu" -> "0.2"
+          "scale" → Map(
+            "cpu" → "0.2"
           )
         )
-      )))
+      )
+    ))
 
     yaml.find[List[YamlSourceReader]]("services")
 
     yaml.consumed should be(Map())
 
     yaml.notConsumed should be(Map(
-      "services" -> List(
+      "services" → List(
         Map(
-          "breed" -> Map(
-            "ref" -> "sava:1.0.0"
+          "breed" → Map(
+            "ref" → "sava:1.0.0"
           ),
-          "scale" -> Map(
-            "cpu" -> "0.2"
+          "scale" → Map(
+            "cpu" → "0.2"
           )
         )
-      )))
+      )
+    ))
   }
 
   it should "consume list with simple elements" in {
 
-    val yaml = YamlSourceReader(Map("services" -> List("a", "b")))
+    val yaml = YamlSourceReader(Map("services" → List("a", "b")))
 
     yaml.find[List[_]]("services")
 
-    yaml.consumed should be(Map("services" -> List("a", "b")))
+    yaml.consumed should be(Map("services" → List("a", "b")))
 
     yaml.notConsumed should be(Map())
   }
@@ -300,38 +302,40 @@ class YamlSourceReaderTest extends FlatSpec with Matchers {
   it should "consume list element" in {
 
     val yaml = YamlSourceReader(Map(
-      "services" -> List(
+      "services" → List(
         Map(
-          "breed" -> Map(
-            "ref" -> "sava:1.0.0"
+          "breed" → Map(
+            "ref" → "sava:1.0.0"
           ),
-          "scale" -> Map(
-            "cpu" -> "0.2"
+          "scale" → Map(
+            "cpu" → "0.2"
           )
         )
-      )))
+      )
+    ))
 
     val service = yaml.find[List[YamlSourceReader]]("services").get.head
 
     service.find[String]("breed" :: "ref" :: Nil)
 
     yaml.consumed should be(
-      Map("services" -> List(
+      Map("services" → List(
         Map(
-          "breed" -> Map(
-            "ref" -> "sava:1.0.0"
+          "breed" → Map(
+            "ref" → "sava:1.0.0"
           )
         )
       ))
     )
 
     yaml.notConsumed should be(Map(
-      "services" -> List(
+      "services" → List(
         Map(
-          "scale" -> Map(
-            "cpu" -> "0.2"
+          "scale" → Map(
+            "cpu" → "0.2"
           )
         )
-      )))
+      )
+    ))
   }
 }

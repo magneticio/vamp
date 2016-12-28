@@ -23,7 +23,7 @@ class EventReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "expand tags" in {
     EventReader.read(res("event/event2.yml")) should have(
       'tags(Set("server")),
-      'value(Map("response" -> Map("time" -> 50))),
+      'value(Map("response" → Map("time" → 50))),
       'type("metrics")
     )
   }

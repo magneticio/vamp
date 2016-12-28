@@ -123,7 +123,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
           else
             Nil
         case _ ⇒ Nil
-      }) ++ service.environmentVariables).map(ev ⇒ ev.name -> ev).toMap.values.toList
+      }) ++ service.environmentVariables).map(ev ⇒ ev.name → ev).toMap.values.toList
 
     val environmentVariables = local.map { ev ⇒
       ev.copy(interpolated = if (ev.interpolated.isEmpty) Some(resolve(ev.value.getOrElse(""), valueForWithDependencyReplacement(deployment, service))) else ev.interpolated)

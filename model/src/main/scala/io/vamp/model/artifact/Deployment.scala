@@ -58,12 +58,13 @@ object Deployment {
 }
 
 case class Deployment(
-    name: String,
-    clusters: List[DeploymentCluster],
-    gateways: List[Gateway],
-    ports: List[Port],
+    name:                 String,
+    clusters:             List[DeploymentCluster],
+    gateways:             List[Gateway],
+    ports:                List[Port],
     environmentVariables: List[EnvironmentVariable],
-    hosts: List[Host]) extends AbstractBlueprint with Lookup {
+    hosts:                List[Host]
+) extends AbstractBlueprint with Lookup {
 
   override val kind = Deployment.kind
 
@@ -75,11 +76,12 @@ object DeploymentCluster {
 }
 
 case class DeploymentCluster(
-    name: String,
+    name:     String,
     services: List[DeploymentService],
     gateways: List[Gateway],
-    sla: Option[Sla],
-    dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster {
+    sla:      Option[Sla],
+    dialects: Map[Dialect.Value, Any] = Map()
+) extends AbstractCluster {
 
   def portBy(name: String): Option[Int] = {
     gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } map {
@@ -105,14 +107,15 @@ case class DeploymentCluster(
 }
 
 case class DeploymentService(
-  status: DeploymentService.Status,
-  breed: DefaultBreed,
+  status:               DeploymentService.Status,
+  breed:                DefaultBreed,
   environmentVariables: List[EnvironmentVariable],
-  scale: Option[DefaultScale],
-  instances: List[DeploymentInstance],
-  arguments: List[Argument],
-  dependencies: Map[String, String] = Map(),
-  dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
+  scale:                Option[DefaultScale],
+  instances:            List[DeploymentInstance],
+  arguments:            List[Argument],
+  dependencies:         Map[String, String]       = Map(),
+  dialects:             Map[Dialect.Value, Any]   = Map()
+) extends AbstractService
 
 case class DeploymentInstance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact {
   val kind = "instance"

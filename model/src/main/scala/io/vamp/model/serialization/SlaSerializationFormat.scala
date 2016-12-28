@@ -24,8 +24,8 @@ class SlaSerializer extends ArtifactSerializer[Sla] with ReferenceSerialization 
         list += JField("kind", JString(sla.kind))
       }
       list += JField("type", JString("response_time_sliding_window"))
-      list += JField("window", Extraction.decompose(Map("interval" -> sla.interval.toSeconds, "cooldown" -> sla.cooldown.toSeconds)))
-      list += JField("threshold", Extraction.decompose(Map("upper" -> sla.upper.toMillis, "lower" -> sla.lower.toMillis)))
+      list += JField("window", Extraction.decompose(Map("interval" → sla.interval.toSeconds, "cooldown" → sla.cooldown.toSeconds)))
+      list += JField("threshold", Extraction.decompose(Map("upper" → sla.upper.toMillis, "lower" → sla.lower.toMillis)))
       list += JField("escalations", Extraction.decompose(sla.escalations))
       new JObject(list.toList)
 

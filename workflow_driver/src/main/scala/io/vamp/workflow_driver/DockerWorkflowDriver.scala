@@ -8,7 +8,7 @@ import scala.concurrent.Future
 
 class DockerWorkflowDriver(implicit override val actorSystem: ActorSystem) extends DaemonWorkflowDriver {
 
-  override def info: Future[Map[_, _]] = Future.successful(Map("docker" -> None))
+  override def info: Future[Map[_, _]] = Future.successful(Map("docker" → None))
 
   override protected def driverActor: ActorRef = IoC.actorFor[DockerDriverActor]
 }
