@@ -35,14 +35,14 @@ trait MetricsRoute extends MetricsController {
             case _            ⇒ respondWith(NotFound, None)
           }
         }
-      } ~ path("deployments" / Segment / "clusters" / Segment / "META-INF/services" / Segment / "ports" / Segment / Segment) { (deployment, cluster, service, port, metrics) ⇒
+      } ~ path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "ports" / Segment / Segment) { (deployment, cluster, service, port, metrics) ⇒
         pathEndOrSingleSlash {
           onSuccess(serviceMetrics(deployment, cluster, service, port, metrics)) {
             case Some(result) ⇒ respondWith(OK, result)
             case _            ⇒ respondWith(NotFound, None)
           }
         }
-      } ~ path("deployments" / Segment / "clusters" / Segment / "META-INF/services" / Segment / "instances" / Segment / "ports" / Segment / Segment) { (deployment, cluster, service, instance, port, metrics) ⇒
+      } ~ path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "instances" / Segment / "ports" / Segment / Segment) { (deployment, cluster, service, instance, port, metrics) ⇒
         pathEndOrSingleSlash {
           onSuccess(instanceMetrics(deployment, cluster, service, instance, port, metrics)) {
             case Some(result) ⇒ respondWith(OK, result)

@@ -42,14 +42,14 @@ trait HealthRoute extends HealthController {
             case _            ⇒ respondWith(NotFound, None)
           }
         }
-      } ~ path("deployments" / Segment / "clusters" / Segment / "META-INF/services" / Segment) { (deployment, cluster, service) ⇒
+      } ~ path("deployments" / Segment / "clusters" / Segment / "services" / Segment) { (deployment, cluster, service) ⇒
         pathEndOrSingleSlash {
           onSuccess(serviceHealth(deployment, cluster, service)) {
             case Some(result) ⇒ respondWith(OK, result)
             case _            ⇒ respondWith(NotFound, None)
           }
         }
-      } ~ path("deployments" / Segment / "clusters" / Segment / "META-INF/services" / Segment / "instances" / Segment) { (deployment, cluster, service, instance) ⇒
+      } ~ path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "instances" / Segment) { (deployment, cluster, service, instance) ⇒
         pathEndOrSingleSlash {
           onSuccess(instanceHealth(deployment, cluster, service, instance)) {
             case Some(result) ⇒ respondWith(OK, result)
