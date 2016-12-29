@@ -27,6 +27,8 @@ object WorkflowActor {
 
 class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
 
+  import PersistenceActor.ResetWorkflow
+  import PersistenceActor.UpdateWorkflowStatus
   import PulseEventTags.Workflows._
   import WorkflowActor._
 
@@ -65,7 +67,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   private def run(workflow: Workflow, running: Boolean): Unit = {
     deploy(workflow, running, () ⇒ {
       if (workflow.status != Workflow.Status.Running)
-        (actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
+        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
           pulse(workflow, scheduled = true)
         }
     })
@@ -74,7 +76,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   private def stop(workflow: Workflow, running: Boolean): Unit = {
     undeploy(workflow, running, () ⇒ {
       (actorFor[PersistenceActor] ? PersistenceActor.Delete(workflow.name, classOf[Workflow])).map { _ ⇒
-        actorFor[PersistenceActor] ! PersistenceActor.ResetWorkflow(workflow)
+        actorFor[PersistenceActor] ! ResetWorkflow(workflow)
         pulse(workflow, scheduled = false)
       }
     })
@@ -83,7 +85,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   private def suspend(workflow: Workflow, running: Boolean): Unit = {
     undeploy(workflow, running, () ⇒ {
       if (workflow.status != Workflow.Status.Suspended)
-        (actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowStatus(workflow, Workflow.Status.Suspended)).map { _ ⇒
+        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Suspended)).map { _ ⇒
           pulse(workflow, scheduled = false)
         }
     })
@@ -92,12 +94,12 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   private def restart(workflow: Workflow, running: Boolean): Unit = {
     workflow.status match {
       case Workflow.Status.Restarting(Some(RestartingPhase.Starting)) ⇒ deploy(workflow, running, () ⇒ {
-        (actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
+        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
           pulse(workflow, scheduled = true)
         }
       })
       case _ ⇒ undeploy(workflow, running, () ⇒ {
-        (actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowStatus(workflow, Workflow.Status.Restarting(Option(RestartingPhase.Starting)))).map { _ ⇒
+        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Restarting(Option(RestartingPhase.Starting)))).map { _ ⇒
           pulse(workflow, scheduled = false)
         }
       })
