@@ -11,8 +11,18 @@ object PulseBootstrap extends ActorBootstrap with PulseNotificationProvider {
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
-    if (`type` != "elasticsearch") throwException(UnsupportedPulseDriverError(`type`))
+    val pulseActor = `type` match {
+      case "no-store" ⇒
+        IoC.alias[PulseActor, NoStorePulseActor]
+        IoC.createActor[NoStorePulseActor]
 
-    List(IoC.createActor[PulseActor])
+      case "elasticsearch" ⇒
+        IoC.alias[PulseActor, ElasticsearchPulseActor]
+        IoC.createActor[ElasticsearchPulseActor]
+
+      case _ ⇒ throwException(UnsupportedPulseDriverError(`type`))
+    }
+
+    pulseActor :: Nil
   }
 }
