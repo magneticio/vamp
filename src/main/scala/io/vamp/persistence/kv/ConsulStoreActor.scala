@@ -4,8 +4,14 @@ import java.util.Base64
 
 import akka.http.scaladsl.model.ContentTypes
 import io.vamp.common.config.Config
+import io.vamp.common.spi.ClassMapper
 
 import scala.concurrent.Future
+
+class ConsulStoreActorMapper extends ClassMapper {
+  val name = "consul"
+  val clazz = classOf[ConsulStoreActor]
+}
 
 class ConsulStoreActor extends KeyValueStoreActor {
 

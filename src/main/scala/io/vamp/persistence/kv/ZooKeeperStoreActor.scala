@@ -5,10 +5,16 @@ import java.net.Socket
 
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
+import io.vamp.common.spi.ClassMapper
 import io.vamp.persistence.kv.AsyncResponse.{ ChildrenResponse, DataResponse, FailedAsyncResponse }
 import org.apache.zookeeper.KeeperException.Code
 
 import scala.concurrent.Future
+
+class ZooKeeperStoreActorMapper extends ClassMapper {
+  val name = "zookeeper"
+  val clazz = classOf[ZooKeeperStoreActor]
+}
 
 class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
 

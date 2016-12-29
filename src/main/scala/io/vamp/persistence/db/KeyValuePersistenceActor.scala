@@ -3,15 +3,19 @@ package io.vamp.persistence.db
 import akka.pattern.ask
 import io.vamp.common.akka.IoC
 import io.vamp.common.config.Config
+import io.vamp.common.spi.ClassMapper
 import io.vamp.model.artifact._
 import io.vamp.persistence.kv.KeyValueStoreActor
 
 import scala.concurrent.Future
 
+class KeyValuePersistenceActorMapper extends ClassMapper {
+  val name = "key-value"
+  val clazz = classOf[KeyValuePersistenceActor]
+}
+
 object KeyValuePersistenceActor {
-
   val root = "persistence"
-
   val caching = Config.boolean("vamp.persistence.database.key-value.caching")
 }
 

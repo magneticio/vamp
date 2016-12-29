@@ -41,7 +41,7 @@ trait PersistenceStats extends ArtifactPaginationSupport {
       map ← Future.sequence(types.flatMap(artifact)).map(list ⇒ list.reduce((m1, m2) ⇒ m1 ++ m2))
       deployments ← deployments()
     } yield {
-      map + ("deployments" → Map("count" → deployments.count, "clusters" → deployments.clusters, "services" → deployments.services))
+      map + ("deployments" → Map("count" → deployments.count, "clusters" → deployments.clusters, "META-INF/services" → deployments.services))
     }
   }
 

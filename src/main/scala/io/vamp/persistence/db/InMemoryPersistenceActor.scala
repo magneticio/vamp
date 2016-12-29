@@ -3,6 +3,7 @@ package io.vamp.persistence.db
 import akka.event.LoggingAdapter
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.spi.ClassMapper
 import io.vamp.model.artifact._
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, UnsupportedPersistenceRequest }
@@ -11,6 +12,11 @@ import org.json4s.native.Serialization._
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.{ implicitConversions, postfixOps }
+
+class InMemoryPersistenceActorMapper extends ClassMapper {
+  val name = "in-memory"
+  val clazz = classOf[InMemoryPersistenceActor]
+}
 
 class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
 
