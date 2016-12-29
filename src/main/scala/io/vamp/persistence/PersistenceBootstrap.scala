@@ -4,7 +4,7 @@ import akka.actor.{ ActorRef, ActorSystem }
 import io.vamp.common.akka.{ ActorBootstrap, IoC }
 import io.vamp.common.config.Config
 import io.vamp.persistence.db.{ ElasticsearchPersistenceActor, InMemoryPersistenceActor, KeyValuePersistenceActor, PersistenceActor }
-import io.vamp.persistence.kv.{ ConsulStoreActor, EtcdStoreActor, KeyValueStoreActor, ZooKeeperStoreActor }
+import io.vamp.persistence.kv._
 
 object PersistenceBootstrap extends ActorBootstrap {
 
