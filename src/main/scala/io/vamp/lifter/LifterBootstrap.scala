@@ -5,7 +5,7 @@ import io.vamp.common.akka.{ ActorBootstrap, IoC }
 import io.vamp.common.config.Config
 import io.vamp.lifter.artifact.ArtifactInitializationActor
 import io.vamp.lifter.persistence.ElasticsearchPersistenceInitializationActor
-import io.vamp.lifter.pulse.PulseInitializationActor
+import io.vamp.lifter.pulse.ElasticsearchPulseInitializationActor
 import io.vamp.persistence.PersistenceBootstrap
 
 object LifterBootstrap extends ActorBootstrap {
@@ -27,7 +27,7 @@ object LifterBootstrap extends ActorBootstrap {
     else Nil
 
     val pulse = if (pulseEnabled)
-      IoC.createActor[PulseInitializationActor] :: Nil
+      IoC.createActor[ElasticsearchPulseInitializationActor] :: Nil
     else Nil
 
     val artifact = if (artifactEnabled)
