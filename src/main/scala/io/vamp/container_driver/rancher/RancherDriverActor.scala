@@ -2,6 +2,7 @@ package io.vamp.container_driver.rancher
 
 import io.vamp.common.config.Config
 import io.vamp.common.http.HttpClient
+import io.vamp.common.spi.ClassMapper
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
@@ -14,11 +15,9 @@ import org.json4s.{ DefaultFormats, Extraction, Formats }
 
 import scala.concurrent.Future
 
-class RancherDriverServiceMapper extends ContainerDriverServiceMapper {
-
-  override def name = "rancher"
-
-  override def clazz = classOf[RancherDriverActor]
+class RancherDriverActorMapper extends ClassMapper {
+  val name = "rancher"
+  val clazz = classOf[RancherDriverActor]
 }
 
 object RancherDriverActor {

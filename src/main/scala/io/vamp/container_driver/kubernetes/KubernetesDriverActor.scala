@@ -2,6 +2,7 @@ package io.vamp.container_driver.kubernetes
 
 import io.vamp.common.config.Config
 import io.vamp.common.http.HttpClient
+import io.vamp.common.spi.ClassMapper
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
@@ -13,11 +14,9 @@ import scala.io.Source
 import scala.language.postfixOps
 import scala.util.Try
 
-class KubernetesDriverServiceMapper extends ContainerDriverServiceMapper {
-
-  override def name = "kubernetes"
-
-  override def clazz = classOf[KubernetesDriverActor]
+class KubernetesDriverActorMapper extends ClassMapper {
+  val name = "kubernetes"
+  val clazz = classOf[KubernetesDriverActor]
 }
 
 object KubernetesDriverActor {

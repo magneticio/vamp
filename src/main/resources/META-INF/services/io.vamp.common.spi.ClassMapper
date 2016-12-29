@@ -1,0 +1,4 @@
+io.vamp.container_driver.docker.DockerDriverActorMapper
+io.vamp.container_driver.rancher.RancherDriverActorMapper
+io.vamp.container_driver.marathon.MarathonDriverActorMapper
+io.vamp.container_driver.kubernetes.KubernetesDriverActorMapper

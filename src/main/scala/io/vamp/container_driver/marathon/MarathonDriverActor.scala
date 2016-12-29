@@ -5,6 +5,7 @@ import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.config.Config
 import io.vamp.common.crypto.Hash
 import io.vamp.common.http.HttpClient
+import io.vamp.common.spi.ClassMapper
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
@@ -14,11 +15,9 @@ import org.json4s._
 
 import scala.concurrent.Future
 
-class MarathonDriverServiceMapper extends ContainerDriverServiceMapper {
-
-  override def name = "marathon"
-
-  override def clazz = classOf[MarathonDriverActor]
+class MarathonDriverActorMapper extends ClassMapper {
+  val name = "marathon"
+  val clazz = classOf[MarathonDriverActor]
 }
 
 object MarathonDriverActor {
