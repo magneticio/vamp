@@ -103,18 +103,6 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.scala-lang" % "scala-library" % scalaVersion.value
 )
 
-// Root project and subproject definitions
-lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
-  // Disable publishing root empty pom
-  packagedArtifacts in file(".") := Map.empty,
-  // allows running main classes from subprojects
-  run := {
-    (run in bootstrap in Compile).evaluated
-  }
-).aggregate(
-  common, persistence, model, operation, bootstrap, container_driver, workflow_driver, pulse, http_api, gateway_driver
-).disablePlugins(sbtassembly.AssemblyPlugin)
-
 lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(CompactControlReadability, true)
   .setPreference(AlignParameters, true)
@@ -123,7 +111,18 @@ lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := 
   .setPreference(DanglingCloseParenthesis, Preserve)
   .setPreference(RewriteArrowSymbols, true))
 
-lazy val bootstrap = project.settings(bintraySetting: _*).settings(
+lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
+  // Disable publishing root empty pom
+  packagedArtifacts in RootProject(file(".")) := Map.empty,
+  // allows running main classes from subprojects
+  run := {
+    (run in bootstrap in Compile).evaluated
+  }
+).aggregate(
+  common, persistence, model, operation, bootstrap, container_driver, workflow_driver, pulse, http_api, gateway_driver
+).disablePlugins(sbtassembly.AssemblyPlugin)
+
+lazy val bootstrap = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
   description := "Bootstrap for Vamp",
   name := "vamp-bootstrap",
   formatting,
@@ -132,70 +131,70 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(
   assemblyJarName in assembly := s"vamp-assembly-${version.value}.jar"
 ).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, pulse, http_api, gateway_driver, lifter)
 
-lazy val lifter = project.settings(bintraySetting: _*).settings(
+lazy val lifter = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
   description := "Lifter for Vamp",
   name := "vamp-lifter",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(common, persistence, pulse, gateway_driver, container_driver, operation).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val http_api = project.settings(bintraySetting: _*).settings(
+lazy val http_api = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
   description := "Http Api for Vamp",
   name := "vamp-http_api",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(operation).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val operation = project.settings(bintraySetting: _*).settings(
+lazy val operation = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
   description := "The control center of Vamp",
   name := "vamp-operation",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(persistence, container_driver, workflow_driver, gateway_driver, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val pulse = project.settings(bintraySetting: _*).settings(
+lazy val pulse = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
   name := "vamp-pulse",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(model).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val gateway_driver = project.settings(bintraySetting: _*).settings(
+lazy val gateway_driver = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
   description := "Enables Vamp to talk to Vamp Gateway Agent",
   name := "vamp-gateway_driver",
   formatting,
   libraryDependencies ++= jtwig ++ testing
 ).dependsOn(model, pulse, persistence).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val container_driver = project.settings(bintraySetting: _*).settings(
+lazy val container_driver = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
   description := "Enables Vamp to talk to container managers",
   name := "vamp-container_driver",
   formatting,
   libraryDependencies ++= docker ++ testing
 ).dependsOn(model, persistence, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val workflow_driver = project.settings(bintraySetting: _*).settings(
+lazy val workflow_driver = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
   description := "Enables Vamp to talk to workflow managers",
   name := "vamp-workflow_driver",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(model, pulse, persistence, container_driver).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val persistence = project.settings(bintraySetting: _*).settings(
+lazy val persistence = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
   description := "Stores Vamp artifacts",
   name := "vamp-persistence",
   formatting,
   libraryDependencies ++= zookeeper ++ testing
 ).dependsOn(model, pulse).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val model = project.settings(bintraySetting: _*).settings(
+lazy val model = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
   description := "Definitions of Vamp artifacts",
   name := "vamp-model",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(common).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val common = project.settings(bintraySetting: _*).settings(
+lazy val common = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
   description := "Vamp common",
   name := "vamp-common",
   formatting,
@@ -209,3 +208,11 @@ javacOptions ++= Seq("-encoding", "UTF-8")
 
 scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation, Opts.compile.unchecked) ++
   Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint", "-feature")
+
+//
+
+def publishLocalKatana = Command.command("publish-local-katana") { state =>
+  val extracted = Project extract state
+  val newState = extracted.append(Seq(version := "katana", isSnapshot := true), state)
+  Project.extract(newState).runTask(publishLocal in Compile, newState)._1
+}
