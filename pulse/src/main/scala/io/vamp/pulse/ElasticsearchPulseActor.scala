@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter
 
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
+import io.vamp.common.spi.ClassMapper
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.model.event.Aggregator.AggregatorType
 import io.vamp.model.event._
@@ -15,6 +16,11 @@ import org.json4s.native.Serialization.{ read, write }
 import org.json4s.{ DefaultFormats, Extraction }
 
 import scala.concurrent.Future
+
+class ElasticsearchPulseActorMapper extends ClassMapper {
+  val name = "elasticsearch"
+  val clazz = classOf[ElasticsearchPulseActor]
+}
 
 object ElasticsearchPulseActor {
 

@@ -1,4 +1,0 @@
-io.vamp.container_driver.docker.DockerDriverServiceMapper
-io.vamp.container_driver.rancher.RancherDriverServiceMapper
-io.vamp.container_driver.marathon.MarathonDriverServiceMapper
-io.vamp.container_driver.kubernetes.KubernetesDriverServiceMapper

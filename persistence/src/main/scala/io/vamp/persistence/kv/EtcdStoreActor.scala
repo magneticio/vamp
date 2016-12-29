@@ -2,12 +2,18 @@ package io.vamp.persistence.kv
 
 import akka.http.scaladsl.model._
 import io.vamp.common.config.Config
+import io.vamp.common.spi.ClassMapper
 
 import scala.concurrent.Future
 
 case class EtcdKeyValue(node: EtcdNode)
 
 case class EtcdNode(key: Option[String] = None, value: Option[String] = None, nodes: List[EtcdNode] = Nil)
+
+class EtcdStoreActorMapper extends ClassMapper {
+  val name = "etcd"
+  val clazz = classOf[EtcdStoreActor]
+}
 
 class EtcdStoreActor extends KeyValueStoreActor {
 

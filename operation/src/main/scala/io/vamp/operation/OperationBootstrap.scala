@@ -12,7 +12,7 @@ import io.vamp.operation.workflow.{ WorkflowActor, WorkflowSynchronizationActor,
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-object OperationBootstrap extends ActorBootstrap {
+class OperationBootstrap extends ActorBootstrap {
 
   val configuration = Config.config("vamp.operation")
 

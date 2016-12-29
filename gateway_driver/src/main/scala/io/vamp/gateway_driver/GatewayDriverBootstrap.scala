@@ -5,7 +5,7 @@ import io.vamp.common.akka.{ ActorBootstrap, IoC }
 import io.vamp.common.config.Config
 import io.vamp.gateway_driver.haproxy.{ HaProxyConfig, HaProxyGatewayMarshaller, JTwigHaProxyGatewayMarshaller }
 
-object GatewayDriverBootstrap extends ActorBootstrap {
+class GatewayDriverBootstrap extends ActorBootstrap {
 
   val haproxyConfig = Config.config("vamp.gateway-driver.haproxy")
   val synchronizationInitialDelay = Config.duration("vamp.operation.synchronization.initial-delay")

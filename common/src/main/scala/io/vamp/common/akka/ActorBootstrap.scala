@@ -1,6 +1,9 @@
 package io.vamp.common.akka
 
 import akka.actor.{ ActorRef, ActorSystem, PoisonPill }
+import io.vamp.common.spi.ClassProvider
+
+import scala.reflect.{ ClassTag, classTag }
 
 trait Bootstrap {
 
@@ -21,5 +24,12 @@ trait ActorBootstrap {
 
   def shutdown(implicit actorSystem: ActorSystem): Unit = actors.reverse.foreach {
     _ ! PoisonPill
+  }
+
+  def alias[T: ClassTag](name: String, default: String ⇒ ActorRef)(implicit actorSystem: ActorSystem): ActorRef = {
+    ClassProvider.find[T](name).map { clazz ⇒
+      IoC.alias(classTag[T].runtimeClass, clazz)
+      IoC.createActor(clazz)
+    } getOrElse default(name)
   }
 }

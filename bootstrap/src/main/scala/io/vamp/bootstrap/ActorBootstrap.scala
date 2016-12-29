@@ -1,15 +1,8 @@
 package io.vamp.bootstrap
 
 import akka.actor.ActorSystem
-import io.vamp.common.akka.Bootstrap
-import io.vamp.container_driver.ContainerDriverBootstrap
-import io.vamp.gateway_driver.GatewayDriverBootstrap
-import io.vamp.http_api.HttpApiBootstrap
-import io.vamp.lifter.LifterBootstrap
-import io.vamp.operation.OperationBootstrap
-import io.vamp.persistence.PersistenceBootstrap
-import io.vamp.pulse.PulseBootstrap
-import io.vamp.workflow_driver.WorkflowDriverBootstrap
+import io.vamp.common.akka.{ Bootstrap, ActorBootstrap ⇒ ActorBootstrapService }
+import io.vamp.common.spi.ClassProvider
 
 class ActorBootstrap extends Bootstrap {
 
@@ -22,15 +15,5 @@ class ActorBootstrap extends Bootstrap {
     system.terminate()
   }
 
-  private lazy val bootstrap = {
-    List() :+
-      PulseBootstrap :+
-      PersistenceBootstrap :+
-      ContainerDriverBootstrap :+
-      GatewayDriverBootstrap :+
-      WorkflowDriverBootstrap :+
-      OperationBootstrap :+
-      HttpApiBootstrap :+
-      LifterBootstrap
-  }
+  private lazy val bootstrap = ClassProvider.all[ActorBootstrapService].toList
 }

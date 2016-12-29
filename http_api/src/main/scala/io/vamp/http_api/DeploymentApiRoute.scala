@@ -95,7 +95,7 @@ trait DeploymentApiRoute extends DeploymentApiController {
     }
 
   private val scaleRoute =
-    path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "scale") { (deployment: String, cluster: String, breed: String) ⇒
+    path("deployments" / Segment / "clusters" / Segment / "META-INF/services" / Segment / "scale") { (deployment: String, cluster: String, breed: String) ⇒
       pathEndOrSingleSlash {
         get {
           onSuccess(scale(deployment, cluster, breed)) { result ⇒

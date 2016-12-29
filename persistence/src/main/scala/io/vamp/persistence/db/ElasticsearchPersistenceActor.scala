@@ -1,16 +1,20 @@
 package io.vamp.persistence.db
 
 import io.vamp.common.config.Config
+import io.vamp.common.spi.ClassMapper
 import io.vamp.model.artifact._
 import io.vamp.pulse.ElasticsearchClient
 import io.vamp.pulse.ElasticsearchClient.{ ElasticsearchGetResponse, ElasticsearchSearchResponse }
 
 import scala.concurrent.Future
 
+class ElasticsearchPersistenceActorMapper extends ClassMapper {
+  val name = "elasticsearch"
+  val clazz = classOf[ElasticsearchPersistenceActor]
+}
+
 object ElasticsearchPersistenceActor {
-
   lazy val index = Config.string("vamp.persistence.database.elasticsearch.index")
-
   lazy val elasticsearchUrl: String = Config.string("vamp.persistence.database.elasticsearch.url")
 }
 

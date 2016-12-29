@@ -3,12 +3,9 @@ package io.vamp.container_driver
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.common.spi.ServiceMapper
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentTraitResolver
-
-trait ContainerDriverServiceMapper extends ServiceMapper[ContainerDriver]
 
 trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with ExecutionContextProvider {
 

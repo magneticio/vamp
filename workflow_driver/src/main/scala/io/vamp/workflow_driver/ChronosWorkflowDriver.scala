@@ -6,14 +6,23 @@ import io.vamp.common.http.HttpClient
 import io.vamp.container_driver._
 import io.vamp.model.artifact._
 import TimeSchedule.RepeatCount
+import io.vamp.common.config.Config
+import io.vamp.common.spi.ClassMapper
 import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 
 import scala.concurrent.Future
 
-class ChronosWorkflowDriver(url: String)(implicit override val actorSystem: ActorSystem) extends WorkflowDriver with ContainerDriverValidation with ActorRefFactoryExecutionContextProvider with WorkflowDriverNotificationProvider {
+class ChronosWorkflowDriverMapper extends ClassMapper {
+  val name = "chronos"
+  val clazz = classOf[ChronosWorkflowDriver]
+}
+
+class ChronosWorkflowDriver(implicit override val actorSystem: ActorSystem) extends WorkflowDriver with ContainerDriverValidation with ActorRefFactoryExecutionContextProvider with WorkflowDriverNotificationProvider {
 
   implicit def actorRefFactory: ActorRefFactory = actorSystem
+
+  private val url = Config.string("vamp.workflow-driver.chronos.url")
 
   private val httpClient = new HttpClient
 

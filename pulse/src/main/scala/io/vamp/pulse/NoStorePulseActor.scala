@@ -1,11 +1,17 @@
 package io.vamp.pulse
 
+import io.vamp.common.spi.ClassMapper
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.model.event._
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.notification._
 
 import scala.concurrent.Future
+
+class NoStorePulseActorMapper extends ClassMapper {
+  val name = "no-store"
+  val clazz = classOf[NoStorePulseActor]
+}
 
 class NoStorePulseActor extends PulseActor {
 

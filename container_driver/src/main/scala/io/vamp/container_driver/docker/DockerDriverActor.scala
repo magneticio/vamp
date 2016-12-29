@@ -3,6 +3,7 @@ package io.vamp.container_driver.docker
 import com.spotify.docker.client.DefaultDockerClient
 import com.spotify.docker.client.messages.{ Container ⇒ SpotifyContainer, ContainerInfo ⇒ _, _ }
 import io.vamp.common.config.Config
+import io.vamp.common.spi.ClassMapper
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
@@ -19,11 +20,9 @@ import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.util.Try
 
-class DockerDriverServiceMapper extends ContainerDriverServiceMapper {
-
-  override def name = "docker"
-
-  override def clazz = classOf[DockerDriverActor]
+class DockerDriverActorMapper extends ClassMapper {
+  val name = "docker"
+  val clazz = classOf[DockerDriverActor]
 }
 
 class DockerDriverActor extends ContainerDriverActor with ContainerDriver with DockerNameMatcher {
