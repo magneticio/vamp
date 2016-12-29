@@ -7,14 +7,15 @@ import io.vamp.lifter.artifact.ArtifactInitializationActor
 import io.vamp.lifter.persistence.ElasticsearchPersistenceInitializationActor
 import io.vamp.lifter.pulse.ElasticsearchPulseInitializationActor
 import io.vamp.persistence.PersistenceBootstrap
+import io.vamp.pulse.PulseBootstrap
 
-object LifterBootstrap extends ActorBootstrap {
+class LifterBootstrap extends ActorBootstrap {
 
-  val config = Config.config("vamp.lifter")
+  private val config = Config.config("vamp.lifter")
 
-  val pulseEnabled = config.boolean("pulse.enabled")
+  private val pulseEnabled = config.boolean("pulse.enabled")
 
-  val artifactEnabled = config.boolean("artifact.enabled")
+  private val artifactEnabled = config.boolean("artifact.enabled")
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
@@ -26,8 +27,12 @@ object LifterBootstrap extends ActorBootstrap {
     }
     else Nil
 
-    val pulse = if (pulseEnabled)
-      IoC.createActor[ElasticsearchPulseInitializationActor] :: Nil
+    val pulse = if (pulseEnabled) {
+      PulseBootstrap.`type` match {
+        case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPulseInitializationActor] :: Nil
+        case _               ⇒ Nil
+      }
+    }
     else Nil
 
     val artifact = if (artifactEnabled)
