@@ -6,9 +6,9 @@ SHELL             := bash
 .SUFFIXES:
 
 # Constants, these can be overwritten in your Makefile.local
-DOCKER_IMAGE    := magneticio/buildserver
-SBT_GLOBAL_BASE := ~/.sbt/0.13
-SBT_IVY_HOME    := ~/.ivy2
+CONTAINER := magneticio/buildserver:0.3
+DIR_SBT   := ~/.sbt
+DIR_IVY   := ~/.ivy2
 
 # if Makefile.local exists, include it.
 ifneq ("$(wildcard Makefile.local)", "")
@@ -22,17 +22,16 @@ all: default
 # Using our buildserver which contains all the necessary dependencies
 .PHONY: default
 default:
-	@echo "Building Vamp"
 	docker run \
 		--interactive \
 		--rm \
 		--volume $(CURDIR):/srv/src \
-		--volume $(SBT_GLOBAL_BASE):/srv/cache/sbt \
-		--volume $(SBT_IVY_HOME):/src/cache/sbt/ivy2 \
+		--volume $(DIR_SBT):/root/.sbt \
+		--volume $(DIR_IVY):/root/.ivy2 \
 		--workdir=/srv/src \
 		--env BUILD_UID=$(shell id -u) \
 		--env BUILD_GID=$(shell id -g) \
-		$(DOCKER_IMAGE) \
+		$(CONTAINER) \
 			make test build
 
 
@@ -40,9 +39,11 @@ default:
 test:
 	sbt test
 
+
 .PHONY: build
 build:
 	sbt assembly
+
 
 .PHONY: clean
 clean:
