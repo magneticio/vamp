@@ -1,3 +1,5 @@
 conf/artifacts/
 conf/application*.conf
 Makefile.local
+target
+*/target
