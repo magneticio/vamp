@@ -4,7 +4,7 @@ import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.config.Config
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.container_driver.notification.{ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType}
+import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentTraitResolver
 
