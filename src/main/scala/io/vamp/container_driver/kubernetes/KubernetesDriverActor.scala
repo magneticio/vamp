@@ -59,9 +59,9 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     else Try(Source.fromFile(token).mkString).map(headers).getOrElse(HttpClient.jsonHeaders)
   }
 
-  private val gatewayService = Map("vamp" → "gateway")
+  private val gatewayService = Map(ContainerDriver.namespace → "gateway")
 
-  private val daemonService = Map("vamp" → "daemon")
+  private val daemonService = Map(ContainerDriver.namespace → "daemon")
 
   override protected def workflowNamePrefix: String = KubernetesDriverActor.workflowNamePrefix
 

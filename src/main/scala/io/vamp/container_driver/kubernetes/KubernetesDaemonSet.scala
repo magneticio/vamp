@@ -1,6 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorLogging
+import io.vamp.container_driver.ContainerDriver
 
 import scala.concurrent.Future
 
@@ -16,13 +17,13 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
          |  "apiVersion": "extensions/v1beta1",
          |  "kind": "DaemonSet",
          |  "metadata": {
-         |    ${labels2json(labels + ("name" → ds.name))}
+         |    ${labels2json(labels + (ContainerDriver.withNamespace("name") → ds.name))}
          |  },
          |  "spec": {
          |    "template": {
          |      "metadata": {
          |        "labels": {
-         |          ${labels2json(Map("vamp" → "daemon-set", "daemon-set" → ds.name))}
+         |          ${labels2json(Map(ContainerDriver.namespace → "daemon-set", ContainerDriver.withNamespace("daemon-set") → ds.name))}
          |        }
          |      },
          |      "spec": {

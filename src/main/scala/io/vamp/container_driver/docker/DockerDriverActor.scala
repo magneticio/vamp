@@ -99,7 +99,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
             case Some(container) if processable(container, vampLabel) ⇒
 
-              val scale = parse(container.labels().get("scale"), useBigDecimalForDouble = true).extract[DockerServiceScale].toScale
+              val scale = parse(container.labels().get(ContainerDriver.withNamespace("scale")), useBigDecimalForDouble = true).extract[DockerServiceScale].toScale
 
               val host = container.networkSettings().networks().asScala.values.headOption.map {
                 attachedNetwork ⇒ attachedNetwork.ipAddress()
@@ -121,11 +121,11 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
   }
 
   private def id(container: SpotifyContainer, label: String): Option[String] = {
-    if (container.labels().getOrDefault("vamp", "") == label) Option(container.labels().get("id")) else None
+    if (container.labels().getOrDefault(ContainerDriver.namespace, "") == label) Option(container.labels().get(ContainerDriver.withNamespace("id"))) else None
   }
 
   private def processable(container: SpotifyContainer, label: String) = {
-    container.labels().getOrDefault("vamp", "") == label && container.status().startsWith("Up") && container.labels().containsKey("scale")
+    container.labels().getOrDefault(ContainerDriver.namespace, "") == label && container.status().startsWith("Up") && container.labels().containsKey(ContainerDriver.withNamespace("scale"))
   }
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
@@ -180,11 +180,11 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
     val labels: MutableMap[String, String] = MutableMap()
     labels ++= this.labels(deployment, cluster, service)
-    labels += ("vamp" → vampLabel)
-    labels += ("id" → appId(deployment, service.breed))
+    labels += (ContainerDriver.namespace → vampLabel)
+    labels += (ContainerDriver.withNamespace("id") → appId(deployment, service.breed))
 
     if (service.scale.isDefined)
-      labels += ("scale" → write(DockerServiceScale(service.scale.get)))
+      labels += (ContainerDriver.withNamespace("scale") → write(DockerServiceScale(service.scale.get)))
 
     if (service.dialects.contains(Dialect.Docker)) {
       service.dialects.get(Dialect.Docker).map { dialect ⇒
@@ -299,9 +299,9 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     })
 
     val labels: MutableMap[String, String] = MutableMap()
-    labels += ("vamp" → vampWorkflowLabel)
-    labels += ("id" → id)
-    labels += ("scale" → write(DockerServiceScale("", scale.instances, scale.cpu.value, scale.memory.value)))
+    labels += (ContainerDriver.namespace → vampWorkflowLabel)
+    labels += (ContainerDriver.withNamespace("id") → id)
+    labels += (ContainerDriver.withNamespace("scale") → write(DockerServiceScale("", scale.instances, scale.cpu.value, scale.memory.value)))
 
     hostConfig.portBindings(portBindings).networkMode(dockerDefinition.network)
 
