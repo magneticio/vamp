@@ -75,7 +75,8 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValida
       image = service.breed.deployable.definition,
       portMappings = portMappings(deployment, cluster, service),
       parameters = parameters,
-      privileged = privileged
+      privileged = privileged,
+      network = service.network.orElse(cluster.network).getOrElse(Docker.network)
     )
   }
 

@@ -1,12 +1,14 @@
 package io.vamp.container_driver
 
+import io.vamp.common.config.Config
+
 case class DockerPortMapping(containerPort: Int, protocol: String = "tcp", hostPort: Int = 0)
 
 object Docker {
-  val network = "BRIDGE"
+  val network = Config.string("vamp.container-driver.network")
 }
 
-case class Docker(image: String, portMappings: List[DockerPortMapping], parameters: List[DockerParameter], privileged: Boolean = false, network: String = Docker.network)
+case class Docker(image: String, portMappings: List[DockerPortMapping], parameters: List[DockerParameter], privileged: Boolean = false, network: String)
 
 case class DockerParameter(key: String, value: String)
 
