@@ -2,6 +2,7 @@ package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorLogging
 import io.vamp.common.crypto.Hash
+import io.vamp.container_driver.ContainerDriver
 
 import scala.concurrent.Future
 
@@ -36,7 +37,7 @@ trait KubernetesService extends KubernetesArtifact {
          |  },
          |  "spec": {
          |    "selector": {
-         |      "vamp": "$selector"
+         |      ${ContainerDriver.namespace}: "$selector"
          |    },
          |    "ports": [${ports.map(p ⇒ s"""{"name": "p${p.name}", "protocol": "${p.protocol.toUpperCase}", "port": ${p.port}, "targetPort": ${p.targetPort}}""").mkString(", ")}],
          |    "type": "${`type`.toString}"

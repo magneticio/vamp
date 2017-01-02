@@ -2,7 +2,7 @@ package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorLogging
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
-import io.vamp.container_driver._
+import io.vamp.container_driver.{ ContainerDriver, _ }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
 
@@ -25,7 +25,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   protected def schema: Enumeration
 
-  protected def labels(id: String, value: String) = Map("vamp" → value, value → id)
+  protected def labels(id: String, value: String) = Map(ContainerDriver.namespace → value, ContainerDriver.withNamespace(value) → id)
 
   protected def pods(id: String, value: String) = s"$podUrl?${labelSelector(labels(id, value))}"
 
