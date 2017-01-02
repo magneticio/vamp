@@ -91,10 +91,10 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
           <<?[List[YamlSourceReader]]("services") match {
-            case None ⇒ Cluster(name, List(), Nil, sla, dialects)
+            case None ⇒ Cluster(name, List(), Nil, <<?[String]("network"), sla, dialects)
             case Some(list) ⇒
               val services = list.map(parseService(_))
-              Cluster(name, services, processAnonymousInternalGateways(services, internalGatewayReader.mapping("gateways")), sla, dialects)
+              Cluster(name, services, processAnonymousInternalGateways(services, internalGatewayReader.mapping("gateways")), <<?[String]("network"), sla, dialects)
           }
       } toList
     }
@@ -186,7 +186,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
   }
 
   private def parseService(implicit source: YamlSourceReader): Service = {
-    Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), arguments(), dialects)
+    Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), arguments(), <<?[String]("network"), dialects)
   }
 }
 

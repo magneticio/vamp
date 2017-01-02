@@ -21,8 +21,8 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla", validateEitherReferenceOrAnonymous)
 
           <<?[List[YamlSourceReader]]("services") match {
-            case None       ⇒ DeploymentCluster(name, Nil, Nil, sla, dialects)
-            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), routingReader.mapping("gateways"), sla, dialects)
+            case None       ⇒ DeploymentCluster(name, Nil, Nil, <<?[String]("network"), sla, dialects)
+            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), routingReader.mapping("gateways"), <<?[String]("network"), sla, dialects)
           }
       } toList
     }
@@ -50,7 +50,7 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
     val breed = BreedReader.readReference(<<![Any]("breed")).asInstanceOf[DefaultBreed]
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale", validateEitherReferenceOrAnonymous).asInstanceOf[Option[DefaultScale]]
 
-    DeploymentService(status(<<![YamlSourceReader]("status")), breed, environmentVariables(), scale, parseInstances, arguments(), dependencies(), dialects)
+    DeploymentService(status(<<![YamlSourceReader]("status")), breed, environmentVariables(), scale, parseInstances, arguments(), <<?[String]("network"), dependencies(), dialects)
   }
 
   def parseInstances(implicit source: YamlSourceReader): List[DeploymentInstance] = {

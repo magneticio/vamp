@@ -41,6 +41,8 @@ abstract class AbstractCluster extends Artifact {
 
   def gateways: List[Gateway]
 
+  def network: Option[String]
+
   def sla: Option[Sla]
 
   def dialects: Map[Dialect.Value, Any]
@@ -48,7 +50,7 @@ abstract class AbstractCluster extends Artifact {
   def gatewayBy(portName: String): Option[Gateway] = gateways.find(_.port.name == portName)
 }
 
-case class Cluster(name: String, services: List[Service], gateways: List[Gateway], sla: Option[Sla], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
+case class Cluster(name: String, services: List[Service], gateways: List[Gateway], network: Option[String] = None, sla: Option[Sla] = None, dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
 
 abstract class AbstractService {
 
@@ -62,10 +64,12 @@ abstract class AbstractService {
 
   def arguments: List[Argument]
 
+  def network: Option[String]
+
   def dialects: Map[Dialect.Value, Any]
 }
 
-case class Service(breed: Breed, environmentVariables: List[EnvironmentVariable], scale: Option[Scale], arguments: List[Argument], dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
+case class Service(breed: Breed, environmentVariables: List[EnvironmentVariable], scale: Option[Scale], arguments: List[Argument], network: Option[String] = None, dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
 
 trait Scale extends Artifact {
   val kind = "scale"
