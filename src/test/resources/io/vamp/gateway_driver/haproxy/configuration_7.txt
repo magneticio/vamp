@@ -5,7 +5,6 @@ frontend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   bind 0.0.0.0:33000             
   
   option httplog
-  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
   mode http
 
@@ -24,7 +23,6 @@ frontend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 frontend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 
   option httplog
-  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
   bind unix@/usr/local/vamp/o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb.sock accept-proxy
 
@@ -37,7 +35,6 @@ frontend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 frontend 62a11db802baf59987a3ece9e10d8754eca16a09
 
   option httplog
-  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
   bind unix@/usr/local/vamp/62a11db802baf59987a3ece9e10d8754eca16a09.sock accept-proxy
 
