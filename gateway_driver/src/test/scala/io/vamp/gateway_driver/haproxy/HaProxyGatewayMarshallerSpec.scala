@@ -20,13 +20,7 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
     override def apply(message: String, payload: Option[Any] = None)(implicit pos: source.Position): Unit = {}
   }
 
-  override val haProxyConfig = HaProxyConfig(
-    "111.222.333.444",
-    "0.0.0.0",
-    80,
-    """{"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tw":%Tw,"Tc":%Tc,"Tt":%Tt,"B":%B,"ts":"%ts","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq}""",
-    """{"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}"""
-  )
+  override val haProxyConfig = HaProxyConfig("111.222.333.444")
 
   "HaProxyConfiguration" should "be serialized to valid HAProxy configuration" in {
 

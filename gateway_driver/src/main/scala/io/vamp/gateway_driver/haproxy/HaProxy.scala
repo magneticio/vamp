@@ -11,13 +11,7 @@ case class HaProxy(
   config:               HaProxyConfig
 )
 
-case class HaProxyConfig(
-  ip:               String,
-  virtualHostsIp:   String,
-  virtualHostsPort: Int,
-  tcpLogFormat:     String,
-  httpLogFormat:    String
-)
+case class HaProxyConfig(ip: String)
 
 case class Frontend(
   name:           String,

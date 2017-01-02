@@ -5,11 +5,10 @@
 
 frontend virtual_hosts
 
-  bind {{ haproxy.config.virtualHostsIp -}} : {{- haproxy.config.virtualHostsPort }}
+  bind 0.0.0.0:80
   mode http
 
   option httplog
-  log-format {{ haproxy.config.httpLogFormat }}
   {% for frontend in haproxy.virtualHostFrontends %}
   {%- for condition in frontend.conditions %}
   {%- if (condition.acls.isDefined) %}
@@ -50,12 +49,10 @@ frontend {{ frontend.lookup }}
 
   {% if (frontend.mode.toString == "http") %}
   option httplog
-  log-format {{ haproxy.config.httpLogFormat }}
   {% endif -%}
 
   {% if (frontend.mode.toString == "tcp") %}
   option tcplog
-  log-format {{ haproxy.config.tcpLogFormat }}
   {% endif -%}
 
   {%- if (frontend.unixSock.isDefined and frontend.sockProtocol.isDefined) %}
