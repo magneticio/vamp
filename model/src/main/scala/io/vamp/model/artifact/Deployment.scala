@@ -79,6 +79,7 @@ case class DeploymentCluster(
     name:     String,
     services: List[DeploymentService],
     gateways: List[Gateway],
+    network:  Option[String],
     sla:      Option[Sla],
     dialects: Map[Dialect.Value, Any] = Map()
 ) extends AbstractCluster {
@@ -113,6 +114,7 @@ case class DeploymentService(
   scale:                Option[DefaultScale],
   instances:            List[DeploymentInstance],
   arguments:            List[Argument],
+  network:              Option[String],
   dependencies:         Map[String, String]       = Map(),
   dialects:             Map[Dialect.Value, Any]   = Map()
 ) extends AbstractService

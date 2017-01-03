@@ -120,13 +120,13 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
               breed ← artifactFor[DefaultBreed](service.breed)
               scale ← artifactFor[DefaultScale](service.scale)
             } yield {
-              DeploymentService(Intention.Deployment, breed, service.environmentVariables, scale, Nil, arguments(breed, service), Map(), service.dialects)
+              DeploymentService(Intention.Deployment, breed, service.environmentVariables, scale, Nil, arguments(breed, service), service.network, Map(), service.dialects)
             }
           })
           gateways ← expandGateways(cluster.gateways)
 
         } yield {
-          DeploymentCluster(cluster.name, services, processAnonymousInternalGateways(services, gateways), cluster.sla, cluster.dialects)
+          DeploymentCluster(cluster.name, services, processAnonymousInternalGateways(services, gateways), cluster.network, cluster.sla, cluster.dialects)
         }
       }
 

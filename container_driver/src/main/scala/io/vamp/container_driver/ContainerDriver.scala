@@ -1,11 +1,18 @@
 package io.vamp.container_driver
 
 import io.vamp.common.akka.ExecutionContextProvider
+import io.vamp.common.config.Config
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentTraitResolver
+
+object ContainerDriver {
+  val namespace = Config.string("vamp.container-driver.namespace")
+
+  def withNamespace(label: String) = if (namespace.isEmpty) label else s"$namespace.$label"
+}
 
 trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with ExecutionContextProvider {
 
@@ -75,7 +82,8 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValida
       image = service.breed.deployable.definition,
       portMappings = portMappings(deployment, cluster, service),
       parameters = parameters,
-      privileged = privileged
+      privileged = privileged,
+      network = service.network.orElse(cluster.network).getOrElse(Docker.network)
     )
   }
 
@@ -85,13 +93,16 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValida
     (privileged.headOption.exists(_.value.toBoolean), parameters)
   }
 
-  protected def labels(workflow: Workflow) = {
-    Map("workflow" → workflow.name, "breed" → workflow.breed.name)
-  }
+  protected def labels(workflow: Workflow) = Map(
+    ContainerDriver.withNamespace("workflow") → workflow.name,
+    ContainerDriver.withNamespace("breed") → workflow.breed.name
+  )
 
-  protected def labels(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
-    Map("deployment" → deployment.name, "cluster" → cluster.name, "service" → service.breed.name)
-  }
+  protected def labels(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = Map(
+    ContainerDriver.withNamespace("deployment") → deployment.name,
+    ContainerDriver.withNamespace("cluster") → cluster.name,
+    ContainerDriver.withNamespace("service") → service.breed.name
+  )
 }
 
 trait ContainerDriverValidation {

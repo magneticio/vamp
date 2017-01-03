@@ -1,0 +1,8 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious:
+    network: wolf
+    services:
+    - breed: nocturnal-viper
+      network: fox
