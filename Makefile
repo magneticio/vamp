@@ -7,8 +7,8 @@ SHELL             := bash
 
 # Constants, these can be overwritten in your Makefile.local
 CONTAINER := magneticio/buildserver:0.3
-DIR_SBT   := ~/.sbt
-DIR_IVY   := ~/.ivy2
+DIR_SBT   := $(HOME)/.sbt
+DIR_IVY   := $(HOME)/.ivy2
 
 # if Makefile.local exists, include it.
 ifneq ("$(wildcard Makefile.local)", "")
@@ -26,8 +26,8 @@ default:
 		--interactive \
 		--rm \
 		--volume $(CURDIR):/srv/src \
-		--volume $(DIR_SBT):/root/.sbt \
-		--volume $(DIR_IVY):/root/.ivy2 \
+		--volume $(DIR_SBT):/home/vamp/.sbt \
+		--volume $(DIR_IVY):/home/vamp/.ivy2 \
 		--workdir=/srv/src \
 		--env BUILD_UID=$(shell id -u) \
 		--env BUILD_GID=$(shell id -g) \
