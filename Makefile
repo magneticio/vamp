@@ -6,7 +6,7 @@ SHELL             := bash
 .SUFFIXES:
 
 # Constants, these can be overwritten in your Makefile.local
-CONTAINER := magneticio/buildserver:0.3
+CONTAINER := magneticio/buildserver:0.4
 DIR_SBT   := $(HOME)/.sbt
 DIR_IVY   := $(HOME)/.ivy2
 
