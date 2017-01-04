@@ -12,7 +12,7 @@ trait HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers with HaProxyGa
 
   override lazy val path = Nil
 
-  override lazy val version = "1.6"
+  override lazy val version = "1.7"
 
   override lazy val socketPath = "/usr/local/vamp"
 

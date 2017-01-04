@@ -13,7 +13,8 @@ class GatewayDriverBootstrap extends ActorBootstrap {
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
     HaProxyGatewayMarshaller.version match {
-      case version if version != "1.6" && version != "1.5" ⇒ throw new RuntimeException(s"unsupported HAProxy configuration version: $version")
+      case version if version != "1.7" && version != "1.6" && version != "1.5" ⇒
+        throw new RuntimeException(s"unsupported HAProxy configuration version: $version")
       case _ ⇒
     }
 

@@ -1,4 +1,4 @@
-# HAProxy 1.6, Frontends & Backends managed by Vamp
+# HAProxy 1.7, Frontends & Backends managed by Vamp
 
 # frontend: vamp/backend/port
 frontend d2b6fbfab1d760f6bbf9ec3cec297e5f477b778e

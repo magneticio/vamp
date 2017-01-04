@@ -1,4 +1,4 @@
-# HAProxy 1.6, Frontends & Backends managed by Vamp
+# HAProxy 1.7, Frontends & Backends managed by Vamp
 
 # Virtual hosts
 
