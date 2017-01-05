@@ -32,7 +32,7 @@ trait WorkflowPersistenceOperations {
 
   implicit def timeout: Timeout
 
-  protected def receiveWorkflow: Actor.Receive = {
+  def receive: Actor.Receive = {
 
     case o: UpdateWorkflowStatus               ⇒ updateWorkflowStatus(o.workflow, o.status)
 
