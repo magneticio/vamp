@@ -35,7 +35,7 @@ trait CommonPersistenceOperations extends PersistenceMultiplexer with Persistenc
 
   protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean]
 
-  protected def receiveCommon: Actor.Receive = {
+  def receive: Actor.Receive = {
 
     case All(ofType, page, perPage, expandRef, onlyRef) ⇒ reply {
       all(ofType, if (page > 0) page else 1, if (perPage > 0) perPage else ArtifactResponseEnvelope.maxPerPage)

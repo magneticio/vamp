@@ -42,7 +42,7 @@ trait DevelopmentPersistenceOperations {
   import PersistenceActor._
   import DevelopmentPersistenceOperations._
 
-  protected def receiveDevelopment: Actor.Receive = {
+  def receive: Actor.Receive = {
 
     case o: UpdateDeploymentServiceStatus               ⇒ updateStatus(o.deployment, o.cluster, o.service, o.status)
 

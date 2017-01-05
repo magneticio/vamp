@@ -40,7 +40,7 @@ trait GatewayPersistenceOperations {
 
   implicit def timeout: Timeout
 
-  protected def receiveGateway: Actor.Receive = {
+  def receive: Actor.Receive = {
 
     case o: CreateInternalGateway         ⇒ createInternalGateway(o.gateway)
 
