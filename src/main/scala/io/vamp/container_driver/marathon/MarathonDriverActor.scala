@@ -1,6 +1,5 @@
 package io.vamp.container_driver.marathon
 
-import akka.actor.ActorRef
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.config.Config
 import io.vamp.common.crypto.Hash
@@ -26,9 +25,13 @@ object MarathonDriverActor {
 
   val mesosUrl = config.string("mesos.url")
   val marathonUrl = config.string("marathon.url")
-  val marathonSse = config.boolean("marathon.sse")
+
   val apiUser = config.string("marathon.user")
   val apiPassword = config.string("marathon.password")
+
+  val sse = config.boolean("marathon.sse")
+  val expirationPeriod = config.duration("marathon.expiration-period")
+  val reconciliationPeriod = config.duration("marathon.reconciliation-period")
 
   val workflowNamePrefix = config.string("marathon.workflow-name-prefix")
 
@@ -43,10 +46,14 @@ case class MesosInfo(frameworks: Any, slaves: Any)
 
 case class MarathonDriverInfo(mesos: MesosInfo, marathon: Any)
 
-class MarathonDriverActor extends ContainerDriverActor with MarathonSse with ActorExecutionContextProvider with ContainerDriver {
+class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with MarathonSse with ActorExecutionContextProvider with ContainerDriver {
 
   import ContainerDriverActor._
   import MarathonDriverActor._
+
+  protected val expirationPeriod = MarathonDriverActor.expirationPeriod
+
+  protected val reconciliationPeriod = MarathonDriverActor.reconciliationPeriod
 
   private implicit val formats: Formats = DefaultFormats
 
@@ -62,34 +69,23 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
   override protected def supportedDeployableTypes = DockerDeployable :: CommandDeployable :: Nil
 
-  private var watch: (ActorRef, List[DeploymentServices]) = ActorRef.noSender → Nil
-
-  def receive = {
+  override def receive = super[ContainerBuffer].receive orElse {
 
     case InfoRequest                ⇒ reply(info)
 
-    case Get(services)              ⇒ get(services)
-    case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
-    case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
+    case r: ReconcileRequest        ⇒ reconcile(r.deployment, r.service)
+
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
 
     case GetWorkflow(workflow)      ⇒ reply(retrieve(workflow))
     case d: DeployWorkflow          ⇒ reply(deploy(d.workflow, d.update))
     case u: UndeployWorkflow        ⇒ reply(undeploy(u.workflow))
 
-    case e: MarathonEvent           ⇒ onSse(e.`type`, e.ids)
-
     case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
   @scala.throws[Exception](classOf[Exception])
-  override def preStart(): Unit = {
-    super.preStart()
-    if (marathonSse) {
-      log.info(s"Marathon SSE enabled")
-      sse(marathonUrl)
-    }
-  }
+  override def preStart(): Unit = if (sse) openEventStream(marathonUrl)
 
   private def info: Future[Any] = {
 
@@ -116,25 +112,15 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
     }
   }
 
-  private def get(deploymentServices: List[DeploymentServices]): Unit = {
-
-    log.debug(s"marathon get all")
-
-    val replyTo = sender()
-
-    watch = replyTo → deploymentServices
-
-    httpClient.get[AppsResponse](s"$marathonUrl/v2/apps?embed=apps.tasks", headers).map { apps ⇒
-
-      val deployed = apps.apps.map(app ⇒ app.id → app).toMap
-
-      deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).map {
-        case (deployment, service) ⇒ containerService(deployment, service, deployed.get(appId(deployment, service.breed)))
-      } foreach { cs ⇒ replyTo ! cs }
+  private def reconcile(deployment: Deployment, service: DeploymentService): Unit = {
+    val id = appId(deployment, service.breed)
+    log.debug(s"marathon reconcile: ${deployment.name} / ${service.breed.name}")
+    httpClient.get[AppsResponse](s"$marathonUrl/v2/apps?id=$id&embed=apps.tasks", headers).map { apps ⇒
+      self ! containerService(deployment, service, apps.apps.find(app ⇒ app.id == id))
     }
   }
 
-  private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
+  override protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
 
     validateDeployable(service.breed.deployable)
 
@@ -178,23 +164,6 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
     sendRequest(update, id, Extraction.decompose(purge(marathonApp)))
   }
 
-  private def onSse(`type`: String, ids: List[String]) = if (`type` == "deployment_success") {
-    watch._2.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
-
-      case (deployment, service) ⇒
-
-        val id = appId(deployment, service.breed)
-
-        if (ids.contains(id))
-          httpClient.get[AppResponse](s"$marathonUrl/v2/apps/$id?embed=apps.tasks", headers, logError = false)
-            .map { response ⇒ containerService(deployment, service, Option(response.app)) }
-            .foreach { cs ⇒
-              log.info(s"marathon event for: ${deployment.name} [$id]")
-              watch._1 ! cs
-            }
-    }
-  }
-
   private def containerService(deployment: Deployment, service: DeploymentService, response: Option[App]): ContainerService = response match {
     case Some(app) ⇒
       val scale = DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances)
@@ -208,20 +177,23 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
     if (app.args.isEmpty) app.copy(args = null) else app
   }
 
-  private def sendRequest(update: Boolean, id: String, payload: JValue) = update match {
-    case true ⇒ httpClient.get[Any](s"$marathonUrl/v2/apps/$id", headers).flatMap { response ⇒
-      val changed = Extraction.decompose(response).children.headOption match {
-        case Some(app) ⇒ app.diff(payload).changed
-        case None      ⇒ payload
+  private def sendRequest(update: Boolean, id: String, payload: JValue) = {
+    if (update) {
+      httpClient.get[Any](s"$marathonUrl/v2/apps/$id", headers).flatMap { response ⇒
+        val changed = Extraction.decompose(response).children.headOption match {
+          case Some(app) ⇒ app.diff(payload).changed
+          case None      ⇒ payload
+        }
+        if (changed != JNothing) httpClient.put[Any](s"$marathonUrl/v2/apps/$id", changed, headers) else Future.successful(false)
       }
-      if (changed != JNothing) httpClient.put[Any](s"$marathonUrl/v2/apps/$id", changed, headers) else Future.successful(false)
     }
-
-    case false ⇒ httpClient.post[Any](s"$marathonUrl/v2/apps", payload, headers, logError = false).recover {
-      case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
-      case t ⇒
-        log.error(t, t.getMessage)
-        Future.failed(t)
+    else {
+      httpClient.post[Any](s"$marathonUrl/v2/apps", payload, headers, logError = false).recover {
+        case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
+        case t ⇒
+          log.error(t, t.getMessage)
+          Future.failed(t)
+      }
     }
   }
 
@@ -257,7 +229,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
     Extraction.decompose(interpolate(deployment, local, dialect)) merge Extraction.decompose(app)
   }
 
-  private def undeploy(deployment: Deployment, service: DeploymentService) = {
+  override protected def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
     httpClient.delete(s"$marathonUrl/v2/apps/$id", headers)
