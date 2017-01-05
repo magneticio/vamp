@@ -4,6 +4,7 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
 import akka.actor.{ ActorRef, Props }
+import akka.pattern.ask
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
@@ -40,6 +41,8 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
   import DeploymentSynchronizationActor._
 
+  private implicit val timeout = PersistenceActor.timeout
+
   def receive: Receive = {
     case SynchronizeAll       ⇒ synchronize()
     case cs: ContainerService ⇒ synchronize(cs)
@@ -47,7 +50,6 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   }
 
   private def synchronize() = {
-    implicit val timeout = PersistenceActor.timeout
     forAll(allArtifacts[Deployment], { deployments ⇒
 
       val deploymentServices = deployments.map { deployment ⇒
@@ -65,12 +67,20 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   }
 
   private def synchronize(containerService: ContainerService): Unit = {
-    def sendTo(actor: ActorRef) = actor ! SingleDeploymentSynchronizationActor.Synchronize(containerService)
+    def sendTo(actor: ActorRef, deployment: Deployment) = {
+      deployment.service(containerService.service.breed).foreach { service ⇒
+        actor ! SingleDeploymentSynchronizationActor.Synchronize(containerService.copy(deployment = deployment, service = service))
+      }
+    }
 
-    val name = s"deployment-synchronization-${containerService.deployment.lookupName}"
-    context.child(name) match {
-      case Some(actor) ⇒ sendTo(actor)
-      case None        ⇒ sendTo(context.actorOf(Props(classOf[SingleDeploymentSynchronizationActor]), name))
+    actorFor[PersistenceActor] ? PersistenceActor.Read(containerService.deployment.name, classOf[Deployment]) foreach {
+      case Some(deployment: Deployment) ⇒
+        val name = s"deployment-synchronization-${containerService.deployment.lookupName}"
+        context.child(name) match {
+          case Some(actor) ⇒ sendTo(actor, deployment)
+          case None        ⇒ sendTo(context.actorOf(Props(classOf[SingleDeploymentSynchronizationActor]), name), deployment)
+        }
+      case _ ⇒
     }
   }
 

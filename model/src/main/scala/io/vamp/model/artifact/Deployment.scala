@@ -69,6 +69,10 @@ case class Deployment(
   override val kind = Deployment.kind
 
   lazy val traits = ports ++ environmentVariables ++ hosts
+
+  def service(breed: Breed): Option[DeploymentService] = {
+    clusters.flatMap { cluster ⇒ cluster.services } find { service ⇒ service.breed.name == breed.name }
+  }
 }
 
 object DeploymentCluster {
