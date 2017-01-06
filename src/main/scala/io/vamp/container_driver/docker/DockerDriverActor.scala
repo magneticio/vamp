@@ -1,5 +1,6 @@
 package io.vamp.container_driver.docker
 
+import akka.actor.ActorRef
 import com.spotify.docker.client.DefaultDockerClient
 import com.spotify.docker.client.messages.{ Container ⇒ SpotifyContainer, ContainerInfo ⇒ _, _ }
 import io.vamp.common.config.Config
@@ -58,18 +59,18 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
   def receive = {
 
-    case InfoRequest                ⇒ reply(info)
+    case InfoRequest                    ⇒ reply(info)
 
-    case Get(services)              ⇒ get(services)
-    case d: Deploy                  ⇒ reply(Future(deploy(d.deployment, d.cluster, d.service, d.update)))
-    case u: Undeploy                ⇒ reply(Future(undeploy(u.deployment, u.service)))
-    case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
+    case Get(services)                  ⇒ get(services)
+    case d: Deploy                      ⇒ reply(Future(deploy(d.deployment, d.cluster, d.service, d.update)))
+    case u: Undeploy                    ⇒ reply(Future(undeploy(u.deployment, u.service)))
+    case DeployedGateways(gateways)     ⇒ reply(deployedGateways(gateways))
 
-    case GetWorkflow(workflow)      ⇒ get(workflow)
-    case d: DeployWorkflow          ⇒ reply(Future.successful(deploy(d.workflow, d.update)))
-    case u: UndeployWorkflow        ⇒ reply(Future.successful(undeploy(u.workflow)))
+    case GetWorkflow(workflow, replyTo) ⇒ get(workflow, replyTo)
+    case d: DeployWorkflow              ⇒ reply(Future.successful(deploy(d.workflow, d.update)))
+    case u: UndeployWorkflow            ⇒ reply(Future.successful(undeploy(u.workflow)))
 
-    case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
+    case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
   override def postStop() = docker.close()
@@ -83,9 +84,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
   private def info: Future[ContainerInfo] = Future(docker.info()).map(info ⇒ ContainerInfo("docker", info))
 
   private def get(deploymentServices: List[DeploymentServices]) = {
-
     log.debug(s"docker get all")
-
     val replyTo = sender()
 
     Future(docker.listContainers().asScala).map { containers ⇒
@@ -120,11 +119,8 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     }
   }
 
-  private def get(workflow: Workflow) = {
-
+  private def get(workflow: Workflow, replyTo: ActorRef) = {
     log.debug(s"docker get workflow")
-
-    val replyTo = sender()
 
     Future(docker.listContainers().asScala).map { containers ⇒
 

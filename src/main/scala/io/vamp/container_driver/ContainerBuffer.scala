@@ -41,23 +41,23 @@ trait ContainerBuffer {
   protected def undeploy(workflow: Workflow): Future[Any]
 
   def receive: Actor.Receive = {
-    case Get(services)            ⇒ processGet(services)
-    case d: Deploy                ⇒ reply(processDeploy(d.deployment, d.cluster, d.service, d.update))
-    case u: Undeploy              ⇒ reply(processUndeploy(u.deployment, u.service))
+    case Get(services)                 ⇒ processGet(services, sender())
+    case d: Deploy                     ⇒ reply(processDeploy(d.deployment, d.cluster, d.service, d.update))
+    case u: Undeploy                   ⇒ reply(processUndeploy(u.deployment, u.service))
 
-    case GetWorkflow(workflow)    ⇒ processGet(workflow)
-    case d: DeployWorkflow        ⇒ reply(processDeploy(d.workflow, d.update))
-    case u: UndeployWorkflow      ⇒ reply(processUndeploy(u.workflow))
+    case GetWorkflow(workflow, sender) ⇒ processGet(workflow, sender)
+    case d: DeployWorkflow             ⇒ reply(processDeploy(d.workflow, d.update))
+    case u: UndeployWorkflow           ⇒ reply(processUndeploy(u.workflow))
 
-    case ContainerChangeEvent(id) ⇒ changed(id)
+    case ContainerChangeEvent(id)      ⇒ changed(id)
 
-    case cs: ContainerService     ⇒ update(cs)
-    case cw: ContainerWorkflow    ⇒ update(cw)
+    case cs: ContainerService          ⇒ update(cs)
+    case cw: ContainerWorkflow         ⇒ update(cw)
   }
 
-  private def processGet(any: AnyRef) = {
+  private def processGet(any: AnyRef, watcher: ActorRef) = {
     cleanup()
-    (entries andThen update andThen reconcile andThen respond)(any)
+    (entries andThen update(watcher) andThen reconcile andThen respond(watcher))(any)
   }
 
   private def processDeploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
@@ -92,8 +92,7 @@ trait ContainerBuffer {
     case _                  ⇒ Map()
   }
 
-  private def update: Map[String, ContainerBufferEntry] ⇒ Map[String, ContainerBufferEntry] = { entries ⇒
-    val watcher = sender()
+  private def update(watcher: ActorRef): Map[String, ContainerBufferEntry] ⇒ Map[String, ContainerBufferEntry] = { entries ⇒
     store.get(watcher) match {
       case Some(existing) ⇒
 
@@ -141,8 +140,7 @@ trait ContainerBuffer {
     respond
   }
 
-  private def respond: Map[String, ContainerBufferEntry] ⇒ Unit = { entries ⇒
-    val watcher = sender()
+  private def respond(watcher: ActorRef): Map[String, ContainerBufferEntry] ⇒ Unit = { entries ⇒
     entries.foreach {
       case (_, entry) ⇒ watcher ! entry.runtime
     }

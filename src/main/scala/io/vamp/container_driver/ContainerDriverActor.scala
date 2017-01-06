@@ -1,5 +1,6 @@
 package io.vamp.container_driver
 
+import akka.actor.ActorRef
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
 import io.vamp.common.http.HttpClient
@@ -29,7 +30,7 @@ object ContainerDriverActor {
 
   case class DeployedGateways(gateway: List[Gateway]) extends ContainerDriveMessage
 
-  case class GetWorkflow(workflow: Workflow) extends ContainerDriveMessage
+  case class GetWorkflow(workflow: Workflow, sender: ActorRef) extends ContainerDriveMessage
 
   case class DeployWorkflow(workflow: Workflow, update: Boolean) extends ContainerDriveMessage
 

@@ -1,5 +1,6 @@
 package io.vamp.container_driver.rancher
 
+import akka.actor.ActorRef
 import io.vamp.common.config.Config
 import io.vamp.common.http.HttpClient
 import io.vamp.common.spi.ClassMapper
@@ -46,18 +47,18 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
   def receive = {
 
-    case InfoRequest                ⇒ reply(info)
+    case InfoRequest                    ⇒ reply(info)
 
-    case Get(services)              ⇒ get(services)
-    case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
-    case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.cluster, u.service))
-    case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
+    case Get(services)                  ⇒ get(services)
+    case d: Deploy                      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
+    case u: Undeploy                    ⇒ reply(undeploy(u.deployment, u.cluster, u.service))
+    case DeployedGateways(gateways)     ⇒ reply(deployedGateways(gateways))
 
-    case GetWorkflow(workflow)      ⇒ get(workflow)
-    case d: DeployWorkflow          ⇒ reply(deploy(d.workflow, d.update))
-    case u: UndeployWorkflow        ⇒ reply(undeploy(u.workflow))
+    case GetWorkflow(workflow, replyTo) ⇒ get(workflow, replyTo)
+    case d: DeployWorkflow              ⇒ reply(deploy(d.workflow, d.update))
+    case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
 
-    case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
+    case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
   override protected def supportedDeployableTypes = DockerDeployable :: Nil
@@ -111,11 +112,8 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
     }
   }
 
-  private def get(workflow: Workflow): Unit = {
-
+  private def get(workflow: Workflow, replyTo: ActorRef): Unit = {
     log.debug(s"rancher get workflow")
-
-    val replyTo = sender()
 
     val serviceName = appId(workflow)
 

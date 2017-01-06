@@ -110,15 +110,6 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
     }
   }
 
-  private def reconcile(deployment: Deployment, service: DeploymentService): Unit = {
-    val id = appId(deployment, service.breed)
-    log.debug(s"marathon reconcile: ${deployment.name} / ${service.breed.name}")
-    httpClient.get[AppsResponse](s"$marathonUrl/v2/apps?id=$id&embed=apps.tasks", headers, logError = false) recover { case _ ⇒ None } map {
-      case apps: AppsResponse ⇒ self ! ContainerService(deployment, service, apps.apps.find(app ⇒ app.id == id).map(containers))
-      case _                  ⇒ self ! ContainerService(deployment, service, None)
-    }
-  }
-
   override protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
 
     validateDeployable(service.breed.deployable)
@@ -229,14 +220,29 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
   override protected def undeploy(workflow: Workflow) = {
     val id = appId(workflow)
     log.info(s"marathon delete workflow: ${workflow.name}")
-    httpClient.delete(s"$marathonUrl/v2/apps/$id", headers)
+    httpClient.delete(s"$marathonUrl/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None }
+  }
+
+  private def reconcile(deployment: Deployment, service: DeploymentService): Unit = {
+    log.debug(s"marathon reconcile: ${deployment.name} / ${service.breed.name}")
+    reconcile(appId(deployment, service.breed)).foreach {
+      case Some(containers) ⇒ self ! ContainerService(deployment, service, Option(containers))
+      case _                ⇒ self ! ContainerService(deployment, service, None)
+    }
   }
 
   private def reconcile(workflow: Workflow): Unit = {
-    val id = appId(workflow)
     log.debug(s"marathon reconcile workflow: ${workflow.name}")
-    httpClient.get[AppsResponse](s"$marathonUrl/v2/apps?id=$id&embed=apps.tasks", headers).map { apps ⇒
-      self ! ContainerWorkflow(workflow, apps.apps.find(app ⇒ app.id == id).map(containers))
+    reconcile(appId(workflow)).foreach {
+      case Some(containers) ⇒ self ! ContainerWorkflow(workflow, Option(containers))
+      case _                ⇒ self ! ContainerWorkflow(workflow, None)
+    }
+  }
+
+  private def reconcile(id: String): Future[Option[Containers]] = {
+    httpClient.get[AppsResponse](s"$marathonUrl/v2/apps?id=$id&embed=apps.tasks", headers, logError = false) recover { case _ ⇒ None } map {
+      case apps: AppsResponse ⇒ apps.apps.find(app ⇒ app.id == id).map(containers)
+      case _                  ⇒ None
     }
   }
 
