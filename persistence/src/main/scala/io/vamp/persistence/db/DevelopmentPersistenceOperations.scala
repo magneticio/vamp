@@ -13,7 +13,7 @@ trait DevelopmentPersistenceMessages {
 
   case class UpdateDeploymentServiceScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) extends PersistenceActor.PersistenceMessages
 
-  case class UpdateDeploymentServiceInstances(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, instances: List[DeploymentInstance]) extends PersistenceActor.PersistenceMessages
+  case class UpdateDeploymentServiceInstances(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, instances: List[Instance]) extends PersistenceActor.PersistenceMessages
 
   case class UpdateDeploymentServiceEnvironmentVariables(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, environmentVariables: List[EnvironmentVariable]) extends PersistenceActor.PersistenceMessages
 
@@ -66,7 +66,7 @@ trait DevelopmentPersistenceOperations {
     }
   }
 
-  private def updateInstances(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, instances: List[DeploymentInstance]) = reply {
+  private def updateInstances(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, instances: List[Instance]) = reply {
     self ? PersistenceActor.Update(DeploymentServiceInstances(serviceArtifactName(deployment, cluster, service), instances))
   }
 
@@ -93,7 +93,7 @@ private[persistence] case class DeploymentServiceScale(name: String, scale: Defa
   val kind = "deployment-service-scales"
 }
 
-private[persistence] case class DeploymentServiceInstances(name: String, instances: List[DeploymentInstance]) extends Artifact {
+private[persistence] case class DeploymentServiceInstances(name: String, instances: List[Instance]) extends Artifact {
   val kind = "deployment-service-instances"
 }
 

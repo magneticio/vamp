@@ -55,6 +55,8 @@ class WorkflowSerializer extends ArtifactSerializer[Workflow] with ReferenceSeri
 
       list += JField("arguments", serializeArguments(workflow.arguments))
 
+      list += JField("instances", Extraction.decompose(workflow.instances))
+
       new JObject(list.toList)
   }
 }

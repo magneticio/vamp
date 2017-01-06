@@ -61,7 +61,7 @@ trait WorkflowDriver extends TraitResolver {
 
   def info: Future[Map[_, _]]
 
-  def request(replyTo: ActorRef, scheduledWorkflows: List[Workflow]): Unit
+  def request(replyTo: ActorRef, workflows: List[Workflow]): Unit
 
   def schedule(data: Any): PartialFunction[Workflow, Future[Any]]
 

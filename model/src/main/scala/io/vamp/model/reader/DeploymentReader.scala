@@ -53,12 +53,12 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
     DeploymentService(status(<<![YamlSourceReader]("status")), breed, environmentVariables(), scale, parseInstances, arguments(), <<?[String]("network"), dependencies(), dialects)
   }
 
-  def parseInstances(implicit source: YamlSourceReader): List[DeploymentInstance] = {
+  def parseInstances(implicit source: YamlSourceReader): List[Instance] = {
     <<?[List[YamlSourceReader]]("instances").map(_.map(parseInstance(_))).getOrElse(Nil)
   }
 
-  private def parseInstance(implicit source: YamlSourceReader): DeploymentInstance = {
-    DeploymentInstance(<<![String]("name"), <<![String]("host"), portMapping(), <<![Boolean]("deployed"))
+  private def parseInstance(implicit source: YamlSourceReader): Instance = {
+    Instance(<<![String]("name"), <<![String]("host"), portMapping(), <<![Boolean]("deployed"))
   }
 
   private def portMapping(name: String = "ports")(implicit source: YamlSourceReader): Map[String, Int] = {

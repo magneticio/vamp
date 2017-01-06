@@ -17,7 +17,7 @@ object WorkflowDriverActor {
 
   sealed trait WorkflowDriveMessage
 
-  case class GetScheduled(replyTo: ActorRef, workflows: List[Workflow]) extends WorkflowDriveMessage
+  case class GetScheduled(workflows: List[Workflow]) extends WorkflowDriveMessage
 
   case class Scheduled(workflow: Workflow, workflowInstance: Option[WorkflowInstance]) extends WorkflowDriveMessage
 
@@ -36,11 +36,11 @@ class WorkflowDriverActor(drivers: List[WorkflowDriver]) extends PulseFailureNot
   override def errorNotificationClass = classOf[WorkflowResponseError]
 
   def receive = {
-    case InfoRequest                      ⇒ reply(info)
-    case GetScheduled(replyTo, workflows) ⇒ get(replyTo, workflows)
-    case Schedule(workflow, data)         ⇒ reply(schedule(data)(workflow))
-    case Unschedule(workflow)             ⇒ reply(unschedule()(workflow))
-    case _                                ⇒
+    case InfoRequest              ⇒ reply(info)
+    case GetScheduled(workflows)  ⇒ get(sender(), workflows)
+    case Schedule(workflow, data) ⇒ reply(schedule(data)(workflow))
+    case Unschedule(workflow)     ⇒ reply(unschedule()(workflow))
+    case _                        ⇒
   }
 
   private def info: Future[Map[_, _]] = Future.sequence(drivers.map(_.info)).map(_.reduce(_ ++ _))

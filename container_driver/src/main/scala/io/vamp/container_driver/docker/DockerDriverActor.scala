@@ -65,7 +65,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     case u: Undeploy                ⇒ reply(Future(undeploy(u.deployment, u.service)))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
 
-    case GetWorkflow(workflow)      ⇒ reply(Future.successful(retrieve(workflow)))
+    case GetWorkflow(workflow)      ⇒ get(workflow)
     case d: DeployWorkflow          ⇒ reply(Future.successful(deploy(d.workflow, d.update)))
     case u: UndeployWorkflow        ⇒ reply(Future.successful(undeploy(u.workflow)))
 
@@ -117,6 +117,42 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
             case None ⇒ ContainerService(deployment, service, None)
           }
       } foreach { cs ⇒ replyTo ! cs }
+    }
+  }
+
+  private def get(workflow: Workflow) = {
+
+    log.debug(s"docker get workflow")
+
+    val replyTo = sender()
+
+    Future(docker.listContainers().asScala).map { containers ⇒
+
+      val deployed = containers.flatMap(container ⇒ id(container, vampWorkflowLabel).map(_ → container)).toMap
+
+      val cw = deployed.get(appId(workflow)) match {
+
+        case Some(container) if processable(container, vampWorkflowLabel) ⇒
+
+          val scale = parse(container.labels().get(ContainerDriver.withNamespace("scale")), useBigDecimalForDouble = true).extract[DockerServiceScale].toScale
+
+          val host = container.networkSettings().networks().asScala.values.headOption.map {
+            attachedNetwork ⇒ attachedNetwork.ipAddress()
+          } getOrElse gatewayServiceIp
+
+          val containerPorts = container.ports().asScala.toList
+          val ports = workflow.breed.asInstanceOf[DefaultBreed].ports.filter(port ⇒ containerPorts.exists(_.getPrivatePort == port.number)).map(_.number)
+
+          val instances = (1 to scale.instances).map { index ⇒
+            ContainerInstance(s"${container.id()}_$index", host, ports, deployed = true)
+          } toList
+
+          ContainerWorkflow(workflow, Option(Containers(scale, instances)))
+
+        case None ⇒ ContainerWorkflow(workflow, None)
+      }
+
+      replyTo ! cw
     }
   }
 

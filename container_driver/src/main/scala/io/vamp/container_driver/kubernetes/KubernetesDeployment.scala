@@ -38,37 +38,48 @@ trait KubernetesDeployment extends KubernetesArtifact {
     }
   }
 
-  private def containerServices(deploymentServices: List[DeploymentServices], response: KubernetesApiResponse): Future[List[ContainerService]] = Future.sequence {
+  protected def containerWorkflow(workflow: Workflow): Future[ContainerWorkflow] = {
+    log.debug(s"kubernetes get all")
+    httpClient.get[KubernetesApiResponse](deploymentUrl, apiHeaders).flatMap { deployments ⇒
 
-    val deployed = response.items.map(item ⇒ item.metadata.name → item).toMap
+      val id = appId(workflow)
+      val deployed = deployments.items.map(item ⇒ item.metadata.name → item).toMap
 
-    deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).flatMap {
-      case (deployment, service) ⇒
-
-        val id = appId(deployment, service.breed)
-
-        deployed.get(id) match {
-
-          case Some(item) ⇒
-
-            val ports = item.spec.template.flatMap(_.spec.containers.headOption).map(_.ports.map(_.containerPort)).getOrElse(Nil)
-            val scale: Option[DefaultScale] = item.spec.template.flatMap(_.spec.containers.headOption).map(_.resources.requests).map(request ⇒
-              DefaultScale("", Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1)))
-
-            if (scale.isDefined) {
-              httpClient.get[KubernetesApiResponse](pods(id, deploymentServiceIdLabel), apiHeaders).map { pods ⇒
-                val instances = pods.items.map { pod ⇒
-                  ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
-                }
-                ContainerService(deployment, service, Option(Containers(scale.get, instances)))
-              } :: Nil
-
-            }
-            else Nil
-
-          case None ⇒ Future.successful(ContainerService(deployment, service, None)) :: Nil
-        }
+      deployed.get(id) match {
+        case Some(item) ⇒ containers(id, item).map(ContainerWorkflow(workflow, _))
+        case None       ⇒ Future.successful(ContainerWorkflow(workflow, None))
+      }
     }
+  }
+
+  private def containerServices(deploymentServices: List[DeploymentServices], response: KubernetesApiResponse): Future[List[ContainerService]] = {
+    val deployed = response.items.map(item ⇒ item.metadata.name → item).toMap
+    Future.sequence {
+      deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).map {
+        case (deployment, service) ⇒
+          val id = appId(deployment, service.breed)
+          deployed.get(id) match {
+            case Some(item) ⇒ containers(id, item).map(ContainerService(deployment, service, _))
+            case None       ⇒ Future.successful(ContainerService(deployment, service, None))
+          }
+      }
+    }
+  }
+
+  private def containers(id: String, item: KubernetesItem): Future[Option[Containers]] = {
+    val ports = item.spec.template.flatMap(_.spec.containers.headOption).map(_.ports.map(_.containerPort)).getOrElse(Nil)
+    val scale: Option[DefaultScale] = item.spec.template.flatMap(_.spec.containers.headOption).map(_.resources.requests).map(request ⇒
+      DefaultScale("", Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1)))
+
+    if (scale.isDefined) {
+      httpClient.get[KubernetesApiResponse](pods(id, deploymentServiceIdLabel), apiHeaders).map { pods ⇒
+        val instances = pods.items.map { pod ⇒
+          ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
+        }
+        Option(Containers(scale.get, instances))
+      }
+    }
+    else Future.successful(None)
   }
 
   protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {

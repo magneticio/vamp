@@ -63,9 +63,9 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
 
     def deployTo(update: Boolean) = actorFor[ContainerDriverActor] ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = update)
 
-    def convert(server: ContainerInstance): DeploymentInstance = {
+    def convert(server: ContainerInstance): Instance = {
       val ports = deploymentService.breed.ports.map(_.name) zip server.ports
-      DeploymentInstance(server.name, server.host, ports.toMap, server.deployed)
+      Instance(server.name, server.host, ports.toMap, server.deployed)
     }
 
     if (deploymentService.status.phase.isInstanceOf[Initiated])

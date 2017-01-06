@@ -45,7 +45,7 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
     val breed = BreedReader.readReference(<<![Any]("breed"))
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale")
 
-    Workflow(name, breed, status, schedule, scale, environmentVariables(alias = false), arguments(), <<?[String]("network"))
+    Workflow(name, breed, status, schedule, scale, environmentVariables(alias = false), arguments(), <<?[String]("network"), DeploymentReader.parseInstances)
   }
 
   override protected def validate(workflow: Workflow): Workflow = {

@@ -4,6 +4,7 @@ import akka.actor.{ ActorRef, ActorRefFactory }
 import akka.pattern.ask
 import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
 import io.vamp.container_driver.ContainerDriverActor.{ DeployWorkflow, GetWorkflow, UndeployWorkflow }
+import io.vamp.container_driver.ContainerWorkflow
 import io.vamp.model.artifact.{ DaemonSchedule, Workflow }
 import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 
@@ -16,8 +17,8 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
   override def request(replyTo: ActorRef, workflows: List[Workflow]): Unit = workflows.foreach { scheduled ⇒
     if (scheduled.schedule == DaemonSchedule) {
       driverActor ? GetWorkflow(scheduled) map {
-        case Some(_) ⇒ replyTo ! Scheduled(scheduled, Option(WorkflowInstance(scheduled.name)))
-        case _       ⇒ replyTo ! Scheduled(scheduled, None)
+        case ContainerWorkflow(_, Some(_)) ⇒ replyTo ! Scheduled(scheduled, Option(WorkflowInstance(scheduled.name)))
+        case _                             ⇒ replyTo ! Scheduled(scheduled, None)
       }
     }
   }
@@ -25,16 +26,16 @@ abstract class DaemonWorkflowDriver(implicit override val actorRefFactory: Actor
   override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
     case workflow if workflow.schedule == DaemonSchedule ⇒
       driverActor ? GetWorkflow(workflow) map {
-        case Some(_) ⇒ driverActor ? DeployWorkflow(enrich(workflow), update = true)
-        case _       ⇒ driverActor ? DeployWorkflow(enrich(workflow), update = false)
+        case ContainerWorkflow(_, Some(_)) ⇒ driverActor ? DeployWorkflow(enrich(workflow), update = true)
+        case _                             ⇒ driverActor ? DeployWorkflow(enrich(workflow), update = false)
       }
   }
 
   override def unschedule(): PartialFunction[Workflow, Future[Any]] = {
     case workflow if workflow.schedule == DaemonSchedule ⇒
       driverActor ? GetWorkflow(workflow) map {
-        case Some(_) ⇒ driverActor ? UndeployWorkflow(workflow)
-        case _       ⇒ Future.successful(true)
+        case ContainerWorkflow(_, Some(_)) ⇒ driverActor ? UndeployWorkflow(workflow)
+        case _                             ⇒ Future.successful(true)
       }
   }
 }

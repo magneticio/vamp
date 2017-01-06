@@ -53,7 +53,7 @@ class ServiceFieldSerializer extends ArtifactFieldSerializer[AbstractService] wi
   }
 }
 
-class InstanceFieldSerializer extends ArtifactFieldSerializer[DeploymentInstance] {
+class InstanceFieldSerializer extends ArtifactFieldSerializer[Instance] {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
     case ("kind", _) ⇒ None
   }

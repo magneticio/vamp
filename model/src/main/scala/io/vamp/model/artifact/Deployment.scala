@@ -116,14 +116,14 @@ case class DeploymentService(
   breed:                DefaultBreed,
   environmentVariables: List[EnvironmentVariable],
   scale:                Option[DefaultScale],
-  instances:            List[DeploymentInstance],
+  instances:            List[Instance],
   arguments:            List[Argument],
   network:              Option[String],
   dependencies:         Map[String, String]       = Map(),
   dialects:             Map[Dialect.Value, Any]   = Map()
 ) extends AbstractService
 
-case class DeploymentInstance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact {
+case class Instance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact {
   val kind = "instance"
 }
 

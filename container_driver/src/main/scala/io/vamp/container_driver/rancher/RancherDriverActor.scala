@@ -53,7 +53,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.cluster, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
 
-    case GetWorkflow(workflow)      ⇒ reply(retrieve(workflow))
+    case GetWorkflow(workflow)      ⇒ get(workflow)
     case d: DeployWorkflow          ⇒ reply(deploy(d.workflow, d.update))
     case u: UndeployWorkflow        ⇒ reply(undeploy(u.workflow))
 
@@ -108,6 +108,40 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
             case None ⇒ replyTo ! ContainerService(deployment, service, None)
           }
         }
+    }
+  }
+
+  private def get(workflow: Workflow): Unit = {
+
+    log.debug(s"rancher get workflow")
+
+    val replyTo = sender()
+
+    val serviceName = appId(workflow)
+
+    httpClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).map { services ⇒
+
+      services.data.find(service ⇒ service.name == serviceName && service.state == Option("active")) match {
+
+        case Some(s) ⇒
+
+          val cpu = Quantity(s.launchConfig.flatMap(_.cpuShares).getOrElse(0).toDouble)
+          val memory = MegaByte(s.launchConfig.flatMap(_.memoryMb).getOrElse(0).toDouble)
+
+          httpClient.get[ServiceContainersList](s"$rancherUrl/services/${s.id.get}/instances", headers).map(_.data).map { containers ⇒
+
+            val instances = containers.map { container ⇒
+              val ports = portMappings(workflow).map(_.containerPort)
+              ContainerInstance(container.id, container.primaryIpAddress, ports, container.state == "running")
+            }
+
+            val scale = DefaultScale("", cpu, memory, instances.size)
+
+            replyTo ! ContainerWorkflow(workflow, Option(Containers(scale, instances)))
+          }
+
+        case None ⇒ replyTo ! ContainerWorkflow(workflow, None)
+      }
     }
   }
 
@@ -271,16 +305,6 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
     }
   }
 
-  private def retrieve(workflow: Workflow): Future[Option[Service]] = {
-
-    val serviceName = appId(workflow)
-
-    httpClient.get[ServiceList](s"$serviceListUrl?name=$serviceName", headers).map {
-      case ServiceList(Nil)  ⇒ None
-      case ServiceList(list) ⇒ Option(list.head)
-    }
-  }
-
   protected def appId(workflow: Workflow): String = s"$workflowNamePrefix${artifactName2Id(workflow)}"
 
   protected def appId(deployment: Deployment, breed: Breed): String = artifactName2Id(breed)
@@ -306,7 +330,6 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
         imageUuid = s"docker:${dockerContainer.image}",
         labels = if (dockerApp.labels.isEmpty) None else Option(dockerApp.labels),
         privileged = Option(dockerContainer.privileged),
-        startOnCreate = false,
         cpuShares = if (dockerApp.cpu.toInt > 0) Option(dockerApp.cpu.toInt) else None,
         memoryMb = if (dockerApp.memory > 0) Option(dockerApp.memory) else None,
         environment = dockerApp.environmentVariables,

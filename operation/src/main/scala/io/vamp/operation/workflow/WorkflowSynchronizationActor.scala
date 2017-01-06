@@ -35,7 +35,7 @@ class WorkflowSynchronizationActor extends CommonSupportForActors with ArtifactS
   private def synchronize() = {
     implicit val timeout = PersistenceActor.timeout
     forAll[Workflow](allArtifacts[Workflow], {
-      workflows ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.GetScheduled(self, workflows)
+      workflows ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.GetScheduled(workflows)
     })
   }
 }

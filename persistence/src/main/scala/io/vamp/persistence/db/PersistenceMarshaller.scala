@@ -124,6 +124,9 @@ trait PersistenceMarshaller extends TypeOfArtifact {
     "workflow-arguments" → new NoNameValidationYamlReader[WorkflowArguments] with ArgumentReader {
       override protected def parse(implicit source: YamlSourceReader) = WorkflowArguments(name, arguments())
     },
+    "workflow-instances" → new NoNameValidationYamlReader[WorkflowInstances] with ArgumentReader {
+      override protected def parse(implicit source: YamlSourceReader) = WorkflowInstances(name, DeploymentReader.parseInstances)
+    },
     "workflow-environment-variables" → new NoNameValidationYamlReader[WorkflowEnvironmentVariables] {
 
       override protected def parse(implicit source: YamlSourceReader) = WorkflowEnvironmentVariables(name, environmentVariables)
