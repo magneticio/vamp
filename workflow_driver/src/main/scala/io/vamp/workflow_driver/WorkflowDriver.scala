@@ -1,14 +1,20 @@
 package io.vamp.workflow_driver
 
-import akka.actor.{ ActorRef, ActorSystem }
+import akka.actor.ActorSystem
+import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.akka.IoC._
 import io.vamp.common.config.Config
+import io.vamp.common.notification.Notification
+import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.TraitResolver
-import io.vamp.persistence.db.PersistenceActor
+import io.vamp.persistence.db.{ ArtifactSupport, PersistenceActor }
+import io.vamp.pulse.notification.PulseFailureNotifier
 import io.vamp.workflow_driver.WorkflowDriver.config
+import io.vamp.workflow_driver.WorkflowDriverActor.{ GetScheduled, Schedule, Unschedule }
+import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 
 import scala.concurrent.Future
 
@@ -36,7 +42,7 @@ object WorkflowDriver {
   def path(workflow: Workflow) = root :: workflow.name :: Nil
 }
 
-trait WorkflowDriver extends TraitResolver {
+trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider with TraitResolver {
 
   import WorkflowDriver._
 
@@ -59,13 +65,20 @@ trait WorkflowDriver extends TraitResolver {
 
   val defaultCommand = config.string("workflow.command")
 
-  def info: Future[Map[_, _]]
+  def receive = {
+    case InfoRequest              ⇒ reply(info)
+    case GetScheduled(workflows)  ⇒ request(workflows)
+    case Schedule(workflow, data) ⇒ reply(schedule(data)(workflow))
+    case Unschedule(workflow)     ⇒ reply(unschedule()(workflow))
+  }
 
-  def request(replyTo: ActorRef, workflows: List[Workflow]): Unit
+  protected def info: Future[Map[_, _]]
 
-  def schedule(data: Any): PartialFunction[Workflow, Future[Any]]
+  protected def request(workflows: List[Workflow]): Unit
 
-  def unschedule(): PartialFunction[Workflow, Future[Any]]
+  protected def schedule(data: Any): PartialFunction[Workflow, Future[Any]]
+
+  protected def unschedule(): PartialFunction[Workflow, Future[Any]]
 
   protected def enrich: Workflow ⇒ Workflow = { workflow ⇒
 
@@ -105,9 +118,12 @@ trait WorkflowDriver extends TraitResolver {
       case ref: LocalReference if ref.name == "workflow" ⇒ workflow.name
       case _ ⇒ ""
     }
+
     globalEnvironmentVariables.map { env ⇒
       val value = resolve(env.value.getOrElse(""), interpolated)
       env.copy(value = Option(value), interpolated = Option(value))
     }
   }
+
+  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
 }

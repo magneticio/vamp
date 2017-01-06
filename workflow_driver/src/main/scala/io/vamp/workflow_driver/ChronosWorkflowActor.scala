@@ -1,26 +1,20 @@
 package io.vamp.workflow_driver
 
-import akka.actor.{ ActorRef, ActorRefFactory, ActorSystem }
-import io.vamp.common.akka.ActorRefFactoryExecutionContextProvider
-import io.vamp.common.http.HttpClient
-import io.vamp.container_driver._
-import io.vamp.model.artifact._
-import TimeSchedule.RepeatCount
 import io.vamp.common.config.Config
+import io.vamp.common.http.HttpClient
 import io.vamp.common.spi.ClassMapper
-import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
-import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
+import io.vamp.container_driver._
+import io.vamp.model.artifact.TimeSchedule.RepeatCount
+import io.vamp.model.artifact._
 
 import scala.concurrent.Future
 
-class ChronosWorkflowDriverMapper extends ClassMapper {
+class ChronosWorkflowActorMapper extends ClassMapper {
   val name = "chronos"
-  val clazz = classOf[ChronosWorkflowDriver]
+  val clazz = classOf[ChronosWorkflowActor]
 }
 
-class ChronosWorkflowDriver(implicit override val actorSystem: ActorSystem) extends WorkflowDriver with ContainerDriverValidation with ActorRefFactoryExecutionContextProvider with WorkflowDriverNotificationProvider {
-
-  implicit def actorRefFactory: ActorRefFactory = actorSystem
+class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation {
 
   private val url = Config.string("vamp.workflow-driver.chronos.url")
 
@@ -28,18 +22,26 @@ class ChronosWorkflowDriver(implicit override val actorSystem: ActorSystem) exte
 
   override protected def supportedDeployableTypes = DockerDeployable :: Nil
 
-  override def info: Future[Map[_, _]] = httpClient.get[Any](s"$url/scheduler/jobs").map {
+  override def receive = super.receive orElse {
+    case _ ⇒
+  }
+
+  protected override def info: Future[Map[_, _]] = httpClient.get[Any](s"$url/scheduler/jobs").map {
     _ ⇒ Map("chronos" → Map("url" → url))
   }
 
-  override def request(replyTo: ActorRef, workflows: List[Workflow]): Unit = all() foreach { instances ⇒
-    workflows.foreach { workflow ⇒
-      if (workflow.schedule != DaemonSchedule)
-        replyTo ! Scheduled(workflow, instances.find(_.name == workflow.name))
-    }
+  protected override def request(workflows: List[Workflow]): Unit = {
+    // TODO update workflow instances
+    //    val replyTo = sender()
+    //    all() foreach { instances ⇒
+    //      workflows.foreach { workflow ⇒
+    //        if (workflow.schedule != DaemonSchedule)
+    //          replyTo ! Scheduled(workflow, instances.find(_.name == workflow.name))
+    //      }
+    //    }
   }
 
-  override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
+  protected override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
     case w if w.schedule != DaemonSchedule ⇒
 
       val workflow = enrich(w)
@@ -57,9 +59,10 @@ class ChronosWorkflowDriver(implicit override val actorSystem: ActorSystem) exte
       )
 
       httpClient.post[Any](s"$url/scheduler/iso8601", jobRequest)
+    case _ ⇒ Future.successful(false)
   }
 
-  override def unschedule(): PartialFunction[Workflow, Future[Any]] = {
+  protected override def unschedule(): PartialFunction[Workflow, Future[Any]] = {
     case workflow if workflow.schedule != DaemonSchedule ⇒
       all() flatMap {
         list ⇒
@@ -68,6 +71,7 @@ class ChronosWorkflowDriver(implicit override val actorSystem: ActorSystem) exte
             case _       ⇒ Future.successful(false)
           }
       }
+    case _ ⇒ Future.successful(false)
   }
 
   private def all(): Future[List[WorkflowInstance]] = httpClient.get[Any](s"$url/scheduler/jobs") map {

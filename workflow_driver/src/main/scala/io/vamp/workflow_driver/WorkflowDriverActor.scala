@@ -1,6 +1,7 @@
 package io.vamp.workflow_driver
 
 import akka.actor.ActorRef
+import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
 import io.vamp.common.notification.Notification
@@ -19,15 +20,13 @@ object WorkflowDriverActor {
 
   case class GetScheduled(workflows: List[Workflow]) extends WorkflowDriveMessage
 
-  case class Scheduled(workflow: Workflow, workflowInstance: Option[WorkflowInstance]) extends WorkflowDriveMessage
-
   case class Schedule(workflow: Workflow, data: Any = None) extends WorkflowDriveMessage
 
   case class Unschedule(workflow: Workflow) extends WorkflowDriveMessage
 
 }
 
-class WorkflowDriverActor(drivers: List[WorkflowDriver]) extends PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider {
+class WorkflowDriverActor(drivers: List[ActorRef]) extends PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider {
 
   import WorkflowDriverActor._
 
@@ -36,20 +35,16 @@ class WorkflowDriverActor(drivers: List[WorkflowDriver]) extends PulseFailureNot
   override def errorNotificationClass = classOf[WorkflowResponseError]
 
   def receive = {
-    case InfoRequest              ⇒ reply(info)
-    case GetScheduled(workflows)  ⇒ get(sender(), workflows)
-    case Schedule(workflow, data) ⇒ reply(schedule(data)(workflow))
-    case Unschedule(workflow)     ⇒ reply(unschedule()(workflow))
-    case _                        ⇒
+    case InfoRequest     ⇒ reply(info)
+    case r: GetScheduled ⇒ drivers.map(_ ? r)
+    case r: Schedule     ⇒ reply(Future.sequence(drivers.map(_ ? r)))
+    case r: Unschedule   ⇒ reply(Future.sequence(drivers.map(_ ? r)))
+    case _               ⇒
   }
 
-  private def info: Future[Map[_, _]] = Future.sequence(drivers.map(_.info)).map(_.reduce(_ ++ _))
-
-  private def get(replyTo: ActorRef, workflows: List[Workflow]) = drivers.foreach(_.request(replyTo, workflows))
-
-  private def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = drivers.map(_.schedule(data)).reduce(_ orElse _)
-
-  private def unschedule(): PartialFunction[Workflow, Future[Any]] = drivers.map(_.unschedule()).reduce(_ orElse _)
+  private def info: Future[Map[_, _]] = Future.sequence(drivers.map(_ ? InfoRequest)).map { results ⇒
+    results.filter(_.isInstanceOf[Map[_, _]]).map(_.asInstanceOf[Map[_, _]]).reduce(_ ++ _)
+  }
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
 }

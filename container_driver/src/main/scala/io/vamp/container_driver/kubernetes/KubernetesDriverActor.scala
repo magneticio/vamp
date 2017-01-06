@@ -1,5 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
+import akka.actor.ActorRef
 import io.vamp.common.config.Config
 import io.vamp.common.http.HttpClient
 import io.vamp.common.spi.ClassMapper
@@ -67,20 +68,20 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
   def receive = {
 
-    case InfoRequest                ⇒ reply(info)
+    case InfoRequest                    ⇒ reply(info)
 
-    case Get(services)              ⇒ get(services)
-    case d: Deploy                  ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
-    case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
-    case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
+    case Get(services)                  ⇒ get(services)
+    case d: Deploy                      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
+    case u: Undeploy                    ⇒ reply(undeploy(u.deployment, u.service))
+    case DeployedGateways(gateways)     ⇒ reply(deployedGateways(gateways))
 
-    case GetWorkflow(workflow)      ⇒ get(workflow)
-    case d: DeployWorkflow          ⇒ reply(deploy(d.workflow, d.update))
-    case u: UndeployWorkflow        ⇒ reply(undeploy(u.workflow))
+    case GetWorkflow(workflow, replyTo) ⇒ get(workflow, replyTo)
+    case d: DeployWorkflow              ⇒ reply(deploy(d.workflow, d.update))
+    case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
 
-    case ds: DaemonSet              ⇒ reply(daemonSet(ds))
+    case ds: DaemonSet                  ⇒ reply(daemonSet(ds))
 
-    case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
+    case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
   private def info: Future[Any] = for {
@@ -102,8 +103,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     })
   }
 
-  protected def get(workflow: Workflow) = {
-    val replyTo = sender()
+  protected def get(workflow: Workflow, replyTo: ActorRef) = {
     containerWorkflow(workflow).map(replyTo ! _)
   }
 

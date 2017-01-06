@@ -7,7 +7,6 @@ import io.vamp.operation.workflow.WorkflowActor.Update
 import io.vamp.operation.workflow.WorkflowSynchronizationActor.SynchronizeAll
 import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 import io.vamp.workflow_driver.WorkflowDriverActor
-import io.vamp.workflow_driver.WorkflowDriverActor.Scheduled
 
 class WorkflowSynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
@@ -27,15 +26,16 @@ class WorkflowSynchronizationActor extends CommonSupportForActors with ArtifactS
   import WorkflowSynchronizationActor._
 
   def receive = {
-    case SynchronizeAll                 ⇒ synchronize()
-    case Scheduled(scheduled, instance) ⇒ IoC.actorFor[WorkflowActor] ! Update(scheduled, running = instance.isDefined)
-    case _                              ⇒
+    case SynchronizeAll ⇒ synchronize()
+    case _              ⇒
   }
 
   private def synchronize() = {
     implicit val timeout = PersistenceActor.timeout
     forAll[Workflow](allArtifacts[Workflow], {
-      workflows ⇒ IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.GetScheduled(workflows)
+      workflows ⇒
+        IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.GetScheduled(workflows)
+        workflows.foreach { workflow ⇒ IoC.actorFor[WorkflowActor] ! Update(workflow, running = workflow.instances.nonEmpty) }
     })
   }
 }

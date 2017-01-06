@@ -122,7 +122,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
     workflow.schedule match {
       case DaemonSchedule        ⇒ if (running) IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) else update()
       case TimeSchedule(_, _, _) ⇒ if (running) IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) else update()
-      case EventSchedule(tags)   ⇒ (IoC.actorFor[PulseActor] ? UnregisterPercolator(s"$percolator${workflow.name}")).map(_ ⇒ update())
+      case EventSchedule(_)      ⇒ (IoC.actorFor[PulseActor] ? UnregisterPercolator(s"$percolator${workflow.name}")).map(_ ⇒ update())
       case _                     ⇒
     }
   }
