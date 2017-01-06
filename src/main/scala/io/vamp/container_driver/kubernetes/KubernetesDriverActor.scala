@@ -7,7 +7,7 @@ import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
-import io.vamp.model.artifact.{ Gateway, Lookup }
+import io.vamp.model.artifact.{ Gateway, Lookup, Workflow }
 
 import scala.concurrent.Future
 import scala.io.Source
@@ -74,7 +74,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     case u: Undeploy                ⇒ reply(undeploy(u.deployment, u.service))
     case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
 
-    case GetWorkflow(workflow)      ⇒ reply(retrieve(workflow))
+    case GetWorkflow(workflow)      ⇒ get(workflow)
     case d: DeployWorkflow          ⇒ reply(deploy(d.workflow, d.update))
     case u: UndeployWorkflow        ⇒ reply(undeploy(u.workflow))
 
@@ -100,6 +100,11 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     allContainerServices(deploymentServices).map(_.foreach {
       replyTo ! _
     })
+  }
+
+  protected def get(workflow: Workflow) = {
+    val replyTo = sender()
+    containerWorkflow(workflow).map(replyTo ! _)
   }
 
   protected override def deployedGateways(gateways: List[Gateway]) = {

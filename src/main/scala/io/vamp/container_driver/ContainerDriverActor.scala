@@ -37,9 +37,13 @@ object ContainerDriverActor {
 
 }
 
-case class Containers(scale: DefaultScale, instances: List[ContainerInstance])
+sealed trait ContainerRuntime
 
-case class ContainerService(deployment: Deployment, service: DeploymentService, containers: Option[Containers])
+case class ContainerService(deployment: Deployment, service: DeploymentService, containers: Option[Containers]) extends ContainerRuntime
+
+case class ContainerWorkflow(workflow: Workflow, containers: Option[Containers]) extends ContainerRuntime
+
+case class Containers(scale: DefaultScale, instances: List[ContainerInstance])
 
 case class ContainerInstance(name: String, host: String, ports: List[Int], deployed: Boolean)
 
