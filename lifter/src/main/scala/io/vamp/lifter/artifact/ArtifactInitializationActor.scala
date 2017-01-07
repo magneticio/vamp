@@ -30,17 +30,17 @@ class ArtifactInitializationActor extends ArtifactLoader with CommonSupportForAc
 
   import ArtifactInitializationActor._
 
-  implicit val timeout = PersistenceActor.timeout
+  implicit val timeout = PersistenceActor.timeout()
 
   private val config = Config.config("vamp.lifter.artifact")
 
-  private val force = config.boolean("override")
+  private val force = config.boolean("override")()
 
-  private val postpone = config.duration("postpone")
+  private val postpone = config.duration("postpone")()
 
-  private val files = config.stringList("files")
+  private val files = config.stringList("files")()
 
-  private val resources = config.stringList("resources")
+  private val resources = config.stringList("resources")()
 
   def receive = {
     case Load ⇒ (fileLoad andThen resourceLoad)(Unit)

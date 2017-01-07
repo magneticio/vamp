@@ -24,11 +24,11 @@ object DeploymentActor {
 
   val gatewayHost = config.string("vamp.gateway-driver.host")
 
-  val defaultScale = config.config("vamp.operation.deployment.scale") match {
-    case c ⇒ DefaultScale("", Quantity.of(c.double("cpu")), MegaByte.of(c.string("memory")), c.int("instances"))
+  val defaultScale = () ⇒ config.config("vamp.operation.deployment.scale") match {
+    case c ⇒ DefaultScale("", Quantity.of(c.double("cpu")()), MegaByte.of(c.string("memory")()), c.int("instances")())
   }
 
-  val defaultArguments: List[Argument] = config.stringList("vamp.operation.deployment.arguments").map(Argument(_))
+  val defaultArguments = () ⇒ config.stringList("vamp.operation.deployment.arguments")().map(Argument(_))
 
   trait DeploymentMessage
 
@@ -84,7 +84,7 @@ class DeploymentActor
   def commit(source: String, validateOnly: Boolean): (Future[Deployment] ⇒ Future[Any]) = { future ⇒
     if (validateOnly) future
     else future.flatMap { deployment ⇒
-      implicit val timeout: Timeout = PersistenceActor.timeout
+      implicit val timeout: Timeout = PersistenceActor.timeout()
       checked[List[_]](IoC.actorFor[PersistenceActor] ? PersistenceActor.Update(deployment, Some(source))) map {
         persisted ⇒
           IoC.actorFor[DeploymentSynchronizationActor] ! Synchronize(deployment)
@@ -140,7 +140,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
   }
 
   private def arguments(breed: DefaultBreed, service: Service): List[Argument] = {
-    val all = DeploymentActor.defaultArguments ++ breed.arguments ++ service.arguments
+    val all = DeploymentActor.defaultArguments() ++ breed.arguments ++ service.arguments
 
     val (privileged, others) = all.partition(_.privileged)
 
@@ -229,7 +229,7 @@ trait DeploymentValidator {
 
   def validateGateways: (Deployment ⇒ Future[Deployment]) = { (deployment: Deployment) ⇒
     // Availability check.
-    implicit val timeout = PersistenceActor.timeout
+    implicit val timeout = PersistenceActor.timeout()
 
     consume(allArtifacts[Gateway]) map { gateways ⇒
 
@@ -331,7 +331,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
           validateMerge(Deployment(deployment.name, clusters, gateways, ports, environmentVariables, hosts)) flatMap {
             deployment ⇒
-              implicit val timeout = GatewayActor.timeout
+              implicit val timeout = GatewayActor.timeout()
               Future.sequence {
                 gateways.map { gateway ⇒
                   if (deployment.gateways.exists(_.name == gateway.name))
@@ -417,7 +417,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
       newServices.map { service ⇒
         if (!validateOnly) resetServiceArtifacts(deployment, blueprintCluster, service)
         val scale = service.scale match {
-          case None                      ⇒ DeploymentActor.defaultScale
+          case None                      ⇒ DeploymentActor.defaultScale()
           case Some(scale: DefaultScale) ⇒ scale
         }
         Future.successful(service.copy(scale = Some(scale)))
@@ -438,7 +438,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
     def exists(gateway: Gateway) = stableCluster.exists(cluster ⇒ cluster.gateways.exists(_.port.name == gateway.port.name))
 
-    implicit val timeout = PersistenceActor.timeout
+    implicit val timeout = PersistenceActor.timeout()
     val routings = resolveRoutings(deployment, blueprintCluster)
     val promote = stableCluster.exists(cluster ⇒ cluster.gateways.size == blueprintCluster.gateways.size)
 
@@ -493,7 +493,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
 
   def resolveHosts: (Future[Deployment] ⇒ Future[Deployment]) = { (futureDeployment: Future[Deployment]) ⇒
     futureDeployment.map {
-      d ⇒ d.copy(hosts = d.clusters.map(cluster ⇒ Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(DeploymentActor.gatewayHost))))
+      d ⇒ d.copy(hosts = d.clusters.map(cluster ⇒ Host(TraitReference(cluster.name, TraitReference.Hosts, Host.host).toString, Some(DeploymentActor.gatewayHost()))))
     }
   }
 
@@ -584,7 +584,7 @@ trait DeploymentSlicer extends DeploymentOperation {
 
         val (deleteRouting, updateRouting) = newClusters.partition(cluster ⇒ cluster.services.isEmpty || cluster.services.forall(_.status.intention == Intention.Undeployment))
 
-        implicit val timeout = GatewayActor.timeout
+        implicit val timeout = GatewayActor.timeout()
         Future.sequence {
           deleteRouting.flatMap { cluster ⇒
             stable.clusters.find(_.name == cluster.name) match {
@@ -616,7 +616,7 @@ trait DeploymentSlicer extends DeploymentOperation {
 trait DeploymentUpdate {
   this: DeploymentValidator with ActorSystemProvider with ExecutionContextProvider ⇒
 
-  private implicit val timeout = PersistenceActor.timeout
+  private implicit val timeout = PersistenceActor.timeout()
 
   def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String, validateOnly: Boolean) = {
     if (validateOnly) Future.successful(true) else {

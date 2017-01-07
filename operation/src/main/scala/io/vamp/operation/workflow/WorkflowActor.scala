@@ -34,7 +34,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
   private val percolator = "workflow://"
 
-  implicit val timeout = WorkflowDriverActor.timeout
+  implicit val timeout = WorkflowDriverActor.timeout()
 
   def receive: Receive = {
 

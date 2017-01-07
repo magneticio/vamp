@@ -51,18 +51,18 @@ trait SystemController {
   this: NotificationProvider with ExecutionContextProvider with ActorSystemProvider ⇒
 
   def haproxy(version: String): Future[Any] = {
-    if (HaProxyGatewayMarshaller.path.last == version) {
-      implicit val timeout = KeyValueStoreActor.timeout
-      IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(GatewayDriverActor.root :: HaProxyGatewayMarshaller.path) map {
+    if (HaProxyGatewayMarshaller.path().last == version) {
+      implicit val timeout = KeyValueStoreActor.timeout()
+      IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(GatewayDriverActor.root :: HaProxyGatewayMarshaller.path()) map {
         case Some(result: String) ⇒ HttpEntity(result)
-        case other                ⇒ HttpEntity("")
+        case _                    ⇒ HttpEntity("")
       }
     }
     else Future.successful(HttpEntity(""))
   }
 
   def configuration(key: String = "") = Future.successful {
-    val entries = Config.entries().filter {
+    val entries = Config.entries()().filter {
       case (k, _) ⇒ k.startsWith("vamp.")
     }
     if (key.nonEmpty) entries.get(key) else entries

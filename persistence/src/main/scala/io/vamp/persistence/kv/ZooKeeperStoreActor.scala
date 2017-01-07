@@ -22,7 +22,7 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
 
   private val config = Config.config("vamp.persistence.key-value-store.zookeeper")
 
-  private val servers = config.string("servers")
+  private val servers = config.string("servers")()
 
   private var zooKeeperClient: Option[AsyncZooKeeperClient] = None
 
@@ -109,8 +109,8 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
   private def initClient() = zooKeeperClient = Option {
     AsyncZooKeeperClient(
       servers = servers,
-      sessionTimeout = config.int("session-timeout"),
-      connectTimeout = config.int("connect-timeout"),
+      sessionTimeout = config.int("session-timeout")(),
+      connectTimeout = config.int("connect-timeout")(),
       basePath = "",
       watcher = None,
       eCtx = actorSystem.dispatcher

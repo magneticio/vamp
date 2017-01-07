@@ -29,7 +29,7 @@ object GatewaySynchronizationActor {
   val timeout = config.timeout("response-timeout")
 
   val (portRangeLower: Int, portRangeUpper: Int) = {
-    val portRange = config.string("port-range").split("-").map(_.toInt)
+    val portRange = config.string("port-range")().split("-").map(_.toInt)
     (portRange(0), portRange(1))
   }
 
@@ -60,7 +60,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   private def synchronize() = {
     val sendTo = self
-    implicit val timeout = PersistenceActor.timeout
+    implicit val timeout = PersistenceActor.timeout()
     (for {
       gateways ← consume(allArtifacts[Gateway])
       deployments ← consume(allArtifacts[Deployment])
@@ -212,6 +212,6 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
   private def sendEvent(gateway: Gateway, event: String) = {
     log.info(s"Gateway event: ${gateway.name} - $event")
     val tags = Set(s"gateways${Event.tagDelimiter}${gateway.name}", event)
-    IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway), publishEventValue = true)
+    IoC.actorFor[PulseActor] ! Publish(Event(tags, gateway))
   }
 }

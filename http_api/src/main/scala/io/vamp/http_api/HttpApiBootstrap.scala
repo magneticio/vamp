@@ -18,7 +18,7 @@ class HttpApiBootstrap extends ActorBootstrap {
 
   private var binding: Option[Future[ServerBinding]] = None
 
-  private val (interface, port) = (Config.string("vamp.http-api.interface"), Config.int("vamp.http-api.port"))
+  private val (interface, port) = (Config.string("vamp.http-api.interface")(), Config.int("vamp.http-api.port")())
 
   def createActors(implicit actorSystem: ActorSystem) = IoC.createActor[WebSocketActor] :: Nil
 

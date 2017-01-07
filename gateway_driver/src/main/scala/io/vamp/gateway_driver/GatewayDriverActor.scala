@@ -27,7 +27,7 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PersistenceMarsh
 
   import GatewayDriverActor._
 
-  lazy implicit val timeout = KeyValueStoreActor.timeout
+  lazy implicit val timeout = KeyValueStoreActor.timeout()
 
   def receive = {
     case InfoRequest    ⇒ reply(info)

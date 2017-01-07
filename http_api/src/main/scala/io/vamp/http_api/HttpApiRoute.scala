@@ -24,7 +24,7 @@ object HttpApiRoute {
   val stripPathSegments = Config.int("vamp.http-api.strip-path-segments")
 }
 
-class HttpApiRoute(implicit val actorSystem: ActorSystem, m: Materializer)
+class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Materializer)
     extends HttpApiDirectives
     with HttpApiHandlers
     with WebSocketRoute
@@ -44,13 +44,13 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, m: Materializer)
     with ActorSystemProvider
     with HttpApiNotificationProvider {
 
-  implicit val materializer = m
-
-  implicit val timeout = HttpApiRoute.timeout
+  implicit val timeout = HttpApiRoute.timeout()
 
   implicit val formats: Formats = CoreSerializationFormat.default
 
   implicit val executionContext: ExecutionContext = actorSystem.dispatcher
+
+  private val stripPathSegments = HttpApiRoute.stripPathSegments()
 
   val crudRoutes = {
     pathEndOrSingleSlash {
@@ -148,7 +148,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, m: Materializer)
     handleExceptions(exceptionHandler) {
       handleRejections(rejectionHandler) {
         withRequestTimeout(timeout.duration) {
-          if (HttpApiRoute.stripPathSegments > 0) pathPrefix(Segments(HttpApiRoute.stripPathSegments)) { _ ⇒ apiRoutes } else apiRoutes
+          if (stripPathSegments > 0) pathPrefix(Segments(stripPathSegments)) { _ ⇒ apiRoutes } else apiRoutes
         }
       }
     }

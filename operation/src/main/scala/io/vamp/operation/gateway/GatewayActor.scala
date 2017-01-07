@@ -14,15 +14,15 @@ import scala.util.Try
 
 object GatewayActor {
 
-  implicit val timeout = PersistenceActor.timeout
+  val timeout = PersistenceActor.timeout
 
   private val config = Config.config("vamp.operation.gateway")
 
-  val virtualHostsEnabled: Boolean = config.boolean("virtual-hosts.enabled")
+  val virtualHostsEnabled = config.boolean("virtual-hosts.enabled")
 
-  val virtualHostsFormat1: String = config.string("virtual-hosts.formats.gateway")
-  val virtualHostsFormat2: String = config.string("virtual-hosts.formats.deployment-port")
-  val virtualHostsFormat3: String = config.string("virtual-hosts.formats.deployment-cluster-port")
+  val virtualHostsFormat1 = config.string("virtual-hosts.formats.gateway")
+  val virtualHostsFormat2 = config.string("virtual-hosts.formats.deployment-port")
+  val virtualHostsFormat3 = config.string("virtual-hosts.formats.deployment-cluster-port")
 
   trait GatewayMessage
 
@@ -39,6 +39,8 @@ object GatewayActor {
 class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation {
 
   import GatewayActor._
+
+  private implicit val timeout = PersistenceActor.timeout()
 
   def receive = {
 
@@ -179,7 +181,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
   private def persist(source: Option[String], create: Boolean, promote: Boolean): Gateway ⇒ Future[Any] = { gateway ⇒
 
-    val virtualHosts = if (virtualHostsEnabled) defaultVirtualHosts(gateway) ++ gateway.virtualHosts else gateway.virtualHosts
+    val virtualHosts = if (virtualHostsEnabled()) defaultVirtualHosts(gateway) ++ gateway.virtualHosts else gateway.virtualHosts
 
     val g = gateway.copy(virtualHosts = virtualHosts.distinct)
 
@@ -209,9 +211,9 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
   private def defaultVirtualHosts(gateway: Gateway): List[String] = GatewayPath(gateway.name).segments.map { domain ⇒
     if (domain.matches("^[\\d\\p{L}].*$")) domain.replaceAll("[^\\p{L}\\d]", "-") else domain
   } match {
-    case g :: Nil           ⇒ virtualHostsFormat1.replaceAllLiterally(s"$$gateway", g) :: Nil
-    case d :: p :: Nil      ⇒ virtualHostsFormat2.replaceAllLiterally(s"$$deployment", d).replaceAllLiterally(s"$$port", p) :: Nil
-    case d :: c :: p :: Nil ⇒ virtualHostsFormat3.replaceAllLiterally(s"$$deployment", d).replaceAllLiterally(s"$$cluster", c).replaceAllLiterally(s"$$port", p) :: Nil
+    case g :: Nil           ⇒ virtualHostsFormat1().replaceAllLiterally(s"$$gateway", g) :: Nil
+    case d :: p :: Nil      ⇒ virtualHostsFormat2().replaceAllLiterally(s"$$deployment", d).replaceAllLiterally(s"$$port", p) :: Nil
+    case d :: c :: p :: Nil ⇒ virtualHostsFormat3().replaceAllLiterally(s"$$deployment", d).replaceAllLiterally(s"$$cluster", c).replaceAllLiterally(s"$$port", p) :: Nil
     case _                  ⇒ Nil
   }
 }

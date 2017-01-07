@@ -43,7 +43,7 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
   def elasticsearchUrl: String
 
-  lazy implicit val timeout = PulseActor.timeout
+  lazy implicit val timeout = PulseActor.timeout()
 
   private val httpClient = new HttpClient
 

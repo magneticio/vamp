@@ -55,7 +55,7 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
         containerImage = breed.deployable.definition,
         environmentVariables = breed.environmentVariables,
         scale = workflow.scale.get.asInstanceOf[DefaultScale],
-        network = workflow.network.getOrElse(Docker.network)
+        network = workflow.network.getOrElse(Docker.network())
       )
 
       httpClient.post[Any](s"$url/scheduler/iso8601", jobRequest)

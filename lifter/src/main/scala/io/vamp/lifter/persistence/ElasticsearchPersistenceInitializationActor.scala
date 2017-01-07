@@ -9,12 +9,13 @@ import scala.io.Source
 
 class ElasticsearchPersistenceInitializationActor extends ElasticsearchInitializationActor with LifterNotificationProvider {
 
-  import ElasticsearchPersistenceActor._
+  lazy val index = ElasticsearchPersistenceActor.index()
 
-  lazy val elasticsearchUrl = ElasticsearchPersistenceActor.elasticsearchUrl
+  lazy val elasticsearchUrl = ElasticsearchPersistenceActor.elasticsearchUrl()
 
   override lazy val templates: List[TemplateDefinition] = {
     def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"$name.json")).mkString.replace("$NAME", index)
+
     List(TemplateDefinition(s"$index-template", load("template")))
   }
 

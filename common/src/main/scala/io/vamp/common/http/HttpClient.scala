@@ -51,6 +51,8 @@ class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, formats
 
   import HttpClient._
 
+  private val tlsCheck = HttpClient.tlsCheck()
+
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 
   implicit val executionContext = system.dispatcher

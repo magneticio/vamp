@@ -12,8 +12,8 @@ trait UiRoute {
 
   private val config = Config.config("vamp.http-api.ui")
 
-  private val index = config.string("index")
-  private val directory = config.string("directory")
+  private val index = config.string("index")()
+  private val directory = config.string("directory")()
 
   val uiRoutes = path("") {
     logRequest(showRequest _) {

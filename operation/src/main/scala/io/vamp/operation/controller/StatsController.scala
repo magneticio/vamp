@@ -20,7 +20,7 @@ trait StatsController extends DataRetrieval with JmxVitalsProvider {
 
   implicit def timeout: Timeout
 
-  private val dataRetrievalTimeout = Config.timeout("vamp.stats.timeout")
+  private val dataRetrievalTimeout = Config.timeout("vamp.stats.timeout")()
 
   def stats: Future[StatsMessage] = {
 

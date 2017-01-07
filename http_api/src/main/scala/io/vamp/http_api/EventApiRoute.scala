@@ -14,7 +14,7 @@ trait EventApiRoute extends EventApiController with EventStreamMarshalling {
 
   implicit def timeout: Timeout
 
-  val sseKeepAliveTimeout = Config.duration("vamp.http-api.sse.keep-alive-timeout")
+  val sseKeepAliveTimeout = Config.duration("vamp.http-api.sse.keep-alive-timeout")()
 
   val eventRoutes = pathPrefix("events") {
     pathEndOrSingleSlash {

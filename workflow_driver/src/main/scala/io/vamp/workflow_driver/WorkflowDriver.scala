@@ -26,11 +26,11 @@ object WorkflowDeployable {
 
   private val deployables = config.config("workflow.deployables")
 
-  private lazy val javascriptDeployable = Deployable(deployables.string("application/javascript.type"), deployables.string("application/javascript.definition"))
+  private val javascriptDeployable = () ⇒ Deployable(deployables.string("application/javascript.type")(), deployables.string("application/javascript.definition")())
 
   def matches(some: Deployable): Boolean = some.`type` == javascript
 
-  def provide(some: Deployable): Deployable = javascriptDeployable
+  def provide(some: Deployable): Deployable = javascriptDeployable()
 }
 
 object WorkflowDriver {
@@ -48,22 +48,22 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
 
   implicit def actorSystem: ActorSystem
 
-  implicit val timeout = ContainerDriverActor.timeout
+  implicit val timeout = ContainerDriverActor.timeout()
 
-  val globalEnvironmentVariables: List[EnvironmentVariable] = config.stringList("workflow.environment-variables").map { env ⇒
+  val globalEnvironmentVariables: List[EnvironmentVariable] = config.stringList("workflow.environment-variables")().map { env ⇒
     val index = env.indexOf('=')
     EnvironmentVariable(env.substring(0, index), None, Option(env.substring(index + 1)), None)
   }
 
   val defaultScale = config.config("workflow.scale") match {
-    case c ⇒ DefaultScale("", Quantity.of(c.double("cpu")), MegaByte.of(c.string("memory")), c.int("instances"))
+    case c ⇒ DefaultScale("", Quantity.of(c.double("cpu")()), MegaByte.of(c.string("memory")()), c.int("instances")())
   }
 
-  val defaultArguments: List[Argument] = config.stringList("workflow.arguments").map(Argument(_))
+  val defaultArguments: List[Argument] = config.stringList("workflow.arguments")().map(Argument(_))
 
-  val defaultNetwork = config.string("workflow.network")
+  val defaultNetwork = config.string("workflow.network")()
 
-  val defaultCommand = config.string("workflow.command")
+  val defaultCommand = config.string("workflow.command")()
 
   def receive = {
     case InfoRequest              ⇒ reply(info)

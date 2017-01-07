@@ -8,7 +8,7 @@ import io.vamp.workflow_driver.notification.{ UnsupportedWorkflowDriverError, Wo
 
 class WorkflowDriverBootstrap extends ActorBootstrap with WorkflowDriverNotificationProvider {
 
-  private val types = Config.string("vamp.workflow-driver.type").toLowerCase.split(',').map(_.trim).toList
+  private val types = Config.string("vamp.workflow-driver.type")().toLowerCase.split(',').map(_.trim).toList
 
   def createActors(implicit actorSystem: ActorSystem) = {
 

@@ -53,7 +53,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
 
   def receive: Receive = {
     case EscalationProcessAll(from, to) ⇒
-      implicit val timeout = PersistenceActor.timeout
+      implicit val timeout = PersistenceActor.timeout()
       forAll(allArtifacts[Deployment], check(from, to))
   }
 
@@ -85,7 +85,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
   }
 
   private def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime): Future[Stream[Future[List[SlaEvent]]]] = {
-    implicit val timeout = PulseActor.timeout
+    implicit val timeout = PulseActor.timeout()
     val eventQuery = EventQuery(SlaEvent.slaTags(deployment, cluster), Some(TimeRange(Some(from), Some(to), includeLower = false, includeUpper = true)))
 
     collectEach[Event, SlaEvent](allEvents(eventQuery), {

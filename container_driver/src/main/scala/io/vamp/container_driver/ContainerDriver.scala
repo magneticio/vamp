@@ -11,7 +11,10 @@ import io.vamp.model.resolver.DeploymentTraitResolver
 object ContainerDriver {
   val namespace = Config.string("vamp.container-driver.namespace")
 
-  def withNamespace(label: String) = if (namespace.isEmpty) label else s"$namespace.$label"
+  def withNamespace(label: String) = {
+    val ns = namespace()
+    if (ns.isEmpty) label else s"$ns.$label"
+  }
 }
 
 trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with ExecutionContextProvider {
@@ -70,7 +73,7 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValida
       portMappings = portMappings(workflow),
       parameters = parameters,
       privileged = privileged,
-      network = workflow.network.getOrElse(Docker.network)
+      network = workflow.network.getOrElse(Docker.network())
     )
   }
 
@@ -83,7 +86,7 @@ trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValida
       portMappings = portMappings(deployment, cluster, service),
       parameters = parameters,
       privileged = privileged,
-      network = service.network.orElse(cluster.network).getOrElse(Docker.network)
+      network = service.network.orElse(cluster.network).getOrElse(Docker.network())
     )
   }
 

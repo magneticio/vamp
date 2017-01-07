@@ -9,7 +9,7 @@ import scala.concurrent.Future
 trait MetricsController extends EventPeekController {
   this: ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
 
-  private val window = Config.duration("vamp.operation.metrics.window")
+  private val window = Config.duration("vamp.operation.metrics.window")()
 
   def gatewayMetrics(gatewayName: String, metrics: String) = {
     peek(s"gateways:$gatewayName" :: s"metrics:$metrics" :: Nil, window)

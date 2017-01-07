@@ -14,6 +14,8 @@ import io.vamp.operation.sla.{ EscalationActor, SlaActor }
 import io.vamp.operation.workflow.WorkflowSynchronizationActor
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 trait DebugRoute extends DebugController {
   this: ExecutionContextProvider with ActorSystemProvider with HttpApiDirectives with NotificationProvider ⇒
@@ -45,11 +47,15 @@ trait DebugController {
   this: NotificationProvider with ExecutionContextProvider with ActorSystemProvider ⇒
 
   def sync() = Future.successful {
-    IoC.actorFor[DeploymentSynchronizationActor] ! DeploymentSynchronizationActor.SynchronizeAll
-    Thread.sleep(1000)
-    IoC.actorFor[GatewaySynchronizationActor] ! GatewaySynchronizationActor.SynchronizeAll
-    Thread.sleep(1000)
-    IoC.actorFor[WorkflowSynchronizationActor] ! WorkflowSynchronizationActor.SynchronizeAll
+    actorSystem.scheduler.scheduleOnce(0 second, () ⇒ {
+      IoC.actorFor[DeploymentSynchronizationActor] ! DeploymentSynchronizationActor.SynchronizeAll
+    })
+    actorSystem.scheduler.scheduleOnce(1 second, () ⇒ {
+      IoC.actorFor[GatewaySynchronizationActor] ! GatewaySynchronizationActor.SynchronizeAll
+    })
+    actorSystem.scheduler.scheduleOnce(2 second, () ⇒ {
+      IoC.actorFor[WorkflowSynchronizationActor] ! WorkflowSynchronizationActor.SynchronizeAll
+    })
   }
 
   def slaCheck() = Future.successful {
@@ -61,5 +67,7 @@ trait DebugController {
     IoC.actorFor[EscalationActor] ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }
 
-  def reload() = Future.successful(actorSystem.actorSelection("/user/vamp") ! "reload")
+  def reload() = Future.successful {
+    actorSystem.actorSelection("/user/vamp") ! "reload"
+  }
 }

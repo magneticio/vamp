@@ -9,7 +9,7 @@ import scala.concurrent.Future
 trait HealthController extends EventPeekController {
   this: ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
 
-  private val window = Config.duration("vamp.operation.health.window")
+  private val window = Config.duration("vamp.operation.health.window")()
 
   def gatewayHealth(gatewayName: String) = {
     peek(s"gateways:$gatewayName" :: "health" :: Nil, window)

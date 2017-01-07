@@ -41,7 +41,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
   import DeploymentSynchronizationActor._
 
-  private implicit val timeout = PersistenceActor.timeout
+  private implicit val timeout = PersistenceActor.timeout()
 
   def receive: Receive = {
     case SynchronizeAll       ⇒ synchronize()
@@ -99,8 +99,8 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
     }
 
     !service.status.isDone && (service.status.intention match {
-      case Intention.Deployment   ⇒ checkTimeout(deploymentTimeout)
-      case Intention.Undeployment ⇒ checkTimeout(undeploymentTimeout)
+      case Intention.Deployment   ⇒ checkTimeout(deploymentTimeout())
+      case Intention.Undeployment ⇒ checkTimeout(undeploymentTimeout())
       case _                      ⇒ false
     })
   }

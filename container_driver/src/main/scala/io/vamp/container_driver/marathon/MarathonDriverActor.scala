@@ -49,15 +49,18 @@ case class MarathonDriverInfo(mesos: MesosInfo, marathon: Any)
 class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with MarathonSse with ActorExecutionContextProvider with ContainerDriver {
 
   import ContainerDriverActor._
-  import MarathonDriverActor._
 
-  protected val expirationPeriod = MarathonDriverActor.expirationPeriod
+  protected val expirationPeriod = MarathonDriverActor.expirationPeriod()
 
-  protected val reconciliationPeriod = MarathonDriverActor.reconciliationPeriod
+  protected val reconciliationPeriod = MarathonDriverActor.reconciliationPeriod()
+
+  private val url = MarathonDriverActor.marathonUrl()
+
+  private val workflowNamePrefix = MarathonDriverActor.workflowNamePrefix()
 
   private implicit val formats: Formats = DefaultFormats
 
-  private val headers: List[(String, String)] = HttpClient.basicAuthorization(apiUser, apiPassword)
+  private val headers: List[(String, String)] = HttpClient.basicAuthorization(MarathonDriverActor.apiUser(), MarathonDriverActor.apiPassword())
 
   protected val nameDelimiter = "/"
 
@@ -83,7 +86,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
   }
 
   @scala.throws[Exception](classOf[Exception])
-  override def preStart(): Unit = if (sse) openEventStream(marathonUrl)
+  override def preStart(): Unit = if (MarathonDriverActor.sse()) openEventStream(url)
 
   private def info: Future[Any] = {
 
@@ -94,9 +97,9 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
     }
 
     for {
-      slaves ← httpClient.get[Any](s"$mesosUrl/master/slaves")
-      frameworks ← httpClient.get[Any](s"$mesosUrl/master/frameworks")
-      marathon ← httpClient.get[Any](s"$marathonUrl/v2/info", headers)
+      slaves ← httpClient.get[Any](s"${MarathonDriverActor.mesosUrl()}/master/slaves")
+      frameworks ← httpClient.get[Any](s"${MarathonDriverActor.mesosUrl()}/master/frameworks")
+      marathon ← httpClient.get[Any](s"$url/v2/info", headers)
     } yield {
 
       val s: Any = slaves match {
@@ -161,16 +164,16 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
 
   private def sendRequest(update: Boolean, id: String, payload: JValue) = {
     if (update) {
-      httpClient.get[Any](s"$marathonUrl/v2/apps/$id", headers).flatMap { response ⇒
+      httpClient.get[Any](s"$url/v2/apps/$id", headers).flatMap { response ⇒
         val changed = Extraction.decompose(response).children.headOption match {
           case Some(app) ⇒ app.diff(payload).changed
           case None      ⇒ payload
         }
-        if (changed != JNothing) httpClient.put[Any](s"$marathonUrl/v2/apps/$id", changed, headers) else Future.successful(false)
+        if (changed != JNothing) httpClient.put[Any](s"$url/v2/apps/$id", changed, headers) else Future.successful(false)
       }
     }
     else {
-      httpClient.post[Any](s"$marathonUrl/v2/apps", payload, headers, logError = false).recover {
+      httpClient.post[Any](s"$url/v2/apps", payload, headers, logError = false).recover {
         case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
         case t ⇒
           log.error(t, t.getMessage)
@@ -214,13 +217,13 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
   override protected def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
-    httpClient.delete(s"$marathonUrl/v2/apps/$id", headers)
+    httpClient.delete(s"$url/v2/apps/$id", headers)
   }
 
   override protected def undeploy(workflow: Workflow) = {
     val id = appId(workflow)
     log.info(s"marathon delete workflow: ${workflow.name}")
-    httpClient.delete(s"$marathonUrl/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None }
+    httpClient.delete(s"$url/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None }
   }
 
   private def reconcile(deployment: Deployment, service: DeploymentService): Unit = {
@@ -240,7 +243,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
   }
 
   private def reconcile(id: String): Future[Option[Containers]] = {
-    httpClient.get[AppsResponse](s"$marathonUrl/v2/apps?id=$id&embed=apps.tasks", headers, logError = false) recover { case _ ⇒ None } map {
+    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks", headers, logError = false) recover { case _ ⇒ None } map {
       case apps: AppsResponse ⇒ apps.apps.find(app ⇒ app.id == id).map(containers)
       case _                  ⇒ None
     }

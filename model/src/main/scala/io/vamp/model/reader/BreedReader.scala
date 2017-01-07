@@ -8,9 +8,11 @@ import io.vamp.model.validator.BreedTraitValueValidator
 
 object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] with TraitReader with ArgumentReader with BreedTraitValueValidator {
 
-  lazy val defaultDeployableType = {
-    if (Config.hasPathOrNull("vamp.model.default-deployable-type")) Config.string("vamp.model.default-deployable-type")
-    else Deployable.defaultType
+  private def defaultDeployableType = {
+    if (Config.hasPathOrNull("vamp.model.default-deployable-type")())
+      Config.string("vamp.model.default-deployable-type")()
+    else
+      Deployable.defaultType
   }
 
   override def readReference: PartialFunction[Any, Breed] = {

@@ -52,11 +52,11 @@ case class ContainerInfo(`type`: String, container: Any)
 
 trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForActors with ContainerDriverNotificationProvider {
 
-  implicit val timeout = ContainerDriverActor.timeout
+  implicit val timeout = ContainerDriverActor.timeout()
 
   lazy protected val httpClient = new HttpClient
 
-  val gatewayServiceIp = Config.string("vamp.gateway-driver.host")
+  val gatewayServiceIp = Config.string("vamp.gateway-driver.host")()
 
   protected def deployedGateways(gateways: List[Gateway]): Future[Any] = {
     gateways.filter {

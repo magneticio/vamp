@@ -23,7 +23,7 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
          |    "template": {
          |      "metadata": {
          |        "labels": {
-         |          ${labels2json(Map(ContainerDriver.namespace → "daemon-set", ContainerDriver.withNamespace("daemon-set") → ds.name))}
+         |          ${labels2json(Map(ContainerDriver.namespace() → "daemon-set", ContainerDriver.withNamespace("daemon-set") → ds.name))}
          |        }
          |      },
          |      "spec": {

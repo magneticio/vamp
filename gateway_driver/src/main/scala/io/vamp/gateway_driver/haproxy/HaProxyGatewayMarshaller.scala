@@ -8,11 +8,11 @@ import scala.language.postfixOps
 
 object HaProxyGatewayMarshaller {
 
-  val version = Config.string("vamp.gateway-driver.haproxy.version").trim
+  val version = () ⇒ Config.string("vamp.gateway-driver.haproxy.version")().trim
 
-  val socketPath = Config.string("vamp.gateway-driver.haproxy.socket-path").trim
+  val socketPath = () ⇒ Config.string("vamp.gateway-driver.haproxy.socket-path")().trim
 
-  val path: List[String] = "haproxy" :: version :: Nil
+  val path: () ⇒ List[String] = () ⇒ "haproxy" :: version() :: Nil
 }
 
 trait HaProxyGatewayMarshaller extends GatewayMarshaller {
@@ -23,11 +23,11 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   private val aclResolver = new HaProxyAclResolver() {}
 
-  protected lazy val version = HaProxyGatewayMarshaller.version
+  protected lazy val version = HaProxyGatewayMarshaller.version()
 
-  protected lazy val socketPath = HaProxyGatewayMarshaller.socketPath
+  protected lazy val socketPath = HaProxyGatewayMarshaller.socketPath()
 
-  override lazy val path = HaProxyGatewayMarshaller.path
+  override lazy val path = HaProxyGatewayMarshaller.path()
 
   def haProxyConfig: HaProxyConfig
 

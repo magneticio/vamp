@@ -5,37 +5,34 @@ import com.typesafe.config.{ ConfigFactory, Config ⇒ TypesafeConfig }
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.language.postfixOps
 
 object Config extends Config(ConfigFactory.load(), "")
 
 private[config] class Config(config: TypesafeConfig, root: String) {
 
-  def int(path: String) = read(path).getInt(path)
+  def int(path: String) = () ⇒ read(path).getInt(path)
 
-  def double(path: String) = read(path).getDouble(path)
+  def double(path: String) = () ⇒ read(path).getDouble(path)
 
-  def string(path: String) = read(path).getString(path)
+  def string(path: String) = () ⇒ read(path).getString(path)
 
-  def boolean(path: String) = read(path).getBoolean(path)
+  def boolean(path: String) = () ⇒ read(path).getBoolean(path)
 
-  def intList(path: String) = read(path).getIntList(path).asScala.toList
+  def intList(path: String) = () ⇒ read(path).getIntList(path).asScala.map(_.toInt).toList
 
-  def stringList(path: String) = read(path).getStringList(path).asScala.toList
+  def stringList(path: String) = () ⇒ read(path).getStringList(path).asScala.toList
 
-  def timeout(path: String) = Timeout(duration(path))
+  def timeout(path: String) = () ⇒ Timeout(duration(path)())
 
-  def duration(path: String) = FiniteDuration(read(path).getDuration(path, MILLISECONDS), MILLISECONDS)
+  def duration(path: String) = () ⇒ FiniteDuration(read(path).getDuration(path, MILLISECONDS), MILLISECONDS)
 
-  def isNull(path: String) = read(path).getIsNull(path)
+  def isNull(path: String) = () ⇒ read(path).getIsNull(path)
 
-  def hasPath(path: String) = read(path).hasPath(path)
+  def hasPath(path: String) = () ⇒ read(path).hasPath(path)
 
-  def hasPathOrNull(path: String) = read(path).hasPathOrNull(path)
+  def hasPathOrNull(path: String) = () ⇒ read(path).hasPathOrNull(path)
 
-  def config(path: String): Config = new Config(config.getConfig(path), absolutePath(path))
-
-  def entries(path: String = ""): Map[String, AnyRef] = {
+  def entries(path: String = ""): () ⇒ Map[String, AnyRef] = () ⇒ {
 
     val cfg = if (path.nonEmpty) config.getConfig(path) else config
 
@@ -51,8 +48,10 @@ private[config] class Config(config: TypesafeConfig, root: String) {
 
       key → value
 
-    } toMap
+    }.toMap
   }
+
+  def config(path: String): Config = new Config(config.getConfig(path), absolutePath(path))
 
   private def read(path: String): TypesafeConfig = {
     environment(absolutePath(path)).map {

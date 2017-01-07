@@ -21,7 +21,7 @@ object KeyValuePersistenceActor {
 
 class KeyValuePersistenceActor extends PersistenceActor with PersistenceMarshaller with ArtifactCaching {
 
-  import KeyValuePersistenceActor._
+  private val caching = KeyValuePersistenceActor.caching()
 
   protected def info(): Future[Any] = Future.successful(Map("type" → "key-value", "caching" → caching))
 
@@ -80,5 +80,5 @@ class KeyValuePersistenceActor extends PersistenceActor with PersistenceMarshall
     }
   }
 
-  private def path(keys: String*) = root +: keys.toList
+  private def path(keys: String*) = KeyValuePersistenceActor.root +: keys.toList
 }

@@ -9,9 +9,11 @@ import scala.io.Source
 
 class ElasticsearchPulseInitializationActor extends ElasticsearchPulseEvent with ElasticsearchInitializationActor with LifterNotificationProvider {
 
-  import io.vamp.pulse.ElasticsearchPulseActor._
+  lazy val indexName = ElasticsearchPulseActor.indexName()
 
-  lazy val elasticsearchUrl = ElasticsearchPulseActor.elasticsearchUrl
+  lazy val indexTimeFormat = ElasticsearchPulseActor.indexTimeFormat()
+
+  lazy val elasticsearchUrl = ElasticsearchPulseActor.elasticsearchUrl()
 
   override lazy val templates = {
     def load(name: String) = Source.fromInputStream(getClass.getResourceAsStream(s"$name.json")).mkString.replace("$NAME", indexName)

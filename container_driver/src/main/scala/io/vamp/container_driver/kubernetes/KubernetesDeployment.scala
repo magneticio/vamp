@@ -25,7 +25,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   protected def schema: Enumeration
 
-  protected def labels(id: String, value: String) = Map(ContainerDriver.namespace → value, ContainerDriver.withNamespace(value) → id)
+  protected def labels(id: String, value: String) = Map(ContainerDriver.namespace() → value, ContainerDriver.withNamespace(value) → id)
 
   protected def pods(id: String, value: String) = s"$podUrl?${labelSelector(labels(id, value))}"
 

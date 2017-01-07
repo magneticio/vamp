@@ -14,7 +14,7 @@ import scala.concurrent.Future
 
 object WorkflowDriverActor {
 
-  lazy val timeout = Config.timeout("vamp.workflow-driver.response-timeout")
+  val timeout = Config.timeout("vamp.workflow-driver.response-timeout")
 
   sealed trait WorkflowDriveMessage
 
@@ -30,7 +30,7 @@ class WorkflowDriverActor(drivers: List[ActorRef]) extends PulseFailureNotifier 
 
   import WorkflowDriverActor._
 
-  implicit val timeout = WorkflowDriverActor.timeout
+  implicit val timeout = WorkflowDriverActor.timeout()
 
   override def errorNotificationClass = classOf[WorkflowResponseError]
 
