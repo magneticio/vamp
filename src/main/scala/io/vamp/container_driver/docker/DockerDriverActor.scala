@@ -28,21 +28,21 @@ class DockerDriverActorMapper extends ClassMapper {
 
 class DockerDriverActor extends ContainerDriverActor with ContainerDriver with DockerNameMatcher {
 
-  private val configuration = Config.config("vamp.container-driver.docker")
+  private val config = Config.config("vamp.container-driver.docker")
 
   protected val nameDelimiter = "_"
 
-  protected val workflowNamePrefix = configuration.string("workflow-name-prefix")
+  protected val workflowNamePrefix = config.string("workflow-name-prefix")
 
   private val docker = {
 
-    val serverAddress = configuration.string("repository.server-address")
+    val serverAddress = config.string("repository.server-address")()
 
     if (serverAddress.nonEmpty) {
 
-      val email = configuration.string("repository.email")
-      val username = configuration.string("repository.username")
-      val password = configuration.string("repository.password")
+      val email = config.string("repository.email")()
+      val username = config.string("repository.username")()
+      val password = config.string("repository.password")()
 
       val authConfig = AuthConfig.builder().email(email).username(username).password(password).serverAddress(serverAddress).build()
       DefaultDockerClient.fromEnv().authConfig(authConfig).build()
@@ -212,7 +212,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
     val labels: MutableMap[String, String] = MutableMap()
     labels ++= this.labels(deployment, cluster, service)
-    labels += (ContainerDriver.namespace → vampLabel)
+    labels += (ContainerDriver.namespace() → vampLabel)
     labels += (ContainerDriver.withNamespace("id") → appId(deployment, service.breed))
 
     if (service.scale.isDefined)
@@ -331,7 +331,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     })
 
     val labels: MutableMap[String, String] = MutableMap()
-    labels += (ContainerDriver.namespace → vampWorkflowLabel)
+    labels += (ContainerDriver.namespace() → vampWorkflowLabel)
     labels += (ContainerDriver.withNamespace("id") → id)
     labels += (ContainerDriver.withNamespace("scale") → write(DockerServiceScale("", scale.instances, scale.cpu.value, scale.memory.value)))
 

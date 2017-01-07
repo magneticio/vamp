@@ -39,11 +39,13 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
   protected val nameDelimiter = "-"
 
+  private val rancherUrl = RancherDriverActor.rancherUrl()
+
   private val serviceListUrl = s"$rancherUrl/services"
 
   private val environmentsUrl = s"$rancherUrl/environments"
 
-  private val headers: List[(String, String)] = HttpClient.basicAuthorization(apiUser, apiPassword)
+  private val headers: List[(String, String)] = HttpClient.basicAuthorization(apiUser(), apiPassword())
 
   def receive = {
 
@@ -145,7 +147,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
 
   def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
 
-    val stackName = if (deploymentEnvironmentNamePrefix.nonEmpty) s"$deploymentEnvironmentNamePrefix${deployment.name}" else deployment.name
+    val stackName = if (deploymentEnvironmentNamePrefix().nonEmpty) s"$deploymentEnvironmentNamePrefix${deployment.name}" else deployment.name
 
     createStack(stackName) map {
       case Some(stack) ⇒ createService(deployment, cluster, service, update, stack)
@@ -261,7 +263,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
   }
 
   private def deploy(workflow: Workflow, update: Boolean): Future[Any] = {
-    createStack(environmentName).flatMap {
+    createStack(environmentName()).flatMap {
       case Some(stack) ⇒
 
         val breed = workflow.breed.asInstanceOf[DefaultBreed]

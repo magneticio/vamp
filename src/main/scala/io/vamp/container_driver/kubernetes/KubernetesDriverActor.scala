@@ -36,7 +36,7 @@ object KubernetesDriverActor {
 
   val bearer = config.string("bearer")
 
-  val serviceType = KubernetesServiceType.withName(config.string("service-type"))
+  val serviceType = () ⇒ KubernetesServiceType.withName(config.string("service-type")())
 
   val createServices = config.boolean("create-services")
 
@@ -51,20 +51,20 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
   protected val schema = KubernetesDriverActor.Schema
 
-  protected val apiUrl = KubernetesDriverActor.url
+  protected val apiUrl = KubernetesDriverActor.url()
 
   protected val apiHeaders = {
     def headers(bearer: String) = ("Authorization" → s"Bearer $bearer") :: HttpClient.jsonHeaders
 
-    if (bearer.nonEmpty) headers(bearer)
-    else Try(Source.fromFile(token).mkString).map(headers).getOrElse(HttpClient.jsonHeaders)
+    if (bearer().nonEmpty) headers(bearer())
+    else Try(Source.fromFile(token()).mkString).map(headers).getOrElse(HttpClient.jsonHeaders)
   }
 
-  private val gatewayService = Map(ContainerDriver.namespace → "gateway")
+  private val gatewayService = Map(ContainerDriver.namespace() → "gateway")
 
-  private val daemonService = Map(ContainerDriver.namespace → "daemon")
+  private val daemonService = Map(ContainerDriver.namespace() → "daemon")
 
-  override protected def workflowNamePrefix: String = KubernetesDriverActor.workflowNamePrefix
+  protected val workflowNamePrefix = KubernetesDriverActor.workflowNamePrefix()
 
   def receive = {
 
@@ -108,7 +108,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
   }
 
   protected override def deployedGateways(gateways: List[Gateway]) = {
-    if (createServices) {
+    if (createServices()) {
       services(gatewayService).map { response ⇒
 
         // update service ports
@@ -134,7 +134,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
           gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
         } map { gateway ⇒
           val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
-          createService(gateway.name, serviceType, vampGatewayAgentId, ports, update = false, gatewayService ++ Map("gateway" → gateway.name, Lookup.entry → gateway.lookupName))
+          createService(gateway.name, serviceType(), vampGatewayAgentId(), ports, update = false, gatewayService ++ Map("gateway" → gateway.name, Lookup.entry → gateway.lookupName))
         }
 
         Future.sequence(created ++ deleted)
