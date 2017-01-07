@@ -30,7 +30,7 @@ trait ArtifactSupport {
   }
 
   def artifactForIfExists[T <: Artifact: ClassTag](name: String): Future[Option[T]] = {
-    implicit val timeout = PersistenceActor.timeout
+    implicit val timeout = PersistenceActor.timeout()
     IoC.actorFor[PersistenceActor] ? PersistenceActor.Read(name, classTag[T].runtimeClass.asInstanceOf[Class[Artifact]]) map {
       case Some(artifact: T) ⇒ Some(artifact)
       case Some(artifact)    ⇒ throwException(PersistenceOperationFailure(new RuntimeException(s"Expected: [${classTag[T].runtimeClass}], actual: [${artifact.getClass}]")))

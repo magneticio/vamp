@@ -14,8 +14,8 @@ class ElasticsearchPersistenceActorMapper extends ClassMapper {
 }
 
 object ElasticsearchPersistenceActor {
-  lazy val index = Config.string("vamp.persistence.database.elasticsearch.index")
-  lazy val elasticsearchUrl: String = Config.string("vamp.persistence.database.elasticsearch.url")
+  val index = Config.string("vamp.persistence.database.elasticsearch.index")
+  val elasticsearchUrl = Config.string("vamp.persistence.database.elasticsearch.url")
 }
 
 case class ElasticsearchArtifact(artifact: String)
@@ -24,14 +24,16 @@ case class ElasticsearchPersistenceInfo(`type`: String, url: String, index: Stri
 
 class ElasticsearchPersistenceActor extends PersistenceActor with PersistenceMarshaller with TypeOfArtifact with PaginationSupport {
 
-  import ElasticsearchPersistenceActor._
+  private val index = ElasticsearchPersistenceActor.index()
 
-  private val es = new ElasticsearchClient(elasticsearchUrl)
+  private val url = ElasticsearchPersistenceActor.elasticsearchUrl()
+
+  private val es = new ElasticsearchClient(url)
 
   protected def info(): Future[Any] = for {
     health ← es.health
     initializationTime ← es.creationTime(index)
-  } yield ElasticsearchPersistenceInfo("elasticsearch", elasticsearchUrl, index, initializationTime, health)
+  } yield ElasticsearchPersistenceInfo("elasticsearch", url, index, initializationTime, health)
 
   protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] = {
     log.debug(s"${getClass.getSimpleName}: all [${type2string(`type`)}] of $page per $perPage")

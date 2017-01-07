@@ -15,11 +15,11 @@ object KeyValueStoreActor {
 
   val timeout = PersistenceActor.timeout
 
-  private val basePath = Config.string("vamp.persistence.key-value-store.base-path").stripMargin('/')
+  private val basePath = () ⇒ Config.string("vamp.persistence.key-value-store.base-path")().stripMargin('/')
 
   def stringToPath(string: String): List[String] = string.split('/').toList
 
-  def pathToString(path: List[String]) = s"/${(basePath :: path).mkString("/")}"
+  def pathToString(path: List[String]) = s"/${(basePath() :: path).mkString("/")}"
 
   sealed trait KeyValueStoreMessage
 
@@ -35,7 +35,7 @@ trait KeyValueStoreActor extends PulseFailureNotifier with CommonSupportForActor
 
   import KeyValueStoreActor._
 
-  lazy implicit val timeout = KeyValueStoreActor.timeout
+  lazy implicit val timeout = KeyValueStoreActor.timeout()
 
   lazy val httpClient = new HttpClient
 

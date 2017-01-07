@@ -34,7 +34,7 @@ trait PersistenceActor
     with CommonSupportForActors
     with PersistenceNotificationProvider {
 
-  lazy implicit val timeout = PersistenceActor.timeout
+  implicit val timeout = PersistenceActor.timeout()
 
   protected def info(): Future[Any]
 
