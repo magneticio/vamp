@@ -12,7 +12,7 @@ class GatewayDriverBootstrap extends ActorBootstrap {
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
-    HaProxyGatewayMarshaller.version match {
+    HaProxyGatewayMarshaller.version() match {
       case version if version != "1.7" && version != "1.6" && version != "1.5" ⇒
         throw new RuntimeException(s"unsupported HAProxy configuration version: $version")
       case _ ⇒
@@ -20,8 +20,8 @@ class GatewayDriverBootstrap extends ActorBootstrap {
 
     val actors = List(
       IoC.createActor[GatewayDriverActor](new JTwigHaProxyGatewayMarshaller() {
-        override val templateFile: String = Config.string("vamp.gateway-driver.haproxy.template")
-        override def haProxyConfig = HaProxyConfig(haproxyConfig.string("ip"))
+        override val templateFile: String = Config.string("vamp.gateway-driver.haproxy.template")()
+        override def haProxyConfig = HaProxyConfig(haproxyConfig.string("ip")())
       })
     )
 
