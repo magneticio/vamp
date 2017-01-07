@@ -30,16 +30,21 @@ object ElasticsearchPulseActor {
 
   val indexName = config.string("elasticsearch.index.name")
 
-  val indexTimeFormat: Map[String, String] = config.entries("elasticsearch.index.time-format").map { case (key, value) ⇒ key → value.toString }
+  val indexTimeFormat: () ⇒ Map[String, String] = () ⇒ config.entries("elasticsearch.index.time-format")().map { case (key, value) ⇒ key → value.toString }
 }
 
 class ElasticsearchPulseActor extends ElasticsearchPulseEvent with PulseStats with PulseActor {
 
   import ElasticsearchClient._
-  import ElasticsearchPulseActor._
   import PulseActor._
 
-  private lazy val es = new ElasticsearchClient(elasticsearchUrl)
+  val url = ElasticsearchPulseActor.elasticsearchUrl()
+
+  val indexName = ElasticsearchPulseActor.indexName()
+
+  val indexTimeFormat = ElasticsearchPulseActor.indexTimeFormat()
+
+  private lazy val es = new ElasticsearchClient(url)
 
   def receive = {
 
@@ -162,7 +167,9 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with PulseStats wi
 
 trait ElasticsearchPulseEvent {
 
-  import ElasticsearchPulseActor._
+  def indexName: String
+
+  def indexTimeFormat: Map[String, String]
 
   def indexTypeName(schema: String = Event.defaultType): (String, String) = {
     val base = schema.toLowerCase

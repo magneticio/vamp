@@ -32,7 +32,7 @@ object PulseActor {
 
 trait PulseActor extends PulseFailureNotifier with Percolator with EventValidator with CommonSupportForActors with PulseNotificationProvider {
 
-  implicit val timeout = PulseActor.timeout
+  implicit val timeout = PulseActor.timeout()
 
   override def errorNotificationClass = classOf[PulseResponseError]
 
