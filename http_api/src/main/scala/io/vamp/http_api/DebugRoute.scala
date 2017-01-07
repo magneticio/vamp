@@ -33,6 +33,10 @@ trait DebugRoute extends DebugController {
       onComplete(slaEscalation()) { _ ⇒
         complete(Accepted)
       }
+    } ~ path("reload") {
+      onComplete(reload()) { _ ⇒
+        complete(Accepted)
+      }
     }
   }
 }
@@ -56,4 +60,6 @@ trait DebugController {
     val now = OffsetDateTime.now()
     IoC.actorFor[EscalationActor] ! EscalationActor.EscalationProcessAll(now.minus(1, ChronoUnit.HOURS), now)
   }
+
+  def reload() = Future.successful(actorSystem.actorSelection("/user/vamp") ! "reload")
 }

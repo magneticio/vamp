@@ -1,5 +1,7 @@
 package io.vamp.common.akka
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import akka.actor._
 import io.vamp.common.text.Text
 
@@ -7,6 +9,8 @@ import scala.collection.mutable
 import scala.reflect._
 
 object IoC {
+
+  private val counter = new AtomicInteger(0)
 
   private val aliases: mutable.Map[Class[_], Class[_]] = mutable.Map()
 
@@ -22,7 +26,7 @@ object IoC {
 
   def createActor(props: Props)(implicit actorSystem: ActorSystem): ActorRef = {
 
-    val actorRef = actorSystem.actorOf(props, Text.toSnakeCase(props.clazz.getSimpleName))
+    val actorRef = actorSystem.actorOf(props, s"${Text.toSnakeCase(props.clazz.getSimpleName)}-${counter.getAndIncrement}")
 
     actorRefs.put(props.clazz, actorRef)
 
