@@ -26,21 +26,21 @@ object KubernetesDriverActor {
     val Docker = Value
   }
 
-  private val config = Config.config("vamp.container-driver.kubernetes")
+  private val config = "vamp.container-driver.kubernetes"
 
-  val url = config.string("url")
+  val url = Config.string(s"$config.url")
 
-  val workflowNamePrefix = config.string("workflow-name-prefix")
+  val workflowNamePrefix = Config.string(s"$config.workflow-name-prefix")
 
-  val token = config.string("token")
+  val token = Config.string(s"$config.token")
 
-  val bearer = config.string("bearer")
+  val bearer = Config.string(s"$config.bearer")
 
-  val serviceType = () ⇒ KubernetesServiceType.withName(config.string("service-type")())
+  val serviceType = () ⇒ KubernetesServiceType.withName(Config.string(s"$config.service-type")())
 
-  val createServices = config.boolean("create-services")
+  val createServices = Config.boolean(s"$config.create-services")
 
-  val vampGatewayAgentId = config.string("vamp-gateway-agent-id")
+  val vampGatewayAgentId = Config.string(s"$config.vamp-gateway-agent-id")
 }
 
 case class KubernetesDriverInfo(version: Any, paths: Any, api: Any, apis: Any)

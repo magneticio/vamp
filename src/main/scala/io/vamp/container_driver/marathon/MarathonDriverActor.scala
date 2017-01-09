@@ -21,19 +21,19 @@ class MarathonDriverActorMapper extends ClassMapper {
 
 object MarathonDriverActor {
 
-  private val config = Config.config("vamp.container-driver")
+  private val config = "vamp.container-driver"
 
-  val mesosUrl = config.string("mesos.url")
-  val marathonUrl = config.string("marathon.url")
+  val mesosUrl = Config.string(s"$config.mesos.url")
+  val marathonUrl = Config.string(s"$config.marathon.url")
 
-  val apiUser = config.string("marathon.user")
-  val apiPassword = config.string("marathon.password")
+  val apiUser = Config.string(s"$config.marathon.user")
+  val apiPassword = Config.string(s"$config.marathon.password")
 
-  val sse = config.boolean("marathon.sse")
-  val expirationPeriod = config.duration("marathon.expiration-period")
-  val reconciliationPeriod = config.duration("marathon.reconciliation-period")
+  val sse = Config.boolean(s"$config.marathon.sse")
+  val expirationPeriod = Config.duration(s"$config.marathon.expiration-period")
+  val reconciliationPeriod = Config.duration(s"$config.marathon.reconciliation-period")
 
-  val workflowNamePrefix = config.string("marathon.workflow-name-prefix")
+  val workflowNamePrefix = Config.string(s"$config.marathon.workflow-name-prefix")
 
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value

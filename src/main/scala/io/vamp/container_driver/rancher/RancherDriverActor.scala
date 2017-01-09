@@ -23,14 +23,14 @@ class RancherDriverActorMapper extends ClassMapper {
 
 object RancherDriverActor {
 
-  private val config = Config.config("vamp.container-driver.rancher")
+  private val config = "vamp.container-driver.rancher"
 
-  val rancherUrl = config.string("url")
-  val workflowNamePrefix = config.string("workflow-name-prefix")
-  val apiUser = config.string("user")
-  val apiPassword = config.string("password")
-  val environmentName = config.string("environment.name")
-  val deploymentEnvironmentNamePrefix = config.string("environment.deployment.name-prefix")
+  val rancherUrl = Config.string(s"$config.url")
+  val workflowNamePrefix = Config.string(s"$config.workflow-name-prefix")
+  val apiUser = Config.string(s"$config.user")
+  val apiPassword = Config.string(s"$config.password")
+  val environmentName = Config.string(s"$config.environment.name")
+  val deploymentEnvironmentNamePrefix = Config.string(s"$config.environment.deployment.name-prefix")
 }
 
 class RancherDriverActor extends ContainerDriverActor with ContainerDriver with DockerNameMatcher {
