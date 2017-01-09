@@ -11,15 +11,13 @@ import io.vamp.pulse.PulseBootstrap
 
 class LifterBootstrap extends ActorBootstrap {
 
-  private val config = Config.config("vamp.lifter")
+  private val pulseEnabled = Config.boolean("vamp.lifter.pulse.enabled")()
 
-  private val pulseEnabled = config.boolean("pulse.enabled")()
-
-  private val artifactEnabled = config.boolean("artifact.enabled")()
+  private val artifactEnabled = Config.boolean("vamp.lifter.artifact.enabled")()
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
-    val persistence = if (config.boolean("persistence.enabled")()) {
+    val persistence = if (Config.boolean("vamp.lifter.persistence.enabled")()) {
       PersistenceBootstrap.databaseType() match {
         case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
         case _               ⇒ Nil
