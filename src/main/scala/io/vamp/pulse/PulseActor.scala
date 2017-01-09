@@ -18,9 +18,9 @@ case class EventResponseEnvelope(response: List[Event], total: Long, page: Int, 
 
 object PulseActor {
 
-  val config = Config.config("vamp.pulse")
+  val config = "vamp.pulse"
 
-  val timeout = config.timeout("response-timeout")
+  val timeout = Config.timeout(s"$config.response-timeout")
 
   trait PulseMessage
 
