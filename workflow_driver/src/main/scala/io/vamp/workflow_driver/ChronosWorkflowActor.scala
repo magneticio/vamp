@@ -16,7 +16,7 @@ class ChronosWorkflowActorMapper extends ClassMapper {
 
 class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation {
 
-  private val url = Config.string("vamp.workflow-driver.chronos.url")
+  private val url = Config.string("vamp.workflow-driver.chronos.url")()
 
   private val httpClient = new HttpClient
 

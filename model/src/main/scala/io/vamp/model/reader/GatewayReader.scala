@@ -151,7 +151,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   }
 
   protected def condition(implicit source: YamlSourceReader): Option[Condition] = {
-    <<?[Any]("condition") map ConditionReader.readReferenceOrAnonymous
+    <<?[Any]("condition") map WeakConditionReader.readReferenceOrAnonymous
   }
 
   protected def rewrites(implicit source: YamlSourceReader): List[Rewrite] = <<?[YamlList]("rewrites") match {
@@ -167,11 +167,16 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   override def validateName(name: String): String = if (GatewayPath.external(name)) name else super.validateName(name)
 }
 
-object ConditionReader extends YamlReader[Condition] with WeakReferenceYamlReader[Condition] {
+trait AbstractConditionReader extends YamlReader[Condition] {
+  protected def createDefault(implicit source: YamlSourceReader): Condition = DefaultCondition(name, <<![String]("condition"))
+}
 
+object WeakConditionReader extends AbstractConditionReader with WeakReferenceYamlReader[Condition] {
   override protected def createReference(implicit source: YamlSourceReader): Condition = ConditionReference(reference)
+}
 
-  override protected def createDefault(implicit source: YamlSourceReader): Condition = DefaultCondition(name, <<![String]("condition"))
+object ConditionReader extends AbstractConditionReader {
+  override protected def parse(implicit source: YamlSourceReader): Condition = createDefault
 }
 
 object RewriteReader extends YamlReader[Rewrite] with WeakReferenceYamlReader[Rewrite] {
