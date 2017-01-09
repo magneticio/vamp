@@ -14,7 +14,7 @@ class KubernetesWorkflowActorMapper extends ClassMapper {
 
 class KubernetesWorkflowActor extends DaemonWorkflowDriver {
 
-  override protected def info: Future[Map[_, _]] = Future.successful(Map("kubernetes" → Map("url" → KubernetesDriverActor.url)))
+  override protected def info: Future[Map[_, _]] = Future.successful(Map("kubernetes" → Map("url" → KubernetesDriverActor.url())))
 
   override protected def driverActor: ActorRef = IoC.actorFor[KubernetesDriverActor]
 }

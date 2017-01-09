@@ -14,7 +14,7 @@ class MarathonWorkflowActorMapper extends ClassMapper {
 
 class MarathonWorkflowActor extends DaemonWorkflowDriver {
 
-  override protected def info: Future[Map[_, _]] = Future.successful(Map("marathon" → Map("url" → MarathonDriverActor.marathonUrl)))
+  override protected def info: Future[Map[_, _]] = Future.successful(Map("marathon" → Map("url" → MarathonDriverActor.marathonUrl())))
 
   override protected def driverActor: ActorRef = IoC.actorFor[MarathonDriverActor]
 }

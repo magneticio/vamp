@@ -14,7 +14,7 @@ class RancherWorkflowActorMapper extends ClassMapper {
 
 class RancherWorkflowActor extends DaemonWorkflowDriver {
 
-  override protected def info: Future[Map[_, _]] = Future.successful(Map("rancher" → Map("url" → RancherDriverActor.rancherUrl)))
+  override protected def info: Future[Map[_, _]] = Future.successful(Map("rancher" → Map("url" → RancherDriverActor.rancherUrl())))
 
   override protected def driverActor: ActorRef = IoC.actorFor[RancherDriverActor]
 }

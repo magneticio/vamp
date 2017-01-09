@@ -32,7 +32,7 @@ trait EventApiController {
   def source(parameters: Map[String, List[String]], request: String, keepAlivePeriod: FiniteDuration) = {
     Source.actorPublisher[ServerSentEvent](Props(new ActorPublisher[ServerSentEvent] {
       def receive = {
-        case Request(n)           ⇒ openStream(self, parameters, request)
+        case Request(_)           ⇒ openStream(self, parameters, request)
         case Cancel               ⇒ closeStream(self)
         case (None, event: Event) ⇒ if (totalDemand > 0) onNext(ServerSentEvent(write(event)(SerializationFormat(OffsetDateTimeSerializer)), event.`type`))
         case _                    ⇒
