@@ -3,6 +3,7 @@ package io.vamp.pulse
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
+import io.vamp.common.config.Config
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.spi.ClassMapper
@@ -26,11 +27,11 @@ object ElasticsearchPulseActor {
 
   val config = PulseActor.config
 
-  val elasticsearchUrl = config.string("elasticsearch.url")
+  val elasticsearchUrl = Config.string(s"$config.elasticsearch.url")
 
-  val indexName = config.string("elasticsearch.index.name")
+  val indexName = Config.string(s"$config.elasticsearch.index.name")
 
-  val indexTimeFormat: () ⇒ Map[String, String] = () ⇒ config.entries("elasticsearch.index.time-format")().map { case (key, value) ⇒ key → value.toString }
+  val indexTimeFormat: () ⇒ Map[String, String] = () ⇒ Config.entries(s"$config.elasticsearch.index.time-format")().map { case (key, value) ⇒ key → value.toString }
 }
 
 class ElasticsearchPulseActor extends ElasticsearchPulseEvent with PulseStats with PulseActor {

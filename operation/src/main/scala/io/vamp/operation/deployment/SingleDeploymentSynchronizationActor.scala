@@ -27,13 +27,11 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   import PulseEventTags.Deployments._
   import SingleDeploymentSynchronizationActor._
 
-  private val config = Config.config("vamp.operation")
+  private val checkCpu = Config.boolean("vamp.operation.synchronization.check.cpu")()
 
-  private val checkCpu = config.boolean("synchronization.check.cpu")()
+  private val checkMemory = Config.boolean("vamp.operation.synchronization.check.memory")()
 
-  private val checkMemory = config.boolean("synchronization.check.memory")()
-
-  private val checkInstances = config.boolean("synchronization.check.instances")()
+  private val checkInstances = Config.boolean("vamp.operation.synchronization.check.instances")()
 
   def receive: Receive = {
     case Synchronize(containerService) ⇒ synchronize(containerService)

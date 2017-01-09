@@ -28,21 +28,21 @@ class DockerDriverActorMapper extends ClassMapper {
 
 class DockerDriverActor extends ContainerDriverActor with ContainerDriver with DockerNameMatcher {
 
-  private val config = Config.config("vamp.container-driver.docker")
+  private val config = "vamp.container-driver.docker"
 
   protected val nameDelimiter = "_"
 
-  protected val workflowNamePrefix = config.string("workflow-name-prefix")
+  protected val workflowNamePrefix = Config.string(s"$config.workflow-name-prefix")
 
   private val docker = {
 
-    val serverAddress = config.string("repository.server-address")()
+    val serverAddress = Config.string(s"$config.repository.server-address")()
 
     if (serverAddress.nonEmpty) {
 
-      val email = config.string("repository.email")()
-      val username = config.string("repository.username")()
-      val password = config.string("repository.password")()
+      val email = Config.string(s"$config.repository.email")()
+      val username = Config.string(s"$config.repository.username")()
+      val password = Config.string(s"$config.repository.password")()
 
       val authConfig = AuthConfig.builder().email(email).username(username).password(password).serverAddress(serverAddress).build()
       DefaultDockerClient.fromEnv().authConfig(authConfig).build()

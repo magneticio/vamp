@@ -7,7 +7,6 @@ import io.vamp.gateway_driver.haproxy.{ HaProxyConfig, HaProxyGatewayMarshaller,
 
 class GatewayDriverBootstrap extends ActorBootstrap {
 
-  val haproxyConfig = Config.config("vamp.gateway-driver.haproxy")
   val synchronizationInitialDelay = Config.duration("vamp.operation.synchronization.initial-delay")
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
@@ -21,7 +20,7 @@ class GatewayDriverBootstrap extends ActorBootstrap {
     val actors = List(
       IoC.createActor[GatewayDriverActor](new JTwigHaProxyGatewayMarshaller() {
         override val templateFile: String = Config.string("vamp.gateway-driver.haproxy.template")()
-        override def haProxyConfig = HaProxyConfig(haproxyConfig.string("ip")())
+        override def haProxyConfig = HaProxyConfig(Config.string("vamp.gateway-driver.haproxy.ip")())
       })
     )
 

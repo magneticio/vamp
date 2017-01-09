@@ -12,7 +12,6 @@ import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.TraitResolver
 import io.vamp.persistence.db.{ ArtifactSupport, PersistenceActor }
 import io.vamp.pulse.notification.PulseFailureNotifier
-import io.vamp.workflow_driver.WorkflowDriver.config
 import io.vamp.workflow_driver.WorkflowDriverActor.{ GetScheduled, Schedule, Unschedule }
 import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 
@@ -24,9 +23,9 @@ object WorkflowDeployable {
 
   val javascript = "application/javascript"
 
-  private val deployables = config.config("workflow.deployables")
+  private val deployables = s"${WorkflowDriver.config}.workflow.deployables"
 
-  private val javascriptDeployable = () ⇒ Deployable(deployables.string("application/javascript.type")(), deployables.string("application/javascript.definition")())
+  private val javascriptDeployable = () ⇒ Deployable(Config.string(s"$deployables.application/javascript.type")(), Config.string(s"$deployables.application/javascript.definition")())
 
   def matches(some: Deployable): Boolean = some.`type` == javascript
 
@@ -37,7 +36,7 @@ object WorkflowDriver {
 
   val root = "workflows"
 
-  val config = Config.config("vamp.workflow-driver")
+  val config = "vamp.workflow-driver"
 
   def path(workflow: Workflow) = root :: workflow.name :: Nil
 }
@@ -50,20 +49,23 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
 
   implicit val timeout = ContainerDriverActor.timeout()
 
-  val globalEnvironmentVariables: List[EnvironmentVariable] = config.stringList("workflow.environment-variables")().map { env ⇒
+  val globalEnvironmentVariables: List[EnvironmentVariable] = Config.stringList(s"$config.workflow.environment-variables")().map { env ⇒
     val index = env.indexOf('=')
     EnvironmentVariable(env.substring(0, index), None, Option(env.substring(index + 1)), None)
   }
 
-  val defaultScale = config.config("workflow.scale") match {
-    case c ⇒ DefaultScale("", Quantity.of(c.double("cpu")()), MegaByte.of(c.string("memory")()), c.int("instances")())
-  }
+  val defaultScale = DefaultScale(
+    "",
+    Quantity.of(Config.double(s"$config.workflow.scale.cpu")()),
+    MegaByte.of(Config.string(s"$config.workflow.scale.memory")()),
+    Config.int(s"$config.workflow.scale.instances")()
+  )
 
-  val defaultArguments: List[Argument] = config.stringList("workflow.arguments")().map(Argument(_))
+  val defaultArguments: List[Argument] = Config.stringList(s"$config.workflow.arguments")().map(Argument(_))
 
-  val defaultNetwork = config.string("workflow.network")()
+  val defaultNetwork = Config.string(s"$config.workflow.network")()
 
-  val defaultCommand = config.string("workflow.command")()
+  val defaultCommand = Config.string(s"$config.workflow.command")()
 
   def receive = {
     case InfoRequest              ⇒ reply(info)

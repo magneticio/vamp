@@ -16,13 +16,10 @@ object GatewayActor {
 
   val timeout = PersistenceActor.timeout
 
-  private val config = Config.config("vamp.operation.gateway")
-
-  val virtualHostsEnabled = config.boolean("virtual-hosts.enabled")
-
-  val virtualHostsFormat1 = config.string("virtual-hosts.formats.gateway")
-  val virtualHostsFormat2 = config.string("virtual-hosts.formats.deployment-port")
-  val virtualHostsFormat3 = config.string("virtual-hosts.formats.deployment-cluster-port")
+  val virtualHostsEnabled = Config.boolean("vamp.operation.gateway.virtual-hosts.enabled")
+  val virtualHostsFormat1 = Config.string("vamp.operation.gateway.virtual-hosts.formats.gateway")
+  val virtualHostsFormat2 = Config.string("vamp.operation.gateway.virtual-hosts.formats.deployment-port")
+  val virtualHostsFormat3 = Config.string("vamp.operation.gateway.virtual-hosts.formats.deployment-cluster-port")
 
   trait GatewayMessage
 

@@ -232,8 +232,8 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     }
   }
 
-  private def virtualHostsBackends(implicit gateway: Gateway): List[Backend] = gateway.virtualHosts.nonEmpty match {
-    case true ⇒
+  private def virtualHostsBackends(implicit gateway: Gateway): List[Backend] = {
+    if (gateway.virtualHosts.nonEmpty) {
       Backend(
         name = GatewayLookup.name(gateway),
         lookup = GatewayLookup.lookup(gateway),
@@ -249,7 +249,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
         sticky = false,
         balance = ""
       ) :: Nil
-
-    case false ⇒ Nil
+    }
+    else Nil
   }
 }

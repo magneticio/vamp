@@ -14,17 +14,17 @@ import scala.language.postfixOps
 
 class OperationBootstrap extends ActorBootstrap {
 
-  val config = Config.config("vamp.operation")
+  val config = "vamp.operation"
 
   val synchronizationMailbox = "vamp.operation.synchronization.mailbox"
 
-  val slaPeriod = config.duration("sla.period")()
+  val slaPeriod = Config.duration(s"$config.sla.period")()
 
-  val escalationPeriod = config.duration("escalation.period")()
+  val escalationPeriod = Config.duration(s"$config.escalation.period")()
 
-  val synchronizationPeriod = config.duration("synchronization.period")()
+  val synchronizationPeriod = Config.duration(s"$config.synchronization.period")()
 
-  val synchronizationInitialDelay = config.duration("synchronization.initial-delay")()
+  val synchronizationInitialDelay = Config.duration(s"$config.synchronization.initial-delay")()
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 

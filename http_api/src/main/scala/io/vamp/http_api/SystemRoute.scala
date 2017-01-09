@@ -14,6 +14,7 @@ import io.vamp.http_api.notification.BadRequestError
 import io.vamp.persistence.kv.KeyValueStoreActor
 
 import scala.concurrent.Future
+import scala.util.Try
 
 trait SystemRoute extends SystemController {
   this: ExecutionContextProvider with ActorSystemProvider with HttpApiDirectives with NotificationProvider ⇒
@@ -31,15 +32,19 @@ trait SystemRoute extends SystemController {
       }
     } ~ pathPrefix("configuration" | "config") {
       get {
-        path(Segment) { key: String ⇒
-          pathEndOrSingleSlash {
-            onSuccess(configuration(key)) { result ⇒
-              respondWith(OK, result)
+        parameters('type.as[String] ? "") { `type` ⇒
+          parameters('flatten.as[Boolean] ? false) { flatten ⇒
+            path(Segment) { key: String ⇒
+              pathEndOrSingleSlash {
+                onSuccess(configuration(`type`, flatten, key)) { result ⇒
+                  respondWith(OK, result)
+                }
+              }
+            } ~ pathEndOrSingleSlash {
+              onSuccess(configuration(`type`, flatten)) { result ⇒
+                respondWith(OK, result)
+              }
             }
-          }
-        } ~ pathEndOrSingleSlash {
-          onSuccess(configuration()) { result ⇒
-            respondWith(OK, result)
           }
         }
       }
@@ -61,10 +66,11 @@ trait SystemController {
     else Future.successful(HttpEntity(""))
   }
 
-  def configuration(key: String = "") = Future.successful {
-    val entries = Config.entries()().filter {
-      case (k, _) ⇒ k.startsWith("vamp.")
-    }
-    if (key.nonEmpty) entries.get(key) else entries
+  def configuration(`type`: String, flatten: Boolean, key: String = "") = Future.successful {
+    Config.export(
+      Try(Config.Type.withName(`type`)).getOrElse(Config.Type.applied),
+      flatten,
+      { entry ⇒ entry.startsWith("vamp.") && (key.isEmpty || entry == key) }
+    )
   }
 }

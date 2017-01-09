@@ -32,9 +32,8 @@ object DeploymentSynchronizationActor {
 
   case class Synchronize(deployment: Deployment)
 
-  val config = Config.config("vamp.operation.synchronization.timeout")
-  val deploymentTimeout = config.duration("ready-for-deployment")
-  val undeploymentTimeout = config.duration("ready-for-undeployment")
+  val deploymentTimeout = Config.duration("vamp.operation.synchronization.timeout.ready-for-deployment")
+  val undeploymentTimeout = Config.duration("vamp.operation.synchronization.timeout.ready-for-undeployment")
 }
 
 class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {

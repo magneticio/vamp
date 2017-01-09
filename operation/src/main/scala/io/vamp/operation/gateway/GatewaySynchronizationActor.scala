@@ -24,12 +24,10 @@ class GatewaySynchronizationSchedulerActor extends SchedulerActor with Operation
 
 object GatewaySynchronizationActor {
 
-  val config = Config.config("vamp.operation.gateway")
-
-  val timeout = config.timeout("response-timeout")
+  val timeout = Config.timeout("vamp.operation.gateway.response-timeout")
 
   val (portRangeLower: Int, portRangeUpper: Int) = {
-    val portRange = config.string("port-range")().split("-").map(_.toInt)
+    val portRange = Config.string("vamp.operation.gateway.port-range")().split("-").map(_.toInt)
     (portRange(0), portRange(1))
   }
 

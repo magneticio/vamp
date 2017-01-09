@@ -20,15 +20,16 @@ import scala.concurrent.Future
 
 object DeploymentActor {
 
-  private val config = Config
+  val gatewayHost = Config.string("vamp.gateway-driver.host")
 
-  val gatewayHost = config.string("vamp.gateway-driver.host")
+  val defaultScale = () ⇒ DefaultScale(
+    "",
+    Quantity.of(Config.double("vamp.operation.deployment.scale.cpu")()),
+    MegaByte.of(Config.string("vamp.operation.deployment.scale.memory")()),
+    Config.int("vamp.operation.deployment.scale.instances")()
+  )
 
-  val defaultScale = () ⇒ config.config("vamp.operation.deployment.scale") match {
-    case c ⇒ DefaultScale("", Quantity.of(c.double("cpu")()), MegaByte.of(c.string("memory")()), c.int("instances")())
-  }
-
-  val defaultArguments = () ⇒ config.stringList("vamp.operation.deployment.arguments")().map(Argument(_))
+  val defaultArguments = () ⇒ Config.stringList("vamp.operation.deployment.arguments")().map(Argument(_))
 
   trait DeploymentMessage
 

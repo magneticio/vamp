@@ -5,6 +5,7 @@ trait Vamp extends App {
   private def bootstrap = {
     List() :+
       new LoggingBootstrap :+
+      new ConfigurationBootstrap :+
       new KamonBootstrap :+
       new ActorBootstrap
   }
