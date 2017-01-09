@@ -1,4 +1,4 @@
-![](https://raw.githubusercontent.com/magneticio/vamp.io/master/static/img/vamp_logo_blue_circle.png)
+<img src="http://vamp.io/images/logo.svg" width="250px" />
 
 Vamp is actively developed by [Magnetic.io](http://magnetic.io) but is an open source project. 
 We encourage anyone to pitch in with pull requests, issues etc.
@@ -18,6 +18,16 @@ Note: We are currently in beta. This means the API will change, features will be
 * If you have a question about how to use Vamp, please [check the Vamp documentation first](http://vamp.io/documentation/).
 
 * If you have a change or new feature in mind, please [suggest it by creating an issue](https://github.com/magneticio/vamp/issues) and tag it with "feature proposal"
+
+When reporting issues, please include the following details:
+
+- Description of issue.
+- Vamp info, from the API: `GET <vamp url>/api/v1/info`
+- Vamp config, from the API; `GET <vamp url>/api/v1/config`
+- Reproduction steps.
+- Which orchestrator are you using, DC/OS, Kubernetes, Rancher, etc.
+- Log output from Vamp and it's various components. You can get these from the `docker logs` command on the relevant containers.
+- Any other information that you might consider important.
 
 Keep Vamping! :heart: 
 
