@@ -122,7 +122,7 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(comm
   common, persistence, model, operation, bootstrap, container_driver, workflow_driver, pulse, http_api, gateway_driver
 ).disablePlugins(sbtassembly.AssemblyPlugin)
 
-lazy val bootstrap = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
+lazy val bootstrap = project.settings(bintraySetting: _*).settings(packAutoSettings).settings(commands += publishLocalKatana).settings(
   description := "Bootstrap for Vamp",
   name := "vamp-bootstrap",
   formatting,
