@@ -22,6 +22,10 @@ object Config {
 
   def load(config: Map[String, Any] = Map()): Unit = {
 
+    def convert(config: TypesafeConfig): Map[String, ConfigValue] = {
+      config.resolve().entrySet().asScala.map(entry ⇒ entry.getKey → entry.getValue).toMap
+    }
+
     val dynamic = config.map {
       case (key, value) ⇒ key → ConfigValueFactory.fromAnyRef(value)
     }
@@ -31,7 +35,9 @@ object Config {
     val reference = convert(ConfigFactory.defaultReference())
 
     val environment = (reference ++ application ++ system).flatMap {
-      case (key, _) ⇒ environmentValue(key).map(value ⇒ key → ConfigValueFactory.fromAnyRef(value))
+      case (key, _) ⇒ sys.env.get(key.replaceAll("[^\\p{L}\\d]", "_").toUpperCase).map { value ⇒
+        key → ConfigValueFactory.fromAnyRef(value.trim)
+      }
     }
 
     val applied = reference ++ application ++ system ++ environment ++ dynamic
@@ -44,7 +50,7 @@ object Config {
     values.put(Type.environment, environment)
 
     this.applied = Option(ConfigFactory.parseMap(applied.map {
-      case (key, value) ⇒ key → value.unwrapped()
+      case (key, value) ⇒ key → value.unwrapped
     }.asJava))
   }
 
@@ -74,7 +80,7 @@ object Config {
   })
 
   def export(`type`: Config.Type.Value, flatten: Boolean, filter: String ⇒ Boolean) = {
-    val entries = values.getOrElse(`type`, Map()).filter { case (key, _) ⇒ filter(key) }
+    val entries = values.getOrElse(`type`, Map()).collect { case (key, value) if filter(key) ⇒ key → value.unwrapped }
     if (flatten) entries
     else {
       implicit val formats: Formats = DefaultFormats
@@ -86,15 +92,5 @@ object Config {
 
   private def get[T](path: String, process: TypesafeConfig ⇒ T): () ⇒ T = {
     () ⇒ if (applied.isEmpty) throw new Missing(path) else process(applied.get)
-  }
-
-  private def convert(config: TypesafeConfig): Map[String, ConfigValue] = {
-    config.resolve().entrySet().asScala.map(entry ⇒ entry.getKey → entry.getValue).toMap
-  }
-
-  private def environmentValue(path: String): Option[String] = {
-    sys.env.get(path.replaceAll("[^\\p{L}\\d]", "_").toUpperCase).map(_.trim).map {
-      value ⇒ if (value.startsWith("[") && value.endsWith("]")) value else s""""$value""""
-    }
   }
 }
