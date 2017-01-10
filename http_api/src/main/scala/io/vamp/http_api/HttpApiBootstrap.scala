@@ -37,19 +37,15 @@ class HttpApiBootstrap extends ActorBootstrap {
     }
   }
 
-  override def shutdown(implicit actorSystem: ActorSystem): Unit = {
-
+  override def shutdown(implicit actorSystem: ActorSystem) = {
     implicit val executionContext: ExecutionContext = actorSystem.dispatcher
-
-    binding.foreach {
-      _.foreach { server ⇒
+    binding.map {
+      _.flatMap { server ⇒
         logger.info(s"Unbinding: $interface:$port")
-        server.unbind().foreach {
+        server.unbind().flatMap {
           _ ⇒ Http().shutdownAllConnectionPools()
         }
-      }
-    }
-
-    super.shutdown
+      }.flatMap { _ ⇒ super.shutdown }
+    } getOrElse super.shutdown
   }
 }

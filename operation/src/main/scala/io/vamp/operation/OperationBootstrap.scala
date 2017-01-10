@@ -62,7 +62,7 @@ class OperationBootstrap extends ActorBootstrap {
     actors
   }
 
-  override def shutdown(implicit actorSystem: ActorSystem): Unit = {
+  override def shutdown(implicit actorSystem: ActorSystem) = {
 
     IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
     IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)

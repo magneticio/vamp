@@ -3,7 +3,7 @@ package io.vamp.http_api.ws
 import java.net.URLEncoder
 import java.util.UUID
 
-import akka.actor.ActorRef
+import akka.actor.{ ActorRef, PoisonPill }
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.headers.Accept
 import akka.http.scaladsl.model.{ ContentType, ContentTypes, HttpCharsets, HttpMethods, HttpResponse, _ }
@@ -38,6 +38,15 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
     case SessionClosed(id)                    ⇒ sessionClosed(id)
     case SessionRequest(handler, id, request) ⇒ sessionRequest(handler, id, request)
     case _                                    ⇒
+  }
+
+  override def postStop() = {
+    log.info("Shutting down WebSocket connections.")
+    sessions.foreach {
+      case (id, actor) ⇒
+        actor ! PoisonPill
+        sessionClosed(id)
+    }
   }
 
   private def sessionOpened(id: UUID, actor: ActorRef) = {

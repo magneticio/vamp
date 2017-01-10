@@ -3,6 +3,7 @@ package io.vamp.common.akka
 import akka.actor.{ ActorRef, ActorSystem, PoisonPill }
 import io.vamp.common.spi.ClassProvider
 
+import scala.concurrent.Future
 import scala.reflect.{ ClassTag, classTag }
 
 trait Bootstrap {
@@ -22,8 +23,10 @@ trait ActorBootstrap {
     actors = createActors(actorSystem)
   }
 
-  def shutdown(implicit actorSystem: ActorSystem): Unit = actors.reverse.foreach {
-    _ ! PoisonPill
+  def shutdown(implicit actorSystem: ActorSystem): Future[_] = Future.successful {
+    actors.reverse.foreach {
+      _ ! PoisonPill
+    }
   }
 
   def alias[T: ClassTag](name: String, default: String ⇒ ActorRef)(implicit actorSystem: ActorSystem): ActorRef = {

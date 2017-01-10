@@ -4,6 +4,8 @@ import akka.actor.{ Actor, ActorSystem, Props }
 import io.vamp.common.akka.{ Bootstrap, ActorBootstrap ⇒ ActorBootstrapService }
 import io.vamp.common.spi.ClassProvider
 
+import scala.concurrent.{ ExecutionContext, Future }
+
 class ActorBootstrap extends Bootstrap {
 
   private implicit lazy val system = ActorSystem("vamp")
@@ -12,14 +14,13 @@ class ActorBootstrap extends Bootstrap {
 
   override def run() = bootstrap.foreach(_.run)
 
-  override def shutdown() = {
-    bootstrap.reverse.foreach(_.shutdown)
-    system.terminate()
-  }
+  override def shutdown() = shutdownActors({ () ⇒ system.terminate() })
 
-  private def reload() = {
-    bootstrap.reverse.foreach(_.shutdown)
-    bootstrap.foreach(_.run)
+  private def reload() = shutdownActors({ () ⇒ bootstrap.foreach(_.run) })
+
+  private def shutdownActors(onShutdown: () ⇒ Unit) = {
+    implicit val executionContext: ExecutionContext = system.dispatcher
+    Future.sequence(bootstrap.reverse.map(_.shutdown)).foreach(_ ⇒ onShutdown())
   }
 
   system.actorOf(Props(new Actor {
