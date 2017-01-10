@@ -6,9 +6,8 @@ import akka.actor.PoisonPill
 import akka.http.scaladsl.model.ws.{ Message, TextMessage }
 import akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
 import akka.http.scaladsl.server.Route
-import akka.stream.scaladsl.{ Flow, Sink, Source }
-import akka.stream.stage._
 import akka.stream._
+import akka.stream.scaladsl.{ Flow, Sink, Source }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers, TerminateFlowStage }

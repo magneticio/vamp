@@ -3,6 +3,7 @@ package io.vamp.operation
 import akka.actor.{ ActorRef, ActorSystem, Props }
 import io.vamp.common.akka.{ ActorBootstrap, IoC, SchedulerActor }
 import io.vamp.common.config.Config
+import io.vamp.operation.config.ConfigurationLoaderActor
 import io.vamp.operation.deployment.{ DeploymentActor, DeploymentSynchronizationActor, DeploymentSynchronizationSchedulerActor }
 import io.vamp.operation.gateway.{ GatewayActor, GatewaySynchronizationActor, GatewaySynchronizationSchedulerActor }
 import io.vamp.operation.metrics.KamonMetricsActor
@@ -29,6 +30,7 @@ class OperationBootstrap extends ActorBootstrap {
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
     val actors = List(
+      IoC.createActor[ConfigurationLoaderActor],
       IoC.createActor[KamonMetricsActor],
 
       IoC.createActor[DeploymentActor],

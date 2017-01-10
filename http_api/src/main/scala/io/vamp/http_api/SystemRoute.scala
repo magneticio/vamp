@@ -5,16 +5,15 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, IoC }
-import io.vamp.common.config.Config
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.gateway_driver.haproxy.HaProxyGatewayMarshaller
 import io.vamp.http_api.notification.BadRequestError
+import io.vamp.operation.config.ConfigurationLoaderActor
 import io.vamp.persistence.kv.KeyValueStoreActor
 
 import scala.concurrent.Future
-import scala.util.Try
 
 trait SystemRoute extends SystemController {
   this: ExecutionContextProvider with ActorSystemProvider with HttpApiDirectives with NotificationProvider ⇒
@@ -74,19 +73,16 @@ trait SystemController {
     else Future.successful(HttpEntity(""))
   }
 
-  def configuration(`type`: String, flatten: Boolean, key: String = "") = Future.successful {
-    Config.export(
-      Try(Config.Type.withName(`type`)).getOrElse(Config.Type.applied),
-      flatten, { entry ⇒ entry.startsWith("vamp.") && (key.isEmpty || entry == key) }
-    ) match {
-        case m: Map[_, _] if m.isEmpty ⇒ None
-        case other                     ⇒ other
-      }
+  def configuration(`type`: String, flatten: Boolean, key: String = "") = {
+    implicit val timeout = ConfigurationLoaderActor.timeout()
+    IoC.actorFor[ConfigurationLoaderActor] ? ConfigurationLoaderActor.Get(`type`, flatten, key) map {
+      case m: Map[_, _] if m.isEmpty ⇒ None
+      case other                     ⇒ other
+    }
   }
 
-  def configurationUpdate(input: String, validateOnly: Boolean) = Future.successful {
-    val valid = Try(Config.load(input, validateOnly)).isSuccess
-    if (valid && !validateOnly) actorSystem.actorSelection("/user/vamp") ! "reload"
-    valid
+  def configurationUpdate(input: String, validateOnly: Boolean) = {
+    implicit val timeout = ConfigurationLoaderActor.timeout()
+    IoC.actorFor[ConfigurationLoaderActor] ? ConfigurationLoaderActor.Set(input, validateOnly)
   }
 }

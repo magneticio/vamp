@@ -2,7 +2,7 @@ package io.vamp.common.config
 
 import akka.util.Timeout
 import com.typesafe.config.ConfigException.Missing
-import com.typesafe.config.{ ConfigFactory, ConfigValue, ConfigValueFactory, Config ⇒ TypesafeConfig }
+import com.typesafe.config.{ ConfigFactory, ConfigValueFactory, Config ⇒ TypesafeConfig }
 import io.vamp.common.util.YamlUtil
 import org.json4s.native.Serialization.writePretty
 import org.json4s.{ DefaultFormats, Extraction, Formats }
@@ -10,7 +10,6 @@ import org.json4s.{ DefaultFormats, Extraction, Formats }
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.duration._
-import scala.util.Try
 
 object Config {
 
@@ -18,12 +17,13 @@ object Config {
     val applied, dynamic, system, environment, application, reference = Value
   }
 
-  private val values: mutable.Map[Type.Value, Map[String, ConfigValue]] = new mutable.LinkedHashMap()
+  private implicit val formats: Formats = DefaultFormats
 
-  protected var applied: Option[TypesafeConfig] = None
+  private val values: mutable.Map[Type.Value, TypesafeConfig] = new mutable.LinkedHashMap()
 
-  def load(input: String, validateOnly: Boolean): Unit = {
-    implicit val formats: Formats = DefaultFormats
+  def marshall(config: Map[String, Any]): String = if (config.isEmpty) "" else writePretty(config)
+
+  def unmarshall(input: String): Map[String, Any] = {
 
     def flatten(any: Any): Any = any match {
       case m: Map[_, _] ⇒
@@ -42,16 +42,11 @@ object Config {
     val yaml = flatten(YamlUtil.convert(YamlUtil.yaml.load(input), preserveOrder = false))
     val json = writePretty(yaml.asInstanceOf[AnyRef])
     val config = ConfigFactory.parseString(json)
-    val entries = config.entrySet.asScala.map(entry ⇒ entry.getKey → config.getAnyRef(entry.getKey)).toMap
 
-    if (!validateOnly) load(entries)
+    config.entrySet.asScala.map(entry ⇒ entry.getKey → config.getAnyRef(entry.getKey)).toMap
   }
 
   def load(config: Map[String, Any] = Map()): Unit = {
-
-    def convert(config: TypesafeConfig): Map[String, ConfigValue] = {
-      config.resolve().entrySet().asScala.map(entry ⇒ entry.getKey → entry.getValue).toMap
-    }
 
     val dynamic = config.map {
       case (key, value) ⇒ key → ConfigValueFactory.fromAnyRef(value)
@@ -67,21 +62,13 @@ object Config {
       }
     }
 
-    val applied = reference ++ application ++ system ++ environment ++ dynamic
-
-    values.put(Type.applied, applied)
-    values.put(Type.system, system)
-    values.put(Type.dynamic, dynamic)
-    values.put(Type.reference, reference)
-    values.put(Type.application, application)
-    values.put(Type.environment, environment)
-
-    this.applied = Option(ConfigFactory.parseMap(applied.map {
-      case (key, value) ⇒ key → value.unwrapped
-    }.asJava))
+    values.put(Type.system, convert(system))
+    values.put(Type.dynamic, convert(dynamic))
+    values.put(Type.reference, convert(reference))
+    values.put(Type.application, convert(application))
+    values.put(Type.environment, convert(environment))
+    values.put(Type.applied, convert(reference ++ application ++ system ++ environment ++ dynamic))
   }
-
-  def values(`type`: Type.Value): Map[String, AnyRef] = values.getOrElse(`type`, Map())
 
   def int(path: String) = get(path, {
     _.getInt(path)
@@ -111,15 +98,15 @@ object Config {
 
   def timeout(path: String) = () ⇒ Timeout(duration(path)())
 
-  def has(path: String) = () ⇒ Try(applied.get.hasPath(path)).getOrElse(false)
+  def has(path: String): () ⇒ Boolean = () ⇒ values.get(Type.applied).exists(_.hasPath(path))
 
   def entries(path: String = ""): () ⇒ Map[String, AnyRef] = get(path, { config ⇒
     val cfg = if (path.nonEmpty) config.getConfig(path) else config
     cfg.entrySet.asScala.map(entry ⇒ entry.getKey → cfg.getAnyRef(entry.getKey)).toMap
   })
 
-  def export(`type`: Config.Type.Value, flatten: Boolean, filter: String ⇒ Boolean) = {
-    val entries = values.getOrElse(`type`, Map()).collect { case (key, value) if filter(key) ⇒ key → value.unwrapped }
+  def export(`type`: Config.Type.Value, flatten: Boolean = true, filter: String ⇒ Boolean = { _ ⇒ true }): Map[String, Any] = {
+    val entries = convert(values.getOrElse(`type`, ConfigFactory.empty())).filter { case (key, _) ⇒ filter(key) }
     if (flatten) entries
     else {
       implicit val formats: Formats = DefaultFormats
@@ -129,7 +116,16 @@ object Config {
     }
   }
 
-  private def get[T](path: String, process: TypesafeConfig ⇒ T): () ⇒ T = {
-    () ⇒ if (applied.isEmpty) throw new Missing(path) else process(applied.get)
+  private def get[T](path: String, process: TypesafeConfig ⇒ T): () ⇒ T = { () ⇒
+    values.get(Type.applied) match {
+      case Some(applied) ⇒ process(applied)
+      case _             ⇒ throw new Missing(path)
+    }
   }
+
+  private def convert(config: TypesafeConfig): Map[String, AnyRef] = {
+    config.resolve().entrySet().asScala.map(entry ⇒ entry.getKey → entry.getValue.unwrapped).toMap
+  }
+
+  private def convert(config: Map[String, AnyRef]): TypesafeConfig = ConfigFactory.parseMap(config.asJava)
 }

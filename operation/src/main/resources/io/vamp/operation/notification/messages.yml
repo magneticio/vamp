@@ -24,4 +24,6 @@ InternalGatewayCreateError      : "Gateway is an internal deployment gateway - i
 InternalGatewayUpdateError      : "Gateway is an internal deployment gateway - routes can be addded or removed only when cluster services are created or removed."
 InternalGatewayRemoveError      : "Gateway is an internal deployment gateway - it can be removed only when deployment cluster is removed."
 
+InvalidConfigurationError       : "Configuration is not valid."
+
 BadRequestError                 : "Bad request. {message}"

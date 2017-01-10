@@ -47,3 +47,5 @@ case class InternalGatewayCreateError(name: String) extends Notification
 case class InternalGatewayUpdateError(name: String) extends Notification
 
 case class InternalGatewayRemoveError(name: String) extends Notification
+
+object InvalidConfigurationError extends Notification
