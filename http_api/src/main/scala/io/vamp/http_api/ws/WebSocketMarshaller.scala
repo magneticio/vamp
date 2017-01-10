@@ -17,6 +17,7 @@ import scala.reflect.ClassTag
 trait WebSocketMarshaller extends YamlLoader {
   this: NotificationProvider ⇒
 
+  import io.vamp.common.util.YamlUtil._
   import io.vamp.model.reader.YamlSourceReader._
 
   private implicit val formats: Formats = CoreSerializationFormat.default +

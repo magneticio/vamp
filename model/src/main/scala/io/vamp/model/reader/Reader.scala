@@ -3,7 +3,7 @@ package io.vamp.model.reader
 import java.io.{ File, InputStream, Reader, StringReader }
 
 import io.vamp.common.notification.{ NotificationErrorException, NotificationProvider }
-import io.vamp.common.util.ObjectUtil
+import io.vamp.common.util.{ ObjectUtil, YamlUtil }
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
@@ -11,12 +11,8 @@ import io.vamp.model.resolver.TraitNameAliasResolver
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization._
 import org.json4s.{ DefaultFormats, Formats }
-import org.yaml.snakeyaml.Yaml
-import org.yaml.snakeyaml.constructor.Constructor
 import org.yaml.snakeyaml.error.YAMLException
 
-import scala.collection.JavaConverters._
-import scala.collection.mutable
 import scala.io.Source
 import scala.language.{ implicitConversions, postfixOps }
 import scala.reflect._
@@ -45,12 +41,6 @@ object YamlSource {
 trait YamlLoader {
   this: NotificationProvider ⇒
 
-  protected def yaml: Yaml = {
-    new Yaml(new Constructor() {
-      override def getClassForName(name: String): Class[_] = throw new YAMLException("Not supported.")
-    })
-  }
-
   protected def unmarshal(input: YamlSource): Either[YamlSourceReader, List[YamlSourceReader]] = {
 
     def unmarshal(reader: Reader): Either[YamlSourceReader, List[YamlSourceReader]] = load(reader) match {
@@ -72,17 +62,6 @@ trait YamlLoader {
 
   protected def load(reader: Reader): Any = {
 
-    def convert(any: Any): Any = any match {
-      case source: java.util.Map[_, _] ⇒
-        // keeping the order
-        val map = new mutable.LinkedHashMap[String, Any]()
-        source.entrySet().asScala.foreach(entry ⇒ map += entry.getKey.toString → convert(entry.getValue))
-        map
-      case source: java.util.List[_]     ⇒ source.asScala.map(convert).toList
-      case source: java.lang.Iterable[_] ⇒ source.asScala.map(convert).toList
-      case source                        ⇒ source
-    }
-
     def flatten(any: Any, acc: List[Any]): List[Any] = any match {
       case l: List[_] ⇒ l.flatMap(flatten(_, acc))
       case other      ⇒ acc :+ other
@@ -90,10 +69,10 @@ trait YamlLoader {
 
     val parsed = Try {
       flatten(
-        convert(
-          yaml.loadAll(
+        YamlUtil.convert(
+          YamlUtil.yaml.loadAll(
             reader
-          )
+          ), preserveOrder = true
         ), Nil
       )
     } recover {

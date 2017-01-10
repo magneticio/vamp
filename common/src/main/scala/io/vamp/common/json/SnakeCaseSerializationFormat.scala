@@ -1,6 +1,6 @@
 package io.vamp.common.json
 
-import io.vamp.common.text.Text
+import io.vamp.common.util.TextUtil
 import org.json4s._
 
 object SnakeCaseSerializationFormat extends SerializationFormat {
@@ -9,6 +9,6 @@ object SnakeCaseSerializationFormat extends SerializationFormat {
 
 class SnakeCaseFieldSerializer extends FieldSerializer[Any] {
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
-    case (name, x) ⇒ Some(Text.toSnakeCase(name, dash = false) → x)
+    case (name, x) ⇒ Some(TextUtil.toSnakeCase(name, dash = false) → x)
   }
 }

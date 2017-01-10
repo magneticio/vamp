@@ -1,6 +1,6 @@
-package io.vamp.common.text
+package io.vamp.common.util
 
-object Text {
+object TextUtil {
 
   /**
    * Converts given string to lower camel case format, e.g. "lower-camel' -> "lowerCamel".

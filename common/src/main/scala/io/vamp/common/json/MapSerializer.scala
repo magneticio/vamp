@@ -1,6 +1,6 @@
 package io.vamp.common.json
 
-import io.vamp.common.text.Text
+import io.vamp.common.util.TextUtil
 import org.json4s.JsonAST.JObject
 import org.json4s._
 
@@ -12,7 +12,7 @@ class MapSerializer extends Serializer[Map[_, _]] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case map: Map[_, _] ⇒
       new JObject(map.map {
-        case (name, value) ⇒ JField(Text.toSnakeCase(name.toString, dash = false), Extraction.decompose(value))
+        case (name, value) ⇒ JField(TextUtil.toSnakeCase(name.toString, dash = false), Extraction.decompose(value))
       }.toList)
   }
 

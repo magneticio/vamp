@@ -3,10 +3,10 @@ package io.vamp.common.akka
 import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor._
-import io.vamp.common.text.Text
 
 import scala.collection.mutable
 import scala.reflect._
+import _root_.io.vamp.common.util.TextUtil
 
 object IoC {
 
@@ -26,7 +26,7 @@ object IoC {
 
   def createActor(props: Props)(implicit actorSystem: ActorSystem): ActorRef = {
 
-    val actorRef = actorSystem.actorOf(props, s"${Text.toSnakeCase(props.clazz.getSimpleName)}-${counter.getAndIncrement}")
+    val actorRef = actorSystem.actorOf(props, s"${TextUtil.toSnakeCase(props.clazz.getSimpleName)}-${counter.getAndIncrement}")
 
     actorRefs.put(props.clazz, actorRef)
 

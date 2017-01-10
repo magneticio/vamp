@@ -47,6 +47,14 @@ trait SystemRoute extends SystemController {
             }
           }
         }
+      } ~ (put | post) {
+        entity(as[String]) { request ⇒
+          validateOnly { validateOnly ⇒
+            onSuccess(configurationUpdate(request, validateOnly)) { result ⇒
+              respondWith(Accepted, result)
+            }
+          }
+        }
       }
     }
   }
@@ -69,8 +77,16 @@ trait SystemController {
   def configuration(`type`: String, flatten: Boolean, key: String = "") = Future.successful {
     Config.export(
       Try(Config.Type.withName(`type`)).getOrElse(Config.Type.applied),
-      flatten,
-      { entry ⇒ entry.startsWith("vamp.") && (key.isEmpty || entry == key) }
-    )
+      flatten, { entry ⇒ entry.startsWith("vamp.") && (key.isEmpty || entry == key) }
+    ) match {
+        case m: Map[_, _] if m.isEmpty ⇒ None
+        case other                     ⇒ other
+      }
+  }
+
+  def configurationUpdate(input: String, validateOnly: Boolean) = Future.successful {
+    val valid = Try(Config.load(input, validateOnly)).isSuccess
+    if (valid && !validateOnly) actorSystem.actorSelection("/user/vamp") ! "reload"
+    valid
   }
 }

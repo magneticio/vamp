@@ -3,6 +3,8 @@ package io.vamp.common.config
 import akka.util.Timeout
 import com.typesafe.config.ConfigException.Missing
 import com.typesafe.config.{ ConfigFactory, ConfigValue, ConfigValueFactory, Config ⇒ TypesafeConfig }
+import io.vamp.common.util.YamlUtil
+import org.json4s.native.Serialization.writePretty
 import org.json4s.{ DefaultFormats, Extraction, Formats }
 
 import scala.collection.JavaConverters._
@@ -19,6 +21,31 @@ object Config {
   private val values: mutable.Map[Type.Value, Map[String, ConfigValue]] = new mutable.LinkedHashMap()
 
   protected var applied: Option[TypesafeConfig] = None
+
+  def load(input: String, validateOnly: Boolean): Unit = {
+    implicit val formats: Formats = DefaultFormats
+
+    def flatten(any: Any): Any = any match {
+      case m: Map[_, _] ⇒
+        m.collect {
+          case (key, value) if key.isInstanceOf[String] ⇒
+            val keys = key.asInstanceOf[String].split('.').toList.reverse
+            keys.tail.foldLeft[Map[String, _]](Map(keys.head → flatten(value)))((op1, op2) ⇒ Map(op2 → op1))
+        }.foldLeft(Extraction.decompose(Map())) {
+          (op1, op2) ⇒ op1 merge Extraction.decompose(op2)
+        }.extract[Map[String, AnyRef]]
+
+      case l: List[_] ⇒ l.map(flatten)
+      case other      ⇒ other
+    }
+
+    val yaml = flatten(YamlUtil.convert(YamlUtil.yaml.load(input), preserveOrder = false))
+    val json = writePretty(yaml.asInstanceOf[AnyRef])
+    val config = ConfigFactory.parseString(json)
+    val entries = config.entrySet.asScala.map(entry ⇒ entry.getKey → config.getAnyRef(entry.getKey)).toMap
+
+    if (!validateOnly) load(entries)
+  }
 
   def load(config: Map[String, Any] = Map()): Unit = {
 
@@ -56,17 +83,29 @@ object Config {
 
   def values(`type`: Type.Value): Map[String, AnyRef] = values.getOrElse(`type`, Map())
 
-  def int(path: String) = get(path, { _.getInt(path) })
+  def int(path: String) = get(path, {
+    _.getInt(path)
+  })
 
-  def double(path: String) = get(path, { _.getDouble(path) })
+  def double(path: String) = get(path, {
+    _.getDouble(path)
+  })
 
-  def string(path: String) = get(path, { _.getString(path) })
+  def string(path: String) = get(path, {
+    _.getString(path)
+  })
 
-  def boolean(path: String) = get(path, { _.getBoolean(path) })
+  def boolean(path: String) = get(path, {
+    _.getBoolean(path)
+  })
 
-  def intList(path: String) = get(path, { _.getIntList(path).asScala.map(_.toInt).toList })
+  def intList(path: String) = get(path, {
+    _.getIntList(path).asScala.map(_.toInt).toList
+  })
 
-  def stringList(path: String) = get(path, { _.getStringList(path).asScala.toList })
+  def stringList(path: String) = get(path, {
+    _.getStringList(path).asScala.toList
+  })
 
   def duration(path: String) = get(path, { config ⇒ FiniteDuration(config.getDuration(path, MILLISECONDS), MILLISECONDS) })
 
