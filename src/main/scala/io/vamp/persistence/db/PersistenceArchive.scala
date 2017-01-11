@@ -31,7 +31,7 @@ object PersistenceArchive {
     case t if classOf[Route].isAssignableFrom(t) ⇒ Option("routes")
     case t if classOf[Condition].isAssignableFrom(t) ⇒ Option("conditions")
     case t if classOf[Workflow].isAssignableFrom(t) ⇒ Option("workflows")
-    case request ⇒ None
+    case _ ⇒ None
   }
 }
 
