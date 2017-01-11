@@ -22,14 +22,26 @@ trait SystemRoute extends SystemController {
     pathPrefix("vga") {
       path(Segment / Segment / "template") { (kind, name) ⇒
         pathEndOrSingleSlash {
-          onSuccess(vgaTemplate(kind, name)) { result ⇒
-            respondWith(OK, result)
+          get {
+            onSuccess(vgaTemplate(kind, name)) { result ⇒
+              respondWith(OK, result)
+            }
+          } ~ (put | post) {
+            entity(as[String]) { request ⇒
+              validateOnly { validateOnly ⇒
+                onSuccess(vgaTemplateUpdate(kind, name, request, validateOnly)) { result ⇒
+                  respondWith(Accepted, result)
+                }
+              }
+            }
           }
         }
-      } ~ path(Segment / Segment / ("configuration" | "config")) { (kind, name) ⇒
-        pathEndOrSingleSlash {
-          onSuccess(vgaConfig(kind, name)) { result ⇒
-            respondWith(OK, result)
+      } ~ get {
+        path(Segment / Segment / ("configuration" | "config")) { (kind, name) ⇒
+          pathEndOrSingleSlash {
+            onSuccess(vgaConfig(kind, name)) { result ⇒
+              respondWith(OK, result)
+            }
           }
         }
       }
@@ -68,17 +80,25 @@ trait SystemController {
 
   def vgaTemplate(kind: String, name: String): Future[Any] = {
     implicit val timeout = KeyValueStoreActor.timeout()
-    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(GatewayDriverActor.templatePath(kind, name)) map {
-      case Some(result: String) ⇒ HttpEntity(result)
-      case _                    ⇒ HttpEntity("")
+    IoC.actorFor[GatewayDriverActor] ? GatewayDriverActor.GetTemplate(kind, name) map {
+      case result: String ⇒ HttpEntity(result)
+      case _              ⇒ HttpEntity("")
+    }
+  }
+
+  def vgaTemplateUpdate(kind: String, name: String, template: String, validateOnly: Boolean): Future[Any] = {
+    if (validateOnly) Future.successful(true)
+    else {
+      implicit val timeout = KeyValueStoreActor.timeout()
+      IoC.actorFor[GatewayDriverActor] ? GatewayDriverActor.SetTemplate(kind, name, template)
     }
   }
 
   def vgaConfig(kind: String, name: String): Future[Any] = {
     implicit val timeout = KeyValueStoreActor.timeout()
-    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(GatewayDriverActor.configurationPath(kind, name)) map {
-      case Some(result: String) ⇒ HttpEntity(result)
-      case _                    ⇒ HttpEntity("")
+    IoC.actorFor[GatewayDriverActor] ? GatewayDriverActor.GetConfiguration(kind, name) map {
+      case result: String ⇒ HttpEntity(result)
+      case _              ⇒ HttpEntity("")
     }
   }
 

@@ -6,11 +6,8 @@ case class HaProxy(
   frontends:            List[Frontend],
   backends:             List[Backend],
   virtualHostFrontends: List[Frontend],
-  virtualHostBackends:  List[Backend],
-  config:               HaProxyConfig
+  virtualHostBackends:  List[Backend]
 )
-
-case class HaProxyConfig(ip: String)
 
 case class Frontend(
   name:           String,
@@ -51,4 +48,4 @@ case class Rewrite(path: String, condition: String)
 
 case class ProxyServer(name: String, lookup: String, unixSock: String, weight: Int)
 
-case class Server(name: String, lookup: String, url: String, weight: Int, checkInterval: Option[Int] = None)
+case class Server(name: String, lookup: String, url: Option[String], host: Option[String], port: Option[Int], weight: Int, checkInterval: Option[Int] = None)
