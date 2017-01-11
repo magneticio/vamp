@@ -1,21 +1,19 @@
 package io.vamp.gateway_driver.haproxy
 
-import io.vamp.common.config.Config
+import io.vamp.common.spi.ClassMapper
+import io.vamp.common.util.ObjectUtil._
 import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.model.artifact._
+import org.jtwig.{ JtwigModel, JtwigTemplate }
 
 import scala.language.postfixOps
 
-object HaProxyGatewayMarshaller {
-
-  val version = () ⇒ Config.string("vamp.gateway-driver.haproxy.version")().trim
-
-  val socketPath = () ⇒ Config.string("vamp.gateway-driver.haproxy.socket-path")().trim
-
-  val path: () ⇒ List[String] = () ⇒ "haproxy" :: version() :: Nil
+class HaProxyGatewayMarshallerMapper extends ClassMapper {
+  val name = "haproxy"
+  val clazz = classOf[HaProxyGatewayMarshaller]
 }
 
-trait HaProxyGatewayMarshaller extends GatewayMarshaller {
+class HaProxyGatewayMarshaller(override val keyValue: Boolean, file: String, resource: String, parameters: Map[String, AnyRef]) extends GatewayMarshaller(keyValue, file, resource, parameters) {
 
   private val other = "o_"
 
@@ -23,17 +21,30 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   private val aclResolver = new HaProxyAclResolver() {}
 
-  protected lazy val version = HaProxyGatewayMarshaller.version()
+  private val socketPath = parameter[String]("socket-path")
 
-  protected lazy val socketPath = HaProxyGatewayMarshaller.socketPath()
+  private val haProxyConfig = HaProxyConfig(parameter[String]("ip"))
 
-  override lazy val path = HaProxyGatewayMarshaller.path()
+  override val `type` = "haproxy"
 
-  def haProxyConfig: HaProxyConfig
+  override lazy val info: AnyRef = Map[String, AnyRef](
+    "type" → `type`,
+    "key-value" → keyValue.asInstanceOf[AnyRef],
+    "file" → file,
+    "resource" → resource,
+    "parameters" → parameters
+  )
 
-  override def marshall(gateways: List[Gateway]): String = marshall(convert(gateways))
+  override def marshall(gateways: List[Gateway], template: Option[String]): String = marshall(convert(gateways), template)
 
-  private[haproxy] def marshall(haProxy: HaProxy): String
+  private[haproxy] def marshall(haProxy: HaProxy, template: Option[String]): String = {
+    val model = JtwigModel.newModel().`with`("haproxy", (unwrap andThen javaObject)(haProxy))
+    template.map(JtwigTemplate.inlineTemplate).getOrElse {
+      if (file.nonEmpty) JtwigTemplate.fileTemplate(file)
+      else if (resource.nonEmpty) JtwigTemplate.classpathTemplate(resource)
+      else JtwigTemplate.inlineTemplate("")
+    }.render(model)
+  }
 
   private[haproxy] def convert(gateways: List[Gateway]): HaProxy = {
     gateways.map(convert).reduceOption((m1, m2) ⇒ m1.copy(
@@ -42,7 +53,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
       virtualHostFrontends = m1.virtualHostFrontends ++ m2.virtualHostFrontends,
       virtualHostBackends = m1.virtualHostBackends ++ m2.virtualHostBackends
     )).getOrElse(
-      HaProxy(version, Nil, Nil, Nil, Nil, haProxyConfig)
+      HaProxy(Nil, Nil, Nil, Nil, haProxyConfig)
     )
   }
 
@@ -53,7 +64,7 @@ trait HaProxyGatewayMarshaller extends GatewayMarshaller {
     val vbe = virtualHostsBackends(gateway)
     val vfe = virtualHostsFrontends(vbe, gateway)
 
-    HaProxy(version, fe, be, vfe, vbe, haProxyConfig)
+    HaProxy(fe, be, vfe, vbe, haProxyConfig)
   }
 
   private def frontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {

@@ -14,7 +14,11 @@ import scala.concurrent.Future
 
 object GatewayDriverActor {
 
-  val root = "gateways"
+  val rootPath = "gateways" :: Nil
+
+  def templatePath(kind: String, name: String) = rootPath :+ kind :+ name :+ "template"
+
+  def configurationPath(kind: String, name: String) = rootPath :+ kind :+ name :+ "configuration"
 
   sealed trait GatewayDriverMessage
 
@@ -23,7 +27,7 @@ object GatewayDriverActor {
   case class Push(gateways: List[Gateway]) extends GatewayDriverMessage
 }
 
-class GatewayDriverActor(marshaller: GatewayMarshaller) extends PersistenceMarshaller with PulseFailureNotifier with CommonSupportForActors with GatewayDriverNotificationProvider {
+class GatewayDriverActor(marshallers: Map[String, GatewayMarshaller]) extends PersistenceMarshaller with PulseFailureNotifier with CommonSupportForActors with GatewayDriverNotificationProvider {
 
   import GatewayDriverActor._
 
@@ -40,10 +44,14 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PersistenceMarsh
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 
-  private def info = Future.successful(Map("marshaller" → marshaller.info))
+  private def info = Future.successful {
+    Map("marshallers" → marshallers.map {
+      case (name, marshaller) ⇒ name → marshaller.info
+    })
+  }
 
   private def pull(): Future[List[Gateway]] = {
-    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(root :: Nil) map {
+    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(rootPath) map {
       case Some(content: String) ⇒ unmarshall[Gateway](content)
       case _                     ⇒ Nil
     }
@@ -58,7 +66,18 @@ class GatewayDriverActor(marshaller: GatewayMarshaller) extends PersistenceMarsh
       }
     }
 
-    send(root :: Nil, marshall(gateways))
-    send(root +: marshaller.path, marshaller.marshall(gateways))
+    send(rootPath, marshall(gateways))
+
+    marshallers.foreach {
+      case (name, marshaller) ⇒
+        val content = if (marshaller.keyValue) {
+          IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(templatePath(marshaller.`type`, name)) map {
+            case Some(content: String) ⇒ Option(content)
+            case _                     ⇒ None
+          }
+        }
+        else Future.successful(None)
+        content.map { content ⇒ send(configurationPath(marshaller.`type`, name), marshaller.marshall(gateways, content)) }
+    }
   }
 }

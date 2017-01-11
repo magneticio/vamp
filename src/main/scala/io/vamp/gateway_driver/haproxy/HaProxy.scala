@@ -3,7 +3,6 @@ package io.vamp.gateway_driver.haproxy
 import io.vamp.common.crypto.Hash
 
 case class HaProxy(
-  version:              String,
   frontends:            List[Frontend],
   backends:             List[Backend],
   virtualHostFrontends: List[Frontend],
