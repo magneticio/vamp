@@ -38,7 +38,6 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     with HealthRoute
     with JavascriptBreedRoute
     with SystemRoute
-    with DebugRoute
     with ArtifactPaginationSupport
     with ExecutionContextProvider
     with ActorSystemProvider
@@ -130,7 +129,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     }
   }
 
-  val restfulRoutes = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ debugRoutes ~ crudRoutes ~ javascriptBreedRoute
+  val restfulRoutes = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
 
   val apiRoutes = noCachingAllowed {
     cors() {
