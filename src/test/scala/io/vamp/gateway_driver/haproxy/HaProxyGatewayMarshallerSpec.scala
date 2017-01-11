@@ -12,22 +12,24 @@ import scala.io.Source
 @RunWith(classOf[JUnitRunner])
 class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
 
-  private val ip = "111.222.333.444"
-  private val marshaller = new HaProxyGatewayMarshaller(false, "", "/io/vamp/gateway_driver/haproxy/template.twig", Map("ip" → ip, "socket-path" → "/usr/local/vamp"))
+  private val marshaller = new HaProxyGatewayMarshaller
+  private val template = Source.fromURL(getClass.getResource("/io/vamp/gateway_driver/haproxy/template.twig")).mkString
 
   "HaProxyConfiguration" should "be serialized to valid HAProxy configuration" in {
 
     val servers1 = ProxyServer(
       name = "server1",
       lookup = "server1",
-      unixSock = "/tmp/vamp_test_be_1_a.sock",
+      unixSock = "vamp_test_be_1_a.sock",
       weight = 100
     ) :: Nil
 
     val servers2 = HaProxyServer(
       name = "test_be1_a_2",
       lookup = "test_be1_a_2",
-      url = "192.168.59.103:8082",
+      url = Option("192.168.59.103:8082"),
+      host = None,
+      port = None,
       weight = 100,
       checkInterval = Option(10)
     ) :: Nil
@@ -64,13 +66,13 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       bindIp = Some("0.0.0.0"),
       bindPort = Option(8080),
       mode = Mode.http,
-      unixSock = Option("/tmp/vamp_test_be_1_a.sock"),
+      unixSock = Option("vamp_test_be_1_a.sock"),
       sockProtocol = Option("accept-proxy"),
       conditions = conditions,
       defaultBackend = backends.head
     ) :: Nil
 
-    compare(marshaller.marshall(HaProxy(frontends, backends, Nil, Nil, HaProxyConfig(ip)), None), "configuration_1.txt")
+    compare(marshaller.marshall(HaProxy(frontends, backends, Nil, Nil), template), "configuration_1.txt")
   }
 
   it should "serialize single service http route to HAProxy configuration" in {
@@ -96,7 +98,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ) :: Nil
     ))
 
-    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil, HaProxyConfig(ip)), None), "configuration_2.txt")
+    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil), template), "configuration_2.txt")
   }
 
   it should "serialize single service tcp route to HAProxy configuration" in {
@@ -121,7 +123,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ) :: Nil
     ))
 
-    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil, HaProxyConfig(ip)), None), "configuration_3.txt")
+    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil), template), "configuration_3.txt")
   }
 
   it should "serialize single service route with single endpoint to HAProxy configuration" in {
@@ -170,7 +172,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       )
     ))
 
-    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil, HaProxyConfig(ip)), None), "configuration_4.txt")
+    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil), template), "configuration_4.txt")
   }
 
   it should "serialize A/B services to HAProxy configuration" in {
@@ -246,7 +248,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       )
     ))
 
-    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil, HaProxyConfig(ip)), None), "configuration_5.txt")
+    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil), template), "configuration_5.txt")
   }
 
   it should "serialize services with dependency to HAProxy configuration" in {
@@ -316,7 +318,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       )
     ))
 
-    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil, HaProxyConfig(ip)), None), "configuration_6.txt")
+    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil), template), "configuration_6.txt")
   }
 
   it should "convert conditions" in {
@@ -384,7 +386,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       )
     )
 
-    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil, HaProxyConfig(ip)), None), "configuration_7.txt")
+    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil), template), "configuration_7.txt")
   }
 
   it should "serialize A/B services to HAProxy configuration - sticky route" in {
@@ -460,7 +462,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       )
     ))
 
-    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil, HaProxyConfig(ip)), None), "configuration_8.txt")
+    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil), template), "configuration_8.txt")
   }
 
   it should "serialize A/B services to HAProxy configuration - sticky instance" in {
@@ -536,7 +538,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       )
     ))
 
-    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil, HaProxyConfig(ip)), None), "configuration_9.txt")
+    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil), template), "configuration_9.txt")
   }
 
   it should "serialize A/B testing on deployments" in {
@@ -624,7 +626,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       )
     ))
 
-    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil, HaProxyConfig(ip)), None), "configuration_10.txt")
+    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil), template), "configuration_10.txt")
   }
 
   it should "serialize custom balance" in {
@@ -673,7 +675,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       )
     ))
 
-    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil, HaProxyConfig(ip)), None), "configuration_11.txt")
+    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, Nil, Nil), template), "configuration_11.txt")
   }
 
   it should "serialize single service http route with virtual hosts" in {
@@ -698,7 +700,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ) :: Nil
     ))
 
-    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, converted.virtualHostFrontends, converted.virtualHostBackends, HaProxyConfig(ip)), None), "configuration_12.txt")
+    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, converted.virtualHostFrontends, converted.virtualHostBackends), template), "configuration_12.txt")
   }
 
   it should "serialize single service http route with multiple virtual hosts" in {
@@ -723,7 +725,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ) :: Nil
     ))
 
-    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, converted.virtualHostFrontends, converted.virtualHostBackends, HaProxyConfig(ip)), None), "configuration_13.txt")
+    compare(marshaller.marshall(HaProxy(converted.frontends, converted.backends, converted.virtualHostFrontends, converted.virtualHostBackends), template), "configuration_13.txt")
   }
 
   private def compare(config: String, resource: String) = {

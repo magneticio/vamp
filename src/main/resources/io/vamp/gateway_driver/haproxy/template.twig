@@ -31,7 +31,7 @@ backend {{ backend.lookup }}
   http-request set-header X-Forwarded-Port %[dst_port]
   {% for server in backend.servers %}
   # server: {{ server.name }}
-  server {{ server.lookup }} {{ server.url }}
+  server {{ server.lookup }} 127.0.0.1:{{ server.port.get }}
   {% endfor -%}
 {% endfor %}
 {% endif -%}
@@ -56,7 +56,7 @@ frontend {{ frontend.lookup }}
   {% endif -%}
 
   {%- if (frontend.unixSock.isDefined and frontend.sockProtocol.isDefined) %}
-  bind unix@ {{- frontend.unixSock.get }} {{ frontend.sockProtocol.get }}
+  bind unix@/usr/local/vamp/ {{- frontend.unixSock.get }} {{ frontend.sockProtocol.get }}
   {% endif -%}
 
   mode {{ frontend.mode }}
@@ -91,7 +91,7 @@ backend {{ backend.lookup }}
 
   {% for server in backend.proxyServers %}
   # server: {{ server.name }}
-  server {{ server.lookup }} unix@ {{- server.unixSock }} send-proxy weight {{ server.weight }} check {% if (backend.sticky) -%} cookie {{ server.lookup -}} {% endif %}
+  server {{ server.lookup }} unix@/usr/local/vamp/ {{- server.unixSock }} send-proxy weight {{ server.weight }} check {% if (backend.sticky) -%} cookie {{ server.lookup -}} {% endif %}
   {% endfor -%}
 
   {% if (backend.servers.size > 0) %}
@@ -99,7 +99,7 @@ backend {{ backend.lookup }}
 
   {%- for server in backend.servers %}
   # server: {{ server.name }}
-  server {{ server.lookup }} {{ server.url }}
+  server {{ server.lookup }} {%- if (server.url.isDefined) %} {{ server.url.get }} {%- else %} {%- if (server.host.isDefined) %} {{ server.host.get }}:{{ server.port.get }} {%- else %} 127.0.0.1:{{ server.port.get }} {% endif %} {% endif %}
   {%- if (backend.mode == "http") %} cookie {{ server.lookup -}} {% endif %} weight {{ server.weight }}
   {%- if (server.checkInterval.isDefined) %} check inter {{ server.checkInterval.get }} {%- else %} check {% endif %} {% if (backend.sticky) %} cookie {{ server.lookup }} {% endif %}
   {% endfor %}

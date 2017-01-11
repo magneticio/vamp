@@ -13,7 +13,7 @@ class HaProxyGatewayMarshallerMapper extends ClassMapper {
   val clazz = classOf[HaProxyGatewayMarshaller]
 }
 
-class HaProxyGatewayMarshaller(override val keyValue: Boolean, file: String, resource: String, parameters: Map[String, AnyRef]) extends GatewayMarshaller(keyValue, file, resource, parameters) {
+class HaProxyGatewayMarshaller extends GatewayMarshaller {
 
   private val other = "o_"
 
@@ -21,29 +21,15 @@ class HaProxyGatewayMarshaller(override val keyValue: Boolean, file: String, res
 
   private val aclResolver = new HaProxyAclResolver() {}
 
-  private val socketPath = parameter[String]("socket-path")
-
-  private val haProxyConfig = HaProxyConfig(parameter[String]("ip"))
-
   override val `type` = "haproxy"
 
-  override lazy val info: AnyRef = Map[String, AnyRef](
-    "type" → `type`,
-    "key-value" → keyValue.asInstanceOf[AnyRef],
-    "file" → file,
-    "resource" → resource,
-    "parameters" → parameters
-  )
+  override lazy val info: AnyRef = Map("type" → `type`)
 
-  override def marshall(gateways: List[Gateway], template: Option[String]): String = marshall(convert(gateways), template)
+  override def marshall(gateways: List[Gateway], template: String): String = marshall(convert(gateways), template)
 
-  private[haproxy] def marshall(haProxy: HaProxy, template: Option[String]): String = {
+  private[haproxy] def marshall(haProxy: HaProxy, template: String): String = {
     val model = JtwigModel.newModel().`with`("haproxy", (unwrap andThen javaObject)(haProxy))
-    template.map(JtwigTemplate.inlineTemplate).getOrElse {
-      if (file.nonEmpty) JtwigTemplate.fileTemplate(file)
-      else if (resource.nonEmpty) JtwigTemplate.classpathTemplate(resource)
-      else JtwigTemplate.inlineTemplate("")
-    }.render(model)
+    JtwigTemplate.inlineTemplate(template).render(model)
   }
 
   private[haproxy] def convert(gateways: List[Gateway]): HaProxy = {
@@ -53,7 +39,7 @@ class HaProxyGatewayMarshaller(override val keyValue: Boolean, file: String, res
       virtualHostFrontends = m1.virtualHostFrontends ++ m2.virtualHostFrontends,
       virtualHostBackends = m1.virtualHostBackends ++ m2.virtualHostBackends
     )).getOrElse(
-      HaProxy(Nil, Nil, Nil, Nil, haProxyConfig)
+      HaProxy(Nil, Nil, Nil, Nil)
     )
   }
 
@@ -64,7 +50,7 @@ class HaProxyGatewayMarshaller(override val keyValue: Boolean, file: String, res
     val vbe = virtualHostsBackends(gateway)
     val vfe = virtualHostsFrontends(vbe, gateway)
 
-    HaProxy(fe, be, vfe, vbe, haProxyConfig)
+    HaProxy(fe, be, vfe, vbe)
   }
 
   private def frontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {
@@ -176,14 +162,18 @@ class HaProxyGatewayMarshaller(override val keyValue: Boolean, file: String, res
               Server(
                 name = GatewayLookup.name(internal),
                 lookup = GatewayLookup.lookup(internal),
-                url = s"${internal.host.getOrElse(haProxyConfig.ip)}:${internal.port}",
+                url = None,
+                host = internal.host,
+                port = Option(internal.port),
                 weight = 100
               )
             case external: ExternalRouteTarget ⇒
               Server(
                 name = GatewayLookup.name(external),
                 lookup = GatewayLookup.lookup(external),
-                url = external.url,
+                url = Option(external.url),
+                host = None,
+                port = None,
                 weight = 100
               )
           },
@@ -220,7 +210,7 @@ class HaProxyGatewayMarshaller(override val keyValue: Boolean, file: String, res
 
   private def mode(implicit gateway: Gateway) = if (gateway.port.`type` == Port.Type.Http) Mode.http else Mode.tcp
 
-  private def unixSocket(id: String)(implicit gateway: Gateway) = s"$socketPath/$id.sock"
+  private def unixSocket(id: String)(implicit gateway: Gateway) = s"$id.sock"
 
   private def virtualHostsFrontends(implicit backends: List[Backend], gateway: Gateway): List[Frontend] = {
     gateway.virtualHosts.map { virtualHost ⇒
@@ -253,7 +243,9 @@ class HaProxyGatewayMarshaller(override val keyValue: Boolean, file: String, res
         servers = Server(
           name = GatewayLookup.name(gateway),
           lookup = GatewayLookup.lookup(gateway),
-          url = s"${haProxyConfig.ip}:${gateway.port.number}",
+          url = None,
+          host = None,
+          port = Option(gateway.port.number),
           weight = 100
         ) :: Nil,
         rewrites = Nil,
