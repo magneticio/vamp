@@ -35,10 +35,18 @@ object ObjectUtil {
         .toMap
   }
 
-  def java: Any ⇒ Any = {
-    case l: List[_]   ⇒ l.map(java).asJava
-    case m: Map[_, _] ⇒ m.map({ case (k, v) ⇒ k → java(v) }).asJava
-    case Some(s)      ⇒ Option(java(s))
+  def javaObject: Any ⇒ Any = {
+    case l: List[_]   ⇒ l.map(javaObject).asJava
+    case m: Map[_, _] ⇒ m.map({ case (k, v) ⇒ k → javaObject(v) }).asJava
+    case Some(s)      ⇒ Option(javaObject(s))
     case any          ⇒ any
+  }
+
+  def scalaAnyRef: Any ⇒ AnyRef = {
+    case value: java.util.Map[_, _]   ⇒ value.entrySet().asScala.map(entry ⇒ entry.getKey.toString → scalaAnyRef(entry.getValue)).toMap
+    case value: java.util.List[_]     ⇒ value.asScala.map(scalaAnyRef).toList
+    case value: java.lang.Iterable[_] ⇒ value.asScala.map(scalaAnyRef).toList
+    case value: java.util.Optional[_] ⇒ if (value.isPresent) Option(value.get) else None
+    case value                        ⇒ value.asInstanceOf[AnyRef]
   }
 }

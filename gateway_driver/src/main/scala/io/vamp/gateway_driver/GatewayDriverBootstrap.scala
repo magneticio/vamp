@@ -3,27 +3,27 @@ package io.vamp.gateway_driver
 import akka.actor.{ ActorRef, ActorSystem }
 import io.vamp.common.akka.{ ActorBootstrap, IoC }
 import io.vamp.common.config.Config
-import io.vamp.gateway_driver.haproxy.{ HaProxyConfig, HaProxyGatewayMarshaller, JTwigHaProxyGatewayMarshaller }
+import io.vamp.common.spi.ClassProvider
+
+import scala.language.postfixOps
 
 class GatewayDriverBootstrap extends ActorBootstrap {
 
-  val synchronizationInitialDelay = Config.duration("vamp.operation.synchronization.initial-delay")
-
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
 
-    HaProxyGatewayMarshaller.version() match {
-      case version if version != "1.7" && version != "1.6" && version != "1.5" ⇒
-        throw new RuntimeException(s"unsupported HAProxy configuration version: $version")
-      case _ ⇒
-    }
+    val marshallers: Map[String, GatewayMarshaller] = Config.list("vamp.gateway-driver.marshallers")().collect {
+      case config: Map[_, _] ⇒
+        val name = config.asInstanceOf[Map[String, String]]("name").trim
+        val clazz = config.asInstanceOf[Map[String, String]].get("type").flatMap(ClassProvider.find[GatewayMarshaller]).get
+        val template = config.asInstanceOf[Map[String, Map[String, AnyRef]]].getOrElse("template", Map())
+        val keyValue = template.get("key-value").forall(_.asInstanceOf[Boolean])
+        val file = template.get("file").map(_.asInstanceOf[String].trim).getOrElse("")
+        val resource = template.get("resource").map(_.asInstanceOf[String].trim).getOrElse("")
+        val parameters = config.asInstanceOf[Map[String, Map[String, AnyRef]]]("parameters")
+        val constructor = clazz.getConstructor(classOf[Boolean], classOf[String], classOf[String], classOf[Map[_, _]])
+        name → constructor.newInstance(keyValue.asInstanceOf[AnyRef], file, resource, parameters)
+    } toMap
 
-    val actors = List(
-      IoC.createActor[GatewayDriverActor](new JTwigHaProxyGatewayMarshaller() {
-        override val templateFile: String = Config.string("vamp.gateway-driver.haproxy.template")()
-        override def haProxyConfig = HaProxyConfig(Config.string("vamp.gateway-driver.haproxy.ip")())
-      })
-    )
-
-    actors
+    IoC.createActor[GatewayDriverActor](marshallers) :: Nil
   }
 }

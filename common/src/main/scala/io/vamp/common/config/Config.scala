@@ -3,7 +3,7 @@ package io.vamp.common.config
 import akka.util.Timeout
 import com.typesafe.config.ConfigException.Missing
 import com.typesafe.config.{ ConfigFactory, ConfigValueFactory, Config ⇒ TypesafeConfig }
-import io.vamp.common.util.YamlUtil
+import io.vamp.common.util.{ ObjectUtil, YamlUtil }
 import org.json4s.native.Serialization.writePretty
 import org.json4s.{ DefaultFormats, Extraction, Formats }
 
@@ -100,9 +100,13 @@ object Config {
 
   def has(path: String): () ⇒ Boolean = () ⇒ values.get(Type.applied).exists(_.hasPath(path))
 
+  def list(path: String): () ⇒ List[AnyRef] = get(path, { config ⇒
+    config.getList(path).unwrapped.asScala.map(ObjectUtil.scalaAnyRef).toList
+  })
+
   def entries(path: String = ""): () ⇒ Map[String, AnyRef] = get(path, { config ⇒
     val cfg = if (path.nonEmpty) config.getConfig(path) else config
-    cfg.entrySet.asScala.map(entry ⇒ entry.getKey → cfg.getAnyRef(entry.getKey)).toMap
+    cfg.entrySet.asScala.map { entry ⇒ entry.getKey → ObjectUtil.scalaAnyRef(cfg.getAnyRef(entry.getKey)) }.toMap
   })
 
   def export(`type`: Config.Type.Value, flatten: Boolean = true, filter: String ⇒ Boolean = { _ ⇒ true }): Map[String, Any] = {
