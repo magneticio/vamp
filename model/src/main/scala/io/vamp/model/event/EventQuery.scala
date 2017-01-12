@@ -3,7 +3,7 @@ package io.vamp.model.event
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
-case class EventQuery(tags: Set[String], timestamp: Option[TimeRange], aggregator: Option[Aggregator] = None)
+case class EventQuery(tags: Set[String], `type`: Option[String], timestamp: Option[TimeRange], aggregator: Option[Aggregator] = None)
 
 case class TimeRange(lt: Option[String], lte: Option[String], gt: Option[String], gte: Option[String])
 

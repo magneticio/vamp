@@ -86,7 +86,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
 
   private def querySlaEvents(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime, to: OffsetDateTime): Future[Stream[Future[List[SlaEvent]]]] = {
     implicit val timeout = PulseActor.timeout()
-    val eventQuery = EventQuery(SlaEvent.slaTags(deployment, cluster), Some(TimeRange(Some(from), Some(to), includeLower = false, includeUpper = true)))
+    val eventQuery = EventQuery(SlaEvent.slaTags(deployment, cluster), None, Some(TimeRange(Some(from), Some(to), includeLower = false, includeUpper = true)))
 
     collectEach[Event, SlaEvent](allEvents(eventQuery), {
       case event if Escalate.tags.forall(event.tags.contains)   ⇒ Escalate(deployment, cluster, event.timestamp)

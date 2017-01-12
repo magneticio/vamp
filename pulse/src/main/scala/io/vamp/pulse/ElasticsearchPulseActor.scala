@@ -49,19 +49,19 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with PulseStats wi
 
   def receive = {
 
-    case InfoRequest                             ⇒ reply(info)
+    case InfoRequest ⇒ reply(info)
 
-    case StatsRequest                            ⇒ reply(stats)
+    case StatsRequest ⇒ reply(stats)
 
-    case Publish(event, publishEventValue)       ⇒ reply((validateEvent andThen percolate(publishEventValue) andThen publish(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
+    case Publish(event, publishEventValue) ⇒ reply((validateEvent andThen percolate(publishEventValue) andThen publish(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
 
-    case Query(envelope)                         ⇒ reply((validateEventQuery andThen eventQuery(envelope.page, envelope.perPage))(envelope.request), classOf[EventQueryError])
+    case Query(envelope) ⇒ reply((validateEventQuery andThen eventQuery(envelope.page, envelope.perPage))(envelope.request), classOf[EventQueryError])
 
-    case RegisterPercolator(name, tags, message) ⇒ registerPercolator(name, tags, message)
+    case RegisterPercolator(name, tags, kind, message) ⇒ registerPercolator(name, tags, kind, message)
 
-    case UnregisterPercolator(name)              ⇒ unregisterPercolator(name)
+    case UnregisterPercolator(name) ⇒ unregisterPercolator(name)
 
-    case any                                     ⇒ unsupported(UnsupportedPulseRequest(any))
+    case any ⇒ unsupported(UnsupportedPulseRequest(any))
   }
 
   private def info = es.health map { health ⇒ Map[String, Any]("type" → "elasticsearch", "elasticsearch" → health) }
@@ -126,12 +126,16 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with PulseStats wi
         Map(
           "query" → Map("match_all" → Map()),
           "filter" → Map("bool" →
-            Map("must" → List(constructTagQuery(eventQuery.tags), constructTimeRange(eventQuery.timestamp)).filter(_.isDefined).map(_.get)))
+            Map("must" → List(constructTagQuery(eventQuery.tags), constructTypeQuery(eventQuery.`type`), constructTimeRange(eventQuery.timestamp)).filter(_.isDefined).map(_.get)))
         )))
   }
 
   private def constructTagQuery(tags: Set[String]): Option[List[Map[String, Any]]] = {
     if (tags.nonEmpty) Option((for (tag ← tags) yield Map("term" → Map("tags" → tag))).toList) else None
+  }
+
+  private def constructTypeQuery(`type`: Option[String]): Option[Map[String, Any]] = {
+    if (`type`.nonEmpty) Option(Map("term" → Map("type" → `type`.get))) else None
   }
 
   private def constructTimeRange(timeRange: Option[TimeRange]): Option[Map[Any, Any]] = timeRange match {

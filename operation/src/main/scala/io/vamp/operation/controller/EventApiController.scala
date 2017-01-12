@@ -29,6 +29,8 @@ trait EventApiController {
 
   private val tagParameter = "tag"
 
+  private val typeParameter = "type"
+
   def source(parameters: Map[String, List[String]], request: String, keepAlivePeriod: FiniteDuration) = {
     Source.actorPublisher[ServerSentEvent](Props(new ActorPublisher[ServerSentEvent] {
       def receive = {
@@ -48,11 +50,9 @@ trait EventApiController {
 
   def query(parameters: Map[String, List[String]], request: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = {
 
-    val query = if (request.isEmpty) {
-      EventQuery(parameters.getOrElse(tagParameter, Nil).toSet, None)
-    }
-    else {
-      EventQueryReader.read(request)
+    val query = {
+      if (request.isEmpty) EventQuery(parameters.getOrElse(tagParameter, Nil).toSet, parameters.get(typeParameter).map(_.head), None)
+      else EventQueryReader.read(request)
     }
 
     actorFor[PulseActor] ? Query(EventRequestEnvelope(query, page, perPage))
@@ -60,9 +60,15 @@ trait EventApiController {
 
   def openStream(to: ActorRef, parameters: Map[String, List[String]], request: String, message: Any = None) = {
 
-    val tags = if (request.isEmpty) parameters.getOrElse(tagParameter, Nil).toSet else EventQueryReader.read(request).tags
+    val (tags, kind) = {
+      if (request.isEmpty) parameters.getOrElse(tagParameter, Nil).toSet → parameters.get(typeParameter).map(_.head)
+      else {
+        val query = EventQueryReader.read(request)
+        query.tags → query.`type`
+      }
+    }
 
-    actorFor[PulseActor].tell(RegisterPercolator(percolator(to), tags, message), to)
+    actorFor[PulseActor].tell(RegisterPercolator(percolator(to), tags, kind, message), to)
   }
 
   def closeStream(to: ActorRef) = actorFor[PulseActor].tell(UnregisterPercolator(percolator(to)), to)
@@ -75,9 +81,9 @@ trait EventValue {
 
   implicit def timeout: Timeout
 
-  def last(tags: Set[String], window: FiniteDuration): Future[Option[AnyRef]] = {
+  def last(tags: Set[String], window: FiniteDuration, `type`: Option[String] = None): Future[Option[AnyRef]] = {
 
-    val eventQuery = EventQuery(tags, Option(timeRange(window)), None)
+    val eventQuery = EventQuery(tags, `type`, Option(timeRange(window)), None)
 
     actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
       case EventResponseEnvelope(Event(_, value, _, _) :: tail, _, _, _) ⇒ Option(value)

@@ -62,6 +62,7 @@ class EventReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   "EventQueryReader" should "read the query" in {
     EventQueryReader.read(res("event/query1.yml")) should have(
       'tags(Set("server", "service")),
+      'type(None),
       'timestamp(Some(TimeRange(None, None, Some("now() - 10m"), None))),
       'aggregator(Some(Aggregator(Aggregator.average, Some("response.time"))))
     )
@@ -85,5 +86,14 @@ class EventReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[UnsupportedAggregatorError]({
       EventQueryReader.read(res("event/query4.yml"))
     })
+  }
+
+  it should "read the query type" in {
+    EventQueryReader.read(res("event/query5.yml")) should have(
+      'tags(Set("server", "service")),
+      'type(Option("router")),
+      'timestamp(None),
+      'aggregator(None)
+    )
   }
 }

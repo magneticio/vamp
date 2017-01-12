@@ -30,7 +30,7 @@ trait PulseStats {
   }
 
   private def count(tags: Set[String]): Future[Long] = {
-    countEvents(EventQuery(tags, None)).map {
+    countEvents(EventQuery(tags, None, None)).map {
       case LongValueAggregationResult(value) ⇒ value
       case _                                 ⇒ 0
     }

@@ -101,7 +101,10 @@ class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) 
   }
 
   private def getTemplate(`type`: String, name: String): Future[String] = {
-    get(templatePath(`type`, name)).map { content ⇒ content.orElse(marshallers.get(name).map(_.template)).getOrElse("") }
+    get(templatePath(`type`, name)).map {
+      case Some(content) if content.trim.nonEmpty ⇒ content
+      case _                                      ⇒ marshallers.get(name).map(_.template).getOrElse("")
+    }
   }
 
   private def setTemplate(`type`: String, name: String, template: String) = {

@@ -116,7 +116,7 @@ trait SlaPulse {
 
         eventCount(tags, from, to, -1) flatMap {
           case count if count >= 0 ⇒
-            val eventQuery = EventQuery(tags, Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average, Option("metrics"))))
+            val eventQuery = EventQuery(tags, None, Some(TimeRange(Some(from), Some(to), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.average, Option("metrics"))))
             actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
               case DoubleValueAggregationResult(value) ⇒ Some(value)
               case other                               ⇒ log.error(other.toString); None
@@ -129,7 +129,7 @@ trait SlaPulse {
   }
 
   def eventCount(tags: Set[String], from: OffsetDateTime, to: OffsetDateTime, onError: Long): Future[Long] = {
-    val eventQuery = EventQuery(tags, Some(TimeRange(Some(from), Some(OffsetDateTime.now()), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.count)))
+    val eventQuery = EventQuery(tags, None, Some(TimeRange(Some(from), Some(OffsetDateTime.now()), includeLower = true, includeUpper = true)), Some(Aggregator(Aggregator.count)))
     actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
       case LongValueAggregationResult(count) ⇒ count
       case other                             ⇒ onError

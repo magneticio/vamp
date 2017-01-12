@@ -46,6 +46,7 @@ object EventQueryReader extends YamlReader[EventQuery] with EventValidator {
 
   override protected def parse(implicit source: YamlSourceReader): EventQuery = {
     val tags = <<![List[String]]("tags").toSet
+    val `type` = <<?[String]("type")
 
     val timestamp = <<?[Any]("timestamp").flatMap { _ ⇒
       Some(TimeRange(<<?[String]("timestamp" :: "lt"), <<?[String]("timestamp" :: "lte"), <<?[String]("timestamp" :: "gt"), <<?[String]("timestamp" :: "gte")))
@@ -61,7 +62,7 @@ object EventQueryReader extends YamlReader[EventQuery] with EventValidator {
         }
     }
 
-    EventQuery(tags, timestamp, aggregator)
+    EventQuery(tags, `type`, timestamp, aggregator)
   }
 
   override def validate(eventQuery: EventQuery): EventQuery = validateEventQuery(eventQuery)
