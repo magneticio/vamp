@@ -28,16 +28,18 @@ object LogPublisherHub {
 
     if (!exists) {
       unsubscribe(to)
-      logger.info(s"Starting log publisher for actor: $to")
-      val publisher = LogPublisher(to, appenderLogger, appenderLevel, encoder)
-      publisher.start()
-      sessions.put(to.toString, publisher)
+      if (appenderLevel != Level.OFF) {
+        logger.info(s"Starting log publisher [${appenderLevel.levelStr}] '${appenderLogger.getName}': $to")
+        val publisher = LogPublisher(to, appenderLogger, appenderLevel, encoder)
+        publisher.start()
+        sessions.put(to.toString, publisher)
+      }
     }
   }
 
   def unsubscribe(to: ActorRef): Unit = {
     sessions.remove(to.toString).foreach { publisher ⇒
-      logger.info(s"Stopping log publisher for actor: $to")
+      logger.info(s"Stopping log publisher: $to")
       publisher.stop()
     }
   }
