@@ -26,26 +26,27 @@ trait LogApiController {
   def sourceLog(level: String, logger: Option[String], keepAlivePeriod: FiniteDuration) = {
     Source.actorPublisher[ServerSentEvent](Props(new ActorPublisher[ServerSentEvent] {
       def receive = {
-        case Request(_)                              ⇒ openLogStream(self, level, logger)
+        case Request(_) ⇒ openLogStream(self, level, logger, { event ⇒
+          ServerSentEvent(write(encode(event))(SerializationFormat(OffsetDateTimeSerializer)), eventType)
+        })
         case Cancel                                  ⇒ closeLogStream(self)
-        case event: ILoggingEvent if totalDemand > 0 ⇒ onNext(encoder(event))
+        case sse: ServerSentEvent if totalDemand > 0 ⇒ onNext(sse)
         case _                                       ⇒
       }
 
     })).keepAlive(keepAlivePeriod, () ⇒ ServerSentEvent.heartbeat)
   }
 
-  private def openLogStream(to: ActorRef, level: String, logger: Option[String]) = LogPublisherHub.subscribe(to, level, logger)
-
-  private def closeLogStream(to: ActorRef) = LogPublisherHub.unsubscribe(to)
-
-  private def encoder(loggingEvent: ILoggingEvent) = {
-    val message = LogEvent(
-      loggingEvent.getLoggerName,
-      loggingEvent.getLevel.toString,
-      loggingEvent.getFormattedMessage,
-      OffsetDateTime.ofInstant(new Date(loggingEvent.getTimeStamp).toInstant, ZoneId.of("UTC"))
-    )
-    ServerSentEvent(write(message)(SerializationFormat(OffsetDateTimeSerializer)), eventType)
+  def openLogStream(to: ActorRef, level: String, logger: Option[String], encoder: (ILoggingEvent) ⇒ AnyRef) = {
+    LogPublisherHub.subscribe(to, level, logger, encoder)
   }
+
+  def closeLogStream(to: ActorRef) = LogPublisherHub.unsubscribe(to)
+
+  def encode(loggingEvent: ILoggingEvent) = LogEvent(
+    loggingEvent.getLoggerName,
+    loggingEvent.getLevel.toString,
+    loggingEvent.getFormattedMessage,
+    OffsetDateTime.ofInstant(new Date(loggingEvent.getTimeStamp).toInstant, ZoneId.of("UTC"))
+  )
 }

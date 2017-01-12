@@ -18,18 +18,18 @@ object LogPublisherHub {
 
   private val sessions: mutable.Map[String, LogPublisher] = new mutable.HashMap()
 
-  def subscribe(to: ActorRef, level: String, loggerName: Option[String])(implicit actorSystem: ActorSystem): Unit = {
+  def subscribe(to: ActorRef, level: String, loggerName: Option[String], encoder: (ILoggingEvent) ⇒ AnyRef)(implicit actorSystem: ActorSystem): Unit = {
     val appenderLevel = Level.toLevel(level, Level.INFO)
     val appenderLogger = loggerName.map(context.getLogger).getOrElse(rootLogger)
 
     val exists = sessions.get(to.toString).exists { publisher ⇒
-      publisher.level == appenderLevel && publisher.logger.getName != appenderLogger.getName
+      publisher.level == appenderLevel && publisher.logger.getName == appenderLogger.getName
     }
 
     if (!exists) {
       unsubscribe(to)
       logger.info(s"Starting log publisher for actor: $to")
-      val publisher = LogPublisher(to, appenderLogger, appenderLevel)
+      val publisher = LogPublisher(to, appenderLogger, appenderLevel, encoder)
       publisher.start()
       sessions.put(to.toString, publisher)
     }
@@ -43,13 +43,13 @@ object LogPublisherHub {
   }
 }
 
-private case class LogPublisher(to: ActorRef, logger: LogbackLogger, level: Level)(implicit actorSystem: ActorSystem) {
+private case class LogPublisher(to: ActorRef, logger: LogbackLogger, level: Level, encoder: (ILoggingEvent) ⇒ AnyRef)(implicit actorSystem: ActorSystem) {
 
   private val filter = new ThresholdFilter()
   filter.setLevel(level.levelStr)
 
   private val appender = new AppenderBase[ILoggingEvent] {
-    override def append(loggingEvent: ILoggingEvent) = to ! loggingEvent
+    override def append(loggingEvent: ILoggingEvent) = to ! encoder(loggingEvent)
   }
 
   appender.addFilter(filter)

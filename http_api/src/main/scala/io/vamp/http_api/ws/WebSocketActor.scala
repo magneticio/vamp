@@ -10,7 +10,7 @@ import akka.http.scaladsl.model.{ ContentType, ContentTypes, HttpCharsets, HttpM
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.http_api.notification.HttpApiNotificationProvider
-import io.vamp.operation.controller.EventApiController
+import io.vamp.operation.controller.{ EventApiController, LogApiController }
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -27,7 +27,7 @@ object WebSocketActor {
 
 }
 
-class WebSocketActor extends EventApiController with CommonSupportForActors with HttpApiNotificationProvider {
+class WebSocketActor extends EventApiController with LogApiController with CommonSupportForActors with HttpApiNotificationProvider {
 
   import WebSocketActor._
 
@@ -70,22 +70,24 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
 
   private def handle(id: UUID, request: WebSocketRequest, apiHandler: HttpRequest ⇒ Future[HttpResponse]) = sessions.get(id).foreach { receiver ⇒
 
-    if (request.eventStream) {
-
+    if (request.logStream) {
+      val params = request.parameters.filter {
+        case (_, _: String) ⇒ true
+        case _              ⇒ false
+      }.asInstanceOf[Map[String, String]]
+      val message = WebSocketResponse(request.api, request.path, request.action, Status.Ok, request.accept, request.transaction, None, Map())
+      openLogStream(receiver, params.getOrElse("level", ""), params.get("logger"), { event ⇒ message.copy(data = Option(encode(event))) })
+    }
+    else if (request.eventStream) {
       val params = request.parameters.filter {
         case (_, v: List[_]) ⇒ v.forall(_.isInstanceOf[String])
         case _               ⇒ false
       }.asInstanceOf[Map[String, List[String]]]
-
       val message = WebSocketResponse(request.api, request.path, request.action, Status.Ok, request.accept, request.transaction, None, Map())
-
       openEventStream(receiver, params, request.data.getOrElse(""), message)
-
     }
     else {
-
       val httpRequest = new HttpRequest(toMethod(request), toUri(request), toHeaders(request), toEntity(request), HttpProtocols.`HTTP/1.1`)
-
       apiHandler(httpRequest).map {
         case response: HttpResponse ⇒ toResponse(request, response).foreach(receiver ! _)
         case _                      ⇒
