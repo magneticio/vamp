@@ -20,7 +20,7 @@ trait EventApiRoute extends EventApiController with EventStreamMarshalling {
     pathEndOrSingleSlash {
       post {
         entity(as[String]) { request ⇒
-          onSuccess(publish(request)) { result ⇒
+          onSuccess(publishEvent(request)) { result ⇒
             respondWith(Created, result)
           }
         }
@@ -28,7 +28,7 @@ trait EventApiRoute extends EventApiController with EventStreamMarshalling {
         pageAndPerPage() { (page, perPage) ⇒
           parameterMultiMap { parameters ⇒
             entity(as[String]) { request ⇒
-              onSuccess(query(parameters, request)(page, perPage)) { response ⇒
+              onSuccess(queryEvents(parameters, request)(page, perPage)) { response ⇒
                 respondWith(OK, response)
               }
             }
@@ -43,7 +43,7 @@ trait EventApiRoute extends EventApiController with EventStreamMarshalling {
       get {
         parameterMultiMap { parameters ⇒
           entity(as[String]) { request ⇒
-            complete(source(parameters, request, sseKeepAliveTimeout))
+            complete(sourceEvents(parameters, request, sseKeepAliveTimeout))
           }
         }
       }

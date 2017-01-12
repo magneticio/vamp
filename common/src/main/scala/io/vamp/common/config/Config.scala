@@ -128,8 +128,12 @@ object Config {
   }
 
   private def convert(config: TypesafeConfig): Map[String, AnyRef] = {
-    config.resolve().entrySet().asScala.map(entry ⇒ entry.getKey → entry.getValue.unwrapped).toMap
+    config.resolve().entrySet().asScala.map { entry ⇒
+      entry.getKey → ObjectUtil.scalaAnyRef(entry.getValue.unwrapped)
+    }.toMap
   }
 
-  private def convert(config: Map[String, AnyRef]): TypesafeConfig = ConfigFactory.parseMap(config.asJava)
+  private def convert(config: Map[String, AnyRef]): TypesafeConfig = {
+    ConfigFactory.parseMap(ObjectUtil.javaObject(config).asInstanceOf[java.util.Map[String, _]])
+  }
 }

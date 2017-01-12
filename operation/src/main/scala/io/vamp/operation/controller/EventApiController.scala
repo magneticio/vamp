@@ -31,11 +31,11 @@ trait EventApiController {
 
   private val typeParameter = "type"
 
-  def source(parameters: Map[String, List[String]], request: String, keepAlivePeriod: FiniteDuration) = {
+  def sourceEvents(parameters: Map[String, List[String]], request: String, keepAlivePeriod: FiniteDuration) = {
     Source.actorPublisher[ServerSentEvent](Props(new ActorPublisher[ServerSentEvent] {
       def receive = {
-        case Request(_)           ⇒ openStream(self, parameters, request)
-        case Cancel               ⇒ closeStream(self)
+        case Request(_)           ⇒ openEventStream(self, parameters, request)
+        case Cancel               ⇒ closeEventStream(self)
         case (None, event: Event) ⇒ if (totalDemand > 0) onNext(ServerSentEvent(write(event)(SerializationFormat(OffsetDateTimeSerializer)), event.`type`))
         case _                    ⇒
 
@@ -43,12 +43,12 @@ trait EventApiController {
     })).keepAlive(keepAlivePeriod, () ⇒ ServerSentEvent.heartbeat)
   }
 
-  def publish(request: String)(implicit timeout: Timeout) = {
+  def publishEvent(request: String)(implicit timeout: Timeout) = {
     val event = EventReader.read(request)
     actorFor[PulseActor] ? Publish(event)
   }
 
-  def query(parameters: Map[String, List[String]], request: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = {
+  def queryEvents(parameters: Map[String, List[String]], request: String)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[Any] = {
 
     val query = {
       if (request.isEmpty) EventQuery(parameters.getOrElse(tagParameter, Nil).toSet, parameters.get(typeParameter).map(_.head), None)
@@ -58,7 +58,7 @@ trait EventApiController {
     actorFor[PulseActor] ? Query(EventRequestEnvelope(query, page, perPage))
   }
 
-  def openStream(to: ActorRef, parameters: Map[String, List[String]], request: String, message: Any = None) = {
+  def openEventStream(to: ActorRef, parameters: Map[String, List[String]], request: String, message: Any = None) = {
 
     val (tags, kind) = {
       if (request.isEmpty) parameters.getOrElse(tagParameter, Nil).toSet → parameters.get(typeParameter).map(_.head)
@@ -71,7 +71,7 @@ trait EventApiController {
     actorFor[PulseActor].tell(RegisterPercolator(percolator(to), tags, kind, message), to)
   }
 
-  def closeStream(to: ActorRef) = actorFor[PulseActor].tell(UnregisterPercolator(percolator(to)), to)
+  def closeEventStream(to: ActorRef) = actorFor[PulseActor].tell(UnregisterPercolator(percolator(to)), to)
 
   private def percolator(channel: ActorRef) = s"stream://${channel.path.elements.mkString("/")}"
 }
@@ -86,8 +86,8 @@ trait EventValue {
     val eventQuery = EventQuery(tags, `type`, Option(timeRange(window)), None)
 
     actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(eventQuery, 1, 1)) map {
-      case EventResponseEnvelope(Event(_, value, _, _) :: tail, _, _, _) ⇒ Option(value)
-      case other ⇒ None
+      case EventResponseEnvelope(Event(_, value, _, _) :: _, _, _, _) ⇒ Option(value)
+      case _ ⇒ None
     }
   }
 

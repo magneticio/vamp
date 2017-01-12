@@ -57,7 +57,7 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
 
   private def sessionClosed(id: UUID) = {
     log.info(s"WebSocket session closed [$id]")
-    sessions.remove(id).foreach(closeStream)
+    sessions.remove(id).foreach(closeEventStream)
   }
 
   private def sessionRequest(apiHandler: HttpRequest ⇒ Future[HttpResponse], id: UUID, request: WebSocketMessage) = {
@@ -79,7 +79,7 @@ class WebSocketActor extends EventApiController with CommonSupportForActors with
 
       val message = WebSocketResponse(request.api, request.path, request.action, Status.Ok, request.accept, request.transaction, None, Map())
 
-      openStream(receiver, params, request.data.getOrElse(""), message)
+      openEventStream(receiver, params, request.data.getOrElse(""), message)
 
     }
     else {

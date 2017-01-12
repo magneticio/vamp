@@ -38,6 +38,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     with HealthRoute
     with JavascriptBreedRoute
     with SystemRoute
+    with LogApiRoute
     with ArtifactPaginationSupport
     with ExecutionContextProvider
     with ActorSystemProvider
@@ -135,7 +136,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     cors() {
       pathPrefix("api" / Artifact.version) {
         encodeResponse {
-          sseRoutes ~ accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
+          sseRoutes ~ sseLogRoutes ~ accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
             restfulRoutes
           }
         }
