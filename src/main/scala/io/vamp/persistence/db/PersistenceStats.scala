@@ -48,7 +48,7 @@ trait PersistenceStats extends ArtifactPaginationSupport {
   private def artifact(`type`: Class[_ <: Artifact]): Option[Future[Map[String, _]]] = {
     PersistenceArchive.tagFor(`type`).map { tag ⇒
       def count(archiveTag: String): Future[Long] = {
-        (actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(EventQuery(Set(tag, archiveTag), None, Some(Aggregator(Aggregator.count))), 1, 1))) map {
+        (actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(EventQuery(Set(tag, archiveTag), None, None, Some(Aggregator(Aggregator.count))), 1, 1))) map {
           case LongValueAggregationResult(count) ⇒ count
           case _                                 ⇒ 0
         }
