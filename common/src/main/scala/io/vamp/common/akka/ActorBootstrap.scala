@@ -19,15 +19,9 @@ trait ActorBootstrap {
 
   def createActors(implicit actorSystem: ActorSystem): List[ActorRef]
 
-  def run(implicit actorSystem: ActorSystem): Unit = {
-    actors = createActors(actorSystem)
-  }
+  def run(implicit actorSystem: ActorSystem): Unit = actors = createActors(actorSystem)
 
-  def shutdown(implicit actorSystem: ActorSystem): Future[_] = Future.successful {
-    actors.reverse.foreach {
-      _ ! PoisonPill
-    }
-  }
+  def shutdown(implicit actorSystem: ActorSystem): Future[Unit] = Future.successful(actors.reverse.foreach(_ ! PoisonPill))
 
   def alias[T: ClassTag](name: String, default: String ⇒ ActorRef)(implicit actorSystem: ActorSystem): ActorRef = {
     ClassProvider.find[T](name).map { clazz ⇒

@@ -62,13 +62,14 @@ lazy val bintraySetting = Seq(
 
 // Libraries
 
-val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.14" ::
-  "com.typesafe.akka" %% "akka-agent" % "2.4.14" ::
-  "com.typesafe.akka" %% "akka-http" % "10.0.0" ::
-  "com.typesafe.akka" %% "akka-parsing" % "10.0.0" ::
-  ("de.heikoseeberger" %% "akka-sse" % "2.0.0-RC3" excludeAll ExclusionRule(organization = "com.typesafe.akka")) ::
+val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.16" ::
+  "com.typesafe.akka" %% "akka-agent" % "2.4.16" ::
+  "com.typesafe.akka" %% "akka-contrib" % "2.4.16" ::
+  "com.typesafe.akka" %% "akka-http" % "10.0.1" ::
+  "com.typesafe.akka" %% "akka-parsing" % "10.0.1" ::
+  ("de.heikoseeberger" %% "akka-sse" % "2.0.0" excludeAll ExclusionRule(organization = "com.typesafe.akka")) ::
   "ch.megard" %% "akka-http-cors" % "0.1.10" ::
-  ("com.typesafe.akka" %% "akka-slf4j" % "2.4.14" exclude("org.slf4j", "slf4j-api")) :: Nil
+  ("com.typesafe.akka" %% "akka-slf4j" % "2.4.16" exclude("org.slf4j", "slf4j-api")) :: Nil
 
 val docker = "com.spotify" % "docker-client" % "5.0.1" :: Nil
 

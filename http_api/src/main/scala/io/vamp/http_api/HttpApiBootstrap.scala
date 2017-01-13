@@ -22,22 +22,17 @@ class HttpApiBootstrap extends ActorBootstrap {
 
   def createActors(implicit actorSystem: ActorSystem) = IoC.createActor[WebSocketActor] :: Nil
 
-  override def run(implicit actorSystem: ActorSystem) = {
-
+  override def run(implicit actorSystem: ActorSystem): Unit = {
     super.run
 
     implicit lazy val materializer = ActorMaterializer()
-
     implicit lazy val executionContext = actorSystem.dispatcher
 
     logger.info(s"Binding: $interface:$port")
-
-    binding = Option {
-      Http().bindAndHandle(new HttpApiRoute().allRoutes, interface, port)
-    }
+    binding = Option(Http().bindAndHandle(new HttpApiRoute().allRoutes, interface, port))
   }
 
-  override def shutdown(implicit actorSystem: ActorSystem) = {
+  override def shutdown(implicit actorSystem: ActorSystem): Future[Unit] = {
     implicit val executionContext: ExecutionContext = actorSystem.dispatcher
     binding.map {
       _.flatMap { server ⇒

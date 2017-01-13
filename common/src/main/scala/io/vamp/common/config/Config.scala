@@ -111,13 +111,7 @@ object Config {
 
   def export(`type`: Config.Type.Value, flatten: Boolean = true, filter: String ⇒ Boolean = { _ ⇒ true }): Map[String, Any] = {
     val entries = convert(values.getOrElse(`type`, ConfigFactory.empty())).filter { case (key, _) ⇒ filter(key) }
-    if (flatten) entries
-    else {
-      implicit val formats: Formats = DefaultFormats
-      entries.map {
-        case (key, value) ⇒ key.split('.').foldRight[AnyRef](value)((op1, op2) ⇒ Map(op1 → op2))
-      }.foldLeft(Extraction.decompose(Map()))((op1, op2) ⇒ op1 merge Extraction.decompose(op2)).extract[Map[String, AnyRef]]
-    }
+    if (flatten) entries else expand(entries)
   }
 
   private def get[T](path: String, process: TypesafeConfig ⇒ T): () ⇒ T = { () ⇒
@@ -136,4 +130,10 @@ object Config {
   private def convert(config: Map[String, AnyRef]): TypesafeConfig = {
     ConfigFactory.parseMap(ObjectUtil.javaObject(config).asInstanceOf[java.util.Map[String, _]])
   }
+
+  private def expand(entries: Map[String, AnyRef]): Map[String, AnyRef] = entries.map {
+    case (key, value) ⇒ key.split('.').foldRight[AnyRef](value)((op1, op2) ⇒ Map(op1 → op2))
+  }.foldLeft(Extraction.decompose(Map())) {
+    (op1, op2) ⇒ op1 merge Extraction.decompose(op2)
+  }.extract[Map[String, AnyRef]]
 }

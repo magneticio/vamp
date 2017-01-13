@@ -36,8 +36,10 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
   }
 
   override def preStart() = {
-    if (Config.boolean("vamp.operation.reload-configuration")())
+    if (Config.boolean("vamp.operation.reload-configuration")()) {
+      log.info("Getting configuration update from key-value store")
       context.system.scheduler.scheduleOnce(Duration.Zero, self, Reload)
+    }
   }
 
   private def get(`type`: String, flatten: Boolean, key: String) = Future.successful {
@@ -52,8 +54,7 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
     if (validateOnly) Future.successful(config)
     else {
       IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set("configuration" :: Nil, Option(Config.marshall(config))) map { _ ⇒
-        Config.load(config)
-        reboot()
+        reload()
       }
     }
   }
@@ -64,11 +65,10 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
   private def reload() = {
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get("configuration" :: Nil) map {
       case Some(content: String) if content != Config.marshall(Config.export(Config.Type.dynamic)) ⇒
+        log.info("Reloading due to configuration change")
         Config.load(Config.unmarshall(content))
-        reboot()
+        actorSystem.actorSelection("/user/vamp") ! "reload"
       case _ ⇒
     }
   }
-
-  private def reboot() = actorSystem.actorSelection("/user/vamp") ! "reload"
 }
