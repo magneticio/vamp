@@ -11,8 +11,8 @@ trait Vamp extends App {
   }
 
   sys.addShutdownHook {
-    bootstrap.reverse.foreach(_.shutdown())
+    bootstrap.reverse.foreach(_.stop())
   }
 
-  bootstrap.foreach(_.run())
+  bootstrap.foreach(_.start())
 }

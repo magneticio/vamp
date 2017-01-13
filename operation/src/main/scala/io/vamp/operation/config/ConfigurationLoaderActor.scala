@@ -50,7 +50,12 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
   }
 
   private def set(input: String, validateOnly: Boolean): Future[_] = try {
-    val config: Map[String, Any] = if (input.trim.isEmpty) Map() else Config.unmarshall(input.trim)
+    val config = {
+      if (input.trim.isEmpty) Map[String, Any]() else Config.unmarshall(input.trim)
+    }.filterNot {
+      case (key, _) ⇒ key.startsWith("vamp.http-api.")
+    }
+
     if (validateOnly) Future.successful(config)
     else {
       IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set("configuration" :: Nil, Option(Config.marshall(config))) map { _ ⇒

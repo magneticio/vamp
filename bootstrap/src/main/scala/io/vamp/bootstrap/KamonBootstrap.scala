@@ -5,7 +5,7 @@ import kamon.Kamon
 
 class KamonBootstrap extends Bootstrap {
 
-  override def run() = Kamon.start()
+  override def start() = Kamon.start()
 
-  override def shutdown() = Kamon.shutdown()
+  override def stop() = Kamon.shutdown()
 }

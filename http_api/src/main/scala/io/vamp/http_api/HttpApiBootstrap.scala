@@ -4,17 +4,13 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.stream.ActorMaterializer
-import com.typesafe.scalalogging.Logger
 import io.vamp.common.akka.{ ActorBootstrap, IoC }
 import io.vamp.common.config.Config
 import io.vamp.http_api.ws.WebSocketActor
-import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.Future
 
 class HttpApiBootstrap extends ActorBootstrap {
-
-  private val logger = Logger(LoggerFactory.getLogger(getClass))
 
   private var binding: Option[Future[ServerBinding]] = None
 
@@ -22,8 +18,8 @@ class HttpApiBootstrap extends ActorBootstrap {
 
   def createActors(implicit actorSystem: ActorSystem) = IoC.createActor[WebSocketActor] :: Nil
 
-  override def run(implicit actorSystem: ActorSystem): Unit = {
-    super.run
+  override def start(implicit actorSystem: ActorSystem): Unit = {
+    super.start
 
     implicit lazy val materializer = ActorMaterializer()
     implicit lazy val executionContext = actorSystem.dispatcher
@@ -32,15 +28,17 @@ class HttpApiBootstrap extends ActorBootstrap {
     binding = Option(Http().bindAndHandle(new HttpApiRoute().allRoutes, interface, port))
   }
 
-  override def shutdown(implicit actorSystem: ActorSystem): Future[Unit] = {
-    implicit val executionContext: ExecutionContext = actorSystem.dispatcher
+  override def restart(implicit actorSystem: ActorSystem) = {}
+
+  override def stop(implicit actorSystem: ActorSystem): Future[Unit] = {
+    implicit val executionContext = actorSystem.dispatcher
     binding.map {
       _.flatMap { server ⇒
         logger.info(s"Unbinding: $interface:$port")
         server.unbind().flatMap {
           _ ⇒ Http().shutdownAllConnectionPools()
         }
-      }.flatMap { _ ⇒ super.shutdown }
-    } getOrElse super.shutdown
+      }.flatMap { _ ⇒ super.stop }
+    } getOrElse super.stop
   }
 }

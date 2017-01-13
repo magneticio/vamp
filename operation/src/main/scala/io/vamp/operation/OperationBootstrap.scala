@@ -64,7 +64,7 @@ class OperationBootstrap extends ActorBootstrap {
     actors
   }
 
-  override def shutdown(implicit actorSystem: ActorSystem) = {
+  override def stop(implicit actorSystem: ActorSystem) = {
 
     IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
     IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(0 seconds)
@@ -72,6 +72,6 @@ class OperationBootstrap extends ActorBootstrap {
     IoC.actorFor[SlaSchedulerActor] ! SchedulerActor.Period(0 seconds)
     IoC.actorFor[EscalationSchedulerActor] ! SchedulerActor.Period(0 seconds)
 
-    super.shutdown(actorSystem)
+    super.stop(actorSystem)
   }
 }

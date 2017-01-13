@@ -39,4 +39,6 @@ class LifterBootstrap extends ActorBootstrap {
 
     persistence ++ pulse ++ artifact
   }
+
+  override def restart(implicit actorSystem: ActorSystem): Unit = {}
 }

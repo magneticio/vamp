@@ -20,7 +20,7 @@ trait StatsController extends DataRetrieval with JmxVitalsProvider {
 
   implicit def timeout: Timeout
 
-  private val dataRetrievalTimeout = Config.timeout("vamp.stats.timeout")()
+  private val dataRetrievalTimeout = Config.timeout("vamp.stats.timeout")
 
   def stats: Future[StatsMessage] = {
 
@@ -28,7 +28,7 @@ trait StatsController extends DataRetrieval with JmxVitalsProvider {
       _.asInstanceOf[Class[Actor]]
     }
 
-    retrieve(actors, actor ⇒ actorFor(actor) ? StatsRequest, dataRetrievalTimeout) map { result ⇒
+    retrieve(actors, actor ⇒ actorFor(actor) ? StatsRequest, dataRetrievalTimeout()) map { result ⇒
       StatsMessage(
         jvmVitals(),
         result.data.get(classOf[KamonMetricsActor].asInstanceOf[Class[Actor]]),
