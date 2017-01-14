@@ -28,7 +28,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
   override def marshall(gateways: List[Gateway], template: String): String = marshall(convert(gateways), template)
 
   private[haproxy] def marshall(haProxy: HaProxy, template: String): String = {
-    val model = JtwigModel.newModel().`with`("haproxy", (unwrap andThen javaObject)(haProxy))
+    val model = JtwigModel.newModel().`with`("haproxy", (unwrap andThen asJava)(haProxy))
     JtwigTemplate.inlineTemplate(template).render(model)
   }
 
