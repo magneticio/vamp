@@ -1,5 +1,7 @@
 package io.vamp.common.util
 
+import org.json4s.{ Extraction, Formats }
+
 import scala.collection.JavaConverters._
 import scala.reflect.runtime.currentMirror
 import scala.reflect.runtime.universe._
@@ -35,18 +37,24 @@ object ObjectUtil {
         .toMap
   }
 
-  def javaObject: Any ⇒ Any = {
-    case l: List[_]   ⇒ l.map(javaObject).asJava
-    case m: Map[_, _] ⇒ m.map({ case (k, v) ⇒ k → javaObject(v) }).asJava
-    case Some(s)      ⇒ Option(javaObject(s))
+  def asJava: Any ⇒ Any = {
+    case l: List[_]   ⇒ l.map(asJava).asJava
+    case m: Map[_, _] ⇒ m.map({ case (k, v) ⇒ k → asJava(v) }).asJava
+    case Some(s)      ⇒ Option(asJava(s))
     case any          ⇒ any
   }
 
-  def scalaAnyRef: Any ⇒ AnyRef = {
-    case value: java.util.Map[_, _]   ⇒ value.entrySet().asScala.map(entry ⇒ entry.getKey.toString → scalaAnyRef(entry.getValue)).toMap
-    case value: java.util.List[_]     ⇒ value.asScala.map(scalaAnyRef).toList
-    case value: java.lang.Iterable[_] ⇒ value.asScala.map(scalaAnyRef).toList
-    case value: java.util.Optional[_] ⇒ if (value.isPresent) Option(value.get) else None
+  def asScala: Any ⇒ AnyRef = {
+    case value: java.util.Map[_, _]   ⇒ value.asScala.map({ case (k, v) ⇒ k → asScala(v) }).toMap
+    case value: java.util.List[_]     ⇒ value.asScala.map(asScala).toList
+    case value: java.lang.Iterable[_] ⇒ value.asScala.map(asScala).toList
+    case value: java.util.Optional[_] ⇒ if (value.isPresent) Option(asScala(value.get)) else None
     case value                        ⇒ value.asInstanceOf[AnyRef]
+  }
+
+  def merge(maps: Map[String, Any]*)(implicit formats: Formats): Map[String, AnyRef] = {
+    maps.tail.foldLeft(Extraction.decompose(maps.head)) {
+      (op1, op2) ⇒ op1 merge Extraction.decompose(op2)
+    }.extract[Map[String, AnyRef]]
   }
 }

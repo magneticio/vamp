@@ -55,12 +55,9 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
     }.filterNot {
       case (key, _) ⇒ key.startsWith("vamp.http-api.")
     }
-
     if (validateOnly) Future.successful(config)
-    else {
-      IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set("configuration" :: Nil, Option(Config.marshall(config))) map { _ ⇒
-        reload()
-      }
+    else IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set("configuration" :: Nil, if (config.isEmpty) None else Option(Config.marshall(config))) map { _ ⇒
+      reload()
     }
   }
   catch {
@@ -68,11 +65,14 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
   }
 
   private def reload() = {
+    def reload(config: Map[String, Any]) = {
+      log.info("Reloading due to configuration change")
+      Config.load(config)
+      actorSystem.actorSelection("/user/vamp") ! "reload"
+    }
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get("configuration" :: Nil) map {
-      case Some(content: String) if content != Config.marshall(Config.export(Config.Type.dynamic)) ⇒
-        log.info("Reloading due to configuration change")
-        Config.load(Config.unmarshall(content))
-        actorSystem.actorSelection("/user/vamp") ! "reload"
+      case Some(content: String) if content != Config.marshall(Config.export(Config.Type.dynamic)) ⇒ reload(Config.unmarshall(content))
+      case None if Config.export(Config.Type.dynamic).nonEmpty ⇒ reload(Map())
       case _ ⇒
     }
   }

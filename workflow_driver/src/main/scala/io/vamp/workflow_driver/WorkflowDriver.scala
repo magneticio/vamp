@@ -25,7 +25,7 @@ object WorkflowDeployable {
 
   private val deployables = s"${WorkflowDriver.config}.workflow.deployables"
 
-  private val javascriptDeployable = () ⇒ Deployable(Config.string(s"$deployables.application/javascript.type")(), Config.string(s"$deployables.application/javascript.definition")())
+  private val javascriptDeployable = () ⇒ Deployable(Config.string(s"$deployables.application.javascript.type")(), Config.string(s"$deployables.application.javascript.definition")())
 
   def matches(some: Deployable): Boolean = some.`type` == javascript
 

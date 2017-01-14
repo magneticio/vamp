@@ -4,7 +4,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigException.Missing
 import com.typesafe.config.{ ConfigFactory, ConfigValueFactory, Config ⇒ TypesafeConfig }
 import io.vamp.common.util.{ ObjectUtil, YamlUtil }
-import org.json4s.native.Serialization.writePretty
+import org.json4s.native.Serialization._
 import org.json4s.{ DefaultFormats, Extraction, Formats }
 
 import scala.collection.JavaConverters._
@@ -24,50 +24,35 @@ object Config {
   def marshall(config: Map[String, Any]): String = if (config.isEmpty) "" else writePretty(config)
 
   def unmarshall(input: String): Map[String, Any] = {
-
-    def flatten(any: Any): Any = any match {
-      case m: Map[_, _] ⇒
-        m.collect {
-          case (key, value) if key.isInstanceOf[String] ⇒
-            val keys = key.asInstanceOf[String].split('.').toList.reverse
-            keys.tail.foldLeft[Map[String, _]](Map(keys.head → flatten(value)))((op1, op2) ⇒ Map(op2 → op1))
-        }.foldLeft(Extraction.decompose(Map())) {
-          (op1, op2) ⇒ op1 merge Extraction.decompose(op2)
-        }.extract[Map[String, AnyRef]]
-
-      case l: List[_] ⇒ l.map(flatten)
-      case other      ⇒ other
-    }
-
-    val yaml = flatten(YamlUtil.convert(YamlUtil.yaml.load(input), preserveOrder = false))
-    val json = writePretty(yaml.asInstanceOf[AnyRef])
-    val config = ConfigFactory.parseString(json)
-
-    config.entrySet.asScala.map(entry ⇒ entry.getKey → config.getAnyRef(entry.getKey)).toMap
+    val yaml = Option(expand(YamlUtil.convert(YamlUtil.yaml.load(input), preserveOrder = false).asInstanceOf[Map[String, AnyRef]]))
+    val json = yaml.map(write(_)).getOrElse("")
+    val flatten = convert(ConfigFactory.parseString(json))
+    expand(flatten)
   }
 
-  def load(config: Map[String, Any] = Map()): Unit = {
+  def load(dynamic: Map[String, Any] = Map()): Unit = {
+    val dynamicExpanded = expand(dynamic.asInstanceOf[Map[String, AnyRef]])
+    val systemExpanded = expand(convert(ConfigFactory.systemProperties()))
 
-    val dynamic = config.map {
-      case (key, value) ⇒ key → ConfigValueFactory.fromAnyRef(value)
-    }
-
-    val system = convert(ConfigFactory.systemProperties())
     val application = convert(ConfigFactory.defaultApplication())
     val reference = convert(ConfigFactory.defaultReference())
 
-    val environment = (reference ++ application ++ system).flatMap {
-      case (key, _) ⇒ sys.env.get(key.replaceAll("[^\\p{L}\\d]", "_").toUpperCase).map { value ⇒
-        key → ConfigValueFactory.fromAnyRef(value.trim)
-      }
-    }
+    val environmentExpanded = expand((reference ++ application).flatMap {
+      case (key, _) ⇒
+        sys.env.get(key.replaceAll("[^\\p{L}\\d]", "_").toUpperCase).map { value ⇒
+          key → ConfigValueFactory.fromAnyRef(value.trim).unwrapped
+        }
+    })
 
-    values.put(Type.system, convert(system))
-    values.put(Type.dynamic, convert(dynamic))
-    values.put(Type.reference, convert(reference))
-    values.put(Type.application, convert(application))
-    values.put(Type.environment, convert(environment))
-    values.put(Type.applied, convert(reference ++ application ++ system ++ environment ++ dynamic))
+    val referenceExpanded = expand(reference)
+    val applicationExpanded = expand(application)
+
+    values.put(Type.system, convert(systemExpanded))
+    values.put(Type.dynamic, convert(dynamicExpanded))
+    values.put(Type.reference, convert(referenceExpanded))
+    values.put(Type.application, convert(applicationExpanded))
+    values.put(Type.environment, convert(environmentExpanded))
+    values.put(Type.applied, convert(ObjectUtil.merge(referenceExpanded, applicationExpanded, environmentExpanded, systemExpanded, dynamicExpanded)))
   }
 
   def int(path: String) = get(path, {
@@ -101,12 +86,12 @@ object Config {
   def has(path: String): () ⇒ Boolean = () ⇒ values.get(Type.applied).exists(_.hasPath(path))
 
   def list(path: String): () ⇒ List[AnyRef] = get(path, { config ⇒
-    config.getList(path).unwrapped.asScala.map(ObjectUtil.scalaAnyRef).toList
+    config.getList(path).unwrapped.asScala.map(ObjectUtil.asScala).toList
   })
 
   def entries(path: String = ""): () ⇒ Map[String, AnyRef] = get(path, { config ⇒
     val cfg = if (path.nonEmpty) config.getConfig(path) else config
-    cfg.entrySet.asScala.map { entry ⇒ entry.getKey → ObjectUtil.scalaAnyRef(cfg.getAnyRef(entry.getKey)) }.toMap
+    cfg.entrySet.asScala.map { entry ⇒ entry.getKey → ObjectUtil.asScala(cfg.getAnyRef(entry.getKey)) }.toMap
   })
 
   def export(`type`: Config.Type.Value, flatten: Boolean = true, filter: String ⇒ Boolean = { _ ⇒ true }): Map[String, Any] = {
@@ -123,17 +108,35 @@ object Config {
 
   private def convert(config: TypesafeConfig): Map[String, AnyRef] = {
     config.resolve().entrySet().asScala.map { entry ⇒
-      entry.getKey → ObjectUtil.scalaAnyRef(entry.getValue.unwrapped)
+      entry.getKey → ObjectUtil.asScala(entry.getValue.unwrapped)
     }.toMap
   }
 
-  private def convert(config: Map[String, AnyRef]): TypesafeConfig = {
-    ConfigFactory.parseMap(ObjectUtil.javaObject(config).asInstanceOf[java.util.Map[String, _]])
-  }
+  private def convert(config: Map[String, AnyRef]): TypesafeConfig = ConfigFactory.parseString(write(expand(config)))
 
-  private def expand(entries: Map[String, AnyRef]): Map[String, AnyRef] = entries.map {
-    case (key, value) ⇒ key.split('.').foldRight[AnyRef](value)((op1, op2) ⇒ Map(op1 → op2))
-  }.foldLeft(Extraction.decompose(Map())) {
-    (op1, op2) ⇒ op1 merge Extraction.decompose(op2)
-  }.extract[Map[String, AnyRef]]
+  private def expand[T](any: T): T = {
+    def split(key: Any, value: Any) = {
+      // this should be used if public com.typesafe.config.impl.PathParser.parsePath(key.toString)
+      key.toString.trim.split('.').foldRight[AnyRef](value.asInstanceOf[AnyRef])((op1, op2) ⇒ Map(op1 → op2))
+    }
+
+    any match {
+      case entries: Map[_, _] ⇒
+        entries.map {
+          case (key, value) ⇒
+            value match {
+              case v: Seq[_]            ⇒ split(key, v.map(expand))
+              case v: Iterator[_]       ⇒ split(key, v.map(expand))
+              case v: Map[_, _]         ⇒ split(key, expand(v.asInstanceOf[Map[String, AnyRef]]))
+              case v: mutable.Map[_, _] ⇒ split(key, expand(v.asInstanceOf[Map[String, AnyRef]]))
+              case other                ⇒ split(key, other)
+            }
+        }.foldLeft(Extraction.decompose(Map())) {
+          (op1, op2) ⇒ op1 merge Extraction.decompose(op2)
+        }.extract[Map[String, AnyRef]].asInstanceOf[T]
+
+      case list: List[_] ⇒ list.map(expand).asInstanceOf[T]
+      case other         ⇒ other
+    }
+  }
 }
