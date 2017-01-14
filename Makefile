@@ -23,6 +23,7 @@ all: default
 .PHONY: default
 default:
 	docker run \
+	  --name buildserver
 		--interactive \
 		--rm \
 		--volume $(CURDIR):/srv/src \
@@ -32,34 +33,26 @@ default:
 		--env BUILD_UID=$(shell id -u) \
 		--env BUILD_GID=$(shell id -g) \
 		$(CONTAINER) \
-			make test build
-
+			make clean test build
 
 .PHONY: test
 test:
 	sbt test
 
-
 .PHONY: build
 build:
-	sbt assembly
-
+	sbt package "project common" publish-local-katana \
+      "project persistence" publish-local-katana \
+      "project model" publish-local-katana \
+      "project operation" publish-local-katana \
+      "project bootstrap" publish-local-katana \
+      "project container_driver" publish-local-katana \
+      "project workflow_driver" publish-local-katana \
+      "project pulse" publish-local-katana \
+      "project http_api" publish-local-katana \
+      "project gateway_driver" publish-local-katana ; \
+  if [ "$$(git describe --tags)" = "$$(git describe --abbrev=0)" ]; then sbt publish-local; fi
 
 .PHONY: clean
 clean:
-	$(foreach dir, \
-		$(shell find $(CURDIR) -name target -type d), \
-			rm -rf $(dir))
-
-.PHONY: katana
-katana:
-	sbt "project common" publish-local-katana \
-	    "project persistence" publish-local-katana \
-	    "project model" publish-local-katana \
-	    "project operation" publish-local-katana \
-	    "project bootstrap" publish-local-katana \
-	    "project container_driver" publish-local-katana \
-	    "project workflow_driver" publish-local-katana \
-	    "project pulse" publish-local-katana \
-	    "project http_api" publish-local-katana \
-	    "project gateway_driver" publish-local-katana
+	sbt clean
