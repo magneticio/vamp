@@ -43,14 +43,14 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   private implicit val timeout = PersistenceActor.timeout()
 
   def receive: Receive = {
-    case SynchronizeAll       ⇒ synchronize()
-    case cs: ContainerService ⇒ synchronize(cs)
-    case _                    ⇒
+    case SynchronizeAll                        ⇒ synchronize()
+    case cs: ContainerService                  ⇒ synchronize(cs)
+    case (d: Deployment, cs: ContainerService) ⇒ synchronize(d, cs)
+    case _                                     ⇒
   }
 
   private def synchronize() = {
     forAll(allArtifacts[Deployment], { deployments ⇒
-
       val deploymentServices = deployments.map { deployment ⇒
         val services = deployment.clusters.flatMap { cluster ⇒
           cluster.services.collect {
@@ -59,27 +59,27 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
         }
         DeploymentServices(deployment, services)
       }
-
       actorFor[ContainerDriverActor] ! ContainerDriverActor.Get(deploymentServices)
-
     }: (List[Deployment]) ⇒ Unit)
   }
 
   private def synchronize(containerService: ContainerService): Unit = {
+    actorFor[PersistenceActor] ? PersistenceActor.Read(containerService.deployment.name, classOf[Deployment]) foreach {
+      case Some(deployment: Deployment) ⇒ self ! (deployment → containerService)
+      case _                            ⇒
+    }
+  }
+
+  private def synchronize(deployment: Deployment, containerService: ContainerService): Unit = {
     def sendTo(actor: ActorRef, deployment: Deployment) = {
       deployment.service(containerService.service.breed).foreach { service ⇒
         actor ! SingleDeploymentSynchronizationActor.Synchronize(containerService.copy(deployment = deployment, service = service))
       }
     }
-
-    actorFor[PersistenceActor] ? PersistenceActor.Read(containerService.deployment.name, classOf[Deployment]) foreach {
-      case Some(deployment: Deployment) ⇒
-        val name = s"deployment-synchronization-${containerService.deployment.lookupName}"
-        context.child(name) match {
-          case Some(actor) ⇒ sendTo(actor, deployment)
-          case None        ⇒ sendTo(context.actorOf(Props(classOf[SingleDeploymentSynchronizationActor]), name), deployment)
-        }
-      case _ ⇒
+    val name = s"${self.path.name}-${containerService.deployment.lookupName}"
+    context.child(name) match {
+      case Some(actor) ⇒ sendTo(actor, deployment)
+      case None        ⇒ sendTo(context.actorOf(Props(classOf[SingleDeploymentSynchronizationActor]), name), deployment)
     }
   }
 

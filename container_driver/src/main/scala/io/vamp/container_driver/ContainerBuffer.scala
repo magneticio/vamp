@@ -160,28 +160,33 @@ trait ContainerBuffer {
 
   private def update(runtime: ContainerRuntime) = {
     val now = OffsetDateTime.now()
+
+    def notifyAngUpdate(watcher: ActorRef, id: String, entry: ContainerBufferEntry, runtime: Option[ContainerRuntime]) = {
+      runtime.map { r ⇒
+        watcher ! r
+        id → entry.copy(runtime = r, reconciled = Option(now))
+      } getOrElse (id → entry)
+    }
+
     store = store.map {
       case (watcher, entries) ⇒
         watcher → entries.map {
-          case (key, value) if value.runtime.getClass == runtime.getClass ⇒
-
-            val cr = value.runtime match {
-              case cr: ContainerService ⇒
-                val id = appId(cr.deployment, cr.service.breed)
-                if (key == id) Option(runtime.asInstanceOf[ContainerService].copy(deployment = cr.deployment, service = cr.service)) else None
-
-              case cr: ContainerWorkflow ⇒
-                val id = appId(cr.workflow)
-                if (key == id) Option(runtime.asInstanceOf[ContainerWorkflow].copy(workflow = cr.workflow)) else None
-
-              case _ ⇒ None
-            }
-
-            cr.map { r ⇒
-              watcher ! r
-              key → value.copy(runtime = r, reconciled = Option(now))
-            } getOrElse (key → value)
-
+          case (key, value @ ContainerBufferEntry(_, _, cr: ContainerService)) if runtime.isInstanceOf[ContainerService] ⇒
+            val id = appId(runtime.asInstanceOf[ContainerService].deployment, runtime.asInstanceOf[ContainerService].service.breed)
+            notifyAngUpdate(
+              watcher,
+              id,
+              value,
+              if (key == id) Option(runtime.asInstanceOf[ContainerService].copy(deployment = cr.deployment, service = cr.service)) else None
+            )
+          case (key, value @ ContainerBufferEntry(_, _, cw: ContainerWorkflow)) if runtime.isInstanceOf[ContainerWorkflow] ⇒
+            val id = appId(runtime.asInstanceOf[ContainerWorkflow].workflow)
+            notifyAngUpdate(
+              watcher,
+              id,
+              value,
+              if (key == id) Option(runtime.asInstanceOf[ContainerWorkflow].copy(workflow = cw.workflow)) else None
+            )
           case (key, value) ⇒ key → value
         }
     }
