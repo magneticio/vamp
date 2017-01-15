@@ -38,7 +38,9 @@ object ContainerDriverActor {
 
 }
 
-sealed trait ContainerRuntime
+sealed trait ContainerRuntime {
+  def containers: Option[Containers]
+}
 
 case class ContainerService(deployment: Deployment, service: DeploymentService, containers: Option[Containers]) extends ContainerRuntime
 

@@ -217,7 +217,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
   override protected def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
-    httpClient.delete(s"$url/v2/apps/$id", headers)
+    httpClient.delete(s"$url/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None }
   }
 
   override protected def undeploy(workflow: Workflow) = {
