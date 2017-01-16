@@ -44,7 +44,8 @@ class ConsulStoreActor extends KeyValueStoreActor {
     s"$url/v1/kv${KeyValueStoreActor.pathToString(path)}${if (keys) "?keys" else ""}"
   }
 
-  private def result(map: Map[_, _]): String = {
-    map.asInstanceOf[Map[String, _]].get("Value").map(value ⇒ Base64.getDecoder.decode(value.asInstanceOf[String])).map(new String(_)).getOrElse("")
+  private def result(map: Map[_, _]): String = map.asInstanceOf[Map[String, _]].get("Value") match {
+    case Some(value) if value != null ⇒ new String(Base64.getDecoder.decode(value.asInstanceOf[String]))
+    case _                            ⇒ ""
   }
 }
