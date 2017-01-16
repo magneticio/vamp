@@ -15,11 +15,11 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   private val workflowIdLabel = "workflow"
 
-  private lazy val podUrl = s"$apiUrl/api/v1/namespaces/default/pods"
+  private lazy val podUrl = s"$apiUrl/api/v1/namespaces/$namespace/pods"
 
-  private lazy val replicaSetUrl = s"$apiUrl/apis/extensions/v1beta1/namespaces/default/replicasets"
+  private lazy val replicaSetUrl = s"$apiUrl/apis/extensions/v1beta1/namespaces/$namespace/replicasets"
 
-  private lazy val deploymentUrl = s"$apiUrl/apis/extensions/v1beta1/namespaces/default/deployments"
+  private lazy val deploymentUrl = s"$apiUrl/apis/extensions/v1beta1/namespaces/$namespace/deployments"
 
   override protected def supportedDeployableTypes = RktDeployable :: DockerDeployable :: Nil
 

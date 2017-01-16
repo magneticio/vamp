@@ -10,6 +10,8 @@ trait KubernetesContainerDriver extends ContainerDriver {
 
   protected def apiUrl: String
 
+  protected def namespace: String
+
   protected def apiHeaders: List[(String, String)]
 
   protected val nameDelimiter = "-"
