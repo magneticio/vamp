@@ -17,7 +17,7 @@ class EtcdStoreActorMapper extends ClassMapper {
 
 class EtcdStoreActor extends KeyValueStoreActor {
 
-  private val url = Config.string("vamp.persistence.key-value-store.etcd.url")
+  private val url = Config.string("vamp.persistence.key-value-store.etcd.url")()
 
   private val valueNode = "value"
 
