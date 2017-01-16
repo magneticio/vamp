@@ -15,7 +15,7 @@ class ConsulStoreActorMapper extends ClassMapper {
 
 class ConsulStoreActor extends KeyValueStoreActor {
 
-  private val url = Config.string("vamp.persistence.key-value-store.consul.url")
+  private val url = Config.string("vamp.persistence.key-value-store.consul.url")()
 
   override protected def info(): Future[Any] = httpClient.get[Any](s"$url/v1/agent/self") map { consul ⇒
     Map("type" → "consul", "consul" → consul)
