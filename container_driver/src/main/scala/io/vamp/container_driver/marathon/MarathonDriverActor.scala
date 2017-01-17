@@ -70,7 +70,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
 
   protected def appId(deployment: Deployment, breed: Breed): String = s"$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
-  override protected def supportedDeployableTypes = DockerDeployable :: CommandDeployable :: Nil
+  override protected def supportedDeployableTypes = DockerDeployableType :: CommandDeployableType :: Nil
 
   override def receive = super[ContainerBuffer].receive orElse {
 
@@ -183,19 +183,19 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
   }
 
   private def container(workflow: Workflow): Option[Container] = {
-    if (DockerDeployable.matches(workflow.breed.asInstanceOf[DefaultBreed].deployable)) Some(Container(docker(workflow))) else None
+    if (DockerDeployableType.matches(workflow.breed.asInstanceOf[DefaultBreed].deployable)) Some(Container(docker(workflow))) else None
   }
 
   private def container(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[Container] = {
-    if (DockerDeployable.matches(service.breed.deployable)) Some(Container(docker(deployment, cluster, service))) else None
+    if (DockerDeployableType.matches(service.breed.deployable)) Some(Container(docker(deployment, cluster, service))) else None
   }
 
   private def cmd(workflow: Workflow): Option[String] = {
-    if (CommandDeployable.matches(workflow.breed.asInstanceOf[DefaultBreed].deployable)) Some(workflow.breed.asInstanceOf[DefaultBreed].deployable.definition) else None
+    if (CommandDeployableType.matches(workflow.breed.asInstanceOf[DefaultBreed].deployable)) Some(workflow.breed.asInstanceOf[DefaultBreed].deployable.definition) else None
   }
 
   private def cmd(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Option[String] = {
-    if (CommandDeployable.matches(service.breed.deployable)) Some(service.breed.deployable.definition) else None
+    if (CommandDeployableType.matches(service.breed.deployable)) Some(service.breed.deployable.definition) else None
   }
 
   private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, app: MarathonApp): JValue = {

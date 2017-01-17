@@ -6,8 +6,8 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.config.Config
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.container_driver.ContainerDriverActor
-import io.vamp.model.artifact._
+import io.vamp.container_driver.{ ContainerDriverActor, DeployableType, Docker }
+import io.vamp.model.artifact.{ Deployable, _ }
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.TraitResolver
 import io.vamp.persistence.db.{ ArtifactSupport, PersistenceActor }
@@ -17,19 +17,43 @@ import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 
 import scala.concurrent.Future
 
-case class WorkflowInstance(name: String)
+object JavaScriptDeployableType extends DeployableType("application/javascript", "javascript") {
+  val default = "application/javascript"
+}
 
-object WorkflowDeployable {
+trait WorkflowDeployable {
 
-  val javascript = "application/javascript"
+  val javascriptConfig = s"${WorkflowDriver.config}.workflow.deployables.application.javascript"
 
-  private val deployables = s"${WorkflowDriver.config}.workflow.deployables"
+  def matches(deployable: Deployable): Boolean = JavaScriptDeployableType.matches(deployable)
 
-  private val javascriptDeployable = () ⇒ Deployable(Config.string(s"$deployables.application.javascript.type")(), Config.string(s"$deployables.application.javascript.definition")())
+  def provide(deployable: Deployable): Deployable = {
+    if (JavaScriptDeployableType.matches(deployable)) Deployable(
+      Config.string(s"$javascriptConfig.type")(),
+      Config.string(s"$javascriptConfig.definition")()
+    )
+    else deployable
+  }
 
-  def matches(some: Deployable): Boolean = some.`type` == javascript
+  def environmentVariables(deployable: Deployable): List[EnvironmentVariable] = {
+    if (JavaScriptDeployableType.matches(deployable)) Config.stringList(s"$javascriptConfig.environment-variables")().map { env ⇒
+      val index = env.indexOf('=')
+      EnvironmentVariable(env.substring(0, index), None, Option(env.substring(index + 1)), None)
+    }
+    else Nil
+  }
 
-  def provide(some: Deployable): Deployable = javascriptDeployable()
+  def defaultArguments(deployable: Deployable): List[Argument] = {
+    if (JavaScriptDeployableType.matches(deployable)) Config.stringList(s"$javascriptConfig.arguments")().map(Argument(_)) else Nil
+  }
+
+  def defaultNetwork(deployable: Deployable): String = {
+    if (JavaScriptDeployableType.matches(deployable)) Config.string(s"$javascriptConfig.network")() else Docker.network()
+  }
+
+  def defaultCommand(deployable: Deployable): Option[String] = {
+    if (JavaScriptDeployableType.matches(deployable)) Option(Config.string(s"$javascriptConfig.command")()) else None
+  }
 }
 
 object WorkflowDriver {
@@ -41,7 +65,7 @@ object WorkflowDriver {
   def path(workflow: Workflow) = root :: workflow.name :: Nil
 }
 
-trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider with TraitResolver {
+trait WorkflowDriver extends WorkflowDeployable with ArtifactSupport with PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider with TraitResolver {
 
   import WorkflowDriver._
 
@@ -49,23 +73,11 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
 
   implicit val timeout = ContainerDriverActor.timeout()
 
-  val globalEnvironmentVariables: List[EnvironmentVariable] = Config.stringList(s"$config.workflow.environment-variables")().map { env ⇒
-    val index = env.indexOf('=')
-    EnvironmentVariable(env.substring(0, index), None, Option(env.substring(index + 1)), None)
-  }
-
   val defaultScale = DefaultScale(
-    "",
     Quantity.of(Config.double(s"$config.workflow.scale.cpu")()),
     MegaByte.of(Config.string(s"$config.workflow.scale.memory")()),
     Config.int(s"$config.workflow.scale.instances")()
   )
-
-  val defaultArguments: List[Argument] = Config.stringList(s"$config.workflow.arguments")().map(Argument(_))
-
-  val defaultNetwork = Config.string(s"$config.workflow.network")()
-
-  val defaultCommand = Config.string(s"$config.workflow.command")()
 
   def receive = {
     case InfoRequest              ⇒ reply(info)
@@ -87,27 +99,25 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
     val breed = workflow.breed.asInstanceOf[DefaultBreed]
 
     val environmentVariables = {
-      resolveGlobal(workflow) ++ breed.environmentVariables ++ workflow.environmentVariables
+      resolveGlobalEnvironmentVariables(workflow, breed.deployable) ++ breed.environmentVariables ++ workflow.environmentVariables
     }.map(env ⇒ env.name → env.copy(interpolated = env.value)).toMap.values.toList
 
     actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowEnvironmentVariables(workflow, environmentVariables)
 
-    val deployable = breed.deployable match {
-      case d if WorkflowDeployable.matches(d) ⇒ WorkflowDeployable.provide(d)
-      case d                                  ⇒ d
-    }
-
     val scale = workflow.scale.getOrElse(defaultScale).asInstanceOf[DefaultScale]
     actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowScale(workflow, scale)
 
-    val network = workflow.network.getOrElse(defaultNetwork)
+    val network = workflow.network.getOrElse(defaultNetwork(breed.deployable))
     actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowNetwork(workflow, network)
 
-    val arguments = (defaultArguments ++ breed.arguments ++ workflow.arguments).map(arg ⇒ arg.key → arg).toMap.values.toList
+    val arguments = (defaultArguments(breed.deployable) ++ breed.arguments ++ workflow.arguments).map(arg ⇒ arg.key → arg).toMap.values.toList
     actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowArguments(workflow, arguments)
 
     workflow.copy(
-      breed = breed.copy(deployable = deployable, environmentVariables = environmentVariables),
+      breed = breed.copy(
+        deployable = provide(breed.deployable),
+        environmentVariables = environmentVariables
+      ),
       scale = Option(scale),
       arguments = arguments,
       network = Option(network),
@@ -115,13 +125,12 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
     )
   }
 
-  private def resolveGlobal(workflow: Workflow): List[EnvironmentVariable] = {
+  private def resolveGlobalEnvironmentVariables(workflow: Workflow, deployable: Deployable): List[EnvironmentVariable] = {
     def interpolated: ValueReference ⇒ String = {
       case ref: LocalReference if ref.name == "workflow" ⇒ workflow.name
       case _ ⇒ ""
     }
-
-    globalEnvironmentVariables.map { env ⇒
+    environmentVariables(deployable).map { env ⇒
       val value = resolve(env.value.getOrElse(""), interpolated)
       env.copy(value = Option(value), interpolated = Option(value))
     }

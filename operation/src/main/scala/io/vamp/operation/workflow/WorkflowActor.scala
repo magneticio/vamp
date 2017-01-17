@@ -25,7 +25,7 @@ object WorkflowActor {
 
 }
 
-class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
+class WorkflowActor extends WorkflowDeployable with ArtifactPaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
 
   import PersistenceActor.ResetWorkflow
   import PersistenceActor.UpdateWorkflowStatus
@@ -134,7 +134,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
       (if (workflow.scale.isDefined) artifactFor[DefaultScale](workflow.scale.get).map(Option(_)) else Future.successful(None)).flatMap { scale ⇒
 
-        if (WorkflowDeployable.matches(breed.deployable)) {
+        if (matches(breed.deployable)) {
           IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition)) flatMap {
             _ ⇒ IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
           }

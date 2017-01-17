@@ -9,6 +9,8 @@ import io.vamp.model.artifact._
 
 import scala.concurrent.Future
 
+case class WorkflowInstance(name: String)
+
 class ChronosWorkflowActorMapper extends ClassMapper {
   val name = "chronos"
   val clazz = classOf[ChronosWorkflowActor]
@@ -20,7 +22,7 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
 
   private val httpClient = new HttpClient
 
-  override protected def supportedDeployableTypes = DockerDeployable :: Nil
+  override protected def supportedDeployableTypes = DockerDeployableType :: Nil
 
   override def receive = super.receive orElse {
     case _ ⇒
@@ -52,7 +54,7 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
       val jobRequest = job(
         name = name(workflow),
         schedule = period(workflow),
-        containerImage = breed.deployable.definition,
+        deployable = breed.deployable,
         environmentVariables = breed.environmentVariables,
         scale = workflow.scale.get.asInstanceOf[DefaultScale],
         network = workflow.network.getOrElse(Docker.network())
@@ -89,19 +91,17 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
     case _ ⇒ "R1//PT1S"
   }
 
-  private def job(name: String, schedule: String, containerImage: String, environmentVariables: List[EnvironmentVariable], scale: DefaultScale, network: String) = {
-
+  private def job(name: String, schedule: String, deployable: Deployable, environmentVariables: List[EnvironmentVariable], scale: DefaultScale, network: String) = {
     val vars = environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) → ev.interpolated.getOrElse("")).map {
       case (n, v) ⇒ s"""{ "name": "$n", "value": "$v" }"""
     } mkString ","
-
     s"""
        |{
        |  "name": "$name",
        |  "schedule": "$schedule",
        |  "container": {
        |    "type": "DOCKER",
-       |    "image": "$containerImage",
+       |    "image": "${deployable.definition}",
        |    "network": "$network",
        |    "volumes": []
        |  },
@@ -109,7 +109,7 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
        |  "mem": "${scale.memory.value}",
        |  "uris": [],
        |  "environmentVariables": [ $vars ],
-       |  "command": "$defaultCommand"
+       |  "command": "${defaultCommand(deployable).getOrElse("")}"
        |}
   """.stripMargin
   }

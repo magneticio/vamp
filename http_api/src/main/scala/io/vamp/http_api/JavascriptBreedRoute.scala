@@ -11,7 +11,7 @@ import io.vamp.common.http.HttpApiDirectives
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact.{ DefaultBreed, Deployable }
 import io.vamp.persistence.db.PersistenceActor
-import io.vamp.workflow_driver.WorkflowDeployable
+import io.vamp.workflow_driver.JavaScriptDeployableType
 
 import scala.concurrent.Future
 
@@ -39,7 +39,7 @@ trait JavascriptBreedRoute {
 
     val breed = DefaultBreed(
       name = name,
-      deployable = Deployable(WorkflowDeployable.javascript, source),
+      deployable = Deployable(JavaScriptDeployableType.default, source),
       ports = Nil,
       environmentVariables = Nil,
       constants = Nil,

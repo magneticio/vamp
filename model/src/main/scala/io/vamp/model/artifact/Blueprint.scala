@@ -78,6 +78,9 @@ trait Scale extends Artifact {
 case class ScaleReference(name: String) extends Reference with Scale
 
 object DefaultScale {
+
+  def apply(cpu: Quantity, memory: MegaByte, instances: Int): DefaultScale = DefaultScale(name = "", cpu, memory, instances)
+
   def apply(instances: Int = 0): DefaultScale = DefaultScale(name = "", cpu = Quantity(0.0), memory = MegaByte(0.0), instances)
 }
 
