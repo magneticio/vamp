@@ -79,7 +79,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
   override protected def appId(deployment: Deployment, breed: Breed): String = s"vamp$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
-  override protected def supportedDeployableTypes = DockerDeployable :: Nil
+  override protected def supportedDeployableTypes = DockerDeployableType :: Nil
 
   private def info: Future[ContainerInfo] = Future(docker.info()).map(info ⇒ ContainerInfo("docker", info))
 

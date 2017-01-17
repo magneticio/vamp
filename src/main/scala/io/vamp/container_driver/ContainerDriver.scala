@@ -117,7 +117,7 @@ trait ContainerDriverValidation {
     if (!supportedDeployableTypes.exists(_.matches(deployable)))
       throwException(UnsupportedDeployableType(deployable.`type`, supportedDeployableTypes.flatMap(_.types).mkString(", ")))
 
-    if (DockerDeployable.matches(deployable) && deployable.definition.isEmpty)
+    if (DockerDeployableType.matches(deployable) && deployable.definition.isEmpty)
       throwException(UndefinedDockerImage)
   }
 }

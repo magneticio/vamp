@@ -63,7 +63,7 @@ class RancherDriverActor extends ContainerDriverActor with ContainerDriver with 
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
 
-  override protected def supportedDeployableTypes = DockerDeployable :: Nil
+  override protected def supportedDeployableTypes = DockerDeployableType :: Nil
 
   private def info: Future[ContainerInfo] = {
     httpClient.get[ProjectInfo](rancherUrl, headers).map { project ⇒
