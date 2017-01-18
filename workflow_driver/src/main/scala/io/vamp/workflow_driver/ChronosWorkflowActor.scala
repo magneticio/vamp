@@ -1,13 +1,18 @@
 package io.vamp.workflow_driver
 
+import akka.pattern.ask
 import io.vamp.common.akka.IoC
 import io.vamp.common.config.Config
 import io.vamp.common.http.HttpClient
 import io.vamp.common.spi.ClassMapper
 import io.vamp.container_driver._
 import io.vamp.model.artifact.TimeSchedule.RepeatCount
+import io.vamp.model.artifact.Workflow.Status
+import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
 import io.vamp.persistence.db.PersistenceActor
+import io.vamp.pulse.Percolator.GetPercolator
+import io.vamp.pulse.PulseActor
 
 import scala.concurrent.Future
 
@@ -32,14 +37,39 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
     _ ⇒ Map("chronos" → Map("url" → url))
   }
 
-  protected override def request(workflows: List[Workflow]): Unit = all() foreach { instances ⇒
-    workflows.foreach {
-      case workflow if workflow.schedule != DaemonSchedule ⇒
-        val container = if (instances.contains(workflow.name)) Instance(workflow.name, "", Map(), deployed = true) :: Nil else Nil
-        IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, container)
-      case _ ⇒
+  protected override def request(workflows: List[Workflow]): Unit = {
+    val timeScheduled = workflows.filter(_.schedule.isInstanceOf[TimeSchedule])
+    if (timeScheduled.nonEmpty) requestTimeScheduled(timeScheduled)
+
+    val eventScheduled = workflows.filter(_.schedule.isInstanceOf[EventSchedule])
+    if (eventScheduled.nonEmpty) requestEventScheduled(eventScheduled)
+  }
+
+  private def requestTimeScheduled(workflows: List[Workflow]) = all() foreach { instances ⇒
+    workflows.foreach { workflow ⇒
+      IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, if (instances.contains(workflow.name)) instance(workflow) :: Nil else Nil)
     }
   }
+
+  private def requestEventScheduled(workflows: List[Workflow]) = {
+    def runnable(workflow: Workflow) = workflow.status match {
+      case Status.Starting | Status.Running | Status.Restarting(Some(RestartingPhase.Starting)) ⇒ true
+      case _ ⇒ false
+    }
+
+    all() foreach { instances ⇒
+      workflows.foreach { workflow ⇒
+        IoC.actorFor[PulseActor] ? GetPercolator(WorkflowDriverActor.percolator(workflow)) map {
+          case Some(_) if runnable(workflow) ⇒ IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, instance(workflow) :: Nil)
+          case _ ⇒
+            IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Nil)
+            if (instances.contains(workflow.name)) delete(workflow)
+        }
+      }
+    }
+  }
+
+  private def instance(workflow: Workflow) = Instance(workflow.name, "", Map(), deployed = true)
 
   protected override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
     case w if w.schedule != DaemonSchedule ⇒
@@ -67,10 +97,12 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
   protected override def unschedule(): PartialFunction[Workflow, Future[Any]] = {
     case workflow if workflow.schedule != DaemonSchedule ⇒
       all() flatMap {
-        list ⇒ if (list.contains(name(workflow))) httpClient.delete(s"$url/scheduler/job/${name(workflow)}") else Future.successful(false)
+        list ⇒ if (list.contains(name(workflow))) delete(workflow) else Future.successful(false)
       }
     case _ ⇒ Future.successful(false)
   }
+
+  private def delete(workflow: Workflow) = httpClient.delete(s"$url/scheduler/job/${name(workflow)}")
 
   private def all(): Future[List[String]] = httpClient.get[Any](s"$url/scheduler/jobs") map {
     case list: List[_] ⇒ list.map(_.asInstanceOf[Map[String, String]].getOrElse("name", "")).filter(_.nonEmpty)

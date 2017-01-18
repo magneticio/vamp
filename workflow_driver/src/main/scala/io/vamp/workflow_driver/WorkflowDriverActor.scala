@@ -24,6 +24,7 @@ object WorkflowDriverActor {
 
   case class Unschedule(workflow: Workflow) extends WorkflowDriveMessage
 
+  def percolator(workflow: Workflow) = s"workflow://${workflow.name}"
 }
 
 class WorkflowDriverActor(drivers: List[ActorRef]) extends PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider {

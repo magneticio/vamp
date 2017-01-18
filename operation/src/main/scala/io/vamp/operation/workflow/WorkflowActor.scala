@@ -32,8 +32,6 @@ class WorkflowActor extends WorkflowDeployable with ArtifactPaginationSupport wi
   import PulseEventTags.Workflows._
   import WorkflowActor._
 
-  private val percolator = "workflow://"
-
   implicit val timeout = WorkflowDriverActor.timeout()
 
   def receive: Receive = {
@@ -93,55 +91,52 @@ class WorkflowActor extends WorkflowDeployable with ArtifactPaginationSupport wi
 
   private def restart(workflow: Workflow, running: Boolean): Unit = {
     workflow.status match {
-      case Workflow.Status.Restarting(Some(RestartingPhase.Starting)) ⇒ deploy(workflow, running, () ⇒ {
-        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
-          pulse(workflow, scheduled = true)
-        }
-      })
-      case _ ⇒ undeploy(workflow, running, () ⇒ {
-        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Restarting(Option(RestartingPhase.Starting)))).map { _ ⇒
-          pulse(workflow, scheduled = false)
-        }
-      })
+      case Workflow.Status.Restarting(Some(RestartingPhase.Starting)) ⇒
+        deploy(workflow, running, () ⇒ {
+          (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
+            pulse(workflow, scheduled = true)
+          }
+        })
+      case _ ⇒
+        undeploy(workflow, running, () ⇒ {
+          (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Restarting(Option(RestartingPhase.Starting)))).map { _ ⇒
+            pulse(workflow, scheduled = false)
+          }
+        })
     }
   }
 
   private def deploy(workflow: Workflow, running: Boolean, update: () ⇒ Unit) = {
     if (running) update()
-    else {
-      workflow.schedule match {
-        case DaemonSchedule        ⇒ trigger(workflow)
-        case TimeSchedule(_, _, _) ⇒ trigger(workflow)
-        case EventSchedule(tags)   ⇒ (IoC.actorFor[PulseActor] ? RegisterPercolator(s"$percolator${workflow.name}", tags, None, Trigger(workflow))).map(_ ⇒ update())
-        case _                     ⇒
-      }
+    else workflow.schedule match {
+      case DaemonSchedule        ⇒ trigger(workflow)
+      case TimeSchedule(_, _, _) ⇒ trigger(workflow)
+      case EventSchedule(tags)   ⇒ IoC.actorFor[PulseActor] ! RegisterPercolator(WorkflowDriverActor.percolator(workflow), tags, None, Trigger(workflow))
+      case _                     ⇒
     }
+
   }
 
   private def undeploy(workflow: Workflow, running: Boolean, update: () ⇒ Unit) = {
-    workflow.schedule match {
-      case DaemonSchedule        ⇒ if (running) IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) else update()
-      case TimeSchedule(_, _, _) ⇒ if (running) IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Unschedule(workflow) else update()
-      case EventSchedule(_)      ⇒ (IoC.actorFor[PulseActor] ? UnregisterPercolator(s"$percolator${workflow.name}")).map(_ ⇒ update())
+    if (!running) update()
+    else workflow.schedule match {
+      case DaemonSchedule        ⇒ if (running) IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Unschedule(workflow) else update()
+      case TimeSchedule(_, _, _) ⇒ if (running) IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.Unschedule(workflow) else update()
+      case EventSchedule(_)      ⇒ IoC.actorFor[PulseActor] ! UnregisterPercolator(WorkflowDriverActor.percolator(workflow))
       case _                     ⇒
     }
   }
 
   private def trigger(workflow: Workflow, data: Any = None): Future[_] = {
     log.info(s"Triggering workflow: '${workflow.name}'.")
-
     artifactFor[DefaultBreed](workflow.breed).flatMap { breed ⇒
-
       (if (workflow.scale.isDefined) artifactFor[DefaultScale](workflow.scale.get).map(Option(_)) else Future.successful(None)).flatMap { scale ⇒
-
         if (matches(breed.deployable)) {
           IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition)) flatMap {
             _ ⇒ IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
           }
         }
-        else {
-          IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
-        }
+        else IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
       }
     }
   }

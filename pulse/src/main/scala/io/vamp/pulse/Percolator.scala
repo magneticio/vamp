@@ -7,9 +7,13 @@ import scala.collection.mutable
 
 object Percolator {
 
-  case class RegisterPercolator(name: String, tags: Set[String], `type`: Option[String], message: Any)
+  sealed trait PercolatorMessage
 
-  case class UnregisterPercolator(name: String)
+  case class GetPercolator(name: String) extends PercolatorMessage
+
+  case class RegisterPercolator(name: String, tags: Set[String], `type`: Option[String], message: Any) extends PercolatorMessage
+
+  case class UnregisterPercolator(name: String) extends PercolatorMessage
 
 }
 
@@ -19,6 +23,8 @@ trait Percolator {
   case class PercolatorEntry(tags: Set[String], `type`: Option[String], actor: ActorRef, message: Any)
 
   protected val percolators = mutable.Map[String, PercolatorEntry]()
+
+  def getPercolator(name: String) = percolators.get(name)
 
   def registerPercolator(name: String, tags: Set[String], `type`: Option[String], message: Any) = {
     percolators.put(name, PercolatorEntry(tags, `type`, sender(), message)) match {
