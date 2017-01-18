@@ -10,7 +10,7 @@ import io.vamp.common.spi.ClassMapper
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.model.event.Aggregator.AggregatorType
 import io.vamp.model.event._
-import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
+import io.vamp.pulse.Percolator.{ GetPercolator, RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.Serialization.{ read, write }
@@ -56,6 +56,8 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with PulseStats wi
     case Publish(event, publishEventValue) ⇒ reply((validateEvent andThen percolate(publishEventValue) andThen publish(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
 
     case Query(envelope) ⇒ reply((validateEventQuery andThen eventQuery(envelope.page, envelope.perPage))(envelope.request), classOf[EventQueryError])
+
+    case GetPercolator(name) ⇒ reply(Future.successful(getPercolator(name)))
 
     case RegisterPercolator(name, tags, kind, message) ⇒ registerPercolator(name, tags, kind, message)
 
