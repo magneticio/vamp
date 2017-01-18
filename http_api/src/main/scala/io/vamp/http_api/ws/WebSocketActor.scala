@@ -119,7 +119,7 @@ class WebSocketActor extends EventApiController with LogApiController with Commo
   private def toHeaders(request: WebSocketRequest): List[HttpHeader] = (request.accept match {
     case Content.PlainText  ⇒ Accept(`text/plain`)
     case Content.Json       ⇒ Accept(`application/json`)
-    case Content.Javascript ⇒ Accept(`application/javascript`)
+    case Content.JavaScript ⇒ Accept(`application/javascript`)
     case Content.Yaml       ⇒ Accept(HttpApiDirectives.`application/x-yaml`)
   }) :: Nil
 
@@ -127,7 +127,7 @@ class WebSocketActor extends EventApiController with LogApiController with Commo
     val `type` = request.content match {
       case Content.PlainText  ⇒ ContentTypes.`text/plain(UTF-8)`
       case Content.Json       ⇒ ContentTypes.`application/json`
-      case Content.Javascript ⇒ ContentType(MediaTypes.`application/javascript`, HttpCharsets.`UTF-8`)
+      case Content.JavaScript ⇒ ContentType(MediaTypes.`application/javascript`, HttpCharsets.`UTF-8`)
       case Content.Yaml       ⇒ ContentType(HttpApiDirectives.`application/x-yaml`)
     }
     HttpEntity(`type`, request.data.getOrElse("").getBytes("UTF-8"))

@@ -66,7 +66,7 @@ object Action extends Enumeration {
 object Content extends Enumeration {
   type ContentType = Value
 
-  val Json, Yaml, PlainText, Javascript = Value
+  val Json, Yaml, PlainText, JavaScript = Value
 }
 
 object Status extends Enumeration {
