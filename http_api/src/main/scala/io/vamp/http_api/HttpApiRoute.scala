@@ -39,6 +39,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     with JavascriptBreedRoute
     with SystemRoute
     with LogApiRoute
+    with ProxyRoute
     with ArtifactPaginationSupport
     with ExecutionContextProvider
     with ActorSystemProvider
@@ -142,7 +143,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
         }
       }
     }
-  } ~ path("websocket")(websocketRoutes) ~ uiRoutes
+  } ~ path("websocket")(websocketRoutes) ~ proxyRoute ~ uiRoutes
 
   val allRoutes = {
     handleExceptions(exceptionHandler) {
