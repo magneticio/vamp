@@ -18,8 +18,6 @@ trait ProxyController extends GatewayDeploymentResolver {
 
   implicit def timeout: Timeout
 
-  def strip: Int
-
   def proxy(context: RequestContext, path: String)(implicit materializer: Materializer): Future[RouteResult] = {
     gatewayFor(path2list(Path(path))).flatMap {
       case Some((gateway, segments)) if gateway.service.nonEmpty ⇒

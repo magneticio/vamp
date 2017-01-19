@@ -15,7 +15,5 @@ trait ProxyRoute extends ProxyController {
 
   implicit def materializer: Materializer
 
-  override val strip: Int = 1
-
   val proxyRoute = pathPrefix("proxy" / Remaining) { path ⇒ (context: RequestContext) ⇒ proxy(context, path) }
 }
