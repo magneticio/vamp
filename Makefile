@@ -23,7 +23,7 @@ all: default
 .PHONY: default
 default:
 	docker run \
-	  --name buildserver
+	  --name buildserver \
 		--interactive \
 		--rm \
 		--volume $(CURDIR):/srv/src \
