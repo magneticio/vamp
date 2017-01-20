@@ -20,7 +20,7 @@ trait ProxyController extends GatewayDeploymentResolver {
 
   def proxy(context: RequestContext, path: String)(implicit materializer: Materializer): Future[RouteResult] = {
     gatewayFor(path2list(Path(path))).flatMap {
-      case Some((gateway, segments)) if gateway.service.nonEmpty ⇒
+      case Some((gateway, segments)) ⇒
 
         Source.single(context.request)
           .map(request ⇒ request.withHeaders(
@@ -52,8 +52,8 @@ trait ProxyController extends GatewayDeploymentResolver {
 
     List(3, 5).foldLeft(tryWith(1)) { (op1, op2) ⇒
       op1.flatMap {
-        case Some((g, l)) ⇒ Future.successful(Option(g → l))
-        case _            ⇒ tryWith(op2)
+        case Some((g, l)) if g.proxy.nonEmpty ⇒ Future.successful(Option(g → l))
+        case _                                ⇒ tryWith(op2)
       }
     }
   }

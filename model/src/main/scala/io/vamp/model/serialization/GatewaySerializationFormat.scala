@@ -45,6 +45,8 @@ trait GatewayDecomposer extends ReferenceSerialization with RouteDecomposer {
         list += JField(Lookup.entry, JString(gateway.lookupName))
         list += JField("internal", JBool(gateway.internal))
 
+        gateway.proxy.foreach(proxy ⇒ list += JField("proxy", JString(proxy)))
+
         if (gateway.service.isDefined) {
           val serviceHost = JField("host", JString(gateway.service.get.host))
           val servicePort = JField("port", gateway.service.get.port.value match {

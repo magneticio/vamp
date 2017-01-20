@@ -31,6 +31,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
   }
 
   override protected def parse(implicit source: YamlSourceReader): Gateway = {
+    source.find[String]("proxy")
     source.find[String]("internal")
     Gateway(name, port, service, sticky, virtualHosts, routes(splitPath = true), deployed)
   }
