@@ -23,7 +23,7 @@ all: default
 .PHONY: default
 default:
 	docker run \
-	  --name buildserver \
+		--name buildserver \
 		--interactive \
 		--rm \
 		--volume $(CURDIR):/srv/src \
@@ -33,7 +33,7 @@ default:
 		--env BUILD_UID=$(shell id -u) \
 		--env BUILD_GID=$(shell id -g) \
 		$(CONTAINER) \
-			make clean test build
+			make clean test build pack
 
 .PHONY: test
 test:
@@ -52,6 +52,15 @@ build:
       "project http_api" publish-local-katana \
       "project gateway_driver" publish-local-katana ; \
   if [ "$$(git describe --tags)" = "$$(git describe --abbrev=0)" ]; then sbt publish-local; fi
+
+.PHONY: pack
+pack:
+	sbt "project bootstrap" pack && \
+	export target=$(CURDIR)"/bootstrap/target" && export version="$$(git describe --tags)" && \
+	rm -Rf "$${target}/vamp-$${version}" && mkdir -p "$${target}/vamp-$${version}" && \
+	cp -R "$${target}/pack/lib" "$${target}/vamp-$${version}/." && \
+	mv $$(find "$${target}/vamp-$${version}/lib" -name "vamp-*-$${version}.jar") "$${target}/vamp-$${version}/." && \
+	cd $${target} && tar -czvf "vamp-$${version}.tar.gz" "vamp-$${version}"
 
 .PHONY: clean
 clean:
