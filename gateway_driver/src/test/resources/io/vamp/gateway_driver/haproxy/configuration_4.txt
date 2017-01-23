@@ -5,6 +5,7 @@ frontend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
   bind 0.0.0.0:33002             
   
   option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
   mode http
 
@@ -15,6 +16,7 @@ frontend 93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 frontend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 
   option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
   bind unix@/usr/local/vamp/o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb.sock accept-proxy
 
@@ -27,6 +29,7 @@ frontend o_93a45182d84bf6fc0c3c23c33a9501c7d74be2bb
 frontend 62a11db802baf59987a3ece9e10d8754eca16a09
 
   option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
   bind unix@/usr/local/vamp/62a11db802baf59987a3ece9e10d8754eca16a09.sock accept-proxy
 
@@ -40,6 +43,7 @@ frontend fe0b5f28bbc918d7c54c72552a525894f2dfc09c
   bind 0.0.0.0:9050             
 
   option tcplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tw":%Tw,"Tc":%Tc,"Tt":%Tt,"B":%B,"ts":"%ts","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq}
 
   mode tcp
 
@@ -50,6 +54,7 @@ frontend fe0b5f28bbc918d7c54c72552a525894f2dfc09c
 frontend o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c
 
   option tcplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tw":%Tw,"Tc":%Tc,"Tt":%Tt,"B":%B,"ts":"%ts","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq}
 
   bind unix@/usr/local/vamp/o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c.sock accept-proxy
 
@@ -62,6 +67,7 @@ frontend o_fe0b5f28bbc918d7c54c72552a525894f2dfc09c
 frontend a0f840f005123ef8acf4b0f9586420a540f8caf8
 
   option tcplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tw":%Tw,"Tc":%Tc,"Tt":%Tt,"B":%B,"ts":"%ts","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq}
 
   bind unix@/usr/local/vamp/a0f840f005123ef8acf4b0f9586420a540f8caf8.sock accept-proxy
 

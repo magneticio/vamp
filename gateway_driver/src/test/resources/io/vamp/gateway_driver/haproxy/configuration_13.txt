@@ -6,6 +6,7 @@ frontend virtual_hosts
   bind 0.0.0.0:80
   mode http
   option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
   # destination: deployment/cluster/port
   acl 8a89ee7a8513aa6b hdr(host) -i port.cluster.deployment
@@ -37,6 +38,7 @@ frontend 541edef1fa775e786b31ce139a045182afe8e2b
   bind 0.0.0.0:33000
 
   option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
   mode http
 
@@ -47,6 +49,7 @@ frontend 541edef1fa775e786b31ce139a045182afe8e2b
 frontend o_541edef1fa775e786b31ce139a045182afe8e2b
 
   option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
   bind unix@/usr/local/vamp/o_541edef1fa775e786b31ce139a045182afe8e2b.sock accept-proxy
 
@@ -59,6 +62,7 @@ frontend o_541edef1fa775e786b31ce139a045182afe8e2b
 frontend 58fc2b1bc3ab2ed40372458ddf81d4b1b3d2646c
 
   option httplog
+  log-format {"ci":"%ci","cp":%cp,"t":"%t","ft":"%ft","b":"%b","s":"%s","Tq":%Tq,"Tw":%Tw,"Tc":%Tc,"Tr":%Tr,"Tt":%Tt,"ST":%ST,"B":%B,"CC":"%CC","CS":"%CS","tsc":"%tsc","ac":%ac,"fc":%fc,"bc":%bc,"sc":%sc,"rc":%rc,"sq":%sq,"bq":%bq,"hr":"%hr","hs":"%hs","r":%{+Q}r}
 
   bind unix@/usr/local/vamp/58fc2b1bc3ab2ed40372458ddf81d4b1b3d2646c.sock accept-proxy
 
