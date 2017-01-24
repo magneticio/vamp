@@ -8,13 +8,17 @@ SHELL             := bash
 # Constants, these can be overwritten in your Makefile.local
 BUILD_SERVER := magneticio/buildserver
 BUILD_PACKER := magneticio/packer
-DIR_SBT   := $(HOME)/.sbt
-DIR_IVY   := $(HOME)/.ivy2
+DIR_SBT	     := $(HOME)/.sbt
+DIR_IVY	     := $(HOME)/.ivy2
 
 # if Makefile.local exists, include it.
 ifneq ("$(wildcard Makefile.local)", "")
 	include Makefile.local
 endif
+
+# Don't change these
+TARGET  := $(CURDIR)/bootstrap/target
+VERSION := $(shell git describe --tags)
 
 # Targets
 .PHONY: all
@@ -42,34 +46,38 @@ test:
 
 .PHONY: build
 build:
-	sbt package "project common" publish-local-katana \
-      "project persistence" publish-local-katana \
-      "project model" publish-local-katana \
-      "project operation" publish-local-katana \
-      "project bootstrap" publish-local-katana \
-      "project container_driver" publish-local-katana \
-      "project workflow_driver" publish-local-katana \
-      "project pulse" publish-local-katana \
-      "project http_api" publish-local-katana \
-      "project gateway_driver" publish-local-katana ; \
-  if [ "$$(git describe --tags)" = "$$(git describe --abbrev=0)" ]; then sbt publish-local; fi
+	sbt package \
+		"project common" publish-local-katana \
+		"project persistence" publish-local-katana \
+		"project model" publish-local-katana \
+		"project operation" publish-local-katana \
+		"project bootstrap" publish-local-katana \
+		"project container_driver" publish-local-katana \
+		"project workflow_driver" publish-local-katana \
+		"project pulse" publish-local-katana \
+		"project http_api" publish-local-katana \
+		"project gateway_driver" publish-local-katana
+	if [ "$$(git describe --tags)" = "$$(git describe --abbrev=0)" ] ; \
+		then sbt publish-local ; \
+	fi
 
 .PHONY: pack
 pack:
-	sbt "project bootstrap" pack && \
-	export target=$(CURDIR)"/bootstrap/target" && export version="$$(git describe --tags)" && \
-	rm -Rf "$${target}/vamp-$${version}" && mkdir -p "$${target}/vamp-$${version}" && \
-	cp -R "$${target}/pack/lib" "$${target}/vamp-$${version}/." && \
-	mv $$(find "$${target}/vamp-$${version}/lib" -name "vamp-*-$${version}.jar") "$${target}/vamp-$${version}/." && \
-	docker volume create packer && \
+	sbt "project bootstrap" pack
+	rm -rf  $(TARGET)/vamp-$(VERSION)
+	mkdir -p $(TARGET)/vamp-$(VERSION)
+	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-$(VERSION)/lib -type f -name "vamp-*-$(VERSION).jar") $(TARGET)/vamp-$(VERSION)/
+
+	docker volume create packer
 	docker run \
-    --name packer \
-    --interactive \
-    --volume $${target}/vamp-$${version}:/usr/local/src \
-    --volume packer:/usr/local/stash \
-    $(BUILD_PACKER) \
-      vamp $${version} && \
-  docker rm packer
+		--name packer \
+		--interactive \
+		--rm \
+		--volume $(TARGET)/vamp-$(VERSION):/usr/local/src \
+		--volume packer:/usr/local/stash \
+		$(BUILD_PACKER) \
+			vamp $(VERSION)
 
 .PHONY: clean
 clean:
