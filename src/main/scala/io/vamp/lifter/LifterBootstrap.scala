@@ -22,16 +22,14 @@ class LifterBootstrap extends ActorBootstrap {
         case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
         case _               ⇒ Nil
       }
-    }
-    else Nil
+    } else Nil
 
     val pulse = if (pulseEnabled) {
       PulseBootstrap.`type`() match {
         case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPulseInitializationActor] :: Nil
         case _               ⇒ Nil
       }
-    }
-    else Nil
+    } else Nil
 
     val artifact = if (artifactEnabled)
       IoC.createActor[ArtifactInitializationActor] :: Nil
