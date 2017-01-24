@@ -6,7 +6,8 @@ SHELL             := bash
 .SUFFIXES:
 
 # Constants, these can be overwritten in your Makefile.local
-CONTAINER := magneticio/buildserver
+BUILD_SERVER := magneticio/buildserver
+BUILD_PACKER := magneticio/packer
 DIR_SBT   := $(HOME)/.sbt
 DIR_IVY   := $(HOME)/.ivy2
 
@@ -32,7 +33,7 @@ default:
 		--workdir=/srv/src \
 		--env BUILD_UID=$(shell id -u) \
 		--env BUILD_GID=$(shell id -g) \
-		$(CONTAINER) \
+		$(BUILD_SERVER) \
 			make clean test build pack
 
 .PHONY: test
@@ -60,7 +61,15 @@ pack:
 	rm -Rf "$${target}/vamp-$${version}" && mkdir -p "$${target}/vamp-$${version}" && \
 	cp -R "$${target}/pack/lib" "$${target}/vamp-$${version}/." && \
 	mv $$(find "$${target}/vamp-$${version}/lib" -name "vamp-*-$${version}.jar") "$${target}/vamp-$${version}/." && \
-	cd $${target} && tar -czvf "vamp-$${version}.tar.gz" "vamp-$${version}"
+	docker volume create packer && \
+	docker run \
+    --name packer \
+    --interactive \
+    --volume $${target}/vamp-$${version}:/usr/local/src \
+    --volume packer:/usr/local/stash \
+    $(BUILD_PACKER) \
+      vamp $${version} && \
+  docker rm packer
 
 .PHONY: clean
 clean:
