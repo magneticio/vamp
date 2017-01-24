@@ -57,9 +57,7 @@ build:
 		"project pulse" publish-local-katana \
 		"project http_api" publish-local-katana \
 		"project gateway_driver" publish-local-katana
-	if [ "$$(git describe --tags)" = "$$(git describe --abbrev=0)" ] ; \
-		then sbt publish-local ; \
-	fi
+	sbt publish-local
 
 .PHONY: pack
 pack:

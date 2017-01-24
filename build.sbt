@@ -125,14 +125,7 @@ lazy val bootstrap = project.settings(bintraySetting: _*).settings(packAutoSetti
   description := "Bootstrap for Vamp",
   name := "vamp-bootstrap",
   formatting
-).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, pulse, http_api, gateway_driver, lifter)
-
-lazy val lifter = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
-  description := "Lifter for Vamp",
-  name := "vamp-lifter",
-  formatting,
-  libraryDependencies ++= testing
-).dependsOn(common, persistence, pulse, gateway_driver, container_driver, operation)
+).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, pulse, http_api, gateway_driver)
 
 lazy val http_api = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
   description := "Http Api for Vamp",

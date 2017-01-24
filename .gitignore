@@ -1,3 +1,4 @@
+classes
 conf/artifacts/
 conf/application*.conf
 Makefile.local
