@@ -17,7 +17,7 @@ scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.prefer
   .setPreference(DanglingCloseParenthesis, Preserve)
   .setPreference(RewriteArrowSymbols, true))
 
-lazy val root = project.in(sbt.file(".")).settings(packAutoSettings).settings(
+lazy val root = project.in(sbt.file(".")).settings(packAutoSettings ++ Seq(packExcludeJars := Seq("scala-.*\\.jar"))).settings(
   libraryDependencies += "io.vamp" %% "vamp-operation" % "katana" % "provided"
 )
 
