@@ -7,7 +7,6 @@ import io.vamp.operation.notification._
 import io.vamp.persistence.kv.KeyValueStoreActor
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.util.Try
 
 object ConfigurationLoaderActor {
@@ -37,8 +36,9 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
 
   override def preStart() = {
     if (Config.boolean("vamp.operation.reload-configuration")()) {
+      val delay = Config.duration("vamp.operation.reload-configuration-delay")()
       log.info("Getting configuration update from key-value store")
-      context.system.scheduler.scheduleOnce(Duration.Zero, self, Reload)
+      context.system.scheduler.scheduleOnce(delay, self, Reload)
     }
   }
 
@@ -70,6 +70,7 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
       Config.load(config)
       actorSystem.actorSelection("/user/vamp") ! "reload"
     }
+
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get("configuration" :: Nil) map {
       case Some(content: String) if content != Config.marshall(Config.export(Config.Type.dynamic)) ⇒ reload(Config.unmarshall(content))
       case None if Config.export(Config.Type.dynamic).nonEmpty ⇒ reload(Map())
