@@ -3,7 +3,7 @@ package io.vamp.lifter.persistence
 import io.vamp.lifter.elasticsearch.ElasticsearchInitializationActor
 import io.vamp.lifter.elasticsearch.ElasticsearchInitializationActor.TemplateDefinition
 import io.vamp.lifter.notification.LifterNotificationProvider
-import io.vamp.persistence.db.ElasticsearchPersistenceActor
+import io.vamp.persistence.ElasticsearchPersistenceActor
 
 import scala.io.Source
 

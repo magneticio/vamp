@@ -18,7 +18,10 @@ scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.prefer
   .setPreference(RewriteArrowSymbols, true))
 
 lazy val root = project.in(sbt.file(".")).settings(packAutoSettings ++ Seq(packExcludeJars := Seq("scala-.*\\.jar"))).settings(
-  libraryDependencies += "io.vamp" %% "vamp-operation" % "katana" % "provided"
+  libraryDependencies ++= Seq(
+    "io.vamp" %% "vamp-operation" % "katana" % "provided",
+    "io.vamp" %% "vamp-elasticsearch" % "katana" % "provided"
+  )
 )
 
 scalacOptions += "-target:jvm-1.8"

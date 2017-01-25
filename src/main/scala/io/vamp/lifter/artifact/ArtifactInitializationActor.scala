@@ -14,7 +14,7 @@ import io.vamp.model.artifact.{ DefaultBreed, Deployable }
 import io.vamp.model.reader.WorkflowReader
 import io.vamp.operation.controller.{ ArtifactApiController, DeploymentApiController }
 import io.vamp.operation.notification.InternalServerError
-import io.vamp.persistence.db.PersistenceActor
+import io.vamp.persistence.PersistenceActor
 import io.vamp.workflow_driver.JavaScriptDeployableType
 
 import scala.concurrent.Future
