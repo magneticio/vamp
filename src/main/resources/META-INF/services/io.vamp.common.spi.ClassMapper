@@ -1,1 +1,1 @@
-consul.EtcdStoreActorMapper
+io.vamp.persistence.etcd.EtcdStoreActorMapper
