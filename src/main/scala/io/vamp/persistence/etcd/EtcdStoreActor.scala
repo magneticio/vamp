@@ -1,8 +1,9 @@
-package io.vamp.persistence.kv
+package io.vamp.persistence.etcd
 
 import akka.http.scaladsl.model._
 import io.vamp.common.config.Config
 import io.vamp.common.spi.ClassMapper
+import io.vamp.persistence.KeyValueStoreActor
 
 import scala.concurrent.Future
 
