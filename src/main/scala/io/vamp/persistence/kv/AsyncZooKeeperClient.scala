@@ -301,8 +301,7 @@ class AsyncZooKeeperClientImpl(
     try {
       isAliveSync
       Await.result(createPath(""), 10 seconds)
-    }
-    catch {
+    } catch {
       case e: Exception ⇒
         log.error("Could not connect to zookeeper ensemble: " + servers + ". Connection timed out after " + connectTimeout + " milliseconds!", e)
 
@@ -378,8 +377,7 @@ class AsyncZooKeeperClientImpl(
   override def isAliveSync: Boolean = try {
     zk.exists("/", false)
     true
-  }
-  catch {
+  } catch {
     case e: Exception ⇒
       log.warn("ZK not connected in isAliveSync", e)
       false
@@ -453,8 +451,7 @@ class AsyncZooKeeperClientImpl(
       deleteChildren(path, ctx) flatMap {
         _ ⇒ delete(path, version, ctx)
       }
-    }
-    else {
+    } else {
       val p = Promise[VoidResponse]()
       zk.delete(mkPath(path), version, (rc: Int, path: String, ignore: Any) ⇒ {
         handleResponse(rc, path, p, null, ctx) {

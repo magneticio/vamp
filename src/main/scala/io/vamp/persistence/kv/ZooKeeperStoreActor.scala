@@ -145,8 +145,7 @@ trait ZooKeeperServerStatistics {
           while (line != null && !line.startsWith(marker)) line = reader.readLine
           if (line == null) "" else line.substring(marker.length)
 
-        }
-        finally {
+        } finally {
           sock.close()
           if (reader != null) reader.close()
         }

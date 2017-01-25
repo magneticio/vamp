@@ -1,6 +1,1 @@
-io.vamp.persistence.db.InMemoryPersistenceActorMapper
-io.vamp.persistence.db.KeyValuePersistenceActorMapper
-io.vamp.persistence.db.ElasticsearchPersistenceActorMapper
-io.vamp.persistence.kv.EtcdStoreActorMapper
-io.vamp.persistence.kv.ConsulStoreActorMapper
 io.vamp.persistence.kv.ZooKeeperStoreActorMapper
