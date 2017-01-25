@@ -1,10 +1,11 @@
-package io.vamp.persistence.kv
+package io.vamp.persistence.consul
 
 import java.util.Base64
 
 import akka.http.scaladsl.model.ContentTypes
 import io.vamp.common.config.Config
 import io.vamp.common.spi.ClassMapper
+import io.vamp.persistence.KeyValueStoreActor
 
 import scala.concurrent.Future
 
