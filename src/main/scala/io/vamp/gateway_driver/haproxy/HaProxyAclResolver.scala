@@ -17,8 +17,7 @@ trait HaProxyAclResolver extends ConditionDefinitionParser with BooleanFlatter {
     val reader = Source.fromURL(getClass.getResource("/io/vamp/gateway_driver/haproxy/user-agents.yml")).bufferedReader()
     try {
       new Yaml().load(reader).asInstanceOf[java.util.Map[String, String]].asScala.map { case (k, v) ⇒ k.toUpperCase → v }
-    }
-    finally {
+    } finally {
       reader.close()
     }
   }
