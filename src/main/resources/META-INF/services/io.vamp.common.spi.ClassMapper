@@ -1,1 +1,1 @@
-consul.ConsulStoreActorMapper
+io.vamp.persistence.consul.ConsulStoreActorMapper
