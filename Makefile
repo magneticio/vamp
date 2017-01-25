@@ -38,7 +38,8 @@ default:
 		--env BUILD_UID=$(shell id -u) \
 		--env BUILD_GID=$(shell id -g) \
 		$(BUILD_SERVER) \
-			make clean test build pack
+			make clean test build
+	make pack
 
 .PHONY: test
 test:
