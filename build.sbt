@@ -69,11 +69,7 @@ val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.16" ::
   "ch.megard" %% "akka-http-cors" % "0.1.10" ::
   ("com.typesafe.akka" %% "akka-slf4j" % "2.4.16" exclude("org.slf4j", "slf4j-api")) :: Nil
 
-val docker = "com.spotify" % "docker-client" % "5.0.1" :: Nil
-
 val zookeeper = ("org.apache.zookeeper" % "zookeeper" % "3.4.8" exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j")) :: Nil
-
-val async = "org.scala-lang.modules" %% "scala-async" % "0.9.2" :: Nil
 
 val jtwig = "org.jtwig" % "jtwig-core" % "5.57" :: Nil
 
@@ -159,7 +155,7 @@ lazy val container_driver = project.settings(bintraySetting: _*).settings(comman
   description := "Enables Vamp to talk to container managers",
   name := "vamp-container_driver",
   formatting,
-  libraryDependencies ++= docker ++ testing
+  libraryDependencies ++= testing
 ).dependsOn(model, persistence, pulse)
 
 lazy val workflow_driver = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
