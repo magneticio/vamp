@@ -1,8 +1,0 @@
-UnsupportedPulseDriverError             : "Unsupported pulse driver: {name}."
-UnsupportedPulseRequest                 : "Unsupported pulse request."
-PulseResponseError                      : "Pulse response error."
-
-EventQueryError                         : "Event query error, check request format."
-EventIndexError                         : "An error occured during event indexing."
-
-ElasticsearchInitializationTimeoutError$: "Elasticsearch initialization timeout."
