@@ -1,6 +1,0 @@
-
-Chrome  : "< hdr_sub(user-agent) Chrome >"
-Firefox : "< hdr_sub(user-agent) Firefox >"
-Safari  : "< hdr_sub(user-agent) Safari > and < hdr_sub(user-agent) Version >"
-Edge    : "< hdr_sub(user-agent) Edge >"
-IE      : "< hdr_sub(user-agent) MSIE >"
