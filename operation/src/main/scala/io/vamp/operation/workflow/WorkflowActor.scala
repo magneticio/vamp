@@ -8,8 +8,7 @@ import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.operation.notification._
-import io.vamp.persistence.db.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
-import io.vamp.persistence.kv.KeyValueStoreActor
+import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, KeyValueStoreActor, PersistenceActor }
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
@@ -28,7 +27,7 @@ object WorkflowActor {
 class WorkflowActor extends WorkflowDeployable with ArtifactPaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
 
   import PersistenceActor.ResetWorkflow
-  import PersistenceActor.UpdateWorkflowStatus
+  import io.vamp.persistence.PersistenceActor.UpdateWorkflowStatus
   import PulseEventTags.Workflows._
   import WorkflowActor._
 

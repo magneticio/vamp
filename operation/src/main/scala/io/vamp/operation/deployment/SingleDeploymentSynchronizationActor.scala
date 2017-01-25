@@ -11,7 +11,7 @@ import io.vamp.model.event.Event
 import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification.OperationNotificationProvider
-import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
 

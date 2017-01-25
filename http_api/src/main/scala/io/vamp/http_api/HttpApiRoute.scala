@@ -12,7 +12,7 @@ import io.vamp.http_api.ws.WebSocketRoute
 import io.vamp.model.artifact.Artifact
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.operation.controller.ArtifactApiController
-import io.vamp.persistence.db.ArtifactPaginationSupport
+import io.vamp.persistence.ArtifactPaginationSupport
 import org.json4s.Formats
 
 import scala.concurrent.ExecutionContext

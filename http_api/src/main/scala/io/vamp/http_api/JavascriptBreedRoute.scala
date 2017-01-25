@@ -10,7 +10,7 @@ import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact.{ DefaultBreed, Deployable }
-import io.vamp.persistence.db.PersistenceActor
+import io.vamp.persistence.PersistenceActor
 import io.vamp.workflow_driver.JavaScriptDeployableType
 
 import scala.concurrent.Future

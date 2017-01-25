@@ -1,4 +1,4 @@
-package io.vamp.persistence.db
+package io.vamp.persistence
 
 import java.lang.ref.SoftReference
 import java.util.concurrent.ConcurrentHashMap

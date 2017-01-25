@@ -10,8 +10,7 @@ import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, J
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.model.Model
-import io.vamp.persistence.db.PersistenceActor
-import io.vamp.persistence.kv.KeyValueStoreActor
+import io.vamp.persistence.{ KeyValueStoreActor, PersistenceActor }
 import io.vamp.pulse.PulseActor
 import io.vamp.workflow_driver.WorkflowDriverActor
 

@@ -1,11 +1,10 @@
-package io.vamp.persistence.db
+package io.vamp.persistence
 
 import akka.pattern.ask
 import io.vamp.common.akka.IoC
 import io.vamp.common.config.Config
 import io.vamp.common.spi.ClassMapper
 import io.vamp.model.artifact._
-import io.vamp.persistence.kv.KeyValueStoreActor
 
 import scala.concurrent.Future
 

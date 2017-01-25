@@ -14,7 +14,7 @@ import io.vamp.model.resolver.DeploymentTraitResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
-import io.vamp.persistence.db.{ PersistenceActor, _ }
+import io.vamp.persistence.{ ArtifactExpansionSupport, ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 
 import scala.concurrent.Future
 

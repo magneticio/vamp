@@ -4,7 +4,7 @@ import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.common.config.Config
 import io.vamp.operation.notification._
-import io.vamp.persistence.kv.KeyValueStoreActor
+import io.vamp.persistence.KeyValueStoreActor
 
 import scala.concurrent.Future
 import scala.util.Try

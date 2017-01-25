@@ -1,4 +1,4 @@
-package io.vamp.persistence.db
+package io.vamp.persistence
 
 import akka.pattern.ask
 import akka.util.Timeout
@@ -7,11 +7,11 @@ import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact.Artifact
 import io.vamp.model.event.{ Event, EventQuery }
-import io.vamp.persistence.notification.PersistenceOperationFailure
 import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
 
 import scala.concurrent.Future
 import scala.reflect._
+import _root_.io.vamp.persistence.notification.PersistenceOperationFailure
 
 trait PaginationSupport {
   this: ExecutionContextProvider ⇒

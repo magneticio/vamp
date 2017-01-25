@@ -1,3 +1,2 @@
-io.vamp.persistence.db.InMemoryPersistenceActorMapper
-io.vamp.persistence.db.KeyValuePersistenceActorMapper
-io.vamp.persistence.db.ElasticsearchPersistenceActorMapper
+io.vamp.persistence.InMemoryPersistenceActorMapper
+io.vamp.persistence.KeyValuePersistenceActorMapper

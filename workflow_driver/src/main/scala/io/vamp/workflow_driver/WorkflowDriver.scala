@@ -10,7 +10,7 @@ import io.vamp.container_driver.{ ContainerDriverActor, DeployableType, Docker }
 import io.vamp.model.artifact.{ Deployable, _ }
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.TraitResolver
-import io.vamp.persistence.db.{ ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.{ ArtifactSupport, PersistenceActor }
 import io.vamp.pulse.notification.PulseFailureNotifier
 import io.vamp.workflow_driver.WorkflowDriverActor.{ GetScheduled, Schedule, Unschedule }
 import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider

@@ -12,8 +12,8 @@ import io.vamp.model.notification.InconsistentArtifactName
 import io.vamp.model.reader.{ YamlReader, _ }
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification.UnexpectedArtifact
-import io.vamp.persistence.db._
 import io.vamp.persistence.notification.PersistenceOperationFailure
+import io.vamp.persistence.{ ArtifactExpansionSupport, ArtifactResponseEnvelope, PersistenceActor }
 
 import scala.concurrent.Future
 

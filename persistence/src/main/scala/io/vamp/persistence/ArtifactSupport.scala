@@ -1,4 +1,4 @@
-package io.vamp.persistence.db
+package io.vamp.persistence
 
 import io.vamp.persistence.notification.{ ArtifactNotFound, PersistenceOperationFailure }
 import akka.pattern.ask

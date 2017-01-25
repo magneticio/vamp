@@ -13,7 +13,7 @@ import io.vamp.model.event.{ Aggregator, Event, EventQuery, TimeRange, _ }
 import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
 import io.vamp.operation.notification._
 import io.vamp.operation.sla.SlaActor.SlaProcessAll
-import io.vamp.persistence.db.{ ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor }
+import io.vamp.persistence.{ ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
 

@@ -7,8 +7,7 @@ import io.vamp.common.vitals.InfoRequest
 import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
-import io.vamp.persistence.db.PersistenceMarshaller
-import io.vamp.persistence.kv.KeyValueStoreActor
+import io.vamp.persistence.{ KeyValueStoreActor, PersistenceMarshaller }
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.notification.PulseFailureNotifier

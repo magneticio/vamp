@@ -6,7 +6,7 @@ import io.vamp.common.akka.IoC.actorFor
 import io.vamp.container_driver.ContainerDriverActor.{ DeployWorkflow, GetWorkflow, UndeployWorkflow }
 import io.vamp.container_driver.ContainerWorkflow
 import io.vamp.model.artifact.{ DaemonSchedule, DefaultBreed, Instance, Workflow }
-import io.vamp.persistence.db.PersistenceActor
+import io.vamp.persistence.PersistenceActor
 
 import scala.concurrent.Future
 

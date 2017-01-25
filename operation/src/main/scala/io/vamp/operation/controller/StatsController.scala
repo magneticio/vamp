@@ -8,7 +8,7 @@ import io.vamp.common.akka.{ ActorSystemProvider, DataRetrieval, ExecutionContex
 import io.vamp.common.config.Config
 import io.vamp.common.vitals.{ JmxVitalsProvider, JvmVitals, StatsRequest }
 import io.vamp.operation.metrics.KamonMetricsActor
-import io.vamp.persistence.db.PersistenceActor
+import io.vamp.persistence.PersistenceActor
 import io.vamp.pulse.PulseActor
 
 import scala.concurrent.Future

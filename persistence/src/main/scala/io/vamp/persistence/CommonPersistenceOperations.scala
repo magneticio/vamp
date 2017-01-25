@@ -1,4 +1,4 @@
-package io.vamp.persistence.db
+package io.vamp.persistence
 
 import akka.actor.Actor
 import io.vamp.common.akka.CommonSupportForActors

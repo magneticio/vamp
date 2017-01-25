@@ -9,7 +9,7 @@ import io.vamp.common.http.HttpApiDirectives
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.operation.config.ConfigurationLoaderActor
-import io.vamp.persistence.kv.KeyValueStoreActor
+import io.vamp.persistence.KeyValueStoreActor
 
 import scala.concurrent.Future
 

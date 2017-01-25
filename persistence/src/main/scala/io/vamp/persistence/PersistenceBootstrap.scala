@@ -3,8 +3,6 @@ package io.vamp.persistence
 import akka.actor.{ ActorRef, ActorSystem }
 import io.vamp.common.akka.ActorBootstrap
 import io.vamp.common.config.Config
-import io.vamp.persistence.db.PersistenceActor
-import io.vamp.persistence.kv.KeyValueStoreActor
 
 object PersistenceBootstrap {
   val databaseType = () ⇒ Config.string("vamp.persistence.database.type")().toLowerCase

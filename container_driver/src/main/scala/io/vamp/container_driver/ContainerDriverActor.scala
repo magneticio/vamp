@@ -7,7 +7,7 @@ import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.Notification
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
 import io.vamp.model.artifact.{ Deployment, _ }
-import io.vamp.persistence.db.PersistenceActor
+import io.vamp.persistence.PersistenceActor
 import io.vamp.pulse.notification.PulseFailureNotifier
 
 import scala.concurrent.Future

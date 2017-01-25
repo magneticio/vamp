@@ -7,7 +7,7 @@ import io.vamp.common.config.Config
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ GatewayRouteValidation, Percentage }
 import io.vamp.operation.notification._
-import io.vamp.persistence.db.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
 
 import scala.concurrent.Future
 import scala.util.Try

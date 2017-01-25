@@ -6,7 +6,7 @@ import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.operation.controller.DeploymentApiController
-import io.vamp.persistence.db.ArtifactPaginationSupport
+import io.vamp.persistence.ArtifactPaginationSupport
 
 trait DeploymentApiRoute extends DeploymentApiController {
   this: ArtifactPaginationSupport with ExecutionContextProvider with ActorSystemProvider with HttpApiDirectives with NotificationProvider ⇒

@@ -1,4 +1,4 @@
-package io.vamp.persistence.db
+package io.vamp.persistence
 
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
