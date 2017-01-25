@@ -9,10 +9,10 @@ import io.vamp.model.artifact.TimeSchedule.RepeatCount
 import io.vamp.model.artifact.Workflow.Status
 import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
-import io.vamp.persistence.db.PersistenceActor
 import io.vamp.pulse.Percolator.GetPercolator
 import io.vamp.pulse.PulseActor
 import akka.pattern.ask
+import io.vamp.persistence.PersistenceActor
 
 import scala.concurrent.Future
 
