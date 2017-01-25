@@ -8,46 +8,13 @@ organization in ThisBuild := "io.vamp"
 
 name := """vamp"""
 
-version in ThisBuild := VersionHelper.versionByTag // version based on "git describe"
+version in ThisBuild := VersionHelper.versionByTag // version based on env VAMP_VERSION and "git describe"
 
 scalaVersion := "2.12.1"
 
 scalaVersion in ThisBuild := scalaVersion.value
 
-publishMavenStyle in ThisBuild := false
-
 description in ThisBuild := """Vamp"""
-
-pomExtra in ThisBuild := <url>http://vamp.io</url>
-  <licenses>
-    <license>
-      <name>The Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-    </license>
-  </licenses>
-  <developers>
-    <developer>
-      <name>Dragoslav Pavkovic</name>
-      <email>drago@magnetic.io</email>
-      <organization>VAMP</organization>
-      <organizationUrl>http://vamp.io</organizationUrl>
-    </developer>
-    <developer>
-      <name>Matthijs Dekker</name>
-      <email>matthijs@magnetic.io</email>
-      <organization>VAMP</organization>
-      <organizationUrl>http://vamp.io</organizationUrl>
-    </developer>
-  </developers>
-  <scm>
-    <connection>scm:git:git@github.com:magneticio/vamp.git</connection>
-    <developerConnection>scm:git:git@github.com:magneticio/vamp.git</developerConnection>
-    <url>git@github.com:magneticio/vamp.git</url>
-  </scm>
-
-
-//
-resolvers in ThisBuild += Resolver.url("magnetic-io ivy resolver", url("http://dl.bintray.com/magnetic-io/vamp"))(Resolver.ivyStylePatterns)
 
 resolvers in ThisBuild ++= Seq(
   Resolver.typesafeRepo("releases"),
@@ -106,7 +73,7 @@ lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := 
   .setPreference(DanglingCloseParenthesis, Preserve)
   .setPreference(RewriteArrowSymbols, true))
 
-lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
+lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
   // Disable publishing root empty pom
   packagedArtifacts in RootProject(file(".")) := Map.empty,
   // allows running main classes from subprojects
@@ -117,69 +84,69 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(comm
   common, persistence, model, operation, bootstrap, container_driver, workflow_driver, pulse, http_api, gateway_driver
 )
 
-lazy val bootstrap = project.settings(bintraySetting: _*).settings(packAutoSettings).settings(commands += publishLocalKatana).settings(
+lazy val bootstrap = project.settings(bintraySetting: _*).settings(packAutoSettings).settings(
   description := "Bootstrap for Vamp",
   name := "vamp-bootstrap",
   formatting
 ).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, pulse, http_api, gateway_driver)
 
-lazy val http_api = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
+lazy val http_api = project.settings(bintraySetting: _*).settings(
   description := "Http Api for Vamp",
   name := "vamp-http_api",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(operation)
 
-lazy val operation = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
+lazy val operation = project.settings(bintraySetting: _*).settings(
   description := "The control center of Vamp",
   name := "vamp-operation",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(persistence, container_driver, workflow_driver, gateway_driver, pulse)
 
-lazy val pulse = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
+lazy val pulse = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
   name := "vamp-pulse",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(model)
 
-lazy val gateway_driver = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
+lazy val gateway_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to Vamp Gateway Agent",
   name := "vamp-gateway_driver",
   formatting,
   libraryDependencies ++= jtwig ++ testing
 ).dependsOn(model, pulse, persistence)
 
-lazy val container_driver = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
+lazy val container_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to container managers",
   name := "vamp-container_driver",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(model, persistence, pulse)
 
-lazy val workflow_driver = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
+lazy val workflow_driver = project.settings(bintraySetting: _*).settings(
   description := "Enables Vamp to talk to workflow managers",
   name := "vamp-workflow_driver",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(model, pulse, persistence, container_driver)
 
-lazy val persistence = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
+lazy val persistence = project.settings(bintraySetting: _*).settings(
   description := "Stores Vamp artifacts",
   name := "vamp-persistence",
   formatting,
   libraryDependencies ++= zookeeper ++ testing
 ).dependsOn(model, pulse)
 
-lazy val model = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
+lazy val model = project.settings(bintraySetting: _*).settings(
   description := "Definitions of Vamp artifacts",
   name := "vamp-model",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(common)
 
-lazy val common = project.settings(bintraySetting: _*).settings(commands += publishLocalKatana).settings(
+lazy val common = project.settings(bintraySetting: _*).settings(
   description := "Vamp common",
   name := "vamp-common",
   formatting,
@@ -194,10 +161,3 @@ javacOptions ++= Seq("-encoding", "UTF-8")
 scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation, Opts.compile.unchecked) ++
   Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint", "-feature")
 
-//
-
-def publishLocalKatana = Command.command("publish-local-katana") { state =>
-  val extracted = Project extract state
-  val newState = extracted.append(Seq(version := "katana", isSnapshot := true), state)
-  Project.extract(newState).runTask(publishLocal in Compile, newState)._1
-}

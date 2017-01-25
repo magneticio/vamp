@@ -47,22 +47,11 @@ test:
 
 .PHONY: build
 build:
-	sbt package \
-		"project common" publish-local-katana \
-		"project persistence" publish-local-katana \
-		"project model" publish-local-katana \
-		"project operation" publish-local-katana \
-		"project bootstrap" publish-local-katana \
-		"project container_driver" publish-local-katana \
-		"project workflow_driver" publish-local-katana \
-		"project pulse" publish-local-katana \
-		"project http_api" publish-local-katana \
-		"project gateway_driver" publish-local-katana
-	sbt publish-local
+	sbt package
 
 .PHONY: pack
 pack:
-	make build
+	export VAMP_VERSION="katana" && sbt package publish-local
 	sbt "project bootstrap" pack
 	rm -rf  $(TARGET)/vamp-$(VERSION)
 	mkdir -p $(TARGET)/vamp-$(VERSION)
