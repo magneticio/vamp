@@ -12,5 +12,3 @@ case class ContainerResponseError(reason: Any) extends Notification with ErrorNo
 case class UnsupportedDeployableType(`type`: String, supported: String) extends Notification
 
 object UndefinedDockerImage extends Notification
-
-object UndefinedMarathonApplication extends Notification

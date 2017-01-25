@@ -1,5 +1,3 @@
 io.vamp.workflow_driver.DockerWorkflowActorMapper
-io.vamp.workflow_driver.ChronosWorkflowActorMapper
 io.vamp.workflow_driver.KubernetesWorkflowActorMapper
-io.vamp.workflow_driver.MarathonWorkflowActorMapper
 io.vamp.workflow_driver.RancherWorkflowActorMapper
