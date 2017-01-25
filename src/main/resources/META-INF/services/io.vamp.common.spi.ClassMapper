@@ -1,1 +1,1 @@
-consul.ZooKeeperStoreActorMapper
+io.vamp.persistence.zookeeper.ZooKeeperStoreActorMapper
