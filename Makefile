@@ -62,6 +62,7 @@ build:
 
 .PHONY: pack
 pack:
+	make build
 	sbt "project bootstrap" pack
 	rm -rf  $(TARGET)/vamp-$(VERSION)
 	mkdir -p $(TARGET)/vamp-$(VERSION)
