@@ -1,5 +1,6 @@
 package io.vamp.container_driver.marathon
 
+import akka.actor.ActorRef
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.config.Config
 import io.vamp.common.crypto.Hash
@@ -7,6 +8,7 @@ import io.vamp.common.http.HttpClient
 import io.vamp.common.spi.ClassMapper
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver._
+import io.vamp.container_driver.marathon.MarathonDriverActor.marathonUrl
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
@@ -46,7 +48,7 @@ case class MesosInfo(frameworks: Any, slaves: Any)
 
 case class MarathonDriverInfo(mesos: MesosInfo, marathon: Any)
 
-class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with MarathonSse with ActorExecutionContextProvider with ContainerDriver {
+class MarathonDriverActor extends ContainerDriverActor with MarathonSse with ActorExecutionContextProvider with ContainerDriver {
 
   import ContainerDriverActor._
 
@@ -72,21 +74,21 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
 
   override protected def supportedDeployableTypes = DockerDeployableType :: CommandDeployableType :: Nil
 
-  override def receive = super[ContainerBuffer].receive orElse {
+  override def receive = {
 
-    case InfoRequest                ⇒ reply(info)
+    case InfoRequest                    ⇒ reply(info)
 
-    case r: ReconcileService        ⇒ reconcile(r.deployment, r.service)
+    case Get(services)                  ⇒ get(services)
+    case d: Deploy                      ⇒ reply(deploy(d.deployment, d.cluster, d.service, d.update))
+    case u: Undeploy                    ⇒ reply(undeploy(u.deployment, u.service))
+    case DeployedGateways(gateways)     ⇒ reply(deployedGateways(gateways))
 
-    case r: ReconcileWorkflow       ⇒ reconcile(r.workflow)
+    case GetWorkflow(workflow, replyTo) ⇒ get(workflow, replyTo)
+    case d: DeployWorkflow              ⇒ reply(deploy(d.workflow, d.update))
+    case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
 
-    case DeployedGateways(gateways) ⇒ reply(deployedGateways(gateways))
-
-    case any                        ⇒ unsupported(UnsupportedContainerDriverRequest(any))
+    case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
-
-  @scala.throws[Exception](classOf[Exception])
-  override def preStart(): Unit = if (MarathonDriverActor.sse()) openEventStream(url)
 
   private def info: Future[Any] = {
 
@@ -113,7 +115,36 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
     }
   }
 
-  override protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
+  private def get(deploymentServices: List[DeploymentServices]): Unit = {
+    val replyTo = sender()
+    httpClient.get[AppsResponse](s"$url/v2/apps?embed=apps.tasks", headers).map { apps ⇒
+      val deployed = apps.apps.map(app ⇒ app.id → app).toMap
+      deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
+        case (deployment, service) ⇒
+          deployed.get(appId(deployment, service.breed)) match {
+            case Some(app) ⇒ replyTo ! ContainerService(deployment, service, Option(containers(app)))
+            case None      ⇒ replyTo ! ContainerService(deployment, service, None)
+          }
+      }
+    }
+  }
+
+  private def get(workflow: Workflow, replyTo: ActorRef): Unit = {
+    log.debug(s"marathon reconcile workflow: ${workflow.name}")
+    get(appId(workflow)).foreach {
+      case Some(containers) ⇒ replyTo ! ContainerWorkflow(workflow, Option(containers))
+      case _                ⇒ replyTo ! ContainerWorkflow(workflow, None)
+    }
+  }
+
+  private def get(id: String): Future[Option[Containers]] = {
+    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks", headers, logError = false) recover { case _ ⇒ None } map {
+      case apps: AppsResponse ⇒ apps.apps.find(app ⇒ app.id == id).map(containers)
+      case _                  ⇒ None
+    }
+  }
+
+  private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
 
     validateDeployable(service.breed.deployable)
 
@@ -135,7 +166,7 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
     sendRequest(update, id, requestPayload(deployment, cluster, service, purge(app)))
   }
 
-  override protected def deploy(workflow: Workflow, update: Boolean): Future[Any] = {
+  private def deploy(workflow: Workflow, update: Boolean): Future[Any] = {
 
     validateDeployable(workflow.breed.asInstanceOf[DefaultBreed].deployable)
 
@@ -213,39 +244,16 @@ class MarathonDriverActor extends ContainerDriverActor with ContainerBuffer with
     Extraction.decompose(interpolate(deployment, local, dialect)) merge Extraction.decompose(app)
   }
 
-  override protected def undeploy(deployment: Deployment, service: DeploymentService) = {
+  private def undeploy(deployment: Deployment, service: DeploymentService) = {
     val id = appId(deployment, service.breed)
     log.info(s"marathon delete app: $id")
     httpClient.delete(s"$url/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None }
   }
 
-  override protected def undeploy(workflow: Workflow) = {
+  private def undeploy(workflow: Workflow) = {
     val id = appId(workflow)
     log.info(s"marathon delete workflow: ${workflow.name}")
     httpClient.delete(s"$url/v2/apps/$id", headers, logError = false) recover { case _ ⇒ None }
-  }
-
-  private def reconcile(deployment: Deployment, service: DeploymentService): Unit = {
-    log.debug(s"marathon reconcile: ${deployment.name} / ${service.breed.name}")
-    reconcile(appId(deployment, service.breed)).foreach {
-      case Some(containers) ⇒ self ! ContainerService(deployment, service, Option(containers))
-      case _                ⇒ self ! ContainerService(deployment, service, None)
-    }
-  }
-
-  private def reconcile(workflow: Workflow): Unit = {
-    log.debug(s"marathon reconcile workflow: ${workflow.name}")
-    reconcile(appId(workflow)).foreach {
-      case Some(containers) ⇒ self ! ContainerWorkflow(workflow, Option(containers))
-      case _                ⇒ self ! ContainerWorkflow(workflow, None)
-    }
-  }
-
-  private def reconcile(id: String): Future[Option[Containers]] = {
-    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks", headers, logError = false) recover { case _ ⇒ None } map {
-      case apps: AppsResponse ⇒ apps.apps.find(app ⇒ app.id == id).map(containers)
-      case _                  ⇒ None
-    }
   }
 
   private def containers(app: App): Containers = {
