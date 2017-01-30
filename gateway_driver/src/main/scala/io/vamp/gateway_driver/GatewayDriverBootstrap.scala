@@ -17,6 +17,8 @@ class GatewayDriverBootstrap extends ActorBootstrap {
         val name = config.asInstanceOf[Map[String, String]]("name").trim
         val clazz = config.asInstanceOf[Map[String, String]].get("type").flatMap(ClassProvider.find[GatewayMarshaller]).get
 
+        logger.info(s"Gateway marshaller: ${config.asInstanceOf[Map[String, String]].getOrElse("type", "")}")
+
         val template = config.asInstanceOf[Map[String, Map[String, AnyRef]]].getOrElse("template", Map())
         val file = template.get("file").map(_.asInstanceOf[String].trim).getOrElse("")
         val resource = template.get("resource").map(_.asInstanceOf[String].trim).getOrElse("")

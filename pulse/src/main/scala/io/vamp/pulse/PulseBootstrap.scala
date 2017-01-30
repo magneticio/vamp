@@ -12,6 +12,7 @@ object PulseBootstrap {
 class PulseBootstrap extends ActorBootstrap with PulseNotificationProvider {
 
   def createActors(implicit actorSystem: ActorSystem) = {
+    logger.info(s"Pulse: ${PulseBootstrap.`type`()}")
     alias[PulseActor](PulseBootstrap.`type`(), (`type`: String) ⇒ {
       throwException(UnsupportedPulseDriverError(`type`))
     }) :: Nil

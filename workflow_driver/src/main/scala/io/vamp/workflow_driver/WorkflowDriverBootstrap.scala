@@ -21,6 +21,7 @@ class WorkflowDriverBootstrap extends ActorBootstrap with WorkflowDriverNotifica
       }
     }
 
+    types.foreach { t ⇒ logger.info(s"Workflow driver: $t") }
     IoC.createActor[WorkflowDriverActor](drivers) :: Nil
   }
 }

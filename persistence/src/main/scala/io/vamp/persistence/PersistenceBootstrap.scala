@@ -23,6 +23,9 @@ class PersistenceBootstrap extends ActorBootstrap {
       throw new RuntimeException(s"Unsupported key-value store type: ${`type`}")
     })
 
+    logger.info(s"Database: ${databaseType()}")
+    logger.info(s"KV store: ${keyValueStoreType()}")
+
     kvActor :: dbActor :: Nil
   }
 }

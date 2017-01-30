@@ -12,6 +12,7 @@ object ContainerDriverBootstrap {
 class ContainerDriverBootstrap extends ActorBootstrap with ContainerDriverNotificationProvider {
 
   def createActors(implicit actorSystem: ActorSystem) = {
+    logger.info(s"Container driver: ${ContainerDriverBootstrap.`type`()}")
     alias[ContainerDriverActor](ContainerDriverBootstrap.`type`(), (`type`: String) ⇒ {
       throwException(UnsupportedContainerDriverError(`type`))
     }) :: Nil
