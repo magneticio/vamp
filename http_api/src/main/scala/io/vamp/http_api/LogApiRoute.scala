@@ -20,8 +20,8 @@ trait LogApiRoute extends LogApiController with EventStreamMarshalling {
     pathEndOrSingleSlash {
       get {
         parameters('level.as[String] ? "") { level ⇒
-          parameters('logger.as[Option[String]]) { logger ⇒
-            complete(sourceLog(level, logger, sseKeepAliveTimeout))
+          parameters('logger.as[String] ? "") { logger ⇒
+            complete(sourceLog(level, if (logger.trim.isEmpty) None else Option(logger), sseKeepAliveTimeout))
           }
         }
       }
