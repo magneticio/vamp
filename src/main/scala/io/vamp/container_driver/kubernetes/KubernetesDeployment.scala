@@ -69,7 +69,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
   private def containers(id: String, item: KubernetesItem): Future[Option[Containers]] = {
     val ports = item.spec.template.flatMap(_.spec.containers.headOption).map(_.ports.map(_.containerPort)).getOrElse(Nil)
     val scale: Option[DefaultScale] = item.spec.template.flatMap(_.spec.containers.headOption).map(_.resources.requests).map(request ⇒
-      DefaultScale("", Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1)))
+      DefaultScale(Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1)))
 
     if (scale.isDefined) {
       httpClient.get[KubernetesApiResponse](pods(id, deploymentServiceIdLabel), apiHeaders).map { pods ⇒
