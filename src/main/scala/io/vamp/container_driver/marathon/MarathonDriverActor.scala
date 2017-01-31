@@ -8,7 +8,6 @@ import io.vamp.common.http.HttpClient
 import io.vamp.common.spi.ClassMapper
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver._
-import io.vamp.container_driver.marathon.MarathonDriverActor.marathonUrl
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
@@ -257,7 +256,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   }
 
   private def containers(app: App): Containers = {
-    val scale = DefaultScale("", Quantity(app.cpus), MegaByte(app.mem), app.instances)
+    val scale = DefaultScale(Quantity(app.cpus), MegaByte(app.mem), app.instances)
     val instances = app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined))
     Containers(scale, instances)
   }
