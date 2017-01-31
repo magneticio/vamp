@@ -350,5 +350,5 @@ private[docker] object DockerServiceScale {
 }
 
 private[docker] case class DockerServiceScale(name: String, instances: Int, cpu: Double, memory: Double) {
-  val toScale = DefaultScale(name, Quantity(cpu), MegaByte(memory), instances)
+  val toScale = DefaultScale(name, Map(), Quantity(cpu), MegaByte(memory), instances)
 }
