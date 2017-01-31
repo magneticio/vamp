@@ -22,6 +22,7 @@ case class GatewayService(host: String, port: Port)
 
 case class Gateway(
     name:         String,
+    metadata:     Map[String, Any],
     port:         Port,
     service:      Option[GatewayService],
     sticky:       Option[Gateway.Sticky.Value],
@@ -101,7 +102,7 @@ object DefaultRoute {
   val defaultBalance = "default"
 }
 
-case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], condition: Option[Condition], conditionStrength: Option[Percentage], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
+case class DefaultRoute(name: String, metadata: Map[String, Any], path: GatewayPath, weight: Option[Percentage], condition: Option[Condition], conditionStrength: Option[Percentage], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
 
   def definedCondition: Boolean = condition.isDefined && condition.forall(_.isInstanceOf[DefaultCondition])
 
@@ -117,9 +118,11 @@ sealed trait RouteTarget extends Artifact with Lookup {
   val kind = "target"
 }
 
-case class InternalRouteTarget(name: String, host: Option[String], port: Int) extends RouteTarget
+case class InternalRouteTarget(name: String, host: Option[String], port: Int) extends RouteTarget {
+  val metadata = Map()
+}
 
-case class ExternalRouteTarget(url: String) extends RouteTarget {
+case class ExternalRouteTarget(url: String, metadata: Map[String, Any]) extends RouteTarget {
   val name = url
 }
 
@@ -129,7 +132,7 @@ sealed trait Condition extends Artifact {
 
 case class ConditionReference(name: String) extends Reference with Condition
 
-case class DefaultCondition(name: String, definition: String) extends Condition
+case class DefaultCondition(name: String, metadata: Map[String, Any], definition: String) extends Condition
 
 sealed trait Rewrite extends Artifact {
   val kind = "rewrite"
@@ -149,6 +152,8 @@ object PathRewrite {
 
 case class PathRewrite(name: String, path: String, condition: String) extends Rewrite {
   val definition = s"$path if $condition"
+
+  val metadata: Map[String, Any] = Map()
 }
 
 object GatewayLookup {

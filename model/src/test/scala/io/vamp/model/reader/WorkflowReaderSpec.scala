@@ -26,7 +26,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "read daemon workflow with default breed" in {
     WorkflowReader.read(res("workflow/workflow2.yml")) should have(
       'name("logger"),
-      'breed(DefaultBreed("metrics", Deployable("magneticio/metrics:latest"), Nil, Nil, Nil, Nil, Map())),
+      'breed(DefaultBreed("metrics", Map(), Deployable("magneticio/metrics:latest"), Nil, Nil, Nil, Nil, Map())),
       'schedule(DaemonSchedule),
       'scale(None)
     )
@@ -118,7 +118,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'name("logger"),
       'breed(BreedReference("metrics")),
       'schedule(DaemonSchedule),
-      'scale(Some(DefaultScale("", Quantity(1), MegaByte(128), 2)))
+      'scale(Some(DefaultScale("", Map(), Quantity(1), MegaByte(128), 2)))
     )
   }
 
@@ -201,7 +201,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[MissingEnvironmentVariableError]({
       WorkflowReader.read(res("workflow/workflow22.yml"))
     }) should have(
-      'breed(DefaultBreed("metrics", Deployable("container/docker", "metrics"), Nil, List(EnvironmentVariable("HEAP", None, None, None)), Nil, Nil, Map())),
+      'breed(DefaultBreed("metrics", Map(), Deployable("container/docker", "metrics"), Nil, List(EnvironmentVariable("HEAP", None, None, None)), Nil, Nil, Map())),
       'name("HEAP")
     )
   }
@@ -210,7 +210,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[UnresolvedDependencyInTraitValueError]({
       WorkflowReader.read(res("workflow/workflow23.yml"))
     }) should have(
-      'breed(DefaultBreed("metrics", Deployable("container/docker", "metrics"), Nil, List(EnvironmentVariable("HEAP", None, Option("128MB"), None)), Nil, Nil, Map())),
+      'breed(DefaultBreed("metrics", Map(), Deployable("container/docker", "metrics"), Nil, List(EnvironmentVariable("HEAP", None, Option("128MB"), None)), Nil, Nil, Map())),
       'reference("THEME")
     )
   }

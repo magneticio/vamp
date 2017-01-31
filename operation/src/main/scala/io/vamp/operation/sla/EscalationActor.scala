@@ -60,7 +60,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
   private def check(from: OffsetDateTime, to: OffsetDateTime)(deployments: List[Deployment]): Unit = {
 
     def escalation(deployment: Deployment, cluster: DeploymentCluster, sla: Sla, escalate: Boolean) = {
-      escalateToOne(deployment, cluster, ToOneEscalation("", sla.escalations), escalate) match {
+      escalateToOne(deployment, cluster, ToOneEscalation("", Map(), sla.escalations), escalate) match {
         case Some(d) ⇒ actorFor[PersistenceActor] ! PersistenceActor.Update(d)
         case _       ⇒
       }
@@ -149,7 +149,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
         val scale = targetCluster.services.head.scale.get
         escalation match {
 
-          case ScaleInstancesEscalation(_, minimum, maximum, scaleBy, _) ⇒
+          case ScaleInstancesEscalation(_, _, minimum, maximum, scaleBy, _) ⇒
             val instances = if (escalate) scale.instances + scaleBy else scale.instances - scaleBy
             if (instances <= maximum && instances >= minimum) {
               log.info(s"scale instances: ${deployment.name}/${targetCluster.name} to $instances")
@@ -160,7 +160,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
               None
             }
 
-          case ScaleCpuEscalation(_, minimum, maximum, scaleBy, _) ⇒
+          case ScaleCpuEscalation(_, _, minimum, maximum, scaleBy, _) ⇒
             val cpu = if (escalate) scale.cpu.value + scaleBy else scale.cpu.value - scaleBy
             if (cpu <= maximum && cpu >= minimum) {
               log.info(s"scale cpu: ${deployment.name}/${targetCluster.name} to $cpu")
@@ -171,7 +171,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
               None
             }
 
-          case ScaleMemoryEscalation(_, minimum, maximum, scaleBy, _) ⇒
+          case ScaleMemoryEscalation(_, _, minimum, maximum, scaleBy, _) ⇒
             val memory = if (escalate) scale.memory.value + scaleBy else scale.memory.value - scaleBy
             if (memory <= maximum && memory >= minimum) {
               log.info(s"scale memory: ${deployment.name}/${targetCluster.name} to $memory")

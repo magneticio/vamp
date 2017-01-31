@@ -159,7 +159,7 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
           case Some(yaml: YamlSourceReader) ⇒
             val map = yaml.notConsumed
             if (map.isEmpty) Nil else (key → yaml.notConsumed) :: Nil
-          case _ ⇒ (key → value) :: Nil
+          case _ ⇒ if (value.source.isEmpty) Nil else (key → value) :: Nil
         }
 
       case (key, value: List[_]) if cons.get(key).nonEmpty ⇒
@@ -168,7 +168,7 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
             val nc = y.notConsumed
             if (nc.isEmpty) Nil else nc :: Nil
 
-          case any ⇒ Nil
+          case _ ⇒ Nil
         }
 
         if (list.isEmpty) Nil else (key → list) :: Nil

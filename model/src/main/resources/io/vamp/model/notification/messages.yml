@@ -5,12 +5,13 @@ MissingPathValueError                  : "Can't find any value for path: /{path}
 UnexpectedTypeError                    : "Unexpected type for path '{path}'."
 UnexpectedInnerElementError            : "Can't find a nested element for path '{path}'."
 EitherReferenceOrAnonymous             : "Either it should be a reference '{name} -> {reference}' or an anonymous inline definition, but not both."
-NotAnonymousError                      : "Expected an anonimous artifact, not one with the name: '{name}'."
+NotAnonymousError                      : "Expected an anonymous artifact, not one with the name: '{name}'."
 UnexpectedElement                      : "Unexpected in DSL: {message}"
 IllegalName                            : "Illegal name or reference - white space characters, '/', '[' and ']' are not allowed: {name}"
 IllegalStrictName                      : "Illegal name - white space characters, '.', '/', '[' and ']' are not allowed: {name}"
 InconsistentArtifactName               : "Inconsistent name: given '{given}' but found '{found}'."
 InconsistentArtifactKind               : "Inconsistent kind: given '{given}' but found '{found}'."
+UnsupportedMetadata$                   : "Unsupported metadata"
 
 # Breed Reader
 

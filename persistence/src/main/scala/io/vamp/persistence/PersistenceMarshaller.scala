@@ -57,9 +57,11 @@ trait PersistenceMarshaller extends TypeOfArtifact {
           case Some(list) ⇒ list.flatMap { yaml ⇒
             implicit val source = yaml
             (<<?[String]("name"), <<?[String]("url")) match {
-              case (_, Some(url))  ⇒ ExternalRouteTarget(url) :: Nil
-              case (Some(name), _) ⇒ InternalRouteTarget(name, <<?[String]("host"), <<![Int]("port")) :: Nil
-              case _               ⇒ Nil
+              case (_, Some(url)) ⇒ ExternalRouteTarget(url, metadata) :: Nil
+              case (Some(name), _) ⇒
+                source.find[Map[_, _]](Artifact.metadata)
+                InternalRouteTarget(name, <<?[String]("host"), <<![Int]("port")) :: Nil
+              case _ ⇒ Nil
             }
           }
           case _ ⇒ Nil

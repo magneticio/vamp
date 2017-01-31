@@ -1,0 +1,14 @@
+name: nomadic-frostbite
+metadata:
+  labels:
+    essential: true
+gateways:
+  8080:
+    routes: notorious/web
+    metadata:
+      labels:
+        essential: false
+clusters:
+  notorious:
+    services: nocturnal-viper
+

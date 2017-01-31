@@ -85,18 +85,18 @@ trait DevelopmentPersistenceOperations {
   }
 }
 
-private[persistence] case class DeploymentServiceStatus(name: String, status: DeploymentService.Status) extends Artifact {
+private[persistence] case class DeploymentServiceStatus(name: String, status: DeploymentService.Status) extends PersistenceArtifact {
   val kind = "deployment-service-statuses"
 }
 
-private[persistence] case class DeploymentServiceScale(name: String, scale: DefaultScale) extends Artifact {
+private[persistence] case class DeploymentServiceScale(name: String, scale: DefaultScale) extends PersistenceArtifact {
   val kind = "deployment-service-scales"
 }
 
-private[persistence] case class DeploymentServiceInstances(name: String, instances: List[Instance]) extends Artifact {
+private[persistence] case class DeploymentServiceInstances(name: String, instances: List[Instance]) extends PersistenceArtifact {
   val kind = "deployment-service-instances"
 }
 
-private[persistence] case class DeploymentServiceEnvironmentVariables(name: String, environmentVariables: List[EnvironmentVariable]) extends Artifact {
+private[persistence] case class DeploymentServiceEnvironmentVariables(name: String, environmentVariables: List[EnvironmentVariable]) extends PersistenceArtifact {
   val kind = "deployment-service-environment-variables"
 }

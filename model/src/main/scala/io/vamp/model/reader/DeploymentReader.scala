@@ -21,13 +21,13 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla", validateEitherReferenceOrAnonymous)
 
           <<?[List[YamlSourceReader]]("services") match {
-            case None       ⇒ DeploymentCluster(name, Nil, Nil, <<?[String]("network"), sla, dialects)
-            case Some(list) ⇒ DeploymentCluster(name, list.map(parseService(_)), routingReader.mapping("gateways"), <<?[String]("network"), sla, dialects)
+            case None       ⇒ DeploymentCluster(name, metadata, Nil, Nil, <<?[String]("network"), sla, dialects)
+            case Some(list) ⇒ DeploymentCluster(name, metadata, list.map(parseService(_)), routingReader.mapping("gateways"), <<?[String]("network"), sla, dialects)
           }
       } toList
     }
 
-    Deployment(name, clusters, BlueprintGatewayReader.mapping("gateways"), ports(addGroup = true), environmentVariables, hosts())
+    Deployment(name, metadata, clusters, BlueprintGatewayReader.mapping("gateways"), ports(addGroup = true), environmentVariables, hosts())
   }
 
   override protected def validate(deployment: Deployment): Deployment = {
@@ -58,6 +58,7 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
   }
 
   private def parseInstance(implicit source: YamlSourceReader): Instance = {
+    source.find[Map[_, _]](Artifact.metadata)
     Instance(<<![String]("name"), <<![String]("host"), portMapping(), <<![Boolean]("deployed"))
   }
 

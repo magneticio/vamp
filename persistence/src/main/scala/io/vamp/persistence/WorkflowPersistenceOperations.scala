@@ -90,7 +90,7 @@ trait WorkflowPersistenceOperations {
   }
 }
 
-private[persistence] case class WorkflowStatus(name: String, status: String, phase: Option[String]) extends Artifact {
+private[persistence] case class WorkflowStatus(name: String, status: String, phase: Option[String]) extends PersistenceArtifact {
   val kind = "workflow-status"
 
   def unmarshall = WorkflowStatusReader.status(status) match {
@@ -99,22 +99,22 @@ private[persistence] case class WorkflowStatus(name: String, status: String, pha
   }
 }
 
-private[persistence] case class WorkflowScale(name: String, scale: DefaultScale) extends Artifact {
+private[persistence] case class WorkflowScale(name: String, scale: DefaultScale) extends PersistenceArtifact {
   val kind = "workflow-scale"
 }
 
-private[persistence] case class WorkflowNetwork(name: String, network: String) extends Artifact {
+private[persistence] case class WorkflowNetwork(name: String, network: String) extends PersistenceArtifact {
   val kind = "workflow-network"
 }
 
-private[persistence] case class WorkflowArguments(name: String, arguments: List[Argument]) extends Artifact {
+private[persistence] case class WorkflowArguments(name: String, arguments: List[Argument]) extends PersistenceArtifact {
   val kind = "workflow-arguments"
 }
 
-private[persistence] case class WorkflowEnvironmentVariables(name: String, environmentVariables: List[EnvironmentVariable]) extends Artifact {
+private[persistence] case class WorkflowEnvironmentVariables(name: String, environmentVariables: List[EnvironmentVariable]) extends PersistenceArtifact {
   val kind = "workflow-environment-variables"
 }
 
-private[persistence] case class WorkflowInstances(name: String, instances: List[Instance]) extends Artifact {
+private[persistence] case class WorkflowInstances(name: String, instances: List[Instance]) extends PersistenceArtifact {
   val kind = "workflow-instances"
 }

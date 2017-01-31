@@ -50,6 +50,7 @@ class BreedSerializer extends ArtifactSerializer[Breed] with TraitDecomposer wit
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(breed.name))
       list += JField("kind", JString(breed.kind))
+      list += JField("metadata", Extraction.decompose(breed.metadata))
       list += JField("deployable", Extraction.decompose(breed.deployable))
       list += JField("ports", traits(breed.ports))
       list += JField("environment_variables", traits(breed.environmentVariables))

@@ -14,6 +14,7 @@ trait Breed extends Artifact {
 
 case class DefaultBreed(
     name:                 String,
+    metadata:             Map[String, Any],
     deployable:           Deployable,
     ports:                List[Port],
     environmentVariables: List[EnvironmentVariable],

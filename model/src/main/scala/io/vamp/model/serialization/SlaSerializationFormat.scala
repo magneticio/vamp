@@ -22,6 +22,7 @@ class SlaSerializer extends ArtifactSerializer[Sla] with ReferenceSerialization 
       if (sla.name.nonEmpty) {
         list += JField("name", JString(sla.name))
         list += JField("kind", JString(sla.kind))
+        list += JField("metadata", Extraction.decompose(sla.metadata))
       }
       list += JField("type", JString("response_time_sliding_window"))
       list += JField("window", Extraction.decompose(Map("interval" → sla.interval.toSeconds, "cooldown" → sla.cooldown.toSeconds)))
@@ -34,6 +35,7 @@ class SlaSerializer extends ArtifactSerializer[Sla] with ReferenceSerialization 
       if (sla.name.nonEmpty) {
         list += JField("name", JString(sla.name))
         list += JField("kind", JString(sla.kind))
+        list += JField("metadata", Extraction.decompose(sla.metadata))
       }
       list += JField("type", JString(sla.`type`))
       list += JField("parameters", Extraction.decompose(sla.parameters))
@@ -45,6 +47,7 @@ class SlaSerializer extends ArtifactSerializer[Sla] with ReferenceSerialization 
       if (sla.name.nonEmpty) {
         list += JField("name", JString(sla.name))
         list += JField("kind", JString(sla.kind))
+        list += JField("metadata", Extraction.decompose(sla.metadata))
       }
       list += JField("type", JString(sla.`type`))
       list += JField("escalations", Extraction.decompose(sla.escalations))
@@ -61,6 +64,7 @@ class EscalationSerializer extends ArtifactSerializer[Escalation] with Reference
       if (escalation.name.nonEmpty) {
         list += JField("name", JString(escalation.name))
         list += JField("kind", JString(escalation.kind))
+        list += JField("metadata", Extraction.decompose(escalation.metadata))
       }
       list += JField("type", JString(escalation.`type`))
       list += JField("escalations", Extraction.decompose(escalation.escalations))
@@ -71,6 +75,7 @@ class EscalationSerializer extends ArtifactSerializer[Escalation] with Reference
       if (escalation.name.nonEmpty) {
         list += JField("name", JString(escalation.name))
         list += JField("kind", JString(escalation.kind))
+        list += JField("metadata", Extraction.decompose(escalation.metadata))
       }
 
       list += JField("type", JString(escalation.`type`))
@@ -88,6 +93,7 @@ class EscalationSerializer extends ArtifactSerializer[Escalation] with Reference
       if (escalation.name.nonEmpty) {
         list += JField("name", JString(escalation.name))
         list += JField("kind", JString(escalation.kind))
+        list += JField("metadata", Extraction.decompose(escalation.metadata))
       }
       escalation match {
         case g: GenericEscalation ⇒

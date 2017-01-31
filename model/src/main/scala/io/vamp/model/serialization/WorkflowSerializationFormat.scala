@@ -20,6 +20,7 @@ class WorkflowSerializer extends ArtifactSerializer[Workflow] with ReferenceSeri
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(workflow.name))
       list += JField("kind", JString(workflow.kind))
+      list += JField("metadata", Extraction.decompose(workflow.metadata))
       list += JField("breed", Extraction.decompose(workflow.breed))
       list += JField("status", JString(workflow.status.toString))
 

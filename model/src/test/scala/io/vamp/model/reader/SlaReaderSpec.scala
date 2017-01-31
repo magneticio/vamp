@@ -16,7 +16,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'name("red"),
       'type("response_time"),
       'parameters(Map("window" → Map("cooldown" → 600, "interval" → 600), "threshold" → Map("lower" → 100, "upper" → 1000))),
-      'escalations(List(GenericEscalation("", "scale_nothing", Map("scale_by" → 1, "minimum" → 1, "maximum" → 4))))
+      'escalations(List(GenericEscalation("", Map(), "scale_nothing", Map("scale_by" → 1, "minimum" → 1, "maximum" → 4))))
     )
   }
 
@@ -27,7 +27,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(GenericEscalation("", "scale_nothing", Map("scale_by" → 1, "minimum" → 1, "maximum" → 4))))
+      'escalations(List(GenericEscalation("", Map(), "scale_nothing", Map("scale_by" → 1, "minimum" → 1, "maximum" → 4))))
     )
   }
 
@@ -38,7 +38,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(ToAllEscalation("", List(ScaleInstancesEscalation("", 1, 4, 1, None), ScaleCpuEscalation("", 1.0, 4.0, 1.0, None), ScaleMemoryEscalation("", 1024.0, 2048.5, 512.1, None)))))
+      'escalations(List(ToAllEscalation("", Map(), List(ScaleInstancesEscalation("", Map(), 1, 4, 1, None), ScaleCpuEscalation("", Map(), 1.0, 4.0, 1.0, None), ScaleMemoryEscalation("", Map(), 1024.0, 2048.5, 512.1, None)))))
     )
   }
 
@@ -49,7 +49,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(ToAllEscalation("", List(EscalationReference("notify"), ToOneEscalation("", List(ScaleInstancesEscalation("", 1, 4, 1, None), ScaleCpuEscalation("", 1.0, 4.0, 1.0, None)))))))
+      'escalations(List(ToAllEscalation("", Map(), List(EscalationReference("notify"), ToOneEscalation("", Map(), List(ScaleInstancesEscalation("", Map(), 1, 4, 1, None), ScaleCpuEscalation("", Map(), 1.0, 4.0, 1.0, None)))))))
     )
   }
 
@@ -60,7 +60,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(ToAllEscalation("", List(EscalationReference("notify"), ToOneEscalation("", List(ScaleInstancesEscalation("", 1, 4, 1, None), ScaleCpuEscalation("", 1.0, 4.0, 1.0, None)))))))
+      'escalations(List(ToAllEscalation("", Map(), List(EscalationReference("notify"), ToOneEscalation("", Map(), List(ScaleInstancesEscalation("", Map(), 1, 4, 1, None), ScaleCpuEscalation("", Map(), 1.0, 4.0, 1.0, None)))))))
     )
   }
 
@@ -71,7 +71,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(ToAllEscalation("", List(EscalationReference("notify"), ToOneEscalation("", List(ScaleInstancesEscalation("", 1, 4, 1, None), ToAllEscalation("", List(ScaleCpuEscalation("", 1.0, 4.0, 1.0, None), EscalationReference("email")))))))))
+      'escalations(List(ToAllEscalation("", Map(), List(EscalationReference("notify"), ToOneEscalation("", Map(), List(ScaleInstancesEscalation("", Map(), 1, 4, 1, None), ToAllEscalation("", Map(), List(ScaleCpuEscalation("", Map(), 1.0, 4.0, 1.0, None), EscalationReference("email")))))))))
     )
   }
 }

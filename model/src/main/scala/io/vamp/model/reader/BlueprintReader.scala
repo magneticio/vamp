@@ -91,17 +91,17 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
           <<?[List[YamlSourceReader]]("services") match {
-            case None ⇒ Cluster(name, List(), Nil, <<?[String]("network"), sla, dialects)
+            case None ⇒ Cluster(name, metadata, List(), Nil, <<?[String]("network"), sla, dialects)
             case Some(list) ⇒
               val services = list.map(parseService(_))
-              Cluster(name, services, processAnonymousInternalGateways(services, internalGatewayReader.mapping("gateways")), <<?[String]("network"), sla, dialects)
+              Cluster(name, metadata, services, processAnonymousInternalGateways(services, internalGatewayReader.mapping("gateways")), <<?[String]("network"), sla, dialects)
           }
       } toList
     }
 
     val evs = environmentVariables(alias = false, addGroup = true)
 
-    DefaultBlueprint(name, clusters, BlueprintGatewayReader.mapping("gateways"), evs)
+    DefaultBlueprint(name, metadata, clusters, BlueprintGatewayReader.mapping("gateways"), evs)
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {
@@ -342,6 +342,6 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
   override protected def createReference(implicit source: YamlSourceReader): Scale = ScaleReference(reference)
 
   override protected def createDefault(implicit source: YamlSourceReader): Scale = {
-    DefaultScale(name, <<![Quantity]("cpu"), <<![MegaByte]("memory"), <<?[Int]("instances").getOrElse(1))
+    DefaultScale(name, metadata, <<![Quantity]("cpu"), <<![MegaByte]("memory"), <<?[Int]("instances").getOrElse(1))
   }
 }

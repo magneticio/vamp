@@ -33,7 +33,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
   override protected def parse(implicit source: YamlSourceReader): Gateway = {
     source.find[String]("proxy")
     source.find[String]("internal")
-    Gateway(name, port, service, sticky, virtualHosts, routes(splitPath = true), deployed)
+    Gateway(name, metadata, port, service, sticky, virtualHosts, routes(splitPath = true), deployed)
   }
 
   protected def port(implicit source: YamlSourceReader): Port = <<![Any]("port") match {
@@ -103,7 +103,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
 object GatewayReader extends AbstractGatewayReader
 
 object ClusterGatewayReader extends AbstractGatewayReader {
-  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, Port(<<![String]("port"), None, None), service, sticky, virtualHosts, routes(splitPath = false), deployed)
+  override protected def parse(implicit source: YamlSourceReader): Gateway = Gateway(name, metadata, Port(<<![String]("port"), None, None), service, sticky, virtualHosts, routes(splitPath = false), deployed)
 }
 
 object DeployedGatewayReader extends AbstractGatewayReader {
@@ -129,7 +129,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
   override protected def createDefault(implicit source: YamlSourceReader): Route = {
     source.find[String](Lookup.entry)
     source.flatten({ entry ⇒ entry == "targets" })
-    DefaultRoute(name, Route.noPath, <<?[Percentage]("weight"), condition, <<?[Percentage]("condition_strength"), rewrites, balance)
+    DefaultRoute(name, metadata, Route.noPath, <<?[Percentage]("weight"), condition, <<?[Percentage]("condition_strength"), rewrites, balance)
   }
 
   override protected def expand(implicit source: YamlSourceReader) = {
@@ -169,7 +169,7 @@ object RouteReader extends YamlReader[Route] with WeakReferenceYamlReader[Route]
 }
 
 trait AbstractConditionReader extends YamlReader[Condition] {
-  protected def createDefault(implicit source: YamlSourceReader): Condition = DefaultCondition(name, <<![String]("condition"))
+  protected def createDefault(implicit source: YamlSourceReader): Condition = DefaultCondition(name, metadata, <<![String]("condition"))
 }
 
 object WeakConditionReader extends AbstractConditionReader with WeakReferenceYamlReader[Condition] {

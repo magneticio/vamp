@@ -120,7 +120,10 @@ trait YamlReader[T] extends YamlLoader with ModelNotificationProvider with NameV
       def validateConsumed(source: Any, result: T): Unit = source match {
         case yaml: YamlSourceReader ⇒
 
-          if (result.isInstanceOf[Artifact]) yaml.find[String](Artifact.kind)
+          if (result.isInstanceOf[Artifact]) {
+            yaml.find[String](Artifact.kind)
+            yaml.flatten({ _ == Artifact.metadata })
+          }
           if (result.isInstanceOf[Lookup]) yaml.find[String](Lookup.entry)
 
           val nonConsumed = yaml.notConsumed
@@ -193,6 +196,12 @@ trait YamlReader[T] extends YamlLoader with ModelNotificationProvider with NameV
 
   protected def name(implicit source: YamlSourceReader): String = validateName(<<![String]("name"))
 
+  protected def metadata(implicit source: YamlSourceReader): Map[String, Any] = <<?[Any](Artifact.metadata) match {
+    case Some(yaml: YamlSourceReader) ⇒ yaml.flatten()
+    case Some(_)                      ⇒ throwException(UnsupportedMetadata)
+    case None                         ⇒ Map()
+  }
+
   protected def reference(implicit source: YamlSourceReader): String = validateName(<<?[String]("reference").getOrElse(<<![String]("ref")))
 
   protected def hasReference(implicit source: YamlSourceReader): Option[String] = <<?[String]("reference").orElse(<<?[String]("ref")) match {
@@ -204,9 +213,9 @@ trait YamlReader[T] extends YamlLoader with ModelNotificationProvider with NameV
 
   protected def expandToList(path: YamlPath)(implicit source: YamlSourceReader) = {
     <<?[Any](path) match {
-      case None                 ⇒
-      case Some(value: List[_]) ⇒
-      case Some(value)          ⇒ >>(path, List(value))
+      case None             ⇒
+      case Some(_: List[_]) ⇒
+      case Some(value)      ⇒ >>(path, List(value))
     }
   }
 }

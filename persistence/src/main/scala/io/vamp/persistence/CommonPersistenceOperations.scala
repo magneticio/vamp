@@ -8,6 +8,10 @@ import io.vamp.model.artifact.Artifact
 import scala.concurrent.Future
 import scala.reflect._
 
+trait PersistenceArtifact extends Artifact {
+  val metadata = Map()
+}
+
 trait CommonPersistenceMessages {
 
   case class All(`type`: Class[_ <: Artifact], page: Int, perPage: Int, expandReferences: Boolean = false, onlyReferences: Boolean = false) extends PersistenceActor.PersistenceMessages

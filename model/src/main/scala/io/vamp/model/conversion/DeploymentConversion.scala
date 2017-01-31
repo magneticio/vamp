@@ -20,6 +20,7 @@ class DeploymentConversion(val deployment: Deployment) {
     val clusters = deployment.clusters.map(cluster ⇒ {
       Cluster(
         cluster.name,
+        cluster.metadata,
         cluster.services.map { service ⇒
           Service(
             service.breed,
@@ -50,6 +51,6 @@ class DeploymentConversion(val deployment: Deployment) {
       }
     } map (_.copy(interpolated = None))
 
-    DefaultBlueprint(deployment.name, clusters, Nil, environmentVariables)
+    DefaultBlueprint(deployment.name, deployment.metadata, clusters, Nil, environmentVariables)
   }
 }

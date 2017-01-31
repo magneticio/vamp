@@ -7,15 +7,21 @@ object Artifact {
   val version = "v1"
 
   val kind = "kind"
+
+  val metadata = "metadata"
 }
 
 trait Artifact {
   def name: String
 
   def kind: String
+
+  def metadata: Map[String, Any]
 }
 
-trait Reference extends Artifact
+trait Reference extends Artifact {
+  val metadata = Map[String, Any]()
+}
 
 trait Type {
   def `type`: String

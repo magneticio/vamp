@@ -23,3 +23,5 @@ case class IllegalStrictName(name: String) extends Notification
 case class InconsistentArtifactName(given: String, found: String) extends Notification
 
 case class InconsistentArtifactKind(given: String, found: String) extends Notification
+
+object UnsupportedMetadata extends Notification

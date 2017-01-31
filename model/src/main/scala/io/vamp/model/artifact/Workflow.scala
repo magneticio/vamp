@@ -40,6 +40,7 @@ object Workflow {
 
 case class Workflow(
     name:                 String,
+    metadata:             Map[String, Any],
     breed:                Breed,
     status:               Workflow.Status,
     schedule:             Schedule,

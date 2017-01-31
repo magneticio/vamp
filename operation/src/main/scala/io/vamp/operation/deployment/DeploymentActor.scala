@@ -23,7 +23,6 @@ object DeploymentActor {
   val gatewayHost = Config.string("vamp.gateway-driver.host")
 
   val defaultScale = () ⇒ DefaultScale(
-    "",
     Quantity.of(Config.double("vamp.operation.deployment.scale.cpu")()),
     MegaByte.of(Config.string("vamp.operation.deployment.scale.memory")()),
     Config.int("vamp.operation.deployment.scale.instances")()
@@ -107,7 +106,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
         case Some(deployment) ⇒ deployment
         case None ⇒
           validateName(name)
-          Deployment(name, clusters = Nil, gateways = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
+          Deployment(name, Map(), clusters = Nil, gateways = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
       }
     }
   }
@@ -127,7 +126,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
           gateways ← expandGateways(cluster.gateways)
 
         } yield {
-          DeploymentCluster(cluster.name, services, processAnonymousInternalGateways(services, gateways), cluster.network, cluster.sla, cluster.dialects)
+          DeploymentCluster(cluster.name, cluster.metadata, services, processAnonymousInternalGateways(services, gateways), cluster.network, cluster.sla, cluster.dialects)
         }
       }
 
@@ -135,7 +134,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
         c ← Future.sequence(clusters)
         g ← expandGateways(bp.gateways)
       } yield {
-        Deployment(blueprint.name, c, g, Nil, bp.environmentVariables, Nil)
+        Deployment(blueprint.name, blueprint.metadata, c, g, Nil, bp.environmentVariables, Nil)
       }
     }
   }
@@ -329,8 +328,9 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
           val ports = mergeTrait(attachment.ports, deployment.ports)
           val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
           val hosts = mergeTrait(attachment.hosts, deployment.hosts)
+          val metadata = deployment.metadata ++ attachment.metadata
 
-          validateMerge(Deployment(deployment.name, clusters, gateways, ports, environmentVariables, hosts)) flatMap {
+          validateMerge(Deployment(deployment.name, metadata, clusters, gateways, ports, environmentVariables, hosts)) flatMap {
             deployment ⇒
               implicit val timeout = GatewayActor.timeout()
               Future.sequence {
@@ -469,15 +469,15 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
         case Some(newRouting) ⇒
           val routes = services.map { service ⇒
             routeBy(newRouting, service, port) match {
-              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
+              case None        ⇒ DefaultRoute("", Map(), serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
               case Some(route) ⇒ route
             }
           }
           newRouting.copy(routes = routes, port = newRouting.port.copy(`type` = port.`type`))
 
         case None ⇒
-          Gateway("", Port(port.name, None, None, 0, port.`type`), None, None, Nil, services.map { service ⇒
-            DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
+          Gateway("", Map(), Port(port.name, None, None, 0, port.`type`), None, None, Nil, services.map { service ⇒
+            DefaultRoute("", Map(), serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
           })
       }
     }

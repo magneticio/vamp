@@ -112,23 +112,23 @@ trait GatewayPersistenceOperations {
   }
 }
 
-private[persistence] case class GatewayPort(name: String, port: Int) extends Artifact {
+private[persistence] case class GatewayPort(name: String, port: Int) extends PersistenceArtifact {
   val kind = "gateway-port"
 }
 
-private[persistence] case class GatewayServiceAddress(name: String, host: String, port: Int) extends Artifact {
+private[persistence] case class GatewayServiceAddress(name: String, host: String, port: Int) extends PersistenceArtifact {
   val kind = "gateway-service-address"
 }
 
-private[persistence] case class GatewayDeploymentStatus(name: String, deployed: Boolean) extends Artifact {
+private[persistence] case class GatewayDeploymentStatus(name: String, deployed: Boolean) extends PersistenceArtifact {
   val kind = "gateway-deployment-status"
 }
 
-private[persistence] case class RouteTargets(name: String, targets: List[RouteTarget]) extends Artifact {
+private[persistence] case class RouteTargets(name: String, targets: List[RouteTarget]) extends PersistenceArtifact {
   val kind = "route-targets"
 }
 
-private[persistence] case class InternalGateway(gateway: Gateway) extends Artifact {
+private[persistence] case class InternalGateway(gateway: Gateway) extends PersistenceArtifact {
   val name = gateway.name
 
   val kind = "internal-gateway"

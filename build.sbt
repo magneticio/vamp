@@ -21,12 +21,6 @@ resolvers in ThisBuild ++= Seq(
   Resolver.jcenterRepo
 )
 
-lazy val bintraySetting = Seq(
-  bintrayOrganization := Some("magnetic-io"),
-  licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html")),
-  bintrayRepository := "vamp"
-)
-
 // Libraries
 
 val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.16" ::
@@ -69,7 +63,7 @@ lazy val formatting = scalariformSettings ++ Seq(ScalariformKeys.preferences := 
   .setPreference(DanglingCloseParenthesis, Preserve)
   .setPreference(RewriteArrowSymbols, true))
 
-lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
+lazy val root = project.in(file(".")).settings(
   // Disable publishing root empty pom
   packagedArtifacts in RootProject(file(".")) := Map.empty,
   // allows running main classes from subprojects
@@ -80,69 +74,69 @@ lazy val root = project.in(file(".")).settings(bintraySetting: _*).settings(
   common, persistence, model, operation, bootstrap, container_driver, workflow_driver, pulse, http_api, gateway_driver
 )
 
-lazy val bootstrap = project.settings(bintraySetting: _*).settings(packAutoSettings).settings(
+lazy val bootstrap = project.settings(packAutoSettings).settings(
   description := "Bootstrap for Vamp",
   name := "vamp-bootstrap",
   formatting
 ).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, pulse, http_api, gateway_driver)
 
-lazy val http_api = project.settings(bintraySetting: _*).settings(
+lazy val http_api = project.settings(
   description := "Http Api for Vamp",
   name := "vamp-http_api",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(operation)
 
-lazy val operation = project.settings(bintraySetting: _*).settings(
+lazy val operation = project.settings(
   description := "The control center of Vamp",
   name := "vamp-operation",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(persistence, container_driver, workflow_driver, gateway_driver, pulse)
 
-lazy val pulse = project.settings(bintraySetting: _*).settings(
+lazy val pulse = project.settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
   name := "vamp-pulse",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(model)
 
-lazy val gateway_driver = project.settings(bintraySetting: _*).settings(
+lazy val gateway_driver = project.settings(
   description := "Enables Vamp to talk to Vamp Gateway Agent",
   name := "vamp-gateway_driver",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(model, pulse, persistence)
 
-lazy val container_driver = project.settings(bintraySetting: _*).settings(
+lazy val container_driver = project.settings(
   description := "Enables Vamp to talk to container managers",
   name := "vamp-container_driver",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(model, persistence, pulse)
 
-lazy val workflow_driver = project.settings(bintraySetting: _*).settings(
+lazy val workflow_driver = project.settings(
   description := "Enables Vamp to talk to workflow managers",
   name := "vamp-workflow_driver",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(model, pulse, persistence, container_driver)
 
-lazy val persistence = project.settings(bintraySetting: _*).settings(
+lazy val persistence = project.settings(
   description := "Stores Vamp artifacts",
   name := "vamp-persistence",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(model, pulse)
 
-lazy val model = project.settings(bintraySetting: _*).settings(
+lazy val model = project.settings(
   description := "Definitions of Vamp artifacts",
   name := "vamp-model",
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(common)
 
-lazy val common = project.settings(bintraySetting: _*).settings(
+lazy val common = project.settings(
   description := "Vamp common",
   name := "vamp-common",
   formatting,

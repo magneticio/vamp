@@ -59,6 +59,7 @@ object Deployment {
 
 case class Deployment(
     name:                 String,
+    metadata:             Map[String, Any],
     clusters:             List[DeploymentCluster],
     gateways:             List[Gateway],
     ports:                List[Port],
@@ -81,6 +82,7 @@ object DeploymentCluster {
 
 case class DeploymentCluster(
     name:     String,
+    metadata: Map[String, Any],
     services: List[DeploymentService],
     gateways: List[Gateway],
     network:  Option[String],
@@ -125,6 +127,8 @@ case class DeploymentService(
 
 case class Instance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact {
   val kind = "instance"
+
+  val metadata = Map()
 }
 
 object Host {
