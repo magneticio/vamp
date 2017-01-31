@@ -102,7 +102,7 @@ trait ArtifactLoader extends ArtifactApiController with DeploymentApiController 
 
   private def create(`type`: String, fileName: String, name: String, source: String) = {
     if (`type` == "breeds" && fileName.endsWith(".js"))
-      actorFor[PersistenceActor] ? PersistenceActor.Update(DefaultBreed(name, Deployable(JavaScriptDeployableType.default, source), Nil, Nil, Nil, Nil, Map()), Some(source))
+      actorFor[PersistenceActor] ? PersistenceActor.Update(DefaultBreed(name, Map(), Deployable(JavaScriptDeployableType.default, source), Nil, Nil, Nil, Nil, Map()), Some(source))
     else if (`type` == "workflows")
       actorFor[PersistenceActor] ? PersistenceActor.Update(WorkflowReader.read(source), Some(source))
     else
