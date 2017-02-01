@@ -79,10 +79,10 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with PulseStats wi
       case (false, _)          ⇒ Map("value" → "")
     }
 
-    val data = Extraction.decompose(event) merge Extraction.decompose(attachment)
+    val data = Extraction.decompose(if (publishEventValue) event else event.copy(value = None)) merge Extraction.decompose(attachment)
 
     es.index[ElasticsearchIndexResponse](indexName, typeName, data) map {
-      case response: ElasticsearchIndexResponse ⇒ event
+      case _: ElasticsearchIndexResponse ⇒ event
       case other ⇒
         log.error(s"Unexpected index result: ${other.toString}.")
         other
