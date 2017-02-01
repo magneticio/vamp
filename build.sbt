@@ -17,9 +17,11 @@ scalariformSettings ++ Seq(ScalariformKeys.preferences := ScalariformKeys.prefer
   .setPreference(DanglingCloseParenthesis, Preserve)
   .setPreference(RewriteArrowSymbols, true))
 
+resolvers += "jcenter" at "https://jcenter.bintray.com/"
+
 lazy val root = project.in(sbt.file(".")).settings(packAutoSettings ++ Seq(packExcludeJars := Seq("scala-.*\\.jar"))).settings(
   libraryDependencies ++= Seq(
-    "org.jtwig" % "jtwig-core" % "5.57",
+    "org.jtwig" % "jtwig-core" % "5.65",
     "io.vamp" %% "vamp-gateway_driver" % "katana" % "provided",
     "junit" % "junit" % "4.11" % "test",
     "org.scalatest" %% "scalatest" % "3.0.1" % "test"
