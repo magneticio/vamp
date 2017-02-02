@@ -1,6 +1,5 @@
 package io.vamp.http_api
 
-import akka.http.scaladsl.server.RequestContext
 import akka.stream.Materializer
 import akka.util.Timeout
 import io.vamp.common.akka._
@@ -15,5 +14,12 @@ trait ProxyRoute extends ProxyController {
 
   implicit def materializer: Materializer
 
-  val proxyRoute = pathPrefix("proxy" / Remaining) { path ⇒ (context: RequestContext) ⇒ proxy(context, path) }
+  val proxyRoute = pathPrefix("proxy") {
+    path(Remaining) { path ⇒
+      extractUpgradeToWebSocket { upgrade ⇒ context ⇒ websocket(context, upgrade, path)
+      } ~ {
+        context ⇒ http(context, path)
+      }
+    }
+  }
 }
