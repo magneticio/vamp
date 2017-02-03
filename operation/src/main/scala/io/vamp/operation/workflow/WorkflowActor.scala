@@ -27,7 +27,7 @@ object WorkflowActor {
 class WorkflowActor extends WorkflowDeployable with ArtifactPaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
 
   import PersistenceActor.ResetWorkflow
-  import io.vamp.persistence.PersistenceActor.UpdateWorkflowStatus
+  import PersistenceActor.UpdateWorkflowStatus
   import PulseEventTags.Workflows._
   import WorkflowActor._
 
@@ -73,7 +73,7 @@ class WorkflowActor extends WorkflowDeployable with ArtifactPaginationSupport wi
   private def stop(workflow: Workflow, running: Boolean): Unit = {
     undeploy(workflow, running, () ⇒ {
       (actorFor[PersistenceActor] ? PersistenceActor.Delete(workflow.name, classOf[Workflow])).map { _ ⇒
-        actorFor[PersistenceActor] ! ResetWorkflow(workflow)
+        actorFor[PersistenceActor] ! ResetWorkflow(workflow, runtime = true, attributes = true)
         pulse(workflow, scheduled = false)
       }
     })
@@ -81,10 +81,12 @@ class WorkflowActor extends WorkflowDeployable with ArtifactPaginationSupport wi
 
   private def suspend(workflow: Workflow, running: Boolean): Unit = {
     undeploy(workflow, running, () ⇒ {
-      if (workflow.status != Workflow.Status.Suspended)
+      if (workflow.status != Workflow.Status.Suspended) {
         (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Suspended)).map { _ ⇒
           pulse(workflow, scheduled = false)
         }
+      }
+      else actorFor[PersistenceActor] ! ResetWorkflow(workflow, runtime = true, attributes = false)
     })
   }
 
@@ -128,15 +130,11 @@ class WorkflowActor extends WorkflowDeployable with ArtifactPaginationSupport wi
 
   private def trigger(workflow: Workflow, data: Any = None): Future[_] = {
     log.info(s"Triggering workflow: '${workflow.name}'.")
+    def schedule() = IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Schedule(workflow, data)
     artifactFor[DefaultBreed](workflow.breed).flatMap { breed ⇒
-      (if (workflow.scale.isDefined) artifactFor[DefaultScale](workflow.scale.get).map(Option(_)) else Future.successful(None)).flatMap { scale ⇒
-        if (matches(breed.deployable)) {
-          IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition)) flatMap {
-            _ ⇒ IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
-          }
-        }
-        else IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Schedule(workflow.copy(breed = breed, scale = scale), data)
-      }
+      if (matches(breed.deployable))
+        IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition)) flatMap { _ ⇒ schedule() }
+      else schedule()
     }
   }
 

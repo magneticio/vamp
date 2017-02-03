@@ -11,6 +11,8 @@ import scala.concurrent.Future
 
 trait WorkflowPersistenceMessages {
 
+  case class UpdateWorkflowBreed(workflow: Workflow, breed: DefaultBreed) extends PersistenceActor.PersistenceMessages
+
   case class UpdateWorkflowStatus(workflow: Workflow, status: Workflow.Status) extends PersistenceActor.PersistenceMessages
 
   case class UpdateWorkflowScale(workflow: Workflow, scale: DefaultScale) extends PersistenceActor.PersistenceMessages
@@ -23,7 +25,7 @@ trait WorkflowPersistenceMessages {
 
   case class UpdateWorkflowInstances(workflow: Workflow, instances: List[Instance]) extends PersistenceActor.PersistenceMessages
 
-  case class ResetWorkflow(workflow: Workflow) extends PersistenceActor.PersistenceMessages
+  case class ResetWorkflow(workflow: Workflow, runtime: Boolean, attributes: Boolean) extends PersistenceActor.PersistenceMessages
 
 }
 
@@ -35,6 +37,8 @@ trait WorkflowPersistenceOperations {
   implicit def timeout: Timeout
 
   def receive: Actor.Receive = {
+
+    case o: UpdateWorkflowBreed                ⇒ updateWorkflowBreed(o.workflow, o.breed)
 
     case o: UpdateWorkflowStatus               ⇒ updateWorkflowStatus(o.workflow, o.status)
 
@@ -48,7 +52,11 @@ trait WorkflowPersistenceOperations {
 
     case o: UpdateWorkflowInstances            ⇒ updateWorkflowInstances(o.workflow, o.instances)
 
-    case o: ResetWorkflow                      ⇒ resetWorkflow(o.workflow)
+    case o: ResetWorkflow                      ⇒ resetWorkflow(o.workflow, o.runtime, o.attributes)
+  }
+
+  private def updateWorkflowBreed(workflow: Workflow, breed: DefaultBreed) = reply {
+    self ? PersistenceActor.Update(WorkflowBreed(workflow.name, breed))
   }
 
   private def updateWorkflowStatus(workflow: Workflow, status: Workflow.Status) = reply {
@@ -79,15 +87,25 @@ trait WorkflowPersistenceOperations {
     self ? PersistenceActor.Update(WorkflowInstances(workflow.name, instances))
   }
 
-  private def resetWorkflow(workflow: Workflow) = reply {
-    val messages = PersistenceActor.Delete(workflow.name, classOf[WorkflowStatus]) ::
-      PersistenceActor.Delete(workflow.name, classOf[WorkflowScale]) ::
-      PersistenceActor.Delete(workflow.name, classOf[WorkflowNetwork]) ::
-      PersistenceActor.Delete(workflow.name, classOf[WorkflowArguments]) ::
-      PersistenceActor.Delete(workflow.name, classOf[WorkflowEnvironmentVariables]) ::
-      PersistenceActor.Delete(workflow.name, classOf[WorkflowInstances]) :: Nil
-    Future.sequence(messages.map(self ? _))
+  private def resetWorkflow(workflow: Workflow, runtime: Boolean, attributes: Boolean) = reply {
+
+    val attributeArtifacts = if (attributes) {
+      PersistenceActor.Delete(workflow.name, classOf[WorkflowStatus]) ::
+        PersistenceActor.Delete(workflow.name, classOf[WorkflowScale]) ::
+        PersistenceActor.Delete(workflow.name, classOf[WorkflowNetwork]) ::
+        PersistenceActor.Delete(workflow.name, classOf[WorkflowArguments]) ::
+        PersistenceActor.Delete(workflow.name, classOf[WorkflowEnvironmentVariables]) :: Nil
+    }
+    else Nil
+
+    val runtimeArtifacts = if (runtime) PersistenceActor.Delete(workflow.name, classOf[WorkflowBreed]) :: PersistenceActor.Delete(workflow.name, classOf[WorkflowInstances]) :: Nil else Nil
+
+    Future.sequence((attributeArtifacts ++ runtimeArtifacts).map(self ? _))
   }
+}
+
+private[persistence] case class WorkflowBreed(name: String, breed: DefaultBreed) extends PersistenceArtifact {
+  val kind = "workflow-breed"
 }
 
 private[persistence] case class WorkflowStatus(name: String, status: String, phase: Option[String]) extends PersistenceArtifact {

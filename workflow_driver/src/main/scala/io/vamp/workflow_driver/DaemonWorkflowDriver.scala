@@ -16,12 +16,14 @@ trait DaemonWorkflowDriver extends WorkflowDriver {
 
   override def receive = super.receive orElse {
     case ContainerWorkflow(workflow, containers) ⇒
-      artifactFor[DefaultBreed](workflow.breed).foreach { breed ⇒
-        val instances = containers.map(_.instances.map { instance ⇒
-          val ports = breed.ports.map(_.name) zip instance.ports
-          Instance(instance.name, instance.host, ports.toMap, instance.deployed)
-        }).getOrElse(Nil)
-        actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, instances)
+      workflow.breed match {
+        case breed: DefaultBreed ⇒
+          val instances = containers.map(_.instances.map { instance ⇒
+            val ports = breed.ports.map(_.name) zip instance.ports
+            Instance(instance.name, instance.host, ports.toMap, instance.deployed)
+          }).getOrElse(Nil)
+          actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, instances)
+        case _ ⇒
       }
     case _ ⇒
   }
@@ -34,7 +36,7 @@ trait DaemonWorkflowDriver extends WorkflowDriver {
   }
 
   protected override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
-    case workflow if workflow.schedule == DaemonSchedule ⇒ driverActor ? DeployWorkflow(enrich(workflow), update = workflow.instances.nonEmpty)
+    case workflow if workflow.schedule == DaemonSchedule ⇒ enrich(workflow).flatMap { enriched ⇒ driverActor ? DeployWorkflow(enriched, update = workflow.instances.nonEmpty) }
     case _ ⇒ Future.successful(false)
   }
 

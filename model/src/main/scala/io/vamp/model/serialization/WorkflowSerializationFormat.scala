@@ -21,7 +21,7 @@ class WorkflowSerializer extends ArtifactSerializer[Workflow] with ReferenceSeri
       list += JField("name", JString(workflow.name))
       list += JField("kind", JString(workflow.kind))
       list += JField("metadata", Extraction.decompose(workflow.metadata))
-      list += JField("breed", Extraction.decompose(workflow.breed))
+      list += JField("breed", new JObject(JField("reference", JString(workflow.breed.name)) :: Nil))
       list += JField("status", JString(workflow.status.toString))
 
       workflow.schedule match {

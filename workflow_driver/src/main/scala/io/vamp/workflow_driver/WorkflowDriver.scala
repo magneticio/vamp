@@ -94,9 +94,9 @@ trait WorkflowDriver extends WorkflowDeployable with ArtifactSupport with PulseF
 
   protected def unschedule(): PartialFunction[Workflow, Future[Any]]
 
-  protected def enrich: Workflow ⇒ Workflow = { workflow ⇒
+  protected def enrich(workflow: Workflow): Future[Workflow] = artifactFor[DefaultBreed](workflow.breed).map { breed ⇒
 
-    val breed = workflow.breed.asInstanceOf[DefaultBreed]
+    actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowBreed(workflow, breed)
 
     val environmentVariables = {
       resolveGlobalEnvironmentVariables(workflow, breed.deployable) ++ breed.environmentVariables ++ workflow.environmentVariables

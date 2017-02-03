@@ -48,7 +48,7 @@ trait SingleArtifactApiController {
     case (t, r) if t == classOf[Workflow] ⇒
       create(r, source, validateOnly).map {
         case list: List[_] ⇒
-          if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? ResetWorkflow(workflow) }
+          if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? ResetWorkflow(workflow, runtime = false, attributes = true) }
           list
         case any ⇒ any
       }
@@ -75,7 +75,7 @@ trait SingleArtifactApiController {
     case (t, r) if t == classOf[Workflow] ⇒
       update(r, name, source, validateOnly).map {
         case list: List[_] ⇒
-          if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? ResetWorkflow(workflow) }
+          if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? ResetWorkflow(workflow, runtime = false, attributes = true) }
           list
         case any ⇒ any
       }
