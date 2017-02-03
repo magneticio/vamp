@@ -11,6 +11,7 @@ import io.vamp.container_driver._
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
+import org.json4s.JsonAST.JObject
 import org.json4s._
 
 import scala.concurrent.Future
@@ -240,7 +241,12 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
       case _ ⇒
     }
 
-    Extraction.decompose(interpolate(deployment, local, dialect)) merge Extraction.decompose(app)
+    val base = Extraction.decompose(app) match {
+      case JObject(l) ⇒ JObject(l.filter({ case (k, v) ⇒ k != "args" || v != JNull }))
+      case other      ⇒ other
+    }
+
+    Extraction.decompose(interpolate(deployment, local, dialect)) merge base
   }
 
   private def undeploy(deployment: Deployment, service: DeploymentService) = {
