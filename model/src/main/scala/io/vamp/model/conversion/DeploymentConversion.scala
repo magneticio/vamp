@@ -21,12 +21,13 @@ class DeploymentConversion(val deployment: Deployment) {
       Cluster(
         cluster.name,
         cluster.metadata,
-        cluster.services.map { service ⇒
+        cluster.services.map { (service: DeploymentService) ⇒
           Service(
             service.breed,
             purgeEnvironmentVariables(cluster, service),
             service.scale,
             service.arguments,
+            service.healthChecks,
             service.network,
             service.dialects
           )

@@ -13,6 +13,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     with TraitReader
     with ArgumentReader
     with DialectReader
+    with HealthCheckReader
     with BreedTraitValueValidator
     with BlueprintTraitValidator
     with GatewayRouteValidation
@@ -186,7 +187,14 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
   }
 
   private def parseService(implicit source: YamlSourceReader): Service = {
-    Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), arguments(), <<?[String]("network"), dialects)
+    Service(
+      BreedReader.readReference(<<![Any]("breed")),
+      environmentVariables(alias = false),
+      ScaleReader.readOptionalReferenceOrAnonymous("scale"),
+      arguments(),
+      healthChecks,
+      <<?[String]("network"),
+      dialects)
   }
 }
 

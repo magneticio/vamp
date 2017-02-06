@@ -125,7 +125,7 @@ trait YamlReader[T] extends YamlLoader with ModelNotificationProvider with NameV
             yaml.flatten({ _ == Artifact.metadata })
           }
           if (result.isInstanceOf[Lookup]) yaml.find[String](Lookup.entry)
-
+          
           val nonConsumed = yaml.notConsumed
           if (nonConsumed.nonEmpty) {
             implicit val formats: Formats = DefaultFormats
@@ -400,6 +400,30 @@ trait DialectReader {
       }
     } toMap
   }
+}
+
+trait HealthCheckReader {
+  this: YamlReader[_] =>
+
+  def healthChecks(implicit source: YamlSourceReader): List[HealthCheck] =
+    <<?[List[_]]("health_checks") match {
+      case Some(hs) => hs.map {
+        case yaml: YamlSourceReader =>
+          healthCheck(yaml)
+        case _ => throwException(InvalidArgumentError)
+      }
+      case _ => Nil
+    }
+
+  private def healthCheck(implicit source: YamlSourceReader): HealthCheck =
+    HealthCheck(
+      <<![String]("path"),
+      <<![String]("port"),
+      Time.of(<<![String]("initial_delay")),
+      Time.of(<<![String]("timeout")),
+      Time.of(<<![String]("interval")),
+      <<![String]("protocol"),
+      <<![Int]("failures"))
 }
 
 trait ArgumentReader {

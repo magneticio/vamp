@@ -120,6 +120,7 @@ case class DeploymentService(
   scale:                Option[DefaultScale],
   instances:            List[Instance],
   arguments:            List[Argument],
+  healthChecks:         List[HealthCheck],
   network:              Option[String],
   dependencies:         Map[String, String]       = Map(),
   dialects:             Map[Dialect.Value, Any]   = Map()
