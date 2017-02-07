@@ -1,6 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorLogging
+import io.vamp.common.http.HttpClient
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver.{ ContainerDriver, _ }
 import io.vamp.model.artifact._
@@ -40,15 +41,13 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
   protected def containerWorkflow(workflow: Workflow): Future[ContainerWorkflow] = {
     log.debug(s"kubernetes get all")
-    httpClient.get[KubernetesApiResponse](deploymentUrl, apiHeaders).flatMap { deployments ⇒
+    val id = appId(workflow)
 
-      val id = appId(workflow)
-      val deployed = deployments.items.map(item ⇒ item.metadata.name → item).toMap
-
-      deployed.get(id) match {
-        case Some(item) ⇒ containers(id, item).map(ContainerWorkflow(workflow, _))
-        case None       ⇒ Future.successful(ContainerWorkflow(workflow, None))
-      }
+    httpClient.get[KubernetesItem](s"$deploymentUrl/$id", apiHeaders, HttpClient.jsonContentType, logError = false).recover {
+      case _ ⇒ None
+    }.flatMap {
+      case item: KubernetesItem ⇒ containers(id, item, workflowIdLabel).map(ContainerWorkflow(workflow, _))
+      case _                    ⇒ Future.successful(ContainerWorkflow(workflow, None))
     }
   }
 
@@ -57,22 +56,24 @@ trait KubernetesDeployment extends KubernetesArtifact {
     Future.sequence {
       deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).map {
         case (deployment, service) ⇒
+
           val id = appId(deployment, service.breed)
           deployed.get(id) match {
-            case Some(item) ⇒ containers(id, item).map(ContainerService(deployment, service, _))
+            case Some(item) ⇒ containers(id, item, deploymentServiceIdLabel).map(ContainerService(deployment, service, _))
             case None       ⇒ Future.successful(ContainerService(deployment, service, None))
           }
       }
     }
   }
 
-  private def containers(id: String, item: KubernetesItem): Future[Option[Containers]] = {
+  private def containers(id: String, item: KubernetesItem, selector: String): Future[Option[Containers]] = {
     val ports = item.spec.template.flatMap(_.spec.containers.headOption).map(_.ports.map(_.containerPort)).getOrElse(Nil)
-    val scale: Option[DefaultScale] = item.spec.template.flatMap(_.spec.containers.headOption).map(_.resources.requests).map(request ⇒
-      DefaultScale(Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1)))
+    val scale: Option[DefaultScale] = item.spec.template.flatMap(_.spec.containers.headOption).map(_.resources.requests).map { request ⇒
+      DefaultScale(Quantity.of(request.cpu), MegaByte.of(request.memory), item.spec.replicas.getOrElse(1))
+    }
 
     if (scale.isDefined) {
-      httpClient.get[KubernetesApiResponse](pods(id, deploymentServiceIdLabel), apiHeaders).map { pods ⇒
+      httpClient.get[KubernetesApiResponse](pods(id, selector), apiHeaders).map { pods ⇒
         val instances = pods.items.map { pod ⇒
           ContainerInstance(pod.metadata.name, pod.status.podIP.getOrElse(""), ports, pod.status.phase.contains("Running"))
         }
@@ -88,7 +89,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
     val id = appId(deployment, service.breed)
     if (update) log.info(s"kubernetes update app: $id") else log.info(s"kubernetes create app: $id")
 
-    deploy(id, docker(deployment, cluster, service), service.scale.get, environment(deployment, cluster, service), labels(id, deploymentServiceIdLabel) ++ labels(deployment, cluster, service), update)
+    deploy(id, docker(deployment, cluster, service), service.scale.get, environment(deployment, cluster, service), labels(deployment, cluster, service) ++ labels(id, deploymentServiceIdLabel), update)
   }
 
   protected def undeploy(deployment: Deployment, service: DeploymentService): Future[Any] = {
@@ -117,7 +118,7 @@ trait KubernetesDeployment extends KubernetesArtifact {
 
     val scale = workflow.scale.get.asInstanceOf[DefaultScale]
 
-    deploy(id, docker(workflow), scale, environment(workflow), labels(id, workflowIdLabel) ++ labels(workflow), update)
+    deploy(id, docker(workflow), scale, environment(workflow), labels(workflow) ++ labels(id, workflowIdLabel), update)
   }
 
   protected def undeploy(workflow: Workflow): Future[Any] = {

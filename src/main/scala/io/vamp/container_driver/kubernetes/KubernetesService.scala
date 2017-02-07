@@ -37,14 +37,13 @@ trait KubernetesService extends KubernetesArtifact {
          |  },
          |  "spec": {
          |    "selector": {
-         |      ${ContainerDriver.namespace}: "$selector"
+         |      "${ContainerDriver.namespace()}": "$selector"
          |    },
          |    "ports": [${ports.map(p ⇒ s"""{"name": "p${p.name}", "protocol": "${p.protocol.toUpperCase}", "port": ${p.port}, "targetPort": ${p.targetPort}}""").mkString(", ")}],
          |    "type": "${`type`.toString}"
          |  }
          |}
    """.stripMargin
-
     retrieve(url, id,
       () ⇒ {
         if (update) {

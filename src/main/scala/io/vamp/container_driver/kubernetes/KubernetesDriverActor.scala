@@ -107,9 +107,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     })
   }
 
-  protected def get(workflow: Workflow, replyTo: ActorRef) = {
-    containerWorkflow(workflow).map(replyTo ! _)
-  }
+  protected def get(workflow: Workflow, replyTo: ActorRef) = containerWorkflow(workflow).map(replyTo ! _)
 
   protected override def deployedGateways(gateways: List[Gateway]) = {
     if (createServices()) {
