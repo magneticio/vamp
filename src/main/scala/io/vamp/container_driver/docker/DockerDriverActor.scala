@@ -152,11 +152,11 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
   }
 
   private def id(container: SpotifyContainer, label: String): Option[String] = {
-    if (container.labels().getOrDefault(ContainerDriver.namespace, "") == label) Option(container.labels().get(ContainerDriver.withNamespace("id"))) else None
+    if (container.labels().getOrDefault(ContainerDriver.namespace(), "") == label) Option(container.labels().get(ContainerDriver.withNamespace("id"))) else None
   }
 
   private def processable(container: SpotifyContainer, label: String) = {
-    container.labels().getOrDefault(ContainerDriver.namespace, "") == label && container.status().startsWith("Up") && container.labels().containsKey(ContainerDriver.withNamespace("scale"))
+    container.labels().getOrDefault(ContainerDriver.namespace(), "") == label && container.status().startsWith("Up") && container.labels().containsKey(ContainerDriver.withNamespace("scale"))
   }
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
