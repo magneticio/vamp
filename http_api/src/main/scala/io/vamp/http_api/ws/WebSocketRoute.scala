@@ -12,18 +12,19 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers, TerminateFlowStage }
 import io.vamp.common.notification.NotificationProvider
+import io.vamp.http_api.LogDirective
 import io.vamp.http_api.ws.WebSocketActor.{ SessionClosed, SessionEvent, SessionOpened, SessionRequest }
 
 import scala.concurrent.Future
 
 trait WebSocketRoute extends WebSocketMarshaller with HttpApiHandlers {
-  this: HttpApiDirectives with ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
+  this: HttpApiDirectives with LogDirective with ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
 
   implicit def materializer: Materializer
 
   def restfulRoutes: Route
 
-  private def apiHandler: HttpRequest ⇒ Future[HttpResponse] = Route.asyncHandler(restfulRoutes)
+  private def apiHandler: HttpRequest ⇒ Future[HttpResponse] = Route.asyncHandler(log { restfulRoutes })
 
   val websocketRoutes = {
     get {
