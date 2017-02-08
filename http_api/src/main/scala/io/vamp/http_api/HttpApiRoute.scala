@@ -3,6 +3,7 @@ package io.vamp.http_api
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server.Directive0
 import akka.stream.Materializer
 import com.typesafe.scalalogging.Logger
@@ -172,8 +173,16 @@ trait LogDirective {
 
   def log: Directive0 = {
     extractRequestContext.flatMap { ctx ⇒
-      logger.debug(s"${ctx.request.method.value} ${ctx.request.uri}")
-      pass
+      val uri = ctx.request.uri
+      val method = ctx.request.method.value
+      logger.debug(s"==> $method $uri")
+      mapRouteResult { result ⇒
+        result match {
+          case Complete(response) ⇒ logger.debug(s"<== ${response.status} $method $uri")
+          case _                  ⇒
+        }
+        result
+      }
     }
   }
 }
