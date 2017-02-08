@@ -1,6 +1,6 @@
 package io.vamp.model.artifact
 
-import io.vamp.model.reader.{MegaByte, Quantity, Time}
+import io.vamp.model.reader.{ MegaByte, Quantity, Time }
 
 object Blueprint {
   val kind = "blueprint"
@@ -64,7 +64,7 @@ abstract class AbstractService {
 
   def arguments: List[Argument]
 
-  /** A service can contain zero or many health checks that will get created when the Blueprints gets deployed **/
+  /** A service can contain zero or many health checks that will get created when the Blueprints gets deployed */
   def healthChecks: List[HealthCheck]
 
   def network: Option[String]
@@ -73,13 +73,13 @@ abstract class AbstractService {
 }
 
 case class Service(
-  breed: Breed,
+  breed:                Breed,
   environmentVariables: List[EnvironmentVariable],
-  scale: Option[Scale],
-  arguments: List[Argument],
-  healthChecks: List[HealthCheck],
-  network: Option[String] = None,
-  dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
+  scale:                Option[Scale],
+  arguments:            List[Argument],
+  healthChecks:         List[HealthCheck],
+  network:              Option[String]            = None,
+  dialects:             Map[Dialect.Value, Any]   = Map()) extends AbstractService
 
 trait Scale extends Artifact {
   val kind = "scale"
@@ -97,14 +97,14 @@ object DefaultScale {
 case class DefaultScale(name: String, metadata: Map[String, Any], cpu: Quantity, memory: MegaByte, instances: Int) extends Scale
 
 /**
-  * Vamp definition of a HealthCheck
-  * Transforms later into specific 'container solution'
-  */
+ * Vamp definition of a HealthCheck
+ * Transforms later into specific 'container solution'
+ */
 case class HealthCheck(
-  path: String,
-  port: String,
+  path:         String,
+  port:         String,
   initialDelay: Time,
-  timeout: Time,
-  interval: Time,
-  protocol: String,
-  failures: Int)
+  timeout:      Time,
+  interval:     Time,
+  protocol:     String,
+  failures:     Int)

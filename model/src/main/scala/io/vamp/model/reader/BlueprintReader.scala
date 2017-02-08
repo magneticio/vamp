@@ -13,7 +13,6 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     with TraitReader
     with ArgumentReader
     with DialectReader
-    with HealthCheckReader
     with BreedTraitValueValidator
     with BlueprintTraitValidator
     with GatewayRouteValidation
@@ -192,7 +191,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       environmentVariables(alias = false),
       ScaleReader.readOptionalReferenceOrAnonymous("scale"),
       arguments(),
-      healthChecks,
+      HealthCheckReader.read,
       <<?[String]("network"),
       dialects)
   }
@@ -352,4 +351,28 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
   override protected def createDefault(implicit source: YamlSourceReader): Scale = {
     DefaultScale(name, metadata, <<![Quantity]("cpu"), <<![MegaByte]("memory"), <<?[Int]("instances").getOrElse(1))
   }
+}
+
+object HealthCheckReader extends YamlReader[List[HealthCheck]] {
+
+  def healthCheck(implicit source: YamlSourceReader): HealthCheck =
+    HealthCheck(
+      <<![String]("path"),
+      <<![String]("port"),
+      Time.of(<<![String]("initial_delay")),
+      Time.of(<<![String]("timeout")),
+      Time.of(<<![String]("interval")),
+      <<![String]("protocol"),
+      <<![Int]("failures"))
+
+  override protected def parse(implicit source: YamlSourceReader): List[HealthCheck] =
+    <<?[List[_]]("health_checks") match {
+      case Some(hs) ⇒ hs.map {
+        case yaml: YamlSourceReader ⇒
+          healthCheck(yaml)
+        case _ ⇒ throwException(InvalidArgumentError)
+      }
+      case _ ⇒ Nil
+    }
+
 }

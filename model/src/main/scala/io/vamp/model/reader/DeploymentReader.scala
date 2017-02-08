@@ -15,7 +15,6 @@ trait AbstractDeploymentReader
     with TraitReader
     with ArgumentReader
     with DialectReader
-    with HealthCheckReader
     with ReferenceYamlReader[Deployment] {
 
   override protected def parse(implicit source: YamlSourceReader): Deployment = {
@@ -56,7 +55,7 @@ trait AbstractDeploymentReader
     val breed = BreedReader.readReference(<<![Any]("breed")).asInstanceOf[DefaultBreed]
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale", validateEitherReferenceOrAnonymous).asInstanceOf[Option[DefaultScale]]
 
-    DeploymentService(status(<<![YamlSourceReader]("status")), breed, environmentVariables(), scale, parseInstances, arguments(), healthChecks, <<?[String]("network"), dependencies(), dialects)
+    DeploymentService(status(<<![YamlSourceReader]("status")), breed, environmentVariables(), scale, parseInstances, arguments(), HealthCheckReader.read(source), <<?[String]("network"), dependencies(), dialects)
   }
 
   def parseInstances(implicit source: YamlSourceReader): List[Instance] = {

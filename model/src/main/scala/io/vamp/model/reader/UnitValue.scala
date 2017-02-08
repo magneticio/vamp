@@ -100,15 +100,18 @@ object Time {
   private val minutePattern = "(\\d+)[Mm]".r
 
   def of(source: Any): Time = source match {
-    case string: String => string match {
-      case secondPattern(s) => Time(s.toInt)
-      case minutePattern(m) => Time(m.toInt * 60)
-      case s                => throw new Exception("Received: " + s)
+    case string: String ⇒ string match {
+      case secondPattern(s) ⇒ Time(s.toInt)
+      case minutePattern(m) ⇒ Time(m.toInt * 60)
+      case s                ⇒ throw new Exception("Received: " + s)
     }
-    case _ => Try(Time(source.toString.toInt)).getOrElse(UnitValue.illegal(source))
+    case _ ⇒ Try(Time(source.toString.toInt)).getOrElse(UnitValue.illegal(source))
   }
 }
 
+/**
+ * Time defines a UnitValue for minutes (M) and seconds (S)
+ */
 case class Time(value: Int) extends UnitValue[Int] {
   override def normalized = s"${value}S"
 }
