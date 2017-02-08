@@ -1,7 +1,9 @@
 package io.vamp.container_driver.marathon
 
 import io.vamp.container_driver.Docker
-import io.vamp.model.artifact.HealthCheck
+import io.vamp.model.artifact.{HealthCheck, Port}
+
+import scala.util.{Left, Right, Try}
 
 case class MarathonApp(
   id:          String,
@@ -20,26 +22,50 @@ case class Container(docker: Docker, `type`: String = "DOCKER")
 
 case class MarathonHealthCheck(
   path: String,
-  port: Int,
+  port: Option[Int],
+  portIndex: Option[Int],
   protocol: String,
   gracePeriodSeconds: Int,
   intervalSeconds: Int,
   timeoutSeconds: Int,
-  maxConsecutiveFailures: Int,
-  ignoreHttp1xx: Boolean)
+  maxConsecutiveFailures: Int)
 
 object MarathonHealthCheck {
 
   /** Transforms a HealthCheck to a Marathon specific HealthCheck */
-  def apply(healthCheck: HealthCheck): MarathonHealthCheck =
-    MarathonHealthCheck(
-      healthCheck.path,
-      healthCheck.port.toInt, // Fix with conversion etc.
-      healthCheck.protocol,
-      healthCheck.initialDelay.value,
-      healthCheck.interval.value,
-      healthCheck.timeout.value,
-      healthCheck.failures,
-      ignoreHttp1xx = false) // Fix standard?
+  def apply(ports: List[Port], healthCheck: HealthCheck): MarathonHealthCheck = {
+    val portOrIndex: Either[Int, Int] = Try(Left(healthCheck.port.toInt))
+      .getOrElse { Right(
+       ports
+         .zipWithIndex
+         .find { case (p, i) => p.name.contains(healthCheck.port) || p.alias.contains(healthCheck.port) }
+         .get // Able to get due to validation
+         ._2
+      )}
+
+    portOrIndex match {
+      case Left(port)   =>
+        MarathonHealthCheck(
+          healthCheck.path,
+          Some(port),
+          None,
+          healthCheck.protocol,
+          healthCheck.initialDelay.value,
+          healthCheck.interval.value,
+          healthCheck.timeout.value,
+          healthCheck.failures)
+      case Right(index) =>
+        MarathonHealthCheck(
+          healthCheck.path,
+          None,
+          Some(index),
+          healthCheck.protocol,
+          healthCheck.initialDelay.value,
+          healthCheck.interval.value,
+          healthCheck.timeout.value,
+          healthCheck.failures)
+    }
+  }
+
 
 }
