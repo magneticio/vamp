@@ -352,4 +352,22 @@ class ConfigSpec extends FlatSpec with Matchers with BeforeAndAfterEach {
 
     input.foreach { case (k, v) ⇒ (k → applied(k)) shouldBe (k → v) }
   }
+
+  it should "unmarshall marshall string input" in {
+    def validate(input: String) = {
+      val source = Config.unmarshall(input)
+      val export = Config.marshall(source)
+
+      Config.load(source)
+      Config.marshall(Config.export(Config.Type.dynamic, flatten = false)) shouldBe export
+    }
+
+    validate("vamp.info.message: Hi!!!")
+    validate(
+      """vamp:
+        |  info:
+        |    message: Hi!!!
+      """.stripMargin
+    )
+  }
 }
