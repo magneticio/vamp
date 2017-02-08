@@ -172,7 +172,7 @@ trait LogDirective {
 
   def log: Directive0 = {
     extractRequestContext.flatMap { ctx ⇒
-      logger.debug(ctx.request.uri.toString)
+      logger.debug(s"${ctx.request.method.value} ${ctx.request.uri}")
       pass
     }
   }
