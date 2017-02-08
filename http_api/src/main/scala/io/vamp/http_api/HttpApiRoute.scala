@@ -135,15 +135,19 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     }
   }
 
-  val restfulRoutes = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
+  val webSocketRoutes = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
 
   val apiRoutes = noCachingAllowed {
     cors() {
       pathPrefix("api" / Artifact.version) {
         encodeResponse {
-          sseRoutes ~ sseLogRoutes ~ accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
-            restfulRoutes
-          }
+          sseRoutes ~ sseLogRoutes ~
+            accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
+              infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes
+            } ~ systemRoutes ~
+            accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
+              crudRoutes
+            } ~ javascriptBreedRoute
         }
       }
     }

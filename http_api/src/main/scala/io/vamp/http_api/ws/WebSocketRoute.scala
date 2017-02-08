@@ -22,9 +22,9 @@ trait WebSocketRoute extends WebSocketMarshaller with HttpApiHandlers {
 
   implicit def materializer: Materializer
 
-  def restfulRoutes: Route
+  def webSocketRoutes: Route
 
-  private def apiHandler: HttpRequest ⇒ Future[HttpResponse] = Route.asyncHandler(log { restfulRoutes })
+  private def apiHandler: HttpRequest ⇒ Future[HttpResponse] = Route.asyncHandler(log { webSocketRoutes })
 
   val websocketRoutes = {
     get {
