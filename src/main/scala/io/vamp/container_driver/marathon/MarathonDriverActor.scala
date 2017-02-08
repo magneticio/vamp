@@ -159,6 +159,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
       Math.round(service.scale.get.memory.value).toInt,
       environment(deployment, cluster, service),
       cmd(deployment, cluster, service),
+      service.healthChecks.map(MarathonHealthCheck.apply),
       labels = labels(deployment, cluster, service)
     )
 
