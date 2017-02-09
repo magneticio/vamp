@@ -108,6 +108,9 @@ trait PersistenceMarshaller extends TypeOfArtifact {
       }
     },
     // workflow persistence
+    "workflow-breed" → new NoNameValidationYamlReader[WorkflowBreed] {
+      override protected def parse(implicit source: YamlSourceReader) = WorkflowBreed(name, BreedReader.read(<<![YamlSourceReader]("breed")).asInstanceOf[DefaultBreed])
+    },
     "workflow-status" → new NoNameValidationYamlReader[WorkflowStatus] {
       override protected def parse(implicit source: YamlSourceReader) = {
         val status = <<![String]("status")

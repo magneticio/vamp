@@ -178,6 +178,9 @@ trait PersistenceMultiplexer {
 
   private def combine(workflow: Workflow): Future[Option[Workflow]] = {
     for {
+      breed ← get(workflow.name, classOf[WorkflowBreed]).asInstanceOf[Future[Option[WorkflowBreed]]].map {
+        _.map(_.breed).getOrElse(workflow.breed)
+      }
       status ← get(workflow.name, classOf[WorkflowStatus]).asInstanceOf[Future[Option[WorkflowStatus]]].map {
         _.map(_.unmarshall).getOrElse(workflow.status)
       }
@@ -194,9 +197,9 @@ trait PersistenceMultiplexer {
         _.map(_.environmentVariables).getOrElse(workflow.environmentVariables)
       }
       instances ← get(workflow.name, classOf[WorkflowInstances]).asInstanceOf[Future[Option[WorkflowInstances]]].map {
-        _.map(_.instances).getOrElse(workflow.instances)
+        _.map(_.instances).getOrElse(Nil)
       }
-    } yield Option(workflow.copy(status = status, scale = scale, network = network, arguments = arguments, environmentVariables = environmentVariables, instances = instances))
+    } yield Option(workflow.copy(breed = breed, status = status, scale = scale, network = network, arguments = arguments, environmentVariables = environmentVariables, instances = instances))
   }
 
   private def get[A <: Artifact](artifact: A): Future[Option[A]] = get(artifact.name, artifact.getClass).asInstanceOf[Future[Option[A]]]

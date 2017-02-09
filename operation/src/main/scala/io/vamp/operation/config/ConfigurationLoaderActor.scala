@@ -72,7 +72,7 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
     }
 
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get("configuration" :: Nil) map {
-      case Some(content: String) if content != Config.marshall(Config.export(Config.Type.dynamic)) ⇒ reload(Config.unmarshall(content))
+      case Some(content: String) if content != Config.marshall(Config.export(Config.Type.dynamic, flatten = false)) ⇒ reload(Config.unmarshall(content))
       case None if Config.export(Config.Type.dynamic).nonEmpty ⇒ reload(Map())
       case _ ⇒
     }

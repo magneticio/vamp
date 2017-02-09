@@ -1,6 +1,7 @@
 package io.vamp.http_api
 
 import akka.http.scaladsl.model.HttpEntity
+import akka.http.scaladsl.model.HttpMethods.{ PUT, POST }
 import akka.http.scaladsl.model.StatusCodes._
 import akka.pattern.ask
 import akka.util.Timeout
@@ -26,7 +27,7 @@ trait SystemRoute extends SystemController {
             onSuccess(vgaTemplate(kind, name)) { result ⇒
               respondWith(OK, result)
             }
-          } ~ (put | post) {
+          } ~ (method(PUT) | method(POST)) {
             entity(as[String]) { request ⇒
               validateOnly { validateOnly ⇒
                 onSuccess(vgaTemplateUpdate(kind, name, request, validateOnly)) { result ⇒
@@ -63,7 +64,7 @@ trait SystemRoute extends SystemController {
           }
         }
       }
-    } ~ (put | post) {
+    } ~ (method(PUT) | method(POST)) {
       entity(as[String]) { request ⇒
         validateOnly { validateOnly ⇒
           onSuccess(configurationUpdate(request, validateOnly)) { result ⇒
@@ -90,7 +91,7 @@ trait SystemController {
     if (validateOnly) Future.successful(true)
     else {
       implicit val timeout = KeyValueStoreActor.timeout()
-      IoC.actorFor[GatewayDriverActor] ? GatewayDriverActor.SetTemplate(kind, name, template)
+      IoC.actorFor[GatewayDriverActor] ? GatewayDriverActor.SetTemplate(kind, name, template) map { _ ⇒ HttpEntity(template) }
     }
   }
 
