@@ -72,10 +72,9 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
   private def instance(workflow: Workflow) = Instance(workflow.name, "", Map(), deployed = true)
 
   protected override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
-    case w if w.schedule != DaemonSchedule ⇒
+    case w if w.schedule != DaemonSchedule ⇒ enrich(w).flatMap { workflow ⇒
 
       val command = defaultCommand(w.breed.asInstanceOf[DefaultBreed].deployable).getOrElse("")
-      val workflow = enrich(w)
       val breed = workflow.breed.asInstanceOf[DefaultBreed]
 
       validateDeployable(workflow.breed.asInstanceOf[DefaultBreed].deployable)
@@ -91,6 +90,7 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
       )
 
       httpClient.post[Any](s"$url/scheduler/iso8601", jobRequest)
+    }
     case _ ⇒ Future.successful(false)
   }
 
