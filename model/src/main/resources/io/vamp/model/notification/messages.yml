@@ -47,6 +47,7 @@ GatewayRouteWeightError                : "Total route weight must be either 0% o
 GatewayRouteConditionStrengthError     : "Route filter strength cannot be less than 0% or greater than 100%: {gateway.name}."
 DuplicateGatewayPortError              : "Duplicate gateway port: '{port}'."
 UnsupportedPathRewriteError            : "Unsupported path rewrite: {definition}."
+UnresolvedPortReferenceError           : "Unresolved port reference: {portReference}."
 
 # SLA
 

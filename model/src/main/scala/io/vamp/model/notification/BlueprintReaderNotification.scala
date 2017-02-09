@@ -50,3 +50,5 @@ case class UnsupportedGatewayNameError(name: String) extends Notification
 case class UnsupportedRoutePathError(path: GatewayPath) extends Notification
 
 case class UnsupportedPathRewriteError(definition: String) extends Notification
+
+case class UnresolvedPortReferenceError(portReference: String) extends Notification

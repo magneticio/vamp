@@ -1,12 +1,13 @@
 package io.vamp.model.reader
 
-import io.vamp.common.notification.{ Notification, NotificationErrorException, NotificationProvider }
+import io.vamp.common.notification.{Notification, NotificationErrorException, NotificationProvider}
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
-import io.vamp.model.validator.{ BlueprintTraitValidator, BreedTraitValueValidator }
+import io.vamp.model.validator.{BlueprintTraitValidator, BreedTraitValueValidator}
 
 import scala.language.postfixOps
+import scala.util.Try
 
 trait AbstractBlueprintReader extends YamlReader[Blueprint]
     with ReferenceYamlReader[Blueprint]
@@ -130,7 +131,24 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       validateDependencies(breeds)
       breeds.foreach(BreedReader.validateNonRecursiveDependencies)
 
+      // validates each individual health check linked to a cluster and service
+      for {
+        cluster <- blueprint.clusters
+        service <- cluster.services
+        healthCheck <- service.healthChecks
+      } yield validateHealthCheck(service, healthCheck)
+
       blueprint
+  }
+
+  /** Validates a healthCheck based on the linked service **/
+  protected def validateHealthCheck(service: Service, healthCheck: HealthCheck): Unit = {
+    val correctPort = Try(healthCheck.port.toInt).isSuccess || (service.breed match {
+      case defaultBreed: DefaultBreed => defaultBreed.ports.exists(_.name == healthCheck.port)
+      case _                          => true
+    })
+
+    if(!correctPort) throwException(UnresolvedPortReferenceError(healthCheck.port))
   }
 
   protected def validateBreeds(breeds: List[Breed]): Unit = {
@@ -357,13 +375,13 @@ object HealthCheckReader extends YamlReader[List[HealthCheck]] {
 
   def healthCheck(implicit source: YamlSourceReader): HealthCheck =
     HealthCheck(
-      <<![String]("path"),
+      <<?[String]("path").getOrElse("/"),
       <<![String]("port"),
       Time.of(<<![String]("initial_delay")),
       Time.of(<<![String]("timeout")),
       Time.of(<<![String]("interval")),
-      <<![String]("protocol"),
-      <<![Int]("failures"))
+      <<![Int]("failures"),
+      <<?[String]("protocol").getOrElse("HTTP"))
 
   override protected def parse(implicit source: YamlSourceReader): List[HealthCheck] =
     <<?[List[_]]("health_checks") match {

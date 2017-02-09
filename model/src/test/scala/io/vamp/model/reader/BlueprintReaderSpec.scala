@@ -1,5 +1,6 @@
 package io.vamp.model.reader
 
+import io.vamp.common.notification.NotificationErrorException
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import org.junit.runner.RunWith
@@ -799,7 +800,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "read a single health check" in {
     BlueprintReader.read(res("blueprint/blueprint91.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", Map(), List(Service(BreedReference("nocturnal-viper"), Nil, Some(DefaultScale("", Map(), Quantity(0.2), MegaByte(120), 2)), Nil, List(HealthCheck("path/to/check", "8080", Time(30), Time(4), Time(60), "HTTPS", 5)))), Nil, None, None))),
+      'clusters(List(Cluster("notorious", Map(), List(Service(BreedReference("nocturnal-viper"), Nil, Some(DefaultScale("", Map(), Quantity(0.2), MegaByte(120), 2)), Nil, List(HealthCheck("path/to/check", "8080", Time(30), Time(4), Time(60), 5, "HTTPS")))), Nil, None, None))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -808,10 +809,25 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "read a list of health checks" in {
     BlueprintReader.read(res("blueprint/blueprint92.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", Map(), List(Service(BreedReference("nocturnal-viper"), Nil, Some(DefaultScale("", Map(), Quantity(0.2), MegaByte(120), 2)), Nil, List(HealthCheck("path/to/check", "8080", Time(30), Time(4), Time(60), "HTTPS", 5), HealthCheck("path/to/check2", "8080", Time(30), Time(4), Time(60), "HTTPS", 5)))), Nil, None, None))),
+      'clusters(List(Cluster("notorious", Map(), List(Service(BreedReference("nocturnal-viper"), Nil, Some(DefaultScale("", Map(), Quantity(0.2), MegaByte(120), 2)), Nil, List(HealthCheck("path/to/check", "8080", Time(30), Time(4), Time(60), 5, "HTTPS"), HealthCheck("path/to/check2", "8080", Time(30), Time(4), Time(60), 5, "HTTPS")))), Nil, None, None))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
+  }
+
+  it should "find a port reference in a health check" in {
+    BlueprintReader.read(res("blueprint/blueprint93.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", Map(), List(Service(DefaultBreed("nocturnal-viper", Map(), Deployable("anaconda"), List(Port("webport", None, Some("8080/http"), 8080, Port.Type.Http)), Nil, Nil, Nil, Map()), Nil, Some(DefaultScale("", Map(), Quantity(0.2), MegaByte(120), 2)), Nil, List(HealthCheck("path/to/check", "webport", Time(30), Time(4), Time(60), 5, "HTTPS")))), Nil, None, None))),
+      'gateways(Nil),
+      'environmentVariables(Nil)
+    )
+  }
+
+  it should "throw an error when a port reference in a health check is unresolved" in {
+    intercept[NotificationErrorException] {
+      BlueprintReader.read(res("blueprint/blueprint94.yml"))
+    }
   }
 
 }

@@ -106,5 +106,5 @@ case class HealthCheck(
   initialDelay: Time,
   timeout:      Time,
   interval:     Time,
-  protocol:     String,
-  failures:     Int)
+  failures:     Int,
+  protocol:     String)

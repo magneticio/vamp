@@ -125,8 +125,8 @@ trait HealthCheckSerializer {
         "initial_delay" -> JString(healthCheck.initialDelay.normalized),
         "timeout"       -> JString(healthCheck.timeout.normalized),
         "interval"      -> JString(healthCheck.initialDelay.normalized),
-        "protocol"      -> JString(healthCheck.protocol),
-        "failures"      -> JInt(healthCheck.failures)
+        "failures"      -> JInt(healthCheck.failures),
+        "protocol"      -> JString(healthCheck.protocol)
       )
     })
 
