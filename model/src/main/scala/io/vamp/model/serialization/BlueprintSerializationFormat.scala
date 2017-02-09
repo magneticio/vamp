@@ -53,12 +53,12 @@ class ServiceFieldSerializer
     with HealthCheckSerializer {
 
   override val serializer: PartialFunction[(String, Any), Option[(String, Any)]] = {
-    case ("kind", _)                                       ⇒ None
-    case ("environmentVariables", environmentVariables)    ⇒ Some(("environment_variables", traits(environmentVariables.asInstanceOf[List[Trait]])))
-    case ("arguments", arguments)                          ⇒ Some(("arguments", serializeArguments(arguments.asInstanceOf[List[Argument]])))
-    case ("dialects", dialects)                            ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
-    case ("scale", Some(scale: Scale))                     ⇒ Some(("scale", serializerScale(scale, full = false)))
-    case ("healthChecks", healthChecks)                    =>
+    case ("kind", _)                                    ⇒ None
+    case ("environmentVariables", environmentVariables) ⇒ Some(("environment_variables", traits(environmentVariables.asInstanceOf[List[Trait]])))
+    case ("arguments", arguments)                       ⇒ Some(("arguments", serializeArguments(arguments.asInstanceOf[List[Argument]])))
+    case ("dialects", dialects)                         ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
+    case ("scale", Some(scale: Scale))                  ⇒ Some(("scale", serializerScale(scale, full = false)))
+    case ("healthChecks", healthChecks) ⇒
       Some(("health_checks", serializeHealthChecks(healthChecks.asInstanceOf[List[HealthCheck]])))
   }
 
@@ -118,15 +118,15 @@ trait HealthCheckSerializer {
 
   /** Serializes a list of HealthCheck to a single JValue, an JArray with JObjects */
   def serializeHealthChecks(healthChecks: List[HealthCheck]): JValue =
-    JArray(healthChecks.map { healthCheck =>
+    JArray(healthChecks.map { healthCheck ⇒
       JObject(
-        "path"          -> JString(healthCheck.path),
-        "port"          -> JString(healthCheck.port),
-        "initial_delay" -> JString(healthCheck.initialDelay.normalized),
-        "timeout"       -> JString(healthCheck.timeout.normalized),
-        "interval"      -> JString(healthCheck.initialDelay.normalized),
-        "failures"      -> JInt(healthCheck.failures),
-        "protocol"      -> JString(healthCheck.protocol)
+        "path" → JString(healthCheck.path),
+        "port" → JString(healthCheck.port),
+        "initial_delay" → JString(healthCheck.initialDelay.normalized),
+        "timeout" → JString(healthCheck.timeout.normalized),
+        "interval" → JString(healthCheck.initialDelay.normalized),
+        "failures" → JInt(healthCheck.failures),
+        "protocol" → JString(healthCheck.protocol)
       )
     })
 

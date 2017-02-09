@@ -10,7 +10,6 @@ clusters:
            memory: 120 M
            instances: 2
         health_checks:
-        -
            path: path/to/check
            port: 8080
            timeout: 4S

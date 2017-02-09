@@ -50,7 +50,14 @@ abstract class AbstractCluster extends Artifact {
   def gatewayBy(portName: String): Option[Gateway] = gateways.find(_.port.name == portName)
 }
 
-case class Cluster(name: String, metadata: Map[String, Any], services: List[Service], gateways: List[Gateway], network: Option[String] = None, sla: Option[Sla] = None, dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
+case class Cluster(
+  name:     String,
+  metadata: Map[String, Any],
+  services: List[Service],
+  gateways: List[Gateway],
+  network:  Option[String]          = None,
+  sla:      Option[Sla]             = None,
+  dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
 
 abstract class AbstractService {
 

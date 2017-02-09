@@ -299,7 +299,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "validate breed cross dependencies - no inline" in {
     BlueprintReader.read(res("blueprint/blueprint33.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", Map(), List(Service(BreedReference("solid-barbershop"), Nil, None, Nil, Nil)), Nil, None), Cluster("notorious", Map(), List(Service(BreedReference("elastic-search"), Nil, None, Nil, Nil)), Nil, None))),
+      'clusters(List(Cluster("supersonic", Map(), List(Service(BreedReference("solid-barbershop"), Nil, None, Nil, Nil)), Nil, None), Cluster("notorious", Map(), List(Service(BreedReference("elastic-search"), Nil, None, Nil, Nil, None)), Nil, None))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -797,7 +797,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
-  it should "read a single health check" in {
+  it should "read a single health check in service level" in {
     BlueprintReader.read(res("blueprint/blueprint91.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", Map(), List(Service(BreedReference("nocturnal-viper"), Nil, Some(DefaultScale("", Map(), Quantity(0.2), MegaByte(120), 2)), Nil, List(HealthCheck("path/to/check", "8080", Time(30), Time(4), Time(60), 5, "HTTPS")))), Nil, None, None))),
@@ -806,7 +806,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
-  it should "read a list of health checks" in {
+  it should "read a list of health checks in service level" in {
     BlueprintReader.read(res("blueprint/blueprint92.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", Map(), List(Service(BreedReference("nocturnal-viper"), Nil, Some(DefaultScale("", Map(), Quantity(0.2), MegaByte(120), 2)), Nil, List(HealthCheck("path/to/check", "8080", Time(30), Time(4), Time(60), 5, "HTTPS"), HealthCheck("path/to/check2", "8080", Time(30), Time(4), Time(60), 5, "HTTPS")))), Nil, None, None))),
@@ -815,7 +815,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
-  it should "find a port reference in a health check" in {
+  it should "find a port reference in a health check in service level" in {
     BlueprintReader.read(res("blueprint/blueprint93.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", Map(), List(Service(DefaultBreed("nocturnal-viper", Map(), Deployable("anaconda"), List(Port("webport", None, Some("8080/http"), 8080, Port.Type.Http)), Nil, Nil, Nil, Map()), Nil, Some(DefaultScale("", Map(), Quantity(0.2), MegaByte(120), 2)), Nil, List(HealthCheck("path/to/check", "webport", Time(30), Time(4), Time(60), 5, "HTTPS")))), Nil, None, None))),
@@ -824,10 +824,19 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
-  it should "throw an error when a port reference in a health check is unresolved" in {
+  it should "throw an error when a port reference in a health check in service level is unresolved" in {
     intercept[NotificationErrorException] {
       BlueprintReader.read(res("blueprint/blueprint94.yml"))
     }
+  }
+
+  it should "read a single health check in service level without list definition in yaml" in {
+    BlueprintReader.read(res("blueprint/blueprint95.yml")) should have(
+      'name("nomadic-frostbite"),
+      'clusters(List(Cluster("notorious", Map(), List(Service(BreedReference("nocturnal-viper"), Nil, Some(DefaultScale("", Map(), Quantity(0.2), MegaByte(120), 2)), Nil, List(HealthCheck("path/to/check", "8080", Time(30), Time(4), Time(60), 5, "HTTPS")))), Nil, None, None))),
+      'gateways(Nil),
+      'environmentVariables(Nil)
+    )
   }
 
 }

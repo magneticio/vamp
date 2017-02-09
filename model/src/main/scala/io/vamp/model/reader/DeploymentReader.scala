@@ -25,9 +25,22 @@ trait AbstractDeploymentReader
           implicit val source = cluster
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla", validateEitherReferenceOrAnonymous)
 
-          <<?[List[YamlSourceReader]]("services") match {
-            case None       ⇒ DeploymentCluster(name, metadata, Nil, Nil, <<?[String]("network"), sla, dialects)
-            case Some(list) ⇒ DeploymentCluster(name, metadata, list.map(parseService(_)), routingReader.mapping("gateways"), <<?[String]("network"), sla, dialects)
+          val addHealthChecks = (healthChecks: List[HealthCheck]) ⇒ <<?[List[YamlSourceReader]]("services") match {
+            case None ⇒ DeploymentCluster(name, metadata, Nil, Nil, <<?[String]("network"), sla, dialects)
+            case Some(list) ⇒
+              DeploymentCluster(
+                name,
+                metadata,
+                list.map(parseService(_)),
+                routingReader.mapping("gateways"),
+                <<?[String]("network"),
+                sla,
+                dialects)
+          }
+
+          <<?[YamlSourceReader]("health_checks") match {
+            case None        ⇒ addHealthChecks(List())
+            case Some(input) ⇒ addHealthChecks(HealthCheckReader.read(input))
           }
       } toList
     }

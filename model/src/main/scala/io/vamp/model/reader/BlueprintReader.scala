@@ -1,10 +1,10 @@
 package io.vamp.model.reader
 
-import io.vamp.common.notification.{Notification, NotificationErrorException, NotificationProvider}
+import io.vamp.common.notification.{ Notification, NotificationErrorException, NotificationProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
-import io.vamp.model.validator.{BlueprintTraitValidator, BreedTraitValueValidator}
+import io.vamp.model.validator.{ BlueprintTraitValidator, BreedTraitValueValidator }
 
 import scala.language.postfixOps
 import scala.util.Try
@@ -91,11 +91,16 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
           implicit val source = cluster
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
-          <<?[List[YamlSourceReader]]("services") match {
+          val addHealthChecks = (healthChecks: List[HealthCheck]) ⇒ <<?[List[YamlSourceReader]]("services") match {
             case None ⇒ Cluster(name, metadata, List(), Nil, <<?[String]("network"), sla, dialects)
             case Some(list) ⇒
               val services = list.map(parseService(_))
               Cluster(name, metadata, services, processAnonymousInternalGateways(services, internalGatewayReader.mapping("gateways")), <<?[String]("network"), sla, dialects)
+          }
+
+          <<?[YamlSourceReader]("health_checks") match {
+            case None        ⇒ addHealthChecks(List())
+            case Some(input) ⇒ addHealthChecks(HealthCheckReader.read(input))
           }
       } toList
     }
@@ -133,9 +138,9 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 
       // validates each individual health check linked to a cluster and service
       for {
-        cluster <- blueprint.clusters
-        service <- cluster.services
-        healthCheck <- service.healthChecks
+        cluster ← blueprint.clusters
+        service ← cluster.services
+        healthCheck ← service.healthChecks
       } yield validateHealthCheck(service, healthCheck)
 
       blueprint
@@ -144,11 +149,11 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
   /** Validates a healthCheck based on the linked service **/
   protected def validateHealthCheck(service: Service, healthCheck: HealthCheck): Unit = {
     val correctPort = Try(healthCheck.port.toInt).isSuccess || (service.breed match {
-      case defaultBreed: DefaultBreed => defaultBreed.ports.exists(_.name == healthCheck.port)
-      case _                          => true
+      case defaultBreed: DefaultBreed ⇒ defaultBreed.ports.exists(_.name == healthCheck.port)
+      case _                          ⇒ true
     })
 
-    if(!correctPort) throwException(UnresolvedPortReferenceError(healthCheck.port))
+    if (!correctPort) throwException(UnresolvedPortReferenceError(healthCheck.port))
   }
 
   protected def validateBreeds(breeds: List[Breed]): Unit = {
@@ -384,13 +389,13 @@ object HealthCheckReader extends YamlReader[List[HealthCheck]] {
       <<?[String]("protocol").getOrElse("HTTP"))
 
   override protected def parse(implicit source: YamlSourceReader): List[HealthCheck] =
-    <<?[List[_]]("health_checks") match {
-      case Some(hs) ⇒ hs.map {
-        case yaml: YamlSourceReader ⇒
-          healthCheck(yaml)
-        case _ ⇒ throwException(InvalidArgumentError)
-      }
-      case _ ⇒ Nil
-    }
+    <<?[List[YamlSourceReader]]("health_checks")
+      .map(_.map(healthCheck(_)))
+      .getOrElse(List.empty[HealthCheck])
+
+  override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
+    expandToList("health_checks")
+    source
+  }
 
 }
