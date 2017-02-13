@@ -122,8 +122,14 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
       deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
         case (deployment, service) ⇒
           deployed.get(appId(deployment, service.breed)) match {
-            case Some(app) ⇒ replyTo ! ContainerService(deployment, service, Option(containers(app)))
-            case None      ⇒ replyTo ! ContainerService(deployment, service, None)
+            case Some(app) ⇒
+              val equalHealthChecks: Boolean = MarathonHealthCheck.equalHealthChecks(
+                deployment.ports,
+                service.healthChecks,
+                app.healthChecks)
+
+              replyTo ! ContainerService(deployment, service, Option(containers(app)), equalHealthChecks)
+            case None      ⇒ replyTo ! ContainerService(deployment, service, None, equalHealthChecks = true)
           }
       }
     }
@@ -196,11 +202,10 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
   private def sendRequest(update: Boolean, id: String, payload: JValue) = {
     if (update) {
-      httpClient.get[Any](s"$url/v2/apps/$id", headers).flatMap { response ⇒
-        val changed = Extraction.decompose(response).children.headOption match {
-          case Some(app) ⇒ app.diff(payload).changed
-          case None      ⇒ payload
-        }
+      httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks", headers).flatMap { appResponse ⇒
+        val marathonApp = Extraction.extract[MarathonApp](payload)
+        val changed = appResponse.apps.headOption.map(difference(marathonApp, _)).getOrElse(payload)
+
         if (changed != JNothing) httpClient.put[Any](s"$url/v2/apps/$id", changed, headers) else Future.successful(false)
       }
     } else {
@@ -211,6 +216,26 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
           Future.failed(t)
       }
     }
+  }
+
+  /**
+    * Checks the difference between a MarathonApp and an App to convert them two comparable objects (ComparableApp)
+    * If healthCheck is changed it takes the latest array as values from:
+    * @param marathonApp
+    * If healthCheck deleted it needs to have an empty JSON Array as override value for the put request
+    */
+  private def difference(marathonApp: MarathonApp, app: App): JValue = {
+    val comparableApp: ComparableApp = ComparableApp.fromApp(app)
+    val comparableAppTwo: ComparableApp = ComparableApp.fromMarathonApp(marathonApp)
+    val diff = Extraction.decompose(comparableApp).diff(Extraction.decompose(comparableAppTwo))
+
+    diff.added.merge(diff.changed.mapField {
+      case ("healthChecks", _) => "healthChecks" -> JArray(marathonApp.healthChecks.map(Extraction.decompose))
+      case xs => xs
+    }).merge(diff.deleted.mapField {
+      case ("healthChecks", _) => "healthChecks" -> JArray(List())
+      case xs => xs
+    })
   }
 
   private def container(workflow: Workflow): Option[Container] = {

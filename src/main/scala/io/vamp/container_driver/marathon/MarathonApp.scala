@@ -67,5 +67,17 @@ object MarathonHealthCheck {
     }
   }
 
+  /**
+    * Checks wether healthChecks are equal or not (ports needed for conversion to MarathonHealthCheck)
+    */
+  def equalHealthChecks(
+      ports: List[Port],
+      healthChecks: List[HealthCheck],
+      marathonHealthChecks: List[MarathonHealthCheck]): Boolean =
+    if(healthChecks.isEmpty && marathonHealthChecks.isEmpty) true
+    else if(healthChecks.length != marathonHealthChecks.length) false
+    else healthChecks
+      .map(MarathonHealthCheck.apply(ports, _))
+      .forall(marathonHealthChecks.contains(_))
 
 }
