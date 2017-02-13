@@ -85,7 +85,7 @@ trait ContainerBuffer {
       val now = OffsetDateTime.now()
       deploymentServices.filter(_.isInstanceOf[DeploymentServices]).map(_.asInstanceOf[DeploymentServices]).flatMap { ds ⇒
         ds.services.map { service ⇒
-          appId(ds.deployment, service.breed) → ContainerBufferEntry(now, None, ContainerService(ds.deployment, service, None))
+          appId(ds.deployment, service.breed) → ContainerBufferEntry(now, None, ContainerService(ds.deployment, service, None, equalHealthChecks = true))
         }
       }.toMap
     case workflow: Workflow ⇒ Map(appId(workflow) → ContainerBufferEntry(OffsetDateTime.now(), None, ContainerWorkflow(workflow, None)))

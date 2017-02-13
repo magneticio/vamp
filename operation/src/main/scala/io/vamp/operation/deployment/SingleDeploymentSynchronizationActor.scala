@@ -33,6 +33,8 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
 
   private val checkInstances = Config.boolean("vamp.operation.synchronization.check.instances")()
 
+  private val checkHealthChecks = Config.boolean("vamp.operation.synchronization.check.health-checks")()
+
   def receive: Receive = {
     case Synchronize(containerService) ⇒ synchronize(containerService)
     case _                             ⇒
@@ -47,8 +49,8 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         val deployment = containerService.deployment
 
         service.status.intention match {
-          case Intention.Deployment if service.status.isDone ⇒ redeployIfNeeded(deployment, cluster, service, containerService.containers)
-          case Intention.Deployment ⇒ deploy(deployment, cluster, service, containerService.containers)
+          case Intention.Deployment if service.status.isDone ⇒ redeployIfNeeded(deployment, cluster, service, containerService)
+          case Intention.Deployment ⇒ deploy(deployment, cluster, service, containerService)
           case Intention.Undeployment ⇒ undeploy(deployment, cluster, service, containerService.containers)
           case _ ⇒
         }
@@ -57,7 +59,11 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     }
   }
 
-  private def deploy(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containers: Option[Containers]) = {
+  private def deploy(
+      deployment: Deployment,
+      deploymentCluster: DeploymentCluster,
+      deploymentService: DeploymentService,
+      containerService: ContainerService) = {
 
     def deployTo(update: Boolean) = actorFor[ContainerDriverActor] ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = update)
 
@@ -69,7 +75,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     if (deploymentService.status.phase.isInstanceOf[Initiated])
       actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
 
-    containers match {
+    containerService.containers match {
       case None ⇒
         if (hasDependenciesDeployed(deployment, deploymentCluster, deploymentService)) {
           if (hasResolvedEnvironmentVariables(deployment, deploymentCluster, deploymentService))
@@ -79,8 +85,10 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         }
 
       case Some(cs) ⇒
-        if (!matchingScale(deploymentService, cs))
+        if (!matchingScale(deploymentService, cs) || !matchingHealthChecks(containerService)) {
           deployTo(update = true)
+        }
+
         else if (!matchingServers(deploymentService, cs)) {
           actorFor[PersistenceActor] ! UpdateDeploymentServiceInstances(deployment, deploymentCluster, deploymentService, cs.instances.map(convert))
         }
@@ -130,17 +138,19 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     actorFor[PersistenceActor] ! UpdateDeploymentServiceEnvironmentVariables(deployment, cluster, service, environmentVariables)
   }
 
-  private def redeployIfNeeded(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containers: Option[Containers]) = {
+  private def redeployIfNeeded(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerService: ContainerService) = {
 
     def redeploy() = {
       actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
       publishRedeploy(deployment, deploymentCluster, deploymentService)
-      deploy(deployment, deploymentCluster, deploymentService, containers)
+      deploy(deployment, deploymentCluster, deploymentService, containerService)
     }
 
-    containers match {
+    containerService.containers match {
       case None     ⇒ redeploy()
-      case Some(cs) ⇒ if (!matchingServers(deploymentService, cs) || !matchingScale(deploymentService, cs)) redeploy()
+      case Some(cs) ⇒ if (!matchingServers(deploymentService, cs) ||
+                          !matchingScale(deploymentService, cs)   ||
+                          !matchingHealthChecks(containerService)) redeploy()
     }
   }
 
@@ -167,13 +177,19 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   }
 
   private def matchingScale(deploymentService: DeploymentService, containers: Containers) = {
-
     val cpu = if (checkCpu) containers.scale.cpu == deploymentService.scale.get.cpu else true
     val memory = if (checkMemory) containers.scale.memory == deploymentService.scale.get.memory else true
     val instances = if (checkInstances) containers.instances.size == deploymentService.scale.get.instances else true
 
     instances && cpu && memory
   }
+
+  /**
+    * Based on config value checkHealthChecks the containerService equalHealthChecks gets evaluated.
+    */
+  private def matchingHealthChecks(containerService: ContainerService): Boolean =
+    if(checkHealthChecks) containerService.equalHealthChecks
+    else true
 
   private def updateGateways(deployment: Deployment, cluster: DeploymentCluster) = cluster.gateways.foreach { gateway ⇒
     IoC.actorFor[GatewayActor] ! GatewayActor.PromoteInternal(gateway)

@@ -401,11 +401,16 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver 
           case Some(bpService) ⇒
 
             val scale = if (bpService.scale.isDefined) bpService.scale else service.scale
-            val state: DeploymentService.Status = if (service.scale != bpService.scale || sc.gateways != blueprintCluster.gateways) Intention.Deployment else service.status
+            val state: DeploymentService.Status =
+              if (service.scale != bpService.scale || sc.gateways != blueprintCluster.gateways) Intention.Deployment
+              else service.status
 
             if (!validateOnly) resetServiceArtifacts(deployment, blueprintCluster, service, state)
 
-            service.copy(scale = scale, dialects = service.dialects ++ bpService.dialects)
+            service.copy(
+              scale = scale,
+              dialects = service.dialects ++ bpService.dialects,
+              healthChecks = bpService.healthChecks)
         }
       }
     }
