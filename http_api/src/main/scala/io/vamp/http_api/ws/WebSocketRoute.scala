@@ -4,12 +4,13 @@ import java.util.UUID
 
 import akka.actor.PoisonPill
 import akka.http.scaladsl.model.ws.{ Message, TextMessage }
-import akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
 import akka.http.scaladsl.server.Route
 import akka.stream._
 import akka.stream.scaladsl.{ Flow, Sink, Source }
+import akka.util.Timeout
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
+import io.vamp.common.config.Config
 import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers, TerminateFlowStage }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.http_api.LogDirective
@@ -22,9 +23,9 @@ trait WebSocketRoute extends WebSocketMarshaller with HttpApiHandlers {
 
   implicit def materializer: Materializer
 
-  def webSocketRoutes: Route
+  def timeout: Timeout
 
-  private def apiHandler: HttpRequest ⇒ Future[HttpResponse] = Route.asyncHandler(log { webSocketRoutes })
+  def websocketApiHandler: Route
 
   val websocketRoutes = {
     get {
@@ -34,13 +35,21 @@ trait WebSocketRoute extends WebSocketMarshaller with HttpApiHandlers {
     }
   }
 
+  private val limit = Config.int("vamp.http-api.websocket.stream-limit")()
+
+  private val apiHandler = Route.asyncHandler(log {
+    websocketApiHandler
+  })
+
   private def websocket: Flow[AnyRef, Message, Any] = {
 
     val id = UUID.randomUUID()
 
     val in = Flow[AnyRef].collect {
-      case TextMessage.Strict(message) ⇒ message
-    }.mapConcat(unmarshall)
+      case TextMessage.Strict(message)  ⇒ Future.successful(message)
+      case TextMessage.Streamed(stream) ⇒ stream.limit(limit).completionTimeout(timeout.duration).runFold("")(_ + _)
+    }.mapAsync(parallelism = 3)(identity)
+      .mapConcat(unmarshall)
       .map(SessionRequest(apiHandler, id, _))
       .to(Sink.actorRef[SessionEvent](actorFor[WebSocketActor], SessionClosed(id)))
 

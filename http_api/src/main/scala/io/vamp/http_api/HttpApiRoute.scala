@@ -136,7 +136,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     }
   }
 
-  val webSocketRoutes = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
+  val websocketApiHandler = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
 
   val apiRoutes = noCachingAllowed {
     cors() {
