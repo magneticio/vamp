@@ -154,6 +154,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     })
 
     if (!correctPort) throwException(UnresolvedPortReferenceError(healthCheck.port))
+    if (healthCheck.failures < 0) throwException(NegativeFailuresNumberError(healthCheck.failures))
   }
 
   protected def validateBreeds(breeds: List[Breed]): Unit = {

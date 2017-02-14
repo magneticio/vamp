@@ -48,6 +48,7 @@ GatewayRouteConditionStrengthError     : "Route filter strength cannot be less t
 DuplicateGatewayPortError              : "Duplicate gateway port: '{port}'."
 UnsupportedPathRewriteError            : "Unsupported path rewrite: {definition}."
 UnresolvedPortReferenceError           : "Unresolved port reference: {portReference}."
+NegativeFailuresNumberError            : "Failures can not be negative: {number}."
 
 # SLA
 
