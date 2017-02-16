@@ -68,7 +68,17 @@ trait AbstractDeploymentReader
     val breed = BreedReader.readReference(<<![Any]("breed")).asInstanceOf[DefaultBreed]
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale", validateEitherReferenceOrAnonymous).asInstanceOf[Option[DefaultScale]]
 
-    DeploymentService(status(<<![YamlSourceReader]("status")), breed, environmentVariables(), scale, parseInstances, arguments(), HealthCheckReader.read(source), <<?[String]("network"), dependencies(), dialects)
+    DeploymentService(
+      status(<<![YamlSourceReader]("status")),
+      breed,
+      environmentVariables(),
+      scale,
+      parseInstances,
+      arguments(),
+      HealthCheckReader.read,
+      <<?[String]("network"), dependencies(),
+      dialects,
+      ServiceHealthReader.read)
   }
 
   def parseInstances(implicit source: YamlSourceReader): List[Instance] = {
@@ -135,4 +145,17 @@ object DeploymentServiceStatusReader extends YamlReader[DeploymentService.Status
 
     DeploymentService.Status(intention, phase, since(<<![String]("since")))
   }
+}
+
+object ServiceHealthReader extends YamlReader[Option[ServiceHealth]] {
+
+  def serviceHealth(implicit yamlSourceReader: YamlSourceReader): ServiceHealth =
+    ServiceHealth(
+      <<![Int]("staged"),
+      <<![Int]("running"),
+      <<![Int]("healthy"),
+      <<![Int]("unhealthy"))
+
+  override protected def parse(implicit source: YamlSourceReader): Option[ServiceHealth] =
+    <<?[YamlSourceReader]("serviceHealth").map(ysr => serviceHealth(ysr))
 }

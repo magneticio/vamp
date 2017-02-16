@@ -29,7 +29,8 @@ class DeploymentConversion(val deployment: Deployment) {
             service.arguments,
             service.healthChecks,
             service.network,
-            service.dialects
+            service.dialects,
+            service.serviceHealth
           )
         },
         cluster.gateways,

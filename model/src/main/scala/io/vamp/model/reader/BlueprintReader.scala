@@ -217,7 +217,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       arguments(),
       HealthCheckReader.read,
       <<?[String]("network"),
-      dialects)
+      dialects,
+      ServiceHealthReader.read)
   }
 }
 

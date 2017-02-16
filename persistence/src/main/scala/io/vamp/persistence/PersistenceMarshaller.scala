@@ -95,6 +95,10 @@ trait PersistenceMarshaller extends TypeOfArtifact {
     "deployment-service-instances" → new NoNameValidationYamlReader[DeploymentServiceInstances] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceInstances(name, DeploymentReader.parseInstances)
     },
+    "deployment-service-health" -> new NoNameValidationYamlReader[DeploymentServiceHealth] {
+      override protected def parse(implicit source: YamlSourceReader) =
+        DeploymentServiceHealth(name, ServiceHealthReader.serviceHealth(<<![YamlSourceReader]("service_health")))
+    },
     "deployment-service-environment-variables" → new NoNameValidationYamlReader[DeploymentServiceEnvironmentVariables] {
 
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceEnvironmentVariables(name, environmentVariables)

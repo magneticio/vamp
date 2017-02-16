@@ -50,6 +50,7 @@ case class ContainerService(
   deployment: Deployment,
   service: DeploymentService,
   containers: Option[Containers],
+  serviceHealth: Option[ServiceHealth] = None,
   equalHealthChecks: Boolean = true) extends ContainerRuntime
 
 case class ContainerWorkflow(workflow: Workflow, containers: Option[Containers]) extends ContainerRuntime

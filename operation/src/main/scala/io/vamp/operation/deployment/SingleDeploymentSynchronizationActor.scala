@@ -88,9 +88,17 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         if (!matchingScale(deploymentService, cs) || !matchingHealthChecks(containerService)) {
           deployTo(update = true)
         }
-
         else if (!matchingServers(deploymentService, cs)) {
           actorFor[PersistenceActor] ! UpdateDeploymentServiceInstances(deployment, deploymentCluster, deploymentService, cs.instances.map(convert))
+        }
+        else if (!matchingServiceHealth(deploymentService.serviceHealth, containerService.serviceHealth)) {
+          val serviceHealth = containerService.serviceHealth.getOrElse(deploymentService.serviceHealth.get)
+
+          actorFor[PersistenceActor] ! UpdateDeploymentServiceHealth(
+            deployment,
+            deploymentCluster,
+            deploymentService,
+            serviceHealth)
         }
         else {
           actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Done()))
@@ -99,6 +107,15 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         }
     }
   }
+
+  private def matchingServiceHealth(deploymentHealth: Option[ServiceHealth], serviceHealth: Option[ServiceHealth]): Boolean =
+    (for {
+      deploymentServiceHealth <- deploymentHealth
+      containerServiceHealth  <- serviceHealth
+    } yield deploymentServiceHealth == containerServiceHealth).getOrElse {
+      deploymentHealth.isEmpty && serviceHealth.isEmpty
+    }
+
 
   private def hasDependenciesDeployed(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService) = {
     deploymentService.breed.dependencies.forall {
@@ -150,7 +167,8 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
       case None     ⇒ redeploy()
       case Some(cs) ⇒ if (!matchingServers(deploymentService, cs) ||
                           !matchingScale(deploymentService, cs)   ||
-                          !matchingHealthChecks(containerService)) redeploy()
+                          !matchingHealthChecks(containerService) ||
+                          !matchingServiceHealth(deploymentService.serviceHealth, containerService.serviceHealth)) redeploy()
     }
   }
 
