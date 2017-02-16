@@ -1,6 +1,6 @@
 classes
-conf/artifacts/
-conf/application*.conf
+conf/application*
 Makefile.local
 target
 */target
+project/project/
