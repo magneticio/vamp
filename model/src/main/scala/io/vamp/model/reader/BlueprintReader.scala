@@ -7,7 +7,6 @@ import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.validator.{ BlueprintTraitValidator, BreedTraitValueValidator }
 
 import scala.language.postfixOps
-import scala.util.Try
 
 trait AbstractBlueprintReader extends YamlReader[Blueprint]
     with ReferenceYamlReader[Blueprint]
@@ -148,10 +147,10 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 
   /** Validates a healthCheck based on the linked service **/
   protected def validateHealthCheck(service: Service, healthCheck: HealthCheck): Unit = {
-    val correctPort = Try(healthCheck.port.toInt).isSuccess || (service.breed match {
+    val correctPort = service.breed match {
       case defaultBreed: DefaultBreed ⇒ defaultBreed.ports.exists(_.name == healthCheck.port)
       case _                          ⇒ true
-    })
+    }
 
     if (!correctPort) throwException(UnresolvedPortReferenceError(healthCheck.port))
     if (healthCheck.failures < 0) throwException(NegativeFailuresNumberError(healthCheck.failures))
