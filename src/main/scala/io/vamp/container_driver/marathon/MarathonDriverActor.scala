@@ -116,20 +116,31 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   }
 
   private def get(deploymentServices: List[DeploymentServices]): Unit = {
+    // Replies to DeploymentSynchronizationActor
     val replyTo = sender()
-    httpClient.get[AppsResponse](s"$url/v2/apps?embed=apps.tasks", headers).map { apps ⇒
+
+    httpClient.get[AppsResponse](s"$url/v2/apps?embed=apps.tasks&embed=apps.taskStats", headers).map { apps ⇒
       val deployed = apps.apps.map(app ⇒ app.id → app).toMap
-      deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
-        case (deployment, service) ⇒
+
+      deploymentServices
+        .flatMap(ds ⇒ ds.services.map((ds.deployment, _)))
+        .foreach { case (deployment, service) ⇒
           deployed.get(appId(deployment, service.breed)) match {
             case Some(app) ⇒
-              val equalHealthChecks: Boolean = MarathonHealthCheck.equalHealthChecks(
+              val equalHealthChecks = MarathonHealthCheck.equalHealthChecks(
                 deployment.ports,
                 service.healthChecks,
                 app.healthChecks)
 
-              replyTo ! ContainerService(deployment, service, Option(containers(app)), equalHealthChecks)
-            case None      ⇒ replyTo ! ContainerService(deployment, service, None, equalHealthChecks = true)
+              val newHealth = app.taskStats.map(ts => MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts))
+
+              replyTo ! ContainerService(
+                deployment,
+                service,
+                Option(containers(app)),
+                newHealth,
+                equalHealthChecks = equalHealthChecks)
+            case None      ⇒ replyTo ! ContainerService(deployment, service, None, None)
           }
       }
     }
