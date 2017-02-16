@@ -4,6 +4,7 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 import io.vamp.common.config.Config
+import io.vamp.common.crypto.Hash
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.spi.ClassMapper
@@ -105,7 +106,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with PulseStats wi
 
     es.search[ElasticsearchSearchResponse](indexName, constructSearch(query, p, pp)) map {
       case ElasticsearchSearchResponse(hits) ⇒
-        EventResponseEnvelope(hits.hits.flatMap(hit ⇒ Some(read[Event](write(hit._source)))), hits.total, p, pp)
+        EventResponseEnvelope(hits.hits.flatMap(hit ⇒ Option(read[Event](write(hit._source)).copy(id = Option(Hash.hex(hit._id))))), hits.total, p, pp)
       case other ⇒ reportException(EventQueryError(other))
     }
   }
