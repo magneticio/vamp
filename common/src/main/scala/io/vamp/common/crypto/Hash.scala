@@ -7,10 +7,15 @@ object Hash {
 
   def hexSha1(content: String, salt: String = "0000"): String = hexHash("SHA1", content, salt)
 
+  @inline
+  def hex(content: String): String = hex(content.getBytes("UTF-8"))
+
+  @inline
+  def hex(content: Array[Byte]): String = new BigInteger(1, content).toString(16)
+
   private def hexHash(algorithm: String, content: String, salt: String): String = {
     val messageDigest = MessageDigest.getInstance(algorithm)
     messageDigest.update(s"$content$salt".getBytes("UTF-8"))
-    val digest = messageDigest.digest()
-    new BigInteger(1, digest).toString(16)
+    hex(messageDigest.digest())
   }
 }

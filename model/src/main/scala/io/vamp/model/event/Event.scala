@@ -16,6 +16,8 @@ object Event {
       case index ⇒ tag.substring(0, index) :: tag :: Nil
     }
   }
+
+  def apply(tags: Set[String], value: AnyRef, timestamp: OffsetDateTime = OffsetDateTime.now(), `type`: String = Event.defaultType): Event = Event(None, tags, value, timestamp, `type`)
 }
 
-case class Event(tags: Set[String], value: AnyRef, timestamp: OffsetDateTime = OffsetDateTime.now(), `type`: String = Event.defaultType)
+case class Event(id: Option[String], tags: Set[String], value: AnyRef, timestamp: OffsetDateTime, `type`: String)
