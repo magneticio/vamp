@@ -6,13 +6,13 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.config.Config
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.container_driver.{ ContainerDriverActor, Docker }
+import io.vamp.container_driver.{ContainerDriverActor, Docker}
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.reader.{MegaByte, Quantity}
 import io.vamp.model.resolver.WorkflowValueResolver
-import io.vamp.persistence.{ ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.{ArtifactSupport, PersistenceActor}
 import io.vamp.pulse.notification.PulseFailureNotifier
-import io.vamp.workflow_driver.WorkflowDriverActor.{ GetScheduled, Schedule, Unschedule }
+import io.vamp.workflow_driver.WorkflowDriverActor.{GetScheduled, Schedule, Unschedule}
 import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 
 import scala.concurrent.Future
@@ -72,8 +72,6 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
         case _               ⇒ Future.successful(breed)
       }).map { executor ⇒
 
-        actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowBreed(workflow, breed)
-
         val environmentVariables = (executor.environmentVariables ++ breed.environmentVariables ++ workflow.environmentVariables).
           map(env ⇒ env.name → resolveEnvironmentVariable(workflow)(env)).toMap.values.toList
 
@@ -88,11 +86,16 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
         val arguments = (executor.arguments ++ breed.arguments ++ workflow.arguments).map(arg ⇒ arg.key → arg).toMap.values.toList
         actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowArguments(workflow, arguments)
 
+        val workflowBreed = breed.copy(
+          deployable = executor.deployable,
+          ports = executor.ports,
+          environmentVariables = environmentVariables
+        )
+
+        actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowBreed(workflow, workflowBreed)
+
         workflow.copy(
-          breed = breed.copy(
-            deployable = executor.deployable,
-            environmentVariables = environmentVariables
-          ),
+          breed = workflowBreed,
           scale = Option(scale),
           arguments = arguments,
           network = Option(network),

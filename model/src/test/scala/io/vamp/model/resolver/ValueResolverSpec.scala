@@ -114,8 +114,5 @@ class ValueResolverSpec extends FlatSpec with Matchers with ValueResolver with N
 
   override def info(notification: Notification) = {}
 
-  override def reportException(notification: Notification) = {
-    println(notification)
-    NotificationErrorException(notification, "")
-  }
+  override def reportException(notification: Notification) = NotificationErrorException(notification, "")
 }
