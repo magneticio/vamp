@@ -6,7 +6,7 @@ import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType }
 import io.vamp.model.artifact._
-import io.vamp.model.resolver.DeploymentTraitResolver
+import io.vamp.model.resolver.DeploymentValueResolver
 
 object ContainerDriver {
   val namespace = Config.string("vamp.container-driver.namespace")
@@ -17,7 +17,7 @@ object ContainerDriver {
   }
 }
 
-trait ContainerDriver extends DeploymentTraitResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with ExecutionContextProvider {
+trait ContainerDriver extends DeploymentValueResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with ExecutionContextProvider {
 
   protected def httpClient: HttpClient
 

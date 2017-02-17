@@ -14,7 +14,7 @@ import io.vamp.model.artifact.DeploymentService.Status
 import io.vamp.model.artifact.DeploymentService.Status.Intention
 import io.vamp.model.artifact.DeploymentService.Status.Phase._
 import io.vamp.model.artifact._
-import io.vamp.model.resolver.DeploymentTraitResolver
+import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification.{ DeploymentServiceError, OperationNotificationProvider }
 import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
@@ -36,7 +36,7 @@ object DeploymentSynchronizationActor {
   val undeploymentTimeout = Config.duration("vamp.operation.synchronization.timeout.ready-for-undeployment")
 }
 
-class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
+class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider {
 
   import DeploymentSynchronizationActor._
 

@@ -152,7 +152,7 @@ object HostReference {
   }
 }
 
-case class HostReference(cluster: String) extends ValueReference {
+case class HostReference(cluster: String) extends ClusterReference {
   def asTraitReference = TraitReference(cluster, TraitReference.Hosts, Host.host).toString
 
   lazy val reference = s"$cluster${HostReference.delimiter}${Host.host}"
@@ -171,7 +171,7 @@ object NoGroupReference {
   }
 }
 
-case class NoGroupReference(cluster: String, name: String) extends ValueReference {
+case class NoGroupReference(cluster: String, name: String) extends ClusterReference {
   def asTraitReference(group: String) = TraitReference(cluster, group, name).toString
 
   lazy val reference = s"$cluster${NoGroupReference.delimiter}$name"

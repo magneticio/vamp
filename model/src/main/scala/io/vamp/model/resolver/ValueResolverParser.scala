@@ -25,7 +25,7 @@ class TraitResolverParser(val input: ParserInput) extends ParboiledParser[Seq[Tr
   }
 
   def Variable = rule {
-    TraitVariable | HostVariable | LocalVariable
+    GlobalVariable | TraitVariable | HostVariable | LocalVariable
   }
 
   def LocalVariable: Rule1[TraitResolverNode] = rule {
@@ -42,6 +42,11 @@ class TraitResolverParser(val input: ParserInput) extends ParboiledParser[Seq[Tr
         case Some(reference) ⇒ VariableNode(reference)
         case _               ⇒ StringNode(value)
       })
+  }
+
+  def GlobalVariable = rule {
+    capture(VariablePart ~ GlobalReference.schemaDelimiter ~ VariablePart ~ zeroOrMore("." ~ VariablePart)) ~>
+      ((value: String) ⇒ VariableNode(GlobalReference(value)))
   }
 
   def VariablePart = rule {

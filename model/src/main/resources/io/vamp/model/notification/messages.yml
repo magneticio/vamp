@@ -12,6 +12,7 @@ IllegalStrictName                      : "Illegal name - white space characters,
 InconsistentArtifactName               : "Inconsistent name: given '{given}' but found '{found}'."
 InconsistentArtifactKind               : "Inconsistent kind: given '{given}' but found '{found}'."
 UnsupportedMetadata$                   : "Unsupported metadata"
+ParserError                            : "Cannot parse: {reason}."
 
 # Breed Reader
 

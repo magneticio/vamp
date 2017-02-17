@@ -1,12 +1,13 @@
 package io.vamp.model.resolver
 
-import io.vamp.model.artifact.{ HostReference, LocalReference, TraitReference }
+import io.vamp.common.notification.{ Notification, NotificationErrorException, NotificationProvider }
+import io.vamp.model.artifact.{ GlobalReference, HostReference, LocalReference, TraitReference }
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class TraitResolverSpec extends FlatSpec with Matchers with TraitResolver {
+class ValueResolverSpec extends FlatSpec with Matchers with ValueResolver with NotificationProvider {
 
   "TraitResolver" should "split into parts value with no references" in {
     nodes("abc") shouldBe
@@ -102,5 +103,19 @@ class TraitResolverSpec extends FlatSpec with Matchers with TraitResolver {
   it should "split into parts trait reference without {}" in {
     nodes("a$api.constants.version/") shouldBe
       List(StringNode("a"), VariableNode(TraitReference("api", "constants", "version")), StringNode("/"))
+  }
+
+  it should "parse global references" in {
+    nodes(s"a$${http://a.b}/$$config://c.d") shouldBe
+      List(StringNode("a"), VariableNode(GlobalReference("http", "a.b")), StringNode("/"), VariableNode(GlobalReference("config", "c.d")))
+  }
+
+  override def message(notification: Notification) = ""
+
+  override def info(notification: Notification) = {}
+
+  override def reportException(notification: Notification) = {
+    println(notification)
+    NotificationErrorException(notification, "")
   }
 }

@@ -322,4 +322,10 @@ class BreedReaderSpec extends ReaderSpec {
       'given("blueprint")
     )
   }
+
+  it should "fail if parser error" in {
+    expectedError[ParserError]({
+      BreedReader.read(res("breed/breed37.yml"))
+    })
+  }
 }

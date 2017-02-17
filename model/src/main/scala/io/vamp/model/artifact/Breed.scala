@@ -83,23 +83,39 @@ object TraitReference extends Enumeration {
 }
 
 trait ValueReference {
-  def cluster: String
 
   def reference: String
 
   override def toString = reference
 }
 
-case class LocalReference(name: String) extends ValueReference {
+trait ClusterReference extends ValueReference {
+  def cluster: String
+}
+
+case class LocalReference(name: String) extends ClusterReference {
   val cluster = ""
 
   lazy val reference = name
 }
 
-case class TraitReference(cluster: String, group: String, name: String) extends ValueReference {
+case class TraitReference(cluster: String, group: String, name: String) extends ClusterReference {
   lazy val reference = s"$cluster.$group.$name"
 
   def referenceWithoutGroup = s"$cluster.$name"
+}
+
+object GlobalReference {
+  val schemaDelimiter = "://"
+
+  def apply(reference: String): GlobalReference = reference.split(Pattern.quote(schemaDelimiter), 2).toList match {
+    case schema :: path :: Nil ⇒ GlobalReference(schema, path)
+    case any                   ⇒ throw NotificationErrorException(InvalidArgumentError, if (any != null) any.toString else "")
+  }
+}
+
+case class GlobalReference(schema: String, path: String) extends ValueReference {
+  lazy val reference = s"$schema${GlobalReference.schemaDelimiter}$path"
 }
 
 object Port {

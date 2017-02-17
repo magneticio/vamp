@@ -10,7 +10,7 @@ import io.vamp.model.artifact.DeploymentService.Status.Intention
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader._
-import io.vamp.model.resolver.DeploymentTraitResolver
+import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
@@ -95,7 +95,7 @@ class DeploymentActor
 }
 
 trait BlueprintSupport extends DeploymentValidator with NameValidator with BlueprintGatewayHelper with ArtifactExpansionSupport {
-  this: DeploymentTraitResolver with ActorSystemProvider with ArtifactPaginationSupport with ExecutionContextProvider with NotificationProvider ⇒
+  this: DeploymentValueResolver with ActorSystemProvider with ArtifactPaginationSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   def deploymentFor(name: String, create: Boolean = false): Future[Deployment] = {
     if (!create) {
@@ -149,7 +149,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
 }
 
 trait DeploymentValidator {
-  this: BlueprintGatewayHelper with DeploymentTraitResolver with ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
+  this: BlueprintGatewayHelper with DeploymentValueResolver with ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
 
   def validateServices: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
     val services = deployment.clusters.flatMap(_.services).filterNot(_.status.intention == Intention.Undeployment)
@@ -311,7 +311,7 @@ trait DeploymentGatewayOperation {
   }
 }
 
-trait DeploymentMerger extends DeploymentOperation with DeploymentTraitResolver {
+trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver {
   this: ReplyActor with DeploymentValidator with ArtifactSupport with ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
 
   def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintRoutes

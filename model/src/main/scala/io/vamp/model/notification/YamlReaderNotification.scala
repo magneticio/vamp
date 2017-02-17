@@ -25,3 +25,5 @@ case class InconsistentArtifactName(given: String, found: String) extends Notifi
 case class InconsistentArtifactKind(given: String, found: String) extends Notification
 
 object UnsupportedMetadata extends Notification
+
+case class ParserError(reason: String) extends Notification

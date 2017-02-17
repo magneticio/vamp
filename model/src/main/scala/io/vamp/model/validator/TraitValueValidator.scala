@@ -3,17 +3,17 @@ package io.vamp.model.validator
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.notification.{ MissingEnvironmentVariableError, UnresolvedDependencyInTraitValueError, UnresolvedEnvironmentVariableError, UnresolvedGatewayPortError }
-import io.vamp.model.resolver.TraitResolver
+import io.vamp.model.resolver.ValueResolver
 
-trait BreedTraitValueValidator extends TraitResolver {
+trait BreedTraitValueValidator extends ValueResolver {
   this: NotificationProvider ⇒
 
   def validateBreedTraitValues(breed: DefaultBreed) = {
 
-    def reportError(ref: ValueReference) =
+    def reportError(ref: ClusterReference) =
       throwException(UnresolvedDependencyInTraitValueError(breed, ref.reference))
 
-    def validateCluster(ref: ValueReference) =
+    def validateCluster(ref: ClusterReference) =
       if (!breed.dependencies.keySet.contains(ref.cluster)) reportError(ref)
 
     def validateDependencyTraitExists(ref: TraitReference) = {
@@ -46,7 +46,7 @@ trait BreedTraitValueValidator extends TraitResolver {
   }
 }
 
-trait BlueprintTraitValidator extends TraitResolver {
+trait BlueprintTraitValidator extends ValueResolver {
   this: NotificationProvider ⇒
 
   def validateBlueprintTraitValues = validateGatewayPorts andThen validateEnvironmentVariables

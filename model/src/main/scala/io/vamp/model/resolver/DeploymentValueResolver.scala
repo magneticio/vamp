@@ -1,19 +1,19 @@
 package io.vamp.model.resolver
 
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.model.artifact.{ HostReference, LocalReference, ValueReference, _ }
+import io.vamp.model.artifact.{ HostReference, LocalReference, ClusterReference, _ }
 import io.vamp.model.notification.UnresolvedDependencyError
 
 import scala.language.postfixOps
 
-private case class HostPortValueReference(host: HostReference, port: TraitReference) extends ValueReference {
+private case class HostPortClusterReference(host: HostReference, port: TraitReference) extends ClusterReference {
 
   override def cluster: String = host.cluster
 
   override def reference: String = port.reference
 }
 
-trait DeploymentTraitResolver extends TraitResolver {
+trait DeploymentValueResolver extends ValueResolver {
   this: NotificationProvider ⇒
 
   override def resolve(value: String, provider: (ValueReference ⇒ String)): String = {
@@ -23,7 +23,7 @@ trait DeploymentTraitResolver extends TraitResolver {
       case VariableNode(h: HostReference) :: StringNode(":") :: VariableNode(t: TraitReference) :: tail ⇒
 
         if (h.cluster == t.cluster && TraitReference.groupFor(t.group).contains(TraitReference.Ports))
-          VariableNode(HostPortValueReference(h, t)) :: hostPort(tail)
+          VariableNode(HostPortClusterReference(h, t)) :: hostPort(tail)
         else
           VariableNode(h: HostReference) :: StringNode(":") :: VariableNode(t: TraitReference) :: hostPort(tail)
 
@@ -39,7 +39,7 @@ trait DeploymentTraitResolver extends TraitResolver {
 
   def resolveEnvironmentVariables(deployment: Deployment, clusters: List[DeploymentCluster]): List[EnvironmentVariable] = {
     deployment.environmentVariables.map(ev ⇒ TraitReference.referenceFor(ev.name) match {
-      case Some(TraitReference(c, g, n)) if g == TraitReference.groupFor(TraitReference.EnvironmentVariables) && ev.interpolated.isEmpty && ev.value.isDefined && clusters.exists(_.name == c) ⇒
+      case Some(TraitReference(c, g, _)) if g == TraitReference.groupFor(TraitReference.EnvironmentVariables) && ev.interpolated.isEmpty && ev.value.isDefined && clusters.exists(_.name == c) ⇒
         ev.copy(alias = None, interpolated = Some(resolve(ev.value.get, valueFor(deployment, None))))
       case _ ⇒ ev
     })
@@ -67,27 +67,32 @@ trait DeploymentTraitResolver extends TraitResolver {
     val updated = reference match {
       case ref @ TraitReference(cluster, _, _) ⇒ ref.copy(cluster = aliases.getOrElse(cluster, cluster))
       case HostReference(cluster)              ⇒ HostReference(aliases.getOrElse(cluster, cluster))
-      case HostPortValueReference(h, t)        ⇒ HostPortValueReference(HostReference(aliases.getOrElse(h.cluster, h.cluster)), t.copy(cluster = aliases.getOrElse(t.cluster, t.cluster)))
+      case HostPortClusterReference(h, t)      ⇒ HostPortClusterReference(HostReference(aliases.getOrElse(h.cluster, h.cluster)), t.copy(cluster = aliases.getOrElse(t.cluster, t.cluster)))
       case ref                                 ⇒ ref
     }
 
     valueFor(deployment, Option(service))(updated)
   }
 
-  def valueFor(deployment: Deployment, service: Option[DeploymentService])(reference: ValueReference): String = (reference match {
+  def valueFor(deployment: Deployment, service: Option[DeploymentService])(reference: ValueReference): String = (
+    valueForDeploymentService(deployment, service)
+    orElse GlobalValueResolver.valueForReference
+    orElse PartialFunction[ValueReference, String] { _ ⇒ "" }
+  )(reference)
 
-    case ref: TraitReference ⇒ deployment.traits.find(_.name == ref.reference).flatMap(_.value)
+  private def valueForDeploymentService(deployment: Deployment, service: Option[DeploymentService]): PartialFunction[ValueReference, String] = {
 
-    case ref: HostReference  ⇒ deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value)
+    case ref: TraitReference ⇒ deployment.traits.find(_.name == ref.reference).flatMap(_.value).getOrElse("")
 
-    case ref: LocalReference ⇒ service.flatMap(service ⇒ (service.environmentVariables ++ service.breed.constants).find(_.name == ref.name).flatMap(_.value))
+    case ref: HostReference  ⇒ deployment.hosts.find(_.name == ref.asTraitReference).flatMap(_.value).getOrElse("")
 
-    case HostPortValueReference(_, t) ⇒ for {
-      port ← deployment.ports.find(_.name == t.reference).map(port ⇒ port.number)
-      host ← deployment.clusters.find(_.name == t.cluster).flatMap(_.serviceBy(t.name).map(_.host))
-    } yield s"$host:$port"
+    case ref: LocalReference ⇒ service.flatMap(service ⇒ (service.environmentVariables ++ service.breed.constants).find(_.name == ref.name).flatMap(_.value)).getOrElse("")
 
-    case ref ⇒ None
-
-  }) getOrElse ""
+    case HostPortClusterReference(_, t) ⇒ {
+      for {
+        port ← deployment.ports.find(_.name == t.reference).map(port ⇒ port.number)
+        host ← deployment.clusters.find(_.name == t.cluster).flatMap(_.serviceBy(t.name).map(_.host))
+      } yield s"$host:$port"
+    } getOrElse ""
+  }
 }

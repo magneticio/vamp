@@ -7,7 +7,7 @@ import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class DeploymentTraitResolverSpec extends FlatSpec with Matchers with DeploymentTraitResolver with ModelNotificationProvider {
+class DeploymentValueResolverSpec extends FlatSpec with Matchers with DeploymentValueResolver with ModelNotificationProvider {
 
   "DeploymentTraitResolver" should "pass through environment variables for an empty cluster list" in {
 

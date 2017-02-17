@@ -12,7 +12,7 @@ import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, KeyValu
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
-import io.vamp.workflow_driver.{ WorkflowDeployable, WorkflowDriver, WorkflowDriverActor }
+import io.vamp.workflow_driver.{ WorkflowDriver, WorkflowDriverActor }
 
 import scala.concurrent.Future
 
@@ -24,7 +24,7 @@ object WorkflowActor {
 
 }
 
-class WorkflowActor extends WorkflowDeployable with ArtifactPaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
+class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
 
   import PersistenceActor.ResetWorkflow
   import PersistenceActor.UpdateWorkflowStatus
@@ -132,9 +132,7 @@ class WorkflowActor extends WorkflowDeployable with ArtifactPaginationSupport wi
     log.info(s"Triggering workflow: '${workflow.name}'.")
     def schedule() = IoC.actorFor[WorkflowDriverActor] ? WorkflowDriverActor.Schedule(workflow, data)
     artifactFor[DefaultBreed](workflow.breed).flatMap { breed ⇒
-      if (matches(breed.deployable))
-        IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition)) flatMap { _ ⇒ schedule() }
-      else schedule()
+      IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition)) flatMap { _ ⇒ schedule() }
     }
   }
 

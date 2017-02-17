@@ -11,8 +11,8 @@ trait Parser[T] {
     val p = parser(expression)
     p.Input.run() match {
       case Success(node)          ⇒ node
-      case Failure(e: ParseError) ⇒ throw new RuntimeException(s"can't parse: '$expression'\n${p.formatError(e, new ErrorFormatter(showPosition = false))}")
-      case Failure(_)             ⇒ throw new RuntimeException(s"can't parse: '$expression'")
+      case Failure(e: ParseError) ⇒ throw new RuntimeException(s"'$expression'\n${p.formatError(e, new ErrorFormatter(showPosition = false))}")
+      case Failure(_)             ⇒ throw new RuntimeException(s"'$expression'")
     }
   }
 

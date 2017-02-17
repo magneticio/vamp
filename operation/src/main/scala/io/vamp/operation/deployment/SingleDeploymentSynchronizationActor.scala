@@ -8,7 +8,7 @@ import io.vamp.model.artifact.DeploymentService.Status.Intention
 import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated, Updating }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
-import io.vamp.model.resolver.DeploymentTraitResolver
+import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification.OperationNotificationProvider
 import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
@@ -21,7 +21,7 @@ object SingleDeploymentSynchronizationActor {
 
 }
 
-class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation with ArtifactPaginationSupport with CommonSupportForActors with DeploymentTraitResolver with OperationNotificationProvider {
+class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation with ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider {
 
   import PersistenceActor._
   import PulseEventTags.Deployments._
@@ -118,8 +118,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         case Some(TraitReference(c, g, n)) ⇒
           if (g == TraitReference.groupFor(TraitReference.EnvironmentVariables) && ev.interpolated.isDefined && cluster.name == c && service.breed.environmentVariables.exists(_.name == n))
             ev.copy(name = n, alias = None) :: Nil
-          else
-            Nil
+          else Nil
         case _ ⇒ Nil
       }) ++ service.environmentVariables).map(ev ⇒ ev.name → ev).toMap.values.toList
 
