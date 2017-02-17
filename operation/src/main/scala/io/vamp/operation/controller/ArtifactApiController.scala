@@ -11,7 +11,7 @@ import io.vamp.model.artifact._
 import io.vamp.model.notification.InconsistentArtifactName
 import io.vamp.model.reader.{ YamlReader, _ }
 import io.vamp.operation.gateway.GatewayActor
-import io.vamp.operation.notification.UnexpectedArtifact
+import io.vamp.operation.notification.{ DeploymentWorkflowNameCollision, UnexpectedArtifact }
 import io.vamp.persistence.notification.PersistenceOperationFailure
 import io.vamp.persistence.{ ArtifactExpansionSupport, ArtifactResponseEnvelope, PersistenceActor }
 
@@ -23,7 +23,7 @@ trait ArtifactApiController extends MultipleArtifactApiController with SingleArt
   def background(artifact: String): Boolean = !crud(artifact)
 
   def readArtifacts(kind: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[ArtifactResponseEnvelope] = `type`(kind) match {
-    case (t, _) if t == classOf[Deployment] ⇒ Future(ArtifactResponseEnvelope(Nil, 0, 1, ArtifactResponseEnvelope.maxPerPage))
+    case (t, _) if t == classOf[Deployment] ⇒ Future.successful(ArtifactResponseEnvelope(Nil, 0, 1, ArtifactResponseEnvelope.maxPerPage))
     case (t, _) ⇒
       actorFor[PersistenceActor] ? PersistenceActor.All(t, page, perPage, expandReferences, onlyReferences) map {
         case envelope: ArtifactResponseEnvelope ⇒ envelope
@@ -46,7 +46,7 @@ trait SingleArtifactApiController {
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
 
     case (t, r) if t == classOf[Workflow] ⇒
-      create(r, source, validateOnly).map {
+      createWorkflow(r, source, validateOnly).map {
         case list: List[_] ⇒
           if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? ResetWorkflow(workflow, runtime = false, attributes = true) }
           list
@@ -64,7 +64,6 @@ trait SingleArtifactApiController {
 
   def updateArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, r) if t == classOf[Gateway] ⇒
-
       expandGateway(r.read(source).asInstanceOf[Gateway]) flatMap { gateway ⇒
         if (name != gateway.name) throwException(InconsistentArtifactName(name, gateway.name))
         actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly, promote = true)
@@ -73,7 +72,7 @@ trait SingleArtifactApiController {
     case (t, r) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
 
     case (t, r) if t == classOf[Workflow] ⇒
-      update(r, name, source, validateOnly).map {
+      updateWorkflow(r, name, source, validateOnly).map {
         case list: List[_] ⇒
           if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? ResetWorkflow(workflow, runtime = false, attributes = true) }
           list
@@ -100,7 +99,7 @@ trait SingleArtifactApiController {
         case _ ⇒ false
       }
 
-    case (t, r) ⇒ delete(t, name, validateOnly)
+    case (t, _) ⇒ delete(t, name, validateOnly)
   }
 
   protected def crud(kind: String): Boolean = `type`(kind) match {
@@ -131,7 +130,18 @@ trait SingleArtifactApiController {
 
   private def create(reader: YamlReader[_ <: Artifact], source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
     reader.read(source) match {
-      case artifact ⇒ if (validateOnly) Future(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Create(artifact, Option(source))
+      case artifact ⇒ if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Create(artifact, Option(source))
+    }
+  }
+
+  private def createWorkflow(reader: YamlReader[_ <: Artifact], source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+    reader.read(source) match {
+      case artifact ⇒ {
+        artifactForIfExists[Deployment](artifact.name).flatMap {
+          case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(artifact.name))
+          case _       ⇒ if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Create(artifact, Option(source))
+        }
+      }
     }
   }
 
@@ -141,12 +151,25 @@ trait SingleArtifactApiController {
         if (name != artifact.name)
           throwException(InconsistentArtifactName(name, artifact.name))
 
-        if (validateOnly) Future(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Update(artifact, Some(source))
+        if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Update(artifact, Some(source))
+    }
+  }
+
+  private def updateWorkflow(reader: YamlReader[_ <: Artifact], name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+    reader.read(source) match {
+      case artifact ⇒
+        if (name != artifact.name)
+          throwException(InconsistentArtifactName(name, artifact.name))
+
+        artifactForIfExists[Deployment](artifact.name).flatMap {
+          case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(artifact.name))
+          case _       ⇒ if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Update(artifact, Some(source))
+        }
     }
   }
 
   private def delete(`type`: Class[_ <: Artifact], name: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
-    if (validateOnly) Future(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, `type`)
+    if (validateOnly) Future.successful(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, `type`)
   }
 }
 

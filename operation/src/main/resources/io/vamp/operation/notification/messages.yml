@@ -13,6 +13,7 @@ InvalidRouteWeight              : "Invalid route weight for cluster '{deployment
 UnavailableGatewayPortError     : "Gateway port '{port.value}' is/was in use by deployment: '{gateway.name}'. Remove '{gateway.name}' gateway first or use different port."
 WorkflowSchedulingError         : "Workflow scheduling error."
 WorkflowExecutionError          : "Workflow execution error."
+DeploymentWorkflowNameCollision : "There cannot exist deployment and workflow with the same name: {name}."
 
 UnexpectedArtifact              : "Unexpected resource: '{artifact}'."
 InvalidTimeTriggerError         : "Not a valid time trigger patter: '{pattern}'."

@@ -102,11 +102,15 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
       artifactFor[Deployment](name)
     }
     else {
-      artifactForIfExists[Deployment](name) map {
-        case Some(deployment) ⇒ deployment
+      artifactForIfExists[Deployment](name) flatMap {
+        case Some(deployment) ⇒ Future.successful(deployment)
         case None ⇒
-          validateName(name)
-          Deployment(name, Map(), clusters = Nil, gateways = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
+          artifactForIfExists[Workflow](name).map {
+            case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(name))
+            case _ ⇒
+              validateName(name)
+              Deployment(name, Map(), clusters = Nil, gateways = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
+          }
       }
     }
   }
