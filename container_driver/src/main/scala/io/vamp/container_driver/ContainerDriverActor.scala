@@ -43,15 +43,15 @@ sealed trait ContainerRuntime {
 }
 
 /**
-  * @param equalHealthChecks compares the health checks of the container service with the vamp service,
-  *                          boolean value due to healthChecks being able only to transform one way
-  */
+ * @param equalHealthChecks compares the health checks of the container service with the vamp service,
+ *                          boolean value due to healthChecks being able only to transform one way
+ */
 case class ContainerService(
-  deployment: Deployment,
-  service: DeploymentService,
-  containers: Option[Containers],
-  serviceHealth: Option[ServiceHealth] = None,
-  equalHealthChecks: Boolean = true) extends ContainerRuntime
+  deployment:        Deployment,
+  service:           DeploymentService,
+  containers:        Option[Containers],
+  serviceHealth:     Option[ServiceHealth] = None,
+  equalHealthChecks: Boolean               = true) extends ContainerRuntime
 
 case class ContainerWorkflow(workflow: Workflow, containers: Option[Containers]) extends ContainerRuntime
 

@@ -89,7 +89,7 @@ case class Service(
   healthChecks:         List[HealthCheck],
   network:              Option[String]            = None,
   dialects:             Map[Dialect.Value, Any]   = Map(),
-  serviceHealth:        Option[ServiceHealth] = None) extends AbstractService
+  serviceHealth:        Option[ServiceHealth]     = None) extends AbstractService
 
 trait Scale extends Artifact {
   val kind = "scale"
@@ -120,10 +120,10 @@ case class HealthCheck(
   protocol:     String)
 
 /**
-  * Representation of the Service Health retrieved from a Deployment.
-  * @param staged number of instances in a staged state.
-  * @param running number of instances in a running state.
-  * @param healthy number of instances in a healthy state.
-  * @param unhealthy number of instances in an unhealthy state.
-  */
+ * Representation of the Service Health retrieved from a Deployment.
+ * @param staged number of instances in a staged state.
+ * @param running number of instances in a running state.
+ * @param healthy number of instances in a healthy state.
+ * @param unhealthy number of instances in an unhealthy state.
+ */
 case class ServiceHealth(staged: Int, running: Int, healthy: Int, unhealthy: Int)

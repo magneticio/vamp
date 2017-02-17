@@ -27,7 +27,7 @@ object PersistenceArchive {
     case t if classOf[Blueprint].isAssignableFrom(t) ⇒ Option("blueprints")
     case t if classOf[Sla].isAssignableFrom(t) ⇒ Option("slas")
     case t if classOf[Scale].isAssignableFrom(t) ⇒ Option("scales")
-    case t if classOf[DeploymentServiceHealth].isAssignableFrom(t) => Option("deployment-service-health")
+    case t if classOf[DeploymentServiceHealth].isAssignableFrom(t) ⇒ Option("deployment-service-health")
     case t if classOf[Escalation].isAssignableFrom(t) ⇒ Option("escalations")
     case t if classOf[Route].isAssignableFrom(t) ⇒ Option("routes")
     case t if classOf[Condition].isAssignableFrom(t) ⇒ Option("conditions")

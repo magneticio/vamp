@@ -43,7 +43,7 @@ trait DevelopmentPersistenceOperations {
 
   import PersistenceActor._
   import DevelopmentPersistenceOperations._
-  
+
   def receive: Actor.Receive = {
 
     case o: UpdateDeploymentServiceStatus               ⇒ updateStatus(o.deployment, o.cluster, o.service, o.status)
@@ -79,14 +79,13 @@ trait DevelopmentPersistenceOperations {
   }
 
   private def updateServiceHealth(
-     deployment: Deployment,
-     cluster: DeploymentCluster,
-     service: DeploymentService,
-     serviceHealth: ServiceHealth) = reply {
-      self ? PersistenceActor.Update(
-        DeploymentServiceHealth(serviceArtifactName(deployment, cluster, service), serviceHealth))
-    }
-
+    deployment:    Deployment,
+    cluster:       DeploymentCluster,
+    service:       DeploymentService,
+    serviceHealth: ServiceHealth) = reply {
+    self ? PersistenceActor.Update(
+      DeploymentServiceHealth(serviceArtifactName(deployment, cluster, service), serviceHealth))
+  }
 
   private def reset(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = reply {
     val name = serviceArtifactName(deployment, cluster, service)

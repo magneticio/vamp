@@ -60,10 +60,10 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   }
 
   private def deploy(
-      deployment: Deployment,
-      deploymentCluster: DeploymentCluster,
-      deploymentService: DeploymentService,
-      containerService: ContainerService) = {
+    deployment:        Deployment,
+    deploymentCluster: DeploymentCluster,
+    deploymentService: DeploymentService,
+    containerService:  ContainerService) = {
 
     def deployTo(update: Boolean) = actorFor[ContainerDriverActor] ! ContainerDriverActor.Deploy(deployment, deploymentCluster, deploymentService, update = update)
 
@@ -110,12 +110,11 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
 
   private def matchingServiceHealth(deploymentHealth: Option[ServiceHealth], serviceHealth: Option[ServiceHealth]): Boolean =
     (for {
-      deploymentServiceHealth <- deploymentHealth
-      containerServiceHealth  <- serviceHealth
+      deploymentServiceHealth ← deploymentHealth
+      containerServiceHealth ← serviceHealth
     } yield deploymentServiceHealth == containerServiceHealth).getOrElse {
       deploymentHealth.isEmpty && serviceHealth.isEmpty
     }
-
 
   private def hasDependenciesDeployed(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService) = {
     deploymentService.breed.dependencies.forall {
@@ -164,11 +163,11 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     }
 
     containerService.containers match {
-      case None     ⇒ redeploy()
+      case None ⇒ redeploy()
       case Some(cs) ⇒ if (!matchingServers(deploymentService, cs) ||
-                          !matchingScale(deploymentService, cs)   ||
-                          !matchingHealthChecks(containerService) ||
-                          !matchingServiceHealth(deploymentService.serviceHealth, containerService.serviceHealth)) redeploy()
+        !matchingScale(deploymentService, cs) ||
+        !matchingHealthChecks(containerService) ||
+        !matchingServiceHealth(deploymentService.serviceHealth, containerService.serviceHealth)) redeploy()
     }
   }
 
@@ -203,10 +202,10 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   }
 
   /**
-    * Based on config value checkHealthChecks the containerService equalHealthChecks gets evaluated.
-    */
+   * Based on config value checkHealthChecks the containerService equalHealthChecks gets evaluated.
+   */
   private def matchingHealthChecks(containerService: ContainerService): Boolean =
-    if(checkHealthChecks) containerService.equalHealthChecks
+    if (checkHealthChecks) containerService.equalHealthChecks
     else true
 
   private def updateGateways(deployment: Deployment, cluster: DeploymentCluster) = cluster.gateways.foreach { gateway ⇒

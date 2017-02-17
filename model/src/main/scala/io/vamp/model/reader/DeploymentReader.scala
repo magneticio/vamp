@@ -157,5 +157,5 @@ object ServiceHealthReader extends YamlReader[Option[ServiceHealth]] {
       <<![Int]("unhealthy"))
 
   override protected def parse(implicit source: YamlSourceReader): Option[ServiceHealth] =
-    <<?[YamlSourceReader]("serviceHealth").map(ysr => serviceHealth(ysr))
+    <<?[YamlSourceReader]("serviceHealth").map(ysr ⇒ serviceHealth(ysr))
 }

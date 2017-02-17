@@ -138,15 +138,15 @@ trait PersistenceMultiplexer {
                   environmentVariables ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceEnvironmentVariables]).map {
                     _.getOrElse(DeploymentServiceEnvironmentVariables("", service.environmentVariables)).asInstanceOf[DeploymentServiceEnvironmentVariables].environmentVariables
                   }
-                  serviceHealth <- get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceHealth]).map {
+                  serviceHealth ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceHealth]).map {
                     _.map(_.asInstanceOf[DeploymentServiceHealth].serviceHealth)
                   }
                 } yield service.copy(
-                    status = status,
-                    scale = scale,
-                    instances = instances,
-                    environmentVariables = environmentVariables,
-                    serviceHealth = serviceHealth)
+                  status = status,
+                  scale = scale,
+                  instances = instances,
+                  environmentVariables = environmentVariables,
+                  serviceHealth = serviceHealth)
               }
             }
           } yield {
