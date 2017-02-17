@@ -74,7 +74,6 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
   protected override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
     case w if w.schedule != DaemonSchedule ⇒ enrich(w).flatMap { workflow ⇒
 
-      val command = defaultCommand(w.breed.asInstanceOf[DefaultBreed].deployable).getOrElse("")
       val breed = workflow.breed.asInstanceOf[DefaultBreed]
 
       validateDeployable(workflow.breed.asInstanceOf[DefaultBreed].deployable)
@@ -86,7 +85,7 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
         environmentVariables = breed.environmentVariables,
         scale = workflow.scale.get.asInstanceOf[DefaultScale],
         network = workflow.network.getOrElse(Docker.network()),
-        command = command
+        command = ""
       )
 
       httpClient.post[Any](s"$url/scheduler/iso8601", jobRequest)
