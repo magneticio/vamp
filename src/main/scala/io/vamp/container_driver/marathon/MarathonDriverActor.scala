@@ -124,25 +124,26 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
       deploymentServices
         .flatMap(ds ⇒ ds.services.map((ds.deployment, _)))
-        .foreach { case (deployment, service) ⇒
-          deployed.get(appId(deployment, service.breed)) match {
-            case Some(app) ⇒
-              val equalHealthChecks = MarathonHealthCheck.equalHealthChecks(
-                deployment.ports,
-                service.healthChecks,
-                app.healthChecks)
+        .foreach {
+          case (deployment, service) ⇒
+            deployed.get(appId(deployment, service.breed)) match {
+              case Some(app) ⇒
+                val equalHealthChecks = MarathonHealthCheck.equalHealthChecks(
+                  deployment.ports,
+                  service.healthChecks,
+                  app.healthChecks)
 
-              val newHealth = app.taskStats.map(ts => MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts))
+                val newHealth = app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts))
 
-              replyTo ! ContainerService(
-                deployment,
-                service,
-                Option(containers(app)),
-                newHealth,
-                equalHealthChecks = equalHealthChecks)
-            case None      ⇒ replyTo ! ContainerService(deployment, service, None, None)
-          }
-      }
+                replyTo ! ContainerService(
+                  deployment,
+                  service,
+                  Option(containers(app)),
+                  newHealth,
+                  equalHealthChecks = equalHealthChecks)
+              case None ⇒ replyTo ! ContainerService(deployment, service, None, None)
+            }
+        }
     }
   }
 
@@ -230,22 +231,22 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   }
 
   /**
-    * Checks the difference between a MarathonApp and an App to convert them two comparable objects (ComparableApp)
-    * If healthCheck is changed it takes the latest array as values from:
-    * @param marathonApp
-    * If healthCheck deleted it needs to have an empty JSON Array as override value for the put request
-    */
+   * Checks the difference between a MarathonApp and an App to convert them two comparable objects (ComparableApp)
+   * If healthCheck is changed it takes the latest array as values from:
+   * @param marathonApp
+   * If healthCheck deleted it needs to have an empty JSON Array as override value for the put request
+   */
   private def difference(marathonApp: MarathonApp, app: App): JValue = {
     val comparableApp: ComparableApp = ComparableApp.fromApp(app)
     val comparableAppTwo: ComparableApp = ComparableApp.fromMarathonApp(marathonApp)
     val diff = Extraction.decompose(comparableApp).diff(Extraction.decompose(comparableAppTwo))
 
     diff.added.merge(diff.changed.mapField {
-      case ("healthChecks", _) => "healthChecks" -> JArray(marathonApp.healthChecks.map(Extraction.decompose))
-      case xs => xs
+      case ("healthChecks", _) ⇒ "healthChecks" → JArray(marathonApp.healthChecks.map(Extraction.decompose))
+      case xs                  ⇒ xs
     }).merge(diff.deleted.mapField {
-      case ("healthChecks", _) => "healthChecks" -> JArray(List())
-      case xs => xs
+      case ("healthChecks", _) ⇒ "healthChecks" → JArray(List())
+      case xs                  ⇒ xs
     })
   }
 
