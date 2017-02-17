@@ -15,7 +15,6 @@ import io.vamp.model.reader.WorkflowReader
 import io.vamp.operation.controller.{ ArtifactApiController, DeploymentApiController }
 import io.vamp.operation.notification.InternalServerError
 import io.vamp.persistence.PersistenceActor
-import io.vamp.workflow_driver.JavaScriptDeployableType
 
 import scala.concurrent.Future
 import scala.io.Source
@@ -102,7 +101,7 @@ trait ArtifactLoader extends ArtifactApiController with DeploymentApiController 
 
   private def create(`type`: String, fileName: String, name: String, source: String) = {
     if (`type` == "breeds" && fileName.endsWith(".js"))
-      actorFor[PersistenceActor] ? PersistenceActor.Update(DefaultBreed(name, Map(), Deployable(JavaScriptDeployableType.default, source), Nil, Nil, Nil, Nil, Map()), Some(source))
+      actorFor[PersistenceActor] ? PersistenceActor.Update(DefaultBreed(name, Map(), Deployable("application/javascript", source), Nil, Nil, Nil, Nil, Map()), Some(source))
     else if (`type` == "workflows")
       actorFor[PersistenceActor] ? PersistenceActor.Update(WorkflowReader.read(source), Some(source))
     else
