@@ -17,9 +17,9 @@ trait ArtifactSupport {
     case Some(a) ⇒ artifactFor[T](a).map(Some(_))
   }
 
-  def artifactFor[T <: Artifact: ClassTag](artifact: Artifact): Future[T] = artifact match {
-    case a: T ⇒ Future.successful(a)
-    case _    ⇒ artifactFor[T](artifact.name)
+  def artifactFor[T <: Artifact: ClassTag](artifact: Artifact, force: Boolean = false): Future[T] = artifact match {
+    case a: T if !force ⇒ Future.successful(a)
+    case _              ⇒ artifactFor[T](artifact.name)
   }
 
   def artifactFor[T <: Artifact: ClassTag](name: String): Future[T] = {

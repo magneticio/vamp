@@ -1,6 +1,7 @@
 package io.vamp.workflow_driver
 
 import akka.actor.ActorSystem
+import akka.pattern.ask
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.akka.IoC._
 import io.vamp.common.config.Config
@@ -10,7 +11,7 @@ import io.vamp.container_driver.{ ContainerDriverActor, Docker }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.WorkflowValueResolver
-import io.vamp.persistence.{ ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.{ ArtifactSupport, KeyValueStoreActor, PersistenceActor }
 import io.vamp.pulse.notification.PulseFailureNotifier
 import io.vamp.workflow_driver.WorkflowDriverActor.{ GetScheduled, Schedule, Unschedule }
 import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
@@ -65,26 +66,18 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
   protected def unschedule(): PartialFunction[Workflow, Future[Any]]
 
   protected def enrich(workflow: Workflow): Future[Workflow] = {
-
-    artifactFor[DefaultBreed](workflow.breed).flatMap { breed ⇒
+    artifactFor[DefaultBreed](workflow.breed, force = true).flatMap { breed ⇒
       (deployables.get(breed.deployable.`type`) match {
         case Some(reference) ⇒ artifactFor[DefaultBreed](reference)
         case _               ⇒ Future.successful(breed)
-      }).map { executor ⇒
+      }).flatMap { executor ⇒
 
         val environmentVariables = (executor.environmentVariables ++ breed.environmentVariables ++ workflow.environmentVariables).
           map(env ⇒ env.name → resolveEnvironmentVariable(workflow)(env)).toMap.values.toList
 
-        actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowEnvironmentVariables(workflow, environmentVariables)
-
         val scale = workflow.scale.getOrElse(defaultScale).asInstanceOf[DefaultScale]
-        actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowScale(workflow, scale)
-
         val network = workflow.network.getOrElse(Docker.network())
-        actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowNetwork(workflow, network)
-
         val arguments = (executor.arguments ++ breed.arguments ++ workflow.arguments).map(arg ⇒ arg.key → arg).toMap.values.toList
-        actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowArguments(workflow, arguments)
 
         val workflowBreed = breed.copy(
           deployable = executor.deployable,
@@ -92,9 +85,14 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
           environmentVariables = environmentVariables
         )
 
-        actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowBreed(workflow, workflowBreed)
-
-        workflow.copy(
+        for {
+          _ ← actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowEnvironmentVariables(workflow, environmentVariables)
+          _ ← actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowScale(workflow, scale)
+          _ ← actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowNetwork(workflow, network)
+          _ ← actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowArguments(workflow, arguments)
+          _ ← actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowBreed(workflow, workflowBreed)
+          _ ← actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition))
+        } yield workflow.copy(
           breed = workflowBreed,
           scale = Option(scale),
           arguments = arguments,

@@ -22,7 +22,7 @@ trait DaemonWorkflowDriver extends WorkflowDriver {
             val ports = breed.ports.map(_.name) zip instance.ports
             Instance(instance.name, instance.host, ports.toMap, instance.deployed)
           }).getOrElse(Nil)
-          actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, instances)
+          if (workflow.instances != instances) actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, instances)
         case _ ⇒
       }
     case _ ⇒

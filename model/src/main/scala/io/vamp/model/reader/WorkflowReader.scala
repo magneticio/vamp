@@ -22,7 +22,7 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
           case None                ⇒
           case Some(tag: String)   ⇒ >>("schedule" :: "event" :: "tags" :: Nil, List(tag))
           case Some(tags: List[_]) ⇒ >>("schedule" :: "event" :: "tags" :: Nil, tags)
-          case Some(value)         ⇒ expandToList("schedule" :: "event" :: "tags" :: Nil)
+          case Some(_)             ⇒ expandToList("schedule" :: "event" :: "tags" :: Nil)
         }
 
         <<?[Any]("schedule" :: "time" :: Nil) match {
