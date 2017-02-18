@@ -10,82 +10,100 @@ import akka.util.Timeout
 import com.typesafe.scalalogging.Logger
 import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.model.artifact.Gateway
+import io.vamp.model.artifact.Port
 import org.slf4j.LoggerFactory
 
-import scala.annotation.tailrec
 import scala.concurrent.Future
 
-trait ProxyController extends GatewayDeploymentResolver {
+trait ProxyController extends GatewayWorkflowDeploymentResolver {
   this: ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 
   implicit def timeout: Timeout
 
-  def http(context: RequestContext, path: String)(implicit materializer: Materializer): Future[RouteResult] = {
-    wrapper(context, path, http(context))
-  }
-
-  def websocket(context: RequestContext, upgrade: UpgradeToWebSocket, path: String)(implicit materializer: Materializer): Future[RouteResult] = {
-    wrapper(context, path, websocket(context, upgrade))
-  }
-
-  private def wrapper(context: RequestContext, path: String, handle: (Gateway, List[String]) ⇒ Future[RouteResult]) = {
-    gatewayFor(path2list(Path(path))).flatMap {
-      case Some((gateway, segments)) ⇒ handle(gateway, segments)
-      case _                         ⇒ context.reject()
+  def gatewayProxy(gatewayName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
+    gatewayFor(gatewayName).flatMap {
+      case Some(gateway) if gateway.deployed && gateway.port.`type` == Port.Type.Http && gateway.service.nonEmpty ⇒
+        if (upgradeToWebSocket.isDefined) {
+          logger.debug(s"WebSocket gateway proxy request [$gatewayName]: $path")
+          websocket(gateway.service.get.host, gateway.service.get.port.number, path, context, upgradeToWebSocket.get)
+        }
+        else {
+          logger.debug(s"HTTP gateway proxy request [$gatewayName]: $path")
+          http(gateway.service.get.host, gateway.service.get.port.number, path, context)
+        }
+      case _ ⇒ context.reject()
     }
   }
 
-  private def http(context: RequestContext)(gateway: Gateway, segments: List[String])(implicit materializer: Materializer): Future[RouteResult] = {
-    logger.info(s"HTTP proxy request: ${gateway.name}${segments.mkString}")
+  def instanceProxy(workflowName: String, instanceName: String, portName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
+    workflowFor(workflowName).flatMap {
+      case Some(workflow) ⇒
+        workflow.instances.find(instance ⇒ instance.name == instanceName && instance.ports.contains(portName)) match {
+          case Some(instance) ⇒
+            if (upgradeToWebSocket.isDefined) {
+              logger.debug(s"WebSocket workflow instance proxy request [$workflowName/$instanceName/$portName]: $path")
+              websocket(instance.host, instance.ports(portName), path, context, upgradeToWebSocket.get)
+            }
+            else {
+              logger.debug(s"HTTP workflow instance proxy request [$workflowName/$instanceName/$portName]: $path")
+              http(instance.host, instance.ports(portName), path, context)
+            }
+          case _ ⇒ context.reject()
+        }
+      case _ ⇒ context.reject()
+    }
+  }
+
+  def instanceProxy(deploymentName: String, clusterName: String, serviceName: String, instanceName: String, portName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
+    deploymentFor(deploymentName).flatMap {
+      case Some(deployment) ⇒
+        deployment.
+          clusters.find(_.name == clusterName).
+          flatMap(_.services.find(_.breed.name == serviceName)).
+          flatMap(_.instances.find(instance ⇒ instance.name == instanceName && instance.ports.contains(portName))) match {
+            case Some(instance) ⇒
+              if (upgradeToWebSocket.isDefined) {
+                logger.debug(s"WebSocket deployment instance proxy request [$deploymentName/$clusterName/$serviceName/$instanceName/$portName]: $path")
+                websocket(instance.host, instance.ports(portName), path, context, upgradeToWebSocket.get)
+              }
+              else {
+                logger.debug(s"HTTP deployment instance proxy request [$deploymentName/$clusterName/$serviceName/$instanceName/$portName]: $path")
+                http(instance.host, instance.ports(portName), path, context)
+              }
+
+            case _ ⇒ context.reject()
+          }
+      case _ ⇒ context.reject()
+    }
+  }
+
+  private def http(host: String, port: Int, path: Path, context: RequestContext)(implicit materializer: Materializer): Future[RouteResult] = {
     Source.single(context.request)
       .map(request ⇒ request.withHeaders(
         request.headers.filter(_.renderInRequests())
       ).withUri(
-          request.uri.withPath(
-          Path(segments.mkString)
-        ).withQuery(
+          request.uri.
+          withPath(if (path.startsWith(Path.SingleSlash)) path else Path.SingleSlash ++ path).
+          withQuery(
             Query(request.uri.rawQueryString.map("?" + _).getOrElse(""))
           ).toRelative
         ))
-      .via(Http().outgoingConnection(gateway.service.get.host, gateway.service.get.port.number))
+      .via(Http().outgoingConnection(host, port))
       .runWith(Sink.head)
       .flatMap(context.complete(_))
   }
 
-  private def websocket(context: RequestContext, upgrade: UpgradeToWebSocket)(gateway: Gateway, segments: List[String])(implicit materializer: Materializer): Future[RouteResult] = {
-    logger.info(s"WebSocket proxy request: ${gateway.name}${segments.mkString}")
+  private def websocket(host: String, port: Int, path: Path, context: RequestContext, upgrade: UpgradeToWebSocket)(implicit materializer: Materializer): Future[RouteResult] = {
     val request = WebSocketRequest(
       uri = context.request.uri.withScheme("ws").
-        withAuthority(gateway.service.get.host, gateway.service.get.port.number).
-        withPath(Path(segments.mkString)).
+        withAuthority(host, port).
+        withPath(if (path.startsWith(Path.SingleSlash)) path else Path.SingleSlash ++ path).
         withQuery(Query(context.request.uri.rawQueryString.map("?" + _).getOrElse(""))),
       extraHeaders = context.request.headers.filter(_.renderInRequests()),
       subprotocol = None
     )
     context.complete(upgrade.handleMessages(Http().webSocketClientFlow(request)))
-  }
-
-  private def gatewayFor(segments: List[String]): Future[Option[(Gateway, List[String])]] = {
-
-    def tryWith(length: Int): Future[Option[(Gateway, List[String])]] = {
-      (if (segments.size <= length) None else Option(segments.take(length).mkString)).map { name ⇒
-        gatewayFor(name).map(_.map(_ → segments.drop(length)))
-      }.getOrElse(Future.successful(None))
-    }
-
-    List(3, 5).foldLeft(tryWith(1)) { (op1, op2) ⇒
-      op1.flatMap {
-        case Some((g, l)) if g.proxy.nonEmpty ⇒ Future.successful(Option(g → l))
-        case _                                ⇒ tryWith(op2)
-      }
-    }
-  }
-
-  @tailrec
-  private def path2list(path: Path, list: List[String] = Nil): List[String] = {
-    if (path.isEmpty) list else path2list(path.tail, list :+ path.head.toString)
   }
 }

@@ -33,10 +33,6 @@ case class Gateway(
 
   val kind = "gateway"
 
-  val proxy: Option[String] = {
-    if (deployed && port.`type` == Port.Type.Http && service.nonEmpty) Option(GatewayPath(name).normalized) else None
-  }
-
   def routeBy(path: GatewayPath) = routes.find(_.path == path)
 
   def defaultBalance = if (port.`type` == Port.Type.Http) "roundrobin" else "leastconn"
