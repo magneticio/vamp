@@ -1,0 +1,20 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious:
+    services:
+      -
+        breed: nocturnal-viper
+        scale:
+           cpu: 0.2
+           memory: 120 M
+           instances: 2
+        health_checks:
+        -
+           path: path/to/check
+           port: 8080
+           timeout: 4S
+           interval: 1M
+           protocol: HTTPS
+           failures: 5
+           initial_delay: 30S

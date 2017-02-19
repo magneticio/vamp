@@ -120,6 +120,7 @@ trait TypeOfArtifact {
     case t if classOf[DeploymentServiceScale].isAssignableFrom(t) ⇒ "deployment-service-scales"
     case t if classOf[DeploymentServiceInstances].isAssignableFrom(t) ⇒ "deployment-service-instances"
     case t if classOf[DeploymentServiceEnvironmentVariables].isAssignableFrom(t) ⇒ "deployment-service-environment-variables"
+    case t if classOf[DeploymentServiceHealth].isAssignableFrom(t) ⇒ "deployment-service-health"
     // workflow persistence
     case t if classOf[WorkflowBreed].isAssignableFrom(t) ⇒ "workflow-breed"
     case t if classOf[WorkflowStatus].isAssignableFrom(t) ⇒ "workflow-status"

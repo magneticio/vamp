@@ -30,6 +30,7 @@ trait PersistenceStats extends ArtifactPaginationSupport {
       classOf[Blueprint],
       classOf[Sla],
       classOf[Scale],
+      classOf[DeploymentServiceHealth],
       classOf[Escalation],
       classOf[Route],
       classOf[Condition],

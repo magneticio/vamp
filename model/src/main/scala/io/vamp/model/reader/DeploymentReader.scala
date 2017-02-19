@@ -10,7 +10,12 @@ import io.vamp.model.reader.YamlSourceReader._
 
 import scala.language.postfixOps
 
-trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader with ArgumentReader with DialectReader with ReferenceYamlReader[Deployment] {
+trait AbstractDeploymentReader
+    extends YamlReader[Deployment]
+    with TraitReader
+    with ArgumentReader
+    with DialectReader
+    with ReferenceYamlReader[Deployment] {
 
   override protected def parse(implicit source: YamlSourceReader): Deployment = {
     val clusters = <<?[YamlSourceReader]("clusters") match {
@@ -20,9 +25,22 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
           implicit val source = cluster
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla", validateEitherReferenceOrAnonymous)
 
-          <<?[List[YamlSourceReader]]("services") match {
-            case None       ⇒ DeploymentCluster(name, metadata, Nil, Nil, <<?[String]("network"), sla, dialects)
-            case Some(list) ⇒ DeploymentCluster(name, metadata, list.map(parseService(_)), routingReader.mapping("gateways"), <<?[String]("network"), sla, dialects)
+          val addHealthChecks = (healthChecks: List[HealthCheck]) ⇒ <<?[List[YamlSourceReader]]("services") match {
+            case None ⇒ DeploymentCluster(name, metadata, Nil, Nil, <<?[String]("network"), sla, dialects)
+            case Some(list) ⇒
+              DeploymentCluster(
+                name,
+                metadata,
+                list.map(parseService(_)),
+                routingReader.mapping("gateways"),
+                <<?[String]("network"),
+                sla,
+                dialects)
+          }
+
+          <<?[YamlSourceReader]("health_checks") match {
+            case None        ⇒ addHealthChecks(List())
+            case Some(input) ⇒ addHealthChecks(HealthCheckReader.read(input))
           }
       } toList
     }
@@ -50,7 +68,17 @@ trait AbstractDeploymentReader extends YamlReader[Deployment] with TraitReader w
     val breed = BreedReader.readReference(<<![Any]("breed")).asInstanceOf[DefaultBreed]
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale", validateEitherReferenceOrAnonymous).asInstanceOf[Option[DefaultScale]]
 
-    DeploymentService(status(<<![YamlSourceReader]("status")), breed, environmentVariables(), scale, parseInstances, arguments(), <<?[String]("network"), dependencies(), dialects)
+    DeploymentService(
+      status(<<![YamlSourceReader]("status")),
+      breed,
+      environmentVariables(),
+      scale,
+      parseInstances,
+      arguments(),
+      HealthCheckReader.read,
+      <<?[String]("network"), dependencies(),
+      dialects,
+      ServiceHealthReader.read)
   }
 
   def parseInstances(implicit source: YamlSourceReader): List[Instance] = {
@@ -117,4 +145,17 @@ object DeploymentServiceStatusReader extends YamlReader[DeploymentService.Status
 
     DeploymentService.Status(intention, phase, since(<<![String]("since")))
   }
+}
+
+object ServiceHealthReader extends YamlReader[Option[ServiceHealth]] {
+
+  def serviceHealth(implicit yamlSourceReader: YamlSourceReader): ServiceHealth =
+    ServiceHealth(
+      <<![Int]("staged"),
+      <<![Int]("running"),
+      <<![Int]("healthy"),
+      <<![Int]("unhealthy"))
+
+  override protected def parse(implicit source: YamlSourceReader): Option[ServiceHealth] =
+    <<?[YamlSourceReader]("serviceHealth").map(ysr ⇒ serviceHealth(ysr))
 }

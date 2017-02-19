@@ -1,6 +1,6 @@
 package io.vamp.model.artifact
 
-import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.reader.{ MegaByte, Quantity, Time }
 
 object Blueprint {
   val kind = "blueprint"
@@ -50,7 +50,14 @@ abstract class AbstractCluster extends Artifact {
   def gatewayBy(portName: String): Option[Gateway] = gateways.find(_.port.name == portName)
 }
 
-case class Cluster(name: String, metadata: Map[String, Any], services: List[Service], gateways: List[Gateway], network: Option[String] = None, sla: Option[Sla] = None, dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
+case class Cluster(
+  name:     String,
+  metadata: Map[String, Any],
+  services: List[Service],
+  gateways: List[Gateway],
+  network:  Option[String]          = None,
+  sla:      Option[Sla]             = None,
+  dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
 
 abstract class AbstractService {
 
@@ -64,12 +71,25 @@ abstract class AbstractService {
 
   def arguments: List[Argument]
 
+  /** A service can contain zero or many health checks that will get created when the Blueprints gets deployed */
+  def healthChecks: List[HealthCheck]
+
   def network: Option[String]
 
   def dialects: Map[Dialect.Value, Any]
+
+  def serviceHealth: Option[ServiceHealth]
 }
 
-case class Service(breed: Breed, environmentVariables: List[EnvironmentVariable], scale: Option[Scale], arguments: List[Argument], network: Option[String] = None, dialects: Map[Dialect.Value, Any] = Map()) extends AbstractService
+case class Service(
+  breed:                Breed,
+  environmentVariables: List[EnvironmentVariable],
+  scale:                Option[Scale],
+  arguments:            List[Argument],
+  healthChecks:         List[HealthCheck],
+  network:              Option[String]            = None,
+  dialects:             Map[Dialect.Value, Any]   = Map(),
+  serviceHealth:        Option[ServiceHealth]     = None) extends AbstractService
 
 trait Scale extends Artifact {
   val kind = "scale"
@@ -85,3 +105,25 @@ object DefaultScale {
 }
 
 case class DefaultScale(name: String, metadata: Map[String, Any], cpu: Quantity, memory: MegaByte, instances: Int) extends Scale
+
+/**
+ * Vamp definition of a HealthCheck
+ * Transforms later into specific 'container solution'
+ */
+case class HealthCheck(
+  path:         String,
+  port:         String,
+  initialDelay: Time,
+  timeout:      Time,
+  interval:     Time,
+  failures:     Int,
+  protocol:     String)
+
+/**
+ * Representation of the Service Health retrieved from a Deployment.
+ * @param staged number of instances in a staged state.
+ * @param running number of instances in a running state.
+ * @param healthy number of instances in a healthy state.
+ * @param unhealthy number of instances in an unhealthy state.
+ */
+case class ServiceHealth(staged: Int, running: Int, healthy: Int, unhealthy: Int)

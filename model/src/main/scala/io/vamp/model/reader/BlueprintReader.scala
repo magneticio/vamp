@@ -90,11 +90,16 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
           implicit val source = cluster
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
-          <<?[List[YamlSourceReader]]("services") match {
+          val addHealthChecks = (healthChecks: List[HealthCheck]) ⇒ <<?[List[YamlSourceReader]]("services") match {
             case None ⇒ Cluster(name, metadata, List(), Nil, <<?[String]("network"), sla, dialects)
             case Some(list) ⇒
               val services = list.map(parseService(_))
               Cluster(name, metadata, services, processAnonymousInternalGateways(services, internalGatewayReader.mapping("gateways")), <<?[String]("network"), sla, dialects)
+          }
+
+          <<?[YamlSourceReader]("health_checks") match {
+            case None        ⇒ addHealthChecks(List())
+            case Some(input) ⇒ addHealthChecks(HealthCheckReader.read(input))
           }
       } toList
     }
@@ -130,7 +135,25 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       validateDependencies(breeds)
       breeds.foreach(BreedReader.validateNonRecursiveDependencies)
 
+      // validates each individual health check linked to a cluster and service
+      for {
+        cluster ← blueprint.clusters
+        service ← cluster.services
+        healthCheck ← service.healthChecks
+      } yield validateHealthCheck(service, healthCheck)
+
       blueprint
+  }
+
+  /** Validates a healthCheck based on the linked service **/
+  protected def validateHealthCheck(service: Service, healthCheck: HealthCheck): Unit = {
+    val correctPort = service.breed match {
+      case defaultBreed: DefaultBreed ⇒ defaultBreed.ports.exists(_.name == healthCheck.port)
+      case _                          ⇒ true
+    }
+
+    if (!correctPort) throwException(UnresolvedPortReferenceError(healthCheck.port))
+    if (healthCheck.failures < 0) throwException(NegativeFailuresNumberError(healthCheck.failures))
   }
 
   protected def validateBreeds(breeds: List[Breed]): Unit = {
@@ -186,7 +209,15 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
   }
 
   private def parseService(implicit source: YamlSourceReader): Service = {
-    Service(BreedReader.readReference(<<![Any]("breed")), environmentVariables(alias = false), ScaleReader.readOptionalReferenceOrAnonymous("scale"), arguments(), <<?[String]("network"), dialects)
+    Service(
+      BreedReader.readReference(<<![Any]("breed")),
+      environmentVariables(alias = false),
+      ScaleReader.readOptionalReferenceOrAnonymous("scale"),
+      arguments(),
+      HealthCheckReader.read,
+      <<?[String]("network"),
+      dialects,
+      ServiceHealthReader.read)
   }
 }
 
@@ -344,4 +375,28 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
   override protected def createDefault(implicit source: YamlSourceReader): Scale = {
     DefaultScale(name, metadata, <<![Quantity]("cpu"), <<![MegaByte]("memory"), <<?[Int]("instances").getOrElse(1))
   }
+}
+
+object HealthCheckReader extends YamlReader[List[HealthCheck]] {
+
+  def healthCheck(implicit source: YamlSourceReader): HealthCheck =
+    HealthCheck(
+      <<?[String]("path").getOrElse("/"),
+      <<![String]("port"),
+      Time.of(<<![String]("initial_delay")),
+      Time.of(<<![String]("timeout")),
+      Time.of(<<![String]("interval")),
+      <<![Int]("failures"),
+      <<?[String]("protocol").getOrElse("HTTP"))
+
+  override protected def parse(implicit source: YamlSourceReader): List[HealthCheck] =
+    <<?[List[YamlSourceReader]]("health_checks")
+      .map(_.map(healthCheck(_)))
+      .getOrElse(List.empty[HealthCheck])
+
+  override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
+    expandToList("health_checks")
+    source
+  }
+
 }
