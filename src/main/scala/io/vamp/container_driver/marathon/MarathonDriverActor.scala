@@ -116,16 +116,34 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   }
 
   private def get(deploymentServices: List[DeploymentServices]): Unit = {
+    // Replies to DeploymentSynchronizationActor
     val replyTo = sender()
-    httpClient.get[AppsResponse](s"$url/v2/apps?embed=apps.tasks", headers).map { apps ⇒
+
+    httpClient.get[AppsResponse](s"$url/v2/apps?embed=apps.tasks&embed=apps.taskStats", headers).map { apps ⇒
       val deployed = apps.apps.map(app ⇒ app.id → app).toMap
-      deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
-        case (deployment, service) ⇒
-          deployed.get(appId(deployment, service.breed)) match {
-            case Some(app) ⇒ replyTo ! ContainerService(deployment, service, Option(containers(app)))
-            case None      ⇒ replyTo ! ContainerService(deployment, service, None)
-          }
-      }
+
+      deploymentServices
+        .flatMap(ds ⇒ ds.services.map((ds.deployment, _)))
+        .foreach {
+          case (deployment, service) ⇒
+            deployed.get(appId(deployment, service.breed)) match {
+              case Some(app) ⇒
+                val equalHealthChecks = MarathonHealthCheck.equalHealthChecks(
+                  deployment.ports,
+                  service.healthChecks,
+                  app.healthChecks)
+
+                val newHealth = app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts))
+
+                replyTo ! ContainerService(
+                  deployment,
+                  service,
+                  Option(containers(app)),
+                  newHealth,
+                  equalHealthChecks = equalHealthChecks)
+              case None ⇒ replyTo ! ContainerService(deployment, service, None, None)
+            }
+        }
     }
   }
 
@@ -160,6 +178,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
       Math.round(service.scale.get.memory.value).toInt,
       environment(deployment, cluster, service),
       cmd(deployment, cluster, service),
+      service.healthChecks.map(MarathonHealthCheck.apply(service.breed.ports, _)),
       labels = labels(deployment, cluster, service)
     )
 
@@ -195,11 +214,10 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
   private def sendRequest(update: Boolean, id: String, payload: JValue) = {
     if (update) {
-      httpClient.get[Any](s"$url/v2/apps/$id", headers).flatMap { response ⇒
-        val changed = Extraction.decompose(response).children.headOption match {
-          case Some(app) ⇒ app.diff(payload).changed
-          case None      ⇒ payload
-        }
+      httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks", headers).flatMap { appResponse ⇒
+        val marathonApp = Extraction.extract[MarathonApp](payload)
+        val changed = appResponse.apps.headOption.map(difference(marathonApp, _)).getOrElse(payload)
+
         if (changed != JNothing) httpClient.put[Any](s"$url/v2/apps/$id", changed, headers) else Future.successful(false)
       }
     } else {
@@ -210,6 +228,26 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
           Future.failed(t)
       }
     }
+  }
+
+  /**
+   * Checks the difference between a MarathonApp and an App to convert them two comparable objects (ComparableApp)
+   * If healthCheck is changed it takes the latest array as values from:
+   * @param marathonApp
+   * If healthCheck deleted it needs to have an empty JSON Array as override value for the put request
+   */
+  private def difference(marathonApp: MarathonApp, app: App): JValue = {
+    val comparableApp: ComparableApp = ComparableApp.fromApp(app)
+    val comparableAppTwo: ComparableApp = ComparableApp.fromMarathonApp(marathonApp)
+    val diff = Extraction.decompose(comparableApp).diff(Extraction.decompose(comparableAppTwo))
+
+    diff.added.merge(diff.changed.mapField {
+      case ("healthChecks", _) ⇒ "healthChecks" → JArray(marathonApp.healthChecks.map(Extraction.decompose))
+      case xs                  ⇒ xs
+    }).merge(diff.deleted.mapField {
+      case ("healthChecks", _) ⇒ "healthChecks" → JArray(List())
+      case xs                  ⇒ xs
+    })
   }
 
   private def container(workflow: Workflow): Option[Container] = {
