@@ -91,8 +91,8 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         else if (!matchingServers(deploymentService, cs)) {
           actorFor[PersistenceActor] ! UpdateDeploymentServiceInstances(deployment, deploymentCluster, deploymentService, cs.instances.map(convert))
         }
-        else if (!matchingServiceHealth(deploymentService.serviceHealth, containerService.serviceHealth)) {
-          val serviceHealth = containerService.serviceHealth.getOrElse(deploymentService.serviceHealth.get)
+        else if (!matchingServiceHealth(deploymentService.health, containerService.health)) {
+          val serviceHealth = containerService.health.getOrElse(deploymentService.health.get)
 
           actorFor[PersistenceActor] ! UpdateDeploymentServiceHealth(
             deployment,
@@ -108,7 +108,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     }
   }
 
-  private def matchingServiceHealth(deploymentHealth: Option[ServiceHealth], serviceHealth: Option[ServiceHealth]): Boolean =
+  private def matchingServiceHealth(deploymentHealth: Option[Health], serviceHealth: Option[Health]): Boolean =
     (for {
       deploymentServiceHealth ← deploymentHealth
       containerServiceHealth ← serviceHealth
@@ -166,7 +166,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
       case Some(cs) ⇒ if (!matchingServers(deploymentService, cs) ||
         !matchingScale(deploymentService, cs) ||
         !matchingHealthChecks(containerService) ||
-        !matchingServiceHealth(deploymentService.serviceHealth, containerService.serviceHealth)) redeploy()
+        !matchingServiceHealth(deploymentService.health, containerService.health)) redeploy()
     }
   }
 

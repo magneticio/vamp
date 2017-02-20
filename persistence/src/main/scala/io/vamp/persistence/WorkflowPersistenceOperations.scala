@@ -25,6 +25,8 @@ trait WorkflowPersistenceMessages {
 
   case class UpdateWorkflowInstances(workflow: Workflow, instances: List[Instance]) extends PersistenceActor.PersistenceMessages
 
+  case class UpdateWorkflowHealth(workflow: Workflow, health: Option[Health]) extends PersistenceActor.PersistenceMessages
+
   case class ResetWorkflow(workflow: Workflow, runtime: Boolean, attributes: Boolean) extends PersistenceActor.PersistenceMessages
 
 }
@@ -51,6 +53,8 @@ trait WorkflowPersistenceOperations {
     case o: UpdateWorkflowEnvironmentVariables ⇒ updateWorkflowEnvironmentVariables(o.workflow, o.environmentVariables)
 
     case o: UpdateWorkflowInstances            ⇒ updateWorkflowInstances(o.workflow, o.instances)
+
+    case o: UpdateWorkflowHealth               ⇒ updateWorkflowHealth(o.workflow, o.health)
 
     case o: ResetWorkflow                      ⇒ resetWorkflow(o.workflow, o.runtime, o.attributes)
   }
@@ -87,6 +91,10 @@ trait WorkflowPersistenceOperations {
     self ? PersistenceActor.Update(WorkflowInstances(workflow.name, instances))
   }
 
+  private def updateWorkflowHealth(workflow: Workflow, health: Option[Health]) = reply {
+    self ? PersistenceActor.Update(WorkflowHealth(workflow.name, health))
+  }
+
   private def resetWorkflow(workflow: Workflow, runtime: Boolean, attributes: Boolean) = reply {
 
     val attributeArtifacts = if (attributes) {
@@ -98,7 +106,10 @@ trait WorkflowPersistenceOperations {
     }
     else Nil
 
-    val runtimeArtifacts = if (runtime) PersistenceActor.Delete(workflow.name, classOf[WorkflowBreed]) :: PersistenceActor.Delete(workflow.name, classOf[WorkflowInstances]) :: Nil else Nil
+    val runtimeArtifacts = if (runtime) PersistenceActor.Delete(workflow.name, classOf[WorkflowBreed]) ::
+      PersistenceActor.Delete(workflow.name, classOf[WorkflowHealth]) ::
+      PersistenceActor.Delete(workflow.name, classOf[WorkflowInstances]) :: Nil
+    else Nil
 
     Future.sequence((attributeArtifacts ++ runtimeArtifacts).map(self ? _))
   }
@@ -136,3 +147,8 @@ private[persistence] case class WorkflowEnvironmentVariables(name: String, envir
 private[persistence] case class WorkflowInstances(name: String, instances: List[Instance]) extends PersistenceArtifact {
   val kind = "workflow-instances"
 }
+
+private[persistence] case class WorkflowHealth(name: String, health: Option[Health]) extends PersistenceArtifact {
+  val kind = "workflow-health"
+}
+

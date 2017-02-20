@@ -4,6 +4,7 @@ import java.util.regex.Pattern
 
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.model.notification.{ InvalidArgumentError, InvalidArgumentValueError }
+import io.vamp.model.reader.Time
 
 import scala.language.implicitConversions
 import scala.util.Try
@@ -20,7 +21,8 @@ case class DefaultBreed(
     environmentVariables: List[EnvironmentVariable],
     constants:            List[Constant],
     arguments:            List[Argument],
-    dependencies:         Map[String, Breed]
+    dependencies:         Map[String, Breed],
+    healthChecks:         List[HealthCheck]         = Nil
 ) extends Breed {
 
   def traitsFor(group: String): List[Trait] = traitsFor(TraitReference.groupFor(group))
@@ -189,3 +191,17 @@ object Argument {
 case class Argument(key: String, value: String) {
   val privileged = key == Argument.privileged
 }
+
+/**
+ * Vamp definition of a HealthCheck
+ * Transforms later into specific 'container solution'
+ */
+case class HealthCheck(
+  path:         String,
+  port:         String,
+  initialDelay: Time,
+  timeout:      Time,
+  interval:     Time,
+  failures:     Int,
+  protocol:     String
+)

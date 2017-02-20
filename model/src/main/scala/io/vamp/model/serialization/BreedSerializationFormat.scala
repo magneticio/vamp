@@ -43,7 +43,7 @@ trait TraitDecomposer extends TraitNameAliasResolver {
   }
 }
 
-class BreedSerializer extends ArtifactSerializer[Breed] with TraitDecomposer with ReferenceSerialization {
+class BreedSerializer extends ArtifactSerializer[Breed] with TraitDecomposer with ReferenceSerialization with HealthCheckSerializer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case breed: BreedReference ⇒ serializeReference(breed)
     case breed: DefaultBreed ⇒
@@ -63,6 +63,7 @@ class BreedSerializer extends ArtifactSerializer[Breed] with TraitDecomposer wit
       } toList
 
       list += JField("dependencies", new JObject(dependencies))
+      list += JField("health_checks", serializeHealthChecks(breed.healthChecks))
 
       new JObject(list.toList)
   }

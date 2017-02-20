@@ -328,4 +328,38 @@ class BreedReaderSpec extends ReaderSpec {
       BreedReader.read(res("breed/breed37.yml"))
     })
   }
+
+  it should "read the health checks" in {
+    BreedReader.read(res("breed/breed38.yml")) should have(
+      'name("monarch"),
+      'deployable(Deployable("magneticio/monarch:latest")),
+      'ports(List(Port("port", None, Some("8080/http"), 8080, Port.Type.Http))),
+      'environmentVariables(List()),
+      'dependencies(Map()),
+      'healthChecks(List(HealthCheck("path/to/check", "port", Time(30), Time(4), Time(60), 5, "HTTPS"), HealthCheck("path/to/check2", "port", Time(30), Time(4), Time(60), 5, "HTTPS")))
+    )
+  }
+
+  it should "read expanded health check" in {
+    BreedReader.read(res("breed/breed39.yml")) should have(
+      'name("monarch"),
+      'deployable(Deployable("magneticio/monarch:latest")),
+      'ports(List(Port("port", None, Some("8080/http"), 8080, Port.Type.Http))),
+      'environmentVariables(List()),
+      'dependencies(Map()),
+      'healthChecks(List(HealthCheck("path/to/check", "port", Time(30), Time(4), Time(60), 5, "HTTPS")))
+    )
+  }
+
+  it should "throw an error when a port reference in a health check is unresolved" in {
+    expectedError[UnresolvedPortReferenceError] {
+      BreedReader.read(res("breed/breed40.yml"))
+    }
+  }
+
+  it should "throw an error when failure number is negative" in {
+    expectedError[NegativeFailuresNumberError] {
+      BreedReader.read(res("breed/breed41.yml"))
+    }
+  }
 }

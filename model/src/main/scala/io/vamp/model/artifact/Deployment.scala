@@ -124,7 +124,7 @@ case class DeploymentService(
   network:              Option[String],
   dependencies:         Map[String, String]       = Map(),
   dialects:             Map[Dialect.Value, Any]   = Map(),
-  serviceHealth:        Option[ServiceHealth]     = None
+  health:               Option[Health]            = None
 ) extends AbstractService
 
 case class Instance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact {

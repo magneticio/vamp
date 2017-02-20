@@ -15,9 +15,11 @@ trait DaemonWorkflowDriver extends WorkflowDriver {
   protected def driverActor: ActorRef
 
   override def receive = super.receive orElse {
-    case ContainerWorkflow(workflow, containers) ⇒
+    case ContainerWorkflow(workflow, containers, health, _) ⇒
       workflow.breed match {
         case breed: DefaultBreed ⇒
+          if (workflow.health != health) actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowHealth(workflow, health)
+
           val instances = containers.map(_.instances.map { instance ⇒
             val ports = breed.ports.map(_.name) zip instance.ports
             Instance(instance.name, instance.host, ports.toMap, instance.deployed)

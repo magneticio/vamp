@@ -78,11 +78,13 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
         val scale = workflow.scale.getOrElse(defaultScale).asInstanceOf[DefaultScale]
         val network = workflow.network.getOrElse(Docker.network())
         val arguments = (executor.arguments ++ breed.arguments ++ workflow.arguments).map(arg ⇒ arg.key → arg).toMap.values.toList
+        val healthChecks = if (breed.healthChecks.isEmpty) executor.healthChecks else breed.healthChecks
 
         val workflowBreed = breed.copy(
           deployable = executor.deployable,
           ports = executor.ports,
-          environmentVariables = environmentVariables
+          environmentVariables = environmentVariables,
+          healthChecks = healthChecks
         )
 
         for {

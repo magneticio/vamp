@@ -97,7 +97,7 @@ trait PersistenceMarshaller extends TypeOfArtifact {
     },
     "deployment-service-health" → new NoNameValidationYamlReader[DeploymentServiceHealth] {
       override protected def parse(implicit source: YamlSourceReader) =
-        DeploymentServiceHealth(name, ServiceHealthReader.serviceHealth(<<![YamlSourceReader]("service_health")))
+        DeploymentServiceHealth(name, HealthReader.health(<<![YamlSourceReader]("health")))
     },
     "deployment-service-environment-variables" → new NoNameValidationYamlReader[DeploymentServiceEnvironmentVariables] {
 
@@ -135,6 +135,9 @@ trait PersistenceMarshaller extends TypeOfArtifact {
     },
     "workflow-instances" → new NoNameValidationYamlReader[WorkflowInstances] with ArgumentReader {
       override protected def parse(implicit source: YamlSourceReader) = WorkflowInstances(name, DeploymentReader.parseInstances)
+    },
+    "workflow-health" → new NoNameValidationYamlReader[WorkflowHealth] with ArgumentReader {
+      override protected def parse(implicit source: YamlSourceReader) = WorkflowHealth(name, <<?[YamlSourceReader]("health").map(HealthReader.health(_)))
     },
     "workflow-environment-variables" → new NoNameValidationYamlReader[WorkflowEnvironmentVariables] {
 

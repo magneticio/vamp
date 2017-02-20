@@ -110,8 +110,8 @@ object Time {
 }
 
 /**
- * Time defines a UnitValue for minutes (M) and seconds (S)
+ * Time defines a UnitValue for minutes (m) and seconds (s)
  */
 case class Time(value: Int) extends UnitValue[Int] {
-  override def normalized = s"${value}S"
+  override def normalized = s"${value}s"
 }
