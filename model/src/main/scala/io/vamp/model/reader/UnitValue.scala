@@ -17,6 +17,7 @@ object UnitValue {
     case _ if classTag[V].runtimeClass == classOf[Percentage] ⇒ Try(Percentage.of(value).asInstanceOf[V])
     case _ if classTag[V].runtimeClass == classOf[MegaByte] ⇒ Try(MegaByte.of(value).asInstanceOf[V])
     case _ if classTag[V].runtimeClass == classOf[Quantity] ⇒ Try(Quantity.of(value).asInstanceOf[V])
+    case _ if classTag[V].runtimeClass == classOf[Time]     => Try(Time.of(value).asInstanceOf[V])
     case _ ⇒ Failure(new IllegalArgumentException())
   }
 
@@ -96,14 +97,16 @@ case class Quantity(value: Double) extends UnitValue[Double] {
 
 object Time {
 
-  private val secondPattern = "(\\d+)[Ss]".r
-  private val minutePattern = "(\\d+)[Mm]".r
+  private val secondPattern = "(\\d+)(s|sec|second|seconds)".r
+  private val minutePattern = "(\\d+)(m|min|minute|minutes)".r
+  private val hourPattern   = "(\\d+)(h|hrs|hour|hours)".r
 
   def of(source: Any): Time = source match {
-    case string: String ⇒ string match {
-      case secondPattern(s) ⇒ Time(s.toInt)
-      case minutePattern(m) ⇒ Time(m.toInt * 60)
-      case s                ⇒ throw new Exception("Received: " + s)
+    case string: String         => string match {
+      case secondPattern(s, _)  => Time(s.toInt)
+      case minutePattern(m, _)  => Time(m.toInt * 60)
+      case hourPattern(h, _)    => Time(h.toInt * 3600)
+      case s                    => throw new IllegalArgumentException(s)
     }
     case _ ⇒ Try(Time(source.toString.toInt)).getOrElse(UnitValue.illegal(source))
   }

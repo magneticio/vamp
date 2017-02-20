@@ -52,4 +52,22 @@ class UnitValueSpec extends FlatSpec with Matchers {
     UnitValue.of[Quantity]("-0.1 ") shouldBe Success(Quantity(-0.1))
     UnitValue.of[Quantity]("-.1 ") shouldBe Success(Quantity(-.1))
   }
+
+  "Time" should "parse" in {
+    // Test for second values
+    UnitValue.of[Time]("1sec") shouldBe Success(Time(1))
+    UnitValue.of[Time]("20s") shouldBe Success(Time(20))
+    UnitValue.of[Time]("1second") shouldBe Success(Time(1))
+    UnitValue.of[Time]("2seconds") shouldBe Success(Time(2))
+    // Test for minute values
+    UnitValue.of[Time]("20m") shouldBe Success(Time(20 * 60))
+    UnitValue.of[Time]("1min") shouldBe Success(Time(60))
+    UnitValue.of[Time]("1minute") shouldBe Success(Time(60))
+    UnitValue.of[Time]("5minutes") shouldBe Success(Time(5 * 60))
+    // Test for hourly values
+    UnitValue.of[Time]("1h") shouldBe Success(Time(3600))
+    UnitValue.of[Time]("2hrs") shouldBe Success(Time(2 * 3600))
+    UnitValue.of[Time]("1hour") shouldBe Success(Time(3600))
+    UnitValue.of[Time]("4hours") shouldBe Success(Time(4 * 3600))
+  }
 }
