@@ -12,8 +12,8 @@ clusters:
         health_checks:
            path: path/to/check
            port: 8080
-           timeout: 4S
-           interval: 1M
+           timeout: 4s
+           interval: 1m
            protocol: HTTPS
            failures: 5
-           initial_delay: 30S
+           initial_delay: 30s
