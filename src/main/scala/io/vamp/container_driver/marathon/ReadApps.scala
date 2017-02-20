@@ -1,6 +1,6 @@
 package io.vamp.container_driver.marathon
 
-import io.vamp.model.artifact.ServiceHealth
+import io.vamp.model.artifact.Health
 
 case class AppResponse(app: App)
 
@@ -46,7 +46,7 @@ case class MarathonCounts(staged: Int, running: Int, healthy: Int, unhealthy: In
 object MarathonCounts {
 
   /** Transforms a MarathonCounts to the generic ServiceHealth */
-  def toServiceHealth(marathonCounts: MarathonCounts): ServiceHealth =
-    ServiceHealth(marathonCounts.staged, marathonCounts.running, marathonCounts.healthy, marathonCounts.unhealthy)
+  def toServiceHealth(marathonCounts: MarathonCounts): Health =
+    Health(marathonCounts.staged, marathonCounts.running, marathonCounts.healthy, marathonCounts.unhealthy)
 
 }

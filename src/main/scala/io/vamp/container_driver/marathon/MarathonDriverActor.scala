@@ -128,19 +128,14 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
           case (deployment, service) ⇒
             deployed.get(appId(deployment, service.breed)) match {
               case Some(app) ⇒
-                val equalHealthChecks = MarathonHealthCheck.equalHealthChecks(
-                  deployment.ports,
-                  service.healthChecks,
-                  app.healthChecks)
-
-                val newHealth = app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts))
-
+                val (equalHealthChecks, health) = healthCheck(app, deployment.ports, service.healthChecks)
                 replyTo ! ContainerService(
                   deployment,
                   service,
                   Option(containers(app)),
-                  newHealth,
-                  equalHealthChecks = equalHealthChecks)
+                  health,
+                  equalHealthChecks = equalHealthChecks
+                )
               case None ⇒ replyTo ! ContainerService(deployment, service, None, None)
             }
         }
@@ -150,16 +145,25 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   private def get(workflow: Workflow, replyTo: ActorRef): Unit = {
     log.debug(s"marathon reconcile workflow: ${workflow.name}")
     get(appId(workflow)).foreach {
-      case Some(containers) ⇒ replyTo ! ContainerWorkflow(workflow, Option(containers))
-      case _                ⇒ replyTo ! ContainerWorkflow(workflow, None)
+      case Some(app) ⇒
+        val breed = workflow.breed.asInstanceOf[DefaultBreed]
+        val (equalHealthChecks, health) = healthCheck(app, breed.ports, breed.healthChecks)
+        replyTo ! ContainerWorkflow(workflow, Option(containers(app)), health, equalHealthChecks)
+      case _ ⇒ replyTo ! ContainerWorkflow(workflow, None)
     }
   }
 
-  private def get(id: String): Future[Option[Containers]] = {
-    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks", headers, logError = false) recover { case _ ⇒ None } map {
-      case apps: AppsResponse ⇒ apps.apps.find(app ⇒ app.id == id).map(containers)
+  private def get(id: String): Future[Option[App]] = {
+    httpClient.get[AppsResponse](s"$url/v2/apps?id=$id&embed=apps.tasks&embed=apps.taskStats", headers, logError = false) recover { case _ ⇒ None } map {
+      case apps: AppsResponse ⇒ apps.apps.find(app ⇒ app.id == id)
       case _                  ⇒ None
     }
+  }
+
+  private def healthCheck(app: App, ports: List[Port], healthChecks: List[HealthCheck]): (Boolean, Option[Health]) = {
+    val equalHealthChecks = MarathonHealthCheck.equalHealthChecks(ports, healthChecks, app.healthChecks)
+    val newHealth = app.taskStats.map(ts ⇒ MarathonCounts.toServiceHealth(ts.totalSummary.stats.counts))
+    equalHealthChecks → newHealth
   }
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
@@ -187,7 +191,9 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
   private def deploy(workflow: Workflow, update: Boolean): Future[Any] = {
 
-    validateDeployable(workflow.breed.asInstanceOf[DefaultBreed].deployable)
+    val breed = workflow.breed.asInstanceOf[DefaultBreed]
+
+    validateDeployable(breed.deployable)
 
     val id = appId(workflow)
     if (update) log.info(s"marathon update workflow: ${workflow.name}") else log.info(s"marathon create workflow: ${workflow.name}")
@@ -201,7 +207,8 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
       Math.round(scale.memory.value).toInt,
       environment(workflow),
       cmd(workflow),
-      labels = labels(workflow)
+      labels = labels(workflow),
+      healthChecks = breed.healthChecks.map(MarathonHealthCheck.apply(breed.ports, _))
     )
 
     sendRequest(update, id, Extraction.decompose(purge(marathonApp)))
