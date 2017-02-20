@@ -17,7 +17,7 @@ trait DevelopmentPersistenceMessages {
 
   case class UpdateDeploymentServiceEnvironmentVariables(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, environmentVariables: List[EnvironmentVariable]) extends PersistenceActor.PersistenceMessages
 
-  case class UpdateDeploymentServiceHealth(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, serviceHealth: ServiceHealth) extends PersistenceActor.PersistenceMessages
+  case class UpdateDeploymentServiceHealth(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, health: Health) extends PersistenceActor.PersistenceMessages
 
   case class ResetDeploymentService(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) extends PersistenceActor.PersistenceMessages
 
@@ -54,7 +54,7 @@ trait DevelopmentPersistenceOperations {
 
     case o: UpdateDeploymentServiceEnvironmentVariables ⇒ updateEnvironmentVariables(o.deployment, o.cluster, o.service, o.environmentVariables)
 
-    case o: UpdateDeploymentServiceHealth               ⇒ updateServiceHealth(o.deployment, o.cluster, o.service, o.serviceHealth)
+    case o: UpdateDeploymentServiceHealth               ⇒ updateServiceHealth(o.deployment, o.cluster, o.service, o.health)
 
     case o: ResetDeploymentService                      ⇒ reset(o.deployment, o.cluster, o.service)
   }
@@ -79,12 +79,14 @@ trait DevelopmentPersistenceOperations {
   }
 
   private def updateServiceHealth(
-    deployment:    Deployment,
-    cluster:       DeploymentCluster,
-    service:       DeploymentService,
-    serviceHealth: ServiceHealth) = reply {
+    deployment: Deployment,
+    cluster:    DeploymentCluster,
+    service:    DeploymentService,
+    health:     Health
+  ) = reply {
     self ? PersistenceActor.Update(
-      DeploymentServiceHealth(serviceArtifactName(deployment, cluster, service), serviceHealth))
+      DeploymentServiceHealth(serviceArtifactName(deployment, cluster, service), health)
+    )
   }
 
   private def reset(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = reply {
@@ -115,6 +117,6 @@ private[persistence] case class DeploymentServiceEnvironmentVariables(name: Stri
   val kind = "deployment-service-environment-variables"
 }
 
-private[persistence] case class DeploymentServiceHealth(name: String, serviceHealth: ServiceHealth) extends PersistenceArtifact {
+private[persistence] case class DeploymentServiceHealth(name: String, health: Health) extends PersistenceArtifact {
   val kind = "deployment-service-health"
 }

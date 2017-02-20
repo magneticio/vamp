@@ -138,15 +138,15 @@ trait PersistenceMultiplexer {
                   environmentVariables ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceEnvironmentVariables]).map {
                     _.getOrElse(DeploymentServiceEnvironmentVariables("", service.environmentVariables)).asInstanceOf[DeploymentServiceEnvironmentVariables].environmentVariables
                   }
-                  serviceHealth ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceHealth]).map {
-                    _.map(_.asInstanceOf[DeploymentServiceHealth].serviceHealth)
+                  health ← get(serviceArtifactName(deployment, cluster, service), classOf[DeploymentServiceHealth]).map {
+                    _.map(_.asInstanceOf[DeploymentServiceHealth].health)
                   }
                 } yield service.copy(
                   status = status,
                   scale = scale,
                   instances = instances,
                   environmentVariables = environmentVariables,
-                  serviceHealth = serviceHealth)
+                  health = health)
               }
             }
           } yield {
@@ -207,7 +207,10 @@ trait PersistenceMultiplexer {
       instances ← get(workflow.name, classOf[WorkflowInstances]).asInstanceOf[Future[Option[WorkflowInstances]]].map {
         _.map(_.instances).getOrElse(Nil)
       }
-    } yield Option(workflow.copy(breed = breed, status = status, scale = scale, network = network, arguments = arguments, environmentVariables = environmentVariables, instances = instances))
+      health ← get(workflow.name, classOf[WorkflowHealth]).asInstanceOf[Future[Option[WorkflowHealth]]].map {
+        _.flatMap(_.health)
+      }
+    } yield Option(workflow.copy(breed = breed, status = status, scale = scale, network = network, arguments = arguments, environmentVariables = environmentVariables, instances = instances, health = health))
   }
 
   private def get[A <: Artifact](artifact: A): Future[Option[A]] = get(artifact.name, artifact.getClass).asInstanceOf[Future[Option[A]]]

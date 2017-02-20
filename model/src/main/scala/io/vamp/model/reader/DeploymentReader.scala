@@ -78,7 +78,7 @@ trait AbstractDeploymentReader
       HealthCheckReader.read,
       <<?[String]("network"), dependencies(),
       dialects,
-      ServiceHealthReader.read)
+      HealthReader.read)
   }
 
   def parseInstances(implicit source: YamlSourceReader): List[Instance] = {
@@ -147,15 +147,15 @@ object DeploymentServiceStatusReader extends YamlReader[DeploymentService.Status
   }
 }
 
-object ServiceHealthReader extends YamlReader[Option[ServiceHealth]] {
+object HealthReader extends YamlReader[Option[Health]] {
 
-  def serviceHealth(implicit yamlSourceReader: YamlSourceReader): ServiceHealth =
-    ServiceHealth(
+  def health(implicit yamlSourceReader: YamlSourceReader): Health =
+    Health(
       <<![Int]("staged"),
       <<![Int]("running"),
       <<![Int]("healthy"),
       <<![Int]("unhealthy"))
 
-  override protected def parse(implicit source: YamlSourceReader): Option[ServiceHealth] =
-    <<?[YamlSourceReader]("serviceHealth").map(ysr ⇒ serviceHealth(ysr))
+  override protected def parse(implicit source: YamlSourceReader): Option[Health] =
+    <<?[YamlSourceReader]("health").map(ysr ⇒ health(ysr))
 }

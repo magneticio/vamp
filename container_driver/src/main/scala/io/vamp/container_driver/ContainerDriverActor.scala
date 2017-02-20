@@ -40,6 +40,8 @@ object ContainerDriverActor {
 
 sealed trait ContainerRuntime {
   def containers: Option[Containers]
+  def health: Option[Health]
+  def equalHealthChecks: Boolean
 }
 
 /**
@@ -50,10 +52,16 @@ case class ContainerService(
   deployment:        Deployment,
   service:           DeploymentService,
   containers:        Option[Containers],
-  serviceHealth:     Option[ServiceHealth] = None,
-  equalHealthChecks: Boolean               = true) extends ContainerRuntime
+  health:            Option[Health]     = None,
+  equalHealthChecks: Boolean            = true
+) extends ContainerRuntime
 
-case class ContainerWorkflow(workflow: Workflow, containers: Option[Containers]) extends ContainerRuntime
+case class ContainerWorkflow(
+  workflow:          Workflow,
+  containers:        Option[Containers],
+  health:            Option[Health]     = None,
+  equalHealthChecks: Boolean            = true
+) extends ContainerRuntime
 
 case class Containers(scale: DefaultScale, instances: List[ContainerInstance])
 

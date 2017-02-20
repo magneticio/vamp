@@ -31,12 +31,12 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
       case None ⇒
       case Some(yaml) ⇒ yaml.pull().map {
         case (alias: String, dependency: Any) ⇒ dependency match {
-          case reference: String ⇒ >>("dependencies" :: alias :: "breed" :: "reference", dependency)
+          case _: String ⇒ >>("dependencies" :: alias :: "breed" :: "reference", dependency)
           case yaml: YamlSourceReader ⇒ yaml.find[Any]("breed") match {
             case None ⇒
               >>("dependencies" :: alias, None)
               >>("dependencies" :: alias :: "breed", dependency)
-            case Some(breed) ⇒
+            case _ ⇒
           }
         }
       }
@@ -62,7 +62,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
       }
     }
 
-    DefaultBreed(name, metadata, deployable, ports(), environmentVariables(), constants(), arguments(), dependencies)
+    DefaultBreed(name, metadata, deployable, ports(), environmentVariables(), constants(), arguments(), dependencies, HealthCheckReader.read)
   }
 
   override protected def validate(any: Breed): Breed = any match {
@@ -76,10 +76,20 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
 
       validateArguments(breed.arguments)
 
+      validateHealthCheck(breed)
       validateBreedTraitValues(breed)
       validateNonRecursiveDependencies(breed)
 
       breed
+  }
+
+  private def validateHealthCheck(any: Breed): Unit = any match {
+    case breed: DefaultBreed ⇒
+      breed.healthChecks.foreach { healthCheck ⇒
+        if (!breed.ports.exists(_.name == healthCheck.port)) throwException(UnresolvedPortReferenceError(healthCheck.port))
+        if (healthCheck.failures < 0) throwException(NegativeFailuresNumberError(healthCheck.failures))
+      }
+    case _ ⇒
   }
 
   def validateNonRecursiveDependencies(breed: Breed): Unit = {

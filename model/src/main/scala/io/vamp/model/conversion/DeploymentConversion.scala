@@ -30,7 +30,7 @@ class DeploymentConversion(val deployment: Deployment) {
             service.healthChecks,
             service.network,
             service.dialects,
-            service.serviceHealth
+            service.health
           )
         },
         cluster.gateways,

@@ -48,7 +48,8 @@ case class Workflow(
     environmentVariables: List[EnvironmentVariable],
     arguments:            List[Argument],
     network:              Option[String],
-    instances:            List[Instance]            = Nil
+    instances:            List[Instance]            = Nil,
+    health:               Option[Health]            = None
 ) extends Artifact with Lookup {
 
   val kind = "workflow"

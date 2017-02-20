@@ -47,16 +47,11 @@ class WorkflowSerializer extends ArtifactSerializer[Workflow] with ReferenceSeri
       }
 
       list += JField("environment_variables", traits(workflow.environmentVariables.asInstanceOf[List[Trait]]))
-
-      if (workflow.scale.isDefined)
-        list += JField("scale", Extraction.decompose(workflow.scale.get))
-
-      if (workflow.network.isDefined)
-        list += JField("network", Extraction.decompose(workflow.network.get))
-
+      if (workflow.scale.isDefined) list += JField("scale", Extraction.decompose(workflow.scale.get))
+      if (workflow.network.isDefined) list += JField("network", Extraction.decompose(workflow.network.get))
       list += JField("arguments", serializeArguments(workflow.arguments))
-
       list += JField("instances", Extraction.decompose(workflow.instances))
+      if (workflow.health.isDefined) list += JField("health", Extraction.decompose(workflow.health.get))
 
       new JObject(list.toList)
   }

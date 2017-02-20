@@ -58,8 +58,7 @@ class ServiceFieldSerializer
     case ("arguments", arguments)                       ⇒ Some(("arguments", serializeArguments(arguments.asInstanceOf[List[Argument]])))
     case ("dialects", dialects)                         ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
     case ("scale", Some(scale: Scale))                  ⇒ Some(("scale", serializerScale(scale, full = false)))
-    case ("healthChecks", healthChecks) ⇒
-      Some(("health_checks", serializeHealthChecks(healthChecks.asInstanceOf[List[HealthCheck]])))
+    case ("healthChecks", healthChecks)                 ⇒ Some(("health_checks", serializeHealthChecks(healthChecks.asInstanceOf[List[HealthCheck]])))
   }
 
 }

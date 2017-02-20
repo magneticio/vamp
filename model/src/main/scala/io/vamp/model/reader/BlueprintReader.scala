@@ -40,7 +40,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
           implicit val source = cluster
           <<?[Any]("services") match {
             case None                ⇒ >>("services", List(<<-("sla", "gateways")))
-            case Some(list: List[_]) ⇒
+            case Some(_: List[_])    ⇒
             case Some(breed: String) ⇒ >>("services", List(YamlSourceReader("breed" → breed)))
             case Some(m)             ⇒ >>("services", List(m))
           }
@@ -217,7 +217,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       HealthCheckReader.read,
       <<?[String]("network"),
       dialects,
-      ServiceHealthReader.read)
+      HealthReader.read
+    )
   }
 }
 
@@ -387,7 +388,8 @@ object HealthCheckReader extends YamlReader[List[HealthCheck]] {
       Time.of(<<![String]("timeout")),
       Time.of(<<![String]("interval")),
       <<![Int]("failures"),
-      <<?[String]("protocol").getOrElse("HTTP"))
+      <<?[String]("protocol").getOrElse("HTTP")
+    )
 
   override protected def parse(implicit source: YamlSourceReader): List[HealthCheck] =
     <<?[List[YamlSourceReader]]("health_checks")

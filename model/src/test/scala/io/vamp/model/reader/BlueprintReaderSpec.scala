@@ -1,6 +1,5 @@
 package io.vamp.model.reader
 
-import io.vamp.common.notification.NotificationErrorException
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import org.junit.runner.RunWith
@@ -825,7 +824,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   }
 
   it should "throw an error when a port reference in a health check in service level is unresolved" in {
-    intercept[NotificationErrorException] {
+    expectedError[UnresolvedPortReferenceError] {
       BlueprintReader.read(res("blueprint/blueprint94.yml"))
     }
   }

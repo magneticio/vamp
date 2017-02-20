@@ -1,6 +1,6 @@
 package io.vamp.model.artifact
 
-import io.vamp.model.reader.{ MegaByte, Quantity, Time }
+import io.vamp.model.reader.{ MegaByte, Quantity }
 
 object Blueprint {
   val kind = "blueprint"
@@ -57,7 +57,8 @@ case class Cluster(
   gateways: List[Gateway],
   network:  Option[String]          = None,
   sla:      Option[Sla]             = None,
-  dialects: Map[Dialect.Value, Any] = Map()) extends AbstractCluster
+  dialects: Map[Dialect.Value, Any] = Map()
+) extends AbstractCluster
 
 abstract class AbstractService {
 
@@ -78,7 +79,7 @@ abstract class AbstractService {
 
   def dialects: Map[Dialect.Value, Any]
 
-  def serviceHealth: Option[ServiceHealth]
+  def health: Option[Health]
 }
 
 case class Service(
@@ -89,7 +90,8 @@ case class Service(
   healthChecks:         List[HealthCheck],
   network:              Option[String]            = None,
   dialects:             Map[Dialect.Value, Any]   = Map(),
-  serviceHealth:        Option[ServiceHealth]     = None) extends AbstractService
+  health:               Option[Health]            = None
+) extends AbstractService
 
 trait Scale extends Artifact {
   val kind = "scale"
@@ -107,23 +109,10 @@ object DefaultScale {
 case class DefaultScale(name: String, metadata: Map[String, Any], cpu: Quantity, memory: MegaByte, instances: Int) extends Scale
 
 /**
- * Vamp definition of a HealthCheck
- * Transforms later into specific 'container solution'
- */
-case class HealthCheck(
-  path:         String,
-  port:         String,
-  initialDelay: Time,
-  timeout:      Time,
-  interval:     Time,
-  failures:     Int,
-  protocol:     String)
-
-/**
  * Representation of the Service Health retrieved from a Deployment.
  * @param staged number of instances in a staged state.
  * @param running number of instances in a running state.
  * @param healthy number of instances in a healthy state.
  * @param unhealthy number of instances in an unhealthy state.
  */
-case class ServiceHealth(staged: Int, running: Int, healthy: Int, unhealthy: Int)
+case class Health(staged: Int, running: Int, healthy: Int, unhealthy: Int)
