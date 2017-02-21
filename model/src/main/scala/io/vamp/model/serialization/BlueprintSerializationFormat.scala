@@ -41,7 +41,7 @@ class ClusterFieldSerializer extends ArtifactFieldSerializer[AbstractCluster] wi
     case ("name", _)            ⇒ None
     case ("kind", _)            ⇒ None
     case ("gateways", gateways) ⇒ Some(("gateways", serializeGateways(gateways.asInstanceOf[List[Gateway]])))
-    case ("dialects", dialects) ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
+    case ("dialects", dialects) ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[String, Any]])))
   }
 }
 
@@ -57,7 +57,7 @@ class ServiceFieldSerializer
     case ("kind", _)                                    ⇒ None
     case ("environmentVariables", environmentVariables) ⇒ Some(("environment_variables", traits(environmentVariables.asInstanceOf[List[Trait]])))
     case ("arguments", arguments)                       ⇒ Some(("arguments", serializeArguments(arguments.asInstanceOf[List[Argument]])))
-    case ("dialects", dialects)                         ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
+    case ("dialects", dialects)                         ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[String, Any]])))
     case ("scale", Some(scale: Scale))                  ⇒ Some(("scale", serializerScale(scale, full = false)))
     case ("healthChecks", healthChecks)                 ⇒ Some(("health_checks", serializeHealthChecks(healthChecks.asInstanceOf[List[HealthCheck]])))
   }
@@ -99,7 +99,7 @@ trait ArgumentListSerializer {
 }
 
 trait DialectSerializer {
-  def serializeDialects(dialects: Map[Dialect.Value, Any]) = Extraction.decompose(dialects.map({ case (k, v) ⇒ k.toString.toLowerCase → v }))(DefaultFormats)
+  def serializeDialects(dialects: Map[String, Any]) = Extraction.decompose(dialects.map({ case (k, v) ⇒ k.toString.toLowerCase → v }))(DefaultFormats)
 }
 
 trait BlueprintGatewaySerializer extends GatewayDecomposer {

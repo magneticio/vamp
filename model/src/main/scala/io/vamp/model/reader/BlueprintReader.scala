@@ -62,24 +62,15 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
                 case _ ⇒
               }
               expandArguments()
-              expandDialect()
               element
             }
           })
           expandArguments()
-          expandDialect()
         case _ ⇒
       }
       case _ ⇒
     }
     super.expand
-  }
-
-  private def expandDialect()(implicit source: YamlSourceReader) = {
-    <<?[Any]("dialects") match {
-      case None ⇒ >>("dialects", YamlSourceReader(dialectValues.map { case (k, v) ⇒ k.toString.toLowerCase → v }))
-      case _    ⇒
-    }
   }
 
   override def parse(implicit source: YamlSourceReader): Blueprint = {

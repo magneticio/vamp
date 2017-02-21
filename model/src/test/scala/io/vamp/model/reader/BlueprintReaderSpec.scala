@@ -422,16 +422,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "parse dialects" in {
     BlueprintReader.read(res("blueprint/blueprint47.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", Map(), List(Service(BreedReference("sava1"), Nil, None, Nil, Nil, None, Map(Dialect.Marathon → Map("a" → "b"), Dialect.Docker → Map("c" → "d"))), Service(BreedReference("sava2"), Nil, None, Nil, Nil, None, Map())), Nil, None, None, Map(Dialect.Marathon → Map("r" → "t"), Dialect.Docker → Map("q" → "w", "o" → "p"))), Cluster("viper", Map(), List(Service(BreedReference("sava3"), Nil, None, Nil, Nil, None, Map()), Service(BreedReference("sava4"), Nil, None, Nil, Nil, None, Map())), Nil, None, None, Map(Dialect.Marathon → Map("u" → "i"))))),
-      'gateways(Nil),
-      'environmentVariables(Nil)
-    )
-  }
-
-  it should "expand and parse dialects" in {
-    BlueprintReader.read(res("blueprint/blueprint48.yml")) should have(
-      'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", Map(), List(Service(BreedReference("sava1"), Nil, None, Nil, Nil, None, Map(Dialect.Marathon → Map("a" → "b"), Dialect.Docker → Map("c" → "d"))), Service(BreedReference("sava2"), Nil, None, Nil, Nil, None, Map())), Nil, None, None, Map(Dialect.Marathon → Map("r" → "t"), Dialect.Docker → Map("q" → "w", "o" → "p"))), Cluster("viper", Map(), List(Service(BreedReference("sava3"), Nil, None, Nil, Nil, None, Map()), Service(BreedReference("sava4"), Nil, None, Nil, Nil, None, Map())), Nil, None, None, Map(Dialect.Marathon → Map("u" → "i"))))),
+      'clusters(List(Cluster("supersonic", Map(), List(Service(BreedReference("sava1"), Nil, None, Nil, Nil, None, Map("marathon" → Map("a" → "b"), "docker" → Map("c" → "d"))), Service(BreedReference("sava2"), Nil, None, Nil, Nil, None, Map())), Nil, None, None, Map("marathon" → Map("r" → "t"), "docker" → Map("q" → "w", "o" → "p"))), Cluster("viper", Map(), List(Service(BreedReference("sava3"), Nil, None, Nil, Nil, None, Map()), Service(BreedReference("sava4"), Nil, None, Nil, Nil, None, Map())), Nil, None, None, Map("marathon" → Map("u" → "i"))))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -501,14 +492,6 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
         }
       }
     }
-  }
-
-  it should "report not supported dialect" in {
-    expectedError[UnexpectedElement]({
-      BlueprintReader.read(res("blueprint/blueprint55.yml"))
-    }) should have(
-      'element(Map("clusters" → Map("supersonic" → Map("services" → List(Map("dialects" → Map("google" → Map("e" → "f")))), "dialects" → Map("google" → Map("w" → "e", "e" → "r"))))))
-    )
   }
 
   it should "report not supported element 'scala'" in {

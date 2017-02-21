@@ -384,21 +384,15 @@ trait TraitReader extends TraitNameAliasResolver {
 trait DialectReader {
   this: YamlReader[_] ⇒
 
-  def dialects(implicit source: YamlSourceReader): Map[Dialect.Value, Any] = {
+  def dialects(implicit source: YamlSourceReader): Map[String, Any] = {
     <<?[Any]("dialects") match {
-      case Some(ds: YamlSourceReader) ⇒ dialectValues(ds)
-      case _                          ⇒ Map()
+      case Some(ds: YamlSourceReader) ⇒ ds.flatten()
+      case _ ⇒
+        <<?[Any]("dialect") match {
+          case Some(ds: YamlSourceReader) ⇒ ds.flatten()
+          case _                          ⇒ Map()
+        }
     }
-  }
-
-  def dialectValues(implicit source: YamlSourceReader): Map[Dialect.Value, Any] = {
-    Dialect.values.toList.flatMap { dialect ⇒
-      <<?[Any](dialect.toString.toLowerCase) match {
-        case None                      ⇒ Nil
-        case Some(d: YamlSourceReader) ⇒ (dialect → d.flatten()) :: Nil
-        case Some(d)                   ⇒ (dialect → Map()) :: Nil
-      }
-    } toMap
   }
 }
 

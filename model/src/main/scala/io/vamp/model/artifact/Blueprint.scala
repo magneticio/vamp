@@ -21,7 +21,7 @@ trait AbstractBlueprint extends Blueprint {
 
   def traits: List[Trait]
 
-  def dialects: Map[Dialect.Value, Any]
+  def dialects: Map[String, Any]
 }
 
 case class DefaultBlueprint(
@@ -30,17 +30,12 @@ case class DefaultBlueprint(
     clusters:             List[Cluster],
     gateways:             List[Gateway],
     environmentVariables: List[EnvironmentVariable],
-    dialects:             Map[Dialect.Value, Any]   = Map()
+    dialects:             Map[String, Any]          = Map()
 ) extends AbstractBlueprint {
   lazy val traits = environmentVariables
 }
 
 case class BlueprintReference(name: String) extends Blueprint with Reference
-
-object Dialect extends Enumeration {
-
-  val Marathon, Docker = Value
-}
 
 abstract class AbstractCluster extends Artifact {
 
@@ -54,7 +49,7 @@ abstract class AbstractCluster extends Artifact {
 
   def sla: Option[Sla]
 
-  def dialects: Map[Dialect.Value, Any]
+  def dialects: Map[String, Any]
 
   def gatewayBy(portName: String): Option[Gateway] = gateways.find(_.port.name == portName)
 }
@@ -64,9 +59,9 @@ case class Cluster(
   metadata: Map[String, Any],
   services: List[Service],
   gateways: List[Gateway],
-  network:  Option[String]          = None,
-  sla:      Option[Sla]             = None,
-  dialects: Map[Dialect.Value, Any] = Map()
+  network:  Option[String]   = None,
+  sla:      Option[Sla]      = None,
+  dialects: Map[String, Any] = Map()
 ) extends AbstractCluster
 
 abstract class AbstractService {
@@ -86,7 +81,7 @@ abstract class AbstractService {
 
   def network: Option[String]
 
-  def dialects: Map[Dialect.Value, Any]
+  def dialects: Map[String, Any]
 
   def health: Option[Health]
 }
@@ -98,7 +93,7 @@ case class Service(
   arguments:            List[Argument],
   healthChecks:         List[HealthCheck],
   network:              Option[String]            = None,
-  dialects:             Map[Dialect.Value, Any]   = Map(),
+  dialects:             Map[String, Any]          = Map(),
   health:               Option[Health]            = None
 ) extends AbstractService
 
