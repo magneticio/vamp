@@ -26,6 +26,10 @@ class DockerDriverActorMapper extends ClassMapper {
   val clazz = classOf[DockerDriverActor]
 }
 
+object DockerDriverActor {
+  val dialect = "docker"
+}
+
 class DockerDriverActor extends ContainerDriverActor with ContainerDriver with DockerNameMatcher {
 
   private val config = "vamp.container-driver.docker"
@@ -215,8 +219,8 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     if (service.scale.isDefined)
       labels += (ContainerDriver.withNamespace("scale") → write(DockerServiceScale(service.scale.get)))
 
-    if (service.dialects.contains(Dialect.Docker)) {
-      service.dialects.get(Dialect.Docker).map { dialect ⇒
+    if (service.dialects.contains(DockerDriverActor.dialect)) {
+      service.dialects.get(DockerDriverActor.dialect).map { dialect ⇒
         val values = dialect.asInstanceOf[Map[String, Any]]
 
         /* Looking for labels */
