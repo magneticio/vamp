@@ -106,7 +106,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 
     val evs = environmentVariables(alias = false, addGroup = true)
 
-    DefaultBlueprint(name, metadata, clusters, BlueprintGatewayReader.mapping("gateways"), evs)
+    DefaultBlueprint(name, metadata, clusters, BlueprintGatewayReader.mapping("gateways"), evs, dialects)
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {

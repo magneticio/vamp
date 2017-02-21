@@ -24,7 +24,7 @@ object FullDeploymentSerializationFormat extends io.vamp.common.json.Serializati
     new DeploymentServiceStatusPhaseSerializer()
 }
 
-class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment] with TraitDecomposer with BlueprintGatewaySerializer {
+class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment] with TraitDecomposer with BlueprintGatewaySerializer with DialectSerializer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case deployment: Deployment ⇒
       val list = new ArrayBuffer[JField]
@@ -39,6 +39,8 @@ class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment]
       else list += JField("environment_variables", traits(deployment.environmentVariables, alias = false))
 
       list += JField("hosts", traits(deployment.hosts))
+      list += JField("dialects", serializeDialects(deployment.dialects))
+
       new JObject(list.toList)
   }
 }

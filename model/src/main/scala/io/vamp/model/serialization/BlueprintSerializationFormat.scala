@@ -20,7 +20,7 @@ object BlueprintSerializationFormat extends io.vamp.common.json.SerializationFor
     new InstanceFieldSerializer()
 }
 
-class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomposer with ReferenceSerialization with BlueprintGatewaySerializer {
+class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomposer with ReferenceSerialization with BlueprintGatewaySerializer with DialectSerializer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case blueprint: BlueprintReference ⇒ serializeReference(blueprint)
     case blueprint: AbstractBlueprint ⇒
@@ -31,6 +31,7 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomp
       list += JField("gateways", serializeGateways(blueprint.gateways))
       list += JField("clusters", Extraction.decompose(blueprint.clusters.map(cluster ⇒ cluster.name → cluster).toMap))
       list += JField("environment_variables", traits(blueprint.environmentVariables))
+      list += JField("dialects", serializeDialects(blueprint.dialects))
       new JObject(list.toList)
   }
 }

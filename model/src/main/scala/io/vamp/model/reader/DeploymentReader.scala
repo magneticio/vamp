@@ -25,7 +25,7 @@ trait AbstractDeploymentReader
           implicit val source = cluster
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla", validateEitherReferenceOrAnonymous)
 
-          val addHealthChecks = (healthChecks: List[HealthCheck]) ⇒ <<?[List[YamlSourceReader]]("services") match {
+          val addHealthChecks = (_: List[HealthCheck]) ⇒ <<?[List[YamlSourceReader]]("services") match {
             case None ⇒ DeploymentCluster(name, metadata, Nil, Nil, <<?[String]("network"), sla, dialects)
             case Some(list) ⇒
               DeploymentCluster(
@@ -35,7 +35,8 @@ trait AbstractDeploymentReader
                 routingReader.mapping("gateways"),
                 <<?[String]("network"),
                 sla,
-                dialects)
+                dialects
+              )
           }
 
           <<?[YamlSourceReader]("health_checks") match {
@@ -45,7 +46,7 @@ trait AbstractDeploymentReader
       } toList
     }
 
-    Deployment(name, metadata, clusters, BlueprintGatewayReader.mapping("gateways"), ports(addGroup = true), environmentVariables, hosts())
+    Deployment(name, metadata, clusters, BlueprintGatewayReader.mapping("gateways"), ports(addGroup = true), environmentVariables, hosts(), dialects)
   }
 
   override protected def validate(deployment: Deployment): Deployment = {
@@ -78,7 +79,8 @@ trait AbstractDeploymentReader
       HealthCheckReader.read,
       <<?[String]("network"), dependencies(),
       dialects,
-      HealthReader.read)
+      HealthReader.read
+    )
   }
 
   def parseInstances(implicit source: YamlSourceReader): List[Instance] = {
@@ -154,7 +156,8 @@ object HealthReader extends YamlReader[Option[Health]] {
       <<![Int]("staged"),
       <<![Int]("running"),
       <<![Int]("healthy"),
-      <<![Int]("unhealthy"))
+      <<![Int]("unhealthy")
+    )
 
   override protected def parse(implicit source: YamlSourceReader): Option[Health] =
     <<?[YamlSourceReader]("health").map(ysr ⇒ health(ysr))

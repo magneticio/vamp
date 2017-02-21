@@ -20,9 +20,18 @@ trait AbstractBlueprint extends Blueprint {
   def environmentVariables: List[EnvironmentVariable]
 
   def traits: List[Trait]
+
+  def dialects: Map[Dialect.Value, Any]
 }
 
-case class DefaultBlueprint(name: String, metadata: Map[String, Any], clusters: List[Cluster], gateways: List[Gateway], environmentVariables: List[EnvironmentVariable]) extends AbstractBlueprint {
+case class DefaultBlueprint(
+    name:                 String,
+    metadata:             Map[String, Any],
+    clusters:             List[Cluster],
+    gateways:             List[Gateway],
+    environmentVariables: List[EnvironmentVariable],
+    dialects:             Map[Dialect.Value, Any]   = Map()
+) extends AbstractBlueprint {
   lazy val traits = environmentVariables
 }
 
