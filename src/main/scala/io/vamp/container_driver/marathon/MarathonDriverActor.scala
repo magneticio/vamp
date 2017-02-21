@@ -274,10 +274,11 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   }
 
   private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, app: MarathonApp): JValue = {
-    val (local, dialect) = (cluster.dialects.get(Dialect.Marathon), service.dialects.get(Dialect.Marathon)) match {
-      case (_, Some(d))    ⇒ Some(service) → d
-      case (Some(d), None) ⇒ None → d
-      case _               ⇒ None → Map()
+    val (local, dialect) = (deployment.dialects.get(Dialect.Marathon), cluster.dialects.get(Dialect.Marathon), service.dialects.get(Dialect.Marathon)) match {
+      case (_, _, Some(d))       ⇒ Some(service) → d
+      case (_, Some(d), None)    ⇒ None → d
+      case (Some(d), None, None) ⇒ None → d
+      case _                     ⇒ None → Map()
     }
 
     (app.container, app.cmd, dialect) match {
