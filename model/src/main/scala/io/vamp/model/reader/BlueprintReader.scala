@@ -90,16 +90,20 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
           implicit val source = cluster
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
-          val addHealthChecks = (healthChecks: List[HealthCheck]) ⇒ <<?[List[YamlSourceReader]]("services") match {
-            case None ⇒ Cluster(name, metadata, List(), Nil, <<?[String]("network"), sla, dialects)
+          <<?[List[YamlSourceReader]]("services") match {
+            case None ⇒
+              Cluster(name, metadata, List(), Nil, HealthCheckReader.read, <<?[String]("network"), sla, dialects)
             case Some(list) ⇒
               val services = list.map(parseService(_))
-              Cluster(name, metadata, services, processAnonymousInternalGateways(services, internalGatewayReader.mapping("gateways")), <<?[String]("network"), sla, dialects)
-          }
-
-          <<?[YamlSourceReader]("health_checks") match {
-            case None        ⇒ addHealthChecks(List())
-            case Some(input) ⇒ addHealthChecks(HealthCheckReader.read(input))
+              Cluster(
+                name,
+                metadata,
+                services,
+                processAnonymousInternalGateways(services, internalGatewayReader.mapping("gateways")),
+                HealthCheckReader.read,
+                <<?[String]("network"),
+                sla,
+                dialects)
           }
       } toList
     }
@@ -135,22 +139,33 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       validateDependencies(breeds)
       breeds.foreach(BreedReader.validateNonRecursiveDependencies)
 
-      // validates each individual health check linked to a cluster and service
+      // Validate health checks on cluster level
+      for {
+        cluster ← blueprint.clusters
+        healthCheck ← cluster.healthChecks.getOrElse(List())
+      } yield {
+        validateHealthCheck(cluster.services, healthCheck)
+      }
+
+      // Validate health checks on service level
       for {
         cluster ← blueprint.clusters
         service ← cluster.services
-        healthCheck ← service.healthChecks
-      } yield validateHealthCheck(service, healthCheck)
+        healthCheck ← service.healthChecks.getOrElse(List())
+      } yield {
+        validateHealthCheck(List(service), healthCheck) // lift single service into list (same behavior)
+      }
 
       blueprint
   }
 
-  /** Validates a healthCheck based on the linked service **/
-  protected def validateHealthCheck(service: Service, healthCheck: HealthCheck): Unit = {
-    val correctPort = service.breed match {
+  /** Validates a healthCheck on cluster or service level based on the list of services **/
+  protected def validateHealthCheck(services: List[Service], healthCheck: HealthCheck): Unit = {
+    // Validate if the healthCheck port exists in one of the services
+    val correctPort = services.exists(_.breed match {
       case defaultBreed: DefaultBreed ⇒ defaultBreed.ports.exists(_.name == healthCheck.port)
       case _                          ⇒ true
-    }
+    })
 
     if (!correctPort) throwException(UnresolvedPortReferenceError(healthCheck.port))
     if (healthCheck.failures < 0) throwException(NegativeFailuresNumberError(healthCheck.failures))
@@ -378,7 +393,7 @@ object ScaleReader extends YamlReader[Scale] with WeakReferenceYamlReader[Scale]
   }
 }
 
-object HealthCheckReader extends YamlReader[List[HealthCheck]] {
+object HealthCheckReader extends YamlReader[Option[List[HealthCheck]]] {
 
   def healthCheck(implicit source: YamlSourceReader): HealthCheck =
     HealthCheck(
@@ -391,10 +406,8 @@ object HealthCheckReader extends YamlReader[List[HealthCheck]] {
       <<?[String]("protocol").getOrElse("HTTP")
     )
 
-  override protected def parse(implicit source: YamlSourceReader): List[HealthCheck] =
-    <<?[List[YamlSourceReader]]("health_checks")
-      .map(_.map(healthCheck(_)))
-      .getOrElse(List.empty[HealthCheck])
+  override protected def parse(implicit source: YamlSourceReader): Option[List[HealthCheck]] =
+    <<?[List[YamlSourceReader]]("health_checks").map(_.map(healthCheck(_)))
 
   override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
     expandToList("health_checks")

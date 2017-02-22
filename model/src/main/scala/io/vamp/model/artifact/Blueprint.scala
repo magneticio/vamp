@@ -48,16 +48,19 @@ abstract class AbstractCluster extends Artifact {
   def dialects: Map[Dialect.Value, Any]
 
   def gatewayBy(portName: String): Option[Gateway] = gateways.find(_.port.name == portName)
+
+  def healthChecks: Option[List[HealthCheck]]
 }
 
 case class Cluster(
-  name:     String,
-  metadata: Map[String, Any],
-  services: List[Service],
-  gateways: List[Gateway],
-  network:  Option[String]          = None,
-  sla:      Option[Sla]             = None,
-  dialects: Map[Dialect.Value, Any] = Map()
+  name:         String,
+  metadata:     Map[String, Any],
+  services:     List[Service],
+  gateways:     List[Gateway],
+  healthChecks: Option[List[HealthCheck]],
+  network:      Option[String]            = None,
+  sla:          Option[Sla]               = None,
+  dialects:     Map[Dialect.Value, Any]   = Map()
 ) extends AbstractCluster
 
 abstract class AbstractService {
@@ -73,7 +76,7 @@ abstract class AbstractService {
   def arguments: List[Argument]
 
   /** A service can contain zero or many health checks that will get created when the Blueprints gets deployed */
-  def healthChecks: List[HealthCheck]
+  def healthChecks: Option[List[HealthCheck]]
 
   def network: Option[String]
 
@@ -87,7 +90,7 @@ case class Service(
   environmentVariables: List[EnvironmentVariable],
   scale:                Option[Scale],
   arguments:            List[Argument],
-  healthChecks:         List[HealthCheck],
+  healthChecks:         Option[List[HealthCheck]],
   network:              Option[String]            = None,
   dialects:             Map[Dialect.Value, Any]   = Map(),
   health:               Option[Health]            = None

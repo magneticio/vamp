@@ -34,6 +34,7 @@ class DeploymentConversion(val deployment: Deployment) {
           )
         },
         cluster.gateways,
+        cluster.healthChecks,
         cluster.network,
         cluster.sla,
         cluster.dialects
