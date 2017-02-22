@@ -16,7 +16,7 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
   override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
 
     <<![Any]("schedule") match {
-      case yaml: YamlSourceReader ⇒
+      case _: YamlSourceReader ⇒
 
         <<?[Any]("schedule" :: "event" :: Nil) match {
           case None                ⇒
@@ -41,6 +41,7 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
   }
 
   override protected def parse(implicit source: YamlSourceReader): Workflow = {
+    source.flatten({ entry ⇒ entry == "health" })
 
     val breed = BreedReader.readReference(<<![Any]("breed"))
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale")
@@ -61,7 +62,7 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
       case "daemon" ⇒ DaemonSchedule
       case yaml: YamlSourceReader if yaml.find[Any]("time").isDefined ⇒ timeSchedule(yaml)
       case yaml: YamlSourceReader if yaml.find[Any]("event").isDefined ⇒ eventSchedule(yaml)
-      case other ⇒ throwException(UndefinedWorkflowScheduleError)
+      case _ ⇒ throwException(UndefinedWorkflowScheduleError)
     }
   }
 

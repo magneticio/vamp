@@ -20,7 +20,7 @@ object BlueprintSerializationFormat extends io.vamp.common.json.SerializationFor
     new InstanceFieldSerializer()
 }
 
-class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomposer with ReferenceSerialization with BlueprintGatewaySerializer {
+class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomposer with ReferenceSerialization with BlueprintGatewaySerializer with DialectSerializer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case blueprint: BlueprintReference ⇒ serializeReference(blueprint)
     case blueprint: AbstractBlueprint ⇒
@@ -31,6 +31,7 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomp
       list += JField("gateways", serializeGateways(blueprint.gateways))
       list += JField("clusters", Extraction.decompose(blueprint.clusters.map(cluster ⇒ cluster.name → cluster).toMap))
       list += JField("environment_variables", traits(blueprint.environmentVariables))
+      list += JField("dialects", serializeDialects(blueprint.dialects))
       new JObject(list.toList)
   }
 }
@@ -45,9 +46,9 @@ class ClusterFieldSerializer
     case ("name", _)            ⇒ None
     case ("kind", _)            ⇒ None
     case ("gateways", gateways) ⇒ Some(("gateways", serializeGateways(gateways.asInstanceOf[List[Gateway]])))
-    case ("dialects", dialects) ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
     case ("healthChecks", Some(healthChecks)) ⇒
       Some(("health_checks", serializeHealthChecks(healthChecks.asInstanceOf[List[HealthCheck]])))
+    case ("dialects", dialects) ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[String, Any]])))
   }
 
 }
@@ -64,7 +65,7 @@ class ServiceFieldSerializer
     case ("kind", _)                                    ⇒ None
     case ("environmentVariables", environmentVariables) ⇒ Some(("environment_variables", traits(environmentVariables.asInstanceOf[List[Trait]])))
     case ("arguments", arguments)                       ⇒ Some(("arguments", serializeArguments(arguments.asInstanceOf[List[Argument]])))
-    case ("dialects", dialects)                         ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[Dialect.Value, Any]])))
+    case ("dialects", dialects)                         ⇒ Some(("dialects", serializeDialects(dialects.asInstanceOf[Map[String, Any]])))
     case ("scale", Some(scale: Scale))                  ⇒ Some(("scale", serializerScale(scale, full = false)))
     case ("healthChecks", Some(healthChecks))           ⇒ Some(("health_checks", serializeHealthChecks(healthChecks.asInstanceOf[List[HealthCheck]])))
   }
@@ -106,7 +107,7 @@ trait ArgumentListSerializer {
 }
 
 trait DialectSerializer {
-  def serializeDialects(dialects: Map[Dialect.Value, Any]) = Extraction.decompose(dialects.map({ case (k, v) ⇒ k.toString.toLowerCase → v }))(DefaultFormats)
+  def serializeDialects(dialects: Map[String, Any]) = Extraction.decompose(dialects.map({ case (k, v) ⇒ k.toString.toLowerCase → v }))(DefaultFormats)
 }
 
 trait BlueprintGatewaySerializer extends GatewayDecomposer {

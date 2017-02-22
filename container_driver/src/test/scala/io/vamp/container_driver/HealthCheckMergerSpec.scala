@@ -1,9 +1,9 @@
 package io.vamp.container_driver
 
-import io.vamp.model.artifact.{HealthCheck, Port}
-import io.vamp.model.reader.{ReaderSpec, Time}
+import io.vamp.model.artifact.{ HealthCheck, Port }
+import io.vamp.model.reader.{ ReaderSpec, Time }
 import org.junit.runner.RunWith
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{ FlatSpec, Matchers }
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
@@ -64,7 +64,8 @@ class HealthCheckMergerSpec extends FlatSpec with Matchers with ReaderSpec with 
       Some(List(HealthCheck("/2", "webport", Time(5), Time(5), Time(5), 5, "HTTP"))),
       testPort)
 
-    mergeResult should equal(List(HealthCheck("/", "webport", Time(5), Time(5), Time(5), 5, "HTTP"),
+    mergeResult should equal(List(
+      HealthCheck("/", "webport", Time(5), Time(5), Time(5), 5, "HTTP"),
       HealthCheck("/2", "webport", Time(5), Time(5), Time(5), 5, "HTTP")))
   }
 
@@ -75,9 +76,8 @@ class HealthCheckMergerSpec extends FlatSpec with Matchers with ReaderSpec with 
       testHealthCheck,
       testPort)
 
-    mergeResult should equal (testHealthCheck.get)
+    mergeResult should equal(testHealthCheck.get)
   }
-
 
   it should "merge not the same path if ports are different" in {
     val testHealthCheckDiffPath = testHealthCheck.map(_.map(_.copy(port = "someport")))
@@ -96,11 +96,11 @@ class HealthCheckMergerSpec extends FlatSpec with Matchers with ReaderSpec with 
   }
 
   it should "merge a larger list" in {
-    val healthChecks = (1 to 30).map(i => HealthCheck(s"$i", "webport", Time(5), Time(5), Time(5), 5, "HTTP")).toList
+    val healthChecks = (1 to 30).map(i ⇒ HealthCheck(s"$i", "webport", Time(5), Time(5), Time(5), 5, "HTTP")).toList
     val mergeResult = mergeHealthChecks(
       Some(healthChecks.take(10)),
       Some(healthChecks.slice(10, 20)),
-      Some(healthChecks.slice(20,30)),
+      Some(healthChecks.slice(20, 30)),
       testPort)
 
     mergeResult should equal(healthChecks.drop(10))

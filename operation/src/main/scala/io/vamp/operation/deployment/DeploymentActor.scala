@@ -138,7 +138,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
         c ← Future.sequence(clusters)
         g ← expandGateways(bp.gateways)
       } yield {
-        Deployment(blueprint.name, blueprint.metadata, c, g, Nil, bp.environmentVariables, Nil)
+        Deployment(blueprint.name, blueprint.metadata, c, g, Nil, bp.environmentVariables, Nil, bp.dialects)
       }
     }
   }
@@ -333,8 +333,9 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
           val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
           val hosts = mergeTrait(attachment.hosts, deployment.hosts)
           val metadata = deployment.metadata ++ attachment.metadata
+          val dialects = deployment.dialects ++ attachment.dialects
 
-          validateMerge(Deployment(deployment.name, metadata, clusters, gateways, ports, environmentVariables, hosts)) flatMap {
+          validateMerge(Deployment(deployment.name, metadata, clusters, gateways, ports, environmentVariables, hosts, dialects)) flatMap {
             deployment ⇒
               implicit val timeout = GatewayActor.timeout()
               Future.sequence {

@@ -36,7 +36,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     }
     <<?[YamlSourceReader]("clusters") match {
       case Some(yaml) ⇒ yaml.pull().map {
-        case (name: String, cluster: YamlSourceReader) ⇒
+        case (_: String, cluster: YamlSourceReader) ⇒
           implicit val source = cluster
           <<?[Any]("services") match {
             case None                ⇒ >>("services", List(<<-("sla", "gateways")))
@@ -62,24 +62,15 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
                 case _ ⇒
               }
               expandArguments()
-              expandDialect()
               element
             }
           })
           expandArguments()
-          expandDialect()
         case _ ⇒
       }
       case _ ⇒
     }
     super.expand
-  }
-
-  private def expandDialect()(implicit source: YamlSourceReader) = {
-    <<?[Any]("dialects") match {
-      case None ⇒ >>("dialects", YamlSourceReader(dialectValues.map { case (k, v) ⇒ k.toString.toLowerCase → v }))
-      case _    ⇒
-    }
   }
 
   override def parse(implicit source: YamlSourceReader): Blueprint = {
@@ -110,7 +101,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 
     val evs = environmentVariables(alias = false, addGroup = true)
 
-    DefaultBlueprint(name, metadata, clusters, BlueprintGatewayReader.mapping("gateways"), evs)
+    DefaultBlueprint(name, metadata, clusters, BlueprintGatewayReader.mapping("gateways"), evs, dialects)
   }
 
   override protected def validate(bp: Blueprint): Blueprint = bp match {
@@ -188,7 +179,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       case breed: DefaultBreed ⇒ breed.dependencies.map((breed, _))
       case _                   ⇒ List()
     }).find({
-      case (breed, dependency) ⇒ !breeds.exists(_.name == dependency._2.name)
+      case (_, dependency) ⇒ !breeds.exists(_.name == dependency._2.name)
     }).flatMap {
       case (breed, dependency) ⇒ throwException(UnresolvedBreedDependencyError(breed, dependency))
     }

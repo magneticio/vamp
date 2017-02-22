@@ -64,7 +64,8 @@ case class Deployment(
     gateways:             List[Gateway],
     ports:                List[Port],
     environmentVariables: List[EnvironmentVariable],
-    hosts:                List[Host]
+    hosts:                List[Host],
+    dialects:             Map[String, Any]          = Map()
 ) extends AbstractBlueprint with Lookup {
 
   override val kind = Deployment.kind
@@ -88,7 +89,7 @@ case class DeploymentCluster(
     healthChecks: Option[List[HealthCheck]],
     network:      Option[String],
     sla:          Option[Sla],
-    dialects:     Map[Dialect.Value, Any]   = Map()
+    dialects:     Map[String, Any]          = Map()
 ) extends AbstractCluster {
 
   def portBy(name: String): Option[Int] = {
@@ -124,7 +125,7 @@ case class DeploymentService(
   healthChecks:         Option[List[HealthCheck]],
   network:              Option[String],
   dependencies:         Map[String, String]       = Map(),
-  dialects:             Map[Dialect.Value, Any]   = Map(),
+  dialects:             Map[String, Any]          = Map(),
   health:               Option[Health]            = None
 ) extends AbstractService
 

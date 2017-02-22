@@ -20,18 +20,22 @@ trait AbstractBlueprint extends Blueprint {
   def environmentVariables: List[EnvironmentVariable]
 
   def traits: List[Trait]
+
+  def dialects: Map[String, Any]
 }
 
-case class DefaultBlueprint(name: String, metadata: Map[String, Any], clusters: List[Cluster], gateways: List[Gateway], environmentVariables: List[EnvironmentVariable]) extends AbstractBlueprint {
+case class DefaultBlueprint(
+    name:                 String,
+    metadata:             Map[String, Any],
+    clusters:             List[Cluster],
+    gateways:             List[Gateway],
+    environmentVariables: List[EnvironmentVariable],
+    dialects:             Map[String, Any]          = Map()
+) extends AbstractBlueprint {
   lazy val traits = environmentVariables
 }
 
 case class BlueprintReference(name: String) extends Blueprint with Reference
-
-object Dialect extends Enumeration {
-
-  val Marathon, Docker = Value
-}
 
 abstract class AbstractCluster extends Artifact {
 
@@ -45,7 +49,7 @@ abstract class AbstractCluster extends Artifact {
 
   def sla: Option[Sla]
 
-  def dialects: Map[Dialect.Value, Any]
+  def dialects: Map[String, Any]
 
   def gatewayBy(portName: String): Option[Gateway] = gateways.find(_.port.name == portName)
 
@@ -60,7 +64,7 @@ case class Cluster(
   healthChecks: Option[List[HealthCheck]],
   network:      Option[String]            = None,
   sla:          Option[Sla]               = None,
-  dialects:     Map[Dialect.Value, Any]   = Map()
+  dialects:     Map[String, Any]          = Map()
 ) extends AbstractCluster
 
 abstract class AbstractService {
@@ -80,7 +84,7 @@ abstract class AbstractService {
 
   def network: Option[String]
 
-  def dialects: Map[Dialect.Value, Any]
+  def dialects: Map[String, Any]
 
   def health: Option[Health]
 }
@@ -92,7 +96,7 @@ case class Service(
   arguments:            List[Argument],
   healthChecks:         Option[List[HealthCheck]],
   network:              Option[String]            = None,
-  dialects:             Map[Dialect.Value, Any]   = Map(),
+  dialects:             Map[String, Any]          = Map(),
   health:               Option[Health]            = None
 ) extends AbstractService
 
@@ -112,7 +116,7 @@ object DefaultScale {
 case class DefaultScale(name: String, metadata: Map[String, Any], cpu: Quantity, memory: MegaByte, instances: Int) extends Scale
 
 /**
- * Representation of the Service Health retrieved from a Deployment.
+ * Representation of the Health retrieved from a Deployment.
  * @param staged number of instances in a staged state.
  * @param running number of instances in a running state.
  * @param healthy number of instances in a healthy state.

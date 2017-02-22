@@ -8,17 +8,17 @@ import io.vamp.model.artifact.{ HealthCheck, Port }
 trait HealthCheckMerger {
 
   /**
-    * Merges three different optional HealthCheck lists
-    * Order of precedence from high to low: Service, Cluster, Breed
-    * An empty serviceLevel List denotes that there should be NO health checks for that service
-    */
+   * Merges three different optional HealthCheck lists
+   * Order of precedence from high to low: Service, Cluster, Breed
+   * An empty serviceLevel List denotes that there should be NO health checks for that service
+   */
   def mergeHealthChecks(
-      breedLevel:   Option[List[HealthCheck]],
-      serviceLevel: Option[List[HealthCheck]],
-      clusterLevel: Option[List[HealthCheck]],
-      ports:        List[Port]): List[HealthCheck] =
+    breedLevel:   Option[List[HealthCheck]],
+    serviceLevel: Option[List[HealthCheck]],
+    clusterLevel: Option[List[HealthCheck]],
+    ports:        List[Port]): List[HealthCheck] =
     serviceLevel.map { serviceHealthChecks ⇒
-      if(serviceHealthChecks.isEmpty)
+      if (serviceHealthChecks.isEmpty)
         serviceHealthChecks
       else
         serviceHealthChecks.++ {
