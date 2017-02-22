@@ -428,15 +428,6 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
-  it should "expand and parse dialects" in {
-    BlueprintReader.read(res("blueprint/blueprint48.yml")) should have(
-      'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", Map(), List(Service(BreedReference("sava1"), Nil, None, Nil, None, None, Map("marathon" → Map("a" → "b"), "docker" → Map("c" → "d"))), Service(BreedReference("sava2"), Nil, None, Nil, None, None, Map())), Nil, None, None, None, Map("marathon" → Map("r" → "t"), "docker" → Map("q" → "w", "o" → "p"))), Cluster("viper", Map(), List(Service(BreedReference("sava3"), Nil, None, Nil, None, None, Map()), Service(BreedReference("sava4"), Nil, None, Nil, None, None, Map())), Nil, None, None, None, Map("marathon" → Map("u" → "i"))))),
-      'gateways(Nil),
-      'environmentVariables(Nil)
-    )
-  }
-
   it should "not allow blueprint with no service" in {
     expectedError[NoServiceError.type]({
       BlueprintReader.read(res("blueprint/blueprint49.yml"))

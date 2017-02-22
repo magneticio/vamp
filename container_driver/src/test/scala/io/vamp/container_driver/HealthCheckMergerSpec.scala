@@ -1,13 +1,13 @@
 package io.vamp.container_driver
 
 import io.vamp.model.artifact.{ HealthCheck, Port }
-import io.vamp.model.reader.{ ReaderSpec, Time }
+import io.vamp.model.reader.{ Time }
 import org.junit.runner.RunWith
 import org.scalatest.{ FlatSpec, Matchers }
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class HealthCheckMergerSpec extends FlatSpec with Matchers with ReaderSpec with HealthCheckMerger {
+class HealthCheckMergerSpec extends FlatSpec with Matchers with HealthCheckMerger {
 
   val testHealthCheck = Some(List(HealthCheck("/", "webport", Time(5), Time(5), Time(5), 5, "HTTP")))
   val testHealthCheckTwo = Some(List(HealthCheck("/two", "someport", Time(5), Time(5), Time(5), 5, "HTTP")))
