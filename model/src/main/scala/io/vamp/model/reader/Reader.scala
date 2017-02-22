@@ -385,13 +385,9 @@ trait DialectReader {
   this: YamlReader[_] ⇒
 
   def dialects(implicit source: YamlSourceReader): Map[String, Any] = {
-    <<?[Any]("dialects") match {
+    first[Any]("dialects", "dialect") match {
       case Some(ds: YamlSourceReader) ⇒ ds.flatten()
-      case _ ⇒
-        <<?[Any]("dialect") match {
-          case Some(ds: YamlSourceReader) ⇒ ds.flatten()
-          case _                          ⇒ Map()
-        }
+      case _                          ⇒ Map()
     }
   }
 }

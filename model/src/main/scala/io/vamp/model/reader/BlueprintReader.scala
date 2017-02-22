@@ -36,7 +36,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     }
     <<?[YamlSourceReader]("clusters") match {
       case Some(yaml) ⇒ yaml.pull().map {
-        case (name: String, cluster: YamlSourceReader) ⇒
+        case (_: String, cluster: YamlSourceReader) ⇒
           implicit val source = cluster
           <<?[Any]("services") match {
             case None                ⇒ >>("services", List(<<-("sla", "gateways")))
@@ -164,7 +164,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       case breed: DefaultBreed ⇒ breed.dependencies.map((breed, _))
       case _                   ⇒ List()
     }).find({
-      case (breed, dependency) ⇒ !breeds.exists(_.name == dependency._2.name)
+      case (_, dependency) ⇒ !breeds.exists(_.name == dependency._2.name)
     }).flatMap {
       case (breed, dependency) ⇒ throwException(UnresolvedBreedDependencyError(breed, dependency))
     }

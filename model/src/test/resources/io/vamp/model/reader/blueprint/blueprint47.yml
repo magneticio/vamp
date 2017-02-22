@@ -27,7 +27,7 @@ clusters:
       -
         breed: sava4
 
-    dialects:
+    dialect:
       marathon:
         u: i
 
