@@ -1,9 +1,7 @@
 package io.vamp.workflow_driver
 
 import io.vamp.common.akka.IoC
-import io.vamp.common.config.Config
 import io.vamp.common.http.HttpClient
-import io.vamp.common.spi.ClassMapper
 import io.vamp.container_driver.{ ContainerDriverValidation, Docker, DockerDeployableType }
 import io.vamp.model.artifact.TimeSchedule.RepeatCount
 import io.vamp.model.artifact.Workflow.Status
@@ -12,6 +10,7 @@ import io.vamp.model.artifact._
 import io.vamp.pulse.Percolator.GetPercolator
 import io.vamp.pulse.PulseActor
 import akka.pattern.ask
+import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.persistence.PersistenceActor
 
 import scala.concurrent.Future

@@ -1,11 +1,10 @@
 package io.vamp.container_driver.marathon
 
 import akka.actor.ActorRef
+import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.common.akka.ActorExecutionContextProvider
-import io.vamp.common.config.Config
-import io.vamp.common.crypto.Hash
 import io.vamp.common.http.HttpClient
-import io.vamp.common.spi.ClassMapper
+import io.vamp.common.util.HashUtil
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
@@ -319,7 +318,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
     val id = artifact.name match {
       case idMatcher(_*) ⇒ artifact.name
-      case _             ⇒ Hash.hexSha1(artifact.name).substring(0, 20)
+      case _             ⇒ HashUtil.hexSha1(artifact.name).substring(0, 20)
     }
 
     artifact match {
