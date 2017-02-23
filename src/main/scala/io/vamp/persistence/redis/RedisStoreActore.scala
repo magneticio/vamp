@@ -1,7 +1,6 @@
 package io.vamp.persistence.redis
 
-import io.vamp.common.config.Config
-import io.vamp.common.spi.ClassMapper
+import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.persistence.KeyValueStoreActor
 import redis.RedisClient
 
