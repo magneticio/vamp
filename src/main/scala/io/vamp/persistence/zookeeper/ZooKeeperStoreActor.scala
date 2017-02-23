@@ -3,9 +3,8 @@ package io.vamp.persistence.zookeeper
 import java.io._
 import java.net.Socket
 
+import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.common.akka._
-import io.vamp.common.config.Config
-import io.vamp.common.spi.ClassMapper
 import io.vamp.persistence.KeyValueStoreActor
 import io.vamp.persistence.zookeeper.AsyncResponse.{ ChildrenResponse, DataResponse, FailedAsyncResponse }
 import org.apache.zookeeper.KeeperException.Code
