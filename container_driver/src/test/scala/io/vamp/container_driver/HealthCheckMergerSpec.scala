@@ -1,7 +1,7 @@
 package io.vamp.container_driver
 
 import io.vamp.model.artifact.{ HealthCheck, Port }
-import io.vamp.model.reader.{ Time }
+import io.vamp.model.reader.Time
 import org.junit.runner.RunWith
 import org.scalatest.{ FlatSpec, Matchers }
 import org.scalatest.junit.JUnitRunner
@@ -31,13 +31,13 @@ class HealthCheckMergerSpec extends FlatSpec with Matchers with HealthCheckMerge
     mergeResult should equal(List(HealthCheck("/", "webport", Time(5), Time(5), Time(5), 10, "HTTP")))
   }
 
-  it should "merge cluster and breed health if service is not defined" in {
+  it should "return cluster if service is not defined" in {
     val mergeResult = mergeHealthChecks(
       testHealthCheck,
       None,
       testHealthCheckTwo, testPort ++ testPortTwo)
 
-    mergeResult should equal(testHealthCheckTwo.get ++ testHealthCheck.get)
+    mergeResult should equal(testHealthCheckTwo.get)
   }
 
   it should "return an empty list if all are not defined" in {
@@ -110,6 +110,26 @@ class HealthCheckMergerSpec extends FlatSpec with Matchers with HealthCheckMerge
     val mergeResult = mergeHealthChecks(testHealthCheck, None, None, testPort)
 
     mergeResult should equal(testHealthCheck.get)
+  }
+
+  it should "merge workflow with precedence over breed level" in {
+    mergeHealthChecks(testHealthCheck, testHealthCheckTwo) should equal(testHealthCheck.get)
+  }
+
+  it should "return an empty list if workflow is defined" in {
+    mergeHealthChecks(Some(List()), testHealthCheck) should equal(List())
+  }
+
+  it should "return breed level if workflow level is not defined" in {
+    mergeHealthChecks(None, testHealthCheck) should equal(testHealthCheck.get)
+  }
+
+  it should "return an empty list if nothing is defined for workflow and breed" in {
+    mergeHealthChecks(None, None) should equal(List())
+  }
+
+  it should "return an empty list if nothing is defined for cluster and service" in {
+    mergeHealthChecks(None, None, None, List()) should equal(List())
   }
 
 }
