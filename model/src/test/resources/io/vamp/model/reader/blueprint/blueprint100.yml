@@ -1,0 +1,40 @@
+name: nomadic-frostbite
+
+clusters:
+  notorious:
+    health_checks:
+    - path: path/to/check
+      port: webport
+      timeout: 4s
+      interval: 1m
+      protocol: HTTPS
+      failures: 5
+      initial_delay: 30s
+    - path: path/to/check2
+      port: webport2
+      timeout: 4s
+      interval: 1m
+      protocol: HTTPS
+      failures: 5
+      initial_delay: 30s
+    services:
+      -
+        breed:
+          name: sava:1.0.0
+          deployable: magneticio/sava:1.0.0
+          ports:
+            webport: 8080/http
+        scale:
+           cpu: 0.2
+           memory: 120 M
+           instances: 2
+      -
+        breed:
+          name: sava:1.0.1
+          deployable: magneticio/sava:1.0.1
+          ports:
+            webport3: 8081/http
+        scale:
+           cpu: 0.2
+           memory: 120 M
+           instances: 2

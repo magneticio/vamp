@@ -14,7 +14,12 @@ object WorkflowSerializationFormat extends io.vamp.common.json.SerializationForm
     new WorkflowSerializer()
 }
 
-class WorkflowSerializer extends ArtifactSerializer[Workflow] with ReferenceSerialization with ArgumentListSerializer with TraitDecomposer {
+class WorkflowSerializer
+    extends ArtifactSerializer[Workflow]
+    with ReferenceSerialization
+    with ArgumentListSerializer
+    with HealthCheckSerializer
+    with TraitDecomposer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case workflow: Workflow ⇒
       val list = new ArrayBuffer[JField]
@@ -51,7 +56,10 @@ class WorkflowSerializer extends ArtifactSerializer[Workflow] with ReferenceSeri
       if (workflow.network.isDefined) list += JField("network", Extraction.decompose(workflow.network.get))
       list += JField("arguments", serializeArguments(workflow.arguments))
       list += JField("instances", Extraction.decompose(workflow.instances))
-      if (workflow.health.isDefined) list += JField("health", Extraction.decompose(workflow.health.get))
+
+      // Add optional values
+      workflow.health.foreach(h ⇒ list += JField("health", Extraction.decompose(h)))
+      workflow.healthChecks.foreach(hcs ⇒ list += JField("health_checks", serializeHealthChecks(hcs)))
 
       new JObject(list.toList)
   }
