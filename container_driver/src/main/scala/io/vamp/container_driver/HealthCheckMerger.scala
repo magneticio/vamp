@@ -34,7 +34,7 @@ trait HealthCheckMerger {
         .getOrElse(List())
         .filter(hc ⇒ ports.exists(_.name == hc.port))
 
-      if(clusterHealthChecks.isEmpty) breedLevel.getOrElse(List())
+      if (clusterHealthChecks.isEmpty) breedLevel.getOrElse(List())
       else clusterHealthChecks ++ breedLevel
         .getOrElse(List())
         .filter { bhc ⇒
