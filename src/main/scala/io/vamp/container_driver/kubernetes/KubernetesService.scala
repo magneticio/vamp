@@ -1,7 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorLogging
-import io.vamp.common.crypto.Hash
+import io.vamp.common.util.HashUtil
 import io.vamp.container_driver.ContainerDriver
 
 import scala.concurrent.Future
@@ -74,6 +74,6 @@ trait KubernetesService extends KubernetesArtifact {
 
   private def toId(name: String): String = name match {
     case nameMatcher(_*) if name.length < 25 ⇒ name
-    case _                                   ⇒ s"hex${Hash.hexSha1(name).substring(0, 20)}"
+    case _                                   ⇒ s"hex${HashUtil.hexSha1(name).substring(0, 20)}"
   }
 }

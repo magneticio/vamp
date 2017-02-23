@@ -1,8 +1,8 @@
 package io.vamp.workflow_driver
 
 import akka.actor.ActorRef
+import io.vamp.common.ClassMapper
 import io.vamp.common.akka.IoC
-import io.vamp.common.spi.ClassMapper
 import io.vamp.container_driver.kubernetes.KubernetesDriverActor
 
 import scala.concurrent.Future

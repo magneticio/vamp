@@ -1,9 +1,8 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorRef
-import io.vamp.common.config.Config
+import io.vamp.common.{ ClassMapper, Config, NamespaceResolver }
 import io.vamp.common.http.HttpClient
-import io.vamp.common.spi.ClassMapper
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
@@ -38,11 +37,11 @@ object KubernetesDriverActor {
 
   val bearer = Config.string(s"$config.bearer")
 
-  val serviceType = () ⇒ KubernetesServiceType.withName(Config.string(s"$config.service-type")())
-
   val createServices = Config.boolean(s"$config.create-services")
 
   val vampGatewayAgentId = Config.string(s"$config.vamp-gateway-agent-id")
+
+  def serviceType()(implicit namespaceResolver: NamespaceResolver) = KubernetesServiceType.withName(Config.string(s"$config.service-type")())
 }
 
 case class KubernetesDriverInfo(version: Any, paths: Any, api: Any, apis: Any)
