@@ -7,7 +7,6 @@ SHELL             := bash
 
 # Constants, these can be overwritten in your Makefile.local
 BUILD_SERVER := magneticio/buildserver
-BUILD_PACKER := magneticio/packer
 DIR_SBT	     := $(HOME)/.sbt
 DIR_IVY	     := $(HOME)/.ivy2
 
@@ -27,9 +26,11 @@ all: default
 # Using our buildserver which contains all the necessary dependencies
 .PHONY: default
 default:
+	docker pull $(BUILD_SERVER)
 	docker run \
 		--name buildserver \
 		--interactive \
+		--tty \
 		--rm \
 		--volume $(CURDIR):/srv/src \
 		--volume $(DIR_SBT):/home/vamp/.sbt \
@@ -38,16 +39,8 @@ default:
 		--env BUILD_UID=$(shell id -u) \
 		--env BUILD_GID=$(shell id -g) \
 		$(BUILD_SERVER) \
-			make clean test build
-	make pack
+			'sbt clean test "project bootstrap" pack'
 
-.PHONY: test
-test:
-	sbt test
-
-.PHONY: build
-build:
-	sbt package
 
 .PHONY: pack
 pack:
@@ -59,15 +52,14 @@ pack:
 	mv $$(find $(TARGET)/vamp-$(VERSION)/lib -type f -name "vamp-*-$(VERSION).jar") $(TARGET)/vamp-$(VERSION)/
 
 	docker volume create packer
+	docker pull $(BUILD_SERVER)
 	docker run \
 		--name packer \
 		--interactive \
+		--tty \
 		--rm \
 		--volume $(TARGET)/vamp-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
-		$(BUILD_PACKER) \
-			vamp $(VERSION)
+		$(BUILD_SERVER) \
+			push vamp $(VERSION)
 
-.PHONY: clean
-clean:
-	sbt clean
