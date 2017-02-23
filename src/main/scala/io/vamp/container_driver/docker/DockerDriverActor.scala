@@ -3,8 +3,7 @@ package io.vamp.container_driver.docker
 import akka.actor.ActorRef
 import com.spotify.docker.client.DefaultDockerClient
 import com.spotify.docker.client.messages.{ Container ⇒ SpotifyContainer, ContainerInfo ⇒ _, _ }
-import io.vamp.common.config.Config
-import io.vamp.common.spi.ClassMapper
+import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._

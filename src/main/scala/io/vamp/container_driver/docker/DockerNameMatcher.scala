@@ -1,6 +1,6 @@
 package io.vamp.container_driver.docker
 
-import io.vamp.common.crypto.Hash
+import io.vamp.common.util.HashUtil
 import io.vamp.model.artifact.Artifact
 
 trait DockerNameMatcher {
@@ -11,6 +11,6 @@ trait DockerNameMatcher {
 
   protected def string2Id(string: String): String = string match {
     case idMatcher(_*) if string.length < 64 ⇒ string
-    case _                                   ⇒ Hash.hexSha1(string).substring(0, 32)
+    case _                                   ⇒ HashUtil.hexSha1(string).substring(0, 32)
   }
 }
