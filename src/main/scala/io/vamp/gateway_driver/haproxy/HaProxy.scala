@@ -1,6 +1,6 @@
 package io.vamp.gateway_driver.haproxy
 
-import io.vamp.common.crypto.Hash
+import io.vamp.common.util.HashUtil
 
 case class HaProxy(
   frontends:            List[Frontend],
@@ -39,7 +39,7 @@ object Mode extends Enumeration {
 case class Condition(name: String, destination: Backend, acls: Option[HaProxyAcls])
 
 object Acl {
-  def apply(definition: String): Acl = Acl(Hash.hexSha1(definition).substring(0, 16), definition)
+  def apply(definition: String): Acl = Acl(HashUtil.hexSha1(definition).substring(0, 16), definition)
 }
 
 case class Acl(name: String, definition: String)

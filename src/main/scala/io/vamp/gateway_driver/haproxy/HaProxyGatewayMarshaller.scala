@@ -1,6 +1,6 @@
 package io.vamp.gateway_driver.haproxy
 
-import io.vamp.common.spi.ClassMapper
+import io.vamp.common.ClassMapper
 import io.vamp.common.util.ObjectUtil._
 import io.vamp.gateway_driver.GatewayMarshaller
 import io.vamp.model.artifact._
