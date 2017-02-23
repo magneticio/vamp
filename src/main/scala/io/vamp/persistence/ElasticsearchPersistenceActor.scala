@@ -1,7 +1,6 @@
 package io.vamp.persistence
 
-import io.vamp.common.config.Config
-import io.vamp.common.spi.ClassMapper
+import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.model.artifact._
 import io.vamp.pulse.ElasticsearchClient
 import io.vamp.pulse.ElasticsearchClient.{ ElasticsearchGetResponse, ElasticsearchSearchResponse }

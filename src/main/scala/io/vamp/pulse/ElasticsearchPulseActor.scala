@@ -3,11 +3,10 @@ package io.vamp.pulse
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
-import io.vamp.common.config.Config
-import io.vamp.common.crypto.Hash
+import io.vamp.common.{ ClassMapper, Config, NamespaceResolver }
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
-import io.vamp.common.spi.ClassMapper
+import io.vamp.common.util.HashUtil
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.model.event.Aggregator.AggregatorType
 import io.vamp.model.event._
@@ -32,7 +31,9 @@ object ElasticsearchPulseActor {
 
   val indexName = Config.string(s"$config.elasticsearch.index.name")
 
-  val indexTimeFormat: () ⇒ Map[String, String] = () ⇒ Config.entries(s"$config.elasticsearch.index.time-format")().map { case (key, value) ⇒ key → value.toString }
+  def indexTimeFormat()(implicit namespaceResolver: NamespaceResolver): Map[String, String] = {
+    Config.entries(s"$config.elasticsearch.index.time-format")().map { case (key, value) ⇒ key → value.toString }
+  }
 }
 
 class ElasticsearchPulseActor extends ElasticsearchPulseEvent with PulseStats with PulseActor {
@@ -106,7 +107,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with PulseStats wi
 
     es.search[ElasticsearchSearchResponse](indexName, constructSearch(query, p, pp)) map {
       case ElasticsearchSearchResponse(hits) ⇒
-        EventResponseEnvelope(hits.hits.flatMap(hit ⇒ Option(read[Event](write(hit._source)).copy(id = Option(Hash.hex(hit._id))))), hits.total, p, pp)
+        EventResponseEnvelope(hits.hits.flatMap(hit ⇒ Option(read[Event](write(hit._source)).copy(id = Option(HashUtil.hex(hit._id))))), hits.total, p, pp)
       case other ⇒ reportException(EventQueryError(other))
     }
   }
