@@ -5,10 +5,9 @@ import java.nio.file.{ Path, Paths }
 import akka.event.LoggingAdapter
 import akka.pattern.ask
 import akka.util.Timeout
+import io.vamp.common.Config
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ ActorSystemProvider, CommonSupportForActors, ExecutionContextProvider }
-import io.vamp.common.config.Config
-import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.akka.{ CommonProvider, CommonSupportForActors }
 import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.model.artifact.{ DefaultBreed, Deployable }
 import io.vamp.model.reader.WorkflowReader
@@ -58,7 +57,7 @@ class ArtifactInitializationActor extends ArtifactLoader with CommonSupportForAc
 }
 
 trait ArtifactLoader extends ArtifactApiController with DeploymentApiController {
-  this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
+  this: CommonProvider ⇒
 
   def log: LoggingAdapter
 
