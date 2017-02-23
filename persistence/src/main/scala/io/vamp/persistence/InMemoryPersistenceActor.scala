@@ -1,9 +1,9 @@
 package io.vamp.persistence
 
 import akka.event.LoggingAdapter
+import io.vamp.common.ClassMapper
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.common.spi.ClassMapper
 import io.vamp.model.artifact._
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, UnsupportedPersistenceRequest }

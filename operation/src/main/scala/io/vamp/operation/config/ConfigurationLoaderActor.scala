@@ -1,8 +1,8 @@
 package io.vamp.operation.config
 
 import akka.pattern.ask
+import io.vamp.common.Config
 import io.vamp.common.akka._
-import io.vamp.common.config.Config
 import io.vamp.operation.notification._
 import io.vamp.persistence.KeyValueStoreActor
 

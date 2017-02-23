@@ -1,7 +1,7 @@
 package io.vamp.pulse
 
+import io.vamp.common.Config
 import io.vamp.common.akka._
-import io.vamp.common.config.Config
 import io.vamp.common.http.{ OffsetRequestEnvelope, OffsetResponseEnvelope }
 import io.vamp.common.notification.Notification
 import io.vamp.model.event._

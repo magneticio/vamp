@@ -1,15 +1,15 @@
 package io.vamp.persistence
 
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
+import io.vamp.common.akka.{ CommonProvider, ExecutionContextProvider }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
+import io.vamp.persistence.notification.ArtifactNotFound
 
 import scala.concurrent.Future
 import scala.reflect._
-import _root_.io.vamp.persistence.notification.ArtifactNotFound
 
 trait ArtifactExpansionSupport extends ArtifactExpansion with ArtifactSupport {
-  this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
+  this: CommonProvider ⇒
 
   protected def readExpanded[T <: Artifact: ClassTag](name: String): Future[Option[T]] = artifactForIfExists[T](name)
 }

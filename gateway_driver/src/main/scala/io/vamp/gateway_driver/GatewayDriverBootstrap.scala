@@ -1,9 +1,8 @@
 package io.vamp.gateway_driver
 
 import akka.actor.{ ActorRef, ActorSystem }
+import io.vamp.common.{ ClassProvider, Config }
 import io.vamp.common.akka.{ ActorBootstrap, IoC }
-import io.vamp.common.config.Config
-import io.vamp.common.spi.ClassProvider
 
 import scala.io.Source
 import scala.language.postfixOps

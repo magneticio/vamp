@@ -1,8 +1,8 @@
 package io.vamp.container_driver
 
 import akka.actor.ActorRef
+import io.vamp.common.Config
 import io.vamp.common.akka._
-import io.vamp.common.config.Config
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.Notification
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }

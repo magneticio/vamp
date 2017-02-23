@@ -1,14 +1,18 @@
 package io.vamp.common.akka
 
 import akka.actor.{ Actor, ActorLogging, ActorSystem }
-import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.NamespaceResolver
 
 trait CommonSupportForActors
     extends Actor
-    with ActorLogging
-    with ActorSystemProvider
-    with ActorExecutionContextProvider
     with ReplyActor
-    with NotificationProvider {
-  implicit def actorSystem: ActorSystem = context.system
+    with ActorLogging
+    with ActorExecutionContextProvider
+    with CommonProvider {
+
+  implicit lazy val actorSystem: ActorSystem = context.system
+
+  implicit lazy val namespaceResolver: NamespaceResolver = new NamespaceResolver {
+    val namespace: String = "default"
+  }
 }

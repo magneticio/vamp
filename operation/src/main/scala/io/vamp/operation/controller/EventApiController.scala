@@ -13,7 +13,6 @@ import de.heikoseeberger.akkasse.ServerSentEvent
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
-import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.event.{ Event, EventQuery, TimeRange }
 import io.vamp.model.reader._
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
@@ -25,7 +24,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 trait EventApiController {
-  this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
+  this: CommonProvider ⇒
 
   private val tagParameter = "tag"
 
@@ -77,7 +76,7 @@ trait EventApiController {
 }
 
 trait EventValue {
-  this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
+  this: CommonProvider ⇒
 
   implicit def timeout: Timeout
 

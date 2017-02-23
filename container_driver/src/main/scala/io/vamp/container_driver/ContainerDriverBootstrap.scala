@@ -1,12 +1,12 @@
 package io.vamp.container_driver
 
 import akka.actor.ActorSystem
+import io.vamp.common.{ Config, NamespaceResolver }
 import io.vamp.common.akka.ActorBootstrap
-import io.vamp.common.config.Config
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UnsupportedContainerDriverError }
 
 object ContainerDriverBootstrap {
-  val `type` = () ⇒ Config.string("vamp.container-driver.type")().toLowerCase
+  def `type`()(implicit namespaceResolver: NamespaceResolver) = Config.string("vamp.container-driver.type")().toLowerCase
 }
 
 class ContainerDriverBootstrap extends ActorBootstrap with ContainerDriverNotificationProvider {

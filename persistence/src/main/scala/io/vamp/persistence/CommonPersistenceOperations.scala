@@ -1,8 +1,7 @@
 package io.vamp.persistence
 
 import akka.actor.Actor
-import io.vamp.common.akka.CommonSupportForActors
-import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.akka.{ CommonProvider, CommonSupportForActors }
 import io.vamp.model.artifact.Artifact
 
 import scala.concurrent.Future
@@ -27,7 +26,7 @@ trait CommonPersistenceMessages {
 }
 
 trait CommonPersistenceOperations extends PersistenceMultiplexer with PersistenceArchive with ArtifactExpansion with ArtifactShrinkage {
-  this: CommonSupportForActors with NotificationProvider ⇒
+  this: CommonSupportForActors with CommonProvider ⇒
 
   import PersistenceActor._
 

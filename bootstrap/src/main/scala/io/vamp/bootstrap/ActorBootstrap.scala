@@ -1,8 +1,8 @@
 package io.vamp.bootstrap
 
 import akka.actor.{ Actor, ActorSystem, Props }
+import io.vamp.common.ClassProvider
 import io.vamp.common.akka.{ Bootstrap, ActorBootstrap ⇒ ActorBootstrapService }
-import io.vamp.common.spi.ClassProvider
 
 import scala.concurrent.{ ExecutionContext, Future }
 

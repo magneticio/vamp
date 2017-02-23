@@ -2,8 +2,8 @@ package io.vamp.workflow_driver
 
 import akka.actor.ActorRef
 import akka.pattern.ask
+import io.vamp.common.Config
 import io.vamp.common.akka._
-import io.vamp.common.config.Config
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.model.artifact.Workflow

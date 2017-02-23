@@ -5,9 +5,9 @@ import java.time.temporal.ChronoUnit
 
 import akka.actor.{ ActorRef, Props }
 import akka.pattern.ask
+import io.vamp.common.Config
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.config.Config
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerService }
 import io.vamp.model.artifact.DeploymentService.Status

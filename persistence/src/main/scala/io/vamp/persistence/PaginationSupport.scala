@@ -2,16 +2,15 @@ package io.vamp.persistence
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, IoC }
+import io.vamp.common.akka.{ CommonProvider, ExecutionContextProvider, IoC }
 import io.vamp.common.http.OffsetResponseEnvelope
-import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact.Artifact
 import io.vamp.model.event.{ Event, EventQuery }
+import io.vamp.persistence.notification.PersistenceOperationFailure
 import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
 
 import scala.concurrent.Future
 import scala.reflect._
-import _root_.io.vamp.persistence.notification.PersistenceOperationFailure
 
 trait PaginationSupport {
   this: ExecutionContextProvider ⇒
@@ -51,7 +50,7 @@ trait PaginationSupport {
 }
 
 trait ArtifactPaginationSupport extends PaginationSupport {
-  this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
+  this: CommonProvider ⇒
 
   def allArtifacts[T <: Artifact: ClassTag](implicit timeout: Timeout): Future[Stream[Future[List[T]]]] = {
     allPages[T]((page: Int, perPage: Int) ⇒ {
@@ -64,7 +63,7 @@ trait ArtifactPaginationSupport extends PaginationSupport {
 }
 
 trait EventPaginationSupport extends PaginationSupport {
-  this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
+  this: CommonProvider ⇒
 
   def allEvents(eventQuery: EventQuery)(implicit timeout: Timeout): Future[Stream[Future[List[Event]]]] = {
     allPages[Event]((page: Int, perPage: Int) ⇒ {

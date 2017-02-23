@@ -3,12 +3,12 @@ package io.vamp.http_api
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server.Directive0
+import akka.http.scaladsl.server.RouteResult._
 import akka.stream.Materializer
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
-import io.vamp.common.config.Config
+import io.vamp.common.{ Config, NamespaceResolver }
+import io.vamp.common.akka.CommonProvider
 import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers }
 import io.vamp.http_api.notification.HttpApiNotificationProvider
 import io.vamp.http_api.ws.WebSocketRoute
@@ -46,15 +46,18 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     with ProxyRoute
     with LogDirective
     with ArtifactPaginationSupport
-    with ExecutionContextProvider
-    with ActorSystemProvider
-    with HttpApiNotificationProvider {
+    with HttpApiNotificationProvider
+    with CommonProvider {
 
   implicit val timeout = HttpApiRoute.timeout()
 
   implicit val formats: Formats = CoreSerializationFormat.default
 
   implicit val executionContext: ExecutionContext = actorSystem.dispatcher
+
+  implicit lazy val namespaceResolver: NamespaceResolver = new NamespaceResolver {
+    val namespace: String = "default"
+  }
 
   private val stripPathSegments = HttpApiRoute.stripPathSegments()
 

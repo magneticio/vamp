@@ -4,7 +4,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.notification.{ NotificationErrorException, NotificationProvider }
+import io.vamp.common.notification.NotificationErrorException
 import io.vamp.model.artifact._
 import io.vamp.model.conversion.DeploymentConversion._
 import io.vamp.model.reader._
@@ -15,7 +15,7 @@ import io.vamp.persistence.{ ArtifactResponseEnvelope, ArtifactShrinkage, Persis
 import scala.concurrent.Future
 
 trait DeploymentApiController extends ArtifactShrinkage {
-  this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
+  this: CommonProvider ⇒
 
   def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[ArtifactResponseEnvelope] = {
     (actorFor[PersistenceActor] ? PersistenceActor.All(classOf[Deployment], page, perPage, expandReferences, onlyReferences)) map {

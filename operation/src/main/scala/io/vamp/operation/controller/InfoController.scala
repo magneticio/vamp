@@ -3,9 +3,9 @@ package io.vamp.operation.controller
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
+import io.vamp.common.Config
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ ActorSystemProvider, DataRetrieval, ExecutionContextProvider }
-import io.vamp.common.config.Config
+import io.vamp.common.akka.{ CommonProvider, DataRetrieval }
 import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
@@ -32,7 +32,7 @@ case class InfoMessage(
 ) extends JvmInfoMessage
 
 trait InfoController extends DataRetrieval with JmxVitalsProvider {
-  this: ExecutionContextProvider with ActorSystemProvider ⇒
+  this: CommonProvider ⇒
 
   implicit def timeout: Timeout
 

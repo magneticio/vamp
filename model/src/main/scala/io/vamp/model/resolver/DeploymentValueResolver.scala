@@ -1,7 +1,8 @@
 package io.vamp.model.resolver
 
+import io.vamp.common.NamespaceResolverProvider
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.model.artifact.{ HostReference, LocalReference, ClusterReference, _ }
+import io.vamp.model.artifact.{ ClusterReference, HostReference, LocalReference, _ }
 import io.vamp.model.notification.UnresolvedDependencyError
 
 import scala.language.postfixOps
@@ -13,8 +14,8 @@ private case class HostPortClusterReference(host: HostReference, port: TraitRefe
   override def reference: String = port.reference
 }
 
-trait DeploymentValueResolver extends ValueResolver {
-  this: NotificationProvider ⇒
+trait DeploymentValueResolver extends ValueResolver with ConfigurationValueResolver {
+  this: NamespaceResolverProvider with NotificationProvider ⇒
 
   override def resolve(value: String, provider: (ValueReference ⇒ String)): String = {
 
@@ -76,7 +77,7 @@ trait DeploymentValueResolver extends ValueResolver {
 
   def valueFor(deployment: Deployment, service: Option[DeploymentService])(reference: ValueReference): String = (
     valueForDeploymentService(deployment, service)
-    orElse GlobalValueResolver.valueForReference
+    orElse super[ConfigurationValueResolver].valueForReference
     orElse PartialFunction[ValueReference, String] { _ ⇒ "" }
   )(reference)
 

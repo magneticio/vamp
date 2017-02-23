@@ -201,7 +201,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[MissingEnvironmentVariableError]({
       WorkflowReader.read(res("workflow/workflow22.yml"))
     }) should have(
-      'breed(DefaultBreed("metrics", Map(), Deployable("container/docker", "metrics"), Nil, List(EnvironmentVariable("HEAP", None, None, None)), Nil, Nil, Map())),
+      'breed(DefaultBreed("metrics", Map(), Deployable(None, "metrics"), Nil, List(EnvironmentVariable("HEAP", None, None, None)), Nil, Nil, Map())),
       'name("HEAP")
     )
   }
@@ -210,7 +210,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[UnresolvedDependencyInTraitValueError]({
       WorkflowReader.read(res("workflow/workflow23.yml"))
     }) should have(
-      'breed(DefaultBreed("metrics", Map(), Deployable("container/docker", "metrics"), Nil, List(EnvironmentVariable("HEAP", None, Option("128MB"), None)), Nil, Nil, Map())),
+      'breed(DefaultBreed("metrics", Map(), Deployable(None, "metrics"), Nil, List(EnvironmentVariable("HEAP", None, Option("128MB"), None)), Nil, Nil, Map())),
       'reference("THEME")
     )
   }

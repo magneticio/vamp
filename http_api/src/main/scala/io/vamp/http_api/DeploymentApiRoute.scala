@@ -2,14 +2,13 @@ package io.vamp.http_api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.util.Timeout
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
+import io.vamp.common.akka.CommonProvider
 import io.vamp.common.http.HttpApiDirectives
-import io.vamp.common.notification.NotificationProvider
 import io.vamp.operation.controller.DeploymentApiController
 import io.vamp.persistence.ArtifactPaginationSupport
 
 trait DeploymentApiRoute extends DeploymentApiController {
-  this: ArtifactPaginationSupport with ExecutionContextProvider with ActorSystemProvider with HttpApiDirectives with NotificationProvider ⇒
+  this: ArtifactPaginationSupport with HttpApiDirectives with CommonProvider ⇒
 
   implicit def timeout: Timeout
 

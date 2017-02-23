@@ -4,8 +4,8 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.stream.ActorMaterializer
+import io.vamp.common.Config
 import io.vamp.common.akka.{ ActorBootstrap, IoC }
-import io.vamp.common.config.Config
 import io.vamp.http_api.ws.WebSocketActor
 
 import scala.concurrent.Future

@@ -1,9 +1,10 @@
 package io.vamp.container_driver
 
+import io.vamp.common.{ Config, NamespaceResolver, NamespaceResolverProvider }
 import io.vamp.common.akka.ExecutionContextProvider
-import io.vamp.common.config.Config
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.NamespaceResolverProvider
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentValueResolver
@@ -11,13 +12,13 @@ import io.vamp.model.resolver.DeploymentValueResolver
 object ContainerDriver {
   val namespace = Config.string("vamp.container-driver.namespace")
 
-  def withNamespace(label: String) = {
+  def withNamespace(label: String)(implicit namespaceResolver: NamespaceResolver) = {
     val ns = namespace()
     if (ns.isEmpty) label else s"$ns.$label"
   }
 }
 
-trait ContainerDriver extends DeploymentValueResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with ExecutionContextProvider {
+trait ContainerDriver extends DeploymentValueResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with NamespaceResolverProvider with ExecutionContextProvider {
 
   protected def httpClient: HttpClient
 
@@ -109,13 +110,13 @@ trait ContainerDriver extends DeploymentValueResolver with ContainerDriverValida
 }
 
 trait ContainerDriverValidation {
-  this: NotificationProvider ⇒
+  this: NamespaceResolverProvider with NotificationProvider ⇒
 
   protected def supportedDeployableTypes: List[DeployableType]
 
   protected def validateDeployable(deployable: Deployable) = {
     if (!supportedDeployableTypes.exists(_.matches(deployable)))
-      throwException(UnsupportedDeployableType(deployable.`type`, supportedDeployableTypes.flatMap(_.types).mkString(", ")))
+      throwException(UnsupportedDeployableType(deployable.defaultType(), supportedDeployableTypes.flatMap(_.types).mkString(", ")))
 
     if (DockerDeployableType.matches(deployable) && deployable.definition.isEmpty)
       throwException(UndefinedDockerImage)

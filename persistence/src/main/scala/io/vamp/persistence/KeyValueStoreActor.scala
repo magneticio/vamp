@@ -1,6 +1,6 @@
 package io.vamp.persistence
 
-import io.vamp.common.config.Config
+import io.vamp.common.{ Config, NamespaceResolver }
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.Notification
@@ -14,11 +14,12 @@ object KeyValueStoreActor {
 
   val timeout = PersistenceActor.timeout
 
-  private val basePath = () ⇒ Config.string("vamp.persistence.key-value-store.base-path")().stripMargin('/')
-
   def stringToPath(string: String): List[String] = string.split('/').toList
 
-  def pathToString(path: List[String]) = s"/${(basePath() :: path).mkString("/")}"
+  def pathToString(path: List[String])(implicit namespaceResolver: NamespaceResolver) = {
+    val basePath = Config.string("vamp.persistence.key-value-store.base-path")().stripMargin('/')
+    s"/${(basePath :: path).mkString("/")}"
+  }
 
   sealed trait KeyValueStoreMessage
 

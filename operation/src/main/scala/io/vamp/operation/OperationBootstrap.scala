@@ -1,8 +1,8 @@
 package io.vamp.operation
 
 import akka.actor.{ ActorRef, ActorSystem, Props }
+import io.vamp.common.Config
 import io.vamp.common.akka.{ ActorBootstrap, IoC, SchedulerActor }
-import io.vamp.common.config.Config
 import io.vamp.operation.config.ConfigurationLoaderActor
 import io.vamp.operation.deployment.{ DeploymentActor, DeploymentSynchronizationActor, DeploymentSynchronizationSchedulerActor }
 import io.vamp.operation.gateway.{ GatewayActor, GatewaySynchronizationActor, GatewaySynchronizationSchedulerActor }

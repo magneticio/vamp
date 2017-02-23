@@ -2,9 +2,8 @@ package io.vamp.persistence
 
 import akka.pattern.ask
 import akka.util.Timeout
+import io.vamp.common.akka.CommonProvider
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
-import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.event.{ Aggregator, EventQuery, LongValueAggregationResult }
 import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
@@ -14,7 +13,7 @@ import scala.concurrent.Future
 private case class DeploymentsStatistics(count: Int, clusters: Int, services: Int)
 
 trait PersistenceStats extends ArtifactPaginationSupport {
-  this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
+  this: CommonProvider ⇒
 
   protected implicit def timeout: Timeout
 
@@ -54,6 +53,7 @@ trait PersistenceStats extends ArtifactPaginationSupport {
           case _                                 ⇒ 0
         }
       }
+
       for {
         currentCount ← all(`type`, 1, 1).map(_.total)
         created ← count(PersistenceArchive.archiveCreateTag)

@@ -474,7 +474,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     blueprint should have(
       'name("nomadic-frostbite"),
       'gateways(List(Gateway("", Map(), Port("8081", None, Some("8081")), None, None, Nil, List(DefaultRoute("", Map(), "supersonic/port", None, None, None, Nil, None))), Gateway("", Map(), Port("8082", None, Some("8082/tcp")), None, None, Nil, List(DefaultRoute("", Map(), "supersonic/health", None, None, None, Nil, None))), Gateway("", Map(), Port("8083", None, Some("8083/http")), None, None, Nil, List(DefaultRoute("", Map(), "supersonic/metrics", None, None, None, Nil, None))))),
-      'clusters(List(Cluster("supersonic", Map(), List(Service(DefaultBreed("solid-barbershop", Map(), Deployable("container/docker", "vamp/solid-barbershop"), List(Port("port", None, Some("80/http")), Port("health", None, Some("8080")), Port("metrics", None, Some("8090/tcp"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map())), Nil, None, None, Map())))
+      'clusters(List(Cluster("supersonic", Map(), List(Service(DefaultBreed("solid-barbershop", Map(), Deployable(None, "vamp/solid-barbershop"), List(Port("port", None, Some("80/http")), Port("health", None, Some("8080")), Port("metrics", None, Some("8090/tcp"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map())), Nil, None, None, Map())))
     )
 
     blueprint.gateways.foreach {
@@ -537,7 +537,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "parse multiple port routing" in {
     BlueprintReader.read(res("blueprint/blueprint61.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("sava", Map(), List(Service(DefaultBreed("sava_1.0", Map(), Deployable("container/docker", "magneticio/sava:1.0.0"), List(Port("web", None, Some("8080")), Port("admin", None, Some("8081"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map())), List(Gateway("", Map(), Port("web", None, None), None, Some(Gateway.Sticky.Route), Nil, Nil), Gateway("", Map(), Port("admin", None, None), None, Some(Gateway.Sticky.Instance), Nil, Nil)), None, None, Map()))),
+      'clusters(List(Cluster("sava", Map(), List(Service(DefaultBreed("sava_1.0", Map(), Deployable(None, "magneticio/sava:1.0.0"), List(Port("web", None, Some("8080")), Port("admin", None, Some("8081"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map())), List(Gateway("", Map(), Port("web", None, None), None, Some(Gateway.Sticky.Route), Nil, Nil), Gateway("", Map(), Port("admin", None, None), None, Some(Gateway.Sticky.Instance), Nil, Nil)), None, None, Map()))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -562,7 +562,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "allow sticky http port" in {
     BlueprintReader.read(res("blueprint/blueprint64.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", Map(), List(Service(DefaultBreed("nocturnal-viper", Map(), Deployable("container/docker", "anaconda"), List(Port("web", None, Some("8080/http"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map())), List(Gateway("", Map(), Port("web", None, None), None, Some(Gateway.Sticky.Route), Nil, Nil)), None, None, Map()))),
+      'clusters(List(Cluster("notorious", Map(), List(Service(DefaultBreed("nocturnal-viper", Map(), Deployable(None, "anaconda"), List(Port("web", None, Some("8080/http"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map())), List(Gateway("", Map(), Port("web", None, None), None, Some(Gateway.Sticky.Route), Nil, Nil)), None, None, Map()))),
       'environmentVariables(Nil)
     )
   }
@@ -588,14 +588,14 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[IllegalAnonymousRoutingPortMappingError]({
       BlueprintReader.read(res("blueprint/blueprint67.yml"))
     }) should have(
-      'breed(DefaultBreed("nocturnal-viper", Map(), Deployable("container/docker", "anaconda"), List(Port("web", None, Some("8080")), Port("admin", None, Some("9090"))), Nil, Nil, Nil, Map()))
+      'breed(DefaultBreed("nocturnal-viper", Map(), Deployable(None, "anaconda"), List(Port("web", None, Some("8080")), Port("admin", None, Some("9090"))), Nil, Nil, Nil, Map()))
     )
   }
 
   it should "remap anonymous routing port" in {
     BlueprintReader.read(res("blueprint/blueprint68.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", Map(), List(Service(DefaultBreed("nocturnal-viper", Map(), Deployable("container/docker", "anaconda"), List(Port("web", None, Some("8080"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map())), List(Gateway("", Map(), Port("web", None, None), None, Some(Gateway.Sticky.Route), Nil, Nil)), None, None, Map()))),
+      'clusters(List(Cluster("notorious", Map(), List(Service(DefaultBreed("nocturnal-viper", Map(), Deployable(None, "anaconda"), List(Port("web", None, Some("8080"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map())), List(Gateway("", Map(), Port("web", None, None), None, Some(Gateway.Sticky.Route), Nil, Nil)), None, None, Map()))),
       'environmentVariables(Nil)
     )
   }
@@ -603,7 +603,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "read complex gateway" in {
     BlueprintReader.read(res("blueprint/blueprint69.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("notorious", Map(), List(Service(DefaultBreed("nocturnal-viper", Map(), Deployable("container/docker", "anaconda"), List(Port("web", None, Some("9050")), Port("admin", None, Some("9060"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map())), List(Gateway("", Map(), Port("web", None, None), None, Some(Gateway.Sticky.Route), Nil, Nil)), None, None, Map()))),
+      'clusters(List(Cluster("notorious", Map(), List(Service(DefaultBreed("nocturnal-viper", Map(), Deployable(None, "anaconda"), List(Port("web", None, Some("9050")), Port("admin", None, Some("9060"))), Nil, Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map())), List(Gateway("", Map(), Port("web", None, None), None, Some(Gateway.Sticky.Route), Nil, Nil)), None, None, Map()))),
       'gateways(List(Gateway("", Map(), Port("8080", None, Some("8080")), None, None, Nil, List(DefaultRoute("", Map(), GatewayPath("notorious/web", List("notorious", "web")), None, None, None, Nil, None))), Gateway("", Map(), Port("8081", None, Some("8081")), None, Some(Gateway.Sticky.Route), Nil, List(DefaultRoute("", Map(), GatewayPath("notorious/admin", List("notorious", "admin")), None, None, None, Nil, None)))))
     )
   }
@@ -730,7 +730,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     BlueprintReader.read(res("blueprint/blueprint85.yml")) should have(
       'name("nomadic-frostbite"),
       'gateways(List(Gateway("", Map(), Port("8080", None, Some("8080"), 8080, Port.Type.Http), None, None, Nil, List(DefaultRoute("", Map(), GatewayPath("supersonic/http", List("supersonic", "http")), None, None, None, Nil, None, Nil))))),
-      'clusters(List(Cluster("supersonic", Map(), List(Service(DefaultBreed("solid-barbershop", Map(), Deployable("container/docker", "vamp/solid-barbershop"), List(Port("port", None, Some("80/http"), 80, Port.Type.Http)), Nil, Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map()), Service(BreedReference("barbershop"), Nil, None, Nil, Nil, None, Map())), Nil, None, None, Map())))
+      'clusters(List(Cluster("supersonic", Map(), List(Service(DefaultBreed("solid-barbershop", Map(), Deployable(None, "vamp/solid-barbershop"), List(Port("port", None, Some("80/http"), 80, Port.Type.Http)), Nil, Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map()), Service(BreedReference("barbershop"), Nil, None, Nil, Nil, None, Map())), Nil, None, None, Map())))
     )
   }
 
@@ -738,7 +738,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     BlueprintReader.read(res("blueprint/blueprint86.yml")) should have(
       'name("nomadic-frostbite"),
       'environmentVariables(List(EnvironmentVariable("supersonic.environment_variables.http", None, Some("80"), None))),
-      'clusters(List(Cluster("supersonic", Map(), List(Service(DefaultBreed("solid-barbershop", Map(), Deployable("container/docker", "vamp/solid-barbershop"), Nil, List(EnvironmentVariable("port", None, Some("80/http"), None)), Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map()), Service(BreedReference("barbershop"), Nil, None, Nil, Nil, None, Map())), Nil, None, None, Map())))
+      'clusters(List(Cluster("supersonic", Map(), List(Service(DefaultBreed("solid-barbershop", Map(), Deployable(None, "vamp/solid-barbershop"), Nil, List(EnvironmentVariable("port", None, Some("80/http"), None)), Nil, Nil, Map()), Nil, None, Nil, Nil, None, Map()), Service(BreedReference("barbershop"), Nil, None, Nil, Nil, None, Map())), Nil, None, None, Map())))
     )
   }
 

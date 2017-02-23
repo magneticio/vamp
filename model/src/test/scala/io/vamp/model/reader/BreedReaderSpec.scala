@@ -229,14 +229,14 @@ class BreedReaderSpec extends ReaderSpec {
   it should "resolve deployable implicit (default) type and definition" in {
     BreedReader.read(res("breed/breed24.yml")) should have(
       'name("monarch"),
-      'deployable(Deployable("container/docker", "magneticio/vamp:latest"))
+      'deployable(Deployable(None, "magneticio/vamp:latest"))
     )
   }
 
   it should "resolve deployable schema" in {
     BreedReader.read(res("breed/breed25.yml")) should have(
       'name("sava:1.0.0"),
-      'deployable(Deployable("container/docker", "magneticio/sava:1.0.0"))
+      'deployable(Deployable(None, "magneticio/sava:1.0.0"))
     )
   }
 
@@ -267,7 +267,7 @@ class BreedReaderSpec extends ReaderSpec {
   it should "resolve arguments" in {
     BreedReader.read(res("breed/breed29.yml")) should have(
       'name("sava:1.0.0"),
-      'deployable(Deployable("container/docker", "magneticio/sava:1.0.0")),
+      'deployable(Deployable(None, "magneticio/sava:1.0.0")),
       'arguments(List(Argument("arg1", "test1"), Argument("arg2", "test2")))
     )
   }
@@ -275,7 +275,7 @@ class BreedReaderSpec extends ReaderSpec {
   it should "expand single argument" in {
     BreedReader.read(res("breed/breed30.yml")) should have(
       'name("sava:1.0.0"),
-      'deployable(Deployable("container/docker", "magneticio/sava:1.0.0")),
+      'deployable(Deployable(None, "magneticio/sava:1.0.0")),
       'arguments(List(Argument("arg1", "test1")))
     )
   }
@@ -283,7 +283,7 @@ class BreedReaderSpec extends ReaderSpec {
   it should "expand multiple arguments" in {
     BreedReader.read(res("breed/breed31.yml")) should have(
       'name("sava:1.0.0"),
-      'deployable(Deployable("container/docker", "magneticio/sava:1.0.0")),
+      'deployable(Deployable(None, "magneticio/sava:1.0.0")),
       'arguments(List(Argument("arg", "test"), Argument("privileged", "true")))
     )
   }

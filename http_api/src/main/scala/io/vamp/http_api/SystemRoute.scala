@@ -1,13 +1,12 @@
 package io.vamp.http_api
 
 import akka.http.scaladsl.model.HttpEntity
-import akka.http.scaladsl.model.HttpMethods.{ PUT, POST }
+import akka.http.scaladsl.model.HttpMethods.{ POST, PUT }
 import akka.http.scaladsl.model.StatusCodes._
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, IoC }
+import io.vamp.common.akka.{ CommonProvider, IoC }
 import io.vamp.common.http.HttpApiDirectives
-import io.vamp.common.notification.NotificationProvider
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.operation.config.ConfigurationLoaderActor
 import io.vamp.persistence.KeyValueStoreActor
@@ -15,7 +14,7 @@ import io.vamp.persistence.KeyValueStoreActor
 import scala.concurrent.Future
 
 trait SystemRoute extends SystemController {
-  this: ExecutionContextProvider with ActorSystemProvider with HttpApiDirectives with NotificationProvider ⇒
+  this: HttpApiDirectives with CommonProvider ⇒
 
   implicit def timeout: Timeout
 
@@ -77,7 +76,7 @@ trait SystemRoute extends SystemController {
 }
 
 trait SystemController {
-  this: NotificationProvider with ExecutionContextProvider with ActorSystemProvider ⇒
+  this: CommonProvider ⇒
 
   def vgaTemplate(kind: String, name: String): Future[Any] = {
     implicit val timeout = KeyValueStoreActor.timeout()

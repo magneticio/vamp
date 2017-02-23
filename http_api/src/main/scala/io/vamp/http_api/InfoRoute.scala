@@ -7,7 +7,7 @@ import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.InfoController
 
 trait InfoRoute extends InfoController with ExecutionContextProvider {
-  this: ExecutionContextProvider with ActorSystemProvider with HttpApiDirectives ⇒
+  this: HttpApiDirectives with CommonProvider ⇒
 
   implicit def timeout: Timeout
 

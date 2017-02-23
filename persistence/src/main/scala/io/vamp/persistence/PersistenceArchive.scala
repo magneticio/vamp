@@ -4,7 +4,6 @@ import akka.actor.ActorLogging
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka._
-import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.pulse.PulseActor
@@ -37,7 +36,7 @@ object PersistenceArchive {
 }
 
 trait PersistenceArchive {
-  this: ActorSystemProvider with ActorLogging with NotificationProvider ⇒
+  this: ActorLogging with CommonProvider ⇒
 
   import PersistenceArchive._
 

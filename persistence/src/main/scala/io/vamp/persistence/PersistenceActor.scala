@@ -1,7 +1,7 @@
 package io.vamp.persistence
 
+import io.vamp.common.Config
 import io.vamp.common.akka._
-import io.vamp.common.config.Config
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }

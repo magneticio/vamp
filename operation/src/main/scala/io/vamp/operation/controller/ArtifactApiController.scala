@@ -4,9 +4,8 @@ import java.net.URLDecoder
 
 import akka.pattern.ask
 import akka.util.Timeout
+import io.vamp.common.akka.CommonProvider
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
-import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InconsistentArtifactName
 import io.vamp.model.reader.{ YamlReader, _ }
@@ -18,7 +17,7 @@ import io.vamp.persistence.{ ArtifactExpansionSupport, ArtifactResponseEnvelope,
 import scala.concurrent.Future
 
 trait ArtifactApiController extends MultipleArtifactApiController with SingleArtifactApiController with ArtifactExpansionSupport {
-  this: DeploymentApiController with ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
+  this: DeploymentApiController with CommonProvider ⇒
 
   def background(artifact: String): Boolean = !crud(artifact)
 
@@ -33,7 +32,7 @@ trait ArtifactApiController extends MultipleArtifactApiController with SingleArt
 }
 
 trait SingleArtifactApiController {
-  this: ArtifactApiController with ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
+  this: ArtifactApiController with CommonProvider ⇒
 
   import PersistenceActor._
 
@@ -83,12 +82,12 @@ trait SingleArtifactApiController {
   }
 
   def deleteArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
-    case (t, r) if t == classOf[Gateway] ⇒
+    case (t, _) if t == classOf[Gateway] ⇒
       actorFor[GatewayActor] ? GatewayActor.Delete(name, validateOnly)
 
-    case (t, r) if t == classOf[Deployment] ⇒ Future.successful(None)
+    case (t, _) if t == classOf[Deployment] ⇒ Future.successful(None)
 
-    case (t, r) if t == classOf[Workflow] ⇒
+    case (t, _) if t == classOf[Workflow] ⇒
       read(t, name, expandReferences = false, onlyReferences = false) map {
         case Some(workflow: Workflow) ⇒
           if (validateOnly) Future.successful(true)
@@ -136,12 +135,11 @@ trait SingleArtifactApiController {
 
   private def createWorkflow(reader: YamlReader[_ <: Artifact], source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
     reader.read(source) match {
-      case artifact ⇒ {
+      case artifact ⇒
         artifactForIfExists[Deployment](artifact.name).flatMap {
           case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(artifact.name))
           case _       ⇒ if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Create(artifact, Option(source))
         }
-      }
     }
   }
 
@@ -174,7 +172,7 @@ trait SingleArtifactApiController {
 }
 
 trait MultipleArtifactApiController {
-  this: SingleArtifactApiController with DeploymentApiController with ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
+  this: SingleArtifactApiController with DeploymentApiController with CommonProvider ⇒
 
   def createArtifacts(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = process(source, {
     item ⇒

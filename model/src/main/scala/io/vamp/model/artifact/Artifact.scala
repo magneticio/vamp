@@ -1,6 +1,6 @@
 package io.vamp.model.artifact
 
-import io.vamp.common.crypto.Hash
+import io.vamp.common.util.HashUtil
 
 object Artifact {
 
@@ -35,5 +35,5 @@ trait Lookup extends Artifact {
 
   def lookupName = lookup(name)
 
-  def lookup(string: String) = Hash.hexSha1(s"$getClass@$string", Artifact.version)
+  def lookup(string: String) = HashUtil.hexSha1(s"$getClass@$string", Artifact.version)
 }

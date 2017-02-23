@@ -2,10 +2,9 @@ package io.vamp.operation.deployment
 
 import akka.pattern.ask
 import akka.util.Timeout
+import io.vamp.common.{ Config, NamespaceResolver }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
-import io.vamp.common.config.Config
-import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact.DeploymentService.Status.Intention
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
@@ -22,13 +21,13 @@ object DeploymentActor {
 
   val gatewayHost = Config.string("vamp.gateway-driver.host")
 
-  val defaultScale = () ⇒ DefaultScale(
+  def defaultScale()(implicit namespaceResolver: NamespaceResolver) = DefaultScale(
     Quantity.of(Config.double("vamp.operation.deployment.scale.cpu")()),
     MegaByte.of(Config.string("vamp.operation.deployment.scale.memory")()),
     Config.int("vamp.operation.deployment.scale.instances")()
   )
 
-  val defaultArguments = () ⇒ Config.stringList("vamp.operation.deployment.arguments")().map(Argument(_))
+  def defaultArguments()(implicit namespaceResolver: NamespaceResolver) = Config.stringList("vamp.operation.deployment.arguments")().map(Argument(_))
 
   trait DeploymentMessage
 
@@ -95,7 +94,7 @@ class DeploymentActor
 }
 
 trait BlueprintSupport extends DeploymentValidator with NameValidator with BlueprintGatewayHelper with ArtifactExpansionSupport {
-  this: DeploymentValueResolver with ActorSystemProvider with ArtifactPaginationSupport with ExecutionContextProvider with NotificationProvider ⇒
+  this: DeploymentValueResolver with ArtifactPaginationSupport with CommonProvider ⇒
 
   def deploymentFor(name: String, create: Boolean = false): Future[Deployment] = {
     if (!create) {
@@ -153,7 +152,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
 }
 
 trait DeploymentValidator {
-  this: BlueprintGatewayHelper with DeploymentValueResolver with ArtifactPaginationSupport with ArtifactSupport with ExecutionContextProvider with NotificationProvider ⇒
+  this: BlueprintGatewayHelper with DeploymentValueResolver with ArtifactPaginationSupport with ArtifactSupport with CommonProvider ⇒
 
   def validateServices: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
     val services = deployment.clusters.flatMap(_.services).filterNot(_.status.intention == Intention.Undeployment)
@@ -281,13 +280,13 @@ trait DeploymentValidator {
 }
 
 trait DeploymentOperation extends DeploymentGatewayOperation {
-  this: ActorSystemProvider with NotificationProvider ⇒
+  this: CommonProvider ⇒
 
   def commit(source: String, validateOnly: Boolean): (Future[Deployment] ⇒ Future[Any])
 }
 
 trait DeploymentGatewayOperation {
-  this: ActorSystemProvider with NotificationProvider ⇒
+  this: CommonProvider ⇒
 
   def serviceRoutePath(deployment: Deployment, cluster: DeploymentCluster, serviceName: String, portName: String) = GatewayPath(deployment.name :: cluster.name :: serviceName :: portName :: Nil)
 
@@ -316,7 +315,7 @@ trait DeploymentGatewayOperation {
 }
 
 trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver {
-  this: ReplyActor with DeploymentValidator with ArtifactSupport with ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
+  this: ReplyActor with DeploymentValidator with ArtifactSupport with CommonProvider ⇒
 
   def validateBlueprint = validateBlueprintEnvironmentVariables andThen validateBlueprintRoutes
 
@@ -415,7 +414,8 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
             service.copy(
               scale = scale,
               dialects = service.dialects ++ bpService.dialects,
-              healthChecks = bpService.healthChecks)
+              healthChecks = bpService.healthChecks
+            )
         }
       }
     }
@@ -549,7 +549,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
 }
 
 trait DeploymentSlicer extends DeploymentOperation {
-  this: DeploymentValidator with ArtifactSupport with ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
+  this: DeploymentValidator with ArtifactSupport with CommonProvider ⇒
 
   def validateRoutingWeightOfServicesForRemoval(deployment: Deployment, blueprint: Deployment) = deployment.clusters.foreach { cluster ⇒
     blueprint.clusters.find(_.name == cluster.name).foreach { bpc ⇒
@@ -625,7 +625,7 @@ trait DeploymentSlicer extends DeploymentOperation {
 }
 
 trait DeploymentUpdate {
-  this: DeploymentValidator with ActorSystemProvider with ExecutionContextProvider ⇒
+  this: DeploymentValidator with CommonProvider ⇒
 
   private implicit val timeout = PersistenceActor.timeout()
 

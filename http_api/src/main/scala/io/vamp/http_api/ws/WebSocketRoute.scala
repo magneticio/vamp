@@ -8,18 +8,17 @@ import akka.http.scaladsl.server.Route
 import akka.stream._
 import akka.stream.scaladsl.{ Flow, Sink, Source }
 import akka.util.Timeout
+import io.vamp.common.Config
+import io.vamp.common.akka.CommonProvider
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
-import io.vamp.common.config.Config
 import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers, TerminateFlowStage }
-import io.vamp.common.notification.NotificationProvider
 import io.vamp.http_api.LogDirective
 import io.vamp.http_api.ws.WebSocketActor.{ SessionClosed, SessionEvent, SessionOpened, SessionRequest }
 
 import scala.concurrent.Future
 
 trait WebSocketRoute extends WebSocketMarshaller with HttpApiHandlers {
-  this: HttpApiDirectives with LogDirective with ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
+  this: HttpApiDirectives with LogDirective with CommonProvider ⇒
 
   implicit def materializer: Materializer
 

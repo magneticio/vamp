@@ -4,11 +4,10 @@ import akka.http.scaladsl.model.StatusCodes.{ NotFound, OK }
 import akka.util.Timeout
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpApiDirectives
-import io.vamp.common.notification.NotificationProvider
 import io.vamp.operation.controller.MetricsController
 
 trait MetricsRoute extends MetricsController {
-  this: ExecutionContextProvider with ActorSystemProvider with HttpApiDirectives with NotificationProvider ⇒
+  this: HttpApiDirectives with CommonProvider ⇒
 
   implicit def timeout: Timeout
 

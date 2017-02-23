@@ -1,9 +1,9 @@
-package io.vamp.common.crypto
+package io.vamp.common.util
 
 import java.math.BigInteger
 import java.security.MessageDigest
 
-object Hash {
+object HashUtil {
 
   def hexSha1(content: String, salt: String = "0000"): String = hexHash("SHA1", content, salt)
 

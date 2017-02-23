@@ -1,16 +1,15 @@
 package io.vamp.persistence
 
-import io.vamp.persistence.notification.{ ArtifactNotFound, PersistenceOperationFailure }
 import akka.pattern.ask
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider, IoC }
-import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.akka.{ CommonProvider, IoC }
 import io.vamp.model.artifact.Artifact
+import io.vamp.persistence.notification.{ ArtifactNotFound, PersistenceOperationFailure }
 
 import scala.concurrent.Future
 import scala.reflect._
 
 trait ArtifactSupport {
-  this: ActorSystemProvider with ExecutionContextProvider with NotificationProvider ⇒
+  this: CommonProvider ⇒
 
   def artifactFor[T <: Artifact: ClassTag](artifact: Option[Artifact]): Future[Option[T]] = artifact match {
     case None    ⇒ Future.successful(None)

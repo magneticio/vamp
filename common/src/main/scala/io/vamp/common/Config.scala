@@ -1,6 +1,6 @@
-package io.vamp.common.config
+package io.vamp.common
 
-import akka.util.Timeout
+import _root_.akka.util.Timeout
 import com.typesafe.config.ConfigException.Missing
 import com.typesafe.config.{ ConfigFactory, ConfigValueFactory, Config ⇒ TypesafeConfig }
 import io.vamp.common.util.{ ObjectUtil, YamlUtil }
@@ -81,15 +81,15 @@ object Config {
 
   def duration(path: String) = get(path, { config ⇒ FiniteDuration(config.getDuration(path, MILLISECONDS), MILLISECONDS) })
 
-  def timeout(path: String) = () ⇒ Timeout(duration(path)())
+  def timeout(path: String) = get(path, { config ⇒ Timeout(FiniteDuration(config.getDuration(path, MILLISECONDS), MILLISECONDS)) })
 
   def has(path: String): () ⇒ Boolean = () ⇒ values.get(Type.applied).exists(_.hasPath(path))
 
-  def list(path: String): () ⇒ List[AnyRef] = get(path, { config ⇒
+  def list(path: String): ConfigMagnet[List[AnyRef]] = get(path, { config ⇒
     config.getList(path).unwrapped.asScala.map(ObjectUtil.asScala).toList
   })
 
-  def entries(path: String = ""): () ⇒ Map[String, AnyRef] = get(path, { config ⇒
+  def entries(path: String = ""): ConfigMagnet[Map[String, AnyRef]] = get(path, { config ⇒
     val cfg = if (path.nonEmpty) config.getConfig(path) else config
     cfg.entrySet.asScala.map { entry ⇒ entry.getKey → ObjectUtil.asScala(cfg.getAnyRef(entry.getKey)) }.toMap
   })
@@ -99,10 +99,12 @@ object Config {
     if (flatten) entries else expand(entries)
   }
 
-  private def get[T](path: String, process: TypesafeConfig ⇒ T): () ⇒ T = { () ⇒
-    values.get(Type.applied) match {
-      case Some(applied) ⇒ process(applied)
-      case _             ⇒ throw new Missing(path)
+  private def get[T](path: String, process: TypesafeConfig ⇒ T): ConfigMagnet[T] = new ConfigMagnet[T] {
+    def apply()(implicit namespaceResolver: NamespaceResolver): T = {
+      values.get(Type.applied) match {
+        case Some(applied) ⇒ process(applied)
+        case _             ⇒ throw new Missing(path)
+      }
     }
   }
 
@@ -139,4 +141,8 @@ object Config {
       case other         ⇒ other
     }
   }
+}
+
+trait ConfigMagnet[T] {
+  def apply()(implicit namespaceResolver: NamespaceResolver): T
 }

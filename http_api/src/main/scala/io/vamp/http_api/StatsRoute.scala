@@ -7,7 +7,7 @@ import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.StatsController
 
 trait StatsRoute extends StatsController {
-  this: ExecutionContextProvider with ActorSystemProvider with HttpApiDirectives ⇒
+  this: HttpApiDirectives with CommonProvider ⇒
 
   implicit def timeout: Timeout
 

@@ -1,17 +1,18 @@
 package io.vamp.model.resolver
 
+import io.vamp.common.NamespaceResolverProvider
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 
-trait WorkflowValueResolver extends ValueResolver {
-  this: NotificationProvider ⇒
+trait WorkflowValueResolver extends ValueResolver with ConfigurationValueResolver {
+  this: NamespaceResolverProvider with NotificationProvider ⇒
 
   def resolveEnvironmentVariable(workflow: Workflow): EnvironmentVariable ⇒ EnvironmentVariable = { env ⇒
     env.copy(interpolated = env.value.map { value ⇒
       resolve(
         resolve(
           value,
-          valueFor(workflow, GlobalValueResolver.valueForReference)
+          valueFor(workflow, super[ConfigurationValueResolver].valueForReference)
         ),
         valueFor(workflow, valueForWorkflow(workflow: Workflow))
       )

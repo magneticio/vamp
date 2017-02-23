@@ -1,8 +1,8 @@
 package io.vamp.operation.deployment
 
+import io.vamp.common.Config
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ CommonSupportForActors, IoC }
-import io.vamp.common.config.Config
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService, Containers }
 import io.vamp.model.artifact.DeploymentService.Status.Intention
 import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated, Updating }

@@ -2,9 +2,9 @@ package io.vamp.workflow_driver
 
 import akka.actor.ActorSystem
 import akka.pattern.ask
+import io.vamp.common.Config
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.akka.IoC._
-import io.vamp.common.config.Config
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.{ ContainerDriverActor, Docker }
@@ -67,7 +67,7 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
 
   protected def enrich(workflow: Workflow): Future[Workflow] = {
     artifactFor[DefaultBreed](workflow.breed, force = true).flatMap { breed ⇒
-      (deployables.get(breed.deployable.`type`) match {
+      (deployables.get(breed.deployable.defaultType()) match {
         case Some(reference) ⇒ artifactFor[DefaultBreed](reference)
         case _               ⇒ Future.successful(breed)
       }).flatMap { executor ⇒

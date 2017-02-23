@@ -1,4 +1,4 @@
-package io.vamp.common.spi
+package io.vamp.common
 
 import java.util.ServiceLoader
 

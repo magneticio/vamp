@@ -1,6 +1,6 @@
 package io.vamp.pulse
 
-import io.vamp.common.spi.ClassMapper
+import io.vamp.common.ClassMapper
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.model.event._
 import io.vamp.pulse.Percolator.{ GetPercolator, RegisterPercolator, UnregisterPercolator }

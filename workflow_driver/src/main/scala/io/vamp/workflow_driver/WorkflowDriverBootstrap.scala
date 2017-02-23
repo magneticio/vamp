@@ -1,9 +1,8 @@
 package io.vamp.workflow_driver
 
 import akka.actor.{ ActorRef, ActorSystem }
+import io.vamp.common.{ ClassProvider, Config }
 import io.vamp.common.akka.{ ActorBootstrap, IoC }
-import io.vamp.common.config.Config
-import io.vamp.common.spi.ClassProvider
 import io.vamp.workflow_driver.notification.{ UnsupportedWorkflowDriverError, WorkflowDriverNotificationProvider }
 
 class WorkflowDriverBootstrap extends ActorBootstrap with WorkflowDriverNotificationProvider {

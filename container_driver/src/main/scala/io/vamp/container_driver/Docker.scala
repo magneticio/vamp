@@ -1,6 +1,6 @@
 package io.vamp.container_driver
 
-import io.vamp.common.config.Config
+import io.vamp.common.Config
 
 case class DockerPortMapping(containerPort: Int, protocol: String = "tcp", hostPort: Int = 0)
 

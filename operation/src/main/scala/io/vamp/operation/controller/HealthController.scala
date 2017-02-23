@@ -1,13 +1,12 @@
 package io.vamp.operation.controller
 
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
-import io.vamp.common.config.Config
-import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.Config
+import io.vamp.common.akka.CommonProvider
 
 import scala.concurrent.Future
 
 trait HealthController extends EventPeekController {
-  this: ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
+  this: CommonProvider ⇒
 
   private val window = Config.duration("vamp.operation.health.window")
 

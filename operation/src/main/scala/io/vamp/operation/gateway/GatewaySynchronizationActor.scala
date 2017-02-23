@@ -1,8 +1,8 @@
 package io.vamp.operation.gateway
 
 import akka.pattern.ask
+import io.vamp.common.{ Config, NamespaceResolver }
 import io.vamp.common.akka._
-import io.vamp.common.config.Config
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.container_driver.ContainerDriverActor.DeployedGateways
 import io.vamp.gateway_driver.GatewayDriverActor
@@ -26,9 +26,14 @@ object GatewaySynchronizationActor {
 
   val timeout = Config.timeout("vamp.operation.gateway.response-timeout")
 
-  val (portRangeLower: Int, portRangeUpper: Int) = {
+  def portRangeLower()(implicit namespaceResolver: NamespaceResolver): Int = {
     val portRange = Config.string("vamp.operation.gateway.port-range")().split("-").map(_.toInt)
-    (portRange(0), portRange(1))
+    portRange(0)
+  }
+
+  def portRangeUpper()(implicit namespaceResolver: NamespaceResolver): Int = {
+    val portRange = Config.string("vamp.operation.gateway.port-range")().split("-").map(_.toInt)
+    portRange(1)
   }
 
   sealed trait GatewayMessages

@@ -8,15 +8,14 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{ Sink, Source }
 import akka.util.Timeout
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
-import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.akka.CommonProvider
 import io.vamp.model.artifact.Port
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
 
 trait ProxyController extends GatewayWorkflowDeploymentResolver {
-  this: ExecutionContextProvider with ActorSystemProvider with NotificationProvider ⇒
+  this: CommonProvider ⇒
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 
