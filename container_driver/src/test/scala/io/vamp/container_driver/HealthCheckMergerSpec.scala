@@ -106,4 +106,10 @@ class HealthCheckMergerSpec extends FlatSpec with Matchers with HealthCheckMerge
     mergeResult should equal(healthChecks.drop(10))
   }
 
+  it should "return the breed level health checks is others are not defined" in {
+    val mergeResult = mergeHealthChecks(testHealthCheck, None, None, testPort)
+
+    mergeResult should equal(testHealthCheck.get)
+  }
+
 }
