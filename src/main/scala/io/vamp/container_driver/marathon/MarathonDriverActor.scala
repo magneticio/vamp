@@ -181,13 +181,6 @@ class MarathonDriverActor
     val name = s"${deployment.name} / ${service.breed.deployable.definition}"
     if (update) log.info(s"marathon update service: $name") else log.info(s"marathon create service: $name")
 
-    val serviceHealthChecks: List[MarathonHealthCheck] = mergeHealthChecks(
-      breedLevel = service.breed.healthChecks,
-      serviceLevel = service.healthChecks,
-      clusterLevel = cluster.healthChecks,
-      ports = service.breed.ports
-    ).map(MarathonHealthCheck.apply(service.breed.ports, _))
-
     val app = MarathonApp(
       id,
       container(deployment, cluster, service),
@@ -196,7 +189,7 @@ class MarathonDriverActor
       Math.round(service.scale.get.memory.value).toInt,
       environment(deployment, cluster, service),
       cmd(deployment, cluster, service),
-      serviceHealthChecks,
+      healthChecks = retrieveHealthChecks(cluster, service).map(MarathonHealthCheck.apply(service.breed.ports, _)),
       labels = labels(deployment, cluster, service))
 
     sendRequest(update, id, requestPayload(deployment, cluster, service, purge(app)))
@@ -221,7 +214,7 @@ class MarathonDriverActor
       environment(workflow),
       cmd(workflow),
       labels = labels(workflow),
-      healthChecks = breed.healthChecks.getOrElse(List()).map(MarathonHealthCheck.apply(breed.ports, _)))
+      healthChecks = retrieveHealthChecks(workflow).map(MarathonHealthCheck.apply(breed.ports, _)))
 
     sendRequest(update, id, Extraction.decompose(purge(marathonApp)))
   }
