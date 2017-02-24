@@ -15,7 +15,7 @@ object KubernetesServiceType extends Enumeration {
 trait KubernetesService extends KubernetesArtifact {
   this: KubernetesContainerDriver with ActorLogging ⇒
 
-  private lazy val url = s"$apiUrl/api/v1/namespaces/$namespace/services"
+  private lazy val url = s"$apiUrl/api/v1/namespaces/$kubernetesNamespace/services"
 
   private val nameMatcher = """^[a-z]([-a-z0-9]*[a-z0-9])?$""".r
 
@@ -37,7 +37,7 @@ trait KubernetesService extends KubernetesArtifact {
          |  },
          |  "spec": {
          |    "selector": {
-         |      "${ContainerDriver.namespace()}": "$selector"
+         |      "${ContainerDriver.labelNamespace()}": "$selector"
          |    },
          |    "ports": [${ports.map(p ⇒ s"""{"name": "p${p.name}", "protocol": "${p.protocol.toUpperCase}", "port": ${p.port}, "targetPort": ${p.targetPort}}""").mkString(", ")}],
          |    "type": "${`type`.toString}"

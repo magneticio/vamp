@@ -10,7 +10,7 @@ trait KubernetesContainerDriver extends ContainerDriver {
 
   protected def apiUrl: String
 
-  protected def namespace: String
+  protected def kubernetesNamespace: String
 
   protected def apiHeaders: List[(String, String)]
 

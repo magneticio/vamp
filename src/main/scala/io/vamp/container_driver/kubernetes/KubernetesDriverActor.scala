@@ -1,7 +1,7 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorRef
-import io.vamp.common.{ ClassMapper, Config, NamespaceResolver }
+import io.vamp.common.{ ClassMapper, Config, Namespace }
 import io.vamp.common.http.HttpClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
@@ -41,7 +41,7 @@ object KubernetesDriverActor {
 
   val vampGatewayAgentId = Config.string(s"$config.vamp-gateway-agent-id")
 
-  def serviceType()(implicit namespaceResolver: NamespaceResolver) = KubernetesServiceType.withName(Config.string(s"$config.service-type")())
+  def serviceType()(implicit namespace: Namespace) = KubernetesServiceType.withName(Config.string(s"$config.service-type")())
 }
 
 case class KubernetesDriverInfo(version: Any, paths: Any, api: Any, apis: Any)
@@ -54,7 +54,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
 
   protected val apiUrl = KubernetesDriverActor.url()
 
-  protected val namespace = KubernetesDriverActor.namespace()
+  protected val kubernetesNamespace = KubernetesDriverActor.namespace()
 
   protected val apiHeaders = {
     def headers(bearer: String) = ("Authorization" → s"Bearer $bearer") :: HttpClient.jsonHeaders
@@ -63,9 +63,9 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     else Try(Source.fromFile(token()).mkString).map(headers).getOrElse(HttpClient.jsonHeaders)
   }
 
-  private val gatewayService = Map(ContainerDriver.namespace() → "gateway")
+  private val gatewayService = Map(ContainerDriver.labelNamespace() → "gateway")
 
-  private val daemonService = Map(ContainerDriver.namespace() → "daemon")
+  private val daemonService = Map(ContainerDriver.labelNamespace() → "daemon")
 
   protected val workflowNamePrefix = KubernetesDriverActor.workflowNamePrefix()
 
