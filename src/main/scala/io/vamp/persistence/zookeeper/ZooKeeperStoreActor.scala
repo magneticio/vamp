@@ -18,12 +18,8 @@ class ZooKeeperStoreActorMapper extends ClassMapper {
 
 class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
 
-  import KeyValueStoreActor._
-
   private val config = "vamp.persistence.key-value-store.zookeeper"
-
   private val servers = Config.string(s"$config.servers")()
-
   private var zooKeeperClient: Option[AsyncZooKeeperClient] = None
 
   override protected def info(): Future[Any] = zooKeeperClient match {
