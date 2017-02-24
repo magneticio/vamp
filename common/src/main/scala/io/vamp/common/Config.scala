@@ -19,18 +19,18 @@ object Config {
 
   private implicit val formats: Formats = DefaultFormats
 
-  private val values: mutable.Map[Type.Value, TypesafeConfig] = new mutable.LinkedHashMap()
+  private val values: mutable.Map[Namespace, mutable.Map[Type.Value, TypesafeConfig]] = new mutable.LinkedHashMap()
 
-  def marshall(config: Map[String, Any]): String = if (config.isEmpty) "" else writePretty(config)
+  def marshall(config: Map[String, Any])(implicit namespace: Namespace): String = if (config.isEmpty) "" else writePretty(config)
 
-  def unmarshall(input: String): Map[String, Any] = {
+  def unmarshall(input: String)(implicit namespace: Namespace): Map[String, Any] = {
     val yaml = Option(expand(YamlUtil.convert(YamlUtil.yaml.load(input), preserveOrder = false).asInstanceOf[Map[String, AnyRef]]))
     val json = yaml.map(write(_)).getOrElse("")
     val flatten = convert(ConfigFactory.parseString(json))
     expand(flatten)
   }
 
-  def load(dynamic: Map[String, Any] = Map()): Unit = {
+  def load(dynamic: Map[String, Any] = Map())(implicit namespace: Namespace): Unit = {
     val dynamicExpanded = expand(dynamic.asInstanceOf[Map[String, AnyRef]])
     val systemExpanded = expand(convert(ConfigFactory.systemProperties()))
 
@@ -47,43 +47,49 @@ object Config {
     val referenceExpanded = expand(reference)
     val applicationExpanded = expand(application)
 
-    values.put(Type.system, convert(systemExpanded))
-    values.put(Type.dynamic, convert(dynamicExpanded))
-    values.put(Type.reference, convert(referenceExpanded))
-    values.put(Type.application, convert(applicationExpanded))
-    values.put(Type.environment, convert(environmentExpanded))
-    values.put(Type.applied, convert(ObjectUtil.merge(referenceExpanded, applicationExpanded, environmentExpanded, systemExpanded, dynamicExpanded)))
+    values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).put(Type.system, convert(systemExpanded))
+    values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).put(Type.dynamic, convert(dynamicExpanded))
+    values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).put(Type.reference, convert(referenceExpanded))
+    values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).put(Type.application, convert(applicationExpanded))
+    values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).put(Type.environment, convert(environmentExpanded))
+    values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).put(Type.applied, convert(ObjectUtil.merge(referenceExpanded, applicationExpanded, environmentExpanded, systemExpanded, dynamicExpanded)))
   }
 
-  def int(path: String) = get(path, {
+  def int(path: String): ConfigMagnet[Int] = get(path, {
     _.getInt(path)
   })
 
-  def double(path: String) = get(path, {
+  def double(path: String): ConfigMagnet[Double] = get(path, {
     _.getDouble(path)
   })
 
-  def string(path: String) = get(path, {
+  def string(path: String): ConfigMagnet[String] = get(path, {
     _.getString(path)
   })
 
-  def boolean(path: String) = get(path, {
+  def boolean(path: String): ConfigMagnet[Boolean] = get(path, {
     _.getBoolean(path)
   })
 
-  def intList(path: String) = get(path, {
+  def intList(path: String): ConfigMagnet[List[Int]] = get(path, {
     _.getIntList(path).asScala.map(_.toInt).toList
   })
 
-  def stringList(path: String) = get(path, {
+  def stringList(path: String): ConfigMagnet[List[String]] = get(path, {
     _.getStringList(path).asScala.toList
   })
 
-  def duration(path: String) = get(path, { config ⇒ FiniteDuration(config.getDuration(path, MILLISECONDS), MILLISECONDS) })
+  def duration(path: String): ConfigMagnet[FiniteDuration] = get(path, {
+    config ⇒ FiniteDuration(config.getDuration(path, MILLISECONDS), MILLISECONDS)
+  })
 
-  def timeout(path: String) = get(path, { config ⇒ Timeout(FiniteDuration(config.getDuration(path, MILLISECONDS), MILLISECONDS)) })
+  def timeout(path: String): ConfigMagnet[Timeout] = get(path, {
+    config ⇒ Timeout(FiniteDuration(config.getDuration(path, MILLISECONDS), MILLISECONDS))
+  })
 
-  def has(path: String): () ⇒ Boolean = () ⇒ values.get(Type.applied).exists(_.hasPath(path))
+  def has(path: String)(implicit namespace: Namespace): () ⇒ Boolean = () ⇒ {
+    values.get(namespace).flatMap(_.get(Type.applied)).exists(_.hasPath(path))
+  }
 
   def list(path: String): ConfigMagnet[List[AnyRef]] = get(path, { config ⇒
     config.getList(path).unwrapped.asScala.map(ObjectUtil.asScala).toList
@@ -94,14 +100,14 @@ object Config {
     cfg.entrySet.asScala.map { entry ⇒ entry.getKey → ObjectUtil.asScala(cfg.getAnyRef(entry.getKey)) }.toMap
   })
 
-  def export(`type`: Config.Type.Value, flatten: Boolean = true, filter: String ⇒ Boolean = { _ ⇒ true }): Map[String, Any] = {
-    val entries = convert(values.getOrElse(`type`, ConfigFactory.empty())).filter { case (key, _) ⇒ filter(key) }
+  def export(`type`: Config.Type.Value, flatten: Boolean = true, filter: String ⇒ Boolean = { _ ⇒ true })(implicit namespace: Namespace): Map[String, Any] = {
+    val entries = convert(values.get(namespace).flatMap(_.get(`type`)).getOrElse(ConfigFactory.empty())).filter { case (key, _) ⇒ filter(key) }
     if (flatten) entries else expand(entries)
   }
 
   private def get[T](path: String, process: TypesafeConfig ⇒ T): ConfigMagnet[T] = new ConfigMagnet[T] {
     def apply()(implicit namespace: Namespace): T = {
-      values.get(Type.applied) match {
+      values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).get(Type.applied) match {
         case Some(applied) ⇒ process(applied)
         case _             ⇒ throw new Missing(path)
       }

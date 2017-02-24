@@ -52,7 +52,7 @@ object Deployable {
 case class Deployable(`type`: Option[String], definition: String) {
   def defaultType()(implicit namespace: Namespace): String = `type`.getOrElse {
     val path = "vamp.model.default-deployable-type"
-    if (Config.has(path)()) Config.string(path)() else Deployable.defaultType
+    if (Config.has(path)(namespace)()) Config.string(path)() else Deployable.defaultType
   }
 }
 
