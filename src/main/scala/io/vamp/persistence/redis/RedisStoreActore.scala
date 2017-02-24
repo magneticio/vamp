@@ -31,18 +31,18 @@ class RedisStoreActor extends KeyValueStoreActor {
   }
 
   override protected def all(path: List[String]): Future[List[String]] = {
-    val key = KeyValueStoreActor.pathToString(path)
+    val key = pathToString(path)
     client.keys(s"$key/*").map { list ⇒ list.map(_.substring(key.length + 1)).toList }
   }
 
   override protected def get(path: List[String]): Future[Option[String]] = {
-    client.get[String](KeyValueStoreActor.pathToString(path))
+    client.get[String](pathToString(path))
   }
 
   override protected def set(path: List[String], data: Option[String]): Future[Any] = {
     data match {
-      case Some(value) ⇒ client.set(KeyValueStoreActor.pathToString(path), value)
-      case None        ⇒ client.del(KeyValueStoreActor.pathToString(path))
+      case Some(value) ⇒ client.set(pathToString(path), value)
+      case None        ⇒ client.del(pathToString(path))
     }
   }
 }
