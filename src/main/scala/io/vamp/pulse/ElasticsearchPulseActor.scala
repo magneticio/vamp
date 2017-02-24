@@ -3,7 +3,7 @@ package io.vamp.pulse
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
-import io.vamp.common.{ ClassMapper, Config, NamespaceResolver }
+import io.vamp.common.{ ClassMapper, Config, Namespace }
 import io.vamp.common.http.OffsetEnvelope
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.util.HashUtil
@@ -31,7 +31,7 @@ object ElasticsearchPulseActor {
 
   val indexName = Config.string(s"$config.elasticsearch.index.name")
 
-  def indexTimeFormat()(implicit namespaceResolver: NamespaceResolver): Map[String, String] = {
+  def indexTimeFormat()(implicit namespace: Namespace): Map[String, String] = {
     Config.entries(s"$config.elasticsearch.index.time-format")().map { case (key, value) ⇒ key → value.toString }
   }
 }

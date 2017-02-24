@@ -6,7 +6,7 @@ import java.time.{ Instant, ZoneId, ZonedDateTime }
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
-import io.vamp.common.NamespaceResolver
+import io.vamp.common.Namespace
 import io.vamp.common.http.{ HttpClient, HttpClientException }
 import org.json4s.native.JsonMethods._
 import org.json4s.{ DefaultFormats, Formats, StringInput }
@@ -36,7 +36,7 @@ object ElasticsearchClient {
 
 }
 
-class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val namespaceResolver: NamespaceResolver, val system: ActorSystem) {
+class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val namespace: Namespace, val system: ActorSystem) {
 
   import ElasticsearchClient._
 
