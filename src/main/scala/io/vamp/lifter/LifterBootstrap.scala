@@ -1,7 +1,8 @@
 package io.vamp.lifter
 
 import akka.actor.{ ActorRef, ActorSystem }
-import io.vamp.common.Config
+import akka.util.Timeout
+import io.vamp.common.{ Config, Namespace }
 import io.vamp.common.akka.{ ActorBootstrap, IoC }
 import io.vamp.lifter.artifact.ArtifactInitializationActor
 import io.vamp.lifter.persistence.ElasticsearchPersistenceInitializationActor
@@ -9,13 +10,14 @@ import io.vamp.lifter.pulse.ElasticsearchPulseInitializationActor
 import io.vamp.persistence.PersistenceBootstrap
 import io.vamp.pulse.PulseBootstrap
 
+import scala.concurrent.{ ExecutionContext, Future }
+
 class LifterBootstrap extends ActorBootstrap {
 
-  private val pulseEnabled = Config.boolean("vamp.lifter.pulse.enabled")()
+  def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[List[ActorRef]] = {
 
-  private val artifactEnabled = Config.boolean("vamp.lifter.artifact.enabled")()
-
-  def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
+    val pulseEnabled = Config.boolean("vamp.lifter.pulse.enabled")()
+    val artifactEnabled = Config.boolean("vamp.lifter.artifact.enabled")()
 
     val persistence = if (Config.boolean("vamp.lifter.persistence.enabled")()) {
       PersistenceBootstrap.databaseType().toLowerCase match {
@@ -35,8 +37,9 @@ class LifterBootstrap extends ActorBootstrap {
       IoC.createActor[ArtifactInitializationActor] :: Nil
     else Nil
 
-    persistence ++ pulse ++ artifact
+    implicit val ec: ExecutionContext = actorSystem.dispatcher
+    Future.sequence(persistence ++ pulse ++ artifact)
   }
 
-  override def restart(implicit actorSystem: ActorSystem): Unit = {}
+  override def restart(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {}
 }
