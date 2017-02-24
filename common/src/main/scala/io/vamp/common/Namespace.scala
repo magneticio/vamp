@@ -12,7 +12,9 @@ object Namespace {
   implicit def string2namespace(namespace: String): Namespace = Namespace(namespace)
 }
 
-case class Namespace(uuid: UUID)
+case class Namespace(uuid: UUID) {
+  override def toString = uuid.toString
+}
 
 trait NamespaceProvider {
   implicit def namespace: Namespace

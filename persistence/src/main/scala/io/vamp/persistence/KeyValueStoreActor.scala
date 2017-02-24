@@ -1,10 +1,11 @@
 package io.vamp.persistence
 
-import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.Config
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
+import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, PersistenceOperationFailure, UnsupportedPersistenceRequest }
 import io.vamp.pulse.notification.PulseFailureNotifier
 
@@ -13,13 +14,6 @@ import scala.concurrent.Future
 object KeyValueStoreActor {
 
   val timeout = PersistenceActor.timeout
-
-  def stringToPath(string: String): List[String] = string.split('/').toList
-
-  def pathToString(path: List[String])(implicit namespace: Namespace) = {
-    val basePath = Config.string("vamp.persistence.key-value-store.base-path")().stripMargin('/')
-    s"/${(basePath :: path).mkString("/")}"
-  }
 
   sealed trait KeyValueStoreMessage
 
@@ -31,13 +25,15 @@ object KeyValueStoreActor {
 
 }
 
-trait KeyValueStoreActor extends PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
+trait KeyValueStoreActor extends NamespaceValueResolver with PulseFailureNotifier with CommonSupportForActors with PersistenceNotificationProvider {
 
   import KeyValueStoreActor._
 
   lazy implicit val timeout = KeyValueStoreActor.timeout()
 
   lazy val httpClient = new HttpClient
+
+  private lazy val basePath = resolveWithNamespace(Config.string("vamp.persistence.key-value-store.base-path")().stripMargin('/'))
 
   def receive = {
     case InfoRequest     ⇒ reply(info())
@@ -60,4 +56,6 @@ trait KeyValueStoreActor extends PulseFailureNotifier with CommonSupportForActor
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 
   override def errorNotificationClass = classOf[PersistenceOperationFailure]
+
+  protected def pathToString(path: List[String]) = s"/${(basePath :: path).mkString("/")}"
 }

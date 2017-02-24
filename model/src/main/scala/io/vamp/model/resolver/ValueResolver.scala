@@ -23,7 +23,7 @@ trait ValueResolver {
     case VariableNode(reference) ⇒ provider(reference)
   } mkString
 
-  private[resolver] def nodes(value: String): List[TraitResolverNode] = {
+  def nodes(value: String): List[TraitResolverNode] = {
     try {
       val parser = new Parser[Seq[TraitResolverNode]] {
         override def parser(expression: String) = new TraitResolverParser(expression)
