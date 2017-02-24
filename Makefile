@@ -7,7 +7,6 @@ SHELL             := bash
 
 # Constants, these can be overwritten in your Makefile.local
 BUILD_SERVER := magneticio/buildserver
-BUILD_PACKER := magneticio/packer
 DIR_SBT	     := $(HOME)/.sbt
 DIR_IVY	     := $(HOME)/.ivy2
 
@@ -27,6 +26,7 @@ all: default
 # Using our buildserver which contains all the necessary dependencies
 .PHONY: default
 default:
+	docker pull $(BUILD_SERVER)
 	docker run \
 		--name buildserver \
 		--interactive \
@@ -38,7 +38,7 @@ default:
 		--env BUILD_UID=$(shell id -u) \
 		--env BUILD_GID=$(shell id -g) \
 		$(BUILD_SERVER) \
-			make clean test pack
+			make clean test
 
 .PHONY: test
 test:
@@ -53,14 +53,15 @@ pack:
 	mv $$(find $(TARGET)/vamp-lifter-$(VERSION)/lib -type f -name "vamp-*-$(VERSION).jar") $(TARGET)/vamp-lifter-$(VERSION)/
 
 	docker volume create packer
+	docker pull $(BUILD_SERVER)
 	docker run \
 		--name packer \
 		--interactive \
 		--rm \
 		--volume $(TARGET)/vamp-lifter-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
-		$(BUILD_PACKER) \
-			vamp-lifter $(VERSION)
+		$(BUILD_SERVER) \
+			push vamp-lifter $(VERSION)
 
 .PHONY: clean
 clean:
