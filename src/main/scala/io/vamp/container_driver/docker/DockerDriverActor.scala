@@ -155,11 +155,11 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
   }
 
   private def id(container: SpotifyContainer, label: String): Option[String] = {
-    if (container.labels().getOrDefault(ContainerDriver.namespace(), "") == label) Option(container.labels().get(ContainerDriver.withNamespace("id"))) else None
+    if (container.labels().getOrDefault(ContainerDriver.labelNamespace(), "") == label) Option(container.labels().get(ContainerDriver.withNamespace("id"))) else None
   }
 
   private def processable(container: SpotifyContainer, label: String) = {
-    container.labels().getOrDefault(ContainerDriver.namespace(), "") == label && container.status().startsWith("Up") && container.labels().containsKey(ContainerDriver.withNamespace("scale"))
+    container.labels().getOrDefault(ContainerDriver.labelNamespace(), "") == label && container.status().startsWith("Up") && container.labels().containsKey(ContainerDriver.withNamespace("scale"))
   }
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean) = {
@@ -212,7 +212,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
 
     val labels: MutableMap[String, String] = MutableMap()
     labels ++= this.labels(deployment, cluster, service)
-    labels += (ContainerDriver.namespace() → vampLabel)
+    labels += (ContainerDriver.labelNamespace() → vampLabel)
     labels += (ContainerDriver.withNamespace("id") → appId(deployment, service.breed))
 
     if (service.scale.isDefined)
@@ -329,7 +329,7 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     })
 
     val labels: MutableMap[String, String] = MutableMap()
-    labels += (ContainerDriver.namespace() → vampWorkflowLabel)
+    labels += (ContainerDriver.labelNamespace() → vampWorkflowLabel)
     labels += (ContainerDriver.withNamespace("id") → id)
     labels += (ContainerDriver.withNamespace("scale") → write(DockerServiceScale("", scale.instances, scale.cpu.value, scale.memory.value)))
 
