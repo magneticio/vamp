@@ -10,7 +10,7 @@ import io.vamp.model.resolver.DeploymentValueResolver
 
 object ContainerDriver {
 
-  val labelNamespace = Config.string("vamp.container-driver.namespace")
+  val labelNamespace = Config.string("vamp.container-driver.label-namespace")
 
   def withNamespace(label: String)(implicit namespace: Namespace) = {
     val ns = labelNamespace()

@@ -36,9 +36,9 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
 
   implicit def timeout: Timeout
 
-  val infoMessage = Config.string("vamp.info.message")
+  val infoMessage = Config.string("vamp.operation.info.message")
 
-  private val dataRetrievalTimeout = Config.timeout("vamp.info.timeout")
+  private val dataRetrievalTimeout = Config.timeout("vamp.operation.info.timeout")
 
   def infoMessage(on: Set[String]): Future[(InfoMessage, Boolean)] = {
     retrieve(actors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout()) map { result ⇒
