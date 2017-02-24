@@ -10,6 +10,7 @@ import io.vamp.common.util.HashUtil
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.model.event.Aggregator.AggregatorType
 import io.vamp.model.event._
+import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.pulse.Percolator.{ GetPercolator, RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.notification._
 import org.json4s.ext.EnumNameSerializer
@@ -36,14 +37,14 @@ object ElasticsearchPulseActor {
   }
 }
 
-class ElasticsearchPulseActor extends ElasticsearchPulseEvent with PulseStats with PulseActor {
+class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValueResolver with PulseStats with PulseActor {
 
   import ElasticsearchClient._
   import PulseActor._
 
   val url = ElasticsearchPulseActor.elasticsearchUrl()
 
-  val indexName = ElasticsearchPulseActor.indexName()
+  val indexName = resolveWithNamespace(ElasticsearchPulseActor.indexName())
 
   val indexTimeFormat = ElasticsearchPulseActor.indexTimeFormat()
 

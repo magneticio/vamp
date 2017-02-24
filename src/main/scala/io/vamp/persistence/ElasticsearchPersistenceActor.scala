@@ -2,6 +2,7 @@ package io.vamp.persistence
 
 import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.model.artifact._
+import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.pulse.ElasticsearchClient
 import io.vamp.pulse.ElasticsearchClient.{ ElasticsearchGetResponse, ElasticsearchSearchResponse }
 
@@ -21,9 +22,9 @@ case class ElasticsearchArtifact(artifact: String)
 
 case class ElasticsearchPersistenceInfo(`type`: String, url: String, index: String, initializationTime: String, elasticsearch: Any)
 
-class ElasticsearchPersistenceActor extends PersistenceActor with PersistenceMarshaller with TypeOfArtifact with PaginationSupport {
+class ElasticsearchPersistenceActor extends PersistenceActor with PersistenceMarshaller with TypeOfArtifact with PaginationSupport with NamespaceValueResolver {
 
-  private val index = ElasticsearchPersistenceActor.index()
+  private val index = resolveWithNamespace(ElasticsearchPersistenceActor.index())
 
   private val url = ElasticsearchPersistenceActor.elasticsearchUrl()
 
