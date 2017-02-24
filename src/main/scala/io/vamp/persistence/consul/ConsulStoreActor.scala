@@ -22,7 +22,7 @@ class ConsulStoreActor extends KeyValueStoreActor {
   }
 
   override protected def all(path: List[String]): Future[List[String]] = {
-    val key = KeyValueStoreActor.pathToString(path)
+    val key = pathToString(path)
     checked[List[String]](httpClient.get[List[String]](urlOf(path, keys = true), logError = false) recover { case _ ⇒ Nil }) map { list ⇒
       list.map(_.substring(key.length))
     }
@@ -41,7 +41,7 @@ class ConsulStoreActor extends KeyValueStoreActor {
   }
 
   private def urlOf(path: List[String], keys: Boolean = false) = {
-    s"$url/v1/kv${KeyValueStoreActor.pathToString(path)}${if (keys) "?keys" else ""}"
+    s"$url/v1/kv${pathToString(path)}${if (keys) "?keys" else ""}"
   }
 
   private def result(map: Map[_, _]): String = map.asInstanceOf[Map[String, _]].get("Value") match {
