@@ -1,10 +1,10 @@
 package io.vamp.container_driver
 
-import io.vamp.common.NamespaceResolver
+import io.vamp.common.Namespace
 import io.vamp.model.artifact.Deployable
 
 abstract class DeployableType(val types: String*) {
-  def matches(deployable: Deployable)(implicit namespaceResolver: NamespaceResolver): Boolean = {
+  def matches(deployable: Deployable)(implicit namespace: Namespace): Boolean = {
     types.contains(deployable.defaultType())
   }
 }

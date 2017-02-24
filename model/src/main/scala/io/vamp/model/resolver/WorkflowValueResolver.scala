@@ -1,11 +1,11 @@
 package io.vamp.model.resolver
 
-import io.vamp.common.NamespaceResolverProvider
+import io.vamp.common.NamespaceProvider
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 
 trait WorkflowValueResolver extends ValueResolver with ConfigurationValueResolver {
-  this: NamespaceResolverProvider with NotificationProvider ⇒
+  this: NamespaceProvider with NotificationProvider ⇒
 
   def resolveEnvironmentVariable(workflow: Workflow): EnvironmentVariable ⇒ EnvironmentVariable = { env ⇒
     env.copy(interpolated = env.value.map { value ⇒

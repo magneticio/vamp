@@ -2,11 +2,11 @@ package io.vamp.http_api
 
 import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.StatusCodes._
-import io.vamp.common.{ Config, NamespaceResolverProvider }
+import io.vamp.common.{ Config, NamespaceProvider }
 import io.vamp.common.http.HttpApiDirectives
 
 trait UiRoute {
-  this: HttpApiDirectives with NamespaceResolverProvider ⇒
+  this: HttpApiDirectives with NamespaceProvider ⇒
 
   private val index = Config.string("vamp.http-api.ui.index")()
   private val directory = Config.string("vamp.http-api.ui.directory")()

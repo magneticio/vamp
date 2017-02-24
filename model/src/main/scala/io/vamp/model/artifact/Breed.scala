@@ -2,7 +2,7 @@ package io.vamp.model.artifact
 
 import java.util.regex.Pattern
 
-import io.vamp.common.{ Config, NamespaceResolver }
+import io.vamp.common.{ Config, Namespace }
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.model.notification.{ InvalidArgumentError, InvalidArgumentValueError }
 import io.vamp.model.reader.Time
@@ -50,7 +50,7 @@ object Deployable {
 }
 
 case class Deployable(`type`: Option[String], definition: String) {
-  def defaultType()(implicit namespaceResolver: NamespaceResolver): String = `type`.getOrElse {
+  def defaultType()(implicit namespace: Namespace): String = `type`.getOrElse {
     val path = "vamp.model.default-deployable-type"
     if (Config.has(path)()) Config.string(path)() else Deployable.defaultType
   }

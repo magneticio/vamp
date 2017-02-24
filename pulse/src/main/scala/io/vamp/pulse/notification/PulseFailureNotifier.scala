@@ -1,7 +1,7 @@
 package io.vamp.pulse.notification
 
 import akka.actor.{ Actor, ActorLogging }
-import io.vamp.common.NamespaceResolverProvider
+import io.vamp.common.NamespaceProvider
 import io.vamp.common.akka.IoC
 import io.vamp.common.notification.{ ErrorNotification, Notification }
 import io.vamp.common.util.TextUtil
@@ -10,7 +10,7 @@ import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 
 trait PulseFailureNotifier {
-  this: Actor with ActorLogging with NamespaceResolverProvider ⇒
+  this: Actor with ActorLogging with NamespaceProvider ⇒
 
   def errorNotificationClass: Class[_ <: ErrorNotification]
 

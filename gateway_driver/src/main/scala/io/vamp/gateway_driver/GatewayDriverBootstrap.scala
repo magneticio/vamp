@@ -1,15 +1,17 @@
 package io.vamp.gateway_driver
 
 import akka.actor.{ ActorRef, ActorSystem }
-import io.vamp.common.{ ClassProvider, Config }
+import akka.util.Timeout
+import io.vamp.common.{ ClassProvider, Config, Namespace }
 import io.vamp.common.akka.{ ActorBootstrap, IoC }
 
+import scala.concurrent.Future
 import scala.io.Source
 import scala.language.postfixOps
 
 class GatewayDriverBootstrap extends ActorBootstrap {
 
-  def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
+  def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[List[ActorRef]] = {
 
     val marshallers: Map[String, GatewayMarshallerDefinition] = Config.list("vamp.gateway-driver.marshallers")().collect {
       case config: Map[_, _] ⇒
@@ -28,6 +30,6 @@ class GatewayDriverBootstrap extends ActorBootstrap {
         )
     } toMap
 
-    IoC.createActor[GatewayDriverActor](marshallers) :: Nil
+    IoC.createActor[GatewayDriverActor](marshallers).map(_ :: Nil)(actorSystem.dispatcher)
   }
 }

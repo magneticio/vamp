@@ -1,20 +1,18 @@
 package io.vamp.common.config
 
-import io.vamp.common.{ Config, NamespaceResolver }
 import io.vamp.common.util.ObjectUtil
+import io.vamp.common.{ Config, NamespaceProvider, Namespace }
 import org.json4s.{ DefaultFormats, Formats }
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{ BeforeAndAfterEach, FlatSpec, Matchers }
 
 @RunWith(classOf[JUnitRunner])
-class ConfigSpec extends FlatSpec with Matchers with BeforeAndAfterEach {
+class ConfigSpec extends FlatSpec with Matchers with BeforeAndAfterEach with NamespaceProvider {
+
+  implicit val namespace = Namespace.default
 
   private implicit val formats: Formats = DefaultFormats
-
-  private implicit val namespaceResolver = new NamespaceResolver {
-    val namespace: String = "default"
-  }
 
   override def afterEach() = Config.load(Map())
 

@@ -1,24 +1,24 @@
 package io.vamp.container_driver
 
-import io.vamp.common.{ Config, NamespaceResolver, NamespaceResolverProvider }
 import io.vamp.common.akka.ExecutionContextProvider
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.common.NamespaceResolverProvider
+import io.vamp.common.{ Config, Namespace, NamespaceProvider }
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType }
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentValueResolver
 
 object ContainerDriver {
-  val namespace = Config.string("vamp.container-driver.namespace")
 
-  def withNamespace(label: String)(implicit namespaceResolver: NamespaceResolver) = {
-    val ns = namespace()
+  val labelNamespace = Config.string("vamp.container-driver.namespace")
+
+  def withNamespace(label: String)(implicit namespace: Namespace) = {
+    val ns = labelNamespace()
     if (ns.isEmpty) label else s"$ns.$label"
   }
 }
 
-trait ContainerDriver extends DeploymentValueResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with NamespaceResolverProvider with ExecutionContextProvider {
+trait ContainerDriver extends DeploymentValueResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with NamespaceProvider with ExecutionContextProvider {
 
   protected def httpClient: HttpClient
 
@@ -110,7 +110,7 @@ trait ContainerDriver extends DeploymentValueResolver with ContainerDriverValida
 }
 
 trait ContainerDriverValidation {
-  this: NamespaceResolverProvider with NotificationProvider ⇒
+  this: NamespaceProvider with NotificationProvider ⇒
 
   protected def supportedDeployableTypes: List[DeployableType]
 

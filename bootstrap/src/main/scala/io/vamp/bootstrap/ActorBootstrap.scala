@@ -1,14 +1,16 @@
 package io.vamp.bootstrap
 
 import akka.actor.{ Actor, ActorSystem, Props }
-import io.vamp.common.ClassProvider
+import io.vamp.common.{ ClassProvider, Config, Namespace }
 import io.vamp.common.akka.{ Bootstrap, ActorBootstrap ⇒ ActorBootstrapService }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-class ActorBootstrap extends Bootstrap {
+class ActorBootstrap(implicit val namespace: Namespace) extends Bootstrap {
 
-  private implicit lazy val system = ActorSystem("vamp")
+  private implicit val system = ActorSystem("vamp")
+
+  private implicit val timeout = Config.timeout("vamp.bootstrap.timeout")()
 
   private lazy val bootstrap = ClassProvider.all[ActorBootstrapService].toList
 

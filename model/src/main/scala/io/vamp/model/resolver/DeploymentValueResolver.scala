@@ -1,6 +1,6 @@
 package io.vamp.model.resolver
 
-import io.vamp.common.NamespaceResolverProvider
+import io.vamp.common.NamespaceProvider
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact.{ ClusterReference, HostReference, LocalReference, _ }
 import io.vamp.model.notification.UnresolvedDependencyError
@@ -15,7 +15,7 @@ private case class HostPortClusterReference(host: HostReference, port: TraitRefe
 }
 
 trait DeploymentValueResolver extends ValueResolver with ConfigurationValueResolver {
-  this: NamespaceResolverProvider with NotificationProvider ⇒
+  this: NamespaceProvider with NotificationProvider ⇒
 
   override def resolve(value: String, provider: (ValueReference ⇒ String)): String = {
 

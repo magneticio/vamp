@@ -2,7 +2,7 @@ package io.vamp.operation.deployment
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Config, NamespaceResolver }
+import io.vamp.common.{ Config, Namespace }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact.DeploymentService.Status.Intention
@@ -21,13 +21,13 @@ object DeploymentActor {
 
   val gatewayHost = Config.string("vamp.gateway-driver.host")
 
-  def defaultScale()(implicit namespaceResolver: NamespaceResolver) = DefaultScale(
+  def defaultScale()(implicit namespace: Namespace) = DefaultScale(
     Quantity.of(Config.double("vamp.operation.deployment.scale.cpu")()),
     MegaByte.of(Config.string("vamp.operation.deployment.scale.memory")()),
     Config.int("vamp.operation.deployment.scale.instances")()
   )
 
-  def defaultArguments()(implicit namespaceResolver: NamespaceResolver) = Config.stringList("vamp.operation.deployment.arguments")().map(Argument(_))
+  def defaultArguments()(implicit namespace: Namespace) = Config.stringList("vamp.operation.deployment.arguments")().map(Argument(_))
 
   trait DeploymentMessage
 

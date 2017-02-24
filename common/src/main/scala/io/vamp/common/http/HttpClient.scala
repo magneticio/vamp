@@ -15,7 +15,7 @@ import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
 import akka.util.{ ByteString, Timeout }
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.{ Config, NamespaceResolver }
+import io.vamp.common.{ Config, Namespace }
 import org.json4s._
 import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization
@@ -47,7 +47,7 @@ object HttpClient {
   }
 }
 
-class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val namespaceResolver: NamespaceResolver, formats: Formats = DefaultFormats) {
+class HttpClient(implicit val timeout: Timeout, val system: ActorSystem, val namespace: Namespace, formats: Formats = DefaultFormats) {
 
   import HttpClient._
 

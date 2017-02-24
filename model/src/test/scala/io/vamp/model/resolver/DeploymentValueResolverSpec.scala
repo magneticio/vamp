@@ -1,7 +1,6 @@
 package io.vamp.model.resolver
 
-import io.vamp.common.{ NamespaceResolver, NamespaceResolverProvider }
-import io.vamp.common.NamespaceResolverProvider
+import io.vamp.common.{ Namespace, NamespaceProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.notification.ModelNotificationProvider
 import org.junit.runner.RunWith
@@ -9,11 +8,9 @@ import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class DeploymentValueResolverSpec extends FlatSpec with Matchers with DeploymentValueResolver with ModelNotificationProvider with NamespaceResolverProvider {
+class DeploymentValueResolverSpec extends FlatSpec with Matchers with DeploymentValueResolver with ModelNotificationProvider with NamespaceProvider {
 
-  implicit val namespaceResolver = new NamespaceResolver {
-    val namespace: String = "default"
-  }
+  implicit val namespace = Namespace.default
 
   "DeploymentTraitResolver" should "pass through environment variables for an empty cluster list" in {
 

@@ -1,7 +1,7 @@
 package io.vamp.operation.gateway
 
 import akka.pattern.ask
-import io.vamp.common.{ Config, NamespaceResolver }
+import io.vamp.common.{ Config, Namespace }
 import io.vamp.common.akka._
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.container_driver.ContainerDriverActor.DeployedGateways
@@ -26,12 +26,12 @@ object GatewaySynchronizationActor {
 
   val timeout = Config.timeout("vamp.operation.gateway.response-timeout")
 
-  def portRangeLower()(implicit namespaceResolver: NamespaceResolver): Int = {
+  def portRangeLower()(implicit namespace: Namespace): Int = {
     val portRange = Config.string("vamp.operation.gateway.port-range")().split("-").map(_.toInt)
     portRange(0)
   }
 
-  def portRangeUpper()(implicit namespaceResolver: NamespaceResolver): Int = {
+  def portRangeUpper()(implicit namespace: Namespace): Int = {
     val portRange = Config.string("vamp.operation.gateway.port-range")().split("-").map(_.toInt)
     portRange(1)
   }

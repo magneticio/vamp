@@ -1,15 +1,18 @@
 package io.vamp.persistence
 
 import akka.actor.{ ActorRef, ActorSystem }
-import io.vamp.common.{ Config, NamespaceResolver }
+import akka.util.Timeout
+import io.vamp.common.{ Config, Namespace }
 import io.vamp.common.akka.ActorBootstrap
 
+import scala.concurrent.{ ExecutionContext, Future }
+
 object PersistenceBootstrap {
-  def databaseType()(implicit namespaceResolver: NamespaceResolver) = {
+  def databaseType()(implicit namespace: Namespace) = {
     Config.string("vamp.persistence.database.type")().toLowerCase
   }
 
-  def keyValueStoreType()(implicit namespaceResolver: NamespaceResolver) = {
+  def keyValueStoreType()(implicit namespace: Namespace) = {
     Config.string("vamp.persistence.key-value-store.type")().toLowerCase
   }
 }
@@ -18,7 +21,7 @@ class PersistenceBootstrap extends ActorBootstrap {
 
   import PersistenceBootstrap._
 
-  def createActors(implicit actorSystem: ActorSystem): List[ActorRef] = {
+  def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[List[ActorRef]] = {
 
     val db = databaseType()
     val kv = keyValueStoreType()
@@ -34,6 +37,7 @@ class PersistenceBootstrap extends ActorBootstrap {
     logger.info(s"Database: $db")
     logger.info(s"KV store: $kv")
 
-    kvActor :: dbActor :: Nil
+    implicit val ec: ExecutionContext = actorSystem.dispatcher
+    Future.sequence(kvActor :: dbActor :: Nil)
   }
 }

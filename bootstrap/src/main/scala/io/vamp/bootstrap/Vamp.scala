@@ -1,5 +1,7 @@
 package io.vamp.bootstrap
 
+import io.vamp.common.Namespace
+
 trait Vamp extends App {
 
   private def bootstrap = {
@@ -7,7 +9,7 @@ trait Vamp extends App {
       new LoggingBootstrap :+
       new ConfigurationBootstrap :+
       new KamonBootstrap :+
-      new ActorBootstrap
+      new ActorBootstrap()(Namespace.default)
   }
 
   sys.addShutdownHook {

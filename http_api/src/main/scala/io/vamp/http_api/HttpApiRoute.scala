@@ -7,9 +7,9 @@ import akka.http.scaladsl.server.Directive0
 import akka.http.scaladsl.server.RouteResult._
 import akka.stream.Materializer
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.{ Config, NamespaceResolver }
 import io.vamp.common.akka.CommonProvider
 import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers }
+import io.vamp.common.{ Config, Namespace }
 import io.vamp.http_api.notification.HttpApiNotificationProvider
 import io.vamp.http_api.ws.WebSocketRoute
 import io.vamp.model.artifact.Artifact
@@ -28,7 +28,7 @@ object HttpApiRoute {
   val stripPathSegments = Config.int("vamp.http-api.strip-path-segments")
 }
 
-class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Materializer)
+class HttpApiRoute(implicit val namespace: Namespace, val actorSystem: ActorSystem, val materializer: Materializer)
     extends HttpApiDirectives
     with HttpApiHandlers
     with WebSocketRoute
@@ -54,10 +54,6 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
   implicit val formats: Formats = CoreSerializationFormat.default
 
   implicit val executionContext: ExecutionContext = actorSystem.dispatcher
-
-  implicit lazy val namespaceResolver: NamespaceResolver = new NamespaceResolver {
-    val namespace: String = "default"
-  }
 
   private val stripPathSegments = HttpApiRoute.stripPathSegments()
 

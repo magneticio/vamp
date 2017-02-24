@@ -100,7 +100,7 @@ object Config {
   }
 
   private def get[T](path: String, process: TypesafeConfig ⇒ T): ConfigMagnet[T] = new ConfigMagnet[T] {
-    def apply()(implicit namespaceResolver: NamespaceResolver): T = {
+    def apply()(implicit namespace: Namespace): T = {
       values.get(Type.applied) match {
         case Some(applied) ⇒ process(applied)
         case _             ⇒ throw new Missing(path)
@@ -118,7 +118,7 @@ object Config {
 
   private def expand[T](any: T): T = {
     def split(key: Any, value: Any) = {
-      // this should be used if public com.typesafe.config.impl.PathParser.parsePath(key.toString)
+      // preferable com.typesafe.config.impl.PathParser.parsePath(key.toString), but it has no public access
       key.toString.trim.split('.').foldRight[AnyRef](value.asInstanceOf[AnyRef])((op1, op2) ⇒ Map(op1 → op2))
     }
 
@@ -144,5 +144,5 @@ object Config {
 }
 
 trait ConfigMagnet[T] {
-  def apply()(implicit namespaceResolver: NamespaceResolver): T
+  def apply()(implicit namespace: Namespace): T
 }
