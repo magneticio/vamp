@@ -36,7 +36,7 @@ class EtcdStoreActor extends KeyValueStoreActor {
 
   override protected def all(path: List[String]): Future[List[String]] = {
 
-    val key = KeyValueStoreActor.pathToString(path)
+    val key = pathToString(path)
 
     def collect(childPath: List[String]): Future[List[String]] = {
       httpClient.get[EtcdKeyValue](urlOf(childPath), logError = false).recover { case _ ⇒ EtcdKeyValue(EtcdNode()) } flatMap { entry ⇒
@@ -70,5 +70,5 @@ class EtcdStoreActor extends KeyValueStoreActor {
 
   private def urlOfValue(path: List[String]) = s"${urlOf(path)}/$valueNode"
 
-  private def urlOf(path: List[String], recursive: Boolean = false) = s"$url/v2/keys${KeyValueStoreActor.pathToString(path)}${if (recursive) "?recursive=true" else ""}"
+  private def urlOf(path: List[String], recursive: Boolean = false) = s"$url/v2/keys${pathToString(path)}${if (recursive) "?recursive=true" else ""}"
 }
