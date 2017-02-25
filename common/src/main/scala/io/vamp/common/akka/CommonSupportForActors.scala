@@ -10,7 +10,7 @@ trait CommonSupportForActors
     with ActorExecutionContextProvider
     with CommonProvider {
 
-  implicit lazy val namespace = Namespace.default
-
   implicit lazy val actorSystem: ActorSystem = context.system
+
+  implicit lazy val namespace: Namespace = context.parent.path.elements.last
 }

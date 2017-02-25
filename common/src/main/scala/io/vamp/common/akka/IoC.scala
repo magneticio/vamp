@@ -78,10 +78,10 @@ object IoC {
   private def namespaceActor(implicit actorSystem: ActorSystem, namespace: Namespace): ActorRef = {
     namespaceActors.getOrElse(namespace, actorSystem.actorOf(Props(new Actor {
       def receive = {
-        case props: Props ⇒ actorSystem.actorOf(props, s"${TextUtil.toSnakeCase(props.clazz.getSimpleName)}-${counter.getAndIncrement}")
+        case props: Props ⇒ context.actorOf(props, s"${TextUtil.toSnakeCase(props.clazz.getSimpleName)}-${counter.getAndIncrement}")
         case _            ⇒
       }
-    }), namespace.uuid.toString))
+    }), namespace.toString))
   }
 }
 
