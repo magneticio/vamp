@@ -29,8 +29,6 @@ object KubernetesDriverActor {
 
   val url = Config.string(s"$config.url")
 
-  val namespace = Config.string(s"$config.namespace")
-
   val workflowNamePrefix = Config.string(s"$config.workflow-name-prefix")
 
   val token = Config.string(s"$config.token")
@@ -53,8 +51,6 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
   protected val schema = KubernetesDriverActor.Schema
 
   protected val apiUrl = KubernetesDriverActor.url()
-
-  protected val kubernetesNamespace = KubernetesDriverActor.namespace()
 
   protected val apiHeaders = {
     def headers(bearer: String) = ("Authorization" → s"Bearer $bearer") :: HttpClient.jsonHeaders
