@@ -34,8 +34,6 @@ object MarathonDriverActor {
   val expirationPeriod = Config.duration(s"$config.marathon.expiration-period")
   val reconciliationPeriod = Config.duration(s"$config.marathon.reconciliation-period")
 
-  val workflowNamePrefix = Config.string(s"$config.marathon.workflow-name-prefix")
-
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
   }
@@ -49,7 +47,7 @@ case class MesosInfo(frameworks: Any, slaves: Any)
 
 case class MarathonDriverInfo(mesos: MesosInfo, marathon: Any)
 
-class MarathonDriverActor extends ContainerDriverActor with MarathonSse with ActorExecutionContextProvider with ContainerDriver {
+class MarathonDriverActor extends ContainerDriverActor with MarathonSse with MarathonNamespace with ActorExecutionContextProvider with ContainerDriver {
 
   import ContainerDriverActor._
 
@@ -59,8 +57,6 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
 
   private val url = MarathonDriverActor.marathonUrl()
 
-  private val workflowNamePrefix = MarathonDriverActor.workflowNamePrefix()
-
   private implicit val formats: Formats = DefaultFormats
 
   private val headers: List[(String, String)] = HttpClient.basicAuthorization(MarathonDriverActor.apiUser(), MarathonDriverActor.apiPassword())
@@ -68,10 +64,6 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   protected val nameDelimiter = "/"
 
   protected val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
-
-  protected def appId(workflow: Workflow): String = s"$workflowNamePrefix${artifactName2Id(workflow)}"
-
-  protected def appId(deployment: Deployment, breed: Breed): String = s"$nameDelimiter${artifactName2Id(deployment)}$nameDelimiter${artifactName2Id(breed)}"
 
   override protected def supportedDeployableTypes = DockerDeployableType :: CommandDeployableType :: Nil
 
@@ -94,7 +86,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   private def info: Future[Any] = {
 
     def remove(key: String): Any ⇒ Any = {
-      case m: Map[_, _] ⇒ m.asInstanceOf[Map[String, _]].filterNot { case (k, v) ⇒ k == key } map { case (k, v) ⇒ k → remove(key)(v) }
+      case m: Map[_, _] ⇒ m.asInstanceOf[Map[String, _]].filterNot { case (k, _) ⇒ k == key } map { case (k, v) ⇒ k → remove(key)(v) }
       case l: List[_]   ⇒ l.map(remove(key))
       case any          ⇒ any
     }
@@ -117,29 +109,20 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Act
   }
 
   private def get(deploymentServices: List[DeploymentServices]): Unit = {
-    // Replies to DeploymentSynchronizationActor
     val replyTo = sender()
-
-    httpClient.get[AppsResponse](s"$url/v2/apps?embed=apps.tasks&embed=apps.taskStats", headers).map { apps ⇒
-      val deployed = apps.apps.map(app ⇒ app.id → app).toMap
-
-      deploymentServices
-        .flatMap(ds ⇒ ds.services.map((ds.deployment, _)))
-        .foreach {
-          case (deployment, service) ⇒
-            deployed.get(appId(deployment, service.breed)) match {
-              case Some(app) ⇒
-                val (equalHealthChecks, health) = healthCheck(app, deployment.ports, service.healthChecks)
-                replyTo ! ContainerService(
-                  deployment,
-                  service,
-                  Option(containers(app)),
-                  health,
-                  equalHealthChecks = equalHealthChecks
-                )
-              case None ⇒ replyTo ! ContainerService(deployment, service, None, None)
-            }
-        }
+    deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
+      case (deployment, service) ⇒ get(appId(deployment, service.breed)).foreach {
+        case Some(app) ⇒
+          val (equalHealthChecks, health) = healthCheck(app, deployment.ports, service.healthChecks)
+          replyTo ! ContainerService(
+            deployment,
+            service,
+            Option(containers(app)),
+            health,
+            equalHealthChecks = equalHealthChecks
+          )
+        case None ⇒ replyTo ! ContainerService(deployment, service, None, None)
+      }
     }
   }
 
