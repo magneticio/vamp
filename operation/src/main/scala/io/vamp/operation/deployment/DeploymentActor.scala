@@ -129,7 +129,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
           gateways ← expandGateways(cluster.gateways)
 
         } yield {
-          DeploymentCluster(cluster.name, cluster.metadata, services, processAnonymousInternalGateways(services, gateways), cluster.network, cluster.sla, cluster.dialects)
+          DeploymentCluster(cluster.name, cluster.metadata, services, processAnonymousInternalGateways(services, gateways), cluster.healthChecks, cluster.network, cluster.sla, cluster.dialects)
         }
       }
 

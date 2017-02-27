@@ -48,6 +48,7 @@ case class Workflow(
     environmentVariables: List[EnvironmentVariable],
     arguments:            List[Argument],
     network:              Option[String],
+    healthChecks:         Option[List[HealthCheck]],
     instances:            List[Instance]            = Nil,
     health:               Option[Health]            = None
 ) extends Artifact with Lookup {

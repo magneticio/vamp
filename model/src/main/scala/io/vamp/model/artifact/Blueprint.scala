@@ -52,16 +52,19 @@ abstract class AbstractCluster extends Artifact {
   def dialects: Map[String, Any]
 
   def gatewayBy(portName: String): Option[Gateway] = gateways.find(_.port.name == portName)
+
+  def healthChecks: Option[List[HealthCheck]]
 }
 
 case class Cluster(
-  name:     String,
-  metadata: Map[String, Any],
-  services: List[Service],
-  gateways: List[Gateway],
-  network:  Option[String]   = None,
-  sla:      Option[Sla]      = None,
-  dialects: Map[String, Any] = Map()
+  name:         String,
+  metadata:     Map[String, Any],
+  services:     List[Service],
+  gateways:     List[Gateway],
+  healthChecks: Option[List[HealthCheck]],
+  network:      Option[String]            = None,
+  sla:          Option[Sla]               = None,
+  dialects:     Map[String, Any]          = Map()
 ) extends AbstractCluster
 
 abstract class AbstractService {
@@ -77,7 +80,7 @@ abstract class AbstractService {
   def arguments: List[Argument]
 
   /** A service can contain zero or many health checks that will get created when the Blueprints gets deployed */
-  def healthChecks: List[HealthCheck]
+  def healthChecks: Option[List[HealthCheck]]
 
   def network: Option[String]
 
@@ -91,7 +94,7 @@ case class Service(
   environmentVariables: List[EnvironmentVariable],
   scale:                Option[Scale],
   arguments:            List[Argument],
-  healthChecks:         List[HealthCheck],
+  healthChecks:         Option[List[HealthCheck]],
   network:              Option[String]            = None,
   dialects:             Map[String, Any]          = Map(),
   health:               Option[Health]            = None
@@ -113,7 +116,7 @@ object DefaultScale {
 case class DefaultScale(name: String, metadata: Map[String, Any], cpu: Quantity, memory: MegaByte, instances: Int) extends Scale
 
 /**
- * Representation of the Service Health retrieved from a Deployment.
+ * Representation of the Health retrieved from a Deployment.
  * @param staged number of instances in a staged state.
  * @param running number of instances in a running state.
  * @param healthy number of instances in a healthy state.

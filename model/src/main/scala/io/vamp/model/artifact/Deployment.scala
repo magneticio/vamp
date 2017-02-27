@@ -82,13 +82,14 @@ object DeploymentCluster {
 }
 
 case class DeploymentCluster(
-    name:     String,
-    metadata: Map[String, Any],
-    services: List[DeploymentService],
-    gateways: List[Gateway],
-    network:  Option[String],
-    sla:      Option[Sla],
-    dialects: Map[String, Any]        = Map()
+    name:         String,
+    metadata:     Map[String, Any],
+    services:     List[DeploymentService],
+    gateways:     List[Gateway],
+    healthChecks: Option[List[HealthCheck]],
+    network:      Option[String],
+    sla:          Option[Sla],
+    dialects:     Map[String, Any]          = Map()
 ) extends AbstractCluster {
 
   def portBy(name: String): Option[Int] = {
@@ -121,7 +122,7 @@ case class DeploymentService(
   scale:                Option[DefaultScale],
   instances:            List[Instance],
   arguments:            List[Argument],
-  healthChecks:         List[HealthCheck],
+  healthChecks:         Option[List[HealthCheck]],
   network:              Option[String],
   dependencies:         Map[String, String]       = Map(),
   dialects:             Map[String, Any]          = Map(),

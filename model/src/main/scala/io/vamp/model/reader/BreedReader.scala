@@ -76,9 +76,11 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
 
   private def validateHealthCheck(any: Breed): Unit = any match {
     case breed: DefaultBreed ⇒
-      breed.healthChecks.foreach { healthCheck ⇒
-        if (!breed.ports.exists(_.name == healthCheck.port)) throwException(UnresolvedPortReferenceError(healthCheck.port))
-        if (healthCheck.failures < 0) throwException(NegativeFailuresNumberError(healthCheck.failures))
+      breed.healthChecks.foreach {
+        _.foreach { healthCheck ⇒
+          if (!breed.ports.exists(_.name == healthCheck.port)) throwException(UnresolvedPortReferenceError(healthCheck.port))
+          if (healthCheck.failures < 0) throwException(NegativeFailuresNumberError(healthCheck.failures))
+        }
       }
     case _ ⇒
   }

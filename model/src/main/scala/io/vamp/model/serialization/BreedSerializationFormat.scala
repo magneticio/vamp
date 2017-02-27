@@ -63,7 +63,7 @@ class BreedSerializer extends ArtifactSerializer[Breed] with TraitDecomposer wit
       } toList
 
       list += JField("dependencies", new JObject(dependencies))
-      list += JField("health_checks", serializeHealthChecks(breed.healthChecks))
+      breed.healthChecks.foreach(healthChecks ⇒ list += JField("health_checks", serializeHealthChecks(healthChecks)))
 
       new JObject(list.toList)
   }

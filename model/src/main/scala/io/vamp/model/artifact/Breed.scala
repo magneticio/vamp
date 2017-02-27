@@ -23,7 +23,7 @@ case class DefaultBreed(
     constants:            List[Constant],
     arguments:            List[Argument],
     dependencies:         Map[String, Breed],
-    healthChecks:         List[HealthCheck]         = Nil
+    healthChecks:         Option[List[HealthCheck]]
 ) extends Breed {
 
   def traitsFor(group: String): List[Trait] = traitsFor(TraitReference.groupFor(group))
