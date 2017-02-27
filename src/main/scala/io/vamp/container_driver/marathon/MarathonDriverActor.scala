@@ -61,10 +61,6 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Mar
 
   private val headers: List[(String, String)] = HttpClient.basicAuthorization(MarathonDriverActor.apiUser(), MarathonDriverActor.apiPassword())
 
-  protected val nameDelimiter = "/"
-
-  protected val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
-
   override protected def supportedDeployableTypes = DockerDeployableType :: CommandDeployableType :: Nil
 
   override def receive = {
@@ -295,18 +291,5 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Mar
     val scale = DefaultScale(Quantity(app.cpus), MegaByte(app.mem), app.instances)
     val instances = app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined))
     Containers(scale, instances)
-  }
-
-  protected def artifactName2Id(artifact: Artifact): String = {
-
-    val id = artifact.name match {
-      case idMatcher(_*) ⇒ artifact.name
-      case _             ⇒ HashUtil.hexSha1(artifact.name).substring(0, 20)
-    }
-
-    artifact match {
-      case breed: Breed if breed.name != id ⇒ if (breed.name.matches("^[\\d\\p{L}].*$")) s"${breed.name.replaceAll("[^\\p{L}\\d]", "-")}-$id" else id
-      case _                                ⇒ id
-    }
   }
 }
