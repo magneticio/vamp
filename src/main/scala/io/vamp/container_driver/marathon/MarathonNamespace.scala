@@ -10,6 +10,8 @@ trait MarathonNamespace {
 
   private val nameDelimiter = "/"
 
+  private lazy val namespaceCluster = MarathonDriverActor.namespaceCluster()
+
   private val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
 
   protected def appId(workflow: Workflow): String = {
@@ -26,5 +28,9 @@ trait MarathonNamespace {
       case lookup: Lookup ⇒ lookup.lookupName
       case _              ⇒ HashUtil.hexSha1(artifact.name)
     }
+  }
+
+  protected def namespaceConstraint(): List[String] = {
+    if (namespaceCluster.isEmpty) Nil else namespaceCluster :: "CLUSTER" :: namespace.toString :: Nil
   }
 }

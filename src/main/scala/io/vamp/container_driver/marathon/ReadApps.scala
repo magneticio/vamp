@@ -13,7 +13,8 @@ case class App(
   mem:          Double,
   tasks:        List[Task],
   healthChecks: List[MarathonHealthCheck],
-  taskStats:    Option[MarathonTaskStats])
+  taskStats:    Option[MarathonTaskStats]
+)
 
 /**
  * A class to compare the app and marathon app for checking whether Marathon needs to be updated based on config settings
@@ -23,7 +24,8 @@ case class ComparableApp private (
   instances:    Int,
   cpus:         Double,
   mem:          Double,
-  healthChecks: List[MarathonHealthCheck])
+  healthChecks: List[MarathonHealthCheck]
+)
 
 object ComparableApp {
   def fromApp(app: App): ComparableApp =
@@ -48,5 +50,4 @@ object MarathonCounts {
   /** Transforms a MarathonCounts to the generic ServiceHealth */
   def toServiceHealth(marathonCounts: MarathonCounts): Health =
     Health(marathonCounts.staged, marathonCounts.running, marathonCounts.healthy, marathonCounts.unhealthy)
-
 }

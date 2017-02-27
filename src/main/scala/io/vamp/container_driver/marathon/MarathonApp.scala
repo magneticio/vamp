@@ -14,7 +14,8 @@ case class MarathonApp(
   healthChecks: List[MarathonHealthCheck] = Nil,
   args:         List[String]              = Nil,
   labels:       Map[String, String]       = Map(),
-  constraints:  List[List[String]]        = Nil)
+  constraints:  List[List[String]]        = Nil
+)
 
 case class Container(docker: Docker, `type`: String = "DOCKER")
 
@@ -26,7 +27,8 @@ case class MarathonHealthCheck(
   gracePeriodSeconds:     Int,
   intervalSeconds:        Int,
   timeoutSeconds:         Int,
-  maxConsecutiveFailures: Int)
+  maxConsecutiveFailures: Int
+)
 
 object MarathonHealthCheck {
 
@@ -46,7 +48,8 @@ object MarathonHealthCheck {
       healthCheck.initialDelay.value,
       healthCheck.interval.value,
       healthCheck.timeout.value,
-      healthCheck.failures)
+      healthCheck.failures
+    )
   }
 
   /**
@@ -55,7 +58,8 @@ object MarathonHealthCheck {
   def equalHealthChecks(
     ports:                List[Port],
     healthChecks:         List[HealthCheck],
-    marathonHealthChecks: List[MarathonHealthCheck]): Boolean =
+    marathonHealthChecks: List[MarathonHealthCheck]
+  ): Boolean =
     if (healthChecks.isEmpty && marathonHealthChecks.isEmpty) true
     else if (healthChecks.length != marathonHealthChecks.length) false
     else healthChecks

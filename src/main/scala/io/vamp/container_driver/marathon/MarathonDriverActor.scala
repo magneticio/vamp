@@ -4,7 +4,6 @@ import akka.actor.ActorRef
 import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.http.HttpClient
-import io.vamp.common.util.HashUtil
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
@@ -33,6 +32,8 @@ object MarathonDriverActor {
   val sse = Config.boolean(s"$config.marathon.sse")
   val expirationPeriod = Config.duration(s"$config.marathon.expiration-period")
   val reconciliationPeriod = Config.duration(s"$config.marathon.reconciliation-period")
+
+  val namespaceCluster = Config.string(s"$config.marathon.namespace-cluster")
 
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
@@ -159,6 +160,7 @@ class MarathonDriverActor
     val id = appId(deployment, service.breed)
     val name = s"${deployment.name} / ${service.breed.deployable.definition}"
     if (update) log.info(s"marathon update service: $name") else log.info(s"marathon create service: $name")
+    val constraints = (namespaceConstraint() +: Nil).filter(_.nonEmpty)
 
     val app = MarathonApp(
       id,
@@ -169,7 +171,9 @@ class MarathonDriverActor
       environment(deployment, cluster, service),
       cmd(deployment, cluster, service),
       healthChecks = retrieveHealthChecks(cluster, service).map(MarathonHealthCheck.apply(service.breed.ports, _)),
-      labels = labels(deployment, cluster, service))
+      labels = labels(deployment, cluster, service),
+      constraints = constraints
+    )
 
     sendRequest(update, id, requestPayload(deployment, cluster, service, purge(app)))
   }
@@ -183,6 +187,7 @@ class MarathonDriverActor
     val id = appId(workflow)
     if (update) log.info(s"marathon update workflow: ${workflow.name}") else log.info(s"marathon create workflow: ${workflow.name}")
     val scale = workflow.scale.get.asInstanceOf[DefaultScale]
+    val constraints = (namespaceConstraint() +: Nil).filter(_.nonEmpty)
 
     val marathonApp = MarathonApp(
       id,
@@ -193,7 +198,9 @@ class MarathonDriverActor
       environment(workflow),
       cmd(workflow),
       labels = labels(workflow),
-      healthChecks = retrieveHealthChecks(workflow).map(MarathonHealthCheck.apply(breed.ports, _)))
+      healthChecks = retrieveHealthChecks(workflow).map(MarathonHealthCheck.apply(breed.ports, _)),
+      constraints = constraints
+    )
 
     sendRequest(update, id, Extraction.decompose(purge(marathonApp)))
   }
