@@ -4,6 +4,8 @@ import sbt.Keys._
 import scala.language.postfixOps
 import scalariform.formatter.preferences._
 
+organization := "io.vamp"
+
 name := "vamp-haproxy"
 
 version := VersionHelper.versionByTag

@@ -7,7 +7,6 @@ SHELL             := bash
 
 # Constants, these can be overwritten in your Makefile.local
 BUILD_SERVER := magneticio/buildserver
-BUILD_PACKER := magneticio/packer
 DIR_SBT	     := $(HOME)/.sbt
 DIR_IVY	     := $(HOME)/.ivy2
 
@@ -27,6 +26,7 @@ all: default
 # Using our buildserver which contains all the necessary dependencies
 .PHONY: default
 default:
+	docker pull $(BUILD_SERVER)
 	docker run \
 		--name buildserver \
 		--interactive \
@@ -38,7 +38,7 @@ default:
 		--env BUILD_UID=$(shell id -u) \
 		--env BUILD_GID=$(shell id -g) \
 		$(BUILD_SERVER) \
-			make clean test pack
+			make clean test
 
 .PHONY: test
 test:
@@ -46,6 +46,7 @@ test:
 
 .PHONY: pack
 pack:
+	export VAMP_VERSION="katana" && sbt package publish-local
 	sbt pack
 	rm -rf $(TARGET)/vamp-haproxy-$(VERSION)
 	mkdir -p $(TARGET)/vamp-haproxy-$(VERSION)
@@ -53,14 +54,15 @@ pack:
 	mv $$(find $(TARGET)/vamp-haproxy-$(VERSION)/lib -type f -name "vamp-*-$(VERSION).jar") $(TARGET)/vamp-haproxy-$(VERSION)/
 
 	docker volume create packer
+	docker pull $(BUILD_SERVER)
 	docker run \
 		--name packer \
 		--interactive \
 		--rm \
 		--volume $(TARGET)/vamp-haproxy-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
-		$(BUILD_PACKER) \
-			vamp-haproxy $(VERSION)
+		$(BUILD_SERVER) \
+			push vamp-haproxy $(VERSION)
 
 .PHONY: clean
 clean:
