@@ -10,7 +10,7 @@ import io.vamp.model.reader.Time
 import scala.language.implicitConversions
 import scala.util.Try
 
-trait Breed extends Artifact {
+trait Breed extends Artifact with Lookup {
   val kind = "breed"
 }
 

@@ -68,7 +68,7 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
     def reload(config: Map[String, Any]) = {
       log.info("Reloading due to configuration change")
       Config.load(config)
-      actorSystem.actorSelection("/user/vamp") ! "reload"
+      actorSystem.actorSelection(s"/user/$namespace-config") ! "reload"
     }
 
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get("configuration" :: Nil) map {

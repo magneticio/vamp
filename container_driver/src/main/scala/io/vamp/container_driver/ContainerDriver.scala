@@ -22,8 +22,6 @@ trait ContainerDriver extends DeploymentValueResolver with ContainerDriverValida
 
   protected def httpClient: HttpClient
 
-  protected def nameDelimiter: String
-
   protected def appId(workflow: Workflow): String
 
   protected def appId(deployment: Deployment, breed: Breed): String

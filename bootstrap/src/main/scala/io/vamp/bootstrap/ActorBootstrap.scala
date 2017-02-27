@@ -26,5 +26,5 @@ class ActorBootstrap(implicit val namespace: Namespace) extends Bootstrap {
       case "reload" ⇒ bootstrap.reverse.foreach(_.restart)
       case _        ⇒
     }
-  }), "vamp")
+  }), s"$namespace-config")
 }
