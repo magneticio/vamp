@@ -47,7 +47,13 @@ case class MesosInfo(frameworks: Any, slaves: Any)
 
 case class MarathonDriverInfo(mesos: MesosInfo, marathon: Any)
 
-class MarathonDriverActor extends ContainerDriverActor with MarathonSse with MarathonNamespace with ActorExecutionContextProvider with ContainerDriver {
+class MarathonDriverActor
+    extends ContainerDriverActor
+    with MarathonSse
+    with MarathonNamespace
+    with ActorExecutionContextProvider
+    with ContainerDriver
+    with HealthCheckMerger {
 
   import ContainerDriverActor._
 
@@ -109,7 +115,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Mar
     deploymentServices.flatMap(ds ⇒ ds.services.map((ds.deployment, _))).foreach {
       case (deployment, service) ⇒ get(appId(deployment, service.breed)).foreach {
         case Some(app) ⇒
-          val (equalHealthChecks, health) = healthCheck(app, deployment.ports, service.healthChecks)
+          val (equalHealthChecks, health) = healthCheck(app, deployment.ports, service.healthChecks.getOrElse(List()))
           replyTo ! ContainerService(
             deployment,
             service,
@@ -127,7 +133,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Mar
     get(appId(workflow)).foreach {
       case Some(app) ⇒
         val breed = workflow.breed.asInstanceOf[DefaultBreed]
-        val (equalHealthChecks, health) = healthCheck(app, breed.ports, breed.healthChecks)
+        val (equalHealthChecks, health) = healthCheck(app, breed.ports, breed.healthChecks.getOrElse(List()))
         replyTo ! ContainerWorkflow(workflow, Option(containers(app)), health, equalHealthChecks)
       case _ ⇒ replyTo ! ContainerWorkflow(workflow, None)
     }
@@ -162,9 +168,8 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Mar
       Math.round(service.scale.get.memory.value).toInt,
       environment(deployment, cluster, service),
       cmd(deployment, cluster, service),
-      service.healthChecks.map(MarathonHealthCheck.apply(service.breed.ports, _)),
-      labels = labels(deployment, cluster, service)
-    )
+      healthChecks = retrieveHealthChecks(cluster, service).map(MarathonHealthCheck.apply(service.breed.ports, _)),
+      labels = labels(deployment, cluster, service))
 
     sendRequest(update, id, requestPayload(deployment, cluster, service, purge(app)))
   }
@@ -188,8 +193,7 @@ class MarathonDriverActor extends ContainerDriverActor with MarathonSse with Mar
       environment(workflow),
       cmd(workflow),
       labels = labels(workflow),
-      healthChecks = breed.healthChecks.map(MarathonHealthCheck.apply(breed.ports, _))
-    )
+      healthChecks = retrieveHealthChecks(workflow).map(MarathonHealthCheck.apply(breed.ports, _)))
 
     sendRequest(update, id, Extraction.decompose(purge(marathonApp)))
   }
