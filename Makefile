@@ -7,7 +7,6 @@ SHELL             := bash
 
 # Constants, these can be overwritten in your Makefile.local
 BUILD_SERVER := magneticio/buildserver
-BUILD_PACKER := magneticio/packer
 DIR_SBT	     := $(HOME)/.sbt
 DIR_IVY	     := $(HOME)/.ivy2
 
@@ -53,14 +52,16 @@ pack:
 	mv $$(find $(TARGET)/vamp-dcos-$(VERSION)/lib -type f -name "vamp-*-$(VERSION).jar") $(TARGET)/vamp-dcos-$(VERSION)/
 
 	docker volume create packer
+	docker pull $(BUILD_SERVER)
 	docker run \
 		--name packer \
 		--interactive \
+		--tty \
 		--rm \
 		--volume $(TARGET)/vamp-dcos-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
-		$(BUILD_PACKER) \
-			vamp-dcos $(VERSION)
+		$(BUILD_SERVER) \
+			push vamp-dcos $(VERSION)
 
 .PHONY: clean
 clean:
