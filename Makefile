@@ -7,7 +7,6 @@ SHELL             := bash
 
 # Constants, these can be overwritten in your Makefile.local
 BUILD_SERVER := magneticio/buildserver
-BUILD_PACKER := magneticio/packer
 DIR_SBT	     := $(HOME)/.sbt
 DIR_IVY	     := $(HOME)/.ivy2
 
@@ -27,6 +26,7 @@ all: default
 # Using our buildserver which contains all the necessary dependencies
 .PHONY: default
 default:
+	docker pull $(BUILD_SERVER)
 	docker run \
 		--name buildserver \
 		--interactive \
@@ -54,14 +54,15 @@ pack:
 	mv $$(find $(TARGET)/vamp-elasticsearch-$(VERSION)/lib -type f -name "vamp-*-$(VERSION).jar") $(TARGET)/vamp-elasticsearch-$(VERSION)/
 
 	docker volume create packer
+	docker pull $(BUILD_SERVER)
 	docker run \
 		--name packer \
 		--interactive \
 		--rm \
 		--volume $(TARGET)/vamp-elasticsearch-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
-		$(BUILD_PACKER) \
-			vamp-elasticsearch $(VERSION)
+		$(BUILD_SERVER) \
+			push vamp-elasticsearch $(VERSION)
 
 .PHONY: clean
 clean:
