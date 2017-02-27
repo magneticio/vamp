@@ -100,7 +100,7 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
 trait SlaPulse {
   this: CommonSupportForActors ⇒
 
-  implicit val timeout = PulseActor.timeout()
+  implicit lazy val timeout = PulseActor.timeout()
 
   def eventExists(deployment: Deployment, cluster: DeploymentCluster, from: OffsetDateTime): Future[Boolean] = {
     eventCount(SlaEvent.slaTags(deployment, cluster), from, OffsetDateTime.now(), 1) map { count ⇒ count > 0 }

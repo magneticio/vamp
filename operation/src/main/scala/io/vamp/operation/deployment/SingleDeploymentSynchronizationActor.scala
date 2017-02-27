@@ -27,13 +27,13 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
   import PulseEventTags.Deployments._
   import SingleDeploymentSynchronizationActor._
 
-  private val checkCpu = Config.boolean("vamp.operation.synchronization.check.cpu")()
+  private lazy val checkCpu = Config.boolean("vamp.operation.synchronization.check.cpu")()
 
-  private val checkMemory = Config.boolean("vamp.operation.synchronization.check.memory")()
+  private lazy val checkMemory = Config.boolean("vamp.operation.synchronization.check.memory")()
 
-  private val checkInstances = Config.boolean("vamp.operation.synchronization.check.instances")()
+  private lazy val checkInstances = Config.boolean("vamp.operation.synchronization.check.instances")()
 
-  private val checkHealthChecks = Config.boolean("vamp.operation.synchronization.check.health-checks")()
+  private lazy val checkHealthChecks = Config.boolean("vamp.operation.synchronization.check.health-checks")()
 
   def receive: Receive = {
     case Synchronize(containerService) ⇒ synchronize(containerService)

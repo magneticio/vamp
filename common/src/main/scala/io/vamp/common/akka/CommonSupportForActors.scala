@@ -12,5 +12,8 @@ trait CommonSupportForActors
 
   implicit lazy val actorSystem: ActorSystem = context.system
 
-  implicit lazy val namespace: Namespace = context.parent.path.elements.last
+  implicit lazy val namespace: Namespace = context.parent.path.elements match {
+    case "user" :: ns :: _ ⇒ ns
+    case other             ⇒ throw new RuntimeException(s"No namespace for: $other")
+  }
 }
