@@ -54,3 +54,5 @@ case class UnsupportedPathRewriteError(definition: String) extends Notification
 case class UnresolvedPortReferenceError(portReference: String) extends Notification
 
 case class NegativeFailuresNumberError(number: Int) extends Notification
+
+case class UnsupportedProtocolError(protocol: String) extends Notification
