@@ -34,8 +34,8 @@ class PersistenceBootstrap extends ActorBootstrap {
       throw new RuntimeException(s"Unsupported key-value store type: ${`type`}")
     })
 
-    logger.info(s"Database: $db")
-    logger.info(s"KV store: $kv")
+    info(s"Database: $db")
+    info(s"KV store: $kv")
 
     implicit val ec: ExecutionContext = actorSystem.dispatcher
     Future.sequence(kvActor :: dbActor :: Nil)

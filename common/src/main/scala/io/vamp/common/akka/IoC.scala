@@ -81,7 +81,7 @@ object IoC {
         case props: Props ⇒ sender() ! context.actorOf(props, s"${TextUtil.toSnakeCase(props.clazz.getSimpleName)}-${counter.getAndIncrement}")
         case _            ⇒
       }
-    }), namespace.toString))
+    }), namespace.id))
   }
 }
 

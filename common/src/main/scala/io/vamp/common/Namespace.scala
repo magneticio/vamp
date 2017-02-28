@@ -7,6 +7,7 @@ object Namespace {
 }
 
 case class Namespace(name: String) {
+  val id = name
   override def toString = name
 }
 

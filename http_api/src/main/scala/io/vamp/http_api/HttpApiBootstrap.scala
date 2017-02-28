@@ -27,7 +27,7 @@ class HttpApiBootstrap extends ActorBootstrap {
     implicit lazy val materializer = ActorMaterializer()
     implicit lazy val executionContext = actorSystem.dispatcher
 
-    logger.info(s"Binding: $interface:$port")
+    info(s"Binding: $interface:$port")
     binding = Option(Http().bindAndHandle(new HttpApiRoute().allRoutes, interface, port))
   }
 
@@ -37,7 +37,7 @@ class HttpApiBootstrap extends ActorBootstrap {
     implicit val executionContext = actorSystem.dispatcher
     binding.map {
       _.flatMap { server ⇒
-        logger.info(s"Unbinding API")
+        info(s"Unbinding API")
         server.unbind().flatMap {
           _ ⇒ Http().shutdownAllConnectionPools()
         }

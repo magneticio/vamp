@@ -13,7 +13,7 @@ object PulseBootstrap {
 class PulseBootstrap extends ActorBootstrap with PulseNotificationProvider {
 
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout) = {
-    logger.info(s"Pulse: ${PulseBootstrap.`type`()}")
+    info(s"Pulse: ${PulseBootstrap.`type`()}")
     alias[PulseActor](PulseBootstrap.`type`(), (`type`: String) ⇒ {
       throwException(UnsupportedPulseDriverError(`type`))
     }).map(_ :: Nil)(actorSystem.dispatcher)

@@ -11,7 +11,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import de.heikoseeberger.akkasse.ServerSentEvent
 import io.vamp.common.akka._
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
-import io.vamp.common.notification.NotificationProvider
 import org.json4s.native.Serialization._
 
 import scala.concurrent.duration.FiniteDuration
@@ -19,7 +18,7 @@ import scala.concurrent.duration.FiniteDuration
 case class LogEvent(logger: String, level: String, message: String, timestamp: OffsetDateTime)
 
 trait LogApiController {
-  this: ExecutionContextProvider with NotificationProvider with ActorSystemProvider ⇒
+  this: CommonProvider ⇒
 
   private val eventType = "log"
 

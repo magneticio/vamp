@@ -1,6 +1,7 @@
 package io.vamp.pulse
 
-import akka.actor.{ Actor, ActorLogging, ActorRef }
+import akka.actor.{ Actor, ActorRef }
+import io.vamp.common.akka.CommonActorLogging
 import io.vamp.model.event.Event
 
 import scala.collection.mutable
@@ -18,7 +19,7 @@ object Percolator {
 }
 
 trait Percolator {
-  this: Actor with ActorLogging ⇒
+  this: Actor with CommonActorLogging ⇒
 
   case class PercolatorEntry(tags: Set[String], `type`: Option[String], actor: ActorRef, message: Any)
 

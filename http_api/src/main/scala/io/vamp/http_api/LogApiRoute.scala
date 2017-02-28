@@ -2,15 +2,14 @@ package io.vamp.http_api
 
 import akka.util.Timeout
 import de.heikoseeberger.akkasse.EventStreamMarshalling
-import io.vamp.common.akka.{ ActorSystemProvider, ExecutionContextProvider }
+import io.vamp.common.akka.CommonProvider
 import io.vamp.common.http.HttpApiDirectives
-import io.vamp.common.notification.NotificationProvider
 import io.vamp.operation.controller.LogApiController
 
 import scala.concurrent.duration.FiniteDuration
 
 trait LogApiRoute extends LogApiController with EventStreamMarshalling {
-  this: ExecutionContextProvider with ActorSystemProvider with HttpApiDirectives with NotificationProvider ⇒
+  this: HttpApiDirectives with CommonProvider ⇒
 
   implicit def timeout: Timeout
 

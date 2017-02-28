@@ -5,6 +5,7 @@ import ch.qos.logback.classic.filter.ThresholdFilter
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.{ Level, LoggerContext, Logger ⇒ LogbackLogger }
 import ch.qos.logback.core.AppenderBase
+import io.vamp.common.Namespace
 import org.slf4j.{ Logger, LoggerFactory }
 
 import scala.collection.mutable
@@ -18,7 +19,7 @@ object LogPublisherHub {
 
   private val sessions: mutable.Map[String, LogPublisher] = new mutable.HashMap()
 
-  def subscribe(to: ActorRef, level: String, loggerName: Option[String], encoder: (ILoggingEvent) ⇒ AnyRef)(implicit actorSystem: ActorSystem): Unit = {
+  def subscribe(to: ActorRef, level: String, loggerName: Option[String], encoder: (ILoggingEvent) ⇒ AnyRef)(implicit actorSystem: ActorSystem, namespace: Namespace): Unit = {
     val appenderLevel = Level.toLevel(level, Level.INFO)
     val appenderLogger = loggerName.map(context.getLogger).getOrElse(rootLogger)
 
@@ -45,13 +46,15 @@ object LogPublisherHub {
   }
 }
 
-private case class LogPublisher(to: ActorRef, logger: LogbackLogger, level: Level, encoder: (ILoggingEvent) ⇒ AnyRef)(implicit actorSystem: ActorSystem) {
+private case class LogPublisher(to: ActorRef, logger: LogbackLogger, level: Level, encoder: (ILoggingEvent) ⇒ AnyRef)(implicit actorSystem: ActorSystem, namespace: Namespace) {
 
   private val filter = new ThresholdFilter()
   filter.setLevel(level.levelStr)
 
   private val appender = new AppenderBase[ILoggingEvent] {
-    override def append(loggingEvent: ILoggingEvent) = to ! encoder(loggingEvent)
+    override def append(loggingEvent: ILoggingEvent) = {
+      if (loggingEvent.getMDCPropertyMap.get("namespace") == namespace.id) to ! encoder(loggingEvent)
+    }
   }
 
   appender.addFilter(filter)

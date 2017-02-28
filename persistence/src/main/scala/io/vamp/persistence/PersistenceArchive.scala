@@ -1,6 +1,5 @@
 package io.vamp.persistence
 
-import akka.actor.ActorLogging
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.akka._
@@ -36,7 +35,7 @@ object PersistenceArchive {
 }
 
 trait PersistenceArchive {
-  this: ActorLogging with CommonProvider ⇒
+  this: CommonActorLogging with CommonProvider ⇒
 
   import PersistenceArchive._
 
