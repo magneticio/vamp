@@ -10,9 +10,9 @@ class ActorBootstrap(implicit val namespace: Namespace) extends Bootstrap {
 
   private implicit val system = ActorSystem("vamp")
 
-  private lazy val bootstrap = ClassProvider.all[ActorBootstrapService].toList
-
   private implicit lazy val timeout = Config.timeout("vamp.bootstrap.timeout")()
+
+  protected lazy val bootstrap = ClassProvider.all[ActorBootstrapService].toList
 
   override def start() = bootstrap.foreach(_.start)
 

@@ -1,7 +1,7 @@
 package io.vamp.common.config
 
 import io.vamp.common.util.ObjectUtil
-import io.vamp.common.{ Config, NamespaceProvider, Namespace }
+import io.vamp.common.{ Config, ConfigFilter, Namespace, NamespaceProvider }
 import org.json4s.{ DefaultFormats, Formats }
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -372,5 +372,12 @@ class ConfigSpec extends FlatSpec with Matchers with BeforeAndAfterEach with Nam
         |    message: Hi!!!
       """.stripMargin
     )
+  }
+
+  it should "unmarshall filter marshall string input" in {
+    Config.unmarshall("""
+      |vamp.namespace: vamp
+      |vamp.info.message: Hi!!!
+    """.stripMargin, ConfigFilter({ case (k, _) ⇒ k != "vamp.namespace" })) shouldBe Config.unmarshall("vamp.info.message: Hi!!!")
   }
 }

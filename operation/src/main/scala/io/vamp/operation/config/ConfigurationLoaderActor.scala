@@ -1,7 +1,7 @@
 package io.vamp.operation.config
 
 import akka.pattern.ask
-import io.vamp.common.Config
+import io.vamp.common.{ Config, ConfigFilter }
 import io.vamp.common.akka._
 import io.vamp.operation.notification._
 import io.vamp.persistence.KeyValueStoreActor
@@ -45,16 +45,12 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
   private def get(`type`: String, flatten: Boolean, key: String) = Future.successful {
     Config.export(
       Try(Config.Type.withName(`type`)).getOrElse(Config.Type.applied),
-      flatten, { entry ⇒ entry.startsWith("vamp.") && (key.isEmpty || entry == key) }
+      flatten, ConfigFilter({ (k, _) ⇒ k.startsWith("vamp.") && (key.isEmpty || k == key) })
     )
   }
 
   private def set(input: String, validateOnly: Boolean): Future[_] = try {
-    val config = {
-      if (input.trim.isEmpty) Map[String, Any]() else Config.unmarshall(input.trim)
-    }.filterNot {
-      case (key, _) ⇒ key.startsWith("vamp.http-api.")
-    }
+    val config = if (input.trim.isEmpty) Map[String, Any]() else Config.unmarshall(input.trim, ConfigFilter({ (k, _) ⇒ !k.startsWith("vamp.http-api.") }))
     if (validateOnly) Future.successful(config)
     else IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set("configuration" :: Nil, if (config.isEmpty) None else Option(Config.marshall(config))) map { _ ⇒
       reload()

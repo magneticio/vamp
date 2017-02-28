@@ -9,7 +9,18 @@ trait Vamp extends App {
 
   private def bootstrap = {
     List() :+
-      new LoggingBootstrap :+
+      new LoggingBootstrap {
+        lazy val logo = s"""
+           |██╗   ██╗ █████╗ ███╗   ███╗██████╗
+           |██║   ██║██╔══██╗████╗ ████║██╔══██╗
+           |██║   ██║███████║██╔████╔██║██████╔╝
+           |╚██╗ ██╔╝██╔══██║██║╚██╔╝██║██╔═══╝
+           | ╚████╔╝ ██║  ██║██║ ╚═╝ ██║██║
+           |  ╚═══╝  ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝
+           |                                    $version
+           |                                    by magnetic.io
+           |""".stripMargin
+      } :+
       new KamonBootstrap :+
       new ConfigurationBootstrap :+
       new ActorBootstrap

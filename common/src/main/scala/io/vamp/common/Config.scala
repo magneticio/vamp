@@ -10,6 +10,7 @@ import org.json4s.{ DefaultFormats, Extraction, Formats }
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.concurrent.duration._
+import scala.language.implicitConversions
 
 object Config {
 
@@ -19,23 +20,23 @@ object Config {
 
   private implicit val formats: Formats = DefaultFormats
 
-  private val values: mutable.Map[Namespace, mutable.Map[Type.Value, TypesafeConfig]] = new mutable.LinkedHashMap()
+  private val values: mutable.Map[String, mutable.Map[Type.Value, TypesafeConfig]] = new mutable.LinkedHashMap()
 
   def marshall(config: Map[String, Any])(implicit namespace: Namespace): String = if (config.isEmpty) "" else writePretty(config)
 
-  def unmarshall(input: String)(implicit namespace: Namespace): Map[String, Any] = {
+  def unmarshall(input: String, filter: ConfigFilter = ConfigFilter.acceptAll)(implicit namespace: Namespace): Map[String, Any] = {
     val yaml = Option(expand(YamlUtil.convert(YamlUtil.yaml.load(input), preserveOrder = false).asInstanceOf[Map[String, AnyRef]]))
     val json = yaml.map(write(_)).getOrElse("")
     val flatten = convert(ConfigFactory.parseString(json))
-    expand(flatten)
+    val filtered = flatten.filter { case (key, value) ⇒ filter.filter(key, value) }
+    expand(filtered)
   }
 
   def load(dynamic: Map[String, Any] = Map())(implicit namespace: Namespace): Unit = {
-    val dynamicExpanded = expand(dynamic.asInstanceOf[Map[String, AnyRef]])
-    val systemExpanded = expand(convert(ConfigFactory.systemProperties()))
-
-    val application = convert(ConfigFactory.defaultApplication())
     val reference = convert(ConfigFactory.defaultReference())
+    val application = convert(ConfigFactory.defaultApplication())
+    val systemExpanded = expand(convert(ConfigFactory.systemProperties()))
+    val dynamicExpanded = expand(dynamic.asInstanceOf[Map[String, AnyRef]])
 
     val environmentExpanded = expand((reference ++ application).flatMap {
       case (key, _) ⇒
@@ -47,12 +48,21 @@ object Config {
     val referenceExpanded = expand(reference)
     val applicationExpanded = expand(application)
 
-    values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).put(Type.system, convert(systemExpanded))
-    values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).put(Type.dynamic, convert(dynamicExpanded))
-    values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).put(Type.reference, convert(referenceExpanded))
-    values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).put(Type.application, convert(applicationExpanded))
-    values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).put(Type.environment, convert(environmentExpanded))
-    values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).put(Type.applied, convert(ObjectUtil.merge(referenceExpanded, applicationExpanded, environmentExpanded, systemExpanded, dynamicExpanded)))
+    val applied = ObjectUtil.merge(
+      referenceExpanded,
+      applicationExpanded,
+      environmentExpanded,
+      systemExpanded,
+      dynamicExpanded,
+      expand(namespace.config.asInstanceOf[Map[String, AnyRef]])
+    )
+
+    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.system, convert(systemExpanded))
+    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.dynamic, convert(dynamicExpanded))
+    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.reference, convert(referenceExpanded))
+    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.application, convert(applicationExpanded))
+    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.environment, convert(environmentExpanded))
+    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.applied, convert(applied))
   }
 
   def int(path: String): ConfigMagnet[Int] = get(path, {
@@ -88,7 +98,7 @@ object Config {
   })
 
   def has(path: String)(implicit namespace: Namespace): () ⇒ Boolean = () ⇒ {
-    values.get(namespace).flatMap(_.get(Type.applied)).exists(_.hasPath(path))
+    values.get(namespace.id).flatMap(_.get(Type.applied)).exists(_.hasPath(path))
   }
 
   def list(path: String): ConfigMagnet[List[AnyRef]] = get(path, { config ⇒
@@ -100,14 +110,14 @@ object Config {
     cfg.entrySet.asScala.map { entry ⇒ entry.getKey → ObjectUtil.asScala(cfg.getAnyRef(entry.getKey)) }.toMap
   })
 
-  def export(`type`: Config.Type.Value, flatten: Boolean = true, filter: String ⇒ Boolean = { _ ⇒ true })(implicit namespace: Namespace): Map[String, Any] = {
-    val entries = convert(values.get(namespace).flatMap(_.get(`type`)).getOrElse(ConfigFactory.empty())).filter { case (key, _) ⇒ filter(key) }
+  def export(`type`: Config.Type.Value, flatten: Boolean = true, filter: ConfigFilter = ConfigFilter.acceptAll)(implicit namespace: Namespace): Map[String, Any] = {
+    val entries = convert(values.get(namespace.id).flatMap(_.get(`type`)).getOrElse(ConfigFactory.empty())).filter { case (key, value) ⇒ filter.filter(key, value) }
     if (flatten) entries else expand(entries)
   }
 
   private def get[T](path: String, process: TypesafeConfig ⇒ T): ConfigMagnet[T] = new ConfigMagnet[T] {
     def apply()(implicit namespace: Namespace): T = {
-      values.getOrElseUpdate(namespace, new mutable.LinkedHashMap()).get(Type.applied) match {
+      values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).get(Type.applied) match {
         case Some(applied) ⇒ process(applied)
         case _             ⇒ throw new Missing(path)
       }
@@ -152,3 +162,12 @@ object Config {
 trait ConfigMagnet[T] {
   def apply()(implicit namespace: Namespace): T
 }
+
+object ConfigFilter {
+
+  val acceptAll = ConfigFilter((_, _) ⇒ true)
+
+  implicit def function2filter(filter: (String, AnyRef) ⇒ Boolean): ConfigFilter = ConfigFilter(filter)
+}
+
+case class ConfigFilter(filter: (String, AnyRef) ⇒ Boolean)
