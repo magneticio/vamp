@@ -33,7 +33,7 @@ object MarathonDriverActor {
   val expirationPeriod = Config.duration(s"$config.marathon.expiration-period")
   val reconciliationPeriod = Config.duration(s"$config.marathon.reconciliation-period")
 
-  val namespaceCluster = Config.string(s"$config.marathon.namespace-cluster")
+  val namespaceConstraint = Config.stringList(s"$config.marathon.namespace-constraint")
 
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
@@ -160,7 +160,7 @@ class MarathonDriverActor
     val id = appId(deployment, service.breed)
     val name = s"${deployment.name} / ${service.breed.deployable.definition}"
     if (update) log.info(s"marathon update service: $name") else log.info(s"marathon create service: $name")
-    val constraints = (namespaceConstraint() +: Nil).filter(_.nonEmpty)
+    val constraints = (namespaceConstraint +: Nil).filter(_.nonEmpty)
 
     val app = MarathonApp(
       id,
@@ -187,7 +187,7 @@ class MarathonDriverActor
     val id = appId(workflow)
     if (update) log.info(s"marathon update workflow: ${workflow.name}") else log.info(s"marathon create workflow: ${workflow.name}")
     val scale = workflow.scale.get.asInstanceOf[DefaultScale]
-    val constraints = (namespaceConstraint() +: Nil).filter(_.nonEmpty)
+    val constraints = (namespaceConstraint +: Nil).filter(_.nonEmpty)
 
     val marathonApp = MarathonApp(
       id,
