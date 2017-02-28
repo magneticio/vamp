@@ -1,7 +1,7 @@
 package io.vamp.container_driver.marathon
 
 import akka.NotUsed
-import akka.actor.{ Actor, ActorLogging }
+import akka.actor.Actor
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpHeader.ParsingResult
 import akka.http.scaladsl.model.{ HttpHeader, HttpRequest, Uri }
@@ -9,13 +9,13 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import de.heikoseeberger.akkasse.{ EventStreamUnmarshalling, ServerSentEvent }
-import io.vamp.common.akka.ExecutionContextProvider
+import io.vamp.common.akka.{ CommonActorLogging, ExecutionContextProvider }
 import io.vamp.container_driver.ContainerChangeEvent
 import org.json4s.native.JsonMethods._
 import org.json4s.{ DefaultFormats, StringInput }
 
 trait MarathonSse {
-  this: Actor with ActorLogging with ExecutionContextProvider ⇒
+  this: Actor with CommonActorLogging with ExecutionContextProvider ⇒
 
   import EventStreamUnmarshalling._
 
