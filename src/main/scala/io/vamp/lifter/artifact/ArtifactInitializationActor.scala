@@ -2,12 +2,11 @@ package io.vamp.lifter.artifact
 
 import java.nio.file.{ Path, Paths }
 
-import akka.event.LoggingAdapter
 import akka.pattern.ask
 import akka.util.Timeout
 import io.vamp.common.Config
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ CommonProvider, CommonSupportForActors }
+import io.vamp.common.akka.{ CommonActorLogging, CommonProvider, CommonSupportForActors }
 import io.vamp.lifter.notification.LifterNotificationProvider
 import io.vamp.model.artifact.{ DefaultBreed, Deployable }
 import io.vamp.model.reader.WorkflowReader
@@ -57,9 +56,7 @@ class ArtifactInitializationActor extends ArtifactLoader with CommonSupportForAc
 }
 
 trait ArtifactLoader extends ArtifactApiController with DeploymentApiController {
-  this: CommonProvider ⇒
-
-  def log: LoggingAdapter
+  this: CommonActorLogging with CommonProvider ⇒
 
   implicit def timeout: Timeout
 

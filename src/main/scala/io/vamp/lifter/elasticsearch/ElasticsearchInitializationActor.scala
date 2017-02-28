@@ -37,6 +37,8 @@ trait ElasticsearchInitializationActor extends FSM[ElasticsearchInitializationAc
 
   import ElasticsearchInitializationActor._
 
+  override val log = akka.event.Logging(this)
+
   def templates: List[TemplateDefinition] = Nil
 
   def documents: List[DocumentDefinition] = Nil
