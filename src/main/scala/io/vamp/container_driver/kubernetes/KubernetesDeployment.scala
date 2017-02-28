@@ -1,6 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
-import akka.actor.ActorLogging
+import io.vamp.common.akka.CommonActorLogging
 import io.vamp.common.http.HttpClient
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
 import io.vamp.container_driver.{ ContainerDriver, _ }
@@ -10,7 +10,7 @@ import io.vamp.model.reader.{ MegaByte, Quantity }
 import scala.concurrent.Future
 
 trait KubernetesDeployment extends KubernetesArtifact {
-  this: KubernetesContainerDriver with ActorLogging ⇒
+  this: KubernetesContainerDriver with CommonActorLogging ⇒
 
   private val deploymentServiceIdLabel = "deployment-service"
 

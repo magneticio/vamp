@@ -1,6 +1,6 @@
 package io.vamp.container_driver.kubernetes
 
-import akka.actor.ActorLogging
+import io.vamp.common.akka.CommonActorLogging
 import io.vamp.common.util.HashUtil
 import io.vamp.container_driver.ContainerDriver
 
@@ -13,7 +13,7 @@ object KubernetesServiceType extends Enumeration {
 }
 
 trait KubernetesService extends KubernetesArtifact {
-  this: KubernetesContainerDriver with ActorLogging ⇒
+  this: KubernetesContainerDriver with CommonActorLogging ⇒
 
   private lazy val url = s"$apiUrl/api/v1/namespaces/$namespace/services"
 

@@ -1,12 +1,12 @@
 package io.vamp.container_driver.kubernetes
 
-import akka.actor.ActorLogging
+import io.vamp.common.akka.CommonActorLogging
 import io.vamp.container_driver.ContainerDriver
 
 import scala.concurrent.Future
 
 trait KubernetesDaemonSet extends KubernetesArtifact {
-  this: KubernetesContainerDriver with ActorLogging ⇒
+  this: KubernetesContainerDriver with CommonActorLogging ⇒
 
   private lazy val url = s"$apiUrl/apis/extensions/v1beta1/namespaces/$namespace/daemonsets"
 
