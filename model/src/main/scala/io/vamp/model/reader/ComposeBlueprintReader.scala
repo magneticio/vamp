@@ -105,9 +105,9 @@ object ComposeClusterReader extends YamlReader[ComposeReader[List[Cluster]]] {
       case Some(yaml) => yaml
         .pull()
         .toList
-        .map {
+        .flatMap {
           case (name: String, yaml: YamlSourceReader) =>
-            ComposeServicesReader.parseService(name)(yaml).map { service =>
+            Some(ComposeServicesReader.parseService(name)(yaml).map { service =>
               Cluster(
                 name = name,
                 metadata = Map(),
@@ -117,7 +117,8 @@ object ComposeClusterReader extends YamlReader[ComposeReader[List[Cluster]]] {
                 network = None,
                 sla = None,
                 dialects = Map())
-            }
+            })
+          case _ => None
         }
       case None => List()
     })
