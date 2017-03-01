@@ -1,27 +1,32 @@
 package io.vamp.bootstrap
 
 import akka.actor.{ Actor, ActorSystem, Props }
-import io.vamp.common.{ ClassProvider, Config, Namespace }
+import akka.util.Timeout
 import io.vamp.common.akka.{ Bootstrap, ActorBootstrap ⇒ ActorBootstrapService }
+import io.vamp.common.{ ClassProvider, Namespace }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-class ActorBootstrap(implicit val namespace: Namespace) extends Bootstrap {
+trait AbstractActorBootstrap extends Bootstrap {
 
-  private implicit val system = ActorSystem("vamp")
+  implicit def timeout: Timeout
+  implicit def namespace: Namespace
+  implicit def actorSystem: ActorSystem
 
-  private implicit lazy val timeout = Config.timeout("vamp.bootstrap.timeout")()
-
-  protected lazy val bootstrap = ClassProvider.all[ActorBootstrapService].toList
+  protected def bootstrap: List[ActorBootstrapService]
 
   override def start() = bootstrap.foreach(_.start)
 
   override def stop() = {
-    implicit val executionContext: ExecutionContext = system.dispatcher
-    Future.sequence(bootstrap.reverse.map(_.stop)).foreach(_ ⇒ system.terminate())
+    implicit val executionContext: ExecutionContext = actorSystem.dispatcher
+    Future.sequence(bootstrap.reverse.map(_.stop))
   }
+}
 
-  system.actorOf(Props(new Actor {
+class ActorBootstrap(override val bootstrap: List[ActorBootstrapService])(implicit val actorSystem: ActorSystem, val namespace: Namespace, val timeout: Timeout) extends AbstractActorBootstrap
+
+class ClassProviderActorBootstrap(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout) extends ActorBootstrap(ClassProvider.all[ActorBootstrapService].toList)(actorSystem, namespace, timeout) {
+  actorSystem.actorOf(Props(new Actor {
     def receive = {
       case "reload" ⇒ bootstrap.reverse.foreach(_.restart)
       case _        ⇒

@@ -3,10 +3,11 @@ package io.vamp.http_api
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
-import akka.stream.ActorMaterializer
+import akka.http.scaladsl.server.Route
+import akka.stream.{ ActorMaterializer, Materializer }
 import akka.util.Timeout
-import io.vamp.common.{ Config, Namespace }
 import io.vamp.common.akka.{ ActorBootstrap, IoC }
+import io.vamp.common.{ Config, Namespace }
 import io.vamp.http_api.ws.WebSocketActor
 
 import scala.concurrent.Future
@@ -15,20 +16,18 @@ class HttpApiBootstrap extends ActorBootstrap {
 
   private var binding: Option[Future[ServerBinding]] = None
 
+  protected def routes(implicit namespace: Namespace, actorSystem: ActorSystem, materializer: Materializer): Route = new HttpApiRoute().allRoutes
+
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout) = {
     IoC.createActor[WebSocketActor].map(_ :: Nil)(actorSystem.dispatcher)
   }
 
   override def start(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {
     super.start
-
     val (interface, port) = (Config.string("vamp.http-api.interface")(), Config.int("vamp.http-api.port")())
-
     implicit lazy val materializer = ActorMaterializer()
-    implicit lazy val executionContext = actorSystem.dispatcher
-
-    info(s"Binding: $interface:$port")
-    binding = Option(Http().bindAndHandle(new HttpApiRoute().allRoutes, interface, port))
+    info(s"Binding API: $interface:$port")
+    binding = Option(Http().bindAndHandle(routes, interface, port))
   }
 
   override def restart(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout) = {}

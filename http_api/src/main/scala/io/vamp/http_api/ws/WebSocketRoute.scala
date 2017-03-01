@@ -34,7 +34,7 @@ trait WebSocketRoute extends WebSocketMarshaller with HttpApiHandlers {
     }
   }
 
-  private val limit = Config.int("vamp.http-api.websocket.stream-limit")()
+  private lazy val limit = Config.int("vamp.http-api.websocket.stream-limit")()
 
   private val apiHandler = Route.asyncHandler(log {
     websocketApiHandler

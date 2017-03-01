@@ -2,8 +2,9 @@ package io.vamp.operation
 
 import akka.actor.{ ActorRef, ActorSystem, Props }
 import akka.util.Timeout
-import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.akka.SchedulerActor.Period
 import io.vamp.common.akka.{ ActorBootstrap, IoC, SchedulerActor }
+import io.vamp.common.{ Config, Namespace }
 import io.vamp.operation.config.ConfigurationLoaderActor
 import io.vamp.operation.deployment.{ DeploymentActor, DeploymentSynchronizationActor, DeploymentSynchronizationSchedulerActor }
 import io.vamp.operation.gateway.{ GatewayActor, GatewaySynchronizationActor, GatewaySynchronizationSchedulerActor }
@@ -11,8 +12,8 @@ import io.vamp.operation.metrics.KamonMetricsActor
 import io.vamp.operation.sla.{ EscalationActor, EscalationSchedulerActor, SlaActor, SlaSchedulerActor }
 import io.vamp.operation.workflow.{ WorkflowActor, WorkflowSynchronizationActor, WorkflowSynchronizationSchedulerActor }
 
-import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
 class OperationBootstrap extends ActorBootstrap {
@@ -22,11 +23,12 @@ class OperationBootstrap extends ActorBootstrap {
   val synchronizationMailbox = "vamp.operation.synchronization.mailbox"
 
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[List[ActorRef]] = {
+    implicit val ec: ExecutionContext = actorSystem.dispatcher
+    implicit val delay = Config.duration(s"$config.synchronization.initial-delay")()
 
     val slaPeriod = Config.duration(s"$config.sla.period")()
     val escalationPeriod = Config.duration(s"$config.escalation.period")()
     val synchronizationPeriod = Config.duration(s"$config.synchronization.period")()
-    val synchronizationInitialDelay = Config.duration(s"$config.synchronization.initial-delay")()
 
     val actors = List(
       IoC.createActor[ConfigurationLoaderActor],
@@ -53,14 +55,13 @@ class OperationBootstrap extends ActorBootstrap {
       IoC.createActor[WorkflowSynchronizationSchedulerActor]
     )
 
-    IoC.actorFor[DeploymentSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay / 3)
-    IoC.actorFor[GatewaySynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + 1 * synchronizationPeriod / 3)
-    IoC.actorFor[WorkflowSynchronizationSchedulerActor] ! SchedulerActor.Period(synchronizationPeriod, synchronizationInitialDelay + 2 * synchronizationPeriod / 3)
+    kick(classOf[DeploymentSynchronizationSchedulerActor], Period(synchronizationPeriod))
+    kick(classOf[GatewaySynchronizationSchedulerActor], Period(synchronizationPeriod, synchronizationPeriod / 3))
+    kick(classOf[WorkflowSynchronizationSchedulerActor], Period(synchronizationPeriod, 2 * synchronizationPeriod / 3))
 
-    IoC.actorFor[SlaSchedulerActor] ! SchedulerActor.Period(slaPeriod, synchronizationInitialDelay)
-    IoC.actorFor[EscalationSchedulerActor] ! SchedulerActor.Period(escalationPeriod, synchronizationInitialDelay)
+    kick(classOf[SlaSchedulerActor], Period(slaPeriod))
+    kick(classOf[EscalationSchedulerActor], Period(escalationPeriod))
 
-    implicit val ec: ExecutionContext = actorSystem.dispatcher
     Future.sequence(actors)
   }
 
@@ -73,5 +74,11 @@ class OperationBootstrap extends ActorBootstrap {
     IoC.actorFor[EscalationSchedulerActor] ! SchedulerActor.Period(0 seconds)
 
     super.stop(actorSystem, namespace)
+  }
+
+  private def kick(clazz: Class[_], period: Period)(implicit actorSystem: ActorSystem, namespace: Namespace, delay: FiniteDuration): Unit = {
+    actorSystem.scheduler.scheduleOnce(delay)({
+      IoC.actorFor(clazz) ! period
+    })(actorSystem.dispatcher)
   }
 }
