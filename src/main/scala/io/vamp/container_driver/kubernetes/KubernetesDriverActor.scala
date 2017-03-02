@@ -1,13 +1,13 @@
 package io.vamp.container_driver.kubernetes
 
 import akka.actor.ActorRef
-import io.vamp.common.{ ClassMapper, Config, Namespace }
+import io.vamp.common.{ ClassMapper, Config, Lookup, Namespace }
 import io.vamp.common.http.HttpClient
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
-import io.vamp.model.artifact.{ Gateway, Lookup, Workflow }
+import io.vamp.model.artifact.{ Gateway, Workflow }
 
 import scala.concurrent.Future
 import scala.io.Source

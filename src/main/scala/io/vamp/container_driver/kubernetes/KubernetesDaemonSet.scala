@@ -8,7 +8,7 @@ import scala.concurrent.Future
 trait KubernetesDaemonSet extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
 
-  private lazy val url = s"$apiUrl/apis/extensions/v1beta1/namespaces/$namespace/daemonsets"
+  private lazy val url = s"$apiUrl/apis/extensions/v1beta1/namespaces/${namespace.id}/daemonsets"
 
   protected def createDaemonSet(ds: DaemonSet, labels: Map[String, String] = Map()): Future[Any] = {
     val request =
