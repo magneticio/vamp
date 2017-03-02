@@ -46,6 +46,7 @@ test:
 
 .PHONY: pack
 pack:
+	export VAMP_VERSION="katana" && sbt package publish-local
 	sbt pack
 	rm -rf $(TARGET)/vamp-zookeeper-$(VERSION)
 	mkdir -p $(TARGET)/vamp-zookeeper-$(VERSION)
