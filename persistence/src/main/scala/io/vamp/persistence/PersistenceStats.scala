@@ -13,7 +13,7 @@ import scala.concurrent.Future
 
 private case class DeploymentsStatistics(count: Int, clusters: Int, services: Int)
 
-trait PersistenceStats extends ArtifactPaginationSupport {
+trait PersistenceStats extends ArtifactPaginationSupport with PersistenceTag {
   this: CommonProvider ⇒
 
   protected implicit def timeout: Timeout
@@ -46,15 +46,14 @@ trait PersistenceStats extends ArtifactPaginationSupport {
     }
   }
 
-  private def artifact(`type`: Class[_ <: Artifact]): Option[Future[Map[String, _]]] = {
-    PersistenceArchive.tagFor(`type`).map { tag ⇒
+  protected def artifact(`type`: Class[_ <: Artifact]): Option[Future[Map[String, _]]] = {
+    tagFor(`type`).map { tag ⇒
       def count(archiveTag: String): Future[Long] = {
         (actorFor[PulseActor] ? PulseActor.Query(EventRequestEnvelope(EventQuery(Set(tag, archiveTag), None, None, Some(Aggregator(Aggregator.count))), 1, 1))) map {
           case LongValueAggregationResult(count) ⇒ count
           case _                                 ⇒ 0
         }
       }
-
       for {
         currentCount ← all(`type`, 1, 1).map(_.total)
         created ← count(PersistenceArchive.archiveCreateTag)
