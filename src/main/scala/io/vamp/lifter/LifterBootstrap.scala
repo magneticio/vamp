@@ -19,26 +19,32 @@ class LifterBootstrap extends ActorBootstrap {
     val pulseEnabled = Config.boolean("vamp.lifter.pulse.enabled")()
     val artifactEnabled = Config.boolean("vamp.lifter.artifact.enabled")()
 
-    val persistence = if (Config.boolean("vamp.lifter.persistence.enabled")()) {
-      PersistenceBootstrap.databaseType().toLowerCase match {
-        case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
-        case _               ⇒ Nil
-      }
-    } else Nil
+    val persistence = if (Config.boolean("vamp.lifter.persistence.enabled")()) createPersistenceActors else Nil
 
-    val pulse = if (pulseEnabled) {
-      PulseBootstrap.`type`().toLowerCase match {
-        case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPulseInitializationActor] :: Nil
-        case _               ⇒ Nil
-      }
-    } else Nil
+    val pulse = if (pulseEnabled) createPulseActors else Nil
 
-    val artifact = if (artifactEnabled)
-      IoC.createActor[ArtifactInitializationActor] :: Nil
-    else Nil
+    val artifact = if (artifactEnabled) createArtifactActors else Nil
 
     implicit val ec: ExecutionContext = actorSystem.dispatcher
     Future.sequence(persistence ++ pulse ++ artifact)
+  }
+
+  protected def createPersistenceActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): List[Future[ActorRef]] = {
+    PersistenceBootstrap.databaseType().toLowerCase match {
+      case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
+      case _               ⇒ Nil
+    }
+  }
+
+  protected def createPulseActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): List[Future[ActorRef]] = {
+    PulseBootstrap.`type`().toLowerCase match {
+      case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPulseInitializationActor] :: Nil
+      case _               ⇒ Nil
+    }
+  }
+
+  protected def createArtifactActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): List[Future[ActorRef]] = {
+    IoC.createActor[ArtifactInitializationActor] :: Nil
   }
 
   override def restart(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {}
