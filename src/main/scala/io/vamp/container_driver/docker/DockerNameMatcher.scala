@@ -1,7 +1,7 @@
 package io.vamp.container_driver.docker
 
+import io.vamp.common.Artifact
 import io.vamp.common.util.HashUtil
-import io.vamp.model.artifact.Artifact
 
 trait DockerNameMatcher {
 
