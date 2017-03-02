@@ -14,7 +14,7 @@ import io.vamp.http_api.notification.HttpApiNotificationProvider
 import io.vamp.http_api.ws.WebSocketRoute
 import io.vamp.model.artifact.Artifact
 import io.vamp.model.serialization.CoreSerializationFormat
-import io.vamp.operation.controller.ArtifactApiController
+import io.vamp.operation.controller.{ ArtifactApiController, ComposeApiController }
 import io.vamp.persistence.ArtifactPaginationSupport
 import org.json4s.Formats
 import org.slf4j.LoggerFactory
@@ -34,6 +34,7 @@ class HttpApiRoute(implicit val namespace: Namespace, val actorSystem: ActorSyst
     with WebSocketRoute
     with UiRoute
     with ArtifactApiController
+    with ComposeApiController
     with DeploymentApiRoute
     with EventApiRoute
     with InfoRoute
@@ -97,8 +98,20 @@ class HttpApiRoute(implicit val namespace: Namespace, val actorSystem: ActorSyst
         } ~ post {
           entity(as[String]) { request ⇒
             validateOnly { validateOnly ⇒
-              onSuccess(createArtifact(artifact, request, validateOnly)) { result ⇒
-                respondWith(if (background(artifact)) Accepted else Created, result)
+              blueprintName { nameOpt ⇒
+                nameOpt.map { name ⇒
+                  createBlueprintFromCompose(artifact, name, request).map { blueprintSource ⇒
+                    onSuccess(createArtifact("blueprints", blueprintSource, validateOnly)) { result ⇒
+                      respondWith(Created, result)
+                    }
+                  }.getOrElse {
+                    respondWith(NotFound, None)
+                  }
+                }.getOrElse {
+                  onSuccess(createArtifact(artifact, request, validateOnly)) { result ⇒
+                    respondWith(if (background(artifact)) Accepted else Created, result)
+                  }
+                }
               }
             }
           }

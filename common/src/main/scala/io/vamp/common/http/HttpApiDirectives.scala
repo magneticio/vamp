@@ -32,6 +32,8 @@ trait HttpApiDirectives extends Directives with CorsDirectives {
 
   protected def validateOnly = parameters('validate_only.as[Boolean] ? false)
 
+  protected def blueprintName = parameter('name.as[Option[String]])
+
   protected def expandAndOnlyReferences = parameters(('expand_references.as[Boolean] ? false, 'only_references.as[Boolean] ? false))
 
   protected def pageAndPerPage(perPage: Int = 30) = parameters(('page.as[Long] ? 1, 'per_page.as[Long] ? perPage))
@@ -125,7 +127,7 @@ trait HttpApiDirectives extends Directives with CorsDirectives {
       HttpResponse(status = status, entity = HttpEntity(as, data.getBytes))
   }
 
-  private def toYaml(some: Any) = {
+  protected def toYaml(some: Any): String = {
     if (some != None) {
       val yaml = new Yaml()
       yaml.dumpAs(yaml.load(toJson(some)), if (some.isInstanceOf[List[_]]) Tag.SEQ else Tag.MAP, FlowStyle.BLOCK)

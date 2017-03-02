@@ -23,7 +23,7 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "catalogue-db",
             Map(),
-            List(Service(DefaultBreed("catalogue-db:1.0.0", Map(), Deployable("container/docker","weaveworksdemos/catalogue-db"), List(),List(EnvironmentVariable("reschedule",None,Some("on-node-failure"),None), EnvironmentVariable("MYSQL_ROOT_PASSWORD",None,Some("${MYSQL_ROOT_PASSWORD}"),None), EnvironmentVariable("MYSQL_ALLOW_EMPTY_PASSWORD",None,Some("true"),None), EnvironmentVariable("MYSQL_DATABASE",None,Some("socksdb"),None)),List(),List(),Map(),None), List(), None, List(), None)),
+            List(Service(DefaultBreed("catalogue-db:1.0.0", Map(), Deployable("container/docker", "weaveworksdemos/catalogue-db"), List(), List(EnvironmentVariable("reschedule", None, Some("on-node-failure"), None), EnvironmentVariable("MYSQL_ROOT_PASSWORD", None, Some("${MYSQL_ROOT_PASSWORD}"), None), EnvironmentVariable("MYSQL_ALLOW_EMPTY_PASSWORD", None, Some("true"), None), EnvironmentVariable("MYSQL_DATABASE", None, Some("socksdb"), None)), List(), List(), Map(), None), List(), None, List(), None)),
             List(),
             None,
             None,
@@ -33,7 +33,7 @@ class ComposeBlueprintReaderSpec
             "cart",
             Map(),
             List(
-              Service(DefaultBreed("cart:1.0.0",Map(),Deployable("container/docker","weaveworksdemos/cart"),List(),List(EnvironmentVariable("reschedule",None,Some("on-node-failure"),None)),List(),List(),Map(),None), List(),None,List(),None,None,Map(),None)
+              Service(DefaultBreed("cart:1.0.0", Map(), Deployable("container/docker", "weaveworksdemos/cart"), List(), List(EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map(), None), List(), None, List(), None, None, Map(), None)
             ),
             List(),
             None,
@@ -43,7 +43,7 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "rabbitmq",
             Map(),
-            List(Service(DefaultBreed("rabbitmq:1.0.0",Map(),Deployable("container/docker","rabbitmq:3"),List(), List(EnvironmentVariable("reschedule",None,Some("on-node-failure"),None)),List(),List(),Map(),None), List(),None,List(),None,None,Map(),None)),
+            List(Service(DefaultBreed("rabbitmq:1.0.0", Map(), Deployable("container/docker", "rabbitmq:3"), List(), List(EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map(), None), List(), None, List(), None, None, Map(), None)),
             List(),
             None,
             None,
@@ -52,7 +52,7 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "user-sim",
             Map(),
-            List(Service(DefaultBreed("user-sim:1.0.0",Map(),Deployable("container/docker","weaveworksdemos/load-test"),List(),List(),List(),List(),Map(),None),List(),None,List(),None,None,Map("docker" -> "-d 60 -r 200 -c 2 -h front-end"),None)),
+            List(Service(DefaultBreed("user-sim:1.0.0", Map(), Deployable("container/docker", "weaveworksdemos/load-test"), List(), List(), List(), List(), Map(), None), List(), None, List(), None, None, Map("docker" → "-d 60 -r 200 -c 2 -h front-end"), None)),
             List(),
             None,
             None,
@@ -61,7 +61,7 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "user-db",
             Map(),
-            List(Service(DefaultBreed("user-db:1.0.0",Map(),Deployable("container/docker","weaveworksdemos/user-db"),List(),List(EnvironmentVariable("reschedule",None,Some("on-node-failure"),None)),List(),List(),Map(),None), List(),None,List(),None,None,Map(),None)),
+            List(Service(DefaultBreed("user-db:1.0.0", Map(), Deployable("container/docker", "weaveworksdemos/user-db"), List(), List(EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map(), None), List(), None, List(), None, None, Map(), None)),
             List(),
             None,
             None,
@@ -70,7 +70,7 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "payment",
             Map(),
-            List(Service(DefaultBreed("payment:1.0.0",Map(),Deployable("container/docker","weaveworksdemos/payment"),List(),List(EnvironmentVariable("reschedule",None,Some("on-node-failure"),None)),List(),List(),Map(),None),List(),None,List(),None,None,Map(),None)),
+            List(Service(DefaultBreed("payment:1.0.0", Map(), Deployable("container/docker", "weaveworksdemos/payment"), List(), List(EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map(), None), List(), None, List(), None, None, Map(), None)),
             List(),
             None,
             None,
@@ -79,7 +79,7 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "cart-db",
             Map(),
-            List(Service(DefaultBreed("cart-db:1.0.0",Map(),Deployable("container/docker","mongo"),List(),List(EnvironmentVariable("reschedule",None,Some("on-node-failure"),None)),List(),List(),Map(),None),List(),None,List(),None,None,Map(),None)),
+            List(Service(DefaultBreed("cart-db:1.0.0", Map(), Deployable("container/docker", "mongo"), List(), List(EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map(), None), List(), None, List(), None, None, Map(), None)),
             List(),
             None,
             None,
@@ -88,7 +88,7 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "catalogue",
             Map(),
-            List(Service(DefaultBreed("catalogue:1.0.0",Map(),Deployable("container/docker","weaveworksdemos/catalogue"),List(),List(EnvironmentVariable("reschedule",None,Some("on-node-failure"),None)),List(),List(),Map(),None),List(),None,List(),None,None,Map(),None)),
+            List(Service(DefaultBreed("catalogue:1.0.0", Map(), Deployable("container/docker", "weaveworksdemos/catalogue"), List(), List(EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map(), None), List(), None, List(), None, None, Map(), None)),
             List(),
             None,
             None,
@@ -97,7 +97,7 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "orders",
             Map(),
-            List(Service(DefaultBreed("orders:1.0.0",Map(),Deployable("container/docker","weaveworksdemos/orders"),List(),List(EnvironmentVariable("reschedule",None,Some("on-node-failure"),None)),List(),List(),Map(),None),List(),None,List(),None,None,Map(),None)),
+            List(Service(DefaultBreed("orders:1.0.0", Map(), Deployable("container/docker", "weaveworksdemos/orders"), List(), List(EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map(), None), List(), None, List(), None, None, Map(), None)),
             List(),
             None,
             None,
@@ -106,7 +106,7 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "orders-db",
             Map(),
-            List(Service(DefaultBreed("orders-db:1.0.0",Map(),Deployable("container/docker","mongo"),List(),List(EnvironmentVariable("reschedule",None,Some("on-node-failure"),None)),List(),List(),Map(),None),List(),None,List(),None,None,Map(),None)),
+            List(Service(DefaultBreed("orders-db:1.0.0", Map(), Deployable("container/docker", "mongo"), List(), List(EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map(), None), List(), None, List(), None, None, Map(), None)),
             List(),
             None,
             None,
@@ -115,7 +115,7 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "user",
             Map(),
-            List(Service(DefaultBreed("user:1.0.0",Map(),Deployable("container/docker","weaveworksdemos/user"),List(),List(EnvironmentVariable("MONGO_HOST",None,Some("user-db:27017"),None), EnvironmentVariable("reschedule",None,Some("on-node-failure"),None)),List(),List(),Map(),None),List(),None,List(),None,None,Map(),None)),
+            List(Service(DefaultBreed("user:1.0.0", Map(), Deployable("container/docker", "weaveworksdemos/user"), List(), List(EnvironmentVariable("MONGO_HOST", None, Some("user-db:27017"), None), EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map(), None), List(), None, List(), None, None, Map(), None)),
             List(),
             None,
             None,
@@ -124,7 +124,7 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "front-end",
             Map(),
-            List(Service(DefaultBreed("front-end:1.0.0",Map(),Deployable("container/docker","weaveworksdemos/front-end"),List(Port("8079",None,Some("8079"),8079,Port.Type.Http)),List(EnvironmentVariable("reschedule",None,Some("on-node-failure"),None)),List(),List(),Map(),None),List(),None,List(),None,None,Map(),None)),
+            List(Service(DefaultBreed("front-end:1.0.0", Map(), Deployable("container/docker", "weaveworksdemos/front-end"), List(Port("8079", None, Some("8079"), 8079, Port.Type.Http)), List(EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map(), None), List(), None, List(), None, None, Map(), None)),
             List(),
             None,
             None,
@@ -133,13 +133,13 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "shipping",
             Map(),
-            List(Service(DefaultBreed("shipping:1.0.0",Map(),Deployable("container/docker","weaveworksdemos/shipping"),List(),List(EnvironmentVariable("reschedule",None,Some("on-node-failure"),None)),List(),List(),Map(),None),List(),None,List(),None,None,Map(),None)),
+            List(Service(DefaultBreed("shipping:1.0.0", Map(), Deployable("container/docker", "weaveworksdemos/shipping"), List(), List(EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map(), None), List(), None, List(), None, None, Map(), None)),
             List(),
             None,
             None,
             None,
             Map())
-          ),
+        ),
         List(),
         List(),
         Map()))
@@ -164,7 +164,7 @@ class ComposeBlueprintReaderSpec
             "wordpress",
             Map(),
             List(
-              Service(DefaultBreed("wordpress:1.0.0", Map(), Deployable("container/docker", "wordpress:latest"), List(Port("80",None,Some("80"),80,Port.Type.Http)), List(EnvironmentVariable("WORDPRESS_DB_HOST", None, Some("db:3306")), EnvironmentVariable("WORDPRESS_DB_PASSWORD", None, Some("wordpress"))), List(), List(), Map("db" -> BreedReference("db:1.0.0")), None), List(), None, List(), None)),
+              Service(DefaultBreed("wordpress:1.0.0", Map(), Deployable("container/docker", "wordpress:latest"), List(Port("80", None, Some("80"), 80, Port.Type.Http)), List(EnvironmentVariable("WORDPRESS_DB_HOST", None, Some("db:3306")), EnvironmentVariable("WORDPRESS_DB_PASSWORD", None, Some("wordpress"))), List(), List(), Map("db" → BreedReference("db:1.0.0")), None), List(), None, List(), None)),
             List(),
             None,
             None,
