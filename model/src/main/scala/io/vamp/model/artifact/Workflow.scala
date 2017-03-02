@@ -2,6 +2,7 @@ package io.vamp.model.artifact
 
 import java.time.{ Duration, OffsetDateTime, Period }
 
+import io.vamp.common.{ Artifact, Lookup }
 import io.vamp.model.artifact.TimeSchedule.{ Repeat, RepeatForever, RepeatPeriod }
 
 import scala.language.implicitConversions

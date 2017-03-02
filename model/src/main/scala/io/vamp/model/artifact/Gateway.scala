@@ -1,5 +1,6 @@
 package io.vamp.model.artifact
 
+import io.vamp.common.{ Artifact, Lookup, Reference }
 import io.vamp.model.reader.Percentage
 
 import scala.language.implicitConversions

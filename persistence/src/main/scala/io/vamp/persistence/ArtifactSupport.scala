@@ -2,11 +2,11 @@ package io.vamp.persistence
 
 import akka.pattern.ask
 import io.vamp.common.akka.{ CommonProvider, IoC }
-import io.vamp.model.artifact.Artifact
 import io.vamp.persistence.notification.{ ArtifactNotFound, PersistenceOperationFailure }
 
 import scala.concurrent.Future
 import scala.reflect._
+import _root_.io.vamp.common.Artifact
 
 trait ArtifactSupport {
   this: CommonProvider ⇒

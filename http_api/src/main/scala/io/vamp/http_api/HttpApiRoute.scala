@@ -9,10 +9,9 @@ import akka.stream.Materializer
 import com.typesafe.scalalogging.Logger
 import io.vamp.common.akka.CommonProvider
 import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers }
-import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.{ Artifact, Config, Namespace }
 import io.vamp.http_api.notification.HttpApiNotificationProvider
 import io.vamp.http_api.ws.WebSocketRoute
-import io.vamp.model.artifact.Artifact
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.operation.controller.ArtifactApiController
 import io.vamp.persistence.ArtifactPaginationSupport
@@ -135,9 +134,9 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     }
   }
 
-  val websocketApiHandler = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
+  protected val websocketApiHandler = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
 
-  val apiRoutes = noCachingAllowed {
+  protected val apiRoutes = noCachingAllowed {
     cors() {
       pathPrefix("api" / Artifact.version) {
         encodeResponse {

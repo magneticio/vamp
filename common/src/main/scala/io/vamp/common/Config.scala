@@ -53,16 +53,17 @@ object Config {
       applicationExpanded,
       environmentExpanded,
       systemExpanded,
-      dynamicExpanded,
-      expand(namespace.config.asInstanceOf[Map[String, AnyRef]])
+      dynamicExpanded
     )
+
+    val appliedWitNamespace = expand(flatten(applied) ++ flatten(expand(namespace.config.asInstanceOf[Map[String, AnyRef]])))
 
     values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.system, convert(systemExpanded))
     values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.dynamic, convert(dynamicExpanded))
     values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.reference, convert(referenceExpanded))
     values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.application, convert(applicationExpanded))
     values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.environment, convert(environmentExpanded))
-    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.applied, convert(applied))
+    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.applied, convert(appliedWitNamespace))
   }
 
   def int(path: String): ConfigMagnet[Int] = get(path, {
@@ -131,6 +132,8 @@ object Config {
   }
 
   private def convert(config: Map[String, AnyRef]): TypesafeConfig = ConfigFactory.parseString(write(expand(config)))
+
+  private def flatten(config: Map[String, AnyRef]): Map[String, AnyRef] = convert(convert(config))
 
   private def expand[T](any: T): T = {
     def split(key: Any, value: Any) = {

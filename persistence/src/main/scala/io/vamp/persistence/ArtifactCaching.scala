@@ -3,8 +3,8 @@ package io.vamp.persistence
 import java.lang.ref.SoftReference
 import java.util.concurrent.ConcurrentHashMap
 
+import io.vamp.common.Artifact
 import io.vamp.common.notification.NotificationProvider
-import io.vamp.model.artifact.Artifact
 
 import scala.concurrent.Future
 
@@ -14,11 +14,11 @@ trait ArtifactCaching extends TypeOfArtifact {
   private val cache = new ConcurrentHashMap[String, SoftReference[Future[_]]]()
 
   protected def cacheAll(enabled: Boolean)(`type`: Class[_ <: Artifact], page: Int, perPage: Int)(otherwise: () ⇒ Future[ArtifactResponseEnvelope]): Future[ArtifactResponseEnvelope] = {
-    if (enabled) retrieve(cacheKey(`type`, "*", page, perPage), otherwise) else otherwise()
+    if (enabled) retrieve(cacheKey(type2string(`type`), "*", page, perPage), otherwise) else otherwise()
   }
 
   protected def cacheGet(enabled: Boolean)(name: String, `type`: Class[_ <: Artifact])(otherwise: () ⇒ Future[Option[Artifact]]): Future[Option[Artifact]] = {
-    if (enabled) retrieve(cacheKey(`type`, name), otherwise) else otherwise()
+    if (enabled) retrieve(cacheKey(type2string(`type`), name), otherwise) else otherwise()
   }
 
   protected def cacheSet(enabled: Boolean)(artifact: Artifact)(otherwise: () ⇒ Future[Artifact]): Future[Artifact] = {

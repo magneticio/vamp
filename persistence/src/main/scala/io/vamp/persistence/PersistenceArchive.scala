@@ -2,6 +2,7 @@ package io.vamp.persistence
 
 import akka.pattern.ask
 import akka.util.Timeout
+import io.vamp.common.Artifact
 import io.vamp.common.akka._
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event

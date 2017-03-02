@@ -17,6 +17,13 @@ import io.vamp.workflow_driver.WorkflowDriverActor
 import scala.concurrent.Future
 import scala.language.postfixOps
 
+trait AbstractInfoMessage extends JvmInfoMessage {
+  def message: String
+  def version: String
+  def uuid: String
+  def runningSince: String
+}
+
 case class InfoMessage(
   message:         String,
   version:         String,
@@ -29,7 +36,7 @@ case class InfoMessage(
   gatewayDriver:   Option[Any],
   containerDriver: Option[Any],
   workflowDriver:  Option[Any]
-) extends JvmInfoMessage
+) extends AbstractInfoMessage
 
 trait InfoController extends DataRetrieval with JmxVitalsProvider {
   this: CommonProvider ⇒
@@ -40,7 +47,7 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
 
   private val dataRetrievalTimeout = Config.timeout("vamp.operation.info.timeout")
 
-  def infoMessage(on: Set[String]): Future[(InfoMessage, Boolean)] = {
+  def infoMessage(on: Set[String]): Future[(AbstractInfoMessage, Boolean)] = {
     retrieve(actors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout()) map { result ⇒
       InfoMessage(
         infoMessage(),

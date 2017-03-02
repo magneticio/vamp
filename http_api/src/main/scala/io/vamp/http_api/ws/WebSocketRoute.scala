@@ -24,7 +24,7 @@ trait WebSocketRoute extends WebSocketMarshaller with HttpApiHandlers {
 
   def timeout: Timeout
 
-  def websocketApiHandler: Route
+  protected def websocketApiHandler: Route
 
   val websocketRoutes = {
     get {
