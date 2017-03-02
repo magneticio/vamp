@@ -42,11 +42,11 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
   import ElasticsearchClient._
   import PulseActor._
 
-  val url = ElasticsearchPulseActor.elasticsearchUrl()
+  lazy val url = ElasticsearchPulseActor.elasticsearchUrl()
 
-  val indexName = resolveWithNamespace(ElasticsearchPulseActor.indexName())
+  lazy val indexName = resolveWithNamespace(ElasticsearchPulseActor.indexName())
 
-  val indexTimeFormat = ElasticsearchPulseActor.indexTimeFormat()
+  lazy val indexTimeFormat = ElasticsearchPulseActor.indexTimeFormat()
 
   private lazy val es = new ElasticsearchClient(url)
 

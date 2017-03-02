@@ -1,7 +1,6 @@
 package io.vamp.persistence
 
-import io.vamp.common.{ ClassMapper, Config }
-import io.vamp.model.artifact._
+import io.vamp.common.{ Artifact, ClassMapper, Config }
 import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.pulse.ElasticsearchClient
 import io.vamp.pulse.ElasticsearchClient.{ ElasticsearchGetResponse, ElasticsearchSearchResponse }
@@ -24,11 +23,11 @@ case class ElasticsearchPersistenceInfo(`type`: String, url: String, index: Stri
 
 class ElasticsearchPersistenceActor extends PersistenceActor with PersistenceMarshaller with TypeOfArtifact with PaginationSupport with NamespaceValueResolver {
 
-  private val index = resolveWithNamespace(ElasticsearchPersistenceActor.index())
+  private lazy val index = resolveWithNamespace(ElasticsearchPersistenceActor.index())
 
-  private val url = ElasticsearchPersistenceActor.elasticsearchUrl()
+  private lazy val url = ElasticsearchPersistenceActor.elasticsearchUrl()
 
-  private val es = new ElasticsearchClient(url)
+  private lazy val es = new ElasticsearchClient(url)
 
   protected def info(): Future[Any] = for {
     health ← es.health
@@ -39,7 +38,8 @@ class ElasticsearchPersistenceActor extends PersistenceActor with PersistenceMar
     log.debug(s"${getClass.getSimpleName}: all [${type2string(`type`)}] of $page per $perPage")
 
     val from = (page - 1) * perPage
-    es.search[ElasticsearchSearchResponse](index, `type`,
+    val t = type2string(`type`)
+    es.search[ElasticsearchSearchResponse](index, t,
       s"""
          |{
          |  "query": {
@@ -53,26 +53,27 @@ class ElasticsearchPersistenceActor extends PersistenceActor with PersistenceMar
          |  "size": $perPage
          |}
         """.stripMargin) map {
-      response ⇒ ArtifactResponseEnvelope(response.hits.hits.flatMap { hit ⇒ read(`type`, hit._source) }, response.hits.total, from, perPage)
+      response ⇒ ArtifactResponseEnvelope(response.hits.hits.flatMap { hit ⇒ read(t, hit._source) }, response.hits.total, from, perPage)
     }
   }
 
   protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = {
     log.debug(s"${getClass.getSimpleName}: read [${type2string(`type`)}] - $name}")
-    es.get[ElasticsearchGetResponse](index, `type`, name) map {
-      hit ⇒ if (hit.found) read(`type`, hit._source) else None
+    val t = type2string(`type`)
+    es.get[ElasticsearchGetResponse](index, t, name) map {
+      hit ⇒ if (hit.found) read(t, hit._source) else None
     }
   }
 
   protected def set(artifact: Artifact): Future[Artifact] = {
     val json = marshall(artifact)
     log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - $json")
-    es.index[Any](index, artifact.getClass, artifact.name, ElasticsearchArtifact(json)).flatMap(_ ⇒ es.refresh(index)).map(_ ⇒ artifact)
+    es.index[Any](index, type2string(artifact.getClass), artifact.name, ElasticsearchArtifact(json)).flatMap(_ ⇒ es.refresh(index)).map(_ ⇒ artifact)
   }
 
   protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
-    es.delete(index, `type`, name).flatMap(r ⇒ es.refresh(index).map(_ ⇒ r != None))
+    es.delete(index, type2string(`type`), name).flatMap(r ⇒ es.refresh(index).map(_ ⇒ r != None))
   }
 
   private def read(`type`: String, source: Map[String, Any]): Option[Artifact] = {
