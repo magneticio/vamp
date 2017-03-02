@@ -10,6 +10,7 @@ object CoreSerializationFormat {
     OffsetDateTimeSerializer,
     SnakeCaseSerializationFormat,
     MapSerializer,
+    NamespaceSerializationFormat,
     BreedSerializationFormat,
     BlueprintSerializationFormat,
     GatewaySerializationFormat,
