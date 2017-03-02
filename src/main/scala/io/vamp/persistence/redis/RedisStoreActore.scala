@@ -14,11 +14,11 @@ class RedisStoreActorMapper extends ClassMapper {
 
 class RedisStoreActor extends KeyValueStoreActor {
 
-  private val host = Config.string("vamp.persistence.key-value-store.redis.host")()
+  private lazy val host = Config.string("vamp.persistence.key-value-store.redis.host")()
 
-  private val port = Config.int("vamp.persistence.key-value-store.redis.port")()
+  private lazy val port = Config.int("vamp.persistence.key-value-store.redis.port")()
 
-  private val client = RedisClient(host, port)
+  private lazy val client = RedisClient(host, port)
 
   override protected def info(): Future[Map[_, _]] = client.info("server").map { server ⇒
     val info = Try {

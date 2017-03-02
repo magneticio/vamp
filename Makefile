@@ -46,6 +46,7 @@ test:
 
 .PHONY: pack
 pack:
+	export VAMP_VERSION="katana" && sbt package publish-local
 	sbt pack
 	rm -rf $(TARGET)/vamp-redis-$(VERSION)
 	mkdir -p $(TARGET)/vamp-redis-$(VERSION)
