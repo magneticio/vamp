@@ -26,6 +26,7 @@ all: default
 # Using our buildserver which contains all the necessary dependencies
 .PHONY: default
 default:
+	docker pull $(BUILD_SERVER)
 	docker run \
 		--name buildserver \
 		--interactive \
@@ -45,6 +46,7 @@ test:
 
 .PHONY: pack
 pack:
+	export VAMP_VERSION="katana" && sbt package publish-local
 	sbt pack
 	rm -rf $(TARGET)/vamp-dcos-$(VERSION)
 	mkdir -p $(TARGET)/vamp-dcos-$(VERSION)
@@ -56,7 +58,6 @@ pack:
 	docker run \
 		--name packer \
 		--interactive \
-		--tty \
 		--rm \
 		--volume $(TARGET)/vamp-dcos-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
