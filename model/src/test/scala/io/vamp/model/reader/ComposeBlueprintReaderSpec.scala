@@ -115,7 +115,7 @@ class ComposeBlueprintReaderSpec
           Cluster(
             "user",
             Map(),
-            List(Service(DefaultBreed("user:1.0.0", Map(), Deployable("container/docker", "weaveworksdemos/user"), List(), List(EnvironmentVariable("MONGO_HOST", None, Some("user-db:27017"), None), EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map(), None), List(), None, List(), None, None, Map(), None)),
+            List(Service(DefaultBreed("user:1.0.0", Map(), Deployable("container/docker", "weaveworksdemos/user"), List(), List(EnvironmentVariable("MONGO_HOST", None, Some("$user-db.host:27017"), None), EnvironmentVariable("reschedule", None, Some("on-node-failure"), None)), List(), List(), Map("user-db" → BreedReference("user-db:1.0.0")), None), List(), None, List(), None, None, Map(), None)),
             List(),
             None,
             None,
@@ -164,7 +164,7 @@ class ComposeBlueprintReaderSpec
             "wordpress",
             Map(),
             List(
-              Service(DefaultBreed("wordpress:1.0.0", Map(), Deployable("container/docker", "wordpress:latest"), List(Port("80", None, Some("80"), 80, Port.Type.Http)), List(EnvironmentVariable("WORDPRESS_DB_HOST", None, Some("db:3306")), EnvironmentVariable("WORDPRESS_DB_PASSWORD", None, Some("wordpress"))), List(), List(), Map("db" → BreedReference("db:1.0.0")), None), List(), None, List(), None)),
+              Service(DefaultBreed("wordpress:1.0.0", Map(), Deployable("container/docker", "wordpress:latest"), List(Port("80", None, Some("80"), 80, Port.Type.Http)), List(EnvironmentVariable("WORDPRESS_DB_HOST", None, Some("$db.host:3306")), EnvironmentVariable("WORDPRESS_DB_PASSWORD", None, Some("wordpress"))), List(), List(), Map("db" → BreedReference("db:1.0.0")), None), List(), None, List(), None)),
             List(),
             None,
             None,

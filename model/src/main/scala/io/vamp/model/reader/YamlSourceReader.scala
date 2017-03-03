@@ -65,7 +65,7 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
       .map(consume)
       .flatMap {
         case (key, value: YamlSourceReader) ⇒ value.flattenNotConsumed(key)
-        case (key, map: Map[String, Any])   ⇒ YamlSourceReader(map).flattenNotConsumed(key)
+        case (key, map: Map[String, _])     ⇒ YamlSourceReader(map).flattenNotConsumed(key)
         case (key, ls: List[String]) ⇒
           val addPath = if (path.isEmpty) "" else s"$path."
           ls.map(s"$addPath$key" → _).toMap
