@@ -69,7 +69,6 @@ class WebSocketActor extends EventApiController with LogApiController with Commo
   }
 
   private def handle(id: UUID, request: WebSocketRequest, apiHandler: HttpRequest ⇒ Future[HttpResponse]) = sessions.get(id).foreach { receiver ⇒
-
     if (request.logStream) {
       val params = request.parameters.filter {
         case (_, _: String) ⇒ true
@@ -102,12 +101,11 @@ class WebSocketActor extends EventApiController with LogApiController with Commo
   }
 
   private def toUri(request: WebSocketRequest): Uri = {
-
     def encode(s: String) = URLEncoder.encode(s, "UTF-8")
 
     val params = if (request.parameters.nonEmpty) {
-      val flatten = request.parameters.map {
-        case (k, v) ⇒ s"${encode(k)}=${encode(v.toString)}"
+      val flatten = request.parameters.collect {
+        case (k, v) if v != null ⇒ s"${encode(k)}=${encode(v.toString)}"
       } mkString "&"
       s"?$flatten"
     }

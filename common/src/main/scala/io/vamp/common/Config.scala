@@ -58,12 +58,12 @@ object Config {
 
     val appliedWitNamespace = expand(flatten(applied) ++ flatten(expand(namespace.config.asInstanceOf[Map[String, AnyRef]])))
 
-    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.system, convert(systemExpanded))
-    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.dynamic, convert(dynamicExpanded))
-    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.reference, convert(referenceExpanded))
-    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.application, convert(applicationExpanded))
-    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.environment, convert(environmentExpanded))
-    values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).put(Type.applied, convert(appliedWitNamespace))
+    values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).put(Type.system, convert(systemExpanded))
+    values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).put(Type.dynamic, convert(dynamicExpanded))
+    values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).put(Type.reference, convert(referenceExpanded))
+    values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).put(Type.application, convert(applicationExpanded))
+    values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).put(Type.environment, convert(environmentExpanded))
+    values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).put(Type.applied, convert(appliedWitNamespace))
   }
 
   def int(path: String): ConfigMagnet[Int] = get(path, {
@@ -99,7 +99,7 @@ object Config {
   })
 
   def has(path: String)(implicit namespace: Namespace): () ⇒ Boolean = () ⇒ {
-    values.get(namespace.id).flatMap(_.get(Type.applied)).exists(_.hasPath(path))
+    values.get(namespace.name).flatMap(_.get(Type.applied)).exists(_.hasPath(path))
   }
 
   def list(path: String): ConfigMagnet[List[AnyRef]] = get(path, { config ⇒
@@ -112,13 +112,13 @@ object Config {
   })
 
   def export(`type`: Config.Type.Value, flatten: Boolean = true, filter: ConfigFilter = ConfigFilter.acceptAll)(implicit namespace: Namespace): Map[String, Any] = {
-    val entries = convert(values.get(namespace.id).flatMap(_.get(`type`)).getOrElse(ConfigFactory.empty())).filter { case (key, value) ⇒ filter.filter(key, value) }
+    val entries = convert(values.get(namespace.name).flatMap(_.get(`type`)).getOrElse(ConfigFactory.empty())).filter { case (key, value) ⇒ filter.filter(key, value) }
     if (flatten) entries else expand(entries)
   }
 
   private def get[T](path: String, process: TypesafeConfig ⇒ T): ConfigMagnet[T] = new ConfigMagnet[T] {
     def apply()(implicit namespace: Namespace): T = {
-      values.getOrElseUpdate(namespace.id, new mutable.LinkedHashMap()).get(Type.applied) match {
+      values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).get(Type.applied) match {
         case Some(applied) ⇒ process(applied)
         case _             ⇒ throw new Missing(path)
       }

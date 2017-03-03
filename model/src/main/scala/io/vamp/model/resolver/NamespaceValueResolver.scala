@@ -14,7 +14,7 @@ trait NamespaceValueResolver extends ValueResolver {
       case StringNode(string) ⇒ string
       case VariableNode(LocalReference("namespace")) ⇒
         processed = true
-        namespace.id
+        namespace.name
       case _ ⇒ throwException(ParserError(s"Cannot parse the namespace in: $value"))
     }).mkString
     if (!processed) throwException(ParserError(s"No namespace in: $value"))

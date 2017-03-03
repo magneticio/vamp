@@ -18,7 +18,7 @@ trait Bootstrap {
 
 trait ActorBootstrap {
 
-  private val logger = Logger(LoggerFactory.getLogger(getClass))
+  protected val logger = Logger(LoggerFactory.getLogger(getClass))
 
   private var actors: Future[List[ActorRef]] = Future.successful(Nil)
 
@@ -47,7 +47,7 @@ trait ActorBootstrap {
   }
 
   protected def info(message: String)(implicit namespace: Namespace) = {
-    MDC.put("namespace", namespace.id)
+    MDC.put("namespace", namespace.name)
     try logger.info(message) finally MDC.remove("namespace")
   }
 }

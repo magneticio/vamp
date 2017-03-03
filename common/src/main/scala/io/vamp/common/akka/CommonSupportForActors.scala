@@ -6,7 +6,7 @@ import io.vamp.common.{ Namespace, NamespaceProvider }
 
 trait CommonActorLogging extends DiagnosticActorLogging {
   this: NamespaceProvider ⇒
-  override def mdc(currentMessage: Any): MDC = Map("namespace" → namespace.id)
+  override def mdc(currentMessage: Any): MDC = Map("namespace" → namespace.name)
 }
 
 trait CommonSupportForActors

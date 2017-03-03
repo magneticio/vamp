@@ -31,5 +31,5 @@ class ClassProviderActorBootstrap(implicit actorSystem: ActorSystem, namespace: 
       case "reload" ⇒ bootstrap.reverse.foreach(_.restart)
       case _        ⇒
     }
-  }), s"${namespace.id}-config")
+  }), s"${namespace.name}-config")
 }

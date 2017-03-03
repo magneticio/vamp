@@ -54,7 +54,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
 
   implicit val executionContext: ExecutionContext = actorSystem.dispatcher
 
-  private lazy val stripPathSegments = HttpApiRoute.stripPathSegments()
+  protected lazy val stripPathSegments = HttpApiRoute.stripPathSegments()
 
   val crudRoutes = {
     pathEndOrSingleSlash {

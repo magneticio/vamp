@@ -27,7 +27,7 @@ object IoC {
   }
 
   def alias(from: Class[_])(implicit namespace: Namespace): Class[_] = {
-    aliases.get(namespace.id).flatMap(_.get(from)).getOrElse(from)
+    aliases.get(namespace.name).flatMap(_.get(from)).getOrElse(from)
   }
 
   def alias[FROM: ClassTag, TO: ClassTag](implicit namespace: Namespace): Option[Class[_]] = {
@@ -35,7 +35,7 @@ object IoC {
   }
 
   def alias(from: Class[_], to: Class[_])(implicit namespace: Namespace): Option[Class[_]] = {
-    aliases.getOrElseUpdate(namespace.id, mutable.Map()).put(from, to)
+    aliases.getOrElseUpdate(namespace.name, mutable.Map()).put(from, to)
   }
 
   def createActor(clazz: Class[_])(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[ActorRef] = {
@@ -54,9 +54,9 @@ object IoC {
     implicit val ec: ExecutionContext = actorSystem.dispatcher
     (namespaceActor ? props) map {
       case actorRef: ActorRef ⇒
-        actorRefs.getOrElseUpdate(namespace.id, mutable.Map()).put(props.clazz, actorRef)
-        aliases.getOrElseUpdate(namespace.id, mutable.Map()).foreach {
-          case (from, to) if to == props.clazz ⇒ actorRefs.getOrElseUpdate(namespace.id, mutable.Map()).put(from, actorRef)
+        actorRefs.getOrElseUpdate(namespace.name, mutable.Map()).put(props.clazz, actorRef)
+        aliases.getOrElseUpdate(namespace.name, mutable.Map()).foreach {
+          case (from, to) if to == props.clazz ⇒ actorRefs.getOrElseUpdate(namespace.name, mutable.Map()).put(from, actorRef)
           case _                               ⇒
         }
         actorRef
@@ -69,19 +69,19 @@ object IoC {
   }
 
   def actorFor(clazz: Class[_])(implicit actorSystem: ActorSystem, namespace: Namespace): ActorRef = {
-    actorRefs.get(namespace.id).flatMap(_.get(alias(clazz))) match {
+    actorRefs.get(namespace.name).flatMap(_.get(alias(clazz))) match {
       case Some(actorRef) ⇒ actorRef
       case _              ⇒ throw new RuntimeException(s"No actor reference for: $clazz")
     }
   }
 
   private def namespaceActor(implicit actorSystem: ActorSystem, namespace: Namespace): ActorRef = {
-    namespaceActors.getOrElseUpdate(namespace.id, actorSystem.actorOf(Props(new Actor {
+    namespaceActors.getOrElseUpdate(namespace.name, actorSystem.actorOf(Props(new Actor {
       def receive = {
         case props: Props ⇒ sender() ! context.actorOf(props, s"${TextUtil.toSnakeCase(props.clazz.getSimpleName)}-${counter.getAndIncrement}")
         case _            ⇒
       }
-    }), namespace.id))
+    }), namespace.name))
   }
 }
 

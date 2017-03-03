@@ -14,7 +14,6 @@ class NamespaceSerializer extends ArtifactSerializer[Namespace] with TraitDecomp
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case namespace: Namespace ⇒
       val list = new ArrayBuffer[JField]
-      list += JField("id", JString(namespace.id))
       list += JField("name", JString(namespace.name))
       list += JField("kind", JString(namespace.kind))
       list += JField("config", Extraction.decompose(namespace.config))
