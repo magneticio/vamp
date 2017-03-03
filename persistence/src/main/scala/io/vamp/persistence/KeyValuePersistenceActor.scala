@@ -1,9 +1,8 @@
 package io.vamp.persistence
 
 import akka.pattern.ask
-import io.vamp.common.{ ClassMapper, Config }
+import io.vamp.common.{ Artifact, ClassMapper, Config }
 import io.vamp.common.akka.IoC
-import io.vamp.model.artifact._
 
 import scala.concurrent.Future
 
@@ -19,7 +18,7 @@ object KeyValuePersistenceActor {
 
 class KeyValuePersistenceActor extends PersistenceActor with PersistenceMarshaller with ArtifactCaching {
 
-  private val caching = KeyValuePersistenceActor.caching()
+  private lazy val caching = KeyValuePersistenceActor.caching()
 
   protected def info(): Future[Any] = Future.successful(Map("type" → "key-value", "caching" → caching))
 

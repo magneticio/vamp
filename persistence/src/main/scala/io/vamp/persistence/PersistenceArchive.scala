@@ -2,6 +2,7 @@ package io.vamp.persistence
 
 import akka.pattern.ask
 import akka.util.Timeout
+import io.vamp.common.Artifact
 import io.vamp.common.akka._
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
@@ -16,25 +17,9 @@ object PersistenceArchive {
   val archiveUpdateTag = "archive:update"
 
   val archiveDeleteTag = "archive:delete"
-
-  def tagFor(`type`: Class[_]): Option[String] = `type` match {
-    case t if classOf[Deployment].isAssignableFrom(t) ⇒ Option("deployments")
-    case t if classOf[DeploymentServiceScale].isAssignableFrom(t) ⇒ Option("deployment-service-scales")
-    case t if classOf[Gateway].isAssignableFrom(t) ⇒ Option("gateways")
-    case t if classOf[Breed].isAssignableFrom(t) ⇒ Option("breeds")
-    case t if classOf[Blueprint].isAssignableFrom(t) ⇒ Option("blueprints")
-    case t if classOf[Sla].isAssignableFrom(t) ⇒ Option("slas")
-    case t if classOf[Scale].isAssignableFrom(t) ⇒ Option("scales")
-    case t if classOf[DeploymentServiceHealth].isAssignableFrom(t) ⇒ Option("deployment-service-health")
-    case t if classOf[Escalation].isAssignableFrom(t) ⇒ Option("escalations")
-    case t if classOf[Route].isAssignableFrom(t) ⇒ Option("routes")
-    case t if classOf[Condition].isAssignableFrom(t) ⇒ Option("conditions")
-    case t if classOf[Workflow].isAssignableFrom(t) ⇒ Option("workflows")
-    case _ ⇒ None
-  }
 }
 
-trait PersistenceArchive {
+trait PersistenceArchive extends PersistenceTag {
   this: CommonActorLogging with CommonProvider ⇒
 
   import PersistenceArchive._
@@ -63,7 +48,23 @@ trait PersistenceArchive {
     }
   }
 
-  private def tagFor(name: String, `type`: Class[_ <: Artifact]): Option[String] = {
-    PersistenceArchive.tagFor(`type`) map { tag ⇒ s"$tag:$name" }
+  private def tagFor(name: String, `type`: Class[_ <: Artifact]): Option[String] = tagFor(`type`) map { tag ⇒ s"$tag:$name" }
+}
+
+trait PersistenceTag {
+  protected def tagFor(`type`: Class[_]): Option[String] = `type` match {
+    case t if classOf[Deployment].isAssignableFrom(t) ⇒ Option("deployments")
+    case t if classOf[DeploymentServiceScale].isAssignableFrom(t) ⇒ Option("deployment-service-scales")
+    case t if classOf[Gateway].isAssignableFrom(t) ⇒ Option("gateways")
+    case t if classOf[Breed].isAssignableFrom(t) ⇒ Option("breeds")
+    case t if classOf[Blueprint].isAssignableFrom(t) ⇒ Option("blueprints")
+    case t if classOf[Sla].isAssignableFrom(t) ⇒ Option("slas")
+    case t if classOf[Scale].isAssignableFrom(t) ⇒ Option("scales")
+    case t if classOf[DeploymentServiceHealth].isAssignableFrom(t) ⇒ Option("deployment-service-health")
+    case t if classOf[Escalation].isAssignableFrom(t) ⇒ Option("escalations")
+    case t if classOf[Route].isAssignableFrom(t) ⇒ Option("routes")
+    case t if classOf[Condition].isAssignableFrom(t) ⇒ Option("conditions")
+    case t if classOf[Workflow].isAssignableFrom(t) ⇒ Option("workflows")
+    case _ ⇒ None
   }
 }

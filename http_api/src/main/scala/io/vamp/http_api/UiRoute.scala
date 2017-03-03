@@ -8,8 +8,8 @@ import io.vamp.common.http.HttpApiDirectives
 trait UiRoute {
   this: HttpApiDirectives with NamespaceProvider ⇒
 
-  private val index = Config.string("vamp.http-api.ui.index")()
-  private val directory = Config.string("vamp.http-api.ui.directory")()
+  private lazy val index = Config.string("vamp.http-api.ui.index")()
+  private lazy val directory = Config.string("vamp.http-api.ui.directory")()
 
   val uiRoutes = path("") {
     encodeResponse {

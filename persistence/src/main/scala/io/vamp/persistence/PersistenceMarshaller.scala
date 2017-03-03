@@ -1,5 +1,6 @@
 package io.vamp.persistence
 
+import io.vamp.common.{ Artifact, Lookup }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.reader.YamlSourceReader._
@@ -34,7 +35,7 @@ trait PersistenceMarshaller extends TypeOfArtifact {
     Try(readers.get(`type`).map(_.read(source))).getOrElse(None)
   }
 
-  private val readers = Map(
+  protected lazy val readers: Map[String, YamlReader[_ <: Artifact]] = Map(
     "gateways" → DeployedGatewayReader,
     "deployments" → new AbstractDeploymentReader() {
       override protected def routingReader = new InternalGatewayReader(acceptPort = true, onlyAnonymous = false)

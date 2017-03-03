@@ -8,6 +8,7 @@ import io.vamp.common.akka.ActorBootstrap
 import scala.concurrent.{ ExecutionContext, Future }
 
 object PersistenceBootstrap {
+
   def databaseType()(implicit namespace: Namespace) = {
     Config.string("vamp.persistence.database.type")().toLowerCase
   }
@@ -35,7 +36,7 @@ class PersistenceBootstrap extends ActorBootstrap {
     })
 
     info(s"Database: $db")
-    info(s"KV store: $kv")
+    info(s"Key-Value store: $kv")
 
     implicit val ec: ExecutionContext = actorSystem.dispatcher
     Future.sequence(kvActor :: dbActor :: Nil)

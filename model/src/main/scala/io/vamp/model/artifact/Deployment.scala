@@ -2,6 +2,7 @@ package io.vamp.model.artifact
 
 import java.time.OffsetDateTime
 
+import io.vamp.common.{ Artifact, Lookup }
 import io.vamp.common.notification.Notification
 import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
 import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated }

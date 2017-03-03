@@ -2,6 +2,7 @@ package io.vamp.model.serialization
 
 import java.time.format.DateTimeFormatter
 
+import io.vamp.common.Lookup
 import io.vamp.model.artifact.DeploymentService.Status.Phase.Failed
 import io.vamp.model.artifact._
 import io.vamp.model.notification.ModelNotificationProvider

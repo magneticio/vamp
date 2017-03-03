@@ -1,5 +1,6 @@
 package io.vamp.model.serialization
 
+import io.vamp.common.Reference
 import io.vamp.model.artifact._
 import io.vamp.model.resolver.TraitNameAliasResolver
 import org.json4s.FieldSerializer._

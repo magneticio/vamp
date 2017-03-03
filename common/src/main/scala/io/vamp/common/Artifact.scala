@@ -1,4 +1,4 @@
-package io.vamp.model.artifact
+package io.vamp.common
 
 import io.vamp.common.util.HashUtil
 

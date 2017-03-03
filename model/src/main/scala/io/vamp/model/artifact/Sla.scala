@@ -1,5 +1,7 @@
 package io.vamp.model.artifact
 
+import io.vamp.common.{ Artifact, Reference, Type }
+
 import scala.concurrent.duration.FiniteDuration
 
 trait Sla extends Artifact {

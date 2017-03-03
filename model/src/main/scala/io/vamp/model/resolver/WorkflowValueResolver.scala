@@ -25,6 +25,7 @@ trait WorkflowValueResolver extends ValueResolver with ConfigurationValueResolve
 
   private def valueForWorkflow(workflow: Workflow): PartialFunction[ValueReference, String] = {
     case LocalReference("workflow")           ⇒ workflow.name
+    case LocalReference("namespace")          ⇒ namespace.id
     case NoGroupReference("workflow", "name") ⇒ workflow.name
   }
 }

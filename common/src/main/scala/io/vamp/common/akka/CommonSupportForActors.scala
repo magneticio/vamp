@@ -2,16 +2,19 @@ package io.vamp.common.akka
 
 import akka.actor.{ Actor, ActorSystem, DiagnosticActorLogging }
 import akka.event.Logging.MDC
-import io.vamp.common.Namespace
+import io.vamp.common.{ Namespace, NamespaceProvider }
 
-trait CommonActorLogging extends DiagnosticActorLogging
+trait CommonActorLogging extends DiagnosticActorLogging {
+  this: NamespaceProvider ⇒
+  override def mdc(currentMessage: Any): MDC = Map("namespace" → namespace.id)
+}
 
 trait CommonSupportForActors
     extends Actor
     with ReplyActor
+    with CommonProvider
     with CommonActorLogging
-    with ActorExecutionContextProvider
-    with CommonProvider {
+    with ActorExecutionContextProvider {
 
   implicit lazy val actorSystem: ActorSystem = context.system
 
@@ -19,6 +22,4 @@ trait CommonSupportForActors
     case "user" :: ns :: _ ⇒ ns
     case other             ⇒ throw new RuntimeException(s"No namespace for: $other")
   }
-
-  override def mdc(currentMessage: Any): MDC = Map("namespace" → namespace.id)
 }

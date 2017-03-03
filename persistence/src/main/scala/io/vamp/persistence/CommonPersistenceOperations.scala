@@ -2,10 +2,10 @@ package io.vamp.persistence
 
 import akka.actor.Actor
 import io.vamp.common.akka.{ CommonProvider, CommonSupportForActors }
-import io.vamp.model.artifact.Artifact
 
 import scala.concurrent.Future
 import scala.reflect._
+import _root_.io.vamp.common.Artifact
 
 trait PersistenceArtifact extends Artifact {
   val metadata = Map()

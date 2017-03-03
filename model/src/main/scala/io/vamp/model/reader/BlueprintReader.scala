@@ -1,5 +1,6 @@
 package io.vamp.model.reader
 
+import io.vamp.common.Artifact
 import io.vamp.common.notification.{ Notification, NotificationErrorException, NotificationProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.notification._

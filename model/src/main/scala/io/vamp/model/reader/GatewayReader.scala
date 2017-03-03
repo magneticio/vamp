@@ -1,5 +1,6 @@
 package io.vamp.model.reader
 
+import io.vamp.common.{ Artifact, Lookup }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.notification._

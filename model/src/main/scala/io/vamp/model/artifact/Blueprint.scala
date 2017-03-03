@@ -1,5 +1,6 @@
 package io.vamp.model.artifact
 
+import io.vamp.common.{ Artifact, Reference }
 import io.vamp.model.reader.{ MegaByte, Quantity }
 
 object Blueprint {

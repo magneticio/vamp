@@ -5,6 +5,7 @@ import akka.http.scaladsl.model.HttpMethods.{ POST, PUT }
 import akka.http.scaladsl.model.StatusCodes._
 import akka.pattern.ask
 import akka.util.Timeout
+import io.vamp.common.ConfigFilter
 import io.vamp.common.akka.{ CommonProvider, IoC }
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.gateway_driver.GatewayDriverActor
@@ -104,7 +105,10 @@ trait SystemController {
 
   def configuration(`type`: String, flatten: Boolean, key: String = "") = {
     implicit val timeout = ConfigurationLoaderActor.timeout()
-    IoC.actorFor[ConfigurationLoaderActor] ? ConfigurationLoaderActor.Get(`type`, flatten, key) map {
+    val filter = ConfigFilter({ (k, _) ⇒
+      k.startsWith("vamp.") && (key.isEmpty || k == key)
+    })
+    IoC.actorFor[ConfigurationLoaderActor] ? ConfigurationLoaderActor.Get(`type`, flatten, filter) map {
       case m: Map[_, _] if m.isEmpty ⇒ None
       case other                     ⇒ other
     }
@@ -112,6 +116,9 @@ trait SystemController {
 
   def configurationUpdate(input: String, validateOnly: Boolean) = {
     implicit val timeout = ConfigurationLoaderActor.timeout()
-    IoC.actorFor[ConfigurationLoaderActor] ? ConfigurationLoaderActor.Set(input, validateOnly)
+    val filter = ConfigFilter({ (k, _) ⇒
+      !k.startsWith("vamp.http-api.")
+    })
+    IoC.actorFor[ConfigurationLoaderActor] ? ConfigurationLoaderActor.Set(input, filter, validateOnly)
   }
 }

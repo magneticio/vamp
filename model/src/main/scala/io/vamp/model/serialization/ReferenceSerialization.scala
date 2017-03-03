@@ -1,6 +1,6 @@
 package io.vamp.model.serialization
 
-import io.vamp.model.artifact.Reference
+import io.vamp.common.Reference
 import org.json4s.JsonAST.{ JObject, JString }
 import org.json4s._
 

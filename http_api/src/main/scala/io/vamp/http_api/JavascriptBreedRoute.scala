@@ -34,7 +34,6 @@ trait JavascriptBreedRoute {
     }
 
   private def create(name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = {
-
     val breed = DefaultBreed(
       name = name,
       metadata = Map(),
@@ -46,7 +45,6 @@ trait JavascriptBreedRoute {
       dependencies = Map(),
       healthChecks = None
     )
-
     if (validateOnly) Future.successful(breed) else actorFor[PersistenceActor] ? PersistenceActor.Update(breed, Some(source))
   }
 }

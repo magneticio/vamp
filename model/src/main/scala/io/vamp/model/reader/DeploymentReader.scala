@@ -3,6 +3,7 @@ package io.vamp.model.reader
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
+import io.vamp.common.Artifact
 import io.vamp.model.artifact.DeploymentService.Status.Phase
 import io.vamp.model.artifact._
 import io.vamp.model.notification.{ NotificationMessageNotRestored, UndefinedStateIntentionError, UndefinedStateStepError }

@@ -1,11 +1,10 @@
 package io.vamp.persistence
 
-import io.vamp.common.Config
+import io.vamp.common.{ Artifact, Config }
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
-import io.vamp.model.artifact._
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, PersistenceOperationFailure, UnsupportedPersistenceRequest }
 import io.vamp.pulse.notification.PulseFailureNotifier
 
@@ -34,7 +33,7 @@ trait PersistenceActor
     with CommonSupportForActors
     with PersistenceNotificationProvider {
 
-  implicit val timeout = PersistenceActor.timeout()
+  implicit lazy val timeout = PersistenceActor.timeout()
 
   protected def info(): Future[Any]
 

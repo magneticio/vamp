@@ -1,5 +1,6 @@
 package io.vamp.persistence
 
+import io.vamp.common.{ Artifact, Reference }
 import io.vamp.common.akka.{ CommonProvider, ExecutionContextProvider }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._

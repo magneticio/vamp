@@ -2,7 +2,7 @@ package io.vamp.model.artifact
 
 import java.util.regex.Pattern
 
-import io.vamp.common.{ Config, Namespace }
+import io.vamp.common._
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.model.notification.{ InvalidArgumentError, InvalidArgumentValueError }
 import io.vamp.model.reader.Time

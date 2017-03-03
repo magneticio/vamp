@@ -2,6 +2,7 @@ package io.vamp.model.reader
 
 import java.io.{ File, InputStream, Reader, StringReader }
 
+import io.vamp.common.{ Artifact, Lookup }
 import io.vamp.common.notification.{ NotificationErrorException, NotificationProvider }
 import io.vamp.common.util.{ ObjectUtil, YamlUtil }
 import io.vamp.model.artifact._

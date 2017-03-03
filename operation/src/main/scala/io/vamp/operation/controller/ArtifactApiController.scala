@@ -4,6 +4,7 @@ import java.net.URLDecoder
 
 import akka.pattern.ask
 import akka.util.Timeout
+import io.vamp.common.Artifact
 import io.vamp.common.akka.CommonProvider
 import io.vamp.common.akka.IoC._
 import io.vamp.model.artifact._

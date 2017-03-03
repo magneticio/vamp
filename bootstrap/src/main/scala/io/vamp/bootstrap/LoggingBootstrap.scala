@@ -6,33 +6,20 @@ import io.vamp.model.Model
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
 
-class LoggingBootstrap extends Bootstrap {
+abstract class LoggingBootstrap extends Bootstrap {
+
+  def logo: String
+
+  lazy val version = if (Model.version.nonEmpty) s"version ${Model.version}" else ""
 
   override def start() = {
-
     val logger = Logger(LoggerFactory.getLogger(classOf[Vamp]))
-
     if (!SLF4JBridgeHandler.isInstalled) {
       SLF4JBridgeHandler.removeHandlersForRootLogger()
       SLF4JBridgeHandler.install()
     }
-
-    logger.info(
-      s"""
-         |██╗   ██╗ █████╗ ███╗   ███╗██████╗
-         |██║   ██║██╔══██╗████╗ ████║██╔══██╗
-         |██║   ██║███████║██╔████╔██║██████╔╝
-         |╚██╗ ██╔╝██╔══██║██║╚██╔╝██║██╔═══╝
-         | ╚████╔╝ ██║  ██║██║ ╚═╝ ██║██║
-         |  ╚═══╝  ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝
-         |                                    $version
-         |                                    by magnetic.io
-         |
-    """.stripMargin
-    )
+    logger.info(logo)
   }
-
-  private lazy val version = if (Model.version.nonEmpty) s"version ${Model.version}" else ""
 
   override def stop() = if (SLF4JBridgeHandler.isInstalled) SLF4JBridgeHandler.uninstall()
 }
