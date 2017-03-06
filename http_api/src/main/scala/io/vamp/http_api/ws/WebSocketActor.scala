@@ -104,14 +104,16 @@ class WebSocketActor extends EventApiController with LogApiController with Commo
     def encode(s: String) = URLEncoder.encode(s, "UTF-8")
 
     val params = if (request.parameters.nonEmpty) {
-      val flatten = request.parameters.collect {
+      request.parameters.collect {
         case (k, v) if v != null ⇒ s"${encode(k)}=${encode(v.toString)}"
       } mkString "&"
-      s"?$flatten"
     }
     else ""
 
-    Uri(s"${request.path}$params")
+    if (params.nonEmpty) {
+      if (request.path.contains("?")) Uri(s"${request.path}&$params") else Uri(s"${request.path}?$params")
+    }
+    else Uri(request.path)
   }
 
   private def toHeaders(request: WebSocketRequest): List[HttpHeader] = (request.accept match {
