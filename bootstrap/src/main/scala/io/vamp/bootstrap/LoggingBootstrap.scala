@@ -10,10 +10,12 @@ abstract class LoggingBootstrap extends Bootstrap {
 
   def logo: String
 
+  def clazz: Class[_] = classOf[Vamp]
+
   lazy val version = if (Model.version.nonEmpty) s"version ${Model.version}" else ""
 
   override def start() = {
-    val logger = Logger(LoggerFactory.getLogger(classOf[Vamp]))
+    val logger = Logger(LoggerFactory.getLogger(clazz))
     if (!SLF4JBridgeHandler.isInstalled) {
       SLF4JBridgeHandler.removeHandlersForRootLogger()
       SLF4JBridgeHandler.install()
