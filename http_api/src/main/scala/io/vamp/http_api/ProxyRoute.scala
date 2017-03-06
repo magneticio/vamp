@@ -17,17 +17,14 @@ trait ProxyRoute extends ProxyController {
 
   implicit def materializer: Materializer
 
-  val proxyRoute = pathPrefix("proxy") {
-    get {
-      path("gateways" / Segment / RemainingPath) {
-        (gateway, path) ⇒ handle(gatewayProxy(gateway, path))
-      } ~ path("workflows" / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
-        (workflow, instance, port, path) ⇒ handle(instanceProxy(workflow, instance, port, path))
-      } ~ path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
-        (deployment, cluster, service, instance, port, path) ⇒ handle(instanceProxy(deployment, cluster, service, instance, port, path))
-      }
+  val proxyRoute =
+    path("gateways" / Segment / RemainingPath) {
+      (gateway, path) ⇒ handle(gatewayProxy(gateway, path))
+    } ~ path("workflows" / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
+      (workflow, instance, port, path) ⇒ handle(instanceProxy(workflow, instance, port, path))
+    } ~ path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
+      (deployment, cluster, service, instance, port, path) ⇒ handle(instanceProxy(deployment, cluster, service, instance, port, path))
     }
-  }
 
   private def handle(handler: (RequestContext, Option[UpgradeToWebSocket]) ⇒ Future[RouteResult]): Route = {
     extractUpgradeToWebSocket { upgrade ⇒ context ⇒ handler(context, Option(upgrade))
