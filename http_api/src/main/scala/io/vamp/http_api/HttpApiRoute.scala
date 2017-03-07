@@ -3,9 +3,9 @@ package io.vamp.http_api
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.server.{ Directive0, PathMatcher }
 import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server.util.Tuple
+import akka.http.scaladsl.server.{ Directive0, PathMatcher, Route }
 import akka.stream.Materializer
 import com.typesafe.scalalogging.Logger
 import io.vamp.common.akka.CommonProvider
@@ -57,7 +57,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
 
   protected lazy val stripPathSegments = HttpApiRoute.stripPathSegments()
 
-  val crudRoutes = {
+  protected lazy val crudRoutes = {
     pathEndOrSingleSlash {
       post {
         entity(as[String]) { request ⇒
@@ -135,9 +135,9 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     }
   }
 
-  protected val websocketApiHandler = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
+  protected lazy val websocketApiHandler: Route = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
 
-  protected val apiRoutes =
+  lazy val apiRoutes: Route =
     noCachingAllowed {
       cors() {
         pathPrefix(pathMatcherWithNamespace("api" / Artifact.version)) {
@@ -152,16 +152,13 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
           }
         }
       }
-    } ~
-      path(pathMatcherWithNamespace("websocket"))(websocketRoutes) ~
-      path(pathMatcherWithNamespace("proxy"))(proxyRoute) ~
-      uiRoutes
+    } ~ path(pathMatcherWithNamespace("websocket"))(websocketRoutes) ~ path(pathMatcherWithNamespace("proxy"))(proxyRoute)
 
-  val allRoutes = log {
+  lazy val allRoutes: Route = log {
     handleExceptions(exceptionHandler) {
       handleRejections(rejectionHandler) {
         withRequestTimeout(timeout.duration) {
-          if (stripPathSegments > 0) pathPrefix(Segments(stripPathSegments)) { _ ⇒ apiRoutes } else apiRoutes
+          if (stripPathSegments > 0) pathPrefix(Segments(stripPathSegments)) { _ ⇒ apiRoutes ~ uiRoutes } else apiRoutes ~ uiRoutes
         }
       }
     }
