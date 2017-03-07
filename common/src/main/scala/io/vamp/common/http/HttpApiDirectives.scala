@@ -32,7 +32,7 @@ trait HttpApiDirectives extends Directives with CorsDirectives {
 
   protected def validateOnly = parameters('validate_only.as[Boolean] ? false)
 
-  protected def blueprintName = parameter('name.as[Option[String]])
+  protected def blueprintName = parameter('name.?)
 
   protected def expandAndOnlyReferences = parameters(('expand_references.as[Boolean] ? false, 'only_references.as[Boolean] ? false))
 

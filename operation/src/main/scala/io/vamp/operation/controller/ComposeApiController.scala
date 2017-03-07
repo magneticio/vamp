@@ -15,8 +15,6 @@ trait ComposeApiController { self: HttpApiDirectives ⇒
       val yamlString = toYaml(composeBlueprint.result)
       val commentsString = composeBlueprint.comments.foldLeft("")((acc, comment) ⇒ acc ++ s"# $comment\n")
 
-      println(commentsString ++ "\n" ++ yamlString)
-
       Some(commentsString ++ "\n" ++ yamlString)
     }
     else None
