@@ -9,16 +9,14 @@ import org.slf4j.{ LoggerFactory, MDC }
 import scala.concurrent.Future
 import scala.reflect.{ ClassTag, classTag }
 
-trait Bootstrap {
+trait Bootstrap extends BootstrapLogger {
 
   def start(): Unit = {}
 
   def stop(): Unit = {}
 }
 
-trait ActorBootstrap {
-
-  private val logger = Logger(LoggerFactory.getLogger(getClass))
+trait ActorBootstrap extends BootstrapLogger {
 
   private var actors: Future[List[ActorRef]] = Future.successful(Nil)
 
@@ -45,9 +43,14 @@ trait ActorBootstrap {
       IoC.createActor(clazz)
     } getOrElse default(name)
   }
+}
+
+trait BootstrapLogger {
+
+  protected val logger = Logger(LoggerFactory.getLogger(getClass))
 
   protected def info(message: String)(implicit namespace: Namespace) = {
-    MDC.put("namespace", namespace.id)
+    MDC.put("namespace", namespace.name)
     try logger.info(message) finally MDC.remove("namespace")
   }
 }

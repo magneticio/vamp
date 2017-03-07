@@ -15,9 +15,13 @@ trait AbstractActorBootstrap extends Bootstrap {
 
   protected def bootstrap: List[ActorBootstrapService]
 
-  override def start() = bootstrap.foreach(_.start)
+  override def start() = {
+    info(s"Starting ${getClass.getSimpleName}")
+    bootstrap.foreach(_.start)
+  }
 
   override def stop() = {
+    info(s"Stopping ${getClass.getSimpleName}")
     implicit val executionContext: ExecutionContext = actorSystem.dispatcher
     Future.sequence(bootstrap.reverse.map(_.stop))
   }
@@ -31,5 +35,5 @@ class ClassProviderActorBootstrap(implicit actorSystem: ActorSystem, namespace: 
       case "reload" ⇒ bootstrap.reverse.foreach(_.restart)
       case _        ⇒
     }
-  }), s"${namespace.id}-config")
+  }), s"${namespace.name}-config")
 }

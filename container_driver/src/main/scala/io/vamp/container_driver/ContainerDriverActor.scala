@@ -75,7 +75,7 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
 
   lazy protected val httpClient = new HttpClient
 
-  val gatewayServiceIp = Config.string("vamp.gateway-driver.host")()
+  lazy val gatewayServiceIp = Config.string("vamp.gateway-driver.host")()
 
   protected def deployedGateways(gateways: List[Gateway]): Future[Any] = {
     gateways.filter {

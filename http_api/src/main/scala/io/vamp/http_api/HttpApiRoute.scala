@@ -3,8 +3,9 @@ package io.vamp.http_api
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.server.Directive0
+import akka.http.scaladsl.server.{ Directive0, PathMatcher }
 import akka.http.scaladsl.server.RouteResult._
+import akka.http.scaladsl.server.util.Tuple
 import akka.stream.Materializer
 import com.typesafe.scalalogging.Logger
 import io.vamp.common.akka.CommonProvider
@@ -55,7 +56,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
 
   implicit val executionContext: ExecutionContext = actorSystem.dispatcher
 
-  private lazy val stripPathSegments = HttpApiRoute.stripPathSegments()
+  protected lazy val stripPathSegments = HttpApiRoute.stripPathSegments()
 
   val crudRoutes = {
     pathEndOrSingleSlash {
@@ -137,7 +138,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
         } ~ delete {
           entity(as[String]) { request ⇒
             validateOnly { validateOnly ⇒
-              onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { result ⇒
+              onSuccess(deleteArtifact(artifact, name, request, validateOnly)) { _ ⇒
                 respondWith(if (background(artifact)) Accepted else NoContent, None)
               }
             }
@@ -149,21 +150,25 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
 
   protected val websocketApiHandler = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
 
-  protected val apiRoutes = noCachingAllowed {
-    cors() {
-      pathPrefix("api" / Artifact.version) {
-        encodeResponse {
-          sseRoutes ~ sseLogRoutes ~
-            accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
-              infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes
-            } ~ systemRoutes ~
-            accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
-              crudRoutes
-            } ~ javascriptBreedRoute
+  protected val apiRoutes =
+    noCachingAllowed {
+      cors() {
+        pathPrefix(pathMatcherWithNamespace("api" / Artifact.version)) {
+          encodeResponse {
+            sseRoutes ~ sseLogRoutes ~
+              accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
+                infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes
+              } ~ systemRoutes ~
+              accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
+                crudRoutes
+              } ~ javascriptBreedRoute
+          }
         }
       }
-    }
-  } ~ path("websocket")(websocketRoutes) ~ proxyRoute ~ uiRoutes
+    } ~
+      path(pathMatcherWithNamespace("websocket"))(websocketRoutes) ~
+      path(pathMatcherWithNamespace("proxy"))(proxyRoute) ~
+      uiRoutes
 
   val allRoutes = log {
     handleExceptions(exceptionHandler) {
@@ -174,6 +179,8 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
       }
     }
   }
+
+  protected def pathMatcherWithNamespace[L](pm: PathMatcher[L])(implicit ev: Tuple[L]): PathMatcher[L] = (pm / namespace.name) | pm
 }
 
 trait LogDirective {

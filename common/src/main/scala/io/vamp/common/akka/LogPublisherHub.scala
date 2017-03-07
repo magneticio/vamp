@@ -53,7 +53,7 @@ private case class LogPublisher(to: ActorRef, logger: LogbackLogger, level: Leve
 
   private val appender = new AppenderBase[ILoggingEvent] {
     override def append(loggingEvent: ILoggingEvent) = {
-      if (loggingEvent.getMDCPropertyMap.get("namespace") == namespace.id) to ! encoder(loggingEvent)
+      if (loggingEvent.getMDCPropertyMap.get("namespace") == namespace.name) to ! encoder(loggingEvent)
     }
   }
 
