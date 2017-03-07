@@ -152,7 +152,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
           }
         }
       }
-    } ~ path(pathMatcherWithNamespace("websocket"))(websocketRoutes) ~ path(pathMatcherWithNamespace("proxy"))(proxyRoute)
+    } ~ pathPrefix(pathMatcherWithNamespace("websocket"))(websocketRoutes) ~ pathPrefix(pathMatcherWithNamespace("proxy"))(proxyRoute)
 
   lazy val allRoutes: Route = log {
     handleExceptions(exceptionHandler) {
