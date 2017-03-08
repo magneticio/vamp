@@ -1,6 +1,7 @@
 package io.vamp.operation.controller
 
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.Uri.{ Path, Query }
 import akka.http.scaladsl.model.ws.{ UpgradeToWebSocket, WebSocketRequest }
 import akka.http.scaladsl.server.{ RequestContext, RouteResult }
@@ -32,7 +33,7 @@ trait ProxyController extends GatewayWorkflowDeploymentResolver {
           logger.debug(s"HTTP gateway proxy request [$gatewayName]: $path")
           http(gateway.service.get.host, gateway.service.get.port.number, path, context)
         }
-      case _ ⇒ context.reject()
+      case _ ⇒ context.complete(BadGateway)
     }
   }
 
@@ -49,9 +50,9 @@ trait ProxyController extends GatewayWorkflowDeploymentResolver {
               logger.debug(s"HTTP workflow instance proxy request [$workflowName/$instanceName/$portName]: $path")
               http(instance.host, instance.ports(portName), path, context)
             }
-          case _ ⇒ context.reject()
+          case _ ⇒ context.complete(BadGateway)
         }
-      case _ ⇒ context.reject()
+      case _ ⇒ context.complete(BadGateway)
     }
   }
 
@@ -72,9 +73,9 @@ trait ProxyController extends GatewayWorkflowDeploymentResolver {
                 http(instance.host, instance.ports(portName), path, context)
               }
 
-            case _ ⇒ context.reject()
+            case _ ⇒ context.complete(BadGateway)
           }
-      case _ ⇒ context.reject()
+      case _ ⇒ context.complete(BadGateway)
     }
   }
 
