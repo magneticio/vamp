@@ -83,8 +83,7 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
         image = breed.deployable.definition,
         environmentVariables = breed.environmentVariables,
         scale = workflow.scale.get.asInstanceOf[DefaultScale],
-        network = workflow.network.getOrElse(Docker.network()),
-        command = ""
+        network = workflow.network.getOrElse(Docker.network())
       )
 
       httpClient.post[Any](s"$url/scheduler/iso8601", jobRequest)
@@ -117,7 +116,7 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
     case _ ⇒ "R1//PT1S"
   }
 
-  private def job(name: String, schedule: String, image: String, environmentVariables: List[EnvironmentVariable], scale: DefaultScale, network: String, command: String) = {
+  private def job(name: String, schedule: String, image: String, environmentVariables: List[EnvironmentVariable], scale: DefaultScale, network: String) = {
     val vars = environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) → ev.interpolated.getOrElse("")).map {
       case (n, v) ⇒ s"""{ "name": "$n", "value": "$v" }"""
     } mkString ","
@@ -125,6 +124,7 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
        |{
        |  "name": "$name",
        |  "schedule": "$schedule",
+       |  "shell": false,
        |  "container": {
        |    "type": "DOCKER",
        |    "image": "$image",
@@ -135,7 +135,7 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
        |  "mem": "${scale.memory.value}",
        |  "uris": [],
        |  "environmentVariables": [ $vars ],
-       |  "command": "$command"
+       |  "command": ""
        |}
   """.stripMargin
   }
