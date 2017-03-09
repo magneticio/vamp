@@ -51,3 +51,5 @@ case class InternalGatewayRemoveError(name: String) extends Notification
 object InvalidConfigurationError extends Notification
 
 case class DeploymentWorkflowNameCollision(name: String) extends Notification
+
+case class WorkflowUpdateError(workflow: Workflow) extends Notification

@@ -14,6 +14,7 @@ UnavailableGatewayPortError     : "Gateway port '{port.value}' is/was in use by 
 WorkflowSchedulingError         : "Workflow scheduling error."
 WorkflowExecutionError          : "Workflow execution error."
 DeploymentWorkflowNameCollision : "There cannot exist deployment and workflow with the same name: {name}."
+WorkflowUpdateError             : "Workflow update is possible only if workflow is not running, current status: {workflow.status}."
 
 UnexpectedArtifact              : "Unexpected resource: '{artifact}'."
 InvalidTimeTriggerError         : "Not a valid time trigger patter: '{pattern}'."

@@ -36,6 +36,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     with ArtifactApiController
     with ComposeApiController
     with DeploymentApiRoute
+    with WorkflowApiRoute
     with EventApiRoute
     with InfoRoute
     with StatsRoute
@@ -148,7 +149,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     }
   }
 
-  protected lazy val websocketApiHandler: Route = infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
+  protected lazy val websocketApiHandler: Route = infoRoute ~ statsRoute ~ deploymentRoutes ~ workflowStatusRoute ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
 
   lazy val apiRoutes: Route =
     noCachingAllowed {
@@ -157,7 +158,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
           encodeResponse {
             sseRoutes ~ sseLogRoutes ~
               accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
-                infoRoute ~ statsRoute ~ deploymentRoutes ~ eventRoutes ~ metricsRoutes ~ healthRoutes
+                infoRoute ~ statsRoute ~ deploymentRoutes ~ workflowStatusRoute ~ eventRoutes ~ metricsRoutes ~ healthRoutes
               } ~ systemRoutes ~
               accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
                 crudRoutes
