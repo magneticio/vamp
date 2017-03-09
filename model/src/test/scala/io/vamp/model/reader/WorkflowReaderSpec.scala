@@ -145,11 +145,12 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     )
   }
 
-  it should "fail if invalid start time" in {
-    expectedError[UnexpectedTypeError]({
-      WorkflowReader.read(res("workflow/workflow16.yml"))
-    }) should have(
-      'path("start")
+  it should "parse 'now' start time" in {
+    WorkflowReader.read(res("workflow/workflow16.yml")) should have(
+      'name("logger"),
+      'breed(BreedReference("metrics")),
+      'schedule(TimeSchedule("P1Y2M3DT4H5M6S")),
+      'scale(None)
     )
   }
 

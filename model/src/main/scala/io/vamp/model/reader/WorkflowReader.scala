@@ -57,7 +57,8 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
       arguments(),
       <<?[String]("network"),
       HealthCheckReader.read,
-      DeploymentReader.parseInstances)
+      DeploymentReader.parseInstances
+    )
   }
 
   override protected def validate(workflow: Workflow): Workflow = {
@@ -86,7 +87,12 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
       case Some(count) ⇒ RepeatCount(count)
     }
 
-    val start = <<?[Date]("time" :: "start" :: Nil) map (time ⇒ OffsetDateTime.from(time.toInstant.atZone(ZoneId.of("UTC"))))
+    val start = <<?[Any]("time" :: "start" :: Nil) match {
+      case Some(time: String) if time.trim == "now" ⇒ None
+      case Some(time: Date)                         ⇒ Option(OffsetDateTime.from(time.toInstant.atZone(ZoneId.of("UTC"))))
+      case Some(time)                               ⇒ Option(OffsetDateTime.parse(time.toString))
+      case None                                     ⇒ None
+    }
 
     Try(TimeSchedule(period, repeat, start)).getOrElse(throwException(IllegalWorkflowSchedulePeriod(period)))
   }
