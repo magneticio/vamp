@@ -82,7 +82,7 @@ object ComposeBlueprintReader extends YamlReader[ComposeWriter[Blueprint]] {
     }
 
   /**
-   * TODO
+   * Flattens and comments unnused values from the docker-compose yaml
    */
   private def flattenUnusedValues(implicit source: YamlSourceReader): ComposeWriter[Unit] =
     sequence(source.flattenNotConsumed().toList.map {
@@ -111,7 +111,8 @@ object ComposeClusterReader extends YamlReader[ComposeWriter[List[Cluster]]] {
     for {
       clusters ← parseClusters
       clustersWithDependencies ← resolveDependencies(clusters, clusters.map(c ⇒ c.name))
-    } yield clustersWithDependencies
+      clustersWithDependenciesAndPorts ← addPorts(clustersWithDependencies.map(_._1), clustersWithDependencies.flatMap(_._2))
+    } yield clustersWithDependenciesAndPorts
 
   private def parseClusters(implicit source: YamlSourceReader): ComposeWriter[List[Cluster]] =
     sequence(<<?[YamlSourceReader]("services") match {
@@ -148,48 +149,82 @@ object ComposeClusterReader extends YamlReader[ComposeWriter[List[Cluster]]] {
       case _                          ⇒ breed
     }
 
-  private def replaceValueOpt(clusterNames: List[String])(environmentVariable: EnvironmentVariable): Option[(String, EnvironmentVariable)] =
+  private def replaceValueOpt(clusterNames: List[String])(environmentVariable: EnvironmentVariable) =
     environmentVariable
       .value
       .flatMap { (environmentValue: String) ⇒
         clusterNames.map(cn ⇒ cn → s"($cn):(\\d+)".r).flatMap {
           case (cn, pattern) ⇒
             environmentValue match {
-              case pattern(name, port) ⇒ Some(cn → environmentVariable.copy(value = Some("$" + cn + ".host:" + port)))
-              case xs                  ⇒ None
+              case pattern(name, port) ⇒ Some(Tuple3(
+                cn,
+                environmentVariable.copy(value = Some("$" + cn + ".host:" + "$" + cn + ".ports.port_" + port)),
+                port))
+              case xs ⇒ None
             }
         }.headOption
       }
 
-  private def replaceEnvironmentVariable(cluserNames: List[String], service: Service): ComposeWriter[Service] = {
-    val environmentVariables = getBreedField[List, EnvironmentVariable](service.breed)(List())(_.environmentVariables)
-
-    environmentVariables
-      .flatMap(replaceValueOpt(cluserNames) _)
-      .headOption
-      .map { data ⇒
-        val breedDependencies = getBreedField[({ type F[A] = Map[String, A] })#F, Breed](service.breed)(Map())(_.dependencies)
-        val newServiceDependencies = breedDependencies + (data._1 → BreedReference(s"${data._1}:1.0.0"))
-
-        val newEnvironmentVariables = environmentVariables.foldRight(List.empty[EnvironmentVariable]) { (ev, acc) ⇒
-          if (ev.name == data._2.name) data._2 +: acc
-          else ev +: acc
+  private def resolveDependencies(clusters: List[Cluster], clusterNames: List[String]): ComposeWriter[List[(Cluster, List[(String, String)])]] =
+    clusters.foldRight(lift(List.empty[(Cluster, List[(String, String)])])) { (cluster, acc) ⇒
+      acc.flatMap { clusters ⇒
+        addEnvironmentVariables(cluster.services.head, clusterNames).map {
+          case (service, portsWithCluster) ⇒
+            (cluster.copy(services = List(service)) → portsWithCluster) +: clusters
         }
+      }
+    }
 
-        val createNewBreed = (setBreedValue(_.copy(dependencies = newServiceDependencies))(_))
-          .andThen((b: Breed) ⇒ setBreedValue(_.copy(environmentVariables = newEnvironmentVariables))(b))
+  private def addEnvironmentVariables(service: Service, clusterNames: List[String]): ComposeWriter[(Service, List[(String, String)])] =
+    getBreedField[List, EnvironmentVariable](service.breed)(List())(_.environmentVariables)
+      .flatMap(ev ⇒ replaceValueOpt(clusterNames)(ev))
+      .foldRight(lift(service → List.empty[(String, String)])) {
+        case ((cn, env, port), serviceWriter) ⇒
+          serviceWriter.flatMap {
+            case (s, portsWithCluster) ⇒
+              val newEnvironmentVars = getBreedField[List, EnvironmentVariable](s.breed)(List())(_.environmentVariables)
+                .foldRight(List.empty[EnvironmentVariable]) { (ev, acc) ⇒
+                  if (ev.name == env.name) env +: acc
+                  else ev +: acc
+                }
 
-        lift(service.copy(breed = createNewBreed(service.breed)))
-      }.getOrElse(lift(service))
-  }
+              val newDependencies: Map[String, Breed] =
+                getBreedField[({ type F[A] = Map[String, A] })#F, Breed](service.breed)(Map())(_.dependencies) +
+                  (cn → BreedReference(s"$cn:1.0.0"))
 
-  private def resolveDependencies(clusters: List[Cluster], clusterNames: List[String]): ComposeWriter[List[Cluster]] =
-    sequence(for {
-      cluster ← clusters
-      service ← cluster.services
-    } yield replaceEnvironmentVariable(clusters.map(_.name), service)
-      .map(service ⇒ cluster.copy(services = List(service))))
+              add(service.copy(
+                breed = setBreedValue(_.copy(
+                  environmentVariables = newEnvironmentVars,
+                  dependencies = newDependencies))(s.breed)) → ((cn, port) +: portsWithCluster)
+              ) { _ ⇒
+                s"Created port reference in environment variable: '${env.name}'"
+              }
+          }
+      }
 
+  private def addPorts(clusters: List[Cluster], portsWithCluster: List[(String, String)]): ComposeWriter[List[Cluster]] =
+    clusters.foldRight(lift(List.empty[Cluster])) { (cluster, acc) ⇒
+      acc.flatMap { clusters ⇒
+        portsWithCluster
+          .filter(_._1 == cluster.name)
+          .foldRight(lift(cluster)) {
+            case ((cn, port), clusterWriter) ⇒
+              clusterWriter.flatMap { c: Cluster ⇒
+                val newService = c.services
+                  .head
+                  .copy(
+                    breed = setBreedValue(b ⇒
+                      b.copy(
+                        ports = b.ports :+ Port(s"port_$port", None, Some(port), port.toInt, Port.Type.Http))
+                    )(c.services.head.breed))
+
+                add(cluster.copy(services = List(newService)))(_ ⇒ s"Created port: 'port_$port' in breed: '$cn:1.0.0'.")
+              }
+          }.map { newCluster ⇒
+            newCluster +: clusters
+          }
+      }
+    }
 }
 
 /**
@@ -249,14 +284,14 @@ object ComposePortReader extends YamlReader[ComposeWriter[List[Port]]] {
         }
 
         composePort.flatMap {
-          case SinglePort(port)      ⇒ lift(Port(port))
-          case PortRange(start, end) ⇒ add(Port(start))(_ ⇒ s"Ignored port ranges to: $end.")
+          case SinglePort(port)      ⇒ lift(Port(s"port_$port", None, Some(port.toString), port, Port.Type.Http))
+          case PortRange(start, end) ⇒ add(Port(s"port_$start", None, Some(start.toString), start, Port.Type.Http))(_ ⇒ s"Ignored port ranges to: $end.")
           case PortWithType(port, pt) ⇒
             val portType = if (pt.equalsIgnoreCase("tcp")) Port.Type.Tcp
             else if (pt.equalsIgnoreCase("http")) Port.Type.Http
             else throwException(UnsupportedProtocolError(pt))
 
-            lift(Port(port, portType))
+            lift(Port(s"port_$port", None, Some(port.toString), port, portType))
         }
       }
     }.getOrElse(List()))
