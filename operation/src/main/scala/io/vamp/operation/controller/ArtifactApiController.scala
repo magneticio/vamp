@@ -10,15 +10,20 @@ import io.vamp.common.akka.IoC._
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InconsistentArtifactName
 import io.vamp.model.reader.{ YamlReader, _ }
-import io.vamp.operation.gateway.GatewayActor
-import io.vamp.operation.notification.{ DeploymentWorkflowNameCollision, UnexpectedArtifact }
+import io.vamp.operation.notification.UnexpectedArtifact
 import io.vamp.persistence.notification.PersistenceOperationFailure
 import io.vamp.persistence.{ ArtifactExpansionSupport, ArtifactResponseEnvelope, PersistenceActor }
 
 import scala.concurrent.Future
 
-trait ArtifactApiController extends MultipleArtifactApiController with SingleArtifactApiController with ArtifactExpansionSupport {
-  this: DeploymentApiController with CommonProvider ⇒
+trait ArtifactApiController
+    extends DeploymentApiController
+    with GatewayApiController
+    with WorkflowApiController
+    with MultipleArtifactApiController
+    with SingleArtifactApiController
+    with ArtifactExpansionSupport {
+  this: CommonProvider ⇒
 
   def background(artifact: String): Boolean = !crud(artifact)
 
@@ -35,25 +40,11 @@ trait ArtifactApiController extends MultipleArtifactApiController with SingleArt
 trait SingleArtifactApiController {
   this: ArtifactApiController with CommonProvider ⇒
 
-  import PersistenceActor._
-
   def createArtifact(kind: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
-    case (t, r) if t == classOf[Gateway] ⇒
-      expandGateway(r.read(source).asInstanceOf[Gateway]) flatMap { gateway ⇒
-        actorFor[GatewayActor] ? GatewayActor.Create(gateway, Option(source), validateOnly)
-      }
-
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
-
-    case (t, r) if t == classOf[Workflow] ⇒
-      createWorkflow(r, source, validateOnly).map {
-        case list: List[_] ⇒
-          if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? ResetWorkflow(workflow, runtime = false, attributes = true) }
-          list
-        case any ⇒ any
-      }
-
-    case (_, r) ⇒ create(r, source, validateOnly)
+    case (t, r) if t == classOf[Gateway]    ⇒ createGateway(r, source, validateOnly)
+    case (t, r) if t == classOf[Workflow]   ⇒ createWorkflow(r, source, validateOnly)
+    case (_, r)                             ⇒ create(r, source, validateOnly)
   }
 
   def readArtifact(kind: String, name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
@@ -63,43 +54,17 @@ trait SingleArtifactApiController {
   }
 
   def updateArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
-    case (t, r) if t == classOf[Gateway] ⇒
-      expandGateway(r.read(source).asInstanceOf[Gateway]) flatMap { gateway ⇒
-        if (name != gateway.name) throwException(InconsistentArtifactName(name, gateway.name))
-        actorFor[GatewayActor] ? GatewayActor.Update(gateway, Option(source), validateOnly, promote = true)
-      }
-
-    case (t, r) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
-
-    case (t, r) if t == classOf[Workflow] ⇒
-      updateWorkflow(r, name, source, validateOnly).map {
-        case list: List[_] ⇒
-          if (!validateOnly) list.foreach { case workflow: Workflow ⇒ actorFor[PersistenceActor] ? ResetWorkflow(workflow, runtime = false, attributes = true) }
-          list
-        case any ⇒ any
-      }
-
-    case (_, r) ⇒ update(r, name, source, validateOnly)
+    case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
+    case (t, r) if t == classOf[Gateway]    ⇒ updateGateway(r, name, source, validateOnly)
+    case (t, r) if t == classOf[Workflow]   ⇒ updateWorkflow(r, name, source, validateOnly)
+    case (_, r)                             ⇒ update(r, name, source, validateOnly)
   }
 
   def deleteArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
-    case (t, _) if t == classOf[Gateway] ⇒
-      actorFor[GatewayActor] ? GatewayActor.Delete(name, validateOnly)
-
     case (t, _) if t == classOf[Deployment] ⇒ Future.successful(None)
-
-    case (t, _) if t == classOf[Workflow] ⇒
-      read(t, name, expandReferences = false, onlyReferences = false) map {
-        case Some(workflow: Workflow) ⇒
-          if (validateOnly) Future.successful(true)
-          else
-            (actorFor[PersistenceActor] ? PersistenceActor.Update(workflow.copy(status = Workflow.Status.Stopping), Some(source))).flatMap { _ ⇒
-              actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Stopping)
-            }
-        case _ ⇒ false
-      }
-
-    case (t, _) ⇒ delete(t, name, validateOnly)
+    case (t, _) if t == classOf[Gateway]    ⇒ deleteGateway(name, validateOnly)
+    case (t, _) if t == classOf[Workflow]   ⇒ deleteWorkflow(read(t, name, expandReferences = false, onlyReferences = false), source, validateOnly)
+    case (t, _)                             ⇒ delete(t, name, validateOnly)
   }
 
   protected def crud(kind: String): Boolean = `type`(kind) match {
@@ -134,16 +99,6 @@ trait SingleArtifactApiController {
     }
   }
 
-  private def createWorkflow(reader: YamlReader[_ <: Artifact], source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
-    reader.read(source) match {
-      case artifact ⇒
-        artifactForIfExists[Deployment](artifact.name).flatMap {
-          case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(artifact.name))
-          case _       ⇒ if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Create(artifact, Option(source))
-        }
-    }
-  }
-
   private def update(reader: YamlReader[_ <: Artifact], name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
     reader.read(source) match {
       case artifact ⇒
@@ -151,19 +106,6 @@ trait SingleArtifactApiController {
           throwException(InconsistentArtifactName(name, artifact.name))
 
         if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Update(artifact, Some(source))
-    }
-  }
-
-  private def updateWorkflow(reader: YamlReader[_ <: Artifact], name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
-    reader.read(source) match {
-      case artifact ⇒
-        if (name != artifact.name)
-          throwException(InconsistentArtifactName(name, artifact.name))
-
-        artifactForIfExists[Deployment](artifact.name).flatMap {
-          case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(artifact.name))
-          case _       ⇒ if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Update(artifact, Some(source))
-        }
     }
   }
 

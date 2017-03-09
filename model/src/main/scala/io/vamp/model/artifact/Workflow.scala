@@ -34,9 +34,7 @@ object Workflow {
     object RestartingPhase extends Enumeration {
       val Stopping, Starting = Value
     }
-
   }
-
 }
 
 case class Workflow(
@@ -53,7 +51,6 @@ case class Workflow(
     instances:            List[Instance]            = Nil,
     health:               Option[Health]            = None
 ) extends Artifact with Lookup {
-
   val kind = "workflow"
 }
 
