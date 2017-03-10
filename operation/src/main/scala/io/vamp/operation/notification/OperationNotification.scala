@@ -26,7 +26,7 @@ case class UnsupportedRouteWeight(deployment: Deployment, cluster: DeploymentClu
 
 case class NonUniqueBreedReferenceError(breed: Breed) extends Notification
 
-case class InvalidRouteWeight(deployment: Deployment, cluster: DeploymentCluster, weight: Int) extends Notification
+case class InvalidRouteWeight(deployment: Deployment, cluster: DeploymentCluster, port: String, weight: Int) extends Notification
 
 case class UnavailableGatewayPortError(port: Port, gateway: Gateway) extends Notification
 

@@ -556,7 +556,7 @@ trait DeploymentSlicer extends DeploymentOperation {
       val services = cluster.services.filterNot(service ⇒ bpc.services.exists(_.breed.name == service.breed.name))
       services.flatMap(_.breed.ports).map(_.name).toSet[String].foreach { port ⇒
         val weight = weightOf(cluster, services, port)
-        if (weight != 100 && !(weight == 0 && services.isEmpty)) throwException(InvalidRouteWeight(deployment, cluster, weight))
+        if (weight != 100 && !(weight == 0 && services.isEmpty)) throwException(InvalidRouteWeight(deployment, cluster, port, weight))
       }
     }
   }
