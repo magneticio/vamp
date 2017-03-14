@@ -5,7 +5,7 @@ import org.scalatest.junit.JUnitRunner
 import org.scalatest.{ FlatSpec, Matchers }
 
 @RunWith(classOf[JUnitRunner])
-class HaProxyResolverSpec extends FlatSpec with Matchers with HaProxyAclResolver {
+class HaProxyAclResolverSpec extends FlatSpec with Matchers with HaProxyAclResolver {
 
   "ConditionDefinitionResolver" should "resolve single" in {
 
@@ -80,6 +80,15 @@ class HaProxyResolverSpec extends FlatSpec with Matchers with HaProxyAclResolver
           Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome"), Acl("29c278b48a0ff033", "hdr_sub(user-agent) Android")
         ),
         Some("!81b5022a1c5966ab or !29c278b48a0ff033")
+      )
+    }
+
+    resolve("(User-Agent = Chrome OR User-Agent = Firefox) AND has cookie vamp") shouldBe Some {
+      HaProxyAcls(
+        List(
+          Acl("81b5022a1c5966ab", "hdr_sub(user-agent) Chrome"), Acl("d2c606178591676a", "cook(vamp) -m found"), Acl("af31629d4c4c8e71", "hdr_sub(user-agent) Firefox")
+        ),
+        Some("81b5022a1c5966ab d2c606178591676a or af31629d4c4c8e71 d2c606178591676a")
       )
     }
   }
