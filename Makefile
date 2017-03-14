@@ -46,18 +46,31 @@ test:
 
 .PHONY: pack
 pack:
-	export VAMP_VERSION="katana" && sbt package publish-local
-	sbt pack
-	rm -rf $(TARGET)/vamp-lifter-$(VERSION)
-	mkdir -p $(TARGET)/vamp-lifter-$(VERSION)
-	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-lifter-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-lifter-$(VERSION)/lib -type f -name "vamp-*-$(VERSION).jar") $(TARGET)/vamp-lifter-$(VERSION)/
-
 	docker volume create packer
 	docker pull $(BUILD_SERVER)
 	docker run \
-		--name packer \
 		--interactive \
+		--tty \
+		--rm \
+		--volume $(CURDIR):/srv/src \
+		--volume $(DIR_SBT):/home/vamp/.sbt \
+		--volume $(DIR_IVY):/home/vamp/.ivy2 \
+		--volume packer:/usr/local/stash \
+		--workdir=/srv/src \
+		--env BUILD_UID=$(shell id -u) \
+		--env BUILD_GID=$(shell id -g) \
+		--env VAMP_VERSION="katana" \
+		$(BUILD_SERVER) \
+			sbt package publish-local pack
+
+	rm -rf $(TARGET)/vamp-lifter-$(VERSION)
+	mkdir -p $(TARGET)/vamp-lifter-$(VERSION)
+	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-lifter-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-lifter-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-lifter-$(VERSION)/
+
+	docker run \
+		--interactive \
+		--tty \
 		--rm \
 		--volume $(TARGET)/vamp-lifter-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
