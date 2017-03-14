@@ -68,7 +68,7 @@ trait WorkflowPersistenceOperations {
       case Workflow.Status.Restarting(phase) ⇒ WorkflowStatus(workflow.name, status.toString, phase.map(_.toString))
       case _                                 ⇒ WorkflowStatus(workflow.name, status.toString, None)
     }
-    self ? PersistenceActor.Update(message)
+    self ? PersistenceActor.Update(message, Option(status.describe))
   }
 
   private def updateWorkflowScale(workflow: Workflow, scale: DefaultScale) = reply {

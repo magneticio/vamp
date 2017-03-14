@@ -35,7 +35,7 @@ trait GatewayPersistenceMessages {
 trait GatewayPersistenceOperations {
   this: CommonSupportForActors ⇒
 
-  import DevelopmentPersistenceOperations._
+  import DeploymentPersistenceOperations._
   import PersistenceActor._
 
   implicit def timeout: Timeout

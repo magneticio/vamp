@@ -7,7 +7,7 @@ import io.vamp.model.artifact._
 
 import scala.concurrent.Future
 
-trait DevelopmentPersistenceMessages {
+trait DeploymentPersistenceMessages {
 
   case class UpdateDeploymentServiceStatus(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, status: DeploymentService.Status) extends PersistenceActor.PersistenceMessages
 
@@ -23,7 +23,7 @@ trait DevelopmentPersistenceMessages {
 
 }
 
-private[persistence] object DevelopmentPersistenceOperations {
+private[persistence] object DeploymentPersistenceOperations {
 
   def clusterArtifactName(deployment: Deployment, cluster: DeploymentCluster) = {
     GatewayPath(deployment.name :: cluster.name :: Nil).normalized
@@ -38,11 +38,11 @@ private[persistence] object DevelopmentPersistenceOperations {
   }
 }
 
-trait DevelopmentPersistenceOperations {
+trait DeploymentPersistenceOperations {
   this: CommonSupportForActors with PersistenceArchive ⇒
 
   import PersistenceActor._
-  import DevelopmentPersistenceOperations._
+  import DeploymentPersistenceOperations._
 
   def receive: Actor.Receive = {
 
@@ -65,9 +65,7 @@ trait DevelopmentPersistenceOperations {
 
   private def updateScale(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, scale: DefaultScale, source: String) = reply {
     val artifact = DeploymentServiceScale(serviceArtifactName(deployment, cluster, service), scale)
-    (self ? PersistenceActor.Update(artifact)) map { _ ⇒
-      archiveUpdate(artifact, Option(source))
-    }
+    self ? PersistenceActor.Update(artifact, Option(source))
   }
 
   private def updateInstances(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, instances: List[Instance]) = reply {

@@ -10,6 +10,9 @@ import scala.language.implicitConversions
 object Workflow {
 
   sealed trait Status {
+
+    def describe: String = toString
+
     override def toString: String = {
       val clazz = getClass.toString
       val clean = if (clazz.endsWith("$")) clazz.substring(0, clazz.length - 1) else clazz
@@ -29,7 +32,11 @@ object Workflow {
 
     object Suspending extends Status
 
-    case class Restarting(phase: Option[RestartingPhase.Value]) extends Status
+    case class Restarting(phase: Option[RestartingPhase.Value]) extends Status {
+      override def describe: String = {
+        phase.map(p ⇒ s"$toString/${p.toString.toLowerCase}").getOrElse(toString)
+      }
+    }
 
     object RestartingPhase extends Enumeration {
       val Stopping, Starting = Value
