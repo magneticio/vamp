@@ -202,7 +202,7 @@ class MarathonDriverActor
       constraints = constraints
     )
 
-    sendRequest(update, id, Extraction.decompose(purge(marathonApp)))
+    sendRequest(update, id, requestPayload(workflow, purge(marathonApp)))
   }
 
   private def purge(app: MarathonApp): MarathonApp = {
@@ -284,6 +284,23 @@ class MarathonDriverActor
     }
 
     Extraction.decompose(interpolate(deployment, local, dialect)) merge base
+  }
+
+  private def requestPayload(workflow: Workflow, app: MarathonApp): JValue = {
+    val dialect = workflow.dialects.getOrElse(MarathonDriverActor.dialect, Map())
+
+    (app.container, app.cmd, dialect) match {
+      case (None, None, map: Map[_, _]) if map.asInstanceOf[Map[String, _]].get("cmd").nonEmpty ⇒
+      case (None, None, _) ⇒ throwException(UndefinedMarathonApplication)
+      case _ ⇒
+    }
+
+    val base = Extraction.decompose(app) match {
+      case JObject(l) ⇒ JObject(l.filter({ case (k, v) ⇒ k != "args" || v != JNull }))
+      case other      ⇒ other
+    }
+
+    Extraction.decompose(interpolate(workflow, dialect)) merge base
   }
 
   private def undeploy(deployment: Deployment, service: DeploymentService) = {
