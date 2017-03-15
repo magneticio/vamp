@@ -3,7 +3,7 @@ package io.vamp.model.validator
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.model.notification.{ MissingEnvironmentVariableError, UnresolvedDependencyInTraitValueError, UnresolvedEnvironmentVariableError, UnresolvedGatewayPortError }
-import io.vamp.model.resolver.ValueResolver
+import io.vamp.model.resolver.{ ValueResolver, VariableNode }
 
 trait BreedTraitValueValidator extends ValueResolver {
   this: NotificationProvider ⇒
@@ -49,7 +49,7 @@ trait BreedTraitValueValidator extends ValueResolver {
 trait BlueprintTraitValidator extends ValueResolver {
   this: NotificationProvider ⇒
 
-  def validateBlueprintTraitValues = validateGatewayPorts andThen validateEnvironmentVariables
+  def validateBlueprintTraitValues = validateGatewayPorts andThen validateEnvironmentVariables andThen validateInterpolatedValues
 
   private def validateGatewayPorts: (DefaultBlueprint ⇒ DefaultBlueprint) = { blueprint: DefaultBlueprint ⇒
 
@@ -88,6 +88,36 @@ trait BlueprintTraitValidator extends ValueResolver {
           }
 
         case _ ⇒ fail(`trait`)
+      }
+    }
+
+    blueprint
+  }
+
+  private def validateInterpolatedValues: (DefaultBlueprint ⇒ DefaultBlueprint) = { blueprint ⇒
+
+    def fail(ev: EnvironmentVariable) = {
+      throwException(UnresolvedEnvironmentVariableError(TraitReference.referenceFor(ev.name).flatMap(r ⇒ Some(r.referenceWithoutGroup)).getOrElse(ev.name), ev.value.getOrElse("")))
+    }
+
+    val environmentVariables: List[EnvironmentVariable] = blueprint.clusters.flatMap(_.services).collect {
+      case service if service.breed.isInstanceOf[DefaultBreed] ⇒ service.breed.asInstanceOf[DefaultBreed].environmentVariables
+    }.flatten ++ blueprint.environmentVariables
+
+    environmentVariables.filter(_.value.isDefined).foreach { ev ⇒
+      nodes(ev.value.get).foreach {
+        case VariableNode(TraitReference(cluster, group, name)) ⇒
+          blueprint.clusters.find(_.name == cluster) match {
+            case None ⇒
+            case Some(c) ⇒
+              if (c.services.forall(_.breed.isInstanceOf[DefaultBreed]) && !c.services.exists { service ⇒
+                service.breed match {
+                  case breed: DefaultBreed ⇒ breed.traitsFor(group).exists(_.name.toString == name)
+                  case _                   ⇒ false
+                }
+              }) fail(ev)
+          }
+        case _ ⇒
       }
     }
 

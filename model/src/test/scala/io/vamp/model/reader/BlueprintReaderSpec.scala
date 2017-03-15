@@ -862,4 +862,9 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     }
   }
 
+  it should "fail when referenced trait doesn't exists" in {
+    expectedError[UnresolvedEnvironmentVariableError] {
+      BlueprintReader.read(res("blueprint/blueprint101.yml"))
+    }
+  }
 }
