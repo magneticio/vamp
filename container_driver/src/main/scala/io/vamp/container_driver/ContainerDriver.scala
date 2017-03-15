@@ -6,7 +6,7 @@ import io.vamp.common.notification.NotificationProvider
 import io.vamp.common.{ Artifact, Config, Namespace, NamespaceProvider }
 import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, UndefinedDockerImage, UnsupportedDeployableType }
 import io.vamp.model.artifact._
-import io.vamp.model.resolver.DeploymentValueResolver
+import io.vamp.model.resolver.{ DeploymentValueResolver, WorkflowValueResolver }
 
 object ContainerDriver {
 
@@ -18,7 +18,7 @@ object ContainerDriver {
   }
 }
 
-trait ContainerDriver extends DeploymentValueResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with NamespaceProvider with ExecutionContextProvider {
+trait ContainerDriver extends DeploymentValueResolver with WorkflowValueResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with NamespaceProvider with ExecutionContextProvider {
 
   protected def httpClient: HttpClient
 
@@ -48,6 +48,19 @@ trait ContainerDriver extends DeploymentValueResolver with ContainerDriverValida
 
   protected def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] = {
     service.environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) → ev.interpolated.getOrElse("")).toMap
+  }
+
+  protected def interpolate[T](workflow: Workflow, dialect: T): T = {
+    def visit(any: Any): Any = any match {
+      case value: String ⇒ resolve(value, valueFor(workflow))
+      case list: List[_] ⇒ list.map(visit)
+      case map: Map[_, _] ⇒ map.map {
+        case (key, value) ⇒ key → visit(value)
+      }
+      case _ ⇒ any
+    }
+
+    visit(dialect).asInstanceOf[T]
   }
 
   protected def interpolate[T](deployment: Deployment, service: Option[DeploymentService], dialect: T): T = {

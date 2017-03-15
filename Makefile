@@ -75,3 +75,22 @@ pack:
 		$(BUILD_SERVER) \
 			push vamp $(VERSION)
 
+pack-local:
+	export VAMP_VERSION="katana" && sbt package publish-local
+	sbt "project bootstrap" pack
+	rm -rf  $(TARGET)/vamp-$(VERSION)
+	mkdir -p $(TARGET)/vamp-$(VERSION)
+	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-$(VERSION)/lib -type f -name "vamp-*-$(VERSION).jar") $(TARGET)/vamp-$(VERSION)/
+
+	docker volume create packer
+	docker pull $(BUILD_SERVER)
+	docker run \
+		--name packer \
+		--interactive \
+		--tty \
+		--rm \
+		--volume $(TARGET)/vamp-$(VERSION):/usr/local/src \
+		--volume packer:/usr/local/stash \
+		$(BUILD_SERVER) \
+			push vamp $(VERSION)
