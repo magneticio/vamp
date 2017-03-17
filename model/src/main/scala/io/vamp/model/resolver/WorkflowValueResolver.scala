@@ -7,6 +7,10 @@ import io.vamp.model.artifact._
 trait WorkflowValueResolver extends ValueResolver with ConfigurationValueResolver {
   this: NamespaceProvider with NotificationProvider ⇒
 
+  def valueFor(workflow: Workflow)(reference: ValueReference): String = {
+    (valueForWorkflow(workflow) orElse PartialFunction[ValueReference, String] { _ ⇒ "" })(reference)
+  }
+
   def resolveEnvironmentVariable(workflow: Workflow): EnvironmentVariable ⇒ EnvironmentVariable = { env ⇒
     env.copy(interpolated = env.value.map { value ⇒
       resolve(
@@ -24,8 +28,9 @@ trait WorkflowValueResolver extends ValueResolver with ConfigurationValueResolve
   }
 
   private def valueForWorkflow(workflow: Workflow): PartialFunction[ValueReference, String] = {
-    case LocalReference("workflow")           ⇒ workflow.name
-    case LocalReference("namespace")          ⇒ namespace.name
-    case NoGroupReference("workflow", "name") ⇒ workflow.name
+    case LocalReference("workflow")                                       ⇒ workflow.name
+    case LocalReference("namespace")                                      ⇒ namespace.name
+    case LocalReference(ref) if workflow.breed.isInstanceOf[DefaultBreed] ⇒ workflow.breed.asInstanceOf[DefaultBreed].traits.find(_.name == ref).flatMap(_.value).getOrElse("")
+    case NoGroupReference("workflow", "name")                             ⇒ workflow.name
   }
 }

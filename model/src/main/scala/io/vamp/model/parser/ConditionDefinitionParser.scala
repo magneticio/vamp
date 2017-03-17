@@ -105,6 +105,6 @@ class ConditionDefinitionParboiledParser(override val input: ParserInput) extend
   }
 
   def String = rule {
-    oneOrMore(noneOf(" \n\r\t\f"))
+    oneOrMore(noneOf(" \n\r\t\f()"))
   }
 }

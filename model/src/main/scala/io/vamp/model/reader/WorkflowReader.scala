@@ -11,7 +11,7 @@ import io.vamp.model.artifact._
 
 import scala.util.Try
 
-object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with TraitReader with BreedTraitValueValidator {
+object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with TraitReader with DialectReader with BreedTraitValueValidator {
 
   override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
 
@@ -45,6 +45,7 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
 
     val breed = BreedReader.readReference(<<![Any]("breed"))
     val scale = ScaleReader.readOptionalReferenceOrAnonymous("scale")
+    val network = <<?[String]("network")
 
     Workflow(
       name,
@@ -55,8 +56,9 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
       scale,
       environmentVariables(alias = false),
       arguments(),
-      <<?[String]("network"),
+      network,
       HealthCheckReader.read,
+      dialects,
       DeploymentReader.parseInstances
     )
   }

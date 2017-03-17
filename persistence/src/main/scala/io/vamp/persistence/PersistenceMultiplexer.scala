@@ -106,7 +106,7 @@ trait PersistenceMultiplexer {
   }
 
   private def combine(deployment: Deployment): Future[Option[Deployment]] = {
-    import DevelopmentPersistenceOperations._
+    import DeploymentPersistenceOperations._
 
     for {
       clusters ← Future.sequence {

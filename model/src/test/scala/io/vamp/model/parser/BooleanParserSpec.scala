@@ -72,5 +72,7 @@ class BooleanParserSpec extends FlatSpec with Matchers with BooleanParser {
     parse("a and b or c") shouldBe Or(And(Value("a"), Value("b")), Value("c"))
     parse("a or b and c") shouldBe Or(Value("a"), And(Value("b"), Value("c")))
     parse("!(a and b) and c") shouldBe And(Negation(And(Value("a"), Value("b"))), Value("c"))
+    parse("(a or b) and c") shouldBe And(Or(Value("a"), Value("b")), Value("c"))
+    parse("a or (b and c)") shouldBe Or(Value("a"), And(Value("b"), Value("c")))
   }
 }

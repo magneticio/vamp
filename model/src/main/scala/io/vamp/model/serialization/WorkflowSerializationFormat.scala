@@ -19,7 +19,8 @@ class WorkflowSerializer
     with ReferenceSerialization
     with ArgumentListSerializer
     with HealthCheckSerializer
-    with TraitDecomposer {
+    with TraitDecomposer
+    with DialectSerializer {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case workflow: Workflow ⇒
       val list = new ArrayBuffer[JField]
@@ -51,11 +52,12 @@ class WorkflowSerializer
         case _ ⇒
       }
 
-      list += JField("environment_variables", traits(workflow.environmentVariables.asInstanceOf[List[Trait]]))
+      if (workflow.environmentVariables.nonEmpty) list += JField("environment_variables", traits(workflow.environmentVariables.asInstanceOf[List[Trait]]))
       if (workflow.scale.isDefined) list += JField("scale", Extraction.decompose(workflow.scale.get))
       if (workflow.network.isDefined) list += JField("network", Extraction.decompose(workflow.network.get))
-      list += JField("arguments", serializeArguments(workflow.arguments))
-      list += JField("instances", Extraction.decompose(workflow.instances))
+      if (workflow.arguments.nonEmpty) list += JField("arguments", serializeArguments(workflow.arguments))
+      if (workflow.instances.nonEmpty) list += JField("instances", Extraction.decompose(workflow.instances))
+      if (workflow.dialects.nonEmpty) list += JField("dialects", serializeDialects(workflow.dialects))
 
       // Add optional values
       workflow.health.foreach(h ⇒ list += JField("health", Extraction.decompose(h)))

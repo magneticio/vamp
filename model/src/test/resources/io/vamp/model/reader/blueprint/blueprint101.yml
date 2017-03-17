@@ -1,0 +1,21 @@
+name: runner
+clusters:
+  frontend:
+    services:
+    - breed:
+        name: frontend
+        deployable: magneticio/sava:runner_1.0
+        ports:
+          port: 8081/http
+        environment_variables:
+          SAVA_RUNNER_ID: frontend
+          SAVA_RUNNER_HTTP_DEPENDENCY_URL1: http://$backend.host:$backend.ports.ABC
+        dependencies:
+          backend: backend
+  backend:
+    services:
+    - breed:
+        name: backend
+        deployable: magneticio/sava:runner_1.0
+        ports:
+          web: 8085/http

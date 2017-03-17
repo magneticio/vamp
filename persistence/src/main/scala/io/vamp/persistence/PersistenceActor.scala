@@ -16,7 +16,7 @@ object ArtifactResponseEnvelope {
 
 case class ArtifactResponseEnvelope(response: List[Artifact], total: Long, page: Int, perPage: Int) extends OffsetResponseEnvelope[Artifact]
 
-object PersistenceActor extends CommonPersistenceMessages with DevelopmentPersistenceMessages with GatewayPersistenceMessages with WorkflowPersistenceMessages {
+object PersistenceActor extends CommonPersistenceMessages with DeploymentPersistenceMessages with GatewayPersistenceMessages with WorkflowPersistenceMessages {
 
   trait PersistenceMessages
 
@@ -25,7 +25,7 @@ object PersistenceActor extends CommonPersistenceMessages with DevelopmentPersis
 
 trait PersistenceActor
     extends CommonPersistenceOperations
-    with DevelopmentPersistenceOperations
+    with DeploymentPersistenceOperations
     with GatewayPersistenceOperations
     with WorkflowPersistenceOperations
     with PersistenceStats
@@ -41,7 +41,7 @@ trait PersistenceActor
 
   override def receive = {
     super[CommonPersistenceOperations].receive orElse
-      super[DevelopmentPersistenceOperations].receive orElse
+      super[DeploymentPersistenceOperations].receive orElse
       super[GatewayPersistenceOperations].receive orElse
       super[WorkflowPersistenceOperations].receive orElse {
         case InfoRequest  ⇒ reply(info() map { persistenceInfo ⇒ Map("database" → persistenceInfo, "archiving" → true) })
