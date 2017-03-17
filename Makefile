@@ -28,10 +28,6 @@ all: default
 default:
 	docker pull $(BUILD_SERVER)
 	docker run \
-		--name buildserver \
-		--interactive \
-		--rm \
-		--volume $(CURDIR):/srv/src \
 		--volume $(DIR_SBT):/home/vamp/.sbt \
 		--volume $(DIR_IVY):/home/vamp/.ivy2 \
 		--workdir=/srv/src \
@@ -49,10 +45,6 @@ pack:
 	docker volume create packer
 	docker pull $(BUILD_SERVER)
 	docker run \
-		--interactive \
-		--tty \
-		--rm \
-		--volume $(CURDIR):/srv/src \
 		--volume $(DIR_SBT):/home/vamp/.sbt \
 		--volume $(DIR_IVY):/home/vamp/.ivy2 \
 		--volume packer:/usr/local/stash \
@@ -69,10 +61,6 @@ pack:
 	mv $$(find $(TARGET)/vamp-consul-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-consul-$(VERSION)/
 
 	docker run \
-		--interactive \
-		--tty \
-		--rm \
-		--volume $(TARGET)/vamp-consul-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
 		$(BUILD_SERVER) \
 			push vamp-consul $(VERSION)
