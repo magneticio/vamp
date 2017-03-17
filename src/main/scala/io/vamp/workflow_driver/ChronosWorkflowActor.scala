@@ -1,17 +1,15 @@
 package io.vamp.workflow_driver
 
+import akka.pattern.ask
 import io.vamp.common.akka.IoC
 import io.vamp.common.http.HttpClient
+import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.container_driver.{ ContainerDriverValidation, Docker, DockerDeployableType }
 import io.vamp.model.artifact.TimeSchedule.RepeatCount
-import io.vamp.model.artifact.Workflow.Status
-import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
+import io.vamp.persistence.PersistenceActor
 import io.vamp.pulse.Percolator.GetPercolator
 import io.vamp.pulse.PulseActor
-import akka.pattern.ask
-import io.vamp.common.{ ClassMapper, Config }
-import io.vamp.persistence.PersistenceActor
 
 import scala.concurrent.Future
 
@@ -51,11 +49,6 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
   }
 
   private def requestEventScheduled(workflows: List[Workflow]) = {
-    def runnable(workflow: Workflow) = workflow.status match {
-      case Status.Starting | Status.Running | Status.Restarting(Some(RestartingPhase.Starting)) ⇒ true
-      case _ ⇒ false
-    }
-
     all() foreach { instances ⇒
       workflows.foreach { workflow ⇒
         IoC.actorFor[PulseActor] ? GetPercolator(WorkflowDriverActor.percolator(workflow)) map {
@@ -88,7 +81,6 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
 
       httpClient.post[Any](s"$url/scheduler/iso8601", jobRequest)
     }
-    case _ ⇒ Future.successful(false)
   }
 
   protected override def unschedule(): PartialFunction[Workflow, Future[Any]] = {
@@ -96,7 +88,6 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
       all() flatMap {
         list ⇒ if (list.contains(name(workflow))) delete(workflow) else Future.successful(false)
       }
-    case _ ⇒ Future.successful(false)
   }
 
   private def delete(workflow: Workflow) = httpClient.delete(s"$url/scheduler/job/${name(workflow)}")
