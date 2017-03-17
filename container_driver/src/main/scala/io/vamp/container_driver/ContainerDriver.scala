@@ -18,7 +18,7 @@ object ContainerDriver {
   }
 }
 
-trait ContainerDriver extends DeploymentValueResolver with WorkflowValueResolver with ContainerDriverValidation with ContainerDriverNotificationProvider with NamespaceProvider with ExecutionContextProvider {
+trait ContainerDriver extends ContainerDriverMapping with ContainerDriverValidation with ContainerDriverNotificationProvider with NamespaceProvider with ExecutionContextProvider {
 
   protected def httpClient: HttpClient
 
@@ -27,6 +27,10 @@ trait ContainerDriver extends DeploymentValueResolver with WorkflowValueResolver
   protected def appId(deployment: Deployment, breed: Breed): String
 
   protected def artifactName2Id(artifact: Artifact): String
+}
+
+trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueResolver {
+  this: NotificationProvider with NamespaceProvider with ExecutionContextProvider ⇒
 
   protected def portMappings(workflow: Workflow): List[DockerPortMapping] = {
     workflow.breed.asInstanceOf[DefaultBreed].ports.collect {
