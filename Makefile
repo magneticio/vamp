@@ -28,8 +28,6 @@ all: default
 default:
 	docker pull $(BUILD_SERVER)
 	docker run \
-		--name buildserver \
-		--interactive \
 		--rm \
 		--volume $(CURDIR):/srv/src \
 		--volume $(DIR_SBT):/home/vamp/.sbt \
@@ -49,8 +47,6 @@ pack:
 	docker volume create packer
 	docker pull $(BUILD_SERVER)
 	docker run \
-		--interactive \
-		--tty \
 		--rm \
 		--volume $(CURDIR):/srv/src \
 		--volume $(DIR_SBT):/home/vamp/.sbt \
@@ -69,8 +65,6 @@ pack:
 	mv $$(find $(TARGET)/vamp-redis-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-redis-$(VERSION)/
 
 	docker run \
-		--interactive \
-		--tty \
 		--rm \
 		--volume $(TARGET)/vamp-redis-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
