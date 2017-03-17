@@ -1,9 +1,18 @@
 package io.vamp.container_driver.kubernetes
 
 import io.vamp.common.akka.CommonActorLogging
-import io.vamp.container_driver.ContainerDriver
+import io.vamp.container_driver.{ ContainerDriver, Docker }
 
 import scala.concurrent.Future
+
+case class DaemonSet(
+  name:        String,
+  docker:      Docker,
+  cpu:         Double,
+  mem:         Int,
+  serviceType: Option[KubernetesServiceType.Value] = Option(KubernetesServiceType.NodePort),
+  command:     List[String]                        = Nil
+)
 
 trait KubernetesDaemonSet extends KubernetesArtifact {
   this: KubernetesContainerDriver with CommonActorLogging ⇒
@@ -17,14 +26,13 @@ trait KubernetesDaemonSet extends KubernetesArtifact {
          |  "apiVersion": "extensions/v1beta1",
          |  "kind": "DaemonSet",
          |  "metadata": {
+         |    "name": "${ds.name}",
          |    ${labels2json(labels + (ContainerDriver.withNamespace("name") → ds.name))}
          |  },
          |  "spec": {
          |    "template": {
          |      "metadata": {
-         |        "labels": {
-         |          ${labels2json(Map(ContainerDriver.labelNamespace() → "daemon-set", ContainerDriver.withNamespace("daemon-set") → ds.name))}
-         |        }
+         |        ${labels2json(Map(ContainerDriver.labelNamespace() → "daemon-set", ContainerDriver.withNamespace("daemon-set") → ds.name))}
          |      },
          |      "spec": {
          |        "containers": [{

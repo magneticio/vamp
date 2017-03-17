@@ -44,7 +44,13 @@ object KubernetesDriverActor {
 
 case class KubernetesDriverInfo(version: Any, paths: Any, api: Any, apis: Any)
 
-class KubernetesDriverActor extends ContainerDriverActor with KubernetesContainerDriver with KubernetesDeployment with KubernetesService with KubernetesDaemonSet {
+class KubernetesDriverActor
+    extends ContainerDriverActor
+    with KubernetesContainerDriver
+    with KubernetesDeployment
+    with KubernetesService
+    with KubernetesJob
+    with KubernetesDaemonSet {
 
   import KubernetesDriverActor._
 
@@ -79,6 +85,7 @@ class KubernetesDriverActor extends ContainerDriverActor with KubernetesContaine
     case u: UndeployWorkflow            ⇒ reply(undeploy(u.workflow))
 
     case ds: DaemonSet                  ⇒ reply(daemonSet(ds))
+    case job: Job                       ⇒ reply(createJob(job))
 
     case any                            ⇒ unsupported(UnsupportedContainerDriverRequest(any))
   }
