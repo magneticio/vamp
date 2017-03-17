@@ -38,7 +38,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
       case t: Throwable ⇒ reportException(WorkflowSchedulingError(t))
     }
 
-    case (Trigger(workflow), event: Event) ⇒ try trigger(workflow, event.tags) catch {
+    case (Trigger(workflow), event: Event) ⇒ try trigger(workflow, event) catch {
       case t: Throwable ⇒ reportException(WorkflowExecutionError(t))
     }
 

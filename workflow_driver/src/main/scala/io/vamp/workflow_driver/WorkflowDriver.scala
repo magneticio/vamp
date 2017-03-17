@@ -8,6 +8,8 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.{ ContainerDriverActor, Docker }
+import io.vamp.model.artifact.Workflow.Status
+import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.WorkflowValueResolver
@@ -53,8 +55,8 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
   def receive = {
     case InfoRequest              ⇒ reply(info)
     case GetScheduled(workflows)  ⇒ request(workflows)
-    case Schedule(workflow, data) ⇒ reply(schedule(data)(workflow))
-    case Unschedule(workflow)     ⇒ reply(unschedule()(workflow))
+    case Schedule(workflow, data) ⇒ reply((schedule(data) orElse { case _ ⇒ Future.successful(false) }: PartialFunction[Workflow, Future[Any]])(workflow))
+    case Unschedule(workflow)     ⇒ reply((unschedule() orElse { case _ ⇒ Future.successful(false) }: PartialFunction[Workflow, Future[Any]])(workflow))
   }
 
   protected def info: Future[Map[_, _]]
@@ -103,6 +105,11 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
         )
       }
     }
+  }
+
+  protected def runnable(workflow: Workflow) = workflow.status match {
+    case Status.Starting | Status.Running | Status.Restarting(Some(RestartingPhase.Starting)) ⇒ true
+    case _ ⇒ false
   }
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
