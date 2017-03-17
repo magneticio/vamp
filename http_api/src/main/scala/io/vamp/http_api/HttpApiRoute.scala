@@ -102,8 +102,8 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
               blueprintName { nameOpt ⇒
                 nameOpt.map { name ⇒
                   createBlueprintFromCompose(artifact, name, request).map { blueprintSource ⇒
-                    onSuccess(createArtifact("blueprints", blueprintSource, validateOnly)) { result ⇒
-                      respondWith(if (background("blueprints")) Accepted else Created, result)
+                    onSuccess(createArtifact("blueprints", blueprintSource, validateOnly)) { _ ⇒
+                      respondWith(if (background("blueprints")) Accepted else Created, blueprintSource)
                     }
                   }.getOrElse {
                     respondWith(NotFound, None)
