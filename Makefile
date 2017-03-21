@@ -36,16 +36,14 @@ default:
 		--env BUILD_UID=$(shell id -u) \
 		--env BUILD_GID=$(shell id -g) \
 		$(BUILD_SERVER) \
-			make clean test pack
+			'sbt clean test pack'
 
-.PHONY: test
-test:
-	sbt test
 
 .PHONY: pack
 pack:
 	docker volume create packer
 	docker pull $(BUILD_SERVER)
+
 	docker run \
 		--rm \
 		--volume $(CURDIR):/srv/src \
@@ -57,7 +55,7 @@ pack:
 		--env BUILD_GID=$(shell id -g) \
 		--env VAMP_VERSION="katana" \
 		$(BUILD_SERVER) \
-			sbt package publish-local pack
+			'sbt package publish-local pack'
 
 	rm -rf $(TARGET)/vamp-elasticsearch-$(VERSION)
 	mkdir -p $(TARGET)/vamp-elasticsearch-$(VERSION)
@@ -71,6 +69,16 @@ pack:
 		$(BUILD_SERVER) \
 			push vamp-elasticsearch $(VERSION)
 
-.PHONY: clean
-clean:
-	sbt clean
+pack-local:
+	export VAMP_VERSION="katana" && sbt package publish-local pack
+	rm -rf $(TARGET)/vamp-elasticsearch-$(VERSION)
+	mkdir -p $(TARGET)/vamp-elasticsearch-$(VERSION)
+	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-elasticsearch-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-elasticsearch-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-elasticsearch-$(VERSION)/
+
+	docker run \
+		--rm \
+		--volume $(TARGET)/vamp-elasticsearch-$(VERSION):/usr/local/src \
+		--volume packer:/usr/local/stash \
+		$(BUILD_SERVER) \
+			push vamp-elasticsearch $(VERSION)

@@ -56,7 +56,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
 
     case StatsRequest ⇒ reply(stats)
 
-    case Publish(event, publishEventValue) ⇒ reply((validateEvent andThen percolate(publishEventValue) andThen publish(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
+    case Publish(event, publishEventValue) ⇒ reply((validateEvent andThen publish(publishEventValue) andThen broadcast(publishEventValue))(Event.expandTags(event)), classOf[EventIndexError])
 
     case Query(envelope) ⇒ reply((validateEventQuery andThen eventQuery(envelope.page, envelope.perPage))(envelope.request), classOf[EventQueryError])
 
@@ -71,7 +71,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
 
   private def info = es.health map { health ⇒ Map[String, Any]("type" → "elasticsearch", "elasticsearch" → health) }
 
-  private def publish(publishEventValue: Boolean)(event: Event) = {
+  private def publish(publishEventValue: Boolean)(event: Event): Future[Any] = {
     implicit val formats = SerializationFormat(OffsetDateTimeSerializer, new EnumNameSerializer(Aggregator))
     val (indexName, typeName) = indexTypeName(event.`type`)
     log.debug(s"Pulse publish an event to index '$indexName/$typeName': ${event.tags}")
@@ -85,11 +85,16 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
     val data = Extraction.decompose(if (publishEventValue) event else event.copy(value = None)) merge Extraction.decompose(attachment)
 
     es.index[ElasticsearchIndexResponse](indexName, typeName, data) map {
-      case _: ElasticsearchIndexResponse ⇒ event
+      case r: ElasticsearchIndexResponse ⇒ event.copy(id = Option(convertId(r._id)))
       case other ⇒
         log.error(s"Unexpected index result: ${other.toString}.")
         other
     }
+  }
+
+  private def broadcast(publishEventValue: Boolean): (Future[Any] ⇒ Future[Any]) = _.map {
+    case event: Event ⇒ percolate(publishEventValue)(event)
+    case other        ⇒ other
   }
 
   protected def eventQuery(page: Int, perPage: Int)(query: EventQuery): Future[Any] = {
@@ -108,7 +113,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
 
     es.search[ElasticsearchSearchResponse](indexName, constructSearch(query, p, pp)) map {
       case ElasticsearchSearchResponse(hits) ⇒
-        EventResponseEnvelope(hits.hits.flatMap(hit ⇒ Option(read[Event](write(hit._source)).copy(id = Option(HashUtil.hex(hit._id))))), hits.total, p, pp)
+        EventResponseEnvelope(hits.hits.flatMap(hit ⇒ Option(read[Event](write(hit._source)).copy(id = Option(convertId(hit._id))))), hits.total, p, pp)
       case other ⇒ reportException(EventQueryError(other))
     }
   }
@@ -173,6 +178,8 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
       ("size" → 0) +
       ("aggs" → Map("aggregation" → Map(s"$aggregation" → Map("field" → field.getOrElse("value")))))
   }
+
+  private def convertId(id: String) = HashUtil.hex(id)
 }
 
 trait ElasticsearchPulseEvent {
