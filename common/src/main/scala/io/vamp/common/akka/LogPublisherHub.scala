@@ -52,9 +52,7 @@ private case class LogPublisher(to: ActorRef, logger: LogbackLogger, level: Leve
   filter.setLevel(level.levelStr)
 
   private val appender = new AppenderBase[ILoggingEvent] {
-    override def append(loggingEvent: ILoggingEvent) = {
-      if (loggingEvent.getMDCPropertyMap.get("namespace") == namespace.name) to ! encoder(loggingEvent)
-    }
+    override def append(loggingEvent: ILoggingEvent) = to ! encoder(loggingEvent)
   }
 
   appender.addFilter(filter)
