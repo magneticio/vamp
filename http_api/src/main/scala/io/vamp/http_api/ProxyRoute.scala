@@ -18,7 +18,9 @@ trait ProxyRoute extends ProxyController {
   implicit def materializer: Materializer
 
   val proxyRoute =
-    path("gateways" / Segment / RemainingPath) {
+    path("host" / Segment / "port" ~ IntNumber / RemainingPath) {
+      (host, port, path) ⇒ handle(hostPortProxy(host, port, path))
+    } ~ path("gateways" / Segment / RemainingPath) {
       (gateway, path) ⇒ handle(gatewayProxy(gateway, path))
     } ~ path("workflows" / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
       (workflow, instance, port, path) ⇒ handle(instanceProxy(workflow, instance, port, path))

@@ -22,6 +22,17 @@ trait ProxyController extends GatewayWorkflowDeploymentResolver {
 
   implicit def timeout: Timeout
 
+  def hostPortProxy(host: String, port: Int, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
+    if (upgradeToWebSocket.isDefined) {
+      logger.debug(s"Websocket poxy request [$host:$port]: $path")
+      websocket(host, port, path, context, upgradeToWebSocket.get)
+    }
+    else {
+      logger.debug(s"HTTP proxy request [$host:$port]: $path")
+      http(host, port, path, context)
+    }
+  }
+
   def gatewayProxy(gatewayName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
     gatewayFor(gatewayName).flatMap {
       case Some(gateway) if gateway.deployed && gateway.port.`type` == Port.Type.Http && gateway.service.nonEmpty ⇒
