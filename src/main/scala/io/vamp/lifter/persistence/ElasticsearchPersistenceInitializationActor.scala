@@ -3,13 +3,14 @@ package io.vamp.lifter.persistence
 import io.vamp.lifter.elasticsearch.ElasticsearchInitializationActor
 import io.vamp.lifter.elasticsearch.ElasticsearchInitializationActor.TemplateDefinition
 import io.vamp.lifter.notification.LifterNotificationProvider
+import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.persistence.ElasticsearchPersistenceActor
 
 import scala.io.Source
 
-class ElasticsearchPersistenceInitializationActor extends ElasticsearchInitializationActor with LifterNotificationProvider {
+class ElasticsearchPersistenceInitializationActor extends ElasticsearchInitializationActor with NamespaceValueResolver with LifterNotificationProvider {
 
-  lazy val index = ElasticsearchPersistenceActor.index()
+  lazy val index = resolveWithNamespace(ElasticsearchPersistenceActor.index())
 
   lazy val elasticsearchUrl = ElasticsearchPersistenceActor.elasticsearchUrl()
 
