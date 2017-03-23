@@ -1,5 +1,6 @@
 package io.vamp.http_api
 
+import akka.http.scaladsl.model.StatusCodes.BadGateway
 import akka.http.scaladsl.model.ws.UpgradeToWebSocket
 import akka.http.scaladsl.server.{ RequestContext, Route, RouteResult }
 import akka.stream.Materializer
@@ -9,6 +10,7 @@ import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.ProxyController
 
 import scala.concurrent.Future
+import scala.util.Try
 
 trait ProxyRoute extends ProxyController {
   this: HttpApiDirectives with CommonProvider ⇒
@@ -18,8 +20,8 @@ trait ProxyRoute extends ProxyController {
   implicit def materializer: Materializer
 
   val proxyRoute =
-    path("host" / Segment / "port" ~ IntNumber / RemainingPath) {
-      (host, port, path) ⇒ handle(hostPortProxy(host, port, path))
+    path("host" / Segment / "port" / Segment / RemainingPath) {
+      (host, port, path) ⇒ Try(handle(hostPortProxy(host, port.toInt, path))).getOrElse(complete(BadGateway))
     } ~ path("gateways" / Segment / RemainingPath) {
       (gateway, path) ⇒ handle(gatewayProxy(gateway, path))
     } ~ path("workflows" / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
