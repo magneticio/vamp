@@ -33,7 +33,7 @@ trait ProxyController extends GatewayWorkflowDeploymentResolver {
     }
   }
 
-  def gatewayProxy(gatewayName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
+  def gatewayProxy(gatewayName: String, path: Path, skip: Boolean)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
     gatewayFor(gatewayName).flatMap {
       case Some(gateway) if gateway.deployed && gateway.port.`type` == Port.Type.Http && gateway.service.nonEmpty ⇒
         if (upgradeToWebSocket.isDefined) {
@@ -44,7 +44,7 @@ trait ProxyController extends GatewayWorkflowDeploymentResolver {
           logger.debug(s"HTTP gateway proxy request [$gatewayName]: $path")
           http(gateway.service.get.host, gateway.service.get.port.number, path, context)
         }
-      case _ ⇒ context.complete(BadGateway)
+      case _ ⇒ if (skip) context.reject() else context.complete(BadGateway)
     }
   }
 
