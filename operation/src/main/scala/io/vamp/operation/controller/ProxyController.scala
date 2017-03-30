@@ -38,11 +38,11 @@ trait ProxyController extends GatewayWorkflowDeploymentResolver {
       case Some(gateway) if gateway.deployed && gateway.port.`type` == Port.Type.Http && gateway.service.nonEmpty ⇒
         if (upgradeToWebSocket.isDefined) {
           logger.debug(s"WebSocket gateway proxy request [$gatewayName]: $path")
-          websocket(gateway.service.get.host, gateway.service.get.port.number, path, context, upgradeToWebSocket.get)
+          websocket(gateway.service.get.host, gateway.port.number, path, context, upgradeToWebSocket.get)
         }
         else {
           logger.debug(s"HTTP gateway proxy request [$gatewayName]: $path")
-          http(gateway.service.get.host, gateway.service.get.port.number, path, context)
+          http(gateway.service.get.host, gateway.port.number, path, context)
         }
       case _ ⇒ if (skip) context.reject() else context.complete(BadGateway)
     }
