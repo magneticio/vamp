@@ -114,13 +114,12 @@ class KubernetesDriverActor
   protected override def deployedGateways(gateways: List[Gateway]) = {
     if (createServices()) {
       services(gatewayService).map { response ⇒
-
         // update service ports
         gateways.filter {
           _.service.isEmpty
         } foreach { gateway ⇒
           response.items.find {
-            item ⇒ item.metadata.labels.getOrElse(Lookup.entry, "") == gateway.lookupName
+            item ⇒ item.metadata.labels.getOrElse(ContainerDriver.withNamespace(Lookup.entry), "") == gateway.lookupName
           } flatMap {
             item ⇒ item.spec.clusterIP.flatMap(ip ⇒ item.spec.ports.find(port ⇒ port.port == gateway.port.number).map(port ⇒ ip → port))
           } foreach {
@@ -128,7 +127,7 @@ class KubernetesDriverActor
           }
         }
 
-        val items = response.items.flatMap { item ⇒ item.metadata.labels.get(Lookup.entry).map(_ → item.metadata.name) } toMap
+        val items = response.items.flatMap { item ⇒ item.metadata.labels.get(ContainerDriver.withNamespace(Lookup.entry)).map(_ → item.metadata.name) } toMap
 
         // delete services
         val deleted = items.filter { case (l, _) ⇒ !gateways.exists(_.lookupName == l) } map { case (_, id) ⇒ deleteServiceById(id) }
@@ -138,7 +137,7 @@ class KubernetesDriverActor
           gateway ⇒ !items.exists { case (l, _) ⇒ l == gateway.lookupName }
         } map { gateway ⇒
           val ports = KubernetesServicePort("port", "TCP", gateway.port.number, gateway.port.number) :: Nil
-          createService(gateway.name, serviceType(), vampGatewayAgentId(), ports, update = false, gatewayService ++ Map("gateway" → gateway.name, Lookup.entry → gateway.lookupName))
+          createService(gateway.name, serviceType(), vampGatewayAgentId(), ports, update = false, gatewayService ++ Map(ContainerDriver.withNamespace("gateway") → gateway.name, ContainerDriver.withNamespace(Lookup.entry) → gateway.lookupName))
         }
 
         Future.sequence(created ++ deleted)
@@ -151,7 +150,7 @@ class KubernetesDriverActor
       val ports = ds.docker.portMappings.map { pm ⇒
         KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort, pm.containerPort)
       }
-      createService(ds.name, st, ds.name, ports, update = false, daemonService ++ Map("daemon" → ds.name))
+      createService(ds.name, st, ds.name, ports, update = false, daemonService ++ Map(ContainerDriver.withNamespace("daemon") → ds.name))
     } getOrElse Future.successful(response)
   }
 }

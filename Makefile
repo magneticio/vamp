@@ -71,6 +71,16 @@ pack:
 		$(BUILD_SERVER) \
 			push vamp-kubernetes $(VERSION)
 
-.PHONY: clean
-clean:
-	sbt clean
+pack-local:
+	export VAMP_VERSION="katana" && sbt package publish-local pack
+	rm -rf $(TARGET)/vamp-kubernetes-$(VERSION)
+	mkdir -p $(TARGET)/vamp-kubernetes-$(VERSION)
+	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-kubernetes-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-kubernetes-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-kubernetes-$(VERSION)/
+
+	docker run \
+		--rm \
+		--volume $(TARGET)/vamp-kubernetes-$(VERSION):/usr/local/src \
+		--volume packer:/usr/local/stash \
+		$(BUILD_SERVER) \
+			push vamp-kubernetes $(VERSION)
