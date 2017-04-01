@@ -1,5 +1,6 @@
 package io.vamp.http_api
 
+import akka.http.scaladsl.model.StatusCodes.BadGateway
 import akka.http.scaladsl.model.ws.UpgradeToWebSocket
 import akka.http.scaladsl.server.{ RequestContext, Route, RouteResult }
 import akka.stream.Materializer
@@ -9,6 +10,7 @@ import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.ProxyController
 
 import scala.concurrent.Future
+import scala.util.Try
 
 trait ProxyRoute extends ProxyController {
   this: HttpApiDirectives with CommonProvider ⇒
@@ -18,8 +20,14 @@ trait ProxyRoute extends ProxyController {
   implicit def materializer: Materializer
 
   val proxyRoute =
-    path("gateways" / Segment / RemainingPath) {
-      (gateway, path) ⇒ handle(gatewayProxy(gateway, path))
+    path("host" / Segment / "port" / Segment / RemainingPath) {
+      (host, port, path) ⇒ Try(handle(hostPortProxy(host, port.toInt, path))).getOrElse(complete(BadGateway))
+    } ~ path("gateways" / Segment / Segment / Segment / RemainingPath) {
+      (name1, name2, name3, path) ⇒ handle(gatewayProxy(s"$name1/$name2/$name3", path, skip = true))
+    } ~ path("gateways" / Segment / Segment / RemainingPath) {
+      (name1, name2, path) ⇒ handle(gatewayProxy(s"$name1/$name2", path, skip = true))
+    } ~ path("gateways" / Segment / RemainingPath) {
+      (gateway, path) ⇒ handle(gatewayProxy(gateway, path, skip = false))
     } ~ path("workflows" / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
       (workflow, instance, port, path) ⇒ handle(instanceProxy(workflow, instance, port, path))
     } ~ path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {

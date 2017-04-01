@@ -22,18 +22,29 @@ trait ProxyController extends GatewayWorkflowDeploymentResolver {
 
   implicit def timeout: Timeout
 
-  def gatewayProxy(gatewayName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
+  def hostPortProxy(host: String, port: Int, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
+    if (upgradeToWebSocket.isDefined) {
+      logger.debug(s"Websocket poxy request [$host:$port]: $path")
+      websocket(host, port, path, context, upgradeToWebSocket.get)
+    }
+    else {
+      logger.debug(s"HTTP proxy request [$host:$port]: $path")
+      http(host, port, path, context)
+    }
+  }
+
+  def gatewayProxy(gatewayName: String, path: Path, skip: Boolean)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
     gatewayFor(gatewayName).flatMap {
       case Some(gateway) if gateway.deployed && gateway.port.`type` == Port.Type.Http && gateway.service.nonEmpty ⇒
         if (upgradeToWebSocket.isDefined) {
           logger.debug(s"WebSocket gateway proxy request [$gatewayName]: $path")
-          websocket(gateway.service.get.host, gateway.service.get.port.number, path, context, upgradeToWebSocket.get)
+          websocket(gateway.service.get.host, gateway.port.number, path, context, upgradeToWebSocket.get)
         }
         else {
           logger.debug(s"HTTP gateway proxy request [$gatewayName]: $path")
-          http(gateway.service.get.host, gateway.service.get.port.number, path, context)
+          http(gateway.service.get.host, gateway.port.number, path, context)
         }
-      case _ ⇒ context.complete(BadGateway)
+      case _ ⇒ if (skip) context.reject() else context.complete(BadGateway)
     }
   }
 

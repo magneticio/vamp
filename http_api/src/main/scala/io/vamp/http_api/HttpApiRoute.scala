@@ -2,6 +2,7 @@ package io.vamp.http_api
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{ HttpEntity, HttpResponse }
+import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.RouteResult._
