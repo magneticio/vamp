@@ -1,147 +1,19 @@
 package io.vamp.persistence
 
-import akka.event.LoggingAdapter
 import io.vamp.common.{ Artifact, ClassMapper }
-import io.vamp.common.http.OffsetEnvelope
-import io.vamp.common.notification.NotificationProvider
-import io.vamp.model.artifact._
-import io.vamp.model.serialization.CoreSerializationFormat
-import io.vamp.persistence.notification.{ PersistenceNotificationProvider, UnsupportedPersistenceRequest }
-import org.json4s.native.Serialization._
 
-import scala.collection.mutable
 import scala.concurrent.Future
-import scala.language.postfixOps
 
 class InMemoryPersistenceActorMapper extends ClassMapper {
   val name = "in-memory"
   val clazz = classOf[InMemoryPersistenceActor]
 }
 
-class InMemoryPersistenceActor extends PersistenceActor with TypeOfArtifact {
+class InMemoryPersistenceActor extends InMemoryRepresentationPersistenceActor {
 
-  implicit val formats = CoreSerializationFormat.default
+  protected def info() = Future.successful(representationInfo() + ("type" → "in-memory [no persistence]"))
 
-  private val store = new InMemoryStore(log)
+  protected def set(artifact: Artifact) = Future.successful(setArtifact(artifact))
 
-  protected def info() = Future {
-    store.info()
-  }
-
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] = Future.successful {
-    log.debug(s"${getClass.getSimpleName}: all [${`type`.getSimpleName}] of $page per $perPage")
-    store.all(`type`, page, perPage)
-  }
-
-  protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future.successful {
-    log.debug(s"${getClass.getSimpleName}: read [${`type`.getSimpleName}] - $name}")
-    store.read(name, `type`)
-  }
-
-  protected def set(artifact: Artifact): Future[Artifact] = Future.successful {
-    log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - ${write(artifact)}")
-    store.set(artifact)
-  }
-
-  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = Future.successful {
-    log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
-    store.delete(name, `type`).isDefined
-  }
-}
-
-class InMemoryStore(log: LoggingAdapter) extends TypeOfArtifact with PersistenceNotificationProvider {
-
-  private val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
-
-  def info() = Map[String, Any](
-    "type" → "in-memory [no persistence]",
-    "artifacts" → (store.map {
-      case (key, value) ⇒ key → Map[String, Any]("count" → value.values.size)
-    } toMap)
-  )
-
-  def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
-    val artifacts = store.get(type2string(`type`)) match {
-      case None      ⇒ Nil
-      case Some(map) ⇒ map.values.toList
-    }
-    val total = artifacts.size
-    val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
-    val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, ArtifactResponseEnvelope.maxPerPage)
-
-    ArtifactResponseEnvelope(artifacts.slice((p - 1) * pp, p * pp), total, rp, rpp)
-  }
-
-  def read(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = store.get(type2string(`type`)).flatMap(_.get(name))
-
-  def set(artifact: Artifact): Artifact = {
-    store.get(type2string(artifact.getClass)) match {
-      case None      ⇒ create(artifact)
-      case Some(map) ⇒ map.put(artifact.name, artifact)
-    }
-    artifact
-  }
-
-  def delete(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
-    store.get(type2string(`type`)) flatMap { map ⇒
-      val artifact = map.remove(name)
-      if (artifact.isEmpty) log.debug(s"Artifact not found for deletion: ${type2string(`type`)}:$name")
-      artifact
-    }
-  }
-
-  private def create(artifact: Artifact): Artifact = {
-    store.get(type2string(artifact.getClass)) match {
-      case None ⇒
-        val map = new mutable.HashMap[String, Artifact]()
-        map.put(artifact.name, artifact)
-        store.put(type2string(artifact.getClass), map)
-      case Some(map) ⇒ map.get(artifact.name) match {
-        case None    ⇒ map.put(artifact.name, artifact)
-        case Some(_) ⇒ map.put(artifact.name, artifact)
-      }
-    }
-    artifact
-  }
-}
-
-trait TypeOfArtifact {
-  this: NotificationProvider ⇒
-
-  protected def type2string(`type`: Class[_]): String = `type` match {
-    // gateway persistence
-    case t if classOf[RouteTargets].isAssignableFrom(t) ⇒ "route-targets"
-    case t if classOf[GatewayPort].isAssignableFrom(t) ⇒ "gateway-ports"
-    case t if classOf[GatewayServiceAddress].isAssignableFrom(t) ⇒ "gateway-services"
-    case t if classOf[GatewayDeploymentStatus].isAssignableFrom(t) ⇒ "gateway-deployment-statuses"
-    case t if classOf[InternalGateway].isAssignableFrom(t) ⇒ "internal-gateway"
-    // deployment persistence
-    case t if classOf[DeploymentServiceStatus].isAssignableFrom(t) ⇒ "deployment-service-statuses"
-    case t if classOf[DeploymentServiceScale].isAssignableFrom(t) ⇒ "deployment-service-scales"
-    case t if classOf[DeploymentServiceInstances].isAssignableFrom(t) ⇒ "deployment-service-instances"
-    case t if classOf[DeploymentServiceEnvironmentVariables].isAssignableFrom(t) ⇒ "deployment-service-environment-variables"
-    case t if classOf[DeploymentServiceHealth].isAssignableFrom(t) ⇒ "deployment-service-health"
-    // workflow persistence
-    case t if classOf[WorkflowBreed].isAssignableFrom(t) ⇒ "workflow-breed"
-    case t if classOf[WorkflowStatus].isAssignableFrom(t) ⇒ "workflow-status"
-    case t if classOf[WorkflowScale].isAssignableFrom(t) ⇒ "workflow-scale"
-    case t if classOf[WorkflowNetwork].isAssignableFrom(t) ⇒ "workflow-network"
-    case t if classOf[WorkflowArguments].isAssignableFrom(t) ⇒ "workflow-arguments"
-    case t if classOf[WorkflowEnvironmentVariables].isAssignableFrom(t) ⇒ "workflow-environment-variables"
-    case t if classOf[WorkflowInstances].isAssignableFrom(t) ⇒ "workflow-instances"
-    case t if classOf[WorkflowHealth].isAssignableFrom(t) ⇒ "workflow-health"
-    //
-    case t if classOf[Gateway].isAssignableFrom(t) ⇒ "gateways"
-    case t if classOf[Deployment].isAssignableFrom(t) ⇒ "deployments"
-    case t if classOf[Breed].isAssignableFrom(t) ⇒ "breeds"
-    case t if classOf[Blueprint].isAssignableFrom(t) ⇒ "blueprints"
-    case t if classOf[Sla].isAssignableFrom(t) ⇒ "slas"
-    case t if classOf[Scale].isAssignableFrom(t) ⇒ "scales"
-    case t if classOf[Escalation].isAssignableFrom(t) ⇒ "escalations"
-    case t if classOf[Route].isAssignableFrom(t) ⇒ "routes"
-    case t if classOf[Condition].isAssignableFrom(t) ⇒ "conditions"
-    case t if classOf[Rewrite].isAssignableFrom(t) ⇒ "rewrites"
-    case t if classOf[Workflow].isAssignableFrom(t) ⇒ "workflows"
-    case _ ⇒ throwException(UnsupportedPersistenceRequest(`type`))
-  }
+  protected def delete(name: String, `type`: Class[_ <: Artifact]) = Future.successful(deleteArtifact(name, type2string(`type`)).isDefined)
 }

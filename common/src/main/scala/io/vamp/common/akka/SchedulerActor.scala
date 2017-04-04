@@ -14,7 +14,7 @@ object SchedulerActor {
 
 }
 
-abstract class SchedulerActor extends ScheduleSupport with CommonSupportForActors {
+trait SchedulerActor extends ScheduleSupport with CommonSupportForActors {
 
   def receive: Receive = {
     case Tick                           ⇒ tick()
