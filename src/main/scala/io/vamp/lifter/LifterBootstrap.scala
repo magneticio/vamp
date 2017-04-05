@@ -5,7 +5,7 @@ import akka.util.Timeout
 import io.vamp.common.{ Config, Namespace }
 import io.vamp.common.akka.{ ActorBootstrap, IoC }
 import io.vamp.lifter.artifact.ArtifactInitializationActor
-import io.vamp.lifter.persistence.ElasticsearchPersistenceInitializationActor
+import io.vamp.lifter.persistence.{ ElasticsearchPersistenceInitializationActor, MySqlPersistenceInitializationActor }
 import io.vamp.lifter.pulse.ElasticsearchPulseInitializationActor
 import io.vamp.persistence.PersistenceBootstrap
 import io.vamp.pulse.PulseBootstrap
@@ -31,6 +31,7 @@ class LifterBootstrap extends ActorBootstrap {
 
   protected def createPersistenceActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): List[Future[ActorRef]] = {
     PersistenceBootstrap.databaseType().toLowerCase match {
+      case "mysql"         ⇒ IoC.createActor[MySqlPersistenceInitializationActor] :: Nil
       case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
       case _               ⇒ Nil
     }
