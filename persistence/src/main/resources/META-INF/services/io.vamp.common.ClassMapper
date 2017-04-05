@@ -1,3 +1,2 @@
 io.vamp.persistence.InMemoryPersistenceActorMapper
 io.vamp.persistence.KeyValuePersistenceActorMapper
-io.vamp.persistence.SqlPersistenceActorMapper

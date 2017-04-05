@@ -3,32 +3,32 @@ package io.vamp.persistence
 import java.sql.{ DriverManager, ResultSet, Statement }
 
 import akka.actor.Actor
+import akka.pattern.ask
 import io.vamp.common.akka.SchedulerActor
-import io.vamp.common.{ Artifact, ClassMapper, Config }
+import io.vamp.common.{ Artifact, Config }
+import io.vamp.model.Model
+import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.persistence.SqlPersistenceActor.ReadAll
 import io.vamp.persistence.notification.PersistenceOperationFailure
-import akka.pattern.ask
+
 import scala.concurrent.Future
 import scala.util.Try
 
-class SqlPersistenceActorMapper extends ClassMapper {
-  val name = "mysql"
-  val clazz = classOf[SqlPersistenceActor]
-}
-
 object SqlPersistenceActor {
+
   val url = Config.string("vamp.persistence.database.sql.url")
   val user = Config.string("vamp.persistence.database.sql.user")
   val password = Config.string("vamp.persistence.database.sql.password")
+  val delay = Config.duration("vamp.persistence.database.sql.delay")
   val synchronizationPeriod = Config.duration("vamp.persistence.database.sql.synchronization.period")
 
   object ReadAll
 
 }
 
-class SqlPersistenceActor extends InMemoryRepresentationPersistenceActor with SchedulerActor with PersistenceMarshaller {
+trait SqlPersistenceActor extends InMemoryRepresentationPersistenceActor with NamespaceValueResolver with SchedulerActor with PersistenceMarshaller {
 
-  protected lazy val url = SqlPersistenceActor.url()
+  protected lazy val url = resolveWithNamespace(SqlPersistenceActor.url())
   protected lazy val user = SqlPersistenceActor.user()
   protected lazy val password = SqlPersistenceActor.password()
   protected lazy val synchronizationPeriod = SqlPersistenceActor.synchronizationPeriod()
@@ -43,10 +43,8 @@ class SqlPersistenceActor extends InMemoryRepresentationPersistenceActor with Sc
     case _: Long ⇒
   }: Actor.Receive) orElse super[SchedulerActor].receive orElse super[InMemoryRepresentationPersistenceActor].receive
 
-  protected def info() = Future.successful(representationInfo() + ("type" → "mysql") + ("url" → url))
-
   override def preStart() = {
-    self ! ReadAll
+    context.system.scheduler.scheduleOnce(SqlPersistenceActor.delay(), self, ReadAll)
     self ! SchedulerActor.Period(synchronizationPeriod, synchronizationPeriod)
   }
 
@@ -124,16 +122,17 @@ class SqlPersistenceActor extends InMemoryRepresentationPersistenceActor with Sc
     try {
       val query = {
         if (content.isEmpty)
-          "insert into Artifacts (`Command`, `Type`, `Name`) values (?, ?, ?)"
+          "insert into Artifacts (`Version`, `Command`, `Type`, `Name`) values (?, ?, ?, ?)"
         else
-          "insert into Artifacts (`Command`, `Type`, `Name`, `Definition`) values (?, ?, ?, ?)"
+          "insert into Artifacts (`Version`, `Command`, `Type`, `Name`, `Definition`) values (?, ?, ?, ?, ?)"
       }
       val statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
       try {
-        statement.setString(1, if (content.isDefined) commandSet else commandDelete)
-        statement.setString(2, kind)
-        statement.setString(3, name)
-        content.foreach(statement.setString(4, _))
+        statement.setString(1, Model.version)
+        statement.setString(2, if (content.isDefined) commandSet else commandDelete)
+        statement.setString(3, kind)
+        statement.setString(4, name)
+        content.foreach(statement.setString(5, _))
         statement.executeUpdate
         val result = statement.getGeneratedKeys
         if (result.next) Option(result.getLong(1)) else None
