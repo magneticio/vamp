@@ -64,7 +64,7 @@ trait HttpApiDirectives extends Directives with CorsDirectives {
   def cors(): Directive0 = cors(
     CorsSettings.Default(
       allowGenericHttpRequests = true,
-      allowCredentials = false,
+      allowCredentials = true,
       allowedOrigins = HttpOriginRange.*,
       allowedHeaders = HttpHeaderRange.*,
       allowedMethods = Seq(GET, POST, HEAD, OPTIONS, DELETE, PUT),
