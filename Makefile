@@ -58,7 +58,6 @@ pack:
 			'sbt package publish-local' \
 	&& \
     docker run \
-        --rm \
         --volume $(CURDIR):/srv/src \
         --volume $(DIR_SBT):/home/vamp/.sbt \
         --volume $(DIR_IVY):/home/vamp/.ivy2 \
