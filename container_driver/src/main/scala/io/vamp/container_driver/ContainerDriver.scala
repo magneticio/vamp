@@ -136,4 +136,8 @@ trait ContainerDriverValidation {
     if (DockerDeployableType.matches(deployable) && deployable.definition.isEmpty)
       throwException(UndefinedDockerImage)
   }
+
+  protected def validateHealthCheck(healthChecks: List[HealthCheck]) =
+    if (healthChecks.length > 1) throwException(???)
+
 }
