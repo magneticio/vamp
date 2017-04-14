@@ -9,20 +9,17 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{ Sink, Source }
 import akka.util.Timeout
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.akka.CommonProvider
+import io.vamp.common.Namespace
 import io.vamp.model.artifact.Port
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
 
-trait ProxyController extends GatewayWorkflowDeploymentResolver {
-  this: CommonProvider ⇒
+trait ProxyController extends AbstractController with GatewayWorkflowDeploymentResolver {
 
   private val logger = Logger(LoggerFactory.getLogger(getClass))
 
-  implicit def timeout: Timeout
-
-  def hostPortProxy(host: String, port: Int, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
+  def hostPortProxy(host: String, port: Int, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit namespace: Namespace, materializer: Materializer): Future[RouteResult] = {
     if (upgradeToWebSocket.isDefined) {
       logger.debug(s"Websocket poxy request [$host:$port]: $path")
       websocket(host, port, path, context, upgradeToWebSocket.get)
@@ -33,7 +30,7 @@ trait ProxyController extends GatewayWorkflowDeploymentResolver {
     }
   }
 
-  def gatewayProxy(gatewayName: String, path: Path, skip: Boolean)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
+  def gatewayProxy(gatewayName: String, path: Path, skip: Boolean)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit namespace: Namespace, timeout: Timeout, materializer: Materializer): Future[RouteResult] = {
     gatewayFor(gatewayName).flatMap {
       case Some(gateway) if gateway.deployed && gateway.port.`type` == Port.Type.Http && gateway.service.nonEmpty ⇒
         if (upgradeToWebSocket.isDefined) {
@@ -48,7 +45,7 @@ trait ProxyController extends GatewayWorkflowDeploymentResolver {
     }
   }
 
-  def instanceProxy(workflowName: String, instanceName: String, portName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
+  def instanceProxy(workflowName: String, instanceName: String, portName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit namespace: Namespace, timeout: Timeout, materializer: Materializer): Future[RouteResult] = {
     workflowFor(workflowName).flatMap {
       case Some(workflow) ⇒
         workflow.instances.find(instance ⇒ instance.name == instanceName && instance.ports.contains(portName)) match {
@@ -67,7 +64,7 @@ trait ProxyController extends GatewayWorkflowDeploymentResolver {
     }
   }
 
-  def instanceProxy(deploymentName: String, clusterName: String, serviceName: String, instanceName: String, portName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit materializer: Materializer): Future[RouteResult] = {
+  def instanceProxy(deploymentName: String, clusterName: String, serviceName: String, instanceName: String, portName: String, path: Path)(context: RequestContext, upgradeToWebSocket: Option[UpgradeToWebSocket])(implicit namespace: Namespace, timeout: Timeout, materializer: Materializer): Future[RouteResult] = {
     deploymentFor(deploymentName).flatMap {
       case Some(deployment) ⇒
         deployment.

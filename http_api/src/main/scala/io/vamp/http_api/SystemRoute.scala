@@ -4,22 +4,20 @@ import akka.http.scaladsl.model.HttpEntity
 import akka.http.scaladsl.model.HttpMethods.{ POST, PUT }
 import akka.http.scaladsl.model.StatusCodes._
 import akka.pattern.ask
-import akka.util.Timeout
-import io.vamp.common.ConfigFilter
-import io.vamp.common.akka.{ CommonProvider, IoC }
+import io.vamp.common.akka.IoC
 import io.vamp.common.http.HttpApiDirectives
+import io.vamp.common.{ ConfigFilter, Namespace }
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.operation.config.ConfigurationLoaderActor
+import io.vamp.operation.controller.AbstractController
 import io.vamp.persistence.KeyValueStoreActor
 
 import scala.concurrent.Future
 
-trait SystemRoute extends SystemController {
-  this: HttpApiDirectives with CommonProvider ⇒
+trait SystemRoute extends AbstractRoute with SystemController {
+  this: HttpApiDirectives ⇒
 
-  implicit def timeout: Timeout
-
-  val systemRoutes = {
+  def systemRoutes(implicit namespace: Namespace) = {
     pathPrefix("vga") {
       path(Segment / Segment / "template") { (kind, name) ⇒
         pathEndOrSingleSlash {
@@ -76,10 +74,9 @@ trait SystemRoute extends SystemController {
   }
 }
 
-trait SystemController {
-  this: CommonProvider ⇒
+trait SystemController extends AbstractController {
 
-  def vgaTemplate(kind: String, name: String): Future[Any] = {
+  def vgaTemplate(kind: String, name: String)(implicit namespace: Namespace): Future[Any] = {
     implicit val timeout = KeyValueStoreActor.timeout()
     IoC.actorFor[GatewayDriverActor] ? GatewayDriverActor.GetTemplate(kind, name) map {
       case result: String ⇒ HttpEntity(result)
@@ -87,7 +84,7 @@ trait SystemController {
     }
   }
 
-  def vgaTemplateUpdate(kind: String, name: String, template: String, validateOnly: Boolean): Future[Any] = {
+  def vgaTemplateUpdate(kind: String, name: String, template: String, validateOnly: Boolean)(implicit namespace: Namespace): Future[Any] = {
     if (validateOnly) Future.successful(true)
     else {
       implicit val timeout = KeyValueStoreActor.timeout()
@@ -95,7 +92,7 @@ trait SystemController {
     }
   }
 
-  def vgaConfig(kind: String, name: String): Future[Any] = {
+  def vgaConfig(kind: String, name: String)(implicit namespace: Namespace): Future[Any] = {
     implicit val timeout = KeyValueStoreActor.timeout()
     IoC.actorFor[GatewayDriverActor] ? GatewayDriverActor.GetConfiguration(kind, name) map {
       case result: String ⇒ HttpEntity(result)
@@ -103,7 +100,7 @@ trait SystemController {
     }
   }
 
-  def configuration(`type`: String, flatten: Boolean, key: String = "") = {
+  def configuration(`type`: String, flatten: Boolean, key: String = "")(implicit namespace: Namespace) = {
     implicit val timeout = ConfigurationLoaderActor.timeout()
     val filter = ConfigFilter({ (k, _) ⇒
       k.startsWith("vamp.") && (key.isEmpty || k == key)
@@ -114,7 +111,7 @@ trait SystemController {
     }
   }
 
-  def configurationUpdate(input: String, validateOnly: Boolean) = {
+  def configurationUpdate(input: String, validateOnly: Boolean)(implicit namespace: Namespace) = {
     implicit val timeout = ConfigurationLoaderActor.timeout()
     val filter = ConfigFilter({ (k, _) ⇒
       !k.startsWith("vamp.http-api.")

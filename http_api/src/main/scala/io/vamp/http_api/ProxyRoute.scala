@@ -5,21 +5,19 @@ import akka.http.scaladsl.model.ws.UpgradeToWebSocket
 import akka.http.scaladsl.server.{ RequestContext, Route, RouteResult }
 import akka.stream.Materializer
 import akka.util.Timeout
-import io.vamp.common.akka._
+import io.vamp.common.Namespace
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.ProxyController
 
 import scala.concurrent.Future
 import scala.util.Try
 
-trait ProxyRoute extends ProxyController {
-  this: HttpApiDirectives with CommonProvider ⇒
-
-  implicit def timeout: Timeout
+trait ProxyRoute extends AbstractRoute with ProxyController {
+  this: HttpApiDirectives ⇒
 
   implicit def materializer: Materializer
 
-  val proxyRoute =
+  def proxyRoute(implicit namespace: Namespace, timeout: Timeout) =
     path("host" / Segment / "port" / Segment / RemainingPath) {
       (host, port, path) ⇒ Try(handle(hostPortProxy(host, port.toInt, path))).getOrElse(complete(BadGateway))
     } ~ path("gateways" / Segment / Segment / Segment / RemainingPath) {

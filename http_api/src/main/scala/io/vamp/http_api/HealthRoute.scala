@@ -2,16 +2,14 @@ package io.vamp.http_api
 
 import akka.http.scaladsl.model.StatusCodes.{ NotFound, OK }
 import akka.util.Timeout
-import io.vamp.common.akka._
+import io.vamp.common.Namespace
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.HealthController
 
-trait HealthRoute extends HealthController {
-  this: HttpApiDirectives with CommonProvider ⇒
+trait HealthRoute extends AbstractRoute with HealthController {
+  this: HttpApiDirectives ⇒
 
-  implicit def timeout: Timeout
-
-  val healthRoutes = pathPrefix("health") {
+  def healthRoutes(implicit namespace: Namespace, timeout: Timeout) = pathPrefix("health") {
     get {
       path("gateways" / Segment) { gateway ⇒
         pathEndOrSingleSlash {

@@ -3,9 +3,9 @@ package io.vamp.operation.controller
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.Config
+import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.akka.DataRetrieval
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka.{ CommonProvider, DataRetrieval }
 import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
@@ -19,8 +19,11 @@ import scala.language.postfixOps
 
 trait AbstractInfoMessage extends JvmInfoMessage {
   def message: String
+
   def version: String
+
   def uuid: String
+
   def runningSince: String
 }
 
@@ -38,17 +41,14 @@ case class InfoMessage(
   workflowDriver:  Option[Any]
 ) extends AbstractInfoMessage
 
-trait InfoController extends DataRetrieval with JmxVitalsProvider {
-  this: CommonProvider ⇒
-
-  implicit def timeout: Timeout
+trait InfoController extends AbstractController with DataRetrieval with JmxVitalsProvider {
 
   val infoMessage = Config.string("vamp.operation.info.message")
 
-  private val dataRetrievalTimeout = Config.timeout("vamp.operation.info.timeout")
+  protected val dataRetrievalTimeout = Config.timeout("vamp.operation.info.timeout")
 
-  def infoMessage(on: Set[String]): Future[(AbstractInfoMessage, Boolean)] = {
-    retrieve(actors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout()) map { result ⇒
+  def infoMessage(on: Set[String])(implicit namespace: Namespace, timeout: Timeout): Future[(AbstractInfoMessage, Boolean)] = {
+    retrieve(infoActors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout()) map { result ⇒
       InfoMessage(
         infoMessage(),
         Model.version,
@@ -65,7 +65,7 @@ trait InfoController extends DataRetrieval with JmxVitalsProvider {
     }
   }
 
-  private def actors(on: Set[String]): List[Class[Actor]] = {
+  protected def infoActors(on: Set[String]): List[Class[Actor]] = {
     val list = if (on.isEmpty) {
       List(
         classOf[PersistenceActor],

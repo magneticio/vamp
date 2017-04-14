@@ -22,6 +22,8 @@ object IoC {
 
   private val namespaceActors: mutable.Map[String, ActorRef] = mutable.Map()
 
+  def namespaces: List[Namespace] = namespaceActors.keySet.map(Namespace(_)).toList
+
   def alias[FROM: ClassTag](implicit namespace: Namespace): Class[_] = {
     alias(classTag[FROM].runtimeClass)
   }
