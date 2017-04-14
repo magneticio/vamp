@@ -8,8 +8,8 @@ import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server.util.Tuple
 import akka.http.scaladsl.server.{ Directive0, PathMatcher, Route }
 import akka.stream.Materializer
+import akka.util.Timeout
 import com.typesafe.scalalogging.Logger
-import io.vamp.common.akka.CommonProvider
 import io.vamp.common.http.{ HttpApiDirectives, HttpApiHandlers }
 import io.vamp.common.{ Artifact, Config, Namespace }
 import io.vamp.http_api.notification.HttpApiNotificationProvider
@@ -29,9 +29,19 @@ object HttpApiRoute {
   val stripPathSegments = Config.int("vamp.http-api.strip-path-segments")
 }
 
-class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Materializer, val namespace: Namespace)
-    extends HttpApiDirectives
-    with HttpApiHandlers
+trait AbstractHttpApiRoute extends HttpApiDirectives with HttpApiHandlers with LogDirective with HttpApiNotificationProvider with AbstractRoute {
+
+  implicit def actorSystem: ActorSystem
+
+  implicit def materializer: Materializer
+
+  implicit lazy val formats: Formats = CoreSerializationFormat.default
+
+  implicit lazy val executionContext: ExecutionContext = actorSystem.dispatcher
+}
+
+class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Materializer)
+    extends AbstractHttpApiRoute
     with WebSocketRoute
     with UiRoute
     with ArtifactApiController
@@ -47,20 +57,9 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     with SystemRoute
     with LogApiRoute
     with ProxyRoute
-    with LogDirective
-    with ArtifactPaginationSupport
-    with HttpApiNotificationProvider
-    with CommonProvider {
+    with ArtifactPaginationSupport {
 
-  implicit lazy val timeout = HttpApiRoute.timeout()
-
-  implicit val formats: Formats = CoreSerializationFormat.default
-
-  implicit val executionContext: ExecutionContext = actorSystem.dispatcher
-
-  protected lazy val stripPathSegments = HttpApiRoute.stripPathSegments()
-
-  protected lazy val crudRoutes = {
+  protected def crudRoutes(implicit namespace: Namespace, timeout: Timeout) = {
     pathEndOrSingleSlash {
       post {
         entity(as[String]) { request ⇒
@@ -152,9 +151,11 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     }
   }
 
-  protected lazy val websocketApiHandler: Route = infoRoute ~ statsRoute ~ deploymentRoutes ~ workflowStatusRoute ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
+  protected def websocketApiHandler(implicit namespace: Namespace, timeout: Timeout): Route = {
+    infoRoute ~ statsRoute ~ deploymentRoutes ~ workflowStatusRoute ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
+  }
 
-  lazy val apiRoutes: Route =
+  def apiRoutes(implicit namespace: Namespace, timeout: Timeout): Route =
     noCachingAllowed {
       cors() {
         pathPrefix(pathMatcherWithNamespace("api" / Artifact.version)) {
@@ -171,17 +172,21 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
       }
     } ~ pathPrefix(pathMatcherWithNamespace("websocket"))(websocketRoutes) ~ pathPrefix(pathMatcherWithNamespace("proxy"))(proxyRoute)
 
-  lazy val allRoutes: Route = log {
-    handleExceptions(exceptionHandler) {
-      handleRejections(rejectionHandler) {
-        withRequestTimeout(timeout.duration) {
-          if (stripPathSegments > 0) pathPrefix(Segments(stripPathSegments)) { _ ⇒ apiRoutes ~ uiRoutes } else apiRoutes ~ uiRoutes
+  def allRoutes(implicit namespace: Namespace): Route = {
+    implicit val timeout = HttpApiRoute.timeout()
+    val stripPathSegments = HttpApiRoute.stripPathSegments()
+    log {
+      handleExceptions(exceptionHandler) {
+        handleRejections(rejectionHandler) {
+          withRequestTimeout(timeout.duration) {
+            if (stripPathSegments > 0) pathPrefix(Segments(stripPathSegments)) { _ ⇒ apiRoutes ~ uiRoutes } else apiRoutes ~ uiRoutes
+          }
         }
       }
     }
   }
 
-  protected def pathMatcherWithNamespace[L](pm: PathMatcher[L])(implicit ev: Tuple[L]): PathMatcher[L] = (pm / namespace.name) | pm
+  protected def pathMatcherWithNamespace[L](pm: PathMatcher[L])(implicit namespace: Namespace, ev: Tuple[L]): PathMatcher[L] = (pm / namespace.name) | pm
 }
 
 trait LogDirective {

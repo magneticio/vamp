@@ -27,7 +27,7 @@ object WebSocketActor {
 
 }
 
-class WebSocketActor extends EventApiController with LogApiController with CommonSupportForActors with HttpApiNotificationProvider {
+class WebSocketActor(logRequests: Boolean, eventRequests: Boolean) extends EventApiController with LogApiController with CommonSupportForActors with HttpApiNotificationProvider {
 
   import WebSocketActor._
 
@@ -69,7 +69,7 @@ class WebSocketActor extends EventApiController with LogApiController with Commo
   }
 
   private def handle(id: UUID, request: WebSocketRequest, apiHandler: HttpRequest ⇒ Future[HttpResponse]) = sessions.get(id).foreach { receiver ⇒
-    if (request.logStream) {
+    if (request.logStream && logRequests) {
       val params = request.parameters.filter {
         case (_, _: String) ⇒ true
         case _              ⇒ false
@@ -77,7 +77,7 @@ class WebSocketActor extends EventApiController with LogApiController with Commo
       val message = WebSocketResponse(request.api, request.path, request.action, Status.Ok, request.accept, request.transaction, None, Map())
       openLogStream(receiver, params.getOrElse("level", ""), params.get("logger"), { event ⇒ message.copy(data = Option(encode(event))) })
     }
-    else if (request.eventStream) {
+    else if (request.eventStream && eventRequests) {
       val params = request.parameters.filter {
         case (_, v: List[_]) ⇒ v.forall(_.isInstanceOf[String])
         case _               ⇒ false

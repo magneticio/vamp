@@ -3,19 +3,16 @@ package io.vamp.http_api
 import akka.http.scaladsl.model.StatusCodes._
 import akka.util.Timeout
 import de.heikoseeberger.akkasse.EventStreamMarshalling
-import io.vamp.common.Config
-import io.vamp.common.akka.CommonProvider
 import io.vamp.common.http.HttpApiDirectives
+import io.vamp.common.{ Config, Namespace }
 import io.vamp.operation.controller.EventApiController
 
-trait EventApiRoute extends EventApiController with EventStreamMarshalling {
-  this: HttpApiDirectives with CommonProvider ⇒
+trait EventApiRoute extends AbstractRoute with EventApiController with EventStreamMarshalling {
+  this: HttpApiDirectives ⇒
 
-  implicit def timeout: Timeout
+  lazy val sseKeepAliveTimeout = Config.duration("vamp.http-api.sse.keep-alive-timeout")
 
-  lazy val sseKeepAliveTimeout = Config.duration("vamp.http-api.sse.keep-alive-timeout")()
-
-  val eventRoutes = pathPrefix("events") {
+  def eventRoutes(implicit namespace: Namespace, timeout: Timeout) = pathPrefix("events") {
     pathEndOrSingleSlash {
       post {
         entity(as[String]) { request ⇒
@@ -37,12 +34,12 @@ trait EventApiRoute extends EventApiController with EventStreamMarshalling {
     }
   }
 
-  val sseRoutes = path("events" / "stream") {
+  def sseRoutes(implicit namespace: Namespace) = path("events" / "stream") {
     pathEndOrSingleSlash {
       get {
         parameterMultiMap { parameters ⇒
           entity(as[String]) { request ⇒
-            complete(sourceEvents(parameters, request, sseKeepAliveTimeout))
+            complete(sourceEvents(parameters, request, sseKeepAliveTimeout()))
           }
         }
       }

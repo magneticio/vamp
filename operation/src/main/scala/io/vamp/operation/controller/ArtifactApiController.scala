@@ -4,8 +4,7 @@ import java.net.URLDecoder
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.Artifact
-import io.vamp.common.akka.CommonProvider
+import io.vamp.common.{ Artifact, Namespace }
 import io.vamp.common.akka.IoC._
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InconsistentArtifactName
@@ -22,12 +21,12 @@ trait ArtifactApiController
     with WorkflowApiController
     with MultipleArtifactApiController
     with SingleArtifactApiController
-    with ArtifactExpansionSupport {
-  this: CommonProvider ⇒
+    with ArtifactExpansionSupport
+    with AbstractController {
 
   def background(artifact: String): Boolean = !crud(artifact)
 
-  def readArtifacts(kind: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit timeout: Timeout): Future[ArtifactResponseEnvelope] = `type`(kind) match {
+  def readArtifacts(kind: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ Future.successful(ArtifactResponseEnvelope(Nil, 0, 1, ArtifactResponseEnvelope.maxPerPage))
     case (t, _) ⇒
       actorFor[PersistenceActor] ? PersistenceActor.All(t, page, perPage, expandReferences, onlyReferences) map {
@@ -37,30 +36,30 @@ trait ArtifactApiController
   }
 }
 
-trait SingleArtifactApiController {
-  this: ArtifactApiController with CommonProvider ⇒
+trait SingleArtifactApiController extends AbstractController {
+  this: ArtifactApiController ⇒
 
-  def createArtifact(kind: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
+  def createArtifact(kind: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
     case (t, r) if t == classOf[Gateway]    ⇒ createGateway(r, source, validateOnly)
     case (t, r) if t == classOf[Workflow]   ⇒ createWorkflow(r, source, validateOnly)
     case (_, r)                             ⇒ create(r, source, validateOnly)
   }
 
-  def readArtifact(kind: String, name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
+  def readArtifact(kind: String, name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Gateway]    ⇒ actorFor[PersistenceActor] ? PersistenceActor.Read(URLDecoder.decode(name, "UTF-8"), t, expandReferences, onlyReferences)
     case (t, _) if t == classOf[Deployment] ⇒ Future.successful(None)
     case (t, _)                             ⇒ read(t, name, expandReferences, onlyReferences)
   }
 
-  def updateArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
+  def updateArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
     case (t, r) if t == classOf[Gateway]    ⇒ updateGateway(r, name, source, validateOnly)
     case (t, r) if t == classOf[Workflow]   ⇒ updateWorkflow(r, name, source, validateOnly)
     case (_, r)                             ⇒ update(r, name, source, validateOnly)
   }
 
-  def deleteArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = `type`(kind) match {
+  def deleteArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ Future.successful(None)
     case (t, _) if t == classOf[Gateway]    ⇒ deleteGateway(name, validateOnly)
     case (t, _) if t == classOf[Workflow]   ⇒ deleteWorkflow(read(t, name, expandReferences = false, onlyReferences = false), source, validateOnly)
@@ -89,17 +88,17 @@ trait SingleArtifactApiController {
     case _             ⇒ throwException(UnexpectedArtifact(kind))
   }
 
-  private def read(`type`: Class[_ <: Artifact], name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit timeout: Timeout) = {
+  private def read(`type`: Class[_ <: Artifact], name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
     actorFor[PersistenceActor] ? PersistenceActor.Read(name, `type`, expandReferences, onlyReferences)
   }
 
-  private def create(reader: YamlReader[_ <: Artifact], source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+  private def create(reader: YamlReader[_ <: Artifact], source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
     reader.read(source) match {
       case artifact ⇒ if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Create(artifact, Option(source))
     }
   }
 
-  private def update(reader: YamlReader[_ <: Artifact], name: String, source: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+  private def update(reader: YamlReader[_ <: Artifact], name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
     reader.read(source) match {
       case artifact ⇒
         if (name != artifact.name)
@@ -109,15 +108,15 @@ trait SingleArtifactApiController {
     }
   }
 
-  private def delete(`type`: Class[_ <: Artifact], name: String, validateOnly: Boolean)(implicit timeout: Timeout) = {
+  private def delete(`type`: Class[_ <: Artifact], name: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
     if (validateOnly) Future.successful(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, `type`)
   }
 }
 
-trait MultipleArtifactApiController {
-  this: SingleArtifactApiController with DeploymentApiController with CommonProvider ⇒
+trait MultipleArtifactApiController extends AbstractController {
+  this: SingleArtifactApiController with DeploymentApiController ⇒
 
-  def createArtifacts(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = process(source, {
+  def createArtifacts(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = process(source, {
     item ⇒
       `type`(item.kind) match {
         case (t, _) if t == classOf[Deployment] ⇒ createDeployment(item.toString, validateOnly)
@@ -125,7 +124,7 @@ trait MultipleArtifactApiController {
       }
   })
 
-  def updateArtifacts(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = process(source, {
+  def updateArtifacts(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = process(source, {
     item ⇒
       `type`(item.kind) match {
         case (t, _) if t == classOf[Deployment] ⇒ updateDeployment(item.name, item.toString, validateOnly)
@@ -133,7 +132,7 @@ trait MultipleArtifactApiController {
       }
   })
 
-  def deleteArtifacts(source: String, validateOnly: Boolean)(implicit timeout: Timeout): Future[Any] = process(source, {
+  def deleteArtifacts(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = process(source, {
     item ⇒
       `type`(item.kind) match {
         case (t, _) if t == classOf[Deployment] ⇒ deleteDeployment(item.name, item.toString, validateOnly)

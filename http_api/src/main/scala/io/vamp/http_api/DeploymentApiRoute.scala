@@ -2,19 +2,17 @@ package io.vamp.http_api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.util.Timeout
-import io.vamp.common.akka.CommonProvider
+import io.vamp.common.Namespace
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.DeploymentApiController
 import io.vamp.persistence.ArtifactPaginationSupport
 
-trait DeploymentApiRoute extends DeploymentApiController {
-  this: ArtifactPaginationSupport with HttpApiDirectives with CommonProvider ⇒
-
-  implicit def timeout: Timeout
+trait DeploymentApiRoute extends AbstractRoute with DeploymentApiController {
+  this: ArtifactPaginationSupport with HttpApiDirectives ⇒
 
   private def asBlueprint = parameters('as_blueprint.as[Boolean] ? false)
 
-  private val deploymentRoute = pathPrefix("deployments") {
+  private def deploymentRoute(implicit namespace: Namespace, timeout: Timeout) = pathPrefix("deployments") {
     pathEndOrSingleSlash {
       get {
         asBlueprint { asBlueprint ⇒
@@ -68,7 +66,7 @@ trait DeploymentApiRoute extends DeploymentApiController {
     }
   }
 
-  private val slaRoute =
+  private def slaRoute(implicit namespace: Namespace, timeout: Timeout) =
     path("deployments" / Segment / "clusters" / Segment / "sla") { (deployment: String, cluster: String) ⇒
       pathEndOrSingleSlash {
         get {
@@ -93,7 +91,7 @@ trait DeploymentApiRoute extends DeploymentApiController {
       }
     }
 
-  private val scaleRoute =
+  private def scaleRoute(implicit namespace: Namespace, timeout: Timeout) =
     path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "scale") { (deployment: String, cluster: String, breed: String) ⇒
       pathEndOrSingleSlash {
         get {
@@ -112,5 +110,5 @@ trait DeploymentApiRoute extends DeploymentApiController {
       }
     }
 
-  val deploymentRoutes = deploymentRoute ~ slaRoute ~ scaleRoute
+  def deploymentRoutes(implicit namespace: Namespace, timeout: Timeout) = deploymentRoute ~ slaRoute ~ scaleRoute
 }

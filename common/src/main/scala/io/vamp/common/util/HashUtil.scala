@@ -13,7 +13,7 @@ object HashUtil {
   @inline
   def hex(content: Array[Byte]): String = new BigInteger(1, content).toString(16)
 
-  private def hexHash(algorithm: String, content: String, salt: String): String = {
+  def hexHash(algorithm: String, content: String, salt: String): String = {
     val messageDigest = MessageDigest.getInstance(algorithm)
     messageDigest.update(s"$content$salt".getBytes("UTF-8"))
     hex(messageDigest.digest())

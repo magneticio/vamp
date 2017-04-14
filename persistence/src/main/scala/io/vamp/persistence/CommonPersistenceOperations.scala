@@ -1,11 +1,11 @@
 package io.vamp.persistence
 
+import _root_.io.vamp.common.{ Artifact, Namespace }
 import akka.actor.Actor
 import io.vamp.common.akka.{ CommonProvider, CommonSupportForActors }
 
 import scala.concurrent.Future
 import scala.reflect._
-import _root_.io.vamp.common.Artifact
 
 trait PersistenceArtifact extends Artifact {
   val metadata = Map()
@@ -89,7 +89,7 @@ trait CommonPersistenceOperations extends PersistenceMultiplexer with Persistenc
     }
   }
 
-  protected def readExpanded[T <: Artifact: ClassTag](name: String): Future[Option[T]] = {
+  protected def readExpanded[T <: Artifact: ClassTag](name: String)(implicit namespace: Namespace): Future[Option[T]] = {
     get(name, classTag[T].runtimeClass.asInstanceOf[Class[_ <: Artifact]]).asInstanceOf[Future[Option[T]]]
   }
 }

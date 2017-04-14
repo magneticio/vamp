@@ -2,17 +2,15 @@ package io.vamp.http_api
 
 import akka.http.scaladsl.model.StatusCodes._
 import akka.util.Timeout
-import io.vamp.common.akka.CommonProvider
+import io.vamp.common.Namespace
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.WorkflowApiController
 import io.vamp.persistence.ArtifactExpansionSupport
 
-trait WorkflowApiRoute extends WorkflowApiController {
-  this: ArtifactExpansionSupport with HttpApiDirectives with CommonProvider ⇒
+trait WorkflowApiRoute extends AbstractRoute with WorkflowApiController {
+  this: ArtifactExpansionSupport with HttpApiDirectives ⇒
 
-  implicit def timeout: Timeout
-
-  val workflowStatusRoute = path("workflows" / Segment / "status") { (workflow: String) ⇒
+  def workflowStatusRoute(implicit namespace: Namespace, timeout: Timeout) = path("workflows" / Segment / "status") { (workflow: String) ⇒
     get {
       onSuccess(workflowStatus(workflow)) { result ⇒
         respondWith(OK, result)

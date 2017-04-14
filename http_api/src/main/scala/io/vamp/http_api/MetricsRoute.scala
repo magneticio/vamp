@@ -2,16 +2,14 @@ package io.vamp.http_api
 
 import akka.http.scaladsl.model.StatusCodes.{ NotFound, OK }
 import akka.util.Timeout
-import io.vamp.common.akka._
+import io.vamp.common.Namespace
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.MetricsController
 
-trait MetricsRoute extends MetricsController {
-  this: HttpApiDirectives with CommonProvider ⇒
+trait MetricsRoute extends AbstractRoute with MetricsController {
+  this: HttpApiDirectives ⇒
 
-  implicit def timeout: Timeout
-
-  val metricsRoutes = pathPrefix("metrics") {
+  def metricsRoutes(implicit namespace: Namespace, timeout: Timeout) = pathPrefix("metrics") {
     get {
       path("gateways" / Segment / Segment) { (gateway, metrics) ⇒
         pathEndOrSingleSlash {

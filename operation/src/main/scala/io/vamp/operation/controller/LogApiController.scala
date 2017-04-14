@@ -9,6 +9,7 @@ import akka.stream.actor.ActorPublisherMessage.{ Cancel, Request }
 import akka.stream.scaladsl.Source
 import ch.qos.logback.classic.spi.ILoggingEvent
 import de.heikoseeberger.akkasse.ServerSentEvent
+import io.vamp.common.Namespace
 import io.vamp.common.akka._
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import org.json4s.native.Serialization._
@@ -17,12 +18,11 @@ import scala.concurrent.duration.FiniteDuration
 
 case class LogEvent(logger: String, level: String, message: String, timestamp: OffsetDateTime)
 
-trait LogApiController {
-  this: CommonProvider ⇒
+trait LogApiController extends AbstractController {
 
   private val eventType = "log"
 
-  def sourceLog(level: String, logger: Option[String], keepAlivePeriod: FiniteDuration) = {
+  def sourceLog(level: String, logger: Option[String], keepAlivePeriod: FiniteDuration)(implicit namespace: Namespace) = {
     Source.actorPublisher[ServerSentEvent](Props(new ActorPublisher[ServerSentEvent] {
       def receive = {
         case Request(_) ⇒ openLogStream(self, level, logger, { event ⇒
@@ -36,7 +36,7 @@ trait LogApiController {
     })).keepAlive(keepAlivePeriod, () ⇒ ServerSentEvent.heartbeat)
   }
 
-  def openLogStream(to: ActorRef, level: String, logger: Option[String], encoder: (ILoggingEvent) ⇒ AnyRef) = {
+  def openLogStream(to: ActorRef, level: String, logger: Option[String], encoder: (ILoggingEvent) ⇒ AnyRef)(implicit namespace: Namespace) = {
     LogPublisherHub.subscribe(to, level, logger, encoder)
   }
 
