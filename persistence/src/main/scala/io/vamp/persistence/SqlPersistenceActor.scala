@@ -1,87 +1,38 @@
 package io.vamp.persistence
 
-import java.sql.{ DriverManager, ResultSet, Statement }
-
-import akka.actor.Actor
-import akka.pattern.ask
-import io.vamp.common.akka.SchedulerActor
-import io.vamp.common.{ Artifact, Config }
+import java.sql.{DriverManager, ResultSet, Statement}
+import io.vamp.common.{Config, ConfigMagnet}
 import io.vamp.model.Model
-import io.vamp.model.resolver.NamespaceValueResolver
-import io.vamp.persistence.SqlPersistenceActor.ReadAll
 import io.vamp.persistence.notification.PersistenceOperationFailure
-
-import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 object SqlPersistenceActor {
 
-  val url = Config.string("vamp.persistence.database.sql.url")
-  val user = Config.string("vamp.persistence.database.sql.user")
-  val password = Config.string("vamp.persistence.database.sql.password")
-  val delay = Config.duration("vamp.persistence.database.sql.delay")
-  val synchronizationPeriod = Config.duration("vamp.persistence.database.sql.synchronization.period")
-
-  object ReadAll
+  val url: ConfigMagnet[String] = Config.string("vamp.persistence.database.sql.url")
+  val user: ConfigMagnet[String] = Config.string("vamp.persistence.database.sql.user")
+  val password: ConfigMagnet[String] = Config.string("vamp.persistence.database.sql.password")
+  val delay: ConfigMagnet[FiniteDuration] = Config.duration("vamp.persistence.database.sql.delay")
+  val synchronizationPeriod: ConfigMagnet[FiniteDuration] = Config.duration("vamp.persistence.database.sql.synchronization.period")
 
 }
 
-trait SqlPersistenceActor extends InMemoryRepresentationPersistenceActor with NamespaceValueResolver with SchedulerActor with PersistenceMarshaller {
+trait SqlPersistenceActor extends CQRSActor {
 
-  protected lazy val url = resolveWithNamespace(SqlPersistenceActor.url())
-  protected lazy val user = SqlPersistenceActor.user()
-  protected lazy val password = SqlPersistenceActor.password()
-  protected lazy val synchronizationPeriod = SqlPersistenceActor.synchronizationPeriod()
+  protected lazy val url: String = resolveWithNamespace(SqlPersistenceActor.url())
+  protected lazy val user: String = SqlPersistenceActor.user()
+  protected lazy val password: String = SqlPersistenceActor.password()
+  override protected lazy val synchronization: FiniteDuration = SqlPersistenceActor.synchronizationPeriod()
+  override protected lazy val delay: FiniteDuration = SqlPersistenceActor.delay()
 
   private val commandSet = "SET"
   private val commandDelete = "DELETE"
 
-  private var lastId: Long = -1
-
-  override def receive = ({
-    case ReadAll ⇒ sender ! read()
-    case _: Long ⇒
-  }: Actor.Receive) orElse super[SchedulerActor].receive orElse super[InMemoryRepresentationPersistenceActor].receive
-
-  override def preStart() = {
-    context.system.scheduler.scheduleOnce(SqlPersistenceActor.delay(), self, ReadAll)
-    self ! SchedulerActor.Period(synchronizationPeriod, synchronizationPeriod)
-  }
-
-  def tick() = read()
-
-  protected def set(artifact: Artifact) = {
-    log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
-
-    def failure: Future[Artifact] = Future.failed(new RuntimeException(s"Can not set [${artifact.getClass.getSimpleName}] - ${artifact.name}"))
-
-    insert(artifact.name, type2string(artifact.getClass), Option(marshall(artifact))).collect {
-      case Some(id: Long) ⇒ readOrFail(id, () ⇒ Future.successful(artifact), () ⇒ failure)
-    } getOrElse failure
-  }
-
-  protected def delete(name: String, `type`: Class[_ <: Artifact]) = {
-    log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
-    val kind = type2string(`type`)
-
-    def failure: Future[Boolean] = Future.failed(new RuntimeException(s"Can not delete [${`type`.getSimpleName}] - $name}"))
-
-    insert(name, kind).collect {
-      case Some(id: Long) ⇒ readOrFail(id, () ⇒ Future.successful(true), () ⇒ failure)
-    } getOrElse failure
-  }
-
-  private def readOrFail[T](id: Long, succeed: () ⇒ Future[T], fail: () ⇒ Future[T]): Future[T] = {
-    (self ? ReadAll).flatMap {
-      _ ⇒ if (id <= lastId) succeed() else fail()
-    }
-  }
-
-  private def read(): Long = {
+  override protected def read(): Long = {
     val connection = DriverManager.getConnection(url, user, password)
     try {
       val statement = connection.prepareStatement(
-        s"SELECT `ID`, `Command`, `Type`, `Name`, `Definition` FROM `Artifacts` WHERE `ID` > $lastId ORDER BY `ID` ASC",
+        s"SELECT `ID`, `Command`, `Type`, `Name`, `Definition` FROM `Artifacts` WHERE `ID` > $getLastId ORDER BY `ID` ASC",
         ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
       )
       statement.setFetchSize(Integer.MIN_VALUE)
@@ -92,18 +43,18 @@ trait SqlPersistenceActor extends InMemoryRepresentationPersistenceActor with Na
           val command = result.getString(2)
           val `type` = result.getString(3)
 
-          if (id > lastId) {
+          if (id > getLastId) {
             if (command == commandSet) {
               unmarshall(`type`, result.getString(5)).map(setArtifact)
-              lastId = id
+              setLastId(id)
             }
             else if (command == commandDelete) {
               deleteArtifact(result.getString(4), `type`)
-              lastId = id
+              setLastId(id)
             }
           }
         }
-        lastId
+        getLastId
       }
       finally {
         statement.close()
@@ -117,7 +68,7 @@ trait SqlPersistenceActor extends InMemoryRepresentationPersistenceActor with Na
     }
   }
 
-  private def insert(name: String, kind: String, content: Option[String] = None): Try[Option[Long]] = Try {
+  override protected def insert(name: String, kind: String, content: Option[String] = None): Try[Option[Long]] = Try {
     val connection = DriverManager.getConnection(url, user, password)
     try {
       val query = {
