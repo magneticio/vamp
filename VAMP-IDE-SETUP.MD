@@ -28,7 +28,7 @@ All these modules are pluggable for the certain VAMP stack you are developing fo
 You could load up all the modules and create all the dependencies, but also just
 the modules that you need, for developing a specific feature.
 
-See [Dependency trees](#Dependency trees) to see which module you need for which stack.
+See [Dependency trees](#dependency-trees) to see which module you need for which stack.
 
 # Setting up IntelIJ
 
