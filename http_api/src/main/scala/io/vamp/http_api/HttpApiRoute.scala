@@ -5,8 +5,7 @@ import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.RouteResult._
-import akka.http.scaladsl.server.util.Tuple
-import akka.http.scaladsl.server.{ Directive0, PathMatcher, Route }
+import akka.http.scaladsl.server.{ Directive0, Route }
 import akka.stream.Materializer
 import akka.util.Timeout
 import com.typesafe.scalalogging.Logger
@@ -155,22 +154,25 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     infoRoute ~ statsRoute ~ deploymentRoutes ~ workflowStatusRoute ~ eventRoutes ~ metricsRoutes ~ healthRoutes ~ systemRoutes ~ crudRoutes ~ javascriptBreedRoute
   }
 
-  def apiRoutes(implicit namespace: Namespace, timeout: Timeout): Route =
-    noCachingAllowed {
-      cors() {
-        pathPrefix(pathMatcherWithNamespace("api" / Artifact.version)) {
-          encodeResponse {
-            sseRoutes ~ sseLogRoutes ~
-              accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
-                infoRoute ~ statsRoute ~ deploymentRoutes ~ workflowStatusRoute ~ eventRoutes ~ metricsRoutes ~ healthRoutes
-              } ~ systemRoutes ~
-              accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
-                crudRoutes
-              } ~ javascriptBreedRoute
+  def apiRoutes(implicit namespace: Namespace, timeout: Timeout): Route = {
+    pathWithNamespace {
+      noCachingAllowed {
+        cors() {
+          pathPrefix("api" / Artifact.version) {
+            encodeResponse {
+              sseRoutes ~ sseLogRoutes ~
+                accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
+                  infoRoute ~ statsRoute ~ deploymentRoutes ~ workflowStatusRoute ~ eventRoutes ~ metricsRoutes ~ healthRoutes
+                } ~ systemRoutes ~
+                accept(`application/json`, HttpApiDirectives.`application/x-yaml`) {
+                  crudRoutes
+                } ~ javascriptBreedRoute
+            }
           }
         }
-      }
-    } ~ pathPrefix(pathMatcherWithNamespace("websocket"))(websocketRoutes) ~ pathPrefix(pathMatcherWithNamespace("proxy"))(proxyRoute)
+      } ~ pathPrefix("websocket")(websocketRoutes) ~ pathPrefix("proxy")(proxyRoute)
+    }
+  }
 
   def allRoutes(implicit namespace: Namespace): Route = {
     implicit val timeout = HttpApiRoute.timeout()
@@ -186,7 +188,11 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     }
   }
 
-  protected def pathMatcherWithNamespace[L](pm: PathMatcher[L])(implicit namespace: Namespace, ev: Tuple[L]): PathMatcher[L] = (pm / namespace.name) | pm
+  protected def pathWithNamespace(route: Route)(implicit namespace: Namespace): Route = {
+    pathPrefix(namespace.name) {
+      route
+    } ~ route
+  }
 }
 
 trait LogDirective {
