@@ -41,9 +41,9 @@ case class WebSocketRequest(
     parameters:  Map[String, AnyRef]
 ) extends WebSocketValidMessage {
 
-  val logStream = action == Action.Peek && (path == "/logs" || path == "/log")
+  val logStream = action == Action.Peek && (path.endsWith("/logs") || path.endsWith("/log"))
 
-  val eventStream = action == Action.Peek && path == "/events/stream"
+  val eventStream = action == Action.Peek && path.endsWith("/events/stream")
 }
 
 case class WebSocketResponse(
