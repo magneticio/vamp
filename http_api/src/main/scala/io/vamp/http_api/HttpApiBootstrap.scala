@@ -1,6 +1,6 @@
 package io.vamp.http_api
 
-import akka.actor.ActorSystem
+import akka.actor.{ ActorSystem, Props }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Route
@@ -19,7 +19,7 @@ class HttpApiBootstrap extends ActorBootstrap {
   protected def routes(implicit namespace: Namespace, actorSystem: ActorSystem, materializer: Materializer): Route = new HttpApiRoute().allRoutes
 
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout) = {
-    IoC.createActor[WebSocketActor].map(_ :: Nil)(actorSystem.dispatcher)
+    IoC.createActor(Props(classOf[WebSocketActor], true, true)).map(_ :: Nil)(actorSystem.dispatcher)
   }
 
   override def start(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {
