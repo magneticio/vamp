@@ -3,6 +3,7 @@ package io.vamp.http_api.ws
 import java.util.UUID
 
 import akka.actor.PoisonPill
+import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.ws.{ Message, TextMessage }
 import akka.http.scaladsl.server.Route
 import akka.stream._
@@ -25,20 +26,23 @@ trait WebSocketRoute extends AbstractRoute with WebSocketMarshaller with HttpApi
 
   protected def websocketApiHandler(implicit namespace: Namespace, timeout: Timeout): Route
 
-  def websocketRoutes(implicit namespace: Namespace, timeout: Timeout) =
+  def websocketRoutes(implicit namespace: Namespace, timeout: Timeout) = {
     pathEndOrSingleSlash {
       get {
-        handleWebSocketMessages {
-          websocket
+        extractRequest { request ⇒
+          handleWebSocketMessages {
+            websocket(request)
+          }
         }
       }
     }
+  }
 
   private def apiHandler(implicit namespace: Namespace, timeout: Timeout) = Route.asyncHandler(log {
     websocketApiHandler
   })
 
-  private def websocket(implicit namespace: Namespace, timeout: Timeout): Flow[AnyRef, Message, Any] = {
+  private def websocket(origin: HttpRequest)(implicit namespace: Namespace, timeout: Timeout): Flow[AnyRef, Message, Any] = {
     val id = UUID.randomUUID()
 
     val in = Flow[AnyRef].collect {
@@ -46,7 +50,7 @@ trait WebSocketRoute extends AbstractRoute with WebSocketMarshaller with HttpApi
       case TextMessage.Streamed(stream) ⇒ stream.limit(limit()).completionTimeout(timeout.duration).runFold("")(_ + _)
     }.mapAsync(parallelism = 3)(identity)
       .mapConcat(unmarshall)
-      .map(SessionRequest(apiHandler, id, _))
+      .map(SessionRequest(apiHandler, id, origin, _))
       .to(Sink.actorRef[SessionEvent](actorFor[WebSocketActor], SessionClosed(id)))
 
     val out = Source.actorRef[AnyRef](16, OverflowStrategy.dropHead)

@@ -23,7 +23,7 @@ object WebSocketActor {
 
   case class SessionClosed(id: UUID) extends SessionEvent
 
-  case class SessionRequest(apiHandler: HttpRequest ⇒ Future[HttpResponse], id: UUID, request: WebSocketMessage) extends SessionEvent
+  case class SessionRequest(apiHandler: HttpRequest ⇒ Future[HttpResponse], id: UUID, origin: HttpRequest, request: WebSocketMessage) extends SessionEvent
 
 }
 
@@ -34,10 +34,10 @@ class WebSocketActor(logRequests: Boolean, eventRequests: Boolean) extends Event
   private val sessions = mutable.Map[UUID, ActorRef]()
 
   def receive = {
-    case SessionOpened(id, actor)             ⇒ sessionOpened(id, actor)
-    case SessionClosed(id)                    ⇒ sessionClosed(id)
-    case SessionRequest(handler, id, request) ⇒ sessionRequest(handler, id, request)
-    case _                                    ⇒
+    case SessionOpened(id, actor) ⇒ sessionOpened(id, actor)
+    case SessionClosed(id) ⇒ sessionClosed(id)
+    case SessionRequest(handler, id, origin, request) ⇒ sessionRequest(handler, id, origin, request)
+    case _ ⇒
   }
 
   override def postStop() = {
@@ -60,15 +60,15 @@ class WebSocketActor(logRequests: Boolean, eventRequests: Boolean) extends Event
     sessions.remove(id).foreach(closeEventStream)
   }
 
-  private def sessionRequest(apiHandler: HttpRequest ⇒ Future[HttpResponse], id: UUID, request: WebSocketMessage) = {
+  private def sessionRequest(apiHandler: HttpRequest ⇒ Future[HttpResponse], id: UUID, origin: HttpRequest, request: WebSocketMessage) = {
     log.debug(s"WebSocket session request [$id]: $request")
     request match {
-      case req: WebSocketRequest ⇒ handle(id, req, apiHandler)
+      case req: WebSocketRequest ⇒ handle(id, origin, req, apiHandler)
       case other                 ⇒ sessions.get(id).foreach(_ ! other)
     }
   }
 
-  private def handle(id: UUID, request: WebSocketRequest, apiHandler: HttpRequest ⇒ Future[HttpResponse]) = sessions.get(id).foreach { receiver ⇒
+  private def handle(id: UUID, origin: HttpRequest, request: WebSocketRequest, apiHandler: HttpRequest ⇒ Future[HttpResponse]) = sessions.get(id).foreach { receiver ⇒
     if (request.logStream && logRequests) {
       val params = request.parameters.filter {
         case (_, _: String) ⇒ true
@@ -86,7 +86,7 @@ class WebSocketActor(logRequests: Boolean, eventRequests: Boolean) extends Event
       openEventStream(receiver, params, request.data.getOrElse(""), message)
     }
     else {
-      val httpRequest = new HttpRequest(toMethod(request), toUri(request), toHeaders(request), toEntity(request), HttpProtocols.`HTTP/1.1`)
+      val httpRequest = new HttpRequest(toMethod(request), toUri(request), toHeaders(origin, request), toEntity(request), HttpProtocols.`HTTP/1.1`)
       apiHandler(httpRequest).map {
         case response: HttpResponse ⇒ toResponse(request, response).foreach(receiver ! _)
         case _                      ⇒
@@ -116,12 +116,14 @@ class WebSocketActor(logRequests: Boolean, eventRequests: Boolean) extends Event
     else Uri(request.path)
   }
 
-  private def toHeaders(request: WebSocketRequest): List[HttpHeader] = (request.accept match {
-    case Content.PlainText  ⇒ Accept(`text/plain`)
-    case Content.Json       ⇒ Accept(`application/json`)
-    case Content.JavaScript ⇒ Accept(`application/javascript`)
-    case Content.Yaml       ⇒ Accept(HttpApiDirectives.`application/x-yaml`)
-  }) :: Nil
+  private def toHeaders(origin: HttpRequest, request: WebSocketRequest): List[HttpHeader] = {
+    origin.headers.toList :+ (request.accept match {
+      case Content.PlainText  ⇒ Accept(`text/plain`)
+      case Content.Json       ⇒ Accept(`application/json`)
+      case Content.JavaScript ⇒ Accept(`application/javascript`)
+      case Content.Yaml       ⇒ Accept(HttpApiDirectives.`application/x-yaml`)
+    })
+  }
 
   private def toEntity(request: WebSocketRequest): RequestEntity = {
     val `type` = request.content match {
