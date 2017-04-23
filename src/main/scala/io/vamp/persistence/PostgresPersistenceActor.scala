@@ -4,11 +4,17 @@ import io.vamp.common.ClassMapper
 
 import scala.concurrent.Future
 
+/**
+ * Maps postgres to class mapper for lifter
+ */
 class PostgresPersistenceActorMapper extends ClassMapper {
   val name = "postgres"
   val clazz = classOf[PostgresPersistenceActor]
 }
 
+/**
+ * Support for PostgresSQL
+ */
 class PostgresPersistenceActor extends SqlPersistenceActor with SqlStatementProvider {
 
   protected def info() = Future.successful(representationInfo() + ("type" → "postgres") + ("url" → url))
@@ -21,5 +27,6 @@ class PostgresPersistenceActor extends SqlPersistenceActor with SqlStatementProv
   override def getSelectStatement(lastId: Long): String =
     s"SELECT ID, Command, Type, Name, Definition FROM Artifacts WHERE ID > $lastId ORDER BY ID ASC"
 
+  // In Postgres the minvalue of a select statement fetch is 0
   override val statementMinValue: Int = 0
 }
