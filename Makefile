@@ -57,28 +57,28 @@ pack:
 		$(BUILD_SERVER) \
 			'sbt package publish-local pack'
 
-	rm -rf $(TARGET)/vamp-postgres-$(VERSION)
-	mkdir -p $(TARGET)/vamp-postgres-$(VERSION)
-	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-postgres-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-postgres-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-postgres-$(VERSION)/
+	rm -rf $(TARGET)/vamp-sqlserver-$(VERSION)
+	mkdir -p $(TARGET)/vamp-sqlserver-$(VERSION)
+	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-sqlserver-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-sqlserver-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-sqlserver-$(VERSION)/
 
 	docker run \
 		--rm \
-		--volume $(TARGET)/vamp-postgres-$(VERSION):/usr/local/src \
+		--volume $(TARGET)/vamp-sqlserver-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
 		$(BUILD_SERVER) \
-			push vamp-postgres $(VERSION)
+			push vamp-sqlserver $(VERSION)
 
 pack-local:
 	export VAMP_VERSION="katana" && sbt package publish-local pack
-	rm -rf $(TARGET)/vamp-postgres-$(VERSION)
-	mkdir -p $(TARGET)/vamp-postgres-$(VERSION)
-	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-postgres-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-postgres-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-postgres-$(VERSION)/
+	rm -rf $(TARGET)/vamp-sqlserver-$(VERSION)
+	mkdir -p $(TARGET)/vamp-sqlserver-$(VERSION)
+	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-sqlserver-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-sqlserver-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-sqlserver-$(VERSION)/
 
 	docker run \
 		--rm \
-		--volume $(TARGET)/vamp-postgres-$(VERSION):/usr/local/src \
+		--volume $(TARGET)/vamp-sqlserver-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
 		$(BUILD_SERVER) \
-			push vamp-postgres $(VERSION)
+			push vamp-sqlserver $(VERSION)
