@@ -1,7 +1,7 @@
 package io.vamp.persistence
 
-import java.sql.{DriverManager, ResultSet, Statement}
-import io.vamp.common.{Config, ConfigMagnet}
+import java.sql.{ DriverManager, ResultSet, Statement }
+import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.model.Model
 import io.vamp.persistence.notification.PersistenceOperationFailure
 import scala.concurrent.duration.FiniteDuration
@@ -17,7 +17,7 @@ object SqlPersistenceActor {
 
 }
 
-trait SqlPersistenceActor extends CQRSActor {
+trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider {
 
   protected lazy val url: String = resolveWithNamespace(SqlPersistenceActor.url())
   protected lazy val user: String = SqlPersistenceActor.user()
@@ -25,17 +25,14 @@ trait SqlPersistenceActor extends CQRSActor {
   override protected lazy val synchronization: FiniteDuration = SqlPersistenceActor.synchronizationPeriod()
   override protected lazy val delay: FiniteDuration = SqlPersistenceActor.delay()
 
-  private val commandSet = "SET"
-  private val commandDelete = "DELETE"
-
   override protected def read(): Long = {
     val connection = DriverManager.getConnection(url, user, password)
     try {
       val statement = connection.prepareStatement(
-        s"SELECT `ID`, `Command`, `Type`, `Name`, `Definition` FROM `Artifacts` WHERE `ID` > $getLastId ORDER BY `ID` ASC",
+        getSelectStatement(getLastId),
         ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
       )
-      statement.setFetchSize(Integer.MIN_VALUE)
+      statement.setFetchSize(statementMinValue)
       try {
         val result = statement.executeQuery
         while (result.next) {
@@ -71,12 +68,7 @@ trait SqlPersistenceActor extends CQRSActor {
   override protected def insert(name: String, kind: String, content: Option[String] = None): Try[Option[Long]] = Try {
     val connection = DriverManager.getConnection(url, user, password)
     try {
-      val query = {
-        if (content.isEmpty)
-          "insert into Artifacts (`Version`, `Command`, `Type`, `Name`) values (?, ?, ?, ?)"
-        else
-          "insert into Artifacts (`Version`, `Command`, `Type`, `Name`, `Definition`) values (?, ?, ?, ?, ?)"
-      }
+      val query = getInsertStatement(content)
       val statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
       try {
         statement.setString(1, Model.version)

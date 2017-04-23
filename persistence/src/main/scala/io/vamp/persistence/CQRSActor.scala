@@ -17,14 +17,17 @@ object CQRSActor {
 }
 
 /**
-  * Interface for CQRS Actors
-  */
+ * Interface for CQRS Actors
+ */
 trait CQRSActor extends InMemoryRepresentationPersistenceActor
-  with NamespaceValueResolver
-  with SchedulerActor
-  with PersistenceMarshaller {
+    with NamespaceValueResolver
+    with SchedulerActor
+    with PersistenceMarshaller {
 
-  private var lastId: Long = -1
+  val commandSet = "SET"
+  val commandDelete = "DELETE"
+
+  private var lastId: Long = 0
 
   protected def getLastId: Long = this.lastId
 
@@ -41,8 +44,8 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
   override def tick(): Unit = read()
 
   override def receive: Receive = ({
-    case ReadAll => sender ! read()
-    case _: Long =>
+    case ReadAll ⇒ sender ! read()
+    case _: Long ⇒
   }: Actor.Receive) orElse super[SchedulerActor].receive orElse super[InMemoryRepresentationPersistenceActor].receive
 
   override def preStart(): Unit = {
@@ -52,11 +55,10 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
 
   override protected def set(artifact: Artifact): Future[Artifact] = {
     log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
-
     lazy val failMessage = s"Can not set [${artifact.getClass.getSimpleName}] - ${artifact.name}"
 
     insert(artifact.name, type2string(artifact.getClass), Option(marshall(artifact))).collect {
-      case Some(id: Long) => readOrFail(id, () => Future.successful(artifact), () => fail[Artifact](failMessage))
+      case Some(id: Long) ⇒ readOrFail(id, () ⇒ Future.successful(artifact), () ⇒ fail[Artifact](failMessage))
     }.getOrElse(fail(failMessage))
   }
 
