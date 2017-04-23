@@ -62,7 +62,7 @@ TODO
 TODO
 
 (Boot class)
-(config values)
+(config values) `-Dlogback.configurationFile=/path/to/vamp/conf/logback.xml -Dconfig.file=/path/to/vamp/conf/application.conf `
 (creating/editing the application.conf)
 
 # Development stacks
