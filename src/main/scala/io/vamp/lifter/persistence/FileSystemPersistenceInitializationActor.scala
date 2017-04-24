@@ -20,17 +20,10 @@ class FileSystemPersistenceInitializationActor extends CommonSupportForActors
       val file = new File(filePath)
 
       if (!file.exists()) {
-        if (file.createNewFile()) println(s"${getClass.getSimpleName}: Created file: $filePath")
-        else {
-          println(s"${getClass.getSimpleName}: Can not create file: $filePath")
-          self ! "init"
-        }
-      } else println(s"${getClass.getSimpleName}: Found existing file: $filePath")
+        if (!file.createNewFile()) self ! "init"
+      }
   }
 
-  override def preStart(): Unit = {
-    println("PRE START CALLED!!!")
-    self ! "init"
-  }
+  override def preStart(): Unit = self ! "init"
 
 }

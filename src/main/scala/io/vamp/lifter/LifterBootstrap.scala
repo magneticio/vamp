@@ -1,16 +1,16 @@
 package io.vamp.lifter
 
-import akka.actor.{ ActorRef, ActorSystem }
+import akka.actor.{ActorRef, ActorSystem}
 import akka.util.Timeout
-import io.vamp.common.{ Config, Namespace }
-import io.vamp.common.akka.{ ActorBootstrap, IoC }
+import io.vamp.common.{Config, Namespace}
+import io.vamp.common.akka.{ActorBootstrap, IoC}
 import io.vamp.lifter.artifact.ArtifactInitializationActor
-import io.vamp.lifter.persistence.{ ElasticsearchPersistenceInitializationActor, FileSystemPersistenceInitializationActor, MySqlPersistenceInitializationActor, PostgresPersistenceInitializationActor }
+import io.vamp.lifter.persistence._
 import io.vamp.lifter.pulse.ElasticsearchPulseInitializationActor
 import io.vamp.persistence.PersistenceBootstrap
 import io.vamp.pulse.PulseBootstrap
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 class LifterBootstrap extends ActorBootstrap {
 
@@ -33,6 +33,7 @@ class LifterBootstrap extends ActorBootstrap {
     PersistenceBootstrap.databaseType().toLowerCase match {
       case "mysql"         ⇒ IoC.createActor[MySqlPersistenceInitializationActor] :: Nil
       case "postgres"      ⇒ IoC.createActor[PostgresPersistenceInitializationActor] :: Nil
+      case "sqlserver"     ⇒ IoC.createActor[SQLServerPersistenceInitializationActor] :: Nil
       case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
       case "filesystem"    ⇒ IoC.createActor[FileSystemPersistenceInitializationActor] :: Nil
       case _               ⇒ Nil
