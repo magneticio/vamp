@@ -56,7 +56,7 @@ class SQLServerPersistenceInitializationActor  extends CommonSupportForActors
   }
 
   private def createDatabase(db: String, url: String, user: String, password: String) = {
-    val connection = DriverManager.getConnection(url + s"user=$user;password=$password;")
+    val connection = DriverManager.getConnection(url, user, password)
     try {
       var dbExists = false
 
