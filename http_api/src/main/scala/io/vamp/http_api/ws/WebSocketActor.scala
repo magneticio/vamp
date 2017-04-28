@@ -27,7 +27,7 @@ object WebSocketActor {
 
 }
 
-class WebSocketActor(logRequests: Boolean, eventRequests: Boolean) extends EventApiController with LogApiController with CommonSupportForActors with HttpApiNotificationProvider {
+class WebSocketActor(logRequests: Boolean, eventRequests: Boolean, numberOfPathSplit: Int = 2) extends EventApiController with LogApiController with CommonSupportForActors with HttpApiNotificationProvider {
 
   import WebSocketActor._
 
@@ -95,9 +95,14 @@ class WebSocketActor(logRequests: Boolean, eventRequests: Boolean) extends Event
   }
 
   private def toMethod(request: WebSocketRequest): HttpMethod = request.action match {
-    case Action.Peek   ⇒ HttpMethods.GET
-    case Action.Put    ⇒ if (request.path.split(WebSocketMessage.pathDelimiter).length == 2) HttpMethods.POST else HttpMethods.PUT
-    case Action.Remove ⇒ HttpMethods.DELETE
+    case Action.Peek ⇒
+      HttpMethods.GET
+    case Action.Put ⇒
+      if (request.path.split(WebSocketMessage.pathDelimiter).length == numberOfPathSplit)
+        HttpMethods.POST
+      else HttpMethods.PUT
+    case Action.Remove ⇒
+      HttpMethods.DELETE
   }
 
   private def toUri(request: WebSocketRequest): Uri = {
