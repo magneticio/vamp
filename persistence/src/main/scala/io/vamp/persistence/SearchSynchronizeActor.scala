@@ -2,7 +2,7 @@ package io.vamp.persistence
 
 import akka.actor.Actor
 import akka.util.Timeout
-import io.vamp.common.{Config, ConfigMagnet}
+import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.common.akka.SchedulerActor
 import io.vamp.model.resolver.NamespaceValueResolver
 
@@ -19,8 +19,8 @@ object SearchSynchronizeActor {
 }
 
 /**
-  * Synchronizes a Database (e.g. Elasticsearch) for reading/searching
-  */
+ * Synchronizes a Database (e.g. Elasticsearch) for reading/searching
+ */
 trait SearchSynchronizeActor extends NamespaceValueResolver
     with SchedulerActor
     with PersistenceMarshaller {
@@ -31,7 +31,7 @@ trait SearchSynchronizeActor extends NamespaceValueResolver
   protected lazy val synchronization: FiniteDuration = SearchSynchronizeActor.synchronizationPeriod()
 
   override def receive: Receive = ({
-    case SearchSynchronizeActor.Synchronize => synchronizeSearch(searchUrl, searchIndex)
+    case SearchSynchronizeActor.Synchronize ⇒ synchronizeSearch(searchUrl, searchIndex)
   }: Actor.Receive) orElse super[SchedulerActor].receive
 
   override def preStart(): Unit = {

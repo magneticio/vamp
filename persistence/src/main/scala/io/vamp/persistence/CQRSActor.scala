@@ -5,7 +5,7 @@ import akka.pattern.ask
 import io.vamp.common.Artifact
 import io.vamp.common.akka.SchedulerActor
 import io.vamp.model.resolver.NamespaceValueResolver
-import io.vamp.persistence.CQRSActor.ReadAll
+import io.vamp.persistence.CQRSActor.{ ReadAll, RetrieveAll }
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -14,6 +14,7 @@ import scala.util.Try
 object CQRSActor {
   sealed trait CQRSMessage
   object ReadAll extends CQRSMessage
+  object RetrieveAll extends CQRSMessage
 }
 
 /**
@@ -44,8 +45,9 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
   override def tick(): Unit = read()
 
   override def receive: Receive = ({
-    case ReadAll ⇒ sender ! read()
-    case _: Long ⇒
+    case ReadAll     ⇒ sender ! read()
+    case RetrieveAll ⇒ sender ! retrieveStore()
+    case _: Long     ⇒
   }: Actor.Receive) orElse super[SchedulerActor].receive orElse super[InMemoryRepresentationPersistenceActor].receive
 
   override def preStart(): Unit = {

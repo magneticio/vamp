@@ -67,4 +67,8 @@ trait InMemoryRepresentation extends TypeOfArtifact with PersistenceNotification
       artifact
     }
   }
+
+  protected def retrieveStore(): Map[String, Map[String, Artifact]] =
+    this.store.mapValues(_.toMap).toMap
+
 }
