@@ -14,7 +14,7 @@ class MySqlPersistenceActor extends SqlPersistenceActor with SqlStatementProvide
   protected def info() = Future.successful(representationInfo() + ("type" → "mysql") + ("url" → url))
 
   override def getInsertStatement(content: Option[String]): String =
-    content.map { _ =>
+    content.map { _ ⇒
       "insert into Artifacts (`Version`, `Command`, `Type`, `Name`, `Definition`) values (?, ?, ?, ?, ?)"
     }.getOrElse("insert into Artifacts (`Version`, `Command`, `Type`, `Name`) values (?, ?, ?, ?)")
 
