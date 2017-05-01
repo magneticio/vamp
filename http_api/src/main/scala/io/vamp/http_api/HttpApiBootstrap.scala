@@ -19,7 +19,7 @@ class HttpApiBootstrap extends ActorBootstrap {
   protected def routes(implicit namespace: Namespace, actorSystem: ActorSystem, materializer: Materializer): Route = new HttpApiRoute().allRoutes
 
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout) = {
-    IoC.createActor(Props(classOf[WebSocketActor], true, true)).map(_ :: Nil)(actorSystem.dispatcher)
+    IoC.createActor(Props(classOf[WebSocketActor], true, true, 2)).map(_ :: Nil)(actorSystem.dispatcher)
   }
 
   override def start(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {
