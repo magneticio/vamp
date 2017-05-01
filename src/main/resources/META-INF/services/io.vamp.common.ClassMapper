@@ -1,2 +1,3 @@
 io.vamp.pulse.ElasticsearchPulseActorMapper
+io.vamp.persistence.ElasticsearchPersistenceActorMapper
 io.vamp.persistence.ElasticsearchSynchronizeActorMapper
