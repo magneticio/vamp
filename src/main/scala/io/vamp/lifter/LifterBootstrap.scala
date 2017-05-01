@@ -18,7 +18,7 @@ class LifterBootstrap extends ActorBootstrap {
 
     val pulseEnabled = Config.boolean("vamp.lifter.pulse.enabled")()
     val artifactEnabled = Config.boolean("vamp.lifter.artifact.enabled")()
-    val searchEnabled = Config.boolean("vamp.lifter.persistence.search.enabled")()
+    //val searchEnabled = Config.boolean("vamp.lifter.persistence.search.enabled")()
 
     val persistence = if (Config.boolean("vamp.lifter.persistence.enabled")()) createPersistenceActors else Nil
 
@@ -26,7 +26,7 @@ class LifterBootstrap extends ActorBootstrap {
 
     val artifact = if (artifactEnabled) createArtifactActors else Nil
 
-    val search = if(searchEnabled) createSearchActors else Nil
+    //val search = if(searchEnabled) createSearchActors else Nil
 
     implicit val ec: ExecutionContext = actorSystem.dispatcher
     Future.sequence(persistence ++ pulse ++ artifact)
