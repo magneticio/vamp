@@ -42,7 +42,7 @@ trait TypeOfArtifact {
     case t if classOf[Condition].isAssignableFrom(t) ⇒ "conditions"
     case t if classOf[Rewrite].isAssignableFrom(t) ⇒ "rewrites"
     case t if classOf[Workflow].isAssignableFrom(t) ⇒ "workflows"
-    case t if classOf[Namespace].isAssignableFrom(t) => "namespaces"
+    case t if classOf[Namespace].isAssignableFrom(t) ⇒ "namespaces"
     case _ ⇒ throwException(UnsupportedPersistenceRequest(`type`))
   }
 }

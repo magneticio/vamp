@@ -3,14 +3,14 @@ package io.vamp.operation.controller
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{Config, Namespace, NamespaceInfo}
-import io.vamp.common.akka.{DataRetrieval, ReplyCheck}
+import io.vamp.common.{ Config, Namespace, NamespaceInfo }
+import io.vamp.common.akka.{ DataRetrieval, ReplyCheck }
 import io.vamp.common.akka.IoC._
-import io.vamp.common.vitals.{InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals}
+import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.model.Model
-import io.vamp.persistence.{KeyValueStoreActor, PersistenceActor}
+import io.vamp.persistence.{ KeyValueStoreActor, PersistenceActor }
 import io.vamp.pulse.PulseActor
 import io.vamp.workflow_driver.WorkflowDriverActor
 
@@ -50,7 +50,7 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
 
   def infoMessage(on: Set[String])(implicit namespace: Namespace, timeout: Timeout): Future[(AbstractInfoMessage, Boolean)] = {
     retrieve(infoActors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout()) flatMap { result ⇒
-      fullNamespaceInfoOpt(on).map { namespaceInfoOpt =>
+      fullNamespaceInfoOpt(on).map { namespaceInfoOpt ⇒
         InfoMessage(
           infoMessage(),
           Model.version,
@@ -94,9 +94,9 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
 
   def fullNamespaceInfoOpt(on: Set[String])(implicit namespace: Namespace): Future[Option[NamespaceInfo]] = {
     implicit val timeout = PersistenceActor.timeout()
-    if(on.contains("namespace")) {
+    if (on.contains("namespace")) {
       checked[Option[Namespace]](readArtifact(namespace.kind, namespace.name, true, true)(namespace = namespace.parent, timeout))
-        .map { cv =>
+        .map { cv ⇒
           println(s"Checked value $cv")
           cv
         }

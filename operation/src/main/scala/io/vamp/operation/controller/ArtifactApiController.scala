@@ -85,7 +85,7 @@ trait SingleArtifactApiController extends AbstractController {
     case "workflows"   ⇒ (classOf[Workflow], WorkflowReader)
     case "gateways"    ⇒ (classOf[Gateway], GatewayReader)
     case "deployments" ⇒ (classOf[Deployment], DeploymentReader)
-    case "namespace"   => (classOf[Namespace], NamespaceReader)
+    case "namespace"   ⇒ (classOf[Namespace], NamespaceReader)
     case _             ⇒ throwException(UnexpectedArtifact(kind))
   }
 
