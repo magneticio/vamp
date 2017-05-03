@@ -1,5 +1,6 @@
 package io.vamp.persistence
 
+import io.vamp.common.Namespace
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact._
 import io.vamp.persistence.notification.UnsupportedPersistenceRequest
@@ -41,6 +42,7 @@ trait TypeOfArtifact {
     case t if classOf[Condition].isAssignableFrom(t) ⇒ "conditions"
     case t if classOf[Rewrite].isAssignableFrom(t) ⇒ "rewrites"
     case t if classOf[Workflow].isAssignableFrom(t) ⇒ "workflows"
+    case t if classOf[Namespace].isAssignableFrom(t) => "namespaces"
     case _ ⇒ throwException(UnsupportedPersistenceRequest(`type`))
   }
 }
