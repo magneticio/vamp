@@ -177,7 +177,8 @@ trait YamlReader[T] extends YamlLoader with ModelNotificationProvider with NameV
 
   protected def <<![V <: Any: ClassTag](path: YamlPath)(implicit source: YamlSourceReader): V = source.get[V](path)
 
-  protected def <<?[V <: Any: ClassTag](path: YamlPath)(implicit source: YamlSourceReader): Option[V] = source.find[V](path)
+  protected def <<?[V <: Any: ClassTag](path: YamlPath, silent: Boolean = false)(implicit source: YamlSourceReader): Option[V] =
+    if (silent) source.findSilent[V](path) else source.find[V](path)
 
   protected def <<-(keep: String*)(implicit source: YamlSourceReader): YamlSourceReader = {
     val pull = source.pull({ key ⇒ !keep.contains(key) })

@@ -92,7 +92,7 @@ object ComposeBlueprintReader extends YamlReader[ComposeWriter[Blueprint]] {
 
   override protected def parse(implicit source: YamlSourceReader): ComposeWriter[Blueprint] =
     for {
-      _ ← add(<<![String]("version"))(v ⇒ s"Compose version: $v.")
+      _ ← add(<<?[String]("version"))(v ⇒ s"Compose version: ${v.getOrElse("undefined")}.")
       clusters ← ComposeClusterReader.read
       _ ← flattenUnusedValues
     } yield DefaultBlueprint(
@@ -320,7 +320,7 @@ object ComposePortReader extends YamlReader[ComposeWriter[List[Port]]] {
 object ComposeEnvironmentReaderList extends YamlReader[ComposeWriter[List[EnvironmentVariable]]] {
 
   override protected def parse(implicit source: YamlSourceReader): ComposeWriter[List[EnvironmentVariable]] =
-    lift(<<?[List[String]]("environment").map { environments ⇒
+    lift(<<?[List[String]]("environment", silent = true).map { environments ⇒
       environments.map(_.split("=") match {
         case Array(key, value) ⇒ EnvironmentVariable(key, None, Some(value), None)
       })
@@ -334,7 +334,7 @@ object ComposeEnvironmentReaderList extends YamlReader[ComposeWriter[List[Enviro
 object ComposeEnvironmentReaderMap extends YamlReader[ComposeWriter[List[EnvironmentVariable]]] {
 
   override protected def parse(implicit source: YamlSourceReader): ComposeWriter[List[EnvironmentVariable]] =
-    lift(<<?[YamlSourceReader]("environment")
+    lift(<<?[YamlSourceReader]("environment", silent = true)
       .map {
         _.pull()
           .toList

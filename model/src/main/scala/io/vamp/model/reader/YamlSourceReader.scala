@@ -37,6 +37,8 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
 
   def find[V <: Any: ClassTag](path: YamlPath): Option[V] = find[V](this, path)
 
+  def findSilent[V <: Any: ClassTag](path: YamlPath): Option[V] = find[V](this, path, silent = true)
+
   def get[V <: Any: ClassTag](path: YamlPath): V = find[V](this, path) match {
     case None    ⇒ throwException(MissingPathValueError(path mkString "/"))
     case Some(v) ⇒ v
@@ -97,7 +99,7 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
 
   def notConsumed: Map[String, _] = notConsumed(source, _consumed)
 
-  private def find[V <: Any: ClassTag](target: YamlSourceReader, path: YamlPath): Option[V] =
+  private def find[V <: Any: ClassTag](target: YamlSourceReader, path: YamlPath, silent: Boolean = false): Option[V] =
     path match {
       case last :: Nil ⇒
         Try {
@@ -113,7 +115,13 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
             case Some(value: YamlSourceReader) if classTag[V].runtimeClass == classOf[Map[_, _]] ⇒ Some(value.pull().asInstanceOf[V])
             // if V == List
             case Some(value: List[_]) if classTag[V].runtimeClass == classOf[List[_]] ⇒ Some(value.asInstanceOf[V])
-            case Some(value) ⇒ Option(UnitValue.of[V](value).getOrElse(throwException(UnexpectedTypeError(last, classTag[V].runtimeClass, value.getClass))))
+            case Some(value) ⇒
+              Some(UnitValue
+                .of[V](value)
+                .getOrElse {
+                  if (silent) throw SilentException
+                  else throwException(UnexpectedTypeError(last, classTag[V].runtimeClass, value.getClass))
+                })
           }
         } match {
           case Success(value) ⇒
