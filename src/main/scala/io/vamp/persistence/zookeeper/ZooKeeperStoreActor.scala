@@ -126,7 +126,7 @@ trait ZooKeeperServerStatistics {
   private val pattern = "^(.*?):(\\d+?)(,|\\z)".r
 
   def zkVersion(servers: String): Future[String] = Future {
-    servers match {
+    servers.split(",").headOption.map {
       case pattern(host, port, _) ⇒
         val sock: Socket = new Socket(host, port.toInt)
         var reader: BufferedReader = null
@@ -148,6 +148,6 @@ trait ZooKeeperServerStatistics {
           if (reader != null) reader.close()
         }
       case _ ⇒ ""
-    }
+    }.getOrElse("")
   }
 }
