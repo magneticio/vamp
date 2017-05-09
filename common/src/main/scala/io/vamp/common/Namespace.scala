@@ -1,7 +1,5 @@
 package io.vamp.common
 
-import scala.language.implicitConversions
-
 case class Namespace(
     name: String,
     config: Map[String, Any] = Map(),

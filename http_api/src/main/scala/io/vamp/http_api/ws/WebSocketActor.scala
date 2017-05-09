@@ -3,14 +3,14 @@ package io.vamp.http_api.ws
 import java.net.URLEncoder
 import java.util.UUID
 
-import akka.actor.{ ActorRef, PoisonPill }
+import akka.actor.{ActorRef, PoisonPill, Props}
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.headers.Accept
-import akka.http.scaladsl.model.{ ContentType, ContentTypes, HttpCharsets, HttpMethods, HttpResponse, _ }
+import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpCharsets, HttpMethods, HttpResponse, _}
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.http_api.notification.HttpApiNotificationProvider
-import io.vamp.operation.controller.{ EventApiController, LogApiController }
+import io.vamp.operation.controller.{EventApiController, LogApiController}
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -24,6 +24,9 @@ object WebSocketActor {
   case class SessionClosed(id: UUID) extends SessionEvent
 
   case class SessionRequest(apiHandler: HttpRequest ⇒ Future[HttpResponse], id: UUID, origin: HttpRequest, request: WebSocketMessage) extends SessionEvent
+
+  def props(logRequests: Boolean, eventRequests: Boolean, numberOfPathSplit: Int = 2): Props =
+    Props(classOf[WebSocketActor], logRequests, eventRequests, numberOfPathSplit)
 
 }
 
