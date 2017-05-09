@@ -89,7 +89,6 @@ class WebSocketActor(logRequests: Boolean, eventRequests: Boolean, numberOfPathS
       openEventStream(receiver, params, request.data.getOrElse(""), message)
     }
     else {
-      println(s"Received websocket request: $request")
       val httpRequest = new HttpRequest(toMethod(request), toUri(request), toHeaders(origin, request), toEntity(request), HttpProtocols.`HTTP/1.1`)
       apiHandler(httpRequest).map {
         case response: HttpResponse ⇒ toResponse(request, response).foreach(receiver ! _)
