@@ -14,7 +14,7 @@ trait Vamp extends App {
   protected implicit val timeout: Timeout = Timeout(FiniteDuration(ConfigFactory.load().getDuration("vamp.bootstrap.timeout", MILLISECONDS), MILLISECONDS))
 
   protected lazy val bootstrap = {
-    implicit val namespace: Namespace = ConfigFactory.load().getString("vamp.namespace")
+    implicit val namespace: Namespace = Namespace(ConfigFactory.load().getString("vamp.namespace"))
     List() :+
       new LoggingBootstrap {
         lazy val logo =

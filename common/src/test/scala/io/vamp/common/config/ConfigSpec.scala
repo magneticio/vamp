@@ -10,7 +10,7 @@ import org.scalatest.{ BeforeAndAfterEach, FlatSpec, Matchers }
 @RunWith(classOf[JUnitRunner])
 class ConfigSpec extends FlatSpec with Matchers with BeforeAndAfterEach with NamespaceProvider {
 
-  implicit val namespace: Namespace = "default"
+  implicit val namespace: Namespace = Namespace("default")
 
   private implicit val formats: Formats = DefaultFormats
 

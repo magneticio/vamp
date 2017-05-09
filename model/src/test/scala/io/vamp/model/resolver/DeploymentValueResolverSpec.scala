@@ -10,7 +10,7 @@ import org.scalatest.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class DeploymentValueResolverSpec extends FlatSpec with Matchers with DeploymentValueResolver with ModelNotificationProvider with NamespaceProvider {
 
-  implicit val namespace: Namespace = "default"
+  implicit val namespace: Namespace = Namespace("default")
 
   "DeploymentTraitResolver" should "pass through environment variables for an empty cluster list" in {
 
