@@ -58,7 +58,7 @@ pack:
         --env BUILD_GID=$(shell id -g) \
         --env VAMP_VERSION="katana" \
         $(BUILD_SERVER) \
-            'sbt package publish-local "project bootstrap" pack' \
+            'sbt package publish-local pack' \
     && \
     docker run \
         --volume $(CURDIR):/srv/src \
@@ -70,7 +70,7 @@ pack:
         --env BUILD_GID=$(shell id -g) \
         --env VAMP_VERSION=$(VERSION) \
         $(BUILD_SERVER) \
-            'sbt package publish-local "project bootstrap" pack'
+            'sbt package publish-local pack'
 
 	rm -rf $(TARGET)/vamp-dcos-$(VERSION)
 	mkdir -p $(TARGET)/vamp-dcos-$(VERSION)
