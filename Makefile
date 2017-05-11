@@ -75,7 +75,7 @@ pack:
 	rm -rf $(TARGET)/vamp-dcos-$(VERSION)
 	mkdir -p $(TARGET)/vamp-dcos-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-dcos-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-dcos-$(VERSION)/lib -type f -name "vamp-*-$(VERSION).jar") $(TARGET)/vamp-dcos-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-dcos-$(VERSION)/lib -type f -name vamp-*-$(VERSION).jar) $(TARGET)/vamp-dcos-$(VERSION)/
 
 	docker run \
 		--rm \
