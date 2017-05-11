@@ -72,7 +72,7 @@ pack:
 	rm -rf $(TARGET)/vamp-mysql-$(VERSION)
 	mkdir -p $(TARGET)/vamp-mysql-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-mysql-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-mysql-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-mysql-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-mysql-$(VERSION)/lib -type f -name vamp-*-$(VERSION).jar) $(TARGET)/vamp-mysql-$(VERSION)/
 
 	docker run \
 		--rm \
