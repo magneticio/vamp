@@ -75,7 +75,7 @@ pack:
 	rm -rf $(TARGET)/vamp-etcd-$(VERSION)
 	mkdir -p $(TARGET)/vamp-etcd-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-etcd-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-etcd-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-etcd-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-etcd-$(VERSION)/lib -type f -name vamp-*-$(VERSION).jar) $(TARGET)/vamp-etcd-$(VERSION)/
 
 	docker run \
 		--rm \
