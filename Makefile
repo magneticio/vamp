@@ -75,7 +75,7 @@ pack:
 	rm -rf $(TARGET)/vamp-haproxy-$(VERSION)
 	mkdir -p $(TARGET)/vamp-haproxy-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-haproxy-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-haproxy-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-haproxy-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-haproxy-$(VERSION)/lib -type f -name "vamp-*-$(version).jar") $(TARGET)/vamp-haproxy-$(VERSION)/
 
 	docker run \
 		--rm \
