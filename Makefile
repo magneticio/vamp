@@ -72,7 +72,7 @@ pack:
 	rm -rf $(TARGET)/vamp-lifter-$(VERSION)
 	mkdir -p $(TARGET)/vamp-lifter-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-lifter-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-lifter-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-lifter-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-lifter-$(VERSION)/lib -type f -name vamp-*-$(VERSION).jar) $(TARGET)/vamp-lifter-$(VERSION)/
 
 	docker run \
 		--rm \
