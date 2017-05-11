@@ -72,7 +72,7 @@ pack:
 	rm -rf $(TARGET)/vamp-postgres-$(VERSION)
 	mkdir -p $(TARGET)/vamp-postgres-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-postgres-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-postgres-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-postgres-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-postgres-$(VERSION)/lib -type f -name vamp-*-$(VERSION).jar) $(TARGET)/vamp-postgres-$(VERSION)/
 
 	docker run \
 		--rm \
