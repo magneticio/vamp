@@ -75,7 +75,7 @@ pack:
 	rm -rf $(TARGET)/vamp-zookeeper-$(VERSION)
 	mkdir -p $(TARGET)/vamp-zookeeper-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-zookeeper-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-zookeeper-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-zookeeper-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-zookeeper-$(VERSION)/lib -type f -name vamp-*-$(VERSION).jar) $(TARGET)/vamp-zookeeper-$(VERSION)/
 
 	docker run \
 		--rm \
