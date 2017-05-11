@@ -72,7 +72,7 @@ pack:
 	rm -rf $(TARGET)/vamp-elasticsearch-$(VERSION)
 	mkdir -p $(TARGET)/vamp-elasticsearch-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-elasticsearch-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-elasticsearch-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-elasticsearch-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-elasticsearch-$(VERSION)/lib -type f -name vamp-*-$(VERSION).jar) $(TARGET)/vamp-elasticsearch-$(VERSION)/
 
 	docker run \
 		--rm \
