@@ -75,7 +75,7 @@ pack:
 	rm -rf $(TARGET)/vamp-redis-$(VERSION)
 	mkdir -p $(TARGET)/vamp-redis-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-redis-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-redis-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-redis-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-redis-$(VERSION)/lib -type f -name vamp-*-$(VERSION).jar) $(TARGET)/vamp-redis-$(VERSION)/
 
 	docker run \
 		--rm \
