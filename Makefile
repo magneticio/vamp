@@ -75,7 +75,7 @@ pack:
 	rm -rf $(TARGET)/vamp-consul-$(VERSION)
 	mkdir -p $(TARGET)/vamp-consul-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-consul-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-consul-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-consul-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-consul-$(VERSION)/lib -type f -name vamp-*-$(VERSION).jar) $(TARGET)/vamp-consul-$(VERSION)/
 
 	docker run \
 		--rm \
