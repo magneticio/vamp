@@ -72,7 +72,7 @@ pack:
 	rm -rf $(TARGET)/vamp-sqlserver-$(VERSION)
 	mkdir -p $(TARGET)/vamp-sqlserver-$(VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-sqlserver-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-sqlserver-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-sqlserver-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-sqlserver-$(VERSION)/lib -type f -name vamp-*-$(VERSION).jar) $(TARGET)/vamp-sqlserver-$(VERSION)/
 
 	docker run \
 		--rm \
