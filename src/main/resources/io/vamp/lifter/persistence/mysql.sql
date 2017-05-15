@@ -5,6 +5,6 @@ CREATE TABLE IF NOT EXISTS `Artifacts` (
   `Command` varchar(255) NOT NULL,
   `Type` varchar(255) NOT NULL,
   `Name` varchar(255) NOT NULL,
-  `Definition` blob,
+  `Definition` MEDIUMTEXT,
   PRIMARY KEY (`ID`)
 ) DEFAULT CHARSET=utf8;
