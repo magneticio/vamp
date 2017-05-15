@@ -29,9 +29,9 @@ class LifterBootstrap extends ActorBootstrap {
 
   protected def createPersistenceActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): List[Future[ActorRef]] = {
     PersistenceBootstrap.databaseType().toLowerCase match {
-      case "mysql"         ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.mysqlInterpreter))
-      case "postgres"      ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.postgresqlInterpreter))
-      case "sqlserver"     ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.sqlServerInterpreter))
+      case "mysql"         ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.mysqlInterpreter, "mysql.sql"))
+      case "postgres"      ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.postgresqlInterpreter, "postgres.sql"))
+      case "sqlserver"     ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.sqlServerInterpreter, "sqlserver.sql"))
       case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
       case "filesystem"    ⇒ IoC.createActor[FileSystemPersistenceInitializationActor] :: Nil
       case _               ⇒ Nil

@@ -15,7 +15,10 @@ import io.vamp.lifter.persistence.SqlDSL.SqlAction
 
 import scala.io.Source
 
-class SqlPersistenceInitializationActor(sqlDialectInterpreter: SqlDSL ~> SqlResult) extends CommonSupportForActors with NamespaceValueResolver with LifterNotificationProvider {
+class SqlPersistenceInitializationActor(
+    val sqlDialectInterpreter: SqlDSL ~> SqlResult,
+    val sqlResource:           String
+) extends CommonSupportForActors with NamespaceValueResolver with LifterNotificationProvider {
 
   def receive = {
     case "init" ⇒
@@ -29,7 +32,7 @@ class SqlPersistenceInitializationActor(sqlDialectInterpreter: SqlDSL ~> SqlResu
       val sqlLifterSeed = SqlLifterSeed(db, user, password, createUrl, vampDatabaseUrl)
 
       val tableQueries: List[String] = Source
-        .fromInputStream(getClass.getResourceAsStream("mysql.sql"))
+        .fromInputStream(getClass.getResourceAsStream(sqlResource))
         .mkString
         .split(';')
         .toList
