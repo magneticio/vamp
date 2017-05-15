@@ -25,7 +25,8 @@ lazy val root = project.in(sbt.file(".")).settings(packAutoSettings ++ Seq(packE
     "io.vamp" %% "vamp-elasticsearch" % "katana" % "provided",
     "org.postgresql" % "postgresql" % "9.4-1202-jdbc42",
     "mysql" % "mysql-connector-java" % "6.0.6",
-    "com.microsoft.sqlserver" % "mssql-jdbc" % "6.1.0.jre8"
+    "com.microsoft.sqlserver" % "mssql-jdbc" % "6.1.0.jre8",
+    "org.typelevel" %% "cats" % "0.9.0"
   )
 )
 

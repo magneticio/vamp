@@ -1,6 +1,6 @@
 package io.vamp.lifter.persistence.search
 
-import io.vamp.common.{Config, ConfigMagnet}
+import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.lifter.elasticsearch.ElasticsearchInitializationActor
 import io.vamp.lifter.elasticsearch.ElasticsearchInitializationActor.TemplateDefinition
 import io.vamp.lifter.notification.LifterNotificationProvider
@@ -20,11 +20,11 @@ object ElasticsearchSearchInitializationActor {
 }
 
 /**
-  * Initializes the needed parts for searching artifacts via ES
-  */
+ * Initializes the needed parts for searching artifacts via ES
+ */
 class ElasticsearchSearchInitializationActor extends NamespaceValueResolver
-  with ElasticsearchInitializationActor
-  with LifterNotificationProvider {
+    with ElasticsearchInitializationActor
+    with LifterNotificationProvider {
 
   lazy val indexName = resolveWithNamespace(searchIndex())
 

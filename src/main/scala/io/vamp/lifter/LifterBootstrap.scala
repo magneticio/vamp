@@ -1,16 +1,16 @@
 package io.vamp.lifter
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ ActorRef, ActorSystem }
 import akka.util.Timeout
-import io.vamp.common.{Config, Namespace}
-import io.vamp.common.akka.{ActorBootstrap, IoC}
+import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.akka.{ ActorBootstrap, IoC }
 import io.vamp.lifter.artifact.ArtifactInitializationActor
 import io.vamp.lifter.persistence._
 import io.vamp.lifter.pulse.ElasticsearchPulseInitializationActor
 import io.vamp.persistence.PersistenceBootstrap
 import io.vamp.pulse.PulseBootstrap
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class LifterBootstrap extends ActorBootstrap {
 
@@ -18,15 +18,10 @@ class LifterBootstrap extends ActorBootstrap {
 
     val pulseEnabled = Config.boolean("vamp.lifter.pulse.enabled")()
     val artifactEnabled = Config.boolean("vamp.lifter.artifact.enabled")()
-    //val searchEnabled = Config.boolean("vamp.lifter.persistence.search.enabled")()
 
     val persistence = if (Config.boolean("vamp.lifter.persistence.enabled")()) createPersistenceActors else Nil
-
     val pulse = if (pulseEnabled) createPulseActors else Nil
-
     val artifact = if (artifactEnabled) createArtifactActors else Nil
-
-    //val search = if(searchEnabled) createSearchActors else Nil
 
     implicit val ec: ExecutionContext = actorSystem.dispatcher
     Future.sequence(persistence ++ pulse ++ artifact)
@@ -34,9 +29,9 @@ class LifterBootstrap extends ActorBootstrap {
 
   protected def createPersistenceActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): List[Future[ActorRef]] = {
     PersistenceBootstrap.databaseType().toLowerCase match {
-      case "mysql"         ⇒ IoC.createActor[MySqlPersistenceInitializationActor] :: Nil
-      case "postgres"      ⇒ IoC.createActor[PostgresPersistenceInitializationActor] :: Nil
-      case "sqlserver"     ⇒ IoC.createActor[SQLServerPersistenceInitializationActor] :: Nil
+      case "mysql"         ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.mysqlInterpreter))
+      case "postgres"      ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.postgresqlInterpreter))
+      case "sqlserver"     ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.sqlServerInterpreter))
       case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
       case "filesystem"    ⇒ IoC.createActor[FileSystemPersistenceInitializationActor] :: Nil
       case _               ⇒ Nil
@@ -54,7 +49,7 @@ class LifterBootstrap extends ActorBootstrap {
     IoC.createActor[ArtifactInitializationActor] :: Nil
   }
 
-  protected  def createSearchActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): List[Future[ActorRef]] =
+  protected def createSearchActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): List[Future[ActorRef]] =
     List(IoC.createActor[ElasticsearchPersistenceInitializationActor])
 
   override def restart(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {}
