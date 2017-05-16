@@ -39,7 +39,7 @@ trait ArtifactApiController
   }
 }
 
-trait SingleArtifactApiController extends AbstractController {
+trait SingleArtifactApiController extends SourceTransformer with AbstractController {
   this: ArtifactApiController ⇒
 
   def createArtifact(kind: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
@@ -76,23 +76,6 @@ trait SingleArtifactApiController extends AbstractController {
     case _                                  ⇒ true
   }
 
-  protected def `type`(kind: String): (Class[_ <: Artifact], YamlReader[_ <: Artifact]) = kind match {
-    case "breeds"      ⇒ (classOf[Breed], BreedReader)
-    case "blueprints"  ⇒ (classOf[Blueprint], BlueprintReader)
-    case "slas"        ⇒ (classOf[Sla], SlaReader)
-    case "scales"      ⇒ (classOf[Scale], ScaleReader)
-    case "escalations" ⇒ (classOf[Escalation], EscalationReader)
-    case "routes"      ⇒ (classOf[Route], RouteReader)
-    case "conditions"  ⇒ (classOf[Condition], ConditionReader)
-    case "rewrites"    ⇒ (classOf[Rewrite], RewriteReader)
-    case "workflows"   ⇒ (classOf[Workflow], WorkflowReader)
-    case "gateways"    ⇒ (classOf[Gateway], GatewayReader)
-    case "deployments" ⇒ (classOf[Deployment], DeploymentReader)
-    case "namespace"   ⇒ (classOf[Namespace], NamespaceReader)
-    case "templates"   ⇒ (classOf[Template], TemplateReader)
-    case _             ⇒ throwException(UnexpectedArtifact(kind))
-  }
-
   private def read(`type`: Class[_ <: Artifact], name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
     actorFor[PersistenceActor] ? PersistenceActor.Read(name, `type`, expandReferences, onlyReferences)
   }
@@ -113,23 +96,7 @@ trait SingleArtifactApiController extends AbstractController {
   }
 
   private def unmarshall(reader: YamlReader[_ <: Artifact], source: String)(implicit namespace: Namespace, timeout: Timeout): Future[Artifact] = {
-    val artifact = ImportReader.read(source)
-    Future.sequence(artifact.references.map { ref ⇒
-      readArtifact(ref.kind, ref.name, expandReferences = true, onlyReferences = false).map(r ⇒ ref → r)
-    }).map { imports ⇒
-      val decomposed = imports.map {
-        case (_, Some(t: Template)) ⇒ Extraction.decompose(t.definition)(DefaultFormats)
-        case (_, Some(other))       ⇒ Extraction.decompose(other)(CoreSerializationFormat.default)
-        case (r, _)                 ⇒ throwException(ImportReferenceError(r.toString))
-      }
-      val expanded = {
-        if (decomposed.isEmpty)
-          Extraction.decompose(artifact.base)(DefaultFormats)
-        else
-          decomposed.reduceLeft { (a, b) ⇒ a merge b }.merge(Extraction.decompose(artifact.base)(DefaultFormats))
-      }
-      reader.read(write(expanded)(DefaultFormats))
-    }
+    sourceImport(source).map(reader.read(_))
   }
 }
 
@@ -162,5 +129,47 @@ trait MultipleArtifactApiController extends AbstractController {
 
   private def process(source: String, execute: ArtifactSource ⇒ Future[Any]) = Future.sequence {
     ArtifactListReader.read(source).map(execute)
+  }
+}
+
+trait SourceTransformer {
+  this: AbstractController ⇒
+
+  def sourceImport(source: String)(implicit namespace: Namespace, timeout: Timeout): Future[String] = {
+    val artifact = ImportReader.read(source)
+    Future.sequence(artifact.references.map { ref ⇒
+      val (kind, _) = `type`(ref.kind)
+      (actorFor[PersistenceActor] ? PersistenceActor.Read(ref.name, kind, expandReferences = true)).map(r ⇒ ref → r)
+    }).map { imports ⇒
+      val decomposed = imports.map {
+        case (_, Some(t: Template)) ⇒ Extraction.decompose(t.definition)(DefaultFormats)
+        case (_, Some(other))       ⇒ Extraction.decompose(other)(CoreSerializationFormat.default)
+        case (r, _)                 ⇒ throwException(ImportReferenceError(r.toString))
+      }
+      val expanded = {
+        if (decomposed.isEmpty)
+          Extraction.decompose(artifact.base)(DefaultFormats)
+        else
+          decomposed.reduceLeft { (a, b) ⇒ a merge b }.merge(Extraction.decompose(artifact.base)(DefaultFormats))
+      }
+      write(expanded)(DefaultFormats)
+    }
+  }
+
+  protected def `type`(kind: String): (Class[_ <: Artifact], YamlReader[_ <: Artifact]) = kind match {
+    case "breeds"      ⇒ (classOf[Breed], BreedReader)
+    case "blueprints"  ⇒ (classOf[Blueprint], BlueprintReader)
+    case "slas"        ⇒ (classOf[Sla], SlaReader)
+    case "scales"      ⇒ (classOf[Scale], ScaleReader)
+    case "escalations" ⇒ (classOf[Escalation], EscalationReader)
+    case "routes"      ⇒ (classOf[Route], RouteReader)
+    case "conditions"  ⇒ (classOf[Condition], ConditionReader)
+    case "rewrites"    ⇒ (classOf[Rewrite], RewriteReader)
+    case "workflows"   ⇒ (classOf[Workflow], WorkflowReader)
+    case "gateways"    ⇒ (classOf[Gateway], GatewayReader)
+    case "deployments" ⇒ (classOf[Deployment], DeploymentReader)
+    case "namespace"   ⇒ (classOf[Namespace], NamespaceReader)
+    case "templates"   ⇒ (classOf[Template], TemplateReader)
+    case _             ⇒ throwException(UnexpectedArtifact(kind))
   }
 }

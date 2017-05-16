@@ -14,7 +14,7 @@ import io.vamp.persistence.{ ArtifactResponseEnvelope, ArtifactShrinkage, Persis
 
 import scala.concurrent.Future
 
-trait DeploymentApiController extends ArtifactShrinkage with AbstractController {
+trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage with AbstractController {
 
   def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
     (actorFor[PersistenceActor] ? PersistenceActor.All(classOf[Deployment], page, perPage, expandReferences, onlyReferences)) map {
@@ -39,44 +39,48 @@ trait DeploymentApiController extends ArtifactShrinkage with AbstractController 
     else deployment
   }
 
-  def createDeployment(request: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
+  def createDeployment(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
 
-    def default(blueprint: Blueprint) = actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, request, validateOnly)
+    def default(blueprint: Blueprint) = actorFor[DeploymentActor] ? DeploymentActor.Create(blueprint, source, validateOnly)
 
-    processBlueprint(request, {
-      case blueprint: BlueprintReference ⇒ default(blueprint)
-      case blueprint: DefaultBlueprint ⇒
+    sourceImport(source).flatMap { request ⇒
+      processBlueprint(request, {
+        case blueprint: BlueprintReference ⇒ default(blueprint)
+        case blueprint: DefaultBlueprint ⇒
 
-        val futures = {
-          if (!validateOnly)
-            blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
-              breed ⇒ actorFor[PersistenceActor] ? PersistenceActor.Create(breed, Some(request))
-            }
-          else Nil
-        } :+ default(blueprint)
+          val futures = {
+            if (!validateOnly)
+              blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
+                breed ⇒ actorFor[PersistenceActor] ? PersistenceActor.Create(breed, Some(source))
+              }
+            else Nil
+          } :+ default(blueprint)
 
-        Future.sequence(futures)
-    })
+          Future.sequence(futures)
+      })
+    }
   }
 
-  def updateDeployment(name: String, request: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
+  def updateDeployment(name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
 
-    def default(blueprint: Blueprint) = actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, request, validateOnly)
+    def default(blueprint: Blueprint) = actorFor[DeploymentActor] ? DeploymentActor.Merge(name, blueprint, source, validateOnly)
 
-    processBlueprint(request, {
-      case blueprint: BlueprintReference ⇒ default(blueprint)
-      case blueprint: DefaultBlueprint ⇒
+    sourceImport(source).flatMap { request ⇒
+      processBlueprint(request, {
+        case blueprint: BlueprintReference ⇒ default(blueprint)
+        case blueprint: DefaultBlueprint ⇒
 
-        val futures = {
-          if (!validateOnly)
-            blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
-              actorFor[PersistenceActor] ? PersistenceActor.Create(_, Some(request))
-            }
-          else Nil
-        } :+ default(blueprint)
+          val futures = {
+            if (!validateOnly)
+              blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
+                actorFor[PersistenceActor] ? PersistenceActor.Create(_, Some(source))
+              }
+            else Nil
+          } :+ default(blueprint)
 
-        Future.sequence(futures)
-    })
+          Future.sequence(futures)
+      })
+    }
   }
 
   private def processBlueprint(request: String, process: (Blueprint) ⇒ Future[Any]) = try {
@@ -94,11 +98,13 @@ trait DeploymentApiController extends ArtifactShrinkage with AbstractController 
       }
   }
 
-  def deleteDeployment(name: String, request: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
-    if (request.nonEmpty) {
-      processBlueprint(request, {
-        blueprint ⇒ actorFor[DeploymentActor] ? DeploymentActor.Slice(name, blueprint, request, validateOnly)
-      })
+  def deleteDeployment(name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
+    if (source.nonEmpty) {
+      sourceImport(source).flatMap { request ⇒
+        processBlueprint(request, {
+          blueprint ⇒ actorFor[DeploymentActor] ? DeploymentActor.Slice(name, blueprint, source, validateOnly)
+        })
+      }
     }
     else {
       actorFor[PersistenceActor] ? PersistenceActor.Read(name, classOf[Deployment])
