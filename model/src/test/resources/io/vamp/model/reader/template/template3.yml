@@ -1,0 +1,5 @@
+---
+name: template3
+import:
+- templateA
+- x: a

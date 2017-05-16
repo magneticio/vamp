@@ -4,14 +4,17 @@ import java.net.URLDecoder
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Artifact, Namespace }
 import io.vamp.common.akka.IoC._
+import io.vamp.common.{ Artifact, Namespace }
 import io.vamp.model.artifact._
-import io.vamp.model.notification.InconsistentArtifactName
+import io.vamp.model.notification.{ ImportReferenceError, InconsistentArtifactName }
 import io.vamp.model.reader.{ YamlReader, _ }
+import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.operation.notification.UnexpectedArtifact
 import io.vamp.persistence.notification.PersistenceOperationFailure
 import io.vamp.persistence.{ ArtifactExpansionSupport, ArtifactResponseEnvelope, PersistenceActor }
+import org.json4s.native.Serialization.write
+import org.json4s.{ DefaultFormats, Extraction }
 
 import scala.concurrent.Future
 
@@ -41,9 +44,9 @@ trait SingleArtifactApiController extends AbstractController {
 
   def createArtifact(kind: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
-    case (t, r) if t == classOf[Gateway]    ⇒ createGateway(r, source, validateOnly)
-    case (t, r) if t == classOf[Workflow]   ⇒ createWorkflow(r, source, validateOnly)
-    case (_, r)                             ⇒ create(r, source, validateOnly)
+    case (t, r) if t == classOf[Gateway]    ⇒ unmarshall(r, source).flatMap(createGateway(_, source, validateOnly))
+    case (t, r) if t == classOf[Workflow]   ⇒ unmarshall(r, source).flatMap(createWorkflow(_, source, validateOnly))
+    case (_, r)                             ⇒ unmarshall(r, source).flatMap(create(_, source, validateOnly))
   }
 
   def readArtifact(kind: String, name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
@@ -54,9 +57,9 @@ trait SingleArtifactApiController extends AbstractController {
 
   def updateArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
-    case (t, r) if t == classOf[Gateway]    ⇒ updateGateway(r, name, source, validateOnly)
-    case (t, r) if t == classOf[Workflow]   ⇒ updateWorkflow(r, name, source, validateOnly)
-    case (_, r)                             ⇒ update(r, name, source, validateOnly)
+    case (t, r) if t == classOf[Gateway]    ⇒ unmarshall(r, source).flatMap(updateGateway(_, name, source, validateOnly))
+    case (t, r) if t == classOf[Workflow]   ⇒ unmarshall(r, source).flatMap(updateWorkflow(_, name, source, validateOnly))
+    case (_, r)                             ⇒ unmarshall(r, source).flatMap(update(_, name, source, validateOnly))
   }
 
   def deleteArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
@@ -86,6 +89,7 @@ trait SingleArtifactApiController extends AbstractController {
     case "gateways"    ⇒ (classOf[Gateway], GatewayReader)
     case "deployments" ⇒ (classOf[Deployment], DeploymentReader)
     case "namespace"   ⇒ (classOf[Namespace], NamespaceReader)
+    case "templates"   ⇒ (classOf[Template], TemplateReader)
     case _             ⇒ throwException(UnexpectedArtifact(kind))
   }
 
@@ -93,24 +97,39 @@ trait SingleArtifactApiController extends AbstractController {
     actorFor[PersistenceActor] ? PersistenceActor.Read(name, `type`, expandReferences, onlyReferences)
   }
 
-  private def create(reader: YamlReader[_ <: Artifact], source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
-    reader.read(source) match {
-      case artifact ⇒ if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Create(artifact, Option(source))
-    }
+  private def create(artifact: Artifact, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
+    if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Create(artifact, Option(source))
   }
 
-  private def update(reader: YamlReader[_ <: Artifact], name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
-    reader.read(source) match {
-      case artifact ⇒
-        if (name != artifact.name)
-          throwException(InconsistentArtifactName(name, artifact.name))
+  private def update(artifact: Artifact, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
+    if (name != artifact.name)
+      throwException(InconsistentArtifactName(name, artifact.name))
 
-        if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Update(artifact, Some(source))
-    }
+    if (validateOnly) Future.successful(artifact) else actorFor[PersistenceActor] ? PersistenceActor.Update(artifact, Some(source))
   }
 
   private def delete(`type`: Class[_ <: Artifact], name: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
     if (validateOnly) Future.successful(None) else actorFor[PersistenceActor] ? PersistenceActor.Delete(name, `type`)
+  }
+
+  private def unmarshall(reader: YamlReader[_ <: Artifact], source: String)(implicit namespace: Namespace, timeout: Timeout): Future[Artifact] = {
+    val artifact = ImportReader.read(source)
+    Future.sequence(artifact.references.map { ref ⇒
+      readArtifact(ref.kind, ref.name, expandReferences = true, onlyReferences = false).map(r ⇒ ref → r)
+    }).map { imports ⇒
+      val decomposed = imports.map {
+        case (_, Some(t: Template)) ⇒ Extraction.decompose(t.definition)(DefaultFormats)
+        case (_, Some(other))       ⇒ Extraction.decompose(other)(CoreSerializationFormat.default)
+        case (r, _)                 ⇒ throwException(ImportReferenceError(r.toString))
+      }
+      val expanded = {
+        if (decomposed.isEmpty)
+          Extraction.decompose(artifact.base)(DefaultFormats)
+        else
+          decomposed.reduceLeft { (a, b) ⇒ a merge b }.merge(Extraction.decompose(artifact.base)(DefaultFormats))
+      }
+      reader.read(write(expanded)(DefaultFormats))
+    }
   }
 }
 

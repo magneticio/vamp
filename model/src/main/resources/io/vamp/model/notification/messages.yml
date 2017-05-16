@@ -76,3 +76,9 @@ EventTimestampError                    : "Event timestamp cannot be parsed: '{ti
 EventQueryTimeError$                   : "Event query time range is not valid, both 'lt' and 'lte' or 'gt' and 'gte' are not allowed."
 UnsupportedAggregatorError             : "Unsupported aggregator: {aggregator}."
 EventTypeError                         : "Unsupported event type '{type}', only alphanumerics, '-' and '_' are allowed."
+
+# Import
+
+EmptyImportError$                      : "Empty import error."
+ImportDefinitionError$                 : "Import definition error - it must be a reference to an artifact."
+ImportReferenceError                   : "Reference '{reference}' cannot be resolved."

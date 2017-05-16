@@ -3,14 +3,14 @@ package io.vamp.http_api.ws
 import java.net.URLEncoder
 import java.util.UUID
 
-import akka.actor.{ActorRef, PoisonPill, Props}
+import akka.actor.{ ActorRef, PoisonPill, Props }
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.headers.Accept
-import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpCharsets, HttpMethods, HttpResponse, _}
+import akka.http.scaladsl.model.{ ContentType, ContentTypes, HttpCharsets, HttpMethods, HttpResponse, _ }
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.http_api.notification.HttpApiNotificationProvider
-import io.vamp.operation.controller.{EventApiController, LogApiController}
+import io.vamp.operation.controller.{ EventApiController, LogApiController }
 
 import scala.collection.mutable
 import scala.concurrent.Future

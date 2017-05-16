@@ -1,0 +1,5 @@
+---
+name: template4
+import:
+- templateA
+- breeds/sava

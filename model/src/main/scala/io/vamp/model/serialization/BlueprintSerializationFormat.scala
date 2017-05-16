@@ -27,7 +27,7 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomp
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(blueprint.name))
       list += JField("kind", JString(blueprint.kind))
-      list += JField("metadata", Extraction.decompose(blueprint.metadata))
+      list += JField("metadata", Extraction.decompose(blueprint.metadata)(DefaultFormats))
       list += JField("gateways", serializeGateways(blueprint.gateways))
       list += JField("clusters", Extraction.decompose(blueprint.clusters.map(cluster ⇒ cluster.name → cluster).toMap))
       list += JField("environment_variables", traits(blueprint.environmentVariables))
@@ -92,7 +92,7 @@ trait BlueprintScaleSerializer extends ReferenceSerialization {
       if (scale.name.nonEmpty && full) {
         list += JField("name", JString(scale.name))
         list += JField("kind", JString(scale.kind))
-        list += JField("metadata", Extraction.decompose(scale.metadata)(SerializationFormat(BlueprintSerializationFormat)))
+        list += JField("metadata", Extraction.decompose(scale.metadata)(DefaultFormats))
       }
 
       list += JField("cpu", JDouble(scale.cpu.normalized.toDouble))

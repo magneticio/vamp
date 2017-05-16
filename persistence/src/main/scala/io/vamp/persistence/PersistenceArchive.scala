@@ -65,6 +65,7 @@ trait PersistenceTag {
     case t if classOf[Condition].isAssignableFrom(t) ⇒ Option("conditions")
     case t if classOf[Workflow].isAssignableFrom(t) ⇒ Option("workflows")
     case t if classOf[WorkflowStatus].isAssignableFrom(t) ⇒ Option("workflow-statuses")
+    case t if classOf[Template].isAssignableFrom(t) ⇒ Option("templates")
     case _ ⇒ None
   }
 }

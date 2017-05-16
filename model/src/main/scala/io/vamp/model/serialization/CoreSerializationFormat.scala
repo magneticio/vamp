@@ -15,7 +15,8 @@ object CoreSerializationFormat {
     BlueprintSerializationFormat,
     GatewaySerializationFormat,
     SlaSerializationFormat,
-    WorkflowSerializationFormat
+    WorkflowSerializationFormat,
+    TemplateSerializationFormat
   )
 
   val default: Formats = SerializationFormat(common :+ DeploymentSerializationFormat: _*)

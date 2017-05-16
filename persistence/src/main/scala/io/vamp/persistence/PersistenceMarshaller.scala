@@ -51,6 +51,7 @@ trait PersistenceMarshaller extends TypeOfArtifact {
     "conditions" → ConditionReader,
     "rewrites" → RewriteReader,
     "workflows" → WorkflowReader,
+    "templates" → TemplateReader,
     // gateway persistence
     "route-targets" → new NoNameValidationYamlReader[RouteTargets] {
       override protected def parse(implicit source: YamlSourceReader) = {
