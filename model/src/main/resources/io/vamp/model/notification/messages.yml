@@ -51,6 +51,7 @@ UnsupportedPathRewriteError            : "Unsupported path rewrite: {definition}
 UnresolvedPortReferenceError           : "Unresolved port reference: {portReference}."
 NegativeFailuresNumberError            : "Failures can not be negative: {number}."
 UnsupportedProtocolError               : "Unsupported protocol: {protocol}"
+InvalidGatewayPortError                : "Invalid gateway port: {port}."
 
 # SLA
 

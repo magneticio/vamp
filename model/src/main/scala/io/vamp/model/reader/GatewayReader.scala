@@ -37,10 +37,11 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
     Gateway(name, metadata, port, service, sticky, virtualHosts, routes(splitPath = true), deployed)
   }
 
-  protected def port(implicit source: YamlSourceReader): Port = <<![Any]("port") match {
-    case value: Int    ⇒ Port(value)
-    case value: String ⇒ Port(value)
-    case any           ⇒ throwException(UnexpectedTypeError("port", classOf[String], any.getClass))
+  protected def port(implicit source: YamlSourceReader): Port = <<?[Any]("port") match {
+    case Some(value: Int)    ⇒ Port(value)
+    case Some(value: String) ⇒ Port(value)
+    case Some(any)           ⇒ throwException(UnexpectedTypeError("port", classOf[String], any.getClass))
+    case None                ⇒ Port("", None, None)
   }
 
   protected def service(implicit source: YamlSourceReader): Option[GatewayService] = <<?[YamlSourceReader]("service").map { _ ⇒
@@ -61,7 +62,7 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
   protected def virtualHosts(implicit source: YamlSourceReader): List[String] = <<?[List[_]]("virtual_hosts") map {
     _.map {
       case host: String ⇒ host
-      case any          ⇒ throwException(IllegalGatewayVirtualHosts)
+      case _            ⇒ throwException(IllegalGatewayVirtualHosts)
     }
   } getOrElse Nil
 
@@ -78,6 +79,8 @@ trait AbstractGatewayReader extends YamlReader[Gateway] with AnonymousYamlReader
   protected def deployed(implicit source: YamlSourceReader): Boolean = <<?[Boolean]("deployed").getOrElse(false)
 
   override protected def validate(gateway: Gateway): Gateway = {
+
+    if (gateway.port.number < 0 || gateway.port.number > 65535) throwException(InvalidGatewayPortError(gateway.port.number))
 
     gateway.routes.foreach(route ⇒ if (route.length < 1 || route.length > 4) throwException(UnsupportedRoutePathError(route.path)))
 
