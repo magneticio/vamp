@@ -1,5 +1,8 @@
 package io.vamp.common.util
 
+import java.nio.charset.StandardCharsets
+import java.util.Base64
+
 object TextUtil {
 
   /**
@@ -45,4 +48,6 @@ object TextUtil {
 
     snake.toString().toLowerCase
   }
+
+  def encodeBase64(data: String): String = Base64.getEncoder.encodeToString(data.getBytes(StandardCharsets.UTF_8))
 }

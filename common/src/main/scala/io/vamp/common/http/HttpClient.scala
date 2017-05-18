@@ -1,8 +1,6 @@
 package io.vamp.common.http
 
-import java.nio.charset.StandardCharsets
 import java.security.cert.X509Certificate
-import java.util.Base64
 import java.util.concurrent.ExecutionException
 import javax.net.ssl.{ KeyManager, SSLContext, X509TrustManager }
 
@@ -15,6 +13,7 @@ import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.{ ActorMaterializer, ActorMaterializerSettings }
 import akka.util.{ ByteString, Timeout }
 import com.typesafe.scalalogging.Logger
+import io.vamp.common.util.TextUtil
 import io.vamp.common.{ Config, Namespace }
 import org.json4s._
 import org.json4s.native.JsonMethods._
@@ -40,7 +39,7 @@ object HttpClient {
 
   def basicAuthorization(user: String, password: String, headers: List[(String, String)] = jsonHeaders): List[(String, String)] = {
     if (!user.isEmpty && !password.isEmpty) {
-      val credentials = Base64.getEncoder.encodeToString(s"$user:$password".getBytes(StandardCharsets.UTF_8))
+      val credentials = TextUtil.encodeBase64(s"$user:$password")
       ("Authorization" → s"Basic $credentials") :: headers
     }
     else headers
