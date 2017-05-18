@@ -65,7 +65,7 @@ object ConfigReader {
     hConfigReader: Lazy[ConfigReader[H]]
   ): ConfigReader[A] =
     new ConfigReader[A] {
-      override def kind = "TODO GENERIC"
+      override def kind = "HList"
 
       override def read(path: String)(implicit configSettings: ConfigSettings): ValidatedNel[String, A] =
         hConfigReader.value.read(path).map(a => generic.from(a))
