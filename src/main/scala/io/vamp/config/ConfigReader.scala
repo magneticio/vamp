@@ -1,8 +1,7 @@
 package io.vamp.config
 
 import com.typesafe.config.{ Config => TConfig }
-
-import scala.concurrent.duration.{ FiniteDuration, MILLISECONDS }
+import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 import scala.collection.JavaConverters._
 import scala.annotation.implicitNotFound
@@ -18,16 +17,28 @@ import cats.data.Validated.{ Invalid, Valid, invalid, valid }
 @implicitNotFound(msg = "Cannot find ConfigReader type class for ${A}")
 trait ConfigReader[A] {
 
+  /**
+   * Read a config value resulting in a either a Valid A or NonEmptyList of String error messages.
+   */
   def read(path: String)(implicit configSettings: ConfigSettings): ValidatedNel[String, A]
 
+  /**
+   * Type of the config reader in String representation (used in the error messages).
+   */
   def kind: String
 
 }
 
 object ConfigReader {
 
+  /**
+   * Constructor for ConfigReader using an implicit ConfigReader of type A provided by genericConfigReader
+   */
   def apply[A](implicit configReader: ConfigReader[A]): ConfigReader[A] = configReader
 
+  /**
+   * Smart constructor for new ConfigReaders
+   */
   def constructConfigReader[A](
     extract: (TConfig, String) => A,
     givenKind: String
@@ -40,9 +51,15 @@ object ConfigReader {
       override val kind: String = givenKind
     }
 
+  /**
+   * ConfigReader instance for HNil for automatic derivation.
+   */
   implicit val hnilConfigReader: ConfigReader[HNil] =
     constructConfigReader((_, _) => HNil, "HNil")
 
+  /**
+   * ConfigReader instance for HList for automatic derivation.
+   */
   implicit def hlistConfigReader[K <: Symbol, H, T <: HList](
     implicit
     witness: Witness.Aux[K],
@@ -52,34 +69,58 @@ object ConfigReader {
     val fieldName: String = witness.value.name
     println(s"Current fieldName: $fieldName")
     new ConfigReader[FieldType[K, H] :: T] {
-      override def kind: String = "H"
+      override val kind: String = "H"
 
       override def read(path: String)(implicit configSettings: ConfigSettings): ValidatedNel[String, FieldType[K, H] :: T] =
-        (hConfigReader.value.read(s"$path.$fieldName") |@| tConfigReader.read(s"$path")).map(field[K](_) :: _)
+        (hConfigReader.value.read(s"$path.${toDashed(fieldName)}") |@| tConfigReader.read(s"$path"))
+          .map(field[K](_) :: _)
     }
   }
 
+  private def toDashed(fieldName: String)(implicit configSettings: ConfigSettings): String =
+    fieldName.foldLeft("") {
+      case (acc, c) if c.isUpper => acc + configSettings.separator + c.toLower
+      case (acc, c) => acc + c
+    }
+
+  /**
+   * Creates a ConfigReader for any possible A.
+   * Transforms from a Generic representation (HList) to a Product A.
+   */
   implicit def genericConfigReader[A, H <: HList](
     implicit
     generic: LabelledGeneric.Aux[A, H],
     hConfigReader: Lazy[ConfigReader[H]]
   ): ConfigReader[A] =
     new ConfigReader[A] {
-      override def kind = "HList"
+      override val kind = "HList"
 
       override def read(path: String)(implicit configSettings: ConfigSettings): ValidatedNel[String, A] =
         hConfigReader.value.read(path).map(a => generic.from(a))
     }
 
+  /**
+   * ConfigReader instance for String.
+   */
   implicit val stringConfigReader: ConfigReader[String] =
     constructConfigReader((c, p) => c.getString(p), "String")
 
+  /**
+   * ConfigReader instance for List of String.
+   * Not that List could not be derrived for any List[A], due to the missing capabilities of the Typesafe Config library.
+   */
   implicit val stringListConfigReader: ConfigReader[List[String]] =
     constructConfigReader((c, p) => c.getStringList(p).asScala.toList, "List[String]")
 
+  /**
+   * ConfigReader instance for Boolean.
+   */
   implicit val booleanConfigReader: ConfigReader[Boolean] =
     constructConfigReader((c, p) => c.getBoolean(p), "Boolean")
 
+  /**
+   * ConfigReader instance for List of Boolean.
+   */
   implicit val booleanListConfigReader: ConfigReader[List[Boolean]] =
     constructConfigReader[List[Boolean]](
       (c, p) =>
@@ -87,35 +128,77 @@ object ConfigReader {
       "List[Boolean]"
     )
 
+  /**
+   * ConfigReader instance for Int.
+   */
   implicit val intConfigReader: ConfigReader[Int] =
     constructConfigReader((c, p) => c.getInt(p), "Int")
 
+  /**
+   * ConfigReader instance for List of Int.
+   */
   implicit val intListConfigReader: ConfigReader[List[Int]] =
     constructConfigReader((c, p) => c.getIntList(p).asScala.toList.map(_.toInt), "List[Int]")
 
+  /**
+   * ConfigReader instance for Long.
+   */
   implicit val longConfigReader: ConfigReader[Long] =
     constructConfigReader((c, p) => c.getLong(p), "Long")
 
+  /**
+   * ConfigReader instance for List of Long.
+   */
   implicit val longListConfigReader: ConfigReader[List[Long]] =
     constructConfigReader((c, p) => c.getLongList(p).asScala.toList.map(_.toLong), "List[Long]")
 
+  /**
+   * ConfigReader instance for Double.
+   */
   implicit val doubleConfigReader: ConfigReader[Double] =
     constructConfigReader((c, p) => c.getDouble(p), "Double")
 
+  /**
+   * ConfigReader instance for List of Double.
+   */
   implicit val doubleListConfigReader: ConfigReader[List[Double]] =
     constructConfigReader((c, p) => c.getDoubleList(p).asScala.toList.map(_.toDouble), "List[String]")
 
-  // Make MILLISECONDS configurable
+  /**
+   * ConfigReader instance for FiniteDuration.
+   */
   implicit val durationConfigReader: ConfigReader[FiniteDuration] =
-    constructConfigReader((c, p) => FiniteDuration(c.getDuration(p, MILLISECONDS), MILLISECONDS), "FiniteDuration")
+    new ConfigReader[FiniteDuration] {
 
+      override val kind = "FiniteDuration"
+
+      /**
+       * Read a config value resulting in a either a Valid A or NonEmptyList of String error messages.
+       */
+      override def read(path: String)(implicit configSettings: ConfigSettings): ValidatedNel[String, FiniteDuration] =
+        Try(FiniteDuration(configSettings.config.getDuration(path, configSettings.timeUnit), configSettings.timeUnit))
+          .fold(_ => invalid(NonEmptyList.of(s"Unable to read config value '$path' of type '$kind'.")), valid)
+    }
+
+  /**
+   * ConfigReader instance for List of FiniteDuration.
+   */
   implicit val durationListConfigReader: ConfigReader[List[FiniteDuration]] =
-    constructConfigReader(
-      (c, p) =>
-        c.getDurationList(p, MILLISECONDS).asScala.toList.map(FiniteDuration(_, MILLISECONDS)),
-      "List[FiniteDuration]"
-    )
+    new ConfigReader[List[FiniteDuration]] {
 
+      override val kind = "FiniteDuration"
+
+      override def read(path: String)(implicit configSettings: ConfigSettings): ValidatedNel[String, List[FiniteDuration]] =
+        Try(configSettings
+          .config
+          .getDurationList(path, configSettings.timeUnit)
+          .asScala.toList
+          .map(FiniteDuration(_, configSettings.timeUnit))).fold(_ => invalid(NonEmptyList.of(s"Unable to read config value '$path' of type '$kind'.")), valid)
+    }
+
+  /**
+   * ConfigReader instance for Option[A] for any A that has a ConfigReader instance.
+   */
   implicit def optionalConfigReader[A](implicit configReader: ConfigReader[A]): ConfigReader[Option[A]] =
     new ConfigReader[Option[A]] {
       override val kind: String = s"Option[${configReader.kind}]"

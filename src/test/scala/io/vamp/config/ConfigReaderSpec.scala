@@ -3,9 +3,9 @@ package io.vamp.config
 import org.scalatest._
 
 import scala.concurrent.duration.{ FiniteDuration, MILLISECONDS }
-
 import io.vamp.config.ConfigReader._
 import cats.data.Validated._
+import com.typesafe.config.ConfigFactory
 
 class ConfigReaderSpec extends FlatSpec with Matchers {
 
@@ -82,6 +82,27 @@ class ConfigReaderSpec extends FlatSpec with Matchers {
     println(config)
 
     config.shouldEqual(valid(outcome))
+  }
+
+  it should "Read a cameled cased field as a dash split identifier" in {
+    case class Split(splitIdentifier: String)
+
+    Config.read[Split]("string").shouldEqual(Right(Split("split-identifier")))
+  }
+
+  it should "Read a cameled cased field as a underscore split identifier" in {
+    case class SplitUnder(splitIdentifier: String)
+
+    implicit val configSettings: ConfigSettings = new ConfigSettings {
+
+      override val config = ConfigFactory.load()
+
+      override val timeUnit = MILLISECONDS
+
+      override val separator = "_"
+    }
+
+    Config.read[SplitUnder]("string").shouldEqual(Right(SplitUnder("split_identifier")))
   }
 
 }
