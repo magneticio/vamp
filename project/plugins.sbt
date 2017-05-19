@@ -10,5 +10,3 @@ resolvers += Classpaths.sbtPluginReleases
 resolvers += Classpaths.typesafeReleases
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-pgp" % "0.8.3")
-
-addSbtPlugin("org.scalariform" % "sbt-scalariform" % "1.6.0")
