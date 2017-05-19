@@ -189,11 +189,13 @@ object ConfigReader {
       override val kind = "FiniteDuration"
 
       override def read(path: String)(implicit configSettings: ConfigSettings): ValidatedNel[String, List[FiniteDuration]] =
-        Try(configSettings
-          .config
-          .getDurationList(path, configSettings.timeUnit)
-          .asScala.toList
-          .map(FiniteDuration(_, configSettings.timeUnit))).fold(_ => invalid(NonEmptyList.of(s"Unable to read config value '$path' of type '$kind'.")), valid)
+        Try(
+          configSettings
+            .config
+            .getDurationList(path, configSettings.timeUnit)
+            .asScala.toList
+            .map(FiniteDuration(_, configSettings.timeUnit))
+        ).fold(_ => invalid(NonEmptyList.of(s"Unable to read config value '$path' of type '$kind'.")), valid)
     }
 
   /**
