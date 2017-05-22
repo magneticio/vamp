@@ -23,6 +23,7 @@ lazy val root = project.in(sbt.file(".")).settings(packAutoSettings ++ Seq(packE
   libraryDependencies ++= Seq(
     "io.vamp" %% "vamp-operation" % "katana" % "provided",
     "io.vamp" %% "vamp-elasticsearch" % "katana" % "provided",
+    "io.vamp" %% "vamp-config" % "katana" % "provided",
     "org.postgresql" % "postgresql" % "9.4-1202-jdbc42",
     "mysql" % "mysql-connector-java" % "6.0.6",
     "com.microsoft.sqlserver" % "mssql-jdbc" % "6.1.0.jre8",

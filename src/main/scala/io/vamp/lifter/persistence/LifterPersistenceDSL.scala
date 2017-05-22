@@ -21,12 +21,12 @@ case class CreateTables(tableQueries: List[String]) extends LifterPersistenceDSL
 
 object LifterPersistenceDSL {
 
-  type LiftAction[A] = Free[LifterPersistenceDSL, A]
+  type PersistenceLiftAction[A] = Free[LifterPersistenceDSL, A]
 
-  def createDatabase: LiftAction[Boolean] =
+  def createDatabase: PersistenceLiftAction[Boolean] =
     Free.liftF(CreateDatabase)
 
-  def createTables(tableQueries: List[String]): LiftAction[Boolean] =
+  def createTables(tableQueries: List[String]): PersistenceLiftAction[Boolean] =
     Free.liftF(CreateTables(tableQueries))
 
   implicit val sqlInterpreter: LifterPersistenceDSL ~> SqlAction = new (LifterPersistenceDSL ~> SqlAction) {
