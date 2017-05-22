@@ -1,20 +1,20 @@
 package io.vamp.config
 
-import com.typesafe.config.{ Config => TConfig }
+import com.typesafe.config.{Config => TConfig}
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 import scala.collection.JavaConverters._
 import scala.annotation.implicitNotFound
-import shapeless.{ ::, HList, HNil, LabelledGeneric, Lazy, Witness }
+import shapeless.{:+:, ::, CNil, Coproduct, HList, HNil, Inl, Inr, LabelledGeneric, Lazy, Witness}
 import shapeless.labelled._
 import cats.syntax.cartesian._
-import cats.data.{ NonEmptyList, ValidatedNel }
-import cats.data.Validated.{ Invalid, Valid, invalid, valid }
+import cats.data.{NonEmptyList, Validated, ValidatedNel}
+import cats.data.Validated.{Invalid, Valid, invalid, valid}
 
 /**
  * Typeclass that provides reading capabilities for each type of config value.
  */
-@implicitNotFound(msg = "Cannot find ConfigReader type class for ${A}")
+@implicitNotFound(msg = "Cannot find ConfigReader instance for ${A}")
 trait ConfigReader[A] {
 
   /**
@@ -65,17 +65,17 @@ object ConfigReader {
     witness: Witness.Aux[K],
     hConfigReader: Lazy[ConfigReader[H]],
     tConfigReader: ConfigReader[T]
-  ): ConfigReader[FieldType[K, H] :: T] = {
-    val fieldName: String = witness.value.name
-    println(s"Current fieldName: $fieldName")
+  ): ConfigReader[FieldType[K, H] :: T] =
     new ConfigReader[FieldType[K, H] :: T] {
+
+      val fieldName: String = witness.value.name
+
       override val kind: String = "H"
 
       override def read(path: String)(implicit configSettings: ConfigSettings): ValidatedNel[String, FieldType[K, H] :: T] =
         (hConfigReader.value.read(s"$path.${toDashed(fieldName)}") |@| tConfigReader.read(s"$path"))
           .map(field[K](_) :: _)
     }
-  }
 
   private def toDashed(fieldName: String)(implicit configSettings: ConfigSettings): String =
     fieldName.foldLeft("") {
@@ -84,10 +84,53 @@ object ConfigReader {
     }
 
   /**
+    * ConfigReader instance for CNil.
+    * If this gets reached it means that no succesfull parse occurred in the Coproduct of the configuration value(s),
+    * returning an ErrorMessage explaining that the config value could not be read on the given path.
+    */
+  implicit val cnilConfigReader: ConfigReader[CNil] = new ConfigReader[CNil] {
+
+    override val kind = "CNil"
+
+    override def read(path: String)(implicit configSettings: ConfigSettings): Validated[NonEmptyList[String], CNil] =
+      invalid(NonEmptyList.of(s"Unable to read config value on path: `$path`."))
+  }
+
+  /**
+    * ConfigReader instance for Coproduct.
+    * This enabled generic derrivation of ADTs of different possible config values.
+    * Errors get accumulated through the leftMap on the Invalid case match.
+    */
+  implicit def coproductConfigReader[K <: Symbol, H, T <: Coproduct](implicit
+    witness: Witness.Aux[K],
+     hConfigReader: Lazy[ConfigReader[H]],
+     tConfigReader: ConfigReader[T]): ConfigReader[FieldType[K, H] :+: T] =
+    new ConfigReader[FieldType[K, H] :+: T] {
+
+      override val kind: String = witness.value.name
+
+      override def read(path: String)(implicit
+          configSettings: ConfigSettings): ValidatedNel[String, FieldType[K, H] :+: T] = {
+        val dashedKind = toDashedType(kind)
+
+        hConfigReader.value.read(s"$path.$dashedKind") match {
+          case Valid(a) => valid(Inl(field[K](a)))
+          case Invalid(e) => tConfigReader.read(s"$path").map(t => Inr(t)).leftMap(_.concat(e))
+        }
+      }
+    }
+
+  private def toDashedType(typeName: String)(implicit configSettings: ConfigSettings): String =
+    (typeName.take(1).toLowerCase + typeName.drop(1)).foldLeft("") {
+      case (acc, c) if c.isUpper => acc + configSettings.separator + c.toLower
+      case (acc, c) => acc + c
+    }
+
+  /**
    * Creates a ConfigReader for any possible A.
    * Transforms from a Generic representation (HList) to a Product A.
    */
-  implicit def genericConfigReader[A, H <: HList](
+  implicit def genericConfigReader[A, H](
     implicit
     generic: LabelledGeneric.Aux[A, H],
     hConfigReader: Lazy[ConfigReader[H]]
