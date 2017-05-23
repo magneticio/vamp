@@ -6,7 +6,7 @@ import io.vamp.common.{ Artifact, Namespace }
 import io.vamp.common.akka.IoC.actorFor
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InconsistentArtifactName
-import io.vamp.model.reader.{ WorkflowStatusReader, YamlReader }
+import io.vamp.model.reader.WorkflowStatusReader
 import io.vamp.operation.notification.{ DeploymentWorkflowNameCollision, WorkflowUpdateError }
 import io.vamp.persistence.{ ArtifactExpansionSupport, PersistenceActor }
 
@@ -17,12 +17,11 @@ trait WorkflowApiController extends AbstractController {
 
   import PersistenceActor._
 
-  protected def createWorkflow(reader: YamlReader[_ <: Artifact], source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
-    updateWorkflow(reader.read(source), source, validateOnly, create = true)
+  protected def createWorkflow(artifact: Artifact, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
+    updateWorkflow(artifact, source, validateOnly, create = true)
   }
 
-  protected def updateWorkflow(reader: YamlReader[_ <: Artifact], name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
-    val artifact = reader.read(source)
+  protected def updateWorkflow(artifact: Artifact, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
     if (name != artifact.name)
       throwException(InconsistentArtifactName(name, artifact.name))
     updateWorkflow(artifact, source, validateOnly, create = false)

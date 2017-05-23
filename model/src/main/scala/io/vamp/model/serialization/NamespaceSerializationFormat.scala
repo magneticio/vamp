@@ -17,7 +17,7 @@ class NamespaceSerializer extends ArtifactSerializer[Namespace] with TraitDecomp
       list += JField("name", JString(namespace.name))
       list += JField("kind", JString(namespace.kind))
       list += JField("config", Extraction.decompose(namespace.config))
-      list += JField("metadata", Extraction.decompose(namespace.metadata))
+      list += JField("metadata", Extraction.decompose(namespace.metadata)(DefaultFormats))
       new JObject(list.toList)
   }
 }

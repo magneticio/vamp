@@ -26,7 +26,7 @@ class WorkflowSerializer
       val list = new ArrayBuffer[JField]
       list += JField("name", JString(workflow.name))
       list += JField("kind", JString(workflow.kind))
-      list += JField("metadata", Extraction.decompose(workflow.metadata))
+      list += JField("metadata", Extraction.decompose(workflow.metadata)(DefaultFormats))
       list += JField("breed", new JObject(JField("reference", JString(workflow.breed.name)) :: Nil))
       list += JField("status", JString(workflow.status.toString))
 
