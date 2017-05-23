@@ -64,7 +64,7 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
   private def instance(workflow: Workflow) = Instance(workflow.name, "", Map(), deployed = true)
 
   protected override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
-    case w if w.schedule != DaemonSchedule ⇒ enrich(w).flatMap { workflow ⇒
+    case w if w.schedule != DaemonSchedule ⇒ enrich(w, data).flatMap { workflow ⇒
 
       val breed = workflow.breed.asInstanceOf[DefaultBreed]
 
