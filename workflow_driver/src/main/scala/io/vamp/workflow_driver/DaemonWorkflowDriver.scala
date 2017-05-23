@@ -34,10 +34,11 @@ trait DaemonWorkflowDriver extends WorkflowDriver {
 
   protected def request: PartialFunction[Workflow, Unit] = {
     case workflow if workflow.schedule == DaemonSchedule ⇒ driverActor ! GetWorkflow(workflow, self)
+    case _ ⇒
   }
 
   protected override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = {
-    case workflow if workflow.schedule == DaemonSchedule ⇒ enrich(workflow).flatMap { enriched ⇒ driverActor ? DeployWorkflow(enriched, update = workflow.instances.nonEmpty) }
+    case workflow if workflow.schedule == DaemonSchedule ⇒ enrich(workflow, data).flatMap { enriched ⇒ driverActor ? DeployWorkflow(enriched, update = workflow.instances.nonEmpty) }
   }
 
   protected override def unschedule(): PartialFunction[Workflow, Future[Any]] = {

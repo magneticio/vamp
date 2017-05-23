@@ -67,7 +67,7 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
 
   protected def unschedule(): PartialFunction[Workflow, Future[Any]]
 
-  protected def enrich(workflow: Workflow): Future[Workflow] = {
+  protected def enrich(workflow: Workflow, data: Any): Future[Workflow] = {
     artifactFor[DefaultBreed](workflow.breed, force = true).flatMap { breed ⇒
       (deployables.get(breed.deployable.defaultType()) match {
         case Some(reference) ⇒ artifactFor[DefaultBreed](reference)
@@ -75,7 +75,7 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
       }).flatMap { executor ⇒
 
         val environmentVariables = (executor.environmentVariables ++ breed.environmentVariables ++ workflow.environmentVariables).
-          map(env ⇒ env.name → resolveEnvironmentVariable(workflow)(env)).toMap.values.toList
+          map(env ⇒ env.name → resolveEnvironmentVariable(workflow, data)(env)).toMap.values.toList
 
         val scale = workflow.scale.getOrElse(defaultScale).asInstanceOf[DefaultScale]
         val network = workflow.network.getOrElse(Docker.network())
