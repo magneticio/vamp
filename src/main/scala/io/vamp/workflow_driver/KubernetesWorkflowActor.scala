@@ -36,7 +36,7 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with ContainerDriverM
   }
 
   protected override def schedule(data: Any): PartialFunction[Workflow, Future[Any]] = super.schedule(data) orElse {
-    case w if data.isInstanceOf[Event] && w.schedule.isInstanceOf[EventSchedule] ⇒ enrich(w).flatMap { workflow ⇒
+    case w if data.isInstanceOf[Event] && w.schedule.isInstanceOf[EventSchedule] ⇒ enrich(w, data).flatMap { workflow ⇒
 
       validateDeployable(workflow.breed.asInstanceOf[DefaultBreed].deployable)
 
