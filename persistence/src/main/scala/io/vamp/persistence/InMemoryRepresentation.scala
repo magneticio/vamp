@@ -9,18 +9,18 @@ import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-trait InMemoryRepresentationPersistenceActor extends InMemoryRepresentation with PersistenceActor {
+trait InMemoryRepresentationPersistenceActor
+    extends PersistenceActor
+    with TypeOfArtifact
+    with PersistenceNotificationProvider {
 
   protected implicit val loggingAdapter: LoggingAdapter = log
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int) = Future.successful(allArtifacts(`type`, page, perPage))
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] =
+    Future.successful(allArtifacts(`type`, page, perPage))
 
-  protected def get(name: String, `type`: Class[_ <: Artifact]) = Future.successful(readArtifact(name, `type`))
-}
-
-trait InMemoryRepresentation extends TypeOfArtifact with PersistenceNotificationProvider {
-
-  protected implicit def loggingAdapter: LoggingAdapter
+  protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] =
+    Future.successful(readArtifact(name, `type`))
 
   private val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
@@ -67,8 +67,5 @@ trait InMemoryRepresentation extends TypeOfArtifact with PersistenceNotification
       artifact
     }
   }
-
-  protected def retrieveStore(): Map[String, Map[String, Artifact]] =
-    this.store.mapValues(_.toMap).toMap
 
 }

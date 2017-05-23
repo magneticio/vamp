@@ -95,14 +95,14 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
   def fullNamespaceInfoOpt(on: Set[String])(implicit namespace: Namespace): Future[Option[NamespaceInfo]] = {
     implicit val timeout = PersistenceActor.timeout()
     if (on.contains("namespace")) checked[Option[Namespace]](
-        readArtifact(
-          namespace.kind,
-          namespace.name,
-          expandReferences = true,
-          onlyReferences = true)(
-          namespace = Namespace(namespace.parent),
-          timeout)
-        ).map(_.map(NamespaceInfo(_)))
+      readArtifact(
+        namespace.kind,
+        namespace.name,
+        expandReferences = true,
+        onlyReferences = true)(
+        namespace = Namespace(namespace.parent),
+        timeout)
+    ).map(_.map(NamespaceInfo(_)))
     else
       Future.successful(None)
   }
