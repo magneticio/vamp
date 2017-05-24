@@ -29,6 +29,8 @@ object MarathonDriverActor {
   val apiUser = Config.string(s"$config.marathon.user")
   val apiPassword = Config.string(s"$config.marathon.password")
 
+  val apiToken = Config.string(s"$config.marathon.token")
+
   val sse = Config.boolean(s"$config.marathon.sse")
   val expirationPeriod = Config.duration(s"$config.marathon.expiration-period")
   val reconciliationPeriod = Config.duration(s"$config.marathon.reconciliation-period")
@@ -66,7 +68,13 @@ class MarathonDriverActor
 
   private implicit val formats: Formats = DefaultFormats
 
-  private val headers: List[(String, String)] = HttpClient.basicAuthorization(MarathonDriverActor.apiUser(), MarathonDriverActor.apiPassword())
+  private val headers: List[(String, String)] = {
+    val token = MarathonDriverActor.apiToken()
+    if (token.isEmpty)
+      HttpClient.basicAuthorization(MarathonDriverActor.apiUser(), MarathonDriverActor.apiPassword())
+    else
+      List("Authorization" → s"token=$token")
+  }
 
   override protected def supportedDeployableTypes = DockerDeployableType :: CommandDeployableType :: Nil
 
@@ -95,8 +103,8 @@ class MarathonDriverActor
     }
 
     for {
-      slaves ← httpClient.get[Any](s"${MarathonDriverActor.mesosUrl()}/master/slaves")
-      frameworks ← httpClient.get[Any](s"${MarathonDriverActor.mesosUrl()}/master/frameworks")
+      slaves ← httpClient.get[Any](s"${MarathonDriverActor.mesosUrl()}/master/slaves", headers)
+      frameworks ← httpClient.get[Any](s"${MarathonDriverActor.mesosUrl()}/master/frameworks", headers)
       marathon ← httpClient.get[Any](s"$url/v2/info", headers)
     } yield {
 
