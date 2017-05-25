@@ -87,3 +87,17 @@ pack:
 .PHONY: clean
 clean:
 	sbt clean
+
+pack-local:
+	export VAMP_VERSION="katana" && sbt package publish-local pack
+	rm -rf $(TARGET)/vamp-zookeeper-$(VERSION)
+	mkdir -p $(TARGET)/vamp-zookeeper-$(VERSION)
+	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-zookeeper-$(VERSION)/
+	mv $$(find $(TARGET)/vamp-zookeeper-$(VERSION)/lib -type f -name "vamp-*-katana.jar") $(TARGET)/vamp-zookeeper-$(VERSION)/
+
+	docker run \
+		--rm \
+		--volume $(TARGET)/vamp-zookeeper-$(VERSION):/usr/local/src \
+		--volume packer:/usr/local/stash \
+		$(BUILD_SERVER) \
+			push vamp-zookeeper $(VERSION)

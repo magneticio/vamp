@@ -104,15 +104,18 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
       Future.successful(default)
   }
 
-  private def initClient() = zooKeeperClient = Option {
-    AsyncZooKeeperClient(
-      servers = servers,
-      sessionTimeout = Config.int(s"$config.session-timeout")(),
-      connectTimeout = Config.int(s"$config.connect-timeout")(),
-      basePath = "",
-      watcher = None,
-      eCtx = actorSystem.dispatcher
-    )
+  private def initClient() = {
+    zooKeeperClient.foreach(_.close())
+    zooKeeperClient = Option {
+      AsyncZooKeeperClient(
+        servers = servers,
+        sessionTimeout = Config.int(s"$config.session-timeout")(),
+        connectTimeout = Config.int(s"$config.connect-timeout")(),
+        basePath = "",
+        watcher = None,
+        eCtx = actorSystem.dispatcher
+      )
+    }
   }
 
   override def preStart() = initClient()
