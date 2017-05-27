@@ -9,6 +9,6 @@ object NamespaceReader extends YamlReader[Namespace] {
       case Some(ds: YamlSourceReader) ⇒ ds.flatten()
       case _                          ⇒ Map()
     }
-    Namespace(name, config, metadata)
+    Namespace(name, config + ("vamp.namespace" → name), metadata)
   }
 }
