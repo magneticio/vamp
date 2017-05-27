@@ -17,7 +17,9 @@ import scala.concurrent.Future
 trait SystemRoute extends AbstractRoute with SystemController {
   this: HttpApiDirectives ⇒
 
-  def systemRoutes(implicit namespace: Namespace) = {
+  def systemRoutes(implicit namespace: Namespace) = vgaRoutes ~ configRoutes
+
+  def vgaRoutes(implicit namespace: Namespace) = {
     pathPrefix("vga") {
       path(Segment / Segment / "template") { (kind, name) ⇒
         pathEndOrSingleSlash {
@@ -45,28 +47,32 @@ trait SystemRoute extends AbstractRoute with SystemController {
         }
       }
     }
-  } ~ pathPrefix("configuration" | "config") {
-    get {
-      parameters('type.as[String] ? "") { `type` ⇒
-        parameters('flatten.as[Boolean] ? false) { flatten ⇒
-          path(Segment) { key: String ⇒
-            pathEndOrSingleSlash {
-              onSuccess(configuration(`type`, flatten, key)) { result ⇒
+  }
+
+  def configRoutes(implicit namespace: Namespace) = {
+    pathPrefix("configuration" | "config") {
+      get {
+        parameters('type.as[String] ? "") { `type` ⇒
+          parameters('flatten.as[Boolean] ? false) { flatten ⇒
+            path(Segment) { key: String ⇒
+              pathEndOrSingleSlash {
+                onSuccess(configuration(`type`, flatten, key)) { result ⇒
+                  respondWith(OK, result)
+                }
+              }
+            } ~ pathEndOrSingleSlash {
+              onSuccess(configuration(`type`, flatten)) { result ⇒
                 respondWith(OK, result)
               }
             }
-          } ~ pathEndOrSingleSlash {
-            onSuccess(configuration(`type`, flatten)) { result ⇒
-              respondWith(OK, result)
-            }
           }
         }
-      }
-    } ~ (method(PUT) | method(POST)) {
-      entity(as[String]) { request ⇒
-        validateOnly { validateOnly ⇒
-          onSuccess(configurationUpdate(request, validateOnly)) { result ⇒
-            respondWith(Accepted, result)
+      } ~ (method(PUT) | method(POST)) {
+        entity(as[String]) { request ⇒
+          validateOnly { validateOnly ⇒
+            onSuccess(configurationUpdate(request, validateOnly)) { result ⇒
+              respondWith(Accepted, result)
+            }
           }
         }
       }
