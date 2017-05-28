@@ -1,6 +1,6 @@
 package io.vamp.bootstrap
 
-import akka.actor.{ Actor, ActorSystem, Props }
+import akka.actor.{ Actor, ActorNotFound, ActorSystem, Props }
 import akka.util.Timeout
 import io.vamp.common.akka.{ Bootstrap, ActorBootstrap ⇒ ActorBootstrapService }
 import io.vamp.common.{ ClassProvider, Namespace }
@@ -10,7 +10,9 @@ import scala.concurrent.{ ExecutionContext, Future }
 trait AbstractActorBootstrap extends Bootstrap {
 
   implicit def timeout: Timeout
+
   implicit def namespace: Namespace
+
   implicit def actorSystem: ActorSystem
 
   protected def bootstrap: List[ActorBootstrapService]
@@ -33,13 +35,20 @@ class RestartableActorBootstrap(namespace: Namespace)(override val bootstrap: Li
     extends ActorBootstrap(bootstrap)(actorSystem, namespace, timeout) {
 
   implicit val ns: Namespace = namespace
+  implicit val executionContext: ExecutionContext = actorSystem.dispatcher
 
-  actorSystem.actorOf(Props(new Actor {
-    def receive = {
-      case "reload" ⇒ bootstrap.reverse.foreach(_.restart)
-      case _        ⇒
-    }
-  }), s"${namespace.name}-config")
+  private val name = s"${namespace.name}-config"
+
+  actorSystem.actorSelection(name).resolveOne().failed.foreach {
+    case _: ActorNotFound ⇒
+      actorSystem.actorOf(Props(new Actor {
+        def receive = {
+          case "reload" ⇒ bootstrap.reverse.foreach(_.restart)
+          case _        ⇒
+        }
+      }), name)
+    case _ ⇒
+  }
 }
 
 class ClassProviderActorBootstrap()(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout)
