@@ -5,7 +5,6 @@ case class Namespace(
     config:   Map[String, Any] = Map(),
     metadata: Map[String, Any] = Map()) extends Artifact {
   val kind = "namespace"
-  val parent: String = name.take(name.lastIndexOf("-"))
 }
 
 trait NamespaceProvider {

@@ -20,9 +20,11 @@ object IoC {
 
   private val actorRefs: mutable.Map[String, mutable.Map[Class[_], ActorRef]] = mutable.Map()
 
+  private val namespaceMap: mutable.Map[String, Namespace] = mutable.Map()
+
   private val namespaceActors: mutable.Map[String, ActorRef] = mutable.Map()
 
-  def namespaces: List[Namespace] = namespaceActors.keySet.map(Namespace(_)).toList
+  def namespaces: List[Namespace] = namespaceMap.values.toList
 
   def alias[FROM: ClassTag](implicit namespace: Namespace): Class[_] = {
     alias(classTag[FROM].runtimeClass)
@@ -78,6 +80,7 @@ object IoC {
   }
 
   private def namespaceActor(implicit actorSystem: ActorSystem, namespace: Namespace): ActorRef = {
+    namespaceMap.put(namespace.name, namespace)
     namespaceActors.getOrElseUpdate(namespace.name, actorSystem.actorOf(Props(new Actor {
       def receive = {
         case props: Props ⇒ sender() ! context.actorOf(props, s"${TextUtil.toSnakeCase(props.clazz.getSimpleName)}-${counter.getAndIncrement}")
