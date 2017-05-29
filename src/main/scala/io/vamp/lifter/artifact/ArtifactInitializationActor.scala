@@ -1,8 +1,9 @@
 package io.vamp.lifter.artifact
 
-import java.nio.file.{ Path, Paths }
+import java.nio.file.{Path, Paths}
+
 import akka.pattern.ask
-import cats.data.{ EitherT, Kleisli }
+import cats.data.{EitherT, Kleisli, NonEmptyList}
 import cats.free.Free
 import cats.~>
 import io.vamp.config.Config
@@ -11,16 +12,17 @@ import io.vamp.common.akka._
 import io.vamp.lifter.ArtifactLifterSeed
 import io.vamp.lifter.notification._
 import io.vamp.lifter.persistence.SqlInterpreter.LifterResult
-import io.vamp.model.artifact.{ DefaultBreed, Deployable }
+import io.vamp.model.artifact.{DefaultBreed, Deployable}
 import io.vamp.model.reader.WorkflowReader
 import io.vamp.persistence.PersistenceActor
-import cats.implicits.{ catsStdInstancesForEither, catsStdInstancesForList }
+import cats.implicits.{catsStdInstancesForEither, catsStdInstancesForList}
 import cats.instances.future.catsStdInstancesForFuture
 import cats.implicits.toTraverseOps
 import io.vamp.operation.controller
+
 import scala.concurrent.Future
 import scala.io.Source
-import scala.util.{ Failure, Left, Right, Success, Try }
+import scala.util.{Failure, Left, Right, Success, Try}
 
 /**
  * Initializes supplied Artifacts in the configuration, does not stop on failure.
@@ -30,27 +32,32 @@ class ArtifactInitializationActor extends CommonSupportForActors with LifterNoti
   def receive = {
     case "init" ⇒
 
-      Config.read[ArtifactLifterSeed]("vamp.lifter.artifact") match {
-        case Left(errorMessages) ⇒
-          errorMessages.toList.foreach(log.error)
-          log.error("Unable to perform initialization of Artifacts due to missing configuration values..")
-        case Right(artifactLifterSeed) ⇒
-          val artifactInitActions: ArtifactLiftAction[Unit] = for {
-            _ ← loadFiles
-            _ ← loadResources
-          } yield ()
+      Config
+        .read[ArtifactLifterSeed]("vamp.lifter.artifact")
+        .flatMap(validateArtifactLifterSeed) match {
+          case Left(errorMessages) ⇒
+            errorMessages.toList.foreach(log.error)
+            log.error("Unable to perform initialization of Artifacts due to missing configuration values.")
+          case Right(artifactLifterSeed) ⇒
+            val artifactInitActions: ArtifactLiftAction[Unit] = for {
+              _ ← loadFiles
+              _ ← loadResources
+            } yield ()
 
-          val executeInitActions: ArtifactResult[Unit] =
-            artifactInitActions.foldMap(artifactLiftInterpreter)
+            val executeInitActions: ArtifactResult[Unit] =
+              artifactInitActions.foldMap(artifactLiftInterpreter)
 
-          executeInitActions.run(artifactLifterSeed).value.foreach {
-            case Left(errorMessage) ⇒
-              reportException(PersistenceInitializationFailure(errorMessage))
-            case Right(_) ⇒
-              info(ArtifactInitializationSuccess)
-          }
-      }
+            executeInitActions.run(artifactLifterSeed).value.foreach {
+              case Left(errorMessage) ⇒
+                reportException(PersistenceInitializationFailure(errorMessage))
+              case Right(_) ⇒
+                info(ArtifactInitializationSuccess)
+            }
+        }
   }
+
+  def validateArtifactLifterSeed(asl: ArtifactLifterSeed): Either[NonEmptyList[String], ArtifactLifterSeed] =
+    Right(asl)
 
   override def preStart(): Unit = {
     Config.read[ArtifactLifterSeed]("vamp.lifter.artifact") match {
@@ -105,7 +112,9 @@ trait ArtifactLiftAction extends controller.ArtifactApiController with controlle
             EitherT(Future.successful(als.resources.traverse[({ type F[B] = Either[String, B] })#F, Unit] { resource ⇒
               val result = for {
                 path ← Try(Paths.get(resource))
+                _ = log.info(s"Retrieving resource path $path.")
                 source ← Try(Source.fromInputStream(getClass.getResourceAsStream(path.toString)))
+                _ = log.info(s"Retrieving source: ${source.mkString}")
               } yield load(path, source.mkString, als.force)
 
               result match {
