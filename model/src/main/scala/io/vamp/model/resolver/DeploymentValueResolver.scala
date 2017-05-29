@@ -1,6 +1,6 @@
 package io.vamp.model.resolver
 
-import io.vamp.common.NamespaceProvider
+import io.vamp.common.{ Config, NamespaceProvider }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact.{ ClusterReference, HostReference, LocalReference, _ }
 import io.vamp.model.notification.UnresolvedDependencyError
@@ -14,8 +14,12 @@ private case class HostPortClusterReference(host: HostReference, port: TraitRefe
   override def reference: String = port.reference
 }
 
-trait DeploymentValueResolver extends ValueResolver with ConfigurationValueResolver {
+trait DeploymentValueResolver extends ValueResolver with ConfigurationValueResolver with ClassLoaderValueResolver {
   this: NamespaceProvider with NotificationProvider ⇒
+
+  private val resolversPath = "vamp.model.resolvers.deployment"
+
+  override def resolverClasses: List[String] = if (Config.has(resolversPath)(namespace)()) Config.stringList(resolversPath)() else Nil
 
   override def resolve(value: String, provider: (ValueReference ⇒ String)): String = {
 
@@ -78,8 +82,11 @@ trait DeploymentValueResolver extends ValueResolver with ConfigurationValueResol
   def valueFor(deployment: Deployment, service: Option[DeploymentService])(reference: ValueReference): String = (
     valueForDeploymentService(deployment, service)
     orElse super[ConfigurationValueResolver].valueForReference
+    orElse super[ClassLoaderValueResolver].valueForReference
     orElse PartialFunction[ValueReference, String] { _ ⇒ "" }
   )(reference)
+
+  override def valueForReference: PartialFunction[ValueReference, String] = PartialFunction.empty
 
   private def valueForDeploymentService(deployment: Deployment, service: Option[DeploymentService]): PartialFunction[ValueReference, String] = {
 

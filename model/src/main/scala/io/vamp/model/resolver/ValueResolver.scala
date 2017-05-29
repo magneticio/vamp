@@ -25,15 +25,18 @@ trait ValueResolver {
 
   def nodes(value: String): List[TraitResolverNode] = {
     try {
-      val parser = new Parser[Seq[TraitResolverNode]] {
-        override def parser(expression: String) = new TraitResolverParser(expression)
+      if (value.isEmpty) Nil
+      else {
+        val parser = new Parser[Seq[TraitResolverNode]] {
+          override def parser(expression: String) = new TraitResolverParser(expression)
+        }
+        def compact(nodes: List[TraitResolverNode]): List[TraitResolverNode] = nodes match {
+          case StringNode(string1) :: StringNode(string2) :: tail ⇒ compact(StringNode(s"$string1$string2") :: tail)
+          case head :: tail ⇒ head :: compact(tail)
+          case Nil ⇒ Nil
+        }
+        compact(parser.parse(value).toList)
       }
-      def compact(nodes: List[TraitResolverNode]): List[TraitResolverNode] = nodes match {
-        case StringNode(string1) :: StringNode(string2) :: tail ⇒ compact(StringNode(s"$string1$string2") :: tail)
-        case head :: tail ⇒ head :: compact(tail)
-        case Nil ⇒ Nil
-      }
-      compact(parser.parse(value).toList)
     }
     catch {
       case e: NotificationErrorException ⇒ throw e
