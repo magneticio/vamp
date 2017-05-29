@@ -10,7 +10,7 @@ import scala.io.Source
 
 class ElasticsearchPersistenceInitializationActor extends ElasticsearchInitializationActor with NamespaceValueResolver with LifterNotificationProvider {
 
-  lazy val index = resolveWithNamespace(ElasticsearchPersistenceActor.index())
+  lazy val index = resolveWithNamespace(ElasticsearchPersistenceActor.index(), lookup = true)
 
   lazy val elasticsearchUrl = ElasticsearchPersistenceActor.elasticsearchUrl()
 
