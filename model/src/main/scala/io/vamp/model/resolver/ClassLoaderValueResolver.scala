@@ -3,9 +3,11 @@ package io.vamp.model.resolver
 import io.vamp.common.{ Namespace, NamespaceProvider }
 import io.vamp.model.artifact.ValueReference
 
-abstract class ClassValueResolver(namespace: Namespace) extends GlobalValueResolver
+abstract class ClassValueResolver(namespace: Namespace) {
+  def valueForReference(context: AnyRef): PartialFunction[ValueReference, String]
+}
 
-trait ClassLoaderValueResolver extends GlobalValueResolver {
+trait ClassLoaderValueResolver {
   this: NamespaceProvider ⇒
 
   private lazy val resolvers = resolverClasses.map { clazz ⇒
@@ -14,7 +16,7 @@ trait ClassLoaderValueResolver extends GlobalValueResolver {
 
   def resolverClasses: List[String] = Nil
 
-  def valueForReference: PartialFunction[ValueReference, String] = {
-    if (resolvers.isEmpty) PartialFunction.empty else resolvers.map(_.valueForReference).reduce(_ orElse _)
+  def valueForReference(context: AnyRef): PartialFunction[ValueReference, String] = {
+    if (resolvers.isEmpty) PartialFunction.empty else resolvers.map(_.valueForReference(context)).reduce(_ orElse _)
   }
 }
