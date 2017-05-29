@@ -7,6 +7,7 @@ import akka.actor.{ ActorRef, PoisonPill, Props }
 import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.headers.Accept
 import akka.http.scaladsl.model.{ ContentType, ContentTypes, HttpCharsets, HttpMethods, HttpResponse, _ }
+import io.vamp.common.Namespace
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.http_api.notification.HttpApiNotificationProvider
@@ -30,11 +31,13 @@ object WebSocketActor {
 
 }
 
+private case class SessionData(actor: ActorRef, namespace: Namespace)
+
 class WebSocketActor(logRequests: Boolean, eventRequests: Boolean, numberOfPathSplit: Int = 2) extends EventApiController with LogApiController with CommonSupportForActors with HttpApiNotificationProvider {
 
   import WebSocketActor._
 
-  private val sessions = mutable.Map[UUID, ActorRef]()
+  private val sessions = mutable.Map[UUID, SessionData]()
 
   def receive = {
     case SessionOpened(id, actor) ⇒ sessionOpened(id, actor)
@@ -46,8 +49,8 @@ class WebSocketActor(logRequests: Boolean, eventRequests: Boolean, numberOfPathS
   override def postStop() = {
     log.info("Shutting down WebSocket connections.")
     sessions.foreach {
-      case (id, actor) ⇒
-        actor ! PoisonPill
+      case (id, data) ⇒
+        data.actor ! PoisonPill
         sessionClosed(id)
     }
   }
@@ -55,43 +58,56 @@ class WebSocketActor(logRequests: Boolean, eventRequests: Boolean, numberOfPathS
   private def sessionOpened(id: UUID, actor: ActorRef) = {
     log.info(s"WebSocket session opened [$id]: $actor}")
     context.watch(actor)
-    sessions += (id → actor)
+    sessions += (id → SessionData(actor, namespace))
   }
 
   private def sessionClosed(id: UUID) = {
     log.info(s"WebSocket session closed [$id]")
-    sessions.remove(id).foreach(closeEventStream)
+    sessions.remove(id).foreach { data ⇒
+      closeLogStream(data.actor)
+      closeEventStream(data.actor)(data.namespace)
+    }
   }
 
   private def sessionRequest(apiHandler: HttpRequest ⇒ Future[HttpResponse], id: UUID, origin: HttpRequest, request: WebSocketMessage) = {
     log.debug(s"WebSocket session request [$id]: $request")
     request match {
       case req: WebSocketRequest ⇒ handle(id, origin, req, apiHandler)
-      case other                 ⇒ sessions.get(id).foreach(_ ! other)
+      case other                 ⇒ sessions.get(id).foreach(_.actor ! other)
     }
   }
 
-  private def handle(id: UUID, origin: HttpRequest, request: WebSocketRequest, apiHandler: HttpRequest ⇒ Future[HttpResponse]) = sessions.get(id).foreach { receiver ⇒
+  private def handle(id: UUID, origin: HttpRequest, request: WebSocketRequest, apiHandler: HttpRequest ⇒ Future[HttpResponse]) = sessions.get(id).foreach { data ⇒
     if (request.logStream && logRequests) {
       val params = request.parameters.filter {
         case (_, _: String) ⇒ true
         case _              ⇒ false
       }.asInstanceOf[Map[String, String]]
       val message = WebSocketResponse(request.api, request.path, request.action, Status.Ok, request.accept, request.transaction, None, Map())
-      openLogStream(receiver, params.getOrElse("level", ""), params.get("logger"), { event ⇒ message.copy(data = Option(encode(event))) })
+      openLogStream(data.actor, params.getOrElse("level", ""), params.get("logger"), { event ⇒ message.copy(data = Option(encode(event))) })
     }
     else if (request.eventStream && eventRequests) {
       val params = request.parameters.filter {
         case (_, v: List[_]) ⇒ v.forall(_.isInstanceOf[String])
         case _               ⇒ false
       }.asInstanceOf[Map[String, List[String]]]
+
+      closeEventStream(data.actor)(data.namespace)
       val message = WebSocketResponse(request.api, request.path, request.action, Status.Ok, request.accept, request.transaction, None, Map())
-      openEventStream(receiver, params, request.data.getOrElse(""), message)
+
+      request.streamNamespace match {
+        case Some(ns) ⇒
+          val namespace = Namespace(ns)
+          sessions += (id → SessionData(data.actor, namespace))
+          openEventStream(data.actor, params, request.data.getOrElse(""), message)(namespace)
+        case _ ⇒
+          openEventStream(data.actor, params, request.data.getOrElse(""), message)(data.namespace)
+      }
     }
     else {
       val httpRequest = new HttpRequest(toMethod(request), toUri(request), toHeaders(origin, request), toEntity(request), HttpProtocols.`HTTP/1.1`)
       apiHandler(httpRequest).map {
-        case response: HttpResponse ⇒ toResponse(request, response).foreach(receiver ! _)
+        case response: HttpResponse ⇒ toResponse(request, response).foreach(data.actor ! _)
         case _                      ⇒
       }
     }
