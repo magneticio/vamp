@@ -12,7 +12,9 @@ class MapSerializer extends Serializer[Map[_, _]] {
   override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
     case map: Map[_, _] ⇒
       new JObject(map.map {
-        case (name, value) ⇒ JField(TextUtil.toSnakeCase(name.toString, dash = false), Extraction.decompose(value))
+        case (name, value) ⇒
+          val newName = if (name.toString.contains("-") || name.toString.contains("_")) name.toString else TextUtil.toSnakeCase(name.toString, dash = false)
+          JField(newName, Extraction.decompose(value))
       }.toList)
   }
 

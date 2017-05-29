@@ -168,7 +168,6 @@ trait SourceTransformer {
     case "workflows"   ⇒ (classOf[Workflow], WorkflowReader)
     case "gateways"    ⇒ (classOf[Gateway], GatewayReader)
     case "deployments" ⇒ (classOf[Deployment], DeploymentReader)
-    case "namespace"   ⇒ (classOf[Namespace], NamespaceReader)
     case "templates"   ⇒ (classOf[Template], TemplateReader)
     case _             ⇒ throwException(UnexpectedArtifact(kind))
   }

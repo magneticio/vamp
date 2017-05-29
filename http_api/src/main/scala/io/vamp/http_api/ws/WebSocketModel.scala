@@ -44,6 +44,18 @@ case class WebSocketRequest(
   val logStream = action == Action.Peek && (path.endsWith("/logs") || path.endsWith("/log"))
 
   val eventStream = action == Action.Peek && path.endsWith("/events/stream")
+
+  val streamNamespace: Option[String] = {
+    if (logStream) {
+      val index = path.indexOf("/log")
+      if (index > 0) Option(path.substring(1, index)) else None
+    }
+    else if (eventStream) {
+      val index = path.indexOf("/events/stream")
+      if (index > 0) Option(path.substring(1, index)) else None
+    }
+    else None
+  }
 }
 
 case class WebSocketResponse(

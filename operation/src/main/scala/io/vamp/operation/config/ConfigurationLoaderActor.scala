@@ -37,7 +37,7 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
   override def preStart() = {
     if (Config.boolean("vamp.operation.reload-configuration")()) {
       val delay = Config.duration("vamp.operation.reload-configuration-delay")()
-      log.info("Getting configuration update from key-value store")
+      log.info(s"Getting configuration update from key-value store in ${delay.toSeconds} seconds.")
       context.system.scheduler.scheduleOnce(delay, self, Reload)
     }
   }

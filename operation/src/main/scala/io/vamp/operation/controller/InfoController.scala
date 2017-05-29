@@ -3,8 +3,8 @@ package io.vamp.operation.controller
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Config, Namespace, NamespaceInfo }
-import io.vamp.common.akka.{ DataRetrieval, ReplyCheck }
+import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.akka.DataRetrieval
 import io.vamp.common.akka.IoC._
 import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
 import io.vamp.container_driver.ContainerDriverActor
@@ -33,7 +33,6 @@ case class InfoMessage(
   uuid:            String,
   runningSince:    String,
   jvm:             Option[JvmVitals],
-  namespace:       Option[NamespaceInfo],
   persistence:     Option[Any],
   keyValue:        Option[Any],
   pulse:           Option[Any],
@@ -42,30 +41,27 @@ case class InfoMessage(
   workflowDriver:  Option[Any]
 ) extends AbstractInfoMessage
 
-trait InfoController extends AbstractController with DataRetrieval with JmxVitalsProvider with ArtifactApiController with ReplyCheck {
+trait InfoController extends AbstractController with DataRetrieval with JmxVitalsProvider {
 
   val infoMessage = Config.string("vamp.operation.info.message")
 
   protected val dataRetrievalTimeout = Config.timeout("vamp.operation.info.timeout")
 
   def infoMessage(on: Set[String])(implicit namespace: Namespace, timeout: Timeout): Future[(AbstractInfoMessage, Boolean)] = {
-    retrieve(infoActors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout()) flatMap { result ⇒
-      fullNamespaceInfoOpt(on).map { namespaceInfoOpt ⇒
-        InfoMessage(
-          infoMessage(),
-          Model.version,
-          Model.uuid,
-          Model.runningSince,
-          if (on.isEmpty || on.contains("jvm")) Some(jvmVitals()) else None,
-          namespaceInfoOpt,
-          result.data.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
-          result.data.get(classOf[KeyValueStoreActor].asInstanceOf[Class[Actor]]),
-          result.data.get(classOf[PulseActor].asInstanceOf[Class[Actor]]),
-          result.data.get(classOf[GatewayDriverActor].asInstanceOf[Class[Actor]]),
-          result.data.get(classOf[ContainerDriverActor].asInstanceOf[Class[Actor]]),
-          result.data.get(classOf[WorkflowDriverActor].asInstanceOf[Class[Actor]])
-        ) → result.succeeded
-      }
+    retrieve(infoActors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout()) map { result ⇒
+      InfoMessage(
+        infoMessage(),
+        Model.version,
+        Model.uuid,
+        Model.runningSince,
+        if (on.isEmpty || on.contains("jvm")) Option(jvmVitals()) else None,
+        result.data.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
+        result.data.get(classOf[KeyValueStoreActor].asInstanceOf[Class[Actor]]),
+        result.data.get(classOf[PulseActor].asInstanceOf[Class[Actor]]),
+        result.data.get(classOf[GatewayDriverActor].asInstanceOf[Class[Actor]]),
+        result.data.get(classOf[ContainerDriverActor].asInstanceOf[Class[Actor]]),
+        result.data.get(classOf[WorkflowDriverActor].asInstanceOf[Class[Actor]])
+      ) → result.succeeded
     }
   }
 
@@ -91,20 +87,4 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
 
     list.map(_.asInstanceOf[Class[Actor]])
   }
-
-  def fullNamespaceInfoOpt(on: Set[String])(implicit namespace: Namespace): Future[Option[NamespaceInfo]] = {
-    implicit val timeout = PersistenceActor.timeout()
-    if (on.contains("namespace")) checked[Option[Namespace]](
-      readArtifact(
-        namespace.kind,
-        namespace.name,
-        expandReferences = true,
-        onlyReferences = true)(
-        namespace = Namespace(namespace.parent),
-        timeout)
-    ).map(_.map(NamespaceInfo(_)))
-    else
-      Future.successful(None)
-  }
-
 }
