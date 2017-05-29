@@ -32,9 +32,7 @@ class ArtifactInitializationActor extends CommonSupportForActors with LifterNoti
   def receive = {
     case "init" ⇒
 
-      Config
-        .read[ArtifactLifterSeed]("vamp.lifter.artifact")
-        .flatMap(validateArtifactLifterSeed) match {
+      Config.read[ArtifactLifterSeed](configLocation) match {
           case Left(errorMessages) ⇒
             errorMessages.toList.foreach(log.error)
             log.error("Unable to perform initialization of Artifacts due to missing configuration values.")
@@ -56,8 +54,7 @@ class ArtifactInitializationActor extends CommonSupportForActors with LifterNoti
         }
   }
 
-  def validateArtifactLifterSeed(asl: ArtifactLifterSeed): Either[NonEmptyList[String], ArtifactLifterSeed] =
-    Right(asl)
+  val configLocation: String = "vamp.lifter.artifact"
 
   override def preStart(): Unit = {
     Config.read[ArtifactLifterSeed]("vamp.lifter.artifact") match {
