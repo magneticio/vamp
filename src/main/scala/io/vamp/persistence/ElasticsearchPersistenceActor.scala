@@ -23,7 +23,7 @@ case class ElasticsearchPersistenceInfo(`type`: String, url: String, index: Stri
 
 class ElasticsearchPersistenceActor extends PersistenceActor with PersistenceMarshaller with TypeOfArtifact with PaginationSupport with NamespaceValueResolver {
 
-  private lazy val index = resolveWithNamespace(ElasticsearchPersistenceActor.index())
+  private lazy val index = resolveWithNamespace(ElasticsearchPersistenceActor.index(), lookup = true)
 
   private lazy val url = ElasticsearchPersistenceActor.elasticsearchUrl()
 

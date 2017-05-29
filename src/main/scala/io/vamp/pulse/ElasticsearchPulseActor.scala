@@ -44,7 +44,7 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
 
   lazy val url = ElasticsearchPulseActor.elasticsearchUrl()
 
-  lazy val indexName = resolveWithNamespace(ElasticsearchPulseActor.indexName())
+  lazy val indexName = resolveWithNamespace(ElasticsearchPulseActor.indexName(), lookup = true)
 
   lazy val indexTimeFormat = ElasticsearchPulseActor.indexTimeFormat()
 
