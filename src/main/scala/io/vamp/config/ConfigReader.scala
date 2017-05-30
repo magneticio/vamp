@@ -1,15 +1,15 @@
 package io.vamp.config
 
-import com.typesafe.config.{Config => TConfig}
+import com.typesafe.config.{ Config => TConfig }
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 import scala.collection.JavaConverters._
 import scala.annotation.implicitNotFound
-import shapeless.{:+:, ::, CNil, Coproduct, HList, HNil, Inl, Inr, LabelledGeneric, Lazy, Witness}
+import shapeless.{ :+:, ::, CNil, Coproduct, HList, HNil, Inl, Inr, LabelledGeneric, Lazy, Witness }
 import shapeless.labelled._
 import cats.syntax.cartesian._
-import cats.data.{NonEmptyList, Validated, ValidatedNel}
-import cats.data.Validated.{Invalid, Valid, invalid, valid}
+import cats.data.{ NonEmptyList, Validated, ValidatedNel }
+import cats.data.Validated.{ Invalid, Valid, invalid, valid }
 
 /**
  * Typeclass that provides reading capabilities for each type of config value.
@@ -84,10 +84,10 @@ object ConfigReader {
     }
 
   /**
-    * ConfigReader instance for CNil.
-    * If this gets reached it means that no succesfull parse occurred in the Coproduct of the configuration value(s),
-    * returning an ErrorMessage explaining that the config value could not be read on the given path.
-    */
+   * ConfigReader instance for CNil.
+   * If this gets reached it means that no succesfull parse occurred in the Coproduct of the configuration value(s),
+   * returning an ErrorMessage explaining that the config value could not be read on the given path.
+   */
   implicit val cnilConfigReader: ConfigReader[CNil] = new ConfigReader[CNil] {
 
     override val kind = "CNil"
@@ -97,20 +97,19 @@ object ConfigReader {
   }
 
   /**
-    * ConfigReader instance for Coproduct.
-    * This enabled generic derrivation of ADTs of different possible config values.
-    * Errors get accumulated through the leftMap on the Invalid case match.
-    */
+   * ConfigReader instance for Coproduct.
+   * This enabled generic derrivation of ADTs of different possible config values.
+   * Errors get accumulated through the leftMap on the Invalid case match.
+   */
   implicit def coproductConfigReader[K <: Symbol, H, T <: Coproduct](implicit
     witness: Witness.Aux[K],
-     hConfigReader: Lazy[ConfigReader[H]],
-     tConfigReader: ConfigReader[T]): ConfigReader[FieldType[K, H] :+: T] =
+    hConfigReader: Lazy[ConfigReader[H]],
+    tConfigReader: ConfigReader[T]): ConfigReader[FieldType[K, H] :+: T] =
     new ConfigReader[FieldType[K, H] :+: T] {
 
       override val kind: String = witness.value.name
 
-      override def read(path: String)(implicit
-          configSettings: ConfigSettings): ValidatedNel[String, FieldType[K, H] :+: T] = {
+      override def read(path: String)(implicit configSettings: ConfigSettings): ValidatedNel[String, FieldType[K, H] :+: T] = {
         val dashedKind = toDashedType(kind)
 
         hConfigReader.value.read(s"$path.$dashedKind") match {
