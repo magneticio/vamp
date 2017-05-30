@@ -22,3 +22,5 @@ lazy val root = project.in(sbt.file(".")).settings(packAutoSettings ++ Seq(packE
 scalacOptions += "-target:jvm-1.8"
 
 javacOptions ++= Seq("-encoding", "UTF-8")
+
+scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation, Opts.compile.unchecked) ++ Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint", "-feature")
