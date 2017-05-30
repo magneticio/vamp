@@ -3,7 +3,7 @@ package io.vamp.lifter.artifact
 import java.nio.file.{Path, Paths}
 
 import akka.pattern.ask
-import cats.data.{EitherT, Kleisli, NonEmptyList}
+import cats.data.{EitherT, Kleisli}
 import cats.free.Free
 import cats.~>
 import io.vamp.config.Config
