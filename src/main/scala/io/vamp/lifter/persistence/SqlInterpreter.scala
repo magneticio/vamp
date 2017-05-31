@@ -73,8 +73,8 @@ object SqlInterpreter {
           case CloseStatement(statement)                     ⇒ executeCloseStatement(statement)
           case ExecuteStatement(statement, query)            ⇒ executeExecuteStatement(statement, query)
           case ExecuteQuery(statement, query)                ⇒ executeExecuteQuery(statement, query)
-          case CreateDatabaseQuery                           ⇒ lifterResult(s"""CREATE DATABASE \"${sls.database}\";""") // TODO
-          case SelectDatabasesQuery                          ⇒ lifterResult("select * from sys.databases;") // TODO
+          case CreateDatabaseQuery                           ⇒ lifterResult(s"""CREATE DATABASE \"${sls.database}\";""")
+          case SelectDatabasesQuery                          ⇒ lifterResult("select * from sys.databases;")
           case CreateDatabaseIfNotExistsIn(resultSet, query) ⇒ executeCreateDatabaseIfNotExistsIn(resultSet, query, sls)
         }
       }
@@ -90,8 +90,8 @@ object SqlInterpreter {
           case CloseStatement(statement)                     ⇒ executeCloseStatement(statement)
           case ExecuteStatement(statement, query)            ⇒ executeExecuteStatement(statement, query)
           case ExecuteQuery(statement, query)                ⇒ executeExecuteQuery(statement, query)
-          case CreateDatabaseQuery                           ⇒ lifterResult(s"""CREATE DATABASE \"${sls.database}\" ENCODING 'UTF8';""") // TODO
-          case SelectDatabasesQuery                          ⇒ lifterResult("select datname from pg_database;") // TODO
+          case CreateDatabaseQuery                           ⇒ lifterResult(s"""CREATE DATABASE \"${sls.database}\" ENCODING 'UTF8';""")
+          case SelectDatabasesQuery                          ⇒ lifterResult("select datname from pg_database;")
           case CreateDatabaseIfNotExistsIn(resultSet, query) ⇒ executeCreateDatabaseIfNotExistsIn(resultSet, query, sls)
         }
       }
