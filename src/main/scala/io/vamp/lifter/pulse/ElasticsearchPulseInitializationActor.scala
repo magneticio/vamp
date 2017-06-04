@@ -10,7 +10,7 @@ import scala.io.Source
 
 class ElasticsearchPulseInitializationActor extends ElasticsearchPulseEvent with NamespaceValueResolver with ElasticsearchInitializationActor with LifterNotificationProvider {
 
-  lazy val indexName = resolveWithNamespace(ElasticsearchPulseActor.indexName(), lookup = true)
+  lazy val indexName = resolveWithNamespace(ElasticsearchPulseActor.indexName())
 
   lazy val indexTimeFormat = ElasticsearchPulseActor.indexTimeFormat()
 

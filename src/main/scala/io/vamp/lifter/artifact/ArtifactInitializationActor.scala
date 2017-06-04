@@ -1,126 +1,67 @@
 package io.vamp.lifter.artifact
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.{ Path, Paths }
 
 import akka.pattern.ask
-import cats.data.{EitherT, Kleisli}
-import cats.free.Free
-import cats.~>
-import io.vamp.config.Config
+import akka.util.Timeout
+import io.vamp.common.Config
 import io.vamp.common.akka.IoC._
-import io.vamp.common.akka._
-import io.vamp.lifter.ArtifactLifterSeed
-import io.vamp.lifter.notification._
-import io.vamp.lifter.persistence.SqlInterpreter.LifterResult
-import io.vamp.model.artifact.{DefaultBreed, Deployable}
+import io.vamp.common.akka.{ CommonActorLogging, CommonProvider, CommonSupportForActors }
+import io.vamp.lifter.notification.LifterNotificationProvider
+import io.vamp.model.artifact.{ DefaultBreed, Deployable }
 import io.vamp.model.reader.WorkflowReader
+import io.vamp.operation.controller.{ ArtifactApiController, DeploymentApiController }
+import io.vamp.operation.notification.InternalServerError
 import io.vamp.persistence.PersistenceActor
-import cats.implicits.{catsStdInstancesForEither, catsStdInstancesForList}
-import cats.instances.future.catsStdInstancesForFuture
-import cats.implicits.toTraverseOps
-import io.vamp.operation.controller
 
 import scala.concurrent.Future
 import scala.io.Source
-import scala.util.{Failure, Left, Right, Success, Try}
 
-/**
- * Initializes supplied Artifacts in the configuration, does not stop on failure.
- */
-class ArtifactInitializationActor extends CommonSupportForActors with LifterNotificationProvider with ArtifactLiftAction {
+object ArtifactInitializationActor {
 
-  def receive = {
-    case "init" ⇒
-
-      Config.read[ArtifactLifterSeed](configLocation) match {
-          case Left(errorMessages) ⇒
-            errorMessages.toList.foreach(log.error)
-            log.error("Unable to perform initialization of Artifacts due to missing configuration values.")
-          case Right(artifactLifterSeed) ⇒
-            val artifactInitActions: ArtifactLiftAction[Unit] = for {
-              _ ← loadFiles
-              _ ← loadResources
-            } yield ()
-
-            val executeInitActions: ArtifactResult[Unit] =
-              artifactInitActions.foldMap(artifactLiftInterpreter)
-
-            executeInitActions.run(artifactLifterSeed).value.foreach {
-              case Left(errorMessage) ⇒
-                reportException(PersistenceInitializationFailure(errorMessage))
-              case Right(_) ⇒
-                info(ArtifactInitializationSuccess)
-            }
-        }
-  }
-
-  val configLocation: String = "vamp.lifter.artifact"
-
-  override def preStart(): Unit = {
-    Config.read[ArtifactLifterSeed]("vamp.lifter.artifact") match {
-      case Right(artifactLifterSeed) ⇒
-        context.system.scheduler.scheduleOnce(artifactLifterSeed.postpone, self, "init")
-      case _ ⇒ ()
-    }
-
-  }
+  private[artifact] object Load
 
 }
 
-/**
- * Provides a Safe way of initializing Artifacts
- */
-trait ArtifactLiftAction extends controller.ArtifactApiController with controller.DeploymentApiController {
-  this: CommonActorLogging with CommonProvider ⇒
+class ArtifactInitializationActor extends ArtifactLoader with CommonSupportForActors with LifterNotificationProvider {
+
+  import ArtifactInitializationActor._
 
   implicit lazy val timeout = PersistenceActor.timeout()
 
-  type ArtifactLiftAction[A] = Free[ArtifactLiftDSL, A]
+  private lazy val force = Config.boolean("vamp.lifter.artifact.override")()
 
-  type ArtifactResult[A] = Kleisli[LifterResult, ArtifactLifterSeed, A]
+  private lazy val postpone = Config.duration("vamp.lifter.artifact.postpone")()
 
-  sealed trait ArtifactLiftDSL[A]
-  case object LoadFiles extends ArtifactLiftDSL[Unit]
-  case object LoadResources extends ArtifactLiftDSL[Unit]
+  private lazy val files = Config.stringList("vamp.lifter.artifact.files")()
 
-  def loadFiles: ArtifactLiftAction[Unit] =
-    Free.liftF(LoadFiles)
+  private lazy val resources = Config.stringList("vamp.lifter.artifact.resources")()
 
-  def loadResources: ArtifactLiftAction[Unit] =
-    Free.liftF(LoadResources)
+  def receive = {
+    case Load ⇒ (fileLoad andThen resourceLoad)(Unit)
+    case _    ⇒
+  }
 
-  val artifactLiftInterpreter: ArtifactLiftDSL ~> ArtifactResult = new (ArtifactLiftDSL ~> ArtifactResult) {
-    override def apply[A](artifactLiftDSL: ArtifactLiftDSL[A]): ArtifactResult[A] =
-      Kleisli[LifterResult, ArtifactLifterSeed, A] { als ⇒
-        artifactLiftDSL match {
-          case LoadFiles ⇒
-            EitherT(Future.successful(als.files.traverse[({ type F[B] = Either[String, B] })#F, Unit] { file ⇒
-              val result = for {
-                path ← Try(Paths.get(file))
-                source ← Try(Source.fromFile(file).mkString)
-              } yield load(path, source, als.force)
+  override def preStart(): Unit = {
+    try {
+      context.system.scheduler.scheduleOnce(postpone, self, Load)
+    } catch {
+      case t: Throwable ⇒ reportException(InternalServerError(t))
+    }
+  }
 
-              result match {
-                case Failure(exception) ⇒ Left(s"Unable to load file: '$file'.")
-                case Success(value)     ⇒ Right(value)
-              }
-            }.map(_ ⇒ ())))
-          case LoadResources ⇒
-            EitherT(Future.successful(als.resources.traverse[({ type F[B] = Either[String, B] })#F, Unit] { resource ⇒
-              val result = for {
-                path ← Try(Paths.get(resource))
-                _ = log.info(s"Retrieving resource path $path.")
-                source ← Try(Source.fromInputStream(getClass.getResourceAsStream(path.toString)))
-                _ = log.info(s"Retrieving source: ${source.mkString}")
-              } yield load(path, source.mkString, als.force)
+  private def fileLoad: Unit ⇒ Unit = { _ ⇒ loadFiles(force)(files) }
 
-              result match {
-                case Failure(exception) ⇒ Left(s"Unable to load resource: '$resource'.")
-                case Success(value)     ⇒ Right(value)
-              }
-            }.map(_ ⇒ ())))
-        }
-      }
+  private def resourceLoad: Unit ⇒ Unit = { _ ⇒ loadResources(force)(resources) }
+}
+
+trait ArtifactLoader extends ArtifactApiController with DeploymentApiController {
+  this: CommonActorLogging with CommonProvider ⇒
+
+  implicit def timeout: Timeout
+
+  protected def loadFiles(force: Boolean = false): List[String] ⇒ Unit = {
+    _.foreach(file ⇒ load(Paths.get(file), Source.fromFile(file).mkString, force))
   }
 
   protected def loadResources(force: Boolean = false): List[String] ⇒ Unit = {
@@ -154,7 +95,7 @@ trait ArtifactLiftAction extends controller.ArtifactApiController with controlle
     }
   }
 
-  private def create(`type`: String, fileName: String, name: String, source: String): Future[Any] = {
+  private def create(`type`: String, fileName: String, name: String, source: String) = {
     if (`type` == "breeds" && fileName.endsWith(".js"))
       actorFor[PersistenceActor] ? PersistenceActor.Update(DefaultBreed(name, Map(), Deployable("application/javascript", source), Nil, Nil, Nil, Nil, Map(), None), Some(source))
     else if (`type` == "workflows")
@@ -162,5 +103,4 @@ trait ArtifactLiftAction extends controller.ArtifactApiController with controlle
     else
       updateArtifact(`type`, name, source, validateOnly = false)
   }
-
 }

@@ -12,10 +12,6 @@ import io.vamp.pulse.PulseBootstrap
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-/**
- * Initializes Persistence, Pulse and Artifacts
- * TODO Remove actors (not needed)
- */
 class LifterBootstrap extends ActorBootstrap {
 
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[List[ActorRef]] = {
@@ -37,6 +33,7 @@ class LifterBootstrap extends ActorBootstrap {
       case "postgres"      ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.postgresqlInterpreter, "postgres.sql"))
       case "sqlserver"     ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.sqlServerInterpreter, "sqlserver.sql"))
       case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
+      case "filesystem"    ⇒ IoC.createActor[FileSystemPersistenceInitializationActor] :: Nil
       case _               ⇒ Nil
     }
   }
@@ -52,11 +49,8 @@ class LifterBootstrap extends ActorBootstrap {
     IoC.createActor[ArtifactInitializationActor] :: Nil
   }
 
+  protected def createSearchActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): List[Future[ActorRef]] =
+    List(IoC.createActor[ElasticsearchPersistenceInitializationActor])
+
   override def restart(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {}
-}
-
-object LifterBootstrap {
-
-  val sqlInitializationExitCode = 2
-
 }

@@ -1,6 +1,4 @@
 
 ElasticsearchInitializationTimeoutError$: "Elasticsearch initialization timeout."
 PersistenceInitializationFailure: "Error occurred in Persistence Initialization: '{message}'."
-ArtifactInitializationFailure: "Error occurred in Artifact Initialization: '{message}'."
 PersistenceInitializationSuccess$: "Successfully executed all Persistence Initialization steps."
-ArtifactInitializationSuccess$: "Successfully executed all Artifact Initialization steps."

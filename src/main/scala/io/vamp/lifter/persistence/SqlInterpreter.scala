@@ -39,7 +39,7 @@ object SqlInterpreter {
     tryToEitherT(connection.close(), _ ⇒ "Unable to close jdbc connection.")
 
   def executeGetConnection(default: Boolean, sls: SqlLifterSeed): LifterResult[Connection] = {
-    val connectionUrl = if (default) sls.connection.databaseUrl else sls.connection.tableUrl
+    val connectionUrl = if (default) sls.createUrl else sls.vampDatabaseUrl
 
     tryToEitherT(
       DriverManager.getConnection(connectionUrl, sls.user, sls.password),
@@ -56,7 +56,7 @@ object SqlInterpreter {
           case CloseStatement(statement)                     ⇒ executeCloseStatement(statement)
           case ExecuteStatement(statement, query)            ⇒ executeExecuteStatement(statement, query)
           case ExecuteQuery(statement, query)                ⇒ executeExecuteQuery(statement, query)
-          case CreateDatabaseQuery                           ⇒ lifterResult(s"CREATE DATABASE IF NOT EXISTS `${sls.database}`;")
+          case CreateDatabaseQuery                           ⇒ lifterResult(s"CREATE DATABASE IF NOT EXISTS `${sls.db}`;")
           case SelectDatabasesQuery                          ⇒ lifterResult("show databases;")
           case CreateDatabaseIfNotExistsIn(resultSet, query) ⇒ executeCreateDatabaseIfNotExistsIn(resultSet, query, sls)
         }
@@ -73,8 +73,8 @@ object SqlInterpreter {
           case CloseStatement(statement)                     ⇒ executeCloseStatement(statement)
           case ExecuteStatement(statement, query)            ⇒ executeExecuteStatement(statement, query)
           case ExecuteQuery(statement, query)                ⇒ executeExecuteQuery(statement, query)
-          case CreateDatabaseQuery                           ⇒ lifterResult(s"""CREATE DATABASE \"${sls.database}\";""")
-          case SelectDatabasesQuery                          ⇒ lifterResult("select * from sys.databases;")
+          case CreateDatabaseQuery                           ⇒ lifterResult(s"""CREATE DATABASE \"${sls.db}\";""") // TODO
+          case SelectDatabasesQuery                          ⇒ lifterResult("select * from sys.databases;") // TODO
           case CreateDatabaseIfNotExistsIn(resultSet, query) ⇒ executeCreateDatabaseIfNotExistsIn(resultSet, query, sls)
         }
       }
@@ -90,8 +90,8 @@ object SqlInterpreter {
           case CloseStatement(statement)                     ⇒ executeCloseStatement(statement)
           case ExecuteStatement(statement, query)            ⇒ executeExecuteStatement(statement, query)
           case ExecuteQuery(statement, query)                ⇒ executeExecuteQuery(statement, query)
-          case CreateDatabaseQuery                           ⇒ lifterResult(s"""CREATE DATABASE \"${sls.database}\" ENCODING 'UTF8';""")
-          case SelectDatabasesQuery                          ⇒ lifterResult("select datname from pg_database;")
+          case CreateDatabaseQuery                           ⇒ lifterResult(s"""CREATE DATABASE \"${sls.db}\" ENCODING 'UTF8';""") // TODO
+          case SelectDatabasesQuery                          ⇒ lifterResult("select datname from pg_database;") // TODO
           case CreateDatabaseIfNotExistsIn(resultSet, query) ⇒ executeCreateDatabaseIfNotExistsIn(resultSet, query, sls)
         }
       }
@@ -103,13 +103,13 @@ object SqlInterpreter {
       var dbExists = false
 
       while (resultSet.next()) {
-        if (resultSet.getString(1) == sls.database) {
+        if (resultSet.getString(1) == sls.db) {
           dbExists = true
         }
       }
 
       if (!dbExists) {
-        val connection = DriverManager.getConnection(sls.connection.databaseUrl, sls.user, sls.password)
+        val connection = DriverManager.getConnection(sls.createUrl, sls.user, sls.password)
         try {
           val statement = connection.createStatement()
           try {
