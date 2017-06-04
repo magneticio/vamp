@@ -26,7 +26,7 @@ class ElasticsearchSearchInitializationActor extends NamespaceValueResolver
     with ElasticsearchInitializationActor
     with LifterNotificationProvider {
 
-  lazy val indexName = resolveWithNamespace(searchIndex())
+  lazy val indexName = resolveWithNamespace(searchIndex(), lookup = true)
 
   lazy val elasticsearchUrl = searchUrl()
 
