@@ -39,7 +39,7 @@ object SqlInterpreter {
     tryToEitherT(connection.close(), _ ⇒ "Unable to close jdbc connection.")
 
   def executeGetConnection(default: Boolean, sls: SqlLifterSeed): LifterResult[Connection] = {
-    val connectionUrl = if (default) sls.createUrl else sls.vampDatabaseUrl
+    val connectionUrl = if (default) sls.vampDatabaseUrl else sls.createUrl
 
     tryToEitherT(
       DriverManager.getConnection(connectionUrl, sls.user, sls.password),

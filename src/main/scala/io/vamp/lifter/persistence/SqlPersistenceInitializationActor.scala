@@ -23,9 +23,8 @@ class SqlPersistenceInitializationActor(
   def receive = {
     case "init" ⇒
 
-      // TODO change into config DSL with Applicative that creates SqlLifterSeed
-      val createUrl = resolveWithNamespace(Config.string("vamp.lifter.sql.connection.database-url")())
-      val vampDatabaseUrl = Config.string("vamp.lifter.sql.connection.table-url")()
+      val createUrl = resolveWithNamespace(Config.string("vamp.lifter.sql.connection.table-url")())
+      val vampDatabaseUrl = Config.string("vamp.lifter.sql.connection.database-url")()
       val db = resolveWithNamespace(Config.string("vamp.lifter.sql.database")())
       val user = Config.string("vamp.lifter.sql.user")()
       val password = Config.string("vamp.lifter.sql.password")()
@@ -41,7 +40,6 @@ class SqlPersistenceInitializationActor(
 
       val sqlInitCommand: LiftAction[Boolean] = for {
         databaseCreated ← createDatabase
-        //TODO mixin source dsl tableQueries <- source.readStringResource(mysql.sql).map(_.split(';').toList.map(_.trim).filterNot(_.isEmpty))
         tablesCreated ← createTables(tableQueries)
       } yield databaseCreated && tablesCreated
 
