@@ -109,7 +109,7 @@ object SqlInterpreter {
       }
 
       if (!dbExists) {
-        val connection = DriverManager.getConnection(sls.createUrl, sls.user, sls.password)
+        val connection = DriverManager.getConnection(sls.vampDatabaseUrl, sls.user, sls.password)
         try {
           val statement = connection.createStatement()
           try {
