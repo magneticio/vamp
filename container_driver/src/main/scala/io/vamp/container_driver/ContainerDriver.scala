@@ -32,27 +32,57 @@ trait ContainerDriver extends ContainerDriverMapping with ContainerDriverValidat
 trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueResolver {
   this: NotificationProvider with NamespaceProvider with ExecutionContextProvider ⇒
 
-  protected def portMappings(workflow: Workflow): List[DockerPortMapping] = {
+  protected def portMappings(workflow: Workflow, network: String): List[DockerPortMapping] =
     workflow.breed.asInstanceOf[DefaultBreed].ports.collect {
-      case port if port.value.isDefined ⇒ DockerPortMapping(port.number)
+      case port if port.value.isDefined ⇒
+        network match {
+          case "USER" => DockerPortMapping(port.number, None)
+          case _      => DockerPortMapping(port.number, Some(0))
+        }
+
     }
-  }
 
-  protected def portMappings(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): List[DockerPortMapping] = {
-    service.breed.ports.map(port ⇒
+
+  protected def portMappings(
+      deployment: Deployment,
+      cluster: DeploymentCluster,
+      service: DeploymentService,
+      network: String): List[DockerPortMapping] =
+    service.breed.ports.map { port ⇒
+      val hostPort = network match {
+        case "USER" => None
+        case _      => Some(0)
+      }
+
       port.value match {
-        case Some(_) ⇒ DockerPortMapping(port.number)
-        case None    ⇒ DockerPortMapping(deployment.ports.find(p ⇒ TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name).get.number)
-      })
-  }
+        case Some(_) ⇒ DockerPortMapping(port.number, hostPort)
+        case None ⇒
+          val containerPort = deployment
+            .ports
+            .find(p ⇒ TraitReference(cluster.name, TraitReference.Ports, port.name).toString == p.name)
+            .get
+            .number
 
-  protected def environment(workflow: Workflow): Map[String, String] = {
-    workflow.breed.asInstanceOf[DefaultBreed].environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) → ev.interpolated.getOrElse("")).toMap
-  }
+          DockerPortMapping(containerPort, hostPort)
+      }
+    }
 
-  protected def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] = {
-    service.environmentVariables.map(ev ⇒ ev.alias.getOrElse(ev.name) → ev.interpolated.getOrElse("")).toMap
-  }
+
+  protected def environment(workflow: Workflow): Map[String, String] =
+    workflow
+      .breed
+      .asInstanceOf[DefaultBreed]
+      .environmentVariables
+      .map(ev ⇒ ev.alias.getOrElse(ev.name) → ev.interpolated.getOrElse(""))
+      .toMap
+
+
+  protected def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] =
+    service
+      .environmentVariables
+      .map(ev ⇒ ev.alias.getOrElse(ev.name) → ev.interpolated.getOrElse(""))
+      .toMap
+
 
   protected def interpolate[T](workflow: Workflow, dialect: T): T = {
     def visit(any: Any): Any = any match {
@@ -84,12 +114,14 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
 
     val (privileged, parameters) = privilegedAndParameters(workflow.arguments)
 
+    val network = workflow.network.getOrElse(Docker.network())
+
     Docker(
       image = workflow.breed.asInstanceOf[DefaultBreed].deployable.definition,
-      portMappings = portMappings(workflow),
+      portMappings = portMappings(workflow, network),
       parameters = parameters,
       privileged = privileged,
-      network = workflow.network.getOrElse(Docker.network())
+      network = network
     )
   }
 
@@ -97,12 +129,14 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
 
     val (privileged, parameters) = privilegedAndParameters(service.arguments)
 
+    val network = service.network.orElse(cluster.network).getOrElse(Docker.network())
+
     Docker(
       image = service.breed.deployable.definition,
-      portMappings = portMappings(deployment, cluster, service),
+      portMappings = portMappings(deployment, cluster, service, network),
       parameters = parameters,
       privileged = privileged,
-      network = service.network.orElse(cluster.network).getOrElse(Docker.network())
+      network = network
     )
   }
 
@@ -124,20 +158,16 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
   )
 }
 
-trait ContainerDriverValidation {
-  this: NamespaceProvider with NotificationProvider ⇒
+trait ContainerDriverValidation { this: NamespaceProvider with NotificationProvider ⇒
 
   protected def supportedDeployableTypes: List[DeployableType]
 
-  protected def validateDeployable(deployable: Deployable) = {
+  protected def validateDeployable(deployable: Deployable): Unit = {
     if (!supportedDeployableTypes.exists(_.matches(deployable)))
       throwException(UnsupportedDeployableType(deployable.defaultType(), supportedDeployableTypes.flatMap(_.types).mkString(", ")))
 
     if (DockerDeployableType.matches(deployable) && deployable.definition.isEmpty)
       throwException(UndefinedDockerImage)
   }
-
-  protected def validateHealthCheck(healthChecks: List[HealthCheck]) =
-    if (healthChecks.length > 1) throwException(???)
 
 }
