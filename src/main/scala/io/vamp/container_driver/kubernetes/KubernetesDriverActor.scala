@@ -148,7 +148,7 @@ class KubernetesDriverActor
   private def daemonSet(ds: DaemonSet) = createDaemonSet(ds).flatMap { response ⇒
     ds.serviceType.map { st ⇒
       val ports = ds.docker.portMappings.map { pm ⇒
-        KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort, pm.containerPort)
+        KubernetesServicePort(s"p${pm.containerPort}", pm.protocol.toUpperCase, pm.hostPort.getOrElse(0), pm.containerPort)
       }
       createService(ds.name, st, ds.name, ports, update = false, daemonService ++ Map(ContainerDriver.withNamespace("daemon") → ds.name))
     } getOrElse Future.successful(response)
