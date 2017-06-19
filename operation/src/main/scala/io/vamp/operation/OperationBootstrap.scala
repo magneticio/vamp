@@ -76,7 +76,7 @@ class OperationBootstrap extends ActorBootstrap {
     super.stop(actorSystem, namespace)
   }
 
-  private def kick(clazz: Class[_], period: Period)(implicit actorSystem: ActorSystem, namespace: Namespace, delay: FiniteDuration): Unit = {
+  protected def kick(clazz: Class[_], period: Period)(implicit actorSystem: ActorSystem, namespace: Namespace, delay: FiniteDuration): Unit = {
     actorSystem.scheduler.scheduleOnce(delay)({
       IoC.actorFor(clazz) ! period
     })(actorSystem.dispatcher)

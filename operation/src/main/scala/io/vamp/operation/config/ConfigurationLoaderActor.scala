@@ -13,7 +13,7 @@ object ConfigurationLoaderActor {
 
   val timeout = KeyValueStoreActor.timeout
 
-  object Reload
+  case class Reload(force: Boolean)
 
   case class Get(`type`: String, flatten: Boolean, filter: ConfigFilter)
 
@@ -25,52 +25,52 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
 
   import ConfigurationLoaderActor._
 
-  private implicit val timeout = ConfigurationLoaderActor.timeout()
+  protected implicit val timeout = ConfigurationLoaderActor.timeout()
 
   def receive = {
-    case Reload       ⇒ reload()
-    case request: Get ⇒ reply(get(request.`type`, request.flatten, request.filter))
-    case request: Set ⇒ reply(set(request.input, request.filter, request.validateOnly))
-    case _            ⇒
+    case Reload(force) ⇒ reload(force)
+    case request: Get  ⇒ reply(get(request.`type`, request.flatten, request.filter))
+    case request: Set  ⇒ reply(set(request.input, request.filter, request.validateOnly))
+    case _             ⇒
   }
 
   override def preStart() = {
     if (Config.boolean("vamp.operation.reload-configuration")()) {
       val delay = Config.duration("vamp.operation.reload-configuration-delay")()
       log.info(s"Getting configuration update from key-value store in ${delay.toSeconds} seconds.")
-      context.system.scheduler.scheduleOnce(delay, self, Reload)
+      context.system.scheduler.scheduleOnce(delay, self, Reload(force = false))
     }
   }
 
-  private def get(`type`: String, flatten: Boolean, filter: ConfigFilter) = Future.successful {
+  protected def get(`type`: String, flatten: Boolean, filter: ConfigFilter) = Future.successful {
     Config.export(
       Try(Config.Type.withName(`type`)).getOrElse(Config.Type.applied),
       flatten, filter
     )
   }
 
-  private def set(input: String, filter: ConfigFilter, validateOnly: Boolean): Future[_] = try {
+  protected def set(input: String, filter: ConfigFilter, validateOnly: Boolean): Future[_] = try {
     val config = if (input.trim.isEmpty) Map[String, Any]() else Config.unmarshall(input.trim, filter)
     if (validateOnly) Future.successful(config)
     else IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set("configuration" :: Nil, if (config.isEmpty) None else Option(Config.marshall(config))) map { _ ⇒
-      reload()
+      reload(force = false)
     }
   }
   catch {
     case _: Exception ⇒ throwException(InvalidConfigurationError)
   }
 
-  private def reload() = {
-    def reload(config: Map[String, Any]) = {
-      log.info("Reloading due to configuration change")
-      Config.load(config)
-      actorSystem.actorSelection(s"/user/${namespace.name}-config") ! "reload"
-    }
-
+  protected def reload(force: Boolean): Unit = {
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get("configuration" :: Nil) map {
-      case Some(content: String) if content != Config.marshall(Config.export(Config.Type.dynamic, flatten = false)) ⇒ reload(Config.unmarshall(content))
-      case None if Config.export(Config.Type.dynamic).nonEmpty ⇒ reload(Map())
+      case Some(content: String) if force || content != Config.marshall(Config.export(Config.Type.dynamic, flatten = false)) ⇒ reload(Config.unmarshall(content))
+      case None if force || Config.export(Config.Type.dynamic).nonEmpty ⇒ reload(Map[String, Any]())
       case _ ⇒
     }
+  }
+
+  protected def reload(config: Map[String, Any]): Unit = {
+    log.info("Reloading due to configuration change")
+    Config.load(config)
+    actorSystem.actorSelection(s"/user/${namespace.name}-config") ! "reload"
   }
 }
