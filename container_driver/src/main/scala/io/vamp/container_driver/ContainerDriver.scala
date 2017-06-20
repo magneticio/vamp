@@ -36,22 +36,21 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
     workflow.breed.asInstanceOf[DefaultBreed].ports.collect {
       case port if port.value.isDefined ⇒
         network match {
-          case "USER" => DockerPortMapping(port.number, None)
-          case _      => DockerPortMapping(port.number, Some(0))
+          case "USER" ⇒ DockerPortMapping(port.number, None)
+          case _      ⇒ DockerPortMapping(port.number, Some(0))
         }
 
     }
 
-
   protected def portMappings(
-      deployment: Deployment,
-      cluster: DeploymentCluster,
-      service: DeploymentService,
-      network: String): List[DockerPortMapping] =
+    deployment: Deployment,
+    cluster:    DeploymentCluster,
+    service:    DeploymentService,
+    network:    String): List[DockerPortMapping] =
     service.breed.ports.map { port ⇒
       val hostPort = network match {
-        case "USER" => None
-        case _      => Some(0)
+        case "USER" ⇒ None
+        case _      ⇒ Some(0)
       }
 
       port.value match {
@@ -67,7 +66,6 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
       }
     }
 
-
   protected def environment(workflow: Workflow): Map[String, String] =
     workflow
       .breed
@@ -76,13 +74,11 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
       .map(ev ⇒ ev.alias.getOrElse(ev.name) → ev.interpolated.getOrElse(""))
       .toMap
 
-
   protected def environment(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Map[String, String] =
     service
       .environmentVariables
       .map(ev ⇒ ev.alias.getOrElse(ev.name) → ev.interpolated.getOrElse(""))
       .toMap
-
 
   protected def interpolate[T](workflow: Workflow, dialect: T): T = {
     def visit(any: Any): Any = any match {
