@@ -1,8 +1,13 @@
 package io.vamp.http_api
 
+import java.io.FileInputStream
+import java.security.{ SecureRandom, KeyStore }
+import javax.net.ssl.{ SSLContext, TrustManagerFactory, KeyManagerFactory }
+
 import akka.actor.{ ActorSystem, Props }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
+import akka.http.scaladsl.{ ConnectionContext, Http }
 import akka.http.scaladsl.server.Route
 import akka.stream.{ ActorMaterializer, Materializer }
 import akka.util.Timeout
@@ -24,10 +29,38 @@ class HttpApiBootstrap extends ActorBootstrap {
 
   override def start(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {
     super.start
+
     val (interface, port) = (Config.string("vamp.http-api.interface")(), Config.int("vamp.http-api.port")())
+
+    val sslEnabled = Config.has("vamp.http-api.ssl")(namespace)() &&
+      Config.boolean("vamp.http-api.ssl")()
+
+    lazy val validSslConfig =
+      Config.has("vamp.http-api.ssl")(namespace)() &&
+        Config.has("vamp.http-api.certificate")(namespace)() &&
+        new java.io.File(Config.string("vamp.http-api.certificate")()).exists
+
     implicit lazy val materializer = ActorMaterializer()
-    info(s"Binding API: $interface:$port")
-    binding = Option(Http().bindAndHandle(routes, interface, port))
+
+    binding = sslEnabled match {
+      case true if !validSslConfig ⇒
+        logger.error("SSL enabled, but invalid configuration (check certificate)")
+        None
+
+      case true ⇒
+        logger.info(s"Binding: https://$interface:$port")
+
+        val certificatePath = Config.string("vamp.http-api.certificate")()
+        val https = httpsContext(certificatePath)
+
+        Http().setDefaultServerHttpContext(https)
+        Option(Http().bindAndHandle(routes, interface, port, connectionContext = https))
+
+      case _ ⇒
+        logger.info(s"Binding: http://$interface:$port")
+
+        Option(Http().bindAndHandle(routes, interface, port))
+    }
   }
 
   override def restart(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout) = {}
@@ -42,5 +75,24 @@ class HttpApiBootstrap extends ActorBootstrap {
         }
       }.flatMap { _ ⇒ super.stop }
     } getOrElse super.stop
+  }
+
+  private def httpsContext(certificatePath: String) = {
+    val password = Array[Char]()
+    val keyStore = KeyStore.getInstance("PKCS12")
+
+    val certificate = new FileInputStream(certificatePath)
+    keyStore.load(certificate, password)
+    certificate.close()
+
+    val keyManagerFactory = KeyManagerFactory.getInstance("SunX509")
+    keyManagerFactory.init(keyStore, password)
+
+    val trustManagerFactory = TrustManagerFactory.getInstance("SunX509")
+    trustManagerFactory.init(keyStore)
+
+    val sslContext = SSLContext.getInstance("TLS")
+    sslContext.init(keyManagerFactory.getKeyManagers, trustManagerFactory.getTrustManagers, new SecureRandom)
+    ConnectionContext.https(sslContext)
   }
 }
