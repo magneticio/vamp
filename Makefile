@@ -17,7 +17,7 @@ endif
 
 # Don't change these
 TARGET  := $(CURDIR)/bootstrap/target
-VERSION := $(shell git describe --tags)
+VERSION := $(shell git tag | tail -n1)
 
 # Targets
 .PHONY: all
