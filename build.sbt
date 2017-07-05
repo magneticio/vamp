@@ -108,7 +108,8 @@ lazy val root = project.in(file(".")).settings(
   postgresql,
   redis,
   sqlserver,
-  zookeeper)
+  zookeeper,
+  consul)
 
 lazy val bootstrap = project.settings(packAutoSettings).settings(
   description := "Bootstrap for Vamp",
@@ -247,6 +248,13 @@ lazy val zookeeper = project.settings(
   name := "vamp-zookeeper",
   formatting,
   libraryDependencies ++= testing ++ zookeeperlbs
+).dependsOn(persistence)
+
+lazy val consul = project.settings(
+  description := "Driver for Consul",
+  name := "vamp-consul",
+  formatting,
+  libraryDependencies ++= testing
 ).dependsOn(persistence)
 
 // Java version and encoding requirements
