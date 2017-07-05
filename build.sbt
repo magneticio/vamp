@@ -67,6 +67,8 @@ val configlbs = Seq("com.typesafe"  % "config" % "1.3.1")
 val zookeeperlbs = Seq("org.apache.zookeeper" % "zookeeper" % "3.4.8"
   exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j"))
 
+val dockerlbs = Seq("com.spotify" % "docker-client" % "5.0.1")
+
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
   "org.scala-lang" % "scala-compiler" % scalaVersion.value,
@@ -271,6 +273,13 @@ lazy val kubernetes =project.settings(
   name := "vamp-kubernetes",
   formatting,
   libraryDependencies ++= testing
+).dependsOn(pulse, workflow_driver, container_driver)
+
+lazy val docker = project.settings(
+  description := "Container driver for docker",
+  name := "vamp-docker",
+  formatting,
+  libraryDependencies ++= testing ++ dockerlbs
 ).dependsOn(pulse, workflow_driver, container_driver)
 
 // Java version and encoding requirements
