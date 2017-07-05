@@ -257,6 +257,13 @@ lazy val consul = project.settings(
   libraryDependencies ++= testing
 ).dependsOn(persistence)
 
+lazy val etcd =  project.settings(
+  description := "Driver for ETCD",
+  name := "vamp-etcd",
+  formatting,
+  libraryDependencies ++= testing
+).dependsOn(persistence)
+
 // Java version and encoding requirements
 scalacOptions += "-target:jvm-1.8"
 
