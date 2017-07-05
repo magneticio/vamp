@@ -1,0 +1,17 @@
+{
+  "template": "$NAME",
+  "order": 1,
+  "mappings": {
+    "_default_": {
+      "_all": {
+        "enabled": false
+      },
+      "properties": {
+        "artifact": {
+          "type": "string",
+          "index": "no"
+        }
+      }
+    }
+  }
+}
