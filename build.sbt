@@ -109,7 +109,9 @@ lazy val root = project.in(file(".")).settings(
   redis,
   sqlserver,
   zookeeper,
-  consul)
+  consul,
+  etcd,
+  kubernetes)
 
 lazy val bootstrap = project.settings(packAutoSettings).settings(
   description := "Bootstrap for Vamp",
@@ -263,6 +265,13 @@ lazy val etcd =  project.settings(
   formatting,
   libraryDependencies ++= testing
 ).dependsOn(persistence)
+
+lazy val kubernetes =project.settings(
+  description := "Container driver for Kubernetes",
+  name := "vamp-kubernetes",
+  formatting,
+  libraryDependencies ++= testing
+).dependsOn(pulse, workflow_driver, container_driver)
 
 // Java version and encoding requirements
 scalacOptions += "-target:jvm-1.8"
