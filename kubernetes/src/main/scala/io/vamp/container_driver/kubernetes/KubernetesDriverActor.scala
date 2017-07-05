@@ -142,7 +142,8 @@ class KubernetesDriverActor
 
         Future.sequence(created ++ deleted)
       }
-    } else Future.successful(true)
+    }
+    else Future.successful(true)
   }
 
   private def daemonSet(ds: DaemonSet) = createDaemonSet(ds).flatMap { response ⇒

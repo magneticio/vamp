@@ -79,7 +79,8 @@ trait KubernetesDeployment extends KubernetesArtifact {
         }
         Option(Containers(scale.get, instances))
       }
-    } else Future.successful(None)
+    }
+    else Future.successful(None)
   }
 
   protected def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
