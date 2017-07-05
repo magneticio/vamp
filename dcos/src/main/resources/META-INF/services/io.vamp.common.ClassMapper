@@ -1,0 +1,3 @@
+io.vamp.container_driver.marathon.MarathonDriverActorMapper
+io.vamp.workflow_driver.ChronosWorkflowActorMapper
+io.vamp.workflow_driver.MarathonWorkflowActorMapper
