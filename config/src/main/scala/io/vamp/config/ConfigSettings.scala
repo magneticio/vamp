@@ -1,6 +1,6 @@
 package io.vamp.config
 
-import com.typesafe.config.{ ConfigFactory, Config => TConfig }
+import com.typesafe.config.{ ConfigFactory, Config ⇒ TConfig }
 
 import scala.concurrent.duration.{ MILLISECONDS, TimeUnit }
 

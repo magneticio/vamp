@@ -114,13 +114,16 @@ object SqlInterpreter {
           val statement = connection.createStatement()
           try {
             statement.execute(query)
-          } finally {
+          }
+          finally {
             statement.close()
           }
-        } finally {
+        }
+        finally {
           connection.close()
         }
-      } else true
+      }
+      else true
     }, t ⇒ s"Unable to create database: ${t.getMessage}")
   }
 

@@ -45,7 +45,8 @@ class ArtifactInitializationActor extends ArtifactLoader with CommonSupportForAc
   override def preStart(): Unit = {
     try {
       context.system.scheduler.scheduleOnce(postpone, self, Load)
-    } catch {
+    }
+    catch {
       case t: Throwable ⇒ reportException(InternalServerError(t))
     }
   }
@@ -79,7 +80,8 @@ trait ArtifactLoader extends ArtifactApiController with DeploymentApiController 
         if (force) {
           log.info(s"Updating artifact: ${`type`}/$name")
           create(`type`, fileName, name, source)
-        } else
+        }
+        else
           log.info(s"Ignoring creation of artifact because it exists: ${`type`}/$name")
 
       case false ⇒

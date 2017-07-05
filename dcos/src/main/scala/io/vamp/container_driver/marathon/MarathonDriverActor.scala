@@ -226,7 +226,8 @@ class MarathonDriverActor
 
         if (changed != JNothing) httpClient.put[Any](s"$url/v2/apps/$id", changed, headers) else Future.successful(false)
       }
-    } else {
+    }
+    else {
       httpClient.post[Any](s"$url/v2/apps", payload, headers, logError = false).recover {
         case t if t.getMessage != null && t.getMessage.contains("already exists") ⇒ // ignore, sync issue
         case t ⇒

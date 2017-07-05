@@ -1,12 +1,12 @@
 package io.vamp.config
 
 import org.scalatest._
-import scala.concurrent.duration.{FiniteDuration, MILLISECONDS, SECONDS}
+import scala.concurrent.duration.{ FiniteDuration, MILLISECONDS, SECONDS }
 import io.vamp.config.ConfigReader._
 import cats.data.Validated._
 import com.typesafe.config.ConfigFactory
 
-import scala.util.{Left, Right}
+import scala.util.{ Left, Right }
 
 class ConfigReaderSpec extends FlatSpec with Matchers {
 
@@ -115,21 +115,21 @@ class ConfigReaderSpec extends FlatSpec with Matchers {
   }
 
   it should "Read a coproduct / adt that have different parse possibilities" in {
-//    sealed trait DriverConfig
-//    case class MarathonConfig(url: String, port: Int, streamEnabled: Boolean) extends DriverConfig
-//    case class KubernetesConfig(url: String, timeOut: FiniteDuration) extends DriverConfig
-//    case class RancherConfig(url: String, user: String, password: String) extends DriverConfig
-//
-//    val kubeConfig = KubernetesConfig("http://kube", FiniteDuration(1, SECONDS))
-//    val marathonConfig = MarathonConfig("http", 9090, streamEnabled = true)
-//
-//    val result: Either[NonEmptyList[String], DriverConfig] = Config.read[DriverConfig]("vamp.driver.config")
-//
-//    result match {
-//      case Left(value) => value.toList.foreach(println)
-//      case Right(value) => println(value)
-//    }
-//    result.shouldEqual(Right(marathonConfig))
+    //    sealed trait DriverConfig
+    //    case class MarathonConfig(url: String, port: Int, streamEnabled: Boolean) extends DriverConfig
+    //    case class KubernetesConfig(url: String, timeOut: FiniteDuration) extends DriverConfig
+    //    case class RancherConfig(url: String, user: String, password: String) extends DriverConfig
+    //
+    //    val kubeConfig = KubernetesConfig("http://kube", FiniteDuration(1, SECONDS))
+    //    val marathonConfig = MarathonConfig("http", 9090, streamEnabled = true)
+    //
+    //    val result: Either[NonEmptyList[String], DriverConfig] = Config.read[DriverConfig]("vamp.driver.config")
+    //
+    //    result match {
+    //      case Left(value) => value.toList.foreach(println)
+    //      case Right(value) => println(value)
+    //    }
+    //    result.shouldEqual(Right(marathonConfig))
   }
 
 }

@@ -252,6 +252,7 @@ class HaProxyGatewayMarshaller extends GatewayMarshaller {
         sticky = false,
         balance = ""
       ) :: Nil
-    } else Nil
+    }
+    else Nil
   }
 }
