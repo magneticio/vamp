@@ -18,11 +18,11 @@ description in ThisBuild := """Vamp"""
 
 resolvers in ThisBuild ++= Seq(
   Resolver.typesafeRepo("releases"),
+  Resolver.sonatypeRepo("releases"),
   Resolver.jcenterRepo
 )
 
 // Libraries
-
 val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.16" ::
   "com.typesafe.akka" %% "akka-http" % "10.0.3" ::
   "com.typesafe.akka" %% "akka-parsing" % "10.0.3" ::
@@ -49,6 +49,24 @@ val testing = "junit" % "junit" % "4.11" % "test" ::
   "org.scalacheck" %% "scalacheck" % "1.13.4" % "test" ::
   "com.typesafe.akka" %% "akka-testkit" % "2.4.14" % "test" :: Nil
 
+val templating = Seq("org.jtwig" % "jtwig-core" % "5.65")
+
+val sql = Seq(
+  "org.postgresql" % "postgresql" % "9.4-1202-jdbc42",
+  "mysql" % "mysql-connector-java" % "6.0.6",
+  "com.microsoft.sqlserver" % "mssql-jdbc" % "6.1.0.jre8")
+
+val fp = Seq(
+  "org.typelevel" %% "cats" % "0.9.0",
+  "com.chuusai"  %% "shapeless" % "2.3.2")
+
+val redislbs = Seq("com.github.etaty" %% "rediscala" % "1.8.0")
+
+val configlbs = Seq("com.typesafe"  % "config" % "1.3.1")
+
+val zookeeperlbs = Seq("org.apache.zookeeper" % "zookeeper" % "3.4.8"
+  exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j"))
+
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
   "org.scala-lang" % "scala-compiler" % scalaVersion.value,
@@ -71,8 +89,26 @@ lazy val root = project.in(file(".")).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  common, persistence, model, operation, bootstrap, container_driver, workflow_driver, pulse, http_api, gateway_driver
-)
+  common,
+  persistence,
+  model,
+  operation,
+  bootstrap,
+  container_driver,
+  workflow_driver,
+  pulse,
+  http_api,
+  gateway_driver,
+  lifter,
+  dcos,
+  elasticsearch,
+  config,
+  haproxy,
+  mysql,
+  postgresql,
+  redis,
+  sqlserver,
+  zookeeper)
 
 lazy val bootstrap = project.settings(packAutoSettings).settings(
   description := "Bootstrap for Vamp",
@@ -143,6 +179,76 @@ lazy val common = project.settings(
   libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ testing
 )
 
+lazy val dcos = project.settings(
+  description := "Container driver for DCOS and Marathon/Mesos",
+  name := "vamp-dcos",
+  formatting,
+  libraryDependencies ++= testing
+).dependsOn(pulse, workflow_driver, container_driver)
+
+lazy val elasticsearch = project.settings(
+  description := "Pulse and metrics driver for Elasticsearch",
+  name := "vamp-elasticsearch",
+  formatting,
+  libraryDependencies ++= testing
+).dependsOn(pulse, persistence)
+
+lazy val  config = project.settings(
+  description := "Typelevel config library for VAMP",
+  name := "vamp-config",
+  formatting,
+  libraryDependencies ++= testing ++ fp ++ configlbs
+).dependsOn(common)
+
+lazy val haproxy = project.settings(
+  description := "HAProxy driver",
+  name := "vamp-haproxy",
+  formatting,
+  libraryDependencies ++= testing ++ templating
+).dependsOn(gateway_driver)
+
+lazy val lifter = project.settings(
+  description := "Lifter initializes VAMP components",
+  name := "vamp-lifter",
+  formatting,
+  libraryDependencies ++= testing ++ sql ++ fp
+).dependsOn(operation, elasticsearch)
+
+lazy val mysql = project.settings(
+  description := "MySQL Driver for VAMP persistence",
+  name := "vamp-mysql",
+  formatting,
+  libraryDependencies ++= testing ++ sql
+).dependsOn(persistence)
+
+lazy val postgresql = project.settings(
+  description := "PostgreSQL driver for VAMP persistence",
+  name := "vamp-postgresql",
+  formatting,
+  libraryDependencies ++= testing ++ sql
+).dependsOn(persistence)
+
+lazy val sqlserver = project.settings(
+  description := "MS SQL Server driver for VAMP persistence",
+  name := "vamp-sqlserver",
+  formatting,
+  libraryDependencies ++= testing
+).dependsOn(persistence)
+
+lazy val redis = project.settings(
+  description := "Redis driver for VAMP",
+  name := "vamp-redis",
+  formatting,
+  libraryDependencies ++= testing ++ redislbs
+).dependsOn(persistence)
+
+lazy val zookeeper = project.settings(
+  description := "Zookeeper driver for VAMP K/V Store",
+  name := "vamp-zookeeper",
+  formatting,
+  libraryDependencies ++= testing ++ zookeeperlbs
+).dependsOn(persistence)
+
 // Java version and encoding requirements
 scalacOptions += "-target:jvm-1.8"
 
@@ -150,4 +256,3 @@ javacOptions ++= Seq("-encoding", "UTF-8")
 
 scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation, Opts.compile.unchecked) ++
   Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint", "-feature")
-
