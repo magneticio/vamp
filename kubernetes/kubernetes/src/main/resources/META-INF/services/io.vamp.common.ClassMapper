@@ -1,2 +1,0 @@
-io.vamp.workflow_driver.KubernetesWorkflowActorMapper
-io.vamp.container_driver.kubernetes.KubernetesDriverActorMapper
