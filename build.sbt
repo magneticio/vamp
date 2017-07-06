@@ -119,7 +119,28 @@ lazy val bootstrap = project.settings(packAutoSettings).settings(
   description := "Bootstrap for Vamp",
   name := "vamp-bootstrap",
   formatting
-).dependsOn(common, persistence, model, operation, container_driver, workflow_driver, pulse, http_api, gateway_driver)
+).dependsOn(common,
+  persistence,
+  model,
+  operation,
+  container_driver,
+  workflow_driver,
+  pulse,
+  http_api,
+  gateway_driver,
+  lifter,
+  dcos,
+  elasticsearch,
+  config,
+  haproxy,
+  mysql,
+  postgresql,
+  redis,
+  sqlserver,
+  zookeeper,
+  consul,
+  etcd,
+  kubernetes)
 
 lazy val http_api = project.settings(
   description := "Http Api for Vamp",
