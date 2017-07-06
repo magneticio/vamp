@@ -106,10 +106,7 @@ lazy val root = project.in(file(".")).settings(
   elasticsearch,
   config,
   haproxy,
-  mysql,
-  postgresql,
   redis,
-  sqlserver,
   zookeeper,
   consul,
   etcd,
@@ -133,10 +130,7 @@ lazy val bootstrap = project.settings(packAutoSettings).settings(
   elasticsearch,
   config,
   haproxy,
-  mysql,
-  postgresql,
   redis,
-  sqlserver,
   zookeeper,
   consul,
   etcd,
@@ -188,7 +182,7 @@ lazy val persistence = project.settings(
   description := "Stores Vamp artifacts",
   name := "vamp-persistence",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing ++ sql
 ).dependsOn(model, pulse)
 
 lazy val model = project.settings(
@@ -239,27 +233,6 @@ lazy val lifter = project.settings(
   formatting,
   libraryDependencies ++= testing ++ sql ++ fp
 ).dependsOn(operation, elasticsearch)
-
-lazy val mysql = project.settings(
-  description := "MySQL Driver for VAMP persistence",
-  name := "vamp-mysql",
-  formatting,
-  libraryDependencies ++= testing ++ sql
-).dependsOn(persistence)
-
-lazy val postgresql = project.settings(
-  description := "PostgreSQL driver for VAMP persistence",
-  name := "vamp-postgresql",
-  formatting,
-  libraryDependencies ++= testing ++ sql
-).dependsOn(persistence)
-
-lazy val sqlserver = project.settings(
-  description := "MS SQL Server driver for VAMP persistence",
-  name := "vamp-sqlserver",
-  formatting,
-  libraryDependencies ++= testing
-).dependsOn(persistence)
 
 lazy val redis = project.settings(
   description := "Redis driver for VAMP",
