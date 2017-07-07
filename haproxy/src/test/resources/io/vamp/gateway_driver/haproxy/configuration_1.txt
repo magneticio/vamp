@@ -1,0 +1,38 @@
+# frontend: name
+frontend name
+  bind 0.0.0.0:8080             
+  
+  option httplog
+  log-format """{\"ci\":\"%ci\",\"cp\":%cp,\"t\":\"%t\",\"ft\":\"%ft\",\"b\":\"%b\",\"s\":\"%s\",\"Tq\":%Tq,\"Tw\":%Tw,\"Tc\":%Tc,\"Tr\":%Tr,\"Tt\":%Tt,\"ST\":%ST,\"B\":%B,\"CC\":\"%CC\",\"CS\":\"%CS\",\"tsc\":\"%tsc\",\"ac\":%ac,\"fc\":%fc,\"bc\":%bc,\"sc\":%sc,\"rc\":%rc,\"sq\":%sq,\"bq\":%bq,\"hr\":\"%hr\",\"hs\":\"%hs\",\"r\":%{+Q}r}"""
+
+  bind unix@/usr/local/vamp/vamp_test_be_1_a.sock accept-proxy
+
+  mode http
+
+  # destination: name1
+  acl af31629d4c4c8e71 hdr_sub(user-agent) Firefox
+  acl 81b5022a1c5966ab hdr_sub(user-agent) Chrome
+  use_backend name1 if af31629d4c4c8e71 81b5022a1c5966ab
+
+  # backend: name1
+  default_backend name1
+
+# backend: name1
+backend name1
+  mode http
+  balance roundrobin       
+
+  # server: server1
+  server server1 unix@/usr/local/vamp/vamp_test_be_1_a.sock send-proxy weight 100 check
+
+# backend: name2
+backend name2
+  mode http
+  balance roundrobin       
+
+  http-request set-path /images/%[path] if p_ext_jpg path_end -i .jpg
+
+  option forwardfor
+  
+  # server: test_be1_a_2
+  server test_be1_a_2 192.168.59.103:8082 cookie test_be1_a_2 weight 100 check inter 10 

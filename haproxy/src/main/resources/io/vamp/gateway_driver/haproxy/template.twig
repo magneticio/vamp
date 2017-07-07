@@ -1,0 +1,111 @@
+# HAProxy - Frontends & Backends managed by Vamp
+
+{% if (haproxy.virtualHostFrontends.size > 0) -%}
+# Virtual hosts
+
+frontend virtual_hosts
+
+  bind 0.0.0.0:80
+  mode http
+
+  option httplog
+  log-format """{\"ci\":\"%ci\",\"cp\":%cp,\"t\":\"%t\",\"ft\":\"%ft\",\"b\":\"%b\",\"s\":\"%s\",\"Tq\":%Tq,\"Tw\":%Tw,\"Tc\":%Tc,\"Tr\":%Tr,\"Tt\":%Tt,\"ST\":%ST,\"B\":%B,\"CC\":\"%CC\",\"CS\":\"%CS\",\"tsc\":\"%tsc\",\"ac\":%ac,\"fc\":%fc,\"bc\":%bc,\"sc\":%sc,\"rc\":%rc,\"sq\":%sq,\"bq\":%bq,\"hr\":\"%hr\",\"hs\":\"%hs\",\"r\":%{+Q}r}"""
+  {% for frontend in haproxy.virtualHostFrontends %}
+  {%- for condition in frontend.conditions %}
+  {%- if (condition.acls.isDefined) %}
+  # destination: {{ condition.destination.name }}
+  {%- for acl in condition.acls.get.acls %}
+  acl {{ acl.name }} {{ acl.definition }}
+  {% endfor -%}
+  use_backend {{ condition.destination.lookup }} {% if (condition.acls.get.condition.isDefined) %} if {{ condition.acls.get.condition.get }} {% endif %} {% endif %}
+  {% endfor -%}
+  {% endfor -%}
+
+{% for backend in haproxy.virtualHostBackends %}
+# backend: {{ backend.name }}
+backend {{ backend.lookup }}
+
+  balance roundrobin
+  mode http
+
+  option forwardfor
+  http-request set-header X-Forwarded-Port %[dst_port]
+  {% for server in backend.servers %}
+  # server: {{ server.name }}
+  server {{ server.lookup }} 127.0.0.1:{{ server.port.get }}
+  {% endfor -%}
+{% endfor %}
+{% endif -%}
+
+{% if (haproxy.frontends.size > 0) -%}
+# Port mapping
+{% endif -%}
+
+{% for frontend in haproxy.frontends %}
+# frontend: {{ frontend.name }}
+frontend {{ frontend.lookup }}
+  {% if (frontend.bindIp.isDefined and frontend.bindPort.isDefined) %}
+  bind {{ frontend.bindIp.get -}} : {{- frontend.bindPort.get }}
+  {% endif -%}
+
+  {% if (frontend.mode.toString == "http") %}
+  option httplog
+  log-format """{\"ci\":\"%ci\",\"cp\":%cp,\"t\":\"%t\",\"ft\":\"%ft\",\"b\":\"%b\",\"s\":\"%s\",\"Tq\":%Tq,\"Tw\":%Tw,\"Tc\":%Tc,\"Tr\":%Tr,\"Tt\":%Tt,\"ST\":%ST,\"B\":%B,\"CC\":\"%CC\",\"CS\":\"%CS\",\"tsc\":\"%tsc\",\"ac\":%ac,\"fc\":%fc,\"bc\":%bc,\"sc\":%sc,\"rc\":%rc,\"sq\":%sq,\"bq\":%bq,\"hr\":\"%hr\",\"hs\":\"%hs\",\"r\":%{+Q}r}"""
+  {% endif -%}
+
+  {% if (frontend.mode.toString == "tcp") %}
+  option tcplog
+  log-format """{\"ci\":\"%ci\",\"cp\":%cp,\"t\":\"%t\",\"ft\":\"%ft\",\"b\":\"%b\",\"s\":\"%s\",\"Tw\":%Tw,\"Tc\":%Tc,\"Tt\":%Tt,\"B\":%B,\"ts\":\"%ts\",\"ac\":%ac,\"fc\":%fc,\"bc\":%bc,\"sc\":%sc,\"rc\":%rc,\"sq\":%sq,\"bq\":%bq}"""
+  {% endif -%}
+
+  {%- if (frontend.unixSock.isDefined and frontend.sockProtocol.isDefined) %}
+  bind unix@/usr/local/vamp/ {{- frontend.unixSock.get }} {{ frontend.sockProtocol.get }}
+  {% endif -%}
+
+  mode {{ frontend.mode }}
+
+  {%- for condition in frontend.conditions %}
+  {% if (condition.acls.isDefined) %}
+  # destination: {{ condition.destination.name }}
+  {%- for acl in condition.acls.get.acls %}
+  acl {{ acl.name }} {{ acl.definition }}
+  {%- endfor %}
+  use_backend {{ condition.destination.lookup }} {% if (condition.acls.get.condition.isDefined) -%} if {{ condition.acls.get.condition.get }} {%- endif %}
+  {%- endif %}
+  {%- endfor %}
+
+  # backend: {{ frontend.defaultBackend.name }}
+  default_backend {{ frontend.defaultBackend.lookup }}
+{% endfor -%}
+
+{% for backend in haproxy.backends %}
+# backend: {{ backend.name }}
+backend {{ backend.lookup }}
+
+  mode {{ backend.mode }}
+  balance {{ backend.balance }}
+  {% if (backend.sticky) %}
+  cookie {{ backend.lookup }} insert indirect nocache
+  {% endif -%}
+
+  {% for rewrite in backend.rewrites %}
+  http-request set-path {{ rewrite.path }} if {{ rewrite.condition }}
+  {% endfor -%}
+
+  {% for server in backend.proxyServers %}
+  # server: {{ server.name }}
+  server {{ server.lookup }} unix@/usr/local/vamp/ {{- server.unixSock }} send-proxy weight {{ server.weight }} check {% if (backend.sticky) -%} cookie {{ server.lookup -}} {% endif %}
+  {% endfor -%}
+
+  {% if (backend.servers.size > 0) %}
+  option forwardfor
+
+  {%- for server in backend.servers %}
+  # server: {{ server.name }}
+  server {{ server.lookup }} {%- if (server.url.isDefined) %} {{ server.url.get }} {%- else %} {%- if (server.host.isDefined) %} {{ server.host.get }}:{{ server.port.get }} {%- else %} 127.0.0.1:{{ server.port.get }} {% endif %} {% endif %}
+  {%- if (backend.mode == "http") %} cookie {{ server.lookup -}} {% endif %} weight {{ server.weight }}
+  {%- if (server.checkInterval.isDefined) %} check inter {{ server.checkInterval.get }} {%- else %} check {% endif %} {% if (backend.sticky) %} cookie {{ server.lookup }} {% endif %}
+  {% endfor %}
+  {%- endif %}
+
+{%- endfor %}
