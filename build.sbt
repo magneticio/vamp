@@ -54,7 +54,8 @@ val templating = Seq("org.jtwig" % "jtwig-core" % "5.65")
 val sql = Seq(
   "org.postgresql" % "postgresql" % "9.4-1202-jdbc42",
   "mysql" % "mysql-connector-java" % "6.0.6",
-  "com.microsoft.sqlserver" % "mssql-jdbc" % "6.1.0.jre8")
+  "com.microsoft.sqlserver" % "mssql-jdbc" % "6.1.0.jre8",
+  "org.xerial" % "sqlite-jdbc" % "3.19.3")
 
 val fp = Seq(
   "org.typelevel" %% "cats" % "0.9.0",
