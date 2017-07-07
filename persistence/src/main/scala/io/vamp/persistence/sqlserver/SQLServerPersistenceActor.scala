@@ -1,6 +1,7 @@
-package io.vamp.persistence
+package io.vamp.persistence.sqlserver
 
 import io.vamp.common.ClassMapper
+import io.vamp.persistence.{ SqlPersistenceActor, SqlStatementProvider }
 
 import scala.concurrent.Future
 

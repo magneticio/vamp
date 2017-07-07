@@ -1,1 +1,5 @@
 io.vamp.persistence.InMemoryPersistenceActorMapper
+io.vamp.persistence.postgresql.PostgresPersistenceActorMapper
+io.vamp.persistence.mysql.MySqlPersistenceActorMapper
+io.vamp.persistence.sqlserver.SQLServerPersistenceActorMapper
+io.vamp.persistence.sqlite.SQLitePersistenceActorMapper

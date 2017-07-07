@@ -6,8 +6,6 @@ import io.vamp.config.ConfigReader._
 import cats.data.Validated._
 import com.typesafe.config.ConfigFactory
 
-import scala.util.{ Left, Right }
-
 class ConfigReaderSpec extends FlatSpec with Matchers {
 
   "A ConfigReader" should "Read a value of type String" in {

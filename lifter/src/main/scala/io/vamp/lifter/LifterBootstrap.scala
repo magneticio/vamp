@@ -32,6 +32,7 @@ class LifterBootstrap extends ActorBootstrap {
       case "mysql"         ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.mysqlInterpreter, "mysql.sql"))
       case "postgres"      ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.postgresqlInterpreter, "postgres.sql"))
       case "sqlserver"     ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.sqlServerInterpreter, "sqlserver.sql"))
+      case "sqlite"        ⇒ List(IoC.createActor[SqlPersistenceInitializationActor](SqlInterpreter.sqLiteInterpreter, "sqlite.sql"))
       case "elasticsearch" ⇒ IoC.createActor[ElasticsearchPersistenceInitializationActor] :: Nil
       case "filesystem"    ⇒ IoC.createActor[FileSystemPersistenceInitializationActor] :: Nil
       case _               ⇒ Nil
