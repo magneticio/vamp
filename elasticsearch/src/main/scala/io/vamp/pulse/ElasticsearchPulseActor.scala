@@ -37,7 +37,7 @@ object ElasticsearchPulseActor {
   }
 }
 
-class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValueResolver with PulseStats with PulseActor {
+trait ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValueResolver with PulseStats with PulseActor {
 
   import ElasticsearchClient._
   import PulseActor._
@@ -132,9 +132,9 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
 
   private def constructQuery(eventQuery: EventQuery): Map[Any, Any] = {
     Map("query" →
-      Map("filtered" →
+      Map("bool" →
         Map(
-          "query" → Map("match_all" → Map()),
+          "must" → Map("match_all" → Map()),
           "filter" → Map("bool" →
             Map("must" → List(constructTagQuery(eventQuery.tags), constructTypeQuery(eventQuery.`type`), constructTimeRange(eventQuery.timestamp)).filter(_.isDefined).map(_.get)))
         )))
