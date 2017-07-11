@@ -46,6 +46,17 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val namesp
 
   def health = httpClient.get[Any](urlOf(url, "_cluster", "health"))
 
+  def version(): Future[Option[String]] = httpClient
+    .get[Map[String, Any]](url)
+    .map( m =>
+      for {
+        version <- m.get("version")
+        versionMap <- Try(version.asInstanceOf[Map[String, Any]]).toOption
+        number <- versionMap.get("number")
+        numberS <- Try(number.asInstanceOf[String]).toOption
+      } yield numberS
+    )
+
   def creationTime(index: String): Future[String] = httpClient.get[Any](urlOf(url, index)) map {
     case response: Map[_, _] ⇒ Try {
       response.asInstanceOf[Map[String, _]].get(index).flatMap {

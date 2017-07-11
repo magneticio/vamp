@@ -37,7 +37,7 @@ object ElasticsearchPulseActor {
   }
 }
 
-trait ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValueResolver with PulseStats with PulseActor {
+class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValueResolver with PulseStats with PulseActor {
 
   import ElasticsearchClient._
   import PulseActor._
@@ -49,6 +49,28 @@ trait ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
   lazy val indexTimeFormat = ElasticsearchPulseActor.indexTimeFormat()
 
   private lazy val es = new ElasticsearchClient(url)
+
+  private var boolFilteredKeyword: String = "bool"
+
+  private var mustQueryKeyword: String = "must"
+
+  /**
+    * Sets filterKeyword pending on elasticsearch version for creating the correct pulse queries in constructQuery.
+    */
+  override def preStart(): Unit = {
+    super.preStart()
+    es.version().foreach {
+      case Some(version) =>
+        if(version.take(1).toInt >= 5) {
+          boolFilteredKeyword = "bool"
+          mustQueryKeyword= "must"
+        } else {
+          boolFilteredKeyword = "filtered"
+          mustQueryKeyword = "query"
+        }
+      case None          => log.error("Unable to retrieve ElasticSearch version defaulting to version >= 5.")
+    }
+  }
 
   def receive = {
 
@@ -130,15 +152,15 @@ trait ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
       ("sort" → Map("timestamp" → Map("order" → "desc")))
   }
 
-  private def constructQuery(eventQuery: EventQuery): Map[Any, Any] = {
+  private def constructQuery(eventQuery: EventQuery): Map[Any, Any] =
     Map("query" →
-      Map("bool" →
+      Map(boolFilteredKeyword →
         Map(
-          "must" → Map("match_all" → Map()),
+          mustQueryKeyword → Map("match_all" → Map()),
           "filter" → Map("bool" →
-            Map("must" → List(constructTagQuery(eventQuery.tags), constructTypeQuery(eventQuery.`type`), constructTimeRange(eventQuery.timestamp)).filter(_.isDefined).map(_.get)))
-        )))
-  }
+            Map("must" → List(constructTagQuery(eventQuery.tags),
+              constructTypeQuery(eventQuery.`type`),
+              constructTimeRange(eventQuery.timestamp)).filter(_.isDefined).map(_.get))))))
 
   private def constructTagQuery(tags: Set[String]): Option[List[Map[String, Any]]] = {
     if (tags.nonEmpty) Option((for (tag ← tags) yield Map("term" → Map("tags" → tag))).toList) else None
