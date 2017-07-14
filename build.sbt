@@ -32,8 +32,7 @@ val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.16" ::
 
 val json4s = "org.json4s" %% "json4s-native" % "3.5.0" ::
   "org.json4s" %% "json4s-core" % "3.5.0" ::
-  "org.json4s" %% "json4s-ext" % "3.5.0" ::
-  "org.json4s" %% "json4s-native" % "3.5.0" :: Nil
+  "org.json4s" %% "json4s-ext" % "3.5.0" :: Nil
 
 val snakeYaml = "org.yaml" % "snakeyaml" % "1.16" :: Nil
 
