@@ -1,6 +1,7 @@
 package io.vamp.config
 
-import com.typesafe.config.{ Config ⇒ TConfig }
+import com.typesafe.config.{ ConfigValueFactory, Config ⇒ TConfig }
+
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 import scala.collection.JavaConverters._
@@ -123,6 +124,15 @@ object ConfigReader {
     (typeName.take(1).toLowerCase + typeName.drop(1)).foldLeft("") {
       case (acc, c) if c.isUpper ⇒ acc + configSettings.separator + c.toLower
       case (acc, c)              ⇒ acc + c
+    }
+
+  implicit def orEnv[A](tryA: Try[A])(key: String)(implicit configReader: ConfigReader[A]): Try[A] =
+    tryA.orElse {
+      Try(
+        sys.env.get(key.replaceAll("[^\\p{L}\\d]", "_").toUpperCase)
+        .map(value ⇒ key → ConfigValueFactory.fromAnyRef(value.trim).unwrapped)
+        .map(_.asInstanceOf[A]).get
+      )
     }
 
   /**

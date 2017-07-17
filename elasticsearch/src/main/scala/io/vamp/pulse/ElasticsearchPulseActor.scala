@@ -55,20 +55,21 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
   private var mustQueryKeyword: String = "must"
 
   /**
-    * Sets filterKeyword pending on elasticsearch version for creating the correct pulse queries in constructQuery.
-    */
+   * Sets filterKeyword pending on elasticsearch version for creating the correct pulse queries in constructQuery.
+   */
   override def preStart(): Unit = {
     super.preStart()
     es.version().foreach {
-      case Some(version) =>
-        if(version.take(1).toInt >= 5) {
+      case Some(version) ⇒
+        if (version.take(1).toInt >= 5) {
           boolFilteredKeyword = "bool"
-          mustQueryKeyword= "must"
-        } else {
+          mustQueryKeyword = "must"
+        }
+        else {
           boolFilteredKeyword = "filtered"
           mustQueryKeyword = "query"
         }
-      case None          => log.error("Unable to retrieve ElasticSearch version defaulting to version >= 5.")
+      case None ⇒ log.error("Unable to retrieve ElasticSearch version defaulting to version >= 5.")
     }
   }
 
@@ -158,7 +159,8 @@ class ElasticsearchPulseActor extends ElasticsearchPulseEvent with NamespaceValu
         Map(
           mustQueryKeyword → Map("match_all" → Map()),
           "filter" → Map("bool" →
-            Map("must" → List(constructTagQuery(eventQuery.tags),
+            Map("must" → List(
+              constructTagQuery(eventQuery.tags),
               constructTypeQuery(eventQuery.`type`),
               constructTimeRange(eventQuery.timestamp)).filter(_.isDefined).map(_.get))))))
 
