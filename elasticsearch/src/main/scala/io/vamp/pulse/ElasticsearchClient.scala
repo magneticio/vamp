@@ -48,12 +48,12 @@ class ElasticsearchClient(url: String)(implicit val timeout: Timeout, val namesp
 
   def version(): Future[Option[String]] = httpClient
     .get[Map[String, Any]](url)
-    .map( m =>
+    .map(m ⇒
       for {
-        version <- m.get("version")
-        versionMap <- Try(version.asInstanceOf[Map[String, Any]]).toOption
-        number <- versionMap.get("number")
-        numberS <- Try(number.asInstanceOf[String]).toOption
+        version ← m.get("version")
+        versionMap ← Try(version.asInstanceOf[Map[String, Any]]).toOption
+        number ← versionMap.get("number")
+        numberS ← Try(number.asInstanceOf[String]).toOption
       } yield numberS
     )
 

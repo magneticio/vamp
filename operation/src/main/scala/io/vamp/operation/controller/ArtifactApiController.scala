@@ -27,7 +27,7 @@ trait ArtifactApiController
     with ArtifactExpansionSupport
     with AbstractController {
 
-  def background(artifact: String): Boolean = !crud(artifact)
+  def background(artifact: String)(implicit namespace: Namespace): Boolean = !crud(artifact)
 
   def readArtifacts(kind: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ Future.successful(ArtifactResponseEnvelope(Nil, 0, 1, ArtifactResponseEnvelope.maxPerPage))
@@ -69,7 +69,7 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
     case (t, _)                             ⇒ delete(t, name, validateOnly)
   }
 
-  protected def crud(kind: String): Boolean = `type`(kind) match {
+  protected def crud(kind: String)(implicit namespace: Namespace): Boolean = `type`(kind) match {
     case (t, _) if t == classOf[Gateway]    ⇒ false
     case (t, _) if t == classOf[Deployment] ⇒ false
     case (t, _) if t == classOf[Workflow]   ⇒ false
@@ -156,7 +156,7 @@ trait SourceTransformer {
     }
   }
 
-  protected def `type`(kind: String): (Class[_ <: Artifact], YamlReader[_ <: Artifact]) = kind match {
+  protected def `type`(kind: String)(implicit namespace: Namespace): (Class[_ <: Artifact], YamlReader[_ <: Artifact]) = kind match {
     case "breeds"      ⇒ (classOf[Breed], BreedReader)
     case "blueprints"  ⇒ (classOf[Blueprint], BlueprintReader)
     case "slas"        ⇒ (classOf[Sla], SlaReader)
