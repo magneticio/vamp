@@ -19,6 +19,8 @@ endif
 TARGET  := $(CURDIR)/bootstrap/target
 VERSION := $(shell git tag | tail -n1)
 
+FULL_VERSION=$(shell git describe --tags)
+
 # Targets
 .PHONY: all
 all: default
@@ -84,17 +86,17 @@ pack:
 pack-local:
 	export VAMP_VERSION="katana" && sbt package publish-local
 	sbt "project bootstrap" pack
-	rm -rf  $(TARGET)/vamp-$(VERSION)
-	mkdir -p $(TARGET)/vamp-$(VERSION)
-	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-$(VERSION)/
-	mv $$(find $(TARGET)/vamp-$(VERSION)/lib -type f -name "vamp-*-$(VERSION).jar") $(TARGET)/vamp-$(VERSION)/
+	rm -rf $(TARGET)/vamp-$(FULL_VERSION)
+	mkdir -p $(TARGET)/vamp-$(FULL_VERSION)
+	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-$(FULL_VERSION)/
+	mv $$(find $(TARGET)/vamp-$(FULL_VERSION)/lib -type f -name "vamp-*-$(FULL_VERSION).jar") $(TARGET)/vamp-$(FULL_VERSION)/
 
 	docker volume create packer
 	docker pull $(BUILD_SERVER)
 	docker run \
 		--name packer \
 		--rm \
-		--volume $(TARGET)/vamp-$(VERSION):/usr/local/src \
+		--volume $(TARGET)/vamp-$(FULL_VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
 		$(BUILD_SERVER) \
-			push vamp $(VERSION)
+			push vamp $(FULL_VERSION)
