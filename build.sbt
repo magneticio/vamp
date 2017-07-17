@@ -204,7 +204,7 @@ lazy val dcos = project.settings(
   description := "Container driver for DCOS and Marathon/Mesos",
   name := "vamp-dcos",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing ++ fp
 ).dependsOn(pulse, workflow_driver, container_driver)
 
 lazy val elasticsearch = project.settings(
