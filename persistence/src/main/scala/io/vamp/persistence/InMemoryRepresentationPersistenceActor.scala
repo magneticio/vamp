@@ -7,6 +7,7 @@ import io.vamp.common.http.OffsetEnvelope
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.reflect.ClassTag
 
 trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeOfArtifact {
 
@@ -36,6 +37,15 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
     val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, ArtifactResponseEnvelope.maxPerPage)
     ArtifactResponseEnvelope(artifacts.slice((p - 1) * pp, p * pp), total, rp, rpp)
+  }
+
+  protected def find[A: ClassTag](p: A ⇒ Boolean, `type`: Class[_ <: Artifact]): Option[A] = {
+    store.get(type2string(`type`)).flatMap {
+      _.find {
+        case (_, artifact: A) ⇒ p(artifact)
+        case _                ⇒ false
+      }
+    } map (_._2.asInstanceOf[A])
   }
 
   protected def readArtifact(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
