@@ -20,7 +20,6 @@ class MetronomeWorkflowActorMapper extends ClassMapper {
   val clazz = classOf[MetronomeWorkflowActor]
 }
 
-// TODO: Change http to typed api such as http.get[Type] instead of http.get[any] etc..
 class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidation {
 
   private val metronomeUrl = Config.string("vamp.workflow-driver.metronome.url")()
@@ -29,7 +28,7 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
 
   override protected def supportedDeployableTypes: List[DeployableType] = List(DockerDeployableType)
 
-  override protected def info: Future[Map[_, _]] = httpClient.get[Any](s"$metronomeUrl/v1/jobs").map {
+  override protected def info: Future[Map[_, _]] = httpClient.get[List[MetronomeJobRepresentation]](s"$metronomeUrl/v1/jobs").map {
     _ ⇒ Map("metronome" → Map("url" → metronomeUrl))
   }
 
@@ -78,14 +77,14 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
             _ ← allSchedules.traverse[Future, Any] { scheduleId ⇒
               httpClient.delete(s"$metronomeUrl/v1/jobs/$workflowId/schedules/$scheduleId")
             }
-            _ ← httpClient.post[Any](
+            _ ← httpClient.post[MetronomeScheduleRepresentation](
               s"$metronomeUrl/v1/jobs/$workflowId/schedules",
-              cronScheduleAsJson(cronScheduleId, period))
+              getScheduleRepresentation(cronScheduleId, period))
           } yield ()
         case EventSchedule(tags) ⇒
           for {
             workflowId ← createJobForWorkflowIfNecessary(workflow)
-            _ ← httpClient.post[Any](s"$metronomeUrl/v1/jobs/$workflowId/runs", "{}")
+            _ ← httpClient.post[String](s"$metronomeUrl/v1/jobs/$workflowId/runs", "{}")
           } yield ()
         case DaemonSchedule ⇒
           Future.successful(())
@@ -93,7 +92,6 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
     }
   }
 
-  // TODO: What if it the schedule is a DeamonSchedule?
   override protected def unschedule(): PartialFunction[Workflow, Future[Any]] = {
     case w: Workflow if (w.schedule != DaemonSchedule) ⇒ safelyDeleteWorkflow(w)
   }
@@ -115,16 +113,15 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
     } yield ()
   }
 
-  private def allExistingJobsNames: Future[List[String]] = httpClient.get[Any](s"$metronomeUrl/v1/jobs") map {
-    case list: List[_] ⇒ list.map(_.asInstanceOf[Map[String, String]].getOrElse("id", "")).filter(_.nonEmpty)
-    case _             ⇒ List()
+  private def allExistingJobsNames: Future[List[String]] =
+    httpClient.get[List[MetronomeJobRepresentation]](s"$metronomeUrl/v1/jobs") map {
+      _.map(_.id)
   }
 
-  private def allExistingScheduleNames(workflowId: String): Future[List[String]] = httpClient.get[Any](
-    s"$metronomeUrl/v1/jobs/$workflowId/schedules") map {
-      case list: List[_] ⇒ list.map(_.asInstanceOf[Map[String, String]].getOrElse("id", "")).filter(_.nonEmpty)
-      case _             ⇒ List()
-    }
+  private def allExistingScheduleNames(workflowId: String): Future[List[String]] =
+    httpClient.get[List[MetronomeScheduleRepresentation]](s"$metronomeUrl/v1/jobs/$workflowId/schedules") map {
+      _.map(_.id)
+  }
 
   private def getWorkflowId(workflow: Workflow): String = workflow.name.toLowerCase.filter(c ⇒ c.isLetter || c.isDigit)
 
@@ -149,30 +146,20 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
     val commandToRun = s"docker container run $environmentVariablesAsString --network=${usedNetworkName} " +
       s"--rm ${workflow.breed.asInstanceOf[DefaultBreed].deployable.definition}"
 
-    val workflowAsJson = jobAsJson(workflowDescription = workflow.name, workflowId = workflowId,
+    val workflowAsMetronomeJob = getJobRepresentation(workflowDescription = workflow.name, workflowId = workflowId,
       cpuQuantity = workflow.scale.get.asInstanceOf[DefaultScale].cpu.value,
       memoryQuantity = workflow.scale.get.asInstanceOf[DefaultScale].memory.value, cmd = commandToRun
     )
 
     for {
-      existingJsonForThisName ← httpClient.get[Any](s"$metronomeUrl/v1/jobs/${workflowId}").map { x ⇒
-        val jsonAsMap = x.asInstanceOf[Map[String, Any]]
-        val runAsMap = fromJsonMap(jsonAsMap, "run", Map.empty[String, Any])
-        Some(jobAsJson(
-          workflowDescription = fromJsonMap(jsonAsMap, "description", ""),
-          workflowId = fromJsonMap(jsonAsMap, "id", ""),
-          cpuQuantity = fromJsonMap[Double](runAsMap, "cpus", -1),
-          memoryQuantity = fromJsonMap[Double](runAsMap, "mem", -1),
-          cmd = fromJsonMap(runAsMap, "cmd", "")
-        ))
-      }.recover { case e: HttpClientException ⇒ None }
+      existingJsonForThisName ← httpClient.get[MetronomeJobRepresentation](s"$metronomeUrl/v1/jobs/${workflowId}").map { x ⇒ Some(x)}.recover { case e: HttpClientException ⇒ None }
 
       _ ← existingJsonForThisName match {
-        case None                             ⇒ httpClient.post[Any](s"$metronomeUrl/v1/jobs", workflowAsJson)
-        case Some(t) if (t == workflowAsJson) ⇒ Future.successful(())
+        case None                             ⇒ httpClient.post[MetronomeJobRepresentation](s"$metronomeUrl/v1/jobs", workflowAsMetronomeJob)
+        case Some(t) if (t == workflowAsMetronomeJob) ⇒ Future.successful(())
         case Some(_) ⇒
           safelyDeleteWorkflow(workflow)
-            .flatMap(_ ⇒ httpClient.post[Any](s"$metronomeUrl/v1/jobs", workflowAsJson))
+            .flatMap(_ ⇒ httpClient.post[MetronomeJobRepresentation](s"$metronomeUrl/v1/jobs", workflowAsMetronomeJob))
       }
     } yield workflowId
   }
@@ -182,25 +169,14 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
     .flatMap(v ⇒ Try(v.asInstanceOf[A]).toOption)
     .getOrElse(default)
 
-  // TODO Why not a case class?
-  private def jobAsJson(workflowDescription: String, workflowId: String, cpuQuantity: Double, memoryQuantity: Double, cmd: String) = {
-    s"""
-       |{
-       |  "description": "${workflowDescription}",
-       |  "id": "$workflowId",
-       |  "run":{
-       |    "cpus": $cpuQuantity,
-       |    "mem": $memoryQuantity,
-       |    "disk": 128,
-       |    "maxLaunchDelay": 1,
-       |    "cmd": "$cmd"
-       |  }
-       |}
-  """.stripMargin
+
+  private def getJobRepresentation(workflowDescription: String, workflowId: String, cpuQuantity: Double, memoryQuantity: Double, cmd: String): MetronomeJobRepresentation = {
+    MetronomeJobRepresentation(id = workflowId, description = workflowDescription,
+      run = MetronomeJobRunRepresentation(cpus = cpuQuantity, mem = memoryQuantity, disk = 128, maxLaunchDelay = 1, cmd = cmd)
+    )
   }
 
-  // TODO Why not case class with constructor method that handles the transformation from asCronFormat?
-  private def cronScheduleAsJson(cronScheduleId: String, repeatPeriod: TimeSchedule.RepeatPeriod) = {
+  private def getScheduleRepresentation(cronScheduleId: String, repeatPeriod: TimeSchedule.RepeatPeriod): MetronomeScheduleRepresentation = {
     val hours =
       if (repeatPeriod.time.isDefined && repeatPeriod.time.get.toHours > 0)
         Some(repeatPeriod.time.get.toHours.toInt)
@@ -212,13 +188,12 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
       else None
 
     val asCronFormat = s"${minutes.map(m ⇒ s"*/$m").getOrElse("*")} ${hours.map(h ⇒ s"*/$h").getOrElse("*")} * * *"
-
-    s"""
-       |{
-       |  "id": "$cronScheduleId",
-       |  "cron": "$asCronFormat"
-       |}
-  """.stripMargin
+    MetronomeScheduleRepresentation(cronScheduleId, asCronFormat)
   }
 
 }
+
+case class MetronomeJobRepresentation(id: String, description: String, run: MetronomeJobRunRepresentation)
+case class MetronomeJobRunRepresentation(cpus: Double, mem: Double, disk: Int, maxLaunchDelay: Int, cmd: String)
+
+case class MetronomeScheduleRepresentation(id: String, cron: String)
