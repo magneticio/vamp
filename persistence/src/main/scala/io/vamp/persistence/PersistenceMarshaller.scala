@@ -21,9 +21,7 @@ trait NoNameValidationYamlReader[T] extends YamlReader[T] {
 trait PersistenceMarshaller extends TypeOfArtifact {
   this: NotificationProvider ⇒
 
-  def marshall(input: AnyRef): String = {
-    write(input)(CoreSerializationFormat.full)
-  }
+  def marshall(input: AnyRef): String = write(input)(CoreSerializationFormat.full)
 
   def unmarshall[T <: Artifact: ClassTag](source: String): List[T] = {
     ArtifactListReader.read(source).flatMap { item ⇒

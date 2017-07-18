@@ -3,8 +3,6 @@ package io.vamp.persistence.postgresql
 import io.vamp.common.ClassMapper
 import io.vamp.persistence.{ SqlPersistenceActor, SqlStatementProvider }
 
-import scala.concurrent.Future
-
 /**
  * Maps postgres to class mapper for lifter
  */
@@ -18,7 +16,7 @@ class PostgresPersistenceActorMapper extends ClassMapper {
  */
 class PostgresPersistenceActor extends SqlPersistenceActor with SqlStatementProvider {
 
-  protected def info() = Future.successful(representationInfo() + ("type" → "postgres") + ("url" → url))
+  override protected def info() = info().map(_ + ("type" → "postgres") + ("url" → url))
 
   override def getInsertStatement(content: Option[String]): String =
     content.map { _ ⇒

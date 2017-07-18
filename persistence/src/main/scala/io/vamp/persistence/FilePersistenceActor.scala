@@ -4,7 +4,6 @@ import java.io.{ File, FileWriter }
 
 import akka.actor.Actor
 import io.vamp.common.{ Artifact, ClassMapper, Config, ConfigMagnet }
-import io.vamp.persistence.CQRSActor.ReadAll
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization
 
@@ -42,12 +41,12 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
   }
 
   override def receive: Receive = ({
-    case ReadAll ⇒ read()
+    case "load" ⇒ read()
   }: Actor.Receive) orElse super[InMemoryRepresentationPersistenceActor].receive
 
-  override def preStart(): Unit = self ! ReadAll
+  override def preStart(): Unit = self ! "load"
 
-  protected def info() = Future.successful(representationInfo() + ("type" → "file") + ("file" → file.getAbsolutePath))
+  override protected def info() = super.info().map(_ + ("type" → "file") + ("file" → file.getAbsolutePath))
 
   protected def read(): Unit = {
     for (line ← Source.fromFile(file).getLines()) {
@@ -62,12 +61,12 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
     }
   }
 
-  protected def set(artifact: Artifact) = Future {
+  protected def set(artifact: Artifact) = Future.successful {
     write(FileRecord(FileRecord.set, artifact.name, artifact.kind, Option(marshall(artifact))))
     setArtifact(artifact)
   }
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]) = Future {
+  protected def delete(name: String, `type`: Class[_ <: Artifact]) = Future.successful {
     write(FileRecord(FileRecord.delete, name, type2string(`type`), None))
     deleteArtifact(name, type2string(`type`)).isDefined
   }

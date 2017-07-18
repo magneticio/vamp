@@ -6,7 +6,6 @@ import io.vamp.http_api.notification.BadRequestError
 import io.vamp.http_api.ws.Content.ContentType
 import io.vamp.model.event.Event
 import io.vamp.model.reader.{ YamlLoader, YamlSourceReader }
-import io.vamp.model.serialization.CoreSerializationFormat
 import org.json4s._
 import org.json4s.native.Serialization._
 import org.yaml.snakeyaml.DumperOptions.FlowStyle
@@ -20,10 +19,7 @@ trait WebSocketMarshaller extends YamlLoader {
   import io.vamp.common.util.YamlUtil._
   import io.vamp.model.reader.YamlSourceReader._
 
-  private implicit val formats: Formats = CoreSerializationFormat.default +
-    new UpperCaseEnumSerializer(Action) +
-    new UpperCaseEnumSerializer(Content) +
-    new UpperCaseEnumSerializer(Status)
+  def formats: Formats
 
   def unmarshall(input: String): List[WebSocketMessage] = try {
     (super.unmarshal(input) match {
@@ -37,6 +33,7 @@ trait WebSocketMarshaller extends YamlLoader {
   }
 
   def marshall(response: AnyRef): String = {
+    implicit val f = formats + new UpperCaseEnumSerializer(Action) + new UpperCaseEnumSerializer(Content) + new UpperCaseEnumSerializer(Status)
 
     def marshall(any: AnyRef, as: Option[ContentType] = None): String = as match {
       case Some(Content.Json) ⇒ write(any)

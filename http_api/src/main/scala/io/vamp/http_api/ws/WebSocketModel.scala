@@ -1,5 +1,7 @@
 package io.vamp.http_api.ws
 
+import io.vamp.common.Namespace
+import io.vamp.common.akka.IoC
 import io.vamp.common.notification.Notification
 import io.vamp.http_api.ws.Action.ActionType
 import io.vamp.http_api.ws.Content.ContentType
@@ -45,14 +47,22 @@ case class WebSocketRequest(
 
   val eventStream = action == Action.Peek && path.endsWith("/events/stream")
 
-  val streamNamespace: Option[String] = {
+  val streamNamespace: Option[Namespace] = {
     if (logStream) {
       val index = path.indexOf("/log")
-      if (index > 0) Option(path.substring(1, index)) else None
+      if (index > 0) {
+        val ns = path.substring(1, index)
+        IoC.namespaces.find(_.lookupName == ns)
+      }
+      else None
     }
     else if (eventStream) {
       val index = path.indexOf("/events/stream")
-      if (index > 0) Option(path.substring(1, index)) else None
+      if (index > 0) {
+        val ns = path.substring(1, index)
+        IoC.namespaces.find(_.lookupName == ns)
+      }
+      else None
     }
     else None
   }
