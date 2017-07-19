@@ -116,12 +116,12 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
   private def allExistingJobsNames: Future[List[String]] =
     httpClient.get[List[MetronomeJobRepresentation]](s"$metronomeUrl/v1/jobs") map {
       _.map(_.id)
-  }
+    }
 
   private def allExistingScheduleNames(workflowId: String): Future[List[String]] =
     httpClient.get[List[MetronomeScheduleRepresentation]](s"$metronomeUrl/v1/jobs/$workflowId/schedules") map {
       _.map(_.id)
-  }
+    }
 
   private def getWorkflowId(workflow: Workflow): String = workflow.name.toLowerCase.filter(c ⇒ c.isLetter || c.isDigit)
 
@@ -152,10 +152,10 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
     )
 
     for {
-      existingJsonForThisName ← httpClient.get[MetronomeJobRepresentation](s"$metronomeUrl/v1/jobs/${workflowId}").map { x ⇒ Some(x)}.recover { case e: HttpClientException ⇒ None }
+      existingJsonForThisName ← httpClient.get[MetronomeJobRepresentation](s"$metronomeUrl/v1/jobs/${workflowId}").map { x ⇒ Some(x) }.recover { case e: HttpClientException ⇒ None }
 
       _ ← existingJsonForThisName match {
-        case None                             ⇒ httpClient.post[MetronomeJobRepresentation](s"$metronomeUrl/v1/jobs", workflowAsMetronomeJob)
+        case None                                     ⇒ httpClient.post[MetronomeJobRepresentation](s"$metronomeUrl/v1/jobs", workflowAsMetronomeJob)
         case Some(t) if (t == workflowAsMetronomeJob) ⇒ Future.successful(())
         case Some(_) ⇒
           safelyDeleteWorkflow(workflow)
@@ -168,7 +168,6 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
     .get(key)
     .flatMap(v ⇒ Try(v.asInstanceOf[A]).toOption)
     .getOrElse(default)
-
 
   private def getJobRepresentation(workflowDescription: String, workflowId: String, cpuQuantity: Double, memoryQuantity: Double, cmd: String): MetronomeJobRepresentation = {
     MetronomeJobRepresentation(id = workflowId, description = workflowDescription,

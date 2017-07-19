@@ -7,7 +7,7 @@ import io.vamp.common.http.OffsetEnvelope
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.reflect.ClassTag
+import scala.reflect.{ ClassTag, classTag }
 
 trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeOfArtifact {
 
@@ -26,6 +26,15 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
       case (key, value) ⇒ key → Map[String, Any]("count" → value.values.size)
     } toMap)
   ))
+
+  protected def all[A <: Artifact: ClassTag]: List[A] = {
+    val `type` = classTag[A].runtimeClass
+    log.debug(s"In memory representation: all [${`type`.getSimpleName}]")
+    store.get(type2string(`type`)) match {
+      case None      ⇒ Nil
+      case Some(map) ⇒ map.values.toList.asInstanceOf[List[A]]
+    }
+  }
 
   protected def allArtifacts(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
     log.debug(s"In memory representation: all [${`type`.getSimpleName}] of $page per $perPage")
