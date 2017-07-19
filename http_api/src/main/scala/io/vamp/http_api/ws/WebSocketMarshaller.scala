@@ -6,12 +6,11 @@ import io.vamp.http_api.notification.BadRequestError
 import io.vamp.http_api.ws.Content.ContentType
 import io.vamp.model.event.Event
 import io.vamp.model.reader.{ YamlLoader, YamlSourceReader }
+import io.vamp.model.serialization.UpperCaseEnumSerializer
 import org.json4s._
 import org.json4s.native.Serialization._
 import org.yaml.snakeyaml.DumperOptions.FlowStyle
 import org.yaml.snakeyaml.nodes.Tag
-
-import scala.reflect.ClassTag
 
 trait WebSocketMarshaller extends YamlLoader {
   this: NotificationProvider ⇒
@@ -75,16 +74,5 @@ trait WebSocketMarshaller extends YamlLoader {
       data = source.find[String]("data"),
       parameters = source.get[Map[String, AnyRef]]("parameters")
     )
-  }
-}
-
-class UpperCaseEnumSerializer[E <: Enumeration: ClassTag](enum: E) extends Serializer[E#Value] {
-
-  import JsonDSL._
-
-  def deserialize(implicit format: Formats) = throw new NotImplementedError
-
-  def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case i: E#Value ⇒ i.toString.toUpperCase
   }
 }
