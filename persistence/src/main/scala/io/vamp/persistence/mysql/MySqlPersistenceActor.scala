@@ -10,7 +10,7 @@ class MySqlPersistenceActorMapper extends ClassMapper {
 
 class MySqlPersistenceActor extends SqlPersistenceActor with SqlStatementProvider {
 
-  override protected def info() = info().map(_ + ("type" → "mysql") + ("url" → url))
+  override protected def info() = super.info().map(_ + ("type" → "mysql") + ("url" → url))
 
   override def getInsertStatement(content: Option[String]): String =
     content.map { _ ⇒

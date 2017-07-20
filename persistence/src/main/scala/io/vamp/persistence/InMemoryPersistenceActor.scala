@@ -11,7 +11,7 @@ class InMemoryPersistenceActorMapper extends ClassMapper {
 
 class InMemoryPersistenceActor extends InMemoryRepresentationPersistenceActor {
 
-  override protected def info() = info().map(_ + ("type" → "in-memory [no persistence]"))
+  override protected def info() = super.info().map(_ + ("type" → "in-memory [no persistence]"))
 
   protected def set(artifact: Artifact) = Future.successful(setArtifact(artifact))
 

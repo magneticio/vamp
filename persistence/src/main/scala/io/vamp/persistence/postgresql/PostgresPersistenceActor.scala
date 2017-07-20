@@ -16,7 +16,7 @@ class PostgresPersistenceActorMapper extends ClassMapper {
  */
 class PostgresPersistenceActor extends SqlPersistenceActor with SqlStatementProvider {
 
-  override protected def info() = info().map(_ + ("type" → "postgres") + ("url" → url))
+  override protected def info() = super.info().map(_ + ("type" → "postgres") + ("url" → url))
 
   override def getInsertStatement(content: Option[String]): String =
     content.map { _ ⇒

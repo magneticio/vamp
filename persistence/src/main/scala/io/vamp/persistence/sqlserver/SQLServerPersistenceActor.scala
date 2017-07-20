@@ -16,7 +16,7 @@ class SQLServerPersistenceActorMapper extends ClassMapper {
  */
 class SQLServerPersistenceActor extends SqlPersistenceActor with SqlStatementProvider {
 
-  override protected def info() = info().map(_ + ("type" → "sqlserver") + ("url" → url))
+  override protected def info() = super.info().map(_ + ("type" → "sqlserver") + ("url" → url))
 
   override def getInsertStatement(content: Option[String]): String =
     content.map { _ ⇒

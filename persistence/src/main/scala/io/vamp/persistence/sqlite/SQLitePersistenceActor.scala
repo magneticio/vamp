@@ -20,5 +20,5 @@ class SQLitePersistenceActor extends SqlPersistenceActor with SqlStatementProvid
 
   override val statementMinValue: Int = 0
 
-  override protected def info() = info().map(_ + ("type" → "sqlite") + ("url" → url))
+  override protected def info() = super.info().map(_ + ("type" → "sqlite") + ("url" → url))
 }
