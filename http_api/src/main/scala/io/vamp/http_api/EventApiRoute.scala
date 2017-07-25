@@ -34,7 +34,7 @@ trait EventApiRoute extends AbstractRoute with EventApiController with EventStre
     }
   }
 
-  def sseRoutes(implicit namespace: Namespace) = path("events" / "stream") {
+  def sseRoutes(implicit namespace: Namespace, timeout: Timeout) = path("events" / "stream") {
     pathEndOrSingleSlash {
       get {
         parameterMultiMap { parameters ⇒
