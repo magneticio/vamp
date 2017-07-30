@@ -69,7 +69,7 @@ trait ArtifactLoader extends ArtifactApiController with DeploymentApiController 
     _.map(Paths.get(_)).foreach(path ⇒ load(path, Source.fromInputStream(getClass.getResourceAsStream(path.toString)).mkString, force))
   }
 
-  private def load(path: Path, source: String, force: Boolean): Unit = {
+  protected def load(path: Path, source: String, force: Boolean): Unit = {
 
     val `type` = path.getParent.getFileName.toString
     val fileName = path.getFileName.toString
@@ -90,14 +90,14 @@ trait ArtifactLoader extends ArtifactApiController with DeploymentApiController 
     }
   }
 
-  private def exists(`type`: String, name: String): Future[Boolean] = {
+  protected def exists(`type`: String, name: String): Future[Boolean] = {
     readArtifact(`type`, name, expandReferences = false, onlyReferences = false).map {
       case Some(_) ⇒ true
       case _       ⇒ false
     }
   }
 
-  private def create(`type`: String, fileName: String, name: String, source: String) = {
+  protected def create(`type`: String, fileName: String, name: String, source: String) = {
     if (`type` == "breeds" && fileName.endsWith(".js"))
       actorFor[PersistenceActor] ? PersistenceActor.Update(DefaultBreed(name, Map(), Deployable("application/javascript", source), Nil, Nil, Nil, Nil, Map(), None), Some(source))
     else if (`type` == "workflows")
