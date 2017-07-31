@@ -97,9 +97,8 @@ class WebSocketActor(logRequests: Boolean, eventRequests: Boolean, numberOfPathS
 
       request.streamNamespace match {
         case Some(ns) ⇒
-          val namespace = Namespace(ns)
-          sessions += (id → SessionData(data.actor, namespace))
-          openEventStream(data.actor, params, request.data.getOrElse(""), message)(namespace)
+          sessions += (id → SessionData(data.actor, ns))
+          openEventStream(data.actor, params, request.data.getOrElse(""), message)(ns)
         case _ ⇒
           openEventStream(data.actor, params, request.data.getOrElse(""), message)(data.namespace)
       }

@@ -3,8 +3,6 @@ package io.vamp.persistence.sqlite
 import io.vamp.common.ClassMapper
 import io.vamp.persistence.{ SqlPersistenceActor, SqlStatementProvider }
 
-import scala.concurrent.Future
-
 class SQLitePersistenceActorMapper extends ClassMapper {
   override def name: String = "sqlite"
 
@@ -22,6 +20,5 @@ class SQLitePersistenceActor extends SqlPersistenceActor with SqlStatementProvid
 
   override val statementMinValue: Int = 0
 
-  override protected def info(): Future[Any] =
-    Future.successful(representationInfo() + ("type" → "sqlite") + ("url" → url))
+  override protected def info() = super.info().map(_ + ("type" → "sqlite") + ("url" → url))
 }

@@ -38,6 +38,8 @@ trait WebSocketRoute extends AbstractRoute with WebSocketMarshaller with HttpApi
     }
   }
 
+  protected def filterWebSocketOutput(message: AnyRef)(implicit namespace: Namespace, timeout: Timeout): Future[Boolean] = Future.successful(true)
+
   private def apiHandler(implicit namespace: Namespace, timeout: Timeout) = Route.asyncHandler(log {
     websocketApiHandler
   })
@@ -56,6 +58,8 @@ trait WebSocketRoute extends AbstractRoute with WebSocketMarshaller with HttpApi
     val out = Source.actorRef[AnyRef](16, OverflowStrategy.dropHead)
       .mapMaterializedValue(actorFor[WebSocketActor] ! SessionOpened(id, _))
       .via(new TerminateFlowStage[AnyRef](_ == PoisonPill))
+      .mapAsync(parallelism = 3)(message ⇒ filterWebSocketOutput(message).map(f ⇒ f → message))
+      .collect { case (true, m) ⇒ m }
       .map(message ⇒ TextMessage.Strict(marshall(message)))
 
     Flow.fromSinkAndSource(in, out)

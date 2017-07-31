@@ -3,8 +3,6 @@ package io.vamp.persistence.sqlserver
 import io.vamp.common.ClassMapper
 import io.vamp.persistence.{ SqlPersistenceActor, SqlStatementProvider }
 
-import scala.concurrent.Future
-
 /**
  * Maps sqlserver to class mapper for lifter
  */
@@ -18,7 +16,7 @@ class SQLServerPersistenceActorMapper extends ClassMapper {
  */
 class SQLServerPersistenceActor extends SqlPersistenceActor with SqlStatementProvider {
 
-  protected def info() = Future.successful(representationInfo() + ("type" → "sqlserver") + ("url" → url))
+  override protected def info() = super.info().map(_ + ("type" → "sqlserver") + ("url" → url))
 
   override def getInsertStatement(content: Option[String]): String =
     content.map { _ ⇒

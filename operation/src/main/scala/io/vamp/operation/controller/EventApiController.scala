@@ -31,14 +31,17 @@ trait EventApiController extends AbstractController {
 
   private val typeParameter = "type"
 
-  def sourceEvents(parameters: Map[String, List[String]], request: String, keepAlivePeriod: FiniteDuration)(implicit namespace: Namespace) = {
+  def sourceEvents(parameters: Map[String, List[String]], request: String, keepAlivePeriod: FiniteDuration)(implicit namespace: Namespace, timeout: Timeout) = {
     Source.actorPublisher[ServerSentEvent](Props(new ActorPublisher[ServerSentEvent] {
       def receive = {
-        case Request(_)           ⇒ openEventStream(self, parameters, request)
-        case Cancel               ⇒ closeEventStream(self)
-        case (None, event: Event) ⇒ if (totalDemand > 0) onNext(ServerSentEvent(write(event)(SerializationFormat(OffsetDateTimeSerializer)), event.`type`))
-        case _                    ⇒
-
+        case Request(_) ⇒ openEventStream(self, parameters, request)
+        case Cancel     ⇒ closeEventStream(self)
+        case (None, event: Event) ⇒
+          if (totalDemand > 0) filterSse(event).map {
+            case true ⇒ onNext(ServerSentEvent(write(event)(SerializationFormat(OffsetDateTimeSerializer)), event.`type`))
+            case _    ⇒
+          }
+        case _ ⇒
       }
     })).keepAlive(keepAlivePeriod, () ⇒ ServerSentEvent.heartbeat)
   }
@@ -49,12 +52,7 @@ trait EventApiController extends AbstractController {
   }
 
   def queryEvents(parameters: Map[String, List[String]], request: String)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
-
-    val query = {
-      if (request.isEmpty) EventQuery(parameters.getOrElse(tagParameter, Nil).toSet, parameters.get(typeParameter).map(_.head), None)
-      else EventQueryReader.read(request)
-    }
-
+    val query = parseQuery(parameters, request)
     actorFor[PulseActor] ? Query(EventRequestEnvelope(query, page, perPage))
   }
 
@@ -72,6 +70,13 @@ trait EventApiController extends AbstractController {
   }
 
   def closeEventStream(to: ActorRef)(implicit namespace: Namespace) = actorFor[PulseActor].tell(UnregisterPercolator(percolator(to)), to)
+
+  protected def parseQuery(parameters: Map[String, List[String]], request: String) = {
+    if (request.isEmpty) EventQuery(parameters.getOrElse(tagParameter, Nil).toSet, parameters.get(typeParameter).map(_.head), None)
+    else EventQueryReader.read(request)
+  }
+
+  protected def filterSse(event: Event)(implicit namespace: Namespace, timeout: Timeout): Future[Boolean] = Future.successful(true)
 
   private def percolator(channel: ActorRef) = s"stream://${channel.path.elements.mkString("/")}"
 }
