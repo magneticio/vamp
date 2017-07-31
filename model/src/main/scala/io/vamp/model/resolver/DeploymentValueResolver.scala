@@ -81,8 +81,8 @@ trait DeploymentValueResolver extends ValueResolver with ConfigurationValueResol
 
   def valueFor(deployment: Deployment, service: Option[DeploymentService])(reference: ValueReference): String = (
     valueForDeploymentService(deployment, service)
-    orElse super[ConfigurationValueResolver].valueForReference
     orElse super[ClassLoaderValueResolver].valueForReference((deployment, service))
+    orElse super[ConfigurationValueResolver].valueForReference
     orElse PartialFunction[ValueReference, String] { _ ⇒ "" }
   )(reference)
 
