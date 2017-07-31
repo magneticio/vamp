@@ -55,8 +55,6 @@ trait HttpApiDirectives extends Directives with CorsDirectives {
 
   protected def contentTypeForModification = contentTypeOnly(`application/json`, `application/x-yaml`)
 
-  override def delete: Directive0 = super.delete & contentTypeForModification
-
   override def put: Directive0 = super.put & contentTypeForModification
 
   override def post: Directive0 = super.post & contentTypeForModification
