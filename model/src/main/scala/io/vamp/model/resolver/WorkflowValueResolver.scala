@@ -23,8 +23,8 @@ trait WorkflowValueResolver extends ValueResolver with ConfigurationValueResolve
       resolve(
         resolve(
           value,
-          super[ConfigurationValueResolver].valueForReference orElse
-            super[ClassLoaderValueResolver].valueForReference((workflow, data)) orElse
+          super[ClassLoaderValueResolver].valueForReference((workflow, data)) orElse
+            super[ConfigurationValueResolver].valueForReference orElse
             PartialFunction[ValueReference, String] { referenceAsPart }
         ),
         valueForWorkflow(workflow: Workflow, data) orElse PartialFunction[ValueReference, String] { _ ⇒ "" }
