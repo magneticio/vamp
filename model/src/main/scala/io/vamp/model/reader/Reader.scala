@@ -420,10 +420,6 @@ trait ArgumentReader {
       case _ ⇒ Nil
     }
   }
-
-  def validateArguments(argument: List[Argument]) = argument.foreach { argument ⇒
-    if (argument.privileged && Try(argument.value.toBoolean).isFailure) throwException(InvalidArgumentValueError(argument))
-  }
 }
 
 case class ArtifactSource(kind: String, name: String, source: YamlSourceReader) {

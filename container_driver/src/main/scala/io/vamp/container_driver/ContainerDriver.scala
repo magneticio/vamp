@@ -108,38 +108,28 @@ trait ContainerDriverMapping extends DeploymentValueResolver with WorkflowValueR
 
   protected def docker(workflow: Workflow): Docker = {
 
-    val (privileged, parameters) = privilegedAndParameters(workflow.arguments)
-
     val network = workflow.network.getOrElse(Docker.network())
 
     Docker(
       image = workflow.breed.asInstanceOf[DefaultBreed].deployable.definition,
       portMappings = portMappings(workflow, network),
-      parameters = parameters,
-      privileged = privileged,
+      parameters = workflow.arguments.map(argument ⇒ DockerParameter(argument.key, argument.value)),
+      privileged = false,
       network = network
     )
   }
 
   protected def docker(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Docker = {
 
-    val (privileged, parameters) = privilegedAndParameters(service.arguments)
-
     val network = service.network.orElse(cluster.network).getOrElse(Docker.network())
 
     Docker(
       image = service.breed.deployable.definition,
       portMappings = portMappings(deployment, cluster, service, network),
-      parameters = parameters,
-      privileged = privileged,
+      parameters = service.arguments.map(argument ⇒ DockerParameter(argument.key, argument.value)),
+      privileged = false,
       network = network
     )
-  }
-
-  private def privilegedAndParameters(arguments: List[Argument]): (Boolean, List[DockerParameter]) = {
-    val (privileged, args) = arguments.partition(_.privileged)
-    val parameters = args.map(argument ⇒ DockerParameter(argument.key, argument.value))
-    (privileged.headOption.exists(_.value.toBoolean), parameters)
   }
 
   protected def labels(workflow: Workflow) = Map(
