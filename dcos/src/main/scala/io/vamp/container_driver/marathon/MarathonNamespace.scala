@@ -13,11 +13,11 @@ trait MarathonNamespace {
   private val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
 
   protected def appId(workflow: Workflow): String = {
-    s"$nameDelimiter${namespace.name}${nameDelimiter}workflow-${artifactName2Id(workflow)}"
+    s"${namespace.name}${nameDelimiter}workflow-${artifactName2Id(workflow)}"
   }
 
   protected def appId(deployment: Deployment, breed: Breed): String = {
-    s"$nameDelimiter${namespace.name}${nameDelimiter}deployment-${artifactName2Id(deployment)}-service-${artifactName2Id(breed)}"
+    s"${namespace.name}${nameDelimiter}deployment-${artifactName2Id(deployment)}-service-${artifactName2Id(breed)}"
   }
 
   protected def artifactName2Id(artifact: Artifact): String = artifact.name match {

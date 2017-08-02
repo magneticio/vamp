@@ -6,6 +6,7 @@ import io.vamp.model.artifact.{ HealthCheck, Port }
 case class MarathonApp(
   id:           String,
   container:    Option[Container],
+  ipAddress:    Option[MarathonAppIpAddress],
   instances:    Int,
   cpus:         Double,
   mem:          Int,
@@ -18,6 +19,8 @@ case class MarathonApp(
 )
 
 case class Container(docker: Docker, `type`: String = "DOCKER")
+
+case class MarathonAppIpAddress(networkName: String)
 
 case class MarathonHealthCheck(
   path:                   String,

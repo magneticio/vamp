@@ -1,18 +1,21 @@
 package io.vamp.container_driver.marathon
 
 import akka.actor.ActorRef
-import io.vamp.common.{ ClassMapper, Config }
+import io.vamp.common.{ClassMapper, Config}
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.http.HttpClient
+import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver._
-import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
+import io.vamp.container_driver.notification.{UndefinedMarathonApplication, UnsupportedContainerDriverRequest}
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.notification.InvalidArgumentValueError
+import io.vamp.model.reader.{MegaByte, Quantity}
 import org.json4s.JsonAST.JObject
 import org.json4s._
 
 import scala.concurrent.Future
+import scala.util.Try
 
 class MarathonDriverActorMapper extends ClassMapper {
   val name = "marathon"
@@ -161,6 +164,22 @@ class MarathonDriverActor
     equalHealthChecks → newHealth
   }
 
+  private def noGlobalOverride (arg: Argument): MarathonApp ⇒ MarathonApp = identity[MarathonApp]
+  private def applyGlobalOverride: PartialFunction[Argument, MarathonApp ⇒ MarathonApp] = {
+    case arg@Argument("override.container.docker.network", networkOverrideValue) ⇒ { app ⇒
+      app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+    }
+    case arg@Argument("override.container.docker.privileged", runPriviledged) ⇒ { app ⇒
+      Try(runPriviledged.toBoolean).map(
+        priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
+      ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+    }
+    case arg@Argument("override.ipAddress.networkName", networkName) ⇒ { app ⇒
+      app.copy(ipAddress = Some(MarathonAppIpAddress(networkName)))
+    }
+  }
+
+
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
 
     validateDeployable(service.breed.deployable)
@@ -172,7 +191,8 @@ class MarathonDriverActor
 
     val app = MarathonApp(
       id,
-      container(deployment, cluster, service),
+      container(deployment, cluster, service.copy(arguments = service.arguments.filterNot(applyGlobalOverride.isDefinedAt))),
+      None,
       service.scale.get.instances,
       service.scale.get.cpu.value,
       Math.round(service.scale.get.memory.value).toInt,
@@ -183,7 +203,15 @@ class MarathonDriverActor
       constraints = constraints
     )
 
-    sendRequest(update, id, requestPayload(deployment, cluster, service, purge(app)))
+    // Iterate through all Argument objects and if they represent an override, apply them
+    val appWithGlobalOverrides = service.arguments.foldLeft(app)((app, argument) ⇒
+      applyGlobalOverride.applyOrElse(argument, noGlobalOverride)(app)
+    )
+
+    val asd = requestPayload(deployment, cluster, service, purge(appWithGlobalOverrides))
+
+    log.info(s"Deploying ${asd}")
+    sendRequest(update, id, asd)
   }
 
   private def deploy(workflow: Workflow, update: Boolean): Future[Any] = {
@@ -199,7 +227,8 @@ class MarathonDriverActor
 
     val marathonApp = MarathonApp(
       id,
-      container(workflow),
+      container(workflow.copy(arguments = workflow.arguments.filterNot(applyGlobalOverride.isDefinedAt))),
+      None,
       scale.instances,
       scale.cpu.value,
       Math.round(scale.memory.value).toInt,
@@ -210,7 +239,12 @@ class MarathonDriverActor
       constraints = constraints
     )
 
-    sendRequest(update, id, requestPayload(workflow, purge(marathonApp)))
+    // Iterate through all Argument objects and if they represent an override, apply them
+    val marathonAppWithGlobalOverrides = workflow.arguments.foldLeft(marathonApp)((app, argument) ⇒
+      applyGlobalOverride.applyOrElse(argument, noGlobalOverride)(app)
+    )
+
+    sendRequest(update, id, requestPayload(workflow, purge(marathonAppWithGlobalOverrides)))
   }
 
   private def purge(app: MarathonApp): MarathonApp = {

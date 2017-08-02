@@ -4,7 +4,7 @@ import java.util.regex.Pattern
 
 import io.vamp.common._
 import io.vamp.common.notification.NotificationErrorException
-import io.vamp.model.notification.{ InvalidArgumentError, InvalidArgumentValueError }
+import io.vamp.model.notification.{InvalidArgumentError, InvalidArgumentValueError}
 import io.vamp.model.reader.Time
 
 import scala.language.implicitConversions
@@ -199,6 +199,7 @@ object Argument {
 case class Argument(key: String, value: String) {
   val privileged = key == Argument.privileged
 }
+
 
 /**
  * Vamp definition of a HealthCheck

@@ -148,6 +148,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
     val (privileged, others) = all.partition(_.privileged)
 
     privileged.lastOption.map(_ :: others).getOrElse(others)
+    DeploymentActor.defaultArguments() ++ breed.arguments ++ service.arguments
   }
 }
 
