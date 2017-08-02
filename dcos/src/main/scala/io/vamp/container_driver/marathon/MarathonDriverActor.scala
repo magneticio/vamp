@@ -208,7 +208,10 @@ class MarathonDriverActor
       applyGlobalOverride.applyOrElse(argument, noGlobalOverride)(app)
     )
 
-    sendRequest(update, id, requestPayload(deployment, cluster, service, purge(appWithGlobalOverrides)))
+    val asd = requestPayload(deployment, cluster, service, purge(appWithGlobalOverrides))
+
+    log.info(s"Deploying ${asd}")
+    sendRequest(update, id, asd)
   }
 
   private def deploy(workflow: Workflow, update: Boolean): Future[Any] = {

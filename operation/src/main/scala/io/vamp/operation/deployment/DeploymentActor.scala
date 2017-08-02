@@ -143,6 +143,11 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
   }
 
   private def arguments(breed: DefaultBreed, service: Service): List[Argument] = {
+    val all = DeploymentActor.defaultArguments() ++ breed.arguments ++ service.arguments
+
+    val (privileged, others) = all.partition(_.privileged)
+
+    privileged.lastOption.map(_ :: others).getOrElse(others)
     DeploymentActor.defaultArguments() ++ breed.arguments ++ service.arguments
   }
 }

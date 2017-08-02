@@ -4,7 +4,7 @@ import java.util.regex.Pattern
 
 import io.vamp.common._
 import io.vamp.common.notification.NotificationErrorException
-import io.vamp.model.notification.{ InvalidArgumentError}
+import io.vamp.model.notification.{InvalidArgumentError, InvalidArgumentValueError}
 import io.vamp.model.reader.Time
 
 import scala.language.implicitConversions
@@ -184,14 +184,22 @@ object Argument {
   val privileged = "privileged"
 
   def apply(argument: String): Argument = {
-    argument.split("=", 2).toList match {
+
+    val result = argument.split("=", 2).toList match {
       case key :: value :: Nil ⇒ Argument(key.trim, value.trim)
       case any                 ⇒ throw NotificationErrorException(InvalidArgumentError, if (any != null) any.toString else "")
     }
+
+    if (result.privileged && Try(result.value.toBoolean).isFailure) throw NotificationErrorException(InvalidArgumentValueError(result), s"${result.key} -> ${result.value}")
+
+    result
   }
 }
 
-case class Argument(key: String, value: String)
+case class Argument(key: String, value: String) {
+  val privileged = key == Argument.privileged
+}
+
 
 /**
  * Vamp definition of a HealthCheck

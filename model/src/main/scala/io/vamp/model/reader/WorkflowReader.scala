@@ -65,6 +65,7 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
 
   override protected def validate(workflow: Workflow): Workflow = {
     validateEnvironmentVariablesAgainstBreed(workflow.environmentVariables, workflow.breed)
+    validateArguments(workflow.arguments)
     workflow
   }
 

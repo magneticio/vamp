@@ -65,6 +65,8 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
       breed.ports.find(_.value.isEmpty).flatMap(port ⇒ throwException(MissingPortValueError(breed, port)))
       breed.constants.find(_.value.isEmpty).flatMap(constant ⇒ throwException(MissingConstantValueError(breed, constant)))
 
+      validateArguments(breed.arguments)
+
       validateHealthCheck(breed)
       validateBreedTraitValues(breed)
       validateNonRecursiveDependencies(breed)

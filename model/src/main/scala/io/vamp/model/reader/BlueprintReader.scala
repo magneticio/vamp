@@ -124,6 +124,8 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       val services = blueprint.clusters.flatMap(_.services)
       val breeds = services.map(_.breed)
 
+      services.foreach(service ⇒ validateArguments(service.arguments))
+
       validateBreeds(breeds)
       validateServiceEnvironmentVariables(blueprint.clusters.flatMap(_.services))
       validateDependencies(breeds)
