@@ -8,18 +8,16 @@ import io.vamp.model.artifact._
 trait MarathonNamespace {
   this: ContainerDriver with NamespaceProvider ⇒
 
-  def tenantIdOverride: Option[String]
-
   private val nameDelimiter = "/"
 
   private val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
 
   protected def appId(workflow: Workflow): String = {
-    s"${nameDelimiter}${tenantIdOverride.getOrElse(namespace.name)}${nameDelimiter}workflow-${artifactName2Id(workflow)}"
+    s"${nameDelimiter}${namespace.name}${nameDelimiter}workflow-${artifactName2Id(workflow)}"
   }
 
   protected def appId(deployment: Deployment, breed: Breed): String = {
-    s"${nameDelimiter }${tenantIdOverride.getOrElse(namespace.name)}${nameDelimiter}deployment-${artifactName2Id(deployment)}-service-${artifactName2Id(breed)}"
+    s"${nameDelimiter}${namespace.name}${nameDelimiter}deployment-${artifactName2Id(deployment)}-service-${artifactName2Id(breed)}"
   }
 
   protected def artifactName2Id(artifact: Artifact): String = artifact.name match {
