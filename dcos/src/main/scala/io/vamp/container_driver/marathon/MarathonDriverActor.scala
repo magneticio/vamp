@@ -1,16 +1,16 @@
 package io.vamp.container_driver.marathon
 
 import akka.actor.ActorRef
-import io.vamp.common.{ClassMapper, Config}
+import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver._
-import io.vamp.container_driver.notification.{UndefinedMarathonApplication, UnsupportedContainerDriverRequest}
+import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InvalidArgumentValueError
-import io.vamp.model.reader.{MegaByte, Quantity}
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import org.json4s.JsonAST.JObject
 import org.json4s._
 
@@ -40,6 +40,8 @@ object MarathonDriverActor {
 
   val namespaceConstraint = Config.stringList(s"$config.marathon.namespace-constraint")
 
+  val tenantIdOverride = Config.string(s"$config.marathon.tenant-it-override")
+
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
   }
@@ -62,6 +64,8 @@ class MarathonDriverActor
     with HealthCheckMerger {
 
   import ContainerDriverActor._
+
+  lazy val tenantIdOverride = Try(Some(MarathonDriverActor.tenantIdOverride())).getOrElse(None)
 
   protected val expirationPeriod = MarathonDriverActor.expirationPeriod()
 
@@ -164,21 +168,28 @@ class MarathonDriverActor
     equalHealthChecks → newHealth
   }
 
-  private def noGlobalOverride (arg: Argument): MarathonApp ⇒ MarathonApp = identity[MarathonApp]
+  private def noGlobalOverride(arg: Argument): MarathonApp ⇒ MarathonApp = identity[MarathonApp]
   private def applyGlobalOverride: PartialFunction[Argument, MarathonApp ⇒ MarathonApp] = {
-    case arg@Argument("override.container.docker.network", networkOverrideValue) ⇒ { app ⇒
+    case arg @ Argument("override.container.docker.network", networkOverrideValue) ⇒ { app ⇒
       app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
     }
-    case arg@Argument("override.container.docker.privileged", runPriviledged) ⇒ { app ⇒
+    case arg @ Argument("override.container.docker.privileged", runPriviledged) ⇒ { app ⇒
       Try(runPriviledged.toBoolean).map(
         priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
       ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
     }
-    case arg@Argument("override.ipAddress.networkName", networkName) ⇒ { app ⇒
+    case arg @ Argument("override.ipAddress.networkName", networkName) ⇒ { app ⇒
       app.copy(ipAddress = Some(MarathonAppIpAddress(networkName)))
     }
+    case arg @ Argument("override.fetch.uri", uriValue) ⇒ { app ⇒
+      app.copy(fetch =
+        app.fetch match {
+          case None    ⇒ Some(List(UriObject(uriValue)))
+          case Some(l) ⇒ Some(UriObject(uriValue) :: l)
+        }
+      )
+    }
   }
-
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
 
@@ -200,7 +211,8 @@ class MarathonDriverActor
       cmd(deployment, cluster, service),
       healthChecks = retrieveHealthChecks(cluster, service).map(MarathonHealthCheck.apply(service.breed.ports, _)),
       labels = labels(deployment, cluster, service),
-      constraints = constraints
+      constraints = constraints,
+      fetch = None
     )
 
     // Iterate through all Argument objects and if they represent an override, apply them
@@ -236,7 +248,8 @@ class MarathonDriverActor
       cmd(workflow),
       labels = labels(workflow),
       healthChecks = retrieveHealthChecks(workflow).map(MarathonHealthCheck.apply(breed.ports, _)),
-      constraints = constraints
+      constraints = constraints,
+      fetch = None
     )
 
     // Iterate through all Argument objects and if they represent an override, apply them

@@ -12,12 +12,14 @@ case class MarathonApp(
   mem:          Int,
   env:          Map[String, String],
   cmd:          Option[String],
-  healthChecks: List[MarathonHealthCheck] = Nil,
-  args:         List[String]              = Nil,
-  labels:       Map[String, String]       = Map(),
-  constraints:  List[List[String]]        = Nil
+  healthChecks: List[MarathonHealthCheck]    = Nil,
+  args:         List[String]                 = Nil,
+  labels:       Map[String, String]          = Map(),
+  constraints:  List[List[String]]           = Nil,
+  fetch:        Option[List[UriObject]]
 )
 
+case class UriObject(uri: String)
 case class Container(docker: Docker, `type`: String = "DOCKER")
 
 case class MarathonAppIpAddress(networkName: String)
