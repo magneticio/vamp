@@ -7,15 +7,15 @@ import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.akka.IoC._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.container_driver.{ ContainerDriverActor, Docker }
+import io.vamp.container_driver.{ContainerDriverActor, Docker}
 import io.vamp.model.artifact.Workflow.Status
 import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.reader.{MegaByte, Quantity}
 import io.vamp.model.resolver.WorkflowValueResolver
-import io.vamp.persistence.{ ArtifactSupport, KeyValueStoreActor, PersistenceActor }
+import io.vamp.persistence.{ArtifactSupport, KeyValueStoreActor, KeyValueStorePath, PersistenceActor}
 import io.vamp.pulse.notification.PulseFailureNotifier
-import io.vamp.workflow_driver.WorkflowDriverActor.{ GetScheduled, Schedule, Unschedule }
+import io.vamp.workflow_driver.WorkflowDriverActor.{GetScheduled, Schedule, Unschedule}
 import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 
 import scala.concurrent.Future
@@ -31,7 +31,7 @@ object WorkflowDriver {
 
   val deployablesConfig = s"$workflowConfig.deployables"
 
-  def path(workflow: Workflow) = root :: workflow.name :: Nil
+  private def ketValueAccessPath(workflow: Workflow): KeyValueStorePath = KeyValueStorePath(root :: workflow.name :: Nil)
 }
 
 trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider with WorkflowValueResolver {
@@ -95,7 +95,7 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
           _ ← actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowNetwork(workflow, network)
           _ ← actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowArguments(workflow, arguments)
           _ ← actorFor[PersistenceActor] ? PersistenceActor.UpdateWorkflowBreed(workflow, workflowBreed)
-          _ ← actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(WorkflowDriver.path(workflow), Option(breed.deployable.definition))
+          _ ← actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(ketValueAccessPath(workflow), Some(breed.deployable.definition))
         } yield workflow.copy(
           breed = workflowBreed,
           scale = Option(scale),

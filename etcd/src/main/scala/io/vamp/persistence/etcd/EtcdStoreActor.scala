@@ -1,8 +1,8 @@
 package io.vamp.persistence.etcd
 
 import akka.http.scaladsl.model._
-import io.vamp.common.{ ClassMapper, Config }
-import io.vamp.persistence.KeyValueStoreActor
+import io.vamp.common.{ClassMapper, Config}
+import io.vamp.persistence.{KeyValueStoreActor, KeyValueStorePath}
 
 import scala.concurrent.Future
 
@@ -21,7 +21,7 @@ class EtcdStoreActor extends KeyValueStoreActor {
 
   private val valueNode = "value"
 
-  override protected def info(): Future[Any] = for {
+  override protected def info: Future[Any] = for {
     version ← httpClient.get[Any](s"$url/version")
     self ← httpClient.get[Any](s"$url/v2/stats/self")
     store ← httpClient.get[Any](s"$url/v2/stats/store")
@@ -34,17 +34,15 @@ class EtcdStoreActor extends KeyValueStoreActor {
     )
   )
 
-  override protected def all(path: List[String]): Future[List[String]] = {
+  override protected def all(path: KeyValueStorePath): Future[List[String]] = {
 
-    val key = pathToString(path)
-
-    def collect(childPath: List[String]): Future[List[String]] = {
+    def collect(childPath: KeyValueStorePath): Future[List[String]] = {
       httpClient.get[EtcdKeyValue](urlOf(childPath), logError = false).recover { case _ ⇒ EtcdKeyValue(EtcdNode()) } flatMap { entry ⇒
         entry.node.value match {
           case Some(_) ⇒
             Future.successful {
               val entryKey = entry.node.key.get
-              entryKey.substring(key.length + 1, entryKey.length - valueNode.length - 1) :: Nil
+              entryKey.substring(path.pathStringLength, entryKey.length - valueNode.length - 1) :: Nil
             }
           case _ ⇒
             Future.sequence {
@@ -57,18 +55,18 @@ class EtcdStoreActor extends KeyValueStoreActor {
     collect(path)
   }
 
-  override protected def get(path: List[String]): Future[Option[String]] = {
+  override protected def get(path: KeyValueStorePath): Future[Option[String]] = {
     httpClient.get[Option[EtcdKeyValue]](urlOfValue(path), logError = false).recover { case _ ⇒ None } map {
       _.flatMap(_.node.value)
     }
   }
 
-  override protected def set(path: List[String], data: Option[String]): Future[Any] = data match {
+  override protected def set(path: KeyValueStorePath, data: Option[String]): Future[Any] = data match {
     case None        ⇒ httpClient.delete(urlOfValue(path), logError = false).recover { case _ ⇒ false }
     case Some(value) ⇒ httpClient.httpWithEntity[Any](HttpMethods.PUT, urlOfValue(path), Option(FormData("value" → value).toEntity), logError = false)
   }
 
-  private def urlOfValue(path: List[String]) = s"${urlOf(path)}/$valueNode"
+  private def urlOfValue(path: KeyValueStorePath) = s"${urlOf(path)}/$valueNode"
 
-  private def urlOf(path: List[String], recursive: Boolean = false) = s"$url/v2/keys${pathToString(path)}${if (recursive) "?recursive=true" else ""}"
+  private def urlOf(path: KeyValueStorePath, recursive: Boolean = false) = s"$url/v2/keys${path.toPathString}${if (recursive) "?recursive=true" else ""}"
 }

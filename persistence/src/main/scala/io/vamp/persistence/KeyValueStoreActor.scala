@@ -15,13 +15,13 @@ object KeyValueStoreActor {
 
   val timeout = PersistenceActor.timeout
 
-  sealed trait KeyValueStoreMessage
+  sealed trait KeyValueStoreMessage{def path: KeyValueStorePath}
 
-  case class All(path: List[String]) extends KeyValueStoreMessage
+  case class All(path: KeyValueStorePath) extends KeyValueStoreMessage
 
-  case class Get(path: List[String]) extends KeyValueStoreMessage
+  case class Get(path: KeyValueStorePath) extends KeyValueStoreMessage
 
-  case class Set(path: List[String], data: Option[String]) extends KeyValueStoreMessage
+  case class Set(path: KeyValueStorePath, data: Option[String]) extends KeyValueStoreMessage
 
 }
 
@@ -33,29 +33,35 @@ trait KeyValueStoreActor extends NamespaceValueResolver with PulseFailureNotifie
 
   lazy val httpClient = new HttpClient
 
-  private lazy val basePath = resolveWithNamespace(Config.string("vamp.persistence.key-value-store.base-path")().stripMargin('/'))
+  lazy val basePath = resolveWithNamespace(Config.string("vamp.persistence.key-value-store.base-path")().stripMargin('/'))
+
+  protected implicit val kvActor: KeyValueStoreActor = this
 
   def receive = {
-    case InfoRequest     ⇒ reply(info())
+    case InfoRequest     ⇒ reply(info)
     case All(path)       ⇒ reply(all(path))
     case Get(path)       ⇒ reply(get(path))
     case Set(path, data) ⇒ reply(set(path, data))
     case any             ⇒ unsupported(UnsupportedPersistenceRequest(any))
   }
 
-  protected def info(): Future[Any]
+  protected def info: Future[Any]
 
-  protected def all(path: List[String]): Future[List[String]]
+  protected def all(path: KeyValueStorePath): Future[List[String]]
 
-  protected def get(path: List[String]): Future[Option[String]]
+  protected def get(path: KeyValueStorePath): Future[Option[String]]
 
-  protected def set(path: List[String], data: Option[String]): Future[Any]
+  protected def set(path: KeyValueStorePath, data: Option[String]): Future[Any]
 
   override def typeName = "key-value"
 
   override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
 
   override def errorNotificationClass = classOf[PersistenceOperationFailure]
+}
 
-  protected def pathToString(path: List[String]) = s"/${(basePath :: path).mkString("/")}"
+case class KeyValueStorePath(elements: List[String]) {
+  def toPathString(implicit kvActor: KeyValueStoreActor) =  s"/${(kvActor.basePath :: elements).mkString("/")}"
+  def pathStringLength(implicit kvActor: KeyValueStoreActor) =  toPathString.length
+  def :+ (el: String): KeyValueStorePath = KeyValueStorePath(elements :+ el)
 }
