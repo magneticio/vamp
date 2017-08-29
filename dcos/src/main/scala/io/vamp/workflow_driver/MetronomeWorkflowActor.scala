@@ -143,7 +143,7 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
       if (networkName == "BRIDGE") "bridge" else networkName
     }
 
-    val commandToRun = s"docker run $environmentVariablesAsString --network=${usedNetworkName} " +
+    val commandToRun = s"docker run $environmentVariablesAsString --net=${usedNetworkName} " +
       s"--rm ${workflow.breed.asInstanceOf[DefaultBreed].deployable.definition}"
 
     val workflowAsMetronomeJob = getJobRepresentation(workflowDescription = workflow.name, workflowId = workflowId,
