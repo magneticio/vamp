@@ -189,6 +189,18 @@ class MarathonDriverActor
         }
       )
     }
+    case arg @ Argument("override.noHealthChecks", noHealthChecks) ⇒ { app ⇒
+      Try(noHealthChecks.toBoolean).map(
+        noHealthChecks ⇒ if (noHealthChecks) {
+          app.copy(healthChecks = Nil)
+        }
+        else app
+      ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+    }
+    case arg @ Argument(argName, argValue) if (argName.startsWith("override.labels.")) ⇒ { app ⇒
+      val labelName = argName.drop("override.labels.".length)
+      app.copy(labels = (app.labels + (labelName → argValue)))
+    }
   }
 
   private def deploy(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, update: Boolean): Future[Any] = {
@@ -373,7 +385,21 @@ class MarathonDriverActor
 
   private def containers(app: App): Containers = {
     val scale = DefaultScale(Quantity(app.cpus), MegaByte(app.mem), app.instances)
-    val instances = app.tasks.map(task ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined))
+    val instances = app.tasks.map(task ⇒ {
+      val portsAndIpForUserNetwork = for {
+        container ← app.container
+        docker ← container.docker
+        networkName ← docker.network
+        ipAddressToUse ← task.ipAddresses.headOption
+        if (networkName == "USER")
+      } yield (ipAddressToUse.ipAddress, docker.portMappings.map(_.containerPort).flatten)
+      portsAndIpForUserNetwork match {
+        case None ⇒ ContainerInstance(task.id, task.host, task.ports, task.startedAt.isDefined)
+        case Some(portsAndIp) ⇒ {
+          ContainerInstance(task.id, portsAndIp._1, portsAndIp._2, task.startedAt.isDefined)
+        }
+      }
+    })
     Containers(scale, instances)
   }
 }
