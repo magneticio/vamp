@@ -40,7 +40,7 @@ object MarathonDriverActor {
 
   val namespaceConstraint = Config.stringList(s"$config.marathon.namespace-constraint")
 
-  val tenantIdOverride = Config.string(s"$config.marathon.tenant-it-override")
+  val tenantIdOverride = Config.string(s"$config.marathon.tenant-id-override")
 
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
