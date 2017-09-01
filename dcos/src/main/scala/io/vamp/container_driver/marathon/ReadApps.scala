@@ -10,11 +10,18 @@ case class App(
   id:           String,
   instances:    Int,
   cpus:         Double,
+  container:    Option[AppContainer],
   mem:          Double,
   tasks:        List[Task],
   healthChecks: List[MarathonHealthCheck],
   taskStats:    Option[MarathonTaskStats]
 )
+
+case class AppContainer(docker: Option[DockerAppContainer])
+
+case class DockerAppContainer(image: String, network: Option[String], portMappings: List[DockerAppContainerPort])
+
+case class DockerAppContainerPort(containerPort: Option[Int], hostPort: Option[Int], servicePort: Option[Int])
 
 /**
  * A class to compare the app and marathon app for checking whether Marathon needs to be updated based on config settings
@@ -35,7 +42,9 @@ object ComparableApp {
     ComparableApp(marathonApp.id, marathonApp.instances, marathonApp.cpus, marathonApp.mem, marathonApp.healthChecks)
 }
 
-case class Task(id: String, host: String, ports: List[Int], startedAt: Option[String])
+case class Task(id: String, ipAddresses: List[TaskIpAddress], host: String, ports: List[Int], startedAt: Option[String])
+
+case class TaskIpAddress(ipAddress: String, protocol: String)
 
 case class MarathonTaskStats(totalSummary: MarathonSummary)
 
