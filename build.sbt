@@ -101,7 +101,6 @@ lazy val root = project.in(file(".")).settings(
   pulse,
   http_api,
   gateway_driver,
-  lifter,
   dcos,
   elasticsearch,
   config,
@@ -125,7 +124,6 @@ lazy val bootstrap = project.settings(packAutoSettings).settings(
   pulse,
   http_api,
   gateway_driver,
-  lifter,
   dcos,
   elasticsearch,
   config,
@@ -213,7 +211,7 @@ lazy val elasticsearch = project.settings(
   libraryDependencies ++= testing
 ).dependsOn(pulse, persistence)
 
-lazy val  config = project.settings(
+lazy val config = project.settings(
   description := "Typelevel config library for VAMP",
   name := "vamp-config",
   formatting,
@@ -226,13 +224,6 @@ lazy val haproxy = project.settings(
   formatting,
   libraryDependencies ++= testing ++ templating
 ).dependsOn(gateway_driver)
-
-lazy val lifter = project.settings(
-  description := "Lifter initializes VAMP components",
-  name := "vamp-lifter",
-  formatting,
-  libraryDependencies ++= testing ++ sql ++ fp
-).dependsOn(operation, elasticsearch)
 
 lazy val redis = project.settings(
   description := "Redis driver for VAMP",
