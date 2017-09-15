@@ -1,9 +1,11 @@
 package io.vamp.persistence
 
-import io.vamp.common.{ Artifact, Config }
+import akka.actor.Actor
+import akka.util.Timeout
+import io.vamp.common.{ Artifact, Config, ConfigMagnet }
 import io.vamp.common.akka._
 import io.vamp.common.http.OffsetResponseEnvelope
-import io.vamp.common.notification.Notification
+import io.vamp.common.notification.{ ErrorNotification, Notification }
 import io.vamp.common.vitals.{ InfoRequest, StatsRequest }
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, PersistenceOperationFailure, UnsupportedPersistenceRequest }
 import io.vamp.pulse.notification.PulseFailureNotifier
@@ -20,7 +22,7 @@ object PersistenceActor extends CommonPersistenceMessages with DeploymentPersist
 
   trait PersistenceMessages
 
-  val timeout = Config.timeout("vamp.persistence.response-timeout")
+  val timeout: ConfigMagnet[Timeout] = Config.timeout("vamp.persistence.response-timeout")
 }
 
 trait PersistenceActor
@@ -33,13 +35,13 @@ trait PersistenceActor
     with CommonSupportForActors
     with PersistenceNotificationProvider {
 
-  implicit lazy val timeout = PersistenceActor.timeout()
+  implicit lazy val timeout: Timeout = PersistenceActor.timeout()
 
   protected def info(): Future[Any]
 
-  override def errorNotificationClass = classOf[PersistenceOperationFailure]
+  override def errorNotificationClass: Class[_ <: ErrorNotification] = classOf[PersistenceOperationFailure]
 
-  override def receive = {
+  override def receive: Actor.Receive = {
     super[CommonPersistenceOperations].receive orElse
       super[DeploymentPersistenceOperations].receive orElse
       super[GatewayPersistenceOperations].receive orElse
@@ -52,5 +54,5 @@ trait PersistenceActor
 
   override def typeName = "persistence"
 
-  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
+  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
 }

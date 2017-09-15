@@ -3,8 +3,8 @@ package io.vamp.persistence.zookeeper
 import java.io._
 import java.net.Socket
 
-import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.common.akka._
+import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.persistence.KeyValueStoreActor
 import io.vamp.persistence.zookeeper.AsyncResponse.{ ChildrenResponse, DataResponse, FailedAsyncResponse }
 import org.apache.zookeeper.KeeperException.Code
@@ -13,7 +13,7 @@ import scala.concurrent.Future
 
 class ZooKeeperStoreActorMapper extends ClassMapper {
   val name = "zookeeper"
-  val clazz = classOf[ZooKeeperStoreActor]
+  val clazz: Class[ZooKeeperStoreActor] = classOf[ZooKeeperStoreActor]
 }
 
 class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
@@ -98,13 +98,13 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
 
   private def recoverRetrieval[T](default: T): PartialFunction[Throwable, Future[T]] = {
     case failure: FailedAsyncResponse if failure.code == Code.NONODE ⇒ Future.successful(default)
-    case failure ⇒
+    case _ ⇒
       // something is going wrong with the connection
       initClient()
       Future.successful(default)
   }
 
-  private def initClient() = {
+  private def initClient(): Unit = {
     zooKeeperClient.foreach(_.close())
     zooKeeperClient = Option {
       AsyncZooKeeperClient(
@@ -118,9 +118,9 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
     }
   }
 
-  override def preStart() = initClient()
+  override def preStart(): Unit = initClient()
 
-  override def postStop() = zooKeeperClient.foreach(_.close())
+  override def postStop(): Unit = zooKeeperClient.foreach(_.close())
 }
 
 trait ZooKeeperServerStatistics {

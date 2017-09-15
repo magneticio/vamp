@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.Logger
 import io.vamp.common.{ ClassProvider, Namespace }
 import org.slf4j.{ LoggerFactory, MDC }
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.reflect.{ ClassTag, classTag }
 
 trait Bootstrap extends BootstrapLogger {
@@ -28,7 +28,7 @@ trait ActorBootstrap extends BootstrapLogger {
   }
 
   def restart(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {
-    implicit val executionContext = actorSystem.dispatcher
+    implicit val executionContext: ExecutionContext = actorSystem.dispatcher
     stop.map(_ ⇒ start)
   }
 
@@ -49,7 +49,7 @@ trait BootstrapLogger {
 
   protected val logger = Logger(LoggerFactory.getLogger(getClass))
 
-  protected def info(message: String)(implicit namespace: Namespace) = {
+  protected def info(message: String)(implicit namespace: Namespace): Unit = {
     MDC.put("namespace", namespace.name)
     try logger.info(message) finally MDC.remove("namespace")
   }

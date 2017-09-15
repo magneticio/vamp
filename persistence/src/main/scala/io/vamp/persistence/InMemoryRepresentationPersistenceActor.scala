@@ -13,13 +13,13 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
 
   private val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
-  override def receive = query orElse super[PersistenceActor].receive
+  override def receive: Actor.Receive = query orElse super[PersistenceActor].receive
 
   protected def query: Actor.Receive = PartialFunction.empty
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int) = Future.successful(allArtifacts(`type`, page, perPage))
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] = Future.successful(allArtifacts(`type`, page, perPage))
 
-  protected def get(name: String, `type`: Class[_ <: Artifact]) = Future.successful(readArtifact(name, `type`))
+  protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future.successful(readArtifact(name, `type`))
 
   protected def info(): Future[Map[String, Any]] = Future.successful(Map[String, Any](
     "artifacts" → (store.map {

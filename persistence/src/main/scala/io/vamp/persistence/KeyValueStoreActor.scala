@@ -1,9 +1,11 @@
 package io.vamp.persistence
 
-import io.vamp.common.Config
+import akka.actor.Actor
+import akka.util.Timeout
+import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpClient
-import io.vamp.common.notification.Notification
+import io.vamp.common.notification.{ ErrorNotification, Notification }
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, PersistenceOperationFailure, UnsupportedPersistenceRequest }
@@ -13,7 +15,7 @@ import scala.concurrent.Future
 
 object KeyValueStoreActor {
 
-  val timeout = PersistenceActor.timeout
+  val timeout: ConfigMagnet[Timeout] = PersistenceActor.timeout
 
   sealed trait KeyValueStoreMessage
 
@@ -29,13 +31,13 @@ trait KeyValueStoreActor extends NamespaceValueResolver with PulseFailureNotifie
 
   import KeyValueStoreActor._
 
-  lazy implicit val timeout = KeyValueStoreActor.timeout()
+  lazy implicit val timeout: Timeout = KeyValueStoreActor.timeout()
 
   lazy val httpClient = new HttpClient
 
   private lazy val basePath = resolveWithNamespace(Config.string("vamp.persistence.key-value-store.base-path")().stripMargin('/'))
 
-  def receive = {
+  def receive: Actor.Receive = {
     case InfoRequest     ⇒ reply(info())
     case All(path)       ⇒ reply(all(path))
     case Get(path)       ⇒ reply(get(path))
@@ -53,9 +55,9 @@ trait KeyValueStoreActor extends NamespaceValueResolver with PulseFailureNotifie
 
   override def typeName = "key-value"
 
-  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass) = super[PulseFailureNotifier].failure(failure, `class`)
+  override def failure(failure: Any, `class`: Class[_ <: Notification] = errorNotificationClass): Exception = super[PulseFailureNotifier].failure(failure, `class`)
 
-  override def errorNotificationClass = classOf[PersistenceOperationFailure]
+  override def errorNotificationClass: Class[_ <: ErrorNotification] = classOf[PersistenceOperationFailure]
 
   protected def pathToString(path: List[String]) = s"/${(basePath :: path).mkString("/")}"
 }
