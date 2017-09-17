@@ -12,7 +12,7 @@ import scala.io.Source
 
 class FilePersistenceActorMapper extends ClassMapper {
   val name = "file"
-  val clazz = classOf[FilePersistenceActor]
+  val clazz: Class[_] = classOf[FilePersistenceActor]
 }
 
 object FilePersistenceActor {
@@ -46,27 +46,29 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
 
   override def preStart(): Unit = self ! "load"
 
-  override protected def info() = super.info().map(_ + ("type" → "file") + ("file" → file.getAbsolutePath))
+  override protected def info(): Future[Map[String, Any]] = super.info().map(_ + ("type" → "file") + ("file" → file.getAbsolutePath))
 
   protected def read(): Unit = {
     for (line ← Source.fromFile(file).getLines()) {
       if (line.nonEmpty) {
-        implicit val format = DefaultFormats
+        implicit val format: DefaultFormats = DefaultFormats
         val record = Serialization.read[FileRecord](line)
         if (record.command == FileRecord.set)
-          record.artifact.foreach(content ⇒ unmarshall(record.kind, content).map(setArtifact))
+          record.artifact.foreach(
+            content ⇒ unmarshall(record.kind, content).map(setArtifact)
+          )
         else if (record.command == FileRecord.delete)
           deleteArtifact(record.name, record.kind)
       }
     }
   }
 
-  protected def set(artifact: Artifact) = Future.successful {
-    write(FileRecord(FileRecord.set, artifact.name, artifact.kind, Option(marshall(artifact))))
+  protected def set(artifact: Artifact): Future[Artifact] = Future.successful {
+    write(FileRecord(FileRecord.set, artifact.name, type2string(artifact.getClass), Option(marshall(artifact))))
     setArtifact(artifact)
   }
 
-  protected def delete(name: String, `type`: Class[_ <: Artifact]) = Future.successful {
+  protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = Future.successful {
     write(FileRecord(FileRecord.delete, name, type2string(`type`), None))
     deleteArtifact(name, type2string(`type`)).isDefined
   }
@@ -74,7 +76,7 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
   private def write(record: FileRecord): Unit = {
     val writer = new FileWriter(file, true)
     try {
-      implicit val format = DefaultFormats
+      implicit val format: DefaultFormats = DefaultFormats
       writer.write(s"${Serialization.write(record)}\n")
       writer.flush()
     }
