@@ -33,7 +33,7 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
   private lazy val file = {
     val dir = directory()
     val file = new File(
-      if (dir.endsWith(File.separator)) s"$dir${namespace.name}.txt" else s"$dir${File.separator}${namespace.name}.txt"
+      if (dir.endsWith(File.separator)) s"$dir${namespace.name}.db" else s"$dir${File.separator}${namespace.name}.db"
     )
     file.getParentFile.mkdirs()
     file.createNewFile()
