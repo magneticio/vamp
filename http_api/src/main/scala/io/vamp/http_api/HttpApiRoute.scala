@@ -122,10 +122,19 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     } ~ pathPrefix(Segment / Remaining) { (artifact, name) ⇒
       pathEndOrSingleSlash {
         get {
-          rejectEmptyResponse {
-            expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
-              onSuccess(readArtifact(artifact, name, expandReferences, onlyReferences)) {
-                result ⇒ respondWith(if (result == None) NotFound else OK, result)
+          name match {
+            case "" => pageAndPerPage() { (page, perPage) ⇒
+              expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
+                onSuccess(readArtifacts(artifact, expandReferences, onlyReferences)(page, perPage)) { result ⇒
+                  respondWith(OK, result)
+                }
+              }
+            }
+            case _ => rejectEmptyResponse {
+              expandAndOnlyReferences { (expandReferences, onlyReferences) ⇒
+                onSuccess(readArtifact(artifact, name, expandReferences, onlyReferences)) {
+                  result ⇒ respondWith(if (result == None) NotFound else OK, result)
+                }
               }
             }
           }
