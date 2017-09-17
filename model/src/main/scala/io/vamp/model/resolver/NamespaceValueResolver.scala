@@ -1,12 +1,14 @@
 package io.vamp.model.resolver
 
-import io.vamp.common.Namespace
+import io.vamp.common.{ Config, Namespace, NamespaceProvider }
 import io.vamp.common.notification.NotificationProvider
 import io.vamp.model.artifact.LocalReference
 import io.vamp.model.notification.ParserError
 
 trait NamespaceValueResolver extends ValueResolver {
-  this: NotificationProvider ⇒
+  this: NamespaceProvider with NotificationProvider ⇒
+
+  private lazy val force = Config.boolean("vamp.model.resolvers.force-namespace")()
 
   def resolveWithNamespace(value: String, lookup: Boolean = false)(implicit namespace: Namespace): String = {
     var processed = false
@@ -17,7 +19,7 @@ trait NamespaceValueResolver extends ValueResolver {
         if (lookup) namespace.lookupName else namespace.name
       case _ ⇒ throwException(ParserError(s"Cannot parse the namespace in: $value"))
     }).mkString
-    if (!processed) throwException(ParserError(s"No namespace in: $value"))
+    if (force && !processed) throwException(ParserError(s"No namespace in: $value"))
     result
   }
 }
