@@ -1,5 +1,7 @@
 package io.vamp.common
 
+import java.io.File
+
 import _root_.akka.util.Timeout
 import com.typesafe.config.ConfigException.Missing
 import com.typesafe.config.{ ConfigFactory, ConfigValueFactory, Config ⇒ TypesafeConfig }
@@ -64,6 +66,11 @@ object Config {
     values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).put(Type.application, convert(applicationExpanded))
     values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).put(Type.environment, convert(environmentExpanded))
     values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).put(Type.applied, convert(appliedWitNamespace))
+  }
+
+  def parse(file: File, expanded: Boolean = true): Map[String, Any] = {
+    val config = convert(ConfigFactory.parseFile(file))
+    if (expanded) expand(config) else config
   }
 
   def int(path: String): ConfigMagnet[Int] = get(path, {
