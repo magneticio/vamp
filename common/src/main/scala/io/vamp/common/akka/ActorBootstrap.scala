@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.Logger
 import io.vamp.common.{ ClassProvider, Namespace }
 import org.slf4j.{ LoggerFactory, MDC }
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.Future
 import scala.reflect.{ ClassTag, classTag }
 
 trait Bootstrap extends BootstrapLogger {
@@ -22,14 +22,14 @@ trait ActorBootstrap extends BootstrapLogger {
 
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[List[ActorRef]]
 
-  def start(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {
+  def start(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[Unit] = {
     info(s"Starting ${getClass.getSimpleName}")
     actors = createActors(actorSystem, namespace, timeout)
+    actors.map(_ ⇒ ())(actorSystem.dispatcher)
   }
 
-  def restart(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {
-    implicit val executionContext: ExecutionContext = actorSystem.dispatcher
-    stop.map(_ ⇒ start)
+  def restart(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[Unit] = {
+    stop.flatMap(_ ⇒ start)(actorSystem.dispatcher)
   }
 
   def stop(implicit actorSystem: ActorSystem, namespace: Namespace): Future[Unit] = {
