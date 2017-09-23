@@ -17,7 +17,9 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
 
   protected def query: Actor.Receive = PartialFunction.empty
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] = Future.successful(allArtifacts(`type`, page, perPage))
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean = (_) ⇒ true): Future[ArtifactResponseEnvelope] = {
+    Future.successful(allArtifacts(`type`, page, perPage, filter))
+  }
 
   protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future.successful(readArtifact(name, `type`))
 
@@ -36,12 +38,13 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
     }
   }
 
-  protected def allArtifacts(`type`: Class[_ <: Artifact], page: Int, perPage: Int): ArtifactResponseEnvelope = {
+  protected def allArtifacts(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean): ArtifactResponseEnvelope = {
     log.debug(s"In memory representation: all [${`type`.getSimpleName}] of $page per $perPage")
-    val artifacts = store.get(type2string(`type`)) match {
+    val artifacts = (store.get(type2string(`type`)) match {
       case None      ⇒ Nil
       case Some(map) ⇒ map.values.toList
-    }
+    }).filter { artifact ⇒ filter(artifact) }
+
     val total = artifacts.size
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
     val (rp, rpp) = OffsetEnvelope.normalize(total, p, pp, ArtifactResponseEnvelope.maxPerPage)

@@ -34,7 +34,7 @@ class ElasticsearchPersistenceActor extends PersistenceActor with PersistenceMar
     initializationTime ← es.creationTime(index)
   } yield ElasticsearchPersistenceInfo("elasticsearch", url, index, initializationTime, health)
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope] = {
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean = (_) ⇒ true): Future[ArtifactResponseEnvelope] = {
     log.debug(s"${getClass.getSimpleName}: all [${type2string(`type`)}] of $page per $perPage")
 
     val from = (page - 1) * perPage

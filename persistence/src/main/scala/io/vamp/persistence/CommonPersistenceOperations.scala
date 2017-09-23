@@ -30,7 +30,7 @@ trait CommonPersistenceOperations extends PersistenceMultiplexer with Persistenc
 
   import PersistenceActor._
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope]
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean = (_) ⇒ true): Future[ArtifactResponseEnvelope]
 
   protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]]
 
