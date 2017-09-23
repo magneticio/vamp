@@ -23,12 +23,18 @@ class HttpApiBootstrap extends ActorBootstrap {
   }
 
   override def start(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[Unit] = {
-    super.start
-    val (interface, port) = (Config.string("vamp.http-api.interface")(), Config.int("vamp.http-api.port")())
     implicit lazy val materializer: ActorMaterializer = ActorMaterializer()
-    info(s"Binding API: $interface:$port")
     implicit val executionContext: ExecutionContext = actorSystem.dispatcher
-    Http().bindAndHandle(routes, interface, port).map { handle ⇒ binding = Option(handle) }
+    super.start.flatMap { _ ⇒
+      val (interface, port) = (Config.string("vamp.http-api.interface")(), Config.int("vamp.http-api.port")())
+      info(s"Binding API: $interface:$port")
+      try {
+        Http().bindAndHandle(routes, interface, port).map { handle ⇒ binding = Option(handle) }
+      }
+      catch {
+        case e: Exception ⇒ Future.successful(e.printStackTrace())
+      }
+    }
   }
 
   override def restart(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[Unit] = Future.successful(())

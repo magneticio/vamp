@@ -24,9 +24,9 @@ object Config {
 
   private val values: mutable.Map[String, mutable.Map[Type.Value, TypesafeConfig]] = new mutable.LinkedHashMap()
 
-  def marshall(config: Map[String, Any])(implicit namespace: Namespace): String = if (config.isEmpty) "" else writePretty(config)
+  def marshall(config: Map[String, Any]): String = if (config.isEmpty) "" else writePretty(config)
 
-  def unmarshall(input: String, filter: ConfigFilter = ConfigFilter.acceptAll)(implicit namespace: Namespace): Map[String, Any] = {
+  def unmarshall(input: String, filter: ConfigFilter = ConfigFilter.acceptAll): Map[String, Any] = {
     val yaml = Option(expand(YamlUtil.convert(YamlUtil.yaml.load(input), preserveOrder = false).asInstanceOf[Map[String, AnyRef]]))
     val json = yaml.map(write(_)).getOrElse("")
     val flatten = convert(ConfigFactory.parseString(json))
