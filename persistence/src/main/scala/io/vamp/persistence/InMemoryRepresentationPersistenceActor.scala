@@ -32,18 +32,12 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
   protected def all[A <: Artifact: ClassTag]: List[A] = {
     val `type` = classTag[A].runtimeClass
     log.debug(s"In memory representation: all [${`type`.getSimpleName}]")
-    store.get(type2string(`type`)) match {
-      case None      ⇒ Nil
-      case Some(map) ⇒ map.values.toList.asInstanceOf[List[A]]
-    }
+    valuesByType(type2string(`type`)).asInstanceOf[List[A]]
   }
 
   protected def allArtifacts(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean): ArtifactResponseEnvelope = {
     log.debug(s"In memory representation: all [${`type`.getSimpleName}] of $page per $perPage")
-    val artifacts = (store.get(type2string(`type`)) match {
-      case None      ⇒ Nil
-      case Some(map) ⇒ map.values.toList
-    }).filter { artifact ⇒ filter(artifact) }
+    val artifacts = valuesByType(type2string(`type`)).filter { artifact ⇒ filter(artifact) }
 
     val total = artifacts.size
     val (p, pp) = OffsetEnvelope.normalize(page, perPage, ArtifactResponseEnvelope.maxPerPage)
@@ -85,4 +79,6 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
       artifact
     }
   }
+
+  protected def valuesByType(`type`: String): List[Artifact] = store.get(`type`).map(_.values.toList).getOrElse(Nil)
 }
