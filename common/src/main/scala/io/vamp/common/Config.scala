@@ -26,12 +26,12 @@ object Config {
 
   def marshall(config: Map[String, Any]): String = if (config.isEmpty) "" else writePretty(config)
 
-  def unmarshall(input: String, filter: ConfigFilter = ConfigFilter.acceptAll): Map[String, Any] = {
+  def unmarshall(input: String, filter: ConfigFilter = ConfigFilter.acceptAll, flatten: Boolean = false): Map[String, Any] = {
     val yaml = Option(expand(YamlUtil.convert(YamlUtil.yaml.load(input), preserveOrder = false).asInstanceOf[Map[String, AnyRef]]))
     val json = yaml.map(write(_)).getOrElse("")
-    val flatten = convert(ConfigFactory.parseString(json))
-    val filtered = flatten.filter { case (key, value) ⇒ filter.filter(key, value) }
-    expand(filtered)
+    val flat = convert(ConfigFactory.parseString(json))
+    val filtered = flat.filter { case (key, value) ⇒ filter.filter(key, value) }
+    if (flatten) filtered else expand(filtered)
   }
 
   def load(dynamic: Map[String, Any] = Map())(implicit namespace: Namespace): Unit = {
