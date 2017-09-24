@@ -17,13 +17,9 @@ class MySqlPersistenceActor extends SqlPersistenceActor with SqlStatementProvide
     db ← dbInfo("mysql")
   } yield state ++ db
 
-  override def getInsertStatement(content: Option[String]): String =
-    content.map { _ ⇒
-      s"insert into $table (`Version`, `Command`, `Type`, `Name`, `Definition`) values (?, ?, ?, ?, ?)"
-    }.getOrElse(s"insert into $table (`Version`, `Command`, `Type`, `Name`) values (?, ?, ?, ?)")
+  def insertStatement(): String = s"insert into $table (`Content`) values (?)"
 
-  override def getSelectStatement(lastId: Long): String =
-    s"SELECT `ID`, `Command`, `Type`, `Name`, `Definition` FROM `$table` WHERE `ID` > $lastId ORDER BY `ID` ASC"
+  def selectStatement(lastId: Long): String = s"SELECT `ID`, `Content` FROM `$table` WHERE `ID` > $lastId ORDER BY `ID` ASC"
 
-  override val statementMinValue: Int = Integer.MIN_VALUE
+  val statementMinValue: Int = Integer.MIN_VALUE
 }

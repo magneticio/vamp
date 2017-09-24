@@ -4,8 +4,7 @@ import java.io.{ File, FileWriter }
 
 import akka.actor.Actor
 import io.vamp.common.{ Artifact, ClassMapper, Config, ConfigMagnet }
-import org.json4s.DefaultFormats
-import org.json4s.native.Serialization
+import io.vamp.persistence.notification.CorruptedDataException
 
 import scala.concurrent.Future
 import scala.io.Source
@@ -19,14 +18,7 @@ object FilePersistenceActor {
   val directory: ConfigMagnet[String] = Config.string("vamp.persistence.file.directory")
 }
 
-private object FileRecord {
-  val set = "set"
-  val delete = "delete"
-}
-
-private case class FileRecord(command: String, name: String, kind: String, artifact: Option[String])
-
-class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with PersistenceMarshaller {
+class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with PersistenceRecordMarshaller with PersistenceMarshaller {
 
   import FilePersistenceActor._
 
@@ -48,38 +40,43 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
 
   override protected def info(): Future[Map[String, Any]] = super.info().map(_ + ("type" → "file") + ("file" → file.getAbsolutePath))
 
-  protected def read(): Unit = {
-    for (line ← Source.fromFile(file).getLines()) {
-      if (line.nonEmpty) {
-        implicit val format: DefaultFormats = DefaultFormats
-        val record = Serialization.read[FileRecord](line)
-        if (record.command == FileRecord.set)
-          record.artifact.foreach(
-            content ⇒ unmarshall(record.kind, content).map(setArtifact)
-          )
-        else if (record.command == FileRecord.delete)
-          deleteArtifact(record.name, record.kind)
+  protected def read(): Unit = this.synchronized {
+    try {
+      for (line ← Source.fromFile(file).getLines()) {
+        if (line.nonEmpty) {
+          val record = unmarshallRecord(line)
+          record.artifact match {
+            case Some(content) ⇒ unmarshall(record.kind, content).map(setArtifact)
+            case None          ⇒ deleteArtifact(record.name, record.kind)
+          }
+        }
       }
+    }
+    catch {
+      case c: CorruptedDataException ⇒
+        reportException(c)
+        validData = false
     }
   }
 
   protected def set(artifact: Artifact): Future[Artifact] = Future.successful {
-    write(FileRecord(FileRecord.set, artifact.name, type2string(artifact.getClass), Option(marshall(artifact))))
+    write(PersistenceRecord(artifact))
     setArtifact(artifact)
   }
 
   protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = Future.successful {
-    write(FileRecord(FileRecord.delete, name, type2string(`type`), None))
+    write(PersistenceRecord(name, type2string(`type`)))
     deleteArtifact(name, type2string(`type`)).isDefined
   }
 
-  private def write(record: FileRecord): Unit = {
+  private def write(record: PersistenceRecord): Unit = {
     val writer = new FileWriter(file, true)
-    try {
-      implicit val format: DefaultFormats = DefaultFormats
-      writer.write(s"${Serialization.write(record)}\n")
-      writer.flush()
+    this.synchronized {
+      try {
+        writer.write(s"${marshallRecord(record)}\n")
+        writer.flush()
+      }
+      finally writer.close()
     }
-    finally writer.close()
   }
 }

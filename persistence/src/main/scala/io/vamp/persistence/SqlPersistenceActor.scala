@@ -3,8 +3,7 @@ package io.vamp.persistence
 import java.sql.{ DriverManager, ResultSet, Statement }
 
 import io.vamp.common.{ Config, ConfigMagnet }
-import io.vamp.model.Model
-import io.vamp.persistence.notification.PersistenceOperationFailure
+import io.vamp.persistence.notification.{ CorruptedDataException, PersistenceOperationFailure }
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -21,7 +20,7 @@ object SqlPersistenceActor {
 
 }
 
-trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider {
+trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with PersistenceRecordMarshaller with PersistenceMarshaller {
 
   protected def dbInfo(`type`: String): Future[Map[String, Any]] = {
     ping()
@@ -40,7 +39,7 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider {
     val connection = DriverManager.getConnection(url, user, password)
     try {
       val statement = connection.prepareStatement(
-        getSelectStatement(getLastId),
+        selectStatement(getLastId),
         ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY
       )
       statement.setFetchSize(statementMinValue)
@@ -48,18 +47,13 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider {
         val result = statement.executeQuery
         while (result.next) {
           val id = result.getLong(1)
-          val command = result.getString(2)
-          val `type` = result.getString(3)
-
           if (id > getLastId) {
-            if (command == commandSet) {
-              unmarshall(`type`, result.getString(5)).map(setArtifact)
-              setLastId(id)
+            val record = unmarshallRecord(result.getString(2))
+            record.artifact match {
+              case Some(content) ⇒ unmarshall(record.kind, content).map(setArtifact)
+              case None          ⇒ deleteArtifact(record.name, record.kind)
             }
-            else if (command == commandDelete) {
-              deleteArtifact(result.getString(4), `type`)
-              setLastId(id)
-            }
+            setLastId(id)
           }
         }
         getLastId
@@ -69,24 +63,21 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider {
       }
     }
     catch {
-      case e: Exception ⇒ throwException(PersistenceOperationFailure(e))
+      case c: CorruptedDataException ⇒ throw c
+      case e: Exception              ⇒ throwException(PersistenceOperationFailure(e))
     }
     finally {
       connection.close()
     }
   }
 
-  override protected def insert(name: String, kind: String, content: Option[String] = None): Try[Option[Long]] = Try {
+  override protected def insert(record: PersistenceRecord): Try[Option[Long]] = Try {
     val connection = DriverManager.getConnection(url, user, password)
     try {
-      val query = getInsertStatement(content)
+      val query = insertStatement()
       val statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
       try {
-        statement.setString(1, Model.version)
-        statement.setString(2, if (content.isDefined) commandSet else commandDelete)
-        statement.setString(3, kind)
-        statement.setString(4, name)
-        content.foreach(statement.setString(5, _))
+        statement.setString(1, marshallRecord(record))
         statement.executeUpdate
         val result = statement.getGeneratedKeys
         if (result.next) Option(result.getLong(1)) else None

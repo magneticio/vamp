@@ -18,12 +18,9 @@ class SQLitePersistenceActor extends SqlPersistenceActor with SqlStatementProvid
     db ← dbInfo("sqlite")
   } yield state ++ db
 
-  override def getInsertStatement(content: Option[String]): String = content.map { _ ⇒
-    s"INSERT INTO $table (Version, Command, Type, Name, Definition) values (?, ?, ?, ?, ?);"
-  }.getOrElse(s"INSERT INTO $table (Version, Command, Type, Name) values (?, ?, ?, ?);")
+  def insertStatement(): String = s"INSERT INTO $table (Content) values (?);"
 
-  override def getSelectStatement(lastId: Long): String =
-    s"SELECT ID, Command, Type, Name, Definition FROM $table WHERE ID > $lastId ORDER BY ID ASC;"
+  def selectStatement(lastId: Long): String = s"SELECT ID, Content FROM $table WHERE ID > $lastId ORDER BY ID ASC;"
 
   override val statementMinValue: Int = 0
 }

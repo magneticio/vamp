@@ -13,6 +13,8 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
 
   private val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
+  protected var validData = true
+
   override def receive: Actor.Receive = query orElse super[PersistenceActor].receive
 
   protected def query: Actor.Receive = PartialFunction.empty
@@ -24,6 +26,7 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
   protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = Future.successful(readArtifact(name, `type`))
 
   protected def info(): Future[Map[String, Any]] = Future.successful(Map[String, Any](
+    "status" → (if (validData) "valid" else "corrupted"),
     "artifacts" → (store.map {
       case (key, value) ⇒ key → Map[String, Any]("count" → value.values.size)
     } toMap)

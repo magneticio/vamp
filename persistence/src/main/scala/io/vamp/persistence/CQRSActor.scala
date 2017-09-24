@@ -6,6 +6,7 @@ import io.vamp.common.Artifact
 import io.vamp.common.akka.SchedulerActor
 import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.persistence.CQRSActor.ReadAll
+import io.vamp.persistence.notification.CorruptedDataException
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -21,11 +22,7 @@ object CQRSActor {
  */
 trait CQRSActor extends InMemoryRepresentationPersistenceActor
     with NamespaceValueResolver
-    with SchedulerActor
-    with PersistenceMarshaller {
-
-  val commandSet = "SET"
-  val commandDelete = "DELETE"
+    with SchedulerActor {
 
   private var lastId: Long = 0
 
@@ -35,17 +32,17 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
 
   protected def read(): Long
 
-  protected def insert(name: String, kind: String, content: Option[String] = None): Try[Option[Long]]
+  protected def insert(record: PersistenceRecord): Try[Option[Long]]
 
   protected def delay: FiniteDuration
 
   protected def synchronization: FiniteDuration
 
-  override def tick(): Unit = read()
+  override def tick(): Unit = readWrapper()
 
   override def receive: Receive = ({
-    case ReadAll ⇒ sender ! read()
-    case v: Long ⇒
+    case ReadAll ⇒ sender ! readWrapper()
+    case _: Long ⇒
   }: Actor.Receive) orElse super[SchedulerActor].receive orElse super[InMemoryRepresentationPersistenceActor].receive
 
   override def preStart(): Unit = {
@@ -57,17 +54,20 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
     log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
     lazy val failMessage = s"Can not set [${artifact.getClass.getSimpleName}] - ${artifact.name}"
 
-    insert(artifact.name, type2string(artifact.getClass), Option(marshall(artifact))).collect {
+    this.synchronized {
+      insert(PersistenceRecord(artifact))
+    }.collect {
       case Some(id: Long) ⇒ readOrFail(id, () ⇒ Future.successful(artifact), () ⇒ fail[Artifact](failMessage))
     }.getOrElse(fail(failMessage))
   }
-
   override protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
     val kind = type2string(`type`)
     lazy val failMessage = s"Can not delete [${`type`.getSimpleName}] - $name}"
 
-    insert(name, kind).collect {
+    this.synchronized {
+      insert(PersistenceRecord(name, kind))
+    }.collect {
       case Some(id: Long) ⇒ readOrFail(id, () ⇒ Future.successful(true), () ⇒ fail[Boolean](failMessage))
     } getOrElse fail[Boolean](failMessage)
   }
@@ -80,4 +80,20 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
     }
   }
 
+  private def readWrapper(): Long = {
+    try {
+      this.synchronized {
+        read()
+      }
+    }
+    catch {
+      case c: CorruptedDataException ⇒
+        reportException(c)
+        validData = false
+        lastId
+      case e: Exception ⇒
+        e.printStackTrace()
+        lastId
+    }
+  }
 }

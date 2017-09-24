@@ -5,13 +5,9 @@ package io.vamp.persistence
  */
 trait SqlStatementProvider {
 
-  /**
-   * Gets the statement of the specific SQL DB
-   * @param content The content of the action to perform, empty when deletion
-   */
-  def getInsertStatement(content: Option[String]): String
+  def insertStatement(): String
 
-  def getSelectStatement(lastId: Long): String
+  def selectStatement(lastId: Long): String
 
   def statementMinValue: Int
 
