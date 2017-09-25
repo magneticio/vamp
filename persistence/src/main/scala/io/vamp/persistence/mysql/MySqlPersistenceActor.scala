@@ -17,9 +17,9 @@ class MySqlPersistenceActor extends SqlPersistenceActor with SqlStatementProvide
     db ← dbInfo("mysql")
   } yield state ++ db
 
-  def insertStatement(): String = s"insert into $table (`Content`) values (?)"
+  def insertStatement(): String = s"insert into $table (`Record`) values (?)"
 
-  def selectStatement(lastId: Long): String = s"SELECT `ID`, `Content` FROM `$table` WHERE `ID` > $lastId ORDER BY `ID` ASC"
+  def selectStatement(lastId: Long): String = s"SELECT `ID`, `Record` FROM `$table` WHERE `ID` > $lastId ORDER BY `ID` ASC"
 
   val statementMinValue: Int = Integer.MIN_VALUE
 }

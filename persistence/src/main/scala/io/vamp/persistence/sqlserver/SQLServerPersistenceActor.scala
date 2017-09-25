@@ -23,9 +23,9 @@ class SQLServerPersistenceActor extends SqlPersistenceActor with SqlStatementPro
     db ← dbInfo("sqlserver")
   } yield state ++ db
 
-  def insertStatement(): String = s"insert into $table (Content) values (?)"
+  def insertStatement(): String = s"insert into $table (Record) values (?)"
 
-  def selectStatement(lastId: Long): String = s"SELECT ID, Content FROM $table WHERE ID > $lastId ORDER BY ID ASC"
+  def selectStatement(lastId: Long): String = s"SELECT ID, Record FROM $table WHERE ID > $lastId ORDER BY ID ASC"
 
   // In Sql Server the minvalue of a select statement fetch is 0
   val statementMinValue: Int = 0
