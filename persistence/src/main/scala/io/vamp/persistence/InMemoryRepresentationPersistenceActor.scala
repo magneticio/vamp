@@ -11,6 +11,8 @@ import scala.reflect.{ ClassTag, classTag }
 
 trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeOfArtifact {
 
+  private var records = 0
+
   private val store: mutable.Map[String, mutable.Map[String, Artifact]] = new mutable.HashMap()
 
   protected var validData = true
@@ -27,6 +29,7 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
 
   protected def info(): Future[Map[String, Any]] = Future.successful(Map[String, Any](
     "status" → (if (validData) "valid" else "corrupted"),
+    "records" → records,
     "artifacts" → (store.map {
       case (key, value) ⇒ key → Map[String, Any]("count" → value.values.size)
     } toMap)
@@ -64,6 +67,7 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
 
   protected def setArtifact(artifact: Artifact): Artifact = {
     log.debug(s"In memory representation: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
+    records += 1
     store.get(type2string(artifact.getClass)) match {
       case None ⇒
         val map = new mutable.HashMap[String, Artifact]()
@@ -76,6 +80,7 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
 
   protected def deleteArtifact(name: String, `type`: String): Option[Artifact] = {
     log.debug(s"In memory representation: delete [${`type`}] - $name}")
+    records += 1
     store.get(`type`) flatMap { map ⇒
       val artifact = map.remove(name)
       if (artifact.isEmpty) log.debug(s"Artifact not found for deletion: ${`type`}: $name")
