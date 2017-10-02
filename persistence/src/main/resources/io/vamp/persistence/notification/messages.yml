@@ -1,8 +1,9 @@
 
-UnsupportedPersistenceRequest  : "Unsupported persistence request: '{request}'"
+UnsupportedPersistenceRequest  : "Unsupported persistence request: '{request}'."
 ArtifactNotFound               : "Artifact cannot be found: '{name}'."
 PersistenceOperationFailure    : "Persistence operation failure."
 ArtifactAlreadyExists          : "Artifact already exists: '{name}'."
 NotificationMessageNotRestored : "Deployment service error was not restored. {message}"
-UnsupportedParameterToPersist  : "Unsupported parameter {name} of type {parameterType} in {parent}"
+UnsupportedParameterToPersist  : "Unsupported parameter {name} of type {parameterType} in {parent}."
 CorruptedDataException         : "Corrupted data detected."
+UnknownDataFormatException     : "Unknown data format detected: '{kind}'."

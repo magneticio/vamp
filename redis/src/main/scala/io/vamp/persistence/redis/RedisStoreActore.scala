@@ -9,7 +9,7 @@ import scala.util.Try
 
 class RedisStoreActorMapper extends ClassMapper {
   val name = "redis"
-  val clazz = classOf[RedisStoreActor]
+  val clazz: Class[_] = classOf[RedisStoreActor]
 }
 
 class RedisStoreActor extends KeyValueStoreActor {

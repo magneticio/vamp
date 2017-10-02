@@ -8,15 +8,15 @@ import io.vamp.model.resolver.{ ValueResolver, VariableNode }
 trait BreedTraitValueValidator extends ValueResolver {
   this: NotificationProvider ⇒
 
-  def validateBreedTraitValues(breed: DefaultBreed) = {
+  def validateBreedTraitValues(breed: DefaultBreed): Unit = {
 
     def reportError(ref: ClusterReference) =
       throwException(UnresolvedDependencyInTraitValueError(breed, ref.reference))
 
-    def validateCluster(ref: ClusterReference) =
+    def validateCluster(ref: ClusterReference): Unit =
       if (!breed.dependencies.keySet.contains(ref.cluster)) reportError(ref)
 
-    def validateDependencyTraitExists(ref: TraitReference) = {
+    def validateDependencyTraitExists(ref: TraitReference): Unit = {
       breed.dependencies.find(_._1 == ref.cluster).map(_._2).foreach {
         case dependency: DefaultBreed ⇒ if (!dependency.traitsFor(ref.group).exists(_.name == ref.name)) reportError(ref)
         case _                        ⇒
@@ -37,7 +37,7 @@ trait BreedTraitValueValidator extends ValueResolver {
     }
   }
 
-  def validateEnvironmentVariablesAgainstBreed(environmentVariables: List[EnvironmentVariable], breed: Breed) = breed match {
+  def validateEnvironmentVariablesAgainstBreed(environmentVariables: List[EnvironmentVariable], breed: Breed): Unit = breed match {
     case breed: DefaultBreed ⇒ environmentVariables.foreach { environmentVariable ⇒
       if (environmentVariable.value.isEmpty) throwException(MissingEnvironmentVariableError(breed, environmentVariable.name))
       if (!breed.environmentVariables.exists(_.name == environmentVariable.name)) throwException(UnresolvedDependencyInTraitValueError(breed, environmentVariable.name))
@@ -49,7 +49,7 @@ trait BreedTraitValueValidator extends ValueResolver {
 trait BlueprintTraitValidator extends ValueResolver {
   this: NotificationProvider ⇒
 
-  def validateBlueprintTraitValues = validateGatewayPorts andThen validateEnvironmentVariables andThen validateInterpolatedValues
+  def validateBlueprintTraitValues: (DefaultBlueprint ⇒ DefaultBlueprint) = validateGatewayPorts andThen validateEnvironmentVariables andThen validateInterpolatedValues
 
   private def validateGatewayPorts: (DefaultBlueprint ⇒ DefaultBlueprint) = { blueprint: DefaultBlueprint ⇒
 

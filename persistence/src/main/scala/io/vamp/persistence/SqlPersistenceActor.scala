@@ -20,7 +20,7 @@ object SqlPersistenceActor {
 
 }
 
-trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with PersistenceRecordMarshaller with PersistenceMarshaller {
+trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with PersistenceDataReader {
 
   protected def dbInfo(`type`: String): Future[Map[String, Any]] = {
     ping()
@@ -48,11 +48,7 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
         while (result.next) {
           val id = result.getLong(1)
           if (id > getLastId) {
-            val record = unmarshallRecord(result.getString(2))
-            record.artifact match {
-              case Some(content) ⇒ unmarshall(record.kind, content).map(setArtifact)
-              case None          ⇒ deleteArtifact(record.name, record.kind)
-            }
+            readData(result.getString(2))
             setLastId(id)
           }
         }

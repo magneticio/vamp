@@ -4,9 +4,13 @@ import io.vamp.common.{ Artifact, Reference, Type }
 
 import scala.concurrent.duration.FiniteDuration
 
+object Sla {
+  val kind: String = "slas"
+}
+
 trait Sla extends Artifact {
 
-  val kind = "sla"
+  val kind: String = Sla.kind
 
   def escalations: List[Escalation]
 }
@@ -31,8 +35,11 @@ trait SlidingWindowSla[T] extends Sla {
 
 case class ResponseTimeSlidingWindowSla(name: String, metadata: Map[String, Any], upper: FiniteDuration, lower: FiniteDuration, interval: FiniteDuration, cooldown: FiniteDuration, escalations: List[Escalation]) extends SlidingWindowSla[FiniteDuration]
 
+object Escalation {
+  val kind: String = "escalations"
+}
 trait Escalation extends Artifact {
-  val kind = "escalation"
+  val kind: String = Escalation.kind
 }
 
 case class EscalationReference(name: String) extends Reference with Escalation

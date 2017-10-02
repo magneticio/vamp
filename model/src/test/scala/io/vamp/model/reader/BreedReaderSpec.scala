@@ -319,7 +319,7 @@ class BreedReaderSpec extends ReaderSpec {
     expectedError[InconsistentArtifactKind]({
       BreedReader.read(res("breed/breed36.yml"))
     }) should have(
-      'given("blueprint")
+      'given("blueprints")
     )
   }
 

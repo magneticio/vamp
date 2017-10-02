@@ -12,7 +12,7 @@ case class EtcdNode(key: Option[String] = None, value: Option[String] = None, no
 
 class EtcdStoreActorMapper extends ClassMapper {
   val name = "etcd"
-  val clazz = classOf[EtcdStoreActor]
+  val clazz: Class[_] = classOf[EtcdStoreActor]
 }
 
 class EtcdStoreActor extends KeyValueStoreActor {

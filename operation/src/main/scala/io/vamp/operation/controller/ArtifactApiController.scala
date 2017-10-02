@@ -157,18 +157,18 @@ trait SourceTransformer {
   }
 
   protected def `type`(kind: String)(implicit namespace: Namespace): (Class[_ <: Artifact], YamlReader[_ <: Artifact]) = kind match {
-    case "breeds"      ⇒ (classOf[Breed], BreedReader)
-    case "blueprints"  ⇒ (classOf[Blueprint], BlueprintReader)
-    case "slas"        ⇒ (classOf[Sla], SlaReader)
-    case "scales"      ⇒ (classOf[Scale], ScaleReader)
-    case "escalations" ⇒ (classOf[Escalation], EscalationReader)
-    case "routes"      ⇒ (classOf[Route], RouteReader)
-    case "conditions"  ⇒ (classOf[Condition], ConditionReader)
-    case "rewrites"    ⇒ (classOf[Rewrite], RewriteReader)
-    case "workflows"   ⇒ (classOf[Workflow], WorkflowReader)
-    case "gateways"    ⇒ (classOf[Gateway], GatewayReader)
-    case "deployments" ⇒ (classOf[Deployment], DeploymentReader)
-    case "templates"   ⇒ (classOf[Template], TemplateReader)
-    case _             ⇒ throwException(UnexpectedArtifact(kind))
+    case Breed.kind      ⇒ (classOf[Breed], BreedReader)
+    case Blueprint.kind  ⇒ (classOf[Blueprint], BlueprintReader)
+    case Sla.kind        ⇒ (classOf[Sla], SlaReader)
+    case Scale.kind      ⇒ (classOf[Scale], ScaleReader)
+    case Escalation.kind ⇒ (classOf[Escalation], EscalationReader)
+    case Route.kind      ⇒ (classOf[Route], RouteReader)
+    case Condition.kind  ⇒ (classOf[Condition], ConditionReader)
+    case Rewrite.kind    ⇒ (classOf[Rewrite], RewriteReader)
+    case Workflow.kind   ⇒ (classOf[Workflow], WorkflowReader)
+    case Gateway.kind    ⇒ (classOf[Gateway], GatewayReader)
+    case Deployment.kind ⇒ (classOf[Deployment], DeploymentReader)
+    case Template.kind   ⇒ (classOf[Template], TemplateReader)
+    case _               ⇒ throwException(UnexpectedArtifact(kind))
   }
 }

@@ -7,6 +7,7 @@ import akka.stream.Materializer
 import akka.util.Timeout
 import io.vamp.common.Namespace
 import io.vamp.common.http.HttpApiDirectives
+import io.vamp.model.artifact.{ Gateway, Deployment, Workflow }
 import io.vamp.operation.controller.ProxyController
 
 import scala.concurrent.Future
@@ -17,18 +18,18 @@ trait ProxyRoute extends AbstractRoute with ProxyController {
 
   implicit def materializer: Materializer
 
-  def proxyRoute(implicit namespace: Namespace, timeout: Timeout) =
+  def proxyRoute(implicit namespace: Namespace, timeout: Timeout): Route =
     path("host" / Segment / "port" / Segment / RemainingPath) {
       (host, port, path) ⇒ Try(handle(hostPortProxy(host, port.toInt, path))).getOrElse(complete(BadGateway))
-    } ~ path("gateways" / Segment / Segment / Segment / RemainingPath) {
+    } ~ path(Gateway.kind / Segment / Segment / Segment / RemainingPath) {
       (name1, name2, name3, path) ⇒ handle(gatewayProxy(s"$name1/$name2/$name3", path, skip = true))
-    } ~ path("gateways" / Segment / Segment / RemainingPath) {
+    } ~ path(Gateway.kind / Segment / Segment / RemainingPath) {
       (name1, name2, path) ⇒ handle(gatewayProxy(s"$name1/$name2", path, skip = true))
-    } ~ path("gateways" / Segment / RemainingPath) {
+    } ~ path(Gateway.kind / Segment / RemainingPath) {
       (gateway, path) ⇒ handle(gatewayProxy(gateway, path, skip = false))
-    } ~ path("workflows" / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
+    } ~ path(Workflow.kind / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
       (workflow, instance, port, path) ⇒ handle(instanceProxy(workflow, instance, port, path))
-    } ~ path("deployments" / Segment / "clusters" / Segment / "services" / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
+    } ~ path(Deployment.kind / Segment / "clusters" / Segment / "services" / Segment / "instances" / Segment / "ports" / Segment / RemainingPath) {
       (deployment, cluster, service, instance, port, path) ⇒ handle(instanceProxy(deployment, cluster, service, instance, port, path))
     }
 

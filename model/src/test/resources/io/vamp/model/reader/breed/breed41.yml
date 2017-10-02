@@ -1,5 +1,5 @@
 name: monarch
-kind: breed
+kind: breeds
 deployable: magneticio/monarch:latest
 ports:
   port: 8080/http

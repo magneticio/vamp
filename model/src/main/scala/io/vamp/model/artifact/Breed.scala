@@ -10,8 +10,12 @@ import io.vamp.model.reader.Time
 import scala.language.implicitConversions
 import scala.util.Try
 
+object Breed {
+  val kind: String = "breeds"
+}
+
 trait Breed extends Artifact with Lookup {
-  val kind = "breed"
+  val kind: String = Breed.kind
 }
 
 case class DefaultBreed(
@@ -96,7 +100,7 @@ trait ValueReference {
 
   def reference: String
 
-  override def toString = reference
+  override def toString: String = reference
 }
 
 trait ClusterReference extends ValueReference {
@@ -106,7 +110,7 @@ trait ClusterReference extends ValueReference {
 case class LocalReference(name: String) extends ClusterReference {
   val cluster = ""
 
-  lazy val reference = name
+  lazy val reference: String = name
 }
 
 case class TraitReference(cluster: String, group: String, name: String) extends ClusterReference {
@@ -170,7 +174,7 @@ object Port {
 }
 
 case class Port(name: String, alias: Option[String], value: Option[String], number: Int, `type`: Port.Type.Value) extends Trait {
-  val assigned = number > 0
+  val assigned: Boolean = number > 0
 
   def toValue = s"$number${Port.Type.toTypeString(`type`)}"
 }
@@ -197,7 +201,7 @@ object Argument {
 }
 
 case class Argument(key: String, value: String) {
-  val privileged = key == Argument.privileged
+  val privileged: Boolean = key == Argument.privileged
 }
 
 /**

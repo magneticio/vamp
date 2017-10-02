@@ -18,7 +18,7 @@ object FilePersistenceActor {
   val directory: ConfigMagnet[String] = Config.string("vamp.persistence.file.directory")
 }
 
-class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with PersistenceRecordMarshaller with PersistenceMarshaller {
+class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with PersistenceDataReader {
 
   import FilePersistenceActor._
 
@@ -43,13 +43,7 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
   protected def read(): Unit = this.synchronized {
     try {
       for (line ← Source.fromFile(file).getLines()) {
-        if (line.nonEmpty) {
-          val record = unmarshallRecord(line)
-          record.artifact match {
-            case Some(content) ⇒ unmarshall(record.kind, content).map(setArtifact)
-            case None          ⇒ deleteArtifact(record.name, record.kind)
-          }
-        }
+        if (line.nonEmpty) readData(line)
       }
     }
     catch {

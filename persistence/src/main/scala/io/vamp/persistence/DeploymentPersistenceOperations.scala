@@ -25,15 +25,15 @@ trait DeploymentPersistenceMessages {
 
 private[persistence] object DeploymentPersistenceOperations {
 
-  def clusterArtifactName(deployment: Deployment, cluster: DeploymentCluster) = {
+  def clusterArtifactName(deployment: Deployment, cluster: DeploymentCluster): String = {
     GatewayPath(deployment.name :: cluster.name :: Nil).normalized
   }
 
-  def serviceArtifactName(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
+  def serviceArtifactName(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): String = {
     GatewayPath(deployment.name :: cluster.name :: service.breed.name :: Nil).normalized
   }
 
-  def servicePortArtifactName(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, port: Port) = {
+  def servicePortArtifactName(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, port: Port): String = {
     GatewayPath(deployment.name :: cluster.name :: service.breed.name :: port.name :: Nil).normalized
   }
 }
@@ -99,22 +99,42 @@ trait DeploymentPersistenceOperations {
   }
 }
 
+private[persistence] object DeploymentServiceStatus {
+  val kind: String = "deployment-service-statuses"
+}
+
 private[persistence] case class DeploymentServiceStatus(name: String, status: DeploymentService.Status) extends PersistenceArtifact {
-  val kind = "deployment-service-statuses"
+  val kind: String = DeploymentServiceStatus.kind
+}
+
+private[persistence] object DeploymentServiceScale {
+  val kind: String = "deployment-service-scales"
 }
 
 private[persistence] case class DeploymentServiceScale(name: String, scale: DefaultScale) extends PersistenceArtifact {
-  val kind = "deployment-service-scales"
+  val kind: String = DeploymentServiceScale.kind
+}
+
+private[persistence] object DeploymentServiceInstances {
+  val kind: String = "deployment-service-instances"
 }
 
 private[persistence] case class DeploymentServiceInstances(name: String, instances: List[Instance]) extends PersistenceArtifact {
-  val kind = "deployment-service-instances"
+  val kind: String = DeploymentServiceInstances.kind
+}
+
+private[persistence] object DeploymentServiceEnvironmentVariables {
+  val kind: String = "deployment-service-environment-variables"
 }
 
 private[persistence] case class DeploymentServiceEnvironmentVariables(name: String, environmentVariables: List[EnvironmentVariable]) extends PersistenceArtifact {
-  val kind = "deployment-service-environment-variables"
+  val kind: String = DeploymentServiceEnvironmentVariables.kind
+}
+
+private[persistence] object DeploymentServiceHealth {
+  val kind: String = "deployment-service-healths"
 }
 
 private[persistence] case class DeploymentServiceHealth(name: String, health: Health) extends PersistenceArtifact {
-  val kind = "deployment-service-health"
+  val kind: String = DeploymentServiceHealth.kind
 }

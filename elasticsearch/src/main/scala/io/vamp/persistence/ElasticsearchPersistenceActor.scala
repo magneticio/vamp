@@ -9,7 +9,7 @@ import scala.concurrent.Future
 
 class ElasticsearchPersistenceActorMapper extends ClassMapper {
   val name = "elasticsearch"
-  val clazz = classOf[ElasticsearchPersistenceActor]
+  val clazz: Class[_] = classOf[ElasticsearchPersistenceActor]
 }
 
 object ElasticsearchPersistenceActor {

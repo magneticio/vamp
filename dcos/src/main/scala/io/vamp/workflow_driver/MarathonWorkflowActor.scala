@@ -9,7 +9,7 @@ import scala.concurrent.Future
 
 class MarathonWorkflowActorMapper extends ClassMapper {
   val name = "marathon"
-  val clazz = classOf[MarathonWorkflowActor]
+  val clazz: Class[_] = classOf[MarathonWorkflowActor]
 }
 
 class MarathonWorkflowActor extends DaemonWorkflowDriver {

@@ -440,7 +440,7 @@ object ArtifactListReader extends YamlReader[List[ArtifactSource]] {
       case Right(items) ⇒ items
     }) map { item ⇒
 
-      val kind = item.get[String]("kind")
+      val kind: String = item.get[String]("kind")
       val name = item.get[String]("name")
 
       ArtifactSource(if (kind.endsWith("s")) kind else s"${kind}s", name, item)

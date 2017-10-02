@@ -62,7 +62,7 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
   }
   override protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
-    val kind = type2string(`type`)
+    val kind: String = type2string(`type`)
     lazy val failMessage = s"Can not delete [${`type`.getSimpleName}] - $name}"
 
     this.synchronized {

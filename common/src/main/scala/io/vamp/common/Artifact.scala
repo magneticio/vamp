@@ -6,7 +6,7 @@ object Artifact {
 
   val version = "v1"
 
-  val kind = "kind"
+  val kind: String = "kind"
 
   val metadata = "metadata"
 }

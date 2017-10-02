@@ -10,7 +10,7 @@ import scala.concurrent.Future
 
 class ConsulStoreActorMapper extends ClassMapper {
   val name = "consul"
-  val clazz = classOf[ConsulStoreActor]
+  val clazz: Class[_] = classOf[ConsulStoreActor]
 }
 
 class ConsulStoreActor extends KeyValueStoreActor {

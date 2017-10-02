@@ -6,6 +6,7 @@ import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
 import io.vamp.common.{ Artifact, Config, Namespace, NamespaceProvider }
 import io.vamp.model.Model
 import io.vamp.model.serialization.CoreSerializationFormat
+import io.vamp.persistence.notification.UnknownDataFormatException
 import org.json4s.Formats
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization.write
@@ -48,5 +49,17 @@ trait PersistenceRecordMarshaller {
     val input = transformers.foldRight[String](source)((transformer, source) ⇒ transformer.read(source))
     implicit val format: Formats = SerializationFormat(OffsetDateTimeSerializer)
     Serialization.read[PersistenceRecord](input)
+  }
+}
+
+trait PersistenceDataReader extends PersistenceRecordMarshaller with PersistenceMarshaller {
+  this: InMemoryRepresentationPersistenceActor ⇒
+
+  protected def readData(data: String): Unit = {
+    val record = unmarshallRecord(data)
+    record.artifact match {
+      case Some(content) ⇒ unmarshall(record.kind, content).map(setArtifact).getOrElse(throwException(UnknownDataFormatException(record.kind)))
+      case None          ⇒ deleteArtifact(record.name, record.kind)
+    }
   }
 }

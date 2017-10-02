@@ -6,7 +6,7 @@ import scala.concurrent.Future
 
 class InMemoryPersistenceActorMapper extends ClassMapper {
   val name = "in-memory"
-  val clazz = classOf[InMemoryPersistenceActor]
+  val clazz: Class[_] = classOf[InMemoryPersistenceActor]
 }
 
 class InMemoryPersistenceActor extends InMemoryRepresentationPersistenceActor {

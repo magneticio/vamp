@@ -19,7 +19,7 @@ import scala.util.Try
 
 class MarathonDriverActorMapper extends ClassMapper {
   val name = "marathon"
-  val clazz = classOf[MarathonDriverActor]
+  val clazz: Class[_] = classOf[MarathonDriverActor]
 }
 
 object MarathonDriverActor {

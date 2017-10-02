@@ -16,7 +16,7 @@ import scala.util.Try
 
 class KubernetesDriverActorMapper extends ClassMapper {
   val name = "kubernetes"
-  val clazz = classOf[KubernetesDriverActor]
+  val clazz: Class[_] = classOf[KubernetesDriverActor]
 }
 
 object KubernetesDriverActor {

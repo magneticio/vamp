@@ -53,19 +53,19 @@ trait PersistenceArchive extends PersistenceTag {
 
 trait PersistenceTag {
   protected def tagFor(`type`: Class[_]): Option[String] = `type` match {
-    case t if classOf[Deployment].isAssignableFrom(t) ⇒ Option("deployments")
-    case t if classOf[DeploymentServiceScale].isAssignableFrom(t) ⇒ Option("deployment-service-scales")
-    case t if classOf[Gateway].isAssignableFrom(t) ⇒ Option("gateways")
-    case t if classOf[Breed].isAssignableFrom(t) ⇒ Option("breeds")
-    case t if classOf[Blueprint].isAssignableFrom(t) ⇒ Option("blueprints")
-    case t if classOf[Sla].isAssignableFrom(t) ⇒ Option("slas")
-    case t if classOf[Scale].isAssignableFrom(t) ⇒ Option("scales")
-    case t if classOf[Escalation].isAssignableFrom(t) ⇒ Option("escalations")
-    case t if classOf[Route].isAssignableFrom(t) ⇒ Option("routes")
-    case t if classOf[Condition].isAssignableFrom(t) ⇒ Option("conditions")
-    case t if classOf[Workflow].isAssignableFrom(t) ⇒ Option("workflows")
-    case t if classOf[WorkflowStatus].isAssignableFrom(t) ⇒ Option("workflow-statuses")
-    case t if classOf[Template].isAssignableFrom(t) ⇒ Option("templates")
+    case t if classOf[Deployment].isAssignableFrom(t) ⇒ Option(Deployment.kind)
+    case t if classOf[DeploymentServiceScale].isAssignableFrom(t) ⇒ Option(DeploymentServiceScale.kind)
+    case t if classOf[Gateway].isAssignableFrom(t) ⇒ Option(Gateway.kind)
+    case t if classOf[Breed].isAssignableFrom(t) ⇒ Option(Breed.kind)
+    case t if classOf[Blueprint].isAssignableFrom(t) ⇒ Option(Blueprint.kind)
+    case t if classOf[Sla].isAssignableFrom(t) ⇒ Option(Sla.kind)
+    case t if classOf[Scale].isAssignableFrom(t) ⇒ Option(Scale.kind)
+    case t if classOf[Escalation].isAssignableFrom(t) ⇒ Option(Escalation.kind)
+    case t if classOf[Route].isAssignableFrom(t) ⇒ Option(Route.kind)
+    case t if classOf[Condition].isAssignableFrom(t) ⇒ Option(Condition.kind)
+    case t if classOf[Workflow].isAssignableFrom(t) ⇒ Option(Workflow.kind)
+    case t if classOf[WorkflowStatus].isAssignableFrom(t) ⇒ Option(WorkflowStatus.kind)
+    case t if classOf[Template].isAssignableFrom(t) ⇒ Option(Template.kind)
     case _ ⇒ None
   }
 }

@@ -1,7 +1,7 @@
 package io.vamp.persistence
 
-import io.vamp.common.{ Artifact, Lookup }
 import io.vamp.common.notification.NotificationProvider
+import io.vamp.common.{ Artifact, Lookup }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.reader._
@@ -29,33 +29,31 @@ trait PersistenceMarshaller extends TypeOfArtifact {
     }
   }
 
-  def unmarshall(`type`: String, source: String): Option[Artifact] = {
-    Try(readers.get(`type`).map(_.read(source))).getOrElse(None)
-  }
+  def unmarshall(`type`: String, source: String): Option[Artifact] = Try(readers.get(`type`).map(_.read(source))).getOrElse(None)
 
   protected lazy val readers: Map[String, YamlReader[_ <: Artifact]] = Map(
-    "gateways" → DeployedGatewayReader,
-    "deployments" → new AbstractDeploymentReader() {
+    Gateway.kind → DeployedGatewayReader,
+    Deployment.kind → new AbstractDeploymentReader() {
       override protected def routingReader = new InternalGatewayReader(acceptPort = true, onlyAnonymous = false)
 
       override protected def validateEitherReferenceOrAnonymous = false
     },
-    "breeds" → BreedReader,
-    "blueprints" → BlueprintReader,
-    "slas" → SlaReader,
-    "scales" → ScaleReader,
-    "escalations" → EscalationReader,
-    "routes" → RouteReader,
-    "conditions" → ConditionReader,
-    "rewrites" → RewriteReader,
-    "workflows" → WorkflowReader,
-    "templates" → TemplateReader,
+    Breed.kind → BreedReader,
+    Blueprint.kind → BlueprintReader,
+    Sla.kind → SlaReader,
+    Scale.kind → ScaleReader,
+    Escalation.kind → EscalationReader,
+    Route.kind → RouteReader,
+    Condition.kind → ConditionReader,
+    Rewrite.kind → RewriteReader,
+    Workflow.kind → WorkflowReader,
+    Template.kind → TemplateReader,
     // gateway persistence
-    "route-targets" → new NoNameValidationYamlReader[RouteTargets] {
-      override protected def parse(implicit source: YamlSourceReader) = {
+    RouteTargets.kind → new NoNameValidationYamlReader[RouteTargets] {
+      override protected def parse(implicit source: YamlSourceReader): RouteTargets = {
         val targets = <<?[YamlList]("targets") match {
           case Some(list) ⇒ list.flatMap { yaml ⇒
-            implicit val source = yaml
+            implicit val source: YamlSourceReader = yaml
             (<<?[String]("name"), <<?[String]("url")) match {
               case (_, Some(url)) ⇒ ExternalRouteTarget(url, metadata) :: Nil
               case (Some(name), _) ⇒
@@ -69,54 +67,54 @@ trait PersistenceMarshaller extends TypeOfArtifact {
         RouteTargets(<<![String]("name"), targets)
       }
     },
-    "gateway-ports" → new NoNameValidationYamlReader[GatewayPort] {
+    GatewayPort.kind → new NoNameValidationYamlReader[GatewayPort] {
       override protected def parse(implicit source: YamlSourceReader) = GatewayPort(name, <<![Int]("port"))
     },
-    "gateway-services" → new NoNameValidationYamlReader[GatewayServiceAddress] {
+    GatewayServiceAddress.kind → new NoNameValidationYamlReader[GatewayServiceAddress] {
       override protected def parse(implicit source: YamlSourceReader) = GatewayServiceAddress(name, <<![String]("host"), <<![Int]("port"))
     },
-    "gateway-deployment-statuses" → new NoNameValidationYamlReader[GatewayDeploymentStatus] {
+    GatewayDeploymentStatus.kind → new NoNameValidationYamlReader[GatewayDeploymentStatus] {
       override protected def parse(implicit source: YamlSourceReader) = GatewayDeploymentStatus(name, <<![Boolean]("deployed"))
     },
-    "internal-gateway" → new NoNameValidationYamlReader[InternalGateway] {
-      override protected def parse(implicit source: YamlSourceReader) = {
+    InternalGateway.kind → new NoNameValidationYamlReader[InternalGateway] {
+      override protected def parse(implicit source: YamlSourceReader): InternalGateway = {
         <<?[Any]("name")
         <<?[Any]("gateway" :: Lookup.entry :: Nil)
         InternalGateway(DeployedGatewayReader.read(<<![YamlSourceReader]("gateway")))
       }
     },
     // deployment persistence
-    "deployment-service-statuses" → new NoNameValidationYamlReader[DeploymentServiceStatus] {
+    DeploymentServiceStatus.kind → new NoNameValidationYamlReader[DeploymentServiceStatus] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceStatus(name, DeploymentServiceStatusReader.read(<<![YamlSourceReader]("status")))
     },
-    "deployment-service-scales" → new NoNameValidationYamlReader[DeploymentServiceScale] {
+    DeploymentServiceScale.kind → new NoNameValidationYamlReader[DeploymentServiceScale] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceScale(name, ScaleReader.read(<<![YamlSourceReader]("scale")).asInstanceOf[DefaultScale])
     },
-    "deployment-service-instances" → new NoNameValidationYamlReader[DeploymentServiceInstances] {
+    DeploymentServiceInstances.kind → new NoNameValidationYamlReader[DeploymentServiceInstances] {
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceInstances(name, DeploymentReader.parseInstances)
     },
-    "deployment-service-health" → new NoNameValidationYamlReader[DeploymentServiceHealth] {
+    DeploymentServiceHealth.kind → new NoNameValidationYamlReader[DeploymentServiceHealth] {
       override protected def parse(implicit source: YamlSourceReader) =
         DeploymentServiceHealth(name, HealthReader.health(<<![YamlSourceReader]("health")))
     },
-    "deployment-service-environment-variables" → new NoNameValidationYamlReader[DeploymentServiceEnvironmentVariables] {
+    DeploymentServiceEnvironmentVariables.kind → new NoNameValidationYamlReader[DeploymentServiceEnvironmentVariables] {
 
       override protected def parse(implicit source: YamlSourceReader) = DeploymentServiceEnvironmentVariables(name, environmentVariables)
 
       private def environmentVariables(implicit source: YamlSourceReader): List[EnvironmentVariable] = first[Any]("environment_variables", "env") match {
         case Some(list: List[_]) ⇒ list.map { el ⇒
-          implicit val source = el.asInstanceOf[YamlSourceReader]
+          implicit val source: YamlSourceReader = el.asInstanceOf[YamlSourceReader]
           EnvironmentVariable(<<![String]("name"), <<?[String]("alias"), <<?[String]("value"), <<?[String]("interpolated"))
         }
         case _ ⇒ Nil
       }
     },
     // workflow persistence
-    "workflow-breed" → new NoNameValidationYamlReader[WorkflowBreed] {
-      override protected def parse(implicit source: YamlSourceReader) = WorkflowBreed(name, BreedReader.read(<<![YamlSourceReader]("breed")).asInstanceOf[DefaultBreed])
+    WorkflowBreed.kind → new NoNameValidationYamlReader[WorkflowBreed] {
+      override protected def parse(implicit source: YamlSourceReader): WorkflowBreed = WorkflowBreed(name, BreedReader.read(<<![YamlSourceReader]("breed")).asInstanceOf[DefaultBreed])
     },
-    "workflow-status" → new NoNameValidationYamlReader[WorkflowStatus] {
-      override protected def parse(implicit source: YamlSourceReader) = {
+    WorkflowStatus.kind → new NoNameValidationYamlReader[WorkflowStatus] {
+      override protected def parse(implicit source: YamlSourceReader): WorkflowStatus = {
         val status = <<![String]("status")
         WorkflowStatusReader.status(status) match {
           case _: Workflow.Status.Restarting ⇒ WorkflowStatus(name, status, <<?[String]("phase"))
@@ -124,28 +122,28 @@ trait PersistenceMarshaller extends TypeOfArtifact {
         }
       }
     },
-    "workflow-scale" → new NoNameValidationYamlReader[WorkflowScale] {
+    WorkflowScale.kind → new NoNameValidationYamlReader[WorkflowScale] {
       override protected def parse(implicit source: YamlSourceReader) = WorkflowScale(name, ScaleReader.read(<<![YamlSourceReader]("scale")).asInstanceOf[DefaultScale])
     },
-    "workflow-network" → new NoNameValidationYamlReader[WorkflowNetwork] {
+    WorkflowNetwork.kind → new NoNameValidationYamlReader[WorkflowNetwork] {
       override protected def parse(implicit source: YamlSourceReader) = WorkflowNetwork(name, <<![String]("network"))
     },
-    "workflow-arguments" → new NoNameValidationYamlReader[WorkflowArguments] with ArgumentReader {
+    WorkflowArguments.kind → new NoNameValidationYamlReader[WorkflowArguments] with ArgumentReader {
       override protected def parse(implicit source: YamlSourceReader) = WorkflowArguments(name, arguments())
     },
-    "workflow-instances" → new NoNameValidationYamlReader[WorkflowInstances] with ArgumentReader {
+    WorkflowInstances.kind → new NoNameValidationYamlReader[WorkflowInstances] with ArgumentReader {
       override protected def parse(implicit source: YamlSourceReader) = WorkflowInstances(name, DeploymentReader.parseInstances)
     },
-    "workflow-health" → new NoNameValidationYamlReader[WorkflowHealth] with ArgumentReader {
+    WorkflowHealth.kind → new NoNameValidationYamlReader[WorkflowHealth] with ArgumentReader {
       override protected def parse(implicit source: YamlSourceReader) = WorkflowHealth(name, <<?[YamlSourceReader]("health").map(HealthReader.health(_)))
     },
-    "workflow-environment-variables" → new NoNameValidationYamlReader[WorkflowEnvironmentVariables] {
+    WorkflowEnvironmentVariables.kind → new NoNameValidationYamlReader[WorkflowEnvironmentVariables] {
 
       override protected def parse(implicit source: YamlSourceReader) = WorkflowEnvironmentVariables(name, environmentVariables)
 
       private def environmentVariables(implicit source: YamlSourceReader): List[EnvironmentVariable] = first[Any]("environment_variables", "env") match {
         case Some(list: List[_]) ⇒ list.map { el ⇒
-          implicit val source = el.asInstanceOf[YamlSourceReader]
+          implicit val source: YamlSourceReader = el.asInstanceOf[YamlSourceReader]
           EnvironmentVariable(<<![String]("name"), <<?[String]("alias"), <<?[String]("value"), <<?[String]("interpolated"))
         }
         case _ ⇒ Nil

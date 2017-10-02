@@ -17,7 +17,7 @@ import cats.implicits.catsStdInstancesForFuture
 
 class MetronomeWorkflowActorMapper extends ClassMapper {
   val name = "metronome"
-  val clazz = classOf[MetronomeWorkflowActor]
+  val clazz: Class[_] = classOf[MetronomeWorkflowActor]
 }
 
 class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidation {

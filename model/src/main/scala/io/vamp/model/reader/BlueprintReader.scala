@@ -22,11 +22,11 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
   override def readReference: PartialFunction[Any, Blueprint] = {
     case string: String ⇒ BlueprintReference(string)
     case yaml: YamlSourceReader ⇒
-      implicit val source = yaml
+      implicit val source: YamlSourceReader = yaml
       if (source.size > 1) read(source) else BlueprintReference(name)
   }
 
-  override protected def expand(implicit source: YamlSourceReader) = {
+  override protected def expand(implicit source: YamlSourceReader): YamlSourceReader = {
     <<?[YamlSourceReader]("clusters") match {
       case Some(yaml) ⇒ yaml.pull().map {
         case (name: String, breed: String) ⇒ >>("clusters" :: name :: "services", List(YamlSourceReader("breed" → breed)))
@@ -38,7 +38,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     <<?[YamlSourceReader]("clusters") match {
       case Some(yaml) ⇒ yaml.pull().map {
         case (_: String, cluster: YamlSourceReader) ⇒
-          implicit val source = cluster
+          implicit val source: YamlSourceReader = cluster
           <<?[Any]("services") match {
             case None                ⇒ >>("services", List(<<-("sla", "gateways")))
             case Some(_: List[_])    ⇒
@@ -50,7 +50,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
               YamlSourceReader("breed" → YamlSourceReader("reference" → element))
             }
             else {
-              implicit val source = element.asInstanceOf[YamlSourceReader]
+              implicit val source: YamlSourceReader = element.asInstanceOf[YamlSourceReader]
               <<?[Any]("breed") match {
                 case None ⇒
                   <<?[Any]("name") match {
@@ -79,7 +79,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
       case None ⇒ List[Cluster]()
       case Some(yaml) ⇒ yaml.pull().collect {
         case (name: String, cluster: YamlSourceReader) ⇒
-          implicit val source = cluster
+          implicit val source: YamlSourceReader = cluster
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla")
 
           <<?[List[YamlSourceReader]]("services") match {
@@ -169,7 +169,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
     }
   }
 
-  protected def validateServiceEnvironmentVariables(services: List[Service]) = {
+  protected def validateServiceEnvironmentVariables(services: List[Service]): Unit = {
     services.foreach { service ⇒
       validateEnvironmentVariablesAgainstBreed(service.environmentVariables, service.breed)
     }
@@ -334,7 +334,7 @@ trait BlueprintGatewayHelper {
 
 object BlueprintReader extends AbstractBlueprintReader {
 
-  override protected def validate(blueprint: Blueprint) = {
+  override protected def validate(blueprint: Blueprint): Blueprint = {
     super.validate(blueprint)
     blueprint match {
       case bp: AbstractBlueprint ⇒ validateScaleEscalations(bp)
