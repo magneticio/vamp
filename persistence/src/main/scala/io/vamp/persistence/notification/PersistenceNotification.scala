@@ -18,3 +18,5 @@ case class UnsupportedParameterToPersist(name: String, parent: String, parameter
 case class CorruptedDataException() extends Exception with Notification
 
 case class UnknownDataFormatException(kind: String) extends Exception with Notification
+
+case class DataNotYetLoadedException() extends Exception with Notification

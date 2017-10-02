@@ -7,3 +7,4 @@ NotificationMessageNotRestored : "Deployment service error was not restored. {me
 UnsupportedParameterToPersist  : "Unsupported parameter {name} of type {parameterType} in {parent}."
 CorruptedDataException         : "Corrupted data detected."
 UnknownDataFormatException     : "Unknown data format detected: '{kind}'."
+DataNotYetLoadedException      : "Initial records are not yet loaded - cannot accept persistence requests."

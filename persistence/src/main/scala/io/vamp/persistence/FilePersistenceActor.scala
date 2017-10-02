@@ -18,7 +18,7 @@ object FilePersistenceActor {
   val directory: ConfigMagnet[String] = Config.string("vamp.persistence.file.directory")
 }
 
-class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with PersistenceDataReader {
+class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with PersistenceDataReader with AccessGuard {
 
   import FilePersistenceActor._
 
@@ -45,12 +45,23 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
       for (line ← Source.fromFile(file).getLines()) {
         if (line.nonEmpty) readData(line)
       }
+      removeGuard()
     }
     catch {
       case c: CorruptedDataException ⇒
         reportException(c)
         validData = false
     }
+  }
+
+  override protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean = (_) ⇒ true): Future[ArtifactResponseEnvelope] = {
+    guard()
+    super.all(`type`, page, perPage, filter)
+  }
+
+  override protected def get(name: String, `type`: Class[_ <: Artifact]): Future[Option[Artifact]] = {
+    guard()
+    super.get(name, `type`)
   }
 
   protected def set(artifact: Artifact): Future[Artifact] = Future.successful {
@@ -64,6 +75,7 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
   }
 
   private def write(record: PersistenceRecord): Unit = {
+    guard()
     val writer = new FileWriter(file, true)
     this.synchronized {
       try {

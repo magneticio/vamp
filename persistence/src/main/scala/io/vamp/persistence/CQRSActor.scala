@@ -21,6 +21,7 @@ object CQRSActor {
  * Interface for CQRS Actors
  */
 trait CQRSActor extends InMemoryRepresentationPersistenceActor
+    with AccessGuard
     with NamespaceValueResolver
     with SchedulerActor {
 
@@ -52,6 +53,7 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
 
   override protected def set(artifact: Artifact): Future[Artifact] = {
     log.debug(s"${getClass.getSimpleName}: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
+    guard()
     lazy val failMessage = s"Can not set [${artifact.getClass.getSimpleName}] - ${artifact.name}"
 
     this.synchronized {
@@ -62,6 +64,7 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
   }
   override protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
+    guard()
     val kind: String = type2string(`type`)
     lazy val failMessage = s"Can not delete [${`type`.getSimpleName}] - $name}"
 
@@ -95,5 +98,6 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
         e.printStackTrace()
         lastId
     }
+    finally removeGuard()
   }
 }
