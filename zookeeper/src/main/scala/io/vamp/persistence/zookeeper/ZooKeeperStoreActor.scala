@@ -3,12 +3,10 @@ package io.vamp.persistence.zookeeper
 import java.io._
 import java.net.Socket
 
-import akka.actor.Actor
 import io.vamp.common.akka._
 import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.persistence.KeyValueStoreActor
 import io.vamp.persistence.zookeeper.AsyncResponse.{ ChildrenResponse, DataResponse, FailedAsyncResponse }
-import io.vamp.persistence.zookeeper.ZooKeeperStoreActor.Connect
 import org.apache.zookeeper.KeeperException.Code
 
 import scala.concurrent.Future
@@ -18,25 +16,13 @@ class ZooKeeperStoreActorMapper extends ClassMapper {
   val clazz: Class[ZooKeeperStoreActor] = classOf[ZooKeeperStoreActor]
 }
 
-object ZooKeeperStoreActor {
-
-  object Connect
-
-}
-
 class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
 
   private val config = "vamp.persistence.key-value-store.zookeeper"
 
   private lazy val servers = Config.string(s"$config.servers")()
 
-  private lazy val connectionDelay = Config.duration(s"$config.connection-delay")()
-
   private var zooKeeperClient: Option[AsyncZooKeeperClient] = None
-
-  override def receive: Actor.Receive = ({
-    case Connect ⇒ initClient()
-  }: Actor.Receive) orElse super.receive
 
   override protected def info(): Future[Any] = zooKeeperClient match {
     case Some(zk) ⇒ zkVersion(servers) map { version ⇒
@@ -114,7 +100,7 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
     case failure: FailedAsyncResponse if failure.code == Code.NONODE ⇒ Future.successful(default)
     case _ ⇒
       // something is going wrong with the connection
-      context.system.scheduler.scheduleOnce(connectionDelay, self, Connect)
+      initClient()
       Future.successful(default)
   }
 
@@ -132,7 +118,7 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
     }
   }
 
-  override def preStart(): Unit = context.system.scheduler.scheduleOnce(connectionDelay, self, Connect)
+  override def preStart(): Unit = initClient()
 
   override def postStop(): Unit = zooKeeperClient.foreach(_.close())
 }
