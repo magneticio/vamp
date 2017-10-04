@@ -3,9 +3,8 @@ package io.vamp.persistence
 import java.time.OffsetDateTime
 
 import io.vamp.common.json.{ OffsetDateTimeSerializer, SerializationFormat }
-import io.vamp.common.{ Artifact, Config, Namespace, NamespaceProvider }
+import io.vamp.common.{ Config, Namespace, NamespaceProvider }
 import io.vamp.model.Model
-import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.persistence.notification.UnknownDataFormatException
 import org.json4s.Formats
 import org.json4s.native.Serialization
@@ -15,7 +14,7 @@ object PersistenceRecord {
 
   def apply(name: String, kind: String): PersistenceRecord = PersistenceRecord(Model.version, Model.uuid, OffsetDateTime.now(), name, kind, None)
 
-  def apply(artifact: Artifact): PersistenceRecord = PersistenceRecord(Model.version, Model.uuid, OffsetDateTime.now(), artifact.name, artifact.kind, Option(write(artifact)(CoreSerializationFormat.full)))
+  def apply(name: String, kind: String, artifact: String): PersistenceRecord = PersistenceRecord(Model.version, Model.uuid, OffsetDateTime.now(), name, kind, Option(artifact))
 }
 
 case class PersistenceRecord(version: String, instance: String, timestamp: OffsetDateTime, name: String, kind: String, artifact: Option[String])

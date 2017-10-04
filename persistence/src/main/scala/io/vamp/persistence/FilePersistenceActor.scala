@@ -18,7 +18,7 @@ object FilePersistenceActor {
   val directory: ConfigMagnet[String] = Config.string("vamp.persistence.file.directory")
 }
 
-class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with PersistenceDataReader with AccessGuard {
+class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with PersistenceMarshaller with PersistenceDataReader with AccessGuard {
 
   import FilePersistenceActor._
 
@@ -65,7 +65,7 @@ class FilePersistenceActor extends InMemoryRepresentationPersistenceActor with P
   }
 
   protected def set(artifact: Artifact): Future[Artifact] = Future.successful {
-    write(PersistenceRecord(artifact))
+    write(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact)))
     setArtifact(artifact)
   }
 

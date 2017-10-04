@@ -13,8 +13,11 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 object CQRSActor {
+
   sealed trait CQRSMessage
+
   object ReadAll extends CQRSMessage
+
 }
 
 /**
@@ -22,6 +25,7 @@ object CQRSActor {
  */
 trait CQRSActor extends InMemoryRepresentationPersistenceActor
     with AccessGuard
+    with PersistenceMarshaller
     with NamespaceValueResolver
     with SchedulerActor {
 
@@ -57,11 +61,12 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
     lazy val failMessage = s"Can not set [${artifact.getClass.getSimpleName}] - ${artifact.name}"
 
     this.synchronized {
-      insert(PersistenceRecord(artifact))
+      insert(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact)))
     }.collect {
       case Some(id: Long) ⇒ readOrFail(id, () ⇒ Future.successful(artifact), () ⇒ fail[Artifact](failMessage))
     }.getOrElse(fail(failMessage))
   }
+
   override protected def delete(name: String, `type`: Class[_ <: Artifact]): Future[Boolean] = {
     log.debug(s"${getClass.getSimpleName}: delete [${`type`.getSimpleName}] - $name}")
     guard()
