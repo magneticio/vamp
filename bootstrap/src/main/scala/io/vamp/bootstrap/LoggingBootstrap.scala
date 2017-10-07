@@ -6,15 +6,17 @@ import io.vamp.model.Model
 import org.slf4j.LoggerFactory
 import org.slf4j.bridge.SLF4JBridgeHandler
 
+import scala.concurrent.Future
+
 abstract class LoggingBootstrap extends Bootstrap {
 
   def logo: String
 
   def clazz: Class[_] = classOf[Vamp]
 
-  lazy val version = if (Model.version.nonEmpty) s"version ${Model.version}" else ""
+  lazy val version: String = if (Model.version.nonEmpty) s"version ${Model.version}" else ""
 
-  override def start() = {
+  override def start(): Future[Unit] = Future.successful {
     val logger = Logger(LoggerFactory.getLogger(clazz))
     if (!SLF4JBridgeHandler.isInstalled) {
       SLF4JBridgeHandler.removeHandlersForRootLogger()
@@ -23,5 +25,7 @@ abstract class LoggingBootstrap extends Bootstrap {
     logger.info(logo)
   }
 
-  override def stop() = if (SLF4JBridgeHandler.isInstalled) SLF4JBridgeHandler.uninstall()
+  override def stop(): Future[Unit] = Future.successful {
+    if (SLF4JBridgeHandler.isInstalled) SLF4JBridgeHandler.uninstall()
+  }
 }

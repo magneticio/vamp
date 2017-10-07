@@ -11,9 +11,9 @@ import scala.reflect.{ ClassTag, classTag }
 
 trait Bootstrap extends BootstrapLogger {
 
-  def start(): Unit = {}
+  def start(): Future[Unit] = Future.successful(())
 
-  def stop(): Unit = {}
+  def stop(): Future[Unit] = Future.successful(())
 }
 
 trait ActorBootstrap extends BootstrapLogger {

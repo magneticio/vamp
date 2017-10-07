@@ -17,14 +17,14 @@ trait AbstractActorBootstrap extends Bootstrap {
 
   protected def bootstrap: List[ActorBootstrapService]
 
-  override def start(): Unit = {
+  override def start(): Future[Unit] = {
     info(s"Starting ${getClass.getSimpleName}")
     val all = bootstrap
     implicit val executionContext: ExecutionContext = actorSystem.dispatcher
     all.tail.foldLeft[Future[Unit]](all.head.start)((f, b) ⇒ f.flatMap(_ ⇒ b.start))
   }
 
-  override def stop(): Unit = {
+  override def stop(): Future[Unit] = {
     info(s"Stopping ${getClass.getSimpleName}")
     val all = bootstrap.reverse
     implicit val executionContext: ExecutionContext = actorSystem.dispatcher
