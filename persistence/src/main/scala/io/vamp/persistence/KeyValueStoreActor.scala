@@ -2,11 +2,11 @@ package io.vamp.persistence
 
 import akka.actor.Actor
 import akka.util.Timeout
-import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.{ ErrorNotification, Notification }
 import io.vamp.common.vitals.InfoRequest
+import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.model.resolver.NamespaceValueResolver
 import io.vamp.persistence.notification.{ PersistenceNotificationProvider, PersistenceOperationFailure, UnsupportedPersistenceRequest }
 import io.vamp.pulse.notification.PulseFailureNotifier
@@ -19,7 +19,7 @@ object KeyValueStoreActor {
 
   sealed trait KeyValueStoreMessage
 
-  case class All(path: List[String]) extends KeyValueStoreMessage
+  case class Children(path: List[String]) extends KeyValueStoreMessage
 
   case class Get(path: List[String]) extends KeyValueStoreMessage
 
@@ -39,7 +39,7 @@ trait KeyValueStoreActor extends NamespaceValueResolver with PulseFailureNotifie
 
   def receive: Actor.Receive = {
     case InfoRequest     ⇒ reply(info())
-    case All(path)       ⇒ reply(all(path))
+    case Children(path)  ⇒ reply(children(path))
     case Get(path)       ⇒ reply(get(path))
     case Set(path, data) ⇒ reply(set(path, data))
     case any             ⇒ unsupported(UnsupportedPersistenceRequest(any))
@@ -47,7 +47,7 @@ trait KeyValueStoreActor extends NamespaceValueResolver with PulseFailureNotifie
 
   protected def info(): Future[Any]
 
-  protected def all(path: List[String]): Future[List[String]]
+  protected def children(path: List[String]): Future[List[String]]
 
   protected def get(path: List[String]): Future[Option[String]]
 

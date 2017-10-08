@@ -34,27 +34,17 @@ class EtcdStoreActor extends KeyValueStoreActor {
     )
   )
 
-  override protected def all(path: List[String]): Future[List[String]] = {
-
+  override protected def children(path: List[String]): Future[List[String]] = {
     val key = pathToString(path)
-
-    def collect(childPath: List[String]): Future[List[String]] = {
-      httpClient.get[EtcdKeyValue](urlOf(childPath), logError = false).recover { case _ ⇒ EtcdKeyValue(EtcdNode()) } flatMap { entry ⇒
-        entry.node.value match {
-          case Some(_) ⇒
-            Future.successful {
-              val entryKey = entry.node.key.get
-              entryKey.substring(key.length + 1, entryKey.length - valueNode.length - 1) :: Nil
-            }
-          case _ ⇒
-            Future.sequence {
-              entry.node.nodes.flatMap(_.key.map(_.substring(entry.node.key.getOrElse("").length + 1))).map(child ⇒ collect(childPath :+ child))
-            }.map(_.flatten)
-        }
+    httpClient.get[EtcdKeyValue](urlOf(path), logError = false).recover { case _ ⇒ EtcdKeyValue(EtcdNode()) } map { entry ⇒
+      entry.node.value match {
+        case Some(_) ⇒
+          val entryKey = entry.node.key.get
+          entryKey.substring(key.length + 1).split('/').headOption.map(_ :: Nil).getOrElse(Nil)
+        case _ ⇒
+          entry.node.nodes.flatMap(_.key.get.substring(key.length + 1).split('/').headOption)
       }
     }
-
-    collect(path)
   }
 
   override protected def get(path: List[String]): Future[Option[String]] = {

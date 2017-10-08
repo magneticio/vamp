@@ -21,10 +21,10 @@ class ConsulStoreActor extends KeyValueStoreActor {
     Map("type" → "consul", "consul" → consul)
   }
 
-  override protected def all(path: List[String]): Future[List[String]] = {
+  override protected def children(path: List[String]): Future[List[String]] = {
     val key = pathToString(path)
     checked[List[String]](httpClient.get[List[String]](urlOf(path, keys = true), logError = false) recover { case _ ⇒ Nil }) map { list ⇒
-      list.map(_.substring(key.length))
+      list.flatMap(_.substring(key.length).split('/').headOption)
     }
   }
 
