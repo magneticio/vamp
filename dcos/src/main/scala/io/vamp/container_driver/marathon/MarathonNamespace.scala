@@ -19,7 +19,7 @@ trait MarathonNamespace {
   }
 
   protected def appId(deployment: Deployment, breed: Breed): String = {
-    s"${nameDelimiter}${tenantIdOverride.getOrElse(namespace.name)}${nameDelimiter}${artifactName2Id(deployment)}-deployment-${artifactName2Id(breed)}"
+    s"${nameDelimiter}${tenantIdOverride.getOrElse(namespace.name)}${nameDelimiter}deployment-${artifactName2Id(deployment)}-service-${artifactName2Id(breed)}"
   }
 
   protected def artifactName2Id(artifact: Artifact): String = artifact.name match {
