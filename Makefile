@@ -83,9 +83,9 @@ pack:
 		$(BUILD_SERVER) \
 			push vamp $(VERSION)
 
+.PHONY: pack-local
 pack-local:
-	export VAMP_VERSION="katana" && sbt package publish-local
-	sbt "project bootstrap" pack
+	VAMP_VERSION="katana" sbt package publish-local "project bootstrap" pack
 	rm -rf $(TARGET)/vamp-$(FULL_VERSION)
 	mkdir -p $(TARGET)/vamp-$(FULL_VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-$(FULL_VERSION)/
