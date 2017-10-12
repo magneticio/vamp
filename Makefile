@@ -7,7 +7,7 @@ SHELL             := bash
 
 # Constants, these can be overwritten in your Makefile.local
 BUILD_SERVER := magneticio/buildserver
-DIR_SBT	     := $(HOME)/.sbt
+DIR_SBT	     := $(HOME)/.sbt/boot
 DIR_IVY	     := $(HOME)/.ivy2
 
 # if Makefile.local exists, include it.
@@ -32,7 +32,7 @@ default:
 	docker run \
 		--rm \
 		--volume $(CURDIR):/srv/src \
-		--volume $(DIR_SBT):/home/vamp/.sbt \
+		--volume $(DIR_SBT):/home/vamp/.sbt/boot \
 		--volume $(DIR_IVY):/home/vamp/.ivy2 \
 		--workdir=/srv/src \
 		--env BUILD_UID=$(shell id -u) \
@@ -49,7 +49,7 @@ pack:
 	docker run \
 		--rm \
 		--volume $(CURDIR):/srv/src \
-		--volume $(DIR_SBT):/home/vamp/.sbt \
+		--volume $(DIR_SBT):/home/vamp/.sbt/boot \
 		--volume $(DIR_IVY):/home/vamp/.ivy2 \
 		--volume packer:/usr/local/stash \
 		--workdir=/srv/src \
@@ -62,8 +62,8 @@ pack:
     docker run \
         --rm \
         --volume $(CURDIR):/srv/src \
-        --volume $(DIR_SBT):/home/vamp/.sbt \
-        --volume $(DIR_IVY):/home/vamp/.ivy2 \
+		--volume $(DIR_SBT):/home/vamp/.sbt/boot \
+		--volume $(DIR_IVY):/home/vamp/.ivy2 \
         --volume packer:/usr/local/stash \
         --workdir=/srv/src \
         --env BUILD_UID=$(shell id -u) \
