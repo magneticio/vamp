@@ -57,7 +57,7 @@ pack:
 		--env BUILD_GID=$(shell id -g) \
 		--env VAMP_VERSION="katana" \
 		$(BUILD_SERVER) \
-			'sbt package publish-local "project bootstrap" pack' \
+			'sbt package publish-local' \
 	&& \
     docker run \
         --volume $(CURDIR):/srv/src \
