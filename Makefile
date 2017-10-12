@@ -55,22 +55,8 @@ pack:
 		--workdir=/srv/src \
 		--env BUILD_UID=$(shell id -u) \
 		--env BUILD_GID=$(shell id -g) \
-		--env VAMP_VERSION="katana" \
 		$(BUILD_SERVER) \
-			'sbt package publish-local' \
-	&& \
-    docker run \
-        --rm \
-        --volume $(CURDIR):/srv/src \
-		--volume $(DIR_SBT):/home/vamp/.sbt/boot \
-		--volume $(DIR_IVY):/home/vamp/.ivy2 \
-        --volume packer:/usr/local/stash \
-        --workdir=/srv/src \
-        --env BUILD_UID=$(shell id -u) \
-        --env BUILD_GID=$(shell id -g) \
-        --env VAMP_VERSION=$(VERSION) \
-        $(BUILD_SERVER) \
-            'sbt package publish-local "project bootstrap" pack'
+			'VAMP_VERSION="katana" sbt package publish-local && VAMP_VERSION=$(VERSION) sbt "project bootstrap" pack'
 
 	rm -rf  $(TARGET)/vamp-$(VERSION)
 	mkdir -p $(TARGET)/vamp-$(VERSION)
@@ -86,7 +72,9 @@ pack:
 
 .PHONY: pack-local
 pack-local:
-	VAMP_VERSION="katana" sbt package publish-local "project bootstrap" pack
+	VAMP_VERSION="katana" sbt package publish-local
+	VAMP_VERSION=$(FULL_VERSION) sbt "project bootstrap" pack
+
 	rm -rf $(TARGET)/vamp-$(FULL_VERSION)
 	mkdir -p $(TARGET)/vamp-$(FULL_VERSION)
 	cp -r $(TARGET)/pack/lib $(TARGET)/vamp-$(FULL_VERSION)/
