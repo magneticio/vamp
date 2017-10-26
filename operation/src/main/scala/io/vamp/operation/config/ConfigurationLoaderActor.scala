@@ -66,9 +66,9 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
   protected def reload(force: Boolean): Unit = {
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(path) map {
       case Some(content: String) if force || (
-              content != Config.marshall(Config.export(Config.Type.dynamic, flatten = false)) &&
-              content != Config.marshall(Config.export(Config.Type.dynamic, flatten = true))
-        ) ⇒ reload(Config.unmarshall(content))
+        content != Config.marshall(Config.export(Config.Type.dynamic, flatten = false)) &&
+        content != Config.marshall(Config.export(Config.Type.dynamic, flatten = true))
+      ) ⇒ reload(Config.unmarshall(content))
       case None if force || Config.export(Config.Type.dynamic).nonEmpty ⇒ reload(Map[String, Any]())
       case _ ⇒
     }

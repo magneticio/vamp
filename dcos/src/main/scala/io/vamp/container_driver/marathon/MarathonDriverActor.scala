@@ -177,7 +177,12 @@ class MarathonDriverActor
     case arg @ Argument("override.deployment.docker.network", networkOverrideValue) if !workflowDeployment ⇒ { app ⇒
       app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
     }
-    case arg @ Argument("override.container.docker.privileged", runPriviledged) ⇒ { app ⇒
+    case arg @ Argument("override.workflow.docker.privileged", runPriviledged) if (workflowDeployment) ⇒ { app ⇒
+      Try(runPriviledged.toBoolean).map(
+        priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
+      ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+    }
+    case arg @ Argument("override.deployment.docker.privileged", runPriviledged) if (!workflowDeployment) ⇒ { app ⇒
       Try(runPriviledged.toBoolean).map(
         priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
       ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
@@ -204,7 +209,7 @@ class MarathonDriverActor
         }
       )
     }
-    case arg @ Argument("override.noHealthChecks", noHealthChecks) ⇒ { app ⇒
+    case arg @ Argument("override.workflow.noHealthChecks", noHealthChecks) if workflowDeployment ⇒ { app ⇒
       Try(noHealthChecks.toBoolean).map(
         noHealthChecks ⇒ if (noHealthChecks) {
           app.copy(healthChecks = Nil)
@@ -212,8 +217,20 @@ class MarathonDriverActor
         else app
       ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
     }
-    case arg @ Argument(argName, argValue) if (argName.startsWith("override.labels.")) ⇒ { app ⇒
-      val labelName = argName.drop("override.labels.".length)
+    case arg @ Argument("override.deployment.noHealthChecks", noHealthChecks) if !workflowDeployment ⇒ { app ⇒
+      Try(noHealthChecks.toBoolean).map(
+        noHealthChecks ⇒ if (noHealthChecks) {
+          app.copy(healthChecks = Nil)
+        }
+        else app
+      ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+    }
+    case arg @ Argument(argName, argValue) if (argName.startsWith("override.workflow.labels.") && workflowDeployment) ⇒ { app ⇒
+      val labelName = argName.drop("override.workflow.labels.".length)
+      app.copy(labels = (app.labels + (labelName → argValue)))
+    }
+    case arg @ Argument(argName, argValue) if (argName.startsWith("override.deployment.labels.") && !workflowDeployment) ⇒ { app ⇒
+      val labelName = argName.drop("override.deployment.labels.".length)
       app.copy(labels = (app.labels + (labelName → argValue)))
     }
   }
@@ -226,6 +243,8 @@ class MarathonDriverActor
     val name = s"${deployment.name} / ${service.breed.deployable.definition}"
     if (update) log.info(s"marathon update service: $name") else log.info(s"marathon create service: $name")
     val constraints = (namespaceConstraint +: Nil).filter(_.nonEmpty)
+
+    log.info(s"Deploying Workflow and using Arguments:: ${service.arguments}")
 
     val app = MarathonApp(
       id,
@@ -263,6 +282,8 @@ class MarathonDriverActor
     if (update) log.info(s"marathon update workflow: ${workflow.name}") else log.info(s"marathon create workflow: ${workflow.name}")
     val scale = workflow.scale.get.asInstanceOf[DefaultScale]
     val constraints = (namespaceConstraint +: Nil).filter(_.nonEmpty)
+
+    log.info(s"Deploying Workflow and using Arguments:: ${workflow.arguments}")
 
     val marathonApp = MarathonApp(
       id,

@@ -48,6 +48,8 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
     Config.int(s"$workflowConfig.scale.instances")()
   )
 
+  def defaultArguments() = Config.stringList("vamp.operation.deployment.arguments")().map(Argument(_))
+
   val deployables: Map[String, String] = Config.list(deployablesConfig)().collect {
     case config: Map[_, _] ⇒ config.asInstanceOf[Map[String, String]]("type").trim → config.asInstanceOf[Map[String, String]]("breed").trim
   } toMap
@@ -79,7 +81,7 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
 
         val scale = workflow.scale.getOrElse(defaultScale).asInstanceOf[DefaultScale]
         val network = workflow.network.getOrElse(Docker.network())
-        val arguments = (executor.arguments ++ breed.arguments ++ workflow.arguments).map(arg ⇒ arg.key → arg).toMap.values.toList
+        val arguments = (defaultArguments ++ executor.arguments ++ breed.arguments ++ workflow.arguments).map(arg ⇒ arg.key → arg).toMap.values.toList
         val healthChecks = if (breed.healthChecks.isEmpty) executor.healthChecks else breed.healthChecks
 
         val workflowBreed = breed.copy(
