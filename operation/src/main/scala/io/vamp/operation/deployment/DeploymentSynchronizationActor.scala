@@ -88,7 +88,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   private def timedOut(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService): Boolean = {
 
     def checkTimeout(duration: FiniteDuration) = {
-      val timed = duration.toNanos != 0 && OffsetDateTime.now().minus(duration.toSeconds, ChronoUnit.SECONDS).isAfter(service.status.since)
+      val timed = duration.toNanos != 0 && OffsetDateTime.now().minus(duration.toSeconds, ChronoUnit.SECONDS).isAfter(service.status.phase.since)
       if (timed) {
         val notification = DeploymentServiceError(deployment, service)
         reportException(notification)
