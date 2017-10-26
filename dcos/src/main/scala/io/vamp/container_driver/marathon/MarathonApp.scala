@@ -19,7 +19,7 @@ case class MarathonApp(
   fetch:        Option[List[UriObject]]
 )
 
-case class UriObject(uri: String)
+case class UriObject(uri: String, extract: Boolean = true)
 case class Container(docker: Docker, `type`: String = "DOCKER")
 
 case class MarathonAppIpAddress(networkName: String)

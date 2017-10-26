@@ -169,7 +169,8 @@ class MarathonDriverActor
   }
 
   private def noGlobalOverride(arg: Argument): MarathonApp ⇒ MarathonApp = identity[MarathonApp]
-  private def applyGlobalOverride: PartialFunction[Argument, MarathonApp ⇒ MarathonApp] = {
+
+  private def applyGlobalOverride(workflowDeployment: Boolean): PartialFunction[Argument, MarathonApp ⇒ MarathonApp] = {
     case arg @ Argument("override.container.docker.network", networkOverrideValue) ⇒ { app ⇒
       app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
     }
@@ -181,7 +182,15 @@ class MarathonDriverActor
     case arg @ Argument("override.ipAddress.networkName", networkName) ⇒ { app ⇒
       app.copy(ipAddress = Some(MarathonAppIpAddress(networkName)))
     }
-    case arg @ Argument("override.fetch.uri", uriValue) ⇒ { app ⇒
+    case arg @ Argument("override.workflow.fetch.uri", uriValue) if workflowDeployment ⇒ { app ⇒
+      app.copy(fetch =
+        app.fetch match {
+          case None    ⇒ Some(List(UriObject(uriValue)))
+          case Some(l) ⇒ Some(UriObject(uriValue) :: l)
+        }
+      )
+    }
+    case arg @ Argument("override.deployment.fetch.uri", uriValue) if !workflowDeployment ⇒ { app ⇒
       app.copy(fetch =
         app.fetch match {
           case None    ⇒ Some(List(UriObject(uriValue)))
@@ -214,7 +223,7 @@ class MarathonDriverActor
 
     val app = MarathonApp(
       id,
-      container(deployment, cluster, service.copy(arguments = service.arguments.filterNot(applyGlobalOverride.isDefinedAt))),
+      container(deployment, cluster, service.copy(arguments = service.arguments.filterNot(applyGlobalOverride(false).isDefinedAt))),
       None,
       service.scale.get.instances,
       service.scale.get.cpu.value,
@@ -229,7 +238,7 @@ class MarathonDriverActor
 
     // Iterate through all Argument objects and if they represent an override, apply them
     val appWithGlobalOverrides = service.arguments.foldLeft(app)((app, argument) ⇒
-      applyGlobalOverride.applyOrElse(argument, noGlobalOverride)(app)
+      applyGlobalOverride(false).applyOrElse(argument, noGlobalOverride)(app)
     )
 
     val asd = requestPayload(deployment, cluster, service, purge(appWithGlobalOverrides))
@@ -251,7 +260,7 @@ class MarathonDriverActor
 
     val marathonApp = MarathonApp(
       id,
-      container(workflow.copy(arguments = workflow.arguments.filterNot(applyGlobalOverride.isDefinedAt))),
+      container(workflow.copy(arguments = workflow.arguments.filterNot(applyGlobalOverride(true).isDefinedAt))),
       None,
       scale.instances,
       scale.cpu.value,
@@ -266,7 +275,7 @@ class MarathonDriverActor
 
     // Iterate through all Argument objects and if they represent an override, apply them
     val marathonAppWithGlobalOverrides = workflow.arguments.foldLeft(marathonApp)((app, argument) ⇒
-      applyGlobalOverride.applyOrElse(argument, noGlobalOverride)(app)
+      applyGlobalOverride(true).applyOrElse(argument, noGlobalOverride)(app)
     )
 
     sendRequest(update, id, requestPayload(workflow, purge(marathonAppWithGlobalOverrides)))
