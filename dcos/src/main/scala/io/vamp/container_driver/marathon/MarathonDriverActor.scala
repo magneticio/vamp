@@ -171,7 +171,10 @@ class MarathonDriverActor
   private def noGlobalOverride(arg: Argument): MarathonApp ⇒ MarathonApp = identity[MarathonApp]
 
   private def applyGlobalOverride(workflowDeployment: Boolean): PartialFunction[Argument, MarathonApp ⇒ MarathonApp] = {
-    case arg @ Argument("override.container.docker.network", networkOverrideValue) ⇒ { app ⇒
+    case arg @ Argument("override.workflow.docker.network", networkOverrideValue) if workflowDeployment ⇒ { app ⇒
+      app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+    }
+    case arg @ Argument("override.deployment.docker.network", networkOverrideValue) if !workflowDeployment ⇒ { app ⇒
       app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
     }
     case arg @ Argument("override.container.docker.privileged", runPriviledged) ⇒ { app ⇒
@@ -179,7 +182,10 @@ class MarathonDriverActor
         priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
       ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
     }
-    case arg @ Argument("override.ipAddress.networkName", networkName) ⇒ { app ⇒
+    case arg @ Argument("override.workflow.ipAddress.networkName", networkName) if workflowDeployment ⇒ { app ⇒
+      app.copy(ipAddress = Some(MarathonAppIpAddress(networkName)))
+    }
+    case arg @ Argument("override.deployment.ipAddress.networkName", networkName) if !workflowDeployment ⇒ { app ⇒
       app.copy(ipAddress = Some(MarathonAppIpAddress(networkName)))
     }
     case arg @ Argument("override.workflow.fetch.uri", uriValue) if workflowDeployment ⇒ { app ⇒
