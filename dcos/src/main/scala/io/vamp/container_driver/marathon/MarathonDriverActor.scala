@@ -171,67 +171,93 @@ class MarathonDriverActor
   private def noGlobalOverride(arg: Argument): MarathonApp ⇒ MarathonApp = identity[MarathonApp]
 
   private def applyGlobalOverride(workflowDeployment: Boolean): PartialFunction[Argument, MarathonApp ⇒ MarathonApp] = {
-    case arg @ Argument("override.workflow.docker.network", networkOverrideValue) if workflowDeployment ⇒ { app ⇒
-      app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+    case arg @ Argument("override.workflow.docker.network", networkOverrideValue) ⇒ { app ⇒
+      if (workflowDeployment)
+        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+      else app
     }
-    case arg @ Argument("override.deployment.docker.network", networkOverrideValue) if !workflowDeployment ⇒ { app ⇒
-      app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+    case arg @ Argument("override.deployment.docker.network", networkOverrideValue) ⇒ { app ⇒
+      if (!workflowDeployment)
+        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+      else app
     }
-    case arg @ Argument("override.workflow.docker.privileged", runPriviledged) if (workflowDeployment) ⇒ { app ⇒
-      Try(runPriviledged.toBoolean).map(
-        priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
-      ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+    case arg @ Argument("override.workflow.docker.privileged", runPriviledged) ⇒ { app ⇒
+      if (workflowDeployment)
+        Try(runPriviledged.toBoolean).map(
+          priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
+        ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+      else app
     }
-    case arg @ Argument("override.deployment.docker.privileged", runPriviledged) if (!workflowDeployment) ⇒ { app ⇒
-      Try(runPriviledged.toBoolean).map(
-        priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
-      ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+    case arg @ Argument("override.deployment.docker.privileged", runPriviledged) ⇒ { app ⇒
+      if (!workflowDeployment)
+        Try(runPriviledged.toBoolean).map(
+          priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
+        ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+      else app
     }
-    case arg @ Argument("override.workflow.ipAddress.networkName", networkName) if workflowDeployment ⇒ { app ⇒
-      app.copy(ipAddress = Some(MarathonAppIpAddress(networkName)))
+    case arg @ Argument("override.workflow.ipAddress.networkName", networkName) ⇒ { app ⇒
+      if (workflowDeployment)
+        app.copy(ipAddress = Some(MarathonAppIpAddress(networkName)))
+      else app
     }
-    case arg @ Argument("override.deployment.ipAddress.networkName", networkName) if !workflowDeployment ⇒ { app ⇒
-      app.copy(ipAddress = Some(MarathonAppIpAddress(networkName)))
+    case arg @ Argument("override.deployment.ipAddress.networkName", networkName) ⇒ { app ⇒
+      if (!workflowDeployment)
+        app.copy(ipAddress = Some(MarathonAppIpAddress(networkName)))
+      else app
     }
-    case arg @ Argument("override.workflow.fetch.uri", uriValue) if workflowDeployment ⇒ { app ⇒
-      app.copy(fetch =
-        app.fetch match {
-          case None    ⇒ Some(List(UriObject(uriValue)))
-          case Some(l) ⇒ Some(UriObject(uriValue) :: l)
-        }
-      )
+    case arg @ Argument("override.workflow.fetch.uri", uriValue) ⇒ { app ⇒
+      if (workflowDeployment)
+        app.copy(fetch =
+          app.fetch match {
+            case None    ⇒ Some(List(UriObject(uriValue)))
+            case Some(l) ⇒ Some(UriObject(uriValue) :: l)
+          }
+        )
+      else app
     }
-    case arg @ Argument("override.deployment.fetch.uri", uriValue) if !workflowDeployment ⇒ { app ⇒
-      app.copy(fetch =
-        app.fetch match {
-          case None    ⇒ Some(List(UriObject(uriValue)))
-          case Some(l) ⇒ Some(UriObject(uriValue) :: l)
-        }
-      )
+    case arg @ Argument("override.deployment.fetch.uri", uriValue) ⇒ { app ⇒
+      if (!workflowDeployment)
+        app.copy(fetch =
+          app.fetch match {
+            case None    ⇒ Some(List(UriObject(uriValue)))
+            case Some(l) ⇒ Some(UriObject(uriValue) :: l)
+          }
+        )
+      else app
     }
-    case arg @ Argument("override.workflow.noHealthChecks", noHealthChecks) if workflowDeployment ⇒ { app ⇒
-      Try(noHealthChecks.toBoolean).map(
-        noHealthChecks ⇒ if (noHealthChecks) {
-          app.copy(healthChecks = Nil)
-        }
-        else app
-      ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+    case arg @ Argument("override.workflow.noHealthChecks", noHealthChecks) ⇒ { app ⇒
+      if (workflowDeployment)
+        Try(noHealthChecks.toBoolean).map(
+          noHealthChecks ⇒ if (noHealthChecks) {
+            app.copy(healthChecks = Nil)
+          }
+          else app
+        ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+      else app
     }
-    case arg @ Argument("override.deployment.noHealthChecks", noHealthChecks) if !workflowDeployment ⇒ { app ⇒
-      Try(noHealthChecks.toBoolean).map(
-        noHealthChecks ⇒ if (noHealthChecks) {
-          app.copy(healthChecks = Nil)
-        }
-        else app
-      ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+    case arg @ Argument("override.deployment.noHealthChecks", noHealthChecks) ⇒ { app ⇒
+      if (!workflowDeployment)
+        Try(noHealthChecks.toBoolean).map(
+          noHealthChecks ⇒ if (noHealthChecks) {
+            app.copy(healthChecks = Nil)
+          }
+          else app
+        ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+      else app
     }
-    case arg @ Argument(argName, argValue) if (argName.startsWith("override.workflow.labels.") && workflowDeployment) ⇒ { app ⇒
-      val labelName = argName.drop("override.workflow.labels.".length)
-      app.copy(labels = (app.labels + (labelName → argValue)))
+    case arg @ Argument(argName, argValue) if (argName.startsWith("override.workflow.labels.")) ⇒ { app ⇒
+      if (workflowDeployment) {
+        val labelName = argName.drop("override.workflow.labels.".length)
+        app.copy(labels = (app.labels + (labelName → argValue)))
+      }
+      else app
     }
-    case arg @ Argument(argName, argValue) if (argName.startsWith("override.deployment.labels.") && !workflowDeployment) ⇒ { app ⇒
-      val labelName = argName.drop("override.deployment.labels.".length)
-      app.copy(labels = (app.labels + (labelName → argValue)))
+    case arg @ Argument(argName, argValue) if (argName.startsWith("override.deployment.labels.")) ⇒ { app ⇒
+      if (!workflowDeployment) {
+        val labelName = argName.drop("override.deployment.labels.".length)
+        app.copy(labels = (app.labels + (labelName → argValue)))
+      }
+      else app
     }
   }
 
