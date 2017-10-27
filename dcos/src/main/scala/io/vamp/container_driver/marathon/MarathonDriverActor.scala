@@ -11,6 +11,7 @@ import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, Uns
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InvalidArgumentValueError
 import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.resolver.NamespaceValueResolver
 import org.json4s.JsonAST.JObject
 import org.json4s._
 
@@ -61,11 +62,12 @@ class MarathonDriverActor
     with MarathonNamespace
     with ActorExecutionContextProvider
     with ContainerDriver
-    with HealthCheckMerger {
+    with HealthCheckMerger
+    with NamespaceValueResolver {
 
   import ContainerDriverActor._
 
-  lazy val tenantIdOverride = Try(Some(MarathonDriverActor.tenantIdOverride())).getOrElse(None)
+  lazy val tenantIdOverride = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdOverride()))).getOrElse(None)
 
   protected val expirationPeriod = MarathonDriverActor.expirationPeriod()
 
@@ -197,12 +199,12 @@ class MarathonDriverActor
     }
     case arg @ Argument("override.workflow.ipAddress.networkName", networkName) ⇒ { app ⇒
       if (workflowDeployment)
-        app.copy(ipAddress = Some(MarathonAppIpAddress(networkName)))
+        app.copy(ipAddress = Some(MarathonAppIpAddress(resolveWithNamespace(networkName))))
       else app
     }
     case arg @ Argument("override.deployment.ipAddress.networkName", networkName) ⇒ { app ⇒
       if (!workflowDeployment)
-        app.copy(ipAddress = Some(MarathonAppIpAddress(networkName)))
+        app.copy(ipAddress = Some(MarathonAppIpAddress(resolveWithNamespace(networkName))))
       else app
     }
     case arg @ Argument("override.workflow.fetch.uri", uriValue) ⇒ { app ⇒
@@ -331,7 +333,9 @@ class MarathonDriverActor
       applyGlobalOverride(true).applyOrElse(argument, noGlobalOverride)(app)
     )
 
-    sendRequest(update, id, requestPayload(workflow, purge(marathonAppWithGlobalOverrides)))
+    val toDeploy = requestPayload(workflow, purge(marathonAppWithGlobalOverrides))
+    log.info(s"Deploying ${toDeploy}")
+    sendRequest(update, id, toDeploy)
   }
 
   private def purge(app: MarathonApp): MarathonApp = {
