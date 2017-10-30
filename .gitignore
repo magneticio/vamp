@@ -4,3 +4,4 @@ Makefile.local
 target
 */target
 project/project/
+.idea/
