@@ -22,6 +22,10 @@ resolvers in ThisBuild ++= Seq(
   Resolver.jcenterRepo
 )
 
+resolvers in ThisBuild += "bintray-magneticio-vamp" at "https://dl.bintray.com/magneticio/vamp"
+
+val common = "io.vamp" %% "vamp-common" % "0.9.6" :: Nil
+
 // Libraries
 val akka = "com.typesafe.akka" %% "akka-actor" % "2.4.16" ::
   "com.typesafe.akka" %% "akka-http" % "10.0.3" ::
@@ -91,7 +95,6 @@ lazy val root = project.in(file(".")).settings(
     (run in bootstrap in Compile).evaluated
   }
 ).aggregate(
-  common,
   persistence,
   model,
   operation,
@@ -115,7 +118,7 @@ lazy val bootstrap = project.settings(packAutoSettings).settings(
   description := "Bootstrap for Vamp",
   name := "vamp-bootstrap",
   formatting
-).dependsOn(common,
+).dependsOn(
   persistence,
   model,
   operation,
@@ -187,14 +190,7 @@ lazy val model = project.settings(
   description := "Definitions of Vamp artifacts",
   name := "vamp-model",
   formatting,
-  libraryDependencies ++= testing
-).dependsOn(common)
-
-lazy val common = project.settings(
-  description := "Vamp common",
-  name := "vamp-common",
-  formatting,
-  libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ testing
+  libraryDependencies ++= testing ++ common
 )
 
 lazy val dcos = project.settings(
@@ -215,8 +211,8 @@ lazy val config = project.settings(
   description := "Typelevel config library for VAMP",
   name := "vamp-config",
   formatting,
-  libraryDependencies ++= testing ++ fp ++ configlbs
-).dependsOn(common)
+  libraryDependencies ++= testing ++ fp ++ configlbs ++ common
+)
 
 lazy val haproxy = project.settings(
   description := "HAProxy driver",
