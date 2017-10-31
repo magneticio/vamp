@@ -1,6 +1,6 @@
 package io.vamp.persistence
 
-import akka.actor.Actor
+import akka.actor.{ Actor, Stash }
 import akka.pattern.ask
 import io.vamp.common.Artifact
 import io.vamp.common.akka.SchedulerActor
@@ -14,6 +14,8 @@ import scala.util.Try
 object CQRSActor {
   sealed trait CQRSMessage
   object ReadAll extends CQRSMessage
+
+  var SQLInitializationPerformed = false
 }
 
 /**
@@ -22,7 +24,7 @@ object CQRSActor {
 trait CQRSActor extends InMemoryRepresentationPersistenceActor
     with NamespaceValueResolver
     with SchedulerActor
-    with PersistenceMarshaller {
+    with PersistenceMarshaller with Stash {
 
   val commandSet = "SET"
   val commandDelete = "DELETE"
@@ -43,10 +45,32 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
 
   override def tick(): Unit = read()
 
-  override def receive: Receive = ({
+  override def receive: Receive = {
+    case _ ⇒
+      stash; unstashAll();
+      if (!CQRSActor.SQLInitializationPerformed) {
+        log.info("SQL-initialization steps have not been performed; SQL-operations are not available yet.")
+        context.become(waitForInitializationToBeDone)
+      }
+      else {
+        log.info("SQL-initialization done; SQL-operations available.")
+        context.become(receiveNormalBehavior)
+      }
+  }
+
+  def receiveNormalBehavior: Receive = ({
     case ReadAll ⇒ sender ! read()
-    case v: Long ⇒
+    case v: Long ⇒ ()
   }: Actor.Receive) orElse super[SchedulerActor].receive orElse super[InMemoryRepresentationPersistenceActor].receive
+
+  def waitForInitializationToBeDone: Receive = {
+    case "InitializationDone" ⇒ {
+      log.info("SQL-initialization steps performed; SQL-operations can now be performed.")
+      context.become(receiveNormalBehavior)
+      unstashAll()
+    }
+    case _ ⇒ stash()
+  }
 
   override def preStart(): Unit = {
     context.system.scheduler.scheduleOnce(delay, self, ReadAll)

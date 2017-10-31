@@ -3,7 +3,7 @@ package io.vamp.persistence
 import akka.actor.{ ActorRef, ActorSystem }
 import akka.util.Timeout
 import io.vamp.common.{ Config, Namespace }
-import io.vamp.common.akka.ActorBootstrap
+import io.vamp.common.akka.{ ActorBootstrap, IoC }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -30,6 +30,8 @@ class PersistenceBootstrap extends ActorBootstrap {
     val dbActor = alias[PersistenceActor](db, (`type`: String) ⇒ {
       throw new RuntimeException(s"Unsupported database type: ${`type`}")
     })
+
+    IoC.alias[CQRSActor, PersistenceActor]
 
     val kvActor = alias[KeyValueStoreActor](kv, (`type`: String) ⇒ {
       throw new RuntimeException(s"Unsupported key-value store type: ${`type`}")

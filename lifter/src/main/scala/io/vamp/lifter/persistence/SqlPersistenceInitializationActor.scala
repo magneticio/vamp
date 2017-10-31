@@ -1,7 +1,7 @@
 package io.vamp.lifter.persistence
 
 import io.vamp.common.Config
-import io.vamp.common.akka.CommonSupportForActors
+import io.vamp.common.akka.{ CommonSupportForActors, IoC }
 import io.vamp.lifter.notification.{ LifterNotificationProvider, PersistenceInitializationFailure, PersistenceInitializationSuccess }
 import io.vamp.lifter.persistence.LifterPersistenceDSL.LiftAction
 import io.vamp.model.resolver.NamespaceValueResolver
@@ -15,6 +15,7 @@ import io.vamp.lifter.persistence.SqlDSL._
 import scala.io.Source
 import cats.implicits.catsStdInstancesForList
 import cats.implicits.toTraverseOps
+import io.vamp.persistence.CQRSActor
 
 class SqlPersistenceInitializationActor(
     val sqlDialectInterpreter: SqlDSL ~> SqlResult,
@@ -74,8 +75,13 @@ class SqlPersistenceInitializationActor(
             .foldMap[SqlResult](sqlDialectInterpreter)
 
         executeSqlActions(sqlLifterSeed).value.foreach {
-          case Left(errorMessage) ⇒ reportException(PersistenceInitializationFailure(errorMessage))
-          case Right(_)           ⇒ info(PersistenceInitializationSuccess)
+          result ⇒
+            result match {
+              case Left(errorMessage) ⇒ reportException(PersistenceInitializationFailure(errorMessage))
+              case Right(_)           ⇒ info(PersistenceInitializationSuccess)
+            }
+            CQRSActor.SQLInitializationPerformed = true
+            IoC.actorFor[CQRSActor] ! "InitializationDone"
         }
       }
   }
