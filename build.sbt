@@ -16,6 +16,12 @@ scalaVersion in ThisBuild := scalaVersion.value
 
 description in ThisBuild := """Vamp"""
 
+organizationName in ThisBuild  := "Magnetic.io"
+organizationHomepage in ThisBuild  := Some(url("http://magnetic.io"))
+
+bintrayOrganization in ThisBuild  := Some("magneticio")
+licenses in ThisBuild += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
+
 resolvers in ThisBuild ++= Seq(
   Resolver.typesafeRepo("releases"),
   Resolver.sonatypeRepo("releases"),
@@ -89,7 +95,10 @@ lazy val root = project.in(file(".")).settings(
   // allows running main classes from subprojects
   run := {
     (run in bootstrap in Compile).evaluated
-  }
+  },
+  publishLocal := {},
+  publish := { },
+  bintrayUnpublish := {}
 ).aggregate(
   common,
   persistence,
