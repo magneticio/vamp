@@ -1,6 +1,6 @@
 package io.vamp.persistence
 
-import akka.actor.{ Actor, Stash }
+import akka.actor.Actor
 import akka.pattern.ask
 import io.vamp.common.Artifact
 import io.vamp.common.akka.SchedulerActor
@@ -27,11 +27,7 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
     with AccessGuard
     with PersistenceMarshaller
     with NamespaceValueResolver
-    with SchedulerActor
-    with PersistenceMarshaller with Stash {
-
-  val commandSet = "SET"
-  val commandDelete = "DELETE"
+    with SchedulerActor {
 
   private var lastId: Long = 0
 
@@ -53,15 +49,6 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
     case ReadAll ⇒ sender ! readWrapper()
     case _: Long ⇒
   }: Actor.Receive) orElse super[SchedulerActor].receive orElse super[InMemoryRepresentationPersistenceActor].receive
-
-  def waitForInitializationToBeDone: Receive = {
-    case "InitializationDone" ⇒ {
-      log.info("SQL-initialization steps performed; SQL-operations can now be performed.")
-      context.become(receiveNormalBehavior)
-      unstashAll()
-    }
-    case _ ⇒ stash()
-  }
 
   override def preStart(): Unit = {
     context.system.scheduler.scheduleOnce(delay, self, ReadAll)
