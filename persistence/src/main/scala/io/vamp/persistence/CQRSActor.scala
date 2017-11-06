@@ -1,7 +1,6 @@
 package io.vamp.persistence
 
 import akka.actor.Actor
-import akka.pattern.ask
 import io.vamp.common.Artifact
 import io.vamp.common.akka.SchedulerActor
 import io.vamp.model.resolver.NamespaceValueResolver
@@ -60,9 +59,7 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
     guard()
     lazy val failMessage = s"Can not set [${artifact.getClass.getSimpleName}] - ${artifact.name}"
 
-    this.synchronized {
-      insert(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact)))
-    }.collect {
+    insert(PersistenceRecord(artifact.name, artifact.kind, marshall(artifact))).collect {
       case Some(id: Long) ⇒ readOrFail(id, () ⇒ Future.successful(artifact), () ⇒ fail[Artifact](failMessage))
     }.getOrElse(fail(failMessage))
   }
@@ -73,9 +70,7 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
     val kind: String = type2string(`type`)
     lazy val failMessage = s"Can not delete [${`type`.getSimpleName}] - $name}"
 
-    this.synchronized {
-      insert(PersistenceRecord(name, kind))
-    }.collect {
+    insert(PersistenceRecord(name, kind)).collect {
       case Some(id: Long) ⇒ readOrFail(id, () ⇒ Future.successful(true), () ⇒ fail[Boolean](failMessage))
     } getOrElse fail[Boolean](failMessage)
   }
@@ -83,16 +78,13 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
   private def fail[A](message: String): Future[A] = Future.failed(new RuntimeException(message))
 
   private def readOrFail[T](id: Long, succeed: () ⇒ Future[T], fail: () ⇒ Future[T]): Future[T] = {
-    (self ? ReadAll).flatMap {
-      _ ⇒ if (id <= lastId) succeed() else fail()
-    }
+    readWrapper
+    if (id <= lastId) succeed() else fail()
   }
 
   private def readWrapper(): Long = {
     try {
-      this.synchronized {
-        read()
-      }
+      read()
     }
     catch {
       case c: CorruptedDataException ⇒
