@@ -15,7 +15,7 @@ import scala.concurrent.Future
 
 class ChronosWorkflowActorMapper extends ClassMapper {
   val name = "chronos"
-  val clazz = classOf[ChronosWorkflowActor]
+  val clazz: Class[_] = classOf[ChronosWorkflowActor]
 }
 
 class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation {

@@ -11,6 +11,7 @@ import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, Uns
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InvalidArgumentValueError
 import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.resolver.NamespaceValueResolver
 import org.json4s.JsonAST.JObject
 import org.json4s._
 
@@ -19,7 +20,7 @@ import scala.util.Try
 
 class MarathonDriverActorMapper extends ClassMapper {
   val name = "marathon"
-  val clazz = classOf[MarathonDriverActor]
+  val clazz: Class[_] = classOf[MarathonDriverActor]
 }
 
 object MarathonDriverActor {
@@ -61,11 +62,12 @@ class MarathonDriverActor
     with MarathonNamespace
     with ActorExecutionContextProvider
     with ContainerDriver
-    with HealthCheckMerger {
+    with HealthCheckMerger
+    with NamespaceValueResolver {
 
   import ContainerDriverActor._
 
-  lazy val tenantIdOverride = Try(Some(MarathonDriverActor.tenantIdOverride())).getOrElse(None)
+  lazy val tenantIdOverride = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdOverride()))).getOrElse(None)
 
   protected val expirationPeriod = MarathonDriverActor.expirationPeriod()
 
@@ -169,37 +171,95 @@ class MarathonDriverActor
   }
 
   private def noGlobalOverride(arg: Argument): MarathonApp ⇒ MarathonApp = identity[MarathonApp]
-  private def applyGlobalOverride: PartialFunction[Argument, MarathonApp ⇒ MarathonApp] = {
-    case arg @ Argument("override.container.docker.network", networkOverrideValue) ⇒ { app ⇒
-      app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+
+  private def applyGlobalOverride(workflowDeployment: Boolean): PartialFunction[Argument, MarathonApp ⇒ MarathonApp] = {
+    case arg @ Argument("override.workflow.docker.network", networkOverrideValue) ⇒ { app ⇒
+      if (workflowDeployment)
+        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+      else app
     }
-    case arg @ Argument("override.container.docker.privileged", runPriviledged) ⇒ { app ⇒
-      Try(runPriviledged.toBoolean).map(
-        priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
-      ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+    case arg @ Argument("override.deployment.docker.network", networkOverrideValue) ⇒ { app ⇒
+      if (!workflowDeployment)
+        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+      else app
     }
-    case arg @ Argument("override.ipAddress.networkName", networkName) ⇒ { app ⇒
-      app.copy(ipAddress = Some(MarathonAppIpAddress(networkName)))
+    case arg @ Argument("override.workflow.docker.privileged", runPriviledged) ⇒ { app ⇒
+      if (workflowDeployment)
+        Try(runPriviledged.toBoolean).map(
+          priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
+        ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+      else app
     }
-    case arg @ Argument("override.fetch.uri", uriValue) ⇒ { app ⇒
-      app.copy(fetch =
-        app.fetch match {
-          case None    ⇒ Some(List(UriObject(uriValue)))
-          case Some(l) ⇒ Some(UriObject(uriValue) :: l)
-        }
-      )
+    case arg @ Argument("override.deployment.docker.privileged", runPriviledged) ⇒ { app ⇒
+      if (!workflowDeployment)
+        Try(runPriviledged.toBoolean).map(
+          priviledge ⇒ app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(privileged = priviledge))))
+        ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+      else app
     }
-    case arg @ Argument("override.noHealthChecks", noHealthChecks) ⇒ { app ⇒
-      Try(noHealthChecks.toBoolean).map(
-        noHealthChecks ⇒ if (noHealthChecks) {
-          app.copy(healthChecks = Nil)
-        }
-        else app
-      ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+    case arg @ Argument("override.workflow.ipAddress.networkName", networkName) ⇒ { app ⇒
+      if (workflowDeployment)
+        app.copy(ipAddress = Some(MarathonAppIpAddress(resolveWithNamespace(networkName))))
+      else app
     }
-    case arg @ Argument(argName, argValue) if (argName.startsWith("override.labels.")) ⇒ { app ⇒
-      val labelName = argName.drop("override.labels.".length)
-      app.copy(labels = (app.labels + (labelName → argValue)))
+    case arg @ Argument("override.deployment.ipAddress.networkName", networkName) ⇒ { app ⇒
+      if (!workflowDeployment)
+        app.copy(ipAddress = Some(MarathonAppIpAddress(resolveWithNamespace(networkName))))
+      else app
+    }
+    case arg @ Argument("override.workflow.fetch.uri", uriValue) ⇒ { app ⇒
+      if (workflowDeployment)
+        app.copy(fetch =
+          app.fetch match {
+            case None    ⇒ Some(List(UriObject(uriValue)))
+            case Some(l) ⇒ Some(UriObject(uriValue) :: l)
+          }
+        )
+      else app
+    }
+    case arg @ Argument("override.deployment.fetch.uri", uriValue) ⇒ { app ⇒
+      if (!workflowDeployment)
+        app.copy(fetch =
+          app.fetch match {
+            case None    ⇒ Some(List(UriObject(uriValue)))
+            case Some(l) ⇒ Some(UriObject(uriValue) :: l)
+          }
+        )
+      else app
+    }
+    case arg @ Argument("override.workflow.noHealthChecks", noHealthChecks) ⇒ { app ⇒
+      if (workflowDeployment)
+        Try(noHealthChecks.toBoolean).map(
+          noHealthChecks ⇒ if (noHealthChecks) {
+            app.copy(healthChecks = Nil)
+          }
+          else app
+        ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+      else app
+    }
+    case arg @ Argument("override.deployment.noHealthChecks", noHealthChecks) ⇒ { app ⇒
+      if (!workflowDeployment)
+        Try(noHealthChecks.toBoolean).map(
+          noHealthChecks ⇒ if (noHealthChecks) {
+            app.copy(healthChecks = Nil)
+          }
+          else app
+        ).getOrElse(throw NotificationErrorException(InvalidArgumentValueError(arg), s"${arg.key} -> ${arg.value}"))
+      else app
+    }
+    case arg @ Argument(argName, argValue) if (argName.startsWith("override.workflow.labels.")) ⇒ { app ⇒
+      if (workflowDeployment) {
+        val labelName = argName.drop("override.workflow.labels.".length)
+        app.copy(labels = (app.labels + (labelName → argValue)))
+      }
+      else app
+    }
+    case arg @ Argument(argName, argValue) if (argName.startsWith("override.deployment.labels.")) ⇒ { app ⇒
+      if (!workflowDeployment) {
+        val labelName = argName.drop("override.deployment.labels.".length)
+        app.copy(labels = (app.labels + (labelName → argValue)))
+      }
+      else app
     }
   }
 
@@ -212,9 +272,11 @@ class MarathonDriverActor
     if (update) log.info(s"marathon update service: $name") else log.info(s"marathon create service: $name")
     val constraints = (namespaceConstraint +: Nil).filter(_.nonEmpty)
 
+    log.info(s"Deploying Workflow and using Arguments:: ${service.arguments}")
+
     val app = MarathonApp(
       id,
-      container(deployment, cluster, service.copy(arguments = service.arguments.filterNot(applyGlobalOverride.isDefinedAt))),
+      container(deployment, cluster, service.copy(arguments = service.arguments.filterNot(applyGlobalOverride(false).isDefinedAt))),
       None,
       service.scale.get.instances,
       service.scale.get.cpu.value,
@@ -229,7 +291,7 @@ class MarathonDriverActor
 
     // Iterate through all Argument objects and if they represent an override, apply them
     val appWithGlobalOverrides = service.arguments.foldLeft(app)((app, argument) ⇒
-      applyGlobalOverride.applyOrElse(argument, noGlobalOverride)(app)
+      applyGlobalOverride(false).applyOrElse(argument, noGlobalOverride)(app)
     )
 
     val asd = requestPayload(deployment, cluster, service, purge(appWithGlobalOverrides))
@@ -249,9 +311,11 @@ class MarathonDriverActor
     val scale = workflow.scale.get.asInstanceOf[DefaultScale]
     val constraints = (namespaceConstraint +: Nil).filter(_.nonEmpty)
 
+    log.info(s"Deploying Workflow and using Arguments:: ${workflow.arguments}")
+
     val marathonApp = MarathonApp(
       id,
-      container(workflow.copy(arguments = workflow.arguments.filterNot(applyGlobalOverride.isDefinedAt))),
+      container(workflow.copy(arguments = workflow.arguments.filterNot(applyGlobalOverride(true).isDefinedAt))),
       None,
       scale.instances,
       scale.cpu.value,
@@ -266,10 +330,12 @@ class MarathonDriverActor
 
     // Iterate through all Argument objects and if they represent an override, apply them
     val marathonAppWithGlobalOverrides = workflow.arguments.foldLeft(marathonApp)((app, argument) ⇒
-      applyGlobalOverride.applyOrElse(argument, noGlobalOverride)(app)
+      applyGlobalOverride(true).applyOrElse(argument, noGlobalOverride)(app)
     )
 
-    sendRequest(update, id, requestPayload(workflow, purge(marathonAppWithGlobalOverrides)))
+    val toDeploy = requestPayload(workflow, purge(marathonAppWithGlobalOverrides))
+    log.info(s"Deploying ${toDeploy}")
+    sendRequest(update, id, toDeploy)
   }
 
   private def purge(app: MarathonApp): MarathonApp = {

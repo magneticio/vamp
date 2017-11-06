@@ -1,7 +1,8 @@
 package io.vamp.operation.config
 
 import akka.pattern.ask
-import io.vamp.common.{ Config, ConfigFilter }
+import akka.util.Timeout
+import io.vamp.common.{ Config, ConfigFilter, ConfigMagnet }
 import io.vamp.common.akka._
 import io.vamp.operation.notification._
 import io.vamp.persistence.KeyValueStoreActor
@@ -11,7 +12,9 @@ import scala.util.Try
 
 object ConfigurationLoaderActor {
 
-  val timeout = KeyValueStoreActor.timeout
+  val path: List[String] = "configuration" :: "applied" :: Nil
+
+  val timeout: ConfigMagnet[Timeout] = KeyValueStoreActor.timeout
 
   case class Reload(force: Boolean)
 
@@ -25,16 +28,16 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
 
   import ConfigurationLoaderActor._
 
-  protected implicit val timeout = ConfigurationLoaderActor.timeout()
+  protected implicit val timeout: Timeout = ConfigurationLoaderActor.timeout()
 
-  def receive = {
+  def receive: Receive = {
     case Reload(force) ⇒ reload(force)
     case request: Get  ⇒ reply(get(request.`type`, request.flatten, request.filter))
     case request: Set  ⇒ reply(set(request.input, request.filter, request.validateOnly))
     case _             ⇒
   }
 
-  override def preStart() = {
+  override def preStart(): Unit = {
     if (Config.boolean("vamp.operation.reload-configuration")()) {
       val delay = Config.duration("vamp.operation.reload-configuration-delay")()
       log.info(s"Getting configuration update from key-value store in ${delay.toSeconds} seconds.")
@@ -42,7 +45,7 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
     }
   }
 
-  protected def get(`type`: String, flatten: Boolean, filter: ConfigFilter) = Future.successful {
+  protected def get(`type`: String, flatten: Boolean, filter: ConfigFilter): Future[Map[String, Any]] = Future.successful {
     Config.export(
       Try(Config.Type.withName(`type`)).getOrElse(Config.Type.applied),
       flatten, filter
@@ -52,7 +55,7 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
   protected def set(input: String, filter: ConfigFilter, validateOnly: Boolean): Future[_] = try {
     val config = if (input.trim.isEmpty) Map[String, Any]() else Config.unmarshall(input.trim, filter)
     if (validateOnly) Future.successful(config)
-    else IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set("configuration" :: Nil, if (config.isEmpty) None else Option(Config.marshall(config))) map { _ ⇒
+    else IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Set(path, if (config.isEmpty) None else Option(Config.marshall(config))) map { _ ⇒
       reload(force = false)
     }
   }
@@ -61,8 +64,11 @@ class ConfigurationLoaderActor extends CommonSupportForActors with OperationNoti
   }
 
   protected def reload(force: Boolean): Unit = {
-    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get("configuration" :: Nil) map {
-      case Some(content: String) if force || content != Config.marshall(Config.export(Config.Type.dynamic, flatten = false)) ⇒ reload(Config.unmarshall(content))
+    IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(path) map {
+      case Some(content: String) if force || (
+        content != Config.marshall(Config.export(Config.Type.dynamic, flatten = false)) &&
+        content != Config.marshall(Config.export(Config.Type.dynamic, flatten = true))
+      ) ⇒ reload(Config.unmarshall(content))
       case None if force || Config.export(Config.Type.dynamic).nonEmpty ⇒ reload(Map[String, Any]())
       case _ ⇒
     }

@@ -9,6 +9,8 @@ object Gateway {
 
   val anonymous = ""
 
+  val kind: String = "gateways"
+
   object Sticky extends Enumeration {
 
     val Route, Instance = Value
@@ -16,7 +18,7 @@ object Gateway {
     def byName(sticky: String): Option[Sticky.Value] = Gateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
   }
 
-  def internal(name: String) = GatewayPath(name).segments.size == 3
+  def internal(name: String): Boolean = GatewayPath(name).segments.size == 3
 }
 
 case class GatewayService(host: String, port: Port)
@@ -32,15 +34,15 @@ case class Gateway(
     deployed:     Boolean                      = false
 ) extends Artifact with Lookup {
 
-  val kind = "gateway"
+  val kind: String = Gateway.kind
 
-  def routeBy(path: GatewayPath) = routes.find(_.path == path)
+  def routeBy(path: GatewayPath): Option[Route] = routes.find(_.path == path)
 
-  def defaultBalance = if (port.`type` == Port.Type.Http) "roundrobin" else "leastconn"
+  def defaultBalance: String = if (port.`type` == Port.Type.Http) "roundrobin" else "leastconn"
 
-  def internal = Gateway.internal(name)
+  def internal: Boolean = Gateway.internal(name)
 
-  def hasRouteTargets = routes.exists {
+  def hasRouteTargets: Boolean = routes.exists {
     case r: DefaultRoute ⇒ r.targets.nonEmpty
     case _               ⇒ false
   }
@@ -52,11 +54,11 @@ object GatewayPath {
 
   private val pathDelimiterSplitter = "\\/"
 
-  def apply(source: String) = string2path(source)
+  def apply(source: String): GatewayPath = string2path(source)
 
-  def apply(path: List[Any] = Nil) = list2path(path.map(_.toString))
+  def apply(path: List[Any] = Nil): GatewayPath = list2path(path.map(_.toString))
 
-  def external(source: String) = source.startsWith("[") && source.endsWith("]")
+  def external(source: String): Boolean = source.startsWith("[") && source.endsWith("]")
 
   implicit def string2path(source: String): GatewayPath = {
     if (external(source))
@@ -70,7 +72,7 @@ object GatewayPath {
 
 case class GatewayPath(source: String, segments: List[String]) {
 
-  val normalized = segments.mkString(GatewayPath.pathDelimiter)
+  val normalized: String = segments.mkString(GatewayPath.pathDelimiter)
 
   override def equals(obj: scala.Any): Boolean = obj match {
     case routePath: GatewayPath ⇒ segments == routePath.segments
@@ -82,15 +84,17 @@ case class GatewayPath(source: String, segments: List[String]) {
 
 object Route {
   val noPath = GatewayPath()
+
+  val kind: String = "routes"
 }
 
 sealed trait Route extends Artifact with Lookup {
 
-  val kind = "route"
+  val kind: String = Route.kind
 
   def path: GatewayPath
 
-  val length = path.segments.size
+  val length: Int = path.segments.size
 }
 
 case class RouteReference(name: String, path: GatewayPath) extends Reference with Route
@@ -103,7 +107,7 @@ case class DefaultRoute(name: String, metadata: Map[String, Any], path: GatewayP
 
   def definedCondition: Boolean = condition.isDefined && condition.forall(_.isInstanceOf[DefaultCondition])
 
-  def external = path.external.isDefined
+  def external: Boolean = path.external.isDefined
 }
 
 object InternalRouteTarget {
@@ -112,7 +116,7 @@ object InternalRouteTarget {
 }
 
 sealed trait RouteTarget extends Artifact with Lookup {
-  val kind = "target"
+  val kind: String = "targets"
 }
 
 case class InternalRouteTarget(name: String, host: Option[String], port: Int) extends RouteTarget {
@@ -120,19 +124,27 @@ case class InternalRouteTarget(name: String, host: Option[String], port: Int) ex
 }
 
 case class ExternalRouteTarget(url: String, metadata: Map[String, Any]) extends RouteTarget {
-  val name = url
+  val name: String = url
+}
+
+object Condition {
+  val kind: String = "conditions"
 }
 
 sealed trait Condition extends Artifact {
-  val kind = "condition"
+  val kind: String = Condition.kind
 }
 
 case class ConditionReference(name: String) extends Reference with Condition
 
 case class DefaultCondition(name: String, metadata: Map[String, Any], definition: String) extends Condition
 
+object Rewrite {
+  val kind: String = "rewrites"
+}
+
 sealed trait Rewrite extends Artifact {
-  val kind = "rewrite"
+  val kind: String = Rewrite.kind
 }
 
 case class RewriteReference(name: String) extends Reference with Rewrite

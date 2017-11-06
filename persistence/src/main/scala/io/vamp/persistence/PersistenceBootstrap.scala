@@ -2,45 +2,59 @@ package io.vamp.persistence
 
 import akka.actor.{ ActorRef, ActorSystem }
 import akka.util.Timeout
+import io.vamp.common.akka.ActorBootstrap
 import io.vamp.common.{ Config, Namespace }
-import io.vamp.common.akka.{ ActorBootstrap, IoC }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
 object PersistenceBootstrap {
 
-  def databaseType()(implicit namespace: Namespace) = {
-    Config.string("vamp.persistence.database.type")().toLowerCase
-  }
+  def databaseType()(implicit namespace: Namespace): String = Config.string("vamp.persistence.database.type")().toLowerCase
 
-  def keyValueStoreType()(implicit namespace: Namespace) = {
-    Config.string("vamp.persistence.key-value-store.type")().toLowerCase
-  }
+  def keyValueStoreType()(implicit namespace: Namespace): String = Config.string("vamp.persistence.key-value-store.type")().toLowerCase
 }
 
 class PersistenceBootstrap extends ActorBootstrap {
 
+  def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[List[ActorRef]] = {
+    implicit val executionContext: ExecutionContext = actorSystem.dispatcher
+    for {
+      storage ← new PersistenceStorageBootstrap().createActors
+      keyValue ← new KeyValueBootstrap().createActors
+    } yield storage ++ keyValue
+  }
+}
+
+class PersistenceStorageBootstrap extends ActorBootstrap {
+
   import PersistenceBootstrap._
 
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[List[ActorRef]] = {
-
     val db = databaseType()
-    val kv = keyValueStoreType()
+    info(s"Database: $db")
 
     val dbActor = alias[PersistenceActor](db, (`type`: String) ⇒ {
       throw new RuntimeException(s"Unsupported database type: ${`type`}")
     })
 
-    IoC.alias[CQRSActor, PersistenceActor]
+    implicit val executionContext: ExecutionContext = actorSystem.dispatcher
+    dbActor.map(_ :: Nil)
+  }
+}
+
+class KeyValueBootstrap extends ActorBootstrap {
+
+  import PersistenceBootstrap._
+
+  def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[List[ActorRef]] = {
+    val kv = keyValueStoreType()
+    info(s"Key-Value store: $kv")
 
     val kvActor = alias[KeyValueStoreActor](kv, (`type`: String) ⇒ {
       throw new RuntimeException(s"Unsupported key-value store type: ${`type`}")
     })
 
-    info(s"Database: $db")
-    info(s"Key-Value store: $kv")
-
-    implicit val ec: ExecutionContext = actorSystem.dispatcher
-    Future.sequence(kvActor :: dbActor :: Nil)
+    implicit val executionContext: ExecutionContext = actorSystem.dispatcher
+    kvActor.map(_ :: Nil)
   }
 }

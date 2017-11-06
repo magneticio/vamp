@@ -10,7 +10,7 @@ import scala.concurrent.Future
 
 class ConsulStoreActorMapper extends ClassMapper {
   val name = "consul"
-  val clazz = classOf[ConsulStoreActor]
+  val clazz: Class[_] = classOf[ConsulStoreActor]
 }
 
 class ConsulStoreActor extends KeyValueStoreActor {
@@ -21,10 +21,10 @@ class ConsulStoreActor extends KeyValueStoreActor {
     Map("type" → "consul", "consul" → consul)
   }
 
-  override protected def all(path: List[String]): Future[List[String]] = {
+  override protected def children(path: List[String]): Future[List[String]] = {
     val key = pathToString(path)
     checked[List[String]](httpClient.get[List[String]](urlOf(path, keys = true), logError = false) recover { case _ ⇒ Nil }) map { list ⇒
-      list.map(_.substring(key.length))
+      list.flatMap(_.substring(key.length).split('/').headOption)
     }
   }
 

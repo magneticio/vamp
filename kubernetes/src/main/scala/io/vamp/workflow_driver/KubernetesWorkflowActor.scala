@@ -16,7 +16,7 @@ import scala.concurrent.Future
 
 class KubernetesWorkflowActorMapper extends ClassMapper {
   val name = "kubernetes"
-  val clazz = classOf[KubernetesWorkflowActor]
+  val clazz: Class[_] = classOf[KubernetesWorkflowActor]
 }
 
 class KubernetesWorkflowActor extends DaemonWorkflowDriver with ContainerDriverMapping with ContainerDriverValidation {

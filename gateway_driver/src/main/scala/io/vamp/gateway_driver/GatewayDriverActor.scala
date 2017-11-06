@@ -16,7 +16,7 @@ import scala.concurrent.Future
 
 object GatewayDriverActor {
 
-  val rootPath = "gateways" :: Nil
+  val rootPath: List[String] = Gateway.kind :: Nil
 
   sealed trait GatewayDriverMessage
 

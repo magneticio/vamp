@@ -22,7 +22,7 @@ import scala.util.Try
 
 class DockerDriverActorMapper extends ClassMapper {
   val name = "docker"
-  val clazz = classOf[DockerDriverActor]
+  val clazz: Class[_] = classOf[DockerDriverActor]
 }
 
 object DockerDriverActor {

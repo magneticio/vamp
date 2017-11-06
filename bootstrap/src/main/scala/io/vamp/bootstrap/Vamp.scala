@@ -4,20 +4,23 @@ import akka.actor.ActorSystem
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.vamp.common.Namespace
+import io.vamp.common.akka.Bootstrap
 import io.vamp.http_api.HttpApiBootstrap
 
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.{ FiniteDuration, MILLISECONDS }
 
-trait Vamp extends App {
+trait Vamp extends VampApp {
 
-  protected implicit val system: ActorSystem = ActorSystem("vamp")
-  protected implicit val timeout: Timeout = Timeout(FiniteDuration(ConfigFactory.load().getDuration("vamp.bootstrap.timeout", MILLISECONDS), MILLISECONDS))
+  implicit val system: ActorSystem = ActorSystem("vamp")
+  implicit val executionContext: ExecutionContext = system.dispatcher
+  implicit val timeout: Timeout = Timeout(FiniteDuration(ConfigFactory.load().getDuration("vamp.bootstrap.timeout", MILLISECONDS), MILLISECONDS))
 
-  protected lazy val bootstrap = {
+  protected lazy val bootstraps = {
     implicit val namespace: Namespace = Namespace(ConfigFactory.load().getString("vamp.namespace"))
     List() :+
       new LoggingBootstrap {
-        lazy val logo =
+        lazy val logo: String =
           s"""
              |██╗   ██╗ █████╗ ███╗   ███╗██████╗
              |██║   ██║██╔══██╗████╗ ████║██╔══██╗
@@ -35,10 +38,29 @@ trait Vamp extends App {
       new ActorBootstrap(new HttpApiBootstrap :: Nil)
   }
 
-  sys.addShutdownHook {
-    bootstrap.reverse.foreach(_.stop())
-    system.terminate()
+  addShutdownBootstrapHook()
+
+  startBootstraps()
+}
+
+trait VampApp extends App {
+
+  protected implicit def system: ActorSystem
+
+  protected implicit def executionContext: ExecutionContext
+
+  protected def bootstraps: List[Bootstrap]
+
+  def addShutdownBootstrapHook(): Unit = sys.addShutdownHook {
+    val reversed = bootstraps.reverse
+    reversed.tail.foldLeft[Future[Unit]](reversed.head.stop())((f, b) ⇒ f.flatMap(_ ⇒ b.stop())).map { _ ⇒ system.terminate() }.recover {
+      case e: Throwable ⇒ e.printStackTrace()
+    }
   }
 
-  bootstrap.foreach(_.start())
+  def startBootstraps(): Future[Unit] = {
+    bootstraps.tail.foldLeft[Future[Unit]](bootstraps.head.start())((f, b) ⇒ f.flatMap(_ ⇒ b.start())).recover {
+      case e: Throwable ⇒ e.printStackTrace()
+    }
+  }
 }

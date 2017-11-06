@@ -90,7 +90,7 @@ object ConfigReader {
    */
   implicit val cnilConfigReader: ConfigReader[CNil] = new ConfigReader[CNil] {
 
-    override val kind = "CNil"
+    override val kind: String = "CNil"
 
     override def read(path: String)(implicit configSettings: ConfigSettings): Validated[NonEmptyList[String], CNil] =
       invalid(NonEmptyList.of(s"Unable to read config value on path: `$path`."))
@@ -135,7 +135,7 @@ object ConfigReader {
     hConfigReader: Lazy[ConfigReader[H]]
   ): ConfigReader[A] =
     new ConfigReader[A] {
-      override val kind = "HList"
+      override val kind: String = "HList"
 
       override def read(path: String)(implicit configSettings: ConfigSettings): ValidatedNel[String, A] =
         hConfigReader.value.read(path).map(a ⇒ generic.from(a))
@@ -212,7 +212,7 @@ object ConfigReader {
   implicit val durationConfigReader: ConfigReader[FiniteDuration] =
     new ConfigReader[FiniteDuration] {
 
-      override val kind = "FiniteDuration"
+      override val kind: String = "FiniteDuration"
 
       /**
        * Read a config value resulting in a either a Valid A or NonEmptyList of String error messages.
@@ -228,7 +228,7 @@ object ConfigReader {
   implicit val durationListConfigReader: ConfigReader[List[FiniteDuration]] =
     new ConfigReader[List[FiniteDuration]] {
 
-      override val kind = "FiniteDuration"
+      override val kind: String = "FiniteDuration"
 
       override def read(path: String)(implicit configSettings: ConfigSettings): ValidatedNel[String, List[FiniteDuration]] =
         Try(

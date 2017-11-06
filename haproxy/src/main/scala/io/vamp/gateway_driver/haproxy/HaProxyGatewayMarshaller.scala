@@ -10,7 +10,7 @@ import scala.language.postfixOps
 
 class HaProxyGatewayMarshallerMapper extends ClassMapper {
   val name = "haproxy"
-  val clazz = classOf[HaProxyGatewayMarshaller]
+  val clazz: Class[_] = classOf[HaProxyGatewayMarshaller]
 }
 
 class HaProxyGatewayMarshaller extends GatewayMarshaller {

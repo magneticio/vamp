@@ -4,11 +4,11 @@ import io.vamp.common.{ Artifact, Reference }
 import io.vamp.model.reader.{ MegaByte, Quantity }
 
 object Blueprint {
-  val kind = "blueprint"
+  val kind: String = "blueprints"
 }
 
 abstract class Blueprint extends Artifact {
-  val kind = Blueprint.kind
+  val kind: String = Blueprint.kind
 }
 
 trait AbstractBlueprint extends Blueprint {
@@ -33,14 +33,14 @@ case class DefaultBlueprint(
     environmentVariables: List[EnvironmentVariable],
     dialects:             Map[String, Any]          = Map()
 ) extends AbstractBlueprint {
-  lazy val traits = environmentVariables
+  lazy val traits: List[Trait] = environmentVariables
 }
 
 case class BlueprintReference(name: String) extends Blueprint with Reference
 
 abstract class AbstractCluster extends Artifact {
 
-  val kind = "cluster"
+  val kind: String = "clusters"
 
   def services: List[AbstractService]
 
@@ -70,7 +70,7 @@ case class Cluster(
 
 abstract class AbstractService {
 
-  val kind = "service"
+  val kind: String = "services"
 
   def breed: Breed
 
@@ -101,8 +101,12 @@ case class Service(
   health:               Option[Health]            = None
 ) extends AbstractService
 
+object Scale {
+  val kind: String = "scales"
+}
+
 trait Scale extends Artifact {
-  val kind = "scale"
+  val kind: String = Scale.kind
 }
 
 case class ScaleReference(name: String) extends Reference with Scale

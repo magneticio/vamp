@@ -9,7 +9,7 @@ import scala.util.Try
 
 class RedisStoreActorMapper extends ClassMapper {
   val name = "redis"
-  val clazz = classOf[RedisStoreActor]
+  val clazz: Class[_] = classOf[RedisStoreActor]
 }
 
 class RedisStoreActor extends KeyValueStoreActor {
@@ -30,9 +30,9 @@ class RedisStoreActor extends KeyValueStoreActor {
     Map("type" → "redis", "redis" → Map("host" → host, "port" → port, "server" → info))
   }
 
-  override protected def all(path: List[String]): Future[List[String]] = {
+  override protected def children(path: List[String]): Future[List[String]] = {
     val key = pathToString(path)
-    client.keys(s"$key/*").map { list ⇒ list.map(_.substring(key.length + 1)).toList }
+    client.keys(s"$key/*").map { list ⇒ list.flatMap(_.substring(key.length + 1).split('/').headOption).toList }
   }
 
   override protected def get(path: List[String]): Future[Option[String]] = {

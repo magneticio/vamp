@@ -23,7 +23,7 @@ trait AbstractDeploymentReader
       case None ⇒ List[DeploymentCluster]()
       case Some(yaml) ⇒ yaml.pull().collect {
         case (name: String, cluster: YamlSourceReader) ⇒
-          implicit val source = cluster
+          implicit val source: YamlSourceReader = cluster
           val sla = SlaReader.readOptionalReferenceOrAnonymous("sla", validateEitherReferenceOrAnonymous)
 
           <<?[List[YamlSourceReader]]("services") match {
@@ -54,7 +54,7 @@ trait AbstractDeploymentReader
 
   private def environmentVariables(implicit source: YamlSourceReader): List[EnvironmentVariable] = first[Any]("environment_variables", "env") match {
     case Some(list: List[_]) ⇒ list.map { el ⇒
-      implicit val source = el.asInstanceOf[YamlSourceReader]
+      implicit val source: YamlSourceReader = el.asInstanceOf[YamlSourceReader]
       EnvironmentVariable(<<![String]("name"), <<?[String]("alias"), <<?[String]("value"), <<?[String]("interpolated"))
     }
     case Some(input: YamlSourceReader) ⇒

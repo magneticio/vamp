@@ -17,15 +17,18 @@ trait AbstractActorBootstrap extends Bootstrap {
 
   protected def bootstrap: List[ActorBootstrapService]
 
-  override def start() = {
+  override def start(): Future[Unit] = {
     info(s"Starting ${getClass.getSimpleName}")
-    bootstrap.foreach(_.start)
+    val all = bootstrap
+    implicit val executionContext: ExecutionContext = actorSystem.dispatcher
+    all.tail.foldLeft[Future[Unit]](all.head.start)((f, b) ⇒ f.flatMap(_ ⇒ b.start))
   }
 
-  override def stop() = {
+  override def stop(): Future[Unit] = {
     info(s"Stopping ${getClass.getSimpleName}")
+    val all = bootstrap.reverse
     implicit val executionContext: ExecutionContext = actorSystem.dispatcher
-    Future.sequence(bootstrap.reverse.map(_.stop))
+    all.tail.foldLeft[Future[Unit]](all.head.stop)((f, b) ⇒ f.flatMap(_ ⇒ b.stop))
   }
 }
 
@@ -42,7 +45,7 @@ class RestartableActorBootstrap(namespace: Namespace)(override val bootstrap: Li
   actorSystem.actorSelection(name).resolveOne().failed.foreach {
     case _: ActorNotFound ⇒
       actorSystem.actorOf(Props(new Actor {
-        def receive = {
+        def receive: Actor.Receive = {
           case "reload" ⇒ bootstrap.reverse.foreach(_.restart)
           case _        ⇒
         }

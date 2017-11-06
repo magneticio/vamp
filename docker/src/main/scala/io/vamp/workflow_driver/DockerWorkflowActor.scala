@@ -9,7 +9,7 @@ import scala.concurrent.Future
 
 class DockerWorkflowActorMapper extends ClassMapper {
   val name = "docker"
-  val clazz = classOf[DockerWorkflowActor]
+  val clazz: Class[_] = classOf[DockerWorkflowActor]
 }
 
 class DockerWorkflowActor extends DaemonWorkflowDriver {

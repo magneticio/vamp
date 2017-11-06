@@ -20,7 +20,7 @@ trait PersistenceStats extends ArtifactPaginationSupport with PersistenceTag {
 
   protected def count(`type`: Class[_ <: Artifact]): Future[Long] = all(`type`, 1, 1).map(_.total)
 
-  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int): Future[ArtifactResponseEnvelope]
+  protected def all(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean = (_) ⇒ true): Future[ArtifactResponseEnvelope]
 
   protected def stats(): Future[Map[String, Any]] = {
 

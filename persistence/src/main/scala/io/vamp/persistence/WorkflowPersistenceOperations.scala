@@ -115,40 +115,72 @@ trait WorkflowPersistenceOperations {
   }
 }
 
+private[persistence] object WorkflowBreed {
+  val kind: String = "workflow-breeds"
+}
+
 private[persistence] case class WorkflowBreed(name: String, breed: DefaultBreed) extends PersistenceArtifact {
-  val kind = "workflow-breed"
+  val kind: String = WorkflowBreed.kind
+}
+
+private[persistence] object WorkflowStatus {
+  val kind: String = "workflow-statuses"
 }
 
 private[persistence] case class WorkflowStatus(name: String, status: String, phase: Option[String]) extends PersistenceArtifact {
-  val kind = "workflow-status"
+  val kind: String = WorkflowStatus.kind
 
-  def unmarshall = WorkflowStatusReader.status(status) match {
+  def unmarshall: Workflow.Status = WorkflowStatusReader.status(status) match {
     case r: Workflow.Status.Restarting ⇒ r.copy(phase = WorkflowStatusReader.phase(phase))
     case other                         ⇒ other
   }
 }
 
+private[persistence] object WorkflowScale {
+  val kind: String = "workflow-scales"
+}
+
 private[persistence] case class WorkflowScale(name: String, scale: DefaultScale) extends PersistenceArtifact {
-  val kind = "workflow-scale"
+  val kind: String = WorkflowScale.kind
+}
+
+private[persistence] object WorkflowNetwork {
+  val kind: String = "workflow-networks"
 }
 
 private[persistence] case class WorkflowNetwork(name: String, network: String) extends PersistenceArtifact {
-  val kind = "workflow-network"
+  val kind: String = WorkflowNetwork.kind
+}
+
+private[persistence] object WorkflowArguments {
+  val kind: String = "workflow-arguments"
 }
 
 private[persistence] case class WorkflowArguments(name: String, arguments: List[Argument]) extends PersistenceArtifact {
-  val kind = "workflow-arguments"
+  val kind: String = WorkflowArguments.kind
+}
+
+private[persistence] object WorkflowEnvironmentVariables {
+  val kind: String = "workflow-environment-variables"
 }
 
 private[persistence] case class WorkflowEnvironmentVariables(name: String, environmentVariables: List[EnvironmentVariable]) extends PersistenceArtifact {
-  val kind = "workflow-environment-variables"
+  val kind: String = WorkflowEnvironmentVariables.kind
+}
+
+private[persistence] object WorkflowInstances {
+  val kind: String = "workflow-instances"
 }
 
 private[persistence] case class WorkflowInstances(name: String, instances: List[Instance]) extends PersistenceArtifact {
-  val kind = "workflow-instances"
+  val kind: String = WorkflowInstances.kind
+}
+
+private[persistence] object WorkflowHealth {
+  val kind: String = "workflow-healths"
 }
 
 private[persistence] case class WorkflowHealth(name: String, health: Option[Health]) extends PersistenceArtifact {
-  val kind = "workflow-health"
+  val kind: String = WorkflowHealth.kind
 }
 

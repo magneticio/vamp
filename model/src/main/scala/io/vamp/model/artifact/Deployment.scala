@@ -2,8 +2,8 @@ package io.vamp.model.artifact
 
 import java.time.OffsetDateTime
 
-import io.vamp.common.{ Artifact, Lookup }
 import io.vamp.common.notification.Notification
+import io.vamp.common.{ Artifact, Lookup }
 import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
 import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated }
 
@@ -42,20 +42,20 @@ object DeploymentService {
   }
 
   case class Status(intention: StatusIntentionType, phase: Status.Phase = Initiated(), since: OffsetDateTime = OffsetDateTime.now()) {
-    def isDone = phase.isInstanceOf[Done]
+    def isDone: Boolean = phase.isInstanceOf[Done]
 
-    def isDeployed = intention == Status.Intention.Deployment && isDone
+    def isDeployed: Boolean = intention == Status.Intention.Deployment && isDone
 
-    def isUndeployed = intention == Status.Intention.Undeployment && isDone
+    def isUndeployed: Boolean = intention == Status.Intention.Undeployment && isDone
   }
 
   implicit def intention2status(intention: StatusIntentionType): Status = Status(intention)
 }
 
 object Deployment {
-  val kind = "deployment"
+  val kind: String = "deployments"
 
-  def gatewayNameFor(deployment: Deployment, gateway: Gateway) = GatewayPath(deployment.name :: gateway.port.name :: Nil).normalized
+  def gatewayNameFor(deployment: Deployment, gateway: Gateway): String = GatewayPath(deployment.name :: gateway.port.name :: Nil).normalized
 }
 
 case class Deployment(
@@ -69,9 +69,9 @@ case class Deployment(
     dialects:             Map[String, Any]          = Map()
 ) extends AbstractBlueprint with Lookup {
 
-  override val kind = Deployment.kind
+  override val kind: String = Deployment.kind
 
-  lazy val traits = ports ++ environmentVariables ++ hosts
+  lazy val traits: List[Trait] = ports ++ environmentVariables ++ hosts
 
   def service(breed: Breed): Option[DeploymentService] = {
     clusters.flatMap { cluster ⇒ cluster.services } find { service ⇒ service.breed.name == breed.name }
@@ -79,7 +79,7 @@ case class Deployment(
 }
 
 object DeploymentCluster {
-  def gatewayNameFor(deployment: Deployment, cluster: DeploymentCluster, port: Port) = GatewayPath(deployment.name :: cluster.name :: port.name :: Nil).normalized
+  def gatewayNameFor(deployment: Deployment, cluster: DeploymentCluster, port: Port): String = GatewayPath(deployment.name :: cluster.name :: port.name :: Nil).normalized
 }
 
 case class DeploymentCluster(
@@ -131,7 +131,7 @@ case class DeploymentService(
 ) extends AbstractService
 
 case class Instance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact {
-  val kind = "instance"
+  val kind: String = "instances"
 
   val metadata = Map()
 }
@@ -141,12 +141,12 @@ object Host {
 }
 
 case class Host(name: String, value: Option[String]) extends Trait {
-  def alias = None
+  def alias: Option[String] = None
 }
 
 object HostReference {
 
-  val delimiter = TraitReference.delimiter
+  val delimiter: String = TraitReference.delimiter
 
   def referenceFor(reference: String): Option[HostReference] = reference.indexOf(delimiter) match {
     case -1 ⇒ None
@@ -158,14 +158,14 @@ object HostReference {
 }
 
 case class HostReference(cluster: String) extends ClusterReference {
-  def asTraitReference = TraitReference(cluster, TraitReference.Hosts, Host.host).toString
+  def asTraitReference: String = TraitReference(cluster, TraitReference.Hosts, Host.host).toString
 
   lazy val reference = s"$cluster${HostReference.delimiter}${Host.host}"
 }
 
 object NoGroupReference {
 
-  val delimiter = TraitReference.delimiter
+  val delimiter: String = TraitReference.delimiter
 
   def referenceFor(reference: String): Option[NoGroupReference] = reference.indexOf(delimiter) match {
     case -1 ⇒ None
@@ -177,7 +177,7 @@ object NoGroupReference {
 }
 
 case class NoGroupReference(cluster: String, name: String) extends ClusterReference {
-  def asTraitReference(group: String) = TraitReference(cluster, group, name).toString
+  def asTraitReference(group: String): String = TraitReference(cluster, group, name).toString
 
   lazy val reference = s"$cluster${NoGroupReference.delimiter}$name"
 }

@@ -1,5 +1,7 @@
 package io.vamp.common
 
+import java.io.File
+
 import _root_.akka.util.Timeout
 import com.typesafe.config.ConfigException.Missing
 import com.typesafe.config.{ ConfigFactory, ConfigValueFactory, Config ⇒ TypesafeConfig }
@@ -22,14 +24,14 @@ object Config {
 
   private val values: mutable.Map[String, mutable.Map[Type.Value, TypesafeConfig]] = new mutable.LinkedHashMap()
 
-  def marshall(config: Map[String, Any])(implicit namespace: Namespace): String = if (config.isEmpty) "" else writePretty(config)
+  def marshall(config: Map[String, Any]): String = if (config.isEmpty) "" else writePretty(config)
 
-  def unmarshall(input: String, filter: ConfigFilter = ConfigFilter.acceptAll)(implicit namespace: Namespace): Map[String, Any] = {
+  def unmarshall(input: String, filter: ConfigFilter = ConfigFilter.acceptAll, flatten: Boolean = false): Map[String, Any] = {
     val yaml = Option(expand(YamlUtil.convert(YamlUtil.yaml.load(input), preserveOrder = false).asInstanceOf[Map[String, AnyRef]]))
     val json = yaml.map(write(_)).getOrElse("")
-    val flatten = convert(ConfigFactory.parseString(json))
-    val filtered = flatten.filter { case (key, value) ⇒ filter.filter(key, value) }
-    expand(filtered)
+    val flat = convert(ConfigFactory.parseString(json))
+    val filtered = flat.filter { case (key, value) ⇒ filter.filter(key, value) }
+    if (flatten) filtered else expand(filtered)
   }
 
   def load(dynamic: Map[String, Any] = Map())(implicit namespace: Namespace): Unit = {
@@ -64,6 +66,11 @@ object Config {
     values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).put(Type.application, convert(applicationExpanded))
     values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).put(Type.environment, convert(environmentExpanded))
     values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).put(Type.applied, convert(appliedWitNamespace))
+  }
+
+  def parse(file: File, expanded: Boolean = true): Map[String, Any] = {
+    val config = convert(ConfigFactory.parseFile(file))
+    if (expanded) expand(config) else config
   }
 
   def int(path: String): ConfigMagnet[Int] = get(path, {
@@ -120,7 +127,12 @@ object Config {
     def apply()(implicit namespace: Namespace): T = {
       values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).get(Type.applied) match {
         case Some(applied) ⇒ process(applied)
-        case _             ⇒ throw new Missing(path)
+        case _ ⇒ {
+          values.getOrElseUpdate(namespace.name, new mutable.LinkedHashMap()).get(Type.environment) match {
+            case Some(applied) ⇒ process(applied)
+            case _             ⇒ throw new Missing(path)
+          }
+        }
       }
     }
   }

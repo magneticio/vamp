@@ -11,9 +11,9 @@ import scala.reflect.{ ClassTag, classTag }
 
 trait Bootstrap extends BootstrapLogger {
 
-  def start(): Unit = {}
+  def start(): Future[Unit] = Future.successful(())
 
-  def stop(): Unit = {}
+  def stop(): Future[Unit] = Future.successful(())
 }
 
 trait ActorBootstrap extends BootstrapLogger {
@@ -22,14 +22,14 @@ trait ActorBootstrap extends BootstrapLogger {
 
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[List[ActorRef]]
 
-  def start(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {
+  def start(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[Unit] = {
     info(s"Starting ${getClass.getSimpleName}")
     actors = createActors(actorSystem, namespace, timeout)
+    actors.map(_ ⇒ ())(actorSystem.dispatcher)
   }
 
-  def restart(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Unit = {
-    implicit val executionContext = actorSystem.dispatcher
-    stop.map(_ ⇒ start)
+  def restart(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[Unit] = {
+    stop.flatMap(_ ⇒ start)(actorSystem.dispatcher)
   }
 
   def stop(implicit actorSystem: ActorSystem, namespace: Namespace): Future[Unit] = {
@@ -49,7 +49,7 @@ trait BootstrapLogger {
 
   protected val logger = Logger(LoggerFactory.getLogger(getClass))
 
-  protected def info(message: String)(implicit namespace: Namespace) = {
+  protected def info(message: String)(implicit namespace: Namespace): Unit = {
     MDC.put("namespace", namespace.name)
     try logger.info(message) finally MDC.remove("namespace")
   }

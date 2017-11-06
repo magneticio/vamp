@@ -10,7 +10,7 @@ import scala.concurrent.Future
 
 class NoStorePulseActorMapper extends ClassMapper {
   val name = "no-store"
-  val clazz = classOf[NoStorePulseActor]
+  val clazz: Class[_] = classOf[NoStorePulseActor]
 }
 
 class NoStorePulseActor extends PulseActor {

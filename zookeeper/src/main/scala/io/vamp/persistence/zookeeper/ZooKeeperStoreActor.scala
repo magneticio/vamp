@@ -3,8 +3,8 @@ package io.vamp.persistence.zookeeper
 import java.io._
 import java.net.Socket
 
-import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.common.akka._
+import io.vamp.common.{ ClassMapper, Config }
 import io.vamp.persistence.KeyValueStoreActor
 import io.vamp.persistence.zookeeper.AsyncResponse.{ ChildrenResponse, DataResponse, FailedAsyncResponse }
 import org.apache.zookeeper.KeeperException.Code
@@ -13,7 +13,7 @@ import scala.concurrent.Future
 
 class ZooKeeperStoreActorMapper extends ClassMapper {
   val name = "zookeeper"
-  val clazz = classOf[ZooKeeperStoreActor]
+  val clazz: Class[ZooKeeperStoreActor] = classOf[ZooKeeperStoreActor]
 }
 
 class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatistics {
@@ -47,30 +47,11 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
     case None ⇒ Future.successful(None)
   }
 
-  override protected def all(path: List[String]): Future[List[String]] = zooKeeperClient match {
-    case Some(zk) ⇒
-
-      def collect(path: List[String], addRoot: Boolean = false): Future[List[ChildrenResponse]] = {
-        zk.getChildren(pathToString(path)) recoverWith recoverRetrieval(Nil) flatMap {
-          case node: ChildrenResponse ⇒
-            val children = Future.sequence {
-              node.children.map { child ⇒ collect(path :+ child, addRoot = true) }
-            }.map(_.flatten.toList)
-
-            if (addRoot) children.map { children ⇒ node +: children } else children
-
-          case _ ⇒ Future.successful(Nil)
-        }
-      }
-
-      val rootLength = pathToString(path).length + 1
-
-      collect(path).map {
-        _.collect {
-          case node if node.stat.getDataLength > 0 ⇒ node.path.substring(rootLength)
-        }
-      }
-
+  override protected def children(path: List[String]): Future[List[String]] = zooKeeperClient match {
+    case Some(zk) ⇒ zk.getChildren(pathToString(path)) recoverWith recoverRetrieval(Nil) map {
+      case node: ChildrenResponse ⇒ node.children.map { child ⇒ (path :+ child).mkString("/") }.toList
+      case _                      ⇒ Nil
+    }
     case None ⇒ Future.successful(Nil)
   }
 
@@ -98,13 +79,13 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
 
   private def recoverRetrieval[T](default: T): PartialFunction[Throwable, Future[T]] = {
     case failure: FailedAsyncResponse if failure.code == Code.NONODE ⇒ Future.successful(default)
-    case failure ⇒
+    case _ ⇒
       // something is going wrong with the connection
       initClient()
       Future.successful(default)
   }
 
-  private def initClient() = {
+  private def initClient(): Unit = {
     zooKeeperClient.foreach(_.close())
     zooKeeperClient = Option {
       AsyncZooKeeperClient(
@@ -118,9 +99,9 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
     }
   }
 
-  override def preStart() = initClient()
+  override def preStart(): Unit = initClient()
 
-  override def postStop() = zooKeeperClient.foreach(_.close())
+  override def postStop(): Unit = zooKeeperClient.foreach(_.close())
 }
 
 trait ZooKeeperServerStatistics {

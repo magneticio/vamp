@@ -21,7 +21,7 @@ import scala.concurrent.Future
 
 class ElasticsearchPulseActorMapper extends ClassMapper {
   val name = "elasticsearch"
-  val clazz = classOf[ElasticsearchPulseActor]
+  val clazz: Class[_] = classOf[ElasticsearchPulseActor]
 }
 
 object ElasticsearchPulseActor {

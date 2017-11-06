@@ -7,7 +7,9 @@ import io.vamp.model.artifact.{ Deployment, DeploymentCluster }
 import io.vamp.model.event.Event
 
 object SlaEvent {
-  def slaTags(deployment: Deployment, cluster: DeploymentCluster) = ("sla" :: s"deployment${Event.tagDelimiter}${deployment.name}" :: s"cluster${Event.tagDelimiter}${cluster.name}" :: Nil).toSet
+  def slaTags(deployment: Deployment, cluster: DeploymentCluster): Set[String] = {
+    ("sla" :: s"deployment${Event.tagDelimiter}${deployment.name}" :: s"cluster${Event.tagDelimiter}${cluster.name}" :: Nil).toSet
+  }
 }
 
 trait SlaEvent {
@@ -27,7 +29,7 @@ object Escalate {
 }
 
 case class Escalate(deployment: Deployment, cluster: DeploymentCluster, timestamp: OffsetDateTime = OffsetDateTime.now()) extends Notification with SlaEvent {
-  override def tags = Escalate.tags ++ SlaEvent.slaTags(deployment, cluster)
+  override def tags: Set[String] = Escalate.tags ++ SlaEvent.slaTags(deployment, cluster)
 }
 
 object DeEscalate {
@@ -35,5 +37,5 @@ object DeEscalate {
 }
 
 case class DeEscalate(deployment: Deployment, cluster: DeploymentCluster, timestamp: OffsetDateTime = OffsetDateTime.now()) extends Notification with SlaEvent {
-  override def tags = DeEscalate.tags ++ SlaEvent.slaTags(deployment, cluster)
+  override def tags: Set[String] = DeEscalate.tags ++ SlaEvent.slaTags(deployment, cluster)
 }

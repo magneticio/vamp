@@ -3,7 +3,7 @@ package io.vamp.operation.controller
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.{ Config, ConfigMagnet, Namespace }
 import io.vamp.common.akka.DataRetrieval
 import io.vamp.common.akka.IoC._
 import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
@@ -43,9 +43,9 @@ case class InfoMessage(
 
 trait InfoController extends AbstractController with DataRetrieval with JmxVitalsProvider {
 
-  val infoMessage = Config.string("vamp.operation.info.message")
+  val infoMessage: ConfigMagnet[String] = Config.string("vamp.operation.info.message")
 
-  protected val dataRetrievalTimeout = Config.timeout("vamp.operation.info.timeout")
+  protected val dataRetrievalTimeout: ConfigMagnet[Timeout] = Config.timeout("vamp.operation.info.timeout")
 
   def infoMessage(on: Set[String])(implicit namespace: Namespace, timeout: Timeout): Future[(AbstractInfoMessage, Boolean)] = {
     retrieve(infoActors(on), actor ⇒ actorFor(actor) ? InfoRequest, dataRetrievalTimeout()) map { result ⇒

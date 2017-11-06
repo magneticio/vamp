@@ -9,6 +9,8 @@ import scala.language.implicitConversions
 
 object Workflow {
 
+  val kind: String = "workflows"
+
   sealed trait Status {
 
     def describe: String = toString
@@ -59,7 +61,7 @@ case class Workflow(
     instances:            List[Instance]            = Nil,
     health:               Option[Health]            = None
 ) extends Artifact with Lookup {
-  val kind = "workflow"
+  val kind: String = Workflow.kind
 }
 
 sealed trait Schedule
@@ -74,12 +76,12 @@ object TimeSchedule {
 
   case class RepeatPeriod(days: Option[Period], time: Option[Duration]) {
 
-    val format = {
+    val format: String = {
       val period = s"${days.map(_.toString.substring(1)).getOrElse("")}${time.map(_.toString.substring(1)).getOrElse("")}"
       if (period.isEmpty) "PT1S" else s"P$period"
     }
 
-    override def toString = format
+    override def toString: String = format
   }
 
   implicit def int2repeat(count: Int): Repeat = RepeatCount(count)
