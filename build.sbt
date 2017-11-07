@@ -16,6 +16,14 @@ scalaVersion in ThisBuild := scalaVersion.value
 
 description in ThisBuild := """Vamp"""
 
+organizationName in ThisBuild  := "Magnetic.io"
+organizationHomepage in ThisBuild  := Some(url("http://magnetic.io"))
+
+bintrayOrganization in ThisBuild  := Some("magnetic-io")
+bintrayRepository in ThisBuild := "vamp"
+
+licenses in ThisBuild += ("Apache-2.0", url("https://opensource.org/licenses/Apache-2.0"))
+
 resolvers in ThisBuild ++= Seq(
   Resolver.typesafeRepo("releases"),
   Resolver.sonatypeRepo("releases"),
@@ -89,7 +97,10 @@ lazy val root = project.in(file(".")).settings(
   // allows running main classes from subprojects
   run := {
     (run in bootstrap in Compile).evaluated
-  }
+  },
+  publishLocal := {},
+  publish := { },
+  bintrayUnpublish := {}
 ).aggregate(
   common,
   persistence,
@@ -114,7 +125,8 @@ lazy val root = project.in(file(".")).settings(
 lazy val bootstrap = project.settings(packAutoSettings).settings(
   description := "Bootstrap for Vamp",
   name := "vamp-bootstrap",
-  formatting
+  formatting,
+  bintrayRepository := "vamp"
 ).dependsOn(common,
   persistence,
   model,
@@ -138,133 +150,152 @@ lazy val http_api = project.settings(
   description := "Http Api for Vamp",
   name := "vamp-http_api",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing,
+  bintrayRepository := "vamp"
 ).dependsOn(operation)
 
 lazy val operation = project.settings(
   description := "The control center of Vamp",
   name := "vamp-operation",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing,
+  bintrayRepository := "vamp"
 ).dependsOn(persistence, container_driver, workflow_driver, gateway_driver, pulse)
 
 lazy val pulse = project.settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
   name := "vamp-pulse",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing,
+  bintrayRepository := "vamp"
 ).dependsOn(model)
 
 lazy val gateway_driver = project.settings(
   description := "Enables Vamp to talk to Vamp Gateway Agent",
   name := "vamp-gateway_driver",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing,
+  bintrayRepository := "vamp"
 ).dependsOn(model, pulse, persistence)
 
 lazy val container_driver = project.settings(
   description := "Enables Vamp to talk to container managers",
   name := "vamp-container_driver",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing,
+  bintrayRepository := "vamp"
 ).dependsOn(model, persistence, pulse)
 
 lazy val workflow_driver = project.settings(
   description := "Enables Vamp to talk to workflow managers",
   name := "vamp-workflow_driver",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing,
+  bintrayRepository := "vamp"
 ).dependsOn(model, pulse, persistence, container_driver)
 
 lazy val persistence = project.settings(
   description := "Stores Vamp artifacts",
   name := "vamp-persistence",
   formatting,
-  libraryDependencies ++= testing ++ sql
+  libraryDependencies ++= testing ++ sql,
+  bintrayRepository := "vamp"
 ).dependsOn(model, pulse)
 
 lazy val model = project.settings(
   description := "Definitions of Vamp artifacts",
   name := "vamp-model",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing,
+  bintrayRepository := "vamp"
 ).dependsOn(common)
 
 lazy val common = project.settings(
   description := "Vamp common",
   name := "vamp-common",
   formatting,
-  libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ testing
+  libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ testing,
+  bintrayRepository := "vamp"
 )
 
 lazy val dcos = project.settings(
   description := "Container driver for DCOS and Marathon/Mesos",
   name := "vamp-dcos",
   formatting,
-  libraryDependencies ++= testing ++ fp
+  libraryDependencies ++= testing ++ fp,
+  bintrayRepository := "vamp"
 ).dependsOn(pulse, workflow_driver, container_driver)
 
 lazy val elasticsearch = project.settings(
   description := "Pulse and metrics driver for Elasticsearch",
   name := "vamp-elasticsearch",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing,
+  bintrayRepository := "vamp"
 ).dependsOn(pulse, persistence)
 
 lazy val config = project.settings(
   description := "Typelevel config library for VAMP",
   name := "vamp-config",
   formatting,
-  libraryDependencies ++= testing ++ fp ++ configlbs
+  libraryDependencies ++= testing ++ fp ++ configlbs,
+  bintrayRepository := "vamp"
 ).dependsOn(common)
 
 lazy val haproxy = project.settings(
   description := "HAProxy driver",
   name := "vamp-haproxy",
   formatting,
-  libraryDependencies ++= testing ++ templating
+  libraryDependencies ++= testing ++ templating,
+  bintrayRepository := "vamp"
 ).dependsOn(gateway_driver)
 
 lazy val redis = project.settings(
   description := "Redis driver for VAMP",
   name := "vamp-redis",
   formatting,
-  libraryDependencies ++= testing ++ redislbs
+  libraryDependencies ++= testing ++ redislbs,
+  bintrayRepository := "vamp"
 ).dependsOn(persistence)
 
 lazy val zookeeper = project.settings(
   description := "Zookeeper driver for VAMP K/V Store",
   name := "vamp-zookeeper",
   formatting,
-  libraryDependencies ++= testing ++ zookeeperlbs
+  libraryDependencies ++= testing ++ zookeeperlbs,
+  bintrayRepository := "vamp"
 ).dependsOn(persistence)
 
 lazy val consul = project.settings(
   description := "Driver for Consul",
   name := "vamp-consul",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing,
+  bintrayRepository := "vamp"
 ).dependsOn(persistence)
 
 lazy val etcd =  project.settings(
   description := "Driver for ETCD",
   name := "vamp-etcd",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing,
+  bintrayRepository := "vamp"
 ).dependsOn(persistence)
 
 lazy val kubernetes =project.settings(
   description := "Container driver for Kubernetes",
   name := "vamp-kubernetes",
   formatting,
-  libraryDependencies ++= testing
+  libraryDependencies ++= testing,
+  bintrayRepository := "vamp"
 ).dependsOn(pulse, workflow_driver, container_driver)
 
 lazy val docker = project.settings(
   description := "Container driver for docker",
   name := "vamp-docker",
   formatting,
-  libraryDependencies ++= testing ++ dockerlbs
+  libraryDependencies ++= testing ++ dockerlbs,
+  bintrayRepository := "vamp"
 ).dependsOn(pulse, workflow_driver, container_driver)
 
 // Java version and encoding requirements
