@@ -18,3 +18,5 @@ addSbtPlugin("org.scalariform" % "sbt-scalariform" % "1.6.0")
 addSbtPlugin("net.vonbuchholtz" % "sbt-dependency-check" % "0.1.1")
 
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.8.2")
+
+addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.1")
