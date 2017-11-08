@@ -31,7 +31,6 @@ all: default
 default:
 	docker pull $(BUILD_SERVER)
 	docker run \
-		--name buildserver \
 		--rm \
 		--volume $(CURDIR):/srv/src \
 		--volume $(DIR_SBT):/home/vamp/.sbt/boot \
@@ -47,7 +46,6 @@ pack:
 	docker pull $(BUILD_SERVER)
 
 	docker run \
-		--name buildserver \
 		--rm \
 		--volume $(CURDIR):/srv/src \
 		--volume $(DIR_SBT):/home/vamp/.sbt/boot \
@@ -63,7 +61,6 @@ pack:
 	mv $$(find $(TARGET)/$(PROJECT)-$(VERSION)/lib -type f -name "vamp-*.jar") $(TARGET)/$(PROJECT)-$(VERSION)/
 
 	docker run \
-		--name packer \
 		--rm \
 		--volume $(TARGET)/$(PROJECT)-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
@@ -82,7 +79,6 @@ pack-local:
 	docker volume create packer
 	docker pull $(BUILD_SERVER)
 	docker run \
-		--name packer \
 		--rm \
 		--volume $(TARGET)/$(PROJECT)-$(VERSION):/usr/local/src \
 		--volume packer:/usr/local/stash \
