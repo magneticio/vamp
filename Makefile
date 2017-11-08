@@ -6,6 +6,7 @@ SHELL             := bash
 .SUFFIXES:
 
 # Constants, these can be overwritten in your Makefile.local
+PACKER       ?= packer
 BUILD_SERVER := magneticio/buildserver
 DIR_SBT	     := $(HOME)/.sbt/boot
 DIR_IVY	     := $(HOME)/.ivy2
@@ -42,7 +43,7 @@ default:
 
 .PHONY: pack
 pack:
-	docker volume create packer
+	docker volume create $(PACKER)
 	docker pull $(BUILD_SERVER)
 
 	docker run \
@@ -63,7 +64,7 @@ pack:
 	docker run \
 		--rm \
 		--volume $(TARGET)/$(PROJECT)-$(VERSION):/usr/local/src \
-		--volume packer:/usr/local/stash \
+		--volume $(PACKER):/usr/local/stash \
 		$(BUILD_SERVER) \
 			push $(PROJECT) $(VERSION)
 
@@ -76,11 +77,11 @@ pack-local:
 	cp -r $(TARGET)/pack/lib $(TARGET)/$(PROJECT)-$(VERSION)/
 	mv $$(find $(TARGET)/$(PROJECT)-$(VERSION)/lib -type f -name "vamp-*.jar") $(TARGET)/$(PROJECT)-$(VERSION)/
 
-	docker volume create packer
+	docker volume create $(PACKER)
 	docker pull $(BUILD_SERVER)
 	docker run \
 		--rm \
 		--volume $(TARGET)/$(PROJECT)-$(VERSION):/usr/local/src \
-		--volume packer:/usr/local/stash \
+		--volume $(PACKER):/usr/local/stash \
 		$(BUILD_SERVER) \
 			push $(PROJECT) $(VERSION)
