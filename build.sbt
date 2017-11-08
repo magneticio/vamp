@@ -77,6 +77,8 @@ val zookeeperlbs = Seq("org.apache.zookeeper" % "zookeeper" % "3.4.8"
 
 val dockerlbs = Seq("com.spotify" % "docker-client" % "5.0.1")
 
+val apache = Seq("org.apache.commons" % "commons-dbcp2" % "2.0.1")
+
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
   "org.scala-lang" % "scala-compiler" % scalaVersion.value,
@@ -198,7 +200,7 @@ lazy val persistence = project.settings(
   description := "Stores Vamp artifacts",
   name := "vamp-persistence",
   formatting,
-  libraryDependencies ++= testing ++ sql,
+  libraryDependencies ++= testing ++ sql ++ apache,
   bintrayRepository := "vamp"
 ).dependsOn(model, pulse)
 
