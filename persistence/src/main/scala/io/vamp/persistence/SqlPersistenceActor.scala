@@ -1,9 +1,10 @@
 package io.vamp.persistence
 
-import java.sql.{ DriverManager, ResultSet, Statement }
+import java.sql.{DriverManager, ResultSet, Statement}
 
-import io.vamp.common.{ Config, ConfigMagnet }
-import io.vamp.persistence.notification.{ CorruptedDataException, PersistenceOperationFailure }
+import io.vamp.common.{Config, ConfigMagnet}
+import io.vamp.persistence.notification.{CorruptedDataException, PersistenceOperationFailure}
+import io.vamp.persistence.sqlconnectionpool.ConnectionPool
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -36,7 +37,7 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
   override protected lazy val delay: FiniteDuration = SqlPersistenceActor.delay()
 
   override protected def read(): Long = {
-    val connection = DriverManager.getConnection(url, user, password)
+    val connection = ConnectionPool(url, user, password).getConnection
     try {
       val statement = connection.prepareStatement(
         selectStatement(getLastId),
@@ -68,7 +69,7 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
   }
 
   override protected def insert(record: PersistenceRecord): Try[Option[Long]] = Try {
-    val connection = DriverManager.getConnection(url, user, password)
+    val connection = ConnectionPool(url, user, password).getConnection
     try {
       val query = insertStatement()
       val statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)
@@ -91,7 +92,7 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
   }
 
   private def ping(): Unit = {
-    val connection = DriverManager.getConnection(url, user, password)
+    val connection = ConnectionPool(url, user, password).getConnection
     try {
       val statement = connection.prepareStatement("SELECT 1")
       try {
