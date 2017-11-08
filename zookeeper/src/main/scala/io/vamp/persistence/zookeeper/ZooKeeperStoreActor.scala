@@ -30,6 +30,7 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
         "type" → "zookeeper",
         "zookeeper" → (Map("version" → version) ++ (zk.underlying match {
           case Some(zookeeper) ⇒
+            log.info(s"Getting Zookeeper info for servers: ${servers}")
             val state = zookeeper.getState
             Map(
               "client" → Map(
@@ -40,52 +41,69 @@ class ZooKeeperStoreActor extends KeyValueStoreActor with ZooKeeperServerStatist
               )
             )
 
-          case _ ⇒ Map("error" → "no connection")
+          case _ ⇒ {
+            log.error(s"Zookeeper connection failed to servers: ${servers}")
+            Map("error" → "no connection")
+          }
         }))
       )
     }
     case None ⇒ Future.successful(None)
   }
 
-  override protected def children(path: List[String]): Future[List[String]] = zooKeeperClient match {
-    case Some(zk) ⇒ zk.getChildren(pathToString(path)) recoverWith recoverRetrieval(Nil) map {
-      case node: ChildrenResponse ⇒ node.children.map { child ⇒ (path :+ child).mkString("/") }.toList
-      case _                      ⇒ Nil
-    }
-    case None ⇒ Future.successful(Nil)
-  }
-
-  override protected def get(path: List[String]): Future[Option[String]] = zooKeeperClient match {
-    case Some(zk) ⇒ zk.get(pathToString(path)) recoverWith recoverRetrieval(None) map {
-      case response: DataResponse ⇒ response.data.map(new String(_))
-      case _                      ⇒ None
-    }
-    case None ⇒ Future.successful(None)
-  }
-
-  override protected def set(path: List[String], data: Option[String]): Future[Any] = zooKeeperClient match {
-    case Some(zk) ⇒
-      zk.get(pathToString(path)) recoverWith {
-        case _ ⇒ zk.createPath(pathToString(path))
-      } flatMap { _ ⇒
-        zk.set(pathToString(path), data.map(_.getBytes)) recoverWith {
-          case failure ⇒
-            log.error(failure, failure.getMessage)
-            Future.failed(failure)
-        }
+  override protected def children(path: List[String]): Future[List[String]] = {
+    val zookeeperPath = pathToString(path)
+    log.info(s"Zookeeper get children for path: ${zookeeperPath}")
+    zooKeeperClient match {
+      case Some(zk) ⇒ zk.getChildren(zookeeperPath) recoverWith recoverRetrieval(Nil) map {
+        case node: ChildrenResponse ⇒ node.children.map { child ⇒ (path :+ child).mkString("/") }.toList
+        case _                      ⇒ Nil
       }
-    case _ ⇒ Future.successful(None)
+      case None ⇒ Future.successful(Nil)
+    }
+  }
+
+  override protected def get(path: List[String]): Future[Option[String]] = {
+    val zookeeperPath = pathToString(path)
+    log.info(s"Zookeeper get value for path ${zookeeperPath}")
+    zooKeeperClient match {
+      case Some(zk) ⇒ zk.get(zookeeperPath) recoverWith recoverRetrieval(None) map {
+        case response: DataResponse ⇒ response.data.map(new String(_))
+        case _                      ⇒ None
+      }
+      case None ⇒ Future.successful(None)
+    }
+  }
+
+  override protected def set(path: List[String], data: Option[String]): Future[Any] = {
+    val zookeeperPath = pathToString(path)
+    log.info(s"Zookeeper set value for path ${zookeeperPath}")
+    zooKeeperClient match {
+      case Some(zk) ⇒
+        zk.get(zookeeperPath) recoverWith {
+          case _ ⇒ zk.createPath(zookeeperPath)
+        } flatMap { _ ⇒
+          zk.set(zookeeperPath, data.map(_.getBytes)) recoverWith {
+            case failure ⇒
+              log.error(failure, failure.getMessage)
+              Future.failed(failure)
+          }
+        }
+      case _ ⇒ Future.successful(None)
+    }
   }
 
   private def recoverRetrieval[T](default: T): PartialFunction[Throwable, Future[T]] = {
     case failure: FailedAsyncResponse if failure.code == Code.NONODE ⇒ Future.successful(default)
     case _ ⇒
       // something is going wrong with the connection
+      log.warning("Reconnecting to Zookeeper ...")
       initClient()
       Future.successful(default)
   }
 
   private def initClient(): Unit = {
+    log.info("init Zookeeper client")
     zooKeeperClient.foreach(_.close())
     zooKeeperClient = Option {
       AsyncZooKeeperClient(
