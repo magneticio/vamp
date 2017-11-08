@@ -1,9 +1,9 @@
 package io.vamp.persistence
 
-import java.sql.{DriverManager, ResultSet, Statement}
+import java.sql.{ DriverManager, ResultSet, Statement }
 
-import io.vamp.common.{Config, ConfigMagnet}
-import io.vamp.persistence.notification.{CorruptedDataException, PersistenceOperationFailure}
+import io.vamp.common.{ Config, ConfigMagnet }
+import io.vamp.persistence.notification.{ CorruptedDataException, PersistenceOperationFailure }
 import io.vamp.persistence.sqlconnectionpool.ConnectionPool
 
 import scala.concurrent.Future
