@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import _root_.akka.pattern.ask
 import akka.actor._
 import akka.util.Timeout
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.Namespace
 import io.vamp.common.util.TextUtil
 
@@ -12,7 +13,7 @@ import scala.collection.mutable
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.reflect._
 
-object IoC {
+object IoC extends LazyLogging {
 
   private val counter = new AtomicInteger(0)
 
@@ -55,6 +56,7 @@ object IoC {
   }
 
   def createActor(props: Props)(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[ActorRef] = {
+    logger.info(s"Create Actor ${props.clazz} ${namespace}")
     implicit val ec: ExecutionContext = actorSystem.dispatcher
     (namespaceActor ? props) map {
       case actorRef: ActorRef ⇒
