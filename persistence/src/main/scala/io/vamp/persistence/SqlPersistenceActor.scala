@@ -1,6 +1,6 @@
 package io.vamp.persistence
 
-import java.sql.{ DriverManager, ResultSet, Statement }
+import java.sql.{ ResultSet, Statement }
 
 import io.vamp.common.{ Config, ConfigMagnet }
 import io.vamp.persistence.notification.{ CorruptedDataException, PersistenceOperationFailure }
@@ -37,6 +37,7 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
   override protected lazy val delay: FiniteDuration = SqlPersistenceActor.delay()
 
   override protected def read(): Long = {
+    log.info(s"SQL read for table ${table} with url ${url} ")
     val connection = ConnectionPool(url, user, password).getConnection
     try {
       val statement = connection.prepareStatement(
@@ -69,6 +70,7 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
   }
 
   override protected def insert(record: PersistenceRecord): Try[Option[Long]] = Try {
+    log.info(s"SQL insert for table ${table} with url ${url}")
     val connection = ConnectionPool(url, user, password).getConnection
     try {
       val query = insertStatement()
@@ -92,6 +94,7 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
   }
 
   private def ping(): Unit = {
+    log.info(s"SQL ping for table ${table} with url ${url}")
     val connection = ConnectionPool(url, user, password).getConnection
     try {
       val statement = connection.prepareStatement("SELECT 1")
