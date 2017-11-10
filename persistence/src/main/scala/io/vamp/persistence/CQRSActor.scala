@@ -50,8 +50,10 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
   }: Actor.Receive) orElse super[SchedulerActor].receive orElse super[InMemoryRepresentationPersistenceActor].receive
 
   override def preStart(): Unit = {
-    context.system.scheduler.scheduleOnce(delay, self, ReadAll)
-    self ! SchedulerActor.Period(synchronization, synchronization)
+    if (synchronization.toNanos <= 0)
+      context.system.scheduler.scheduleOnce(delay, self, ReadAll)
+    else
+      schedule(synchronization, delay)
   }
 
   override protected def set(artifact: Artifact): Future[Artifact] = {
