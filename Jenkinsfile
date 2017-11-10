@@ -14,7 +14,9 @@ pipeline {
         build job: "../vamp-docker-images/" + getBranch().replaceAll("/", "%2F"),
           parameters: [
             [$class: 'StringParameterValue', name: 'VAMP_GIT_ROOT', value: 'git@github.com:' + env.JOB_NAME.split("/").first()],
-            [$class: 'StringParameterValue', name: 'VAMP_GIT_BRANCH', value: env.BRANCH_NAME]
+            [$class: 'StringParameterValue', name: 'VAMP_GIT_BRANCH', value: env.BRANCH_NAME],
+            [$class: 'StringParameterValue', name: 'VAMP_CHANGE_TARGET', value: env.CHANGE_TARGET ?: ''],
+            [$class: 'StringParameterValue', name: 'VAMP_CHANGE_URL', value: env.CHANGE_URL ?: '']
           ],
           wait: true
       }
@@ -28,7 +30,7 @@ import groovy.json.JsonSlurperClassic
 def getBranch() {
   def req = httpRequest consoleLogResponseBody: true, httpMode: 'GET', acceptType: 'APPLICATION_JSON', url: "https://api.github.com/repos/${env.JOB_NAME.split("/").first()}/vamp-docker-images/branches", validResponseCodes: '200'
 
-  def cur = env.JOB_NAME.split("/").last()
+  def cur = env.CHANGE_TARGET ?: env.JOB_NAME.split("/").last()
   def data = new JsonSlurperClassic().parseText(req.content)
   def branches = []
   for (item in data) {
