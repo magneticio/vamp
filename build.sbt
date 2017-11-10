@@ -79,6 +79,13 @@ val dockerlbs = Seq("com.spotify" % "docker-client" % "5.0.1")
 
 val apache = Seq("org.apache.commons" % "commons-dbcp2" % "2.0.1")
 
+val sprayJson = Seq("io.spray" %%  "spray-json" % "1.3.3")
+
+val elastic4S = Seq("com.sksamuel.elastic4s" %% "elastic4s-core" % "5.4.0",
+  // for the tcp client
+  "com.sksamuel.elastic4s" %% "elastic4s-tcp" % "5.4.0"
+)
+
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
   "org.scala-lang" % "scala-compiler" % scalaVersion.value,
@@ -200,7 +207,7 @@ lazy val persistence = project.settings(
   description := "Stores Vamp artifacts",
   name := "vamp-persistence",
   formatting,
-  libraryDependencies ++= testing ++ sql ++ apache,
+  libraryDependencies ++= testing ++ sql ++ apache ++ sprayJson ++ elastic4S,
   bintrayRepository := "vamp"
 ).dependsOn(model, pulse)
 
