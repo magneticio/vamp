@@ -3,11 +3,12 @@ package io.vamp.persistence.refactor.dao
 import akka.event.slf4j.Logger
 import com.sksamuel.elastic4s.{ElasticClient, ElasticsearchClientUri, IndexAndType, TcpClient}
 import io.vamp.common.{Config, Id, Namespace}
-import io.vamp.persistence.refactor.api.SimpleArtifactPersistence
+import io.vamp.persistence.refactor.api.SimpleArtifactPersistenceDao
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 import spray.json.RootJsonFormat
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse
+import org.elasticsearch.common.settings.Settings
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -16,14 +17,18 @@ import spray.json._
 /**
   * Created by mihai on 11/10/17.
   */
-class EsDao(val namespace: Namespace)(implicit ec: ExecutionContext) extends SimpleArtifactPersistence {
+class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticSearchClusterName: String)(implicit ec: ExecutionContext) extends SimpleArtifactPersistenceDao {
   implicit val ns: Namespace = namespace
   val indexName = s"vamp_${namespace.name}"
 
   lazy val esClient : TcpClient = {
-    val esHostAndPort = Config.string("vamp.persistence.database.elasticsearch.url")()
-    val esClientUri: ElasticsearchClientUri = ElasticsearchClientUri(esHostAndPort)
-    val client: TcpClient = TcpClient.transport(esClientUri)
+    val esClientUri: ElasticsearchClientUri = ElasticsearchClientUri(elasticSearchHostAndPort)
+    val settings: Settings = Settings.builder()
+      .put("cluster.name", elasticSearchClusterName)
+      .build()
+    println("Creating TCPClient")
+    val client: TcpClient = TcpClient.transport(settings, esClientUri)
+    println("Finished Creating TCPClient")
     Await.result(
       (for {
         indexExists <- client.execute(indexExists(indexName))
@@ -78,4 +83,6 @@ class EsDao(val namespace: Namespace)(implicit ec: ExecutionContext) extends Sim
       }
     } yield ()
   }
+
+  private[persistence] def afterTestCleanup: Unit = Await.result(esClient.execute(deleteIndex(indexName)), 10.second)
 }

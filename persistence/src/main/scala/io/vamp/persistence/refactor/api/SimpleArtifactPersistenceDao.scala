@@ -9,7 +9,7 @@ import scala.concurrent.Future
 /**
   * Created by mihai on 11/10/17.
   */
-trait SimpleArtifactPersistence {
+trait SimpleArtifactPersistenceDao {
 
   def namespace: Namespace
 
@@ -21,4 +21,5 @@ trait SimpleArtifactPersistence {
 
   def deleteObject[T](id: Id[T])(implicit s: SerializationSpecifier[T], serializer: RootJsonFormat[T]): Future[Unit]
 
+  private[persistence] def afterTestCleanup: Unit
 }
