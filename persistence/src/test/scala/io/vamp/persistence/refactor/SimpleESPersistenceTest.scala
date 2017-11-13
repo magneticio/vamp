@@ -19,34 +19,34 @@ class SimpleESPersistenceTest extends fixture.FlatSpec with Matchers with UseEla
       value = Some("evVarValue"), interpolated = Some("simpleInterpolatedValue"))
 
     // Create and retrieve; See that the object is there
-    val envVarId = simpleAwait(VampPersistence.persistenceDao.create(simpleEnvVar))
-    assert(simpleAwait(VampPersistence.persistenceDao.read(envVarId)) == simpleEnvVar)
+    val envVarId = simpleAwait(VampPersistence().create(simpleEnvVar))
+    assert(simpleAwait(VampPersistence().read(envVarId)) == simpleEnvVar)
 
     // Cannot create two objects with the same Id
     the[DuplicateObjectIdException[_]] thrownBy {
-      simpleAwait(VampPersistence.persistenceDao.create(simpleEnvVar))
+      simpleAwait(VampPersistence().create(simpleEnvVar))
     }
 
     // Cannot modify the id of an object
     the[VampPersistenceModificationException[_]] thrownBy {
-      simpleAwait(VampPersistence.persistenceDao.update(envVarId, ((e: EnvironmentVariable) ⇒ e.copy(name = "modifiedName"))))
+      simpleAwait(VampPersistence().update(envVarId, (e: EnvironmentVariable) ⇒ e.copy(name = "modifiedName")))
     }
 
     val modifiedEnvVar = EnvironmentVariable(name = "SimpleEnvVar", alias = Some("modified_envVarAlias"),
       value = Some("modified_evVarValue"), interpolated = Some("modified_simpleInterpolatedValue"))
 
     // Verify modification
-    simpleAwait(VampPersistence.persistenceDao.update(envVarId, ((e: EnvironmentVariable) ⇒ modifiedEnvVar)))
-    assert(simpleAwait(VampPersistence.persistenceDao.read(envVarId)) == modifiedEnvVar)
+    simpleAwait(VampPersistence().update(envVarId, (e: EnvironmentVariable) ⇒ modifiedEnvVar))
+    assert(simpleAwait(VampPersistence().read(envVarId)) == modifiedEnvVar)
 
     // Verify that we cannot delete, update or retrieve an object that doesn't exist
-    the[InvalidObjectIdException[_]] thrownBy (simpleAwait(VampPersistence.persistenceDao.read(Id[EnvironmentVariable]("non_existent"))))
-    the[InvalidObjectIdException[_]] thrownBy (simpleAwait(VampPersistence.persistenceDao.deleteObject(Id[EnvironmentVariable]("non_existent"))))
-    the[InvalidObjectIdException[_]] thrownBy (simpleAwait(VampPersistence.persistenceDao.update(Id[EnvironmentVariable]("non_existent"), (e: EnvironmentVariable) ⇒ e.copy())))
+    the[InvalidObjectIdException[_]] thrownBy simpleAwait(VampPersistence().read(Id[EnvironmentVariable]("non_existent")))
+    the[InvalidObjectIdException[_]] thrownBy simpleAwait(VampPersistence().deleteObject(Id[EnvironmentVariable]("non_existent")))
+    the[InvalidObjectIdException[_]] thrownBy simpleAwait(VampPersistence().update(Id[EnvironmentVariable]("non_existent"), (e: EnvironmentVariable) ⇒ e.copy()))
 
     // Verify Deletion
-    simpleAwait(VampPersistence.persistenceDao.deleteObject(envVarId))
-    the[InvalidObjectIdException[_]] thrownBy (simpleAwait(VampPersistence.persistenceDao.read(envVarId)))
+    simpleAwait(VampPersistence().deleteObject(envVarId))
+    the[InvalidObjectIdException[_]] thrownBy simpleAwait(VampPersistence().read(envVarId))
 
     // Verify the retrieval of all objects
     val envVar_template = EnvironmentVariable(name = "envVar_#", alias = Some("envVarAlias_#"),
@@ -62,13 +62,13 @@ class SimpleESPersistenceTest extends fixture.FlatSpec with Matchers with UseEla
 
     // Create 100 objects in paralel
     envVarList.grouped(20).toList.map(
-      objectList ⇒ simpleAwait(Future.sequence(objectList.map(eVar ⇒ VampPersistence.persistenceDao.create(eVar))))
+      objectList ⇒ simpleAwait(Future.sequence(objectList.map(eVar ⇒ VampPersistence().create(eVar))))
     )
 
     // Reindex objects so they are searchable
     Thread.sleep(2000)
 
-    val response = simpleAwait(VampPersistence.persistenceDao.getAll(environmentVariableSerilizationSpecifier))
+    val response = simpleAwait(VampPersistence().getAll(environmentVariableSerilizationSpecifier))
     assert(response.size == envVarList.size && envVarList.forall(e ⇒ response.exists(_ == e)))
   }
 

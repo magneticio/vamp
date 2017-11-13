@@ -13,10 +13,10 @@ object VampPersistence {
   private val persistenceDaoMap: scala.collection.mutable.Map[String, SimpleArtifactPersistenceDao] =
     new scala.collection.mutable.HashMap[String, SimpleArtifactPersistenceDao]()
 
-  def apply(implicit ns: Namespace, ec: ExecutionContext): SimpleArtifactPersistenceDao  = persistenceDao
+  def apply()(implicit ns: Namespace, ec: ExecutionContext): SimpleArtifactPersistenceDao = persistenceDao
 
   def persistenceDao(implicit ns: Namespace, ec: ExecutionContext): SimpleArtifactPersistenceDao = {
-    persistenceDaoMap.getOrElseUpdate(ns.name, createPersistenceDao )
+    persistenceDaoMap.getOrElseUpdate(ns.name, createPersistenceDao)
   }
 
   private def createPersistenceDao(implicit ns: Namespace, ec: ExecutionContext): SimpleArtifactPersistenceDao = {
