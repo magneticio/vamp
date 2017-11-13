@@ -12,10 +12,12 @@ import spray.json.{ RootJsonFormat, _ }
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, ExecutionContext, Future }
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 /**
  * Created by mihai on 11/10/17.
  */
-class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticSearchClusterName: String, testingContext: Boolean = false)(implicit ec: ExecutionContext) extends SimpleArtifactPersistenceDao {
+class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticSearchClusterName: String, testingContext: Boolean = false) extends SimpleArtifactPersistenceDao {
   implicit val ns: Namespace = namespace
   private[persistence] val indexName = s"vamp_${namespace.name}"
 
