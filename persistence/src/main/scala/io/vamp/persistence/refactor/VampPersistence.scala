@@ -5,13 +5,14 @@ import io.vamp.persistence.refactor.api.SimpleArtifactPersistenceDao
 import io.vamp.persistence.refactor.dao.EsDao
 
 import scala.concurrent.ExecutionContext
+
 /**
  * Created by mihai on 11/10/17.
  */
 object VampPersistence {
 
   private val persistenceDaoMap: scala.collection.mutable.Map[String, SimpleArtifactPersistenceDao] =
-    new scala.collection.mutable.HashMap[String, SimpleArtifactPersistenceDao]()
+    new scala.collection.concurrent.TrieMap[String, SimpleArtifactPersistenceDao]()
 
   def apply()(implicit ns: Namespace, ec: ExecutionContext): SimpleArtifactPersistenceDao = persistenceDao
 
