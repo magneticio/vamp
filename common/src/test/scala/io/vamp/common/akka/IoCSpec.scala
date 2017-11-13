@@ -2,20 +2,20 @@ package io.vamp.common.akka
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{ActorSystem, Props}
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import akka.actor.{ ActorSystem, Props }
+import akka.testkit.{ ImplicitSender, TestKit, TestProbe }
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.notification.Notification
-import io.vamp.common.{ClassMapper, Namespace, NamespaceProvider}
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import io.vamp.common.{ ClassMapper, Namespace, NamespaceProvider }
+import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
 
 class IoCSpec extends TestKit(ActorSystem("VaultActorSpec")) with ImplicitSender
-  with WordSpecLike with Matchers with BeforeAndAfterAll with NamespaceProvider
-  with LazyLogging {
+    with WordSpecLike with Matchers with BeforeAndAfterAll with NamespaceProvider
+    with LazyLogging {
 
   implicit val namespace: Namespace = Namespace("default")
   implicit val timeout: Timeout = Timeout(5L, TimeUnit.SECONDS)
@@ -48,10 +48,10 @@ class EchoActorMapper extends ClassMapper {
 
 class EchoActor extends CommonSupportForActors {
   override def receive: Receive = {
-    case text:String  ⇒ reply(echo(text))
+    case text: String ⇒ reply(echo(text))
   }
 
-  private def echo(text: String): Future[String] = Future{ text }
+  private def echo(text: String): Future[String] = Future { text }
 
   override def message(notification: Notification): String = "echo actor message"
 

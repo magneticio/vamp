@@ -4,18 +4,17 @@ import io.vamp.common.util.HashUtil
 import java.util.UUID
 
 object Id {
-  def apply[A](uuid:UUID) = new Id[A](uuid.toString)
+  def apply[A](uuid: UUID) = new Id[A](uuid.toString)
   def generate[A] = new Id[A](UUID.randomUUID.toString)
 }
 
-case class Id[+A](value : String) extends Serializable {
+case class Id[+A](value: String) extends Serializable {
   override def toString = value
   def originalUuid = UUID.fromString(value)
   def uuid = UUID.nameUUIDFromBytes(value.getBytes("UTF-8"))
 
-  def convert[T] : Id[T] = Id[T](value)
+  def convert[T]: Id[T] = Id[T](value)
 }
-
 
 object Artifact {
 
