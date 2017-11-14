@@ -10,7 +10,6 @@ trait VampJsonFormats extends DefaultJsonProtocol {
 
   implicit val environmentVariableSerilizationSpecifier: SerializationSpecifier[EnvironmentVariable] =
     SerializationSpecifier[EnvironmentVariable](jsonFormat4(EnvironmentVariable), "envVar", (e ⇒ Id[EnvironmentVariable](e.name)))
-  implicit val environmentVariableFormat = environmentVariableSerilizationSpecifier.format
 }
 
 case class SerializationSpecifier[T](format: RootJsonFormat[T], typeName: String, idExtractor: T ⇒ Id[T])

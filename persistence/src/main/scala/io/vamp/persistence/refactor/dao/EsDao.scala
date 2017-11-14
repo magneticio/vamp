@@ -10,7 +10,7 @@ import org.elasticsearch.common.settings.Settings
 import spray.json.{ RootJsonFormat, _ }
 
 import scala.concurrent.duration._
-import scala.concurrent.{ Await, ExecutionContext, Future }
+import scala.concurrent.{ Await, Future }
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -34,7 +34,7 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
           if (testingContext) {
             (client.execute(deleteIndex(indexName))).flatMap(_ ⇒ client.execute(createIndex(indexName)))
           }
-          else Future.successful()
+          else Future.successful(())
         }
         else {
           // Create the index
@@ -45,42 +45,42 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     client
   }
 
-  override def create[T](obj: T)(implicit s: SerializationSpecifier[T], serializer: RootJsonFormat[T]): Future[Id[T]] = {
+  override def create[T](obj: T)(implicit s: SerializationSpecifier[T]): Future[Id[T]] = {
     val newObjectId = s.idExtractor(obj)
     for {
       _ ← read(newObjectId).flatMap(_ ⇒ Future.failed(DuplicateObjectIdException(newObjectId))).recover {
         case e: InvalidObjectIdException[_] ⇒ ()
       }
       _ ← esClient.execute {
-        (indexInto(indexName, s.typeName) doc (obj.toJson.toString()) id (newObjectId)).copy(createOnly = Some(true))
+        (indexInto(indexName, s.typeName) doc (s.format.write(obj).toString()) id (newObjectId)).copy(createOnly = Some(true))
       }
     } yield newObjectId
   }
 
-  override def read[T](objectId: Id[T])(implicit s: SerializationSpecifier[T], serializer: RootJsonFormat[T]): Future[T] = {
+  override def read[T](objectId: Id[T])(implicit s: SerializationSpecifier[T]): Future[T] = {
     for {
       getResponse ← esClient.execute {
         get(objectId.toString) from (indexName, s.typeName)
       }
     } yield {
       if (!getResponse.exists || getResponse.isSourceEmpty) throw new InvalidObjectIdException[T](objectId)
-      else getResponse.sourceAsString.parseJson.convertTo[T]
+      else s.format.read(getResponse.sourceAsString.parseJson)
     }
   }
 
-  override def update[T](id: Id[T], updateFunction: T ⇒ T)(implicit s: SerializationSpecifier[T], serializer: RootJsonFormat[T]): Future[Unit] = {
+  override def update[T](id: Id[T], updateFunction: T ⇒ T)(implicit s: SerializationSpecifier[T]): Future[Unit] = {
     for {
       currentObject ← read(id)
       updatedObject = updateFunction(currentObject)
       _ ← if (s.idExtractor(updatedObject) != id) Future.failed(VampPersistenceModificationException(s"Changing id to ${s.idExtractor(updatedObject)}", id))
-      else Future.successful()
+      else Future.successful(())
       _ ← esClient.execute {
-        (indexInto(indexName, s.typeName) doc (updatedObject.toJson.toString()) id (s.idExtractor(updatedObject))).copy(createOnly = Some(false))
+        (indexInto(indexName, s.typeName) doc (s.format.write(updatedObject ).toString()) id (s.idExtractor(updatedObject))).copy(createOnly = Some(false))
       }
     } yield ()
   }
 
-  override def deleteObject[T](objectId: Id[T])(implicit s: SerializationSpecifier[T], serializer: RootJsonFormat[T]): Future[Unit] = {
+  override def deleteObject[T](objectId: Id[T])(implicit s: SerializationSpecifier[T]): Future[Unit] = {
     for {
       _ ← read(objectId) // Ensure the object exists
       _ ← esClient.execute {
