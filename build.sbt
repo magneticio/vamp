@@ -80,7 +80,10 @@ val dockerlbs = Seq("com.spotify" % "docker-client" % "5.0.1")
 val apache = Seq("org.apache.commons" % "commons-dbcp2" % "2.0.1")
 
 val hazelcast = Seq( "com.hazelcast" % "hazelcast" % "3.9",
-  "info.jerrinot" % "subzero-core" % "0.7")
+  "info.jerrinot" % "subzero-core" % "0.7",
+  "org.apache.curator" % "curator-framework" % "4.0.0",
+  "org.apache.curator" % "curator-test" % "4.0.0" % "test"
+)
 
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
