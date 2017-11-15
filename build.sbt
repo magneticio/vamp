@@ -79,6 +79,9 @@ val dockerlbs = Seq("com.spotify" % "docker-client" % "5.0.1")
 
 val apache = Seq("org.apache.commons" % "commons-dbcp2" % "2.0.1")
 
+val hazelcast = Seq( "com.hazelcast" % "hazelcast" % "3.9",
+  "info.jerrinot" % "subzero-core" % "0.7")
+
 // Force scala version for the dependencies
 dependencyOverrides in ThisBuild ++= Set(
   "org.scala-lang" % "scala-compiler" % scalaVersion.value,
@@ -200,7 +203,7 @@ lazy val persistence = project.settings(
   description := "Stores Vamp artifacts",
   name := "vamp-persistence",
   formatting,
-  libraryDependencies ++= testing ++ sql ++ apache,
+  libraryDependencies ++= testing ++ sql ++ apache ++ hazelcast,
   bintrayRepository := "vamp"
 ).dependsOn(model, pulse)
 
