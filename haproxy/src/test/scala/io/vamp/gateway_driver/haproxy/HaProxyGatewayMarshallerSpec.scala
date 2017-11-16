@@ -78,14 +78,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
   it should "serialize single service http route to HAProxy configuration" in {
     val converted = marshaller.convert(Gateway(
       name = "vamp/sava/port/_",
-      metadata = Map(),
       port = Port(33000),
       service = None,
       sticky = None,
       virtualHosts = Nil,
       routes = DefaultRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
-        metadata = Map(),
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
         weight = Option(Percentage(100)),
         conditionStrength = None,
@@ -106,14 +104,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
   it should "serialize single service tcp route to HAProxy configuration" in {
     val converted = marshaller.convert(Gateway(
       name = "vamp/sava/port/_",
-      metadata = Map(),
       port = Port("33000/tcp"),
       service = None,
       sticky = None,
       virtualHosts = Nil,
       routes = DefaultRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
-        metadata = Map(),
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
         weight = Option(Percentage(100)),
         conditionStrength = None,
@@ -134,14 +130,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
     val converted = marshaller.convert(List(
       Gateway(
         name = "vamp/sava/port/_",
-        metadata = Map(),
         port = Port("33002"),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
-          metadata = Map(),
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
           weight = Option(Percentage(100)),
           conditionStrength = None,
@@ -157,14 +151,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ),
       Gateway(
         name = "vamp/port/_/_",
-        metadata = Map(),
         port = Port("9050/tcp"),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
-          metadata = Map(),
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
           conditionStrength = None,
@@ -187,7 +179,6 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
     val converted = marshaller.convert(List(
       Gateway(
         name = "vamp/sava/port/_",
-        metadata = Map(),
         port = Port(33001),
         service = None,
         sticky = None,
@@ -195,7 +186,6 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
         routes = List(
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
-            metadata = Map(),
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
             weight = Option(Percentage(90)),
             conditionStrength = None,
@@ -217,7 +207,6 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
           ),
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
-            metadata = Map(),
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
             weight = Option(Percentage(10)),
             conditionStrength = None,
@@ -238,14 +227,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ),
       Gateway(
         name = "vamp/port/_/_",
-        metadata = Map(),
         port = Port("9050/http"),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
-          metadata = Map(),
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
           conditionStrength = None,
@@ -268,14 +255,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
     val converted = marshaller.convert(List(
       Gateway(
         name = "vamp/backend/port",
-        metadata = Map(),
         port = Port(33003),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/sava-backend:1.3.0/port",
-          metadata = Map(),
           path = GatewayPath("vamp/sava/sava-backend:1.3.0/port"),
           weight = Option(Percentage(100)),
           conditionStrength = None,
@@ -291,14 +276,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ),
       Gateway(
         name = "vamp/sava/port/_",
-        metadata = Map(),
         port = Port("33002"),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/sava-frontend:1.3.0/port",
-          metadata = Map(),
           path = GatewayPath("vamp/sava/sava-frontend:1.3.0/port"),
           weight = Option(Percentage(100)),
           conditionStrength = None,
@@ -314,14 +297,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ),
       Gateway(
         name = "vamp/port/_/_",
-        metadata = Map(),
         port = Port("9050/http"),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
-          metadata = Map(),
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
           conditionStrength = None,
@@ -341,7 +322,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
   }
 
   it should "convert conditions" in {
-    val route = DefaultRoute("sava", Map(), GatewayPath("sava"), None, None, None, Nil, None)
+    val route = DefaultRoute("sava", GatewayPath("sava"), None, None, None, Nil, None)
     val backends = Backend("vamp://sava", "im_ec6129b90571c3f9737d86f16e82eabe2a3ae820", Mode.http, Nil, Nil, Nil, sticky = false, "") :: Nil
 
     List(
@@ -362,7 +343,7 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ("has header X-SPECIAL", "hdr_cnt(X-SPECIAL) gt 0"),
       ("misses header X-SPECIAL", "hdr_cnt(X-SPECIAL) eq 0")
     ) foreach { input ⇒
-        marshaller.filter(route.copy(condition = Option(DefaultCondition("", metadata = Map(), input._1))))(backends, Gateway("vamp", metadata = Map(), Port(0), None, None, Nil, Nil)) match {
+        marshaller.filter(route.copy(condition = Option(DefaultCondition("", input._1))))(backends, Gateway("vamp", Port(0), None, None, Nil, Nil)) match {
           case Some(Condition(_, _, Some(acls))) ⇒ acls.acls.head.definition shouldBe input._2
           case _                                 ⇒
         }
@@ -373,19 +354,17 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
     val converted = marshaller.convert(
       Gateway(
         name = "vamp/sava/port/_",
-        metadata = Map(),
         port = Port(33000),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
-          metadata = Map(),
           path = GatewayPath("vamp/sava/sava:1.0.0/port"),
           weight = Option(Percentage(100)),
           conditionStrength = Option(Percentage(100)),
           condition = Option(
-            DefaultCondition("", metadata = Map(), "user-agent != safari and user-agent = chrome and cookie group contains admin and has header x-allow")
+            DefaultCondition("", "user-agent != safari and user-agent = chrome and cookie group contains admin and has header x-allow")
           ),
           rewrites = List(
             PathRewrite(
@@ -414,7 +393,6 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
     val converted = marshaller.convert(List(
       Gateway(
         name = "vamp/sava/port/_",
-        metadata = Map(),
         port = Port(33001),
         service = None,
         sticky = Some(Gateway.Sticky.Route),
@@ -422,7 +400,6 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
         routes = List(
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
-            metadata = Map(),
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
             weight = Option(Percentage(90)),
             conditionStrength = None,
@@ -444,7 +421,6 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
           ),
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
-            metadata = Map(),
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
             weight = Option(Percentage(10)),
             conditionStrength = None,
@@ -465,14 +441,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ),
       Gateway(
         name = "vamp/port/_/_",
-        metadata = Map(),
         port = Port("9050/http"),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
-          metadata = Map(),
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
           conditionStrength = None,
@@ -495,7 +469,6 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
     val converted = marshaller.convert(List(
       Gateway(
         name = "vamp/sava/port/_",
-        metadata = Map(),
         port = Port(33001),
         service = None,
         sticky = Some(Gateway.Sticky.Instance),
@@ -503,7 +476,6 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
         routes = List(
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
-            metadata = Map(),
             path = GatewayPath("vamp/sava/sava:1.0.0/port"),
             weight = Option(Percentage(90)),
             conditionStrength = None,
@@ -525,7 +497,6 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
           ),
           DefaultRoute(
             name = "vamp/sava/port/_/vamp/sava/sava:1.1.0/port",
-            metadata = Map(),
             path = GatewayPath("vamp/sava/sava:1.1.0/port"),
             weight = Option(Percentage(10)),
             conditionStrength = None,
@@ -546,14 +517,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ),
       Gateway(
         name = "vamp/port/_/_",
-        metadata = Map(),
         port = Port("9050/http"),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp/sava/port/_",
-          metadata = Map(),
           path = GatewayPath("vamp/sava/port/_"),
           weight = Option(Percentage(100)),
           conditionStrength = None,
@@ -576,14 +545,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
     val converted = marshaller.convert(List(
       Gateway(
         name = "vamp:1.x/sava/port",
-        metadata = Map(),
         port = Port(33001),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp:1.x/sava/sava:1.0.0/port",
-          metadata = Map(),
           path = GatewayPath("vamp:1.x/sava/sava:1.0.0/port"),
           weight = Option(Percentage(100)),
           conditionStrength = None,
@@ -599,14 +566,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ),
       Gateway(
         name = "vamp:2.x/sava/port",
-        metadata = Map(),
         port = Port(33001),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp:2.x/sava/sava:2.0.0/port",
-          metadata = Map(),
           path = GatewayPath("vamp:2.x/sava/sava:2.0.0/port"),
           weight = Option(Percentage(100)),
           conditionStrength = None,
@@ -622,7 +587,6 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ),
       Gateway(
         name = "vamp",
-        metadata = Map(),
         port = Port("9050/http"),
         service = None,
         sticky = None,
@@ -630,7 +594,6 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
         routes = List(
           DefaultRoute(
             name = "vamp:1.x/sava/port",
-            metadata = Map(),
             path = GatewayPath("vamp:1.x/sava/port"),
             weight = Option(Percentage(90)),
             conditionStrength = None,
@@ -646,7 +609,6 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
           ),
           DefaultRoute(
             name = "vamp:2.x/sava/port",
-            metadata = Map(),
             path = GatewayPath("vamp:2.x/sava/port"),
             weight = Option(Percentage(10)),
             conditionStrength = None,
@@ -671,14 +633,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
     val converted = marshaller.convert(List(
       Gateway(
         name = "vamp:1.x/sava/port",
-        metadata = Map(),
         port = Port(33001),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp:1.x/sava/sava:1.0.0/port",
-          metadata = Map(),
           path = GatewayPath("vamp:1.x/sava/sava:1.0.0/port"),
           weight = Option(Percentage(100)),
           conditionStrength = None,
@@ -694,14 +654,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
       ),
       Gateway(
         name = "vamp:2.x/sava/port",
-        metadata = Map(),
         port = Port(33001),
         service = None,
         sticky = None,
         virtualHosts = Nil,
         routes = DefaultRoute(
           name = "vamp:2.x/sava/sava:2.0.0/port",
-          metadata = Map(),
           path = GatewayPath("vamp:2.x/sava/sava:2.0.0/port"),
           weight = Option(Percentage(100)),
           conditionStrength = None,
@@ -723,14 +681,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
   it should "serialize single service http route with virtual hosts" in {
     val converted = marshaller.convert(Gateway(
       name = "deployment/cluster/port",
-      metadata = Map(),
       port = Port(33000),
       service = None,
       sticky = None,
       virtualHosts = "port.cluster.deployment" :: Nil,
       routes = DefaultRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
-        metadata = Map(),
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
         weight = Option(Percentage(100)),
         conditionStrength = None,
@@ -750,14 +706,12 @@ class HaProxyGatewayMarshallerSpec extends FlatSpec with Matchers {
   it should "serialize single service http route with multiple virtual hosts" in {
     val converted = marshaller.convert(Gateway(
       name = "deployment/cluster/port",
-      metadata = Map(),
       port = Port(33000),
       service = None,
       sticky = None,
       virtualHosts = "port.cluster.deployment" :: "a.b.c.d" :: "vamp.vamp" :: Nil,
       routes = DefaultRoute(
         name = "vamp/sava/port/_/vamp/sava/sava:1.0.0/port",
-        metadata = Map(),
         path = GatewayPath("vamp/sava/sava:1.0.0/port"),
         weight = Option(Percentage(100)),
         conditionStrength = None,

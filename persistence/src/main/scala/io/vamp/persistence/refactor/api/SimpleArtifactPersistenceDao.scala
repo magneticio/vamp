@@ -12,13 +12,13 @@ trait SimpleArtifactPersistenceDao {
 
   def namespace: Namespace
 
-  def create[T](obj: T)(implicit s: SerializationSpecifier[T]): Future[Id[T]]
+  def create[T: SerializationSpecifier](obj: T): Future[Id[T]]
 
-  def read[T](id: Id[T])(implicit s: SerializationSpecifier[T]): Future[T]
+  def read[T: SerializationSpecifier](id: Id[T]): Future[T]
 
-  def update[T](id: Id[T], udateFunction: T ⇒ T)(implicit s: SerializationSpecifier[T]): Future[Unit]
+  def update[T: SerializationSpecifier](id: Id[T], udateFunction: T ⇒ T): Future[Unit]
 
-  def deleteObject[T](id: Id[T])(implicit s: SerializationSpecifier[T]): Future[Unit]
+  def deleteObject[T: SerializationSpecifier](id: Id[T]): Future[Unit]
 
   def getAll[T](s: SerializationSpecifier[T]): Future[List[T]]
 

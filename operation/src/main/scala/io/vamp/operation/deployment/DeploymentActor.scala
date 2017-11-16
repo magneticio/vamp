@@ -480,15 +480,15 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
         case Some(newRouting) ⇒
           val routes = services.map { service ⇒
             routeBy(newRouting, service, port) match {
-              case None        ⇒ DefaultRoute("", Map(), serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
+              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
               case Some(route) ⇒ route
             }
           }
           newRouting.copy(routes = routes, port = newRouting.port.copy(`type` = port.`type`))
 
         case None ⇒
-          Gateway("", Map(), Port(port.name, None, None, 0, port.`type`), None, None, Nil, services.map { service ⇒
-            DefaultRoute("", Map(), serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
+          Gateway("", Port(port.name, None, None, 0, port.`type`), None, None, Nil, services.map { service ⇒
+            DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
           })
       }
     }

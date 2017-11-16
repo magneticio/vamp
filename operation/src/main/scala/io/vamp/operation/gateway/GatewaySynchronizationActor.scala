@@ -129,7 +129,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   private def targets(gateways: List[Gateway], deployments: List[Deployment], route: DefaultRoute): List[RouteTarget] = {
     route.path.external match {
-      case Some(external) ⇒ ExternalRouteTarget(external, Map()) :: Nil
+      case Some(external) ⇒ ExternalRouteTarget(external) :: Nil
       case _ ⇒
 
         val targets = route.path.segments match {

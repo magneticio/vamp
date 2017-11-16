@@ -138,6 +138,7 @@ object Port {
   private val http = Port.Type.toTypeString(Port.Type.Http)
 
   object Type extends Enumeration {
+    type Type = Value
     val Tcp, Http = Value
 
     def toTypeString(value: Port.Type.Value) = s"/${value.toString.toLowerCase}"

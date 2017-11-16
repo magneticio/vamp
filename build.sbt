@@ -122,7 +122,6 @@ lazy val root = project.in(file(".")).settings(
   http_api,
   gateway_driver,
   dcos,
-  elasticsearch,
   config,
   haproxy,
   redis,
@@ -146,7 +145,6 @@ lazy val bootstrap = project.settings(packAutoSettings).settings(
   http_api,
   gateway_driver,
   dcos,
-  elasticsearch,
   config,
   haproxy,
   redis,
@@ -203,19 +201,28 @@ lazy val workflow_driver = project.settings(
   bintrayRepository := "vamp"
 ).dependsOn(model, pulse, persistence, container_driver)
 
+val circeVersion = "0.8.0"
+
+val circeLibraryDependencies = Seq(
+  "io.circe" %% "circe-core",
+  "io.circe" %% "circe-generic",
+  "io.circe" %% "circe-parser"
+).map(_ % circeVersion)
+
 lazy val persistence = project.settings(
   description := "Stores Vamp artifacts",
   name := "vamp-persistence",
   formatting,
-  libraryDependencies ++= testing ++ sql ++ apache ++ sprayJson ++ elastic4S,
+  libraryDependencies ++= testing ++ sql ++ apache ++ sprayJson ++ elastic4S ++ circeLibraryDependencies,
   bintrayRepository := "vamp"
 ).dependsOn(model, pulse)
+
 
 lazy val model = project.settings(
   description := "Definitions of Vamp artifacts",
   name := "vamp-model",
   formatting,
-  libraryDependencies ++= testing,
+  libraryDependencies ++= testing ,
   bintrayRepository := "vamp"
 ).dependsOn(common)
 
@@ -235,6 +242,7 @@ lazy val dcos = project.settings(
   bintrayRepository := "vamp"
 ).dependsOn(pulse, workflow_driver, container_driver)
 
+/*
 lazy val elasticsearch = project.settings(
   description := "Pulse and metrics driver for Elasticsearch",
   name := "vamp-elasticsearch",
@@ -242,6 +250,7 @@ lazy val elasticsearch = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, persistence)
+*/
 
 lazy val config = project.settings(
   description := "Typelevel config library for VAMP",

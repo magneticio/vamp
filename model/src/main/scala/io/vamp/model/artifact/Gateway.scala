@@ -12,7 +12,7 @@ object Gateway {
   val kind: String = "gateways"
 
   object Sticky extends Enumeration {
-
+    type Type = Value
     val Route, Instance = Value
 
     def byName(sticky: String): Option[Sticky.Value] = Gateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
@@ -25,7 +25,6 @@ case class GatewayService(host: String, port: Port)
 
 case class Gateway(
     name:         String,
-    metadata:     Map[String, Any],
     port:         Port,
     service:      Option[GatewayService],
     sticky:       Option[Gateway.Sticky.Value],
@@ -46,6 +45,8 @@ case class Gateway(
     case r: DefaultRoute ⇒ r.targets.nonEmpty
     case _               ⇒ false
   }
+
+  def metadata: Map[String, Any] = Map()
 }
 
 object GatewayPath {
@@ -103,11 +104,13 @@ object DefaultRoute {
   val defaultBalance = "default"
 }
 
-case class DefaultRoute(name: String, metadata: Map[String, Any], path: GatewayPath, weight: Option[Percentage], condition: Option[Condition], conditionStrength: Option[Percentage], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
+case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], condition: Option[Condition], conditionStrength: Option[Percentage], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
 
   def definedCondition: Boolean = condition.isDefined && condition.forall(_.isInstanceOf[DefaultCondition])
 
   def external: Boolean = path.external.isDefined
+
+  def metadata: Map[String, Any] = Map()
 }
 
 object InternalRouteTarget {
@@ -123,8 +126,9 @@ case class InternalRouteTarget(name: String, host: Option[String], port: Int) ex
   val metadata = Map()
 }
 
-case class ExternalRouteTarget(url: String, metadata: Map[String, Any]) extends RouteTarget {
+case class ExternalRouteTarget(url: String) extends RouteTarget {
   val name: String = url
+  val metadata: Map[String, Any] = Map()
 }
 
 object Condition {
@@ -137,7 +141,9 @@ sealed trait Condition extends Artifact {
 
 case class ConditionReference(name: String) extends Reference with Condition
 
-case class DefaultCondition(name: String, metadata: Map[String, Any], definition: String) extends Condition
+case class DefaultCondition(name: String, definition: String) extends Condition {
+  val metadata: Map[String, Any] = Map()
+}
 
 object Rewrite {
   val kind: String = "rewrites"

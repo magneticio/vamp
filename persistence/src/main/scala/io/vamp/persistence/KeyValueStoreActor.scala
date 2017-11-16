@@ -15,7 +15,7 @@ import scala.concurrent.Future
 
 object KeyValueStoreActor {
 
-  val timeout: ConfigMagnet[Timeout] = PersistenceActor.timeout
+  val timeout: ConfigMagnet[Timeout] = Config.timeout("vamp.persistence.response-timeout")
 
   sealed trait KeyValueStoreMessage
 
