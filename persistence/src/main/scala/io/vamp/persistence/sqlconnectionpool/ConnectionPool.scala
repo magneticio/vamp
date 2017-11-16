@@ -6,9 +6,9 @@ protected case class DataSourceConfiguration(url: String, user: String, password
 
 object ConnectionPool {
 
-  protected val dataSources = scala.collection.mutable.Map[DataSourceConfiguration, BasicDataSource]()
+  protected val dataSources = scala.collection.concurrent.TrieMap[DataSourceConfiguration, BasicDataSource]()
 
-  def apply(url: String, user: String, password: String): BasicDataSource = {
+  def apply(url: String, user: String, password: String): BasicDataSource = this.synchronized {
     val conf = DataSourceConfiguration(url, user, password)
     dataSources.getOrElseUpdate(conf, {
       val datasource = new BasicDataSource()
