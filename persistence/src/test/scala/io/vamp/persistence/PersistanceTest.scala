@@ -7,6 +7,7 @@ import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common._
+import io.vamp.model.artifact.Template
 import io.vamp.persistence.global.DataStore
 import io.vamp.persistence.notification.UnsupportedPersistenceRequest
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
@@ -14,19 +15,6 @@ import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import org.apache.curator.test.TestingServer
-
-
-object SerializationArtifact {
-  val kind: String = "TestArtifact"
-}
-
-class SerializationArtifact extends Artifact {
-  override def name = "TestArtifact"
-
-  override def kind = "TestArtifact"
-
-  override def metadata = Map("name" → "testArtifact")
-}
 
 class PersistanceTest extends TestKit(ActorSystem("PersistanceTest")) with ImplicitSender
   with WordSpecLike with Matchers with BeforeAndAfterAll with NamespaceProvider
@@ -51,7 +39,7 @@ class PersistanceTest extends TestKit(ActorSystem("PersistanceTest")) with Impli
 
     "store an artifact" in {
 
-      val expectedArtifact = new SerializationArtifact
+      val expectedArtifact = Template("testArtifact", Map[String, Any]("name" -> "test"), Map[String, Any]("definition" -> "test"))
 
       DataStore(namespace).put(expectedArtifact.id, expectedArtifact)
 

@@ -38,7 +38,7 @@ class DataStore(ns: Namespace) extends LazyLogging {
 
     Hazelcast.getOrCreateHazelcastInstance(config)
   }
-
+  
   def get[T <: Artifact](key: Id[T] ): T = hz.getMap(key.kind).get(key.value)
 
   def put[T <: Artifact](key: Id[T], value: T) = hz.getMap(key.kind).put(key.value, value)

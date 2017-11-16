@@ -6,6 +6,8 @@ import java.util.concurrent.TimeUnit
 
 import com.hazelcast.core.{HazelcastInstance, MapLoaderLifecycleSupport, MapStore}
 import com.typesafe.scalalogging.LazyLogging
+import io.vamp.common.Artifact
+import io.vamp.model.artifact.Template
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.{RetryNTimes, RetryOneTime}
 
@@ -13,12 +15,19 @@ import scala.collection.JavaConverters._
 
 class ZookeeperMapStore extends MapStore[String, Any] with MapLoaderLifecycleSupport with LazyLogging {
 
+  private def getBytes(value: Any) = {
+    value.asInstanceOf[Artifact].kind match {
+      case "templates" => value.asInstanceOf[Template].definition
+    }
+  }
+
   private var cli: CuratorFramework = _
 
   override def deleteAll(keys: util.Collection[String]): Unit = {}
 
   override def store(key: String, value: Any): Unit = {
     logger.info("Store "+key)
+    val bytes = getBytes(value)
     cli.create().creatingParentsIfNeeded().forPath("/"+key, value.toString.getBytes )
   }
 

@@ -30,7 +30,7 @@ class TestArtifact extends Artifact {
 class TestInMemoryPersistenceActor extends InMemoryPersistenceActor {
   override protected def type2string(`type`: Class[_]): String = `type` match {
     // test artifact
-    case t if classOf[SerializationArtifact].isAssignableFrom(t) ⇒ SerializationArtifact.kind
+    case t if classOf[TestArtifact].isAssignableFrom(t) ⇒ TestArtifact.kind
     case _ ⇒ throwException(UnsupportedPersistenceRequest(`type`))
   }
 }
@@ -75,12 +75,12 @@ class InMemoryPersistenceActorSpec extends TestKit(ActorSystem("InMemoryPersiste
       val testProbe = TestProbe("test")
       val actors = Await.result(IoC.createActor(Props(classOf[TestInMemoryPersistenceActor])).map(_ :: Nil)(system.dispatcher), 5.seconds)
       val actor = actors.head
-      val artifact = new SerializationArtifact()
-      val expectedResponse = List[SerializationArtifact](artifact)
+      val artifact = new TestArtifact()
+      val expectedResponse = List[TestArtifact](artifact)
       val source = "testSource"
       testProbe.send(actor, PersistenceActor.Create(artifact, Option(source)))
       testProbe.expectMsgPF(30.seconds) {
-        case response: List[SerializationArtifact] ⇒
+        case response: List[TestArtifact] ⇒
           logger.info(response.toString)
           assert(response === expectedResponse)
         case _ ⇒
