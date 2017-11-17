@@ -1,13 +1,13 @@
 package io.vamp.persistence.refactor.serialization
 
-import io.vamp.common.Id
+import io.vamp.common._
 import io.vamp.model.artifact._
 import spray.json._
 import io.circe._
 import io.circe.generic.semiauto._
 import io.vamp.model.reader.Percentage
 
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 
 /**
  * Created by mihai on 11/10/17.
@@ -26,7 +26,7 @@ trait VampJsonFormats extends DefaultJsonProtocol {
   }
 
   def enumDecoder[E <: Enumeration](enum: E) = Decoder.instance { hc =>
-    Try(hc.as[String] map (enum.withName(_))) match {
+    Try(hc.as[String] map (e => enum.withName(e))) match {
       case Failure(ex) => throw DecodingFailure(ex.getMessage, hc.history)
       case Success(eVal) => eVal
     }
@@ -63,6 +63,32 @@ trait VampJsonFormats extends DefaultJsonProtocol {
 
   implicit val environmentVariableEncoder: Encoder[EnvironmentVariable] = deriveEncoder[EnvironmentVariable]
 
+  implicit val restrictedIntEncoder: Encoder[RestrictedInt] = Encoder.instance[RestrictedInt] {e => Json.fromInt(e.i)}
+  implicit val restrictedDoubleEncoder: Encoder[RestrictedDouble] = Encoder.instance[RestrictedDouble]
+    { e => Json.fromDouble(e.d).getOrElse(throw ObjectFormatException(e.d.toString, "Double"))}
+  implicit val restrictedBooleanEncoder: Encoder[RestrictedBoolean] = Encoder.instance[RestrictedBoolean] { e => Json.fromBoolean(e.b)}
+  implicit val restrictedStringEncoder: Encoder[RestrictedString] = Encoder.instance[RestrictedString] {e => Json.fromString(e.s)}
+  implicit val restrictedMapEncoder: Encoder[RestrictedMap] = Encoder.instance[RestrictedMap]
+    { e => Json.fromJsonObject(JsonObject.fromIterable(e.mp.toList.map {
+      a => (a._1, restrictedAnyEncoder(a._2))
+    }))}
+
+  implicit val restrictedAnyEncoder: Encoder[RestrictedAny] = Encoder.instance[RestrictedAny] { _ match {
+    case e: RestrictedInt => restrictedIntEncoder(e)
+    case e: RestrictedDouble => restrictedDoubleEncoder(e)
+    case e: RestrictedBoolean => restrictedBooleanEncoder(e)
+    case e: RestrictedString => restrictedStringEncoder.apply(e)
+    case e: RestrictedMap => restrictedMapEncoder(e)
+    }
+  }
+
+  implicit val restrictedEncoder: Encoder[RootAnyMap] = Encoder.instance[RootAnyMap] { rmp =>
+    Json.fromString(restrictedMapEncoder(RestrictedMap(rmp.rootMap)).noSpaces.replace("\"", "\\\""))
+  }
+
+
+
+
 
   // ========================================= DECODERS ================================================================
   implicit val gatewayPathDecoder: Decoder[GatewayPath] = deriveDecoder[GatewayPath]
@@ -90,6 +116,70 @@ trait VampJsonFormats extends DefaultJsonProtocol {
 
   implicit val environmentVariableDecoder: Decoder[EnvironmentVariable] = deriveDecoder[EnvironmentVariable]
 
+
+  implicit val restrictedIntDecoder: Decoder[RestrictedInt] = Decoder.instance[RestrictedInt] { hc =>
+    hc.as[Int].map(iVal => RestrictedInt(iVal))
+  }
+
+  implicit val restrictedDoubleDecoder: Decoder[RestrictedDouble] = Decoder.instance[RestrictedDouble] { hc =>
+    hc.as[Double].map(dVal => RestrictedDouble(dVal))
+  }
+
+  implicit val restrictedBooleanDecoder: Decoder[RestrictedBoolean] = Decoder.instance[RestrictedBoolean] { hc =>
+    hc.as[Boolean].map(bVal => RestrictedBoolean(bVal))
+  }
+
+  implicit val restrictedStringDecoder: Decoder[RestrictedString] = Decoder.instance[RestrictedString] { hc =>
+    hc.as[String].map(sVal => RestrictedString(sVal))
+  }
+
+
+  def eitherToTry[A, E <: Throwable](either: Either[E,  A]): Try[A] = either match {
+    case Left(e) => Failure(e)
+    case Right(r) => Success(r)
+  }
+
+  implicit val restrictedMapDecoder: Decoder[RestrictedMap] = Decoder.instance[RestrictedMap] { hc => {
+      Try(hc.fields.map(_.toList).getOrElse(Nil).map{ field =>
+        field -> eitherToTry(restrictedAnyDecoder.tryDecode(hc.downField(field))).get
+      }) match {
+      case Failure(e: DecodingFailure) => Left[DecodingFailure, RestrictedMap](e)
+      case Failure(e: Throwable) => Left[DecodingFailure, RestrictedMap](DecodingFailure(e.getMessage, hc.history))
+      case Success(e) => Right[DecodingFailure, RestrictedMap](RestrictedMap(e.toMap))
+    }
+  }}
+
+  implicit val restrictedRootMap: Decoder[RootAnyMap] = Decoder.instance[RootAnyMap] { hc => {
+    import io.circe.parser._
+    (for {
+      asSring <- eitherToTry(hc.as[String])
+      removedEscapedQuotes = asSring.replace("\\\"", "\"")
+      parsedJson <- eitherToTry(parse(removedEscapedQuotes))
+      decoded <- eitherToTry(restrictedMapDecoder.decodeJson(parsedJson))
+    } yield decoded) match {
+      case Failure(e: DecodingFailure) => Left[DecodingFailure, RootAnyMap](e)
+      case Failure(e: Throwable) => Left[DecodingFailure, RootAnyMap](DecodingFailure(e.getMessage, hc.history))
+      case Success(e) => Right[DecodingFailure, RootAnyMap](RootAnyMap(e.mp))
+    }
+  }}
+
+
+  private def tryDecoderOrElse(a: Decoder[_<:RestrictedAny], orElse: Option[() => Decoder.Result[RestrictedAny]])(implicit hc: HCursor): Decoder.Result[RestrictedAny] = {
+    (a.tryDecode(hc), orElse) match {
+      case (Left(_), Some(f)) => f()
+      case (response, _) => response
+    }
+  }
+
+  implicit val restrictedAnyDecoder: Decoder[RestrictedAny] = Decoder.instance[RestrictedAny] { hc =>
+    implicit val hCursor: HCursor = hc
+    // In cascade, attempt to deserialize this with each available decoder
+    tryDecoderOrElse(restrictedIntDecoder, Some(() => tryDecoderOrElse(
+        restrictedDoubleDecoder, Some(() => tryDecoderOrElse(
+            restrictedStringDecoder,Some( () => tryDecoderOrElse(
+              restrictedBooleanDecoder, Some(() => tryDecoderOrElse(restrictedMapDecoder, None))
+     )))))))
+  }
 
   // ========================================= Serialization Specifiers ================================================
   implicit val environmentVariableSerilizationSpecifier: SerializationSpecifier[EnvironmentVariable] =

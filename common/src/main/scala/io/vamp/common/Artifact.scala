@@ -54,3 +54,11 @@ trait Lookup extends Artifact {
 
   def lookup(string: String) = HashUtil.hexSha1(s"$getClass@$string", Artifact.version)
 }
+
+sealed trait RestrictedAny
+case class RestrictedInt(i: Int) extends RestrictedAny
+case class RestrictedDouble(d: Double) extends RestrictedAny
+case class RestrictedString(s: String) extends RestrictedAny
+case class RestrictedBoolean(b: Boolean) extends RestrictedAny
+case class RestrictedMap(mp: Map[String, RestrictedAny]) extends RestrictedAny
+case class RootAnyMap(rootMap: Map[String, RestrictedAny])
