@@ -2,20 +2,20 @@ package io.vamp.container_driver.docker
 
 import akka.actor.ActorRef
 import com.spotify.docker.client.DefaultDockerClient
-import com.spotify.docker.client.messages.{ Container ⇒ SpotifyContainer, ContainerInfo ⇒ _, _ }
-import io.vamp.common.{ ClassMapper, Config }
+import com.spotify.docker.client.messages.{Container => SpotifyContainer, ContainerInfo => _, _}
+import io.vamp.common.{ClassMapper, Config, RootAnyMap}
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
 import io.vamp.container_driver.notification.UnsupportedContainerDriverRequest
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.reader.{MegaByte, Quantity}
 import org.json4s.DefaultFormats
 import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization._
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable.{ Map ⇒ MutableMap }
+import scala.collection.mutable.{Map => MutableMap}
 import scala.concurrent.Future
 import scala.language.postfixOps
 import scala.util.Try
@@ -353,5 +353,5 @@ private[docker] object DockerServiceScale {
 }
 
 private[docker] case class DockerServiceScale(name: String, instances: Int, cpu: Double, memory: Double) {
-  val toScale = DefaultScale(name, Map(), Quantity(cpu), MegaByte(memory), instances)
+  val toScale = DefaultScale(name, RootAnyMap.empty, Quantity(cpu), MegaByte(memory), instances)
 }

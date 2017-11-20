@@ -1,6 +1,7 @@
 package io.vamp.model.reader
 
 import io.vamp.model.artifact._
+import io.vamp.common.RootAnyMap
 import io.vamp.model.notification.UnsupportedProtocolError
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.reader.ComposeWriter._
@@ -97,7 +98,7 @@ object ComposeBlueprintReader extends YamlReader[ComposeWriter[Blueprint]] {
       _ ← flattenUnusedValues
     } yield DefaultBlueprint(
       name = "", // will be replaced by fromDockerCompose function
-      metadata = Map(),
+      metadata = RootAnyMap.empty,
       clusters = clusters,
       gateways = List(),
       environmentVariables = List(),
@@ -124,7 +125,7 @@ object ComposeClusterReader extends YamlReader[ComposeWriter[List[Cluster]]] {
             Some(ComposeServicesReader.parseService(name)(yaml).map { service ⇒
               Cluster(
                 name = name,
-                metadata = Map(),
+                metadata = RootAnyMap.empty,
                 services = List(service),
                 gateways = List(),
                 healthChecks = None,
@@ -249,7 +250,7 @@ object ComposeServicesReader extends YamlReader[ComposeWriter[Service]] {
     } yield Service(
       breed = DefaultBreed(
         name = "",
-        metadata = Map(),
+        metadata = RootAnyMap.empty,
         deployable = deployable,
         ports = ports,
         environmentVariables = environmentVariables,

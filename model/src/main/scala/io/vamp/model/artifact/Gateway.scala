@@ -1,6 +1,6 @@
 package io.vamp.model.artifact
 
-import io.vamp.common.{ Artifact, Lookup, Reference }
+import io.vamp.common.{Artifact, Lookup, Reference, RootAnyMap}
 import io.vamp.model.reader.Percentage
 
 import scala.language.implicitConversions
@@ -12,7 +12,7 @@ object Gateway {
   val kind: String = "gateways"
 
   object Sticky extends Enumeration {
-    type Type = Value
+
     val Route, Instance = Value
 
     def byName(sticky: String): Option[Sticky.Value] = Gateway.Sticky.values.find(_.toString.toLowerCase == sticky.toLowerCase)
@@ -25,6 +25,7 @@ case class GatewayService(host: String, port: Port)
 
 case class Gateway(
     name:         String,
+    metadata:     RootAnyMap,
     port:         Port,
     service:      Option[GatewayService],
     sticky:       Option[Gateway.Sticky.Value],
@@ -45,8 +46,6 @@ case class Gateway(
     case r: DefaultRoute ⇒ r.targets.nonEmpty
     case _               ⇒ false
   }
-
-  def metadata: Map[String, Any] = Map()
 }
 
 object GatewayPath {
@@ -104,13 +103,11 @@ object DefaultRoute {
   val defaultBalance = "default"
 }
 
-case class DefaultRoute(name: String, path: GatewayPath, weight: Option[Percentage], condition: Option[Condition], conditionStrength: Option[Percentage], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
+case class DefaultRoute(name: String, metadata: RootAnyMap, path: GatewayPath, weight: Option[Percentage], condition: Option[Condition], conditionStrength: Option[Percentage], rewrites: List[Rewrite], balance: Option[String], targets: List[RouteTarget] = Nil) extends Route {
 
   def definedCondition: Boolean = condition.isDefined && condition.forall(_.isInstanceOf[DefaultCondition])
 
   def external: Boolean = path.external.isDefined
-
-  def metadata: Map[String, Any] = Map()
 }
 
 object InternalRouteTarget {
@@ -123,12 +120,11 @@ sealed trait RouteTarget extends Artifact with Lookup {
 }
 
 case class InternalRouteTarget(name: String, host: Option[String], port: Int) extends RouteTarget {
-  val metadata = Map()
+  val metadata = RootAnyMap.empty
 }
 
-case class ExternalRouteTarget(url: String) extends RouteTarget {
+case class ExternalRouteTarget(url: String, metadata: RootAnyMap) extends RouteTarget {
   val name: String = url
-  val metadata: Map[String, Any] = Map()
 }
 
 object Condition {
@@ -141,9 +137,7 @@ sealed trait Condition extends Artifact {
 
 case class ConditionReference(name: String) extends Reference with Condition
 
-case class DefaultCondition(name: String, definition: String) extends Condition {
-  val metadata: Map[String, Any] = Map()
-}
+case class DefaultCondition(name: String, metadata: RootAnyMap, definition: String) extends Condition
 
 object Rewrite {
   val kind: String = "rewrites"
@@ -168,7 +162,7 @@ object PathRewrite {
 case class PathRewrite(name: String, path: String, condition: String) extends Rewrite {
   val definition = s"$path if $condition"
 
-  val metadata: Map[String, Any] = Map()
+  val metadata: RootAnyMap = RootAnyMap.empty
 }
 
 object GatewayLookup {

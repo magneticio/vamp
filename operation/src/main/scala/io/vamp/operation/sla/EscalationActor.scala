@@ -3,16 +3,17 @@ package io.vamp.operation.sla
 import java.time.OffsetDateTime
 
 import akka.actor._
+import io.vamp.common.RootAnyMap
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact.DeploymentService.Status.Phase.Initiated
 import io.vamp.model.artifact._
-import io.vamp.model.event.{ Event, EventQuery, TimeRange }
-import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
-import io.vamp.model.reader.{ MegaByte, Quantity }
-import io.vamp.operation.notification.{ InternalServerError, OperationNotificationProvider, UnsupportedEscalationType }
+import io.vamp.model.event.{Event, EventQuery, TimeRange}
+import io.vamp.model.notification.{DeEscalate, Escalate, SlaEvent}
+import io.vamp.model.reader.{MegaByte, Quantity}
+import io.vamp.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType}
 import io.vamp.operation.sla.EscalationActor.EscalationProcessAll
-import io.vamp.persistence.{ ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor }
+import io.vamp.persistence.{ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor}
 import io.vamp.pulse.PulseActor
 
 import scala.concurrent.Future
@@ -60,7 +61,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
   private def check(from: OffsetDateTime, to: OffsetDateTime)(deployments: List[Deployment]): Unit = {
 
     def escalation(deployment: Deployment, cluster: DeploymentCluster, sla: Sla, escalate: Boolean) = {
-      escalateToOne(deployment, cluster, ToOneEscalation("", Map(), sla.escalations), escalate) match {
+      escalateToOne(deployment, cluster, ToOneEscalation("", RootAnyMap.empty, sla.escalations), escalate) match {
         case Some(d) ⇒ actorFor[PersistenceActor] ! PersistenceActor.Update(d)
         case _       ⇒
       }

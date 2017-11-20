@@ -1,6 +1,7 @@
 package io.vamp.model.reader
 
 import io.vamp.model.artifact._
+import io.vamp.common.RootAnyMap
 import io.vamp.model.notification._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -74,7 +75,7 @@ class BreedReaderSpec extends ReaderSpec {
       'deployable(Deployable("magneticio/monarch:latest")),
       'ports(List()),
       'environmentVariables(List()),
-      'dependencies(Map("db" → DefaultBreed("mysql", Map(), Deployable("magneticio/mysql:latest"), Nil, Nil, Nil, Nil, Map(), None)))
+      'dependencies(Map("db" → DefaultBreed("mysql", RootAnyMap.empty, Deployable("magneticio/mysql:latest"), Nil, Nil, Nil, Nil, Map(), None)))
     )
   }
 
@@ -84,7 +85,7 @@ class BreedReaderSpec extends ReaderSpec {
       'deployable(Deployable("magneticio/monarch:latest")),
       'ports(List()),
       'environmentVariables(List()),
-      'dependencies(Map("db" → DefaultBreed("mysql", Map(), Deployable("magneticio/mysql:latest"), Nil, Nil, Nil, Nil, Map(), None)))
+      'dependencies(Map("db" → DefaultBreed("mysql", RootAnyMap.empty, Deployable("magneticio/mysql:latest"), Nil, Nil, Nil, Nil, Map(), None)))
     )
   }
 
@@ -94,7 +95,7 @@ class BreedReaderSpec extends ReaderSpec {
       'deployable(Deployable("magneticio/monarch:latest")),
       'ports(List(Port("port", None, Some("8080/tcp")))),
       'environmentVariables(List(EnvironmentVariable("DB_HOST", None, Some("$db.host")), EnvironmentVariable("DB_PORT", None, Some("$db.ports.port")))),
-      'dependencies(Map("db" → DefaultBreed("mysql-wrapper", Map(), Deployable("magneticio/mysql-wrapper:latest"), List(Port("port", None, Some("3006/tcp"))), Nil, Nil, Nil, Map("mysql" → BreedReference("mysql")), None)))
+      'dependencies(Map("db" → DefaultBreed("mysql-wrapper", RootAnyMap.empty, Deployable("magneticio/mysql-wrapper:latest"), List(Port("port", None, Some("3006/tcp"))), Nil, Nil, Nil, Map("mysql" → BreedReference("mysql")), None)))
     )
   }
 
@@ -110,7 +111,7 @@ class BreedReaderSpec extends ReaderSpec {
     expectedError[MissingPortValueError]({
       BreedReader.read(res("breed/breed11.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Map(), Deployable("magneticio/monarch:latest"), List(Port("port", None, None)), Nil, Nil, Nil, Map(), None)),
+      'breed(DefaultBreed("monarch", RootAnyMap.empty, Deployable("magneticio/monarch:latest"), List(Port("port", None, None)), Nil, Nil, Nil, Map(), None)),
       'port(Port("port", None, None))
     )
   }
@@ -149,7 +150,7 @@ class BreedReaderSpec extends ReaderSpec {
     expectedError[UnresolvedDependencyInTraitValueError]({
       BreedReader.read(res("breed/breed15.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Map(), Deployable("magneticio/monarch:latest"), Nil, List(EnvironmentVariable("port", None, Some("$es.ports.port"))), Nil, Nil, Map("db" → BreedReference("mysql")), None)),
+      'breed(DefaultBreed("monarch", RootAnyMap.empty, Deployable("magneticio/monarch:latest"), Nil, List(EnvironmentVariable("port", None, Some("$es.ports.port"))), Nil, Nil, Map("db" → BreedReference("mysql")), None)),
       'reference("es.ports.port")
     )
   }
@@ -158,7 +159,7 @@ class BreedReaderSpec extends ReaderSpec {
     expectedError[UnresolvedDependencyInTraitValueError]({
       BreedReader.read(res("breed/breed16.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Map(), Deployable("magneticio/monarch:latest"), Nil, List(EnvironmentVariable("port", None, Some("$db.ports.web"))), Nil, Nil, Map("db" → DefaultBreed("mysql", Map(), Deployable("vamp/mysql"), Nil, Nil, Nil, Nil, Map(), None)), None)),
+      'breed(DefaultBreed("monarch", RootAnyMap.empty, Deployable("magneticio/monarch:latest"), Nil, List(EnvironmentVariable("port", None, Some("$db.ports.web"))), Nil, Nil, Map("db" → DefaultBreed("mysql", RootAnyMap.empty, Deployable("vamp/mysql"), Nil, Nil, Nil, Nil, Map(), None)), None)),
       'reference("db.ports.web")
     )
   }
@@ -167,7 +168,7 @@ class BreedReaderSpec extends ReaderSpec {
     expectedError[UnresolvedDependencyInTraitValueError]({
       BreedReader.read(res("breed/breed17.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Map(), Deployable("magneticio/monarch:latest"), List(Port("port", None, Some("$db.ports.web"))), Nil, Nil, Nil, Map("db" → DefaultBreed("mysql", Map(), Deployable("vamp/mysql"), Nil, Nil, Nil, Nil, Map(), None)), None)),
+      'breed(DefaultBreed("monarch", RootAnyMap.empty, Deployable("magneticio/monarch:latest"), List(Port("port", None, Some("$db.ports.web"))), Nil, Nil, Nil, Map("db" → DefaultBreed("mysql", RootAnyMap.empty, Deployable("vamp/mysql"), Nil, Nil, Nil, Nil, Map(), None)), None)),
       'reference("db.ports.web")
     )
   }
@@ -176,7 +177,7 @@ class BreedReaderSpec extends ReaderSpec {
     expectedError[RecursiveDependenciesError]({
       BreedReader.read(res("breed/breed18.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Map(), Deployable("magneticio/monarch:latest"), List(Port("port", None, Some("$db.ports.web"))), Nil, Nil, Nil, Map("db" → BreedReference("monarch")), None))
+      'breed(DefaultBreed("monarch", RootAnyMap.empty, Deployable("magneticio/monarch:latest"), List(Port("port", None, Some("$db.ports.web"))), Nil, Nil, Nil, Map("db" → BreedReference("monarch")), None))
     )
   }
 
@@ -184,7 +185,7 @@ class BreedReaderSpec extends ReaderSpec {
     expectedError[RecursiveDependenciesError]({
       BreedReader.read(res("breed/breed19.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch2", Map(), Deployable("magneticio/monarch2:latest"), Nil, Nil, Nil, Nil, Map("es" → BreedReference("monarch1")), None))
+      'breed(DefaultBreed("monarch2", RootAnyMap.empty, Deployable("magneticio/monarch2:latest"), Nil, Nil, Nil, Nil, Map("es" → BreedReference("monarch1")), None))
     )
   }
 
@@ -192,7 +193,7 @@ class BreedReaderSpec extends ReaderSpec {
     expectedError[MissingConstantValueError]({
       BreedReader.read(res("breed/breed20.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Map(), Deployable("magneticio/monarch:latest"), Nil, Nil, List(Constant("port", None, None)), Nil, Map(), None)),
+      'breed(DefaultBreed("monarch", RootAnyMap.empty, Deployable("magneticio/monarch:latest"), Nil, Nil, List(Constant("port", None, None)), Nil, Map(), None)),
       'constant(Constant("port", None, None))
     )
   }
@@ -201,7 +202,7 @@ class BreedReaderSpec extends ReaderSpec {
     expectedError[UnresolvedDependencyInTraitValueError]({
       BreedReader.read(res("breed/breed21.yml"))
     }) should have(
-      'breed(DefaultBreed("monarch", Map(), Deployable("magneticio/monarch:latest"), List(Port("port", None, Some("$db.constants.web"))), Nil, Nil, Nil, Map("db" → DefaultBreed("mysql", Map(), Deployable("vamp/mysql"), List(Port("web", None, Some("80"))), List(EnvironmentVariable("web", None, Some("80"))), Nil, Nil, Map(), None)), None)),
+      'breed(DefaultBreed("monarch", RootAnyMap.empty, Deployable("magneticio/monarch:latest"), List(Port("port", None, Some("$db.constants.web"))), Nil, Nil, Nil, Map("db" → DefaultBreed("mysql", RootAnyMap.empty, Deployable("vamp/mysql"), List(Port("web", None, Some("80"))), List(EnvironmentVariable("web", None, Some("80"))), Nil, Nil, Map(), None)), None)),
       'reference("db.constants.web")
     )
   }
@@ -212,7 +213,7 @@ class BreedReaderSpec extends ReaderSpec {
       'deployable(Deployable("magneticio/monarch:latest")),
       'ports(List(Port("web", None, Some("$db.constants.port")))),
       'environmentVariables(List()),
-      'dependencies(Map("db" → DefaultBreed("mysql", Map(), Deployable("vamp/mysql"), Nil, Nil, List(Constant("port", None, Some("80/tcp"))), Nil, Map(), None)))
+      'dependencies(Map("db" → DefaultBreed("mysql", RootAnyMap.empty, Deployable("vamp/mysql"), Nil, Nil, List(Constant("port", None, Some("80/tcp"))), Nil, Map(), None)))
     )
   }
 

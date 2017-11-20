@@ -123,7 +123,7 @@ trait YamlReader[T] extends YamlLoader with ModelNotificationProvider with NameV
 
           if (result.isInstanceOf[Artifact]) {
             yaml.find[String](Artifact.kind)
-            yaml.flatten({ _ == Artifact.metadata })
+            yaml.flattenToRootAnyMap({ _ == Artifact.metadata })
           }
           if (result.isInstanceOf[Lookup]) yaml.find[String](Lookup.entry)
 
@@ -198,14 +198,8 @@ trait YamlReader[T] extends YamlLoader with ModelNotificationProvider with NameV
 
   protected def name(implicit source: YamlSourceReader): String = validateName(<<![String]("name"))
 
-  protected def metadata(implicit source: YamlSourceReader): Map[String, Any] = <<?[Any](Artifact.metadata) match {
-    case Some(yaml: YamlSourceReader) ⇒ yaml.flatten()
-    case Some(_)                      ⇒ throwException(UnsupportedMetadata)
-    case None                         ⇒ Map()
-  }
-
   protected final def metadataAsRootAnyMap(implicit source: YamlSourceReader): RootAnyMap = <<?[Any](Artifact.metadata) match {
-    case Some(yaml: YamlSourceReader) ⇒ yaml.flattenToRootAnyMap
+    case Some(yaml: YamlSourceReader) ⇒ yaml.flattenToRootAnyMap(_ => true)
     case Some(_)                      ⇒ throwException(UnsupportedMetadata)
     case None                         ⇒ RootAnyMap(Map())
   }
@@ -401,7 +395,7 @@ trait DialectReader {
 
   final def dialectsAsAnyRootMap(implicit source: YamlSourceReader): RootAnyMap = {
     first[Any]("dialects", "dialect") match {
-      case Some(ds: YamlSourceReader) ⇒ ds.flattenToRootAnyMap
+      case Some(ds: YamlSourceReader) ⇒ ds.flattenToRootAnyMap(_ => true)
       case _                          ⇒ RootAnyMap(Map())
     }
   }

@@ -31,13 +31,13 @@ object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
       val interval = <<![Int]("window" :: "interval") seconds
       val cooldown = <<![Int]("window" :: "cooldown") seconds
 
-      ResponseTimeSlidingWindowSla(name, metadata, upper, lower, interval, cooldown, escalations)
+      ResponseTimeSlidingWindowSla(name, metadataAsRootAnyMap, upper, lower, interval, cooldown, escalations)
 
     case "escalation_only" ⇒
-      EscalationOnlySla(name, metadata, escalations)
+      EscalationOnlySla(name, metadataAsRootAnyMap, escalations)
 
     case generic ⇒
-      GenericSla(name, metadata, generic, escalations, parameters)
+      GenericSla(name, metadataAsRootAnyMap, generic, escalations, parameters)
   }
 
   protected def escalations(implicit source: YamlSourceReader): List[Escalation] = <<?[YamlList]("escalations") match {
@@ -72,21 +72,21 @@ object EscalationReader extends YamlReader[Escalation] with WeakReferenceYamlRea
 
   override protected def createDefault(implicit source: YamlSourceReader): Escalation = `type` match {
     case "to_all" ⇒
-      ToAllEscalation(name, metadata, <<![YamlList]("escalations").map(EscalationReader.readReferenceOrAnonymous))
+      ToAllEscalation(name, metadataAsRootAnyMap, <<![YamlList]("escalations").map(EscalationReader.readReferenceOrAnonymous))
 
     case "to_one" ⇒
-      ToOneEscalation(name, metadata, <<![YamlList]("escalations").map(EscalationReader.readReferenceOrAnonymous))
+      ToOneEscalation(name, metadataAsRootAnyMap, <<![YamlList]("escalations").map(EscalationReader.readReferenceOrAnonymous))
 
     case "scale_instances" ⇒
-      ScaleInstancesEscalation(name, metadata, <<![Int]("minimum"), <<![Int]("maximum"), <<![Int]("scale_by"), <<?[String]("target"))
+      ScaleInstancesEscalation(name, metadataAsRootAnyMap, <<![Int]("minimum"), <<![Int]("maximum"), <<![Int]("scale_by"), <<?[String]("target"))
 
     case "scale_cpu" ⇒
-      ScaleCpuEscalation(name, metadata, <<![Double]("minimum"), <<![Double]("maximum"), <<![Double]("scale_by"), <<?[String]("target"))
+      ScaleCpuEscalation(name, metadataAsRootAnyMap, <<![Double]("minimum"), <<![Double]("maximum"), <<![Double]("scale_by"), <<?[String]("target"))
 
     case "scale_memory" ⇒
-      ScaleMemoryEscalation(name, metadata, <<![Double]("minimum"), <<![Double]("maximum"), <<![Double]("scale_by"), <<?[String]("target"))
+      ScaleMemoryEscalation(name, metadataAsRootAnyMap, <<![Double]("minimum"), <<![Double]("maximum"), <<![Double]("scale_by"), <<?[String]("target"))
 
     case generic ⇒
-      GenericEscalation(name, metadata, generic, parameters)
+      GenericEscalation(name, metadataAsRootAnyMap, generic, parameters)
   }
 }

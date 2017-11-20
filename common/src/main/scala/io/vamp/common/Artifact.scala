@@ -33,11 +33,11 @@ trait Artifact {
 
   def kind: String
 
-  def metadata: Map[String, Any]
+  def metadata: RootAnyMap
 }
 
 trait Reference extends Artifact {
-  val metadata = Map[String, Any]()
+  val metadata = RootAnyMap.empty
 }
 
 trait Type {
@@ -63,3 +63,6 @@ case class RestrictedBoolean(b: Boolean) extends RestrictedAny
 case class RestrictedList(ls: List[RestrictedAny]) extends RestrictedAny
 case class RestrictedMap(mp: Map[String, RestrictedAny]) extends RestrictedAny
 case class RootAnyMap(rootMap: Map[String, RestrictedAny])
+object RootAnyMap {
+  def empty: RootAnyMap = RootAnyMap(Map())
+}

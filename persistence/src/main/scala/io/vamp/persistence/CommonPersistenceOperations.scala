@@ -1,14 +1,14 @@
 package io.vamp.persistence
 
-import _root_.io.vamp.common.{ Artifact, Namespace }
+import _root_.io.vamp.common.{Artifact, Namespace, RootAnyMap}
 import akka.actor.Actor
-import io.vamp.common.akka.{ CommonProvider, CommonSupportForActors }
+import io.vamp.common.akka.{CommonProvider, CommonSupportForActors}
 
 import scala.concurrent.Future
 import scala.reflect._
 
 trait PersistenceArtifact extends Artifact {
-  val metadata = Map()
+  val metadata = RootAnyMap.empty
 }
 
 trait CommonPersistenceMessages {

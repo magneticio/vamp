@@ -2,6 +2,7 @@ package io.vamp.model.reader
 
 import java.time.OffsetDateTime
 
+import io.vamp.common.RootAnyMap
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import TimeSchedule.{ RepeatCount, RepeatForever }
@@ -26,7 +27,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "read daemon workflow with default breed" in {
     WorkflowReader.read(res("workflow/workflow2.yml")) should have(
       'name("logger"),
-      'breed(DefaultBreed("metrics", Map(), Deployable("magneticio/metrics:latest"), Nil, Nil, Nil, Nil, Map(), None)),
+      'breed(DefaultBreed("metrics", RootAnyMap.empty, Deployable("magneticio/metrics:latest"), Nil, Nil, Nil, Nil, Map(), None)),
       'schedule(DaemonSchedule),
       'scale(None)
     )
@@ -118,7 +119,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'name("logger"),
       'breed(BreedReference("metrics")),
       'schedule(DaemonSchedule),
-      'scale(Some(DefaultScale("", Map(), Quantity(1), MegaByte(128), 2)))
+      'scale(Some(DefaultScale("", RootAnyMap.empty, Quantity(1), MegaByte(128), 2)))
     )
   }
 
@@ -202,7 +203,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[MissingEnvironmentVariableError]({
       WorkflowReader.read(res("workflow/workflow22.yml"))
     }) should have(
-      'breed(DefaultBreed("metrics", Map(), Deployable(None, "metrics"), Nil, List(EnvironmentVariable("HEAP", None, None, None)), Nil, Nil, Map(), None)),
+      'breed(DefaultBreed("metrics", RootAnyMap.empty, Deployable(None, "metrics"), Nil, List(EnvironmentVariable("HEAP", None, None, None)), Nil, Nil, Map(), None)),
       'name("HEAP")
     )
   }
@@ -211,7 +212,7 @@ class WorkflowReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     expectedError[UnresolvedDependencyInTraitValueError]({
       WorkflowReader.read(res("workflow/workflow23.yml"))
     }) should have(
-      'breed(DefaultBreed("metrics", Map(), Deployable(None, "metrics"), Nil, List(EnvironmentVariable("HEAP", None, Option("128MB"), None)), Nil, Nil, Map(), None)),
+      'breed(DefaultBreed("metrics", RootAnyMap.empty, Deployable(None, "metrics"), Nil, List(EnvironmentVariable("HEAP", None, Option("128MB"), None)), Nil, Nil, Map(), None)),
       'reference("THEME")
     )
   }

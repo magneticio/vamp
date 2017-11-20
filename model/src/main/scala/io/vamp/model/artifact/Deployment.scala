@@ -3,9 +3,9 @@ package io.vamp.model.artifact
 import java.time.OffsetDateTime
 
 import io.vamp.common.notification.Notification
-import io.vamp.common.{ Artifact, Lookup }
+import io.vamp.common.{Artifact, Lookup, RootAnyMap}
 import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
-import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated }
+import io.vamp.model.artifact.DeploymentService.Status.Phase.{Done, Initiated}
 
 import scala.language.implicitConversions
 
@@ -60,7 +60,7 @@ object Deployment {
 
 case class Deployment(
     name:                 String,
-    metadata:             Map[String, Any],
+    metadata:             RootAnyMap,
     clusters:             List[DeploymentCluster],
     gateways:             List[Gateway],
     ports:                List[Port],
@@ -84,7 +84,7 @@ object DeploymentCluster {
 
 case class DeploymentCluster(
     name:         String,
-    metadata:     Map[String, Any],
+    metadata:     RootAnyMap,
     services:     List[DeploymentService],
     gateways:     List[Gateway],
     healthChecks: Option[List[HealthCheck]],
@@ -133,7 +133,7 @@ case class DeploymentService(
 case class Instance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact {
   val kind: String = "instances"
 
-  val metadata = Map()
+  val metadata = RootAnyMap.empty
 }
 
 object Host {

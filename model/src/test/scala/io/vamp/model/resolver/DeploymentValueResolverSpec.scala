@@ -1,5 +1,6 @@
 package io.vamp.model.resolver
 
+import io.vamp.common.RootAnyMap
 import io.vamp.common.{ Namespace, NamespaceProvider }
 import io.vamp.model.artifact._
 import io.vamp.model.notification.ModelNotificationProvider
@@ -31,7 +32,7 @@ class DeploymentValueResolverSpec extends FlatSpec with Matchers with Deployment
 
     val filter = environmentVariables.map(_.name).toSet
 
-    resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", Map(), Nil, Nil, None, None, None) :: Nil).filter(ev ⇒ filter.contains(ev.name)) should equal(
+    resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", RootAnyMap.empty, Nil, Nil, None, None, None) :: Nil).filter(ev ⇒ filter.contains(ev.name)) should equal(
       environmentVariables
     )
   }
@@ -44,7 +45,7 @@ class DeploymentValueResolverSpec extends FlatSpec with Matchers with Deployment
 
     val filter = environmentVariables.map(_.name).toSet
 
-    resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", Map(), Nil, Nil, None, None, None) :: Nil).filter(ev ⇒ filter.contains(ev.name)) should equal(
+    resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", RootAnyMap.empty, Nil, Nil, None, None, None) :: Nil).filter(ev ⇒ filter.contains(ev.name)) should equal(
       EnvironmentVariable("backend.environment_variables.port", None, Some(s"$$frontend.constants.const1"), interpolated = Some("9050")) ::
         EnvironmentVariable("backend.environment_variables.timeout", None, Some(s"$${backend1.constants.const2}"), interpolated = Some(s"$$backend1.host")) ::
         EnvironmentVariable("backend1.environment_variables.timeout", None, Some(s"$${frontend.constants.const1}"), interpolated = None) :: Nil
@@ -58,16 +59,16 @@ class DeploymentValueResolverSpec extends FlatSpec with Matchers with Deployment
 
     val filter = environmentVariables.map(_.name).toSet
 
-    resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", Map(), Nil, Nil, None, None, None) :: Nil).filter(ev ⇒ filter.contains(ev.name)) should equal(
+    resolveEnvironmentVariables(deployment(environmentVariables), DeploymentCluster("backend", RootAnyMap.empty, Nil, Nil, None, None, None) :: Nil).filter(ev ⇒ filter.contains(ev.name)) should equal(
       EnvironmentVariable("backend.environment_variables.url", None, Some("http://$backend1.host:$frontend.constants.const1/api/$$/$backend1.environment_variables.timeout"), interpolated = Some("http://vamp.io:9050/api/$/4000")) ::
         EnvironmentVariable("backend1.environment_variables.timeout", None, Some("4000"), interpolated = None) :: Nil
     )
   }
 
   def deployment(environmentVariables: List[EnvironmentVariable]) = {
-    val clusters = DeploymentCluster("backend1", Map(), Nil, Nil, None, None, None) :: DeploymentCluster("backend2", Map(), Nil, Nil, None, None, None) :: Nil
+    val clusters = DeploymentCluster("backend1", RootAnyMap.empty, Nil, Nil, None, None, None) :: DeploymentCluster("backend2", RootAnyMap.empty, Nil, Nil, None, None, None) :: Nil
     val addition = EnvironmentVariable("frontend.constants.const1", None, Some("9050")) :: EnvironmentVariable("backend1.constants.const2", None, Some(s"$$backend1.host")) :: Nil
     val hosts = Host("backend1.hosts.host", Some("vamp.io")) :: Nil
-    Deployment("", Map(), clusters, Nil, Nil, environmentVariables ++ addition, hosts)
+    Deployment("", RootAnyMap.empty, clusters, Nil, Nil, environmentVariables ++ addition, hosts)
   }
 }

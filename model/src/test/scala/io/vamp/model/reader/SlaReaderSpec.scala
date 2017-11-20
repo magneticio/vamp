@@ -4,6 +4,7 @@ import io.vamp.model.artifact._
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
+import io.vamp.common.RootAnyMap
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -16,7 +17,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'name("red"),
       'type("response_time"),
       'parameters(Map("window" → Map("cooldown" → 600, "interval" → 600), "threshold" → Map("lower" → 100, "upper" → 1000))),
-      'escalations(List(GenericEscalation("", Map(), "scale_nothing", Map("scale_by" → 1, "minimum" → 1, "maximum" → 4))))
+      'escalations(List(GenericEscalation("", RootAnyMap.empty, "scale_nothing", Map("scale_by" → 1, "minimum" → 1, "maximum" → 4))))
     )
   }
 
@@ -27,7 +28,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(GenericEscalation("", Map(), "scale_nothing", Map("scale_by" → 1, "minimum" → 1, "maximum" → 4))))
+      'escalations(List(GenericEscalation("", RootAnyMap.empty, "scale_nothing", Map("scale_by" → 1, "minimum" → 1, "maximum" → 4))))
     )
   }
 
@@ -38,7 +39,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(ToAllEscalation("", Map(), List(ScaleInstancesEscalation("", Map(), 1, 4, 1, None), ScaleCpuEscalation("", Map(), 1.0, 4.0, 1.0, None), ScaleMemoryEscalation("", Map(), 1024.0, 2048.5, 512.1, None)))))
+      'escalations(List(ToAllEscalation("", RootAnyMap.empty, List(ScaleInstancesEscalation("", RootAnyMap.empty, 1, 4, 1, None), ScaleCpuEscalation("", RootAnyMap.empty, 1.0, 4.0, 1.0, None), ScaleMemoryEscalation("", RootAnyMap.empty, 1024.0, 2048.5, 512.1, None)))))
     )
   }
 
@@ -49,7 +50,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(ToAllEscalation("", Map(), List(EscalationReference("notify"), ToOneEscalation("", Map(), List(ScaleInstancesEscalation("", Map(), 1, 4, 1, None), ScaleCpuEscalation("", Map(), 1.0, 4.0, 1.0, None)))))))
+      'escalations(List(ToAllEscalation("", RootAnyMap.empty, List(EscalationReference("notify"), ToOneEscalation("", RootAnyMap.empty, List(ScaleInstancesEscalation("", RootAnyMap.empty, 1, 4, 1, None), ScaleCpuEscalation("", RootAnyMap.empty, 1.0, 4.0, 1.0, None)))))))
     )
   }
 
@@ -60,7 +61,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(ToAllEscalation("", Map(), List(EscalationReference("notify"), ToOneEscalation("", Map(), List(ScaleInstancesEscalation("", Map(), 1, 4, 1, None), ScaleCpuEscalation("", Map(), 1.0, 4.0, 1.0, None)))))))
+      'escalations(List(ToAllEscalation("", RootAnyMap.empty, List(EscalationReference("notify"), ToOneEscalation("", RootAnyMap.empty, List(ScaleInstancesEscalation("", RootAnyMap.empty, 1, 4, 1, None), ScaleCpuEscalation("", RootAnyMap.empty, 1.0, 4.0, 1.0, None)))))))
     )
   }
 
@@ -71,7 +72,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(ToAllEscalation("", Map(), List(EscalationReference("notify"), ToOneEscalation("", Map(), List(ScaleInstancesEscalation("", Map(), 1, 4, 1, None), ToAllEscalation("", Map(), List(ScaleCpuEscalation("", Map(), 1.0, 4.0, 1.0, None), EscalationReference("email")))))))))
+      'escalations(List(ToAllEscalation("", RootAnyMap.empty, List(EscalationReference("notify"), ToOneEscalation("", RootAnyMap.empty, List(ScaleInstancesEscalation("", RootAnyMap.empty, 1, 4, 1, None), ToAllEscalation("", RootAnyMap.empty, List(ScaleCpuEscalation("", RootAnyMap.empty, 1.0, 4.0, 1.0, None), EscalationReference("email")))))))))
     )
   }
 }

@@ -28,11 +28,11 @@ trait AbstractDeploymentReader
 
           <<?[List[YamlSourceReader]]("services") match {
             case None ⇒
-              DeploymentCluster(name, metadata, Nil, Nil, HealthCheckReader.read, <<?[String]("network"), sla, dialects)
+              DeploymentCluster(name, metadataAsRootAnyMap, Nil, Nil, HealthCheckReader.read, <<?[String]("network"), sla, dialects)
             case Some(list) ⇒
               DeploymentCluster(
                 name,
-                metadata,
+                metadataAsRootAnyMap,
                 list.map(parseService(_)),
                 routingReader.mapping("gateways"),
                 HealthCheckReader.read,
@@ -44,7 +44,7 @@ trait AbstractDeploymentReader
       } toList
     }
 
-    Deployment(name, metadata, clusters, BlueprintGatewayReader.mapping("gateways"), ports(addGroup = true), environmentVariables, hosts(), dialects)
+    Deployment(name, metadataAsRootAnyMap, clusters, BlueprintGatewayReader.mapping("gateways"), ports(addGroup = true), environmentVariables, hosts(), dialects)
   }
 
   override protected def validate(deployment: Deployment): Deployment = {

@@ -49,7 +49,7 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
 
     Workflow(
       name,
-      metadata,
+      metadataAsRootAnyMap,
       breed,
       status,
       schedule,

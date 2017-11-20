@@ -63,14 +63,14 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
     } toMap
   }
 
-  def flattenToRootAnyMap: RootAnyMap = RootAnyMap(source.map(consume).map {
-    case (key, value) => (key, extractRestrictedAnyType(value))
+  def flattenToRootAnyMap(accept: (String) ⇒ Boolean = (String) ⇒ true): RootAnyMap = RootAnyMap(source.filterKeys(accept).map(kvPair => consume((kvPair._1, kvPair._2))).map {
+    kvPair => (kvPair._1, extractRestrictedAnyType(kvPair._2))
   } toMap)
 
   def extractRestrictedAnyType(any: Any): RestrictedAny = {
     any match {
-      case value: YamlSourceReader => RestrictedMap(value.source.map(consume).map {
-        case (k, v) => (k, extractRestrictedAnyType(v))
+      case value: YamlSourceReader => RestrictedMap(value.source.map(value.consume).map {
+        kvPair => (kvPair._1, extractRestrictedAnyType(kvPair._2))
       }.toMap)
       case value: List[_] => RestrictedList(value.map(extractRestrictedAnyType))
       case value: String => RestrictedString(value)

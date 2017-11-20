@@ -53,7 +53,7 @@ object BreedReader extends YamlReader[Breed] with ReferenceYamlReader[Breed] wit
       }
     }
 
-    DefaultBreed(name, metadata, deployable, ports(), environmentVariables(), constants(), arguments(), dependencies, HealthCheckReader.read)
+    DefaultBreed(name, metadataAsRootAnyMap, deployable, ports(), environmentVariables(), constants(), arguments(), dependencies, HealthCheckReader.read)
   }
 
   override protected def validate(any: Breed): Breed = any match {

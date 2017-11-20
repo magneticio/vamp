@@ -2,7 +2,7 @@ package io.vamp.model.artifact
 
 import java.time.{ Duration, OffsetDateTime, Period }
 
-import io.vamp.common.{ Artifact, Lookup }
+import io.vamp.common.{ Artifact, Lookup, RootAnyMap }
 import io.vamp.model.artifact.TimeSchedule.{ Repeat, RepeatForever, RepeatPeriod }
 
 import scala.language.implicitConversions
@@ -48,7 +48,7 @@ object Workflow {
 
 case class Workflow(
     name:                 String,
-    metadata:             Map[String, Any],
+    metadata:             RootAnyMap,
     breed:                Breed,
     status:               Workflow.Status,
     schedule:             Schedule,

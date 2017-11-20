@@ -20,7 +20,7 @@ trait Breed extends Artifact with Lookup {
 
 case class DefaultBreed(
     name:                 String,
-    metadata:             Map[String, Any],
+    metadata:             RootAnyMap,
     deployable:           Deployable,
     ports:                List[Port],
     environmentVariables: List[EnvironmentVariable],

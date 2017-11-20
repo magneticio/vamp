@@ -2,7 +2,7 @@ package io.vamp.operation.deployment
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.{Config, Namespace, RootAnyMap}
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact.DeploymentService.Status.Intention
@@ -13,7 +13,7 @@ import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ ArtifactExpansionSupport, ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.{ArtifactExpansionSupport, ArtifactPaginationSupport, ArtifactSupport, PersistenceActor}
 
 import scala.concurrent.Future
 
@@ -108,7 +108,7 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
             case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(name))
             case _ ⇒
               validateName(name)
-              Deployment(name, Map(), clusters = Nil, gateways = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
+              Deployment(name, RootAnyMap.empty, clusters = Nil, gateways = Nil, ports = Nil, environmentVariables = Nil, hosts = Nil)
           }
       }
     }
@@ -332,7 +332,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
           val ports = mergeTrait(attachment.ports, deployment.ports)
           val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
           val hosts = mergeTrait(attachment.hosts, deployment.hosts)
-          val metadata = deployment.metadata ++ attachment.metadata
+          val metadata = RootAnyMap(deployment.metadata.rootMap ++ attachment.metadata.rootMap)
           val dialects = deployment.dialects ++ attachment.dialects
 
           validateMerge(Deployment(deployment.name, metadata, clusters, gateways, ports, environmentVariables, hosts, dialects)) flatMap {
@@ -480,15 +480,15 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
         case Some(newRouting) ⇒
           val routes = services.map { service ⇒
             routeBy(newRouting, service, port) match {
-              case None        ⇒ DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
+              case None        ⇒ DefaultRoute("", RootAnyMap.empty, serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
               case Some(route) ⇒ route
             }
           }
           newRouting.copy(routes = routes, port = newRouting.port.copy(`type` = port.`type`))
 
         case None ⇒
-          Gateway("", Port(port.name, None, None, 0, port.`type`), None, None, Nil, services.map { service ⇒
-            DefaultRoute("", serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
+          Gateway("", RootAnyMap.empty, Port(port.name, None, None, 0, port.`type`), None, None, Nil, services.map { service ⇒
+            DefaultRoute("", RootAnyMap.empty, serviceRoutePath(deployment, cluster, service.breed.name, port.name), None, None, None, Nil, None)
           })
       }
     }

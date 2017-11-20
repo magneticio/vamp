@@ -1,6 +1,6 @@
 package io.vamp.model.artifact
 
-import io.vamp.common.{ Artifact, Reference }
+import io.vamp.common.{ Artifact, Reference, RootAnyMap}
 import io.vamp.model.reader.{ MegaByte, Quantity }
 
 object Blueprint {
@@ -27,7 +27,7 @@ trait AbstractBlueprint extends Blueprint {
 
 case class DefaultBlueprint(
     name:                 String,
-    metadata:             Map[String, Any],
+    metadata:             RootAnyMap,
     clusters:             List[Cluster],
     gateways:             List[Gateway],
     environmentVariables: List[EnvironmentVariable],
@@ -59,7 +59,7 @@ abstract class AbstractCluster extends Artifact {
 
 case class Cluster(
   name:         String,
-  metadata:     Map[String, Any],
+  metadata:     RootAnyMap,
   services:     List[Service],
   gateways:     List[Gateway],
   healthChecks: Option[List[HealthCheck]],
@@ -113,12 +113,12 @@ case class ScaleReference(name: String) extends Reference with Scale
 
 object DefaultScale {
 
-  def apply(cpu: Quantity, memory: MegaByte, instances: Int): DefaultScale = DefaultScale(name = "", metadata = Map(), cpu, memory, instances)
+  def apply(cpu: Quantity, memory: MegaByte, instances: Int): DefaultScale = DefaultScale(name = "", metadata = RootAnyMap.empty, cpu, memory, instances)
 
-  def apply(instances: Int = 0): DefaultScale = DefaultScale(name = "", metadata = Map(), cpu = Quantity(0.0), memory = MegaByte(0.0), instances)
+  def apply(instances: Int = 0): DefaultScale = DefaultScale(name = "", metadata = RootAnyMap.empty, cpu = Quantity(0.0), memory = MegaByte(0.0), instances)
 }
 
-case class DefaultScale(name: String, metadata: Map[String, Any], cpu: Quantity, memory: MegaByte, instances: Int) extends Scale
+case class DefaultScale(name: String, metadata: RootAnyMap, cpu: Quantity, memory: MegaByte, instances: Int) extends Scale
 
 /**
  * Representation of the Health retrieved from a Deployment.
