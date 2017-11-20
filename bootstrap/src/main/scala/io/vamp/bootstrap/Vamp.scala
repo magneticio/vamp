@@ -34,8 +34,9 @@ trait Vamp extends VampApp {
       } :+
       new KamonBootstrap :+
       new ConfigurationBootstrap :+
-      new ClassProviderActorBootstrap :+
-      new ActorBootstrap(new HttpApiBootstrap :: Nil)
+      new ActorBootstrap(new HttpApiBootstrap :: Nil) :+
+      new ClassProviderActorBootstrap
+
   }
 
   addShutdownBootstrapHook()

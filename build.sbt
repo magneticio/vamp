@@ -104,7 +104,9 @@ lazy val root = project.in(file(".")).settings(
   publishLocal := {},
   publish := { },
   bintrayUnpublish := {},
-  assembleArtifact := false
+  mainClass in assembly := Some("io.vamp.bootstrap.Boot"),
+  assemblyOutputPath in assembly := file("target/App.jar"),
+  assemblyMergeStrategy in assembly := mergeStrategy
 ).aggregate(
   common,
   persistence,
@@ -125,14 +127,32 @@ lazy val root = project.in(file(".")).settings(
   consul,
   etcd,
   kubernetes)
+  .dependsOn(
+    common,
+    persistence,
+    model,
+    operation,
+    bootstrap,
+    container_driver,
+    workflow_driver,
+    pulse,
+    http_api,
+    gateway_driver,
+    dcos,
+    elasticsearch,
+    config,
+    haproxy,
+    redis,
+    zookeeper,
+    consul,
+    etcd,
+    kubernetes)
 
 lazy val bootstrap = project.settings(packAutoSettings).settings(
   description := "Bootstrap for Vamp",
   name := "vamp-bootstrap",
   formatting,
-  bintrayRepository := "vamp",
-  assemblyOutputPath in assembly := file("target/App.jar"),
-  assemblyMergeStrategy in assembly := mergeStrategy
+  bintrayRepository := "vamp"
 ).dependsOn(common,
   persistence,
   model,
@@ -151,7 +171,7 @@ lazy val bootstrap = project.settings(packAutoSettings).settings(
   consul,
   etcd,
   kubernetes)
-  // .disablePlugins(AssemblyPlugin)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val http_api = project.settings(
   description := "Http Api for Vamp",
@@ -336,6 +356,7 @@ val mergeStrategy: String => MergeStrategy = {
   case PathList("javax", "servlet", xs @ _*)         => MergeStrategy.first
   case PathList(ps @ _*) if ps.last endsWith ".html" => MergeStrategy.first
   case "application.conf"                            => MergeStrategy.concat
+  case PathList("reference.conf")                    => MergeStrategy.concat
   case "unwanted.txt"                                => MergeStrategy.discard
   case x if Assembly.isConfigFile(x) =>
     MergeStrategy.concat
