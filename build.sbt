@@ -1,5 +1,6 @@
 import com.typesafe.sbt.SbtScalariform.ScalariformKeys
 import sbt.Keys._
+import sbtassembly.MergeStrategy
 
 import scala.language.postfixOps
 import scalariform.formatter.preferences._
@@ -102,7 +103,8 @@ lazy val root = project.in(file(".")).settings(
   },
   publishLocal := {},
   publish := { },
-  bintrayUnpublish := {}
+  bintrayUnpublish := {},
+  assembleArtifact := false
 ).aggregate(
   common,
   persistence,
@@ -128,7 +130,9 @@ lazy val bootstrap = project.settings(packAutoSettings).settings(
   description := "Bootstrap for Vamp",
   name := "vamp-bootstrap",
   formatting,
-  bintrayRepository := "vamp"
+  bintrayRepository := "vamp",
+  assemblyOutputPath in assembly := file("target/App.jar"),
+  assemblyMergeStrategy in assembly := mergeStrategy
 ).dependsOn(common,
   persistence,
   model,
@@ -147,6 +151,7 @@ lazy val bootstrap = project.settings(packAutoSettings).settings(
   consul,
   etcd,
   kubernetes)
+  // .disablePlugins(AssemblyPlugin)
 
 lazy val http_api = project.settings(
   description := "Http Api for Vamp",
@@ -155,6 +160,7 @@ lazy val http_api = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(operation)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val operation = project.settings(
   description := "The control center of Vamp",
@@ -163,6 +169,7 @@ lazy val operation = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(persistence, container_driver, workflow_driver, gateway_driver, pulse)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val pulse = project.settings(
   description := "Enables Vamp to connect to event storage - Elasticsearch",
@@ -171,6 +178,7 @@ lazy val pulse = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(model)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val gateway_driver = project.settings(
   description := "Enables Vamp to talk to Vamp Gateway Agent",
@@ -179,6 +187,7 @@ lazy val gateway_driver = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(model, pulse, persistence)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val container_driver = project.settings(
   description := "Enables Vamp to talk to container managers",
@@ -187,6 +196,7 @@ lazy val container_driver = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(model, persistence, pulse)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val workflow_driver = project.settings(
   description := "Enables Vamp to talk to workflow managers",
@@ -195,6 +205,7 @@ lazy val workflow_driver = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(model, pulse, persistence, container_driver)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val persistence = project.settings(
   description := "Stores Vamp artifacts",
@@ -203,6 +214,7 @@ lazy val persistence = project.settings(
   libraryDependencies ++= testing ++ sql ++ apache,
   bintrayRepository := "vamp"
 ).dependsOn(model, pulse)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val model = project.settings(
   description := "Definitions of Vamp artifacts",
@@ -211,6 +223,7 @@ lazy val model = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(common)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val common = project.settings(
   description := "Vamp common",
@@ -218,7 +231,7 @@ lazy val common = project.settings(
   formatting,
   libraryDependencies ++= akka ++ json4s ++ snakeYaml ++ kamon ++ logging ++ testing,
   bintrayRepository := "vamp"
-)
+).disablePlugins(AssemblyPlugin)
 
 lazy val dcos = project.settings(
   description := "Container driver for DCOS and Marathon/Mesos",
@@ -227,6 +240,7 @@ lazy val dcos = project.settings(
   libraryDependencies ++= testing ++ fp,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, workflow_driver, container_driver)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val elasticsearch = project.settings(
   description := "Pulse and metrics driver for Elasticsearch",
@@ -235,6 +249,7 @@ lazy val elasticsearch = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, persistence)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val config = project.settings(
   description := "Typelevel config library for VAMP",
@@ -243,6 +258,7 @@ lazy val config = project.settings(
   libraryDependencies ++= testing ++ fp ++ configlbs,
   bintrayRepository := "vamp"
 ).dependsOn(common)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val haproxy = project.settings(
   description := "HAProxy driver",
@@ -251,6 +267,7 @@ lazy val haproxy = project.settings(
   libraryDependencies ++= testing ++ templating,
   bintrayRepository := "vamp"
 ).dependsOn(gateway_driver)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val redis = project.settings(
   description := "Redis driver for VAMP",
@@ -259,6 +276,7 @@ lazy val redis = project.settings(
   libraryDependencies ++= testing ++ redislbs,
   bintrayRepository := "vamp"
 ).dependsOn(persistence)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val zookeeper = project.settings(
   description := "Zookeeper driver for VAMP K/V Store",
@@ -267,6 +285,7 @@ lazy val zookeeper = project.settings(
   libraryDependencies ++= testing ++ zookeeperlbs,
   bintrayRepository := "vamp"
 ).dependsOn(persistence)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val consul = project.settings(
   description := "Driver for Consul",
@@ -275,6 +294,7 @@ lazy val consul = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(persistence)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val etcd =  project.settings(
   description := "Driver for ETCD",
@@ -283,6 +303,7 @@ lazy val etcd =  project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(persistence)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val kubernetes =project.settings(
   description := "Container driver for Kubernetes",
@@ -291,6 +312,7 @@ lazy val kubernetes =project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, workflow_driver, container_driver)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val docker = project.settings(
   description := "Container driver for docker",
@@ -299,6 +321,7 @@ lazy val docker = project.settings(
   libraryDependencies ++= testing ++ dockerlbs,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, workflow_driver, container_driver)
+  .disablePlugins(AssemblyPlugin)
 
 // Java version and encoding requirements
 scalacOptions += "-target:jvm-1.8"
@@ -307,3 +330,30 @@ javacOptions ++= Seq("-encoding", "UTF-8")
 
 scalacOptions in ThisBuild ++= Seq(Opts.compile.deprecation, Opts.compile.unchecked) ++
   Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint", "-feature")
+
+
+val mergeStrategy: String => MergeStrategy = {
+  case PathList("javax", "servlet", xs @ _*)         => MergeStrategy.first
+  case PathList(ps @ _*) if ps.last endsWith ".html" => MergeStrategy.first
+  case "application.conf"                            => MergeStrategy.concat
+  case "unwanted.txt"                                => MergeStrategy.discard
+  case x if Assembly.isConfigFile(x) =>
+    MergeStrategy.concat
+  case PathList(ps @ _*) if Assembly.isReadme(ps.last) || Assembly.isLicenseFile(ps.last) =>
+    MergeStrategy.rename
+  case PathList("META-INF", xs @ _*) =>
+    (xs map {_.toLowerCase}) match {
+      case ("manifest.mf" :: Nil) | ("index.list" :: Nil) | ("dependencies" :: Nil) =>
+        MergeStrategy.discard
+      case ps @ (x :: xs) if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") =>
+        MergeStrategy.discard
+      case "plexus" :: xs =>
+        MergeStrategy.discard
+      case "services" :: xs =>
+        MergeStrategy.filterDistinctLines
+      case ("spring.schemas" :: Nil) | ("spring.handlers" :: Nil) =>
+        MergeStrategy.filterDistinctLines
+      case _ => MergeStrategy.discard
+    }
+  case _ => MergeStrategy.first
+}
