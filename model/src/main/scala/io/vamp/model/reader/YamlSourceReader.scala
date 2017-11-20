@@ -1,12 +1,13 @@
 package io.vamp.model.reader
 
-import io.vamp.model.notification.{ MissingPathValueError, ModelNotificationProvider, UnexpectedInnerElementError, UnexpectedTypeError }
+import io.vamp.model.notification.{MissingPathValueError, ModelNotificationProvider, UnexpectedInnerElementError, UnexpectedTypeError, ParserError}
+import io.vamp.common.{RestrictedAny, RestrictedBoolean, RestrictedDouble, RestrictedInt, RestrictedList, RestrictedMap, RestrictedString, RootAnyMap}
 
 import scala.collection.immutable.::
 import scala.collection.mutable
-import scala.language.{ implicitConversions, postfixOps }
+import scala.language.{implicitConversions, postfixOps}
 import scala.reflect._
-import scala.util.{ Failure, Success, Try }
+import scala.util.{Failure, Success, Try}
 
 object YamlSourceReader {
   type YamlPath = List[String]
@@ -60,6 +61,24 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
         }
       case (key, value) ⇒ key → value
     } toMap
+  }
+
+  def flattenToRootAnyMap: RootAnyMap = RootAnyMap(source.map(consume).map {
+    case (key, value) => (key, extractRestrictedAnyType(value))
+  } toMap)
+
+  def extractRestrictedAnyType(any: Any): RestrictedAny = {
+    any match {
+      case value: YamlSourceReader => RestrictedMap(value.source.map(consume).map {
+        case (k, v) => (k, extractRestrictedAnyType(v))
+      }.toMap)
+      case value: List[_] => RestrictedList(value.map(extractRestrictedAnyType))
+      case value: String => RestrictedString(value)
+      case value: Int => RestrictedInt(value)
+      case value: Double => RestrictedDouble(value)
+      case value: Boolean => RestrictedBoolean(value)
+      case _ => throwException(ParserError(s"Cannot parse ${any} as an element of type String, Int, Double, String, Boolean, List or Map"))
+    }
   }
 
   def flattenNotConsumed(path: String = ""): Map[String, Any] =

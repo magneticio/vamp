@@ -1,21 +1,21 @@
 package io.vamp.model.reader
 
-import java.io.{ File, InputStream, Reader, StringReader }
+import java.io.{File, InputStream, Reader, StringReader}
 
-import io.vamp.common.{ Artifact, Lookup }
-import io.vamp.common.notification.{ NotificationErrorException, NotificationProvider }
-import io.vamp.common.util.{ ObjectUtil, YamlUtil }
+import io.vamp.common.{Artifact, Lookup, RootAnyMap}
+import io.vamp.common.notification.{NotificationErrorException, NotificationProvider}
+import io.vamp.common.util.{ObjectUtil, YamlUtil}
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.resolver.TraitNameAliasResolver
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization._
-import org.json4s.{ DefaultFormats, Formats }
+import org.json4s.{DefaultFormats, Formats}
 import org.yaml.snakeyaml.error.YAMLException
 
 import scala.io.Source
-import scala.language.{ implicitConversions, postfixOps }
+import scala.language.{implicitConversions, postfixOps}
 import scala.reflect._
 import scala.util.Try
 
@@ -204,6 +204,12 @@ trait YamlReader[T] extends YamlLoader with ModelNotificationProvider with NameV
     case None                         ⇒ Map()
   }
 
+  protected final def metadataAsRootAnyMap(implicit source: YamlSourceReader): RootAnyMap = <<?[Any](Artifact.metadata) match {
+    case Some(yaml: YamlSourceReader) ⇒ yaml.flattenToRootAnyMap
+    case Some(_)                      ⇒ throwException(UnsupportedMetadata)
+    case None                         ⇒ RootAnyMap(Map())
+  }
+
   protected def reference(implicit source: YamlSourceReader): String = validateName(<<?[String]("reference").getOrElse(<<![String]("ref")))
 
   protected def hasReference(implicit source: YamlSourceReader): Option[String] = <<?[String]("reference").orElse(<<?[String]("ref")) match {
@@ -386,10 +392,17 @@ trait TraitReader extends TraitNameAliasResolver {
 trait DialectReader {
   this: YamlReader[_] ⇒
 
-  def dialects(implicit source: YamlSourceReader): Map[String, Any] = {
+  final def dialects(implicit source: YamlSourceReader): Map[String, Any] = {
     first[Any]("dialects", "dialect") match {
       case Some(ds: YamlSourceReader) ⇒ ds.flatten()
       case _                          ⇒ Map()
+    }
+  }
+
+  final def dialectsAsAnyRootMap(implicit source: YamlSourceReader): RootAnyMap = {
+    first[Any]("dialects", "dialect") match {
+      case Some(ds: YamlSourceReader) ⇒ ds.flattenToRootAnyMap
+      case _                          ⇒ RootAnyMap(Map())
     }
   }
 }

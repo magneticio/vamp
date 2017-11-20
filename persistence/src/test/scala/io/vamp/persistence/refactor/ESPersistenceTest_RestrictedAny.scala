@@ -4,8 +4,6 @@ import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.generic.semiauto.deriveEncoder
 import io.vamp.common._
-import io.vamp.model.artifact._
-import io.vamp.model.reader.Percentage
 import io.vamp.persistence.refactor.serialization.{SerializationSpecifier, VampJsonFormats}
 import org.scalatest.{BeforeAndAfterEach, Matchers, fixture}
 
@@ -27,6 +25,14 @@ class ESPersistenceTest_RestrictedAny extends fixture.FlatSpec with Matchers wit
       attributes = RootAnyMap(Map[String, RestrictedAny](
         "type" -> RestrictedString("bookCatalog"),
         "numberOfEntries" -> RestrictedInt(3),
+        "otherListOfBooks" -> RestrictedList(List(
+          RestrictedString("A Brief History Of Time"),
+          RestrictedMap(Map(
+            "Author" -> RestrictedString("Stephen Hawking"),
+            "publishingYear" -> RestrictedInt(1988)
+          )),
+          RestrictedBoolean(true)
+        )),
         "completePercentage" -> RestrictedDouble(66.6),
         "isComplete" -> RestrictedBoolean(false),
         "metadata" -> RestrictedMap(Map[String, RestrictedAny](

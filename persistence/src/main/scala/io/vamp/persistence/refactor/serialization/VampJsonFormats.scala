@@ -73,12 +73,16 @@ trait VampJsonFormats extends DefaultJsonProtocol {
       a => (a._1, restrictedAnyEncoder(a._2))
     }))}
 
+  implicit val restrictedListEncoder: Encoder[RestrictedList] = Encoder.instance[RestrictedList]
+    { e => Json.fromValues(e.ls.map { a => restrictedAnyEncoder(a)})}
+
   implicit val restrictedAnyEncoder: Encoder[RestrictedAny] = Encoder.instance[RestrictedAny] { _ match {
     case e: RestrictedInt => restrictedIntEncoder(e)
     case e: RestrictedDouble => restrictedDoubleEncoder(e)
     case e: RestrictedBoolean => restrictedBooleanEncoder(e)
     case e: RestrictedString => restrictedStringEncoder.apply(e)
     case e: RestrictedMap => restrictedMapEncoder(e)
+    case e: RestrictedList => restrictedListEncoder(e)
     }
   }
 
@@ -139,14 +143,28 @@ trait VampJsonFormats extends DefaultJsonProtocol {
     case Right(r) => Success(r)
   }
 
-  implicit val restrictedMapDecoder: Decoder[RestrictedMap] = Decoder.instance[RestrictedMap] { hc => {
-      Try(hc.fields.map(_.toList).getOrElse(Nil).map{ field =>
-        field -> eitherToTry(restrictedAnyDecoder.tryDecode(hc.downField(field))).get
-      }) match {
-      case Failure(e: DecodingFailure) => Left[DecodingFailure, RestrictedMap](e)
-      case Failure(e: Throwable) => Left[DecodingFailure, RestrictedMap](DecodingFailure(e.getMessage, hc.history))
-      case Success(e) => Right[DecodingFailure, RestrictedMap](RestrictedMap(e.toMap))
+  implicit val restrictedListDecoder: Decoder[RestrictedList] = Decoder.instance[RestrictedList] { hc => {
+    Try(hc.values.getOrElse(Nil).map{ value =>
+      eitherToTry(restrictedAnyDecoder.decodeJson(value)).get
+    }) match {
+      case Failure(e: DecodingFailure) => Left[DecodingFailure, RestrictedList](e)
+      case Failure(e: Throwable) => Left[DecodingFailure, RestrictedList](DecodingFailure(e.getMessage, hc.history))
+      case Success(e) => Right[DecodingFailure, RestrictedList](RestrictedList(e.toList))
     }
+  }}
+
+  implicit val restrictedMapDecoder: Decoder[RestrictedMap] = Decoder.instance[RestrictedMap] { hc => {
+      hc.value match {
+        case x if(x.isArray) => Left[DecodingFailure, RestrictedMap](DecodingFailure(s"Cannot interpret iterable-sequence ${hc.toString} as map", hc.history))
+        case _ => Try(hc.fields.map(_.toList).getOrElse(Nil).map{ field =>
+          field -> eitherToTry(restrictedAnyDecoder.tryDecode(hc.downField(field))).get
+        }) match {
+          case Failure(e: DecodingFailure) => Left[DecodingFailure, RestrictedMap](e)
+          case Failure(e: Throwable) => Left[DecodingFailure, RestrictedMap](DecodingFailure(e.getMessage, hc.history))
+          case Success(e) => Right[DecodingFailure, RestrictedMap](RestrictedMap(e.toMap))
+        }
+      }
+
   }}
 
   implicit val restrictedRootMap: Decoder[RootAnyMap] = Decoder.instance[RootAnyMap] { hc => {
@@ -177,8 +195,9 @@ trait VampJsonFormats extends DefaultJsonProtocol {
     tryDecoderOrElse(restrictedIntDecoder, Some(() => tryDecoderOrElse(
         restrictedDoubleDecoder, Some(() => tryDecoderOrElse(
             restrictedStringDecoder,Some( () => tryDecoderOrElse(
-              restrictedBooleanDecoder, Some(() => tryDecoderOrElse(restrictedMapDecoder, None))
-     )))))))
+              restrictedBooleanDecoder, Some(() => tryDecoderOrElse(restrictedMapDecoder, Some( () => tryDecoderOrElse(
+                restrictedListDecoder, None
+    )))))))))))
   }
 
   // ========================================= Serialization Specifiers ================================================
