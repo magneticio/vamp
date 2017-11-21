@@ -14,7 +14,7 @@ object Breed {
   val kind: String = "breeds"
 }
 
-trait Breed extends Artifact with Lookup {
+sealed trait Breed extends Artifact with Lookup {
   val kind: String = Breed.kind
 }
 

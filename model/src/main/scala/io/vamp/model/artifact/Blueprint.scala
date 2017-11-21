@@ -105,7 +105,7 @@ object Scale {
   val kind: String = "scales"
 }
 
-trait Scale extends Artifact {
+sealed trait Scale extends Artifact {
   val kind: String = Scale.kind
 }
 

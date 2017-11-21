@@ -58,7 +58,7 @@ object WorkflowReader extends YamlReader[Workflow] with ArgumentReader with Trai
       arguments(),
       network,
       HealthCheckReader.read,
-      dialects,
+      dialectsAsAnyRootMap,
       DeploymentReader.parseInstances
     )
   }

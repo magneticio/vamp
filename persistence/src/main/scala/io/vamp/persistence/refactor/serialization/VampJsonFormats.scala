@@ -1,11 +1,14 @@
 package io.vamp.persistence.refactor.serialization
 
+import java.time.{Duration, OffsetDateTime, ZoneOffset}
+
 import io.vamp.common._
 import io.vamp.model.artifact._
 import spray.json._
 import io.circe._
 import io.circe.generic.semiauto._
-import io.vamp.model.reader.Percentage
+import io.vamp.model.artifact.TimeSchedule.RepeatPeriod
+import io.vamp.model.reader.{MegaByte, Percentage, Quantity, Time}
 
 import scala.util.{Failure, Success, Try}
 
@@ -91,6 +94,104 @@ trait VampJsonFormats extends DefaultJsonProtocol {
   }
 
 
+  implicit val deployableEncoder: Encoder[Deployable] = deriveEncoder[Deployable]
+
+  implicit val timeEncoder: Encoder[Time] = deriveEncoder[Time]
+
+  implicit val healthCheckEncoder: Encoder[HealthCheck] = deriveEncoder[HealthCheck]
+
+  implicit val argumentEncoder: Encoder[Argument] = deriveEncoder[Argument]
+
+  implicit val constantEncoder: Encoder[Constant] = deriveEncoder[Constant]
+
+  implicit val breedReferenceEncoder: Encoder[BreedReference] = deriveEncoder[BreedReference]
+  implicit val defaultBreedEncoder: Encoder[DefaultBreed] = deriveEncoder[DefaultBreed]
+  implicit val breedEncoder: Encoder[Breed] = deriveEncoder[Breed]
+
+  implicit val restartingPhase: Encoder[Workflow.Status.RestartingPhase.Value] = enumEncoder(Workflow.Status.RestartingPhase)
+
+  implicit val workflowStatusEncoder: Encoder[Workflow.Status] = Encoder.instance[Workflow.Status] { _ match {
+    case Workflow.Status.Starting => Json.fromJsonObject(JsonObject.fromMap(Map("type" -> Json.fromString("Starting"))))
+    case Workflow.Status.Stopping => Json.fromJsonObject(JsonObject.fromMap(Map("type" -> Json.fromString("Stopping"))))
+    case Workflow.Status.Running => Json.fromJsonObject(JsonObject.fromMap(Map("type" -> Json.fromString("Running"))))
+    case Workflow.Status.Suspended => Json.fromJsonObject(JsonObject.fromMap(Map("type" -> Json.fromString("Suspended"))))
+    case Workflow.Status.Suspending => Json.fromJsonObject(JsonObject.fromMap(Map("type" -> Json.fromString("Suspending"))))
+    case Workflow.Status.Restarting(phase) => Json.fromJsonObject(JsonObject.fromMap(
+      Map(
+        ("type" -> Json.fromString("Restarting")),
+        ("args" -> Json.fromJsonObject(JsonObject.fromMap(
+          List(phase.map(ph => ("phase" -> restartingPhase(ph)))).flatten.toMap
+        )))
+      )
+    ))
+  }
+  }
+
+  implicit val quantityEncoder: Encoder[Quantity] = deriveEncoder[Quantity]
+  implicit val megabyteEncoder: Encoder[MegaByte] = deriveEncoder[MegaByte]
+
+  implicit val defaultScaleEncoder: Encoder[DefaultScale] = deriveEncoder[DefaultScale]
+  implicit val scaleReferenceEncoder: Encoder[ScaleReference] = deriveEncoder[ScaleReference]
+  implicit val scaleEncoder: Encoder[Scale] = deriveEncoder[Scale]
+
+  implicit val instanceEncoder: Encoder[Instance] = deriveEncoder[Instance]
+  implicit val healthEncoder: Encoder[Health] = deriveEncoder[Health]
+
+  implicit val periodEncoder: Encoder[java.time.Period] = {
+    implicit val period_AuxEncoder: Encoder[Period_AuxForSerialazation] = deriveEncoder[Period_AuxForSerialazation]
+    Encoder.instance[java.time.Period] { x =>
+      period_AuxEncoder.apply(Period_AuxForSerialazation(years = x.getYears, months = x.getMonths, days = x.getDays))
+    }
+  }
+  implicit val durationEncoder: Encoder[java.time.Duration] = {
+    implicit val duration_AuxEncoder: Encoder[Duration_AuxForSerialazation] = deriveEncoder[Duration_AuxForSerialazation]
+    Encoder.instance[java.time.Duration] { x =>
+      duration_AuxEncoder.apply(Duration_AuxForSerialazation(seconds = x.getSeconds, nanos = x.getNano))
+    }
+  }
+  implicit val repeatPeriodEncoder: Encoder[RepeatPeriod] = deriveEncoder[RepeatPeriod]
+  implicit val repeatEncoder: Encoder[TimeSchedule.Repeat] = Encoder.instance[TimeSchedule.Repeat] { _ match {
+    case TimeSchedule.RepeatForever => Json.fromJsonObject(JsonObject.fromMap(Map("type" -> Json.fromString("RepeatForever"))))
+    case TimeSchedule.RepeatCount(count) => Json.fromJsonObject(JsonObject.fromMap(
+      Map(
+        ("type" -> Json.fromString("RepeatCount")),
+        ("args" -> Json.fromJsonObject(JsonObject.fromMap(
+          Map("count" -> Json.fromInt(count))
+        )))
+      )
+    ))
+  }}
+
+  implicit val offsetDateTimeEncoder: Encoder[OffsetDateTime] = {
+    implicit val zoneOffsetDateTimeEncoder: Encoder[ZoneOffset] = Encoder.instance[ZoneOffset] { x =>Json.fromString(x.getId)}
+    implicit val offsetDateTime_AuxForSerializationEncoder: Encoder[OffsetDateTime_AuzForSerialization] = deriveEncoder[OffsetDateTime_AuzForSerialization]
+    Encoder.instance[java.time.OffsetDateTime] { x =>
+      offsetDateTime_AuxForSerializationEncoder.apply(
+        OffsetDateTime_AuzForSerialization(x.getYear, x.getMonth.getValue, x.getDayOfMonth, x.getHour, x.getMinute, x.getSecond, x.getNano, x.getOffset)
+      )
+    }
+  }
+
+  implicit val timeScheduleEncoder: Encoder[TimeSchedule] = deriveEncoder[TimeSchedule]
+  implicit val eventScheduleEncoder: Encoder[EventSchedule] = deriveEncoder[EventSchedule]
+
+  implicit val scheduleEncoder: Encoder[Schedule] = Encoder.instance[Schedule] { _ match {
+    case DaemonSchedule => Json.fromJsonObject(JsonObject.fromMap(Map("type" -> Json.fromString("DaemonSchedule"))))
+    case e:TimeSchedule => Json.fromJsonObject(JsonObject.fromMap(
+      Map(
+        ("type" -> Json.fromString("TimeSchedule")),
+        ("args" -> timeScheduleEncoder.apply(e))
+      )
+    ))
+    case e:EventSchedule => Json.fromJsonObject(JsonObject.fromMap(
+      Map(
+        ("type" -> Json.fromString("EventSchedule")),
+        ("args" -> eventScheduleEncoder.apply(e))
+      )
+    ))
+  }}
+
+  implicit val workflowEncoder: Encoder[Workflow] = deriveEncoder[Workflow]
 
 
 
@@ -200,6 +301,112 @@ trait VampJsonFormats extends DefaultJsonProtocol {
     )))))))))))
   }
 
+  implicit val deployableDecoder: Decoder[Deployable] = deriveDecoder[Deployable]
+
+  implicit val timeDecoder: Decoder[Time] = deriveDecoder[Time]
+
+  implicit val healthCheckDecoder: Decoder[HealthCheck] = deriveDecoder[HealthCheck]
+
+  implicit val argumentDecoder: Decoder[Argument] = deriveDecoder[Argument]
+
+  implicit val constantDecoder: Decoder[Constant] = deriveDecoder[Constant]
+
+  implicit val breedReferenceDecoder: Decoder[BreedReference] = deriveDecoder[BreedReference]
+  implicit val defaultBreedDecoder: Decoder[DefaultBreed] = deriveDecoder[DefaultBreed]
+
+  implicit val breedDecoder: Decoder[Breed] = deriveDecoder[Breed]
+
+  implicit val restartingPhaseDecoder: Decoder[Workflow.Status.RestartingPhase.Value] = enumDecoder(Workflow.Status.RestartingPhase)
+
+  implicit val workflowStatusDecoder: Decoder[Workflow.Status] = Decoder.instance[Workflow.Status] { hc => {
+    hc.downField("type").as[String] match {
+      case Right(v) if(v == "Starting") => Right(Workflow.Status.Starting)
+      case Right(v) if(v == "Stopping") => Right(Workflow.Status.Stopping)
+      case Right(v) if(v == "Running") => Right(Workflow.Status.Running)
+      case Right(v) if(v == "Suspended") => Right(Workflow.Status.Suspended)
+      case Right(v) if(v == "Suspending") => Right(Workflow.Status.Suspending)
+      case Right(v) if(v == "Restarting") => {
+        hc.downField("args").downField("phase").as[Workflow.Status.RestartingPhase.Value] match {
+          case Right(someVal) => Right(Workflow.Status.Restarting(Some(someVal)))
+          case _ => Right(Workflow.Status.Restarting(None))
+        }
+      }
+      case _ => Left(DecodingFailure("Unable to extract as Starting, Stopping, Running, Suspended, Suspending, Restarting", ops = hc.history))
+    }
+  }}
+
+  implicit val quantityDecoder: Decoder[Quantity] = deriveDecoder[Quantity]
+  implicit val megabyteDecoder: Decoder[MegaByte] = deriveDecoder[MegaByte]
+
+  implicit val defaultScaleDecoder: Decoder[DefaultScale] = deriveDecoder[DefaultScale]
+  implicit val scaleReferenceDecoder: Decoder[ScaleReference] = deriveDecoder[ScaleReference]
+  implicit val scaleDecoder: Decoder[Scale] = deriveDecoder[Scale]
+
+  implicit val instanceDecoder: Decoder[Instance] = deriveDecoder[Instance]
+
+  implicit val healthDecoder: Decoder[Health] = deriveDecoder[Health]
+
+
+  implicit val periodDecoder: Decoder[java.time.Period] = {
+    implicit val period_AuxDecoder: Decoder[Period_AuxForSerialazation] = deriveDecoder[Period_AuxForSerialazation]
+    Decoder.instance[java.time.Period] { hc =>
+      period_AuxDecoder(hc) match {
+        case Left(e) => Left(e)
+        case Right(r) => Right(java.time.Period.of(r.years, r.months, r.days))
+      }
+    }
+  }
+  implicit val durationDecoder: Decoder[java.time.Duration] = {
+    implicit val duration_AuxDecoder: Decoder[Duration_AuxForSerialazation] = deriveDecoder[Duration_AuxForSerialazation]
+    Decoder.instance[java.time.Duration] { hc =>
+      duration_AuxDecoder(hc) match {
+        case Left(e) => Left(e)
+        case Right(r) => Right(Duration.ofSeconds(r.seconds, r.nanos))
+      }
+    }
+  }
+  implicit val repeatPeriodDecoder: Decoder[RepeatPeriod] = deriveDecoder[RepeatPeriod]
+
+  implicit val repeatDecoder: Decoder[TimeSchedule.Repeat] = Decoder.instance[TimeSchedule.Repeat] { hc => {
+    hc.downField("type").as[String] match {
+      case Right(v) if(v == "RepeatForever") => Right(TimeSchedule.RepeatForever)
+      case Right(v) if(v == "RepeatCount") => {
+        hc.downField("args").downField("count").as[Int] match {
+          case Right(someVal) => Right(TimeSchedule.RepeatCount(someVal))
+          case _ => Left(DecodingFailure(s"Unable ${hc.toString} to extract as RepeatForever, RepeatCount", ops = hc.history))
+        }
+      }
+      case _ => Left(DecodingFailure(s"Unable ${hc.toString} to extract as RepeatForever, RepeatCount", ops = hc.history))
+    }
+  }}
+
+  implicit val offsetDateTimDecoder: Decoder[java.time.OffsetDateTime] = {
+    implicit val zoneOffsetDecoder: Decoder[ZoneOffset] = Decoder.instance[ZoneOffset] {
+      hc => hc.as[String].map(x => ZoneOffset.of(x))
+    }
+    implicit val offsetDateTimeAux_Decoder: Decoder[OffsetDateTime_AuzForSerialization] = deriveDecoder[OffsetDateTime_AuzForSerialization]
+    Decoder.instance[java.time.OffsetDateTime] { hc =>
+      offsetDateTimeAux_Decoder(hc) match {
+        case Left(e) => Left(e)
+        case Right(r) => Right(java.time.OffsetDateTime.of(r.year, r.month, r.dayOfMonth, r.hour, r.minute, r.second, r.nanoOfSecond, r.offset))
+      }
+    }
+  }
+
+  implicit val timeScheduleDecoder: Decoder[TimeSchedule] = deriveDecoder[TimeSchedule]
+  implicit val eventScheduleDecoder : Decoder[EventSchedule] = deriveDecoder[EventSchedule]
+
+  implicit val scheduleDecoder: Decoder[Schedule] = Decoder.instance[Schedule] { hc => {
+    hc.downField("type").as[String] match {
+      case Right(v) if(v == "DaemonSchedule") => Right(DaemonSchedule)
+      case Right(v) if(v == "TimeSchedule") => {hc.downField("args").as[TimeSchedule]}
+      case Right(v) if(v == "EventSchedule") => {hc.downField("args").as[EventSchedule]}
+      case _ => Left(DecodingFailure(s"Unable ${hc.toString} to extract as RepeatForever, RepeatCount", ops = hc.history))
+    }
+  }}
+
+  implicit val workflowDecoder: Decoder[Workflow] = deriveDecoder[Workflow]
+
   // ========================================= Serialization Specifiers ================================================
   implicit val environmentVariableSerilizationSpecifier: SerializationSpecifier[EnvironmentVariable] =
     SerializationSpecifier[EnvironmentVariable](environmentVariableEncoder, environmentVariableDecoder, "envVar", (e ⇒ Id[EnvironmentVariable](e.name)))
@@ -207,19 +414,14 @@ trait VampJsonFormats extends DefaultJsonProtocol {
   implicit val gatewaySerilizationSpecifier: SerializationSpecifier[Gateway] =
     SerializationSpecifier[Gateway](gatewayEncoder, gatewayDecoder, "gateway", (e ⇒ Id[Gateway](e.name)))
 
+  implicit val workflowSerilizationSpecifier: SerializationSpecifier[Workflow] =
+    SerializationSpecifier[Workflow](workflowEncoder, workflowDecoder, "workflow", (e ⇒ Id[Workflow](e.name)))
 
 
-/*
-  implicit val gatewaySerilizationSpecifier: SerializationSpecifier[Gateway] = {
-    implicit val portTypeFormat = enumFormat(Port.Type)
-    implicit val portFomat: RootJsonFormat[Port] = jsonFormat5(Port.apply)
-    implicit val gatewayServiceFormat: RootJsonFormat[GatewayService] = jsonFormat2(GatewayService)
-    implicit val gatewayStockyTypeFormat = enumFormat(Gateway.Sticky)
-
-    SerializationSpecifier[Gateway](jsonFormat7(Gateway.apply), "gateway", (e ⇒ Id[Gateway](e.name)))
-  }
-*/
-
+  private case class Period_AuxForSerialazation(years: Int, months: Int, days: Int)
+  private case class Duration_AuxForSerialazation(seconds: Long, nanos: Int)
+  private case class OffsetDateTime_AuzForSerialization(year: Int, month: Int, dayOfMonth: Int,
+    hour: Int, minute: Int, second: Int, nanoOfSecond: Int, offset: ZoneOffset)
 }
 
 case class SerializationSpecifier[T](encoder: Encoder[T], decoder: Decoder[T], typeName: String, idExtractor: T ⇒ Id[T])
