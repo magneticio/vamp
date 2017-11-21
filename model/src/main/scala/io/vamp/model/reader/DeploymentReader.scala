@@ -44,7 +44,7 @@ trait AbstractDeploymentReader
       } toList
     }
 
-    Deployment(name, metadataAsRootAnyMap, clusters, BlueprintGatewayReader.mapping("gateways"), ports(addGroup = true), environmentVariables, hosts(), dialects)
+    Deployment(name, metadataAsRootAnyMap, clusters, BlueprintGatewayReader.mapping("gateways"), ports(addGroup = true), environmentVariables, hosts(), dialectsAsAnyRootMap)
   }
 
   override protected def validate(deployment: Deployment): Deployment = {

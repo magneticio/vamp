@@ -7,7 +7,7 @@ import io.circe.{Decoder, DecodingFailure, HCursor}
 import io.vamp.common._
 import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
 import io.vamp.model.artifact.TimeSchedule.RepeatPeriod
-import io.vamp.model.artifact._
+import io.vamp.model.artifact.{Host, _}
 import io.vamp.model.reader.{MegaByte, Percentage, Quantity, Time}
 
 import scala.concurrent.duration.{FiniteDuration, TimeUnit}
@@ -302,4 +302,22 @@ trait VampJsonDecoders {
   implicit val slaReferenceDecoder: Decoder[SlaReference] = deriveDecoder[SlaReference]
   implicit val slaDecoder: Decoder[Sla] = deriveDecoder[Sla]
   implicit val clusterDecoder: Decoder[Cluster] = deriveDecoder[Cluster]
+
+  implicit val deloymentClusterDecoder: Decoder[DeploymentCluster] = deriveDecoder[DeploymentCluster]
+  implicit val abstractClusterDecoder: Decoder[AbstractCluster] = deriveDecoder[AbstractCluster]
+
+  implicit val defaultBlueprintDecoder: Decoder[DefaultBlueprint] = deriveDecoder[DefaultBlueprint]
+
+  implicit val hostDecoder: Decoder[Host] = deriveDecoder[Host]
+
+  implicit val deploymentDecoder: Decoder[Deployment] = deriveDecoder[Deployment]
+
+  implicit val abstractBlueprintDecoder: Decoder[AbstractBlueprint] = deriveDecoder[AbstractBlueprint]
+
+  implicit val blueprintReferenceDecoder: Decoder[BlueprintReference] = deriveDecoder[BlueprintReference]
+
+  implicit val blueprintDecoder: Decoder[Blueprint] = deriveDecoder[Blueprint]
+
+
+
 }

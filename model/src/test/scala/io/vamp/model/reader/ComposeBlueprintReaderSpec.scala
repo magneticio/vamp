@@ -143,7 +143,7 @@ class ComposeBlueprintReaderSpec
         ),
         List(),
         List(),
-        Map()))
+        RootAnyMap.empty))
   }
 
   it should "read the wordpress example yml" in {
@@ -173,7 +173,7 @@ class ComposeBlueprintReaderSpec
             RootAnyMap.empty)),
         List(),
         List(),
-        Map()))
+        RootAnyMap.empty))
   }
 
   "ComposePortReader" should "parse ports" in {

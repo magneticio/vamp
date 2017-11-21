@@ -11,11 +11,11 @@ object Blueprint {
   val kind: String = "blueprints"
 }
 
-abstract class Blueprint extends Artifact {
+sealed abstract class Blueprint extends Artifact {
   val kind: String = Blueprint.kind
 }
 
-trait AbstractBlueprint extends Blueprint {
+sealed trait AbstractBlueprint extends Blueprint {
   def name: String
 
   def clusters: List[AbstractCluster]
@@ -26,7 +26,7 @@ trait AbstractBlueprint extends Blueprint {
 
   def traits: List[Trait]
 
-  def dialects: Map[String, Any]
+  def dialects: RootAnyMap
 }
 
 case class DefaultBlueprint(
@@ -35,14 +35,14 @@ case class DefaultBlueprint(
     clusters:             List[Cluster],
     gateways:             List[Gateway],
     environmentVariables: List[EnvironmentVariable],
-    dialects:             Map[String, Any]          = Map()
+    dialects:             RootAnyMap          = RootAnyMap.empty
 ) extends AbstractBlueprint {
   lazy val traits: List[Trait] = environmentVariables
 }
 
 case class BlueprintReference(name: String) extends Blueprint with Reference
 
-abstract class AbstractCluster extends Artifact {
+sealed abstract class AbstractCluster extends Artifact {
 
   val kind: String = "clusters"
 
@@ -71,6 +71,45 @@ case class Cluster(
   sla:          Option[Sla]               = None,
   dialects:     RootAnyMap                = RootAnyMap.empty
 ) extends AbstractCluster
+
+object DeploymentCluster {
+  def gatewayNameFor(deployment: Deployment, cluster: DeploymentCluster, port: Port): String = GatewayPath(deployment.name :: cluster.name :: port.name :: Nil).normalized
+}
+
+case class DeploymentCluster(
+                              name:         String,
+                              metadata:     RootAnyMap,
+                              services:     List[DeploymentService],
+                              gateways:     List[Gateway],
+                              healthChecks: Option[List[HealthCheck]],
+                              network:      Option[String],
+                              sla:          Option[Sla],
+                              dialects:     RootAnyMap          = RootAnyMap.empty
+                            ) extends AbstractCluster {
+
+  def portBy(name: String): Option[Int] = {
+    gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } map {
+      _.port.number
+    }
+  }
+
+  def serviceBy(name: String): Option[GatewayService] = {
+    gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } flatMap {
+      _.service
+    }
+  }
+
+  def route(service: DeploymentService, portName: String, short: Boolean = false): Option[DefaultRoute] = {
+    gateways.find(_.port.name == portName).flatMap(routing ⇒ routing.routes.find { route ⇒
+      route.path.segments match {
+        case s :: Nil if short                 ⇒ s == service.breed.name
+        case _ :: _ :: s :: _ :: Nil if !short ⇒ s == service.breed.name
+        case _                                 ⇒ false
+      }
+    }).asInstanceOf[Option[DefaultRoute]]
+  }
+}
+
 
 sealed abstract class AbstractService {
 

@@ -18,7 +18,7 @@ case class Deployment(
     ports:                List[Port],
     environmentVariables: List[EnvironmentVariable],
     hosts:                List[Host],
-    dialects:             Map[String, Any]          = Map()
+    dialects:             RootAnyMap          = RootAnyMap.empty
 ) extends AbstractBlueprint with Lookup {
 
   override val kind: String = Deployment.kind
@@ -27,44 +27,6 @@ case class Deployment(
 
   def service(breed: Breed): Option[DeploymentService] = {
     clusters.flatMap { cluster ⇒ cluster.services } find { service ⇒ service.breed.name == breed.name }
-  }
-}
-
-object DeploymentCluster {
-  def gatewayNameFor(deployment: Deployment, cluster: DeploymentCluster, port: Port): String = GatewayPath(deployment.name :: cluster.name :: port.name :: Nil).normalized
-}
-
-case class DeploymentCluster(
-    name:         String,
-    metadata:     RootAnyMap,
-    services:     List[DeploymentService],
-    gateways:     List[Gateway],
-    healthChecks: Option[List[HealthCheck]],
-    network:      Option[String],
-    sla:          Option[Sla],
-    dialects:     RootAnyMap          = RootAnyMap.empty
-) extends AbstractCluster {
-
-  def portBy(name: String): Option[Int] = {
-    gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } map {
-      _.port.number
-    }
-  }
-
-  def serviceBy(name: String): Option[GatewayService] = {
-    gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } flatMap {
-      _.service
-    }
-  }
-
-  def route(service: DeploymentService, portName: String, short: Boolean = false): Option[DefaultRoute] = {
-    gateways.find(_.port.name == portName).flatMap(routing ⇒ routing.routes.find { route ⇒
-      route.path.segments match {
-        case s :: Nil if short                 ⇒ s == service.breed.name
-        case _ :: _ :: s :: _ :: Nil if !short ⇒ s == service.breed.name
-        case _                                 ⇒ false
-      }
-    }).asInstanceOf[Option[DefaultRoute]]
   }
 }
 

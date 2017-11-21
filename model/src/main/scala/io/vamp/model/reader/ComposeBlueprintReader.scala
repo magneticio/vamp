@@ -102,7 +102,7 @@ object ComposeBlueprintReader extends YamlReader[ComposeWriter[Blueprint]] {
       clusters = clusters,
       gateways = List(),
       environmentVariables = List(),
-      dialects = Map())
+      dialects = RootAnyMap.empty)
 
 }
 

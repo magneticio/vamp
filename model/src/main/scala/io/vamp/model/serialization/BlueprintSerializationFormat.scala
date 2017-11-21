@@ -31,7 +31,7 @@ class BlueprintSerializer extends ArtifactSerializer[Blueprint] with TraitDecomp
       list += JField("gateways", serializeGateways(blueprint.gateways))
       list += JField("clusters", Extraction.decompose(blueprint.clusters.map(cluster ⇒ cluster.name → cluster).toMap))
       list += JField("environment_variables", traits(blueprint.environmentVariables))
-      list += JField("dialects", serializeDialects(blueprint.dialects))
+      list += JField("dialects", serializeDialects(blueprint.dialects.rootMap))
       new JObject(list.toList)
   }
 }

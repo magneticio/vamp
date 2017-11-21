@@ -9,6 +9,7 @@ import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntention
 import io.vamp.model.artifact.TimeSchedule.RepeatPeriod
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{MegaByte, Percentage, Quantity, Time}
+
 import scala.concurrent.duration.{FiniteDuration, TimeUnit}
 
 /**
@@ -195,6 +196,8 @@ trait VampJsonEncoders {
   }
 
   implicit val deploymentServiceStatusEncoder: Encoder[DeploymentService.Status] = deriveEncoder[DeploymentService.Status]
+
+  implicit val deploymenServiceEncoder: Encoder[DeploymentService] = deriveEncoder[DeploymentService]
   implicit val serviceEncoder: Encoder[Service] = deriveEncoder[Service]
   implicit val abstractServiceEncoder: Encoder[AbstractService] = deriveEncoder[AbstractService]
 
@@ -237,5 +240,20 @@ trait VampJsonEncoders {
   implicit val slaReferenceEncoder: Encoder[SlaReference] = deriveEncoder[SlaReference]
   implicit val slaEncoder: Encoder[Sla] = deriveEncoder[Sla]
   implicit val clusterEncoder: Encoder[Cluster] = deriveEncoder[Cluster]
+
+  implicit val deloymentClusterEncoder: Encoder[DeploymentCluster] = deriveEncoder[DeploymentCluster]
+  implicit val abstractClusterEncoder: Encoder[AbstractCluster] = deriveEncoder[AbstractCluster]
+
+  implicit val defaultBlueprintEncoder: Encoder[DefaultBlueprint] = deriveEncoder[DefaultBlueprint]
+
+  implicit val hostEncoder: Encoder[Host] = deriveEncoder[Host]
+
+  implicit val deploymentEncoder: Encoder[Deployment] = deriveEncoder[Deployment]
+
+  implicit val abstractBlueprintEncoder: Encoder[AbstractBlueprint] = deriveEncoder[AbstractBlueprint]
+
+  implicit val blueprintReferenceEncoder: Encoder[BlueprintReference] = deriveEncoder[BlueprintReference]
+
+  implicit val blueprintEncoder: Encoder[Blueprint] = deriveEncoder[Blueprint]
 
 }

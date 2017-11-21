@@ -333,7 +333,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
           val environmentVariables = mergeTrait(attachment.environmentVariables, deployment.environmentVariables)
           val hosts = mergeTrait(attachment.hosts, deployment.hosts)
           val metadata = RootAnyMap(deployment.metadata.rootMap ++ attachment.metadata.rootMap)
-          val dialects = deployment.dialects ++ attachment.dialects
+          val dialects = RootAnyMap(deployment.dialects.rootMap ++ attachment.dialects.rootMap)
 
           validateMerge(Deployment(deployment.name, metadata, clusters, gateways, ports, environmentVariables, hosts, dialects)) flatMap {
             deployment ⇒

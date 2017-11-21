@@ -40,7 +40,7 @@ class DeploymentSerializer(full: Boolean) extends ArtifactSerializer[Deployment]
       else list += JField("environment_variables", traits(deployment.environmentVariables, alias = false))
 
       list += JField("hosts", traits(deployment.hosts))
-      list += JField("dialects", serializeDialects(deployment.dialects))
+      list += JField("dialects", serializeDialects(deployment.dialects.rootMap))
 
       new JObject(list.toList)
   }

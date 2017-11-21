@@ -18,6 +18,9 @@ trait VampJsonFormats extends DefaultJsonProtocol with VampJsonDecoders with Vam
   implicit val workflowSerilizationSpecifier: SerializationSpecifier[Workflow] =
     SerializationSpecifier[Workflow](workflowEncoder, workflowDecoder, "workflow", (e ⇒ Id[Workflow](e.name)))
 
+  implicit val blueprintSerilizationSpecifier: SerializationSpecifier[Blueprint] =
+    SerializationSpecifier[Blueprint](blueprintEncoder, blueprintDecoder, "blueprint", (e ⇒ Id[Blueprint](e.name)))
+
 
 }
 
