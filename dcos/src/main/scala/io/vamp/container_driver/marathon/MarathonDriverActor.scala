@@ -1,16 +1,16 @@
 package io.vamp.container_driver.marathon
 
 import akka.actor.ActorRef
-import io.vamp.common.{ ClassMapper, Config }
+import io.vamp.common.{ClassMapper, Config, RestrictedMap}
 import io.vamp.common.akka.ActorExecutionContextProvider
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver._
-import io.vamp.container_driver.notification.{ UndefinedMarathonApplication, UnsupportedContainerDriverRequest }
+import io.vamp.container_driver.notification.{UndefinedMarathonApplication, UnsupportedContainerDriverRequest}
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InvalidArgumentValueError
-import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.model.reader.{MegaByte, Quantity}
 import io.vamp.model.resolver.NamespaceValueResolver
 import org.json4s.JsonAST.JObject
 import org.json4s._
@@ -421,10 +421,10 @@ class MarathonDriverActor
   }
 
   private def requestPayload(workflow: Workflow, app: MarathonApp): JValue = {
-    val dialect = workflow.dialects.getOrElse(MarathonDriverActor.dialect, Map())
+    val dialect = workflow.dialects.rootMap.getOrElse(MarathonDriverActor.dialect, RestrictedMap(Map()))
 
     (app.container, app.cmd, dialect) match {
-      case (None, None, map: Map[_, _]) if map.asInstanceOf[Map[String, _]].get("cmd").nonEmpty ⇒
+      case (None, None, map: RestrictedMap) if map.mp.get("cmd").nonEmpty ⇒
       case (None, None, _) ⇒ throwException(UndefinedMarathonApplication)
       case _ ⇒
     }

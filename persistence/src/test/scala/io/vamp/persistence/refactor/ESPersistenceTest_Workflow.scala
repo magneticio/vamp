@@ -2,16 +2,13 @@ package io.vamp.persistence.refactor
 
 import java.time.ZoneOffset
 
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import io.circe.{Decoder, Encoder}
-import io.vamp.common.Id
-import io.vamp.common.{Namespace, RootAnyMap}
-import io.vamp.common.akka.SchedulerActor.Period
+import io.vamp.common.{Id, Namespace, RootAnyMap}
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{MegaByte, Percentage, Quantity, Time}
+import io.vamp.model.reader.{MegaByte, Quantity, Time}
 import io.vamp.persistence.refactor.serialization.{SerializationSpecifier, VampJsonFormats}
 import org.scalatest.{BeforeAndAfterEach, Matchers, fixture}
-import io.circe.generic.semiauto.deriveDecoder
-import io.circe.generic.semiauto.deriveEncoder
 
 /**
  * Created by mihai on 11/10/17.
