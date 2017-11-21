@@ -10,6 +10,7 @@ import io.vamp.model.artifact.TimeSchedule.RepeatPeriod
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{MegaByte, Percentage, Quantity, Time}
 
+import scala.concurrent.duration.{FiniteDuration, TimeUnit}
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -255,4 +256,50 @@ trait VampJsonDecoders {
   implicit val deploymentServiceStatusDecoder: Decoder[DeploymentService.Status] = deriveDecoder[DeploymentService.Status]
 
   implicit val deploymenServiceDecoder: Decoder[DeploymentService] = deriveDecoder[DeploymentService]
+  implicit val serviceDecoder: Decoder[Service] = deriveDecoder[Service]
+  implicit val abstractServiceDecoder: Decoder[AbstractService] = deriveDecoder[AbstractService]
+
+  implicit val timeUnitDecoder: Decoder[TimeUnit] = Decoder.instance{hc =>
+    hc.as[String] match {
+      case Right(v) if(v == "DAYS") => Right(scala.concurrent.duration.DAYS)
+      case Right(v) if(v == "HOURS") => Right(scala.concurrent.duration.HOURS)
+      case Right(v) if(v == "MICROSECONDS") => Right(scala.concurrent.duration.MICROSECONDS)
+      case Right(v) if(v == "MILLISECONDS") => Right(scala.concurrent.duration.MILLISECONDS)
+      case Right(v) if(v == "MINUTES") => Right(scala.concurrent.duration.MINUTES)
+      case Right(v) if(v == "NANOSECONDS") => Right(scala.concurrent.duration.NANOSECONDS)
+      case Right(v) if(v == "SECONDS") => Right(scala.concurrent.duration.SECONDS)
+      case _ => Left(DecodingFailure(s"Unable ${hc.toString} to extract as TimeUnit", ops = hc.history))
+    }
+  }
+
+  implicit val timeUnit_AuxForSerializationDecoder: Decoder[TimeUnit_AuxForSerialization] = deriveDecoder[TimeUnit_AuxForSerialization]
+  implicit val finiteDurationDecoder: Decoder[FiniteDuration] = Decoder.instance {hc =>
+    hc.as[TimeUnit_AuxForSerialization] match {
+      case Right(v) => Right(new FiniteDuration(v.length, v.unit))
+      case Left(e) => Left(e)
+    }
+  }
+
+  implicit val scaleInstancesEscalationDecoder: Decoder[ScaleInstancesEscalation] = deriveDecoder[ScaleInstancesEscalation]
+  implicit val scaleMemoryEscalationDecoder: Decoder[ScaleMemoryEscalation] = deriveDecoder[ScaleMemoryEscalation]
+  implicit val scaleCPUEscalationDecoder: Decoder[ScaleCpuEscalation] = deriveDecoder[ScaleCpuEscalation]
+  implicit val toAllEscalationDecoder: Decoder[ToAllEscalation] = deriveDecoder[ToAllEscalation]
+  implicit val toOneEscalationDecoder: Decoder[ToOneEscalation] = deriveDecoder[ToOneEscalation]
+  implicit val genericEscalationDecoder: Decoder[GenericEscalation] = deriveDecoder[GenericEscalation]
+  implicit val escalationReferenceDecoder: Decoder[EscalationReference] = deriveDecoder[EscalationReference]
+  implicit val groupEscalationDecoder: Decoder[GroupEscalation] = deriveDecoder[GroupEscalation]
+  implicit val scaleEscalationDecoder: Decoder[ScaleEscalation] = deriveDecoder[ScaleEscalation]
+  implicit val escalationDecoder: Decoder[Escalation] = deriveDecoder[Escalation]
+
+
+
+  implicit val responseTimeSlidingWindowSlaDecoder: Decoder[ResponseTimeSlidingWindowSla] = deriveDecoder[ResponseTimeSlidingWindowSla]
+
+  implicit val slidingWindowSlaDecoder: Decoder[SlidingWindowSla] = deriveDecoder[SlidingWindowSla]
+
+  implicit val escalationOnlySlaDecoder: Decoder[EscalationOnlySla] = deriveDecoder[EscalationOnlySla]
+  implicit val genericSlaDecoder: Decoder[GenericSla] = deriveDecoder[GenericSla]
+  implicit val slaReferenceDecoder: Decoder[SlaReference] = deriveDecoder[SlaReference]
+  implicit val slaDecoder: Decoder[Sla] = deriveDecoder[Sla]
+  implicit val clusterDecoder: Decoder[Cluster] = deriveDecoder[Cluster]
 }

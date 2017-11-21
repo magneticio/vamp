@@ -14,3 +14,5 @@ private[serialization] case class Period_AuxForSerialazation(years: Int, months:
 private[serialization] case class Duration_AuxForSerialazation(seconds: Long, nanos: Int)
 private[serialization] case class OffsetDateTime_AuzForSerialization(year: Int, month: Int, dayOfMonth: Int,
                                                       hour: Int, minute: Int, second: Int, nanoOfSecond: Int, offset: ZoneOffset)
+
+private[serialization] case class TimeUnit_AuxForSerialization(length: Long, unit: scala.concurrent.duration.TimeUnit)

@@ -313,6 +313,8 @@ trait WeakReferenceYamlReader[T] extends YamlReader[T] with AnonymousYamlReader[
 
   protected def parameters(implicit source: YamlSourceReader): Map[String, Any] = source.flatten(_ != "type")
 
+  protected def parametersToRootAnyMap(implicit source: YamlSourceReader): RootAnyMap = source.flattenToRootAnyMap(_ != "type")
+
   protected def createReference(implicit source: YamlSourceReader): T
 
   protected def createDefault(implicit source: YamlSourceReader): T

@@ -29,7 +29,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "cart",
             RootAnyMap.empty,
@@ -40,7 +40,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "rabbitmq",
             RootAnyMap.empty,
@@ -49,7 +49,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "user-sim",
             RootAnyMap.empty,
@@ -58,7 +58,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "user-db",
             RootAnyMap.empty,
@@ -67,7 +67,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "payment",
             RootAnyMap.empty,
@@ -76,7 +76,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "cart-db",
             RootAnyMap.empty,
@@ -85,7 +85,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "catalogue",
             RootAnyMap.empty,
@@ -94,7 +94,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "orders",
             RootAnyMap.empty,
@@ -103,7 +103,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "orders-db",
             RootAnyMap.empty,
@@ -112,7 +112,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "user",
             RootAnyMap.empty,
@@ -121,7 +121,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "front-end",
             RootAnyMap.empty,
@@ -130,7 +130,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "shipping",
             RootAnyMap.empty,
@@ -139,7 +139,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map())
+            RootAnyMap.empty)
         ),
         List(),
         List(),
@@ -160,7 +160,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map()),
+            RootAnyMap.empty),
           Cluster(
             "wordpress",
             RootAnyMap.empty,
@@ -170,7 +170,7 @@ class ComposeBlueprintReaderSpec
             None,
             None,
             None,
-            Map())),
+            RootAnyMap.empty)),
         List(),
         List(),
         Map()))

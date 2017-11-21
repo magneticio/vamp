@@ -4,7 +4,7 @@ import io.vamp.model.artifact._
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
-import io.vamp.common.RootAnyMap
+import io.vamp.common.{RestrictedInt, RestrictedMap, RootAnyMap}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -16,8 +16,8 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     SlaReader.read(res("sla/sla1.yml")) should have(
       'name("red"),
       'type("response_time"),
-      'parameters(Map("window" → Map("cooldown" → 600, "interval" → 600), "threshold" → Map("lower" → 100, "upper" → 1000))),
-      'escalations(List(GenericEscalation("", RootAnyMap.empty, "scale_nothing", Map("scale_by" → 1, "minimum" → 1, "maximum" → 4))))
+      'parameters(RootAnyMap(Map("window" → RestrictedMap(Map("interval" → RestrictedInt(600), "cooldown" → RestrictedInt(600))), "threshold" → RestrictedMap(Map("lower" → RestrictedInt(100), "upper" → RestrictedInt(1000)))))),
+      'escalations(List(GenericEscalation("", RootAnyMap.empty, "scale_nothing", RootAnyMap(Map("scale_by" → RestrictedInt(1), "minimum" → RestrictedInt(1), "maximum" → RestrictedInt(4))))))
     )
   }
 
@@ -28,7 +28,7 @@ class SlaReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'cooldown(600 seconds),
       'upper(1000 milliseconds),
       'lower(100 milliseconds),
-      'escalations(List(GenericEscalation("", RootAnyMap.empty, "scale_nothing", Map("scale_by" → 1, "minimum" → 1, "maximum" → 4))))
+      'escalations(List(GenericEscalation("", RootAnyMap.empty, "scale_nothing", RootAnyMap(Map("scale_by" → RestrictedInt(1), "minimum" → RestrictedInt(1), "maximum" → RestrictedInt(4))))))
     )
   }
 

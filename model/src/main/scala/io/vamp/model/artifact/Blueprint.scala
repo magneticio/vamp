@@ -1,7 +1,11 @@
 package io.vamp.model.artifact
 
-import io.vamp.common.{ Artifact, Reference, RootAnyMap}
-import io.vamp.model.reader.{ MegaByte, Quantity }
+import java.time.OffsetDateTime
+
+import io.vamp.common.{Artifact, Reference, RootAnyMap}
+import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
+import io.vamp.model.artifact.DeploymentService.Status.Phase.{Done, Initiated}
+import io.vamp.model.reader.{MegaByte, Quantity}
 
 object Blueprint {
   val kind: String = "blueprints"
@@ -50,7 +54,7 @@ abstract class AbstractCluster extends Artifact {
 
   def sla: Option[Sla]
 
-  def dialects: Map[String, Any]
+  def dialects: RootAnyMap
 
   def gatewayBy(portName: String): Option[Gateway] = gateways.find(_.port.name == portName)
 
@@ -65,10 +69,10 @@ case class Cluster(
   healthChecks: Option[List[HealthCheck]],
   network:      Option[String]            = None,
   sla:          Option[Sla]               = None,
-  dialects:     Map[String, Any]          = Map()
+  dialects:     RootAnyMap                = RootAnyMap.empty
 ) extends AbstractCluster
 
-abstract class AbstractService {
+sealed abstract class AbstractService {
 
   val kind: String = "services"
 
@@ -89,6 +93,63 @@ abstract class AbstractService {
 
   def health: Option[Health]
 }
+
+object DeploymentService {
+
+  object Status {
+
+    object Intention extends Enumeration {
+      type StatusIntentionType = Value
+      val Deployment, Undeployment = Value
+    }
+
+    sealed trait Phase {
+      def since: OffsetDateTime
+
+      def name: String = {
+        val clazz = getClass.toString
+        clazz.substring(clazz.lastIndexOf('$') + 1)
+      }
+    }
+
+    object Phase {
+
+      case class Initiated(since: OffsetDateTime = OffsetDateTime.now()) extends Phase
+
+      case class Updating(since: OffsetDateTime = OffsetDateTime.now()) extends Phase
+
+      case class Done(since: OffsetDateTime = OffsetDateTime.now()) extends Phase
+
+      case class Failed(notificationMessage: String, since: OffsetDateTime = OffsetDateTime.now()) extends Phase
+
+    }
+
+  }
+
+  case class Status(intention: StatusIntentionType, phase: Status.Phase = Initiated(), since: OffsetDateTime = OffsetDateTime.now()) {
+    def isDone: Boolean = phase.isInstanceOf[Done]
+
+    def isDeployed: Boolean = intention == Status.Intention.Deployment && isDone
+
+    def isUndeployed: Boolean = intention == Status.Intention.Undeployment && isDone
+  }
+
+  implicit def intention2status(intention: StatusIntentionType): Status = Status(intention)
+}
+
+case class DeploymentService(
+  status:               DeploymentService.Status,
+  breed:                DefaultBreed,
+  environmentVariables: List[EnvironmentVariable],
+  scale:                Option[DefaultScale],
+  instances:            List[Instance],
+  arguments:            List[Argument],
+  healthChecks:         Option[List[HealthCheck]],
+  network:              Option[String],
+  dependencies:         Map[String, String]       = Map(),
+  dialects:             RootAnyMap                = RootAnyMap.empty,
+  health:               Option[Health]            = None
+) extends AbstractService
 
 case class Service(
   breed:                Breed,

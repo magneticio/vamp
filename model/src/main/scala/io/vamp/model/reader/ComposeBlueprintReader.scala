@@ -131,7 +131,7 @@ object ComposeClusterReader extends YamlReader[ComposeWriter[List[Cluster]]] {
                 healthChecks = None,
                 network = None,
                 sla = None,
-                dialects = Map())
+                dialects = RootAnyMap.empty)
             })
           case _ ⇒ None
         }

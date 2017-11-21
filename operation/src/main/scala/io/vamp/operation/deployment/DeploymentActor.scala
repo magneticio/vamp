@@ -376,7 +376,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
             mergeServices(stable, Some(deploymentCluster), cluster, validateOnly).flatMap { services ⇒
               val nc = deploymentCluster.copy(
                 services = services,
-                dialects = deploymentCluster.dialects ++ cluster.dialects,
+                dialects = RootAnyMap(deploymentCluster.dialects.rootMap ++ cluster.dialects.rootMap),
                 gateways = if (cluster.gateways.nonEmpty) cluster.gateways else deploymentCluster.gateways,
                 sla = if (cluster.sla.isDefined) cluster.sla else deploymentCluster.sla
               )

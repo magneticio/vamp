@@ -71,7 +71,7 @@ class EscalationSerializer extends ArtifactSerializer[Escalation] with Reference
       list += JField("escalations", Extraction.decompose(escalation.escalations))
       new JObject(list.toList)
 
-    case escalation: ScaleEscalation[_] ⇒
+    case escalation: ScaleEscalation ⇒
       val list = new ArrayBuffer[JField]
       if (escalation.name.nonEmpty) {
         list += JField("name", JString(escalation.name))
@@ -84,9 +84,24 @@ class EscalationSerializer extends ArtifactSerializer[Escalation] with Reference
       if (escalation.targetCluster.nonEmpty)
         list += JField("target", JString(escalation.targetCluster.get))
 
-      list += JField("minimum", Extraction.decompose(escalation.minimum))
-      list += JField("maximum", Extraction.decompose(escalation.maximum))
-      list += JField("scale_by", Extraction.decompose(escalation.scaleBy))
+      escalation match {
+        case ScaleInstancesEscalation(_, _, minimum, maximum, scaleBy, _) => {
+          list += JField("minimum", Extraction.decompose(minimum))
+          list += JField("maximum", Extraction.decompose(maximum))
+          list += JField("scale_by", Extraction.decompose(scaleBy))
+        }
+        case ScaleCpuEscalation(_, _, minimum, maximum, scaleBy, _) => {
+          list += JField("minimum", Extraction.decompose(minimum))
+          list += JField("maximum", Extraction.decompose(maximum))
+          list += JField("scale_by", Extraction.decompose(scaleBy))
+        }
+        case ScaleMemoryEscalation(_, _, minimum, maximum, scaleBy, _) => {
+          list += JField("minimum", Extraction.decompose(minimum))
+          list += JField("maximum", Extraction.decompose(maximum))
+          list += JField("scale_by", Extraction.decompose(scaleBy))
+        }
+      }
+
       new JObject(list.toList)
 
     case escalation: Escalation ⇒

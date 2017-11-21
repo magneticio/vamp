@@ -84,7 +84,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
 
           <<?[List[YamlSourceReader]]("services") match {
             case None ⇒
-              Cluster(name, metadataAsRootAnyMap, List(), Nil, HealthCheckReader.read, <<?[String]("network"), sla, dialects)
+              Cluster(name, metadataAsRootAnyMap, List(), Nil, HealthCheckReader.read, <<?[String]("network"), sla, dialectsAsAnyRootMap)
             case Some(list) ⇒
               val services = list.map(parseService(_))
               Cluster(
@@ -95,7 +95,7 @@ trait AbstractBlueprintReader extends YamlReader[Blueprint]
                 HealthCheckReader.read,
                 <<?[String]("network"),
                 sla,
-                dialects)
+                dialectsAsAnyRootMap)
           }
       } toList
     }
@@ -347,7 +347,7 @@ object BlueprintReader extends AbstractBlueprintReader {
       cluster.sla match {
         case None ⇒
         case Some(s) ⇒ s.escalations.foreach {
-          case escalation: ScaleEscalation[_] ⇒ escalation.targetCluster match {
+          case escalation: ScaleEscalation ⇒ escalation.targetCluster match {
             case None ⇒
             case Some(clusterName) ⇒ blueprint.clusters.find(_.name == clusterName) match {
               case None    ⇒ throwException(UnresolvedScaleEscalationTargetCluster(cluster, clusterName))

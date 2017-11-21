@@ -9,6 +9,7 @@ import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntention
 import io.vamp.model.artifact.TimeSchedule.RepeatPeriod
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{MegaByte, Percentage, Quantity, Time}
+import scala.concurrent.duration.{FiniteDuration, TimeUnit}
 
 /**
   * Created by mihai on 11/21/17.
@@ -194,5 +195,47 @@ trait VampJsonEncoders {
   }
 
   implicit val deploymentServiceStatusEncoder: Encoder[DeploymentService.Status] = deriveEncoder[DeploymentService.Status]
+  implicit val serviceEncoder: Encoder[Service] = deriveEncoder[Service]
+  implicit val abstractServiceEncoder: Encoder[AbstractService] = deriveEncoder[AbstractService]
+
+  implicit val timeUnitEncoder: Encoder[TimeUnit] = Encoder.instance{tu =>
+    tu match {
+      case scala.concurrent.duration.DAYS => Json.fromString("DAYS")
+      case scala.concurrent.duration.HOURS => Json.fromString("HOURS")
+      case scala.concurrent.duration.MICROSECONDS => Json.fromString("MICROSECONDS")
+      case scala.concurrent.duration.MILLISECONDS => Json.fromString("MILLISECONDS")
+      case scala.concurrent.duration.MINUTES => Json.fromString("MINUTES")
+      case scala.concurrent.duration.NANOSECONDS => Json.fromString("NANOSECONDS")
+      case scala.concurrent.duration.SECONDS => Json.fromString("SECONDS")
+    }
+  }
+
+  implicit val timeUnit_AuxForSerializationEncoder: Encoder[TimeUnit_AuxForSerialization] = deriveEncoder[TimeUnit_AuxForSerialization]
+  implicit val finiteDurationEncoder: Encoder[FiniteDuration] = Encoder.instance {fd =>
+    timeUnit_AuxForSerializationEncoder.apply(TimeUnit_AuxForSerialization(fd._1, fd._2))
+  }
+
+  implicit val scaleInstancesEscalationEncoder: Encoder[ScaleInstancesEscalation] = deriveEncoder[ScaleInstancesEscalation]
+  implicit val scaleMemoryEscalationEncoder: Encoder[ScaleMemoryEscalation] = deriveEncoder[ScaleMemoryEscalation]
+  implicit val scaleCPUEscalationEncoder: Encoder[ScaleCpuEscalation] = deriveEncoder[ScaleCpuEscalation]
+  implicit val toAllEscalationEncoder: Encoder[ToAllEscalation] = deriveEncoder[ToAllEscalation]
+  implicit val toOneEscalationEncoder: Encoder[ToOneEscalation] = deriveEncoder[ToOneEscalation]
+  implicit val genericEscalationEncoder: Encoder[GenericEscalation] = deriveEncoder[GenericEscalation]
+  implicit val escalationReferenceEncoder: Encoder[EscalationReference] = deriveEncoder[EscalationReference]
+  implicit val groupEscalationEncoder: Encoder[GroupEscalation] = deriveEncoder[GroupEscalation]
+  implicit val scaleEscalationEncoder: Encoder[ScaleEscalation] = deriveEncoder[ScaleEscalation]
+  implicit val escalationEncoder: Encoder[Escalation] = deriveEncoder[Escalation]
+
+
+
+  implicit val responseTimeSlidingWindowSlaEncoder: Encoder[ResponseTimeSlidingWindowSla] = deriveEncoder[ResponseTimeSlidingWindowSla]
+
+  implicit val slidingWindowSlaEncoder: Encoder[SlidingWindowSla] = deriveEncoder[SlidingWindowSla]
+
+  implicit val escalationOnlySlaEncoder: Encoder[EscalationOnlySla] = deriveEncoder[EscalationOnlySla]
+  implicit val genericSlaEncoder: Encoder[GenericSla] = deriveEncoder[GenericSla]
+  implicit val slaReferenceEncoder: Encoder[SlaReference] = deriveEncoder[SlaReference]
+  implicit val slaEncoder: Encoder[Sla] = deriveEncoder[Sla]
+  implicit val clusterEncoder: Encoder[Cluster] = deriveEncoder[Cluster]
 
 }

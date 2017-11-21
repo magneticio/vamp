@@ -1,5 +1,6 @@
 package io.vamp.model.reader
 
+import io.vamp.common.RootAnyMap
 import io.vamp.model.artifact._
 
 import scala.concurrent.duration._
@@ -37,7 +38,7 @@ object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
       EscalationOnlySla(name, metadataAsRootAnyMap, escalations)
 
     case generic ⇒
-      GenericSla(name, metadataAsRootAnyMap, generic, escalations, parameters)
+      GenericSla(name, metadataAsRootAnyMap, generic, escalations, parametersToRootAnyMap)
   }
 
   protected def escalations(implicit source: YamlSourceReader): List[Escalation] = <<?[YamlList]("escalations") match {
@@ -46,6 +47,8 @@ object SlaReader extends YamlReader[Sla] with WeakReferenceYamlReader[Sla] {
   }
 
   override protected def parameters(implicit source: YamlSourceReader): Map[String, Any] = source.flatten(key ⇒ key != "name" && key != "type" && key != "escalations")
+
+  override protected def parametersToRootAnyMap(implicit source: YamlSourceReader): RootAnyMap = source.flattenToRootAnyMap(key ⇒ key != "name" && key != "type" && key != "escalations")
 }
 
 object EscalationReader extends YamlReader[Escalation] with WeakReferenceYamlReader[Escalation] {
@@ -87,6 +90,6 @@ object EscalationReader extends YamlReader[Escalation] with WeakReferenceYamlRea
       ScaleMemoryEscalation(name, metadataAsRootAnyMap, <<![Double]("minimum"), <<![Double]("maximum"), <<![Double]("scale_by"), <<?[String]("target"))
 
     case generic ⇒
-      GenericEscalation(name, metadataAsRootAnyMap, generic, parameters)
+      GenericEscalation(name, metadataAsRootAnyMap, generic, parametersToRootAnyMap)
   }
 }

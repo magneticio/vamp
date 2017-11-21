@@ -8,7 +8,7 @@ object Sla {
   val kind: String = "slas"
 }
 
-trait Sla extends Artifact {
+sealed trait Sla extends Artifact {
 
   val kind: String = Sla.kind
 
@@ -17,36 +17,37 @@ trait Sla extends Artifact {
 
 case class SlaReference(name: String, escalations: List[Escalation]) extends Reference with Sla
 
-case class GenericSla(name: String, metadata: RootAnyMap, `type`: String, escalations: List[Escalation], parameters: Map[String, Any]) extends Sla with Type
+case class GenericSla(name: String, metadata: RootAnyMap, `type`: String, escalations: List[Escalation], parameters: RootAnyMap) extends Sla with Type
 
 case class EscalationOnlySla(name: String, metadata: RootAnyMap, escalations: List[Escalation]) extends Sla with Type {
   def `type` = "escalation_only"
 }
 
-trait SlidingWindowSla[T] extends Sla {
-  def upper: T
+sealed trait SlidingWindowSla extends Sla {
+  def upper: FiniteDuration
 
-  def lower: T
+  def lower: FiniteDuration
 
   def interval: FiniteDuration
 
   def cooldown: FiniteDuration
 }
 
-case class ResponseTimeSlidingWindowSla(name: String, metadata: RootAnyMap, upper: FiniteDuration, lower: FiniteDuration, interval: FiniteDuration, cooldown: FiniteDuration, escalations: List[Escalation]) extends SlidingWindowSla[FiniteDuration]
+case class ResponseTimeSlidingWindowSla(name: String, metadata: RootAnyMap, upper: FiniteDuration, lower: FiniteDuration, interval: FiniteDuration, cooldown: FiniteDuration, escalations: List[Escalation]) extends SlidingWindowSla
 
 object Escalation {
   val kind: String = "escalations"
 }
-trait Escalation extends Artifact {
+
+sealed trait Escalation extends Artifact {
   val kind: String = Escalation.kind
 }
 
 case class EscalationReference(name: String) extends Reference with Escalation
 
-case class GenericEscalation(name: String, metadata: RootAnyMap, `type`: String, parameters: Map[String, Any]) extends Escalation with Type
+case class GenericEscalation(name: String, metadata: RootAnyMap, `type`: String, parameters: RootAnyMap) extends Escalation with Type
 
-trait GroupEscalation extends Escalation with Type {
+sealed trait GroupEscalation extends Escalation with Type {
   def escalations: List[Escalation]
 }
 
@@ -58,25 +59,20 @@ case class ToOneEscalation(name: String, metadata: RootAnyMap, escalations: List
   def `type` = "to_one"
 }
 
-trait ScaleEscalation[T] extends Escalation with Type {
-  def minimum: T
-
-  def maximum: T
-
-  def scaleBy: T
+sealed trait ScaleEscalation extends Escalation with Type {
 
   def targetCluster: Option[String]
 }
 
-case class ScaleInstancesEscalation(name: String, metadata: RootAnyMap, minimum: Int, maximum: Int, scaleBy: Int, targetCluster: Option[String]) extends ScaleEscalation[Int] {
+case class ScaleInstancesEscalation(name: String, metadata: RootAnyMap, minimum_Instance: Int, maximum_Instance: Int, scaleBy_Instance: Int, targetCluster: Option[String]) extends ScaleEscalation {
   def `type` = "scale_instances"
 }
 
-case class ScaleCpuEscalation(name: String, metadata: RootAnyMap, minimum: Double, maximum: Double, scaleBy: Double, targetCluster: Option[String]) extends ScaleEscalation[Double] {
+case class ScaleCpuEscalation(name: String, metadata: RootAnyMap, minimum_Cpu: Double, maximum_Cpu: Double, scaleBy_Cpu: Double, targetCluster: Option[String]) extends ScaleEscalation {
   def `type` = "scale_cpu"
 }
 
-case class ScaleMemoryEscalation(name: String, metadata: RootAnyMap, minimum: Double, maximum: Double, scaleBy: Double, targetCluster: Option[String]) extends ScaleEscalation[Double] {
+case class ScaleMemoryEscalation(name: String, metadata: RootAnyMap, minimum_Memory: Double, maximum_Memory: Double, scaleBy_Memory: Double, targetCluster: Option[String]) extends ScaleEscalation {
   def `type` = "scale_memory"
 }
 

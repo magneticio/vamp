@@ -111,7 +111,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
 
       case e: ToOneEscalation    ⇒ (if (escalate) e.escalations else e.escalations.reverse).foldLeft[Option[Deployment]](None)((op1, op2) ⇒ if (op1.isDefined) op1 else escalateToOne(deployment, cluster, op2, escalate))
 
-      case e: ScaleEscalation[_] ⇒ scaleEscalation(deployment, cluster, e, escalate)
+      case e: ScaleEscalation ⇒ scaleEscalation(deployment, cluster, e, escalate)
 
       case e: GenericEscalation ⇒
         info(UnsupportedEscalationType(e.`type`))
@@ -121,7 +121,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
     }
   }
 
-  private def scaleEscalation(deployment: Deployment, cluster: DeploymentCluster, escalation: ScaleEscalation[_], escalate: Boolean): Option[Deployment] = {
+  private def scaleEscalation(deployment: Deployment, cluster: DeploymentCluster, escalation: ScaleEscalation, escalate: Boolean): Option[Deployment] = {
     log.debug(s"scale escalation: ${deployment.name}/${cluster.name}")
 
     def commit(targetCluster: DeploymentCluster, scale: DefaultScale): Option[Deployment] = {

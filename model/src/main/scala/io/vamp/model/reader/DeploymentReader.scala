@@ -28,7 +28,7 @@ trait AbstractDeploymentReader
 
           <<?[List[YamlSourceReader]]("services") match {
             case None ⇒
-              DeploymentCluster(name, metadataAsRootAnyMap, Nil, Nil, HealthCheckReader.read, <<?[String]("network"), sla, dialects)
+              DeploymentCluster(name, metadataAsRootAnyMap, Nil, Nil, HealthCheckReader.read, <<?[String]("network"), sla, dialectsAsAnyRootMap)
             case Some(list) ⇒
               DeploymentCluster(
                 name,
@@ -38,7 +38,7 @@ trait AbstractDeploymentReader
                 HealthCheckReader.read,
                 <<?[String]("network"),
                 sla,
-                dialects
+                dialectsAsAnyRootMap
               )
           }
       } toList
