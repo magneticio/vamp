@@ -3,7 +3,7 @@ package io.vamp.container_driver.docker
 import akka.actor.ActorRef
 import com.spotify.docker.client.DefaultDockerClient
 import com.spotify.docker.client.messages.{Container => SpotifyContainer, ContainerInfo => _, _}
-import io.vamp.common.{ClassMapper, Config, RootAnyMap}
+import io.vamp.common._
 import io.vamp.common.vitals.InfoRequest
 import io.vamp.container_driver.ContainerDriverActor._
 import io.vamp.container_driver._
@@ -218,23 +218,27 @@ class DockerDriverActor extends ContainerDriverActor with ContainerDriver with D
     if (service.scale.isDefined)
       labels += (ContainerDriver.withNamespace("scale") → write(DockerServiceScale(service.scale.get)))
 
-    if (service.dialects.contains(DockerDriverActor.dialect)) {
-      service.dialects.get(DockerDriverActor.dialect).map { dialect ⇒
-        val values = dialect.asInstanceOf[Map[String, Any]]
+    if (service.dialects.rootMap.contains(DockerDriverActor.dialect)) {
+      service.dialects.rootMap.get(DockerDriverActor.dialect).flatMap { dialect ⇒
+        dialect match {
+          case values: RestrictedMap => {
 
-        /* Looking for labels */
-        val inLabels = values.get("labels").asInstanceOf[Option[Map[String, String]]]
-        if (inLabels.isDefined)
-          inLabels.get.foreach(f ⇒ {
-            labels += f
-          })
+            val inLabels = values.mp.get("labels")
+            if (inLabels.isDefined && inLabels.get.isInstanceOf[RestrictedMap])
+              inLabels.get.asInstanceOf[RestrictedMap].mp.foreach(f ⇒ {
+                if(f._2.isInstanceOf[RestrictedString]) labels += (f._1 -> f._2.asInstanceOf[RestrictedString].s)
+                else ()
+              })
 
-        /* Getting net parameters */
-        val net = values.get("net").asInstanceOf[Option[String]]
-        if (net.isDefined)
-          hostConfig.portBindings(portBindings).networkMode(net.get)
-        else
-          hostConfig.portBindings(portBindings).networkMode(docker.network)
+            /* Getting net parameters */
+            val net = values.mp.get("net")
+            if (net.isDefined && net.get.isInstanceOf[RestrictedString])
+              Some(hostConfig.portBindings(portBindings).networkMode(net.get.asInstanceOf[RestrictedString].s))
+            else
+              Some(hostConfig.portBindings(portBindings).networkMode(docker.network))
+          }
+          case _ => None
+        }
       }
     } else {
       hostConfig.portBindings(portBindings).networkMode(docker.network)

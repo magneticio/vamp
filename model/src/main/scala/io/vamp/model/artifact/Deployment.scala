@@ -35,7 +35,7 @@ object DeploymentService {
 
       case class Done(since: OffsetDateTime = OffsetDateTime.now()) extends Phase
 
-      case class Failed(notification: Notification, since: OffsetDateTime = OffsetDateTime.now()) extends Phase
+      case class Failed(notificationMessage: String, since: OffsetDateTime = OffsetDateTime.now()) extends Phase
 
     }
 
@@ -126,7 +126,7 @@ case class DeploymentService(
   healthChecks:         Option[List[HealthCheck]],
   network:              Option[String],
   dependencies:         Map[String, String]       = Map(),
-  dialects:             Map[String, Any]          = Map(),
+  dialects:             RootAnyMap                = RootAnyMap.empty,
   health:               Option[Health]            = None
 ) extends AbstractService
 

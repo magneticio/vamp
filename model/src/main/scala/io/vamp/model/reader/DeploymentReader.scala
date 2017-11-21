@@ -76,7 +76,7 @@ trait AbstractDeploymentReader
       arguments(),
       HealthCheckReader.read,
       <<?[String]("network"), dependencies(),
-      dialects,
+      dialectsAsAnyRootMap,
       HealthReader.read
     )
   }
@@ -136,7 +136,7 @@ object DeploymentServiceStatusReader extends YamlReader[DeploymentService.Status
     )
 
     val phase = <<![String]("phase" :: "name") match {
-      case n if Phase.Failed.getClass.getName.endsWith(s"$n$$") ⇒ Phase.Failed(since = since(<<![String]("phase" :: "since")), notification = NotificationMessageNotRestored(<<?[String]("phase" :: "notification").getOrElse("")))
+      case n if Phase.Failed.getClass.getName.endsWith(s"$n$$") ⇒ Phase.Failed(since = since(<<![String]("phase" :: "since")), notificationMessage = NotificationMessageNotRestored(<<?[String]("phase" :: "notification").getOrElse("")).message)
       case n if Phase.Updating.getClass.getName.endsWith(s"$n$$") ⇒ Phase.Updating(since(<<![String]("phase" :: "since")))
       case n if Phase.Initiated.getClass.getName.endsWith(s"$n$$") ⇒ Phase.Initiated(since(<<![String]("phase" :: "since")))
       case n if Phase.Done.getClass.getName.endsWith(s"$n$$") ⇒ Phase.Done(since(<<![String]("phase" :: "since")))

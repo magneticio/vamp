@@ -414,7 +414,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
 
             service.copy(
               scale = scale,
-              dialects = service.dialects ++ bpService.dialects,
+              dialects = RootAnyMap(service.dialects.rootMap ++ bpService.dialects.rootMap),
               healthChecks = bpService.healthChecks
             )
         }

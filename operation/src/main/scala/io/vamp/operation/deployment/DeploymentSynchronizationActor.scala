@@ -92,7 +92,8 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
       if (timed) {
         val notification = DeploymentServiceError(deployment, service)
         reportException(notification)
-        actorFor[PersistenceActor] ! PersistenceActor.UpdateDeploymentServiceStatus(deployment, cluster, service, Status(service.status.intention, Failed(notification)))
+        actorFor[PersistenceActor] ! PersistenceActor.UpdateDeploymentServiceStatus(deployment, cluster, service, Status(service.status.intention,
+          Failed(s"Deployment service error for deployment ${deployment.name} and service ${service.breed.name}.")))
       }
       timed
     }

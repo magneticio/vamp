@@ -69,7 +69,7 @@ class DeploymentServiceStatusPhaseSerializer extends ArtifactSerializer[Deployme
       list += JField("since", JString(step.since.format(DateTimeFormatter.ISO_DATE_TIME)))
 
       step match {
-        case failure: Failed ⇒ list += JField("notification", JString(message(failure.notification)))
+        case failure: Failed ⇒ list += JField("notification", JString(failure.notificationMessage))
         case _               ⇒
       }
 

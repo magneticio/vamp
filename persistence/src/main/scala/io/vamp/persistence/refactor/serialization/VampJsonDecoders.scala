@@ -5,6 +5,7 @@ import java.time.{Duration, ZoneOffset}
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.{Decoder, DecodingFailure, HCursor}
 import io.vamp.common._
+import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
 import io.vamp.model.artifact.TimeSchedule.RepeatPeriod
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{MegaByte, Percentage, Quantity, Time}
@@ -233,4 +234,25 @@ trait VampJsonDecoders {
   }}
 
   implicit val workflowDecoder: Decoder[Workflow] = deriveDecoder[Workflow]
+
+
+  implicit val statusIntentionTypeDecoder: Decoder[StatusIntentionType] = enumDecoder(DeploymentService.Status.Intention)
+  implicit val deploymentServicePhaseInitiatedDecoder : Decoder[DeploymentService.Status.Phase.Initiated] = deriveDecoder[DeploymentService.Status.Phase.Initiated]
+  implicit val deploymentServicePhaseUpdatingDecoder : Decoder[DeploymentService.Status.Phase.Updating] = deriveDecoder[DeploymentService.Status.Phase.Updating]
+  implicit val deploymentServicePhaseDoneDecoder : Decoder[DeploymentService.Status.Phase.Done] = deriveDecoder[DeploymentService.Status.Phase.Done]
+  implicit val deploymentServicePhaseFailedDecoder : Decoder[DeploymentService.Status.Phase.Failed] = deriveDecoder[DeploymentService.Status.Phase.Failed]
+
+  implicit val deploymentServicePhaseDecoder: Decoder[DeploymentService.Status.Phase] = Decoder.instance[DeploymentService.Status.Phase] { hc => {
+    hc.downField("type").as[String] match {
+      case Right(v) if(v == "Initiated") => {hc.downField("args").as[DeploymentService.Status.Phase.Initiated]}
+      case Right(v) if(v == "Updating") => {hc.downField("args").as[DeploymentService.Status.Phase.Updating]}
+      case Right(v) if(v == "Done") => {hc.downField("args").as[DeploymentService.Status.Phase.Done]}
+      case Right(v) if(v == "Failed") => {hc.downField("args").as[DeploymentService.Status.Phase.Failed]}
+      case _ => Left(DecodingFailure(s"Unable ${hc.toString} to extract as RepeatForever, RepeatCount", ops = hc.history))
+    }
+  }}
+
+  implicit val deploymentServiceStatusDecoder: Decoder[DeploymentService.Status] = deriveDecoder[DeploymentService.Status]
+
+  implicit val deploymenServiceDecoder: Decoder[DeploymentService] = deriveDecoder[DeploymentService]
 }

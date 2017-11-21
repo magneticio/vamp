@@ -5,6 +5,7 @@ import java.time.{OffsetDateTime, ZoneOffset}
 import io.circe._
 import io.circe.generic.semiauto.deriveEncoder
 import io.vamp.common._
+import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
 import io.vamp.model.artifact.TimeSchedule.RepeatPeriod
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{MegaByte, Percentage, Quantity, Time}
@@ -169,5 +170,29 @@ trait VampJsonEncoders {
   }}
 
   implicit val workflowEncoder: Encoder[Workflow] = deriveEncoder[Workflow]
+
+  implicit val statusIntentionTypeEncoder: Encoder[StatusIntentionType] = enumEncoder(DeploymentService.Status.Intention)
+  implicit val deploymentServicePhaseInitiatedEncoder : Encoder[DeploymentService.Status.Phase.Initiated] = deriveEncoder[DeploymentService.Status.Phase.Initiated]
+  implicit val deploymentServicePhaseUpdatingEncoder : Encoder[DeploymentService.Status.Phase.Updating] = deriveEncoder[DeploymentService.Status.Phase.Updating]
+  implicit val deploymentServicePhaseDoneEncoder : Encoder[DeploymentService.Status.Phase.Done] = deriveEncoder[DeploymentService.Status.Phase.Done]
+  implicit val deploymentServicePhaseFailedEncoder : Encoder[DeploymentService.Status.Phase.Failed] = deriveEncoder[DeploymentService.Status.Phase.Failed]
+
+  implicit val deploymentServicePhaseEncoder: Encoder[DeploymentService.Status.Phase] = Encoder.instance[DeploymentService.Status.Phase] { _ match {
+    case e: DeploymentService.Status.Phase.Initiated => Json.fromJsonObject(JsonObject.fromMap(Map(
+      "type" -> Json.fromString("Initiated"), "args" -> deploymentServicePhaseInitiatedEncoder(e)
+    )))
+    case e: DeploymentService.Status.Phase.Updating => Json.fromJsonObject(JsonObject.fromMap(Map(
+      "type" -> Json.fromString("Updating"), "args" -> deploymentServicePhaseUpdatingEncoder(e)
+    )))
+    case e: DeploymentService.Status.Phase.Done => Json.fromJsonObject(JsonObject.fromMap(Map(
+      "type" -> Json.fromString("Done"), "args" -> deploymentServicePhaseDoneEncoder(e)
+    )))
+    case e: DeploymentService.Status.Phase.Failed => Json.fromJsonObject(JsonObject.fromMap(Map(
+      "type" -> Json.fromString("Failed"), "args" -> deploymentServicePhaseFailedEncoder(e)
+    )))
+  }
+  }
+
+  implicit val deploymentServiceStatusEncoder: Encoder[DeploymentService.Status] = deriveEncoder[DeploymentService.Status]
 
 }

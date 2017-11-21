@@ -85,7 +85,7 @@ abstract class AbstractService {
 
   def network: Option[String]
 
-  def dialects: Map[String, Any]
+  def dialects: RootAnyMap
 
   def health: Option[Health]
 }
@@ -97,7 +97,7 @@ case class Service(
   arguments:            List[Argument],
   healthChecks:         Option[List[HealthCheck]],
   network:              Option[String]            = None,
-  dialects:             Map[String, Any]          = Map(),
+  dialects:             RootAnyMap                = RootAnyMap.empty,
   health:               Option[Health]            = None
 ) extends AbstractService
 

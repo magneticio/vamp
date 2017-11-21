@@ -399,7 +399,7 @@ class MarathonDriverActor
   }
 
   private def requestPayload(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, app: MarathonApp): JValue = {
-    val (local, dialect) = (deployment.dialects.get(MarathonDriverActor.dialect), cluster.dialects.get(MarathonDriverActor.dialect), service.dialects.get(MarathonDriverActor.dialect)) match {
+    val (local, dialect) = (deployment.dialects.get(MarathonDriverActor.dialect), cluster.dialects.get(MarathonDriverActor.dialect), service.dialects.rootMap.get(MarathonDriverActor.dialect)) match {
       case (_, _, Some(d))       ⇒ Some(service) → d
       case (_, Some(d), None)    ⇒ None → d
       case (Some(d), None, None) ⇒ None → d
