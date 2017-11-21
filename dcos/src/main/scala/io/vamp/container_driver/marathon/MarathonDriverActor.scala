@@ -175,12 +175,22 @@ class MarathonDriverActor
   private def applyGlobalOverride(workflowDeployment: Boolean): PartialFunction[Argument, MarathonApp ⇒ MarathonApp] = {
     case arg @ Argument("override.workflow.docker.network", networkOverrideValue) ⇒ { app ⇒
       if (workflowDeployment)
-        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(
+          network = networkOverrideValue,
+          portMappings = c.docker.portMappings.map(portMapping ⇒ networkOverrideValue match {
+            case "USER" ⇒ portMapping.copy(hostPort = None)
+            case _      ⇒ portMapping
+          })))))
       else app
     }
     case arg @ Argument("override.deployment.docker.network", networkOverrideValue) ⇒ { app ⇒
       if (!workflowDeployment)
-        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(network = networkOverrideValue))))
+        app.copy(container = app.container.map(c ⇒ c.copy(docker = c.docker.copy(
+          network = networkOverrideValue,
+          portMappings = c.docker.portMappings.map(portMapping ⇒ networkOverrideValue match {
+            case "USER" ⇒ portMapping.copy(hostPort = None)
+            case _      ⇒ portMapping
+          })))))
       else app
     }
     case arg @ Argument("override.workflow.docker.privileged", runPriviledged) ⇒ { app ⇒
