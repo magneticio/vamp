@@ -22,7 +22,16 @@ trait VampJsonFormats extends DefaultJsonProtocol with VampJsonDecoders with Vam
 
   implicit val blueprintSerilizationSpecifier: SerializationSpecifier[Blueprint] =
     SerializationSpecifier[Blueprint](blueprintEncoder, blueprintDecoder, "blueprint", (e ⇒ Id[Blueprint](e.name)))
-  
+
+  implicit val deploymentSerilizationSpecifier: SerializationSpecifier[Deployment] =
+    SerializationSpecifier[Deployment](deploymentEncoder, deploymentDecoder, "deployment", (e ⇒ Id[Deployment](e.name)))
+
+  implicit val breedSerilizationSpecifier: SerializationSpecifier[Breed] =
+    SerializationSpecifier[Breed](breedEncoder, breedDecoder, "breed", (e ⇒ Id[Breed](e.name)))
+
+  implicit val slaSerializationSpecifier: SerializationSpecifier[Scale] =
+    SerializationSpecifier[Scale](scaleEncoder, scaleDecoder, "scale", (e => Id[Scale](e.name)))
+
   def marshall[T: SerializationSpecifier](obj: T): String = {
     val specifier = implicitly[SerializationSpecifier[T]]
     specifier.encoder(obj).noSpaces

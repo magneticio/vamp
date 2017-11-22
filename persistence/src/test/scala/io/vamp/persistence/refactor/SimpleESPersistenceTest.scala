@@ -68,7 +68,7 @@ class SimpleESPersistenceTest extends fixture.FlatSpec with Matchers with UseEla
     // Reindex objects so they are searchable
     Thread.sleep(2000)
 
-    val response = simpleAwait(VampPersistence().getAll(environmentVariableSerilizationSpecifier))
+    val response = simpleAwait(VampPersistence().getAll[EnvironmentVariable]())
     assert(response.size == envVarList.size && envVarList.forall(e ⇒ response.exists(_ == e)))
   }
 

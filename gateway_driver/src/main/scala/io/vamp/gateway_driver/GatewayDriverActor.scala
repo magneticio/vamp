@@ -4,10 +4,11 @@ import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
+import io.vamp.gateway_driver.notification.{GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest}
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
-import io.vamp.persistence.{ KeyValueStoreActor, PersistenceMarshaller }
+import io.vamp.persistence.KeyValueStoreActor
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.notification.PulseFailureNotifier
@@ -33,7 +34,7 @@ object GatewayDriverActor {
 
 case class GatewayMarshallerDefinition(marshaller: GatewayMarshaller, template: String)
 
-class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) extends PersistenceMarshaller with PulseFailureNotifier with CommonSupportForActors with GatewayDriverNotificationProvider {
+class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) extends PulseFailureNotifier with CommonSupportForActors with GatewayDriverNotificationProvider with VampJsonFormats{
 
   import GatewayDriverActor._
 
@@ -76,13 +77,13 @@ class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) 
 
   private def pull(): Future[List[Gateway]] = {
     IoC.actorFor[KeyValueStoreActor] ? KeyValueStoreActor.Get(rootPath) map {
-      case Some(content: String) ⇒ unmarshall[Gateway](content)
+      case Some(content: String) ⇒ unMarshallList[Gateway](content)
       case _                     ⇒ Nil
     }
   }
 
   private def push(gateways: List[Gateway]) = {
-    set(rootPath, marshall(gateways))
+    set(rootPath, marshallList(gateways))
     marshallers.foreach {
       case (name, definition) ⇒ getTemplate(definition.marshaller.`type`, name).map { content ⇒
         set(configurationPath(definition.marshaller.`type`, name), definition.marshaller.marshall(gateways, content)).map {

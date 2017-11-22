@@ -97,8 +97,8 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     } yield ()
   }
 
-  def getAll[T](s: SerializationSpecifier[T], fromAndSize: Option[(Int, Int)] = None): Future[List[T]] = {
-    implicit val sSpecifier: SerializationSpecifier[T] = s
+  def getAll[T:SerializationSpecifier](fromAndSize: Option[(Int, Int)] = None): Future[List[T]] = {
+    implicit val s = implicitly[SerializationSpecifier[T]]
     for {
       numberOfObjects ← esClient.execute(search(indexName) types (s.typeName) size 0)
       allObjects ← esClient.execute(search(indexName) types (s.typeName) from (
@@ -123,6 +123,8 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
       case Left(e)  ⇒ throw InvalidFormatException(objectAsString = stringToRead, originalException = e)
     }
   }
+
+  override def info: String = s"ElasticSearch: ${elasticSearchHostAndPort}"
 
   private[persistence] def afterTestCleanup: Unit = Await.result(esClient.execute(deleteIndex(indexName)), 10.second)
 }

@@ -5,10 +5,12 @@ import io.vamp.common.Config
 import io.vamp.common.akka._
 import io.vamp.common.http.HttpClient
 import io.vamp.common.notification.Notification
-import io.vamp.container_driver.notification.{ ContainerDriverNotificationProvider, ContainerResponseError }
-import io.vamp.model.artifact.{ Deployment, _ }
-import io.vamp.persistence.PersistenceActor
+import io.vamp.container_driver.notification.{ContainerDriverNotificationProvider, ContainerResponseError}
+import io.vamp.model.artifact.{Deployment, _}
+import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.pulse.notification.PulseFailureNotifier
+import io.vamp.common.Id
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
 
 import scala.concurrent.Future
 
@@ -69,7 +71,7 @@ case class ContainerInstance(name: String, host: String, ports: List[Int], deplo
 
 case class ContainerInfo(`type`: String, container: Any)
 
-trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForActors with ContainerDriverNotificationProvider {
+trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForActors with ContainerDriverNotificationProvider with VampJsonFormats {
 
   implicit val timeout = ContainerDriverActor.timeout()
 
@@ -87,7 +89,9 @@ trait ContainerDriverActor extends PulseFailureNotifier with CommonSupportForAct
   }
 
   protected def setGatewayService(gateway: Gateway, host: String, port: Int) = {
-    IoC.actorFor[PersistenceActor].forward(PersistenceActor.CreateGatewayServiceAddress(gateway, host, port))
+    VampPersistence().update(Id[Gateway](gateway.name), (g: Gateway) => g.copy(
+      service = Some(GatewayService(host, gateway.port.copy(number = port) match { case p ⇒ p.copy(value = Option(p.toValue)) }))
+    ))
   }
 
   override def errorNotificationClass = classOf[ContainerResponseError]

@@ -3,14 +3,15 @@ package io.vamp.operation.controller
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Config, ConfigMagnet, Namespace }
+import io.vamp.common.{Config, ConfigMagnet, Namespace}
 import io.vamp.common.akka.DataRetrieval
 import io.vamp.common.akka.IoC._
-import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
+import io.vamp.common.vitals.{InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals}
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.model.Model
-import io.vamp.persistence.{ KeyValueStoreActor, PersistenceActor }
+import io.vamp.persistence.KeyValueStoreActor
+import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.pulse.PulseActor
 import io.vamp.workflow_driver.WorkflowDriverActor
 
@@ -33,7 +34,7 @@ case class InfoMessage(
   uuid:            String,
   runningSince:    String,
   jvm:             Option[JvmVitals],
-  persistence:     Option[Any],
+  persistence:     String,
   keyValue:        Option[Any],
   pulse:           Option[Any],
   gatewayDriver:   Option[Any],
@@ -55,7 +56,7 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
         Model.uuid,
         Model.runningSince,
         if (on.isEmpty || on.contains("jvm")) Option(jvmVitals()) else None,
-        result.data.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
+        VampPersistence().info,
         result.data.get(classOf[KeyValueStoreActor].asInstanceOf[Class[Actor]]),
         result.data.get(classOf[PulseActor].asInstanceOf[Class[Actor]]),
         result.data.get(classOf[GatewayDriverActor].asInstanceOf[Class[Actor]]),
@@ -68,7 +69,6 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
   protected def infoActors(on: Set[String]): List[Class[Actor]] = {
     val list = if (on.isEmpty) {
       List(
-        classOf[PersistenceActor],
         classOf[KeyValueStoreActor],
         classOf[PulseActor],
         classOf[GatewayDriverActor],
@@ -77,7 +77,6 @@ trait InfoController extends AbstractController with DataRetrieval with JmxVital
       )
     }
     else on.map(_.toLowerCase).collect {
-      case "persistence"      ⇒ classOf[PersistenceActor]
       case "key_value"        ⇒ classOf[KeyValueStoreActor]
       case "pulse"            ⇒ classOf[PulseActor]
       case "gateway_driver"   ⇒ classOf[GatewayDriverActor]

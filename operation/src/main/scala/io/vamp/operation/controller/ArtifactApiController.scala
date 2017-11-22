@@ -45,7 +45,7 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
   def createArtifact(kind: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
     case (t, r) if t == classOf[Gateway]    ⇒ unmarshall(r, source).flatMap(createGateway(_, source, validateOnly))
-    case (t, r) if t == classOf[Workflow]   ⇒ unmarshall(r, source).flatMap(createWorkflow(_, source, validateOnly))
+    case (t, r) if t == classOf[Workflow]   ⇒ unmarshall(r, source).flatMap(createWorkflow(_, validateOnly))
     case (_, r)                             ⇒ unmarshall(r, source).flatMap(create(_, source, validateOnly))
   }
 
@@ -58,14 +58,14 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
   def updateArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ throwException(UnexpectedArtifact(kind))
     case (t, r) if t == classOf[Gateway]    ⇒ unmarshall(r, source).flatMap(updateGateway(_, name, source, validateOnly))
-    case (t, r) if t == classOf[Workflow]   ⇒ unmarshall(r, source).flatMap(updateWorkflow(_, name, source, validateOnly))
+    case (t, r) if t == classOf[Workflow]   ⇒ unmarshall(r, source).flatMap(updateWorkflow(_, name, validateOnly))
     case (_, r)                             ⇒ unmarshall(r, source).flatMap(update(_, name, source, validateOnly))
   }
 
   def deleteArtifact(kind: String, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = `type`(kind) match {
     case (t, _) if t == classOf[Deployment] ⇒ Future.successful(None)
     case (t, _) if t == classOf[Gateway]    ⇒ deleteGateway(name, validateOnly)
-    case (t, _) if t == classOf[Workflow]   ⇒ deleteWorkflow(read(t, name, expandReferences = false, onlyReferences = false), source, validateOnly)
+    case (t, _) if t == classOf[Workflow]   ⇒ deleteWorkflow(read(t, name, expandReferences = false, onlyReferences = false), validateOnly)
     case (t, _)                             ⇒ delete(t, name, validateOnly)
   }
 

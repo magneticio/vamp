@@ -9,27 +9,26 @@ import io.vamp.model.artifact._
 import io.vamp.model.conversion.DeploymentConversion._
 import io.vamp.model.reader._
 import io.vamp.operation.deployment.DeploymentActor
-import io.vamp.persistence.notification.PersistenceOperationFailure
-import io.vamp.persistence.{ ArtifactResponseEnvelope, ArtifactShrinkage, PersistenceActor }
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
+import io.vamp.persistence.{ArtifactResponseEnvelope, ArtifactShrinkage}
+import io.vamp.common.Id
 
 import scala.concurrent.Future
 
-trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage with AbstractController {
+trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage with AbstractController with VampJsonFormats {
 
   def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
-    (actorFor[PersistenceActor] ? PersistenceActor.All(classOf[Deployment], page, perPage, expandReferences, onlyReferences)) map {
-      case envelope: ArtifactResponseEnvelope ⇒ envelope.copy(response = envelope.response.map {
-        case deployment: Deployment ⇒ transform(deployment, asBlueprint, onlyReferences)
-        case any                    ⇒ any
-      })
-      case other ⇒ throwException(PersistenceOperationFailure(other))
+    val fromAndSize = if(perPage > 0) Some((perPage * page, perPage)) else None
+    VampPersistence().getAll[Deployment](fromAndSize) map { deploymentList =>
+      ArtifactResponseEnvelope(response = deploymentList.map { deployment ⇒ transform(deployment, asBlueprint, onlyReferences)},
+        total = deploymentList.size, //TODO: changet his to an appropriate value
+        page = page, perPage = perPage)
     }
   }
 
-  def deployment(name: String, asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = (actorFor[PersistenceActor] ? PersistenceActor.Read(name, classOf[Deployment], expandReferences, onlyReferences)).map {
-    case Some(deployment: Deployment) ⇒ transform(deployment, asBlueprint, onlyReferences)
-    case other                        ⇒ other
-  }
+  def deployment(name: String, asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] =
+    VampPersistence().read[Deployment](Id[Deployment](name)) map {deployment => transform(deployment, asBlueprint, onlyReferences)}
 
   private def transform(deployment: Deployment, asBlueprint: Boolean, onlyRef: Boolean) = {
     if (asBlueprint) {
@@ -51,7 +50,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
           val futures = {
             if (!validateOnly)
               blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
-                breed ⇒ actorFor[PersistenceActor] ? PersistenceActor.Create(breed, Some(source))
+                breed ⇒ VampPersistence().create[Breed](breed)
               }
             else Nil
           } :+ default(blueprint)
@@ -72,8 +71,8 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
 
           val futures = {
             if (!validateOnly)
-              blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
-                actorFor[PersistenceActor] ? PersistenceActor.Create(_, Some(source))
+              blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map { b =>
+                VampPersistence().create[Breed](b)
               }
             else Nil
           } :+ default(blueprint)
@@ -107,57 +106,50 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
       }
     }
     else {
-      actorFor[PersistenceActor] ? PersistenceActor.Read(name, classOf[Deployment])
+      VampPersistence().read[Deployment](Id[Deployment](name))
     }
   }
 
   def sla(deploymentName: String, clusterName: String)(implicit namespace: Namespace, timeout: Timeout) =
-    (actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result ⇒
+    (VampPersistence().read[Deployment](Id[Deployment](deploymentName))).map { result ⇒
       result.asInstanceOf[Option[Deployment]].flatMap(deployment ⇒ deployment.clusters.find(_.name == clusterName).flatMap(_.sla))
     }
 
   def slaUpdate(deploymentName: String, clusterName: String, request: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) =
-    actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment]) flatMap {
-      case Some(deployment: Deployment) ⇒
-        deployment.clusters.find(_.name == clusterName) match {
-          case None          ⇒ Future(None)
-          case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateSla(deployment, cluster, Some(SlaReader.read(request)), request, validateOnly)
-        }
-      case _ ⇒ Future(None)
+    VampPersistence().read[Deployment](Id[Deployment](deploymentName)) flatMap {deployment => deployment.clusters.find(_.name == clusterName) match {
+        case None          ⇒ Future(None)
+        case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateSla(deployment, cluster, Some(SlaReader.read(request)), request, validateOnly)
+      }
     }
 
   def slaDelete(deploymentName: String, clusterName: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) =
-    actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment]) flatMap {
-      case Some(deployment: Deployment) ⇒
-        deployment.clusters.find(_.name == clusterName) match {
-          case None          ⇒ Future(None)
-          case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateSla(deployment, cluster, None, "", validateOnly)
-        }
-      case _ ⇒ Future(None)
+    VampPersistence().read[Deployment](Id[Deployment](deploymentName)) flatMap { deployment =>
+      deployment.clusters.find(_.name == clusterName) match {
+        case None          ⇒ Future(None)
+        case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateSla(deployment, cluster, None, "", validateOnly)
+      }
     }
 
   def scale(deploymentName: String, clusterName: String, breedName: String)(implicit namespace: Namespace, timeout: Timeout) =
-    (actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment])).map { result ⇒
+    (VampPersistence().read[Deployment](Id[Deployment](deploymentName))).map { result ⇒
       result.asInstanceOf[Option[Deployment]].flatMap(deployment ⇒ deployment.clusters.find(_.name == clusterName).flatMap(cluster ⇒ cluster.services.find(_.breed.name == breedName)).flatMap(service ⇒ Some(service.scale)))
     }
 
   def scaleUpdate(deploymentName: String, clusterName: String, breedName: String, request: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) =
-    actorFor[PersistenceActor] ? PersistenceActor.Read(deploymentName, classOf[Deployment]) flatMap {
-      case Some(deployment: Deployment) ⇒
-        deployment.clusters.find(_.name == clusterName) match {
+    VampPersistence().read[Deployment](Id[Deployment](deploymentName)) flatMap { deployment =>
+      deployment.clusters.find(_.name == clusterName) match {
+        case None ⇒ Future(None)
+        case Some(cluster) ⇒ cluster.services.find(_.breed.name == breedName) match {
           case None ⇒ Future(None)
-          case Some(cluster) ⇒ cluster.services.find(_.breed.name == breedName) match {
-            case None ⇒ Future(None)
-            case Some(service) ⇒
-              (ScaleReader.read(request) match {
-                case s: ScaleReference ⇒ actorFor[PersistenceActor] ? PersistenceActor.Read(s.name, classOf[Scale])
-                case s: DefaultScale   ⇒ Future(s)
-              }).map {
-                case scale: DefaultScale ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateScale(deployment, cluster, service, scale, request, validateOnly)
-                case _                   ⇒ Future(None)
-              }
-          }
+          case Some(service) ⇒
+            (ScaleReader.read(request) match {
+              case s: ScaleReference ⇒ VampPersistence().read[Scale](Id[Scale](s.name))
+              case s: DefaultScale   ⇒ Future(s)
+            }).map {
+              case scale: DefaultScale ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateScale(deployment, cluster, service, scale, request, validateOnly)
+              case _                   ⇒ Future(None)
+            }
         }
-      case _ ⇒ Future(None)
+      }
     }
 }

@@ -3,17 +3,17 @@ package io.vamp.operation.controller
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Config, Namespace }
+import io.vamp.common.{Config, Namespace}
 import io.vamp.common.akka.DataRetrieval
 import io.vamp.common.akka.IoC._
-import io.vamp.common.vitals.{ JmxVitalsProvider, JvmVitals, StatsRequest }
+import io.vamp.common.vitals.{JmxVitalsProvider, JvmVitals, StatsRequest}
 import io.vamp.operation.metrics.KamonMetricsActor
-import io.vamp.persistence.PersistenceActor
+import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.pulse.PulseActor
 
 import scala.concurrent.Future
 
-case class StatsMessage(jvm: JvmVitals, system: Any, persistence: Any, pulse: Any)
+case class StatsMessage(jvm: JvmVitals, system: Any, persistence: String, pulse: Any)
 
 trait StatsController extends AbstractController with DataRetrieval with JmxVitalsProvider {
 
@@ -21,7 +21,7 @@ trait StatsController extends AbstractController with DataRetrieval with JmxVita
 
   def stats()(implicit namespace: Namespace, timeout: Timeout): Future[StatsMessage] = {
 
-    val actors = List(classOf[KamonMetricsActor], classOf[PersistenceActor], classOf[PulseActor]) map {
+    val actors = List(classOf[KamonMetricsActor], classOf[PulseActor]) map {
       _.asInstanceOf[Class[Actor]]
     }
 
@@ -29,7 +29,7 @@ trait StatsController extends AbstractController with DataRetrieval with JmxVita
       StatsMessage(
         jvmVitals(),
         result.data.get(classOf[KamonMetricsActor].asInstanceOf[Class[Actor]]),
-        result.data.get(classOf[PersistenceActor].asInstanceOf[Class[Actor]]),
+        VampPersistence().info,
         result.data.get(classOf[PulseActor].asInstanceOf[Class[Actor]])
       )
     }
