@@ -1,6 +1,6 @@
 package io.vamp.model.reader
 
-import io.vamp.common.{RestrictedBoolean, RestrictedMap, RestrictedString, RootAnyMap}
+import io.vamp.common.{ RestrictedBoolean, RestrictedMap, RestrictedString, RootAnyMap }
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import org.junit.runner.RunWith
@@ -426,7 +426,8 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "parse dialects" in {
     BlueprintReader.read(res("blueprint/blueprint47.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", RootAnyMap.empty, List(Service(BreedReference("sava1"), Nil, None, Nil, None, None,
+      'clusters(List(Cluster("supersonic", RootAnyMap.empty, List(
+        Service(BreedReference("sava1"), Nil, None, Nil, None, None,
         RootAnyMap(Map("marathon" → RestrictedMap(Map("a" → RestrictedString("b"))), "docker" → RestrictedMap(Map("c" → RestrictedString("d")))))),
         Service(BreedReference("sava2"), Nil, None, Nil, None, None, RootAnyMap.empty)), Nil, None, None, None, RootAnyMap(Map("marathon" → RestrictedMap(Map("r" → RestrictedString("t"))), "docker" → RestrictedMap(Map("q" → RestrictedString("w"), "o" → RestrictedString("p")))))),
         Cluster("viper", RootAnyMap.empty, List(Service(BreedReference("sava3"), Nil, None, Nil, None, None, RootAnyMap.empty), Service(BreedReference("sava4"), Nil, None, Nil, None, None, RootAnyMap.empty)), Nil, None, None, None, RootAnyMap(Map("marathon" → RestrictedMap(Map("u" → RestrictedString("i")))))))),

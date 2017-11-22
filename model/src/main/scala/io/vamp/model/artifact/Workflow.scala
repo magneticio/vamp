@@ -57,7 +57,7 @@ case class Workflow(
     arguments:            List[Argument],
     network:              Option[String],
     healthChecks:         Option[List[HealthCheck]],
-    dialects:             RootAnyMap          = RootAnyMap.empty,
+    dialects:             RootAnyMap                = RootAnyMap.empty,
     instances:            List[Instance]            = Nil,
     health:               Option[Health]            = None
 ) extends Artifact with Lookup {

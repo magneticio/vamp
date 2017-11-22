@@ -26,3 +26,7 @@ trait SimpleArtifactPersistenceDao {
   private[persistence] def afterTestCleanup(): Unit
   private[persistence] val indexName: String
 }
+
+trait SimpleArtifactPersistenceDaoFactory {
+  def get(namespace: Namespace): SimpleArtifactPersistenceDao
+}

@@ -2,10 +2,10 @@ package io.vamp.model.artifact
 
 import java.time.OffsetDateTime
 
-import io.vamp.common.{Artifact, Reference, RootAnyMap}
 import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
 import io.vamp.model.artifact.DeploymentService.Status.Phase.{Done, Initiated}
-import io.vamp.model.reader.{MegaByte, Quantity}
+import io.vamp.common.{ Artifact, Reference, RootAnyMap }
+import io.vamp.model.reader.{ MegaByte, Quantity }
 
 object Blueprint {
   val kind: String = "blueprints"

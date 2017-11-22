@@ -1,6 +1,6 @@
 package io.vamp.model.reader
 
-import io.vamp.common.{RestrictedString, RootAnyMap}
+import io.vamp.common.{ RestrictedString, RootAnyMap }
 import io.vamp.model.artifact._
 import io.vamp.model.notification.UnsupportedProtocolError
 import org.junit.runner.RunWith

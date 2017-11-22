@@ -8,12 +8,12 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact.DeploymentService.Status.Phase.Initiated
 import io.vamp.model.artifact._
-import io.vamp.model.event.{Event, EventQuery, TimeRange}
-import io.vamp.model.notification.{DeEscalate, Escalate, SlaEvent}
-import io.vamp.model.reader.{MegaByte, Quantity}
-import io.vamp.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType}
+import io.vamp.model.event.{ Event, EventQuery, TimeRange }
+import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
+import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.operation.notification.{ InternalServerError, OperationNotificationProvider, UnsupportedEscalationType }
 import io.vamp.operation.sla.EscalationActor.EscalationProcessAll
-import io.vamp.persistence.{ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor}
+import io.vamp.persistence.{ ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor
 
 import scala.concurrent.Future

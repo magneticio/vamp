@@ -2,7 +2,7 @@ package io.vamp.operation.deployment
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{Config, Namespace, RootAnyMap}
+import io.vamp.common.{ Config, Namespace, RootAnyMap }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact.DeploymentService.Status.Intention
@@ -13,7 +13,7 @@ import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ArtifactExpansionSupport, ArtifactPaginationSupport, ArtifactSupport, PersistenceActor}
+import io.vamp.persistence.{ ArtifactExpansionSupport, ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
 
 import scala.concurrent.Future
 

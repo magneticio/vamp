@@ -32,6 +32,7 @@ trait UseElasticSearchForTesting {
 
       val persistenceConfig: Map[String, Map[String, Any]] = Map("vamp.persistence.database" → Map(
         "type" → "elasticsearch",
+        "class-name" → "io.vamp.persistence.refactor.dao.EsDaoFactory",
         "elasticsearch.elasticsearch-url" → "elasticsearch://localhost:9300",
         "elasticsearch.elasticsearch-cluster-name" → "docker-cluster",
         "elasticsearch.elasticsearch-test-cluster" → true
@@ -44,7 +45,7 @@ trait UseElasticSearchForTesting {
     outcome match {
       case Success(Succeeded) ⇒ {
         println(s"Test for namespace ${ns.name} Succesful. Deleting index")
-        VampPersistence.persistenceDao.afterTestCleanup
+        VampPersistence().afterTestCleanup
       }
       case _ ⇒ { // Do nothing
         println(s"Test for index ${ns.name} FAILED. Keeping index in order to debug")

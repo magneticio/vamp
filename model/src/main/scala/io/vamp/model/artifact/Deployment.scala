@@ -1,6 +1,6 @@
 package io.vamp.model.artifact
 
-import io.vamp.common.{Artifact, Lookup, RootAnyMap}
+import io.vamp.common.{ Artifact, Lookup, RootAnyMap }
 
 import scala.language.implicitConversions
 

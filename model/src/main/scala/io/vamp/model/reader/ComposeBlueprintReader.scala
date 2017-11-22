@@ -1,7 +1,7 @@
 package io.vamp.model.reader
 
 import io.vamp.model.artifact._
-import io.vamp.common.{RestrictedMap, RestrictedString, RootAnyMap}
+import io.vamp.common.{ RestrictedMap, RestrictedString, RootAnyMap }
 import io.vamp.model.notification.UnsupportedProtocolError
 import io.vamp.model.reader.YamlSourceReader._
 import io.vamp.model.reader.ComposeWriter._
@@ -263,7 +263,7 @@ object ComposeServicesReader extends YamlReader[ComposeWriter[Service]] {
       arguments = List(),
       healthChecks = None,
       network = None,
-      dialects = RootAnyMap(dialects.toList.map{case (k, v) => (k -> RestrictedString(v))}.toMap),
+      dialects = RootAnyMap(dialects.toList.map { case (k, v) ⇒ (k → RestrictedString(v)) }.toMap),
       health = None)
 
 }
