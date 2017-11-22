@@ -1,34 +1,8 @@
 package io.vamp.model.artifact
 
-import io.vamp.common.{ Artifact, Lookup, RootAnyMap }
+import io.vamp.common.{ Artifact, RootAnyMap }
 
 import scala.language.implicitConversions
-
-object Deployment {
-  val kind: String = "deployments"
-
-  def gatewayNameFor(deployment: Deployment, gateway: Gateway): String = GatewayPath(deployment.name :: gateway.port.name :: Nil).normalized
-}
-
-case class Deployment(
-    name:                 String,
-    metadata:             RootAnyMap,
-    clusters:             List[DeploymentCluster],
-    gateways:             List[Gateway],
-    ports:                List[Port],
-    environmentVariables: List[EnvironmentVariable],
-    hosts:                List[Host],
-    dialects:             RootAnyMap                = RootAnyMap.empty
-) extends AbstractBlueprint with Lookup {
-
-  override val kind: String = Deployment.kind
-
-  lazy val traits: List[Trait] = ports ++ environmentVariables ++ hosts
-
-  def service(breed: Breed): Option[DeploymentService] = {
-    clusters.flatMap { cluster ⇒ cluster.services } find { service ⇒ service.breed.name == breed.name }
-  }
-}
 
 case class Instance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact {
   val kind: String = "instances"

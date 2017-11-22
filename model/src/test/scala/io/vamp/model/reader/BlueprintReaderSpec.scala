@@ -428,9 +428,9 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
       'name("nomadic-frostbite"),
       'clusters(List(
         Cluster("supersonic", RootAnyMap.empty, List(
-        Service(BreedReference("sava1"), Nil, None, Nil, None, None,
-          RootAnyMap(Map("marathon" → RestrictedMap(Map("a" → RestrictedString("b"))), "docker" → RestrictedMap(Map("c" → RestrictedString("d")))))),
-        Service(BreedReference("sava2"), Nil, None, Nil, None, None, RootAnyMap.empty)), Nil, None, None, None, RootAnyMap(Map("marathon" → RestrictedMap(Map("r" → RestrictedString("t"))), "docker" → RestrictedMap(Map("q" → RestrictedString("w"), "o" → RestrictedString("p")))))),
+          Service(BreedReference("sava1"), Nil, None, Nil, None, None,
+            RootAnyMap(Map("marathon" → RestrictedMap(Map("a" → RestrictedString("b"))), "docker" → RestrictedMap(Map("c" → RestrictedString("d")))))),
+          Service(BreedReference("sava2"), Nil, None, Nil, None, None, RootAnyMap.empty)), Nil, None, None, None, RootAnyMap(Map("marathon" → RestrictedMap(Map("r" → RestrictedString("t"))), "docker" → RestrictedMap(Map("q" → RestrictedString("w"), "o" → RestrictedString("p")))))),
         Cluster("viper", RootAnyMap.empty, List(Service(BreedReference("sava3"), Nil, None, Nil, None, None, RootAnyMap.empty), Service(BreedReference("sava4"), Nil, None, Nil, None, None, RootAnyMap.empty)), Nil, None, None, None, RootAnyMap(Map("marathon" → RestrictedMap(Map("u" → RestrictedString("i")))))))),
       'gateways(Nil),
       'environmentVariables(Nil)
