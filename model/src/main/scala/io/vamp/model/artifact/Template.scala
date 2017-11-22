@@ -1,6 +1,6 @@
 package io.vamp.model.artifact
 
-import io.vamp.common.{Artifact, RootAnyMap}
+import io.vamp.common.{ Artifact, RootAnyMap }
 
 object Template {
   val kind: String = "templates"

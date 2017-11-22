@@ -9,7 +9,7 @@ import spray.json._
 /**
  * Created by mihai on 11/10/17.
  */
-trait VampJsonFormats extends DefaultJsonProtocol with VampJsonDecoders with VampJsonEncoders{
+trait VampJsonFormats extends DefaultJsonProtocol with VampJsonDecoders with VampJsonEncoders {
 
   implicit val environmentVariableSerilizationSpecifier: SerializationSpecifier[EnvironmentVariable] =
     SerializationSpecifier[EnvironmentVariable](environmentVariableEncoder, environmentVariableDecoder, "envVar", (e ⇒ Id[EnvironmentVariable](e.name)))
@@ -22,7 +22,7 @@ trait VampJsonFormats extends DefaultJsonProtocol with VampJsonDecoders with Vam
 
   implicit val blueprintSerilizationSpecifier: SerializationSpecifier[Blueprint] =
     SerializationSpecifier[Blueprint](blueprintEncoder, blueprintDecoder, "blueprint", (e ⇒ Id[Blueprint](e.name)))
-
+  
   def marshall[T: SerializationSpecifier](obj: T): String = {
     val specifier = implicitly[SerializationSpecifier[T]]
     specifier.encoder(obj).noSpaces
@@ -50,5 +50,4 @@ trait VampJsonFormats extends DefaultJsonProtocol with VampJsonDecoders with Vam
   }
 
 }
-
 

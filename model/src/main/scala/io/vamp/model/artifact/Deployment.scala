@@ -1,10 +1,8 @@
 package io.vamp.model.artifact
 
-import io.vamp.common.{Artifact, RootAnyMap}
+import io.vamp.common.{ Artifact, RootAnyMap }
 
 import scala.language.implicitConversions
-
-
 
 case class Instance(name: String, host: String, ports: Map[String, Int], deployed: Boolean) extends Artifact {
   val kind: String = "instances"

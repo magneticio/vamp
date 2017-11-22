@@ -1,14 +1,14 @@
 package io.vamp.persistence.refactor
 
-import io.vamp.common.{Namespace, RootAnyMap}
+import io.vamp.common.{ Namespace, RootAnyMap }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.Percentage
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import org.scalatest.{BeforeAndAfterEach, Matchers, fixture}
+import org.scalatest.{ BeforeAndAfterEach, Matchers, fixture }
 
 /**
- * Created by mihai on 11/10/17.
- */
+  * Created by mihai on 11/10/17.
+  */
 class ESPersistenceTest_Gateway extends fixture.FlatSpec with Matchers with UseElasticSearchForTesting with BeforeAndAfterEach with VampJsonFormats {
 
   val exampleGateway = Gateway(name = "gateway_1",

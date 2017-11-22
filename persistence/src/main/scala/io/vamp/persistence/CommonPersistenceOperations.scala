@@ -1,8 +1,8 @@
 package io.vamp.persistence
 
-import _root_.io.vamp.common.{Artifact, Namespace, RootAnyMap}
+import _root_.io.vamp.common.{ Artifact, Namespace, RootAnyMap }
 import akka.actor.Actor
-import io.vamp.common.akka.{CommonProvider, CommonSupportForActors}
+import io.vamp.common.akka.{ CommonProvider, CommonSupportForActors }
 
 import scala.concurrent.Future
 import scala.reflect._

@@ -1,19 +1,19 @@
 package io.vamp.persistence.refactor.dao
 
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.{ElasticsearchClientUri, IndexAndType, TcpClient}
+import com.sksamuel.elastic4s.{ ElasticsearchClientUri, IndexAndType, TcpClient }
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
-import io.vamp.common.{Id, Namespace}
-import io.vamp.persistence.refactor.api.SimpleArtifactPersistenceDao
-import io.vamp.persistence.refactor.exceptions.{DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException}
+import io.vamp.common.{ Config, Id, Namespace }
+import io.vamp.persistence.refactor.api.{ SimpleArtifactPersistenceDao, SimpleArtifactPersistenceDaoFactory }
+import io.vamp.persistence.refactor.exceptions.{ DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException }
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 import org.elasticsearch.common.settings.Settings
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 
 /**
  * Created by mihai on 11/10/17.
@@ -112,17 +112,27 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
         }))
     } yield {
       val responseHits = allObjects.original.getHits().getHits()
-      responseHits.map(s => interpretAsObject(s.getSourceAsString)).toList
+      responseHits.map(s ⇒ interpretAsObject(s.getSourceAsString)).toList
     }
   }
 
   private def interpretAsObject[T](stringToRead: String)(implicit serializationSpecifier: SerializationSpecifier[T]): T = {
     implicit val decoder: Decoder[T] = serializationSpecifier.decoder
     decode[T](stringToRead) match {
-      case Right(s) => s
-      case Left(e) => throw InvalidFormatException(objectAsString = stringToRead, originalException = e)
+      case Right(s) ⇒ s
+      case Left(e)  ⇒ throw InvalidFormatException(objectAsString = stringToRead, originalException = e)
     }
   }
 
   private[persistence] def afterTestCleanup: Unit = Await.result(esClient.execute(deleteIndex(indexName)), 10.second)
+}
+
+class EsDaoFactory extends SimpleArtifactPersistenceDaoFactory {
+  def get(namespace: Namespace) = {
+    implicit val ns: Namespace = namespace
+    val elasticSearchHostAndPort = Config.string("vamp.persistence.database.elasticsearch.elasticsearch-url")()
+    val elasticSearchClusterName = Config.string("vamp.persistence.database.elasticsearch.elasticsearch-cluster-name")()
+    val testingContext = Config.boolean("vamp.persistence.database.elasticsearch.elasticsearch-test-cluster")()
+    new EsDao(ns, elasticSearchHostAndPort, elasticSearchClusterName, testingContext)
+  }
 }

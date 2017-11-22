@@ -1,13 +1,13 @@
 package io.vamp.model.reader
 
-import io.vamp.model.notification.{MissingPathValueError, ModelNotificationProvider, UnexpectedInnerElementError, UnexpectedTypeError, ParserError}
-import io.vamp.common.{RestrictedAny, RestrictedBoolean, RestrictedDouble, RestrictedInt, RestrictedList, RestrictedMap, RestrictedString, RootAnyMap}
+import io.vamp.model.notification.{ MissingPathValueError, ModelNotificationProvider, UnexpectedInnerElementError, UnexpectedTypeError, ParserError }
+import io.vamp.common.{ RestrictedAny, RestrictedBoolean, RestrictedDouble, RestrictedInt, RestrictedList, RestrictedMap, RestrictedString, RootAnyMap }
 
 import scala.collection.immutable.::
 import scala.collection.mutable
-import scala.language.{implicitConversions, postfixOps}
+import scala.language.{ implicitConversions, postfixOps }
 import scala.reflect._
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 object YamlSourceReader {
   type YamlPath = List[String]
@@ -63,21 +63,21 @@ class YamlSourceReader(map: collection.Map[String, Any]) extends ModelNotificati
     } toMap
   }
 
-  def flattenToRootAnyMap(accept: (String) ⇒ Boolean = (String) ⇒ true): RootAnyMap = RootAnyMap(source.filterKeys(accept).map(kvPair => consume((kvPair._1, kvPair._2))).map {
-    kvPair => (kvPair._1, extractRestrictedAnyType(kvPair._2))
+  def flattenToRootAnyMap(accept: (String) ⇒ Boolean = (String) ⇒ true): RootAnyMap = RootAnyMap(source.filterKeys(accept).map(kvPair ⇒ consume((kvPair._1, kvPair._2))).map {
+    kvPair ⇒ (kvPair._1, extractRestrictedAnyType(kvPair._2))
   } toMap)
 
   def extractRestrictedAnyType(any: Any): RestrictedAny = {
     any match {
-      case value: YamlSourceReader => RestrictedMap(value.source.map(value.consume).map {
-        kvPair => (kvPair._1, extractRestrictedAnyType(kvPair._2))
+      case value: YamlSourceReader ⇒ RestrictedMap(value.source.map(value.consume).map {
+        kvPair ⇒ (kvPair._1, extractRestrictedAnyType(kvPair._2))
       }.toMap)
-      case value: List[_] => RestrictedList(value.map(extractRestrictedAnyType))
-      case value: String => RestrictedString(value)
-      case value: Int => RestrictedInt(value)
-      case value: Double => RestrictedDouble(value)
-      case value: Boolean => RestrictedBoolean(value)
-      case _ => throwException(ParserError(s"Cannot parse ${any} as an element of type String, Int, Double, String, Boolean, List or Map"))
+      case value: List[_] ⇒ RestrictedList(value.map(extractRestrictedAnyType))
+      case value: String  ⇒ RestrictedString(value)
+      case value: Int     ⇒ RestrictedInt(value)
+      case value: Double  ⇒ RestrictedDouble(value)
+      case value: Boolean ⇒ RestrictedBoolean(value)
+      case _              ⇒ throwException(ParserError(s"Cannot parse ${any} as an element of type String, Int, Double, String, Boolean, List or Map"))
     }
   }
 

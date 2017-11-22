@@ -85,17 +85,17 @@ class EscalationSerializer extends ArtifactSerializer[Escalation] with Reference
         list += JField("target", JString(escalation.targetCluster.get))
 
       escalation match {
-        case ScaleInstancesEscalation(_, _, minimum, maximum, scaleBy, _) => {
+        case ScaleInstancesEscalation(_, _, minimum, maximum, scaleBy, _) ⇒ {
           list += JField("minimum", Extraction.decompose(minimum))
           list += JField("maximum", Extraction.decompose(maximum))
           list += JField("scale_by", Extraction.decompose(scaleBy))
         }
-        case ScaleCpuEscalation(_, _, minimum, maximum, scaleBy, _) => {
+        case ScaleCpuEscalation(_, _, minimum, maximum, scaleBy, _) ⇒ {
           list += JField("minimum", Extraction.decompose(minimum))
           list += JField("maximum", Extraction.decompose(maximum))
           list += JField("scale_by", Extraction.decompose(scaleBy))
         }
-        case ScaleMemoryEscalation(_, _, minimum, maximum, scaleBy, _) => {
+        case ScaleMemoryEscalation(_, _, minimum, maximum, scaleBy, _) ⇒ {
           list += JField("minimum", Extraction.decompose(minimum))
           list += JField("maximum", Extraction.decompose(maximum))
           list += JField("scale_by", Extraction.decompose(scaleBy))

@@ -26,7 +26,7 @@ object Artifact {
 }
 
 trait Artifact {
-  
+
   def name: String
 
   def kind: String

@@ -8,12 +8,12 @@ import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact.DeploymentService.Status.Phase.Initiated
 import io.vamp.model.artifact._
-import io.vamp.model.event.{Event, EventQuery, TimeRange}
-import io.vamp.model.notification.{DeEscalate, Escalate, SlaEvent}
-import io.vamp.model.reader.{MegaByte, Quantity}
-import io.vamp.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType}
+import io.vamp.model.event.{ Event, EventQuery, TimeRange }
+import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
+import io.vamp.model.reader.{ MegaByte, Quantity }
+import io.vamp.operation.notification.{ InternalServerError, OperationNotificationProvider, UnsupportedEscalationType }
 import io.vamp.operation.sla.EscalationActor.EscalationProcessAll
-import io.vamp.persistence.{ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor}
+import io.vamp.persistence.{ ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor }
 import io.vamp.pulse.PulseActor
 
 import scala.concurrent.Future
@@ -107,9 +107,9 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
     log.debug(s"to one escalation: ${deployment.name}/${cluster.name}")
     escalation match {
 
-      case e: ToAllEscalation    ⇒ escalateToAll(deployment, cluster, e.escalations, escalate)
+      case e: ToAllEscalation ⇒ escalateToAll(deployment, cluster, e.escalations, escalate)
 
-      case e: ToOneEscalation    ⇒ (if (escalate) e.escalations else e.escalations.reverse).foldLeft[Option[Deployment]](None)((op1, op2) ⇒ if (op1.isDefined) op1 else escalateToOne(deployment, cluster, op2, escalate))
+      case e: ToOneEscalation ⇒ (if (escalate) e.escalations else e.escalations.reverse).foldLeft[Option[Deployment]](None)((op1, op2) ⇒ if (op1.isDefined) op1 else escalateToOne(deployment, cluster, op2, escalate))
 
       case e: ScaleEscalation ⇒ scaleEscalation(deployment, cluster, e, escalate)
 
