@@ -26,9 +26,7 @@ object Artifact {
 }
 
 trait Artifact {
-
-  def id: Id[Artifact] = Id[Artifact](name)
-
+  
   def name: String
 
   def kind: String

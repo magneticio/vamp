@@ -2,7 +2,7 @@ package io.vamp.model.artifact
 
 import java.time.OffsetDateTime
 
-import io.vamp.common.{Artifact, Reference, RootAnyMap}
+import io.vamp.common.{Artifact, Lookup, Reference, RootAnyMap}
 import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
 import io.vamp.model.artifact.DeploymentService.Status.Phase.{Done, Initiated}
 import io.vamp.model.reader.{MegaByte, Quantity}
@@ -27,6 +27,32 @@ sealed trait AbstractBlueprint extends Blueprint {
   def traits: List[Trait]
 
   def dialects: RootAnyMap
+}
+
+object Deployment {
+  val kind: String = "deployments"
+
+  def gatewayNameFor(deployment: Deployment, gateway: Gateway): String = GatewayPath(deployment.name :: gateway.port.name :: Nil).normalized
+}
+
+case class Deployment(
+                       name:                 String,
+                       metadata:             RootAnyMap,
+                       clusters:             List[DeploymentCluster],
+                       gateways:             List[Gateway],
+                       ports:                List[Port],
+                       environmentVariables: List[EnvironmentVariable],
+                       hosts:                List[Host],
+                       dialects:             RootAnyMap          = RootAnyMap.empty
+                     ) extends AbstractBlueprint with Lookup {
+
+  override val kind: String = Deployment.kind
+
+  lazy val traits: List[Trait] = ports ++ environmentVariables ++ hosts
+
+  def service(breed: Breed): Option[DeploymentService] = {
+    clusters.flatMap { cluster ⇒ cluster.services } find { service ⇒ service.breed.name == breed.name }
+  }
 }
 
 case class DefaultBlueprint(
