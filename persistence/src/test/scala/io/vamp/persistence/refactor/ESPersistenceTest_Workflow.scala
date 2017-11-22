@@ -51,7 +51,7 @@ class ESPersistenceTest_Workflow extends fixture.FlatSpec with Matchers with Use
       scale = Some(DefaultScale(name = "name_007", metadata = RootAnyMap.empty, cpu = Quantity(3.14159), memory = MegaByte(143), instances = 5)),
       environmentVariables = List(
         EnvironmentVariable(name = "SimpleEnvVar", alias = Some("envVarAlias"),
-        value = Some("evVarValue"), interpolated = Some("simpleInterpolatedValue")),
+          value = Some("evVarValue"), interpolated = Some("simpleInterpolatedValue")),
         EnvironmentVariable(name = "SimpleEnvVar2", alias = Some("envVarAlias3"),
           value = Some("evVarValue4"), interpolated = Some("simpleInterpolatedValue5"))
       ),

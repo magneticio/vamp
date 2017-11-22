@@ -3,7 +3,7 @@ package io.vamp.model.artifact
 import java.time.OffsetDateTime
 
 import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
-import io.vamp.model.artifact.DeploymentService.Status.Phase.{Done, Initiated}
+import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated }
 import io.vamp.common.{ Artifact, Reference, RootAnyMap }
 import io.vamp.model.reader.{ MegaByte, Quantity }
 
@@ -35,7 +35,7 @@ case class DefaultBlueprint(
     clusters:             List[Cluster],
     gateways:             List[Gateway],
     environmentVariables: List[EnvironmentVariable],
-    dialects:             RootAnyMap          = RootAnyMap.empty
+    dialects:             RootAnyMap                = RootAnyMap.empty
 ) extends AbstractBlueprint {
   lazy val traits: List[Trait] = environmentVariables
 }
@@ -77,15 +77,15 @@ object DeploymentCluster {
 }
 
 case class DeploymentCluster(
-                              name:         String,
-                              metadata:     RootAnyMap,
-                              services:     List[DeploymentService],
-                              gateways:     List[Gateway],
-                              healthChecks: Option[List[HealthCheck]],
-                              network:      Option[String],
-                              sla:          Option[Sla],
-                              dialects:     RootAnyMap          = RootAnyMap.empty
-                            ) extends AbstractCluster {
+    name:         String,
+    metadata:     RootAnyMap,
+    services:     List[DeploymentService],
+    gateways:     List[Gateway],
+    healthChecks: Option[List[HealthCheck]],
+    network:      Option[String],
+    sla:          Option[Sla],
+    dialects:     RootAnyMap                = RootAnyMap.empty
+) extends AbstractCluster {
 
   def portBy(name: String): Option[Int] = {
     gateways.find { gateway ⇒ GatewayPath(gateway.name).segments.last == name } map {
@@ -109,7 +109,6 @@ case class DeploymentCluster(
     }).asInstanceOf[Option[DefaultRoute]]
   }
 }
-
 
 sealed abstract class AbstractService {
 

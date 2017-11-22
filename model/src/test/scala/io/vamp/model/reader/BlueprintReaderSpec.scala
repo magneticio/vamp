@@ -68,9 +68,9 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     BlueprintReader.read(res("blueprint/blueprint7.yml")) should have(
       'name("nomadic-frostbite"),
       'clusters(List(Cluster("notorious", RootAnyMap.empty, List(Service(BreedReference("nocturnal-viper"), Nil, None, Nil, None)), Nil, None, None,
-          Some(GenericSla("", RootAnyMap.empty, "vital-cloud",
-            escalations = List(EscalationReference("red-flag")),
-            parameters = RootAnyMap(Map("reborn" → RestrictedString("red-swallow")))))))),
+        Some(GenericSla("", RootAnyMap.empty, "vital-cloud",
+          escalations = List(EscalationReference("red-flag")),
+          parameters = RootAnyMap(Map("reborn" → RestrictedString("red-swallow")))))))),
       'gateways(Nil),
       'environmentVariables(Nil)
     )
@@ -426,9 +426,10 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
   it should "parse dialects" in {
     BlueprintReader.read(res("blueprint/blueprint47.yml")) should have(
       'name("nomadic-frostbite"),
-      'clusters(List(Cluster("supersonic", RootAnyMap.empty, List(
+      'clusters(List(
+        Cluster("supersonic", RootAnyMap.empty, List(
         Service(BreedReference("sava1"), Nil, None, Nil, None, None,
-        RootAnyMap(Map("marathon" → RestrictedMap(Map("a" → RestrictedString("b"))), "docker" → RestrictedMap(Map("c" → RestrictedString("d")))))),
+          RootAnyMap(Map("marathon" → RestrictedMap(Map("a" → RestrictedString("b"))), "docker" → RestrictedMap(Map("c" → RestrictedString("d")))))),
         Service(BreedReference("sava2"), Nil, None, Nil, None, None, RootAnyMap.empty)), Nil, None, None, None, RootAnyMap(Map("marathon" → RestrictedMap(Map("r" → RestrictedString("t"))), "docker" → RestrictedMap(Map("q" → RestrictedString("w"), "o" → RestrictedString("p")))))),
         Cluster("viper", RootAnyMap.empty, List(Service(BreedReference("sava3"), Nil, None, Nil, None, None, RootAnyMap.empty), Service(BreedReference("sava4"), Nil, None, Nil, None, None, RootAnyMap.empty)), Nil, None, None, None, RootAnyMap(Map("marathon" → RestrictedMap(Map("u" → RestrictedString("i")))))))),
       'gateways(Nil),
@@ -746,7 +747,7 @@ class BlueprintReaderSpec extends FlatSpec with Matchers with ReaderSpec {
     BlueprintReader.read(res("blueprint/blueprint86.yml")) should have(
       'name("nomadic-frostbite"),
       'environmentVariables(List(EnvironmentVariable("supersonic.environment_variables.http", None, Some("80"), None))),
-      'clusters(List(Cluster("supersonic", RootAnyMap.empty, List(Service(DefaultBreed("solid-barbershop", RootAnyMap.empty, Deployable(None, "vamp/solid-barbershop"), Nil, List(EnvironmentVariable("port", None, Some("80/http"), None)), Nil, Nil, Map(), None), Nil, None, Nil, None, None, RootAnyMap.empty), Service(BreedReference("barbershop"), Nil, None, Nil, None, None, RootAnyMap.empty)), Nil, None, None, None,RootAnyMap.empty)))
+      'clusters(List(Cluster("supersonic", RootAnyMap.empty, List(Service(DefaultBreed("solid-barbershop", RootAnyMap.empty, Deployable(None, "vamp/solid-barbershop"), Nil, List(EnvironmentVariable("port", None, Some("80/http"), None)), Nil, Nil, Map(), None), Nil, None, Nil, None, None, RootAnyMap.empty), Service(BreedReference("barbershop"), Nil, None, Nil, None, None, RootAnyMap.empty)), Nil, None, None, None, RootAnyMap.empty)))
     )
   }
 

@@ -18,7 +18,7 @@ case class Deployment(
     ports:                List[Port],
     environmentVariables: List[EnvironmentVariable],
     hosts:                List[Host],
-    dialects:             RootAnyMap          = RootAnyMap.empty
+    dialects:             RootAnyMap                = RootAnyMap.empty
 ) extends AbstractBlueprint with Lookup {
 
   override val kind: String = Deployment.kind

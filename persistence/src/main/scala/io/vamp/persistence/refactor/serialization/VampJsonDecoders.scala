@@ -7,9 +7,9 @@ import io.circe.{ Decoder, DecodingFailure, HCursor }
 import io.vamp.common._
 import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
 import io.vamp.model.artifact.TimeSchedule.RepeatPeriod
-import io.vamp.model.artifact.{Host, _}
+import io.vamp.model.artifact.{ Host, _ }
 
-import scala.concurrent.duration.{FiniteDuration, TimeUnit}
+import scala.concurrent.duration.{ FiniteDuration, TimeUnit }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Percentage, Quantity, Time }
 
@@ -270,24 +270,24 @@ trait VampJsonDecoders {
   implicit val serviceDecoder: Decoder[Service] = deriveDecoder[Service]
   implicit val abstractServiceDecoder: Decoder[AbstractService] = deriveDecoder[AbstractService]
 
-  implicit val timeUnitDecoder: Decoder[TimeUnit] = Decoder.instance{hc =>
+  implicit val timeUnitDecoder: Decoder[TimeUnit] = Decoder.instance { hc ⇒
     hc.as[String] match {
-      case Right(v) if(v == "DAYS") => Right(scala.concurrent.duration.DAYS)
-      case Right(v) if(v == "HOURS") => Right(scala.concurrent.duration.HOURS)
-      case Right(v) if(v == "MICROSECONDS") => Right(scala.concurrent.duration.MICROSECONDS)
-      case Right(v) if(v == "MILLISECONDS") => Right(scala.concurrent.duration.MILLISECONDS)
-      case Right(v) if(v == "MINUTES") => Right(scala.concurrent.duration.MINUTES)
-      case Right(v) if(v == "NANOSECONDS") => Right(scala.concurrent.duration.NANOSECONDS)
-      case Right(v) if(v == "SECONDS") => Right(scala.concurrent.duration.SECONDS)
-      case _ => Left(DecodingFailure(s"Unable ${hc.toString} to extract as TimeUnit", ops = hc.history))
+      case Right(v) if (v == "DAYS")         ⇒ Right(scala.concurrent.duration.DAYS)
+      case Right(v) if (v == "HOURS")        ⇒ Right(scala.concurrent.duration.HOURS)
+      case Right(v) if (v == "MICROSECONDS") ⇒ Right(scala.concurrent.duration.MICROSECONDS)
+      case Right(v) if (v == "MILLISECONDS") ⇒ Right(scala.concurrent.duration.MILLISECONDS)
+      case Right(v) if (v == "MINUTES")      ⇒ Right(scala.concurrent.duration.MINUTES)
+      case Right(v) if (v == "NANOSECONDS")  ⇒ Right(scala.concurrent.duration.NANOSECONDS)
+      case Right(v) if (v == "SECONDS")      ⇒ Right(scala.concurrent.duration.SECONDS)
+      case _                                 ⇒ Left(DecodingFailure(s"Unable ${hc.toString} to extract as TimeUnit", ops = hc.history))
     }
   }
 
   implicit val timeUnit_AuxForSerializationDecoder: Decoder[TimeUnit_AuxForSerialization] = deriveDecoder[TimeUnit_AuxForSerialization]
-  implicit val finiteDurationDecoder: Decoder[FiniteDuration] = Decoder.instance {hc =>
+  implicit val finiteDurationDecoder: Decoder[FiniteDuration] = Decoder.instance { hc ⇒
     hc.as[TimeUnit_AuxForSerialization] match {
-      case Right(v) => Right(new FiniteDuration(v.length, v.unit))
-      case Left(e) => Left(e)
+      case Right(v) ⇒ Right(new FiniteDuration(v.length, v.unit))
+      case Left(e)  ⇒ Left(e)
     }
   }
 
@@ -301,8 +301,6 @@ trait VampJsonDecoders {
   implicit val groupEscalationDecoder: Decoder[GroupEscalation] = deriveDecoder[GroupEscalation]
   implicit val scaleEscalationDecoder: Decoder[ScaleEscalation] = deriveDecoder[ScaleEscalation]
   implicit val escalationDecoder: Decoder[Escalation] = deriveDecoder[Escalation]
-
-
 
   implicit val responseTimeSlidingWindowSlaDecoder: Decoder[ResponseTimeSlidingWindowSla] = deriveDecoder[ResponseTimeSlidingWindowSla]
 
@@ -328,7 +326,5 @@ trait VampJsonDecoders {
   implicit val blueprintReferenceDecoder: Decoder[BlueprintReference] = deriveDecoder[BlueprintReference]
 
   implicit val blueprintDecoder: Decoder[Blueprint] = deriveDecoder[Blueprint]
-
-
 
 }

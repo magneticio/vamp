@@ -4,7 +4,7 @@ import io.vamp.model.artifact._
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
-import io.vamp.common.{RestrictedInt, RestrictedMap, RootAnyMap}
+import io.vamp.common.{ RestrictedInt, RestrictedMap, RootAnyMap }
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
