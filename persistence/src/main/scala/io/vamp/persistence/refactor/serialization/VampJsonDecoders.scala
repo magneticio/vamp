@@ -12,6 +12,7 @@ import io.vamp.model.artifact.{ Host, _ }
 import scala.concurrent.duration.{ FiniteDuration, TimeUnit }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Percentage, Quantity, Time }
+import io.vamp.persistence.DeploymentServiceStatus
 
 import scala.util.{ Failure, Success, Try }
 
@@ -326,5 +327,7 @@ trait VampJsonDecoders {
   implicit val blueprintReferenceDecoder: Decoder[BlueprintReference] = deriveDecoder[BlueprintReference]
 
   implicit val blueprintDecoder: Decoder[Blueprint] = deriveDecoder[Blueprint]
+
+  implicit val beploymentServiceStatusDecoder: Decoder[DeploymentServiceStatus] = deriveDecoder[DeploymentServiceStatus]
 
 }

@@ -4,8 +4,7 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
 import akka.actor.{ ActorRef, Props }
-import akka.pattern.ask
-import io.vamp.common.Config
+import io.vamp.common.{ Config, Id }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.container_driver.ContainerDriverActor.DeploymentServices
@@ -17,7 +16,10 @@ import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification.{ DeploymentServiceError, OperationNotificationProvider }
-import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.persistence.DeploymentPersistenceOperations.serviceArtifactName
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
+import io.vamp.persistence.{ ArtifactPaginationSupport, DeploymentServiceStatus, PersistenceActor }
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -36,7 +38,7 @@ object DeploymentSynchronizationActor {
   val undeploymentTimeout = Config.duration("vamp.operation.synchronization.timeout.ready-for-undeployment")
 }
 
-class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider {
+class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider with VampJsonFormats {
 
   import DeploymentSynchronizationActor._
 
@@ -64,9 +66,9 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   }
 
   private def synchronize(containerService: ContainerService): Unit = {
-    actorFor[PersistenceActor] ? PersistenceActor.Read(containerService.deployment.name, classOf[Deployment]) foreach {
-      case Some(deployment: Deployment) ⇒ self ! (deployment → containerService)
-      case _                            ⇒
+    VampPersistence().read[Deployment](Id[Deployment](containerService.deployment.name)) foreach {
+      case deployment: Deployment ⇒ self ! (deployment → containerService)
+      case _                      ⇒
     }
   }
 
@@ -92,9 +94,13 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
       if (timed) {
         val notification = DeploymentServiceError(deployment, service)
         reportException(notification)
-        actorFor[PersistenceActor] ! PersistenceActor.UpdateDeploymentServiceStatus(deployment, cluster, service, Status(
+        val artifactName = serviceArtifactName(deployment, cluster, service)
+        val serviceStatus = Status(
           service.status.intention,
-          Failed(s"Deployment service error for deployment ${deployment.name} and service ${service.breed.name}.")))
+          Failed(s"Deployment service error for deployment ${deployment.name} and service ${service.breed.name}."))
+
+        VampPersistence().update[DeploymentServiceStatus](Id[DeploymentServiceStatus](artifactName), (deploymentServiceStatus: DeploymentServiceStatus) ⇒
+          deploymentServiceStatus.copy(name = artifactName, status = serviceStatus))
       }
       timed
     }

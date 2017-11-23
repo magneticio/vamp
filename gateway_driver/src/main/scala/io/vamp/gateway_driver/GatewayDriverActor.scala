@@ -4,7 +4,7 @@ import akka.pattern.ask
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.gateway_driver.notification.{GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest}
+import io.vamp.gateway_driver.notification.{ GatewayDriverNotificationProvider, GatewayDriverResponseError, UnsupportedGatewayDriverRequest }
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.persistence.KeyValueStoreActor
@@ -34,7 +34,7 @@ object GatewayDriverActor {
 
 case class GatewayMarshallerDefinition(marshaller: GatewayMarshaller, template: String)
 
-class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) extends PulseFailureNotifier with CommonSupportForActors with GatewayDriverNotificationProvider with VampJsonFormats{
+class GatewayDriverActor(marshallers: Map[String, GatewayMarshallerDefinition]) extends PulseFailureNotifier with CommonSupportForActors with GatewayDriverNotificationProvider with VampJsonFormats {
 
   import GatewayDriverActor._
 

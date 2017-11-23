@@ -11,7 +11,7 @@ import io.vamp.model.reader._
 import io.vamp.operation.deployment.DeploymentActor
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ArtifactResponseEnvelope, ArtifactShrinkage}
+import io.vamp.persistence.{ ArtifactResponseEnvelope, ArtifactShrinkage }
 import io.vamp.common.Id
 
 import scala.concurrent.Future
@@ -19,16 +19,17 @@ import scala.concurrent.Future
 trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage with AbstractController with VampJsonFormats {
 
   def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
-    val fromAndSize = if(perPage > 0) Some((perPage * page, perPage)) else None
-    VampPersistence().getAll[Deployment](fromAndSize) map { deploymentList =>
-      ArtifactResponseEnvelope(response = deploymentList.map { deployment ⇒ transform(deployment, asBlueprint, onlyReferences)},
+    val fromAndSize = if (perPage > 0) Some((perPage * page, perPage)) else None
+    VampPersistence().getAll[Deployment](fromAndSize) map { deploymentList ⇒
+      ArtifactResponseEnvelope(
+        response = deploymentList.map { deployment ⇒ transform(deployment, asBlueprint, onlyReferences) },
         total = deploymentList.size, //TODO: changet his to an appropriate value
         page = page, perPage = perPage)
     }
   }
 
   def deployment(name: String, asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] =
-    VampPersistence().read[Deployment](Id[Deployment](name)) map {deployment => transform(deployment, asBlueprint, onlyReferences)}
+    VampPersistence().read[Deployment](Id[Deployment](name)) map { deployment ⇒ transform(deployment, asBlueprint, onlyReferences) }
 
   private def transform(deployment: Deployment, asBlueprint: Boolean, onlyRef: Boolean) = {
     if (asBlueprint) {
@@ -71,7 +72,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
 
           val futures = {
             if (!validateOnly)
-              blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map { b =>
+              blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map { b ⇒
                 VampPersistence().create[Breed](b)
               }
             else Nil
@@ -116,14 +117,15 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
     }
 
   def slaUpdate(deploymentName: String, clusterName: String, request: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) =
-    VampPersistence().read[Deployment](Id[Deployment](deploymentName)) flatMap {deployment => deployment.clusters.find(_.name == clusterName) match {
+    VampPersistence().read[Deployment](Id[Deployment](deploymentName)) flatMap { deployment ⇒
+      deployment.clusters.find(_.name == clusterName) match {
         case None          ⇒ Future(None)
         case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateSla(deployment, cluster, Some(SlaReader.read(request)), request, validateOnly)
       }
     }
 
   def slaDelete(deploymentName: String, clusterName: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) =
-    VampPersistence().read[Deployment](Id[Deployment](deploymentName)) flatMap { deployment =>
+    VampPersistence().read[Deployment](Id[Deployment](deploymentName)) flatMap { deployment ⇒
       deployment.clusters.find(_.name == clusterName) match {
         case None          ⇒ Future(None)
         case Some(cluster) ⇒ actorFor[DeploymentActor] ? DeploymentActor.UpdateSla(deployment, cluster, None, "", validateOnly)
@@ -136,7 +138,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
     }
 
   def scaleUpdate(deploymentName: String, clusterName: String, breedName: String, request: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) =
-    VampPersistence().read[Deployment](Id[Deployment](deploymentName)) flatMap { deployment =>
+    VampPersistence().read[Deployment](Id[Deployment](deploymentName)) flatMap { deployment ⇒
       deployment.clusters.find(_.name == clusterName) match {
         case None ⇒ Future(None)
         case Some(cluster) ⇒ cluster.services.find(_.breed.name == breedName) match {
