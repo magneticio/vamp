@@ -14,6 +14,7 @@ import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
+import io.vamp.persistence.DeploymentPersistenceOperations.deploymentSerilizationSpecifier
 import io.vamp.persistence._
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
@@ -636,7 +637,8 @@ trait DeploymentUpdate extends VampJsonFormats {
   def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String, validateOnly: Boolean) = {
     if (validateOnly) Future.successful(true) else {
       val clusters = deployment.clusters.map(c ⇒ if (cluster.name == c.name) c.copy(sla = sla) else c)
-      actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
+      // TODO: source is not handled
+      VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ d.copy(clusters = clusters))
     }
   }
 
