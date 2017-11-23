@@ -2,8 +2,8 @@ package io.vamp.persistence.refactor.serialization
 
 import java.time.{ Duration, ZoneOffset }
 
-import io.circe.generic.semiauto.deriveDecoder
-import io.circe.{ Decoder, DecodingFailure, HCursor }
+import io.circe.generic.semiauto.{ deriveDecoder, deriveEncoder }
+import io.circe.{ Decoder, DecodingFailure, Encoder, HCursor }
 import io.vamp.common._
 import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntentionType
 import io.vamp.model.artifact.TimeSchedule.RepeatPeriod
@@ -12,7 +12,7 @@ import io.vamp.model.artifact.{ Host, _ }
 import scala.concurrent.duration.{ FiniteDuration, TimeUnit }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Percentage, Quantity, Time }
-import io.vamp.persistence.DeploymentServiceStatus
+import io.vamp.persistence._
 
 import scala.util.{ Failure, Success, Try }
 
@@ -328,6 +328,10 @@ trait VampJsonDecoders {
 
   implicit val blueprintDecoder: Decoder[Blueprint] = deriveDecoder[Blueprint]
 
-  implicit val beploymentServiceStatusDecoder: Decoder[DeploymentServiceStatus] = deriveDecoder[DeploymentServiceStatus]
+  implicit val deploymentServiceHealthDecoder: Decoder[DeploymentServiceHealth] = deriveDecoder[DeploymentServiceHealth]
+
+  implicit val deploymentServiceScaleDecoder: Decoder[DeploymentServiceScale] = deriveDecoder[DeploymentServiceScale]
+  implicit val deploymentServiceInstancesDecoder: Decoder[DeploymentServiceInstances] = deriveDecoder[DeploymentServiceInstances]
+  implicit val deploymentServiceEnvironmentVariablesDecoder: Decoder[DeploymentServiceEnvironmentVariables] = deriveDecoder[DeploymentServiceEnvironmentVariables]
 
 }

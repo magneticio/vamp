@@ -16,10 +16,9 @@ import io.vamp.model.artifact._
 import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification.{ DeploymentServiceError, OperationNotificationProvider }
-import io.vamp.persistence.DeploymentPersistenceOperations.serviceArtifactName
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ ArtifactPaginationSupport, DeploymentServiceStatus, PersistenceActor }
+import io.vamp.persistence.{ ArtifactPaginationSupport, DeploymentPersistenceOperations, PersistenceActor }
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -94,13 +93,12 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
       if (timed) {
         val notification = DeploymentServiceError(deployment, service)
         reportException(notification)
-        val artifactName = serviceArtifactName(deployment, cluster, service)
+
         val serviceStatus = Status(
           service.status.intention,
           Failed(s"Deployment service error for deployment ${deployment.name} and service ${service.breed.name}."))
 
-        VampPersistence().update[DeploymentServiceStatus](Id[DeploymentServiceStatus](artifactName), (deploymentServiceStatus: DeploymentServiceStatus) ⇒
-          deploymentServiceStatus.copy(name = artifactName, status = serviceStatus))
+        DeploymentPersistenceOperations.updateServiceStatus(deployment, cluster, service, serviceStatus)
       }
       timed
     }

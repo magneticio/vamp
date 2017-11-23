@@ -14,11 +14,11 @@ object VampPersistence {
   private val persistenceDaoMap: scala.collection.mutable.Map[String, SimpleArtifactPersistenceDao] =
     new scala.collection.concurrent.TrieMap[String, SimpleArtifactPersistenceDao]()
 
-  def apply()(implicit ns: Namespace, ec: ExecutionContext): SimpleArtifactPersistenceDao = this.synchronized {
+  def apply()(implicit ns: Namespace): SimpleArtifactPersistenceDao = this.synchronized {
     persistenceDaoMap.getOrElseUpdate(ns.name, createPersistenceDao)
   }
 
-  private def createPersistenceDao(implicit ns: Namespace, ec: ExecutionContext): SimpleArtifactPersistenceDao = {
+  private def createPersistenceDao(implicit ns: Namespace): SimpleArtifactPersistenceDao = {
     val databaseType: String = Config.string("vamp.persistence.database.type")()
     val databaseClassName: String = Config.string("vamp.persistence.database.class-name")()
     Try(Class.forName(databaseClassName).newInstance.asInstanceOf[SimpleArtifactPersistenceDaoFactory].get(ns))

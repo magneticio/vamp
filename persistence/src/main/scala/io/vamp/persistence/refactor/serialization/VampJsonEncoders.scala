@@ -9,7 +9,7 @@ import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntention
 import io.vamp.model.artifact.TimeSchedule.RepeatPeriod
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Percentage, Quantity, Time }
-import io.vamp.persistence.DeploymentServiceStatus
+import io.vamp.persistence._
 
 import scala.concurrent.duration.{ FiniteDuration, TimeUnit }
 
@@ -260,6 +260,10 @@ trait VampJsonEncoders {
 
   implicit val blueprintEncoder: Encoder[Blueprint] = deriveEncoder[Blueprint]
 
-  implicit val beploymentServiceStatusEncoder: Encoder[DeploymentServiceStatus] = deriveEncoder[DeploymentServiceStatus]
+  implicit val deploymentServiceHealthEncoder: Encoder[DeploymentServiceHealth] = deriveEncoder[DeploymentServiceHealth]
+
+  implicit val deploymentServiceScaleEncoder: Encoder[DeploymentServiceScale] = deriveEncoder[DeploymentServiceScale]
+  implicit val deploymentServiceInstancesEncoder: Encoder[DeploymentServiceInstances] = deriveEncoder[DeploymentServiceInstances]
+  implicit val deploymentServiceEnvironmentVariablesEncoder: Encoder[DeploymentServiceEnvironmentVariables] = deriveEncoder[DeploymentServiceEnvironmentVariables]
 
 }

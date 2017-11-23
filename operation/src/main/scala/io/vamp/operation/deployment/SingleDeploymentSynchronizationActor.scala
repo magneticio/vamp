@@ -1,9 +1,10 @@
 package io.vamp.operation.deployment
 
-import io.vamp.common.Config
+import io.vamp.common.{ Config, Id }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ CommonSupportForActors, IoC }
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService, Containers }
+import io.vamp.model.artifact.DeploymentService.Status
 import io.vamp.model.artifact.DeploymentService.Status.Intention
 import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated, Updating }
 import io.vamp.model.artifact._
@@ -11,7 +12,10 @@ import io.vamp.model.event.Event
 import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification.OperationNotificationProvider
-import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.persistence.DeploymentPersistenceOperations.serviceArtifactName
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
+import io.vamp.persistence._
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
 
@@ -21,7 +25,7 @@ object SingleDeploymentSynchronizationActor {
 
 }
 
-class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation with ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider {
+class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation with ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider with VampJsonFormats {
 
   import PersistenceActor._
   import PulseEventTags.Deployments._
@@ -73,7 +77,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     }
 
     if (deploymentService.status.phase.isInstanceOf[Initiated])
-      actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
+      DeploymentPersistenceOperations.updateServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
 
     containerService.containers match {
       case None ⇒
@@ -93,15 +97,10 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
         }
         else if (!matchingServiceHealth(deploymentService.health, containerService.health)) {
           val serviceHealth = containerService.health.getOrElse(deploymentService.health.get)
-
-          actorFor[PersistenceActor] ! UpdateDeploymentServiceHealth(
-            deployment,
-            deploymentCluster,
-            deploymentService,
-            serviceHealth)
+          DeploymentPersistenceOperations.updateServiceHealth(deployment, deploymentCluster, deploymentService, serviceHealth)
         }
         else {
-          actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Done()))
+          DeploymentPersistenceOperations.updateServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Done()))
           updateGateways(deployment, deploymentCluster)
           publishDeployed(deployment, deploymentCluster, deploymentService)
         }
@@ -150,13 +149,13 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
       ev.copy(interpolated = if (ev.interpolated.isEmpty) Some(resolve(ev.value.getOrElse(""), valueForWithDependencyReplacement(deployment, service))) else ev.interpolated)
     }
 
-    actorFor[PersistenceActor] ! UpdateDeploymentServiceEnvironmentVariables(deployment, cluster, service, environmentVariables)
+    DeploymentPersistenceOperations.updateServiceEnvironmentVariables(deployment, cluster, service, environmentVariables)
   }
 
   private def redeployIfNeeded(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, containerService: ContainerService) = {
 
     def redeploy() = {
-      actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
+      DeploymentPersistenceOperations.updateServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
       publishRedeploy(deployment, deploymentCluster, deploymentService)
       deploy(deployment, deploymentCluster, deploymentService, containerService)
     }
@@ -174,9 +173,9 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
     containers match {
       case Some(_) ⇒
         actorFor[ContainerDriverActor] ! ContainerDriverActor.Undeploy(deployment, deploymentCluster, deploymentService)
-        actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
+        DeploymentPersistenceOperations.updateServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Updating()))
       case None ⇒
-        actorFor[PersistenceActor] ! UpdateDeploymentServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Done()))
+        DeploymentPersistenceOperations.updateServiceStatus(deployment, deploymentCluster, deploymentService, deploymentService.status.copy(phase = Done()))
         resetInternalRouteArtifacts(deployment, deploymentCluster, deploymentService)
         publishUndeployed(deployment, deploymentCluster, deploymentService)
     }
