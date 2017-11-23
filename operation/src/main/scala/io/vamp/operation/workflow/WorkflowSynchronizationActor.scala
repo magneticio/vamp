@@ -1,13 +1,14 @@
 package io.vamp.operation.workflow
 
+import akka.util.Timeout
 import io.vamp.common.akka._
 import io.vamp.model.artifact.Workflow
 import io.vamp.operation.notification._
 import io.vamp.operation.workflow.WorkflowActor.Update
 import io.vamp.operation.workflow.WorkflowSynchronizationActor.SynchronizeAll
-import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.{ArtifactPaginationSupport, ArtifactSupport}
 import io.vamp.workflow_driver.WorkflowDriverActor
-
+import scala.concurrent.duration._
 class WorkflowSynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
   def tick() = IoC.actorFor[WorkflowSynchronizationActor] ! SynchronizeAll
@@ -31,7 +32,7 @@ class WorkflowSynchronizationActor extends CommonSupportForActors with ArtifactS
   }
 
   private def synchronize() = {
-    implicit val timeout = PersistenceActor.timeout()
+    implicit val timeout = Timeout(30.second)
     forAll[Workflow](allArtifacts[Workflow], {
       workflows ⇒
         IoC.actorFor[WorkflowDriverActor] ! WorkflowDriverActor.GetScheduled(workflows)

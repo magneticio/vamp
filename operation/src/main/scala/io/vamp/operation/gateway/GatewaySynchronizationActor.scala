@@ -1,21 +1,23 @@
 package io.vamp.operation.gateway
 
 import akka.pattern.ask
-import io.vamp.common.{ Config, Namespace, RootAnyMap }
+import akka.util.Timeout
+import io.vamp.common.{Config, Namespace, RootAnyMap}
 import io.vamp.common.akka._
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.container_driver.ContainerDriverActor.DeployedGateways
 import io.vamp.gateway_driver.GatewayDriverActor
-import io.vamp.gateway_driver.GatewayDriverActor.{ Pull, Push }
+import io.vamp.gateway_driver.GatewayDriverActor.{Pull, Push}
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.{ArtifactPaginationSupport, ArtifactSupport}
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
+import scala.concurrent.duration._
 
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success}
 
 class GatewaySynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
@@ -63,7 +65,7 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
 
   private def synchronize() = {
     val sendTo = self
-    implicit val timeout = PersistenceActor.timeout()
+    implicit val timeout = Timeout(5.second)
     (for {
       gateways ← consume(allArtifacts[Gateway])
       deployments ← consume(allArtifacts[Deployment])

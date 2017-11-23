@@ -3,19 +3,22 @@ package io.vamp.operation.sla
 import java.time.OffsetDateTime
 
 import akka.actor._
+import akka.util.Timeout
 import io.vamp.common.RootAnyMap
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact.DeploymentService.Status.Phase.Initiated
 import io.vamp.model.artifact._
-import io.vamp.model.event.{ Event, EventQuery, TimeRange }
-import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
-import io.vamp.model.reader.{ MegaByte, Quantity }
-import io.vamp.operation.notification.{ InternalServerError, OperationNotificationProvider, UnsupportedEscalationType }
+import io.vamp.model.event.{Event, EventQuery, TimeRange}
+import io.vamp.model.notification.{DeEscalate, Escalate, SlaEvent}
+import io.vamp.model.reader.{MegaByte, Quantity}
+import io.vamp.operation.notification.{InternalServerError, OperationNotificationProvider, UnsupportedEscalationType}
 import io.vamp.operation.sla.EscalationActor.EscalationProcessAll
-import io.vamp.persistence.{ ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor }
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
+import io.vamp.persistence.{ArtifactPaginationSupport, EventPaginationSupport}
 import io.vamp.pulse.PulseActor
-
+import scala.concurrent.duration._
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
@@ -48,13 +51,13 @@ object EscalationActor {
 
 }
 
-class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupport with CommonSupportForActors with OperationNotificationProvider {
+class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupport with CommonSupportForActors with OperationNotificationProvider with VampJsonFormats {
 
   def tags = Set("escalation")
 
+  implicit val timeout: Timeout = Timeout(5.second)
   def receive: Receive = {
     case EscalationProcessAll(from, to) ⇒
-      implicit val timeout = PersistenceActor.timeout()
       forAll(allArtifacts[Deployment], check(from, to))
   }
 
@@ -62,7 +65,7 @@ class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupp
 
     def escalation(deployment: Deployment, cluster: DeploymentCluster, sla: Sla, escalate: Boolean) = {
       escalateToOne(deployment, cluster, ToOneEscalation("", RootAnyMap.empty, sla.escalations), escalate) match {
-        case Some(d) ⇒ actorFor[PersistenceActor] ! PersistenceActor.Update(d)
+        case Some(d) ⇒ VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(d), _ => d)
         case _       ⇒
       }
     }

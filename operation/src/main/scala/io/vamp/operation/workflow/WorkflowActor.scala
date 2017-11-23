@@ -8,10 +8,12 @@ import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
-import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
+import io.vamp.persistence.{ArtifactPaginationSupport, ArtifactSupport}
+import io.vamp.pulse.Percolator.{RegisterPercolator, UnregisterPercolator}
 import io.vamp.pulse.PulseActor.Publish
-import io.vamp.pulse.{ PulseActor, PulseEventTags }
+import io.vamp.pulse.{PulseActor, PulseEventTags}
 import io.vamp.workflow_driver.WorkflowDriverActor
 
 import scala.concurrent.Future
@@ -24,9 +26,8 @@ object WorkflowActor {
 
 }
 
-class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider {
+class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider with VampJsonFormats {
 
-  import PersistenceActor.{ ResetWorkflow, UpdateWorkflowStatus }
   import PulseEventTags.Workflows._
   import WorkflowActor._
 
@@ -63,7 +64,7 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
   private def run(workflow: Workflow, running: Boolean): Unit = {
     deploy(workflow, running, () ⇒ {
       if (workflow.status != Workflow.Status.Running)
-        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
+        (VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(status = Workflow.Status.Running))).map { _ ⇒
           pulse(workflow, scheduled = true)
         }
     })
@@ -71,21 +72,20 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
   private def stop(workflow: Workflow, running: Boolean): Unit = {
     undeploy(workflow, running, () ⇒ {
-      (actorFor[PersistenceActor] ? PersistenceActor.Delete(workflow.name, classOf[Workflow])).map { _ ⇒
-        actorFor[PersistenceActor] ! ResetWorkflow(workflow, runtime = true, attributes = true)
-        pulse(workflow, scheduled = false)
-      }
-    })
-  }
+      ( for {
+        _ <- VampPersistence().deleteObject(workflowSerilizationSpecifier.idExtractor(workflow))
+        } yield pulse(workflow, scheduled = false)
+      )
+  })}
 
   private def suspend(workflow: Workflow, running: Boolean): Unit = {
     undeploy(workflow, running, () ⇒ {
       if (workflow.status != Workflow.Status.Suspended) {
-        (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Suspended)).map { _ ⇒
+        (VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(status = Workflow.Status.Suspended))).map { _ ⇒
           pulse(workflow, scheduled = false)
         }
       }
-      else actorFor[PersistenceActor] ! ResetWorkflow(workflow, runtime = true, attributes = false)
+      else (VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(health = None, instances = Nil)))
     })
   }
 
@@ -93,13 +93,13 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
     workflow.status match {
       case Workflow.Status.Restarting(Some(RestartingPhase.Starting)) ⇒
         deploy(workflow, running, () ⇒ {
-          (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Running)).map { _ ⇒
+          (VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(status = Workflow.Status.Running))).map { _ ⇒
             pulse(workflow, scheduled = true)
           }
         })
       case _ ⇒
         undeploy(workflow, running, () ⇒ {
-          (actorFor[PersistenceActor] ? UpdateWorkflowStatus(workflow, Workflow.Status.Restarting(Option(RestartingPhase.Starting)))).map { _ ⇒
+          (VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(status = Workflow.Status.Starting))).map { _ ⇒
             pulse(workflow, scheduled = false)
           }
         })

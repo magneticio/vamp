@@ -1,20 +1,23 @@
 package io.vamp.operation.gateway
 
-import akka.pattern.ask
-import io.vamp.common.Config
-import io.vamp.common.akka.IoC._
+import akka.util.Timeout
+import io.vamp.common.{Config, Id}
 import io.vamp.common.akka._
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{ GatewayRouteValidation, Percentage }
+import io.vamp.model.reader.{GatewayRouteValidation, Percentage}
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ ArtifactPaginationSupport, PersistenceActor }
+import io.vamp.persistence.ArtifactPaginationSupport
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.util.Try
+
 
 object GatewayActor {
 
-  val timeout = PersistenceActor.timeout
+  val timeout = 5.second
 
   val virtualHostsEnabled = Config.boolean("vamp.operation.gateway.virtual-hosts.enabled")
   val virtualHostsFormat1 = Config.string("vamp.operation.gateway.virtual-hosts.formats.gateway")
@@ -33,11 +36,12 @@ object GatewayActor {
 
 }
 
-class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation {
+class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation
+  with VampJsonFormats {
 
   import GatewayActor._
 
-  private implicit val timeout = PersistenceActor.timeout()
+  private implicit val timeout = Timeout(5.second)
 
   def receive = {
 
@@ -87,9 +91,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
     def default = {
       if (validateOnly) Future.successful(None)
       else {
-        (actorFor[PersistenceActor] ? PersistenceActor.Delete(name, classOf[Gateway])).flatMap {
-          _ ⇒ actorFor[PersistenceActor] ? PersistenceActor.DeleteInternalGateway(name)
-        }
+        VampPersistence().deleteObject[Gateway](Id[Gateway](name))
       }
     }
 
@@ -105,14 +107,14 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
   }
 
   private def routeChanged(gateway: Gateway): Future[Boolean] = {
-    checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(gateway.name, classOf[Gateway])) map {
+    checked[Option[_]](VampPersistence().read[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway))) map {
       case Some(old: Gateway) ⇒ old.routes.map(_.path.normalized).toSet != gateway.routes.map(_.path.normalized).toSet
       case _                  ⇒ true
     }
   }
 
   private def deploymentExists(name: String): Future[Boolean] = {
-    checked[Option[_]](actorFor[PersistenceActor] ? PersistenceActor.Read(GatewayPath(name).segments.head, classOf[Deployment])) map {
+    checked[Option[_]](VampPersistence().read[Deployment](Id[Deployment](GatewayPath(name).segments.head))) map {
       result ⇒ result.isDefined
     }
   }
@@ -182,27 +184,16 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
 
     val g = gateway.copy(virtualHosts = virtualHosts.distinct)
 
-    val requests = {
+    (g.internal, promote) match {
 
-      (g.internal, promote) match {
+      case (true, true) ⇒
+        if (create)
+          VampPersistence().create[Gateway](gateway)
+        else
+          VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), _ => gateway)
 
-        case (true, true) ⇒
-          if (create)
-            PersistenceActor.Create(g, source) :: PersistenceActor.CreateInternalGateway(g) :: Nil
-          else
-            PersistenceActor.Update(g, source) :: PersistenceActor.UpdateInternalGateway(g) :: Nil
-
-        case (true, false) ⇒
-          if (create) PersistenceActor.CreateInternalGateway(g) :: Nil else PersistenceActor.UpdateInternalGateway(g) :: Nil
-
-        case _ ⇒
-          if (create) PersistenceActor.Create(g, source) :: Nil else PersistenceActor.Update(g, source) :: Nil
-      }
+      case _ ⇒ VampPersistence().create[Gateway](gateway)
     }
-
-    Future.sequence(requests.map {
-      request ⇒ actorFor[PersistenceActor] ? request
-    }).map(_ ⇒ g)
   }
 
   private def defaultVirtualHosts(gateway: Gateway): List[String] = GatewayPath(gateway.name).segments.map { domain ⇒

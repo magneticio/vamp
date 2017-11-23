@@ -5,17 +5,19 @@ import java.time.temporal.ChronoUnit
 
 import akka.actor._
 import akka.pattern.ask
+import akka.util.Timeout
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.common.notification.Notification
 import io.vamp.model.artifact._
-import io.vamp.model.event.{ Aggregator, Event, EventQuery, TimeRange, _ }
-import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
+import io.vamp.model.event.{Aggregator, Event, EventQuery, TimeRange, _}
+import io.vamp.model.notification.{DeEscalate, Escalate, SlaEvent}
 import io.vamp.operation.notification._
 import io.vamp.operation.sla.SlaActor.SlaProcessAll
-import io.vamp.persistence.{ ArtifactPaginationSupport, EventPaginationSupport, PersistenceActor }
+import io.vamp.persistence.{ArtifactPaginationSupport, EventPaginationSupport}
 import io.vamp.pulse.PulseActor.Publish
-import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
+import io.vamp.pulse.{EventRequestEnvelope, PulseActor}
+import scala.concurrent.duration._
 
 import scala.concurrent.Future
 
@@ -33,7 +35,7 @@ class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginat
 
   def receive: Receive = {
     case SlaProcessAll ⇒
-      implicit val timeout = PersistenceActor.timeout()
+      implicit val timeout = Timeout(5.second)
       forAll(allArtifacts[Deployment], check)
   }
 
