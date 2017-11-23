@@ -5,17 +5,17 @@ import io.vamp.common.Config
 import io.vamp.common.akka.CommonSupportForActors
 import io.vamp.common.notification.Notification
 import io.vamp.common.vitals.InfoRequest
-import io.vamp.container_driver.{ContainerDriverActor, Docker}
+import io.vamp.container_driver.{ ContainerDriverActor, Docker }
 import io.vamp.model.artifact.Workflow.Status
 import io.vamp.model.artifact.Workflow.Status.RestartingPhase
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{MegaByte, Quantity}
+import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.model.resolver.WorkflowValueResolver
 import io.vamp.persistence.ArtifactSupport
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import io.vamp.pulse.notification.PulseFailureNotifier
-import io.vamp.workflow_driver.WorkflowDriverActor.{GetScheduled, Schedule, Unschedule}
+import io.vamp.workflow_driver.WorkflowDriverActor.{ GetScheduled, Schedule, Unschedule }
 import io.vamp.workflow_driver.notification.WorkflowDriverNotificationProvider
 
 import scala.concurrent.Future
@@ -34,7 +34,7 @@ object WorkflowDriver {
   def path(workflow: Workflow) = root :: workflow.name :: Nil
 }
 
-trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider with WorkflowValueResolver with VampJsonFormats{
+trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with CommonSupportForActors with WorkflowDriverNotificationProvider with WorkflowValueResolver with VampJsonFormats {
 
   import WorkflowDriver._
 
@@ -92,12 +92,13 @@ trait WorkflowDriver extends ArtifactSupport with PulseFailureNotifier with Comm
         )
 
         for {
-          _ <- VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow),
+          _ ← VampPersistence().update[Workflow](
+            workflowSerilizationSpecifier.idExtractor(workflow),
             _.copy(environmentVariables = updatedEnvironmentVariables, scale = Some(updatedScale), network = Some(updatedNetwork),
               arguments = updatedArguments, healthChecks = updatedHealthChecks, breed = workflowBreed
             )
           )
-          afterUpdateWorkflow <- VampPersistence().read[Workflow](workflowSerilizationSpecifier.idExtractor(workflow))
+          afterUpdateWorkflow ← VampPersistence().read[Workflow](workflowSerilizationSpecifier.idExtractor(workflow))
         } yield afterUpdateWorkflow
       }
     }

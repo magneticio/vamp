@@ -329,4 +329,5 @@ trait VampJsonDecoders {
 
   implicit val templateDecoder: Decoder[Template] = deriveDecoder[Template]
 
+
 }

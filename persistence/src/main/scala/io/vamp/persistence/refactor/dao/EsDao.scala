@@ -103,13 +103,13 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
       numberOfObjects ← esClient.execute(search(indexName) types (s.typeName) size 0)
       allObjects ← esClient.execute(search(indexName) types (s.typeName) from (
         fromAndSize match {
-          case None => 0
-          case Some((f, _)) => f
+          case None         ⇒ 0
+          case Some((f, _)) ⇒ f
         }) size (
-        fromAndSize match {
-          case None => numberOfObjects.totalHits.toInt
-          case Some((_, t)) => t
-        }))
+          fromAndSize match {
+            case None         ⇒ numberOfObjects.totalHits.toInt
+            case Some((_, t)) ⇒ t
+          }))
     } yield {
       val responseHits = allObjects.original.getHits().getHits()
       val responseList = responseHits.map(s ⇒ interpretAsObject(s.getSourceAsString)).toList

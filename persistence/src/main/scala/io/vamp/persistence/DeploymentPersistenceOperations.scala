@@ -23,7 +23,7 @@ trait DeploymentPersistenceMessages {
 
 }
 
-private[persistence] object DeploymentPersistenceOperations {
+object DeploymentPersistenceOperations {
 
   def clusterArtifactName(deployment: Deployment, cluster: DeploymentCluster): String = {
     GatewayPath(deployment.name :: cluster.name :: Nil).normalized
@@ -103,7 +103,7 @@ private[persistence] object DeploymentServiceStatus {
   val kind: String = "deployment-service-statuses"
 }
 
-private[persistence] case class DeploymentServiceStatus(name: String, status: DeploymentService.Status) extends PersistenceArtifact {
+case class DeploymentServiceStatus(name: String, status: DeploymentService.Status) extends PersistenceArtifact {
   val kind: String = DeploymentServiceStatus.kind
 }
 

@@ -2,15 +2,15 @@ package io.vamp.workflow_driver
 
 import akka.actor.ActorRef
 import akka.pattern.ask
-import io.vamp.container_driver.ContainerDriverActor.{DeployWorkflow, GetWorkflow, UndeployWorkflow}
+import io.vamp.container_driver.ContainerDriverActor.{ DeployWorkflow, GetWorkflow, UndeployWorkflow }
 import io.vamp.container_driver.ContainerWorkflow
-import io.vamp.model.artifact.{DaemonSchedule, DefaultBreed, Instance, Workflow}
+import io.vamp.model.artifact.{ DaemonSchedule, DefaultBreed, Instance, Workflow }
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
 
 import scala.concurrent.Future
 
-trait DaemonWorkflowDriver extends WorkflowDriver with VampJsonFormats{
+trait DaemonWorkflowDriver extends WorkflowDriver with VampJsonFormats {
 
   protected def driverActor: ActorRef
 

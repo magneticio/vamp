@@ -3,10 +3,10 @@ package io.vamp.operation.controller
 import akka.actor.Actor
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{Config, ConfigMagnet, Namespace}
+import io.vamp.common.{ Config, ConfigMagnet, Namespace }
 import io.vamp.common.akka.DataRetrieval
 import io.vamp.common.akka.IoC._
-import io.vamp.common.vitals.{InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals}
+import io.vamp.common.vitals.{ InfoRequest, JmxVitalsProvider, JvmInfoMessage, JvmVitals }
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.gateway_driver.GatewayDriverActor
 import io.vamp.model.Model

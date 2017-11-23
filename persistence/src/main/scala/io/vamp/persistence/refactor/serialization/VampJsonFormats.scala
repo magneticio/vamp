@@ -5,6 +5,7 @@ import io.circe.parser._
 import io.circe.syntax._
 import io.vamp.common._
 import io.vamp.model.artifact._
+import io.vamp.persistence.DeploymentServiceStatus
 import spray.json._
 /**
  * Created by mihai on 11/10/17.
@@ -63,16 +64,16 @@ trait VampJsonFormats extends DefaultJsonProtocol with VampJsonDecoders with Vam
 
   def interpretJson[T](js: Json, sSpecifier: SerializationSpecifier[T]): T = {
     sSpecifier.decoder.decodeJson(js) match {
-      case Right(r) => r
-      case _ => throw ObjectFormatException(objectAsString = js.noSpaces, `type` = s"${sSpecifier.typeName}")
+      case Right(r) ⇒ r
+      case _        ⇒ throw ObjectFormatException(objectAsString = js.noSpaces, `type` = s"${sSpecifier.typeName}")
     }
   }
 
   def unMarshallList[T: SerializationSpecifier](objListAsString: String): List[T] = {
     val specifier = implicitly[SerializationSpecifier[T]]
     parse(objListAsString) match {
-      case Right(r) if (r.isArray) => r.asArray.map(_.toList).getOrElse(Nil).map(interpretJson(_, specifier))
-      case _ => throw ObjectFormatException(objectAsString = objListAsString, `type` = s"List of ${specifier.typeName}")
+      case Right(r) if (r.isArray) ⇒ r.asArray.map(_.toList).getOrElse(Nil).map(interpretJson(_, specifier))
+      case _                       ⇒ throw ObjectFormatException(objectAsString = objListAsString, `type` = s"List of ${specifier.typeName}")
     }
   }
 
