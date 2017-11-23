@@ -260,10 +260,6 @@ trait VampJsonEncoders {
 
   implicit val blueprintEncoder: Encoder[Blueprint] = deriveEncoder[Blueprint]
 
-  implicit val deploymentServiceHealthEncoder: Encoder[DeploymentServiceHealth] = deriveEncoder[DeploymentServiceHealth]
-
-  implicit val deploymentServiceScaleEncoder: Encoder[DeploymentServiceScale] = deriveEncoder[DeploymentServiceScale]
-  implicit val deploymentServiceInstancesEncoder: Encoder[DeploymentServiceInstances] = deriveEncoder[DeploymentServiceInstances]
-  implicit val deploymentServiceEnvironmentVariablesEncoder: Encoder[DeploymentServiceEnvironmentVariables] = deriveEncoder[DeploymentServiceEnvironmentVariables]
+  implicit val templateEncoder: Encoder[Template] = deriveEncoder[Template]
 
 }

@@ -6,7 +6,7 @@ import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
 import io.vamp.common.{ Config, Id, Namespace }
-import io.vamp.persistence.refactor.api.{ SimpleArtifactPersistenceDao, SimpleArtifactPersistenceDaoFactory }
+import io.vamp.persistence.refactor.api.{ SearchResponse, SimpleArtifactPersistenceDao, SimpleArtifactPersistenceDaoFactory }
 import io.vamp.persistence.refactor.exceptions.{ DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException }
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 import org.elasticsearch.common.settings.Settings
@@ -97,7 +97,7 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     } yield ()
   }
 
-  def getAll[T: SerializationSpecifier](fromAndSize: Option[(Int, Int)] = None): Future[List[T]] = {
+  def getAll[T: SerializationSpecifier](fromAndSize: Option[(Int, Int)] = None): Future[SearchResponse[T]] = {
     implicit val s = implicitly[SerializationSpecifier[T]]
     for {
       numberOfObjects ← esClient.execute(search(indexName) types (s.typeName) size 0)
@@ -112,7 +112,8 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
           }))
     } yield {
       val responseHits = allObjects.original.getHits().getHits()
-      responseHits.map(s ⇒ interpretAsObject(s.getSourceAsString)).toList
+      val responseList = responseHits.map(s ⇒ interpretAsObject(s.getSourceAsString)).toList
+      SearchResponse(responseList, from = fromAndSize.map(_._1).getOrElse(0), size = fromAndSize.map(_._2).getOrElse(responseList.size), total = allObjects.totalHits.toInt)
     }
   }
 

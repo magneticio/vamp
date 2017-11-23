@@ -20,11 +20,11 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
 
   def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
     val fromAndSize = if (perPage > 0) Some((perPage * page, perPage)) else None
-    VampPersistence().getAll[Deployment](fromAndSize) map { deploymentList ⇒
+    VampPersistence().getAll[Deployment](fromAndSize) map { searchResponse ⇒
       ArtifactResponseEnvelope(
-        response = deploymentList.map { deployment ⇒ transform(deployment, asBlueprint, onlyReferences) },
-        total = deploymentList.size, //TODO: changet his to an appropriate value
-        page = page, perPage = perPage)
+        response = searchResponse.response.map { deployment ⇒ transform(deployment, asBlueprint, onlyReferences) },
+        total = searchResponse.total,
+        page = searchResponse.from / searchResponse.size, perPage = searchResponse.size)
     }
   }
 

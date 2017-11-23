@@ -7,11 +7,12 @@ import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import org.scalatest.{ BeforeAndAfterEach, Matchers, fixture }
 
 /**
-  * Created by mihai on 11/10/17.
-  */
+ * Created by mihai on 11/10/17.
+ */
 class ESPersistenceTest_Gateway extends fixture.FlatSpec with Matchers with UseElasticSearchForTesting with BeforeAndAfterEach with VampJsonFormats {
 
-  val exampleGateway = Gateway(name = "gateway_1",
+  val exampleGateway = Gateway(
+    name = "gateway_1",
     metadata = RootAnyMap.empty,
     port = Port(name = "port01", alias = Some("portAlias01"), value = Some("value01"), number = 1, `type` = Port.Type.Http),
     service = Some(GatewayService(host = "localhost01", port = Port(name = "port01_01", alias = Some("portAlias01_01"), value = Some("value01_01"), number = 11, `type` = Port.Type.Tcp))),
@@ -39,9 +40,8 @@ class ESPersistenceTest_Gateway extends fixture.FlatSpec with Matchers with UseE
     assert(simpleAwait(VampPersistence().read(gateway1Id)) == gateway1)
   }
 
-
   behavior of "JsonFormats"
-  it should "currectly marshall and unmarshall lists of gateways" in {p =>
+  it should "currectly marshall and unmarshall lists of gateways" in { p ⇒
 
     val listOfGateways = List(exampleGateway, exampleGateway.copy(name = "modifiedName"))
     val marshalledListOfGateways = marshallList[Gateway](listOfGateways)

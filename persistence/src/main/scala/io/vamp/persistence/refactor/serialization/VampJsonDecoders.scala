@@ -328,10 +328,6 @@ trait VampJsonDecoders {
 
   implicit val blueprintDecoder: Decoder[Blueprint] = deriveDecoder[Blueprint]
 
-  implicit val deploymentServiceHealthDecoder: Decoder[DeploymentServiceHealth] = deriveDecoder[DeploymentServiceHealth]
-
-  implicit val deploymentServiceScaleDecoder: Decoder[DeploymentServiceScale] = deriveDecoder[DeploymentServiceScale]
-  implicit val deploymentServiceInstancesDecoder: Decoder[DeploymentServiceInstances] = deriveDecoder[DeploymentServiceInstances]
-  implicit val deploymentServiceEnvironmentVariablesDecoder: Decoder[DeploymentServiceEnvironmentVariables] = deriveDecoder[DeploymentServiceEnvironmentVariables]
+  implicit val templateDecoder: Decoder[Template] = deriveDecoder[Template]
 
 }

@@ -6,6 +6,6 @@ object Template {
   val kind: String = "templates"
 }
 
-case class Template(name: String, metadata: RootAnyMap, definition: Map[String, Any]) extends Artifact {
+case class Template(name: String, metadata: RootAnyMap, definition: RootAnyMap) extends Artifact {
   val kind: String = Template.kind
 }
