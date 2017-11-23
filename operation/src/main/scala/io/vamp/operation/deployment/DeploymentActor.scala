@@ -6,6 +6,7 @@ import io.vamp.common.{ Config, Namespace, RootAnyMap }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
 import io.vamp.model.artifact.DeploymentService.Status.Intention
+import io.vamp.model.artifact.DeploymentService.Status.Phase.Done
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader._
@@ -13,7 +14,10 @@ import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ ArtifactExpansionSupport, ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.DeploymentPersistenceOperations.deploymentSerilizationSpecifier
+import io.vamp.persistence._
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
 
 import scala.concurrent.Future
 
@@ -303,8 +307,8 @@ trait DeploymentGatewayOperation {
   }
 
   def resetServiceArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.Status = Intention.Deployment) = {
-    actorFor[PersistenceActor] ! PersistenceActor.UpdateDeploymentServiceStatus(deployment, cluster, service, state)
-    actorFor[PersistenceActor] ! PersistenceActor.ResetDeploymentService(deployment, cluster, service)
+    DeploymentPersistenceOperations.updateServiceStatus(deployment, cluster, service, state)
+    DeploymentPersistenceOperations.resetDeploymentService(deployment, cluster, service)
     actorFor[PersistenceActor] ! PersistenceActor.ResetGateway(deployment, cluster, service)
   }
 
@@ -625,7 +629,7 @@ trait DeploymentSlicer extends DeploymentOperation {
   }
 }
 
-trait DeploymentUpdate {
+trait DeploymentUpdate extends VampJsonFormats {
   this: DeploymentValidator with CommonProvider ⇒
 
   private implicit val timeout = PersistenceActor.timeout()
@@ -633,7 +637,8 @@ trait DeploymentUpdate {
   def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String, validateOnly: Boolean) = {
     if (validateOnly) Future.successful(true) else {
       val clusters = deployment.clusters.map(c ⇒ if (cluster.name == c.name) c.copy(sla = sla) else c)
-      actorFor[PersistenceActor] ? PersistenceActor.Update(deployment.copy(clusters = clusters), Some(source))
+      // TODO: source is not handled
+      VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ d.copy(clusters = clusters))
     }
   }
 
@@ -642,8 +647,12 @@ trait DeploymentUpdate {
       case Some(_) ⇒
         if (validateOnly) Future.successful(true)
         else {
-          actorFor[PersistenceActor] ? PersistenceActor.UpdateDeploymentServiceScale(deployment, cluster, service, scale, source) flatMap {
-            _ ⇒ actorFor[PersistenceActor] ? PersistenceActor.UpdateDeploymentServiceStatus(deployment, cluster, service, Intention.Deployment)
+          // TODO: source parameter is ignored in updateServiceScale
+          DeploymentPersistenceOperations.updateServiceScale(deployment, cluster, service, scale, source) flatMap {
+            _ ⇒
+              {
+                DeploymentPersistenceOperations.updateServiceStatus(deployment, cluster, service, Intention.Deployment)
+              }
           }
         }
       case _ ⇒ Future.successful(None)

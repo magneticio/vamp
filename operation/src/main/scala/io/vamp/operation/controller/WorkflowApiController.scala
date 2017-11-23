@@ -1,18 +1,18 @@
 package io.vamp.operation.controller
 
 import akka.util.Timeout
-import io.vamp.common.{Id, Namespace}
+import io.vamp.common.{ Id, Namespace }
 import io.vamp.model.artifact._
 import io.vamp.model.notification.InconsistentArtifactName
 import io.vamp.model.reader.WorkflowStatusReader
-import io.vamp.operation.notification.{DeploymentWorkflowNameCollision, WorkflowUpdateError}
+import io.vamp.operation.notification.{ DeploymentWorkflowNameCollision, WorkflowUpdateError }
 import io.vamp.persistence.ArtifactExpansionSupport
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
 
 import scala.concurrent.Future
 
-trait WorkflowApiController extends AbstractController with VampJsonFormats{
+trait WorkflowApiController extends AbstractController with VampJsonFormats {
   this: ArtifactExpansionSupport ⇒
 
   protected def createWorkflow(artifact: Workflow, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
@@ -33,14 +33,14 @@ trait WorkflowApiController extends AbstractController with VampJsonFormats{
         case _ ⇒
           if (validateOnly)
             Future.successful(Some(artifact))
-          else
-            if(create) VampPersistence().create(artifact)
-            else VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(artifact), _ => artifact)
+          else if (create) VampPersistence().create(artifact)
+          else VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(artifact), _ ⇒ artifact)
       }
     } map {
       case list: List[_] ⇒
         if (!validateOnly) list.foreach {
-          case workflow: Workflow ⇒ VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(scale = None,
+          case workflow: Workflow ⇒ VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(
+            scale = None,
             arguments = Nil, network = None, environmentVariables = Nil)
           )
         }
@@ -66,7 +66,7 @@ trait WorkflowApiController extends AbstractController with VampJsonFormats{
     if (validateOnly) Future.successful(newStatus.toString)
     else
       for {
-        _ <- VampPersistence().update[Workflow](Id[Workflow](name), _.copy(status = newStatus))
+        _ ← VampPersistence().update[Workflow](Id[Workflow](name), _.copy(status = newStatus))
       } yield ()
   }
 }

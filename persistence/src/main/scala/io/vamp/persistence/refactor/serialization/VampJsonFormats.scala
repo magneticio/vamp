@@ -5,7 +5,6 @@ import io.circe.parser._
 import io.circe.syntax._
 import io.vamp.common._
 import io.vamp.model.artifact._
-import io.vamp.persistence.DeploymentServiceStatus
 import spray.json._
 /**
  * Created by mihai on 11/10/17.
@@ -31,25 +30,25 @@ trait VampJsonFormats extends DefaultJsonProtocol with VampJsonDecoders with Vam
     SerializationSpecifier[Breed](breedEncoder, breedDecoder, "breed", (e ⇒ Id[Breed](e.name)))
 
   implicit val scaleSerializationSpecifier: SerializationSpecifier[Scale] =
-    SerializationSpecifier[Scale](scaleEncoder, scaleDecoder, "scale", (e => Id[Scale](e.name)))
+    SerializationSpecifier[Scale](scaleEncoder, scaleDecoder, "scale", (e ⇒ Id[Scale](e.name)))
 
   implicit val escalationSerializationSpecifier: SerializationSpecifier[Escalation] =
-    SerializationSpecifier[Escalation](escalationEncoder, escalationDecoder, "escalation", (e => Id[Escalation](e.name)))
+    SerializationSpecifier[Escalation](escalationEncoder, escalationDecoder, "escalation", (e ⇒ Id[Escalation](e.name)))
 
   implicit val routeSerializationSpecifier: SerializationSpecifier[Route] =
-    SerializationSpecifier[Route](routeEncoder, routeDecoder, "route", (e => Id[Route](e.name)))
+    SerializationSpecifier[Route](routeEncoder, routeDecoder, "route", (e ⇒ Id[Route](e.name)))
 
   implicit val conditionSerializationSpecifier: SerializationSpecifier[Condition] =
-    SerializationSpecifier[Condition](conditionEncoder, conditionDecoder, "condition", (e => Id[Condition](e.name)))
+    SerializationSpecifier[Condition](conditionEncoder, conditionDecoder, "condition", (e ⇒ Id[Condition](e.name)))
 
   implicit val slaSerializationSpecifier: SerializationSpecifier[Sla] =
-    SerializationSpecifier[Sla](slaEncoder, slaDecoder, "sla", (e => Id[Sla](e.name)))
+    SerializationSpecifier[Sla](slaEncoder, slaDecoder, "sla", (e ⇒ Id[Sla](e.name)))
 
   implicit val rewriteSerializationSpecifier: SerializationSpecifier[Rewrite] =
-    SerializationSpecifier[Rewrite](rewriteEncoder, rewriteDecoder, "rewrite", (e => Id[Rewrite](e.name)))
+    SerializationSpecifier[Rewrite](rewriteEncoder, rewriteDecoder, "rewrite", (e ⇒ Id[Rewrite](e.name)))
 
   implicit val templateSerializationSpecifier: SerializationSpecifier[Template] =
-    SerializationSpecifier[Template](templateEncoder, templateDecoder, "template", (e => Id[Template](e.name)))
+    SerializationSpecifier[Template](templateEncoder, templateDecoder, "template", (e ⇒ Id[Template](e.name)))
 
   def marshall[T: SerializationSpecifier](obj: T): String = {
     val specifier = implicitly[SerializationSpecifier[T]]

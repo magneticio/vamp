@@ -1,19 +1,19 @@
 package io.vamp.persistence.refactor.dao
 
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.sksamuel.elastic4s.{ElasticsearchClientUri, IndexAndType, TcpClient}
+import com.sksamuel.elastic4s.{ ElasticsearchClientUri, IndexAndType, TcpClient }
 import io.circe._
 import io.circe.parser._
 import io.circe.syntax._
-import io.vamp.common.{Config, Id, Namespace}
-import io.vamp.persistence.refactor.api.{SearchResponse, SimpleArtifactPersistenceDao, SimpleArtifactPersistenceDaoFactory}
-import io.vamp.persistence.refactor.exceptions.{DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException}
+import io.vamp.common.{ Config, Id, Namespace }
+import io.vamp.persistence.refactor.api.{ SearchResponse, SimpleArtifactPersistenceDao, SimpleArtifactPersistenceDaoFactory }
+import io.vamp.persistence.refactor.exceptions.{ DuplicateObjectIdException, InvalidFormatException, InvalidObjectIdException, VampPersistenceModificationException }
 import io.vamp.persistence.refactor.serialization.SerializationSpecifier
 import org.elasticsearch.common.settings.Settings
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 
 /**
  * Created by mihai on 11/10/17.
@@ -97,7 +97,7 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
     } yield ()
   }
 
-  def getAll[T:SerializationSpecifier](fromAndSize: Option[(Int, Int)] = None): Future[SearchResponse[T]] = {
+  def getAll[T: SerializationSpecifier](fromAndSize: Option[(Int, Int)] = None): Future[SearchResponse[T]] = {
     implicit val s = implicitly[SerializationSpecifier[T]]
     for {
       numberOfObjects ← esClient.execute(search(indexName) types (s.typeName) size 0)

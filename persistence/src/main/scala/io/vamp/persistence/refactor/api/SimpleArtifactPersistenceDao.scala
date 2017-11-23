@@ -20,8 +20,8 @@ trait SimpleArtifactPersistenceDao {
 
   def deleteObject[T: SerializationSpecifier](id: Id[T]): Future[Unit]
 
-  def getAll[T:SerializationSpecifier](fromAndSize: Option[(Int, Int)] = None): Future[SearchResponse[T]]
-  
+  def getAll[T: SerializationSpecifier](fromAndSize: Option[(Int, Int)] = None): Future[SearchResponse[T]]
+
   // These methods MUST NOT be called from anywhere other than test classes. The private[persistence] method protects against external access
   private[persistence] def afterTestCleanup(): Unit
   private[persistence] val indexName: String

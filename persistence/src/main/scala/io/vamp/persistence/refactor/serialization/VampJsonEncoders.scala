@@ -9,6 +9,7 @@ import io.vamp.model.artifact.DeploymentService.Status.Intention.StatusIntention
 import io.vamp.model.artifact.TimeSchedule.RepeatPeriod
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ MegaByte, Percentage, Quantity, Time }
+import io.vamp.persistence._
 
 import scala.concurrent.duration.{ FiniteDuration, TimeUnit }
 

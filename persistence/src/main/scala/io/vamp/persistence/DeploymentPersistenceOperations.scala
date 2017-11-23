@@ -2,8 +2,12 @@ package io.vamp.persistence
 
 import akka.actor.Actor
 import akka.pattern.ask
+import io.vamp.common.{ Id, Namespace }
 import io.vamp.common.akka.CommonSupportForActors
+import io.vamp.model.artifact.DeploymentService.Status
 import io.vamp.model.artifact._
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
 
 import scala.concurrent.Future
 
@@ -23,7 +27,67 @@ trait DeploymentPersistenceMessages {
 
 }
 
-object DeploymentPersistenceOperations {
+object DeploymentPersistenceOperations extends VampJsonFormats {
+
+  def updateServiceStatus(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, serviceStatus: Status)(implicit ns: Namespace): Future[Unit] = {
+    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
+      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+        .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(status = serviceStatus) else s)
+      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      d.copy(clusters = clusters)
+    })
+  }
+
+  def updateServiceScale(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, serviceScale: DefaultScale, source: String)(implicit ns: Namespace): Future[Unit] = {
+    // TODO: source is ignored
+    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
+      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+        .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(scale = Option(serviceScale)) else s)
+      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      d.copy(clusters = clusters)
+    })
+  }
+
+  def updateServiceHealth(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, serviceHealth: Health)(implicit ns: Namespace): Future[Unit] = {
+    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
+      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+        .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(health = Option(serviceHealth)) else s)
+      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      d.copy(clusters = clusters)
+    })
+  }
+
+  def updateServiceEnvironmentVariables(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, envVars: List[EnvironmentVariable])(implicit ns: Namespace): Future[Unit] = {
+    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
+      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+        .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(environmentVariables = envVars) else s)
+      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      d.copy(clusters = clusters)
+    })
+  }
+
+  def updateServiceInstances(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, serviceInstances: List[Instance])(implicit ns: Namespace): Future[Unit] = {
+    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
+      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+        .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(instances = serviceInstances) else s)
+      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      d.copy(clusters = clusters)
+    })
+  }
+
+  def resetDeploymentService(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService)(implicit ns: Namespace): Future[Unit] = {
+    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
+      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+        .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(
+          scale = None,
+          instances = List[Instance](),
+          environmentVariables = List[EnvironmentVariable](),
+          health = None)
+        else s)
+      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      d.copy(clusters = clusters)
+    })
+  }
 
   def clusterArtifactName(deployment: Deployment, cluster: DeploymentCluster): String = {
     GatewayPath(deployment.name :: cluster.name :: Nil).normalized
@@ -111,7 +175,7 @@ private[persistence] object DeploymentServiceScale {
   val kind: String = "deployment-service-scales"
 }
 
-private[persistence] case class DeploymentServiceScale(name: String, scale: DefaultScale) extends PersistenceArtifact {
+case class DeploymentServiceScale(name: String, scale: DefaultScale) extends PersistenceArtifact {
   val kind: String = DeploymentServiceScale.kind
 }
 
@@ -119,7 +183,7 @@ private[persistence] object DeploymentServiceInstances {
   val kind: String = "deployment-service-instances"
 }
 
-private[persistence] case class DeploymentServiceInstances(name: String, instances: List[Instance]) extends PersistenceArtifact {
+case class DeploymentServiceInstances(name: String, instances: List[Instance]) extends PersistenceArtifact {
   val kind: String = DeploymentServiceInstances.kind
 }
 
@@ -127,7 +191,7 @@ private[persistence] object DeploymentServiceEnvironmentVariables {
   val kind: String = "deployment-service-environment-variables"
 }
 
-private[persistence] case class DeploymentServiceEnvironmentVariables(name: String, environmentVariables: List[EnvironmentVariable]) extends PersistenceArtifact {
+case class DeploymentServiceEnvironmentVariables(name: String, environmentVariables: List[EnvironmentVariable]) extends PersistenceArtifact {
   val kind: String = DeploymentServiceEnvironmentVariables.kind
 }
 
@@ -135,6 +199,6 @@ private[persistence] object DeploymentServiceHealth {
   val kind: String = "deployment-service-healths"
 }
 
-private[persistence] case class DeploymentServiceHealth(name: String, health: Health) extends PersistenceArtifact {
+case class DeploymentServiceHealth(name: String, health: Health) extends PersistenceArtifact {
   val kind: String = DeploymentServiceHealth.kind
 }

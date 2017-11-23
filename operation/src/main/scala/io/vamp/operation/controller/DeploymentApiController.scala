@@ -19,9 +19,10 @@ import scala.concurrent.Future
 trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage with AbstractController with VampJsonFormats {
 
   def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
-    val fromAndSize = if(perPage > 0) Some((perPage * page, perPage)) else None
-    VampPersistence().getAll[Deployment](fromAndSize) map { searchResponse =>
-      ArtifactResponseEnvelope(response = searchResponse.response.map { deployment ⇒ transform(deployment, asBlueprint, onlyReferences)},
+    val fromAndSize = if (perPage > 0) Some((perPage * page, perPage)) else None
+    VampPersistence().getAll[Deployment](fromAndSize) map { searchResponse ⇒
+      ArtifactResponseEnvelope(
+        response = searchResponse.response.map { deployment ⇒ transform(deployment, asBlueprint, onlyReferences) },
         total = searchResponse.total,
         page = searchResponse.from / searchResponse.size, perPage = searchResponse.size)
     }
