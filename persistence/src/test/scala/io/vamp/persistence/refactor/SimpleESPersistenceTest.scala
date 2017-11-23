@@ -69,7 +69,10 @@ class SimpleESPersistenceTest extends fixture.FlatSpec with Matchers with UseEla
     Thread.sleep(2000)
 
     val response = simpleAwait(VampPersistence().getAll[EnvironmentVariable]())
-    assert(response.size == envVarList.size && envVarList.forall(e ⇒ response.exists(_ == e)))
+    assert(response.response.size == envVarList.size && envVarList.forall(e ⇒ response.response.exists(_ == e)))
+
+    val response2 = simpleAwait(VampPersistence().getAll[EnvironmentVariable](Some(100, 102)))
+    assert(response2.total == response.total && response2.from == 100 && response2.size == 102)
   }
 
 }

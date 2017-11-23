@@ -29,8 +29,26 @@ trait VampJsonFormats extends DefaultJsonProtocol with VampJsonDecoders with Vam
   implicit val breedSerilizationSpecifier: SerializationSpecifier[Breed] =
     SerializationSpecifier[Breed](breedEncoder, breedDecoder, "breed", (e ⇒ Id[Breed](e.name)))
 
-  implicit val slaSerializationSpecifier: SerializationSpecifier[Scale] =
+  implicit val scaleSerializationSpecifier: SerializationSpecifier[Scale] =
     SerializationSpecifier[Scale](scaleEncoder, scaleDecoder, "scale", (e => Id[Scale](e.name)))
+
+  implicit val escalationSerializationSpecifier: SerializationSpecifier[Escalation] =
+    SerializationSpecifier[Escalation](escalationEncoder, escalationDecoder, "escalation", (e => Id[Escalation](e.name)))
+
+  implicit val routeSerializationSpecifier: SerializationSpecifier[Route] =
+    SerializationSpecifier[Route](routeEncoder, routeDecoder, "route", (e => Id[Route](e.name)))
+
+  implicit val conditionSerializationSpecifier: SerializationSpecifier[Condition] =
+    SerializationSpecifier[Condition](conditionEncoder, conditionDecoder, "condition", (e => Id[Condition](e.name)))
+
+  implicit val slaSerializationSpecifier: SerializationSpecifier[Sla] =
+    SerializationSpecifier[Sla](slaEncoder, slaDecoder, "sla", (e => Id[Sla](e.name)))
+
+  implicit val rewriteSerializationSpecifier: SerializationSpecifier[Rewrite] =
+    SerializationSpecifier[Rewrite](rewriteEncoder, rewriteDecoder, "rewrite", (e => Id[Rewrite](e.name)))
+
+  implicit val templateSerializationSpecifier: SerializationSpecifier[Template] =
+    SerializationSpecifier[Template](templateEncoder, templateDecoder, "template", (e => Id[Template](e.name)))
 
   def marshall[T: SerializationSpecifier](obj: T): String = {
     val specifier = implicitly[SerializationSpecifier[T]]

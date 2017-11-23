@@ -259,4 +259,6 @@ trait VampJsonEncoders {
 
   implicit val blueprintEncoder: Encoder[Blueprint] = deriveEncoder[Blueprint]
 
+  implicit val templateEncoder: Encoder[Template] = deriveEncoder[Template]
+
 }

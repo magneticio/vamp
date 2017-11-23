@@ -327,4 +327,6 @@ trait VampJsonDecoders {
 
   implicit val blueprintDecoder: Decoder[Blueprint] = deriveDecoder[Blueprint]
 
+  implicit val templateDecoder: Decoder[Template] = deriveDecoder[Template]
+
 }
