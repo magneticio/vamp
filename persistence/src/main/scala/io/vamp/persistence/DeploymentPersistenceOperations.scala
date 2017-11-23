@@ -66,6 +66,29 @@ object DeploymentPersistenceOperations extends VampJsonFormats {
     })
   }
 
+  def updateServiceInstances(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, serviceInstances: List[Instance])(implicit ns: Namespace): Future[Unit] = {
+    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
+      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+        .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(instances = serviceInstances) else s)
+      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      d.copy(clusters = clusters)
+    })
+  }
+
+  def resetDeploymentService(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService)(implicit ns: Namespace): Future[Unit] = {
+    VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
+      val mServices = d.clusters.find(c ⇒ c.name == deploymentCluster.name).get
+        .services.map(s ⇒ if (s.breed.name == deploymentService.breed.name) s.copy(
+          scale = None,
+          instances = List[Instance](),
+          environmentVariables = List[EnvironmentVariable](),
+          health = None)
+        else s)
+      val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
+      d.copy(clusters = clusters)
+    })
+  }
+
   def clusterArtifactName(deployment: Deployment, cluster: DeploymentCluster): String = {
     GatewayPath(deployment.name :: cluster.name :: Nil).normalized
   }

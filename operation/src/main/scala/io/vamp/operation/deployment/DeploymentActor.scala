@@ -308,7 +308,7 @@ trait DeploymentGatewayOperation {
 
   def resetServiceArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.Status = Intention.Deployment) = {
     DeploymentPersistenceOperations.updateServiceStatus(deployment, cluster, service, state)
-    actorFor[PersistenceActor] ! PersistenceActor.ResetDeploymentService(deployment, cluster, service)
+    DeploymentPersistenceOperations.resetDeploymentService(deployment, cluster, service)
     actorFor[PersistenceActor] ! PersistenceActor.ResetGateway(deployment, cluster, service)
   }
 

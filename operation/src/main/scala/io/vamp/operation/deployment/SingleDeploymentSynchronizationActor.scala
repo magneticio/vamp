@@ -93,7 +93,7 @@ class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation wi
           deployTo(update = true)
         }
         else if (!matchingServers(deploymentService, cs)) {
-          actorFor[PersistenceActor] ! UpdateDeploymentServiceInstances(deployment, deploymentCluster, deploymentService, cs.instances.map(convert))
+          DeploymentPersistenceOperations.updateServiceInstances(deployment, deploymentCluster, deploymentService, cs.instances.map(convert))
         }
         else if (!matchingServiceHealth(deploymentService.health, containerService.health)) {
           val serviceHealth = containerService.health.getOrElse(deploymentService.health.get)
