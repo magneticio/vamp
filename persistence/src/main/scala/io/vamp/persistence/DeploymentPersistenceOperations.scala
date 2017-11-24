@@ -28,6 +28,7 @@ trait DeploymentPersistenceMessages {
 }
 
 object DeploymentPersistenceOperations extends VampJsonFormats {
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   def updateServiceStatus(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService, serviceStatus: Status)(implicit ns: Namespace): Future[Unit] = {
     VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ {
@@ -87,6 +88,18 @@ object DeploymentPersistenceOperations extends VampJsonFormats {
       val clusters = d.clusters.map(c ⇒ if (c.name == deploymentCluster.name) c.copy(services = mServices) else c)
       d.copy(clusters = clusters)
     })
+  }
+
+  def resetGateway(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService)(implicit ns: Namespace): Future[Unit] = {
+    // TODO: which gateway to delete?
+    Future {}
+  }
+
+  // resetInternalRouteArtifacts
+  def resetInternalRouteArtifacts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService)(implicit ns: Namespace): Future[Unit] = {
+    // TODO: which gateway to delete?
+    // service.breed.ports.foreach { port ⇒ }
+    Future {}
   }
 
   def clusterArtifactName(deployment: Deployment, cluster: DeploymentCluster): String = {

@@ -10,10 +10,10 @@ import io.vamp.model.event.Event
 import io.vamp.operation.notification._
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ArtifactPaginationSupport, ArtifactSupport}
-import io.vamp.pulse.Percolator.{RegisterPercolator, UnregisterPercolator}
+import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport }
+import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.PulseActor.Publish
-import io.vamp.pulse.{PulseActor, PulseEventTags}
+import io.vamp.pulse.{ PulseActor, PulseEventTags }
 import io.vamp.workflow_driver.WorkflowDriverActor
 
 import scala.concurrent.Future
@@ -72,11 +72,12 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
 
   private def stop(workflow: Workflow, running: Boolean): Unit = {
     undeploy(workflow, running, () ⇒ {
-      ( for {
-        _ <- VampPersistence().deleteObject(workflowSerilizationSpecifier.idExtractor(workflow))
-        } yield pulse(workflow, scheduled = false)
+      (for {
+        _ ← VampPersistence().deleteObject(workflowSerilizationSpecifier.idExtractor(workflow))
+      } yield pulse(workflow, scheduled = false)
       )
-  })}
+    })
+  }
 
   private def suspend(workflow: Workflow, running: Boolean): Unit = {
     undeploy(workflow, running, () ⇒ {

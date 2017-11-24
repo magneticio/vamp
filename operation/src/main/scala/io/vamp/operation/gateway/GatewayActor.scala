@@ -1,10 +1,10 @@
 package io.vamp.operation.gateway
 
 import akka.util.Timeout
-import io.vamp.common.{Config, Id}
+import io.vamp.common.{ Config, Id }
 import io.vamp.common.akka._
 import io.vamp.model.artifact._
-import io.vamp.model.reader.{GatewayRouteValidation, Percentage}
+import io.vamp.model.reader.{ GatewayRouteValidation, Percentage }
 import io.vamp.operation.notification._
 import io.vamp.persistence.ArtifactPaginationSupport
 import io.vamp.persistence.refactor.VampPersistence
@@ -14,10 +14,9 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Try
 
-
 object GatewayActor {
 
-  val timeout = 5.second
+  val timeout = Timeout(5.second)
 
   val virtualHostsEnabled = Config.boolean("vamp.operation.gateway.virtual-hosts.enabled")
   val virtualHostsFormat1 = Config.string("vamp.operation.gateway.virtual-hosts.formats.gateway")
@@ -37,7 +36,7 @@ object GatewayActor {
 }
 
 class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation
-  with VampJsonFormats {
+    with VampJsonFormats {
 
   import GatewayActor._
 
@@ -190,7 +189,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
         if (create)
           VampPersistence().create[Gateway](gateway)
         else
-          VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), _ => gateway)
+          VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), _ ⇒ gateway)
 
       case _ ⇒ VampPersistence().create[Gateway](gateway)
     }

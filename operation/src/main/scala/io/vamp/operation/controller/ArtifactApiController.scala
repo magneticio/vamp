@@ -3,19 +3,19 @@ package io.vamp.operation.controller
 import java.net.URLDecoder
 
 import akka.util.Timeout
-import io.vamp.common.{Artifact, Id, Namespace}
+import io.vamp.common.{ Artifact, Id, Namespace }
 import io.vamp.model.artifact._
-import io.vamp.model.notification.{ImportReferenceError, InconsistentArtifactName}
-import io.vamp.model.reader.{YamlReader, _}
+import io.vamp.model.notification.{ ImportReferenceError, InconsistentArtifactName }
+import io.vamp.model.reader.{ YamlReader, _ }
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.operation.notification.UnexpectedArtifact
 import io.vamp.persistence.notification.PersistenceOperationFailure
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.api.SearchResponse
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ArtifactExpansionSupport, ArtifactResponseEnvelope}
+import io.vamp.persistence.{ ArtifactExpansionSupport, ArtifactResponseEnvelope }
 import org.json4s.native.Serialization.write
-import org.json4s.{DefaultFormats, Extraction}
+import org.json4s.{ DefaultFormats, Extraction }
 
 import scala.concurrent.Future
 

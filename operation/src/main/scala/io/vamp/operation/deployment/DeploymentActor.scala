@@ -18,6 +18,7 @@ import io.vamp.persistence.DeploymentPersistenceOperations.deploymentSerilizatio
 import io.vamp.persistence._
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
+import scala.concurrent.duration._
 
 import scala.concurrent.Future
 
@@ -87,8 +88,9 @@ class DeploymentActor
   def commit(source: String, validateOnly: Boolean): (Future[Deployment] ⇒ Future[Any]) = { future ⇒
     if (validateOnly) future
     else future.flatMap { deployment ⇒
-      implicit val timeout: Timeout = PersistenceActor.timeout()
-      checked[List[_]](IoC.actorFor[PersistenceActor] ? PersistenceActor.Update(deployment, Some(source))) map {
+      implicit val timeout: Timeout = Timeout(5.second)
+      //TODO: source is ignored
+      VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ deployment) map {
         persisted ⇒
           IoC.actorFor[DeploymentSynchronizationActor] ! Synchronize(deployment)
           persisted
@@ -237,7 +239,7 @@ trait DeploymentValidator {
 
   def validateGateways: (Deployment ⇒ Future[Deployment]) = { (deployment: Deployment) ⇒
     // Availability check.
-    implicit val timeout = PersistenceActor.timeout()
+    implicit val timeout = Timeout(5.second)
 
     consume(allArtifacts[Gateway]) map { gateways ⇒
 
@@ -309,13 +311,11 @@ trait DeploymentGatewayOperation {
   def resetServiceArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService, state: DeploymentService.Status = Intention.Deployment) = {
     DeploymentPersistenceOperations.updateServiceStatus(deployment, cluster, service, state)
     DeploymentPersistenceOperations.resetDeploymentService(deployment, cluster, service)
-    actorFor[PersistenceActor] ! PersistenceActor.ResetGateway(deployment, cluster, service)
+    DeploymentPersistenceOperations.resetGateway(deployment, cluster, service) // TODO: which gateway should be removed?
   }
 
   def resetInternalRouteArtifacts(deployment: Deployment, cluster: DeploymentCluster, service: DeploymentService) = {
-    service.breed.ports.foreach { port ⇒
-      actorFor[PersistenceActor] ! PersistenceActor.DeleteGatewayRouteTargets(deployment, cluster, service, port)
-    }
+    DeploymentPersistenceOperations.resetInternalRouteArtifacts(deployment, cluster, service)
   }
 }
 
@@ -341,7 +341,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
 
           validateMerge(Deployment(deployment.name, metadata, clusters, gateways, ports, environmentVariables, hosts, dialects)) flatMap {
             deployment ⇒
-              implicit val timeout = GatewayActor.timeout()
+              implicit val timeout = GatewayActor.timeout
               Future.sequence {
                 gateways.map { gateway ⇒
                   if (deployment.gateways.exists(_.name == gateway.name))
@@ -454,7 +454,7 @@ trait DeploymentMerger extends DeploymentOperation with DeploymentValueResolver 
 
     def exists(gateway: Gateway) = stableCluster.exists(cluster ⇒ cluster.gateways.exists(_.port.name == gateway.port.name))
 
-    implicit val timeout = PersistenceActor.timeout()
+    implicit val timeout = Timeout(5.second)
     val routings = resolveRoutings(deployment, blueprintCluster)
     val promote = stableCluster.exists(cluster ⇒ cluster.gateways.size == blueprintCluster.gateways.size)
 
@@ -600,7 +600,7 @@ trait DeploymentSlicer extends DeploymentOperation {
 
         val (deleteRouting, updateRouting) = newClusters.partition(cluster ⇒ cluster.services.isEmpty || cluster.services.forall(_.status.intention == Intention.Undeployment))
 
-        implicit val timeout = GatewayActor.timeout()
+        implicit val timeout = GatewayActor.timeout
         Future.sequence {
           deleteRouting.flatMap { cluster ⇒
             stable.clusters.find(_.name == cluster.name) match {
@@ -632,7 +632,7 @@ trait DeploymentSlicer extends DeploymentOperation {
 trait DeploymentUpdate extends VampJsonFormats {
   this: DeploymentValidator with CommonProvider ⇒
 
-  private implicit val timeout = PersistenceActor.timeout()
+  private implicit val timeout = Timeout(5.second)
 
   def updateSla(deployment: Deployment, cluster: DeploymentCluster, sla: Option[Sla], source: String, validateOnly: Boolean) = {
     if (validateOnly) Future.successful(true) else {

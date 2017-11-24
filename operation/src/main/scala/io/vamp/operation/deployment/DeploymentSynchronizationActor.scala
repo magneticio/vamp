@@ -4,6 +4,7 @@ import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
 import akka.actor.{ ActorRef, Props }
+import akka.util.Timeout
 import io.vamp.common.{ Config, Id }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
@@ -18,7 +19,8 @@ import io.vamp.operation.deployment.DeploymentSynchronizationActor.SynchronizeAl
 import io.vamp.operation.notification.{ DeploymentServiceError, OperationNotificationProvider }
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ ArtifactPaginationSupport, DeploymentPersistenceOperations, PersistenceActor }
+import io.vamp.persistence.{ ArtifactPaginationSupport, DeploymentPersistenceOperations }
+import scala.concurrent.duration._
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -41,7 +43,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
 
   import DeploymentSynchronizationActor._
 
-  private implicit val timeout = PersistenceActor.timeout()
+  private implicit val timeout = Timeout(5.second)
 
   def receive: Receive = {
     case SynchronizeAll                        ⇒ synchronize()
