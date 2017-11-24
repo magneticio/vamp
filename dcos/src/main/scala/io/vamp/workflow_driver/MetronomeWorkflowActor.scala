@@ -2,18 +2,19 @@ package io.vamp.workflow_driver
 
 import akka.pattern.ask
 import io.vamp.common.akka.IoC
-import io.vamp.common.{ ClassMapper, Config }
-import io.vamp.common.http.{ HttpClient, HttpClientException }
-import io.vamp.container_driver.{ ContainerDriverValidation, DeployableType, Docker, DockerDeployableType }
+import io.vamp.common.{ClassMapper, Config}
+import io.vamp.common.http.{HttpClient, HttpClientException}
+import io.vamp.container_driver.{ContainerDriverValidation, DeployableType, Docker, DockerDeployableType}
 import io.vamp.model.artifact._
-import io.vamp.persistence.PersistenceActor
 import io.vamp.pulse.Percolator.GetPercolator
 import io.vamp.pulse.PulseActor
+
 import scala.concurrent.Future
 import scala.util.Try
 import cats.implicits.catsStdInstancesForList
 import cats.implicits.toTraverseOps
 import cats.implicits.catsStdInstancesForFuture
+import io.vamp.persistence.refactor.VampPersistence
 
 class MetronomeWorkflowActorMapper extends ClassMapper {
   val name = "metronome"
@@ -43,9 +44,9 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
   private def requestTimeScheduled(workflows: List[Workflow]): Unit =
     allExistingJobsNames.map { existingJobName ⇒
       workflows.foreach { workflow ⇒
-        IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(
-          workflow,
-          if (existingJobName.contains(getWorkflowId(workflow))) List(instance(workflow)) else List())
+        VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(instances =
+          if (existingJobName.contains(getWorkflowId(workflow))) List(instance(workflow)) else List()
+        ))
       }
     }
 
@@ -53,10 +54,10 @@ class MetronomeWorkflowActor extends WorkflowDriver with ContainerDriverValidati
     allExistingJobsNames.map { existingJobNames ⇒
       workflows.foreach { workflow ⇒
         IoC.actorFor[PulseActor] ? GetPercolator(WorkflowDriverActor.percolator(workflow)) map {
-          case Some(_) if runnable(workflow) ⇒ IoC.actorFor[PersistenceActor] ! PersistenceActor
-            .UpdateWorkflowInstances(workflow, List(instance(workflow)))
+          case Some(_) if runnable(workflow) ⇒ VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(instances = List(instance(workflow))
+        ))
           case _ ⇒
-            IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, List())
+            VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(instances = Nil))
             if (existingJobNames.contains(getWorkflowId(workflow))) safelyDeleteWorkflow(workflow)
         }
       }

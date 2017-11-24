@@ -5,15 +5,16 @@ import akka.http.scaladsl.model.MediaTypes._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Namespace, RootAnyMap }
+import io.vamp.common.{Namespace, RootAnyMap}
 import io.vamp.common.akka.IoC._
 import io.vamp.common.http.HttpApiDirectives
-import io.vamp.model.artifact.{ DefaultBreed, Deployable }
-import io.vamp.persistence.PersistenceActor
+import io.vamp.model.artifact.{DefaultBreed, Deployable}
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
 
 import scala.concurrent.Future
 
-trait JavascriptBreedRoute extends AbstractRoute {
+trait JavascriptBreedRoute extends AbstractRoute with VampJsonFormats{
   this: HttpApiDirectives ⇒
 
   def javascriptBreedRoute(implicit namespace: Namespace, timeout: Timeout) =
@@ -43,6 +44,7 @@ trait JavascriptBreedRoute extends AbstractRoute {
       dependencies = Map(),
       healthChecks = None
     )
-    if (validateOnly) Future.successful(breed) else actorFor[PersistenceActor] ? PersistenceActor.Update(breed, Some(source))
+    if (validateOnly) Future.successful(breed) else
+      VampPersistence().update[DefaultBreed](defaultBreedSerilizationSpecifier.idExtractor(breed), _ => breed)
   }
 }

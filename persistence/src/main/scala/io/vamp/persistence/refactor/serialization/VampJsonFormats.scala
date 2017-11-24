@@ -29,6 +29,9 @@ trait VampJsonFormats extends DefaultJsonProtocol with VampJsonDecoders with Vam
   implicit val breedSerilizationSpecifier: SerializationSpecifier[Breed] =
     SerializationSpecifier[Breed](breedEncoder, breedDecoder, "breed", (e ⇒ Id[Breed](e.name)))
 
+  implicit val defaultBreedSerilizationSpecifier: SerializationSpecifier[DefaultBreed] =
+    SerializationSpecifier[DefaultBreed](defaultBreedEncoder, defaultBreedDecoder, "defaultBreed", (e ⇒ Id[DefaultBreed](e.name)))
+
   implicit val scaleSerializationSpecifier: SerializationSpecifier[Scale] =
     SerializationSpecifier[Scale](scaleEncoder, scaleDecoder, "scale", (e ⇒ Id[Scale](e.name)))
 

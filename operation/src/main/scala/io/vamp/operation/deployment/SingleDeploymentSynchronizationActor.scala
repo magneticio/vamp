@@ -27,7 +27,6 @@ object SingleDeploymentSynchronizationActor {
 
 class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation with ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider with VampJsonFormats {
 
-  import PersistenceActor._
   import PulseEventTags.Deployments._
   import SingleDeploymentSynchronizationActor._
 

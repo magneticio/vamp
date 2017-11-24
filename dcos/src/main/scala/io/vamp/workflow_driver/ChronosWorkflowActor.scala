@@ -3,11 +3,11 @@ package io.vamp.workflow_driver
 import akka.pattern.ask
 import io.vamp.common.akka.IoC
 import io.vamp.common.http.HttpClient
-import io.vamp.common.{ ClassMapper, Config }
-import io.vamp.container_driver.{ ContainerDriverValidation, Docker, DockerDeployableType }
+import io.vamp.common.{ClassMapper, Config}
+import io.vamp.container_driver.{ContainerDriverValidation, Docker, DockerDeployableType}
 import io.vamp.model.artifact.TimeSchedule.RepeatCount
 import io.vamp.model.artifact._
-import io.vamp.persistence.PersistenceActor
+import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.pulse.Percolator.GetPercolator
 import io.vamp.pulse.PulseActor
 
@@ -44,7 +44,7 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
 
   private def requestTimeScheduled(workflows: List[Workflow]) = all() foreach { instances ⇒
     workflows.foreach { workflow ⇒
-      IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, if (instances.contains(workflow.name)) instance(workflow) :: Nil else Nil)
+      VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(instances = if (instances.contains(workflow.name)) instance(workflow) :: Nil else Nil))
     }
   }
 
@@ -52,9 +52,10 @@ class ChronosWorkflowActor extends WorkflowDriver with ContainerDriverValidation
     all() foreach { instances ⇒
       workflows.foreach { workflow ⇒
         IoC.actorFor[PulseActor] ? GetPercolator(WorkflowDriverActor.percolator(workflow)) map {
-          case Some(_) if runnable(workflow) ⇒ IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, instance(workflow) :: Nil)
+          case Some(_) if runnable(workflow) ⇒
+            VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(instances = instance(workflow) :: Nil))
           case _ ⇒
-            IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Nil)
+            VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(instances = Nil))
             if (instances.contains(workflow.name)) delete(workflow)
         }
       }

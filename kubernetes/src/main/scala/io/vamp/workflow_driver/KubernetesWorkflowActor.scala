@@ -4,11 +4,12 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import io.vamp.common.ClassMapper
 import io.vamp.common.akka.IoC
-import io.vamp.container_driver.kubernetes.{ Job, KubernetesDriverActor }
-import io.vamp.container_driver.{ ContainerDriverValidation, ContainerDriverMapping, DockerDeployableType }
+import io.vamp.container_driver.kubernetes.{Job, KubernetesDriverActor}
+import io.vamp.container_driver.{ContainerDriverMapping, ContainerDriverValidation, DockerDeployableType}
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
-import io.vamp.persistence.PersistenceActor
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import io.vamp.pulse.Percolator.GetPercolator
 import io.vamp.pulse.PulseActor
 
@@ -19,7 +20,7 @@ class KubernetesWorkflowActorMapper extends ClassMapper {
   val clazz: Class[_] = classOf[KubernetesWorkflowActor]
 }
 
-class KubernetesWorkflowActor extends DaemonWorkflowDriver with ContainerDriverMapping with ContainerDriverValidation {
+class KubernetesWorkflowActor extends DaemonWorkflowDriver with ContainerDriverMapping with ContainerDriverValidation with VampJsonFormats {
 
   override protected lazy val supportedDeployableTypes = DockerDeployableType :: Nil
 
@@ -30,8 +31,8 @@ class KubernetesWorkflowActor extends DaemonWorkflowDriver with ContainerDriverM
   protected override def request: PartialFunction[Workflow, Unit] = super.request orElse {
     case workflow if workflow.schedule.isInstanceOf[EventSchedule] ⇒
       IoC.actorFor[PulseActor] ? GetPercolator(WorkflowDriverActor.percolator(workflow)) map {
-        case Some(_) if runnable(workflow) ⇒ IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Instance(workflow.name, "", Map(), deployed = true) :: Nil)
-        case _                             ⇒ IoC.actorFor[PersistenceActor] ! PersistenceActor.UpdateWorkflowInstances(workflow, Nil)
+        case Some(_) if runnable(workflow) ⇒ VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(instances = Instance(workflow.name, "", Map(), deployed = true) :: Nil))
+        case _                             ⇒ VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(instances = Nil))
       }
   }
 

@@ -88,7 +88,7 @@ trait VampJsonEncoders {
   implicit val defaultBreedEncoder: Encoder[DefaultBreed] = deriveEncoder[DefaultBreed]
   implicit val breedEncoder: Encoder[Breed] = deriveEncoder[Breed]
 
-  implicit val restartingPhase: Encoder[Workflow.Status.RestartingPhase.Value] = enumEncoder(Workflow.Status.RestartingPhase)
+  implicit val restartingPhaseEncoder: Encoder[Workflow.Status.RestartingPhase.Value] = enumEncoder(Workflow.Status.RestartingPhase)
 
   implicit val workflowStatusEncoder: Encoder[Workflow.Status] = Encoder.instance[Workflow.Status] {
     _ match {
@@ -101,7 +101,7 @@ trait VampJsonEncoders {
         Map(
           ("type" → Json.fromString("Restarting")),
           ("args" → Json.fromJsonObject(JsonObject.fromMap(
-            List(phase.map(ph ⇒ ("phase" → restartingPhase(ph)))).flatten.toMap
+            List(phase.map(ph ⇒ ("phase" → restartingPhaseEncoder(ph)))).flatten.toMap
           )))
         )
       ))
