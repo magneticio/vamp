@@ -100,7 +100,9 @@ class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with 
         })
       case _ ⇒
         undeploy(workflow, running, () ⇒ {
-          (VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(status = Workflow.Status.Starting))).map { _ ⇒
+          (VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(workflow), _.copy(status = Workflow.Status.Restarting(
+              phase = Some(Workflow.Status.RestartingPhase.Starting))))
+          ).map { _ ⇒
             pulse(workflow, scheduled = false)
           }
         })
