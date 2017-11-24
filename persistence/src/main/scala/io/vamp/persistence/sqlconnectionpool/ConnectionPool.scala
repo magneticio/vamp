@@ -15,7 +15,6 @@ object ConnectionPool {
       datasource.setUsername(user)
       datasource.setPassword(password)
       datasource.setUrl(url)
-      datasource.setInitialSize(4)
       datasource
     })
   }
