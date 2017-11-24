@@ -2,22 +2,24 @@ package io.vamp.operation.gateway
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Config, Namespace, RootAnyMap }
+import io.vamp.common.{Config, Namespace, RootAnyMap}
 import io.vamp.common.akka._
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.container_driver.ContainerDriverActor.DeployedGateways
 import io.vamp.gateway_driver.GatewayDriverActor
-import io.vamp.gateway_driver.GatewayDriverActor.{ Pull, Push }
+import io.vamp.gateway_driver.GatewayDriverActor.{Pull, Push}
 import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
-import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport, PersistenceActor }
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
+import io.vamp.persistence.{ArtifactPaginationSupport, ArtifactSupport}
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 
 import scala.concurrent.duration._
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success}
 
 class GatewaySynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
 
@@ -50,9 +52,9 @@ private case class GatewayPipeline(deployable: List[Gateway], nonDeployable: Lis
   val all = deployable ++ nonDeployable
 }
 
-class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider {
+class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider
+  with VampJsonFormats {
 
-  import io.vamp.persistence.PersistenceActor._
   import GatewaySynchronizationActor._
 
   private var currentPort = portRangeLower - 1
@@ -94,8 +96,14 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     val (noPortGateways, otherGateways) = gateways.partition { gateway ⇒ !gateway.port.assigned }
 
     noPortGateways foreach { gateway ⇒
-      if (gateway.deployed) IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = false)
-      IoC.actorFor[PersistenceActor] ! CreateGatewayPort(gateway, availablePort)
+      if (gateway.deployed) VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), _.copy(deployed = false))
+      val newPort = if (!gateway.port.assigned) {
+        gateway.port.copy(number = availablePort) match {
+          case p ⇒ p.copy(value = Option(p.toValue))
+        }
+      } else gateway.port
+
+      VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), g => g.copy(port = newPort))
     }
 
     GatewayPipeline(otherGateways, noPortGateways)
@@ -107,14 +115,12 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       val routes = gateway.routes.map {
         case route: DefaultRoute ⇒
           val routeTargets = targets(pipeline.deployable, deployments, route)
-          val targetMatch = routeTargets == route.targets
-          if (!targetMatch) IoC.actorFor[PersistenceActor] ! UpdateGatewayRouteTargets(route, routeTargets)
           route.copy(targets = routeTargets)
         case route ⇒ route
       }
-
-      gateway.copy(routes = routes)
-
+      val updatedGateway = gateway.copy(routes = routes)
+      VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), _ => updatedGateway)
+      updatedGateway
     } partition { gateway ⇒
       gateway.routes.forall {
         case route: DefaultRoute if route.targets.nonEmpty ⇒ targets(pipeline.deployable, deployments, route) == route.targets
@@ -122,9 +128,13 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
       } || !gateway.internal
     }
 
-    passThrough filter (!_.deployed) foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = true) }
+    passThrough filter (!_.deployed) foreach { gateway ⇒
+      VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), _.copy(deployed = true))
+    }
 
-    withoutRoutes filter (_.deployed) foreach { gateway ⇒ IoC.actorFor[PersistenceActor] ! UpdateGatewayDeploymentStatus(gateway, deployed = false) }
+    withoutRoutes filter (_.deployed) foreach { gateway ⇒
+      VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), _.copy(deployed = false))
+    }
 
     GatewayPipeline(passThrough, pipeline.nonDeployable ++ withoutRoutes)
   }
