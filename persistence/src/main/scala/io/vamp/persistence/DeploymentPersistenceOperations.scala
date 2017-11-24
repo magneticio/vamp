@@ -91,15 +91,22 @@ object DeploymentPersistenceOperations extends VampJsonFormats {
   }
 
   def resetGateway(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService)(implicit ns: Namespace): Future[Unit] = {
-    // TODO: which gateway to delete?
-    Future {}
+    // TODO: check if this is valid
+    val name = serviceArtifactName(deployment, deploymentCluster, deploymentService)
+    VampPersistence().deleteObject[Gateway](Id[Gateway](name))
   }
 
   // resetInternalRouteArtifacts
-  def resetInternalRouteArtifacts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService)(implicit ns: Namespace): Future[Unit] = {
-    // TODO: which gateway to delete?
-    // service.breed.ports.foreach { port ⇒ }
-    Future {}
+  def resetInternalRouteArtifacts(deployment: Deployment, deploymentCluster: DeploymentCluster, deploymentService: DeploymentService)(implicit ns: Namespace): Unit = {
+    // TODO: check if this is valid
+    deploymentService.breed.ports.foreach { port ⇒
+      {
+        deploymentCluster.gatewayBy(port.name) match {
+          case Some(gateway) ⇒ VampPersistence().deleteObject[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway))
+          case None          ⇒ // no internal gateway
+        }
+      }
+    }
   }
 
   def clusterArtifactName(deployment: Deployment, cluster: DeploymentCluster): String = {
