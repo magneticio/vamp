@@ -149,10 +149,14 @@ class MarathonDriverActor
   private def get(workflow: Workflow, replyTo: ActorRef): Unit = {
     log.debug(s"marathon reconcile workflow: ${workflow.name}")
     get(appId(workflow)).foreach {
-      case Some(app) ⇒
+      case Some(app) if workflow.breed.isInstanceOf[DefaultBreed] ⇒
         val breed = workflow.breed.asInstanceOf[DefaultBreed]
         val (equalHealthChecks, health) = healthCheck(app, breed.ports, breed.healthChecks.getOrElse(List()))
         replyTo ! ContainerWorkflow(workflow, Option(containers(app)), health, equalHealthChecks)
+      case Some(app) if workflow.breed.isInstanceOf[BreedReference] ⇒
+        val breedReference = workflow.breed.asInstanceOf[BreedReference]
+        log.warning(s"marathon reconcile workflow: ${workflow.name} ${app.id} ${breedReference.name}, expecting a breed instead")
+        replyTo ! ContainerWorkflow(workflow, None)
       case _ ⇒ replyTo ! ContainerWorkflow(workflow, None)
     }
   }
