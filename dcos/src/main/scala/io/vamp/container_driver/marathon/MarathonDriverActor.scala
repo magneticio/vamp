@@ -43,6 +43,8 @@ object MarathonDriverActor {
 
   val tenantIdOverride = Config.string(s"$config.marathon.tenant-id-override")
 
+  val useSimpleDeploymentName = Config.boolean(s"$config.marathon.use-simple-deployment-name")
+
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
   }
@@ -68,6 +70,8 @@ class MarathonDriverActor
   import ContainerDriverActor._
 
   lazy val tenantIdOverride = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdOverride()))).getOrElse(None)
+
+  lazy val useSimpleDeploymentName = Try(Some(MarathonDriverActor.useSimpleDeploymentName())).getOrElse(None)
 
   protected val expirationPeriod = MarathonDriverActor.expirationPeriod()
 

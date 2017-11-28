@@ -10,6 +10,8 @@ trait MarathonNamespace {
 
   def tenantIdOverride: Option[String]
 
+  def useSimpleDeploymentName: Option[Boolean]
+
   private val nameDelimiter = "/"
 
   private val idMatcher = """^(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])$""".r
@@ -19,7 +21,10 @@ trait MarathonNamespace {
   }
 
   protected def appId(deployment: Deployment, breed: Breed): String = {
-    s"${nameDelimiter}${tenantIdOverride.getOrElse(namespace.name)}${nameDelimiter}deployment-${artifactName2Id(deployment)}-service-${artifactName2Id(breed)}"
+    if (useSimpleDeploymentName.getOrElse(false))
+      deployment.name
+    else
+      s"${nameDelimiter}${tenantIdOverride.getOrElse(namespace.name)}${nameDelimiter}deployment-${artifactName2Id(deployment)}-service-${artifactName2Id(breed)}"
   }
 
   protected def artifactName2Id(artifact: Artifact): String = artifact.name match {

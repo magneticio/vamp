@@ -56,7 +56,7 @@ object IoC extends LazyLogging {
   }
 
   def createActor(props: Props)(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[ActorRef] = {
-    logger.info(s"Create Actor ${props.clazz} ${namespace}")
+    logger.info(s"Create Actor ${props.clazz.getSimpleName} for namespace ${namespace.name}")
     implicit val ec: ExecutionContext = actorSystem.dispatcher
     (namespaceActor ? props) map {
       case actorRef: ActorRef ⇒
