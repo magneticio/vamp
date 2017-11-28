@@ -37,12 +37,12 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
 
   protected def all[A <: Artifact: ClassTag]: List[A] = {
     val `type` = classTag[A].runtimeClass
-    log.info(s"In memory representation: all [${`type`.getSimpleName}]")
+    log.debug(s"In memory representation: all [${`type`.getSimpleName}]")
     valuesByType(type2string(`type`)).asInstanceOf[List[A]]
   }
 
   protected def allArtifacts(`type`: Class[_ <: Artifact], page: Int, perPage: Int, filter: (Artifact) ⇒ Boolean): ArtifactResponseEnvelope = {
-    log.info(s"In memory representation: all [${`type`.getSimpleName}] of $page per $perPage")
+    log.debug(s"In memory representation: all [${`type`.getSimpleName}] of $page per $perPage")
     val artifacts = valuesByType(type2string(`type`)).filter { artifact ⇒ filter(artifact) }
 
     val total = artifacts.size
@@ -61,12 +61,12 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
   }
 
   protected def readArtifact(name: String, `type`: Class[_ <: Artifact]): Option[Artifact] = {
-    log.info(s"In memory representation: read [${`type`.getSimpleName}] - $name}")
+    log.debug(s"In memory representation: read [${`type`.getSimpleName}] - $name}")
     store.get(type2string(`type`)).flatMap(_.get(name))
   }
 
   protected def setArtifact(artifact: Artifact): Artifact = {
-    log.info(s"In memory representation: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
+    log.debug(s"In memory representation: set [${artifact.getClass.getSimpleName}] - ${artifact.name}")
     records += 1
     store.get(type2string(artifact.getClass)) match {
       case None ⇒
@@ -79,7 +79,7 @@ trait InMemoryRepresentationPersistenceActor extends PersistenceActor with TypeO
   }
 
   protected def deleteArtifact(name: String, `type`: String): Option[Artifact] = {
-    log.info(s"In memory representation: delete [${`type`}] - $name}")
+    log.debug(s"In memory representation: delete [${`type`}] - $name}")
     records += 1
     store.get(`type`) flatMap { map ⇒
       val artifact = map.remove(name)
