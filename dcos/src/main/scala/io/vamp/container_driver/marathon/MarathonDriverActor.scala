@@ -348,7 +348,7 @@ class MarathonDriverActor
     )
 
     val toDeploy = requestPayload(workflow, purge(marathonAppWithGlobalOverrides))
-    log.info(s"Deploying ${toDeploy}")
+    log.info(s"Deploying ${workflow.name} with id $id")
     sendRequest(update, id, toDeploy)
   }
 
