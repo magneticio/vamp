@@ -43,6 +43,8 @@ object MarathonDriverActor {
 
   val tenantIdOverride = Config.string(s"$config.marathon.tenant-id-override")
 
+  val tenantIdWorkflowOverride = Config.string(s"$config.marathon.tenant-id-workflow-override")
+
   val useSimpleDeploymentName = Config.boolean(s"$config.marathon.use-simple-deployment-name")
 
   object Schema extends Enumeration {
@@ -70,6 +72,8 @@ class MarathonDriverActor
   import ContainerDriverActor._
 
   lazy val tenantIdOverride = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdOverride()))).getOrElse(None)
+
+  lazy val tenantIdWorkflowOverride = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdWorkflowOverride()))).getOrElse(None)
 
   lazy val useSimpleDeploymentName = Try(Some(MarathonDriverActor.useSimpleDeploymentName())).getOrElse(None)
 
