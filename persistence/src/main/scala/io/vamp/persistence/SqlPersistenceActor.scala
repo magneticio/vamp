@@ -38,7 +38,6 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
 
   override protected def read(): Long = {
     log.debug(s"SQL read for table ${table} with url ${url} ")
-    ConnectionPool.acquire()
     val connection = ConnectionPool(url, user, password).getConnection
     try {
       val statement = connection.prepareStatement(
@@ -67,13 +66,11 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
     }
     finally {
       connection.close()
-      ConnectionPool.release()
     }
   }
 
   override protected def insert(record: PersistenceRecord): Try[Option[Long]] = Try {
     log.debug(s"SQL insert for table ${table} with url ${url}")
-    ConnectionPool.acquire()
     val connection = ConnectionPool(url, user, password).getConnection
     try {
       val query = insertStatement()
@@ -93,7 +90,6 @@ trait SqlPersistenceActor extends CQRSActor with SqlStatementProvider with Persi
     }
     finally {
       connection.close()
-      ConnectionPool.release()
     }
   }
 
