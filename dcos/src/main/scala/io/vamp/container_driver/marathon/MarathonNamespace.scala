@@ -13,7 +13,7 @@ trait MarathonNamespace extends LazyLogging {
 
   def tenantIdWorkflowOverride: Option[String]
 
-  def useSimpleDeploymentName: Option[Boolean]
+  def useBreedNameForServiceName: Option[Boolean]
 
   private val nameDelimiter = "/"
 
@@ -24,7 +24,7 @@ trait MarathonNamespace extends LazyLogging {
   }
 
   protected def appId(deployment: Deployment, breed: Breed): String = {
-    if (useSimpleDeploymentName.getOrElse(false))
+    if (useBreedNameForServiceName.getOrElse(false))
       s"${nameDelimiter}${tenantIdOverride.getOrElse(namespace.name)}${nameDelimiter}${artifactName2Id(breed)}"
     else
       s"${nameDelimiter}${tenantIdOverride.getOrElse(namespace.name)}${nameDelimiter}deployment-${artifactName2Id(deployment)}-service-${artifactName2Id(breed)}"

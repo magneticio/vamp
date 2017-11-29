@@ -45,7 +45,7 @@ object MarathonDriverActor {
 
   val tenantIdWorkflowOverride = Config.string(s"$config.marathon.tenant-id-workflow-override")
 
-  val useSimpleDeploymentName = Config.boolean(s"$config.marathon.use-simple-deployment-name")
+  val useBreedNameForServiceName = Config.boolean(s"$config.marathon.use-breed-name-for-service-name")
 
   object Schema extends Enumeration {
     val Docker, Cmd, Command = Value
@@ -75,7 +75,7 @@ class MarathonDriverActor
 
   lazy val tenantIdWorkflowOverride = Try(Some(resolveWithNamespace(MarathonDriverActor.tenantIdWorkflowOverride()))).getOrElse(None)
 
-  lazy val useSimpleDeploymentName = Try(Some(MarathonDriverActor.useSimpleDeploymentName())).getOrElse(None)
+  lazy val useBreedNameForServiceName = Try(Some(MarathonDriverActor.useBreedNameForServiceName())).getOrElse(None)
 
   protected val expirationPeriod = MarathonDriverActor.expirationPeriod()
 
