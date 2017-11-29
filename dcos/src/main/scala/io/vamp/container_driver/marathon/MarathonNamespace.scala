@@ -1,11 +1,12 @@
 package io.vamp.container_driver.marathon
 
+import com.typesafe.scalalogging.LazyLogging
 import io.vamp.common.{ Artifact, Lookup, NamespaceProvider }
 import io.vamp.common.util.HashUtil
 import io.vamp.container_driver.ContainerDriver
 import io.vamp.model.artifact._
 
-trait MarathonNamespace {
+trait MarathonNamespace extends LazyLogging {
   this: ContainerDriver with NamespaceProvider ⇒
 
   def tenantIdOverride: Option[String]
@@ -22,7 +23,7 @@ trait MarathonNamespace {
 
   protected def appId(deployment: Deployment, breed: Breed): String = {
     if (useSimpleDeploymentName.getOrElse(false))
-      deployment.name
+      s"${nameDelimiter}${tenantIdOverride.getOrElse(namespace.name)}${nameDelimiter}${breed.name}"
     else
       s"${nameDelimiter}${tenantIdOverride.getOrElse(namespace.name)}${nameDelimiter}deployment-${artifactName2Id(deployment)}-service-${artifactName2Id(breed)}"
   }
