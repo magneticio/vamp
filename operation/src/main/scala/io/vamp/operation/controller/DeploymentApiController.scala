@@ -31,7 +31,7 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
     case other                        ⇒ other
   }
 
-  protected def transform(deployment: Deployment, asBlueprint: Boolean, onlyRef: Boolean) = {
+  protected def transform(deployment: Deployment, asBlueprint: Boolean, onlyRef: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
     if (asBlueprint) {
       val blueprint = deployment.asBlueprint
       if (onlyRef) onlyReferences(blueprint) else blueprint
