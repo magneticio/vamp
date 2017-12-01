@@ -95,7 +95,8 @@ trait CQRSActor extends InMemoryRepresentationPersistenceActor
         validData = false
         lastId
       case e: Exception ⇒
-        e.printStackTrace()
+        // TODO: log this in a better way stacktrace does not have any additional info
+        // e.printStackTrace()
         lastId
     }
     finally removeGuard()

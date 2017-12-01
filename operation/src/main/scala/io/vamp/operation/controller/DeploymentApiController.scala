@@ -16,6 +16,11 @@ import scala.concurrent.Future
 
 trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage with AbstractController {
 
+  // These methods allows 3rd party users to override these methods
+  protected def userDefinedOverrides(deployment: Deployment)(implicit namespace: Namespace, timeout: Timeout): Deployment = deployment
+  protected def userDefinedOverrides(blueprint: Blueprint)(implicit namespace: Namespace, timeout: Timeout): Blueprint = blueprint
+  protected def userDefinedOverrides(defaultBlueprint: DefaultBlueprint)(implicit namespace: Namespace, timeout: Timeout): DefaultBlueprint = defaultBlueprint
+
   def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
     (actorFor[PersistenceActor] ? PersistenceActor.All(classOf[Deployment], page, perPage, expandReferences, onlyReferences)) map {
       case envelope: ArtifactResponseEnvelope ⇒ envelope.copy(response = envelope.response.map {
@@ -33,10 +38,10 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
 
   protected def transform(deployment: Deployment, asBlueprint: Boolean, onlyRef: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
     if (asBlueprint) {
-      val blueprint = deployment.asBlueprint
-      if (onlyRef) onlyReferences(blueprint) else blueprint
+      val blueprint = userDefinedOverrides(deployment.asBlueprint)
+      if (onlyRef) onlyReferences(userDefinedOverrides(blueprint)) else userDefinedOverrides(blueprint)
     }
-    else deployment
+    else userDefinedOverrides(deployment)
   }
 
   def createDeployment(source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
@@ -45,16 +50,16 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
 
     sourceImport(source).flatMap { request ⇒
       processBlueprint(request, {
-        case blueprint: BlueprintReference ⇒ default(blueprint)
+        case blueprint: BlueprintReference ⇒ default(userDefinedOverrides(blueprint))
         case blueprint: DefaultBlueprint ⇒
 
           val futures = {
             if (!validateOnly)
-              blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
+              userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
                 breed ⇒ actorFor[PersistenceActor] ? PersistenceActor.Create(breed, Some(source))
               }
             else Nil
-          } :+ default(blueprint)
+          } :+ default(userDefinedOverrides(blueprint))
 
           Future.sequence(futures)
       })
@@ -67,16 +72,16 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
 
     sourceImport(source).flatMap { request ⇒
       processBlueprint(request, {
-        case blueprint: BlueprintReference ⇒ default(blueprint)
+        case blueprint: BlueprintReference ⇒ default(userDefinedOverrides(blueprint))
         case blueprint: DefaultBlueprint ⇒
 
           val futures = {
             if (!validateOnly)
-              blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
+              userDefinedOverrides(blueprint).clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map {
                 actorFor[PersistenceActor] ? PersistenceActor.Create(_, Some(source))
               }
             else Nil
-          } :+ default(blueprint)
+          } :+ default(userDefinedOverrides(blueprint))
 
           Future.sequence(futures)
       })
