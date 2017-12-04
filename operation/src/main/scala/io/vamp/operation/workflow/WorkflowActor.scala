@@ -10,7 +10,7 @@ import io.vamp.model.event.Event
 import io.vamp.operation.notification._
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport }
+import io.vamp.persistence.{ ArtifactSupport }
 import io.vamp.pulse.Percolator.{ RegisterPercolator, UnregisterPercolator }
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
@@ -26,7 +26,7 @@ object WorkflowActor {
 
 }
 
-class WorkflowActor extends ArtifactPaginationSupport with ArtifactSupport with CommonSupportForActors with OperationNotificationProvider with VampJsonFormats {
+class WorkflowActor extends ArtifactSupport with CommonSupportForActors with OperationNotificationProvider with VampJsonFormats {
 
   import PulseEventTags.Workflows._
   import WorkflowActor._

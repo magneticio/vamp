@@ -14,9 +14,9 @@ import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
 import io.vamp.model.reader.{ MegaByte, Quantity }
 import io.vamp.operation.notification.{ InternalServerError, OperationNotificationProvider, UnsupportedEscalationType }
 import io.vamp.operation.sla.EscalationActor.EscalationProcessAll
+import io.vamp.persistence.EventPaginationSupport
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ ArtifactPaginationSupport, EventPaginationSupport }
 import io.vamp.pulse.PulseActor
 import scala.concurrent.duration._
 import scala.concurrent.Future
@@ -51,14 +51,14 @@ object EscalationActor {
 
 }
 
-class EscalationActor extends ArtifactPaginationSupport with EventPaginationSupport with CommonSupportForActors with OperationNotificationProvider with VampJsonFormats {
+class EscalationActor extends EventPaginationSupport with CommonSupportForActors with OperationNotificationProvider with VampJsonFormats {
 
   def tags = Set("escalation")
 
   implicit val timeout: Timeout = Timeout(5.second)
   def receive: Receive = {
     case EscalationProcessAll(from, to) ⇒
-      forAll(allArtifacts[Deployment], check(from, to))
+      VampPersistence().getAll[Deployment]().map(_.response).map(check(from, to)(_))
   }
 
   private def check(from: OffsetDateTime, to: OffsetDateTime)(deployments: List[Deployment]): Unit = {

@@ -2,11 +2,10 @@ package io.vamp.operation.deployment
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Config, Namespace, RootAnyMap }
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka._
+import io.vamp.common.{Config, Namespace, RootAnyMap}
 import io.vamp.model.artifact.DeploymentService.Status.Intention
-import io.vamp.model.artifact.DeploymentService.Status.Phase.Done
 import io.vamp.model.artifact._
 import io.vamp.model.notification._
 import io.vamp.model.reader._
@@ -14,13 +13,14 @@ import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.deployment.DeploymentSynchronizationActor.Synchronize
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification._
-import io.vamp.persistence.DeploymentPersistenceOperations.deploymentSerilizationSpecifier
 import io.vamp.persistence._
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import scala.concurrent.duration._
+import io.vamp.common.Id
+import io.vamp.persistence.refactor.exceptions.{GeneralPersistenceError, PersistenceTypeError}
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 object DeploymentActor {
 
@@ -56,7 +56,6 @@ class DeploymentActor
     with DeploymentSlicer
     with DeploymentUpdate
     with ArtifactSupport
-    with ArtifactPaginationSupport
     with OperationNotificationProvider {
 
   import DeploymentActor._
@@ -100,17 +99,17 @@ class DeploymentActor
 }
 
 trait BlueprintSupport extends DeploymentValidator with NameValidator with BlueprintGatewayHelper with ArtifactExpansionSupport {
-  this: DeploymentValueResolver with ArtifactPaginationSupport with CommonProvider ⇒
+  this: DeploymentValueResolver with CommonProvider with VampJsonFormats ⇒
 
   def deploymentFor(name: String, create: Boolean = false): Future[Deployment] = {
     if (!create) {
-      artifactFor[Deployment](name)
+      VampPersistence().read[Deployment](Id[Deployment](name))
     }
     else {
-      artifactForIfExists[Deployment](name) flatMap {
+      VampPersistence().readIfAvailable[Deployment](Id[Deployment](name)) flatMap {
         case Some(deployment) ⇒ Future.successful(deployment)
         case None ⇒
-          artifactForIfExists[Workflow](name).map {
+          VampPersistence().readIfAvailable[Workflow](Id[Workflow](name)).map {
             case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(name))
             case _ ⇒
               validateName(name)
@@ -121,15 +120,22 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
   }
 
   def deploymentFor(blueprint: Blueprint): Future[Deployment] = {
-    artifactFor[DefaultBlueprint](blueprint) flatMap { bp ⇒
+    VampPersistence().read[Blueprint](Id[Blueprint](blueprint.name)) flatMap { blueprint ⇒
+      val bp = if(blueprint.isInstanceOf[DefaultBlueprint]) blueprint.asInstanceOf[DefaultBlueprint]
+                else throw PersistenceTypeError(objectId = Id[Blueprint](blueprint.name), objectTypeName = blueprint.getClass.getName, desiredTypeName = "DefaultBlueprint")
       val clusters = bp.clusters.map { cluster ⇒
         for {
           services ← Future.traverse(cluster.services)({ service ⇒
             for {
-              breed ← artifactFor[DefaultBreed](service.breed)
-              scale ← artifactFor[DefaultScale](service.scale)
+              breed ← VampPersistence().read[Breed](Id[Breed](service.breed.name))
+              defaultBreed = if(breed.isInstanceOf[DefaultBreed]) breed.asInstanceOf[DefaultBreed] else throw PersistenceTypeError(Id[Breed](breed.name), breed.getClass.getName, "DefaultBreed")
+              defaultScale = service.scale match {
+                case None => None
+                case Some(s) => if(s.isInstanceOf[DefaultScale]) Some(s.asInstanceOf[DefaultScale])
+                                else throw GeneralPersistenceError(Id[DefaultBlueprint](bp.name), s"The internal scale object ${service.scale} is of type ${service.scale.getClass} instead of the expected DefaultScale")
+              }
             } yield {
-              DeploymentService(Intention.Deployment, breed, service.environmentVariables, scale, Nil, arguments(breed, service), service.healthChecks, service.network, Map(), service.dialects)
+              DeploymentService(Intention.Deployment, defaultBreed, service.environmentVariables, defaultScale, Nil, arguments(defaultBreed, service), service.healthChecks, service.network, Map(), service.dialects)
             }
           })
           gateways ← expandGateways(cluster.gateways)
@@ -158,8 +164,8 @@ trait BlueprintSupport extends DeploymentValidator with NameValidator with Bluep
   }
 }
 
-trait DeploymentValidator {
-  this: BlueprintGatewayHelper with DeploymentValueResolver with ArtifactPaginationSupport with ArtifactSupport with CommonProvider ⇒
+trait DeploymentValidator extends VampJsonFormats {
+  this: BlueprintGatewayHelper with DeploymentValueResolver with ArtifactSupport with CommonProvider ⇒
 
   def validateServices: (Deployment ⇒ Deployment) = { (deployment: Deployment) ⇒
     val services = deployment.clusters.flatMap(_.services).filterNot(_.status.intention == Intention.Undeployment)
@@ -241,8 +247,9 @@ trait DeploymentValidator {
     // Availability check.
     implicit val timeout = Timeout(5.second)
 
-    consume(allArtifacts[Gateway]) map { gateways ⇒
+    VampPersistence().getAll[Gateway]() map { gatewayResult ⇒
 
+      val gateways = gatewayResult.response
       val otherGateways = gateways.filter(gateway ⇒ GatewayPath(gateway.name).segments.head != deployment.name)
 
       deployment.gateways.map { gateway ⇒

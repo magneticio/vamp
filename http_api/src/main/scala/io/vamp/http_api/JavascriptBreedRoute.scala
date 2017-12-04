@@ -8,13 +8,13 @@ import akka.util.Timeout
 import io.vamp.common.{Namespace, RootAnyMap}
 import io.vamp.common.akka.IoC._
 import io.vamp.common.http.HttpApiDirectives
-import io.vamp.model.artifact.{DefaultBreed, Deployable}
+import io.vamp.model.artifact.{Breed, DefaultBreed, Deployable}
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
 
 import scala.concurrent.Future
 
-trait JavascriptBreedRoute extends AbstractRoute with VampJsonFormats{
+trait JavascriptBreedRoute extends AbstractRoute with VampJsonFormats {
   this: HttpApiDirectives ⇒
 
   def javascriptBreedRoute(implicit namespace: Namespace, timeout: Timeout) =
@@ -45,6 +45,6 @@ trait JavascriptBreedRoute extends AbstractRoute with VampJsonFormats{
       healthChecks = None
     )
     if (validateOnly) Future.successful(breed) else
-      VampPersistence().update[DefaultBreed](defaultBreedSerilizationSpecifier.idExtractor(breed), _ => breed)
+      VampPersistence().update[Breed](breedSerilizationSpecifier.idExtractor(breed), _ ⇒ breed)
   }
 }

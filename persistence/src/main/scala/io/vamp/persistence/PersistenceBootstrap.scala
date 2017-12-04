@@ -19,9 +19,9 @@ class PersistenceBootstrap extends ActorBootstrap {
   def createActors(implicit actorSystem: ActorSystem, namespace: Namespace, timeout: Timeout): Future[List[ActorRef]] = {
     implicit val executionContext: ExecutionContext = actorSystem.dispatcher
     for {
-      storage ← new PersistenceStorageBootstrap().createActors
+      //storage ← new PersistenceStorageBootstrap().createActors
       keyValue ← new KeyValueBootstrap().createActors
-    } yield storage ++ keyValue
+    } yield keyValue
   }
 }
 

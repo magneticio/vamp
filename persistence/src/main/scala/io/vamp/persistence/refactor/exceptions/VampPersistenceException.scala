@@ -12,4 +12,8 @@ case class DuplicateObjectIdException[T](objectId: Id[T])(implicit ns: Namespace
 
 case class InvalidFormatException[T](objectAsString: String, originalException: io.circe.Error)(implicit ns: Namespace, s: SerializationSpecifier[T]) extends Exception(s"Invalid persistence exception ${originalException.getMessage} for object of type ${s.typeName}. Cannot correctly interpret ${objectAsString}.")
 
+case class PersistenceTypeError[T](objectId: Id[T], objectTypeName: String, desiredTypeName: String)(implicit ns: Namespace) extends Exception(s"Object ${objectId} is of type ${objectTypeName} and the desired type is ${desiredTypeName}")
+
+case class GeneralPersistenceError[T](objectId: Id[T], reason: String)(implicit ns: Namespace) extends Exception(s"Object ${objectId} has the exception: $reason")
+
 case class InvalidObjectIdException[T](objectId: Id[T])(implicit ns: Namespace, s: SerializationSpecifier[T]) extends Exception(s"Invalid-ObjectId-Exception in namespace ${ns.name}, ${s.typeName} -> ${objectId}")

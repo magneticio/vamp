@@ -82,7 +82,7 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
       _ ← if (sSpecifier.idExtractor(updatedObject) != id) Future.failed(VampPersistenceModificationException(s"Changing id to ${sSpecifier.idExtractor(updatedObject)}", id))
       else Future.successful(())
       _ ← esClient.execute {
-        (indexInto(indexName, sSpecifier.typeName) doc (updatedObject.asJson.noSpaces) id (sSpecifier.idExtractor(updatedObject))).copy(createOnly = Some(false))
+        (indexInto(indexName, sSpecifier.typeName) doc (updatedObject.asJson.noSpaces) id (sSpecifier.idExtractor(updatedObject)))
       }
     } yield ()
   }
@@ -128,6 +128,14 @@ class EsDao(val namespace: Namespace, elasticSearchHostAndPort: String, elasticS
   override def info: String = s"ElasticSearch: ${elasticSearchHostAndPort}"
 
   private[persistence] def afterTestCleanup: Unit = Await.result(esClient.execute(deleteIndex(indexName)), 10.second)
+
+  override def readIfAvailable[T: SerializationSpecifier](id: Id[T]): Future[Option[T]] = {
+    read(id).map(x => Some(x)).recover {
+      case e: InvalidObjectIdException[_] => None
+    }
+  }
+
+  private def replaceSecialIdChars(id: String): String = id.replace('/', '_')
 }
 
 class EsDaoFactory extends SimpleArtifactPersistenceDaoFactory {

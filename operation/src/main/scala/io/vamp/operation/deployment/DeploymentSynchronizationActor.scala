@@ -19,9 +19,10 @@ import io.vamp.operation.deployment.DeploymentSynchronizationActor.SynchronizeAl
 import io.vamp.operation.notification.{ DeploymentServiceError, OperationNotificationProvider }
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ ArtifactPaginationSupport, DeploymentPersistenceOperations }
-import scala.concurrent.duration._
+import io.vamp.persistence.DeploymentPersistenceOperations
 
+import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.concurrent.duration.FiniteDuration
 
 class DeploymentSynchronizationSchedulerActor extends SchedulerActor with OperationNotificationProvider {
@@ -39,7 +40,7 @@ object DeploymentSynchronizationActor {
   val undeploymentTimeout = Config.duration("vamp.operation.synchronization.timeout.ready-for-undeployment")
 }
 
-class DeploymentSynchronizationActor extends ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider with VampJsonFormats {
+class DeploymentSynchronizationActor extends CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider with VampJsonFormats {
 
   import DeploymentSynchronizationActor._
 
@@ -53,7 +54,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
   }
 
   private def synchronize() = {
-    forAll(allArtifacts[Deployment], { deployments ⇒
+    VampPersistence().getAll[Deployment]().map(_.response).map { deployments ⇒
       val deploymentServices = deployments.map { deployment ⇒
         val services = deployment.clusters.flatMap { cluster ⇒
           cluster.services.collect {
@@ -63,7 +64,7 @@ class DeploymentSynchronizationActor extends ArtifactPaginationSupport with Comm
         DeploymentServices(deployment, services)
       }
       actorFor[ContainerDriverActor] ! ContainerDriverActor.Get(deploymentServices)
-    }: (List[Deployment]) ⇒ Unit)
+    }
   }
 
   private def synchronize(containerService: ContainerService): Unit = {

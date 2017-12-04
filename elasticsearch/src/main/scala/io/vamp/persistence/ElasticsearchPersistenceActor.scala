@@ -21,7 +21,7 @@ case class ElasticsearchArtifact(artifact: String)
 
 case class ElasticsearchPersistenceInfo(`type`: String, url: String, index: String, initializationTime: String, elasticsearch: Any)
 
-class ElasticsearchPersistenceActor extends PersistenceActor with PersistenceMarshaller with TypeOfArtifact with PaginationSupport with NamespaceValueResolver {
+class ElasticsearchPersistenceActor extends PersistenceActor with PersistenceMarshaller with TypeOfArtifact with NamespaceValueResolver {
 
   private lazy val index = resolveWithNamespace(ElasticsearchPersistenceActor.index(), lookup = true)
 

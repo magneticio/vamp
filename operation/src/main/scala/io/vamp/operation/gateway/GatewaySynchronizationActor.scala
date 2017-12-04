@@ -2,8 +2,8 @@ package io.vamp.operation.gateway
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.{ Config, Namespace, RootAnyMap }
 import io.vamp.common.akka._
+import io.vamp.common.{ Config, Namespace, RootAnyMap }
 import io.vamp.container_driver.ContainerDriverActor
 import io.vamp.container_driver.ContainerDriverActor.DeployedGateways
 import io.vamp.gateway_driver.GatewayDriverActor
@@ -12,9 +12,9 @@ import io.vamp.model.artifact._
 import io.vamp.model.event.Event
 import io.vamp.operation.gateway.GatewaySynchronizationActor.SynchronizeAll
 import io.vamp.operation.notification._
+import io.vamp.persistence.ArtifactSupport
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ ArtifactPaginationSupport, ArtifactSupport }
 import io.vamp.pulse.PulseActor
 import io.vamp.pulse.PulseActor.Publish
 
@@ -52,7 +52,7 @@ private case class GatewayPipeline(deployable: List[Gateway], nonDeployable: Lis
   val all = deployable ++ nonDeployable
 }
 
-class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSupport with ArtifactPaginationSupport with OperationNotificationProvider
+class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSupport with OperationNotificationProvider
     with VampJsonFormats {
 
   import GatewaySynchronizationActor._
@@ -69,8 +69,8 @@ class GatewaySynchronizationActor extends CommonSupportForActors with ArtifactSu
     val sendTo = self
     implicit val timeout = Timeout(5.second)
     (for {
-      gateways ← consume(allArtifacts[Gateway])
-      deployments ← consume(allArtifacts[Deployment])
+      gateways ← VampPersistence().getAll[Gateway]().map(_.response)
+      deployments ← VampPersistence().getAll[Deployment]().map(_.response)
       marshalled ← checked[List[Gateway]](IoC.actorFor[GatewayDriverActor] ? Pull)
     } yield (gateways, deployments, marshalled)) onComplete {
       case Success((gateways, deployments, marshalled)) ⇒ sendTo ! Synchronize(gateways, deployments, marshalled)

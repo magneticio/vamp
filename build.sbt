@@ -128,7 +128,7 @@ lazy val root = project.in(file(".")).settings(
   zookeeper,
   consul,
   etcd,
-  kubernetes)
+  kubernetes, elasticsearch)
 
 lazy val bootstrap = project.settings(packAutoSettings).settings(
   description := "Bootstrap for Vamp",
@@ -151,7 +151,7 @@ lazy val bootstrap = project.settings(packAutoSettings).settings(
   zookeeper,
   consul,
   etcd,
-  kubernetes)
+  kubernetes, elasticsearch)
 
 lazy val http_api = project.settings(
   description := "Http Api for Vamp",
@@ -242,7 +242,7 @@ lazy val dcos = project.settings(
   bintrayRepository := "vamp"
 ).dependsOn(pulse, workflow_driver, container_driver)
 
-/*
+
 lazy val elasticsearch = project.settings(
   description := "Pulse and metrics driver for Elasticsearch",
   name := "vamp-elasticsearch",
@@ -250,7 +250,6 @@ lazy val elasticsearch = project.settings(
   libraryDependencies ++= testing,
   bintrayRepository := "vamp"
 ).dependsOn(pulse, persistence)
-*/
 
 lazy val config = project.settings(
   description := "Typelevel config library for VAMP",

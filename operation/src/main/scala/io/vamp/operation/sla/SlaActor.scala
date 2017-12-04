@@ -14,7 +14,8 @@ import io.vamp.model.event.{ Aggregator, Event, EventQuery, TimeRange, _ }
 import io.vamp.model.notification.{ DeEscalate, Escalate, SlaEvent }
 import io.vamp.operation.notification._
 import io.vamp.operation.sla.SlaActor.SlaProcessAll
-import io.vamp.persistence.{ ArtifactPaginationSupport, EventPaginationSupport }
+import io.vamp.persistence.refactor.VampPersistence
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ EventRequestEnvelope, PulseActor }
 import scala.concurrent.duration._
@@ -31,12 +32,12 @@ object SlaActor {
 
 }
 
-class SlaActor extends SlaPulse with ArtifactPaginationSupport with EventPaginationSupport with CommonSupportForActors with OperationNotificationProvider {
+class SlaActor extends SlaPulse with CommonSupportForActors with OperationNotificationProvider with VampJsonFormats {
 
   def receive: Receive = {
     case SlaProcessAll ⇒
       implicit val timeout = Timeout(5.second)
-      forAll(allArtifacts[Deployment], check)
+      VampPersistence().getAll[Deployment]().map(_.response).map(check(_))
   }
 
   override def info(notification: Notification): Unit = {

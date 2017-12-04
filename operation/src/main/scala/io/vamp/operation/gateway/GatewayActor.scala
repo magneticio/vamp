@@ -1,12 +1,11 @@
 package io.vamp.operation.gateway
 
 import akka.util.Timeout
-import io.vamp.common.{ Config, Id }
 import io.vamp.common.akka._
+import io.vamp.common.{ Config, Id }
 import io.vamp.model.artifact._
 import io.vamp.model.reader.{ GatewayRouteValidation, Percentage }
 import io.vamp.operation.notification._
-import io.vamp.persistence.ArtifactPaginationSupport
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
 
@@ -35,7 +34,7 @@ object GatewayActor {
 
 }
 
-class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation
+class GatewayActor extends CommonSupportForActors with OperationNotificationProvider with GatewayRouteValidation
     with VampJsonFormats {
 
   import GatewayActor._
@@ -163,7 +162,7 @@ class GatewayActor extends ArtifactPaginationSupport with CommonSupportForActors
   private def validateUniquePort: Gateway ⇒ Future[Gateway] = {
     case gateway if gateway.internal ⇒ Future.successful(gateway)
     case gateway ⇒
-      consume(allArtifacts[Gateway]) map {
+      VampPersistence().getAll[Gateway]().map(_.response) map {
         case gateways if gateway.port.number != 0 ⇒
           gateways.find(_.port.number == gateway.port.number).map(g ⇒ throwException(UnavailableGatewayPortError(gateway.port, g)))
           gateway

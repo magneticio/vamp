@@ -26,9 +26,9 @@ trait WorkflowApiController extends AbstractController with VampJsonFormats {
   }
 
   private def updateWorkflow(artifact: Workflow, validateOnly: Boolean, create: Boolean)(implicit namespace: Namespace, timeout: Timeout): Future[Any] = {
-    artifactForIfExists[Deployment](artifact.name).flatMap {
+    VampPersistence().readIfAvailable[Deployment](Id[Deployment](artifact.name)).flatMap {
       case Some(_) ⇒ throwException(DeploymentWorkflowNameCollision(artifact.name))
-      case _ ⇒ artifactForIfExists[Workflow](artifact.name).flatMap {
+      case _ ⇒ VampPersistence().readIfAvailable[Workflow](Id[Workflow](artifact.name)).flatMap {
         case Some(workflow) if workflow.status != Workflow.Status.Suspended ⇒ throwException(WorkflowUpdateError(workflow))
         case _ ⇒
           if (validateOnly)

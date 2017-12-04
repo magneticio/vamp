@@ -15,7 +15,6 @@ import io.vamp.http_api.notification.HttpApiNotificationProvider
 import io.vamp.http_api.ws.WebSocketRoute
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.operation.controller.{ ArtifactApiController, ComposeApiController }
-import io.vamp.persistence.ArtifactPaginationSupport
 import org.json4s.Formats
 import org.slf4j.LoggerFactory
 
@@ -55,8 +54,7 @@ class HttpApiRoute(implicit val actorSystem: ActorSystem, val materializer: Mate
     with JavascriptBreedRoute
     with SystemRoute
     with LogApiRoute
-    with ProxyRoute
-    with ArtifactPaginationSupport {
+    with ProxyRoute {
 
   protected def crudRoutes(implicit namespace: Namespace, timeout: Timeout) = {
     pathEndOrSingleSlash {

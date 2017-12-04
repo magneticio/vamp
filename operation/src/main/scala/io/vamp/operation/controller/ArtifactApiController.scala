@@ -3,19 +3,19 @@ package io.vamp.operation.controller
 import java.net.URLDecoder
 
 import akka.util.Timeout
-import io.vamp.common.{ Artifact, Id, Namespace }
+import io.vamp.common.{Artifact, Id, Namespace}
 import io.vamp.model.artifact._
-import io.vamp.model.notification.{ ImportReferenceError, InconsistentArtifactName }
-import io.vamp.model.reader.{ YamlReader, _ }
+import io.vamp.model.notification.{ImportReferenceError, InconsistentArtifactName}
+import io.vamp.model.reader.{YamlReader, _}
 import io.vamp.model.serialization.CoreSerializationFormat
 import io.vamp.operation.notification.UnexpectedArtifact
 import io.vamp.persistence.notification.PersistenceOperationFailure
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.api.SearchResponse
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ ArtifactExpansionSupport, ArtifactResponseEnvelope }
+import io.vamp.persistence.{ArtifactExpansionSupport, ArtifactResponseEnvelope}
 import org.json4s.native.Serialization.write
-import org.json4s.{ DefaultFormats, Extraction }
+import org.json4s.{DefaultFormats, Extraction}
 
 import scala.concurrent.Future
 
@@ -38,7 +38,8 @@ trait ArtifactApiController
   }
 
   def readArtifacts(kind: String, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
-    val fromAndSize = if (perPage > 0) Some((perPage * page, perPage)) else None
+    val actualPage = if(page < 1) 0 else page-1
+    val fromAndSize = if (perPage > 0) Some((perPage * actualPage, perPage)) else None
     `type`(kind) match {
       case (t, _) if t == classOf[Deployment] ⇒ Future.successful(ArtifactResponseEnvelope(Nil, 0, 1, ArtifactResponseEnvelope.maxPerPage))
       case (t, _) if t == classOf[Breed]      ⇒ VampPersistence().getAll[Breed](fromAndSize).map(searchResponseToArtifactResponseEnvelope(_, fromAndSize))
@@ -104,24 +105,28 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
     case _                                  ⇒ true
   }
 
-  private def read(`type`: Class[_ <: Artifact], name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout) = `type` match {
-    case t if t == classOf[Gateway]    ⇒ VampPersistence().read[Gateway](Id[Gateway](URLDecoder.decode(name, "UTF-8"))).map(x ⇒ Some(x))
-    case t if t == classOf[Deployment] ⇒ Future.successful(None)
-    case t if t == classOf[Breed]      ⇒ VampPersistence().read[Breed](Id[Breed](name)).map(x ⇒ Some(x))
-    case t if t == classOf[Sla]        ⇒ VampPersistence().read[Sla](Id[Sla](name)).map(x ⇒ Some(x))
-    case t if t == classOf[Escalation] ⇒ VampPersistence().read[Escalation](Id[Escalation](name)).map(x ⇒ Some(x))
-    case t if t == classOf[Route]      ⇒ VampPersistence().read[Route](Id[Route](name)).map(x ⇒ Some(x))
-    case t if t == classOf[Condition]  ⇒ VampPersistence().read[Condition](Id[Condition](name)).map(x ⇒ Some(x))
-    case t if t == classOf[Rewrite]    ⇒ VampPersistence().read[Rewrite](Id[Rewrite](name)).map(x ⇒ Some(x))
-    case t if t == classOf[Workflow]   ⇒ VampPersistence().read[Workflow](Id[Workflow](name)).map(x ⇒ Some(x))
-    case t if t == classOf[Template]   ⇒ VampPersistence().read[Template](Id[Template](name)).map(x ⇒ Some(x))
-    case t if t == classOf[Scale]      ⇒ VampPersistence().read[Scale](Id[Scale](name)).map(x ⇒ Some(x))
-    case t if t == classOf[Blueprint]  ⇒ VampPersistence().read[Blueprint](Id[Blueprint](name)).map(x ⇒ Some(x))
-    case other                         ⇒ throwException(PersistenceOperationFailure(other))
+  private def read(`type`: Class[_ <: Artifact], name: String, expandReferences: Boolean, onlyReferences: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
+    `type` match {
+      case t if t == classOf[Gateway]    ⇒ VampPersistence().read[Gateway](Id[Gateway](URLDecoder.decode(name, "UTF-8"))).map(x ⇒ Some(x))
+      case t if t == classOf[Deployment] ⇒ Future.successful(None)
+      case t if t == classOf[Breed]      ⇒ VampPersistence().read[Breed](Id[Breed](name)).map(x ⇒ Some(x))
+      case t if t == classOf[Sla]        ⇒ VampPersistence().read[Sla](Id[Sla](name)).map(x ⇒ Some(x))
+      case t if t == classOf[Escalation] ⇒ VampPersistence().read[Escalation](Id[Escalation](name)).map(x ⇒ Some(x))
+      case t if t == classOf[Route]      ⇒ VampPersistence().read[Route](Id[Route](name)).map(x ⇒ Some(x))
+      case t if t == classOf[Condition]  ⇒ VampPersistence().read[Condition](Id[Condition](name)).map(x ⇒ Some(x))
+      case t if t == classOf[Rewrite]    ⇒ VampPersistence().read[Rewrite](Id[Rewrite](name)).map(x ⇒ Some(x))
+      case t if t == classOf[Workflow]   ⇒ VampPersistence().read[Workflow](Id[Workflow](name)).map(x ⇒ Some(x))
+      case t if t == classOf[Template]   ⇒ VampPersistence().read[Template](Id[Template](name)).map(x ⇒ Some(x))
+      case t if t == classOf[Scale]      ⇒ VampPersistence().read[Scale](Id[Scale](name)).map(x ⇒ Some(x))
+      case t if t == classOf[Blueprint]  ⇒ VampPersistence().read[Blueprint](Id[Blueprint](name)).map(x ⇒ Some(x))
+      case other                         ⇒ throwException(PersistenceOperationFailure(other))
+    }
   }
 
   private def create(artifact: Artifact, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
-    artifact match {
+    if(validateOnly)
+      Future.successful(artifact)
+    else artifact match {
       case e: Gateway    ⇒ VampPersistence().create[Gateway](e)
       case e: Deployment ⇒ VampPersistence().create[Deployment](e)
       case e: Breed      ⇒ VampPersistence().create[Breed](e)
@@ -133,7 +138,16 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
       case e: Workflow   ⇒ VampPersistence().create[Workflow](e)
       case e: Template   ⇒ VampPersistence().create[Template](e)
       case e: Scale      ⇒ VampPersistence().create[Scale](e)
-      case e: Blueprint  ⇒ VampPersistence().create[Blueprint](e)
+      case e: Blueprint  ⇒ {
+        for {
+          _ <- VampPersistence().create[Blueprint](e)
+          defaultBreedsThatNeedCreation = e match {
+            case d: DefaultBlueprint => d.clusters.flatMap(_.services.map(_.breed)).filter(_.isInstanceOf[DefaultBreed]).map(_.asInstanceOf[DefaultBreed])
+            case _ => Nil
+          }
+          _ <- Future.sequence(defaultBreedsThatNeedCreation.map(b => VampPersistence().create[Breed](b)))
+        } yield ()
+      }
       case other         ⇒ throwException(PersistenceOperationFailure(other))
     }
   }
@@ -141,7 +155,6 @@ trait SingleArtifactApiController extends SourceTransformer with AbstractControl
   private def update(artifact: Artifact, name: String, source: String, validateOnly: Boolean)(implicit namespace: Namespace, timeout: Timeout) = {
     if (name != artifact.name)
       throwException(InconsistentArtifactName(name, artifact.name))
-
     if (validateOnly) Future.successful(artifact) else
       artifact match {
         case e: Gateway    ⇒ VampPersistence().update[Gateway](Id[Gateway](e.name), _ ⇒ e)

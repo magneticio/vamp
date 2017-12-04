@@ -57,7 +57,7 @@ class WorkflowSerializer
       if (workflow.network.isDefined) list += JField("network", Extraction.decompose(workflow.network.get))
       if (workflow.arguments.nonEmpty) list += JField("arguments", serializeArguments(workflow.arguments))
       if (workflow.instances.nonEmpty) list += JField("instances", Extraction.decompose(workflow.instances))
-      if (workflow.dialects.rootMap.nonEmpty) list += JField("dialects", serializeDialects(workflow.dialects.rootMap))
+      if (workflow.dialects.rootMap.nonEmpty) list += JField("dialects", serializeDialects(workflow.dialects))
 
       // Add optional values
       workflow.health.foreach(h ⇒ list += JField("health", Extraction.decompose(h)))

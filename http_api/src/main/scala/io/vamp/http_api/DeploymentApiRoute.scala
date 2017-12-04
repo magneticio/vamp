@@ -5,10 +5,9 @@ import akka.util.Timeout
 import io.vamp.common.Namespace
 import io.vamp.common.http.HttpApiDirectives
 import io.vamp.operation.controller.DeploymentApiController
-import io.vamp.persistence.ArtifactPaginationSupport
 
 trait DeploymentApiRoute extends AbstractRoute with DeploymentApiController {
-  this: ArtifactPaginationSupport with HttpApiDirectives ⇒
+  this: HttpApiDirectives ⇒
 
   private def asBlueprint = parameters('as_blueprint.as[Boolean] ? false)
 

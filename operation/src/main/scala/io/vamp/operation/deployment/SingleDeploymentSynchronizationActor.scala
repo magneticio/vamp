@@ -1,10 +1,9 @@
 package io.vamp.operation.deployment
 
-import io.vamp.common.{ Config, Id }
+import io.vamp.common.Config
 import io.vamp.common.akka.IoC._
 import io.vamp.common.akka.{ CommonSupportForActors, IoC }
 import io.vamp.container_driver.{ ContainerDriverActor, ContainerInstance, ContainerService, Containers }
-import io.vamp.model.artifact.DeploymentService.Status
 import io.vamp.model.artifact.DeploymentService.Status.Intention
 import io.vamp.model.artifact.DeploymentService.Status.Phase.{ Done, Initiated, Updating }
 import io.vamp.model.artifact._
@@ -12,10 +11,8 @@ import io.vamp.model.event.Event
 import io.vamp.model.resolver.DeploymentValueResolver
 import io.vamp.operation.gateway.GatewayActor
 import io.vamp.operation.notification.OperationNotificationProvider
-import io.vamp.persistence.DeploymentPersistenceOperations.serviceArtifactName
-import io.vamp.persistence.refactor.VampPersistence
-import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import io.vamp.persistence._
+import io.vamp.persistence.refactor.serialization.VampJsonFormats
 import io.vamp.pulse.PulseActor.Publish
 import io.vamp.pulse.{ PulseActor, PulseEventTags }
 
@@ -25,7 +22,7 @@ object SingleDeploymentSynchronizationActor {
 
 }
 
-class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation with ArtifactPaginationSupport with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider with VampJsonFormats {
+class SingleDeploymentSynchronizationActor extends DeploymentGatewayOperation with CommonSupportForActors with DeploymentValueResolver with OperationNotificationProvider with VampJsonFormats {
 
   import PulseEventTags.Deployments._
   import SingleDeploymentSynchronizationActor._
