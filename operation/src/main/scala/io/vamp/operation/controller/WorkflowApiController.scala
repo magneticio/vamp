@@ -33,7 +33,7 @@ trait WorkflowApiController extends AbstractController with VampJsonFormats {
         case _ ⇒
           if (validateOnly)
             Future.successful(Some(artifact))
-          else if (create) VampPersistence().create(artifact)
+          else if (create) VampPersistence().create[Workflow](artifact)
           else VampPersistence().update[Workflow](workflowSerilizationSpecifier.idExtractor(artifact), _ ⇒ artifact)
       }
     } map {

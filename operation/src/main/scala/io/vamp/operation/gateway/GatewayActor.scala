@@ -39,8 +39,6 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
 
   import GatewayActor._
 
-  private implicit val timeout = Timeout(5.second)
-
   def receive = {
 
     case Create(gateway, source, validateOnly, force) ⇒ reply {
@@ -105,14 +103,14 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
   }
 
   private def routeChanged(gateway: Gateway): Future[Boolean] = {
-    checked[Option[_]](VampPersistence().read[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway))) map {
+    VampPersistence().readIfAvailable[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway)) map {
       case Some(old: Gateway) ⇒ old.routes.map(_.path.normalized).toSet != gateway.routes.map(_.path.normalized).toSet
       case _                  ⇒ true
     }
   }
 
   private def deploymentExists(name: String): Future[Boolean] = {
-    checked[Option[_]](VampPersistence().read[Deployment](Id[Deployment](GatewayPath(name).segments.head))) map {
+    VampPersistence().readIfAvailable[Deployment](Id[Deployment](GatewayPath(name).segments.head)) map {
       result ⇒ result.isDefined
     }
   }
@@ -186,11 +184,11 @@ class GatewayActor extends CommonSupportForActors with OperationNotificationProv
 
       case (true, true) ⇒
         if (create)
-          VampPersistence().create[Gateway](gateway)
+          VampPersistence().create[Gateway](gateway).flatMap(id => VampPersistence().read[Gateway](id))
         else
-          VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), _ ⇒ gateway)
+          VampPersistence().update[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway), _ ⇒ gateway).map(_ =>  VampPersistence().read[Gateway](gatewaySerilizationSpecifier.idExtractor(gateway)))
 
-      case _ ⇒ VampPersistence().create[Gateway](gateway)
+      case _ ⇒ VampPersistence().create[Gateway](gateway).flatMap(id => VampPersistence().read[Gateway](id))
     }
   }
 

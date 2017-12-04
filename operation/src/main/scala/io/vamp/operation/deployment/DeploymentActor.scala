@@ -89,10 +89,15 @@ class DeploymentActor
     else future.flatMap { deployment ⇒
       implicit val timeout: Timeout = Timeout(5.second)
       //TODO: source is ignored
-      VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), (d: Deployment) ⇒ deployment) map {
-        persisted ⇒
-          IoC.actorFor[DeploymentSynchronizationActor] ! Synchronize(deployment)
-          persisted
+      for {
+        existing <- VampPersistence().readIfAvailable[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment))
+        _ <- existing match {
+          case None => VampPersistence().create[Deployment](deployment)
+          case Some(_) => VampPersistence().update[Deployment](deploymentSerilizationSpecifier.idExtractor(deployment), _ => deployment)
+        }
+      } yield {
+        IoC.actorFor[DeploymentSynchronizationActor] ! Synchronize(deployment)
+        deployment
       }
     }
   }

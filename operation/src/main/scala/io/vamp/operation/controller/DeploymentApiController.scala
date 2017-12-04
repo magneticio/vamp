@@ -2,7 +2,7 @@ package io.vamp.operation.controller
 
 import akka.pattern.ask
 import akka.util.Timeout
-import io.vamp.common.Namespace
+import io.vamp.common.{Id, Namespace}
 import io.vamp.common.akka.IoC._
 import io.vamp.common.notification.NotificationErrorException
 import io.vamp.model.artifact._
@@ -11,15 +11,15 @@ import io.vamp.model.reader._
 import io.vamp.operation.deployment.DeploymentActor
 import io.vamp.persistence.refactor.VampPersistence
 import io.vamp.persistence.refactor.serialization.VampJsonFormats
-import io.vamp.persistence.{ ArtifactResponseEnvelope, ArtifactShrinkage }
-import io.vamp.common.Id
+import io.vamp.persistence.{ArtifactResponseEnvelope, ArtifactShrinkage}
 
 import scala.concurrent.Future
 
 trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage with AbstractController with VampJsonFormats {
 
-  def deployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
-    val fromAndSize = if (perPage > 0) Some((perPage * page, perPage)) else None
+  def getDeployments(asBlueprint: Boolean, expandReferences: Boolean, onlyReferences: Boolean)(page: Int, perPage: Int)(implicit namespace: Namespace, timeout: Timeout): Future[ArtifactResponseEnvelope] = {
+    val actualPage = if(page < 1) 0 else page-1
+    val fromAndSize = if (perPage > 0) Some((perPage * actualPage, perPage)) else None
     VampPersistence().getAll[Deployment](fromAndSize) map { searchResponse ⇒
       ArtifactResponseEnvelope(
         response = searchResponse.response.map { deployment ⇒ transform(deployment, asBlueprint, onlyReferences) },
@@ -72,8 +72,19 @@ trait DeploymentApiController extends SourceTransformer with ArtifactShrinkage w
 
           val futures = {
             if (!validateOnly)
-              blueprint.clusters.flatMap(_.services).map(_.breed).filter(_.isInstanceOf[DefaultBreed]).map { b ⇒
-                VampPersistence().create[Breed](b)
+              for {
+                cluster <- blueprint.clusters
+                service <- cluster.services
+                breed = service.breed
+                if(breed.isInstanceOf[DefaultBreed])
+              } yield {
+                for {
+                  existingBreed <- VampPersistence().readIfAvailable[Breed](breedSerilizationSpecifier.idExtractor(breed))
+                  _ <- existingBreed match {
+                    case None => VampPersistence().create[Breed](breed)
+                    case Some(_) => VampPersistence().update[Breed](breedSerilizationSpecifier.idExtractor(breed), _ => breed)
+                  }
+                } yield ()
               }
             else Nil
           } :+ default(blueprint)
